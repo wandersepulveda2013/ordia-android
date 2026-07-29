@@ -1,0 +1,1 @@
+Ordia domain smoke passed: 25 assertions

@@ -1,0 +1,11 @@
+app/src/androidTest/java/com/ordia/app/DatabaseSmokeTest.kt
+app/src/androidTest/java/com/ordia/app/SmokeTest.kt
+app/src/test/java/com/ordia/app/domain/DateRulesTest.kt
+app/src/test/java/com/ordia/app/domain/DayPlannerTest.kt
+app/src/test/java/com/ordia/app/domain/GuardianCoachTest.kt
+app/src/test/java/com/ordia/app/domain/HabitRulesTest.kt
+app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt
+app/src/test/java/com/ordia/app/domain/QuietHoursTest.kt
+app/src/test/java/com/ordia/app/domain/RecurrenceEngineTest.kt
+app/src/test/java/com/ordia/app/domain/SearchEngineTest.kt
+app/src/test/java/com/ordia/app/domain/TaskRulesTest.kt

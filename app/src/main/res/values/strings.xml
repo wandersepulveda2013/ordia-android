@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Ordia</string>
+    <string name="app_tagline">Tu mundo, en orden</string>
+    <string name="guardian_channel_name">Guardián de Ordia</string>
+    <string name="guardian_channel_description">Mantiene disponible el compañero flotante que activaste.</string>
+    <string name="guardian_notification_title">Guardián activo</string>
+    <string name="guardian_notification_text">Toca para abrir Ordia o usa el guardián para capturar algo.</string>
+    <string name="reminders_channel_name">Recordatorios</string>
+    <string name="reminders_channel_description">Avisos de tareas y hábitos programados.</string>
+    <string name="widget_description">Muestra tu próximo paso y el número de tareas pendientes.</string>
+</resources>

@@ -1,0 +1,2 @@
+Ordia static verification passed: 52 Kotlin source files, 6604 source lines, 9 unit test files, 2 instrumentation test files.
+WARNING: gradle-wrapper.jar is absent; Android Studio or `gradle wrapper --gradle-version 8.13` must generate it before ./gradlew works
