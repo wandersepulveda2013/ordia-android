@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -146,7 +145,7 @@ fun TodayScreen(
         }
         item { SectionHeader("Para hoy", action = if (state.inboxTasks.isNotEmpty()) "Ver bandeja (${state.inboxTasks.size})" else null, onAction = if (state.inboxTasks.isNotEmpty()) onOpenInbox else null) }
         if (state.todayTasks.isEmpty()) {
-            item { EmptyState("Tu día tiene espacio", "Añade una tarea con fecha para verla aquí.", "Planificar tarea") { showTaskDialog = true } }
+            item { EmptyState("Tu día tiene espacio", "Añade una tarea con fecha para verla aquí.", "Planificar tarea", onAction = { showTaskDialog = true }) }
         } else {
             items(state.todayTasks, key = { "today-${it.id}" }) { task -> TaskItem(state, vm, task, onTask) }
         }

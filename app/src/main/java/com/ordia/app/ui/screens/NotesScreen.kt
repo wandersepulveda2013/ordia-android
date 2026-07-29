@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -93,7 +92,7 @@ fun NotesScreen(
         }
         item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Buscar en notas") }, singleLine = true) }
         if (notes.isEmpty()) {
-            item { EmptyState("No hay notas", "Crea una página para guardar ideas, decisiones o información.", "Crear nota") { onNote(0) } }
+            item { EmptyState("No hay notas", "Crea una página para guardar ideas, decisiones o información.", "Crear nota", onAction = { onNote(0) }) }
         } else {
             items(notes, key = { it.id }) { note ->
                 Card(onClick = { onNote(note.id) }) {

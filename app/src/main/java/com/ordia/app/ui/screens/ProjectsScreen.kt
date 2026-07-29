@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -48,7 +47,7 @@ fun ProjectsScreen(
     ) {
         item { ScreenHeader("RESULTADOS CONCRETOS", "Proyectos", "Reúne tareas y notas alrededor de un objetivo.", "Nuevo") { adding = true } }
         if (state.projects.isEmpty()) {
-            item { EmptyState("Todavía no hay proyectos", "Crea uno cuando varias tareas persigan el mismo resultado.", "Crear proyecto") { adding = true } }
+            item { EmptyState("Todavía no hay proyectos", "Crea uno cuando varias tareas persigan el mismo resultado.", "Crear proyecto", onAction = { adding = true }) }
         } else {
             items(state.projects, key = { it.id }) { project ->
                 val progress = state.projectProgress(project.id)

@@ -42,7 +42,7 @@ fun InboxScreen(
     ) {
         item { ScreenHeader("CAPTURA SIN FRICCIÓN", "Bandeja", "Todo lo que todavía no tiene fecha o proyecto.", "Añadir") { adding = true } }
         if (state.inboxTasks.isEmpty()) {
-            item { EmptyState("Bandeja vacía", "Las ideas rápidas y tareas sin fecha aparecerán aquí.", "Capturar algo") { adding = true } }
+            item { EmptyState("Bandeja vacía", "Las ideas rápidas y tareas sin fecha aparecerán aquí.", "Capturar algo", onAction = { adding = true }) }
         } else {
             items(state.inboxTasks, key = { it.id }) { task ->
                 val subtasks = state.subtasks(task.id)

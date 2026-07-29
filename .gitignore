@@ -10,3 +10,8 @@
 app/build/
 __pycache__/
 *.pyc
+*.keystore
+*.jks
+
+# Room schema (generated)
+app/schemas/

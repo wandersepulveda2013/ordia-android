@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -67,7 +66,7 @@ fun HabitsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Paddin
         item { ScreenHeader("CONSTANCIA SIN CULPA", "Hábitos y rutinas", "Registra el avance; no conviertas un día difícil en una deuda.", "Nuevo hábito") { showHabitDialog = true } }
         item { SectionHeader("Hábitos") }
         if (state.habits.isEmpty()) {
-            item { EmptyState("Sin hábitos todavía", "Empieza con algo pequeño que puedas repetir.", "Crear hábito") { showHabitDialog = true } }
+            item { EmptyState("Sin hábitos todavía", "Empieza con algo pequeño que puedas repetir.", "Crear hábito", onAction = { showHabitDialog = true }) }
         } else {
             items(state.habits, key = { it.id }) { habit ->
                 val count = state.habitCount(habit.id)

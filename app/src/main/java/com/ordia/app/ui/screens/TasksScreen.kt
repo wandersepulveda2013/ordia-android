@@ -70,7 +70,7 @@ fun TasksScreen(
             }
         }
         if (shown.isEmpty()) {
-            item { EmptyState("Nada por aquí", "Cambia el filtro o crea una tarea nueva.", "Crear tarea") { adding = true } }
+            item { EmptyState("Nada por aquí", "Cambia el filtro o crea una tarea nueva.", "Crear tarea", onAction = { adding = true }) }
         } else {
             items(shown, key = { it.id }) { task -> TaskListItem(state, vm, task, onTask) }
         }
