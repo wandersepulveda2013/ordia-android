@@ -20,20 +20,11 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
-    signingConfigs {
-        create("development") {
-            storeFile = file("ordia-dev.keystore")
-            storePassword = "ordia-dev"
-            keyAlias = "ordia-dev"
-            keyPassword = "ordia-dev"
-        }
-    }
-
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            signingConfig = signingConfigs.getByName("development")
+           
         }
         release {
             isMinifyEnabled = true
