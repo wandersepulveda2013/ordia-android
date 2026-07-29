@@ -1,0 +1,3 @@
+Copyright © 2026 Ordia. Todos los derechos reservados.
+
+Este código fuente se entrega para el desarrollo del proyecto Ordia. No se concede permiso de distribución, sublicencia o venta a terceros sin autorización del titular del proyecto.
