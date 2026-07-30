@@ -71,7 +71,7 @@ class TaskReminderWorker(
         )
 
         val detail = buildString {
-            append(task.details.takeIf { it.isNotBlank() } ?: "Ordia te recuerda tu siguiente paso.")
+            append(task.details.takeIf { it.isNotBlank() } ?: "Ordía te recuerda tu siguiente paso.")
             task.dueAt?.let { append(" · ${DateRules.formatTime(it)}") }
         }
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)

@@ -46,7 +46,7 @@ fun OnboardingScreen(
             Text(
                 when (page) {
                     0 -> "Tu mundo, en orden"
-                    1 -> "Ordia se adapta a ti"
+                    1 -> "Ordía se adapta a ti"
                     else -> "Un compañero, no una molestia"
                 },
                 style = MaterialTheme.typography.displayMedium,

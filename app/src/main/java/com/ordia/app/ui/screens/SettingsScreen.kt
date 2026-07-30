@@ -164,7 +164,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                 Card {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            if (BuildConfig.OVERLAY_ENABLED) "Ordia 3 Preview Full" else "Ordia 3 Preview",
+                            if (BuildConfig.OVERLAY_ENABLED) "Ordía 3 Preview Full" else "Ordía 3 Preview",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -347,7 +347,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         item {
             InfoBanner(
                 "Actualización segura",
-                "Ordia comprueba GitHub Releases, valida el SHA-256, el paquete y la firma de la APK. Android siempre exige un toque final para autorizar la instalación."
+                "Ordía comprueba GitHub Releases, valida el SHA-256, el paquete y la firma de la APK. Android siempre exige un toque final para autorizar la instalación."
             )
         }
         item {
@@ -383,7 +383,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                         scope.launch {
                             when (val result = OrdiaUpdateManager.checkDetailed()) {
                                 OrdiaUpdateManager.CheckResult.UpToDate -> {
-                                    updateStatus = "Ordia está actualizada."
+                                    updateStatus = "Ordía está actualizada."
                                 }
                                 is OrdiaUpdateManager.CheckResult.Failed -> {
                                     updateStatus = "No se pudo comprobar: ${result.reason}"
@@ -448,7 +448,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                 Button(onClick = {
                     vm.exportBackup { json ->
                         backupJson = json
-                        createBackup.launch("Ordia-${LocalDate.now()}.ordia.json")
+                        createBackup.launch("Ordía-${LocalDate.now()}.ordia.json")
                     }
                 }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Outlined.Backup, null)
@@ -464,7 +464,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
              Text(
                 buildString {
                     if (BuildConfig.PREVIEW) {
-                        append(if (BuildConfig.OVERLAY_ENABLED) "Ordia 3 Preview Full · " else "Ordia 3 Preview · ")
+                        append(if (BuildConfig.OVERLAY_ENABLED) "Ordía 3 Preview Full · " else "Ordía 3 Preview · ")
                     }
                     append("${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
                     append(" · Local primero · Sin cuenta obligatoria")

@@ -351,7 +351,7 @@ object OrdiaUpdateManager {
             NOTIFICATION_ID + 1,
             NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_ordia)
-                .setContentTitle("Ordia está lista para actualizarse")
+                .setContentTitle("Ordía está lista para actualizarse")
                 .setContentText("La APK fue verificada. Android requiere una confirmación final.")
                 .setContentIntent(pending)
                 .setAutoCancel(true)

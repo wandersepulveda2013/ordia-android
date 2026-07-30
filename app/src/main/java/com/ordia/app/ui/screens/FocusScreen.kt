@@ -78,7 +78,7 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        ScreenHeader("UNA COSA A LA VEZ", "Enfoque", "Ordia aparta lo demás mientras trabajas.")
+        ScreenHeader("UNA COSA A LA VEZ", "Enfoque", "Ordía aparta lo demás mientras trabajas.")
         Surface(
             modifier = Modifier.size(270.dp),
             shape = CircleShape,

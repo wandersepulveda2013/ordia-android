@@ -46,7 +46,7 @@ fun ContextualAttentionScreen(state: OrdiaUiState, vm: OrdiaViewModel, padding: 
             contentPadding = PaddingValues(20.dp, padding.calculateTopPadding() + 20.dp, 20.dp, padding.calculateBottomPadding() + 32.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            item { ScreenHeader("PRIVADO Y OPCIONAL", "Atención contextual", "Ordia detecta posibles compromisos localmente y siempre pide confirmación.") }
+            item { ScreenHeader("PRIVADO Y OPCIONAL", "Atención contextual", "Ordía detecta posibles compromisos localmente y siempre pide confirmación.") }
             item {
                 Card(Modifier.fillMaxWidth()) {
                     androidx.compose.foundation.layout.Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -94,7 +94,7 @@ fun ContextualAttentionScreen(state: OrdiaUiState, vm: OrdiaViewModel, padding: 
         contentPadding = PaddingValues(20.dp, padding.calculateTopPadding() + 20.dp, 20.dp, padding.calculateBottomPadding() + 32.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        item { ScreenHeader("PRIVADO Y OPCIONAL", "Atención contextual", "Ordia detecta posibles compromisos localmente y siempre pide confirmación.") }
+        item { ScreenHeader("PRIVADO Y OPCIONAL", "Atención contextual", "Ordía detecta posibles compromisos localmente y siempre pide confirmación.") }
         item {
             SettingRow("Procesamiento contextual", "Permite analizar texto compartido o seleccionado.", enabled) {
                 enabled = it; settings.enabled = it
@@ -117,7 +117,7 @@ fun ContextualAttentionScreen(state: OrdiaUiState, vm: OrdiaViewModel, padding: 
             Card(Modifier.fillMaxWidth()) {
                 androidx.compose.foundation.layout.Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(if (listenerGranted) "Acceso a notificaciones autorizado" else "Acceso a notificaciones no autorizado", style = MaterialTheme.typography.titleMedium)
-                    Text("Ordia funciona manualmente sin este permiso. Actívalo solo si deseas sugerencias en la bandeja contextual.")
+                    Text("Ordía funciona manualmente sin este permiso. Actívalo solo si deseas sugerencias en la bandeja contextual.")
                     OutlinedButton(onClick = { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }) {
                         Text("Abrir permisos de notificaciones")
                     }

@@ -52,7 +52,7 @@ android {
             buildConfigField("boolean", "OVERLAY_ENABLED", "false")
             buildConfigField("boolean", "CONTEXT_NOTIFICATION_ACCESS_ENABLED", "false")
             buildConfigField("boolean", "PREVIEW", "true")
-            resValue("string", "app_name", "Ordia 3 Preview")
+            resValue("string", "app_name", "Ordía 3 Preview")
         }
 
         create("previewFull") {
@@ -65,7 +65,7 @@ android {
             buildConfigField("boolean", "OVERLAY_ENABLED", "true")
             buildConfigField("boolean", "CONTEXT_NOTIFICATION_ACCESS_ENABLED", "true")
             buildConfigField("boolean", "PREVIEW", "true")
-            resValue("string", "app_name", "Ordia 3 Preview Full")
+            resValue("string", "app_name", "Ordía 3 Preview Full")
         }
     }
 

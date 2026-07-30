@@ -26,7 +26,7 @@ object GuardianCoach {
             val next = TaskRules.nextBestTask(urgent, now)
             return Insight("PROTEGE TU DÍA", next?.title ?: "Prioridad de hoy", "Reserva tiempo para lo más importante antes de llenar la agenda.", next?.id, Tone.FOCUSED)
         }
-        TaskRules.nextBestTask(pending, now)?.let { return Insight("SIGUIENTE PASO", it.title, it.details.takeIf(String::isNotBlank) ?: "Ordia la priorizó por fecha, importancia y estado.", it.id, Tone.FOCUSED) }
+        TaskRules.nextBestTask(pending, now)?.let { return Insight("SIGUIENTE PASO", it.title, it.details.takeIf(String::isNotBlank) ?: "Ordía la priorizó por fecha, importancia y estado.", it.id, Tone.FOCUSED) }
         habits.firstOrNull { HabitRules.isScheduled(it, today) && HabitRules.countFor(habitLogs, it.id, today) < it.targetPerPeriod }?.let {
             return Insight("UN PEQUEÑO RITUAL", it.title, "Tu lista está despejada. Este hábito puede cerrar el día con intención.", tone = Tone.CALM)
         }

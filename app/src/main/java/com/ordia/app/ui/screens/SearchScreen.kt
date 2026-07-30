@@ -54,7 +54,7 @@ fun SearchScreen(
         item { ScreenHeader("ENCUENTRA SIN NAVEGAR", "Búsqueda", "Busca tareas, proyectos, notas y hábitos al mismo tiempo.") }
         item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text("¿Qué estás buscando?") }, singleLine = true) }
         when {
-            query.isBlank() -> item { EmptyState("Escribe para buscar", "Ordia busca localmente; tu información no sale del dispositivo.") }
+            query.isBlank() -> item { EmptyState("Escribe para buscar", "Ordía busca localmente; tu información no sale del dispositivo.") }
             results.isEmpty() -> item { EmptyState("Sin resultados", "Prueba con otra palabra o una parte del título.") }
             else -> items(results, key = { "${it.kind}-${it.id}" }) { result ->
                 Card(onClick = {

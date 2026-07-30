@@ -260,7 +260,7 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                 color = MaterialTheme.colorScheme.secondaryContainer
             ) {
                 Text(
-                    "Ordia no enferma ni castiga al guardián cuando descansas. La mascota acompaña tu vida; no intenta convertirla en una obligación.",
+                    "Ordía no enferma ni castiga al guardián cuando descansas. La mascota acompaña tu vida; no intenta convertirla en una obligación.",
                     modifier = Modifier.padding(18.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer

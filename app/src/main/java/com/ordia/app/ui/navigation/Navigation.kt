@@ -167,7 +167,7 @@ fun OrdiaNavigation(
                             Column(Modifier.padding(top = 16.dp, bottom = 10.dp)) {
                                 GuardianAvatar(42.dp)
                                 Spacer(Modifier.height(6.dp))
-                                Text("Ordia", style = MaterialTheme.typography.labelLarge)
+                                Text("Ordía", style = MaterialTheme.typography.labelLarge)
                             }
                         }
                     ) {

@@ -78,7 +78,7 @@ fun OrdiaRoot(
         incomingText?.takeIf { it.isNotBlank() }?.let { text ->
             if (app.container.contextualSettingsStore.isActive()) {
                 pendingContext = ContextualAnalyzer.analyze(text)
-                if (pendingContext == null) snackbarHostState.showSnackbar("Ordia no procesó el texto porque era sensible o ambiguo.")
+                if (pendingContext == null) snackbarHostState.showSnackbar("Ordía no procesó el texto porque era sensible o ambiguo.")
             } else {
                 snackbarHostState.showSnackbar("Activa la atención contextual para procesar texto compartido.")
             }
