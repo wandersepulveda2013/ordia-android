@@ -1,0 +1,36 @@
+ORDIA 3.0.2 — INSTALADOR CORREGIDO
+
+NO abras APLICAR_ORDIA_3.ps1 con doble clic: Windows puede enviarlo a Bloc de notas.
+
+FORMA CORRECTA:
+1. Extrae el ZIP completo. No lo ejecutes desde dentro del ZIP.
+2. Abre la carpeta extraída.
+3. Haz doble clic en INICIAR_ORDIA_3.bat.
+4. Mantén abierta la ventana hasta que aparezca el resultado.
+
+Si no inicia, ejecuta DIAGNOSTICO_ORDIA_3.bat. Este archivo mostrará qué programa o carpeta falta.
+
+El instalador:
+- protege tus cambios locales;
+- crea una rama aislada feature/ordia-3.0;
+- valida el paquete;
+- aplica Ordia 3.0;
+- ejecuta pruebas, lint y compilación;
+- restaura el repositorio si la compilación falla;
+- crea el commit y hace push a la rama correcta cuando GitHub está configurado;
+- deja Ordia-3.0.apk y ORDIA-3.0-RESULTADO.txt en el Escritorio.
+
+Ruta esperada del repositorio:
+C:\Users\wsepulveda\Documents\GitHub\ordia-android
+
+Para usar otra ruta, abre CMD y ejecuta:
+set ORDIA_REPO=C:\otra\ruta\ordia-android
+INICIAR_ORDIA_3.bat
+
+IMPORTANTE SOBRE GITHUB:
+La rama puede subirse aunque GitHub CLI no esté instalado, siempre que Git tenga credenciales para origin.
+Las pruebas de pull request no reciben secretos de firma. La publicación automática de APK solo ocurre desde main con secretos válidos.
+
+
+PARA SUBIRLO CON OPEN CODE
+Copia y pega el contenido de PROMPT_OPEN_CODE_SUBIR_ORDIA_3.txt en OpenCode después de ejecutar el instalador.

@@ -1,4 +1,4 @@
-package com.ordia.app.ui
+﻿package com.ordia.app.ui
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -41,14 +41,17 @@ import com.ordia.app.domain.NoteBlockCodec
 import com.ordia.app.domain.NaturalTaskParser
 import com.ordia.app.domain.RecurrenceEngine
 import com.ordia.app.domain.TaskRules
+import com.ordia.app.domain.TaskMutationGate
 import com.ordia.app.reminders.ReminderScheduler
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import java.time.LocalDate
 
 sealed interface UiEvent {
@@ -79,10 +82,10 @@ data class OrdiaUiState(
     val guardianInsight: GuardianCoach.Insight get() = GuardianCoach.insight(tasks, habits, habitLogs)
     val nextTask: TaskEntity? get() = guardianInsight.taskId?.let(::task) ?: TaskRules.nextBestTask(tasks)
     val rootTasks: List<TaskEntity> get() = tasks.filter { it.parentTaskId == null }
-    val pendingTasks: List<TaskEntity> get() = rootTasks.filter { !it.completed && !it.archived }
+    val pendingTasks: List<TaskEntity> get() = rootTasks.filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
     val inboxTasks: List<TaskEntity> get() = pendingTasks.filter { it.status == TaskStatus.INBOX && it.dueAt == null }
     val overdueTasks: List<TaskEntity> get() = pendingTasks.filter { TaskRules.isOverdue(it) }
-    val todayTasks: List<TaskEntity> get() = pendingTasks.filter { TaskRules.isDueToday(it) }
+    val todayTasks: List<TaskEntity> get() = pendingTasks.filter { TaskRules.isDueToday(it) && !TaskRules.isOverdue(it) }
     val completedCount: Int get() = rootTasks.count { it.completed }
     val pendingCount: Int get() = pendingTasks.size
     val completionRate: Int get() = TaskRules.completionRate(rootTasks)
@@ -96,7 +99,7 @@ data class OrdiaUiState(
     fun project(id: Long?): ProjectEntity? = id?.let { value -> projects.firstOrNull { it.id == value } }
     fun note(id: Long): NoteEntity? = notes.firstOrNull { it.id == id }
     fun habit(id: Long): HabitEntity? = habits.firstOrNull { it.id == id }
-    fun subtasks(parentId: Long): List<TaskEntity> = tasks.filter { it.parentTaskId == parentId && !it.archived }.sortedBy { it.sortOrder }
+    fun subtasks(parentId: Long): List<TaskEntity> = tasks.filter { it.parentTaskId == parentId && !it.archived && it.status != TaskStatus.CANCELLED }.sortedBy { it.sortOrder }
     fun routineSteps(routineId: Long): List<RoutineStepEntity> = routineSteps.filter { it.routineId == routineId }.sortedBy { it.position }
     fun attachmentsFor(type: AttachmentOwnerType, ownerId: Long): List<AttachmentEntity> =
         attachments.filter { it.ownerType == type && it.ownerId == ownerId }
@@ -105,7 +108,7 @@ data class OrdiaUiState(
         return tags.filter { it.id in ids }
     }
     fun projectProgress(projectId: Long): Float {
-        val related = rootTasks.filter { it.projectId == projectId && !it.archived }
+        val related = rootTasks.filter { it.projectId == projectId && !it.archived && it.status != TaskStatus.CANCELLED }
         if (related.isEmpty()) return 0f
         return related.count { it.completed }.toFloat() / related.size
     }
@@ -232,7 +235,7 @@ class OrdiaViewModel(
                 taskRepository.update(normalized)
                 normalized.id
             }
-            if (normalized.reminderAt != null || normalized.dueAt != null) reminderScheduler.schedule(normalized.copy(id = id)) else reminderScheduler.cancel(id)
+            if (normalized.status != TaskStatus.CANCELLED && !normalized.completed && (normalized.reminderAt != null || normalized.dueAt != null)) reminderScheduler.schedule(normalized.copy(id = id)) else reminderScheduler.cancel(id)
             uiState.value.tags.forEach { tag ->
                 val currentlyLinked = uiState.value.taskTags.any { it.taskId == id && it.tagId == tag.id }
                 when {
@@ -271,24 +274,24 @@ class OrdiaViewModel(
 
     fun toggleTask(task: TaskEntity) {
         viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            val completing = !task.completed
-            taskRepository.update(
-                task.copy(
+            TaskMutationGate.mutex.withLock {
+                val current = taskRepository.get(task.id) ?: return@withLock
+                val now = System.currentTimeMillis()
+                val completing = !current.completed
+                val updated = current.copy(
                     completed = completing,
-                    status = if (completing) TaskStatus.COMPLETED else if (task.dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED,
+                    status = if (completing) TaskStatus.COMPLETED else if (current.dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED,
                     completedAt = if (completing) now else null,
                     updatedAt = now
                 )
-            )
-            if (completing) {
-                reminderScheduler.cancel(task.id)
-                RecurrenceEngine.nextOccurrence(task, now)?.let { next ->
-                    val nextId = taskRepository.add(next)
-                    reminderScheduler.schedule(next.copy(id = nextId))
-                }
-            } else {
-                reminderScheduler.schedule(task)
+                taskRepository.update(updated)
+                if (completing) {
+                    reminderScheduler.cancel(current.id)
+                    RecurrenceEngine.nextOccurrence(current, now)?.let { next ->
+                        val nextId = taskRepository.add(next)
+                        reminderScheduler.schedule(next.copy(id = nextId))
+                    }
+                } else if (updated.reminderAt != null || updated.dueAt != null) reminderScheduler.schedule(updated)
             }
             updateWidget()
         }
@@ -525,6 +528,12 @@ class OrdiaViewModel(
 
     fun importBackup(raw: String) = viewModelScope.launch {
         val result = backupManager.importJson(raw)
+        if (result.success) {
+            val restored = preferencesRepository.preferences.first()
+            if (restored.autoUpdateEnabled) com.ordia.app.updates.OrdiaUpdateManager.schedule(appContext)
+            else com.ordia.app.updates.OrdiaUpdateManager.cancelSchedule(appContext)
+            appContext.stopService(android.content.Intent(appContext, com.ordia.app.overlay.GuardianOverlayService::class.java))
+        }
         _events.emit(UiEvent.Message(result.message))
         updateWidget()
     }
