@@ -83,5 +83,23 @@
                 <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
             </intent-filter>
         </receiver>
+
+        <!-- External confirmation for contextual suggestions -->
+        <activity
+            android:name=".context.external.ExternalConfirmationActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@style/Theme.Ordia.QuickCapture" />
+
+        <receiver
+            android:name=".context.external.ExternalConfirmationReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.ordia.app.action.ADD_SUGGESTION" />
+                <action android:name="com.ordia.app.action.IGNORE_SUGGESTION" />
+                <action android:name="com.ordia.app.action.POSTPONE_SUGGESTION" />
+                <action android:name="com.ordia.app.action.OPEN_SUGGESTION" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

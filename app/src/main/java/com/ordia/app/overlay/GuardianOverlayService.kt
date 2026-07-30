@@ -13,18 +13,24 @@ import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowManager
-import android.widget.LinearLayout
+import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
 import com.ordia.app.MainActivity
 import com.ordia.app.OrdiaApplication
 import com.ordia.app.R
+import com.ordia.app.context.external.ExternalConfirmationController
+import com.ordia.app.context.external.ExternalSuggestion
+import com.ordia.app.context.external.ExternalSuggestionAction
+import com.ordia.app.context.external.PostponeDuration
 import com.ordia.app.data.preferences.GuardianMode
 import com.ordia.app.data.preferences.UserPreferences
 import com.ordia.app.domain.GuardianEngine
@@ -47,6 +53,9 @@ class GuardianOverlayService : Service() {
     private var quietHoursActive = false
 
     private val repository get() = (application as OrdiaApplication).container.preferencesRepository
+    private var suggestionCard: View? = null
+    private var currentSuggestion: ExternalSuggestion? = null
+    private var suggestionCardExpired = false
 
     override fun onCreate() {
         super.onCreate()
@@ -58,6 +67,37 @@ class GuardianOverlayService : Service() {
             return
         }
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+
+        // Register as external suggestion listener
+        val controller = ExternalConfirmationController.getInstance(this)
+        controller.guardianSuggestionListener = ExternalConfirmationController.GuardSuggestionListener { suggestion, event ->
+            when (event) {
+                ExternalConfirmationController.GuardSuggestionEvent.SUGGESTION_DETECTED,
+                ExternalConfirmationController.GuardSuggestionEvent.APPROACHING_CARD,
+                ExternalConfirmationController.GuardSuggestionEvent.POINTING,
+                ExternalConfirmationController.GuardSuggestionEvent.WAITING_FOR_DECISION -> {
+                    currentSuggestion = suggestion
+                    suggestionCardExpired = false
+                    if (suggestion != null && guardianView != null && !quietHoursActive) {
+                        showSuggestionCard(suggestion)
+                    }
+                }
+                ExternalConfirmationController.GuardSuggestionEvent.CONFIRMING -> {
+                    guardianView?.celebrate()
+                    scope.launch {
+                        delay(1200L)
+                        hideSuggestionCard()
+                    }
+                }
+                ExternalConfirmationController.GuardSuggestionEvent.DISMISSED -> {
+                    hideSuggestionCard()
+                }
+                ExternalConfirmationController.GuardSuggestionEvent.RETURNING_TO_IDLE -> {
+                    // No action needed — the card is already hidden
+                }
+            }
+        }
+
         scope.launch {
             repository.preferences.collect { value ->
                 val structuralChange = preferences.guardianMode != value.guardianMode
@@ -335,6 +375,116 @@ class GuardianOverlayService : Service() {
         }
     }
 
+    // ========================================================================
+    // Suggestion card (external confirmation overlay)
+    // ========================================================================
+
+    private fun showSuggestionCard(suggestion: ExternalSuggestion) {
+        if (suggestionCard != null) return
+        if (quietHoursActive) return
+        if (suggestion.isExpired) return
+        if (suggestionCardExpired) return
+
+        val inflater = LayoutInflater.from(this)
+        val card = inflater.inflate(R.layout.ordia_suggestion_card, null) as LinearLayout
+
+        // Fill card data (structed-only, no original text)
+        card.findViewById<TextView>(R.id.card_suggestion_title)?.text = suggestion.title
+        card.findViewById<TextView>(R.id.card_suggestion_kind)?.text = suggestion.kind.displayName
+
+        // Source text
+        val sourceText = getString(R.string.external_suggestion_from_source, suggestion.source.displayName)
+        card.findViewById<TextView>(R.id.card_suggestion_source)?.text = sourceText
+
+        // Date/time
+        val dateText = suggestion.dueAt?.let {
+            java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
+                .format(java.util.Date(it))
+        } ?: "Sin fecha"
+        card.findViewById<TextView>(R.id.card_suggestion_date)?.text = dateText
+
+        // Confidence (only in diagnostics mode — not implemented yet, hidden by default)
+        card.findViewById<TextView>(R.id.card_suggestion_confidence)?.text = ""
+
+        // Actions
+        val controller = ExternalConfirmationController.getInstance(this)
+        card.findViewById<Button>(R.id.card_action_add)?.setOnClickListener {
+            controller.addSuggestion(suggestion)
+            hideSuggestionCard()
+        }
+        card.findViewById<Button>(R.id.card_action_edit)?.setOnClickListener {
+            val editIntent = controller.createEditIntent(suggestion)
+            startActivity(editIntent)
+        }
+        card.findViewById<Button>(R.id.card_action_postpone)?.setOnClickListener {
+            controller.postponeSuggestion(suggestion, PostponeDuration.ONE_HOUR)
+            hideSuggestionCard()
+        }
+        card.findViewById<Button>(R.id.card_action_ignore)?.setOnClickListener {
+            controller.ignoreSuggestion(suggestion)
+            hideSuggestionCard()
+        }
+
+        // Position near guardian
+        val guardianParams = guardianView?.tag as? WindowManager.LayoutParams
+        val cardWidth = dp(280)
+        val cardHeight = dp(200)
+
+        val params = WindowManager.LayoutParams(
+            cardWidth,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            val bounds = safeBounds(cardWidth, cardHeight)
+            if (guardianParams != null) {
+                // Place below guardian
+                x = guardianParams.x.coerceIn(bounds.left, bounds.right - cardWidth / 2)
+                y = (guardianParams.y + dp(60)).coerceIn(bounds.top, bounds.bottom)
+            } else {
+                x = bounds.left + dp(12)
+                y = bounds.top + dp(12)
+            }
+        }
+
+        card.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_OUTSIDE -> {
+                    // Touch outside closes the card
+                    hideSuggestionCard()
+                    controller.ignoreSuggestion(suggestion)
+                    true
+                }
+                else -> false
+            }
+        }
+
+        // Reduced motion check
+        if (!preferences.guardianAnimations) {
+            card.alpha = 1f
+        }
+
+        runCatching { windowManager.addView(card, params) }
+            .onSuccess { suggestionCard = card }
+    }
+
+    private fun hideSuggestionCard() {
+        suggestionCard?.let { card ->
+            runCatching { windowManager.removeView(card) }
+        }
+        suggestionCard = null
+    }
+
+    /** Sets an expiration flag so the card won't reappear after being dismissed. */
+    fun expireSuggestionCard() {
+        suggestionCardExpired = true
+        hideSuggestionCard()
+    }
+
     private fun recreateGuardian() {
         hidePanel()
         guardianView?.let { runCatching { windowManager.removeView(it) } }
@@ -348,6 +498,7 @@ class GuardianOverlayService : Service() {
     }
 
     override fun onDestroy() {
+        hideSuggestionCard()
         hidePanel()
         if (::windowManager.isInitialized) guardianView?.let { runCatching { windowManager.removeView(it) } }
         guardianView = null

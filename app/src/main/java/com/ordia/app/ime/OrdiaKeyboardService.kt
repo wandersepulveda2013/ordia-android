@@ -20,6 +20,8 @@ import com.ordia.app.context.ContextCaptureSource
 import com.ordia.app.context.ContextEngine
 import com.ordia.app.context.ContextIntent
 import com.ordia.app.context.ContextResult
+import com.ordia.app.context.external.ExternalConfirmationController
+import com.ordia.app.context.external.ExternalSuggestion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -152,10 +154,43 @@ class OrdiaKeyboardService : InputMethodService(),
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
-        super.onFinishInputView(finishingInput)
-        clearSuggestion()
+        // Transferir sugerencias no resueltas al controlador externo
+        val controller = ExternalConfirmationController.getInstance(this)
+        val unresolved = suggestionQueue.toList()
         suggestionQueue.clear()
+
+        if (currentSuggestion != null) {
+            val pending = currentSuggestion!!
+            val extSuggestion = ExternalSuggestion(
+                id = pending.intent.id,
+                confirmationId = pending.confirmationId,
+                kind = pending.intent.kind,
+                title = pending.intent.title,
+                dueAt = pending.intent.dueAt,
+                source = pending.intent.source,
+                priority = ExternalSuggestion.calculatePriority(pending.intent.kind, pending.intent.dueAt),
+                confidence = pending.intent.confidence
+            )
+            controller.receiveFromIME(extSuggestion)
+        }
+
+        unresolved.forEach { pending ->
+            val extSuggestion = ExternalSuggestion(
+                id = pending.intent.id,
+                confirmationId = pending.confirmationId,
+                kind = pending.intent.kind,
+                title = pending.intent.title,
+                dueAt = pending.intent.dueAt,
+                source = pending.intent.source,
+                priority = ExternalSuggestion.calculatePriority(pending.intent.kind, pending.intent.dueAt),
+                confidence = pending.intent.confidence
+            )
+            controller.receiveFromIME(extSuggestion)
+        }
+
+        clearSuggestion()
         autoCloseJob?.cancel()
+        super.onFinishInputView(finishingInput)
     }
 
     override fun onKey(primaryCode: Int, keyCodes: IntArray?) {
@@ -274,6 +309,13 @@ class OrdiaKeyboardService : InputMethodService(),
 
     /** Añade una sugerencia a la cola y muestra si no hay ninguna activa */
     private fun enqueueSuggestion(intent: ContextIntent, confirmationId: String? = null) {
+        // Dedup con el controlador externo
+        val controller = ExternalConfirmationController.getInstance(this)
+        if (controller.isProcessing(intent.id)) {
+            // El controlador externo ya tiene esta sugerencia
+            return
+        }
+
         if (suggestionQueue.size >= 3) suggestionQueue.removeFirst()
         suggestionQueue.addLast(PendingSuggestion(intent, confirmationId ?: ""))
 
@@ -337,6 +379,8 @@ class OrdiaKeyboardService : InputMethodService(),
                     val engine = ContextEngine.getInstance(this)
                     engine.resolveConfirmation(pending.confirmationId, true)
                 }
+                // Notificar al controlador externo
+                ExternalConfirmationController.getInstance(this).resolveFromIME(pending.intent.id)
                 clearSuggestion()
                 showNextSuggestion()
             }

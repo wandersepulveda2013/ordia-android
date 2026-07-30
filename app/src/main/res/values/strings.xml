@@ -21,4 +21,15 @@
     <string name="keyboard_pause_1h">Pausar 1 hora</string>
     <string name="keyboard_change_datetime">Cambiar fecha u hora</string>
     <string name="keyboard_suggestion_pattern_add">¿%1$s? ¿Deseas agregarlo?</string>
+    <string name="external_suggestion_title">Sugerencia de Ordía</string>
+    <string name="external_suggestion_add">Agregar</string>
+    <string name="external_suggestion_edit">Editar</string>
+    <string name="external_suggestion_postpone">Posponer</string>
+    <string name="external_suggestion_ignore">Ignorar</string>
+    <string name="external_suggestion_edit_title">Editar sugerencia</string>
+    <string name="external_suggestion_save">Guardar</string>
+    <string name="external_suggestion_cancel">Cancelar</string>
+    <string name="external_suggestion_no_permission">Sugerencia pendiente — activa superposición para verla</string>
+    <string name="external_suggestion_quiet_hours">Horas silenciosas — sugerencia encolada</string>
+    <string name="external_suggestion_from_source">Desde %1$s</string>
 </resources>
