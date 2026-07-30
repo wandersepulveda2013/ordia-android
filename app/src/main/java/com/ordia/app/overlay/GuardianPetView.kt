@@ -70,10 +70,7 @@ class GuardianPetView(context: Context) : View(context) {
         invalidate()
     }
 
-    override fun performClick(): Boolean {
-        super.performClick()
-        return true
-    }
+    override fun performClick(): Boolean = super.performClick()
 
     override fun onDetachedFromWindow() {
         animator.cancel()

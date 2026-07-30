@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.ordia.app.BuildConfig
+import com.ordia.app.R
 import com.ordia.app.backup.BackupSecurityRules
 import com.ordia.app.OrdiaApplication
 import com.ordia.app.data.preferences.GuardianMode
@@ -153,7 +154,32 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 32.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        item { ScreenHeader("A TU MANERA", "Ajustes", "Personaliza Ordia 2.0, tu guardián y las actualizaciones sin perder datos.") }
+        item { ScreenHeader("A TU MANERA", "Ajustes", "Personaliza Ordia, tu guardián y las actualizaciones sin perder datos.") }
+
+        if (BuildConfig.PREVIEW) {
+            item {
+                Card {
+                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            "Ordia 3 Preview",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            "${BuildConfig.VERSION_NAME} (código ${BuildConfig.VERSION_CODE}) · ${if (BuildConfig.DEBUG) "depuración" else "release"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Esta es una versión de prueba que puede contener errores. " +
+                            "No sustituye a la aplicación estable. Los datos se almacenan por separado.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+        }
 
         item { SectionHeader("Apariencia") }
         item {
@@ -403,7 +429,11 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         }
         item {
             Text(
-                "Ordia ${BuildConfig.VERSION_NAME} · Local primero · Sin cuenta obligatoria",
+                buildString {
+                    if (BuildConfig.PREVIEW) append("Ordia 3 Preview · ")
+                    append("${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+                    append(" · Local primero · Sin cuenta obligatoria")
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

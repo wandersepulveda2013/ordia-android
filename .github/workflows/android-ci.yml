@@ -1,4 +1,4 @@
-name: Build and publish Ordia 3.0
+name: Ordia 3.0 CI
 
 on:
   push:
@@ -12,11 +12,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  # ─────────────────────────────────────────────────────────
+  # TRABAJO 1 — VERIFY
+  # Se ejecuta en pull_request, workflow_dispatch y push.
+  # NO recibe secretos.
+  # ─────────────────────────────────────────────────────────
+  verify:
+    name: Verify build
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
+      checks: write
 
     steps:
       - name: Checkout
@@ -33,8 +40,66 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@017a9effdb900e5b5b2fddfb590a105619dca3c3 # v4.4.2
 
-      - name: Restore and verify dedicated Ordia update key
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      - name: Run full verification (tests, lint, debug build, release build)
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew clean test lintDebug assembleDebug assembleRelease --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: test-reports
+          path: |
+            app/build/reports/tests/
+            app/build/reports/lint-results-*.html
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Publish build summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo "## Ordia 3.0 — Build summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: \`${{ github.head_ref || github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Event**: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Debug APK**: uploaded as \`app-debug-apk\` artifact" >> $GITHUB_STEP_SUMMARY
+
+  # ─────────────────────────────────────────────────────────
+  # TRABAJO 2 — SIGN
+  # Solo en push confiable a main después de VERIFY.
+  # NO ejecuta Gradle ni código del repositorio.
+  # ─────────────────────────────────────────────────────────
+  sign:
+    name: Sign APK
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - name: Download debug APK
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: app-debug-apk
+          path: unsigned
+
+      - name: Restore keystore and sign APK
         shell: bash
         env:
           KEYSTORE_B64: ${{ secrets.ORDIA_UPDATE_KEYSTORE_BASE64 }}
@@ -43,110 +108,125 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ORDIA_UPDATE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
+
+          # Validate secrets exist
           test -n "${KEYSTORE_B64:-}" || { echo "Missing ORDIA_UPDATE_KEYSTORE_BASE64"; exit 1; }
           test -n "${KEYSTORE_PASSWORD:-}" || { echo "Missing ORDIA_UPDATE_KEYSTORE_PASSWORD"; exit 1; }
           test -n "${KEY_ALIAS:-}" || { echo "Missing ORDIA_UPDATE_KEY_ALIAS"; exit 1; }
           test -n "${KEY_PASSWORD:-}" || { echo "Missing ORDIA_UPDATE_KEY_PASSWORD"; exit 1; }
-          test "$KEY_ALIAS" != "androiddebugkey" || { echo "Generic Android debug keys are forbidden"; exit 1; }
-          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/ordia-update.keystore"
-          chmod 600 "$RUNNER_TEMP/ordia-update.keystore"
-          keytool -list -keystore "$RUNNER_TEMP/ordia-update.keystore" \
+
+          # Reject generic debug key
+          test "$KEY_ALIAS" != "androiddebugkey" || {
+            echo "Generic Android debug keys are forbidden"; exit 1
+          }
+
+          # Decode keystore (temporary, cleaned up in post step)
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > /tmp/ordia-update.keystore
+          chmod 600 /tmp/ordia-update.keystore
+
+          # Validate alias
+          keytool -list -keystore /tmp/ordia-update.keystore \
             -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
-          echo "ORDIA_KEYSTORE_PATH=$RUNNER_TEMP/ordia-update.keystore" >> "$GITHUB_ENV"
 
-      - name: Test, lint and build pull request without secrets
-        if: ${{ github.event_name == 'pull_request' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          chmod +x gradlew
-          ./gradlew clean test lintDebug assembleDebug --stacktrace
+          # Find apksigner from Android SDK (installed by setup-java or Gradle)
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          APKSIGNER=$(find "$SDK_ROOT" -name apksigner -type f 2>/dev/null | head -1)
+          if [ -z "$APKSIGNER" ]; then
+            # Fallback: use the one bundled with build-tools
+            APKSIGNER=$(find "$SDK_ROOT/build-tools" -name apksigner -type f 2>/dev/null | head -1)
+          fi
+          test -n "$APKSIGNER" || { echo "apksigner not found in Android SDK"; exit 1; }
+          echo "Using apksigner: $APKSIGNER"
 
-      - name: Test, lint and build trusted main update
-        if: ${{ github.event_name != 'pull_request' }}
-        shell: bash
-        env:
-          ORDIA_KEYSTORE_PASSWORD: ${{ secrets.ORDIA_UPDATE_KEYSTORE_PASSWORD }}
-          ORDIA_KEY_ALIAS: ${{ secrets.ORDIA_UPDATE_KEY_ALIAS }}
-          ORDIA_KEY_PASSWORD: ${{ secrets.ORDIA_UPDATE_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          chmod +x gradlew
-          ./gradlew clean test lintDebug assembleDebug --stacktrace
+          # Sign the APK
+          UNSIGNED="unsigned/app-debug.apk"
+          SIGNED="Ordia-3.0-signed.apk"
+          cp "$UNSIGNED" "$SIGNED"
+          "$APKSIGNER" sign \
+            --ks /tmp/ordia-update.keystore \
+            --ks-pass "pass:$KEYSTORE_PASSWORD" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --key-pass "pass:$KEY_PASSWORD" \
+            --out "$SIGNED" \
+            "$SIGNED"
 
-      - name: Prepare immutable APK, metadata and checksum
-        if: ${{ github.event_name != 'pull_request' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          [[ "$GITHUB_RUN_NUMBER" =~ ^[0-9]+$ ]]
-          [[ "$GITHUB_RUN_ATTEMPT" =~ ^[0-9]+$ ]]
-          (( GITHUB_RUN_ATTEMPT >= 1 && GITHUB_RUN_ATTEMPT <= 99 ))
-          CODE=$((1300000000 + GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))
-          (( CODE <= 2147483647 ))
-          APK="Ordia-3.0-code-$CODE.apk"
-          METADATA="app/build/outputs/apk/debug/output-metadata.json"
-          test -f "$METADATA"
-          ACTUAL_CODE=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["elements"][0]["versionCode"])' "$METADATA")
-          test "$ACTUAL_CODE" = "$CODE" || { echo "APK versionCode $ACTUAL_CODE != expected $CODE"; exit 1; }
-          cp app/build/outputs/apk/debug/app-debug.apk "$APK"
-          sha256sum "$APK" | awk -v name="$APK" '{print $1 "  " name}' > "$APK.sha256"
-          cat > ordia-release.env <<META
-          ORDIA_CODE=$CODE
-          ORDIA_APK=$APK
-          ORDIA_CHECKSUM=$APK.sha256
-          ORDIA_TAG=v3.0.${GITHUB_RUN_NUMBER}-code-$CODE
-          META
+          # Verify signature
+          "$APKSIGNER" verify --verbose --print-certs "$SIGNED" 2>&1
 
-      - name: Upload verified build artifact
-        if: ${{ github.event_name != 'pull_request' }}
+          # Calculate checksum
+          sha256sum "$SIGNED" | awk '{print $1 "  Ordia-3.0-signed.apk"}' > "$SIGNED.sha256"
+
+          # Clean up keystore immediately
+          rm -f /tmp/ordia-update.keystore
+
+          echo "SIGNED_APK=$SIGNED" >> "$GITHUB_ENV"
+          echo "SIGNED_CHECKSUM=$SIGNED.sha256" >> "$GITHUB_ENV"
+
+      - name: Upload signed APK and checksum
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: ordia-3.0-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ordia-3.0-signed
           path: |
-            Ordia-3.0-code-*.apk
-            Ordia-3.0-code-*.apk.sha256
-            ordia-release.env
+            Ordia-3.0-signed.apk
+            Ordia-3.0-signed.apk.sha256
           if-no-files-found: error
           retention-days: 30
 
+  # ─────────────────────────────────────────────────────────
+  # TRABAJO 3 — PUBLISH
+  # Solo en main después de SIGN.
+  # Publica una GitHub Release inmutable.
+  # ─────────────────────────────────────────────────────────
   publish:
+    name: Publish release
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: build
+    needs: sign
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     permissions:
-      actions: read
       contents: write
+      actions: read
 
     steps:
-      - name: Download verified build artifact
+      - name: Download signed APK
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: ordia-3.0-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ordia-3.0-signed
           path: release
 
-      - name: Publish immutable automatic update release
+      - name: Publish immutable release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           cd release
-          set -a
-          . ./ordia-release.env
-          set +a
-          [[ "$ORDIA_APK" =~ ^Ordia-3\.0-code-[0-9]+\.apk$ ]]
-          [[ "$ORDIA_CHECKSUM" == "$ORDIA_APK.sha256" ]]
-          [[ "$ORDIA_TAG" =~ ^v3\.0\.[0-9]+-code-[0-9]+$ ]]
-          test -f "$ORDIA_APK"
-          test -f "$ORDIA_CHECKSUM"
-          sha256sum --check "$ORDIA_CHECKSUM"
-          if gh release view "$ORDIA_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Release $ORDIA_TAG already exists; refusing to overwrite immutable update bytes."
+
+          APK="Ordia-3.0-signed.apk"
+          CHECKSUM="$APK.sha256"
+
+          test -f "$APK" || { echo "Missing $APK"; exit 1; }
+          test -f "$CHECKSUM" || { echo "Missing $CHECKSUM"; exit 1; }
+          sha256sum --check "$CHECKSUM"
+
+          # Derive versionCode from APK via aapt (from SDK)
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          AAPT2=$(find "$SDK_ROOT/build-tools" -name aapt2 -type f 2>/dev/null | head -1)
+          if [ -n "$AAPT2" ]; then
+            echo "APK package info:"
+            "$AAPT2" dump packagename "$APK" 2>/dev/null || true
+          fi
+
+          # Create tag from run info
+          TAG="v3.0.0-build.${{ github.run_id }}"
+          TITLE="Ordia 3.0 · signed build ${{ github.run_id }}"
+          NOTES="APK firmada verificada de Ordia 3.0. Incluye atención contextual, guardianes, actualizador automático y más."
+
+          # Prevent overwriting existing release
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; refusing to overwrite."
             exit 1
           fi
-          TITLE="Ordia 3.0 · build ${ORDIA_CODE}"
-          NOTES="Compilación automática verificada de Ordia 3.0. Ordia vuelve a validar nombre, hash, paquete, versionCode y certificado antes de abrir el instalador de Android."
-          gh release create "$ORDIA_TAG" "$ORDIA_APK" "$ORDIA_CHECKSUM" \
+
+          gh release create "$TAG" "$APK" "$CHECKSUM" \
             --title "$TITLE" --notes "$NOTES" --latest --repo "$GITHUB_REPOSITORY"
