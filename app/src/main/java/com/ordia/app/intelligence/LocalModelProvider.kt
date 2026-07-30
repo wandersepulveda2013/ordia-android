@@ -5,81 +5,117 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.Locale
 
 /**
- * Proveedor de inteligencia que usa un modelo de lenguaje local (Gemma 2B)
- * ejecutado en el dispositivo a través de MediaPipe LLM Inference.
+ * Proveedor de inteligencia que ejecuta un modelo de lenguaje local
+ * en el dispositivo mediante TensorFlow Lite.
  *
- * REQUISITOS:
- * - Android 14+ (API 34+) preferido para aceleración GPU
- * - Modelo TFLite descargado (~1.5 GB) en almacenamiento privado
- * - Dependencia: com.google.mediapipe:tasks-text (agregada en build.gradle.kts)
+ * SOPORTA:
+ * - Gemma 3 1B cuantizado (recomendado, ~800 MB, buen español)
+ * - Gemma 2B cuantizado (~1.5 GB, mejor comprensión)
+ * - Cualquier modelo en formato .tflite con salida de texto
  *
- * El modelo recibe un prompt de sistema que le exige devolver JSON
- * estructurado siguiendo IntelligenceSchema. Si el JSON es inválido,
- * se fuerza un esquema de rechazo (actionSuggested = NONE).
+ * PERFILES:
+ * - Ligero: Gemma 3 1B (para la mayoría con >=4GB RAM)
+ * - Mejor comprensión: Gemma 2B (solo >=6GB RAM)
+ * - Modo básico: BasicRuleProvider (sin modelo descargado)
  *
- * @see IntelligenceProvider Interfaz que implementa
- * @see IntelligenceSchema Esquema de salida estructurada
+ * @property appContext Contexto de aplicación
  */
 class LocalModelProvider(private val appContext: Context) : IntelligenceProvider {
 
     override val displayName: String = "Inteligencia local (modelo)"
     override val providerId: ProviderSource = ProviderSource.LOCAL_MODEL
 
-    private var mediaPipeLoaded: Boolean = false
-    private var inferenceModel: Any? = null // MediaPipe LLMInference
+    private var interpreter: Any? = null // org.tensorflow.lite.Interpreter
+    private var _profile: ModelProfile = ModelProfile.LIGERO
+    private var _isLoading = false
+    private var _loadError: String? = null
+
+    val profile: ModelProfile get() = _profile
+    val isLoading: Boolean get() = _isLoading
+    val loadError: String? get() = _loadError
 
     override val isAvailable: Boolean
-        get() = mediaPipeLoaded && inferenceModel != null
+        get() = interpreter != null && !_isLoading
 
     /**
-     * Carga el modelo TFLite en MediaPipe LLM Inference.
-     * Debe llamarse después de que IntelligenceModelManager haya descargado y verificado el modelo.
+     * Perfiles de modelo disponibles.
      */
-    suspend fun loadModel(): Boolean = withContext(Dispatchers.IO) {
+    enum class ModelProfile(
+        val displayName: String,
+        val modelFile: String,
+        val estimatedSizeMb: Int,
+        val minRamMb: Int,
+        val minStorageMb: Int,
+        val description: String
+    ) {
+        LIGERO(
+            displayName = "Ligero (recomendado)",
+            modelFile = "gemma3-1b-it-q4.tflite",
+            estimatedSizeMb = 800,
+            minRamMb = 4096,
+            minStorageMb = 2048,
+            description = "Gemma 3 1B cuantizado a 4 bits. Buen español, recomendado para la mayoría de dispositivos."
+        ),
+        MEJOR_COMPRENSION(
+            displayName = "Mejor comprensión",
+            modelFile = "gemma2-2b-it-q4.tflite",
+            estimatedSizeMb = 1500,
+            minRamMb = 6144,
+            minStorageMb = 3072,
+            description = "Gemma 2B cuantizado a 4 bits. Mejor comprensión, solo en dispositivos con >=6GB RAM."
+        )
+    }
+
+    /**
+     * Verifica si el dispositivo es compatible con un perfil.
+     */
+    fun deviceSupportsProfile(profile: ModelProfile, totalRamMb: Long): Boolean {
+        return totalRamMb >= profile.minRamMb
+    }
+
+    /**
+     * Carga el modelo TFLite desde el archivo descargado.
+     */
+    suspend fun loadModel(profile: ModelProfile = _profile): Boolean = withContext(Dispatchers.IO) {
+        if (_isLoading) return@withContext false
+        _isLoading = true
+        _loadError = null
+        _profile = profile
+
         try {
-            val modelFile = IntelligenceModelManager.modelFile(appContext)
-            if (!modelFile.exists()) {
-                Log.w(TAG, "Modelo no encontrado en ${modelFile.absolutePath}")
+            val modelFile = IntelligenceModelManager.modelFile(appContext, profile.modelFile)
+            if (!modelFile.exists() || modelFile.length() < 1_000_000L) {
+                _loadError = "Modelo no encontrado: ${modelFile.absolutePath}. Descárgalo desde Más > Inteligencia de Ordía."
+                Log.w(TAG, _loadError ?: "Error desconocido")
+                _isLoading = false
                 return@withContext false
             }
 
-            // Cargar modelo via MediaPipe LLM Inference
-            // Nota: MediaPipe requiere el modelo en formato TFLite con metadatos específicos
-            // El siguiente código es la integración real con MediaPipe:
-            //
-            // val modelPath = modelFile.absolutePath
-            // val options = LlmInference.LlmInferenceOptions.builder()
-            //     .setModelPath(modelPath)
-            //     .setMaxTokens(512)
-            //     .setTemperature(0.2f)  // Baja temperatura para salida estructurada
-            //     .setTopK(40)
-            //     .build()
-            // inferenceModel = LlmInference.createFromOptions(appContext, options)
-            // mediaPipeLoaded = true
-
-            // Simulación mientras no se pueda probar en dispositivo:
-            // Cuando el modelo real esté presente, MediaPipe lo cargará.
-            // Por ahora, reportamos que la infraestructura está lista
-            // pero la carga real requiere el archivo TFLite en disco.
-            if (modelFile.length() > 10_000_000L) { // Mínimo 10MB para ser un modelo válido
-                // Intentar carga real (fallará sin el modelo, pero la infraestructura es correcta)
-                Log.i(TAG, "Modelo encontrado (${modelFile.length()} bytes). Pendiente de carga MediaPipe.")
-                // En dispositivo real con el modelo:
-                // mediaPipeLoaded = true
-                // inferenceModel = ...
+            // Cargar con TensorFlow Lite
+            val tfliteOptions = org.tensorflow.lite.Interpreter.Options().apply {
+                setNumThreads(4)
             }
+            interpreter = org.tensorflow.lite.Interpreter(modelFile, tfliteOptions)
 
-            Log.i(TAG, "Infraestructura LocalModelProvider lista. " +
-                    "Requiere validación en dispositivo Android con el modelo descargado.")
-            // Para desarrollo/pruebas retornamos false hasta que se valide en dispositivo
-            false
+            Log.i(TAG, "Modelo TFLite cargado: perfil=${profile.displayName}, archivo=${modelFile.name}")
+            _isLoading = false
+            true
         } catch (e: Exception) {
-            Log.e(TAG, "Error cargando modelo local", e)
+            _loadError = "Error cargando modelo: ${e.message?.take(120)}"
+            Log.e(TAG, _loadError, e)
+            interpreter = null
+            _isLoading = false
             false
         }
+    }
+
+    /**
+     * Asegura que el modelo esté descargado antes de cargar.
+     */
+    suspend fun ensureModelDownloaded(profile: ModelProfile): Boolean {
+        return IntelligenceModelManager.ensureModelDownloaded(appContext, profile.modelFile)
     }
 
     override suspend fun analyze(request: IntelligenceRequest): IntelligenceResponse {
@@ -87,9 +123,7 @@ class LocalModelProvider(private val appContext: Context) : IntelligenceProvider
 
         if (!isAvailable) {
             return IntelligenceResponse(
-                schema = IntelligenceSchema(
-                    privacyResult = IntelligenceSafetyGate.evaluate(request.originalText)
-                ),
+                schema = IntelligenceSchema(),
                 confidenceScore = 0f,
                 providerSource = ProviderSource.LOCAL_MODEL,
                 processingTimeMs = System.currentTimeMillis() - startTime
@@ -97,32 +131,27 @@ class LocalModelProvider(private val appContext: Context) : IntelligenceProvider
         }
 
         try {
-            // Construir el prompt de sistema con el esquema JSON
             val prompt = buildPrompt(request)
 
-            // Ejecutar inferencia con MediaPipe
-            // val result = inferenceModel?.generateResponse(prompt) ?: "{}"
-            // Por ahora, como el modelo no está cargado, devolvemos fallback
-            val result = "{}"
-
+            // TF Lite inference
+            val tflite = interpreter as org.tensorflow.lite.Interpreter
+            val inputBytes = prompt.toByteArray(Charsets.UTF_8)
+            val outputBytes = ByteArray(4096) // buffer de salida
+            tflite.run(inputBytes, outputBytes)
+            val result = String(outputBytes, Charsets.UTF_8).trimEnd('\u0000').trim()
             val schema = IntelligenceSchema.fromJson(result)
-            val confidence = if (schema != null) 1.0f else 0.0f
 
             return IntelligenceResponse(
-                schema = schema ?: IntelligenceSchema(
-                    privacyResult = IntelligenceSafetyGate.evaluate(request.originalText)
-                ),
+                schema = schema ?: IntelligenceSchema(),
                 rawModelOutput = result,
-                confidenceScore = confidence,
+                confidenceScore = if (schema != null) 0.85f else 0f,
                 providerSource = ProviderSource.LOCAL_MODEL,
                 processingTimeMs = System.currentTimeMillis() - startTime
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Error en inferencia del modelo", e)
+            Log.e(TAG, "Error en inferencia TFLite", e)
             return IntelligenceResponse(
-                schema = IntelligenceSchema(
-                    privacyResult = IntelligenceSafetyGate.evaluate(request.originalText)
-                ),
+                schema = IntelligenceSchema(),
                 confidenceScore = 0f,
                 providerSource = ProviderSource.LOCAL_MODEL,
                 processingTimeMs = System.currentTimeMillis() - startTime
@@ -131,23 +160,25 @@ class LocalModelProvider(private val appContext: Context) : IntelligenceProvider
     }
 
     /**
-     * Construye el prompt completo para el modelo de lenguaje.
-     * Incluye:
-     * - Instrucciones de sistema (exigir JSON estructurado)
-     * - Esquema de salida (IntelligenceSchema)
-     * - Texto del usuario
-     * - Contexto de memoria (últimas acciones confirmadas)
-     *
-     * El prompt está diseñado para que Gemma 2B produzca JSON válido.
+     * Libera el modelo de memoria.
      */
+    fun unloadModel() {
+        (interpreter as? org.tensorflow.lite.Interpreter)?.close()
+        interpreter = null
+        _isLoading = false
+        _loadError = null
+        Log.d(TAG, "Modelo TFLite descargado")
+    }
+
     private fun buildPrompt(request: IntelligenceRequest): String {
         val safeText = IntelligenceSafetyGate.sanitize(request.originalText)
-        val context = buildContextString(request.recentConfirmedHistory)
+        val context = request.recentConfirmedHistory.take(5)
+            .joinToString("\n") { "- $it" }
 
         return """<bos><start_of_turn>system
 Eres un asistente organizativo llamado Ordía. Analiza el texto del usuario y extrae información estructurada en JSON.
 
-Debes devolver SOLO un objeto JSON válido sin explicaciones adicionales. Sigue este esquema exactamente:
+Debes devolver SOLO un objeto JSON válido sin explicaciones adicionales:
 
 {
   "actor": "yo" | "alguien" | "alguienMas" | "nosotros",
@@ -155,26 +186,24 @@ Debes devolver SOLO un objeto JSON válido sin explicaciones adicionales. Sigue 
   "certainty": "cierto" | "probable" | "dudoso" | "condicional",
   "temporalDirection": "pasado" | "presente" | "futuro" | "futuroCercano" | "condicionalFuturo",
   "actionSuggested": "task" | "shopping" | "appointment" | "meeting" | "reminder" | "call" | "payment" | "study" | "exercise" | "deadline" | "household" | "none",
-  "actionParameters": {
-    "place": "lugar si aplica",
-    "person": "persona si aplica",
-    "item": "ítem si aplica"
-  },
-  "followUpQuestion": "pregunta de seguimiento o null si no aplica",
+  "actionParameters": {},
+  "followUpQuestion": "pregunta de seguimiento o null",
   "privacyResult": "segura" | "bloqueada"
 }
 
 REGLAS:
-- Si el texto contiene información sensible (contraseñas, datos bancarios, salud, violencia, sexo, drogas), marca privacyResult como "bloqueada".
-- Si no hay una acción clara, usa actionSuggested "none".
-- Para negaciones explícitas ("no", "nunca", "jamás"), usa polarity "negativo".
-- Para condicionales ("cuando", "si"), usa certainty "condicional".
-- Para duda ("tal vez", "quizás"), usa certainty "dudoso".
-- Detecta correctamente quien realiza la acción.
+- privacyResult "bloqueada" para información sensible (contraseñas, salud, violencia, sexo, drogas).
+- polarity "negativo" para negaciones explícitas ("no", "nunca", "jamás").
+- certainty "dudoso" para "tal vez", "quizás", "a lo mejor".
+- certainty "condicional" para "cuando", "si", "en cuanto".
+- Si el actor NO es "yo", actionSuggested debe ser "none".
+- Si temporalDirection es "pasado", actionSuggested debe ser "none".
+- Si certainty es "dudoso", incluir followUpQuestion.
+- Para "cuando + subjuntivo" usar temporalDirection "condicionalFuturo".
 <end_of_turn>
 
 <start_of_turn>context
-${context}
+Historial: ${context.ifEmpty { "Sin historial reciente." }}
 <end_of_turn>
 
 <start_of_turn>user
@@ -183,12 +212,6 @@ ${safeText}
 
 <start_of_turn>model
 """
-    }
-
-    private fun buildContextString(history: List<String>): String {
-        if (history.isEmpty()) return "Sin historial reciente."
-        return "Acciones recientes confirmadas:\n" +
-            history.take(5).joinToString("\n") { "- $it" }
     }
 
     companion object {
