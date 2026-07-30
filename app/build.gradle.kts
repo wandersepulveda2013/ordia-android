@@ -33,12 +33,40 @@ android {
             require(candidate <= Int.MAX_VALUE) { "CI versionCode exceeds Android's Int limit" }
             candidate.toInt()
         } else 1_300_000_000
-        versionName = if (ciRunNumber == null || ciRunAttempt == null) {
-            "3.0.0-preview"
-        } else "3.0.$ciRunNumber-build.$ciRunAttempt"
+        versionName = "3.0.0-preview"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+    }
+
+    flavorDimensions += "distribution"
+
+    productFlavors {
+        create("previewSafe") {
+            dimension = "distribution"
+            applicationId = "com.ordia.app.preview"
+            versionName = if (ciRunNumber == null || ciRunAttempt == null) {
+                "3.0.0-preview-safe"
+            } else "3.0.${ciRunNumber}-preview-safe.${ciRunAttempt}"
+            buildConfigField("boolean", "SELF_UPDATE_ENABLED", "false")
+            buildConfigField("boolean", "OVERLAY_ENABLED", "false")
+            buildConfigField("boolean", "CONTEXT_NOTIFICATION_ACCESS_ENABLED", "false")
+            buildConfigField("boolean", "PREVIEW", "true")
+            resValue("string", "app_name", "Ordia 3 Preview")
+        }
+
+        create("previewFull") {
+            dimension = "distribution"
+            applicationId = "com.ordia.app.preview.full"
+            versionName = if (ciRunNumber == null || ciRunAttempt == null) {
+                "3.0.0-preview-full"
+            } else "3.0.${ciRunNumber}-preview-full.${ciRunAttempt}"
+            buildConfigField("boolean", "SELF_UPDATE_ENABLED", "true")
+            buildConfigField("boolean", "OVERLAY_ENABLED", "true")
+            buildConfigField("boolean", "CONTEXT_NOTIFICATION_ACCESS_ENABLED", "true")
+            buildConfigField("boolean", "PREVIEW", "true")
+            resValue("string", "app_name", "Ordia 3 Preview Full")
+        }
     }
 
     signingConfigs {
@@ -54,18 +82,12 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = ""
-            buildConfigField("boolean", "SELF_UPDATE_ENABLED", "true")
-            buildConfigField("boolean", "PREVIEW", "true")
-            resValue("string", "app_name", "Ordia 3 Preview")
             if (stableSigningConfigured) signingConfig = signingConfigs.getByName("stableUpdate")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             buildConfigField("boolean", "SELF_UPDATE_ENABLED", "false")
-            buildConfigField("boolean", "PREVIEW", "false")
             if (stableSigningConfigured) signingConfig = signingConfigs.getByName("stableUpdate")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

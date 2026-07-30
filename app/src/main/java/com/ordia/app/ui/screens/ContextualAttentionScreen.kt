@@ -3,6 +3,7 @@ package com.ordia.app.ui.screens
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
+import com.ordia.app.BuildConfig
 import com.ordia.app.OrdiaApplication
 import com.ordia.app.context.ContextualKind
 import com.ordia.app.context.ContextualSuggestion
@@ -38,6 +40,31 @@ import com.ordia.app.ui.components.SectionHeader
 @Composable
 fun ContextualAttentionScreen(state: OrdiaUiState, vm: OrdiaViewModel, padding: PaddingValues) {
     val context = LocalContext.current
+    if (!BuildConfig.CONTEXT_NOTIFICATION_ACCESS_ENABLED) {
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(20.dp, padding.calculateTopPadding() + 20.dp, 20.dp, padding.calculateBottomPadding() + 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            item { ScreenHeader("PRIVADO Y OPCIONAL", "Atención contextual", "Ordia detecta posibles compromisos localmente y siempre pide confirmación.") }
+            item {
+                Card(Modifier.fillMaxWidth()) {
+                    androidx.compose.foundation.layout.Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Lectura de notificaciones no disponible", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Esta Preview segura no incluye lectura de notificaciones. " +
+                            "Puedes seguir usando el análisis de texto compartido o seleccionado manualmente. " +
+                            "La lectura de notificaciones está disponible en la compilación avanzada separada.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+        return
+    }
+
     val app = context.applicationContext as OrdiaApplication
     val settings = remember { app.container.contextualSettingsStore }
     val store = remember { app.container.contextualSuggestionStore }

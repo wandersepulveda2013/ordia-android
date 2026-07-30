@@ -44,6 +44,7 @@ import com.ordia.app.domain.TaskRules
 import com.ordia.app.domain.TaskMutationGate
 import com.ordia.app.reminders.ReminderScheduler
 import com.ordia.app.widget.OrdiaWidgetUpdater
+import com.ordia.app.BuildConfig
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
@@ -530,9 +531,13 @@ class OrdiaViewModel(
         val result = backupManager.importJson(raw)
         if (result.success) {
             val restored = preferencesRepository.preferences.first()
-            if (restored.autoUpdateEnabled) com.ordia.app.updates.OrdiaUpdateManager.schedule(appContext)
-            else com.ordia.app.updates.OrdiaUpdateManager.cancelSchedule(appContext)
-            appContext.stopService(android.content.Intent(appContext, com.ordia.app.overlay.GuardianOverlayService::class.java))
+            if (BuildConfig.SELF_UPDATE_ENABLED) {
+                if (restored.autoUpdateEnabled) com.ordia.app.updates.OrdiaUpdateManager.schedule(appContext)
+                else com.ordia.app.updates.OrdiaUpdateManager.cancelSchedule(appContext)
+            }
+            if (BuildConfig.OVERLAY_ENABLED) {
+                appContext.stopService(android.content.Intent(appContext, com.ordia.app.overlay.GuardianOverlayService::class.java))
+            }
         }
         _events.emit(UiEvent.Message(result.message))
         updateWidget()

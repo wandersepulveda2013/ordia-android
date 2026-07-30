@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+        previewSafe: intentionally excludes these permissions and components:
+        - android.permission.SYSTEM_ALERT_WINDOW
+        - android.permission.FOREGROUND_SERVICE_SPECIAL_USE
+        - android.permission.REQUEST_INSTALL_PACKAGES
+        - android.permission.INTERNET
+        - GuardianOverlayService
+        - OrdiaNotificationListenerService
+        - FileProvider (update-files)
+        - UpdateInstallActivity
+        - UpdateDownloadReceiver
+
+        This variant must pass Google Play Protect without warnings
+        and install normally from Files.
+    -->
+</manifest>

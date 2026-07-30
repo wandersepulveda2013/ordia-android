@@ -58,11 +58,11 @@ import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.data.preferences.ThemeMode
 import com.ordia.app.domain.DateRules
-import com.ordia.app.overlay.GuardianOverlayService
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.InfoBanner
 import com.ordia.app.ui.components.ScreenHeader
+import com.ordia.app.overlay.GuardianOverlayService
 import com.ordia.app.ui.components.SectionHeader
 import com.ordia.app.updates.OrdiaUpdateManager
 import kotlinx.coroutines.launch
@@ -117,16 +117,18 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             backupStatus = "No se pudo leer la copia: ${it.message ?: "archivo inválido"}"
         }
     }
-    val overlayPermission = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        val granted = Settings.canDrawOverlays(context)
-        if (granted && startGuardian(context)) {
-            vm.setGuardianEnabled(true)
-            guardianStatus = "Guardián flotante activado."
-        } else {
-            vm.setGuardianEnabled(false)
-            guardianStatus = if (granted) "Android no permitió iniciar el guardián." else "Permiso de superposición no concedido."
+    val overlayPermission = if (BuildConfig.OVERLAY_ENABLED) {
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            val granted = Settings.canDrawOverlays(context)
+            if (granted && startGuardian(context)) {
+                vm.setGuardianEnabled(true)
+                guardianStatus = "Guardián flotante activado."
+            } else {
+                vm.setGuardianEnabled(false)
+                guardianStatus = if (granted) "Android no permitió iniciar el guardián." else "Permiso de superposición no concedido."
+            }
         }
-    }
+    } else null
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         notificationsGranted = granted
     }
@@ -156,12 +158,13 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
     ) {
         item { ScreenHeader("A TU MANERA", "Ajustes", "Personaliza Ordia, tu guardián y las actualizaciones sin perder datos.") }
 
+        @Suppress("UNUSED_EXPRESSION")
         if (BuildConfig.PREVIEW) {
             item {
                 Card {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            "Ordia 3 Preview",
+                            if (BuildConfig.OVERLAY_ENABLED) "Ordia 3 Preview Full" else "Ordia 3 Preview",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -176,6 +179,15 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
+                        if (!BuildConfig.OVERLAY_ENABLED) {
+                            Text(
+                                "Esta Preview segura no incluye mascota sobre otras aplicaciones, " +
+                                "lectura de notificaciones ni actualizaciones por APK. " +
+                                "Estas funciones se prueban en una compilación avanzada separada.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -215,29 +227,50 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                 "El guardián reacciona a tus avances, pero nunca enferma ni pierde progreso cuando descansas. No lee el contenido de otras aplicaciones."
             )
         }
-        item {
-            SettingSwitch(
-                "Activar guardián flotante",
-                if (Settings.canDrawOverlays(context)) "Puede acompañarte sobre otras aplicaciones." else "Primero debes autorizar la superposición.",
-                state.preferences.guardianEnabled
-            ) { enabled ->
-                if (enabled && !Settings.canDrawOverlays(context)) {
-                    overlayPermission.launch(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")))
-                } else {
-                    if (enabled) {
-                        val started = startGuardian(context)
-                        vm.setGuardianEnabled(started)
-                        guardianStatus = if (started) "Guardián flotante activado." else "Android no permitió iniciar el guardián."
+        if (BuildConfig.OVERLAY_ENABLED) {
+            item {
+                SettingSwitch(
+                    "Activar guardián flotante",
+                    if (Settings.canDrawOverlays(context)) "Puede acompañarte sobre otras aplicaciones." else "Primero debes autorizar la superposición.",
+                    state.preferences.guardianEnabled
+                ) { enabled ->
+                    if (enabled && !Settings.canDrawOverlays(context)) {
+                        overlayPermission!!.launch(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")))
                     } else {
-                        vm.setGuardianEnabled(false)
-                        context.stopService(Intent(context, GuardianOverlayService::class.java))
-                        guardianStatus = "Guardián flotante desactivado."
+                        if (enabled) {
+                            val started = startGuardian(context)
+                            vm.setGuardianEnabled(started)
+                            guardianStatus = if (started) "Guardián flotante activado." else "Android no permitió iniciar el guardián."
+                        } else {
+                            vm.setGuardianEnabled(false)
+                            context.stopService(android.content.Intent(context, com.ordia.app.overlay.GuardianOverlayService::class.java))
+                            guardianStatus = "Guardián flotante desactivado."
+                        }
                     }
                 }
             }
-        }
-        guardianStatus?.let { status ->
-            item { Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            guardianStatus?.let { status ->
+                item { Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
+        } else {
+            item {
+                Card {
+                    androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            "Mascota sobre otras aplicaciones no disponible",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Esta Preview segura no incluye mascota sobre otras aplicaciones, " +
+                            "lectura de notificaciones ni actualizaciones por APK. " +
+                            "Estas funciones se prueban en una compilación avanzada separada.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         }
         item {
             SettingsCard(Icons.Outlined.Shield, "Presencia") {
@@ -428,9 +461,11 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             }
         }
         item {
-            Text(
+             Text(
                 buildString {
-                    if (BuildConfig.PREVIEW) append("Ordia 3 Preview · ")
+                    if (BuildConfig.PREVIEW) {
+                        append(if (BuildConfig.OVERLAY_ENABLED) "Ordia 3 Preview Full · " else "Ordia 3 Preview · ")
+                    }
                     append("${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
                     append(" · Local primero · Sin cuenta obligatoria")
                 },

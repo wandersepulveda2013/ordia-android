@@ -8,7 +8,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.ordia.app.overlay.GuardianOverlayService
 import com.ordia.app.ui.OrdiaRoot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -70,10 +69,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun reconcileGuardianFromVisibleActivity() {
+        if (!BuildConfig.OVERLAY_ENABLED) return
         lifecycleScope.launch {
             val app = application as OrdiaApplication
             val enabled = app.container.preferencesRepository.preferences.first().guardianEnabled
-            val serviceIntent = Intent(this@MainActivity, GuardianOverlayService::class.java)
+            val serviceIntent = android.content.Intent(this@MainActivity, com.ordia.app.overlay.GuardianOverlayService::class.java)
             val overlayGranted = Settings.canDrawOverlays(this@MainActivity)
             if (enabled && overlayGranted) {
                 runCatching { ContextCompat.startForegroundService(this@MainActivity, serviceIntent) }
