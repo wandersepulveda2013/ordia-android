@@ -18,11 +18,11 @@ package com.ordia.app.intelligence
  * @property privacyResult resultado del filtro de privacidad
  */
 data class IntelligenceSchema(
-    val actor: Actor,
-    val polarity: Polarity,
-    val certainty: Certainty,
-    val temporalDirection: TemporalDirection,
-    val actionSuggested: ActionSuggested,
+    val actor: Actor = Actor.YO,
+    val polarity: Polarity = Polarity.POSITIVO,
+    val certainty: Certainty = Certainty.CIERTO,
+    val temporalDirection: TemporalDirection = TemporalDirection.PRESENTE,
+    val actionSuggested: ActionSuggested = ActionSuggested.NONE,
     val actionParameters: Map<String, String> = emptyMap(),
     val followUpQuestion: String? = null,
     val privacyResult: PrivacyResult = PrivacyResult.SAFE

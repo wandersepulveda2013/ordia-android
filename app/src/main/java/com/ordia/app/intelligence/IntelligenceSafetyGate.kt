@@ -45,9 +45,9 @@ object IntelligenceSafetyGate {
         if (lower.isBlank()) return PrivacyResult.BLOCKED
 
         // 1. Verificar patrones bloqueados
-        for (pattern in BLOCKED_PATTERNS) {
-            if (pattern.containsMatchIn(text)) {
-                Log.w(TAG, "Bloqueado por patrón: ${pattern.pattern().take(40)}")
+        for (blockedPattern in BLOCKED_PATTERNS) {
+            if (blockedPattern.containsMatchIn(text)) {
+                Log.w(TAG, "Bloqueado por patrón: ${blockedPattern.pattern.take(40)}")
                 return PrivacyResult.BLOCKED
             }
         }

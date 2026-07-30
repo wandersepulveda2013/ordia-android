@@ -438,7 +438,6 @@ class GuardianOverlayService : Service() {
         runCatching { windowManager.addView(panel, params) }
             .onSuccess {
                 actionPanel = panel
-                isPanelVisible = true
             }
     }
 
