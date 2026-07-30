@@ -28,5 +28,9 @@ enum class ContextCaptureSource(
     VOICE("Voz", requiresPermission = true),
 
     /** Comandos escritos o hablados desde el guardián flotante */
-    GUARDIAN_COMMAND("Guardián", requiresPermission = false);
+    GUARDIAN_COMMAND("Guardián", requiresPermission = false),
+    /** Superposición flotante (asistente en guardian) */
+    OVERLAY("Superposición", requiresPermission = true, isAdvanced = true),
+    /** Pruebas de diagnóstico interno */
+    DIAGNOSTICS("Diagnóstico", requiresPermission = false);
 }

@@ -34,6 +34,8 @@ import com.ordia.app.context.external.PostponeDuration
 import com.ordia.app.data.preferences.GuardianMode
 import com.ordia.app.data.preferences.UserPreferences
 import com.ordia.app.domain.GuardianEngine
+import com.ordia.app.intelligence.IntelligenceRequest
+import com.ordia.app.intelligence.OrdiaIntelligenceEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -197,6 +199,7 @@ class GuardianOverlayService : Service() {
             addAction("Iniciar enfoque") { openMain(MainActivity.OPEN_FOCUS) }
             val contextualCount = (application as OrdiaApplication).container.contextualSuggestionStore.list().size
             if (contextualCount > 0) addAction("Sugerencias ($contextualCount)") { openMain(MainActivity.OPEN_CONTEXTUAL) }
+            addAction("Asistente") { openAssistantMode() }
             addAction("Abrir refugio") { openMain(MainActivity.OPEN_GUARDIAN) }
             addAction("Ocultar guardián") {
                 scope.launch { repository.setGuardianEnabled(false) }
@@ -320,6 +323,128 @@ class GuardianOverlayService : Service() {
                 destination?.let { putExtra(MainActivity.EXTRA_DESTINATION, it) }
             })
         }
+    }
+
+    /** Abre el modo asistente: input de texto conectado al motor de inteligencia */
+    private fun openAssistantMode() {
+        hidePanel()
+        val panelWidth = dp(280)
+        val panelHeight = dp(360)
+        val inputLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+
+            val titleTv = TextView(this@GuardianOverlayService).apply {
+                text = "Asistente Ordía"
+                textSize = 16f
+                setTextColor(0xFFD9BC7A.toInt())
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                textAlignment = View.TEXT_ALIGNMENT_CENTER
+            }
+            addView(titleTv)
+
+            val responseTv = TextView(this@GuardianOverlayService).apply {
+                text = "¿En qué puedo ayudarte?"
+                textSize = 14f
+                setTextColor(0xFFCCCCAA.toInt())
+                textAlignment = View.TEXT_ALIGNMENT_CENTER
+                setPadding(0, dp(8), 0, dp(8))
+                id = View.generateViewId()
+            }
+            addView(responseTv)
+
+            val inputField = android.widget.EditText(this@GuardianOverlayService).apply {
+                hint = "Escribe tu mensaje..."
+                setTextColor(0xFFFFFFFF.toInt())
+                setHintTextColor(0x88CCCCAA.toInt())
+                textSize = 14f
+                id = View.generateViewId()
+                setSingleLine(false)
+                maxLines = 3
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(8).toFloat()
+                    setColor(0x441D1B17.toInt())
+                    setStroke(dp(1), 0x88D9BC7A.toInt())
+                }
+                setPadding(dp(8), dp(8), dp(8), dp(8))
+            }
+            val inputParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, dp(8), 0, dp(8)) }
+            addView(inputField, inputParams)
+
+            val sendBtn = Button(this@GuardianOverlayService).apply {
+                text = "Preguntar"
+                setTextColor(0xFFFFFFFF.toInt())
+                textSize = 14f
+                setOnClickListener {
+                    val text = inputField.text.toString().trim()
+                    if (text.isNotBlank()) {
+                        responseTv.text = "Analizando..."
+                        inputField.setText("")
+                        scope.launch {
+                            val engine = OrdiaIntelligenceEngine.getInstance(this@GuardianOverlayService)
+                            val result = engine.analyzeText(text, com.ordia.app.context.ContextCaptureSource.OVERLAY)
+                            val schema = result.schema
+                            when {
+                                schema.privacyResult == com.ordia.app.intelligence.PrivacyResult.BLOCKED ->
+                                    responseTv.text = "No puedo procesar esa información."
+                                result.isActionable && schema.followUpQuestion != null ->
+                                    responseTv.text = "Hecho: ${schema.actionSuggested.displayName}\n${
+                                        schema.followUpQuestion}"
+                                result.isActionable ->
+                                    responseTv.text = "Registrado como: ${schema.actionSuggested.displayName}"
+                                else ->
+                                    responseTv.text = "No detecté una acción clara. ¿Qué te gustaría hacer?"
+                            }
+                        }
+                    }
+                }
+            }
+            addView(sendBtn)
+
+            val closeBtn = Button(this@GuardianOverlayService).apply {
+                text = "Cerrar"
+                setTextColor(0xFFCCCCAA.toInt())
+                textSize = 12f
+                setOnClickListener { hidePanel() }
+            }
+            addView(closeBtn)
+        }
+        val panel = ScrollView(this).apply {
+            isFillViewport = true
+            isVerticalScrollBarEnabled = true
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(20).toFloat()
+                setColor(0xF21D1B17.toInt())
+                setStroke(dp(1), 0x88D9BC7A.toInt())
+            }
+            addView(inputLayout, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ))
+        }
+        val params = overlayParams(panelWidth, panelHeight).apply {
+            val bounds = safeBounds(panelWidth, panelHeight)
+            x = ((bounds.left + bounds.right) / 2 - panelWidth / 2).coerceIn(bounds.left, bounds.right)
+            y = anchorVerticalCenter()
+        }
+        runCatching { windowManager.addView(panel, params) }
+            .onSuccess {
+                actionPanel = panel
+                isPanelVisible = true
+            }
+    }
+
+    private fun anchorVerticalCenter(): Int {
+        val displayMetrics = resources.displayMetrics
+        return (displayMetrics.heightPixels - dp(360)) / 2
     }
 
     private inner class DragTouchListener : View.OnTouchListener {

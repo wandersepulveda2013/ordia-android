@@ -2,12 +2,20 @@ package com.ordia.app.context
 
 import android.content.Context
 import android.util.Log
+import com.ordia.app.intelligence.IntelligenceRequest
+import com.ordia.app.intelligence.IntelligenceResponse
+import com.ordia.app.intelligence.OrdiaIntelligenceEngine
+import kotlinx.coroutines.runBlocking
 
 /**
  * Motor contextual central de Ordía 3.
  *
  * Orquesta el pipeline completo:
- * ContextEvent → PrivacyFilter → IntentEngine → Deduplicator → ConfirmationCoordinator → AuditLog → Output
+ * ContextEvent → SafetyGate → IntelligenceEngine → Deduplicator → ConfirmationCoordinator → AuditLog → Output
+ *
+ * El motor de inteligencia ([OrdiaIntelligenceEngine]) reemplaza al antiguo
+ * [ContextIntentEngine] y puede usar un modelo de lenguaje local (Gemma 2B)
+ * o el modo de reglas ([BasicRuleProvider]) como fallback.
  *
  * Uso desde cualquier fuente de captura:
  *   ContextEngine.getInstance(context).processEvent(event)
@@ -16,7 +24,7 @@ import android.util.Log
  */
 class ContextEngine private constructor(appContext: Context) {
 
-    private val intentEngine = ContextIntentEngine
+    private val intelligenceEngine = OrdiaIntelligenceEngine.getInstance(appContext)
     private val deduplicator = ContextDeduplicator()
     val confirmationCoordinator = ContextConfirmationCoordinator()
     private val auditLog = ContextAuditLog(appContext)
@@ -27,17 +35,41 @@ class ContextEngine private constructor(appContext: Context) {
     /**
      * Procesa un evento contextual completo.
      * Puede llamarse desde cualquier hilo.
+     *
+     * Ahora usa el pipeline de inteligencia ([OrdiaIntelligenceEngine]) que
+     * aplica SafetyGate, elige el proveedor adecuado (modelo local o reglas),
+     * y produce un esquema estructurado en lugar del antiguo ContextIntent.
      */
     fun processEvent(event: ContextEvent): ContextResult {
         Log.d(TAG, "Processing event from ${event.source}")
 
-        // 1. Analizar con el motor de intenciones (incluye filtro de privacidad)
-        val intent = intentEngine.analyze(event) ?: return ContextResult.Discarded(
-            reason = DiscardReason.PRIVACY_FILTER,
-            source = event.source
+        // 1. Analizar con el motor de inteligencia unificado
+        val request = IntelligenceRequest(
+            originalText = event.rawText,
+            source = event.source,
+            sourcePackage = event.sourcePackage,
+            timestampMs = event.timestampMs
         )
 
-        // 2. Verificar duplicados
+        val intelligenceResponse = kotlinx.coroutines.runBlocking {
+            intelligenceEngine.analyze(request)
+        }
+
+        val schema = intelligenceResponse.schema
+
+        // 2. Verificar safety gate
+        if (schema.privacyResult == com.ordia.app.intelligence.PrivacyResult.BLOCKED ||
+            !intelligenceResponse.isActionable) {
+            return ContextResult.Discarded(
+                reason = DiscardReason.PRIVACY_FILTER,
+                source = event.source
+            )
+        }
+
+        // 3. Convertir IntelligenceResponse a ContextIntent para compatibilidad
+        val intent = intelligenceResponseToIntent(event, intelligenceResponse)
+
+        // 4. Verificar duplicados
         if (deduplicator.isDuplicate(intent)) {
             Log.d(TAG, "Duplicate intent: ${intent.kind} — ${intent.title.take(40)}")
             auditLog.logIntentDiscarded(intent, DiscardReason.DUPLICATE)
@@ -49,11 +81,15 @@ class ContextEngine private constructor(appContext: Context) {
             )
         }
 
-        // 3. Marcar como visto
+        // 5. Marcar como visto
         deduplicator.markAsSeen(intent)
 
-        // 4. Verificar si necesita confirmación
-        return if (confirmationCoordinator.needsConfirmation(intent)) {
+        // 6. Verificar si necesita confirmación
+        val needsConfirmation = confirmationCoordinator.needsConfirmation(intent) ||
+            intelligenceResponse.needsFollowUp ||
+            intelligenceResponse.schema.certainty == com.ordia.app.intelligence.Certainty.DUDOSO
+
+        return if (needsConfirmation) {
             val confirmationId = confirmationCoordinator.registerPending(intent)
             auditLog.logIntentDiscarded(intent, DiscardReason.LOW_CONFIDENCE)
             Log.d(TAG, "Pending confirmation $confirmationId for: ${intent.title.take(40)}")
@@ -63,11 +99,53 @@ class ContextEngine private constructor(appContext: Context) {
                 intent = intent
             )
         } else {
-            // 5. Confirmación automática
+            // 7. Confirmación automática
+            intelligenceEngine.confirmAction(intent.title, intelligenceResponse)
             auditLog.logIntentCreated(intent)
             notifyOnCreated(intent)
             Log.d(TAG, "Auto-confirmed: ${intent.kind} — ${intent.title.take(40)}")
             ContextResult.Created(intent)
+        }
+    }
+
+    /**
+     * Convierte una respuesta de inteligencia estructurada al formato ContextIntent
+     * para compatibilidad con el pipeline existente (deduplicator, confirmation, audit).
+     */
+    private fun intelligenceResponseToIntent(
+        event: ContextEvent,
+        response: IntelligenceResponse
+    ): ContextIntent {
+        return ContextIntent(
+            id = java.util.UUID.randomUUID().toString(),
+            kind = mapSuggestedActionToKind(response.schema.actionSuggested),
+            title = buildString {
+                append(response.schema.actor.displayName)
+                if (response.schema.polarity == com.ordia.app.intelligence.Polarity.NEGATIVO) append(" NO")
+                append(": ")
+                append(response.schema.actionSuggested.displayName)
+            },
+            dueAt = null, // Se puede extraer del texto en una fase posterior
+            confidence = response.confidenceScore,
+            source = event.source,
+            sourcePackage = event.sourcePackage
+        )
+    }
+
+    private fun mapSuggestedActionToKind(action: com.ordia.app.intelligence.ActionSuggested): ContextIntentKind {
+        return when (action) {
+            com.ordia.app.intelligence.ActionSuggested.TASK -> ContextIntentKind.TASK
+            com.ordia.app.intelligence.ActionSuggested.SHOPPING -> ContextIntentKind.SHOPPING
+            com.ordia.app.intelligence.ActionSuggested.APPOINTMENT -> ContextIntentKind.APPOINTMENT
+            com.ordia.app.intelligence.ActionSuggested.MEETING -> ContextIntentKind.MEETING
+            com.ordia.app.intelligence.ActionSuggested.REMINDER -> ContextIntentKind.REMINDER
+            com.ordia.app.intelligence.ActionSuggested.CALL -> ContextIntentKind.CALL
+            com.ordia.app.intelligence.ActionSuggested.PAYMENT -> ContextIntentKind.PAYMENT
+            com.ordia.app.intelligence.ActionSuggested.STUDY -> ContextIntentKind.STUDY
+            com.ordia.app.intelligence.ActionSuggested.EXERCISE -> ContextIntentKind.EXERCISE
+            com.ordia.app.intelligence.ActionSuggested.DEADLINE -> ContextIntentKind.DEADLINE
+            com.ordia.app.intelligence.ActionSuggested.HOUSEHOLD -> ContextIntentKind.HOUSEHOLD
+            com.ordia.app.intelligence.ActionSuggested.NONE -> ContextIntentKind.UNKNOWN
         }
     }
 
