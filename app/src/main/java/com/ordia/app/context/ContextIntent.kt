@@ -83,7 +83,8 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         "cliente", "proyecto de", "trabajo de", "asignación")),
     HOUSEHOLD("Actividad doméstica", listOf("limpiar", "ordenar", "cocinar",
         "lavar", "planchar", "arreglar", "reparar",
-        "jardín", "mantenimiento", "tramitar"));
+        "jardín", "mantenimiento", "tramitar")),
+    UNKNOWN("Sin clasificar", emptyList());
 
     companion object {
         /** Términos que disparan análisis de intención (acumulados de todas las categorías) */

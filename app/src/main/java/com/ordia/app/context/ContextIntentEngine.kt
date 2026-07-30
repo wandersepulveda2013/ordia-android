@@ -9,9 +9,13 @@ import java.util.Locale
 import java.util.UUID
 
 /**
- * Motor de clasificación de intenciones organizativas.
+ * Motor de clasificación de intenciones organizativas basado en reglas/regex.
  *
- * Flujo:
+ * DEPRECATED: Usar [com.ordia.app.intelligence.OrdiaIntelligenceEngine] en su lugar.
+ * Este motor se mantiene como backend del [com.ordia.app.intelligence.BasicRuleProvider]
+ * para el modo de reglas (fallback cuando el modelo local no está disponible).
+ *
+ * Flujo original:
  * 1. Filtro de privacidad (descarta contenido sensible)
  * 2. Detección de contenido bloqueado (sexual, violencia, etc.)
  * 3. Clasificación por intención permitida (allow-list)
@@ -21,6 +25,7 @@ import java.util.UUID
  *
  * Nunca almacena el texto original después del análisis.
  */
+@Deprecated("Usar OrdiaIntelligenceEngine via BasicRuleProvider")
 object ContextIntentEngine {
 
     /** Confianza mínima para considerar una intención como válida */
