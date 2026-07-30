@@ -109,15 +109,8 @@ class ContextConfirmationCoordinator(
     // Internal
 
     private fun defaultPolicy(intent: ContextIntent? = null): ConfirmationPolicy {
-        return when (intent?.kind) {
-            ContextIntentKind.TASK -> ConfirmationPolicy.AUTO_CONFIRM_TASK
-            ContextIntentKind.SHOPPING -> ConfirmationPolicy.AUTO_CONFIRM_TASK
-            ContextIntentKind.REMINDER -> ConfirmationPolicy.AUTO_CONFIRM_TASK
-            ContextIntentKind.PAYMENT -> ConfirmationPolicy.ALWAYS_CONFIRM
-            ContextIntentKind.APPOINTMENT -> ConfirmationPolicy.ALWAYS_CONFIRM
-            ContextIntentKind.MEETING -> ConfirmationPolicy.ALWAYS_CONFIRM
-            else -> ConfirmationPolicy.AUTO_CONFIRM_HIGH_CONFIDENCE
-        }
+        // No crear nada automáticamente por defecto — todas las intenciones requieren confirmación
+        return ConfirmationPolicy.ALWAYS_CONFIRM
     }
 
     private fun onAccepted(pending: PendingConfirmation, modified: ContextIntent?) {

@@ -12,7 +12,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.ordia.app.OrdiaApplication
-import com.ordia.app.context.ContextualAnalyzer
+import com.ordia.app.context.ContextCaptureSource
+import com.ordia.app.context.ContextEngine
+import com.ordia.app.context.ContextIntent
+import com.ordia.app.context.ContextIntentKind
+import com.ordia.app.context.ContextResult
 import com.ordia.app.context.ContextualKind
 import com.ordia.app.context.ContextualSuggestion
 import com.ordia.app.data.local.TaskPriority
@@ -22,6 +26,26 @@ import com.ordia.app.ui.navigation.Destination
 import com.ordia.app.ui.navigation.OrdiaNavigation
 import com.ordia.app.ui.screens.OnboardingScreen
 import com.ordia.app.ui.theme.OrdiaTheme
+
+/** Convierte un ContextIntent del nuevo motor al modelo ContextualSuggestion del diálogo existente */
+private fun ContextIntent.toContextualSuggestion(): ContextualSuggestion {
+    val kind = when (kind) {
+        ContextIntentKind.STUDY -> ContextualKind.STUDY
+        ContextIntentKind.EVENT, ContextIntentKind.APPOINTMENT, ContextIntentKind.MEETING,
+        ContextIntentKind.CALL, ContextIntentKind.VISIT -> ContextualKind.EVENT
+        ContextIntentKind.NOTE, ContextIntentKind.GOAL, ContextIntentKind.HABIT,
+        ContextIntentKind.COMMITMENT_PERSONAL, ContextIntentKind.COMMITMENT_WORK -> ContextualKind.NOTE
+        else -> ContextualKind.TASK
+    }
+    return ContextualSuggestion(
+        id = id.replace("-", "").take(64).padEnd(64, '0'),
+        kind = kind,
+        title = title.take(100),
+        dueAt = dueAt,
+        confidence = confidence.toDouble().coerceIn(0.0, 1.0),
+        sourcePackage = sourcePackage
+    )
+}
 
 @Composable
 fun OrdiaRoot(
@@ -53,6 +77,7 @@ fun OrdiaRoot(
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
     var pendingContext by remember { mutableStateOf<ContextualSuggestion?>(null) }
+    var pendingConfirmationId by remember { mutableStateOf<String?>(null) }
 
     val guardianDerivedExperience = remember(
         state.tasks,
@@ -77,8 +102,25 @@ fun OrdiaRoot(
     LaunchedEffect(incomingText) {
         incomingText?.takeIf { it.isNotBlank() }?.let { text ->
             if (app.container.contextualSettingsStore.isActive()) {
-                pendingContext = ContextualAnalyzer.analyze(text)
-                if (pendingContext == null) snackbarHostState.showSnackbar("Ordía no procesó el texto porque era sensible o ambiguo.")
+                val engine = ContextEngine.getInstance(context)
+                val source = ContextCaptureSource.SHARED_TEXT
+                val result = engine.processText(text, source)
+                when (result) {
+                    is ContextResult.PendingConfirmation -> {
+                        pendingContext = result.intent.toContextualSuggestion()
+                        pendingConfirmationId = result.confirmationId
+                    }
+                    is ContextResult.Created -> {
+                        snackbarHostState.showSnackbar(
+                            "Detectado: ${result.intent.kind.displayName} — ${result.intent.title.take(40)}"
+                        )
+                    }
+                    is ContextResult.Discarded -> {
+                        snackbarHostState.showSnackbar(
+                            "Ordía no procesó el texto porque era sensible o no contenía una intención clara."
+                        )
+                    }
+                }
             } else {
                 snackbarHostState.showSnackbar("Activa la atención contextual para procesar texto compartido.")
             }
@@ -88,7 +130,17 @@ fun OrdiaRoot(
 
     LaunchedEffect(state.preferences.onboardingComplete) {
         if (state.preferences.onboardingComplete && pendingContext == null && app.container.contextualSettingsStore.isActive()) {
-            pendingContext = app.container.contextualSuggestionStore.list().firstOrNull()
+            // Compatibilidad: procesar sugerencias del store antiguo (migración)
+            val old = app.container.contextualSuggestionStore.list().firstOrNull()
+            if (old != null) {
+                val engine = ContextEngine.getInstance(context)
+                val result = engine.processText(old.title, ContextCaptureSource.SHARED_TEXT)
+                if (result is ContextResult.PendingConfirmation) {
+                    pendingContext = result.intent.toContextualSuggestion()
+                    pendingConfirmationId = result.confirmationId
+                }
+                app.container.contextualSuggestionStore.remove(old.id)
+            }
         }
     }
     LaunchedEffect(requestedDestination, requestedTaskId, state.preferences.onboardingComplete) {
@@ -116,21 +168,27 @@ fun OrdiaRoot(
             ContextualSuggestionDialog(
                 suggestion = suggestion,
                 onConfirm = { title ->
-                when (suggestion.kind) {
-                    ContextualKind.NOTE -> viewModel.addNote(title, "Creada desde texto compartido y confirmada por el usuario.")
-                    ContextualKind.TASK, ContextualKind.EVENT, ContextualKind.STUDY -> viewModel.addTask(
-                        title = title,
-                        details = "Sugerencia contextual confirmada por el usuario.",
-                        dueAt = suggestion.dueAt,
-                        priority = TaskPriority.NORMAL
-                    )
-                }
-                    app.container.contextualSuggestionStore.remove(suggestion.id)
-                pendingContext = null
-            },
-                onDismiss = {
+                    val engine = ContextEngine.getInstance(context)
+                    pendingConfirmationId?.let { engine.resolveConfirmation(it, accepted = true) }
+                    when (suggestion.kind) {
+                        ContextualKind.NOTE -> viewModel.addNote(title, "Creada desde texto compartido y confirmada por el usuario.")
+                        ContextualKind.TASK, ContextualKind.EVENT, ContextualKind.STUDY -> viewModel.addTask(
+                            title = title,
+                            details = "Sugerencia contextual confirmada por el usuario.",
+                            dueAt = suggestion.dueAt,
+                            priority = TaskPriority.NORMAL
+                        )
+                    }
                     app.container.contextualSuggestionStore.remove(suggestion.id)
                     pendingContext = null
+                    pendingConfirmationId = null
+                },
+                onDismiss = {
+                    val engine = ContextEngine.getInstance(context)
+                    pendingConfirmationId?.let { engine.resolveConfirmation(it, accepted = false) }
+                    app.container.contextualSuggestionStore.remove(suggestion.id)
+                    pendingContext = null
+                    pendingConfirmationId = null
                 }
             )
     }
