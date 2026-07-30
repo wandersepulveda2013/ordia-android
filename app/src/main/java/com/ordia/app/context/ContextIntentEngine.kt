@@ -431,7 +431,7 @@ object ContextIntentEngine {
             for ((name, day) in dayMap) {
                 if (lower.contains(name)) {
                     val daysUntil = (day.value - today.dayOfWeek.value + 7) % 7
-                    targetDate = if (daysUntil == 0L) today.plusDays(7) else today.plusDays(daysUntil)
+                    targetDate = if (daysUntil == 0) today.plusDays(7) else today.plusDays(daysUntil.toLong())
                     break
                 }
             }

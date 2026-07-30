@@ -86,7 +86,7 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         "jardín", "mantenimiento", "tramitar"));
 
     companion object {
-        /** Términos que disparan análisis de intención */
-        val TRIGGER_WORDS = keywords
+        /** Términos que disparan análisis de intención (acumulados de todas las categorías) */
+        val TRIGGER_WORDS: List<String> = ContextIntentKind.entries.flatMap { it.keywords }
     }
 }

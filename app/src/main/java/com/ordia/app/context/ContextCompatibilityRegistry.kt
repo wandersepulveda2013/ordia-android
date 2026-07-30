@@ -30,7 +30,7 @@ class ContextCompatibilityRegistry(private val appContext: Context) {
             return if (sdkInt >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                 val notificationListeners = Settings.Secure.getString(
                     appContext.contentResolver,
-                    Settings.Secure.ENABLED_NOTIFICATION_LISTENERS
+                    "enabled_notification_listeners"
                 )
                 notificationListeners?.contains(appContext.packageName) == true
             } else false
