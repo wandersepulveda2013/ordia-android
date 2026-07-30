@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -51,6 +52,13 @@ import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 
+@Suppress("NonObservableLocale")
+@Composable
+private fun composeLocale(): Locale {
+    val locales = LocalConfiguration.current.locales
+    return if (locales.isEmpty()) Locale.getDefault() else locales.get(0)
+}
+
 @Composable
 fun PlannerScreen(
     state: OrdiaUiState,
@@ -62,6 +70,7 @@ fun PlannerScreen(
     var month by remember { mutableStateOf(YearMonth.now()) }
     var adding by remember { mutableStateOf(false) }
     var showSuggestedPlan by remember { mutableStateOf(false) }
+    val currentLocale = composeLocale()
     if (adding) TaskEditorDialog(
         projects = state.projects,
         tags = state.tags,
@@ -87,7 +96,7 @@ fun PlannerScreen(
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { month = month.minusMonths(1); selectedDate = month.atDay(1) }) { Icon(Icons.Outlined.ChevronLeft, "Mes anterior") }
-                Text(month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()).replaceFirstChar { it.uppercase() } + " ${month.year}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text(month.month.getDisplayName(TextStyle.FULL, currentLocale).replaceFirstChar { it.uppercase() } + " ${month.year}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 IconButton(onClick = { month = month.plusMonths(1); selectedDate = month.atDay(1) }) { Icon(Icons.Outlined.ChevronRight, "Mes siguiente") }
             }
         }
@@ -103,7 +112,7 @@ fun PlannerScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column(Modifier.padding(horizontal = 18.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).uppercase(), style = MaterialTheme.typography.labelSmall)
+                            Text(date.dayOfWeek.getDisplayName(TextStyle.SHORT, currentLocale).uppercase(), style = MaterialTheme.typography.labelSmall)
                             Text(date.dayOfMonth.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                             val count = state.pendingTasks.count { TaskRules.isDueOn(it, date) }
                             Text(if (count == 0) "—" else count.toString(), style = MaterialTheme.typography.bodySmall)
@@ -157,7 +166,7 @@ fun PlannerScreen(
                 }
             }
         }
-        item { SectionHeader(selectedDate.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.getDefault())).replaceFirstChar { it.uppercase() }, "${tasksOnDate.size} tareas") }
+        item { SectionHeader(selectedDate.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", currentLocale)).replaceFirstChar { it.uppercase() }, "${tasksOnDate.size} tareas") }
         if (tasksOnDate.isEmpty()) {
             item { EmptyState("Día disponible", "No hay tareas planificadas para esta fecha.", "Añadir tarea", onAction = { adding = true }) }
         } else {

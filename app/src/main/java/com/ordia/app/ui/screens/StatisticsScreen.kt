@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ordia.app.domain.DateRules
@@ -41,8 +42,16 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 
+@Suppress("NonObservableLocale")
+@Composable
+private fun composeLocale(): Locale {
+    val locales = LocalConfiguration.current.locales
+    return if (locales.isEmpty()) Locale.getDefault() else locales.get(0)
+}
+
 @Composable
 fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
+    val currentLocale = composeLocale()
     val completedByDay = (6 downTo 0).map { offset ->
         val date = LocalDate.now().minusDays(offset.toLong())
         date to state.rootTasks.count { task ->
@@ -123,7 +132,7 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                 item {
                     StatCard(
                         "Promedio",
-                        String.format(Locale.getDefault(), "%.1f", dailyAverage),
+                        String.format(currentLocale, "%.1f", dailyAverage),
                         "cierres por día",
                         Modifier.width(180.dp),
                         icon = Icons.Outlined.CheckCircle,
@@ -159,11 +168,11 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                 WeeklyBars(
                     values = completedByDay.map { it.second },
                     labels = completedByDay.map {
-                        it.first.dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault()).uppercase()
+                        it.first.dayOfWeek.getDisplayName(TextStyle.NARROW, currentLocale).uppercase()
                     }
                 )
                 Text(
-                    if (completedThisWeek == 0) "Todavía no hay tareas completadas esta semana." else "Completaste $completedThisWeek tareas, con un promedio de ${String.format(Locale.getDefault(), "%.1f", dailyAverage)} por día.",
+                    if (completedThisWeek == 0) "Todavía no hay tareas completadas esta semana." else "Completaste $completedThisWeek tareas, con un promedio de ${String.format(currentLocale, "%.1f", dailyAverage)} por día.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
