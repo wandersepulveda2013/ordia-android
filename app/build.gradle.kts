@@ -170,6 +170,10 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.2.1")
     implementation("androidx.work:work-runtime-ktx:2.11.2")
 
+    // MediaPipe LLM Inference para inteligencia local (Gemma 2B en dispositivo)
+    // El modelo TFLite se descarga por separado (~1.5 GB) desde HuggingFace.
+    implementation("com.google.mediapipe:tasks-text:0.20230731")
+
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
