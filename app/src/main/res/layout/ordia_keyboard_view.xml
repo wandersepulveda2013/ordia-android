@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Vista del teclado minimalista Ordía 3 -->
+<android.inputmethodservice.KeyboardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/keyboard"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_alignParentBottom="true"
+    android:keyBackground="@drawable/ordia_keyboard_key"
+    android:keyTextColor="@android:color/white"
+    android:keyTextSize="18sp"
+    android:labelTextSize="12sp"
+    android:background="#1A1A2E"
+    android:shadowColor="@android:color/black"
+    android:shadowRadius="1.0" />

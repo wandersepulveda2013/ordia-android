@@ -29,6 +29,20 @@
             </intent-filter>
         </service>
 
+        <!-- Keyboard IME for contextual text capture -->
+        <service
+            android:name=".ime.OrdiaKeyboardService"
+            android:exported="true"
+            android:label="Ordía · teclado contextual"
+            android:permission="android.permission.BIND_INPUT_METHOD">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/ordia_ime" />
+        </service>
+
         <!-- APK self-update infrastructure -->
         <provider
             android:name="androidx.core.content.FileProvider"
