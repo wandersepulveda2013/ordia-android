@@ -10,4 +10,15 @@
     <string name="widget_description">Muestra tu próximo paso y el número de tareas pendientes.</string>
     <string name="accessibility_service_description">Permite a Ordía detectar intenciones organizativas desde el texto visible en pantalla. No se procesan contraseñas, datos bancarios ni contenido sensible. Solo funciona en aplicaciones que autorices explícitamente.</string>
     <string name="ime_description">Teclado de Ordía con detección contextual. Analiza el texto al enviarlo para identificar tareas, citas, compras y recordatorios. No registra pulsaciones ni almacena conversaciones.</string>
+    <string name="keyboard_analyzing">Analizando...</string>
+    <string name="keyboard_suggestion_add">Agregar</string>
+    <string name="keyboard_suggestion_edit">Editar</string>
+    <string name="keyboard_suggestion_remind">Recordar después</string>
+    <string name="keyboard_suggestion_ignore">Ignorar</string>
+    <string name="keyboard_dont_detect_similar">No detectar frases similares</string>
+    <string name="keyboard_privacy">Privacidad</string>
+    <string name="keyboard_guardian">Guardián</string>
+    <string name="keyboard_pause_1h">Pausar 1 hora</string>
+    <string name="keyboard_change_datetime">Cambiar fecha u hora</string>
+    <string name="keyboard_suggestion_pattern_add">¿%1$s? ¿Deseas agregarlo?</string>
 </resources>

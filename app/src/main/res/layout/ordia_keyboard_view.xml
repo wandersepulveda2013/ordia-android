@@ -1,15 +1,188 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Vista del teclado minimalista Ordía 3 -->
-<android.inputmethodservice.KeyboardView
+<!-- Vista completa del teclado Ordía 3 con barra de candidatos -->
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/keyboard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_alignParentBottom="true"
-    android:keyBackground="@drawable/ordia_keyboard_key"
-    android:keyTextColor="@android:color/white"
-    android:keyTextSize="18sp"
-    android:labelTextSize="12sp"
-    android:background="#1A1A2E"
-    android:shadowColor="@android:color/black"
-    android:shadowRadius="1.0" />
+    android:orientation="vertical"
+    android:gravity="bottom">
+
+    <!-- Barra de candidatos (inicialmente oculta) -->
+    <FrameLayout
+        android:id="@+id/candidate_bar_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:clipChildren="false">
+
+        <!-- Tarjeta de sugerencia contextual -->
+        <LinearLayout
+            android:id="@+id/suggestion_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="10dp"
+            android:background="@drawable/ordia_candidate_background"
+            android:elevation="6dp">
+
+            <!-- Indicador de análisis activo -->
+            <LinearLayout
+                android:id="@+id/analysis_indicator"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingBottom="4dp"
+                android:visibility="gone">
+                <TextView
+                    android:id="@+id/analysis_text"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Analizando..."
+                    android:textSize="13sp"
+                    android:textColor="#888888" />
+                <ProgressBar
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    style="?android:attr/progressBarStyleSmall"
+                    android:indeterminate="true" />
+            </LinearLayout>
+
+            <!-- Texto principal de sugerencia -->
+            <TextView
+                android:id="@+id/suggestion_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="15sp"
+                android:textColor="#FFFFFF"
+                android:lineSpacingExtra="2dp"
+                android:text=""
+                android:paddingBottom="8dp" />
+
+            <!-- Acciones de la sugerencia -->
+            <LinearLayout
+                android:id="@+id/suggestion_actions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:visibility="gone">
+
+                <Button
+                    android:id="@+id/action_add"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:text="Agregar"
+                    android:textSize="13sp"
+                    android:padding="4dp"
+                    android:layout_marginEnd="4dp"
+                    style="@style/OrdiaCandidateButton" />
+
+                <Button
+                    android:id="@+id/action_edit"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:text="Editar"
+                    android:textSize="13sp"
+                    android:padding="4dp"
+                    android:layout_marginEnd="4dp"
+                    style="@style/OrdiaCandidateButton" />
+
+                <Button
+                    android:id="@+id/action_remind_later"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:text="Recordar"
+                    android:textSize="13sp"
+                    android:padding="4dp"
+                    android:layout_marginEnd="4dp"
+                    style="@style/OrdiaCandidateButton" />
+
+                <ImageButton
+                    android:id="@+id/action_ignore"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:contentDescription="Ignorar"
+                    android:scaleType="centerInside"
+                    android:padding="6dp" />
+            </LinearLayout>
+
+            <!-- Barra de herramientas inferior -->
+            <LinearLayout
+                android:id="@+id/candidate_toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingTop="4dp">
+
+                <ImageButton
+                    android:id="@+id/action_guardian"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@android:drawable/ic_menu_myplaces"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:contentDescription="Guardián"
+                    android:scaleType="centerInside"
+                    android:padding="4dp" />
+
+                <ImageButton
+                    android:id="@+id/action_privacy"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@android:drawable/ic_lock_lock"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:contentDescription="Privacidad"
+                    android:scaleType="centerInside"
+                    android:padding="4dp" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/dont_detect_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No detectar frases similares"
+                    android:textSize="11sp"
+                    android:textColor="#888888"
+                    android:padding="4dp"
+                    android:background="?android:attr/selectableItemBackground" />
+
+                <ImageButton
+                    android:id="@+id/action_pause"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@android:drawable/ic_media_pause"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:contentDescription="Pausar 1 hora"
+                    android:scaleType="centerInside"
+                    android:padding="4dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Teclado QWERTY -->
+    <android.inputmethodservice.KeyboardView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/keyboard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:keyBackground="@drawable/ordia_keyboard_key"
+        android:keyTextColor="@android:color/white"
+        android:keyTextSize="18sp"
+        android:labelTextSize="12sp"
+        android:background="#1A1A2E"
+        android:shadowColor="@android:color/black"
+        android:shadowRadius="1.0" />
+
+</LinearLayout>
