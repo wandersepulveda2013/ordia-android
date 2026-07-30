@@ -11,6 +11,8 @@ import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 import java.text.Normalizer
 
+/** @deprecated Usar [ContextEngine] para análisis contextual. */
+@Deprecated("Reemplazado por ContextEngine — migrar llamadas al pipeline ContextEngine")
 object ContextualAnalyzer {
     private const val MAX_INPUT = 4_000
     private val sensitive = Regex("(?i)\\b(?:contrasena|contrase.a|password|pin|cvv|cvc|otp|codigo de seguridad|token bancario|clave bancaria|numero de tarjeta)\\b")
@@ -117,7 +119,7 @@ object ContextualAnalyzer {
                 ContextualKind.NOTE -> "Nota contextual"
             }
         }
-        return value.take(100).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale("es")) else it.toString() }
+        return value.take(100).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.forLanguageTag("es")) else it.toString() }
     }
 
     private fun fingerprint(normalized: String, sourcePackage: String?): String {
