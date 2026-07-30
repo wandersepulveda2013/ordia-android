@@ -64,8 +64,23 @@ android {
             buildConfigField("boolean", "SELF_UPDATE_ENABLED", "true")
             buildConfigField("boolean", "OVERLAY_ENABLED", "true")
             buildConfigField("boolean", "CONTEXT_NOTIFICATION_ACCESS_ENABLED", "true")
+            buildConfigField("boolean", "ADVANCED_CONTEXT_ENABLED", "false")
             buildConfigField("boolean", "PREVIEW", "true")
             resValue("string", "app_name", "Ordía 3 Preview Full")
+        }
+
+        create("previewAdvanced") {
+            dimension = "distribution"
+            applicationId = "com.ordia.app.preview.advanced"
+            versionName = if (ciRunNumber == null || ciRunAttempt == null) {
+                "3.0.0-preview-advanced"
+            } else "3.0.${ciRunNumber}-preview-advanced.${ciRunAttempt}"
+            buildConfigField("boolean", "SELF_UPDATE_ENABLED", "true")
+            buildConfigField("boolean", "OVERLAY_ENABLED", "true")
+            buildConfigField("boolean", "CONTEXT_NOTIFICATION_ACCESS_ENABLED", "true")
+            buildConfigField("boolean", "ADVANCED_CONTEXT_ENABLED", "true")
+            buildConfigField("boolean", "PREVIEW", "true")
+            resValue("string", "app_name", "Ordía 3 Preview Advanced")
         }
     }
 

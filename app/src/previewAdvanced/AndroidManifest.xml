@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- previewAdvanced: advanced permissions for overlay, notifications, IME, accessibility and APK self-update -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
+
+    <application>
+        <!-- Floating virtual companion (overlay) -->
+        <service
+            android:name=".overlay.GuardianOverlayService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-enabled animated virtual companion for productivity, quick capture and focus" />
+        </service>
+
+        <!-- Notification listener for contextual attention -->
+        <service
+            android:name=".context.OrdiaNotificationListenerService"
+            android:exported="true"
+            android:label="Ordía · atención contextual"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- Keyboard IME for contextual text capture -->
+        <service
+            android:name=".ime.OrdiaKeyboardService"
+            android:exported="true"
+            android:label="Ordía · teclado contextual"
+            android:permission="android.permission.BIND_INPUT_METHOD">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/ordia_ime" />
+        </service>
+
+        <!-- Advanced screen capture via AccessibilityService -->
+        <service
+            android:name=".accessibility.OrdiaAccessibilityService"
+            android:exported="true"
+            android:label="Ordía · captura de pantalla"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/ordia_accessibility_config" />
+        </service>
+
+        <!-- APK self-update infrastructure -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.update-files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/ordia_update_paths" />
+        </provider>
+
+        <activity
+            android:name=".updates.UpdateInstallActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@style/Theme.Ordia.QuickCapture" />
+
+        <receiver
+            android:name=".updates.UpdateDownloadReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
