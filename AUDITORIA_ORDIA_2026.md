@@ -39,7 +39,7 @@
 | ORD-009 | P1 | Éxitos falsos | `ReminderWorker` es un **stub vacío** que devuelve `Result.success()` sin notificar; `executeReminder` usa `enqueue` no único → "Recordatorio creado" sin notificación jamás | `intelligence/IntelligenceActionExecutor.kt:131-139,180-189` | Pérdida funcional silenciosa + wake-ups duplicados | Delegar en `ReminderScheduler`/`TaskReminderWorker` con `enqueueUniqueWork` | CORREGIDO (9d315c1) — `executeReminder` usa `ReminderScheduler.scheduleAt(id, dueAt)`; eliminada clase stub |
 | ORD-010 | P1 | Accesibilidad | `OrdiaAccessibilityService.isEnabled` nace `false`, `onServiceConnected` no lo activa ni lee la preferencia; **ninguna UI** envía `ACTION_ENABLE` → la captura avanzada nunca procesa eventos | `accessibility/OrdiaAccessibilityService.kt:33,35-48,91-104` | Feature rota (captura prometida inexistente) | Leer pref en `onServiceConnected` + toggle en UI | CORREGIDO (afc4095) — toggle "Captura avanzada" en Ajustes (gated por `ADVANCED_CONTEXT_ENABLED`) con estado real del sistema y `ACTION_ACCESSIBILITY_SETTINGS` |
 | ORD-011 | P1 | Éxitos falsos | `ModelDownloadWorker` es **stub** (`Result.success()` sin descargar); `ensureModelDownloaded` devuelve `true` tras encolar un worker no-op | `intelligence/IntelligenceModelManager.kt:191-224,419-434` | "Modelo descargado" sin modelo real; path muerto engañoso | Implementar descarga real en el worker o eliminar `ensureModelDownloaded` | CORREGIDO (9d315c1) — `ModelDownloadWorker` es `CoroutineWorker` real con `MAX_DOWNLOAD_ATTEMPTS=5` y `MAX_MODEL_BYTES` aplicado; `IntelligenceModelManagerTest` 9/9 |
-| ORD-012 | P2 | Batería | `GuardianOverlayService` hace polling `while(true) delay(60s)` en `Dispatchers.Main` + `analyzeText` sin dispatcher en "Preguntar" | `overlay/GuardianOverlayService.kt:121-131,389-391` | 1440 wakes/día del main; overlay congelado durante análisis | Programar one-shot en el borde de quiet hours; `withContext(Default)` | ABIERTO |
+| ORD-012 | P2 | Batería | `GuardianOverlayService` hace polling `while(true) delay(60s)` en `Dispatchers.Main` + `analyzeText` sin dispatcher en "Preguntar" | `overlay/GuardianOverlayService.kt:121-131,389-391` | 1440 wakes/día del main; overlay congelado durante análisis | Programar one-shot en el borde de quiet hours; `withContext(Default)` | CORREGIDO (d68fdb9) — polling sustituido por `scheduleQuietHoursBoundaryCheck()`: one-shot que despierta en el próximo borde quiet↔no quiet (semántica de `GuardianEngine.isQuietHours`, máx. 24 h, 6 h si no hay quiet hours) y se reprograma al despertar; `Job` cancelable en `onDestroy`; `analyzeText` de "Preguntar" movido a `Dispatchers.Default` |
 | ORD-013 | P2 | Motor local | `MAX_MODEL_BYTES` (3 GB) definido pero **nunca aplicado** en el bucle de descarga; servidor puede llenar el disco | `intelligence/IntelligenceModelManager.kt:33,285-296` | Agotamiento de almacenamiento | `require(totalBytes <= MAX_MODEL_BYTES)` en el bucle | CORREGIDO (9d315c1) — límite aplicado en el bucle de descarga con error visible |
 | ORD-014 | P2 | Motor local | Checksum SHA-256 en TOFU: se descarga del **mismo host** que el modelo; `expectedSha256 = null` | `intelligence/IntelligenceModelManager.kt:45-75,247` | Compromiso del CDN compromete modelo y checksum | Hardcodear SHA-256 oficial (o documentar el riesgo) | ABIERTO |
 | ORD-015 | P2 | BD | Migración 1→2 declarada pero **sin schema `1.json`** exportado y **sin test de migración** (`MigrationTestHelper`) | `data/local/OrdiaDatabase.kt:45-168`; `app/schemas/…/2.json` (solo v2) | Crash en arranque para usuarios con BD v1; migración no verificable | Regenerar 1.json + test de migración | BLOQUEADO — `app/schemas/` está en `.gitignore`; sin versionar el schema v1 no hay `MigrationTestHelper` en CI. Decisión pendiente: versionar schemas o aceptar el riesgo documentado |
@@ -70,14 +70,14 @@
 
 | Estado | P0 | P1 | P2 | P3 | P4 | Total |
 |---|---|---|---|---|---|---|
-| CORREGIDO | 3 | 7 | 8 | 4 | 0 | 22 |
+| CORREGIDO | 3 | 7 | 9 | 4 | 0 | 23 |
 | BLOQUEADO (CI: `app/schemas/` sin versionar) | 0 | 0 | 1 | 1 | 0 | 2 |
-| ABIERTO | 0 | 1 | 4 | 6 | 2 | 13 |
+| ABIERTO | 0 | 1 | 3 | 6 | 2 | 12 |
 | DESCARTADO | — | — | — | — | — | 2 (agentes) |
 
-Cerrados: ORD-001, 002, 003, 004, 006, 007, 008, 009, 010, 011, 013, 016, 017, 019, 020, 021, 022, 023, 031, 033, 034, 035.
+Cerrados: ORD-001, 002, 003, 004, 006, 007, 008, 009, 010, 011, 012, 013, 016, 017, 019, 020, 021, 022, 023, 031, 033, 034, 035.
 Bloqueados: ORD-015 (migración Room 1→2 sin test en CI), ORD-032 (FTS).
-Abiertos prioritarios: ORD-005 (filtro de paquetes solo en IME, no en pipeline contextual), ORD-014 (TOFU del checksum, `expectedSha256` sigue nulo), ORD-012 (batería overlay), ORD-018 (contexto externo inseguro), ORD-024 (rate-limit).
+Abiertos prioritarios: ORD-005 (filtro de paquetes solo en IME, no en pipeline contextual), ORD-014 (TOFU del checksum, `expectedSha256` sigue nulo), ORD-018 (contexto externo inseguro), ORD-024 (rate-limit).
 
 ### P0/P1 resumen
 
