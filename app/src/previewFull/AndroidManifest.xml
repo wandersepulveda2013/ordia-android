@@ -22,7 +22,7 @@
         <service
             android:name=".context.OrdiaNotificationListenerService"
             android:exported="true"
-            android:label="Ordia · atención contextual"
+            android:label="Ordía · atención contextual"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
