@@ -71,7 +71,7 @@
         <Button
             android:id="@+id/confirmation_btn_cancel"
             android:layout_width="wrap_content"
-            android:layout_height="40dp"
+            android:layout_height="48dp"
             android:text="@string/external_suggestion_cancel"
             android:textSize="13sp"
             android:background="#3A3A5E"
@@ -83,7 +83,7 @@
         <Button
             android:id="@+id/confirmation_btn_save"
             android:layout_width="wrap_content"
-            android:layout_height="40dp"
+            android:layout_height="48dp"
             android:text="@string/external_suggestion_save"
             android:textSize="13sp"
             android:background="#8A6A2F"

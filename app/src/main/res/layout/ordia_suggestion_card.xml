@@ -75,7 +75,7 @@
         <Button
             android:id="@+id/card_action_add"
             android:layout_width="0dp"
-            android:layout_height="32dp"
+            android:layout_height="48dp"
             android:layout_weight="1"
             android:text="@string/external_suggestion_add"
             android:textSize="12sp"
@@ -86,7 +86,7 @@
         <Button
             android:id="@+id/card_action_edit"
             android:layout_width="0dp"
-            android:layout_height="32dp"
+            android:layout_height="48dp"
             android:layout_weight="1"
             android:text="@string/external_suggestion_edit"
             android:textSize="12sp"
@@ -97,7 +97,7 @@
         <Button
             android:id="@+id/card_action_postpone"
             android:layout_width="0dp"
-            android:layout_height="32dp"
+            android:layout_height="48dp"
             android:layout_weight="1"
             android:text="@string/external_suggestion_postpone"
             android:textSize="12sp"
@@ -108,7 +108,7 @@
         <Button
             android:id="@+id/card_action_ignore"
             android:layout_width="0dp"
-            android:layout_height="32dp"
+            android:layout_height="48dp"
             android:layout_weight="1"
             android:text="@string/external_suggestion_ignore"
             android:textSize="12sp"
