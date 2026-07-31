@@ -322,8 +322,8 @@ class OrdiaKeyboardService : InputMethodService(),
         }
     }
 
-    /** Procesa con el motor contextual */
-    private fun processWithEngine(text: String) {
+    /** Procesa con el motor contextual (suspend: análisis fuera del hilo main) */
+    private suspend fun processWithEngine(text: String) {
         if (text.isBlank() || isPaused || sensitiveField) return
         // "No detectar": descartar frases que el usuario ha marcado previamente.
         if (isIgnoredText(text)) return
@@ -332,9 +332,9 @@ class OrdiaKeyboardService : InputMethodService(),
         showAnalysisIndicator()
 
         val engine = ContextEngine.getInstance(this)
-        val result = engine.processText(text, ContextCaptureSource.KEYBOARD)
+        val result = engine.processTextAsync(text, ContextCaptureSource.KEYBOARD)
 
-        // Ocultar indicador
+        // Ocultar indicador (se reanuda en el hilo main)
         hideAnalysisIndicator()
 
         when (result) {

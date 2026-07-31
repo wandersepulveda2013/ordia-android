@@ -104,7 +104,7 @@ fun OrdiaRoot(
             if (app.container.contextualSettingsStore.isActive()) {
                 val engine = ContextEngine.getInstance(context)
                 val source = ContextCaptureSource.SHARED_TEXT
-                val result = engine.processText(text, source)
+                val result = engine.processTextAsync(text, source)
                 when (result) {
                     is ContextResult.PendingConfirmation -> {
                         pendingContext = result.intent.toContextualSuggestion()
@@ -134,7 +134,7 @@ fun OrdiaRoot(
             val old = app.container.contextualSuggestionStore.list().firstOrNull()
             if (old != null) {
                 val engine = ContextEngine.getInstance(context)
-                val result = engine.processText(old.title, ContextCaptureSource.SHARED_TEXT)
+                val result = engine.processTextAsync(old.title, ContextCaptureSource.SHARED_TEXT)
                 if (result is ContextResult.PendingConfirmation) {
                     pendingContext = result.intent.toContextualSuggestion()
                     pendingConfirmationId = result.confirmationId

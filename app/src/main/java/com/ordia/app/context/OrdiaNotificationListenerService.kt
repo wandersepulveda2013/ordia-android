@@ -4,8 +4,18 @@ import android.app.Notification
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import java.util.UUID
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class OrdiaNotificationListenerService : NotificationListenerService() {
+
+    // El análisis contextual es asíncrono: nunca bloquea el hilo principal
+    // del sistema de notificaciones.
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         val notification = sbn?.notification ?: return
         if (sbn.packageName == packageName || sbn.isOngoing || (notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0) return
@@ -21,7 +31,7 @@ class OrdiaNotificationListenerService : NotificationListenerService() {
         }.trim().take(4_000)
         if (text.isBlank()) return
 
-        // Usar el nuevo motor contextual
+        // Usar el nuevo motor contextual (asíncrono)
         val event = ContextEvent(
             source = ContextCaptureSource.NOTIFICATION,
             rawText = text,
@@ -29,21 +39,28 @@ class OrdiaNotificationListenerService : NotificationListenerService() {
             sourcePackage = sbn.packageName
         )
         val engine = ContextEngine.getInstance(this)
-        val result = engine.processEvent(event)
+        scope.launch {
+            val result = engine.processEventAsync(event)
 
-        when (result) {
-            is ContextResult.PendingConfirmation -> {
-                // Almacenar en el store antiguo para que la UI lo recoja
-                val suggestion = convertToSuggestion(result.intent)
-                ContextualSuggestionStore(this).add(suggestion, settings.dailyLimit)
-            }
-            is ContextResult.Created -> {
-                // Confirmado automáticamente (no es el caso por defecto ALWAYS_CONFIRM)
-            }
-            is ContextResult.Discarded -> {
-                // Silenciosamente descartado
+            when (result) {
+                is ContextResult.PendingConfirmation -> {
+                    // Almacenar en el store antiguo para que la UI lo recoja
+                    val suggestion = convertToSuggestion(result.intent)
+                    ContextualSuggestionStore(this@OrdiaNotificationListenerService).add(suggestion, settings.dailyLimit)
+                }
+                is ContextResult.Created -> {
+                    // Confirmado automáticamente (no es el caso por defecto ALWAYS_CONFIRM)
+                }
+                is ContextResult.Discarded -> {
+                    // Silenciosamente descartado
+                }
             }
         }
+    }
+
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
     }
 
     private fun convertToSuggestion(intent: ContextIntent): ContextualSuggestion {

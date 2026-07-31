@@ -11,6 +11,11 @@ import com.ordia.app.context.ContextCaptureSource
 import com.ordia.app.context.ContextEngine
 import com.ordia.app.context.ContextEvent
 import com.ordia.app.context.ContextResult
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * AccessibilityService para captura avanzada de pantalla en Ordía 3.
@@ -32,6 +37,10 @@ class OrdiaAccessibilityService : AccessibilityService() {
 
     private var isEnabled = false
 
+    // Las llamadas al motor contextual son asíncronas; el análisis nunca
+    // bloquea el hilo principal del sistema de accesibilidad.
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         val info = AccessibilityServiceInfo().apply {
@@ -44,7 +53,10 @@ class OrdiaAccessibilityService : AccessibilityService() {
                 AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
         }
         serviceInfo = info
-        Log.d(TAG, "AccessibilityService connected")
+        // Recuperar el estado guardado por el usuario; el servicio arranca
+        // desactivado por defecto.
+        isEnabled = prefs.getBoolean(KEY_ENABLED, false)
+        Log.d(TAG, "AccessibilityService connected (enabled=$isEnabled)")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -61,7 +73,7 @@ class OrdiaAccessibilityService : AccessibilityService() {
         val text = getEventText(event) ?: return
         if (text.isBlank() || text.length < 8) return
 
-        // Crear evento contextual y procesar
+        // Crear evento contextual y procesar (asíncrono, fuera del main)
         val contextEvent = ContextEvent(
             source = ContextCaptureSource.SCREEN_ADVANCED,
             rawText = text,
@@ -70,16 +82,18 @@ class OrdiaAccessibilityService : AccessibilityService() {
         )
 
         val engine = ContextEngine.getInstance(this)
-        when (val result = engine.processEvent(contextEvent)) {
-            is ContextResult.PendingConfirmation -> {
-                Log.d(TAG, "Screen capture: pending confirmation for '${result.intent.title.take(40)}'")
-                // La UI recogerá las confirmaciones pendientes al abrir la app
-            }
-            is ContextResult.Created -> {
-                Log.d(TAG, "Screen capture: auto-created '${result.intent.title.take(40)}'")
-            }
-            is ContextResult.Discarded -> {
-                // Silenciosamente descartado
+        scope.launch {
+            when (val result = engine.processEventAsync(contextEvent)) {
+                is ContextResult.PendingConfirmation -> {
+                    Log.d(TAG, "Screen capture: pending confirmation for '${result.intent.title.take(40)}'")
+                    // La UI recogerá las confirmaciones pendientes al abrir la app
+                }
+                is ContextResult.Created -> {
+                    Log.d(TAG, "Screen capture: auto-created '${result.intent.title.take(40)}'")
+                }
+                is ContextResult.Discarded -> {
+                    // Silenciosamente descartado
+                }
             }
         }
     }
@@ -164,6 +178,11 @@ class OrdiaAccessibilityService : AccessibilityService() {
 
     private val prefs: SharedPreferences by lazy {
         getSharedPreferences("ordia_accessibility", MODE_PRIVATE)
+    }
+
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
     }
 
     companion object {

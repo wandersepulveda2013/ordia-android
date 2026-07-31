@@ -17,6 +17,7 @@ import java.util.Date
  */
 class ContextAuditLog(context: Context) {
 
+    private val appContext = context.applicationContext
     private val dbHelper = AuditDbHelper(context)
 
     /**
@@ -169,13 +170,32 @@ class ContextAuditLog(context: Context) {
         )
     }
 
+    /**
+     * Hash SHA-256 completo con sal aleatoria por instalación.
+     *
+     * La sal se genera una sola vez (16 bytes) y se guarda en prefs; sin ella,
+     * títulos cortos y predecibles podrían recuperarse por ataque de diccionario.
+     */
     private fun titleHash(title: String): String {
-        // Hash SHA-256 simplificado para privacidad
         val normalized = title.lowercase().trim().replace(Regex("\\s+"), " ")
-        val bytes = normalized.toByteArray()
+        val bytes = normalized.toByteArray(Charsets.UTF_8)
         val digest = java.security.MessageDigest.getInstance("SHA-256")
-        val hash = digest.digest(bytes)
-        return hash.joinToString("") { "%02x".format(it) }.take(16)
+        val hash = digest.digest(bytes + salt)
+        return hash.joinToString("") { "%02x".format(it) }
+    }
+
+    /** Sal aleatoria persistente por instalación (16 bytes) */
+    private val salt: ByteArray by lazy {
+        val prefs = appContext.getSharedPreferences(PREFS_SALT, android.content.Context.MODE_PRIVATE)
+        val stored = prefs.getString(KEY_SALT, null)
+        if (stored != null && stored.length == 32) {
+            stored.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+        } else {
+            val generated = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
+            val hex = generated.joinToString("") { "%02x".format(it) }
+            prefs.edit().putString(KEY_SALT, hex).apply()
+            generated
+        }
     }
 
     fun close() {
@@ -222,6 +242,8 @@ class ContextAuditLog(context: Context) {
         private const val DB_NAME = "ordia_context_audit.db"
         private const val DB_VERSION = 1
         private const val TABLE_AUDIT = "context_audit"
+        private const val PREFS_SALT = "ordia_audit_salt"
+        private const val KEY_SALT = "audit_salt"
 
         private const val COL_ID = "_id"
         private const val COL_KIND = "kind"

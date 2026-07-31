@@ -5,7 +5,9 @@ import android.util.Log
 import com.ordia.app.intelligence.IntelligenceRequest
 import com.ordia.app.intelligence.IntelligenceResponse
 import com.ordia.app.intelligence.OrdiaIntelligenceEngine
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 /**
  * Motor contextual central de Ordía 3.
@@ -18,9 +20,14 @@ import kotlinx.coroutines.runBlocking
  * o el modo de reglas ([BasicRuleProvider]) como fallback.
  *
  * Uso desde cualquier fuente de captura:
- *   ContextEngine.getInstance(context).processEvent(event)
+ *   ContextEngine.getInstance(context).processEventAsync(event)  // en una corrutina
  *
- * Thread-safe. Las fuentes pueden llamar desde cualquier hilo.
+ * PRECAUCIÓN DE CONCURRENCIA:
+ * El análisis (incluida la inferencia del modelo local) puede tardar segundos.
+ * Las fuentes de captura (accesibilidad, notificaciones, IME, UI) DEBEN usar
+ * las variantes suspend (*Async) desde una corrutina. Las variantes síncronas
+ * (processEvent/processText) bloquean el hilo llamante y solo deben usarse en
+ * contexto no-UI o pruebas.
  */
 class ContextEngine private constructor(appContext: Context) {
 
@@ -33,14 +40,24 @@ class ContextEngine private constructor(appContext: Context) {
     private val listeners = mutableListOf<ContextEngineListener>()
 
     /**
-     * Procesa un evento contextual completo.
-     * Puede llamarse desde cualquier hilo.
+     * Procesa un evento contextual completo (variante síncrona).
      *
-     * Ahora usa el pipeline de inteligencia ([OrdiaIntelligenceEngine]) que
-     * aplica SafetyGate, elige el proveedor adecuado (modelo local o reglas),
-     * y produce un esquema estructurado en lugar del antiguo ContextIntent.
+     * BLOQUEA el hilo llamante durante todo el pipeline (incluida la
+     * inferencia del modelo local). Úsala solo desde contexto no-UI o pruebas;
+     * las fuentes de captura deben usar [processEventAsync].
      */
-    fun processEvent(event: ContextEvent): ContextResult {
+    fun processEvent(event: ContextEvent): ContextResult = runBlocking {
+        processEventAsync(event)
+    }
+
+    /**
+     * Procesa un evento contextual completo (variante suspend).
+     *
+     * Ejecuta el pipeline en [Dispatchers.Default]; la inferencia del modelo
+     * local nunca bloquea el hilo de la UI. Puede llamarse desde cualquier
+     * corrutina (accesibilidad, notificaciones, IME, LaunchedEffect...).
+     */
+    suspend fun processEventAsync(event: ContextEvent): ContextResult = withContext(Dispatchers.Default) {
         Log.d(TAG, "Processing event from ${event.source}")
 
         // 1. Analizar con el motor de inteligencia unificado
@@ -51,16 +68,14 @@ class ContextEngine private constructor(appContext: Context) {
             timestampMs = event.timestampMs
         )
 
-        val intelligenceResponse = kotlinx.coroutines.runBlocking {
-            intelligenceEngine.analyze(request)
-        }
+        val intelligenceResponse = intelligenceEngine.analyze(request)
 
         val schema = intelligenceResponse.schema
 
         // 2. Verificar safety gate
         if (schema.privacyResult == com.ordia.app.intelligence.PrivacyResult.BLOCKED ||
             !intelligenceResponse.isActionable) {
-            return ContextResult.Discarded(
+            return@withContext ContextResult.Discarded(
                 reason = DiscardReason.PRIVACY_FILTER,
                 source = event.source
             )
@@ -74,7 +89,7 @@ class ContextEngine private constructor(appContext: Context) {
             Log.d(TAG, "Duplicate intent: ${intent.kind} — ${intent.title.take(40)}")
             auditLog.logIntentDiscarded(intent, DiscardReason.DUPLICATE)
             notifyOnDiscarded(intent, DiscardReason.DUPLICATE)
-            return ContextResult.Discarded(
+            return@withContext ContextResult.Discarded(
                 reason = DiscardReason.DUPLICATE,
                 source = event.source,
                 intent = intent
@@ -89,7 +104,7 @@ class ContextEngine private constructor(appContext: Context) {
             intelligenceResponse.needsFollowUp ||
             intelligenceResponse.schema.certainty == com.ordia.app.intelligence.Certainty.DUDOSO
 
-        return if (needsConfirmation) {
+        if (needsConfirmation) {
             val confirmationId = confirmationCoordinator.registerPending(intent)
             auditLog.logIntentDiscarded(intent, DiscardReason.LOW_CONFIDENCE)
             Log.d(TAG, "Pending confirmation $confirmationId for: ${intent.title.take(40)}")
@@ -150,16 +165,28 @@ class ContextEngine private constructor(appContext: Context) {
     }
 
     /**
-     * Procesa texto plano desde cualquier fuente.
-     * Útil para fuentes donde no se necesita metadata adicional.
+     * Procesa texto plano desde cualquier fuente (variante síncrona).
+     *
+     * BLOQUEA el hilo llamante. Úsala solo desde contexto no-UI o pruebas;
+     * las fuentes de captura deben usar [processTextAsync].
      */
-    fun processText(text: String, source: ContextCaptureSource): ContextResult {
+    fun processText(text: String, source: ContextCaptureSource): ContextResult = runBlocking {
+        processTextAsync(text, source)
+    }
+
+    /**
+     * Procesa texto plano desde cualquier fuente (variante suspend).
+     *
+     * Crea un [ContextEvent] y lo procesa con [processEventAsync] en
+     * [Dispatchers.Default].
+     */
+    suspend fun processTextAsync(text: String, source: ContextCaptureSource): ContextResult {
         val event = ContextEvent(
             source = source,
             rawText = text,
             timestampMs = System.currentTimeMillis()
         )
-        return processEvent(event)
+        return processEventAsync(event)
     }
 
     /**
