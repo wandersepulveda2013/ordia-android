@@ -41,3 +41,6 @@ ordia-3.0-upgrade/
 *.swp
 *.swo
 *~
+
+# Auditoría: logs transitorios de builds de verificación
+logs-*.txt
