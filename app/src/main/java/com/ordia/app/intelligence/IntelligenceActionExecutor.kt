@@ -1,18 +1,16 @@
 package com.ordia.app.intelligence
 
-import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.provider.CalendarContract
 import android.util.Log
-import androidx.work.*
 import com.ordia.app.data.local.OrdiaDatabase
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
+import com.ordia.app.reminders.ReminderScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
 
 /**
  * Ejecutor de acciones reales basadas en el planificador de inteligencia.
@@ -124,20 +122,12 @@ class IntelligenceActionExecutor(private val appContext: Context) {
         )
         val id = db.taskDao().insert(entity)
 
-        // Programar notificación con WorkManager si hay fecha
+        // Programar la notificación real con el pipeline de recordatorios
+        // (trabajo único, quiet hours, notificación con acciones Completar/Snooze).
         plan.parameters["dueAt"]?.toLongOrNull()?.let { dueAt ->
-            val delayMs = dueAt - System.currentTimeMillis()
-            if (delayMs > 0) {
-                val workRequest = OneTimeWorkRequestBuilder<ReminderWorker>()
-                    .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
-                    .setConstraints(
-                        Constraints.Builder()
-                            .setRequiresBatteryNotLow(true)
-                            .build()
-                    )
-                    .build()
-                WorkManager.getInstance(appContext).enqueue(workRequest)
-            }
+            val scheduler = ReminderScheduler(appContext)
+            scheduler.scheduleAt(id, dueAt)
+            Log.i(TAG, "Recordatorio programado: tarea $id a las $dueAt")
         }
 
         return ExecutionResult.Success("Recordatorio creado", "task/$id")
@@ -173,17 +163,5 @@ class IntelligenceActionExecutor(private val appContext: Context) {
 
     companion object {
         private const val TAG = "IntelligenceActionExecutor"
-    }
-}
-
-/** Worker para recordatorios programados */
-class ReminderWorker(
-    context: Context,
-    params: WorkerParameters
-) : Worker(context, params) {
-    override fun doWork(): Result {
-        // Enviar notificación de recordatorio
-        // (implementación detallada en fase de notificaciones)
-        return Result.success()
     }
 }

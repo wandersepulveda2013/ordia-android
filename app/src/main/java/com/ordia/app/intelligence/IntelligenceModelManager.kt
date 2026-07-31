@@ -30,7 +30,13 @@ object IntelligenceModelManager {
 
     private const val TAG = "IntelligenceModelManager"
     private const val MODELS_DIR = "tflite-models"
-    private const val MAX_MODEL_BYTES = 3L * 1024L * 1024L * 1024L  // 3 GB
+
+    /**
+     * Límite de seguridad para la descarga de modelos: ningún servidor
+     * (legítimo o comprometido) puede escribir más de 3 GB en el
+     * almacenamiento del dispositivo. Público para pruebas y documentación.
+     */
+    const val MAX_MODEL_BYTES = 3L * 1024L * 1024L * 1024L  // 3 GB
     private const val MAX_REDIRECTS = 5
     private const val CONNECT_TIMEOUT = 30_000
     private const val READ_TIMEOUT = 60_000
@@ -285,8 +291,15 @@ object IntelligenceModelManager {
                     while (true) {
                         val read = input.read(buffer)
                         if (read < 0) break
-                        output.write(buffer, 0, read)
                         totalBytes += read
+                        // Tope de seguridad: nunca permitir que un servidor
+                        // comprometido llene el almacenamiento del dispositivo.
+                        if (totalBytes > MAX_MODEL_BYTES) {
+                            throw IllegalStateException(
+                                "Modelo supera el límite de seguridad de $MAX_MODEL_BYTES bytes"
+                            )
+                        }
+                        output.write(buffer, 0, read)
                         if (contentLength > 0) {
                             val progress = (totalBytes.toFloat() / contentLength).coerceIn(0f, 1f)
                             onProgress(progress)
@@ -417,19 +430,37 @@ object IntelligenceModelManager {
 
 /** Worker de descarga de modelo que sobrevive al cierre de la app */
 class ModelDownloadWorker(
-    context: Context,
+    appContext: Context,
     params: WorkerParameters
-) : Worker(context, params) {
+) : CoroutineWorker(appContext, params) {
 
-    override fun doWork(): Result {
-        val url = inputData.getString("model_url") ?: return Result.failure()
-        val checksumUrl = inputData.getString("checksum_url") ?: return Result.failure()
+    override suspend fun doWork(): Result {
         val filename = inputData.getString("filename") ?: return Result.failure()
+        val model = IntelligenceModelManager.getModel(filename) ?: return Result.failure()
 
-        return runCatching {
-            // Implementar descarga real aquí
-            // Por ahora, se usa downloadModelWithProgress desde la UI
+        val downloaded = runCatching {
+            IntelligenceModelManager.downloadModelWithProgress(
+                context = applicationContext,
+                filename = model.filename,
+                onProgress = {}
+            )
+        }.getOrElse {
+            Log.e(TAG, "Error en descarga de fondo del modelo", it)
+            false
+        }
+
+        return if (downloaded) {
             Result.success()
-        }.getOrElse { Result.retry() }
+        } else if (runAttemptCount < MAX_DOWNLOAD_ATTEMPTS) {
+            // Reintento acotado con backoff de WorkManager; sin reintentos infinitos.
+            Result.retry()
+        } else {
+            Result.failure()
+        }
+    }
+
+    companion object {
+        private const val TAG = "ModelDownloadWorker"
+        private const val MAX_DOWNLOAD_ATTEMPTS = 5
     }
 }

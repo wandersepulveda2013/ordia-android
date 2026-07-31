@@ -41,9 +41,15 @@ class TaskReminderWorker(
             )
             return Result.success()
         }
+        // Sin permiso de notificaciones (API 33+) no se puede mostrar el
+        // recordatorio. En lugar de fingir éxito, se reintenta un número
+        // acotado de veces (por si el usuario otorga el permiso) y luego se
+        // descarta el trabajo de forma explícita.
         if (android.os.Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) return Result.success()
+        ) {
+            return if (runAttemptCount < MAX_PERMISSION_RETRIES) Result.retry() else Result.failure()
+        }
 
         createChannel(applicationContext)
         val openIntent = PendingIntent.getActivity(
@@ -94,6 +100,7 @@ class TaskReminderWorker(
     companion object {
         const val KEY_TASK_ID = "task_id"
         private const val CHANNEL_ID = "ordia_reminders"
+        private const val MAX_PERMISSION_RETRIES = 5
 
         fun createChannel(context: Context) {
             val manager = context.getSystemService(NotificationManager::class.java)
