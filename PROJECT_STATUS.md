@@ -32,10 +32,11 @@ Referencia completa de hallazgos y correcciones: [`AUDITORIA_ORDIA_2026.md`](AUD
 - 6 APKs generados; release R8 de ~16 MB con `DEBUGGABLE=false`; job `sign` del CI valida con `aapt2 dump badging`.
 - APK de entrega para el celular: `deliverables/Ordia-3.0-debug-2026-07-31.apk` (variante `previewAdvanced`, debug, 36.2 MB).
 - Wrapper de Gradle con `distributionSha256Sum` y validación en CI.
-- Hallazgos críticos de la auditoría: **3/3 P0 corregidos, 8/8 P1 corregidos**; 2 bloqueos por CI documentados (ORD-015 migración Room, ORD-032 FTS) y 10 abiertos (P2/P3/P4) sin impacto en la línea base.
+- Hallazgos críticos de la auditoría: **3/3 P0 corregidos, 8/8 P1 corregidos**; 2 bloqueos por CI documentados (ORD-015 migración Room, ORD-032 FTS) y 9 abiertos (P2/P3/P4) sin impacto en la línea base.
 - ORD-012 (batería overlay) corregido: el polling de 60 s del `GuardianOverlayService` se sustituyó por un one-shot que despierta solo en el próximo borde de quiet hours; `analyzeText` de "Preguntar" corre en `Dispatchers.Default`.
 - ORD-005 (filtro de paquetes) corregido: `ContextPrivacyFilter` se aplica ahora en `ContextEngine.processEventAsync` para todas las fuentes, antes de la inferencia local.
 - ORD-014 (TOFU del checksum del modelo) corregido: el SHA-256 verificado se fija localmente tras la primera descarga y las re-descargas no vuelven a confiar en el checksum remoto.
+- ORD-018 (contexto externo inseguro) corregido: `isSecureContext` usa el `sourcePackage` real del evento/IME con `SECURE_PACKAGES` completado; la ruta IME también verifica paquete y contenido sensible.
 
 ## Instalación en dispositivo (sin ADB en este equipo)
 

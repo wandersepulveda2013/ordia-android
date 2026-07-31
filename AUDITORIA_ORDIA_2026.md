@@ -45,7 +45,7 @@
 | ORD-015 | P2 | BD | Migración 1→2 declarada pero **sin schema `1.json`** exportado y **sin test de migración** (`MigrationTestHelper`) | `data/local/OrdiaDatabase.kt:45-168`; `app/schemas/…/2.json` (solo v2) | Crash en arranque para usuarios con BD v1; migración no verificable | Regenerar 1.json + test de migración | BLOQUEADO — `app/schemas/` está en `.gitignore`; sin versionar el schema v1 no hay `MigrationTestHelper` en CI. Decisión pendiente: versionar schemas o aceptar el riesgo documentado |
 | ORD-016 | P2 | Concurrencia | SQLite/SharedPreferences síncronos en hilos main de servicios: `ContextAuditLog` (`db.insert`/`delete`), `ContextualSuggestionStore` (`prefs.commit()`), lectura de backup 10 MB en main | `context/ContextAuditLog.kt:25-36,41-53`; `context/ContextualSuggestionStore.kt:64,70`; `ui/screens/SettingsScreen.kt:111-119` | Jank/ANR; `SecureRandom` bloqueante en main | `withContext(Dispatchers.IO)`; `apply()` | CORREGIDO (33a1e5c, 9526920) — lectura/escritura de copias movidas a `Dispatchers.IO` en SettingsScreen; `ContextualSuggestionStore` usa `apply()` en lugar de `commit()`; los `insert`/`delete` del `ContextAuditLog` ya corren en `Dispatchers.Default` vía `ContextEngine.processEventAsync` (documentado en el código; las lecturas sin llamadores activos deberán envolverse en IO al conectarse a UI) |
 | ORD-017 | P2 | IME | Teclas "↵" (-4) y "ABC" (-3) caen al `else` e insertan caracteres de control (U+FFFD/U+FFFC) en la app anfitriona; `KEYCODE_DONE` nunca se produce; sin `imeOptions` (Next/Done/Search/Send) ni multiline | `ime/OrdiaKeyboardService.kt:196-218`; `res/xml/ordia_keyboard_qwerty.xml:56-60` | Corrupción de la entrada del usuario | Manejar -3 (switchToNextInputMethod) y -4 (sendDefaultEditorAction/commit según imeOptions) | CORREGIDO (e90e941) — teclas -3/-4 resueltas en `onKey` |
-| ORD-018 | P2 | Acciones externas | `ExternalConfirmationController.isSecureContext()` siempre `false` (`getForegroundPackage()` devuelve null); `SECURE_PACKAGES` nunca aplica; ruta IME salta `isSecureContext`/`isSensitiveContent` | `context/external/ExternalConfirmationController.kt:191-205,251-254,484-514` | Tarjeta de sugerencia sobre app sensible sin defensa | Usar `sourcePackage` del evento/IME; completar `SECURE_PACKAGES` | ABIERTO |
+| ORD-018 | P2 | Acciones externas | `ExternalConfirmationController.isSecureContext()` siempre `false` (`getForegroundPackage()` devuelve null); `SECURE_PACKAGES` nunca aplica; ruta IME salta `isSecureContext`/`isSensitiveContent` | `context/external/ExternalConfirmationController.kt:191-205,251-254,484-514` | Tarjeta de sugerencia sobre app sensible sin defensa | Usar `sourcePackage` del evento/IME; completar `SECURE_PACKAGES` | CORREGIDO (3127e16) — `isSecureContext(packageName)` usa el `sourcePackage` real del `ContextIntent` (evento) o de la `ExternalSuggestion` (IME) con comparación por prefijo; `SECURE_PACKAGES` completado con paquetes reales (banca mexicana, autenticadores, gestores de contraseñas, apps médicas) en `ExternalSecureContext` (objeto JVM puro); la ruta IME `receiveFromIME` ahora también verifica paquete seguro y contenido sensible antes de encolar; `ExternalSuggestion` propaga `sourcePackage` (serializado). `ExternalSecureContextTest` 16 casos |
 | ORD-019 | P2 | CI/CD | Sin validación del wrapper de Gradle (`wrapper-validation-action`) y sin `distributionSha256Sum` | `android-ci.yml` (ausente); `gradle/wrapper/gradle-wrapper.properties:3` | Supply-chain | Añadir validación + checksum | CORREGIDO (f072873/1590932) — `wrapper-validation-action` y `distributionSha256Sum=20f1b117…aed78` |
 | ORD-020 | P2 | CI/CD | `build-apk.yml` usa acciones sin pinning SHA, `gradle` global (no `./gradlew`), sin timeout, artifact "Ordia-2.0" | `.github/workflows/build-apk.yml:18,21,27,32` | Acciones mutables, builds colgados | Pinear, timeout, `./gradlew`, renombrar | CORREGIDO (f072873) — `build-apk.yml` con acciones pineadas, timeout, `./gradlew` y nombre actual |
 | ORD-021 | P2 | Recordatorios | `TaskReminderWorker` devuelve `Result.success()` sin permiso `POST_NOTIFICATIONS` (API 33+) → recordatorio descartado en silencio | `reminders/TaskReminderWorker.kt:44-46` | Recordatorio que nunca llega | `Result.failure()`/reprogramar acotado + estado visible | CORREGIDO (9d315c1) — `TaskReminderWorker` con `MAX_PERMISSION_RETRIES=5` y fallo visible sin permiso |
@@ -70,14 +70,14 @@
 
 | Estado | P0 | P1 | P2 | P3 | P4 | Total |
 |---|---|---|---|---|---|---|
-| CORREGIDO | 3 | 8 | 10 | 4 | 0 | 25 |
+| CORREGIDO | 3 | 8 | 11 | 4 | 0 | 26 |
 | BLOQUEADO (CI: `app/schemas/` sin versionar) | 0 | 0 | 1 | 1 | 0 | 2 |
-| ABIERTO | 0 | 0 | 2 | 6 | 2 | 10 |
+| ABIERTO | 0 | 0 | 1 | 6 | 2 | 9 |
 | DESCARTADO | — | — | — | — | — | 2 (agentes) |
 
-Cerrados: ORD-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 016, 017, 019, 020, 021, 022, 023, 031, 033, 034, 035.
+Cerrados: ORD-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 016, 017, 018, 019, 020, 021, 022, 023, 031, 033, 034, 035.
 Bloqueados: ORD-015 (migración Room 1→2 sin test en CI), ORD-032 (FTS).
-Abiertos prioritarios: ORD-018 (contexto externo inseguro), ORD-024 (rate-limit).
+Abiertos prioritarios: ORD-024 (rate-limit).
 
 ### P0/P1 resumen
 
