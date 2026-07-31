@@ -28,9 +28,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.ordia.app.OrdiaApplication
+import com.ordia.app.R
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskStatus
@@ -63,27 +65,36 @@ class QuickCaptureActivity : ComponentActivity() {
                 LaunchedEffect(voice) {
                     if (voice.isNotBlank() && voice != text) text = voice
                 }
+                val title = stringResource(R.string.quick_capture_title)
+                val subtitle = stringResource(R.string.quick_capture_subtitle)
+                val taskLabel = stringResource(R.string.suggestion_type_task)
+                val noteLabel = stringResource(R.string.quick_capture_note)
+                val taskHint = stringResource(R.string.quick_capture_task_hint)
+                val noteHint = stringResource(R.string.quick_capture_note_hint)
+                val dictateLabel = stringResource(R.string.quick_capture_dictate)
+                val quickNoteFallback = stringResource(R.string.quick_capture_fallback_title)
+                val saveLabel = stringResource(R.string.external_suggestion_save)
                 Surface(
                     modifier = Modifier.padding(16.dp),
                     shape = RoundedCornerShape(28.dp),
                     tonalElevation = 10.dp
                 ) {
                     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Text("Captura rápida", style = androidx.compose.material3.MaterialTheme.typography.headlineMedium)
+                        Text(title, style = androidx.compose.material3.MaterialTheme.typography.headlineMedium)
                         Text(
-                            "Guárdalo ahora. Ordia te ayuda a organizarlo después.",
+                            subtitle,
                             color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(selected = mode == MODE_TASK, onClick = { mode = MODE_TASK }, label = { Text("Tarea") })
-                            FilterChip(selected = mode == MODE_NOTE, onClick = { mode = MODE_NOTE }, label = { Text("Nota") })
+                            FilterChip(selected = mode == MODE_TASK, onClick = { mode = MODE_TASK }, label = { Text(taskLabel) })
+                            FilterChip(selected = mode == MODE_NOTE, onClick = { mode = MODE_NOTE }, label = { Text(noteLabel) })
                         }
                         OutlinedTextField(
                             value = text,
                             onValueChange = { text = it },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 3,
-                            label = { Text(if (mode == MODE_TASK) "¿Qué necesitas hacer?" else "¿Qué quieres guardar?") }
+                            label = { Text(if (mode == MODE_TASK) taskHint else noteHint) }
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             OutlinedButton(
@@ -91,7 +102,7 @@ class QuickCaptureActivity : ComponentActivity() {
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Icon(Icons.Outlined.Mic, null)
-                                Text("Dictar", Modifier.padding(start = 6.dp))
+                                Text(dictateLabel, Modifier.padding(start = 6.dp))
                             }
                             Button(
                                 onClick = {
@@ -100,7 +111,7 @@ class QuickCaptureActivity : ComponentActivity() {
                                         if (mode == MODE_NOTE) {
                                             container.noteRepository.add(
                                                 NoteEntity(
-                                                    title = clean.lineSequence().firstOrNull()?.take(60).orEmpty().ifBlank { "Nota rápida" },
+                                                    title = clean.lineSequence().firstOrNull()?.take(60).orEmpty().ifBlank { quickNoteFallback },
                                                     body = clean,
                                                     blocksData = NoteBlockCodec.encode(listOf(NoteBlock(text = clean)))
                                                 )
@@ -124,7 +135,7 @@ class QuickCaptureActivity : ComponentActivity() {
                                 },
                                 enabled = text.isNotBlank(),
                                 modifier = Modifier.weight(1f)
-                            ) { Text("Guardar") }
+                            ) { Text(saveLabel) }
                         }
                     }
                 }
@@ -136,7 +147,7 @@ class QuickCaptureActivity : ComponentActivity() {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Habla para guardar en Ordia")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.quick_capture_voice_prompt))
         }
         runCatching { voiceLauncher.launch(intent) }
     }

@@ -100,22 +100,24 @@ object OrdiaUpdateManager {
         WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
     }
 
-    suspend fun checkDetailed(): CheckResult = withContext(Dispatchers.IO) {
-        if (!BuildConfig.SELF_UPDATE_ENABLED) return@withContext CheckResult.Failed("Este canal se actualiza desde su tienda de aplicaciones.")
+    suspend fun checkDetailed(context: Context): CheckResult = withContext(Dispatchers.IO) {
+        if (!BuildConfig.SELF_UPDATE_ENABLED) {
+            return@withContext CheckResult.Failed(context.getString(R.string.update_fail_store_channel))
+        }
         runCatching {
             val releaseJson = JSONObject(requestText(RELEASE_API, MAX_RELEASE_JSON_BYTES))
             if (releaseJson.optBoolean("draft") || releaseJson.optBoolean("prerelease")) {
-                return@runCatching CheckResult.Failed("La publicación más reciente no es una versión estable.")
+                return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_not_stable))
             }
             val tag = releaseJson.optString("tag_name").trim().takeIf { it.isNotBlank() }
-                ?: return@runCatching CheckResult.Failed("La publicación no contiene una etiqueta de versión.")
+                ?: return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_no_tag))
             val remoteCode = UpdateSecurityRules.parseVersionCodeFromTag(tag)
-                ?: return@runCatching CheckResult.Failed("La etiqueta $tag no tiene el formato seguro esperado.")
+                ?: return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_bad_tag, tag))
             if (remoteCode <= BuildConfig.VERSION_CODE) return@runCatching CheckResult.UpToDate
 
             val page = releaseJson.optString("html_url").takeIf(UpdateSecurityRules::isTrustedReleasePageUrl) ?: RELEASES_PAGE
             val assets = releaseJson.optJSONArray("assets")
-                ?: return@runCatching CheckResult.Failed("La publicación no contiene archivos.")
+                ?: return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_no_assets))
             data class Asset(val name: String, val url: String, val bytes: Long)
             val trustedAssets = buildList {
                 for (index in 0 until assets.length()) {
@@ -129,26 +131,26 @@ object OrdiaUpdateManager {
                 }
             }
             val apkName = UpdateSecurityRules.selectExpectedApk(trustedAssets.map { it.name }, remoteCode)
-                ?: return@runCatching CheckResult.Failed("La publicación no contiene la APK exacta para versionCode $remoteCode.")
+                ?: return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_no_apk, remoteCode))
             val apkMatches = trustedAssets.filter { it.name == apkName }
             if (apkMatches.size != 1 || apkMatches.single().bytes !in 1..MAX_APK_BYTES) {
-                return@runCatching CheckResult.Failed("La APK publicada es ambigua o tiene un tamaño inválido.")
+                return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_ambiguous_apk))
             }
             val checksumName = "$apkName.sha256"
             val checksumMatches = trustedAssets.filter { it.name == checksumName }
             if (checksumMatches.size != 1) {
-                return@runCatching CheckResult.Failed("La publicación no incluye el checksum exacto de $apkName.")
+                return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_no_checksum, apkName))
             }
             val checksum = UpdateSecurityRules.parseChecksum(
                 requestText(checksumMatches.single().url, MAX_CHECKSUM_BYTES),
                 apkName
-            ) ?: return@runCatching CheckResult.Failed("El checksum publicado es ausente, ambiguo o inválido.")
+            ) ?: return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_bad_checksum))
 
             CheckResult.Available(
                 Release(tag, remoteCode, page, apkMatches.single().url, checksum, apkMatches.single().bytes)
             )
         }.getOrElse { error ->
-            CheckResult.Failed(error.message?.take(180) ?: "No se pudo consultar GitHub Releases.")
+            CheckResult.Failed(error.message?.take(180) ?: context.getString(R.string.update_fail_github))
         }
     }
 
@@ -183,8 +185,8 @@ object OrdiaUpdateManager {
 
         val id = runCatching {
             val request = DownloadManager.Request(Uri.parse(release.apkUrl))
-                .setTitle("Actualización de Ordia")
-                .setDescription("Descargando ${release.tag}")
+                .setTitle(context.getString(R.string.update_download_title))
+                .setDescription(context.getString(R.string.update_download_description, release.tag))
                 .setMimeType(APK_MIME)
                 // Never expose a completed, unverified APK through DownloadManager's notification.
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
@@ -246,33 +248,35 @@ object OrdiaUpdateManager {
         }
 
     private fun validateDownloadedPackageLocked(context: Context, id: Long): ValidationResult {
-        if (!isManagedDownload(context, id)) return ValidationResult.Invalid("La descarga no pertenece a Ordia.")
+        if (!isManagedDownload(context, id)) {
+            return ValidationResult.Invalid(context.getString(R.string.update_invalid_not_managed))
+        }
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val expectedHash = prefs.getString(KEY_EXPECTED_SHA256, null)
             ?.takeIf(UpdateSecurityRules::isValidSha256)
-            ?: return ValidationResult.Invalid("No existe un checksum esperado para la descarga.")
+            ?: return ValidationResult.Invalid(context.getString(R.string.update_invalid_no_checksum))
         val expectedCode = prefs.getInt(KEY_DOWNLOAD_CODE, -1)
         val expectedBytes = prefs.getLong(KEY_EXPECTED_BYTES, -1L)
         if (!UpdateSecurityRules.isReportedSizeAcceptable(expectedBytes, MAX_APK_BYTES)) {
-            return ValidationResult.Invalid("No existe un tamaño esperado válido para la descarga.")
+            return ValidationResult.Invalid(context.getString(R.string.update_invalid_no_size))
         }
         if (expectedCode <= BuildConfig.VERSION_CODE) {
-            return ValidationResult.Invalid("La versión descargada ya no es más reciente que Ordia.")
+            return ValidationResult.Invalid(context.getString(R.string.update_invalid_old_version))
         }
 
         val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         if (queryStatus(manager, id) != DownloadManager.STATUS_SUCCESSFUL) {
-            return ValidationResult.Invalid("La descarga no terminó correctamente.")
+            return ValidationResult.Invalid(context.getString(R.string.update_invalid_incomplete))
         }
         val reportedBytes = queryTotalBytes(manager, id)
         if (!UpdateSecurityRules.isReportedSizeAcceptable(reportedBytes, MAX_APK_BYTES)) {
-            return ValidationResult.Invalid("El tamaño de la APK descargada no es válido.")
+            return ValidationResult.Invalid(context.getString(R.string.update_invalid_bad_size))
         }
         if (reportedBytes != null && reportedBytes >= 0L && reportedBytes != expectedBytes) {
-            return ValidationResult.Invalid("El tamaño descargado no coincide con el publicado.")
+            return ValidationResult.Invalid(context.getString(R.string.update_invalid_size_mismatch))
         }
         val sourceUri = manager.getUriForDownloadedFile(id)
-            ?: return ValidationResult.Invalid("Android no pudo abrir la APK descargada.")
+            ?: return ValidationResult.Invalid(context.getString(R.string.update_invalid_cannot_open))
         val directory = verifiedDirectory(context)
         val temporary = File(directory, "Ordia-$expectedCode.apk.part")
         val verified = File(directory, "Ordia-$expectedCode.apk")
@@ -283,10 +287,10 @@ object OrdiaUpdateManager {
             verified.delete()
             copyAndHash(context, sourceUri, temporary).also { copied ->
                 require(copied.bytes == expectedBytes) {
-                    "La APK contiene ${copied.bytes} bytes y la publicación anunció $expectedBytes."
+                    context.getString(R.string.update_invalid_size_detail, copied.bytes, expectedBytes)
                 }
                 require(copied.sha256.equals(expectedHash, ignoreCase = true)) {
-                    "El SHA-256 de la APK no coincide con el publicado."
+                    context.getString(R.string.update_invalid_sha)
                 }
             }
             verifyArchive(context, temporary, expectedCode)
@@ -297,7 +301,7 @@ object OrdiaUpdateManager {
             }
             // Verify the exact private bytes Android will receive, not only the external source.
             require(sha256(verified).equals(expectedHash, ignoreCase = true)) {
-                "La APK cambió durante la copia privada."
+                context.getString(R.string.update_invalid_changed)
             }
             verifyArchive(context, verified, expectedCode)
             verified.setLastModified(System.currentTimeMillis())
@@ -309,7 +313,7 @@ object OrdiaUpdateManager {
             preserveVerified = true
             ValidationResult.Valid(privateUri)
         } catch (error: Exception) {
-            ValidationResult.Invalid(error.message?.take(180) ?: "No se pudo validar la APK.")
+            ValidationResult.Invalid(error.message?.take(180) ?: context.getString(R.string.update_invalid_cannot_validate))
         } finally {
             temporary.delete()
             if (!preserveVerified) verified.delete()
@@ -329,8 +333,8 @@ object OrdiaUpdateManager {
             NOTIFICATION_ID,
             NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_ordia)
-                .setContentTitle("Nueva versión de Ordia")
-                .setContentText("${release.tag} está disponible. Toca para revisar.")
+                .setContentTitle(context.getString(R.string.update_available_title))
+                .setContentText(context.getString(R.string.update_available_text, release.tag))
                 .setContentIntent(pending)
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -351,8 +355,8 @@ object OrdiaUpdateManager {
             NOTIFICATION_ID + 1,
             NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_ordia)
-                .setContentTitle("Ordía está lista para actualizarse")
-                .setContentText("La APK fue verificada. Android requiere una confirmación final.")
+                .setContentTitle(context.getString(R.string.update_ready_title))
+                .setContentText(context.getString(R.string.update_ready_text))
                 .setContentIntent(pending)
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -366,7 +370,7 @@ object OrdiaUpdateManager {
             NOTIFICATION_ID + 2,
             NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_ordia)
-                .setContentTitle("Actualización descartada")
+                .setContentTitle(context.getString(R.string.update_discarded_title))
                 .setContentText(reason.take(140))
                 .setStyle(NotificationCompat.BigTextStyle().bigText(reason))
                 .setAutoCancel(true)
@@ -612,8 +616,8 @@ object OrdiaUpdateManager {
 
     private fun createChannel(context: Context) {
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(
-            NotificationChannel(CHANNEL, "Actualizaciones de Ordia", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "Descarga y avisa cuando una versión nueva de Ordia está disponible."
+            NotificationChannel(CHANNEL, context.getString(R.string.update_channel_name), NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = context.getString(R.string.update_channel_description)
             }
         )
     }

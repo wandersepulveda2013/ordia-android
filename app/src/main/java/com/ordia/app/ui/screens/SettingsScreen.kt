@@ -462,7 +462,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                     onClick = {
                         updateStatus = "Buscando una versión nueva…"
                         scope.launch {
-                            when (val result = OrdiaUpdateManager.checkDetailed()) {
+                            when (val result = OrdiaUpdateManager.checkDetailed(context)) {
                                 OrdiaUpdateManager.CheckResult.UpToDate -> {
                                     updateStatus = "Ordía está actualizada."
                                 }

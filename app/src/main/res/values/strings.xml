@@ -40,4 +40,74 @@
     <string name="widget_all_clear">Todo está en orden</string>
     <string name="widget_zero_pending">0 pendientes</string>
     <string name="widget_capture">+ Capturar</string>
+
+    <!-- Marca -->
+    <string name="app_short_name">Ordía</string>
+
+    <!-- Captura rápida (QuickCaptureActivity, ORD-029) -->
+    <string name="quick_capture_title">Captura rápida</string>
+    <string name="quick_capture_subtitle">Guárdalo ahora. Ordia te ayuda a organizarlo después.</string>
+    <string name="quick_capture_note">Nota</string>
+    <string name="quick_capture_task_hint">¿Qué necesitas hacer?</string>
+    <string name="quick_capture_note_hint">¿Qué quieres guardar?</string>
+    <string name="quick_capture_dictate">Dictar</string>
+    <string name="quick_capture_fallback_title">Nota rápida</string>
+    <string name="quick_capture_voice_prompt">Habla para guardar en Ordia</string>
+
+    <!-- Guardián: panel y asistente (GuardianOverlayService, ORD-029) -->
+    <string name="guardian_action_pet">Acariciar</string>
+    <string name="guardian_action_play">Jugar</string>
+    <string name="guardian_action_new_task">Nueva tarea</string>
+    <string name="guardian_action_new_note">Nueva nota</string>
+    <string name="guardian_action_focus">Iniciar enfoque</string>
+    <string name="guardian_action_suggestions">Sugerencias (%1$d)</string>
+    <string name="guardian_action_assistant">Asistente</string>
+    <string name="guardian_action_open_sanctuary">Abrir refugio</string>
+    <string name="guardian_action_hide">Ocultar guardián</string>
+    <string name="guardian_assistant_title">Asistente Ordía</string>
+    <string name="guardian_assistant_welcome">¿En qué puedo ayudarte?</string>
+    <string name="guardian_assistant_hint">Escribe tu mensaje...</string>
+    <string name="guardian_assistant_ask">Preguntar</string>
+    <string name="guardian_privacy_blocked">No puedo procesar esa información.</string>
+    <string name="guardian_assistant_done">Hecho: %1$s\n%2$s</string>
+    <string name="guardian_assistant_registered">Registrado como: %1$s</string>
+    <string name="guardian_assistant_no_action">No detecté una acción clara. ¿Qué te gustaría hacer?</string>
+    <string name="guardian_close">Cerrar</string>
+    <string name="guardian_quiet_hours_notification">Horas de silencio: el guardián permanece discreto.</string>
+    <string name="guardian_active_notification">Tu compañero virtual está activo. Tócalo para interactuar.</string>
+    <string name="guardian_notification_hide">Ocultar</string>
+    <string name="guardian_channel_description_full">Mantiene disponible el compañero virtual flotante de Ordia.</string>
+
+    <!-- Actualizaciones (OrdiaUpdateManager, ORD-029) -->
+    <string name="update_download_title">Actualización de Ordia</string>
+    <string name="update_download_description">Descargando %1$s</string>
+    <string name="update_available_title">Nueva versión de Ordia</string>
+    <string name="update_available_text">%1$s está disponible. Toca para revisar.</string>
+    <string name="update_ready_title">Ordía está lista para actualizarse</string>
+    <string name="update_ready_text">La APK fue verificada. Android requiere una confirmación final.</string>
+    <string name="update_discarded_title">Actualización descartada</string>
+    <string name="update_channel_name">Actualizaciones de Ordia</string>
+    <string name="update_channel_description">Descarga y avisa cuando una versión nueva de Ordia está disponible.</string>
+    <string name="update_fail_store_channel">Este canal se actualiza desde su tienda de aplicaciones.</string>
+    <string name="update_fail_not_stable">La publicación más reciente no es una versión estable.</string>
+    <string name="update_fail_no_tag">La publicación no contiene una etiqueta de versión.</string>
+    <string name="update_fail_bad_tag">La etiqueta %1$s no tiene el formato seguro esperado.</string>
+    <string name="update_fail_no_assets">La publicación no contiene archivos.</string>
+    <string name="update_fail_no_apk">La publicación no contiene la APK exacta para versionCode %1$d.</string>
+    <string name="update_fail_ambiguous_apk">La APK publicada es ambigua o tiene un tamaño inválido.</string>
+    <string name="update_fail_no_checksum">La publicación no incluye el checksum exacto de %1$s.</string>
+    <string name="update_fail_bad_checksum">El checksum publicado es ausente, ambiguo o inválido.</string>
+    <string name="update_fail_github">No se pudo consultar GitHub Releases.</string>
+    <string name="update_invalid_not_managed">La descarga no pertenece a Ordia.</string>
+    <string name="update_invalid_no_checksum">No existe un checksum esperado para la descarga.</string>
+    <string name="update_invalid_no_size">No existe un tamaño esperado válido para la descarga.</string>
+    <string name="update_invalid_old_version">La versión descargada ya no es más reciente que Ordia.</string>
+    <string name="update_invalid_incomplete">La descarga no terminó correctamente.</string>
+    <string name="update_invalid_bad_size">El tamaño de la APK descargada no es válido.</string>
+    <string name="update_invalid_size_mismatch">El tamaño descargado no coincide con el publicado.</string>
+    <string name="update_invalid_cannot_open">Android no pudo abrir la APK descargada.</string>
+    <string name="update_invalid_size_detail">La APK contiene %1$d bytes y la publicación anunció %2$d.</string>
+    <string name="update_invalid_sha">El SHA-256 de la APK no coincide con el publicado.</string>
+    <string name="update_invalid_changed">La APK cambió durante la copia privada.</string>
+    <string name="update_invalid_cannot_validate">No se pudo validar la APK.</string>
 </resources>

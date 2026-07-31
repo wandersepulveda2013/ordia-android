@@ -26,7 +26,7 @@ class OrdiaUpdateWorker(
         val app = applicationContext as OrdiaApplication
         val preferences = app.container.preferencesRepository.preferences.first()
         if (!preferences.autoUpdateEnabled) return Result.success()
-        return when (val result = OrdiaUpdateManager.checkDetailed()) {
+        return when (val result = OrdiaUpdateManager.checkDetailed(applicationContext)) {
             OrdiaUpdateManager.CheckResult.UpToDate -> Result.success()
             is OrdiaUpdateManager.CheckResult.Failed -> {
                 // A malformed release must not create an endless battery-consuming retry loop.

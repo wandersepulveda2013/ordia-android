@@ -225,16 +225,16 @@ class GuardianOverlayService : Service() {
             setPadding(dp(8), dp(8), dp(8), dp(8))
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
             addTitle(preferences.guardianName.ifBlank { preferences.guardianSpecies.defaultName })
-            addAction("Acariciar") { interact(GuardianEngine.Interaction.PET) }
-            addAction("Jugar") { interact(GuardianEngine.Interaction.PLAY) }
-            addAction("Nueva tarea") { openCapture(QuickCaptureActivity.MODE_TASK) }
-            addAction("Nueva nota") { openCapture(QuickCaptureActivity.MODE_NOTE) }
-            addAction("Iniciar enfoque") { openMain(MainActivity.OPEN_FOCUS) }
+            addAction(getString(R.string.guardian_action_pet)) { interact(GuardianEngine.Interaction.PET) }
+            addAction(getString(R.string.guardian_action_play)) { interact(GuardianEngine.Interaction.PLAY) }
+            addAction(getString(R.string.guardian_action_new_task)) { openCapture(QuickCaptureActivity.MODE_TASK) }
+            addAction(getString(R.string.guardian_action_new_note)) { openCapture(QuickCaptureActivity.MODE_NOTE) }
+            addAction(getString(R.string.guardian_action_focus)) { openMain(MainActivity.OPEN_FOCUS) }
             val contextualCount = (application as OrdiaApplication).container.contextualSuggestionStore.list().size
-            if (contextualCount > 0) addAction("Sugerencias ($contextualCount)") { openMain(MainActivity.OPEN_CONTEXTUAL) }
-            addAction("Asistente") { openAssistantMode() }
-            addAction("Abrir refugio") { openMain(MainActivity.OPEN_GUARDIAN) }
-            addAction("Ocultar guardián") {
+            if (contextualCount > 0) addAction(getString(R.string.guardian_action_suggestions, contextualCount)) { openMain(MainActivity.OPEN_CONTEXTUAL) }
+            addAction(getString(R.string.guardian_action_assistant)) { openAssistantMode() }
+            addAction(getString(R.string.guardian_action_open_sanctuary)) { openMain(MainActivity.OPEN_GUARDIAN) }
+            addAction(getString(R.string.guardian_action_hide)) {
                 scope.launch { repository.setGuardianEnabled(false) }
                 stopSelf()
             }
@@ -370,7 +370,7 @@ class GuardianOverlayService : Service() {
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
 
             val titleTv = TextView(this@GuardianOverlayService).apply {
-                text = "Asistente Ordía"
+                text = getString(R.string.guardian_assistant_title)
                 textSize = 16f
                 setTextColor(0xFFD9BC7A.toInt())
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
@@ -379,7 +379,7 @@ class GuardianOverlayService : Service() {
             addView(titleTv)
 
             val responseTv = TextView(this@GuardianOverlayService).apply {
-                text = "¿En qué puedo ayudarte?"
+                text = getString(R.string.guardian_assistant_welcome)
                 textSize = 14f
                 setTextColor(0xFFCCCCAA.toInt())
                 textAlignment = View.TEXT_ALIGNMENT_CENTER
@@ -389,7 +389,7 @@ class GuardianOverlayService : Service() {
             addView(responseTv)
 
             val inputField = android.widget.EditText(this@GuardianOverlayService).apply {
-                hint = "Escribe tu mensaje..."
+                hint = getString(R.string.guardian_assistant_hint)
                 setTextColor(0xFFFFFFFF.toInt())
                 setHintTextColor(0x88CCCCAA.toInt())
                 textSize = 14f
@@ -411,13 +411,13 @@ class GuardianOverlayService : Service() {
             addView(inputField, inputParams)
 
             val sendBtn = Button(this@GuardianOverlayService).apply {
-                text = "Preguntar"
+                text = getString(R.string.guardian_assistant_ask)
                 setTextColor(0xFFFFFFFF.toInt())
                 textSize = 14f
                 setOnClickListener {
                     val text = inputField.text.toString().trim()
                     if (text.isNotBlank()) {
-                        responseTv.text = "Analizando..."
+                        responseTv.text = getString(R.string.keyboard_analyzing)
                         inputField.setText("")
                         scope.launch {
                             // La inferencia local (Gemma 2B) puede tardar:
@@ -429,14 +429,17 @@ class GuardianOverlayService : Service() {
                             val schema = result.schema
                             when {
                                 schema.privacyResult == com.ordia.app.intelligence.PrivacyResult.BLOCKED ->
-                                    responseTv.text = "No puedo procesar esa información."
+                                    responseTv.text = getString(R.string.guardian_privacy_blocked)
                                 result.isActionable && schema.followUpQuestion != null ->
-                                    responseTv.text = "Hecho: ${schema.actionSuggested.displayName}\n${
-                                        schema.followUpQuestion}"
+                                    responseTv.text = getString(
+                                        R.string.guardian_assistant_done,
+                                        schema.actionSuggested.displayName,
+                                        schema.followUpQuestion
+                                    )
                                 result.isActionable ->
-                                    responseTv.text = "Registrado como: ${schema.actionSuggested.displayName}"
+                                    responseTv.text = getString(R.string.guardian_assistant_registered, schema.actionSuggested.displayName)
                                 else ->
-                                    responseTv.text = "No detecté una acción clara. ¿Qué te gustaría hacer?"
+                                    responseTv.text = getString(R.string.guardian_assistant_no_action)
                             }
                         }
                     }
@@ -445,7 +448,7 @@ class GuardianOverlayService : Service() {
             addView(sendBtn)
 
             val closeBtn = Button(this@GuardianOverlayService).apply {
-                text = "Cerrar"
+                text = getString(R.string.guardian_close)
                 setTextColor(0xFFCCCCAA.toInt())
                 textSize = 12f
                 setOnClickListener { hidePanel() }
@@ -561,7 +564,7 @@ class GuardianOverlayService : Service() {
         val dateText = suggestion.dueAt?.let {
             java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
                 .format(java.util.Date(it))
-        } ?: "Sin fecha"
+        } ?: getString(R.string.suggestion_no_date)
         card.findViewById<TextView>(R.id.card_suggestion_date)?.text = dateText
 
         // Confidence (only in diagnostics mode — not implemented yet, hidden by default)
@@ -687,13 +690,13 @@ class GuardianOverlayService : Service() {
             .setSmallIcon(R.drawable.ic_ordia)
             .setContentTitle(preferences.guardianName.ifBlank { getString(R.string.guardian_notification_title) })
             .setContentText(
-                if (quietHoursActive) "Horas de silencio: el guardián permanece discreto."
-                else "Tu compañero virtual está activo. Tócalo para interactuar."
+                if (quietHoursActive) getString(R.string.guardian_quiet_hours_notification)
+                else getString(R.string.guardian_active_notification)
             )
             .setContentIntent(openApp)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .addAction(0, "Ocultar", stop)
+            .addAction(0, getString(R.string.guardian_notification_hide), stop)
             .build()
     }
 
@@ -707,7 +710,7 @@ class GuardianOverlayService : Service() {
     private fun createChannel() {
         getSystemService(NotificationManager::class.java).createNotificationChannel(
             NotificationChannel(CHANNEL_ID, getString(R.string.guardian_channel_name), NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Mantiene disponible el compañero virtual flotante de Ordia."
+                description = getString(R.string.guardian_channel_description_full)
                 setShowBadge(false)
             }
         )

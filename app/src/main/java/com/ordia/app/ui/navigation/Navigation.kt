@@ -40,9 +40,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
+import com.ordia.app.R
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -167,7 +169,7 @@ fun OrdiaNavigation(
                             Column(Modifier.padding(top = 16.dp, bottom = 10.dp)) {
                                 GuardianAvatar(42.dp)
                                 Spacer(Modifier.height(6.dp))
-                                Text("Ordía", style = MaterialTheme.typography.labelLarge)
+                                Text(stringResource(R.string.app_short_name), style = MaterialTheme.typography.labelLarge)
                             }
                         }
                     ) {
