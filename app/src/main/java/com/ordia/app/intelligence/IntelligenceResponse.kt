@@ -8,13 +8,17 @@ package com.ordia.app.intelligence
  * @property confidenceScore Puntaje de confianza (0.0 - 1.0)
  * @property providerSource Indicador de qué proveedor generó la respuesta
  * @property processingTimeMs Tiempo de procesamiento en milisegundos
+ * @property unsupportedReason Razón explícita cuando el proveedor NO pudo
+ *        analizar el texto (infraestructura sin implementar, error interno, etc.).
+ *        Null si el análisis se completó o se descartó por el safety gate.
  */
 data class IntelligenceResponse(
     val schema: IntelligenceSchema,
     val rawModelOutput: String? = null,
     val confidenceScore: Float = 0.0f,
     val providerSource: ProviderSource = ProviderSource.BASIC_RULE,
-    val processingTimeMs: Long = 0L
+    val processingTimeMs: Long = 0L,
+    val unsupportedReason: String? = null
 ) {
     /** ¿La respuesta es accionable? */
     val isActionable: Boolean

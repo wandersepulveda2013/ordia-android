@@ -10,10 +10,15 @@ import java.io.File
  * Proveedor de inteligencia que ejecuta un modelo de lenguaje local
  * en el dispositivo mediante TensorFlow Lite.
  *
- * SOPORTA:
- * - Gemma 3 1B cuantizado (recomendado, ~800 MB, buen español)
- * - Gemma 2B cuantizado (~1.5 GB, mejor comprensión)
- * - Cualquier modelo en formato .tflite con salida de texto
+ * ESTADO REAL (auditoría ORD-003):
+ * - La descarga y la carga del modelo TFLite SÍ funcionan.
+ * - La inferencia NO está implementada de forma correcta: Gemma en TFLite
+ *   exige la API de tarea (GemmaTask/LLM) con tokenizador SentencePiece y
+ *   decodificación iterativa. Inferir con bytes UTF-8 crudos (como hacía la
+ *   versión anterior) nunca produce resultados válidos.
+ * - Por tanto, `isAvailable` es FALSE hasta que se implemente la inferencia
+ *   real. `analyze()` devuelve un estado Unsupported explícito y documentado
+ *   en lugar de fingir un análisis.
  *
  * PERFILES:
  * - Ligero: Gemma 3 1B (para la mayoría con >=4GB RAM)
@@ -36,8 +41,17 @@ class LocalModelProvider(private val appContext: Context) : IntelligenceProvider
     val isLoading: Boolean get() = _isLoading
     val loadError: String? get() = _loadError
 
+    /**
+     * ¿La inferencia local real está implementada?
+     *
+     * FALSE: la infraestructura de descarga/carga existe, pero la inferencia
+     * requiere la API de tarea Gemma con tokenizador, todavía no integrada
+     * (ORD-003). El router debe seguir usando BasicRuleProvider.
+     */
+    val isInferenceSupported: Boolean = false
+
     override val isAvailable: Boolean
-        get() = interpreter != null && !_isLoading
+        get() = interpreter != null && !_isLoading && isInferenceSupported
 
     /**
      * Perfiles de modelo disponibles.
@@ -121,42 +135,19 @@ class LocalModelProvider(private val appContext: Context) : IntelligenceProvider
     override suspend fun analyze(request: IntelligenceRequest): IntelligenceResponse {
         val startTime = System.currentTimeMillis()
 
-        if (!isAvailable) {
-            return IntelligenceResponse(
-                schema = IntelligenceSchema(),
-                confidenceScore = 0f,
-                providerSource = ProviderSource.LOCAL_MODEL,
-                processingTimeMs = System.currentTimeMillis() - startTime
-            )
-        }
-
-        try {
-            val prompt = buildPrompt(request)
-
-            // TF Lite inference
-            val tflite = interpreter as org.tensorflow.lite.Interpreter
-            val inputBytes = prompt.toByteArray(Charsets.UTF_8)
-            val outputBytes = ByteArray(4096) // buffer de salida
-            tflite.run(inputBytes, outputBytes)
-            val result = String(outputBytes, Charsets.UTF_8).trimEnd('\u0000').trim()
-            val schema = IntelligenceSchema.fromJson(result)
-
-            return IntelligenceResponse(
-                schema = schema ?: IntelligenceSchema(),
-                rawModelOutput = result,
-                confidenceScore = if (schema != null) 0.85f else 0f,
-                providerSource = ProviderSource.LOCAL_MODEL,
-                processingTimeMs = System.currentTimeMillis() - startTime
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "Error en inferencia TFLite", e)
-            return IntelligenceResponse(
-                schema = IntelligenceSchema(),
-                confidenceScore = 0f,
-                providerSource = ProviderSource.LOCAL_MODEL,
-                processingTimeMs = System.currentTimeMillis() - startTime
-            )
-        }
+        // ORD-003: la inferencia local no está implementada. En lugar de
+        // ejecutar una inferencia falsa (bytes UTF-8 crudos sobre un tensor
+        // de tokens que jamás funciona con Gemma TFLite), se devuelve un
+        // estado Unsupported explícito y honesto.
+        Log.w(TAG, "analyze() llamado pero la inferencia local no está implementada. " +
+            "Usar BasicRuleProvider (ORD-003).")
+        return IntelligenceResponse(
+            schema = IntelligenceSchema(),
+            confidenceScore = 0f,
+            providerSource = ProviderSource.LOCAL_MODEL,
+            processingTimeMs = System.currentTimeMillis() - startTime,
+            unsupportedReason = UNSUPPORTED_REASON
+        )
     }
 
     /**
@@ -170,51 +161,13 @@ class LocalModelProvider(private val appContext: Context) : IntelligenceProvider
         Log.d(TAG, "Modelo TFLite descargado")
     }
 
-    private fun buildPrompt(request: IntelligenceRequest): String {
-        val safeText = IntelligenceSafetyGate.sanitize(request.originalText)
-        val context = request.recentConfirmedHistory.take(5)
-            .joinToString("\n") { "- $it" }
-
-        return """<bos><start_of_turn>system
-Eres un asistente organizativo llamado Ordía. Analiza el texto del usuario y extrae información estructurada en JSON.
-
-Debes devolver SOLO un objeto JSON válido sin explicaciones adicionales:
-
-{
-  "actor": "yo" | "alguien" | "alguienMas" | "nosotros",
-  "polarity": "positivo" | "negativo",
-  "certainty": "cierto" | "probable" | "dudoso" | "condicional",
-  "temporalDirection": "pasado" | "presente" | "futuro" | "futuroCercano" | "condicionalFuturo",
-  "actionSuggested": "task" | "shopping" | "appointment" | "meeting" | "reminder" | "call" | "payment" | "study" | "exercise" | "deadline" | "household" | "none",
-  "actionParameters": {},
-  "followUpQuestion": "pregunta de seguimiento o null",
-  "privacyResult": "segura" | "bloqueada"
-}
-
-REGLAS:
-- privacyResult "bloqueada" para información sensible (contraseñas, salud, violencia, sexo, drogas).
-- polarity "negativo" para negaciones explícitas ("no", "nunca", "jamás").
-- certainty "dudoso" para "tal vez", "quizás", "a lo mejor".
-- certainty "condicional" para "cuando", "si", "en cuanto".
-- Si el actor NO es "yo", actionSuggested debe ser "none".
-- Si temporalDirection es "pasado", actionSuggested debe ser "none".
-- Si certainty es "dudoso", incluir followUpQuestion.
-- Para "cuando + subjuntivo" usar temporalDirection "condicionalFuturo".
-<end_of_turn>
-
-<start_of_turn>context
-Historial: ${context.ifEmpty { "Sin historial reciente." }}
-<end_of_turn>
-
-<start_of_turn>user
-${safeText}
-<end_of_turn>
-
-<start_of_turn>model
-"""
-    }
-
     companion object {
         private const val TAG = "LocalModelProvider"
+
+        /** Razón explícita y documentada del estado Unsupported (ORD-003). */
+        const val UNSUPPORTED_REASON =
+            "La inferencia local requiere la API de tarea Gemma (tokenizador SentencePiece y " +
+            "decodificación iterativa), todavía no integrada. La descarga y carga del modelo " +
+            "funcionan, pero el análisis se resuelve con el motor de reglas."
     }
 }

@@ -33,7 +33,15 @@ class IntelligenceRouter(private val appContext: Context) {
     var isLocalModelEnabled: Boolean = false
         private set
 
-    /** Indica si la inteligencia local REAL está disponible (modelo cargado) */
+    /**
+     * ¿La inferencia local real está implementada?
+     * FALSE hoy: descarga y carga funcionan, pero la inferencia Gemma TFLite
+     * requiere tokenizador/API de tarea (ORD-003).
+     */
+    val isLocalModelInferenceSupported: Boolean
+        get() = localModelProvider.isInferenceSupported
+
+    /** Indica si la inteligencia local REAL está disponible (modelo cargado Y soporte implementado) */
     val isLocalModelAvailable: Boolean
         get() = localModelProvider.isAvailable && isLocalModelEnabled
 
@@ -95,8 +103,13 @@ class IntelligenceRouter(private val appContext: Context) {
         } else {
             Log.d(TAG, "Usando BasicRuleProvider (modelo local no disponible)")
             if (isLocalModelEnabled) {
-                Log.d(TAG, "NOTA: Modo local activado pero modelo no cargado. " +
+                if (!localModelProvider.isInferenceSupported) {
+                    Log.w(TAG, "Modo local activado pero la inferencia no está implementada " +
+                        "(ORD-003). El análisis se resuelve con el motor de reglas.")
+                } else {
+                    Log.d(TAG, "NOTA: Modo local activado pero modelo no cargado. " +
                         "El usuario debe descargar el modelo en Configuración > Inteligencia local.")
+                }
             }
             basicRuleProvider.analyze(enrichedRequest)
         }

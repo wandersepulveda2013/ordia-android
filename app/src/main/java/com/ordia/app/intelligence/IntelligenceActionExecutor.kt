@@ -72,7 +72,8 @@ class IntelligenceActionExecutor(private val appContext: Context) {
             createdAt = System.currentTimeMillis()
         )
         val id = db.taskDao().insert(entity)
-        Log.i(TAG, "Tarea creada: ${plan.title} (id=$id)")
+        // ORD-006: no registrar el texto original en claro en logs.
+        Log.i(TAG, "Tarea creada (id=$id)")
         return ExecutionResult.Success("Tarea creada", "task/$id")
     }
 

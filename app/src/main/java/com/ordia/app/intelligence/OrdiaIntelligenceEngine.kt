@@ -40,6 +40,10 @@ class OrdiaIntelligenceEngine private constructor(appContext: Context) {
     val isLocalModelAvailable: Boolean
         get() = router.isLocalModelAvailable
 
+    /** ¿La inferencia local real está implementada? (ORD-003: hoy es false) */
+    val isLocalModelInferenceSupported: Boolean
+        get() = router.isLocalModelInferenceSupported
+
     /** ¿El modo local está activado? (aunque el modelo no esté cargado) */
     var isLocalModelEnabled: Boolean
         get() = router.isLocalModelEnabled
