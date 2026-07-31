@@ -51,7 +51,7 @@
 | ORD-021 | P2 | Recordatorios | `TaskReminderWorker` devuelve `Result.success()` sin permiso `POST_NOTIFICATIONS` (API 33+) → recordatorio descartado en silencio | `reminders/TaskReminderWorker.kt:44-46` | Recordatorio que nunca llega | `Result.failure()`/reprogramar acotado + estado visible | CORREGIDO (9d315c1) — `TaskReminderWorker` con `MAX_PERMISSION_RETRIES=5` y fallo visible sin permiso |
 | ORD-022 | P2 | Respaldos | Restauración sin **respaldo preventivo automático**; ventana DataStore↔Room no cubre muerte del proceso | `backup/BackupManager.kt:142-148,193-201`; `ui/screens/SettingsScreen.kt:136-152` | Pérdida de datos actuales ante fallo en ventana crítica | Exportación preventiva automática + journal | CORREGIDO (07ed3e5) — `BackupManager.importBackup` valida todo el archivo ANTES de tocar datos, crea y **verifica** el journal `ordia_pre_restore_backup.json` (existente, no vacío y parseable) en almacenamiento privado, aplica preferencias con compensación si Room falla, reemplaza los datos en UNA transacción Room (`RoomBackupStore.replaceAll`) y relee lo persistido (counts + relaciones) antes de confirmar éxito; la UI muestra las fases y el journal por nombre. Cubierto por `BackupManagerTest` (19 casos JVM) |
 | ORD-023 | P2 | Privacidad | Patrones "No detectar" guardados en claro (título derivado) en prefs `ordia_keyboard` sin límite | `ime/OrdiaKeyboardService.kt:410-421` | Persistencia en claro de frases | Guardar hash (`normalizeTokensHash`) + acotar | CORREGIDO (e90e941) — patrones "No detectar" persistidos como SHA-256 (`KeyboardPrivacyGuard.sha256Hex`) |
-| ORD-024 | P2 | Privacidad | Sin rate-limit por fuente/global en el pipeline contextual; solo debounce 1.5s (IME) y `notificationTimeout=500` (accesibilidad) | `context/ContextEngine.kt:43-109`; `ime/OrdiaKeyboardService.kt:267-278` | CPU/batería; ventana de procesamiento de texto ampliada | Rate-limiter por fuente (~2s + tope diario) | ABIERTO |
+| ORD-024 | P2 | Privacidad | Sin rate-limit por fuente/global en el pipeline contextual; solo debounce 1.5s (IME) y `notificationTimeout=500` (accesibilidad) | `context/ContextEngine.kt:43-109`; `ime/OrdiaKeyboardService.kt:267-278` | CPU/batería; ventana de procesamiento de texto ampliada | Rate-limiter por fuente (~2s + tope diario) | CORREGIDO (b8765f6) — `ContextRateLimiter` (JVM puro): mínimo 2 s entre eventos de la misma fuente y tope global de 500 eventos/día, descartando silenciosamente el exceso en `processEventAsync` antes de la inferencia local; `DiscardReason.RATE_LIMITED`; `ContextRateLimiterTest` 9 casos |
 | ORD-025 | P3 | BD | `TaskEntity.parentTaskId` sin self-FK: borrar tarea padre deja subtareas huérfanas | `data/local/Entities.kt:46` | Datos huérfanos | Self-FK con CASCADE/SET_NULL o validación en borrado | ABIERTO |
 | ORD-026 | P3 | i18n | 23 strings hardcodeadas en layouts con recursos YA existentes sin usar (lint `HardcodedText` 23, `UnusedResources` 26) | `res/layout/ordia_keyboard_view.xml`, `ordia_suggestion_card.xml`, `ordia_widget.xml`, `ordia_external_confirmation.xml` | Sin i18n; strings divergentes | Referenciar `@string/...` existentes | ABIERTO |
 | ORD-027 | P3 | Accesibilidad | Touch targets < 48dp en `ordia_suggestion_card.xml` (32dp), `ordia_external_confirmation.xml` (40dp), `ordia_keyboard_view.xml` (32-36dp) | layouts XML | Accesibilidad táctil | Alturas mínimas 48dp | ABIERTO |
@@ -70,14 +70,14 @@
 
 | Estado | P0 | P1 | P2 | P3 | P4 | Total |
 |---|---|---|---|---|---|---|
-| CORREGIDO | 3 | 8 | 11 | 4 | 0 | 26 |
+| CORREGIDO | 3 | 8 | 12 | 4 | 0 | 27 |
 | BLOQUEADO (CI: `app/schemas/` sin versionar) | 0 | 0 | 1 | 1 | 0 | 2 |
-| ABIERTO | 0 | 0 | 1 | 6 | 2 | 9 |
+| ABIERTO | 0 | 0 | 0 | 6 | 2 | 8 |
 | DESCARTADO | — | — | — | — | — | 2 (agentes) |
 
-Cerrados: ORD-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 016, 017, 018, 019, 020, 021, 022, 023, 031, 033, 034, 035.
+Cerrados: ORD-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 016, 017, 018, 019, 020, 021, 022, 023, 024, 031, 033, 034, 035.
 Bloqueados: ORD-015 (migración Room 1→2 sin test en CI), ORD-032 (FTS).
-Abiertos prioritarios: ORD-024 (rate-limit).
+Abiertos: P3 (ORD-025, 026, 027, 028, 029, 030) y P4 (ORD-036, 037).
 
 ### P0/P1 resumen
 
