@@ -232,7 +232,13 @@ class OrdiaKeyboardService : InputMethodService(),
             }
             Keyboard.KEYCODE_MODE_CHANGE -> {
                 // Tecla "ABC": cambiar al siguiente IME del sistema.
-                switchToNextInputMethod(false)
+                // switchToNextInputMethod requiere API 28; en 26-27 se usa el
+                // selector clásico de IME.
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    switchToNextInputMethod(false)
+                } else {
+                    switchInputMethod("")
+                }
             }
             else -> {
                 if (primaryCode < 0) return // Códigos de control no manejados
