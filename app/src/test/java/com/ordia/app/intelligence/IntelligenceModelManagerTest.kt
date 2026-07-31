@@ -82,4 +82,35 @@ class IntelligenceModelManagerTest {
         assertNotNull(IntelligenceModelManager.getModel(ligero.modelFile))
         assertNotNull(IntelligenceModelManager.getModel(mejor.modelFile))
     }
+
+    // ── Validación de SHA-256 (usada por pinning y checksum remoto, ORD-014) ──
+
+    @Test
+    fun isValidSha256Hex_accepts64HexChars() {
+        val hex = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+        assertTrue(IntelligenceModelManager.isValidSha256Hex(hex))
+    }
+
+    @Test
+    fun isValidSha256Hex_acceptsUppercase() {
+        val hex = "ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789"
+        assertTrue(IntelligenceModelManager.isValidSha256Hex(hex))
+    }
+
+    @Test
+    fun isValidSha256Hex_rejectsShortValue() {
+        assertTrue(!IntelligenceModelManager.isValidSha256Hex("abc123"))
+    }
+
+    @Test
+    fun isValidSha256Hex_rejectsNonHexChars() {
+        val hex = "zzzzzz0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+        assertTrue(!IntelligenceModelManager.isValidSha256Hex(hex))
+    }
+
+    @Test
+    fun isValidSha256Hex_rejectsBlank() {
+        assertTrue(!IntelligenceModelManager.isValidSha256Hex(""))
+        assertTrue(!IntelligenceModelManager.isValidSha256Hex("   "))
+    }
 }

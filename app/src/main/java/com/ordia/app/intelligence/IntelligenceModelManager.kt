@@ -43,6 +43,12 @@ object IntelligenceModelManager {
     private const val DOWNLOAD_WORK_NAME = "ordia-model-download"
 
     /**
+     * Nombre de las preferencias privadas donde se fija (pin) el SHA-256 del
+     * modelo tras la primera verificación exitosa (ORD-014).
+     */
+    private const val CHECKSUM_PREFS_NAME = "ordia_model_checksums"
+
+    /**
      * Metadatos oficiales del modelo Gemma 3 1B IT Q4 (LIGERO).
      * Licencia: Gemma Terms of Use (https://www.kaggle.com/models/google/gemma-3/license)
      * Fuente: Kaggle Models / HuggingFace (Google oficial)
@@ -54,7 +60,12 @@ object IntelligenceModelManager {
         description = "Gemma 3 1B cuantizado a 4 bits. Buen rendimiento en español.",
         downloadUrl = "https://huggingface.co/google/gemma-3-1b-it-tflite/resolve/main/gemma3-1b-it-q4.tflite",
         checksumUrl = "https://huggingface.co/google/gemma-3-1b-it-tflite/resolve/main/gemma3-1b-it-q4.tflite.sha256",
-        expectedSha256 = null, // Se obtiene del checksum remoto
+        // ORD-014: no se hardcodea el hash oficial (los archivos de Google en
+        // HuggingFace se actualizan y un hash erróneo bloquearía descargas
+        // legítimas). La PRIMERA verificación es TOFU contra el checksum remoto;
+        // tras verificar, el hash se fija localmente y las re-descargas usan el
+        // valor fijado, no el remoto.
+        expectedSha256 = null,
         expectedSizeBytes = 800 * 1024 * 1024L, // ~800 MB
         minRamMb = 4096,
         minStorageGb = 2,
@@ -72,7 +83,9 @@ object IntelligenceModelManager {
         description = "Gemma 2B cuantizado a 4 bits. Mejor comprensión, mayor tamaño.",
         downloadUrl = "https://huggingface.co/google/gemma-2-2b-it-tflite/resolve/main/gemma2-2b-it-q4.tflite",
         checksumUrl = "https://huggingface.co/google/gemma-2-2b-it-tflite/resolve/main/gemma2-2b-it-q4.tflite.sha256",
-        expectedSha256 = null, // Se obtiene del checksum remoto
+        // ORD-014: idéntico a GEMMA_3_1B — TOFU en la primera descarga y
+        // fijación local del hash verificado para las siguientes.
+        expectedSha256 = null,
         expectedSizeBytes = 1500 * 1024 * 1024L, // ~1.5 GB
         minRamMb = 6144,
         minStorageGb = 3,
@@ -249,12 +262,20 @@ object IntelligenceModelManager {
             _state = DownloadState.Downloading(0f)
             onStateChange?.invoke(_state)
 
-            // 1. Descargar checksum
-            val checksum = downloadChecksum(model.checksumUrl) ?: run {
-                _state = DownloadState.Error("No se pudo obtener checksum del modelo")
-                onStateChange?.invoke(_state)
-                return@withContext false
-            }
+            // 1. Checksum: si ya hay un SHA-256 fijado localmente tras una
+            //    verificación previa exitosa, se usa ESE y NO se vuelve a
+            //    confiar en el checksum remoto (mismo host que el modelo:
+            //    ORD-014). Solo la PRIMERA descarga es TOFU y depende del
+            //    checksum remoto; el riesgo residual queda documentado en la
+            //    auditoría (ORD-014).
+            val hadPinnedChecksum = pinnedChecksum(context, model.filename) != null
+            val checksum = pinnedChecksum(context, model.filename)
+                ?: downloadChecksum(model.checksumUrl)
+                ?: run {
+                    _state = DownloadState.Error("No se pudo obtener checksum del modelo")
+                    onStateChange?.invoke(_state)
+                    return@withContext false
+                }
 
             // 2. Descargar modelo
             var currentUrl = model.downloadUrl
@@ -334,6 +355,12 @@ object IntelligenceModelManager {
                 return@withContext false
             }
 
+            // La primera verificación exitosa fija el checksum para que
+            // futuras re-descargas no dependan del checksum remoto (ORD-014).
+            if (!hadPinnedChecksum) {
+                storePinnedChecksum(context, model.filename, checksum)
+            }
+
             // 4. Mover a destino final
             destination.delete()
             tempFile.renameTo(destination)
@@ -357,6 +384,7 @@ object IntelligenceModelManager {
         modelFile(context, filename).delete()
         val tempFile = File(modelsDir(context), "$filename.part")
         tempFile.delete()
+        clearPinnedChecksum(context, filename)
         if (_currentModel == filename) {
             _state = DownloadState.Idle
             _currentModel = null
@@ -389,6 +417,40 @@ object IntelligenceModelManager {
     private fun modelsDir(context: Context): File =
         File(context.filesDir, MODELS_DIR).also { it.mkdirs() }
 
+    /**
+     * SHA-256 fijado localmente tras una verificación exitosa, o null si el
+     * modelo nunca se descargó/verificó en este dispositivo.
+     */
+    internal fun pinnedChecksum(context: Context, filename: String): String? {
+        val prefs = context.getSharedPreferences(CHECKSUM_PREFS_NAME, Context.MODE_PRIVATE)
+        val stored = prefs.getString("sha256:$filename", null) ?: return null
+        return stored.takeIf { isValidSha256Hex(it) }
+    }
+
+    /** Fija el SHA-256 verificado del modelo en almacenamiento privado. */
+    internal fun storePinnedChecksum(context: Context, filename: String, hex: String) {
+        if (!isValidSha256Hex(hex)) return
+        context.getSharedPreferences(CHECKSUM_PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString("sha256:$filename", hex.lowercase())
+            .apply()
+    }
+
+    /** Elimina el checksum fijado (al borrar el modelo). */
+    private fun clearPinnedChecksum(context: Context, filename: String) {
+        context.getSharedPreferences(CHECKSUM_PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .remove("sha256:$filename")
+            .apply()
+    }
+
+    /**
+     * Valida que una cadena sea un SHA-256 hexadecimal de 64 caracteres.
+     * Pública para pruebas: el pinning y el checksum remoto la comparten.
+     */
+    fun isValidSha256Hex(candidate: String): Boolean =
+        candidate.length == 64 && candidate.all { it in "0123456789abcdefABCDEF" }
+
     private fun downloadChecksum(url: String): String? = runCatching {
         var currentUrl = url
         repeat(MAX_REDIRECTS + 1) {
@@ -406,7 +468,7 @@ object IntelligenceModelManager {
                 val text = connection.inputStream.bufferedReader().readText().trim()
                 connection.disconnect()
                 return@runCatching text.split("\\s+".toRegex()).firstOrNull()
-                    ?.takeIf { it.length == 64 && it.all { c -> c in "0123456789abcdefABCDEF" } }
+                    ?.takeIf { isValidSha256Hex(it) }
             }
             connection.disconnect()
         }
