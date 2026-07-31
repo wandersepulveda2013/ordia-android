@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -60,6 +61,21 @@ interface TaskDao {
 
     @Query("DELETE FROM tasks WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("SELECT id FROM tasks WHERE parentTaskId = :parentId")
+    suspend fun getChildIds(parentId: Long): List<Long>
+
+    @Query("DELETE FROM tasks WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Long>)
+
+    /**
+     * Borra la tarea y todo su subárbol en una única transacción (ORD-025).
+     * Sin esto, `parentTaskId` quedaba apuntando a una fila inexistente (huérfanas).
+     */
+    @Transaction
+    suspend fun deleteSubtreeAndSelf(id: Long) {
+        deleteByIds(TaskTree.collectIds(id) { getChildIds(it) })
+    }
 
     @Query("DELETE FROM tasks")
     suspend fun deleteAll()

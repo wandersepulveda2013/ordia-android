@@ -36,7 +36,7 @@ class TaskRepository(private val dao: TaskDao) {
     suspend fun delete(task: TaskEntity) = dao.delete(task)
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun restore(id: Long) = dao.restore(id)
-    suspend fun deletePermanently(id: Long) = dao.deleteById(id)
+    suspend fun deletePermanently(id: Long) = dao.deleteSubtreeAndSelf(id)
     suspend fun search(query: String): List<TaskEntity> = dao.search(query)
 }
 
