@@ -32,7 +32,7 @@
 | ORD-002 | P0 | Privacidad | El IME detecta campos sensibles (`isSensitiveInputType`) pero el resultado es un **no-op**: captura, analiza y encola texto de contraseñas/PIN/OTP igualmente | `ime/OrdiaKeyboardService.kt:150-153` vs `:84,196-216,281-304` | Captura de credenciales vía teclado | Bandera `sensitiveField` real: cancelar análisis, limpiar buffer, bloquear en `onKey`/`onText`/`scheduleAnalysis`/`commitAndAnalyze` | CORREGIDO (e90e941) — `KeyboardPrivacyGuard.shouldIgnore` en toda la captura; `KeyboardPrivacyGuardTest` 20/20 |
 | ORD-003 | P0 | Motor local | `LocalModelProvider.analyze` envía el prompt como UTF-8 crudo a `Interpreter.run(inputBytes, outputBytes)` — **no es tokenización válida** para un LLM TFLite; fallará o producirá salida basura; se presenta como "modelo operativo" | `intelligence/LocalModelProvider.kt:136-141` | Falso funcionamiento del modelo + crash de inferencia; engaño al usuario | Desactivar de forma honesta si no hay implementación real (SignatureRunner + tokenizador) o devolver estado Unsupported | CORREGIDO (c5d0443) — `isInferenceSupported=false`, `analyze()` devuelve `unsupportedReason=LocalModelProvider.UNSUPPORTED_REASON`; `LocalModelUnsupportedTest` 7/7 |
 | ORD-004 | P1 | Privacidad | El IME no lee `EditorInfo.packageName`; el bloqueo de paquetes bancarios de `ContextPrivacyFilter` es inalcanzable para la fuente KEYBOARD | `ime/OrdiaKeyboardService.kt:141-154` | Texto de apps bancarias analizado | Verificar `info.packageName` contra `ContextPrivacyFilter.BLOCKED_PACKAGES` | CORREGIDO (e90e941) — `KeyboardPrivacyGuard.shouldIgnore(inputType, packageName)` consulta `ContextPrivacyFilter.isPackageBlocked` |
-| ORD-005 | P1 | Privacidad | `ContextPrivacyFilter.shouldBlock` (paquetes bancarios/salud) **nunca se evalúa** en el pipeline activo: `ContextEngine.processEvent` solo aplica `IntelligenceSafetyGate` por patrones de texto | `context/ContextEngine.kt:43-67`; `context/ContextPrivacyFilter.kt:67`; único invocador `ContextIntentEngine.kt:56` (deprecado) | Contenido de apps sensibles autorizadas procesado | Invocar el filtro de paquetes en `processEvent` para todas las fuentes | ABIERTO |
+| ORD-005 | P1 | Privacidad | `ContextPrivacyFilter.shouldBlock` (paquetes bancarios/salud) **nunca se evalúa** en el pipeline activo: `ContextEngine.processEvent` solo aplica `IntelligenceSafetyGate` por patrones de texto | `context/ContextEngine.kt:43-67`; `context/ContextPrivacyFilter.kt:67`; único invocador `ContextIntentEngine.kt:56` (deprecado) | Contenido de apps sensibles autorizadas procesado | Invocar el filtro de paquetes en `processEvent` para todas las fuentes | CORREGIDO (7866d0c) — `processEventAsync` descarta con `DiscardReason.PRIVACY_FILTER` ANTES de la inferencia local, para TODAS las fuentes (accesibilidad, notificaciones, IME, UI); cubierto por `ContextPrivacyFilterTest` (18 casos JVM puros) |
 | ORD-006 | P1 | Privacidad | Títulos derivados del texto del usuario se escriben en logcat sin redacción | `context/ContextEngine.kt:74,95,106`; `accessibility/OrdiaAccessibilityService.kt:75,79`; `intelligence/IntelligenceActionExecutor.kt:77` | Exposición de fragmentos de contenido en logcat | Loguear solo kind+id o hash | CORREGIDO (c5d0443) — log `"Tarea creada (id=$id)"` sin título en claro |
 | ORD-007 | P1 | CI/CD | `.github/workflows/android-ci.yml:48` usa `lintDebug` — tarea **inexistente** con flavors (solo existe `lint<Variant>`) → el job `verify` falla siempre y `sign`/`publish` nunca corren | `android-ci.yml:48` | CI roto, releases imposibles | `./gradlew clean test lint assembleDebug assembleRelease` | CORREGIDO (f072873) — CI usa `lint` global con flavors y valida |
 | ORD-008 | P1 | CI/CD | El job `sign` firma y `publish` distribuye un APK **debug** (`app/build/outputs/apk/debug/app-debug.apk`, ruta inexistente) como release firmado | `android-ci.yml:54,142-151,231` | APK depurable distribuida como release: debuggable=true, sin R8; el actualizador no verifica `debuggable` | Subir/firmar el APK **release** real (`apk/previewAdvanced/release/…`) + verificar `debuggable=false` | CORREGIDO (f072873/1590932) — job `sign` valida con `aapt2 dump badging` y rechaza APK debuggable; R8 arreglado (16.7 MB, `DEBUGGABLE=false`) |
@@ -70,19 +70,19 @@
 
 | Estado | P0 | P1 | P2 | P3 | P4 | Total |
 |---|---|---|---|---|---|---|
-| CORREGIDO | 3 | 7 | 9 | 4 | 0 | 23 |
+| CORREGIDO | 3 | 8 | 9 | 4 | 0 | 24 |
 | BLOQUEADO (CI: `app/schemas/` sin versionar) | 0 | 0 | 1 | 1 | 0 | 2 |
-| ABIERTO | 0 | 1 | 3 | 6 | 2 | 12 |
+| ABIERTO | 0 | 0 | 3 | 6 | 2 | 11 |
 | DESCARTADO | — | — | — | — | — | 2 (agentes) |
 
-Cerrados: ORD-001, 002, 003, 004, 006, 007, 008, 009, 010, 011, 012, 013, 016, 017, 019, 020, 021, 022, 023, 031, 033, 034, 035.
+Cerrados: ORD-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 016, 017, 019, 020, 021, 022, 023, 031, 033, 034, 035.
 Bloqueados: ORD-015 (migración Room 1→2 sin test en CI), ORD-032 (FTS).
-Abiertos prioritarios: ORD-005 (filtro de paquetes solo en IME, no en pipeline contextual), ORD-014 (TOFU del checksum, `expectedSha256` sigue nulo), ORD-018 (contexto externo inseguro), ORD-024 (rate-limit).
+Abiertos prioritarios: ORD-014 (TOFU del checksum, `expectedSha256` sigue nulo), ORD-018 (contexto externo inseguro), ORD-024 (rate-limit).
 
 ### P0/P1 resumen
 
 - **P0 corregidos (3/3):** ORD-001 concurrencia, ORD-002 privacidad IME, ORD-003 motor local honesto.
-- **P1 corregidos (7/8):** ORD-004, 006, 007, 008, 009, 010, 011. **P1 abierto (1):** ORD-005 — `ContextPrivacyFilter.shouldBlock` solo se evalúa en la fuente IME; accessibility y notificaciones aún no consultan la lista de paquetes bloqueados.
+- **P1 corregidos (8/8):** ORD-004, 005, 006, 007, 008, 009, 010, 011. ORD-005 (filtro de paquetes) aplicado a todas las fuentes en `ContextEngine.processEventAsync`.
 
 ## Hallazgos de agentes descartados tras verificación manual
 
@@ -107,4 +107,4 @@ Abiertos prioritarios: ORD-005 (filtro de paquetes solo en IME, no en pipeline c
 
 ## Nivel real del proyecto
 
-**Alpha avanzada / pre-beta interna (con P0 y la mayoría de P1 corregidos).** El código compila, la línea base de pruebas es verde (139 tests en `previewAdvanced`), la arquitectura general es sólida y el backup/update están endurecidos. Los 3 P0 (concurrencia, privacidad del IME, motor local honesto) están cerrados y 7 de 8 P1 están corregidos; la rama `feature/ordia-audit-critical-fixes` puede considerarse beta interna con el P1 abierto (ORD-005) y los bloqueos documentados (ORD-015/032) pendientes de decisión.
+**Alpha avanzada / pre-beta interna (con P0 y todos los P1 corregidos).** El código compila, la línea base de pruebas es verde (176 tests en `previewAdvanced`), la arquitectura general es sólida y el backup/update están endurecidos. Los 3 P0 (concurrencia, privacidad del IME, motor local honesto) y los 8 P1 están cerrados; la rama `feature/ordia-audit-critical-fixes` puede considerarse beta interna con los bloqueos documentados (ORD-015/032) pendientes de decisión.
