@@ -38,11 +38,13 @@ import com.ordia.app.intelligence.IntelligenceRequest
 import com.ordia.app.intelligence.OrdiaIntelligenceEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalTime
 import kotlin.math.abs
 
@@ -58,6 +60,7 @@ class GuardianOverlayService : Service() {
     private var suggestionCard: View? = null
     private var currentSuggestion: ExternalSuggestion? = null
     private var suggestionCardExpired = false
+    private var quietHoursJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -116,19 +119,49 @@ class GuardianOverlayService : Service() {
                     }
                 }
                 getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
+                // Las horas silenciosas pueden haber cambiado: reprogramar el despertar.
+                scheduleQuietHoursBoundaryCheck()
             }
         }
-        scope.launch {
-            while (true) {
-                delay(60_000L)
-                val current = isQuietHours(preferences)
-                if (current != quietHoursActive && preferences.guardianEnabled) {
-                    quietHoursActive = current
-                    recreateGuardian()
-                    getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
-                }
+        // ORD-012: en lugar de un polling de 60 s en main, se despierta una
+        // única vez en el próximo borde quiet↔no quiet y se reprograma.
+        scheduleQuietHoursBoundaryCheck()
+    }
+
+    /**
+     * Programa un one-shot que despierta exactamente en el próximo borde de las
+     * horas silenciosas y se reprograma al despertar. Reemplaza al antiguo
+     * `while (true) { delay(60_000L) }` que despertaba el hilo principal
+     * 1440 veces al día.
+     */
+    private fun scheduleQuietHoursBoundaryCheck() {
+        quietHoursJob?.cancel()
+        quietHoursJob = scope.launch {
+            delay(nextQuietHoursBoundaryDelayMs())
+            val current = isQuietHours(preferences)
+            if (current != quietHoursActive && preferences.guardianEnabled) {
+                quietHoursActive = current
+                recreateGuardian()
+                getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
             }
+            scheduleQuietHoursBoundaryCheck()
         }
+    }
+
+    /**
+     * Milisegundos hasta el próximo borde de quiet hours. Sin quiet hours
+     * (start == end) no hay bordes: se revisa poco (6 h) porque los cambios de
+     * configuración llegan por el collector de preferencias, no por el reloj.
+     */
+    private fun nextQuietHoursBoundaryDelayMs(time: LocalTime = LocalTime.now()): Long {
+        val start = preferences.quietStartMinutes.coerceIn(0, 1439)
+        val end = preferences.quietEndMinutes.coerceIn(0, 1439)
+        if (start == end) return 6L * 60 * 60 * 1000
+        val nowMinutes = time.hour * 60 + time.minute
+        val nextEdge = listOf(start, end)
+            .map { edge -> if (edge <= nowMinutes) edge + 1440 else edge }
+            .minOrNull() ?: (nowMinutes + 1)
+        return ((nextEdge - nowMinutes) * 60_000L).coerceAtLeast(60_000L)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -387,8 +420,12 @@ class GuardianOverlayService : Service() {
                         responseTv.text = "Analizando..."
                         inputField.setText("")
                         scope.launch {
-                            val engine = OrdiaIntelligenceEngine.getInstance(this@GuardianOverlayService)
-                            val result = engine.analyzeText(text, com.ordia.app.context.ContextCaptureSource.OVERLAY)
+                            // La inferencia local (Gemma 2B) puede tardar:
+                            // nunca bloquear el hilo principal (ORD-012).
+                            val result = withContext(Dispatchers.Default) {
+                                val engine = OrdiaIntelligenceEngine.getInstance(this@GuardianOverlayService)
+                                engine.analyzeText(text, com.ordia.app.context.ContextCaptureSource.OVERLAY)
+                            }
                             val schema = result.schema
                             when {
                                 schema.privacyResult == com.ordia.app.intelligence.PrivacyResult.BLOCKED ->
@@ -626,6 +663,7 @@ class GuardianOverlayService : Service() {
         hidePanel()
         if (::windowManager.isInitialized) guardianView?.let { runCatching { windowManager.removeView(it) } }
         guardianView = null
+        quietHoursJob?.cancel()
         scope.cancel()
         super.onDestroy()
     }
