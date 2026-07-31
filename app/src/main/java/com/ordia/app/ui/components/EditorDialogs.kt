@@ -105,7 +105,7 @@ fun TaskEditorDialog(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Outlined.CalendarMonth, null)
+                        Icon(Icons.Outlined.CalendarMonth, "Cambiar fecha")
                         Text(dueAt?.let { DateRules.formatDate(it) } ?: "Fecha", Modifier.padding(start = 6.dp))
                     }
                     OutlinedButton(
@@ -125,7 +125,7 @@ fun TaskEditorDialog(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(Modifier.weight(1f)) {
                         OutlinedButton(onClick = { priorityMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                            Icon(Icons.Outlined.Flag, null)
+                            Icon(Icons.Outlined.Flag, "Cambiar prioridad")
                             Text(priority.label(), Modifier.padding(start = 6.dp))
                         }
                         DropdownMenu(priorityMenu, { priorityMenu = false }) {
@@ -146,7 +146,7 @@ fun TaskEditorDialog(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         OutlinedButton(onClick = { recurrenceMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                            Icon(Icons.Outlined.Repeat, null)
+                            Icon(Icons.Outlined.Repeat, "Cambiar repetición")
                             Text(recurrence.label(), Modifier.padding(start = 6.dp))
                         }
                         DropdownMenu(recurrenceMenu, { recurrenceMenu = false }) {
