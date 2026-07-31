@@ -448,8 +448,8 @@ class ExternalConfirmationController private constructor(
 
             val notification = NotificationCompat.Builder(app, NOTIFICATION_CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle("Ordía")
-                .setContentText("Sugerencia pendiente — activa superposición para verla")
+                .setContentTitle(app.getString(R.string.app_short_name))
+                .setContentText(app.getString(R.string.external_suggestion_no_permission))
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
@@ -532,10 +532,10 @@ class ExternalConfirmationController private constructor(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 NOTIFICATION_CHANNEL_ID,
-                "Sugerencias de Ordía",
+                app.getString(R.string.external_suggestion_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Sugerencias contextuales cuando falta permiso de superposición"
+                description = app.getString(R.string.external_suggestion_channel_description)
                 setShowBadge(false)
             }
             val nm = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

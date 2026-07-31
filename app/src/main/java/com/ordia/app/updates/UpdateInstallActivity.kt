@@ -7,6 +7,7 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
+import com.ordia.app.R
 import kotlinx.coroutines.launch
 
 /** User-visible gate between Ordia's validation and Android's package installer. */
@@ -33,7 +34,7 @@ class UpdateInstallActivity : ComponentActivity() {
         if (packageManager.canRequestPackageInstalls()) {
             launchInstaller()
         } else {
-            Toast.makeText(this, "No se autorizó la instalación de actualizaciones de Ordia.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.update_install_not_authorized), Toast.LENGTH_LONG).show()
             finish()
         }
     }
@@ -68,7 +69,7 @@ class UpdateInstallActivity : ComponentActivity() {
             )
         }.onFailure {
             waitingForUnknownSourcesPermission = false
-            Toast.makeText(this, "Android no pudo abrir el permiso de instalación.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.update_install_permission_error), Toast.LENGTH_LONG).show()
             finish()
         }
     }
@@ -89,7 +90,7 @@ class UpdateInstallActivity : ComponentActivity() {
             // Keep metadata and the private APK until a successful app update is observed.
             // This permits a safe retry if the user cancels Android's confirmation dialog.
         }.onFailure {
-            Toast.makeText(this, "Android no pudo abrir el instalador de Ordia.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.update_install_launch_error), Toast.LENGTH_LONG).show()
         }
         finish()
     }

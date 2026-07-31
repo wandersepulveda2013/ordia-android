@@ -26,7 +26,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.domain.SearchEngine
 import com.ordia.app.domain.SearchKind
 import com.ordia.app.ui.OrdiaUiState
@@ -51,11 +53,11 @@ fun SearchScreen(
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item { ScreenHeader("ENCUENTRA SIN NAVEGAR", "Búsqueda", "Busca tareas, proyectos, notas y hábitos al mismo tiempo.") }
-        item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text("¿Qué estás buscando?") }, singleLine = true) }
+        item { ScreenHeader(stringResource(R.string.search_header_eyebrow), stringResource(R.string.search_header_title), stringResource(R.string.search_header_subtitle)) }
+        item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.search_field_label)) }, singleLine = true) }
         when {
-            query.isBlank() -> item { EmptyState("Escribe para buscar", "Ordía busca localmente; tu información no sale del dispositivo.") }
-            results.isEmpty() -> item { EmptyState("Sin resultados", "Prueba con otra palabra o una parte del título.") }
+            query.isBlank() -> item { EmptyState(stringResource(R.string.search_empty_prompt_title), stringResource(R.string.search_empty_prompt_subtitle)) }
+            results.isEmpty() -> item { EmptyState(stringResource(R.string.search_no_results_title), stringResource(R.string.search_no_results_subtitle)) }
             else -> items(results, key = { "${it.kind}-${it.id}" }) { result ->
                 Card(onClick = {
                     when (result.kind) {
@@ -87,9 +89,10 @@ fun SearchScreen(
     }
 }
 
-private fun SearchKind.label() = when (this) {
-    SearchKind.TASK -> "TAREA"
-    SearchKind.PROJECT -> "PROYECTO"
-    SearchKind.NOTE -> "NOTA"
-    SearchKind.HABIT -> "HÁBITO"
+@Composable
+private fun SearchKind.label(): String = when (this) {
+    SearchKind.TASK -> stringResource(R.string.search_kind_task)
+    SearchKind.PROJECT -> stringResource(R.string.search_kind_project)
+    SearchKind.NOTE -> stringResource(R.string.search_kind_note)
+    SearchKind.HABIT -> stringResource(R.string.search_kind_habit)
 }

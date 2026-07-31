@@ -27,7 +27,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.ui.OrdiaUiState
@@ -40,20 +42,38 @@ import com.ordia.app.ui.components.StatCard
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
 
-enum class TaskFilter(val label: String) {
-    PENDING("Pendientes"),
-    TODAY("Hoy"),
-    OVERDUE("Atrasadas"),
-    UPCOMING("Próximas"),
-    FLAGGED("Importantes"),
-    COMPLETED("Completadas"),
-    ALL("Todas")
+enum class TaskFilter {
+    PENDING,
+    TODAY,
+    OVERDUE,
+    UPCOMING,
+    FLAGGED,
+    COMPLETED,
+    ALL
 }
 
-enum class TaskSort(val label: String) {
-    SMART("Inteligente"),
-    DATE("Fecha"),
-    PRIORITY("Prioridad")
+enum class TaskSort {
+    SMART,
+    DATE,
+    PRIORITY
+}
+
+@Composable
+private fun TaskFilter.label(): String = when (this) {
+    TaskFilter.PENDING -> stringResource(R.string.tasks_filter_pending)
+    TaskFilter.TODAY -> stringResource(R.string.tasks_filter_today)
+    TaskFilter.OVERDUE -> stringResource(R.string.tasks_filter_overdue)
+    TaskFilter.UPCOMING -> stringResource(R.string.tasks_filter_upcoming)
+    TaskFilter.FLAGGED -> stringResource(R.string.tasks_filter_flagged)
+    TaskFilter.COMPLETED -> stringResource(R.string.tasks_filter_completed)
+    TaskFilter.ALL -> stringResource(R.string.tasks_filter_all)
+}
+
+@Composable
+private fun TaskSort.label(): String = when (this) {
+    TaskSort.SMART -> stringResource(R.string.tasks_sort_smart)
+    TaskSort.DATE -> stringResource(R.string.tasks_sort_date)
+    TaskSort.PRIORITY -> stringResource(R.string.tasks_sort_priority)
 }
 
 @Composable
@@ -118,10 +138,10 @@ fun TasksScreen(
     ) {
         item {
             ScreenHeader(
-                "CONTROL SIN RUIDO",
-                "Tareas",
-                "Busca, filtra y decide qué merece atención ahora.",
-                "Nueva",
+                stringResource(R.string.tasks_eyebrow),
+                stringResource(R.string.tasks_title),
+                stringResource(R.string.tasks_subtitle),
+                stringResource(R.string.tasks_action_new),
                 onAction = { adding = true }
             )
         }
@@ -130,18 +150,18 @@ fun TasksScreen(
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
                     StatCard(
-                        "Pendientes",
+                        stringResource(R.string.tasks_filter_pending),
                         state.pendingCount.toString(),
-                        "activas",
+                        stringResource(R.string.tasks_active_stat),
                         Modifier.width(170.dp),
                         icon = Icons.Outlined.Schedule
                     )
                 }
                 item {
                     StatCard(
-                        "Atrasadas",
+                        stringResource(R.string.tasks_filter_overdue),
                         state.overdueTasks.size.toString(),
-                        "por decidir",
+                        stringResource(R.string.tasks_undecided_stat),
                         Modifier.width(170.dp),
                         icon = Icons.Outlined.WarningAmber,
                         accent = androidx.compose.material3.MaterialTheme.colorScheme.error
@@ -149,9 +169,9 @@ fun TasksScreen(
                 }
                 item {
                     StatCard(
-                        "Completadas",
+                        stringResource(R.string.tasks_filter_completed),
                         state.completedCount.toString(),
-                        "históricas",
+                        stringResource(R.string.tasks_historic_stat),
                         Modifier.width(170.dp),
                         icon = Icons.Outlined.CheckCircle,
                         accent = androidx.compose.material3.MaterialTheme.colorScheme.tertiary
@@ -163,8 +183,8 @@ fun TasksScreen(
         if (state.overdueTasks.isNotEmpty()) {
             item {
                 InfoBanner(
-                    "Hay ${state.overdueTasks.size} tareas atrasadas",
-                    "No todas deben completarse: reprograma, archiva o elimina la obligación conscientemente."
+                    stringResource(R.string.tasks_overdue_banner, state.overdueTasks.size),
+                    stringResource(R.string.tasks_overdue_banner_desc)
                 )
             }
         }
@@ -174,13 +194,13 @@ fun TasksScreen(
                 value = query,
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Buscar tareas") },
-                placeholder = { Text("Título o detalles") },
+                label = { Text(stringResource(R.string.tasks_search)) },
+                placeholder = { Text(stringResource(R.string.tasks_search_placeholder)) },
                 leadingIcon = { Icon(Icons.Outlined.Search, null) },
                 trailingIcon = {
                     if (query.isNotBlank()) {
                         IconButton(onClick = { query = "" }) {
-                            Icon(Icons.Outlined.Close, "Limpiar búsqueda")
+                            Icon(Icons.Outlined.Close, stringResource(R.string.tasks_clear_search))
                         }
                     }
                 },
@@ -189,7 +209,7 @@ fun TasksScreen(
         }
 
         item {
-            Text("Vista", style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.tasks_view), style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
             LazyRow(
                 modifier = Modifier.padding(top = 7.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -198,14 +218,14 @@ fun TasksScreen(
                     FilterChip(
                         selected = filter == value,
                         onClick = { filter = value },
-                        label = { Text(value.label) }
+                        label = { Text(value.label()) }
                     )
                 }
             }
         }
 
         item {
-            Text("Orden", style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.tasks_sort), style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
             LazyRow(
                 modifier = Modifier.padding(top = 7.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -214,7 +234,7 @@ fun TasksScreen(
                     FilterChip(
                         selected = sort == value,
                         onClick = { sort = value },
-                        label = { Text(value.label) }
+                        label = { Text(value.label()) }
                     )
                 }
             }
@@ -222,8 +242,8 @@ fun TasksScreen(
 
         item {
             SectionHeader(
-                title = filter.label,
-                supporting = if (query.isBlank()) "${shown.size} resultados" else "${shown.size} coincidencias para “$query”"
+                title = filter.label(),
+                supporting = if (query.isBlank()) stringResource(R.string.tasks_results, shown.size) else stringResource(R.string.tasks_results_query, shown.size, query)
             )
         }
 
@@ -231,17 +251,17 @@ fun TasksScreen(
             item {
                 EmptyState(
                     title = when {
-                        query.isNotBlank() -> "No encontramos coincidencias"
-                        filter == TaskFilter.COMPLETED -> "Todavía no hay tareas completadas"
-                        filter == TaskFilter.OVERDUE -> "Nada atrasado"
-                        else -> "Nada por aquí"
+                        query.isNotBlank() -> stringResource(R.string.tasks_empty_title_query)
+                        filter == TaskFilter.COMPLETED -> stringResource(R.string.tasks_empty_title_completed)
+                        filter == TaskFilter.OVERDUE -> stringResource(R.string.tasks_empty_title_overdue)
+                        else -> stringResource(R.string.tasks_empty_title_other)
                     },
                     description = when {
-                        query.isNotBlank() -> "Prueba otra palabra o limpia la búsqueda para ver todas las tareas."
-                        filter == TaskFilter.OVERDUE -> "Tu planificación está al día."
-                        else -> "Cambia el filtro o crea una tarea nueva con un resultado concreto."
+                        query.isNotBlank() -> stringResource(R.string.tasks_empty_desc_query)
+                        filter == TaskFilter.OVERDUE -> stringResource(R.string.tasks_empty_desc_overdue)
+                        else -> stringResource(R.string.tasks_empty_desc_other)
                     },
-                    actionLabel = if (query.isBlank()) "Crear tarea" else null,
+                    actionLabel = if (query.isBlank()) stringResource(R.string.tasks_create_task) else null,
                     onAction = if (query.isBlank()) ({ adding = true }) else null
                 )
             }

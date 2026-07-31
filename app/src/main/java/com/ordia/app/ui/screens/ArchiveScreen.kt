@@ -25,7 +25,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.EmptyState
@@ -36,27 +38,32 @@ data class ArchivedItem(val kind: String, val id: Long, val title: String, val d
 
 @Composable
 fun ArchiveScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: PaddingValues) {
+    val kindTask = stringResource(R.string.suggestion_type_task)
+    val kindProject = stringResource(R.string.archive_kind_project)
+    val kindNote = stringResource(R.string.archive_kind_note)
+    val kindHabit = stringResource(R.string.archive_kind_habit)
+    val kindRoutine = stringResource(R.string.archive_kind_routine)
     val items = buildList {
-        state.archivedTasks.forEach { add(ArchivedItem("task", it.id, it.title, "Tarea")) }
-        state.archivedProjects.forEach { add(ArchivedItem("project", it.id, it.name, "Proyecto")) }
-        state.archivedNotes.forEach { add(ArchivedItem("note", it.id, it.title, "Nota")) }
-        state.archivedHabits.forEach { add(ArchivedItem("habit", it.id, it.title, "Hábito")) }
-        state.archivedRoutines.forEach { add(ArchivedItem("routine", it.id, it.name, "Rutina")) }
+        state.archivedTasks.forEach { add(ArchivedItem("task", it.id, it.title, kindTask)) }
+        state.archivedProjects.forEach { add(ArchivedItem("project", it.id, it.name, kindProject)) }
+        state.archivedNotes.forEach { add(ArchivedItem("note", it.id, it.title, kindNote)) }
+        state.archivedHabits.forEach { add(ArchivedItem("habit", it.id, it.title, kindHabit)) }
+        state.archivedRoutines.forEach { add(ArchivedItem("routine", it.id, it.name, kindRoutine)) }
     }
     var deleting by remember { mutableStateOf<ArchivedItem?>(null) }
 
     deleting?.let { item ->
         AlertDialog(
             onDismissRequest = { deleting = null },
-            title = { Text("Eliminar definitivamente") },
-            text = { Text("“${item.title}” se borrará de Ordia y no podrá recuperarse.") },
+            title = { Text(stringResource(R.string.archive_delete_permanent)) },
+            text = { Text(stringResource(R.string.archive_delete_confirm, item.title)) },
             confirmButton = {
                 TextButton(onClick = {
                     vm.deleteArchivedPermanently(item.kind, item.id)
                     deleting = null
-                }) { Text("Eliminar") }
+                }) { Text(stringResource(R.string.action_delete)) }
             },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.action_cancel)) } }
         )
     }
 
@@ -70,11 +77,11 @@ fun ArchiveScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Paddi
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item { ScreenHeader("RECUPERA LO QUE NECESITES", "Archivo", "Los elementos archivados permanecen locales hasta que los elimines definitivamente.") }
+        item { ScreenHeader(stringResource(R.string.archive_eyebrow), stringResource(R.string.archive_title), stringResource(R.string.archive_subtitle)) }
         if (items.isEmpty()) {
-            item { EmptyState("El archivo está vacío", "Las tareas, notas, proyectos, hábitos y rutinas archivadas aparecerán aquí.") }
+            item { EmptyState(stringResource(R.string.archive_empty_title), stringResource(R.string.archive_empty_desc)) }
         } else {
-            item { SectionHeader("Elementos archivados", "${items.size} en total") }
+            item { SectionHeader(stringResource(R.string.archive_items_header), stringResource(R.string.archive_count, items.size)) }
             items.forEach { archived ->
                 item(key = "${archived.kind}-${archived.id}") {
                     Card {
@@ -88,10 +95,10 @@ fun ArchiveScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Paddi
                                 Text(archived.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             IconButton(onClick = { vm.restoreArchived(archived.kind, archived.id) }) {
-                                Icon(Icons.Outlined.Restore, "Restaurar ${archived.title}")
+                                Icon(Icons.Outlined.Restore, stringResource(R.string.archive_restore_icon, archived.title))
                             }
                             IconButton(onClick = { deleting = archived }) {
-                                Icon(Icons.Outlined.DeleteForever, "Eliminar definitivamente ${archived.title}", tint = MaterialTheme.colorScheme.error)
+                                Icon(Icons.Outlined.DeleteForever, stringResource(R.string.archive_delete_icon, archived.title), tint = MaterialTheme.colorScheme.error)
                             }
                         }
                     }

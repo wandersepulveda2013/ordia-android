@@ -10,6 +10,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import com.ordia.app.R
 import com.ordia.app.context.ContextualSuggestion
 
 @Composable
@@ -21,20 +23,20 @@ fun ContextualSuggestionDialog(
     var title by remember(suggestion.id) { mutableStateOf(suggestion.title) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("¿Quieres que Ordia lo recuerde?") },
+        title = { Text(stringResource(R.string.suggestion_confirm_title)) },
         text = {
             androidx.compose.foundation.layout.Column {
-                Text("El análisis ocurrió en tu teléfono. Ordia no guardó la conversación original.")
+                Text(stringResource(R.string.suggestion_privacy_note))
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it.take(100) },
-                    label = { Text("Título") },
+                    label = { Text(stringResource(R.string.external_suggestion_title_hint)) },
                     singleLine = false
                 )
-                Text("Confianza: ${(suggestion.confidence * 100).toInt()} %")
+                Text(stringResource(R.string.suggestion_confidence, (suggestion.confidence * 100).toInt()))
             }
         },
-        confirmButton = { Button(onClick = { onConfirm(title.trim()) }, enabled = title.isNotBlank()) { Text("Añadir") } },
-        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Descartar") } }
+        confirmButton = { Button(onClick = { onConfirm(title.trim()) }, enabled = title.isNotBlank()) { Text(stringResource(R.string.action_add)) } },
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.suggestion_discard)) } }
     )
 }

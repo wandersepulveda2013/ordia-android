@@ -9,6 +9,7 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
+import com.ordia.app.R
 import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.data.preferences.UserPreferences
 import com.ordia.app.domain.GuardianEngine
@@ -50,7 +51,12 @@ class GuardianPetView(context: Context) : View(context) {
             bond = preferences.guardianBond
         )
         val stage = GuardianEngine.stageForExperience(experience)
-        contentDescription = "${preferences.guardianName}, ${preferences.guardianSpecies.label}, etapa ${stage.label}"
+        contentDescription = context.getString(
+            R.string.pet_accessibility_description,
+            preferences.guardianName,
+            preferences.guardianSpecies.label,
+            stage.label
+        )
         if (this.animationsAllowed) {
             when {
                 animator.isPaused -> animator.resume()

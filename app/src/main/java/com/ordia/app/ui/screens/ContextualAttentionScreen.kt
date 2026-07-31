@@ -25,9 +25,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
 import com.ordia.app.BuildConfig
+import com.ordia.app.R
 import com.ordia.app.OrdiaApplication
 import com.ordia.app.context.ContextualKind
 import com.ordia.app.context.ContextualSuggestion
@@ -46,15 +48,13 @@ fun ContextualAttentionScreen(state: OrdiaUiState, vm: OrdiaViewModel, padding: 
             contentPadding = PaddingValues(20.dp, padding.calculateTopPadding() + 20.dp, 20.dp, padding.calculateBottomPadding() + 32.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            item { ScreenHeader("PRIVADO Y OPCIONAL", "Atención contextual", "Ordía detecta posibles compromisos localmente y siempre pide confirmación.") }
+            item { ScreenHeader(stringResource(R.string.attention_eyebrow), stringResource(R.string.attention_title), stringResource(R.string.attention_subtitle)) }
             item {
                 Card(Modifier.fillMaxWidth()) {
                     androidx.compose.foundation.layout.Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Lectura de notificaciones no disponible", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.attention_reading_unavailable_title), style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "Esta Preview segura no incluye lectura de notificaciones. " +
-                            "Puedes seguir usando el análisis de texto compartido o seleccionado manualmente. " +
-                            "La lectura de notificaciones está disponible en la compilación avanzada separada.",
+                            stringResource(R.string.attention_reading_unavailable_body),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -94,18 +94,18 @@ fun ContextualAttentionScreen(state: OrdiaUiState, vm: OrdiaViewModel, padding: 
         contentPadding = PaddingValues(20.dp, padding.calculateTopPadding() + 20.dp, 20.dp, padding.calculateBottomPadding() + 32.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        item { ScreenHeader("PRIVADO Y OPCIONAL", "Atención contextual", "Ordía detecta posibles compromisos localmente y siempre pide confirmación.") }
+        item { ScreenHeader(stringResource(R.string.attention_eyebrow), stringResource(R.string.attention_title), stringResource(R.string.attention_subtitle)) }
         item {
-            SettingRow("Procesamiento contextual", "Permite analizar texto compartido o seleccionado.", enabled) {
+            SettingRow(stringResource(R.string.attention_processing_setting), stringResource(R.string.attention_processing_setting_desc), enabled) {
                 enabled = it; settings.enabled = it
             }
         }
         item {
-            SettingRow("Sugerencias desde notificaciones", "Solo procesa el texto visible de notificaciones autorizadas; nunca guarda la conversación completa.", notifications) {
+            SettingRow(stringResource(R.string.attention_notifications_setting), stringResource(R.string.attention_notifications_setting_desc), notifications) {
                 notifications = it; settings.notificationSuggestions = it
             }
         }
-        item { SectionHeader("Aplicaciones autorizadas", "Aunque Android conceda acceso global, Ordia solo procesa las aplicaciones que actives aquí.") }
+        item { SectionHeader(stringResource(R.string.attention_allowed_apps), stringResource(R.string.attention_allowed_apps_desc)) }
         items(CONTEXT_APPS, key = { it.packageName }) { appOption ->
             val checked = appOption.packageName in allowedPackages
             SettingRow(appOption.label, appOption.packageName, checked) { value ->
@@ -116,28 +116,28 @@ fun ContextualAttentionScreen(state: OrdiaUiState, vm: OrdiaViewModel, padding: 
         item {
             Card(Modifier.fillMaxWidth()) {
                 androidx.compose.foundation.layout.Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(if (listenerGranted) "Acceso a notificaciones autorizado" else "Acceso a notificaciones no autorizado", style = MaterialTheme.typography.titleMedium)
-                    Text("Ordía funciona manualmente sin este permiso. Actívalo solo si deseas sugerencias en la bandeja contextual.")
+                    Text(if (listenerGranted) stringResource(R.string.attention_access_granted) else stringResource(R.string.attention_access_not_granted), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.attention_access_body))
                     OutlinedButton(onClick = { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }) {
-                        Text("Abrir permisos de notificaciones")
+                        Text(stringResource(R.string.attention_open_permissions))
                     }
-                    OutlinedButton(onClick = { settings.pauseOneHour() }) { Text("Pausar durante una hora") }
-                    OutlinedButton(onClick = { store.clear(); refresh() }) { Text("Borrar sugerencias") }
+                    OutlinedButton(onClick = { settings.pauseOneHour() }) { Text(stringResource(R.string.attention_pause_one_hour)) }
+                    OutlinedButton(onClick = { store.clear(); refresh() }) { Text(stringResource(R.string.attention_clear_suggestions)) }
                 }
             }
         }
-        item { SectionHeader("Sugerencias pendientes", "Solo se guardan título, tipo, fecha estimada y una huella no reversible.") }
+        item { SectionHeader(stringResource(R.string.attention_pending_suggestions), stringResource(R.string.attention_pending_suggestions_desc)) }
         if (suggestions.isEmpty()) {
-            item { Text("No hay sugerencias. Selecciona texto y usa ‘Procesar texto con Ordia’, o comparte un mensaje con la aplicación.") }
+            item { Text(stringResource(R.string.attention_no_suggestions)) }
         } else {
             items(suggestions, key = { it.id }) { item ->
                 Card(Modifier.fillMaxWidth()) {
                     androidx.compose.foundation.layout.Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(item.title, style = MaterialTheme.typography.titleMedium)
-                        Text("${item.kind.name.lowercase()} · confianza ${(item.confidence * 100).toInt()} %")
+                        Text(stringResource(R.string.attention_confidence, item.kind.name.lowercase(), (item.confidence * 100).toInt()))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = { accept(item) }) { Text("Añadir") }
-                            OutlinedButton(onClick = { store.remove(item.id); refresh() }) { Text("Descartar") }
+                            Button(onClick = { accept(item) }) { Text(stringResource(R.string.action_add)) }
+                            OutlinedButton(onClick = { store.remove(item.id); refresh() }) { Text(stringResource(R.string.attention_discard)) }
                         }
                     }
                 }

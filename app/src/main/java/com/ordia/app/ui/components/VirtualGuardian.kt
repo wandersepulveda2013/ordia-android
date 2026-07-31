@@ -22,10 +22,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.domain.GuardianEngine
 import kotlin.math.sin
@@ -51,6 +53,13 @@ fun VirtualGuardian(
         label = "guardian-blink"
     )
     val palette = palette(snapshot.species)
+    val description = stringResource(
+        R.string.pet_guardian_description,
+        snapshot.name,
+        snapshot.species.label,
+        snapshot.stage.label,
+        snapshot.mood.label
+    )
 
     Box(
         modifier = modifier
@@ -58,7 +67,7 @@ fun VirtualGuardian(
             .clip(CircleShape)
             .background(palette.backdrop)
             .semantics {
-                contentDescription = "${snapshot.name}, guardián ${snapshot.species.label}, etapa ${snapshot.stage.label}, ${snapshot.mood.label}"
+                contentDescription = description
             },
         contentAlignment = Alignment.Center
     ) {

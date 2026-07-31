@@ -484,7 +484,7 @@ class OrdiaKeyboardService : InputMethodService(),
 
         actionPrivacy?.setOnClickListener {
             // Mostrar resumen de privacidad
-            suggestionText?.text = "Privacidad activa: no se almacena texto, contraseñas ni contenido sensible. Análisis solo en español."
+            suggestionText?.text = getString(R.string.keyboard_privacy_active)
             suggestionActions?.visibility = View.GONE
             scope.launch {
                 delay(3000L)
@@ -516,7 +516,7 @@ class OrdiaKeyboardService : InputMethodService(),
             .putLong(PREF_PAUSE_UNTIL, pauseUntilMs)
             .apply()
 
-        suggestionText?.text = "Análisis pausado por 1 hora. Presiona aquí para reanudar."
+        suggestionText?.text = getString(R.string.keyboard_paused)
         suggestionActions?.visibility = View.GONE
 
         scope.launch {

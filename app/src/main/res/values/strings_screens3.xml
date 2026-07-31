@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pantalla Más (MoreScreen, ORD-029 i18n). -->
+    <string name="more_header_eyebrow">CENTRO DE HERRAMIENTAS</string>
+    <string name="more_header_title">Explora Ordia</string>
+    <string name="more_header_subtitle">Lo cotidiano permanece simple; las herramientas avanzadas están organizadas por propósito.</string>
+    <string name="more_section_daily">Acción diaria</string>
+    <string name="more_section_daily_supporting">Captura, busca y protege tiempo de enfoque.</string>
+    <string name="more_section_organize">Organización</string>
+    <string name="more_section_organize_supporting">Conecta información y compromisos alrededor de objetivos.</string>
+    <string name="more_section_review">Revisión</string>
+    <string name="more_section_review_supporting">Aprende de tu actividad y recupera información archivada.</string>
+    <string name="more_section_system">Sistema</string>
+    <string name="more_section_system_supporting">Configura Ordia para que se adapte a tu forma de trabajar.</string>
+    <string name="more_inbox_desc">Procesa capturas rápidas y decide su siguiente paso.</string>
+    <string name="more_focus_desc">Temporizador, sesiones y tiempo de concentración real.</string>
+    <string name="more_focus_minutes_badge">%1$dm</string>
+    <string name="more_search_desc">Encuentra tareas, proyectos, notas y hábitos desde un lugar.</string>
+    <string name="more_guardian_desc">Visita el refugio, interactúa y observa cómo evoluciona tu compañero.</string>
+    <string name="more_guardian_level_badge">Nv. %1$d</string>
+    <string name="more_contextual_desc">Detecta compromisos localmente desde texto compartido o notificaciones autorizadas.</string>
+    <string name="more_projects_desc">Agrupa tareas y notas alrededor de resultados concretos.</string>
+    <string name="more_habits_desc">Registra constancia, objetivos y rachas sin presión.</string>
+    <string name="more_notes_desc">Crea páginas flexibles para ideas, decisiones e información.</string>
+    <string name="more_statistics_desc">Analiza tendencias reales de tareas, hábitos y enfoque.</string>
+    <string name="more_completion_rate_badge">%1$s%%</string>
+    <string name="more_archive_desc">Recupera o elimina elementos que ya no están activos.</string>
+    <string name="more_settings_desc">Personaliza tema, navegación, guardián, respaldo y preferencias.</string>
+
+    <!-- Pantalla Bandeja (InboxScreen, ORD-029 i18n). -->
+    <string name="inbox_header_eyebrow">CAPTURA SIN FRICCIÓN</string>
+    <string name="inbox_header_title">Bandeja</string>
+    <string name="inbox_header_subtitle">Todo lo que todavía no tiene fecha o proyecto.</string>
+    <string name="inbox_empty_title">Bandeja vacía</string>
+    <string name="inbox_empty_subtitle">Las ideas rápidas y tareas sin fecha aparecerán aquí.</string>
+    <string name="inbox_empty_action">Capturar algo</string>
+
+    <!-- Pantalla Búsqueda (SearchScreen, ORD-029 i18n). -->
+    <string name="search_header_eyebrow">ENCUENTRA SIN NAVEGAR</string>
+    <string name="search_header_title">Búsqueda</string>
+    <string name="search_header_subtitle">Busca tareas, proyectos, notas y hábitos al mismo tiempo.</string>
+    <string name="search_field_label">¿Qué estás buscando?</string>
+    <string name="search_empty_prompt_title">Escribe para buscar</string>
+    <string name="search_empty_prompt_subtitle">Ordía busca localmente; tu información no sale del dispositivo.</string>
+    <string name="search_no_results_title">Sin resultados</string>
+    <string name="search_no_results_subtitle">Prueba con otra palabra o una parte del título.</string>
+    <string name="search_kind_task">TAREA</string>
+    <string name="search_kind_project">PROYECTO</string>
+    <string name="search_kind_note">NOTA</string>
+    <string name="search_kind_habit">HÁBITO</string>
+
+    <!-- Pantalla de bienvenida (OnboardingScreen, ORD-029 i18n). -->
+    <string name="onboarding_page1_title">Ordía se adapta a ti</string>
+    <string name="onboarding_page2_title">Un compañero, no una molestia</string>
+    <string name="onboarding_page0_body">Tareas, notas, planes, hábitos y enfoque en un lugar tranquilo. Empieza sin construir un sistema complicado.</string>
+    <string name="onboarding_page1_body">Elige cuánta estructura quieres ver. Puedes cambiarlo después en Ajustes.</string>
+    <string name="onboarding_page2_body">El guardián flotante te permitirá capturar una tarea o una idea desde cualquier aplicación. Solo aparece cuando tú lo activas.</string>
+    <string name="onboarding_mode_simple">Simple · Tareas, notas y calendario</string>
+    <string name="onboarding_mode_organized">Organizado · Proyectos, hábitos y planificación</string>
+    <string name="onboarding_mode_advanced">Avanzado · Etiquetas, vistas y controles adicionales</string>
+    <string name="onboarding_back">Atrás</string>
+    <string name="onboarding_continue">Continuar</string>
+    <string name="onboarding_enter">Entrar a Ordia</string>
+
+    <!-- Pantalla Proyectos (ProjectsScreen, ORD-029 i18n). -->
+    <string name="projects_header_eyebrow">RESULTADOS CONCRETOS</string>
+    <string name="projects_header_title">Proyectos</string>
+    <string name="projects_header_subtitle">Reúne tareas y notas alrededor de un objetivo.</string>
+    <string name="projects_new_action">Nuevo</string>
+    <string name="projects_empty_title">Todavía no hay proyectos</string>
+    <string name="projects_empty_subtitle">Crea uno cuando varias tareas persigan el mismo resultado.</string>
+    <string name="projects_empty_action">Crear proyecto</string>
+    <string name="projects_open_action">Abrir proyecto</string>
+    <string name="projects_progress_completed">%1$d%% completado</string>
+
+    <!-- Pantalla del guardián (GuardianScreen, ORD-029 i18n). -->
+    <string name="guardian_screen_header_eyebrow">COMPAÑERO VIRTUAL</string>
+    <string name="guardian_screen_refuge_title">El refugio de %1$s</string>
+    <string name="guardian_screen_header_subtitle">Tu guardián evoluciona con acciones reales: tareas, hábitos, notas y sesiones de enfoque.</string>
+    <string name="guardian_screen_identity_line">%1$s · %2$s · Nivel %3$d</string>
+    <string name="guardian_screen_personality">Personalidad: %1$s</string>
+    <string name="guardian_screen_next_stage_progress">Faltan %1$d XP para %2$s · %3$d%%</string>
+    <string name="guardian_screen_max_evolution">Evolución máxima alcanzada</string>
+    <string name="guardian_screen_bond_label">Vínculo</string>
+    <string name="guardian_screen_bond_unit">puntos</string>
+    <string name="guardian_screen_energy_label">Energía</string>
+    <string name="guardian_screen_energy_state">estado actual</string>
+    <string name="guardian_screen_experience_label">Experiencia</string>
+    <string name="guardian_screen_experience_detail">%1$d actividad + %2$d vínculo</string>
+    <string name="guardian_screen_daily_care">Cuidado diario</string>
+    <string name="guardian_screen_daily_care_progress">%1$d de %2$d señales saludables completadas</string>
+    <string name="guardian_screen_dynamics_title">Dinámicas</string>
+    <string name="guardian_screen_dynamics_remaining">%1$d interacciones con vínculo disponibles hoy.</string>
+    <string name="guardian_screen_dynamics_complete">Puedes seguir interactuando; el vínculo diario ya está completo.</string>
+    <string name="guardian_screen_evolution_path">Camino de evolución</string>
+    <string name="guardian_screen_growth_activity">Actividad que lo hace crecer</string>
+    <string name="guardian_screen_growth_activity_sub">El progreso del guardián representa tu actividad real.</string>
+    <string name="guardian_screen_tasks_today_title">Tareas completadas hoy</string>
+    <string name="guardian_screen_tasks_today_desc">Cada tarea aporta experiencia.</string>
+    <string name="guardian_screen_focus_minutes_title">Minutos de enfoque hoy</string>
+    <string name="guardian_screen_focus_minutes_desc">El tiempo real de concentración alimenta su energía.</string>
+    <string name="guardian_screen_habits_today_title">Hábitos cumplidos hoy</string>
+    <string name="guardian_screen_habits_today_desc">Las rachas desbloquean rasgos y efectos visuales.</string>
+    <string name="guardian_screen_identity_title">Identidad</string>
+    <string name="guardian_screen_identity_subtitle">Puedes cambiar de especie sin perder tu progreso.</string>
+    <string name="guardian_screen_name_label">Nombre del guardián</string>
+    <string name="guardian_screen_save_name">Guardar nombre</string>
+    <string name="guardian_screen_kindness_note">Ordía no enferma ni castiga al guardián cuando descansas. La mascota acompaña tu vida; no intenta convertirla en una obligación.</string>
+
+    <!-- Raíz de la app (OrdiaRoot, ORD-029 i18n). -->
+    <string name="root_context_detected">Detectado: %1$s — %2$s</string>
+    <string name="root_context_discarded">Ordía no procesó el texto porque era sensible o no contenía una intención clara.</string>
+    <string name="root_context_inactive">Activa la atención contextual para procesar texto compartido.</string>
+    <string name="root_note_created_from_context">Creada desde texto compartido y confirmada por el usuario.</string>
+    <string name="root_task_created_from_context">Sugerencia contextual confirmada por el usuario.</string>
+</resources>

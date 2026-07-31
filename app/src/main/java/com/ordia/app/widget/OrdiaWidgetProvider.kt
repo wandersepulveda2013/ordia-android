@@ -36,8 +36,11 @@ object OrdiaWidgetUpdater {
             val next = TaskRules.nextBestTask(tasks)
             val pending = tasks.count { !it.completed && !it.archived && it.parentTaskId == null }
             val views = RemoteViews(context.packageName, R.layout.ordia_widget).apply {
-                setTextViewText(R.id.widget_title, next?.title ?: "Todo está en orden")
-                setTextViewText(R.id.widget_count, "$pending ${if (pending == 1) "pendiente" else "pendientes"}")
+                setTextViewText(R.id.widget_title, next?.title ?: context.getString(R.string.widget_all_clear))
+                setTextViewText(
+                    R.id.widget_count,
+                    context.resources.getQuantityString(R.plurals.widget_pending_count, pending, pending)
+                )
                 setOnClickPendingIntent(R.id.widget_root, openAppIntent(context))
                 setOnClickPendingIntent(R.id.widget_capture, quickCaptureIntent(context))
             }

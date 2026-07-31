@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Acciones comunes reutilizadas en toda la app (ORD-029 i18n). -->
+    <string name="action_save">Guardar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="action_add">Añadir</string>
+    <string name="action_edit">Editar</string>
+    <string name="action_understood">Entendido</string>
+    <string name="action_download">Descargar</string>
+    <string name="action_search">Buscar</string>
+    <string name="action_accept">Aceptar</string>
+    <string name="action_restore">Restaurar</string>
+    <string name="action_create">Crear</string>
+    <string name="action_close">Cerrar</string>
+    <string name="common_yes">Sí</string>
+    <string name="common_no">No</string>
+    <string name="common_downloaded">Descargado</string>
+    <string name="common_not_downloaded">No descargado</string>
+</resources>

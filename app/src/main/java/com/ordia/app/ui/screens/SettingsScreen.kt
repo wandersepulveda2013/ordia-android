@@ -49,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.ordia.app.BuildConfig
@@ -105,17 +106,17 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
     val createBackup = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         val json = backupJson
         when {
-            uri == null -> backupStatus = "Creación de copia cancelada."
-            json == null -> backupStatus = "No había datos preparados para exportar."
+            uri == null -> backupStatus = context.getString(R.string.settings_backup_cancelled)
+            json == null -> backupStatus = context.getString(R.string.settings_backup_no_data)
             else -> scope.launch(Dispatchers.IO) {
                 runCatching {
                     val stream = context.contentResolver.openOutputStream(uri)
-                        ?: error("Android no permitió escribir el archivo.")
+                        ?: error(context.getString(R.string.settings_backup_error_android_write))
                     stream.bufferedWriter().use { it.write(json) }
                 }.onSuccess {
-                    backupStatus = "Copia guardada correctamente."
+                    backupStatus = context.getString(R.string.settings_backup_saved)
                 }.onFailure {
-                    backupStatus = "No se pudo guardar la copia: ${it.message ?: "error de escritura"}"
+                    backupStatus = context.getString(R.string.settings_backup_save_failed, it.message ?: context.getString(R.string.settings_backup_error_write))
                 }
             }
         }
@@ -125,7 +126,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         if (uri == null) return@rememberLauncherForActivityResult
         // No permitir seleccionar otra copia mientras hay una restauración en curso.
         if (vm.backupState.value.inProgress) {
-            backupStatus = "Hay una restauración en curso. Espera a que termine."
+            backupStatus = context.getString(R.string.settings_backup_in_progress)
             return@rememberLauncherForActivityResult
         }
         // Leer hasta 10 MB fuera del hilo principal (la UI no debe bloquearse).
@@ -135,10 +136,10 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             }.onSuccess { raw ->
                 if (raw != null) {
                     pendingRestoreJson = raw
-                    restoreFileName = uri.lastPathSegment ?: "copia de seguridad"
+                    restoreFileName = uri.lastPathSegment ?: context.getString(R.string.settings_backup_default_filename)
                 }
             }.onFailure {
-                backupStatus = "No se pudo leer la copia: ${it.message ?: "archivo inválido"}"
+                backupStatus = context.getString(R.string.settings_backup_read_failed, it.message ?: context.getString(R.string.settings_backup_error_invalid))
             }
         }
     }
@@ -147,10 +148,10 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             val granted = Settings.canDrawOverlays(context)
             if (granted && startGuardian(context)) {
                 vm.setGuardianEnabled(true)
-                guardianStatus = "Guardián flotante activado."
+                guardianStatus = context.getString(R.string.settings_guardian_float_active)
             } else {
                 vm.setGuardianEnabled(false)
-                guardianStatus = if (granted) "Android no permitió iniciar el guardián." else "Permiso de superposición no concedido."
+                guardianStatus = if (granted) context.getString(R.string.settings_guardian_float_blocked) else context.getString(R.string.settings_guardian_overlay_not_granted)
             }
         }
     } else null
@@ -161,18 +162,18 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
     pendingRestoreJson?.let { raw ->
         AlertDialog(
             onDismissRequest = { pendingRestoreJson = null },
-            title = { Text("¿Restaurar esta copia?") },
-            text = { Text("La restauración reemplazará todas las tareas, notas, proyectos, hábitos, rutinas y ajustes actuales. Antes de continuar se creará un respaldo automático de tus datos actuales en el almacenamiento privado.") },
+            title = { Text(stringResource(R.string.settings_restore_dialog_title)) },
+            text = { Text(stringResource(R.string.settings_restore_dialog_text)) },
             confirmButton = {
                 Button(onClick = {
                     val name = restoreFileName
                     pendingRestoreJson = null
                     restoreFileName = null
                     vm.restoreBackup(raw, name)
-                }) { Text("Reemplazar y restaurar") }
+                }) { Text(stringResource(R.string.settings_restore_replace)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingRestoreJson = null }) { Text("Cancelar") }
+                TextButton(onClick = { pendingRestoreJson = null }) { Text(stringResource(R.string.action_cancel)) }
             }
         )
     }
@@ -180,18 +181,18 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
     when (val restoreResult = backupRestoreState) {
         is BackupRestoreState.Success -> AlertDialog(
             onDismissRequest = { vm.dismissRestoreResult() },
-            title = { Text("Copia restaurada") },
+            title = { Text(stringResource(R.string.settings_restore_success_title)) },
             text = { Text(restoreResult.message) },
             confirmButton = {
-                Button(onClick = { vm.dismissRestoreResult() }) { Text("Entendido") }
+                Button(onClick = { vm.dismissRestoreResult() }) { Text(stringResource(R.string.action_understood)) }
             }
         )
         is BackupRestoreState.Error -> AlertDialog(
             onDismissRequest = { vm.dismissRestoreResult() },
-            title = { Text("No se pudo restaurar la copia") },
+            title = { Text(stringResource(R.string.settings_restore_error_title)) },
             text = { Text(restoreResult.message) },
             confirmButton = {
-                Button(onClick = { vm.dismissRestoreResult() }) { Text("Entendido") }
+                Button(onClick = { vm.dismissRestoreResult() }) { Text(stringResource(R.string.action_understood)) }
             }
         )
         else -> Unit

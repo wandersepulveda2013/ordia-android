@@ -12,7 +12,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.EmptyState
@@ -40,9 +42,9 @@ fun InboxScreen(
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item { ScreenHeader("CAPTURA SIN FRICCIÓN", "Bandeja", "Todo lo que todavía no tiene fecha o proyecto.", "Añadir") { adding = true } }
+        item { ScreenHeader(stringResource(R.string.inbox_header_eyebrow), stringResource(R.string.inbox_header_title), stringResource(R.string.inbox_header_subtitle), stringResource(R.string.action_add)) { adding = true } }
         if (state.inboxTasks.isEmpty()) {
-            item { EmptyState("Bandeja vacía", "Las ideas rápidas y tareas sin fecha aparecerán aquí.", "Capturar algo", onAction = { adding = true }) }
+            item { EmptyState(stringResource(R.string.inbox_empty_title), stringResource(R.string.inbox_empty_subtitle), stringResource(R.string.inbox_empty_action), onAction = { adding = true }) }
         } else {
             items(state.inboxTasks, key = { it.id }) { task ->
                 val subtasks = state.subtasks(task.id)

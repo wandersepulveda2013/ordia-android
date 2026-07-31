@@ -45,7 +45,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
@@ -116,7 +118,7 @@ fun TaskRow(
                         Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
                             Icon(
                                 Icons.Outlined.Flag,
-                                "Marcada",
+                                stringResource(R.string.task_flagged),
                                 Modifier.padding(6.dp).size(14.dp),
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer
                             )
@@ -137,7 +139,7 @@ fun TaskRow(
                         )
                     } else {
                         MetadataPill(
-                            text = "Bandeja",
+                            text = stringResource(R.string.task_inbox),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             container = MaterialTheme.colorScheme.surfaceContainerHigh
                         )
@@ -150,7 +152,10 @@ fun TaskRow(
                         )
                     }
                     if (task.priority >= TaskPriority.HIGH) {
-                        PriorityPill(if (task.priority == TaskPriority.URGENT) "Urgente" else "Alta")
+                        PriorityPill(
+                            stringResource(if (task.priority == TaskPriority.URGENT) R.string.dialog_priority_urgent else R.string.dialog_priority_high),
+                            isUrgent = task.priority == TaskPriority.URGENT
+                        )
                     }
                 }
 
@@ -163,23 +168,23 @@ fun TaskRow(
                                 color = accent,
                                 trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                             )
-                            Text("$done/$total", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.task_subtask_progress, done, total), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
             }
             IconButton(onClick = { menuOpen = true }) {
-                Icon(Icons.Outlined.MoreVert, "Más opciones")
+                Icon(Icons.Outlined.MoreVert, stringResource(R.string.task_more_options))
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
-                    text = { Text("Editar") },
+                    text = { Text(stringResource(R.string.action_edit)) },
                     leadingIcon = { Icon(Icons.Outlined.Edit, null) },
                     onClick = { menuOpen = false; onEdit() }
                 )
                 if (onDuplicate != null) {
                     DropdownMenuItem(
-                        text = { Text("Duplicar") },
+                        text = { Text(stringResource(R.string.task_duplicate)) },
                         leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) },
                         onClick = { menuOpen = false; onDuplicate() }
                     )
@@ -187,7 +192,7 @@ fun TaskRow(
                 if (onDelete != null) {
                     HorizontalDivider()
                     DropdownMenuItem(
-                        text = { Text("Archivar") },
+                        text = { Text(stringResource(R.string.task_archive)) },
                         leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) },
                         onClick = { menuOpen = false; onDelete() }
                     )
@@ -217,16 +222,16 @@ private fun MetadataPill(
 }
 
 @Composable
-fun PriorityPill(text: String) {
+fun PriorityPill(text: String, isUrgent: Boolean = false) {
     Surface(
         shape = RoundedCornerShape(999.dp),
-        color = if (text == "Urgente") MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer
+        color = if (isUrgent) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer
     ) {
         Text(
             text,
             Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelSmall,
-            color = if (text == "Urgente") MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer
+            color = if (isUrgent) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer
         )
     }
 }

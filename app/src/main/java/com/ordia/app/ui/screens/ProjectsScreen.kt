@@ -24,7 +24,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.EmptyState
@@ -45,9 +47,9 @@ fun ProjectsScreen(
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item { ScreenHeader("RESULTADOS CONCRETOS", "Proyectos", "Reúne tareas y notas alrededor de un objetivo.", "Nuevo") { adding = true } }
+        item { ScreenHeader(stringResource(R.string.projects_header_eyebrow), stringResource(R.string.projects_header_title), stringResource(R.string.projects_header_subtitle), stringResource(R.string.projects_new_action)) { adding = true } }
         if (state.projects.isEmpty()) {
-            item { EmptyState("Todavía no hay proyectos", "Crea uno cuando varias tareas persigan el mismo resultado.", "Crear proyecto", onAction = { adding = true }) }
+            item { EmptyState(stringResource(R.string.projects_empty_title), stringResource(R.string.projects_empty_subtitle), stringResource(R.string.projects_empty_action), onAction = { adding = true }) }
         } else {
             items(state.projects, key = { it.id }) { project ->
                 val progress = state.projectProgress(project.id)
@@ -58,10 +60,10 @@ fun ProjectsScreen(
                                 Text(project.name, style = MaterialTheme.typography.titleLarge)
                                 Text(project.description.ifBlank { project.status.name.lowercase().replaceFirstChar { it.uppercase() } }, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            IconButton(onClick = { onProject(project.id) }) { Icon(Icons.Outlined.ArrowForward, "Abrir proyecto") }
+                            IconButton(onClick = { onProject(project.id) }) { Icon(Icons.Outlined.ArrowForward, stringResource(R.string.projects_open_action)) }
                         }
                         LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
-                        Text("${(progress * 100).toInt()}% completado", style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(R.string.projects_progress_completed, (progress * 100).toInt()), style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }

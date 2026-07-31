@@ -35,9 +35,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ordia.app.OrdiaApplication
+import com.ordia.app.R
 import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.domain.GuardianEngine
 import com.ordia.app.ui.OrdiaUiState
@@ -74,9 +76,9 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
     ) {
         item {
             ScreenHeader(
-                eyebrow = "COMPAÑERO VIRTUAL",
-                title = "El refugio de ${snapshot.name}",
-                subtitle = "Tu guardián evoluciona con acciones reales: tareas, hábitos, notas y sesiones de enfoque."
+                eyebrow = stringResource(R.string.guardian_screen_header_eyebrow),
+                title = stringResource(R.string.guardian_screen_refuge_title, snapshot.name),
+                subtitle = stringResource(R.string.guardian_screen_header_subtitle)
             )
         }
 
@@ -97,13 +99,13 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                         animationsEnabled = state.preferences.guardianAnimations && !state.preferences.reduceMotion
                     )
                     Text(
-                        "${snapshot.species.label} · ${snapshot.stage.label} · Nivel ${snapshot.level}",
+                        stringResource(R.string.guardian_screen_identity_line, snapshot.species.label, snapshot.stage.label, snapshot.level),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.tertiaryContainer) {
                         Text(
-                            "Personalidad: ${snapshot.archetype.label}",
+                            stringResource(R.string.guardian_screen_personality, snapshot.archetype.label),
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -120,8 +122,8 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                     )
                     Text(
                         snapshot.nextStage?.let {
-                            "Faltan ${snapshot.experienceToNext} XP para ${it.label} · ${(snapshot.progressToNext * 100).toInt()}%"
-                        } ?: "Evolución máxima alcanzada",
+                            stringResource(R.string.guardian_screen_next_stage_progress, snapshot.experienceToNext, it.label, (snapshot.progressToNext * 100).toInt())
+                        } ?: stringResource(R.string.guardian_screen_max_evolution),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -133,9 +135,9 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 item {
                     StatCard(
-                        "Vínculo",
+                        stringResource(R.string.guardian_screen_bond_label),
                         snapshot.bond.toString(),
-                        "puntos",
+                        stringResource(R.string.guardian_screen_bond_unit),
                         Modifier.width(172.dp),
                         Icons.Outlined.Favorite,
                         MaterialTheme.colorScheme.secondary
@@ -143,9 +145,9 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                 }
                 item {
                     StatCard(
-                        "Energía",
+                        stringResource(R.string.guardian_screen_energy_label),
                         "${snapshot.energy}%",
-                        "estado actual",
+                        stringResource(R.string.guardian_screen_energy_state),
                         Modifier.width(172.dp),
                         Icons.Outlined.BatteryChargingFull,
                         MaterialTheme.colorScheme.tertiary
@@ -153,9 +155,9 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                 }
                 item {
                     StatCard(
-                        "Experiencia",
+                        stringResource(R.string.guardian_screen_experience_label),
                         snapshot.experience.toString(),
-                        "${snapshot.activityExperience} actividad + ${snapshot.bondExperience} vínculo",
+                        stringResource(R.string.guardian_screen_experience_detail, snapshot.activityExperience, snapshot.bondExperience),
                         Modifier.width(205.dp),
                         Icons.Outlined.AutoAwesome,
                         MaterialTheme.colorScheme.primary
@@ -169,9 +171,9 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Cuidado diario", style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(R.string.guardian_screen_daily_care), style = MaterialTheme.typography.titleMedium)
                             Text(
-                                "${snapshot.dailyGoalsCompleted} de ${snapshot.dailyGoalsTotal} señales saludables completadas",
+                                stringResource(R.string.guardian_screen_daily_care_progress, snapshot.dailyGoalsCompleted, snapshot.dailyGoalsTotal),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -189,9 +191,9 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
 
         item {
             SectionHeader(
-                "Dinámicas",
-                if (snapshot.interactionsRemaining > 0) "${snapshot.interactionsRemaining} interacciones con vínculo disponibles hoy."
-                else "Puedes seguir interactuando; el vínculo diario ya está completo."
+                stringResource(R.string.guardian_screen_dynamics_title),
+                if (snapshot.interactionsRemaining > 0) stringResource(R.string.guardian_screen_dynamics_remaining, snapshot.interactionsRemaining)
+                else stringResource(R.string.guardian_screen_dynamics_complete)
             )
         }
         item {
@@ -204,19 +206,19 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
             }
         }
 
-        item { SectionHeader("Camino de evolución", snapshot.archetype.description) }
-        item { SectionHeader("Actividad que lo hace crecer", "El progreso del guardián representa tu actividad real.") }
+        item { SectionHeader(stringResource(R.string.guardian_screen_evolution_path), snapshot.archetype.description) }
+        item { SectionHeader(stringResource(R.string.guardian_screen_growth_activity), stringResource(R.string.guardian_screen_growth_activity_sub)) }
         item {
             Card {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ProgressLine("Tareas completadas hoy", snapshot.completedToday, "Cada tarea aporta experiencia.")
-                    ProgressLine("Minutos de enfoque hoy", snapshot.focusMinutesToday, "El tiempo real de concentración alimenta su energía.")
-                    ProgressLine("Hábitos cumplidos hoy", snapshot.habitsDoneToday, "Las rachas desbloquean rasgos y efectos visuales.")
+                    ProgressLine(stringResource(R.string.guardian_screen_tasks_today_title), snapshot.completedToday, stringResource(R.string.guardian_screen_tasks_today_desc))
+                    ProgressLine(stringResource(R.string.guardian_screen_focus_minutes_title), snapshot.focusMinutesToday, stringResource(R.string.guardian_screen_focus_minutes_desc))
+                    ProgressLine(stringResource(R.string.guardian_screen_habits_today_title), snapshot.habitsDoneToday, stringResource(R.string.guardian_screen_habits_today_desc))
                 }
             }
         }
 
-        item { SectionHeader("Identidad", "Puedes cambiar de especie sin perder tu progreso.") }
+        item { SectionHeader(stringResource(R.string.guardian_screen_identity_title), stringResource(R.string.guardian_screen_identity_subtitle)) }
         item {
             Card {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -224,7 +226,7 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                         value = name,
                         onValueChange = { name = it.take(24) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Nombre del guardián") },
+                        label = { Text(stringResource(R.string.guardian_screen_name_label)) },
                         singleLine = true
                     )
                     OutlinedButton(
@@ -233,7 +235,7 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Outlined.Psychology, null)
-                        Text("Guardar nombre", Modifier.padding(start = 8.dp))
+                        Text(stringResource(R.string.guardian_screen_save_name), Modifier.padding(start = 8.dp))
                     }
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(GuardianSpecies.entries) { species ->
@@ -260,7 +262,7 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                 color = MaterialTheme.colorScheme.secondaryContainer
             ) {
                 Text(
-                    "Ordía no enferma ni castiga al guardián cuando descansas. La mascota acompaña tu vida; no intenta convertirla en una obligación.",
+                    stringResource(R.string.guardian_screen_kindness_note),
                     modifier = Modifier.padding(18.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer

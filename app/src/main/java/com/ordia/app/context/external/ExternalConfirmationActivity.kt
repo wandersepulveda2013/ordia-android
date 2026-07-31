@@ -54,8 +54,8 @@ class ExternalConfirmationActivity : Activity() {
         }
 
         // Mostrar datos estructurados (sin texto original)
-        findViewById<TextView>(R.id.confirmation_title)?.text = title ?: "Sin título"
-        findViewById<TextView>(R.id.confirmation_kind)?.text = kindName ?: "Desconocido"
+        findViewById<TextView>(R.id.confirmation_title)?.text = title ?: getString(R.string.external_suggestion_untitled)
+        findViewById<TextView>(R.id.confirmation_kind)?.text = kindName ?: getString(R.string.external_suggestion_unknown_kind)
         if (dueAt > 0) {
             val dateStr = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
                 .format(java.util.Date(dueAt))

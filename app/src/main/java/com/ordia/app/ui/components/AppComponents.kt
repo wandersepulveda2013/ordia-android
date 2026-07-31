@@ -1,5 +1,6 @@
 package com.ordia.app.ui.components
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -43,10 +44,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.ui.theme.OrdiaGoldSoft
 
 @Composable
@@ -232,9 +235,10 @@ fun GuardianAvatar(size: Dp, mood: GuardianMood = GuardianMood.CALM, modifier: M
     val background = MaterialTheme.colorScheme.primary
     val foreground = MaterialTheme.colorScheme.onPrimary
     val accent = OrdiaGoldSoft
+    val description = stringResource(R.string.component_guardian_description, stringResource(mood.labelRes))
     Canvas(
         modifier = modifier.size(size).semantics {
-            contentDescription = "Guardián de Ordia, estado ${mood.label}"
+            contentDescription = description
         }
     ) {
         drawCircle(background)
@@ -275,10 +279,10 @@ fun GuardianAvatar(size: Dp, mood: GuardianMood = GuardianMood.CALM, modifier: M
     }
 }
 
-enum class GuardianMood(val label: String) {
-    CALM("tranquilo"),
-    HAPPY("feliz"),
-    FOCUSED("concentrado")
+enum class GuardianMood(@StringRes val labelRes: Int) {
+    CALM(R.string.component_guardian_mood_calm),
+    HAPPY(R.string.component_guardian_mood_happy),
+    FOCUSED(R.string.component_guardian_mood_focused)
 }
 
 @Composable

@@ -28,8 +28,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.domain.DateRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.components.EmptyState
@@ -77,9 +79,9 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
     ) {
         item {
             ScreenHeader(
-                "PROGRESO QUE SIRVE",
-                "Tu panorama",
-                "Observa patrones reales para ajustar el sistema, no para juzgarte."
+                stringResource(R.string.statistics_eyebrow),
+                stringResource(R.string.statistics_title),
+                stringResource(R.string.statistics_subtitle)
             )
         }
 
@@ -94,14 +96,14 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                        Text("Ritmo general", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                        Text("${state.completionRate}% completado", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Text(stringResource(R.string.statistics_pace), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Text(stringResource(R.string.statistics_completed, state.completionRate), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
                         Text(
                             when {
-                                state.rootTasks.isEmpty() -> "Registra algunas tareas para empezar a detectar tendencias."
-                                state.completionRate >= 80 -> "Tu sistema está cerrando compromisos con consistencia."
-                                state.completionRate >= 50 -> "Hay avance estable; revisa qué tareas permanecen abiertas demasiado tiempo."
-                                else -> "Reduce el trabajo activo y define resultados más pequeños."
+                                state.rootTasks.isEmpty() -> stringResource(R.string.statistics_msg_empty)
+                                state.completionRate >= 80 -> stringResource(R.string.statistics_msg_high)
+                                state.completionRate >= 50 -> stringResource(R.string.statistics_msg_mid)
+                                else -> stringResource(R.string.statistics_msg_low)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.78f)
@@ -122,18 +124,18 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
                     StatCard(
-                        "Esta semana",
+                        stringResource(R.string.statistics_week),
                         completedThisWeek.toString(),
-                        "tareas completadas",
+                        stringResource(R.string.statistics_tasks_completed),
                         Modifier.width(180.dp),
                         icon = Icons.Outlined.CheckCircle
                     )
                 }
                 item {
                     StatCard(
-                        "Promedio",
+                        stringResource(R.string.statistics_average),
                         String.format(currentLocale, "%.1f", dailyAverage),
-                        "cierres por día",
+                        stringResource(R.string.statistics_closures_per_day),
                         Modifier.width(180.dp),
                         icon = Icons.Outlined.CheckCircle,
                         accent = MaterialTheme.colorScheme.secondary
@@ -141,9 +143,9 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                 }
                 item {
                     StatCard(
-                        "Enfoque",
+                        stringResource(R.string.statistics_focus),
                         "${state.focusMinutesThisWeek}m",
-                        "$completedFocusSessions sesiones",
+                        stringResource(R.string.statistics_sessions, completedFocusSessions),
                         Modifier.width(180.dp),
                         icon = Icons.Outlined.Timer,
                         accent = MaterialTheme.colorScheme.tertiary
@@ -151,9 +153,9 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                 }
                 item {
                     StatCard(
-                        "Mejor racha",
-                        "$bestStreak días",
-                        "hábitos activos",
+                        stringResource(R.string.statistics_best_streak),
+                        stringResource(R.string.statistics_days, bestStreak),
+                        stringResource(R.string.statistics_active_habits),
                         Modifier.width(180.dp),
                         icon = Icons.Outlined.Spa,
                         accent = MaterialTheme.colorScheme.secondary
@@ -162,7 +164,7 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
             }
         }
 
-        item { SectionHeader("Actividad de los últimos 7 días", "Tareas cerradas por fecha.") }
+        item { SectionHeader(stringResource(R.string.statistics_activity_7d), stringResource(R.string.statistics_activity_7d_desc)) }
         item {
             SectionSurface {
                 WeeklyBars(
@@ -172,16 +174,16 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                     }
                 )
                 Text(
-                    if (completedThisWeek == 0) "Todavía no hay tareas completadas esta semana." else "Completaste $completedThisWeek tareas, con un promedio de ${String.format(currentLocale, "%.1f", dailyAverage)} por día.",
+                    if (completedThisWeek == 0) stringResource(R.string.statistics_no_completions_week) else stringResource(R.string.statistics_week_summary, completedThisWeek, String.format(currentLocale, "%.1f", dailyAverage)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        item { SectionHeader("Hábitos", "Avance de hoy y rachas actuales.") }
+        item { SectionHeader(stringResource(R.string.statistics_habits), stringResource(R.string.statistics_habits_desc)) }
         if (state.habits.isEmpty()) {
-            item { EmptyState("Sin hábitos medibles", "Crea un hábito para visualizar cumplimiento y rachas.") }
+            item { EmptyState(stringResource(R.string.statistics_no_habits), stringResource(R.string.statistics_no_habits_desc)) }
         } else {
             item {
                 SectionSurface {
@@ -193,7 +195,7 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                         ProgressRing(
                             progress = habitCompletion,
                             centerText = "$habitsDoneToday/${state.habits.size}",
-                            label = "cumplidos hoy",
+                            label = stringResource(R.string.statistics_done_today),
                             color = MaterialTheme.colorScheme.tertiary
                         )
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -203,7 +205,7 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Row(Modifier.fillMaxWidth()) {
                                         Text(habit.title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                                        Text("$streak días", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                                        Text(stringResource(R.string.statistics_days, streak), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                                     }
                                     LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(5.dp))
                                 }
@@ -214,9 +216,9 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
             }
         }
 
-        item { SectionHeader("Proyectos", "Qué tan cerca están los objetivos activos.") }
+        item { SectionHeader(stringResource(R.string.statistics_projects), stringResource(R.string.statistics_projects_desc)) }
         if (state.projects.isEmpty()) {
-            item { EmptyState("Sin proyectos activos", "Agrupa tareas relacionadas para medir avance por objetivo.") }
+            item { EmptyState(stringResource(R.string.statistics_no_projects), stringResource(R.string.statistics_no_projects_desc)) }
         } else {
             item {
                 SectionSurface {

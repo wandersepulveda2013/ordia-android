@@ -9,7 +9,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.domain.GuardianEngine
 import com.ordia.app.ui.OrdiaUiState
@@ -36,27 +38,27 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
         preferences = state.preferences
     )
     val daily = listOf(
-        MoreEntry(Destination.Inbox, "Procesa capturas rápidas y decide su siguiente paso.", state.inboxTasks.size.toString(), MaterialTheme.colorScheme.primary),
-        MoreEntry(Destination.Focus, "Temporizador, sesiones y tiempo de concentración real.", "${state.focusMinutesThisWeek}m", MaterialTheme.colorScheme.tertiary),
-        MoreEntry(Destination.Search, "Encuentra tareas, proyectos, notas y hábitos desde un lugar.", null, MaterialTheme.colorScheme.secondary),
-        MoreEntry(Destination.Guardian, "Visita el refugio, interactúa y observa cómo evoluciona tu compañero.", "Nv. ${guardian.level}", MaterialTheme.colorScheme.tertiary),
-        MoreEntry(Destination.Contextual, "Detecta compromisos localmente desde texto compartido o notificaciones autorizadas.", null, MaterialTheme.colorScheme.secondary)
+        MoreEntry(Destination.Inbox, stringResource(R.string.more_inbox_desc), state.inboxTasks.size.toString(), MaterialTheme.colorScheme.primary),
+        MoreEntry(Destination.Focus, stringResource(R.string.more_focus_desc), stringResource(R.string.more_focus_minutes_badge, state.focusMinutesThisWeek), MaterialTheme.colorScheme.tertiary),
+        MoreEntry(Destination.Search, stringResource(R.string.more_search_desc), null, MaterialTheme.colorScheme.secondary),
+        MoreEntry(Destination.Guardian, stringResource(R.string.more_guardian_desc), stringResource(R.string.more_guardian_level_badge, guardian.level), MaterialTheme.colorScheme.tertiary),
+        MoreEntry(Destination.Contextual, stringResource(R.string.more_contextual_desc), null, MaterialTheme.colorScheme.secondary)
     )
     val organize = buildList {
         if (state.preferences.interfaceMode != InterfaceMode.SIMPLE) {
-            add(MoreEntry(Destination.Projects, "Agrupa tareas y notas alrededor de resultados concretos.", state.projects.size.toString(), MaterialTheme.colorScheme.primary))
-            add(MoreEntry(Destination.Habits, "Registra constancia, objetivos y rachas sin presión.", state.habits.size.toString(), MaterialTheme.colorScheme.tertiary))
+            add(MoreEntry(Destination.Projects, stringResource(R.string.more_projects_desc), state.projects.size.toString(), MaterialTheme.colorScheme.primary))
+            add(MoreEntry(Destination.Habits, stringResource(R.string.more_habits_desc), state.habits.size.toString(), MaterialTheme.colorScheme.tertiary))
         }
-        add(MoreEntry(Destination.Notes, "Crea páginas flexibles para ideas, decisiones e información.", state.notes.size.toString(), MaterialTheme.colorScheme.secondary))
+        add(MoreEntry(Destination.Notes, stringResource(R.string.more_notes_desc), state.notes.size.toString(), MaterialTheme.colorScheme.secondary))
     }
     val review = buildList {
         if (state.preferences.interfaceMode == InterfaceMode.ADVANCED) {
-            add(MoreEntry(Destination.Statistics, "Analiza tendencias reales de tareas, hábitos y enfoque.", "${state.completionRate}%", MaterialTheme.colorScheme.primary))
-            add(MoreEntry(Destination.Archive, "Recupera o elimina elementos que ya no están activos.", state.archivedCount.toString(), MaterialTheme.colorScheme.secondary))
+            add(MoreEntry(Destination.Statistics, stringResource(R.string.more_statistics_desc), stringResource(R.string.more_completion_rate_badge, state.completionRate), MaterialTheme.colorScheme.primary))
+            add(MoreEntry(Destination.Archive, stringResource(R.string.more_archive_desc), state.archivedCount.toString(), MaterialTheme.colorScheme.secondary))
         }
     }
     val system = listOf(
-        MoreEntry(Destination.Settings, "Personaliza tema, navegación, guardián, respaldo y preferencias.", null, MaterialTheme.colorScheme.tertiary)
+        MoreEntry(Destination.Settings, stringResource(R.string.more_settings_desc), null, MaterialTheme.colorScheme.tertiary)
     )
 
     LazyColumn(
@@ -71,30 +73,30 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
     ) {
         item {
             ScreenHeader(
-                "CENTRO DE HERRAMIENTAS",
-                "Explora Ordia",
-                "Lo cotidiano permanece simple; las herramientas avanzadas están organizadas por propósito."
+                stringResource(R.string.more_header_eyebrow),
+                stringResource(R.string.more_header_title),
+                stringResource(R.string.more_header_subtitle)
             )
         }
 
-        item { SectionHeader("Acción diaria", "Captura, busca y protege tiempo de enfoque.") }
+        item { SectionHeader(stringResource(R.string.more_section_daily), stringResource(R.string.more_section_daily_supporting)) }
         daily.forEach { entry ->
             item(key = entry.destination.route) { ToolCard(entry, open) }
         }
 
-        item { SectionHeader("Organización", "Conecta información y compromisos alrededor de objetivos.") }
+        item { SectionHeader(stringResource(R.string.more_section_organize), stringResource(R.string.more_section_organize_supporting)) }
         organize.forEach { entry ->
             item(key = entry.destination.route) { ToolCard(entry, open) }
         }
 
         if (review.isNotEmpty()) {
-            item { SectionHeader("Revisión", "Aprende de tu actividad y recupera información archivada.") }
+            item { SectionHeader(stringResource(R.string.more_section_review), stringResource(R.string.more_section_review_supporting)) }
             review.forEach { entry ->
                 item(key = entry.destination.route) { ToolCard(entry, open) }
             }
         }
 
-        item { SectionHeader("Sistema", "Configura Ordia para que se adapte a tu forma de trabajar.") }
+        item { SectionHeader(stringResource(R.string.more_section_system), stringResource(R.string.more_section_system_supporting)) }
         system.forEach { entry ->
             item(key = entry.destination.route) { ToolCard(entry, open) }
         }

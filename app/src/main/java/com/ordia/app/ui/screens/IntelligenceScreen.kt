@@ -9,8 +9,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.intelligence.IntelligenceModelManager
 import com.ordia.app.intelligence.LocalModelProvider
 import com.ordia.app.intelligence.OrdiaIntelligenceEngine
@@ -41,9 +43,9 @@ fun IntelligenceScreen(
 
     var currentMode by remember { mutableStateOf(
         when {
-            engine.isLocalModelAvailable -> "Inteligencia local (modelo)"
-            engine.isLocalModelEnabled -> "Local activado (inferencia pendiente)"
-            else -> "Modo básico (reglas)"
+            engine.isLocalModelAvailable -> context.getString(R.string.intel_mode_local_model)
+            engine.isLocalModelEnabled -> context.getString(R.string.intel_mode_local_enabled)
+            else -> context.getString(R.string.intel_mode_basic)
         }
     ) }
     var downloadProgress by remember { mutableStateOf(0f) }
@@ -58,14 +60,14 @@ fun IntelligenceScreen(
     LaunchedEffect(Unit) {
         val compat = modelManager.deviceSupportsProfile(context, selectedProfile)
         compatibilityInfo = buildString {
-            append("RAM: ${compat.totalRamMb}MB disponible")
+            append(context.getString(R.string.intel_compat_ram, compat.totalRamMb))
             if (compat.reasons.isNotEmpty()) {
                 append("\n")
                 append(compat.reasons.joinToString("\n"))
             }
         }
         val size = modelManager.getModelSize(context, selectedProfile.modelFile)
-        modelSize = if (size > 0) "${size / (1024 * 1024)} MB" else "No descargado"
+        modelSize = if (size > 0) context.getString(R.string.intel_size_mb, size / (1024 * 1024)) else context.getString(R.string.common_not_downloaded)
     }
 
     Column(
@@ -74,10 +76,10 @@ fun IntelligenceScreen(
             .padding(contentPadding)
             .verticalScroll(rememberScrollState())
     ) {
-        ScreenHeader("INTELIGENCIA", "Inteligencia de Ordía")
+        ScreenHeader(stringResource(R.string.intel_header_eyebrow), stringResource(R.string.intel_header_title))
 
         // Modo actual
-        SectionHeader("Modo actual")
+        SectionHeader(stringResource(R.string.intel_section_current_mode))
         Card(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
             colors = CardDefaults.cardColors(
@@ -90,9 +92,9 @@ fun IntelligenceScreen(
                 Text(currentMode, style = MaterialTheme.typography.titleMedium)
                 Text(
                     when {
-                        engine.isLocalModelAvailable -> "Las frases se procesan con el modelo local."
-                        engine.isLocalModelEnabled -> "Descarga y carga funcionan, pero la inferencia local aún no está implementada (requiere tokenizador). El análisis se resuelve con el motor de reglas."
-                        else -> "Las frases se procesan con reglas. Puedes descargar un modelo para tenerlo listo cuando la inferencia local esté disponible."
+                        engine.isLocalModelAvailable -> stringResource(R.string.intel_mode_local_model_desc)
+                        engine.isLocalModelEnabled -> stringResource(R.string.intel_mode_local_enabled_desc)
+                        else -> stringResource(R.string.intel_mode_basic_desc)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -107,12 +109,10 @@ fun IntelligenceScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Inferencia local pendiente de implementación",
+                    Text(stringResource(R.string.intel_inference_pending_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold)
-                    Text("La descarga y la carga del modelo Gemma funcionan, pero la inferencia " +
-                        "requiere la API de tarea con tokenizador (aún no integrada). Mientras tanto, " +
-                        "el análisis se resuelve con el motor de reglas.",
+                    Text(stringResource(R.string.intel_inference_pending_desc),
                         style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -121,7 +121,7 @@ fun IntelligenceScreen(
         Spacer(Modifier.height(12.dp))
 
         // Selección de perfil
-        SectionHeader("Perfil de modelo")
+        SectionHeader(stringResource(R.string.intel_section_model_profile))
         LocalModelProvider.ModelProfile.entries.forEach { profile ->
             val isSelected = selectedProfile == profile
             val compat = remember(profile) { modelManager.deviceSupportsProfile(context, profile) }
@@ -138,16 +138,16 @@ fun IntelligenceScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(profile.displayName, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                        if (isSelected) Text("Seleccionado", style = MaterialTheme.typography.labelSmall,
+                        if (isSelected) Text(stringResource(R.string.intel_profile_selected), style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary)
                     }
                     Text(profile.description, style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Tamaño: ~${profile.estimatedSizeMb}MB | RAM mínima: ${profile.minRamMb}MB",
+                    Text(stringResource(R.string.intel_profile_specs, profile.estimatedSizeMb, profile.minRamMb),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (!compat.compatible) {
-                        Text("⚠ Dispositivo no compatible: ${compat.reasons.firstOrNull() ?: "requisitos no cumplidos"}",
+                        Text(stringResource(R.string.intel_device_incompatible, compat.reasons.firstOrNull() ?: stringResource(R.string.intel_device_incompatible_fallback)),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error)
                     }
@@ -158,18 +158,18 @@ fun IntelligenceScreen(
         Spacer(Modifier.height(12.dp))
 
         // Estado del modelo
-        SectionHeader("Estado")
+        SectionHeader(stringResource(R.string.intel_section_state))
         Card(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 val isDownloaded = modelManager.isModelDownloaded(context, selectedProfile.modelFile)
-                Text("Archivo: ${selectedProfile.modelFile}", style = MaterialTheme.typography.bodySmall)
-                Text("Tamaño: $modelSize", style = MaterialTheme.typography.bodySmall)
-                Text("Descargado: ${if (isDownloaded) "Sí" else "No"}", style = MaterialTheme.typography.bodySmall)
-                Text("SHA-256: Verificado al descargar", style = MaterialTheme.typography.bodySmall)
-                Text("Almacenamiento: Privado (${context.filesDir.absolutePath})", style = MaterialTheme.typography.bodySmall)
-                Text("Licencia: Gemma Terms of Use", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.intel_state_file, selectedProfile.modelFile), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.intel_state_size, modelSize), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.intel_state_downloaded, if (isDownloaded) stringResource(R.string.common_yes) else stringResource(R.string.common_no)), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.intel_state_sha), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.intel_state_storage, context.filesDir.absolutePath), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.intel_state_license), style = MaterialTheme.typography.bodySmall)
             }
         }
 
@@ -181,7 +181,7 @@ fun IntelligenceScreen(
                 progress = { downloadProgress },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
             )
-            Text("${(downloadProgress * 100).toInt()}% - $downloadStateText",
+            Text(stringResource(R.string.intel_progress_percent, (downloadProgress * 100).toInt(), downloadStateText),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
         }
@@ -197,37 +197,37 @@ fun IntelligenceScreen(
                 onClick = {
                     scope.launch {
                         isDownloading = true
-                        downloadStateText = "Conectando..."
+                        downloadStateText = context.getString(R.string.intel_connecting)
                         val success = modelManager.downloadModelWithProgress(
                             context = context,
                             filename = selectedProfile.modelFile,
                             onProgress = { progress ->
                                 downloadProgress = progress
-                                downloadStateText = "Descargando..."
+                                downloadStateText = context.getString(R.string.intel_downloading)
                             },
                             onStateChange = { state ->
                                 downloadStateText = when (state) {
-                                    is IntelligenceModelManager.DownloadState.Idle -> "Inactivo"
-                                    is IntelligenceModelManager.DownloadState.Downloading -> "Descargando"
-                                    is IntelligenceModelManager.DownloadState.Paused -> "En pausa"
-                                    is IntelligenceModelManager.DownloadState.Verifying -> "Verificando SHA-256..."
-                                    is IntelligenceModelManager.DownloadState.Ready -> "¡Listo!"
-                                    is IntelligenceModelManager.DownloadState.Error -> "Error: ${state.reason}"
+                                    is IntelligenceModelManager.DownloadState.Idle -> context.getString(R.string.intel_download_idle)
+                                    is IntelligenceModelManager.DownloadState.Downloading -> context.getString(R.string.intel_download_downloading)
+                                    is IntelligenceModelManager.DownloadState.Paused -> context.getString(R.string.intel_download_paused)
+                                    is IntelligenceModelManager.DownloadState.Verifying -> context.getString(R.string.intel_download_verifying)
+                                    is IntelligenceModelManager.DownloadState.Ready -> context.getString(R.string.intel_download_ready)
+                                    is IntelligenceModelManager.DownloadState.Error -> context.getString(R.string.intel_download_error, state.reason)
                                 }
                             }
                         )
                         isDownloading = false
                         if (success) {
-                            currentMode = "Modelo descargado (inferencia pendiente)"
-                            modelSize = "${modelManager.getModelSize(context, selectedProfile.modelFile) / (1024 * 1024)} MB"
+                            currentMode = context.getString(R.string.intel_mode_model_downloaded)
+                            modelSize = context.getString(R.string.intel_size_mb, modelManager.getModelSize(context, selectedProfile.modelFile) / (1024 * 1024))
                         }
                     }
                 },
                 enabled = !isDownloading && !isDownloaded,
                 modifier = Modifier.weight(1f)
             ) {
-                Text(if (isDownloaded) "Descargado" else if (isDownloading) "Descargando..."
-                else "Descargar (${selectedProfile.estimatedSizeMb}MB)")
+                Text(if (isDownloaded) stringResource(R.string.common_downloaded) else if (isDownloading) stringResource(R.string.intel_downloading)
+                else stringResource(R.string.intel_download_button, selectedProfile.estimatedSizeMb))
             }
 
             if (isDownloaded) {
@@ -237,50 +237,50 @@ fun IntelligenceScreen(
                             engine.isLocalModelEnabled = true
                             val loaded = engine.loadLocalModel()
                             currentMode = if (loaded) {
-                                if (engine.isLocalModelAvailable) "Inteligencia local (modelo)"
-                                else "Modelo cargado (inferencia pendiente)"
-                            } else "Error al cargar"
+                                if (engine.isLocalModelAvailable) context.getString(R.string.intel_mode_local_model)
+                                else context.getString(R.string.intel_mode_model_loaded)
+                            } else context.getString(R.string.intel_mode_load_error)
                         }
                     },
                     enabled = !engine.isLocalModelAvailable,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(if (engine.isLocalModelAvailable) "Cargado" else "Cargar modelo")
+                    Text(if (engine.isLocalModelAvailable) stringResource(R.string.intel_loaded) else stringResource(R.string.intel_load_model))
                 }
 
                 OutlinedButton(
                     onClick = {
                         modelManager.deleteModel(context, selectedProfile.modelFile)
-                        currentMode = if (engine.isLocalModelEnabled) "Local activado (inferencia pendiente)"
-                        else "Modo básico (reglas)"
-                        modelSize = "No descargado"
+                        currentMode = if (engine.isLocalModelEnabled) context.getString(R.string.intel_mode_local_enabled)
+                        else context.getString(R.string.intel_mode_basic)
+                        modelSize = context.getString(R.string.common_not_downloaded)
                     },
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Eliminar")
+                    Text(stringResource(R.string.action_delete))
                 }
             }
         }
 
         // Información de privacidad
         Spacer(Modifier.height(16.dp))
-        SectionHeader("Privacidad")
+        SectionHeader(stringResource(R.string.intel_section_privacy))
         Card(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("• Todo el procesamiento es 100% local en tu dispositivo.",
+                Text(stringResource(R.string.intel_privacy_local),
                     style = MaterialTheme.typography.bodySmall)
-                Text("• El modelo se descarga a almacenamiento privado de Ordía.",
+                Text(stringResource(R.string.intel_privacy_storage),
                     style = MaterialTheme.typography.bodySmall)
-                Text("• No se envía ningún texto a servidores externos.",
+                Text(stringResource(R.string.intel_privacy_no_send),
                     style = MaterialTheme.typography.bodySmall)
-                Text("• No se almacenan conversaciones ni frases originales.",
+                Text(stringResource(R.string.intel_privacy_no_conversations),
                     style = MaterialTheme.typography.bodySmall)
-                Text("• Solo se guardan acciones confirmadas por el usuario.",
+                Text(stringResource(R.string.intel_privacy_confirmed),
                     style = MaterialTheme.typography.bodySmall)
-                Text("• Licencia: ${modelManager.getAllModels().firstOrNull()?.license ?: "Gemma Terms of Use"}",
+                Text(stringResource(R.string.intel_privacy_license, modelManager.getAllModels().firstOrNull()?.license ?: stringResource(R.string.intel_license_gemma)),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -293,12 +293,10 @@ fun IntelligenceScreen(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Modo básico siempre disponible",
+                Text(stringResource(R.string.intel_basic_always_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold)
-                Text("Sin inferencia local implementada, Ordía usa su motor de reglas para entender " +
-                    "frases. Puedes descargar el modelo para dejar la infraestructura lista cuando la " +
-                    "inferencia local esté disponible.",
+                Text(stringResource(R.string.intel_basic_always_desc),
                     style = MaterialTheme.typography.bodySmall)
             }
         }

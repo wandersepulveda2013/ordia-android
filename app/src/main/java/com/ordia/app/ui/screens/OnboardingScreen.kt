@@ -22,8 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.ui.components.GuardianAvatar
 import com.ordia.app.ui.components.GuardianMood
@@ -45,18 +47,18 @@ fun OnboardingScreen(
             GuardianAvatar(92.dp, if (page == 2) GuardianMood.HAPPY else GuardianMood.CALM)
             Text(
                 when (page) {
-                    0 -> "Tu mundo, en orden"
-                    1 -> "Ordía se adapta a ti"
-                    else -> "Un compañero, no una molestia"
+                    0 -> stringResource(R.string.app_tagline)
+                    1 -> stringResource(R.string.onboarding_page1_title)
+                    else -> stringResource(R.string.onboarding_page2_title)
                 },
                 style = MaterialTheme.typography.displayMedium,
                 textAlign = TextAlign.Center
             )
             Text(
                 when (page) {
-                    0 -> "Tareas, notas, planes, hábitos y enfoque en un lugar tranquilo. Empieza sin construir un sistema complicado."
-                    1 -> "Elige cuánta estructura quieres ver. Puedes cambiarlo después en Ajustes."
-                    else -> "El guardián flotante te permitirá capturar una tarea o una idea desde cualquier aplicación. Solo aparece cuando tú lo activas."
+                    0 -> stringResource(R.string.onboarding_page0_body)
+                    1 -> stringResource(R.string.onboarding_page1_body)
+                    else -> stringResource(R.string.onboarding_page2_body)
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -84,16 +86,17 @@ fun OnboardingScreen(
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                if (page > 0) OutlinedButton(onClick = { page-- }) { Text("Atrás") }
+                if (page > 0) OutlinedButton(onClick = { page-- }) { Text(stringResource(R.string.onboarding_back)) }
                 Spacer(Modifier.width(10.dp))
-                Button(onClick = { if (page < 2) page++ else onFinish() }) { Text(if (page < 2) "Continuar" else "Entrar a Ordia") }
+                Button(onClick = { if (page < 2) page++ else onFinish() }) { Text(if (page < 2) stringResource(R.string.onboarding_continue) else stringResource(R.string.onboarding_enter)) }
             }
         }
     }
 }
 
-private fun InterfaceMode.label() = when (this) {
-    InterfaceMode.SIMPLE -> "Simple · Tareas, notas y calendario"
-    InterfaceMode.ORGANIZED -> "Organizado · Proyectos, hábitos y planificación"
-    InterfaceMode.ADVANCED -> "Avanzado · Etiquetas, vistas y controles adicionales"
+@Composable
+private fun InterfaceMode.label(): String = when (this) {
+    InterfaceMode.SIMPLE -> stringResource(R.string.onboarding_mode_simple)
+    InterfaceMode.ORGANIZED -> stringResource(R.string.onboarding_mode_organized)
+    InterfaceMode.ADVANCED -> stringResource(R.string.onboarding_mode_advanced)
 }

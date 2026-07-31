@@ -8,10 +8,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.ordia.app.OrdiaApplication
+import com.ordia.app.R
 import com.ordia.app.context.ContextCaptureSource
 import com.ordia.app.context.ContextEngine
 import com.ordia.app.context.ContextIntent
@@ -78,6 +80,8 @@ fun OrdiaRoot(
     val snackbarHostState = remember { SnackbarHostState() }
     var pendingContext by remember { mutableStateOf<ContextualSuggestion?>(null) }
     var pendingConfirmationId by remember { mutableStateOf<String?>(null) }
+    val noteFromContextText = stringResource(R.string.root_note_created_from_context)
+    val taskFromContextText = stringResource(R.string.root_task_created_from_context)
 
     val guardianDerivedExperience = remember(
         state.tasks,
@@ -112,17 +116,17 @@ fun OrdiaRoot(
                     }
                     is ContextResult.Created -> {
                         snackbarHostState.showSnackbar(
-                            "Detectado: ${result.intent.kind.displayName} — ${result.intent.title.take(40)}"
+                            context.getString(R.string.root_context_detected, result.intent.kind.displayName, result.intent.title.take(40))
                         )
                     }
                     is ContextResult.Discarded -> {
                         snackbarHostState.showSnackbar(
-                            "Ordía no procesó el texto porque era sensible o no contenía una intención clara."
+                            context.getString(R.string.root_context_discarded)
                         )
                     }
                 }
             } else {
-                snackbarHostState.showSnackbar("Activa la atención contextual para procesar texto compartido.")
+                snackbarHostState.showSnackbar(context.getString(R.string.root_context_inactive))
             }
             onIncomingTextConsumed()
         }
@@ -171,10 +175,10 @@ fun OrdiaRoot(
                     val engine = ContextEngine.getInstance(context)
                     pendingConfirmationId?.let { engine.resolveConfirmation(it, accepted = true) }
                     when (suggestion.kind) {
-                        ContextualKind.NOTE -> viewModel.addNote(title, "Creada desde texto compartido y confirmada por el usuario.")
+                        ContextualKind.NOTE -> viewModel.addNote(title, noteFromContextText)
                         ContextualKind.TASK, ContextualKind.EVENT, ContextualKind.STUDY -> viewModel.addTask(
                             title = title,
-                            details = "Sugerencia contextual confirmada por el usuario.",
+                            details = taskFromContextText,
                             dueAt = suggestion.dueAt,
                             priority = TaskPriority.NORMAL
                         )
