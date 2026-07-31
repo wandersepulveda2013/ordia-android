@@ -1,6 +1,7 @@
 package com.ordia.app.ui.screens
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -75,6 +76,9 @@ import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.time.LocalDate
 
+@SuppressLint("LocalContextGetResourceValueCall")
+// Los getString de Ajustes viven en callbacks de launchers (CreateDocument/OpenDocument/
+// RequestPermission) y corrutinas, ámbitos no-componibles donde stringResource no aplica.
 @Composable
 fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: PaddingValues) {
     val context = LocalContext.current
@@ -132,7 +136,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         // Leer hasta 10 MB fuera del hilo principal (la UI no debe bloquearse).
         scope.launch(Dispatchers.IO) {
             runCatching {
-                context.contentResolver.openInputStream(uri)?.use { readUtf8Limited(it, BackupSecurityRules.MAX_UTF8_BYTES) }
+                context.contentResolver.openInputStream(uri)?.use { readUtf8Limited(context, it, BackupSecurityRules.MAX_UTF8_BYTES) }
             }.onSuccess { raw ->
                 if (raw != null) {
                     pendingRestoreJson = raw
@@ -203,7 +207,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 32.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        item { ScreenHeader("A TU MANERA", "Ajustes", "Personaliza Ordia, tu guardián y las actualizaciones sin perder datos.") }
+        item { ScreenHeader(stringResource(R.string.settings_header_eyebrow), stringResource(R.string.settings_header_title), stringResource(R.string.settings_header_subtitle)) }
 
         @Suppress("UNUSED_EXPRESSION")
         if (BuildConfig.PREVIEW) {
@@ -211,26 +215,28 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                 Card {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            if (BuildConfig.OVERLAY_ENABLED) "Ordía 3 Preview Full" else "Ordía 3 Preview",
+                            if (BuildConfig.OVERLAY_ENABLED) stringResource(R.string.settings_preview_full) else stringResource(R.string.settings_preview),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            "${BuildConfig.VERSION_NAME} (código ${BuildConfig.VERSION_CODE}) · ${if (BuildConfig.DEBUG) "depuración" else "release"}",
+                            stringResource(
+                                R.string.settings_preview_version,
+                                BuildConfig.VERSION_NAME,
+                                BuildConfig.VERSION_CODE,
+                                if (BuildConfig.DEBUG) stringResource(R.string.settings_preview_build_debug) else stringResource(R.string.settings_preview_build_release)
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "Esta es una versión de prueba que puede contener errores. " +
-                            "No sustituye a la aplicación estable. Los datos se almacenan por separado.",
+                            stringResource(R.string.settings_preview_warning),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
                         if (!BuildConfig.OVERLAY_ENABLED) {
                             Text(
-                                "Esta Preview segura no incluye mascota sobre otras aplicaciones, " +
-                                "lectura de notificaciones ni actualizaciones por APK. " +
-                                "Estas funciones se prueban en una compilación avanzada separada.",
+                                stringResource(R.string.settings_preview_limits),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -240,45 +246,45 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             }
         }
 
-        item { SectionHeader("Apariencia") }
+        item { SectionHeader(stringResource(R.string.settings_section_appearance)) }
         item {
-            SettingsCard(Icons.Outlined.DarkMode, "Tema") {
+            SettingsCard(Icons.Outlined.DarkMode, stringResource(R.string.settings_card_theme)) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(ThemeMode.entries) { mode ->
-                        FilterChip(selected = state.preferences.themeMode == mode, onClick = { vm.setThemeMode(mode) }, label = { Text(mode.label()) })
+                        FilterChip(selected = state.preferences.themeMode == mode, onClick = { vm.setThemeMode(mode) }, label = { Text(stringResource(mode.labelRes())) })
                     }
                 }
             }
         }
         item {
-            SettingsCard(null, "Nivel de interfaz") {
+            SettingsCard(null, stringResource(R.string.settings_card_interface_level)) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     InterfaceMode.entries.forEach { mode ->
                         FilterChip(
                             selected = state.preferences.interfaceMode == mode,
                             onClick = { vm.setInterfaceMode(mode) },
-                            label = { Text(mode.label()) },
+                            label = { Text(stringResource(mode.labelRes())) },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
             }
         }
-        item { SettingSwitch("Navegación compacta", "Usa la barra inferior incluso en tabletas.", state.preferences.compactNavigation, vm::setCompactNavigation) }
-        item { SettingSwitch("Reducir movimiento", "Evita animaciones no esenciales.", state.preferences.reduceMotion, vm::setReduceMotion) }
+        item { SettingSwitch(stringResource(R.string.settings_compact_nav), stringResource(R.string.settings_compact_nav_desc), state.preferences.compactNavigation, vm::setCompactNavigation) }
+        item { SettingSwitch(stringResource(R.string.settings_reduce_motion), stringResource(R.string.settings_reduce_motion_desc), state.preferences.reduceMotion, vm::setReduceMotion) }
 
-        item { SectionHeader("Guardián virtual") }
+        item { SectionHeader(stringResource(R.string.settings_section_guardian)) }
         item {
             InfoBanner(
-                "Un compañero, no una obligación",
-                "El guardián reacciona a tus avances, pero nunca enferma ni pierde progreso cuando descansas. No lee el contenido de otras aplicaciones."
+                stringResource(R.string.settings_guardian_banner_title),
+                stringResource(R.string.settings_guardian_banner_text)
             )
         }
         if (BuildConfig.OVERLAY_ENABLED) {
             item {
                 SettingSwitch(
-                    "Activar guardián flotante",
-                    if (Settings.canDrawOverlays(context)) "Puede acompañarte sobre otras aplicaciones." else "Primero debes autorizar la superposición.",
+                    stringResource(R.string.settings_guardian_float_enable),
+                    if (Settings.canDrawOverlays(context)) stringResource(R.string.settings_guardian_float_available) else stringResource(R.string.settings_guardian_float_need_overlay),
                     state.preferences.guardianEnabled
                 ) { enabled ->
                     if (enabled && !Settings.canDrawOverlays(context)) {
@@ -287,11 +293,11 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                         if (enabled) {
                             val started = startGuardian(context)
                             vm.setGuardianEnabled(started)
-                            guardianStatus = if (started) "Guardián flotante activado." else "Android no permitió iniciar el guardián."
+                            guardianStatus = if (started) context.getString(R.string.settings_guardian_float_active) else context.getString(R.string.settings_guardian_float_blocked)
                         } else {
                             vm.setGuardianEnabled(false)
                             context.stopService(android.content.Intent(context, com.ordia.app.overlay.GuardianOverlayService::class.java))
-                            guardianStatus = "Guardián flotante desactivado."
+                            guardianStatus = context.getString(R.string.settings_guardian_float_disabled)
                         }
                     }
                 }
@@ -304,14 +310,12 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                 Card {
                     androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            "Mascota sobre otras aplicaciones no disponible",
+                            stringResource(R.string.settings_guardian_unavailable_title),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "Esta Preview segura no incluye mascota sobre otras aplicaciones, " +
-                            "lectura de notificaciones ni actualizaciones por APK. " +
-                            "Estas funciones se prueban en una compilación avanzada separada.",
+                            stringResource(R.string.settings_preview_limits),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -320,20 +324,20 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             }
         }
         item {
-            SettingsCard(Icons.Outlined.Shield, "Presencia") {
+            SettingsCard(Icons.Outlined.Shield, stringResource(R.string.settings_card_presence)) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(GuardianMode.entries) { mode ->
-                        FilterChip(selected = state.preferences.guardianMode == mode, onClick = { vm.setGuardianMode(mode) }, label = { Text(mode.label()) })
+                        FilterChip(selected = state.preferences.guardianMode == mode, onClick = { vm.setGuardianMode(mode) }, label = { Text(stringResource(mode.labelRes())) })
                     }
                 }
             }
         }
         item {
-            SettingsCard(Icons.Outlined.AutoAwesome, "Identidad y dinámica") {
+            SettingsCard(Icons.Outlined.AutoAwesome, stringResource(R.string.settings_card_identity)) {
                 OutlinedTextField(
                     value = guardianName,
                     onValueChange = { guardianName = it.take(24) },
-                    label = { Text("Nombre") },
+                    label = { Text(stringResource(R.string.settings_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -341,7 +345,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                     onClick = { scope.launch { repository.setGuardianName(guardianName) } },
                     enabled = guardianName.isNotBlank(),
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("Guardar nombre") }
+                ) { Text(stringResource(R.string.settings_save_name)) }
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(GuardianSpecies.entries) { species ->
                         FilterChip(
@@ -360,28 +364,28 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         }
         item {
             SettingSwitch(
-                "Animaciones del guardián",
-                "Permite movimiento, parpadeo, reacciones y efectos de evolución.",
+                stringResource(R.string.settings_guardian_animations),
+                stringResource(R.string.settings_guardian_animations_desc),
                 state.preferences.guardianAnimations
             ) { scope.launch { repository.setGuardianAnimations(it) } }
         }
         item {
-            SettingsCard(null, "Horas de silencio") {
+            SettingsCard(null, stringResource(R.string.settings_card_quiet_hours)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(quietStart, { quietStart = it.take(5) }, modifier = Modifier.weight(1f), label = { Text("Desde") }, singleLine = true)
-                    OutlinedTextField(quietEnd, { quietEnd = it.take(5) }, modifier = Modifier.weight(1f), label = { Text("Hasta") }, singleLine = true)
+                    OutlinedTextField(quietStart, { quietStart = it.take(5) }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_quiet_from)) }, singleLine = true)
+                    OutlinedTextField(quietEnd, { quietEnd = it.take(5) }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_quiet_to)) }, singleLine = true)
                     Button(onClick = {
                         val start = parseClock(quietStart)
                         val end = parseClock(quietEnd)
                         when {
-                            start == null || end == null -> quietStatus = "Usa el formato HH:mm, por ejemplo 22:00."
-                            start == end -> quietStatus = "La hora inicial y final deben ser diferentes."
+                            start == null || end == null -> quietStatus = context.getString(R.string.settings_quiet_format_hint)
+                            start == end -> quietStatus = context.getString(R.string.settings_quiet_same_time)
                             else -> {
                                 vm.setQuietHours(start, end)
-                                quietStatus = "Horario de silencio guardado."
+                                quietStatus = context.getString(R.string.settings_quiet_saved)
                             }
                         }
-                    }) { Text("Guardar") }
+                    }) { Text(stringResource(R.string.action_save)) }
                 }
                 quietStatus?.let { status ->
                     Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -390,32 +394,32 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         }
 
         if (BuildConfig.ADVANCED_CONTEXT_ENABLED) {
-            item { SectionHeader("Captura avanzada") }
+            item { SectionHeader(stringResource(R.string.settings_section_capture)) }
             item {
                 InfoBanner(
-                    "Solo con tu consentimiento",
-                    "Captura texto visible en pantalla para crear tareas y notas desde otras aplicaciones. Nunca procesa contraseñas, PIN, OTP ni campos sensibles, y solo funciona en aplicaciones que autorices."
+                    stringResource(R.string.settings_capture_banner_title),
+                    stringResource(R.string.settings_capture_banner_text)
                 )
             }
             item {
                 SettingSwitch(
-                    "Captura de pantalla avanzada",
+                    stringResource(R.string.settings_capture_switch),
                     if (OrdiaAccessibilityService.isServiceEnabledInSystem(context)) {
-                        "El servicio está activado en Ajustes del sistema."
+                        stringResource(R.string.settings_capture_service_active)
                     } else {
-                        "Requiere activar «Ordía · captura de pantalla» en Ajustes del sistema."
+                        stringResource(R.string.settings_capture_service_required)
                     },
                     accessibilityEnabled
                 ) { enabled ->
                     accessibilityEnabled = enabled
                     OrdiaAccessibilityService.setCaptureEnabled(context, enabled)
                     accessibilityStatus = if (!enabled) {
-                        "Captura avanzada desactivada."
+                        context.getString(R.string.settings_capture_disabled)
                     } else if (OrdiaAccessibilityService.isServiceEnabledInSystem(context)) {
-                        "Captura avanzada activada. Autoriza aplicaciones para empezar."
+                        context.getString(R.string.settings_capture_activated)
                     } else {
                         context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                        "Activa «Ordía · captura de pantalla» en Ajustes de accesibilidad para empezar."
+                        context.getString(R.string.settings_capture_open_accessibility)
                     }
                 }
             }
@@ -425,17 +429,17 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         }
 
         if (BuildConfig.SELF_UPDATE_ENABLED) {
-        item { SectionHeader("Actualizaciones automáticas") }
+        item { SectionHeader(stringResource(R.string.settings_section_updates)) }
         item {
             InfoBanner(
-                "Actualización segura",
-                "Ordía comprueba GitHub Releases, valida el SHA-256, el paquete y la firma de la APK. Android siempre exige un toque final para autorizar la instalación."
+                stringResource(R.string.settings_updates_banner_title),
+                stringResource(R.string.settings_updates_banner_text)
             )
         }
         item {
             SettingSwitch(
-                "Buscar versiones automáticamente",
-                "Comprueba dos veces al día si existe una compilación más reciente.",
+                stringResource(R.string.settings_updates_auto_check),
+                stringResource(R.string.settings_updates_auto_check_desc),
                 state.preferences.autoUpdateEnabled
             ) { enabled ->
                 scope.launch {
@@ -447,56 +451,56 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         }
         item {
             SettingSwitch(
-                "Descargar actualizaciones",
-                "Descarga la APK nueva y te avisa cuando esté lista para instalar.",
+                stringResource(R.string.settings_updates_auto_download),
+                stringResource(R.string.settings_updates_auto_download_desc),
                 state.preferences.autoDownloadUpdates
             ) { scope.launch { repository.setAutoDownloadUpdates(it) } }
         }
         item {
-            SettingsCard(Icons.Outlined.SystemUpdate, "Comprobar ahora") {
+            SettingsCard(Icons.Outlined.SystemUpdate, stringResource(R.string.settings_card_check_now)) {
                 Text(
-                    updateStatus ?: "Versión instalada: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                    updateStatus ?: stringResource(R.string.settings_update_installed_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Button(
                     onClick = {
-                        updateStatus = "Buscando una versión nueva…"
+                        updateStatus = context.getString(R.string.settings_update_searching)
                         scope.launch {
                             when (val result = OrdiaUpdateManager.checkDetailed(context)) {
                                 OrdiaUpdateManager.CheckResult.UpToDate -> {
-                                    updateStatus = "Ordía está actualizada."
+                                    updateStatus = context.getString(R.string.settings_update_uptodate)
                                 }
                                 is OrdiaUpdateManager.CheckResult.Failed -> {
-                                    updateStatus = "No se pudo comprobar: ${result.reason}"
+                                    updateStatus = context.getString(R.string.settings_update_check_failed, result.reason)
                                 }
                                 is OrdiaUpdateManager.CheckResult.Available -> {
                                     val release = result.release
                                     if (!notificationsGranted && Build.VERSION.SDK_INT >= 33) {
-                                        updateStatus = "Activa las notificaciones para recibir el aviso de instalación verificada."
+                                        updateStatus = context.getString(R.string.settings_update_need_notifications)
                                         notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                                     } else {
                                         val id = OrdiaUpdateManager.download(context, release, allowMetered = true, userInitiated = true)
-                                        updateStatus = if (id != null) "Descargando ${release.tag}."
-                                        else "No se pudo iniciar la descarga verificada."
+                                        updateStatus = if (id != null) context.getString(R.string.settings_update_downloading, release.tag)
+                                        else context.getString(R.string.settings_update_download_failed)
                                     }
                                 }
                             }
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("Buscar actualización") }
+                ) { Text(stringResource(R.string.settings_update_check_button)) }
             }
         }
 
         }
 
-        item { SectionHeader("Planificación") }
+        item { SectionHeader(stringResource(R.string.settings_section_planning)) }
         item {
-            SettingsCard(Icons.Outlined.Notifications, "Notificaciones y recordatorios") {
+            SettingsCard(Icons.Outlined.Notifications, stringResource(R.string.settings_card_notifications)) {
                 Text(
-                    if (notificationsGranted) "Permiso activo. Ordia puede mostrar recordatorios y avisos de actualización."
-                    else "Activa el permiso para recibir recordatorios y avisos.",
+                    if (notificationsGranted) stringResource(R.string.settings_notifications_active)
+                    else stringResource(R.string.settings_notifications_required),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -506,33 +510,33 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Outlined.Notifications, contentDescription = null)
-                        Text("Permitir notificaciones", Modifier.padding(start = 8.dp))
+                        Text(stringResource(R.string.settings_notifications_allow), Modifier.padding(start = 8.dp))
                     }
                 }
             }
         }
-        item { SettingSwitch("La semana empieza el lunes", "Afecta el planificador semanal.", state.preferences.weekStartsMonday, vm::setWeekStartsMonday) }
+        item { SettingSwitch(stringResource(R.string.settings_week_starts_monday), stringResource(R.string.settings_week_starts_monday_desc), state.preferences.weekStartsMonday, vm::setWeekStartsMonday) }
         item {
-            SettingsCard(null, "Duración de enfoque predeterminada") {
+            SettingsCard(null, stringResource(R.string.settings_card_focus_duration)) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(listOf(15, 25, 45, 60)) { value ->
-                        FilterChip(selected = state.preferences.defaultFocusMinutes == value, onClick = { vm.setDefaultFocusMinutes(value) }, label = { Text("$value min") })
+                        FilterChip(selected = state.preferences.defaultFocusMinutes == value, onClick = { vm.setDefaultFocusMinutes(value) }, label = { Text(stringResource(R.string.settings_focus_minutes, value)) })
                     }
                 }
             }
         }
 
-        item { SectionHeader("Tus datos") }
+        item { SectionHeader(stringResource(R.string.settings_section_data)) }
         item {
-            SettingsCard(Icons.Outlined.Backup, "Copia de seguridad") {
-                Text("Exporta tareas, proyectos, notas, hábitos, rutinas, sesiones, ajustes y progreso del guardián en un archivo local sin cifrar. Los adjuntos se guardan como referencias, no como copias de sus archivos.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            SettingsCard(Icons.Outlined.Backup, stringResource(R.string.settings_card_backup)) {
+                Text(stringResource(R.string.settings_backup_description), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 backupStatus?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 when (val restoreProgress = backupRestoreState) {
-                    is BackupRestoreState.FileSelected -> ProgressLine("Leyendo la copia seleccionada…")
-                    is BackupRestoreState.Validating -> ProgressLine("Validando la copia…")
-                    is BackupRestoreState.CreatingSafetyBackup -> ProgressLine("Creando respaldo preventivo de tus datos actuales…")
-                    is BackupRestoreState.Restoring -> ProgressLine("Restaurando datos…")
-                    is BackupRestoreState.Verifying -> ProgressLine("Verificando que los datos quedaron restaurados…")
+                    is BackupRestoreState.FileSelected -> ProgressLine(stringResource(R.string.settings_backup_progress_reading))
+                    is BackupRestoreState.Validating -> ProgressLine(stringResource(R.string.settings_backup_progress_validating))
+                    is BackupRestoreState.CreatingSafetyBackup -> ProgressLine(stringResource(R.string.settings_backup_progress_safety))
+                    is BackupRestoreState.Restoring -> ProgressLine(stringResource(R.string.settings_backup_progress_restoring))
+                    is BackupRestoreState.Verifying -> ProgressLine(stringResource(R.string.settings_backup_progress_verifying))
                     else -> Unit
                 }
                 Button(onClick = {
@@ -542,7 +546,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                     }
                 }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Outlined.Backup, null)
-                    Text("Crear copia", Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.settings_backup_create_button), Modifier.padding(start = 8.dp))
                 }
                 OutlinedButton(
                     onClick = { openBackup.launch(arrayOf("application/json", "text/plain")) },
@@ -550,18 +554,20 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Outlined.Restore, null)
-                    Text("Restaurar copia", Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.settings_backup_restore_button), Modifier.padding(start = 8.dp))
                 }
             }
         }
         item {
-             Text(
+            val previewLabel = if (BuildConfig.PREVIEW) {
+                (if (BuildConfig.OVERLAY_ENABLED) stringResource(R.string.settings_preview_full) else stringResource(R.string.settings_preview)) + " · "
+            } else null
+            val footerLocalFirst = stringResource(R.string.settings_footer_local_first)
+            Text(
                 buildString {
-                    if (BuildConfig.PREVIEW) {
-                        append(if (BuildConfig.OVERLAY_ENABLED) "Ordía 3 Preview Full · " else "Ordía 3 Preview · ")
-                    }
+                    if (previewLabel != null) append(previewLabel)
                     append("${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
-                    append(" · Local primero · Sin cuenta obligatoria")
+                    append(footerLocalFirst)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -621,18 +627,18 @@ private fun startGuardian(context: Context): Boolean = runCatching {
     true
 }.getOrDefault(false)
 
-private fun readUtf8Limited(input: java.io.InputStream, maxBytes: Int): String {
+private fun readUtf8Limited(context: Context, input: java.io.InputStream, maxBytes: Int): String {
     val output = ByteArrayOutputStream()
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
     while (true) {
         val read = input.read(buffer)
         if (read < 0) break
-        require(output.size() + read <= maxBytes) { "La copia supera el límite de 10 MB." }
+        require(output.size() + read <= maxBytes) { context.getString(R.string.settings_backup_error_limit) }
         output.write(buffer, 0, read)
     }
-    require(output.size() > 1) { "La copia está vacía." }
+    require(output.size() > 1) { context.getString(R.string.settings_backup_error_empty) }
     return BackupSecurityRules.decodeUtf8Strict(output.toByteArray())
-        ?: error("La copia no está codificada en UTF-8 válido.")
+        ?: error(context.getString(R.string.settings_backup_error_utf8))
 }
 private fun parseClock(value: String): Int? {
     val parts = value.split(':')
@@ -642,6 +648,6 @@ private fun parseClock(value: String): Int? {
     if (hour !in 0..23 || minute !in 0..59) return null
     return hour * 60 + minute
 }
-private fun ThemeMode.label() = when (this) { ThemeMode.SYSTEM -> "Sistema"; ThemeMode.LIGHT -> "Claro"; ThemeMode.DARK -> "Oscuro" }
-private fun InterfaceMode.label() = when (this) { InterfaceMode.SIMPLE -> "Simple"; InterfaceMode.ORGANIZED -> "Organizado"; InterfaceMode.ADVANCED -> "Avanzado" }
-private fun GuardianMode.label() = when (this) { GuardianMode.DORMANT -> "Dormido"; GuardianMode.DISCREET -> "Discreto"; GuardianMode.COMPANION -> "Compañero" }
+private fun ThemeMode.labelRes(): Int = when (this) { ThemeMode.SYSTEM -> R.string.settings_theme_system; ThemeMode.LIGHT -> R.string.settings_theme_light; ThemeMode.DARK -> R.string.settings_theme_dark }
+private fun InterfaceMode.labelRes(): Int = when (this) { InterfaceMode.SIMPLE -> R.string.settings_interface_simple; InterfaceMode.ORGANIZED -> R.string.settings_interface_organized; InterfaceMode.ADVANCED -> R.string.settings_interface_advanced }
+private fun GuardianMode.labelRes(): Int = when (this) { GuardianMode.DORMANT -> R.string.settings_guardian_mode_dormant; GuardianMode.DISCREET -> R.string.settings_guardian_mode_discreet; GuardianMode.COMPANION -> R.string.settings_guardian_mode_companion }

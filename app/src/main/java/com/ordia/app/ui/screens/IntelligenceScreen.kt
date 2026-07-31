@@ -1,5 +1,6 @@
 package com.ordia.app.ui.screens
 
+import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -32,6 +33,9 @@ import kotlinx.coroutines.launch
  * - Estado del modelo
  */
 @OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("LocalContextGetResourceValueCall")
+// Los getString restantes viven en LaunchedEffect, corrutinas y lambdas de progreso,
+// donde stringResource (composable) no es válido; el acceso vía context es correcto ahí.
 @Composable
 fun IntelligenceScreen(
     context: Context = LocalContext.current,
@@ -41,13 +45,12 @@ fun IntelligenceScreen(
     val engine = remember { OrdiaIntelligenceEngine.getInstance(context) }
     val modelManager = remember { IntelligenceModelManager }
 
-    var currentMode by remember { mutableStateOf(
-        when {
-            engine.isLocalModelAvailable -> context.getString(R.string.intel_mode_local_model)
-            engine.isLocalModelEnabled -> context.getString(R.string.intel_mode_local_enabled)
-            else -> context.getString(R.string.intel_mode_basic)
-        }
-    ) }
+    val currentModeInitial = when {
+        engine.isLocalModelAvailable -> stringResource(R.string.intel_mode_local_model)
+        engine.isLocalModelEnabled -> stringResource(R.string.intel_mode_local_enabled)
+        else -> stringResource(R.string.intel_mode_basic)
+    }
+    var currentMode by remember { mutableStateOf(currentModeInitial) }
     var downloadProgress by remember { mutableStateOf(0f) }
     var isDownloading by remember { mutableStateOf(false) }
     var downloadStateText by remember { mutableStateOf("") }

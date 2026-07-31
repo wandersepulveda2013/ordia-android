@@ -1,5 +1,6 @@
 package com.ordia.app.ui.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,7 +26,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockType
@@ -34,6 +38,9 @@ import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.EmptyState
 import com.ordia.app.ui.components.ScreenHeader
 
+@SuppressLint("LocalContextGetResourceValueCall")
+// Los getString de Notas viven en lambdas onClick no-componibles de las plantillas
+// (DropdownMenuItem), ámbitos donde stringResource no aplica.
 @Composable
 fun NotesScreen(
     state: OrdiaUiState,
@@ -41,6 +48,7 @@ fun NotesScreen(
     contentPadding: PaddingValues,
     onNote: (Long) -> Unit
 ) {
+    val context = LocalContext.current
     var query by remember { mutableStateOf("") }
     var templateMenu by remember { mutableStateOf(false) }
     val notes = state.notes.filter { !it.archived && (query.isBlank() || it.title.contains(query, true) || it.body.contains(query, true)) }
@@ -51,48 +59,48 @@ fun NotesScreen(
     ) {
         item {
             Column {
-                ScreenHeader("PENSAR SIN PERDERSE", "Notas", "Páginas por bloques conectadas con tus proyectos.", "Nueva") { templateMenu = true }
+                ScreenHeader(stringResource(R.string.notes_header_eyebrow), stringResource(R.string.notes_header_title), stringResource(R.string.notes_header_subtitle), stringResource(R.string.notes_new)) { templateMenu = true }
                 DropdownMenu(templateMenu, { templateMenu = false }) {
-                    DropdownMenuItem(text = { Text("Nota en blanco") }, onClick = { templateMenu = false; onNote(0) })
-                    DropdownMenuItem(text = { Text("Reunión") }, onClick = {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.notes_template_blank)) }, onClick = { templateMenu = false; onNote(0) })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.notes_template_meeting)) }, onClick = {
                         templateMenu = false
-                        createTemplate(vm, "Notas de reunión", listOf(
-                            NoteBlock(type = NoteBlockType.HEADING, text = "Objetivo"),
+                        createTemplate(vm, context.getString(R.string.notes_template_meeting_title), listOf(
+                            NoteBlock(type = NoteBlockType.HEADING, text = context.getString(R.string.notes_block_objective)),
                             NoteBlock(text = ""),
-                            NoteBlock(type = NoteBlockType.HEADING, text = "Decisiones"),
+                            NoteBlock(type = NoteBlockType.HEADING, text = context.getString(R.string.notes_block_decisions)),
                             NoteBlock(type = NoteBlockType.BULLET, text = ""),
-                            NoteBlock(type = NoteBlockType.HEADING, text = "Próximos pasos"),
+                            NoteBlock(type = NoteBlockType.HEADING, text = context.getString(R.string.notes_block_next_steps)),
                             NoteBlock(type = NoteBlockType.CHECKLIST, text = "")
                         ), onNote)
                     })
-                    DropdownMenuItem(text = { Text("Plan semanal") }, onClick = {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.notes_template_weekly)) }, onClick = {
                         templateMenu = false
-                        createTemplate(vm, "Plan semanal", listOf(
-                            NoteBlock(type = NoteBlockType.HEADING, text = "Prioridades"),
+                        createTemplate(vm, context.getString(R.string.notes_template_weekly_title), listOf(
+                            NoteBlock(type = NoteBlockType.HEADING, text = context.getString(R.string.notes_block_priorities)),
                             NoteBlock(type = NoteBlockType.CHECKLIST, text = ""),
-                            NoteBlock(type = NoteBlockType.HEADING, text = "Puede esperar"),
+                            NoteBlock(type = NoteBlockType.HEADING, text = context.getString(R.string.notes_block_can_wait)),
                             NoteBlock(type = NoteBlockType.BULLET, text = ""),
-                            NoteBlock(type = NoteBlockType.HEADING, text = "Revisión"),
+                            NoteBlock(type = NoteBlockType.HEADING, text = context.getString(R.string.notes_block_review)),
                             NoteBlock(text = "")
                         ), onNote)
                     })
-                    DropdownMenuItem(text = { Text("Diario breve") }, onClick = {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.notes_template_journal)) }, onClick = {
                         templateMenu = false
-                        createTemplate(vm, "Diario", listOf(
-                            NoteBlock(type = NoteBlockType.HEADING, text = "Qué pasó"),
+                        createTemplate(vm, context.getString(R.string.notes_template_journal_title), listOf(
+                            NoteBlock(type = NoteBlockType.HEADING, text = context.getString(R.string.notes_block_what_happened)),
                             NoteBlock(text = ""),
-                            NoteBlock(type = NoteBlockType.HEADING, text = "Cómo me sentí"),
+                            NoteBlock(type = NoteBlockType.HEADING, text = context.getString(R.string.notes_block_how_felt)),
                             NoteBlock(text = ""),
-                            NoteBlock(type = NoteBlockType.HEADING, text = "Qué necesito mañana"),
+                            NoteBlock(type = NoteBlockType.HEADING, text = context.getString(R.string.notes_block_need_tomorrow)),
                             NoteBlock(type = NoteBlockType.CHECKLIST, text = "")
                         ), onNote)
                     })
                 }
             }
         }
-        item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Buscar en notas") }, singleLine = true) }
+        item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.notes_search)) }, singleLine = true) }
         if (notes.isEmpty()) {
-            item { EmptyState("No hay notas", "Crea una página para guardar ideas, decisiones o información.", "Crear nota", onAction = { onNote(0) }) }
+            item { EmptyState(stringResource(R.string.notes_empty_title), stringResource(R.string.notes_empty_desc), stringResource(R.string.notes_create_note), onAction = { onNote(0) }) }
         } else {
             items(notes, key = { it.id }) { note ->
                 Card(onClick = { onNote(note.id) }) {
@@ -100,10 +108,10 @@ fun NotesScreen(
                         Row(Modifier.fillMaxWidth()) {
                             Text(note.title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                             IconButton(onClick = { vm.togglePin(note) }) {
-                                Icon(Icons.Outlined.PushPin, if (note.pinned) "Desfijar" else "Fijar", tint = if (note.pinned) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(Icons.Outlined.PushPin, if (note.pinned) stringResource(R.string.notes_unpin) else stringResource(R.string.notes_pin), tint = if (note.pinned) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        Text(note.body.ifBlank { "Nota vacía" }.take(180), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(note.body.ifBlank { stringResource(R.string.notes_empty_body) }.take(180), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         state.project(note.projectId)?.let { Text(it.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary) }
                     }
                 }

@@ -1,5 +1,6 @@
 package com.ordia.app.ui.screens
 
+import android.content.Context
 import android.content.Intent
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -50,8 +51,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.data.local.AttachmentEntity
 import com.ordia.app.data.local.AttachmentOwnerType
 import com.ordia.app.data.local.NoteEntity
@@ -72,6 +75,7 @@ fun NoteEditorScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val defaultAttachmentName = stringResource(R.string.note_editor_default_filename)
     var currentId by rememberSaveable(noteId) { mutableLongStateOf(noteId) }
     val existing = state.note(currentId)
     var title by remember(noteId) { mutableStateOf(state.note(noteId)?.title.orEmpty()) }
@@ -95,7 +99,7 @@ fun NoteEditorScreen(
     val pickAttachment = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null && currentId > 0L) {
             runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-            var displayName = uri.lastPathSegment ?: "Archivo"
+            var displayName = uri.lastPathSegment ?: defaultAttachmentName
             var sizeBytes = 0L
             context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) {
@@ -144,13 +148,13 @@ fun NoteEditorScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { saveAndBack() }) { Icon(Icons.Outlined.ArrowBack, "Guardar y volver") }
-            Text(if (dirty) "Cambios sin guardar" else "Guardado local", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-            IconButton(onClick = { attachFile() }) { Icon(Icons.Outlined.AttachFile, "Adjuntar archivo") }
-            TextButton(onClick = { existing?.let { vm.deleteNote(it); onBack() } }, enabled = existing != null) { Text("Archivar") }
+            IconButton(onClick = { saveAndBack() }) { Icon(Icons.Outlined.ArrowBack, stringResource(R.string.note_editor_back_save)) }
+            Text(if (dirty) stringResource(R.string.note_editor_dirty) else stringResource(R.string.note_editor_saved), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+            IconButton(onClick = { attachFile() }) { Icon(Icons.Outlined.AttachFile, stringResource(R.string.note_editor_attach)) }
+            TextButton(onClick = { existing?.let { vm.deleteNote(it); onBack() } }, enabled = existing != null) { Text(stringResource(R.string.note_editor_archive)) }
             Button(onClick = { saveAndBack() }) {
                 Icon(Icons.Outlined.Save, null)
-                Text("Guardar", Modifier.padding(start = 6.dp))
+                Text(stringResource(R.string.action_save), Modifier.padding(start = 6.dp))
             }
         }
         LazyColumn(
@@ -163,7 +167,7 @@ fun NoteEditorScreen(
                     value = title,
                     onValueChange = { title = it; dirty = true },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Título de la nota") },
+                    placeholder = { Text(stringResource(R.string.note_editor_title_placeholder)) },
                     textStyle = MaterialTheme.typography.headlineLarge,
                     singleLine = true
                 )
@@ -181,7 +185,7 @@ fun NoteEditorScreen(
             }
             if (attachments.isNotEmpty()) {
                 item {
-                    Text("Archivos adjuntos", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.note_editor_attachments), style = MaterialTheme.typography.titleMedium)
                 }
                 itemsIndexed(attachments, key = { _, attachment -> attachment.id }) { _, attachment ->
                     Row(
@@ -201,11 +205,11 @@ fun NoteEditorScreen(
                         ) {
                             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
                                 Text(attachment.displayName, maxLines = 1)
-                                Text(formatBytes(attachment.sizeBytes), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(formatBytes(context, attachment.sizeBytes), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                         IconButton(onClick = { vm.deleteAttachment(attachment) }) {
-                            Icon(Icons.Outlined.DeleteOutline, "Quitar ${attachment.displayName}")
+                            Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.note_editor_remove_attachment, attachment.displayName))
                         }
                     }
                 }
@@ -214,12 +218,12 @@ fun NoteEditorScreen(
                 Column {
                     Button(onClick = { addMenu = true }) {
                         Icon(Icons.Outlined.Add, null)
-                        Text("Añadir bloque", Modifier.padding(start = 6.dp))
+                        Text(stringResource(R.string.note_editor_add_block), Modifier.padding(start = 6.dp))
                     }
                     DropdownMenu(addMenu, { addMenu = false }) {
                         NoteBlockType.entries.forEach { type ->
                             DropdownMenuItem(
-                                text = { Text(type.label()) },
+                                text = { Text(stringResource(type.labelRes())) },
                                 leadingIcon = { Icon(type.icon(), null) },
                                 onClick = { blocks.add(NoteBlock(type = type)); dirty = true; addMenu = false }
                             )
@@ -243,9 +247,9 @@ private fun NoteBlockEditor(
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            IconButton(onClick = onMoveUp, enabled = index > 0) { Icon(Icons.Outlined.ArrowUpward, "Mover arriba") }
+            IconButton(onClick = onMoveUp, enabled = index > 0) { Icon(Icons.Outlined.ArrowUpward, stringResource(R.string.note_editor_move_up)) }
             Text((index + 1).toString(), style = MaterialTheme.typography.labelSmall)
-            IconButton(onClick = onMoveDown, enabled = index < total - 1) { Icon(Icons.Outlined.ArrowDownward, "Mover abajo") }
+            IconButton(onClick = onMoveDown, enabled = index < total - 1) { Icon(Icons.Outlined.ArrowDownward, stringResource(R.string.note_editor_move_down)) }
         }
         if (block.type == NoteBlockType.CHECKLIST) {
             Checkbox(block.checked, { onChange(block.copy(checked = it)) })
@@ -253,14 +257,14 @@ private fun NoteBlockEditor(
         if (block.type == NoteBlockType.DIVIDER) {
             Column(Modifier.weight(1f).padding(vertical = 18.dp)) {
                 androidx.compose.material3.HorizontalDivider()
-                Text("Separador", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.note_editor_block_divider), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             OutlinedTextField(
                 value = block.text,
                 onValueChange = { onChange(block.copy(text = it)) },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text(block.type.label()) },
+                placeholder = { Text(stringResource(block.type.labelRes())) },
                 minLines = if (block.type == NoteBlockType.PARAGRAPH || block.type == NoteBlockType.QUOTE) 2 else 1,
                 textStyle = when (block.type) {
                     NoteBlockType.HEADING -> MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
@@ -269,25 +273,25 @@ private fun NoteBlockEditor(
                 }
             )
         }
-        IconButton(onClick = onDelete) { Icon(Icons.Outlined.DeleteOutline, "Eliminar bloque") }
+        IconButton(onClick = onDelete) { Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.note_editor_delete_block)) }
     }
 }
 
-private fun formatBytes(bytes: Long): String = when {
-    bytes <= 0L -> "Tamaño desconocido"
-    bytes < 1_024L -> "$bytes B"
-    bytes < 1_048_576L -> "${bytes / 1_024} KB"
-    else -> "${"%.1f".format(bytes / 1_048_576.0)} MB"
+private fun formatBytes(context: Context, bytes: Long): String = when {
+    bytes <= 0L -> context.getString(R.string.note_editor_size_unknown)
+    bytes < 1_024L -> context.getString(R.string.note_editor_size_b, bytes)
+    bytes < 1_048_576L -> context.getString(R.string.note_editor_size_kb, bytes / 1_024)
+    else -> context.getString(R.string.note_editor_size_mb, "%.1f".format(bytes / 1_048_576.0))
 }
 
-private fun NoteBlockType.label() = when (this) {
-    NoteBlockType.PARAGRAPH -> "Párrafo"
-    NoteBlockType.HEADING -> "Encabezado"
-    NoteBlockType.CHECKLIST -> "Lista de tareas"
-    NoteBlockType.QUOTE -> "Cita"
-    NoteBlockType.BULLET -> "Viñeta"
-    NoteBlockType.NUMBERED -> "Lista numerada"
-    NoteBlockType.DIVIDER -> "Separador"
+private fun NoteBlockType.labelRes(): Int = when (this) {
+    NoteBlockType.PARAGRAPH -> R.string.note_editor_block_paragraph
+    NoteBlockType.HEADING -> R.string.note_editor_block_heading
+    NoteBlockType.CHECKLIST -> R.string.note_editor_block_checklist
+    NoteBlockType.QUOTE -> R.string.note_editor_block_quote
+    NoteBlockType.BULLET -> R.string.note_editor_block_bullet
+    NoteBlockType.NUMBERED -> R.string.note_editor_block_numbered
+    NoteBlockType.DIVIDER -> R.string.note_editor_block_divider
 }
 private fun NoteBlockType.icon() = when (this) {
     NoteBlockType.PARAGRAPH -> Icons.Outlined.Add

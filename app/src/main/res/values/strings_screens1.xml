@@ -265,7 +265,6 @@
     <string name="note_editor_add_block">Añadir bloque</string>
     <string name="note_editor_move_up">Mover arriba</string>
     <string name="note_editor_move_down">Mover abajo</string>
-    <string name="note_editor_separator">Separador</string>
     <string name="note_editor_delete_block">Eliminar bloque</string>
     <string name="note_editor_default_filename">Archivo</string>
     <string name="note_editor_size_unknown">Tamaño desconocido</string>

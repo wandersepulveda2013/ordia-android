@@ -31,9 +31,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayPlanner
 import com.ordia.app.domain.TaskRules
@@ -92,12 +94,12 @@ fun PlannerScreen(
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { ScreenHeader("MIRA EL TIEMPO", "Planificador", "Coloca cada tarea donde realmente cabe.", "Planificar") { adding = true } }
+        item { ScreenHeader(stringResource(R.string.planner_eyebrow), stringResource(R.string.planner_title), stringResource(R.string.planner_subtitle), stringResource(R.string.planner_action)) { adding = true } }
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { month = month.minusMonths(1); selectedDate = month.atDay(1) }) { Icon(Icons.Outlined.ChevronLeft, "Mes anterior") }
+                IconButton(onClick = { month = month.minusMonths(1); selectedDate = month.atDay(1) }) { Icon(Icons.Outlined.ChevronLeft, stringResource(R.string.planner_prev_month)) }
                 Text(month.month.getDisplayName(TextStyle.FULL, currentLocale).replaceFirstChar { it.uppercase() } + " ${month.year}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                IconButton(onClick = { month = month.plusMonths(1); selectedDate = month.atDay(1) }) { Icon(Icons.Outlined.ChevronRight, "Mes siguiente") }
+                IconButton(onClick = { month = month.plusMonths(1); selectedDate = month.atDay(1) }) { Icon(Icons.Outlined.ChevronRight, stringResource(R.string.planner_next_month)) }
             }
         }
         item {
@@ -126,10 +128,10 @@ fun PlannerScreen(
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Plan automático local", style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(R.string.planner_auto_plan), style = MaterialTheme.typography.titleMedium)
                             Text(
-                                if (suggestedPlan.blocks.isEmpty()) "Añade tareas para que Ordia proponga un orden realista."
-                                else "${suggestedPlan.blocks.size} bloques · ${suggestedPlan.scheduledMinutes} min ocupados · ${suggestedPlan.remainingMinutes} min libres",
+                                if (suggestedPlan.blocks.isEmpty()) stringResource(R.string.planner_auto_plan_empty)
+                                else stringResource(R.string.planner_auto_plan_summary, suggestedPlan.blocks.size, suggestedPlan.scheduledMinutes, suggestedPlan.remainingMinutes),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -137,7 +139,7 @@ fun PlannerScreen(
                         OutlinedButton(
                             onClick = { showSuggestedPlan = !showSuggestedPlan },
                             enabled = suggestedPlan.blocks.isNotEmpty()
-                        ) { Text(if (showSuggestedPlan) "Ocultar" else "Ver plan") }
+                        ) { Text(if (showSuggestedPlan) stringResource(R.string.planner_hide) else stringResource(R.string.planner_view)) }
                     }
                     if (showSuggestedPlan) {
                         suggestedPlan.blocks.forEach { block ->
@@ -148,27 +150,28 @@ fun PlannerScreen(
                                 )
                                 Column(Modifier.weight(1f)) {
                                     Text(block.title, style = MaterialTheme.typography.bodyLarge)
-                                    if (block.overdue) Text("Atrasada", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                                    if (block.overdue) Text(stringResource(R.string.planner_overdue), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                                 }
                             }
                         }
                         if (suggestedPlan.unscheduledTaskIds.isNotEmpty()) {
                             Text(
-                                "${suggestedPlan.unscheduledTaskIds.size} ${if (suggestedPlan.unscheduledTaskIds.size == 1) "tarea no cabe" else "tareas no caben"} en este horario.",
+                                if (suggestedPlan.unscheduledTaskIds.size == 1) stringResource(R.string.planner_unscheduled_single, suggestedPlan.unscheduledTaskIds.size)
+                                else stringResource(R.string.planner_unscheduled_plural, suggestedPlan.unscheduledTaskIds.size),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Button(onClick = { vm.applyDayPlan(suggestedPlan); showSuggestedPlan = false }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Aplicar este plan")
+                            Text(stringResource(R.string.planner_apply))
                         }
                     }
                 }
             }
         }
-        item { SectionHeader(selectedDate.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", currentLocale)).replaceFirstChar { it.uppercase() }, "${tasksOnDate.size} tareas") }
+        item { SectionHeader(selectedDate.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", currentLocale)).replaceFirstChar { it.uppercase() }, stringResource(R.string.planner_day_tasks, tasksOnDate.size)) }
         if (tasksOnDate.isEmpty()) {
-            item { EmptyState("Día disponible", "No hay tareas planificadas para esta fecha.", "Añadir tarea", onAction = { adding = true }) }
+            item { EmptyState(stringResource(R.string.planner_empty_day), stringResource(R.string.planner_empty_day_desc), stringResource(R.string.planner_add_task), onAction = { adding = true }) }
         } else {
             items(tasksOnDate, key = { it.id }) { task ->
                 val subtasks = state.subtasks(task.id)
@@ -184,12 +187,12 @@ fun PlannerScreen(
             }
         }
         if (state.inboxTasks.isNotEmpty()) {
-            item { SectionHeader("Sin fecha", "Arrastra mentalmente menos: decide solo una fecha") }
+            item { SectionHeader(stringResource(R.string.suggestion_no_date), stringResource(R.string.planner_no_date_desc)) }
             items(state.inboxTasks.take(5), key = { "backlog-${it.id}" }) { task ->
                 Card(onClick = { onTask(task.id) }) {
                     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(task.title, modifier = Modifier.weight(1f))
-                        Text("Planificar", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                        Text(stringResource(R.string.planner_action), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
                     }
                 }
             }

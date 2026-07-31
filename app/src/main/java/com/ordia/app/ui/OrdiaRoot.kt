@@ -1,5 +1,6 @@
 package com.ordia.app.ui
 
+import android.annotation.SuppressLint
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +50,9 @@ private fun ContextIntent.toContextualSuggestion(): ContextualSuggestion {
     )
 }
 
+@SuppressLint("LocalContextGetResourceValueCall")
+// Los getString de OrdiaRoot viven en LaunchedEffect (procesamiento de texto entrante),
+// ámbito no-componible donde stringResource no es válido.
 @Composable
 fun OrdiaRoot(
     incomingText: String? = null,

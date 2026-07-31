@@ -80,7 +80,7 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        ScreenHeader("UNA COSA A LA VEZ", "Enfoque", "Ordía aparta lo demás mientras trabajas.")
+        ScreenHeader(stringResource(R.string.focus_eyebrow), stringResource(R.string.focus_title), stringResource(R.string.focus_subtitle))
         Surface(
             modifier = Modifier.size(270.dp),
             shape = CircleShape,
@@ -91,30 +91,30 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     GuardianAvatar(64.dp, if (running) GuardianMood.FOCUSED else GuardianMood.CALM)
                     Text(FocusClock.format(remainingSeconds), style = MaterialTheme.typography.displayLarge)
-                    Text(if (running) "En curso" else "Listo para empezar", style = MaterialTheme.typography.labelLarge)
+                    Text(if (running) stringResource(R.string.focus_in_progress) else stringResource(R.string.focus_ready), style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
         Column(Modifier.fillMaxWidth()) {
             OutlinedButton(onClick = { taskMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(state.task(taskId ?: -1)?.title ?: "Elegir tarea (opcional)", maxLines = 1)
+                Text(state.task(taskId ?: -1)?.title ?: stringResource(R.string.focus_choose_task), maxLines = 1)
             }
             DropdownMenu(taskMenu, { taskMenu = false }) {
-                DropdownMenuItem(text = { Text("Sin tarea") }, onClick = { taskId = null; taskMenu = false })
+                DropdownMenuItem(text = { Text(stringResource(R.string.focus_no_task)) }, onClick = { taskId = null; taskMenu = false })
                 state.pendingTasks.take(20).forEach { task -> DropdownMenuItem(text = { Text(task.title) }, onClick = { taskId = task.id; taskMenu = false }) }
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(15, 25, 45, 60).forEach { minutes -> FilterChip(selected = plannedMinutes == minutes, onClick = { reset(minutes) }, label = { Text("$minutes min") }, enabled = !running) }
+            listOf(15, 25, 45, 60).forEach { minutes -> FilterChip(selected = plannedMinutes == minutes, onClick = { reset(minutes) }, label = { Text(stringResource(R.string.focus_minutes, minutes)) }, enabled = !running) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { reset() }) { Icon(Icons.Outlined.Refresh, "Reiniciar") }
+            IconButton(onClick = { reset() }) { Icon(Icons.Outlined.Refresh, stringResource(R.string.focus_reset)) }
             Button(onClick = {
                 if (!running && startedAt == 0L) startedAt = System.currentTimeMillis()
                 running = !running
             }) {
                 Icon(if (running) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, null)
-                Text(if (running) "Pausar" else "Empezar", Modifier.padding(start = 7.dp))
+                Text(if (running) stringResource(R.string.focus_pause) else stringResource(R.string.focus_start), Modifier.padding(start = 7.dp))
             }
             IconButton(
                 onClick = {
@@ -122,10 +122,10 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
                     reset()
                 },
                 enabled = startedAt > 0L
-            ) { Icon(Icons.Outlined.Stop, "Finalizar") }
+            ) { Icon(Icons.Outlined.Stop, stringResource(R.string.focus_finish)) }
         }
         Text(
-            "Al terminar se registrará el tiempo real. Las pausas no bloquean el teléfono ni leen otras aplicaciones.",
+            stringResource(R.string.focus_note),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
