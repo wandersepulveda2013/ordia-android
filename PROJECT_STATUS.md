@@ -27,12 +27,13 @@ Referencia completa de hallazgos y correcciones: [`AUDITORIA_ORDIA_2026.md`](AUD
 ## Verificado en este entorno
 
 - `./gradlew clean test lint assembleDebug assembleRelease`: **OK** en las 6 variantes (3 flavors × debug/release).
-- **1236 pruebas unitarias, 0 fallos** (206 × 6 variantes). Incluyen las 19 de `BackupManagerTest`, 18 de `ContextPrivacyFilterTest`, 16 de `ExternalSecureContextTest`, 9 de `ContextRateLimiterTest` y 5 nuevas de `IntelligenceModelManagerTest` (total 67 nuevas en esta iteración de la auditoría).
+- **1278 pruebas unitarias, 0 fallos** (213 × 6 variantes). Incluyen las 19 de `BackupManagerTest`, 18 de `ContextPrivacyFilterTest`, 16 de `ExternalSecureContextTest`, 9 de `ContextRateLimiterTest`, 5 nuevas de `IntelligenceModelManagerTest` y 7 de `TaskTreeTest` (total 74 nuevas en esta iteración de la auditoría).
 - Lint sin errores (solo warnings P3/P4 documentados en la auditoría).
 - 6 APKs generados; release R8 de ~16 MB con `DEBUGGABLE=false`; job `sign` del CI valida con `aapt2 dump badging`.
 - APK de entrega para el celular: `deliverables/Ordia-3.0-debug-2026-07-31.apk` (variante `previewAdvanced`, debug, 36.2 MB).
 - Wrapper de Gradle con `distributionSha256Sum` y validación en CI.
-- Hallazgos críticos de la auditoría: **3/3 P0 corregidos, 8/8 P1 corregidos, 12/12 P2 corregidos**; 2 bloqueos por CI documentados (ORD-015 migración Room, ORD-032 FTS) y 3 abiertos (2 P3 + 1 P4) sin impacto en la línea base.
+- Hallazgos críticos de la auditoría: **3/3 P0 corregidos, 8/8 P1 corregidos, 12/12 P2 corregidos**; 2 bloqueos por CI documentados (ORD-015 migración Room, ORD-032 FTS) y 2 abiertos (1 P3 + 1 P4) sin impacto en la línea base.
+- ORD-025 (subtareas huérfanas) cerrado: `TaskRepository.deletePermanently` usa `TaskDao.deleteSubtreeAndSelf`, que recoge el subárbol completo (`TaskTree.collectIds`, BFS tolerante a ciclos, JVM puro) y lo borra en una única transacción; 7 tests nuevos.
 - ORD-028 (contentDescription en Compose) cerrado: verificado que los ~22 `Icon(..., null)` son decorativos con texto adyacente (contrato Compose: null = decorativo, excluido de TalkBack); añadidas 3 descripciones de acción en `EditorDialogs.kt` para botones cuyo texto es un valor (fecha/prioridad/repetición).
 - ORD-027 (touch targets) cerrado: 13 targets a 48dp en `ordia_suggestion_card.xml`, `ordia_external_confirmation.xml` y `ordia_keyboard_view.xml`; además `minHeight=48dp` en `dont_detect_text` y `widget_capture`.
 - ORD-026 (i18n en layouts) cerrado: las 23 strings hardcodeadas de los 4 layouts XML pasan a recursos `@string` (15 existentes + 8 nuevos con el mismo texto); lint `HardcodedText` 23→0 y `UnusedResources` 26→9 en `previewAdvancedDebug`.
