@@ -69,6 +69,7 @@ import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.overlay.GuardianOverlayService
 import com.ordia.app.ui.components.SectionHeader
 import com.ordia.app.updates.OrdiaUpdateManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.time.LocalDate
@@ -106,14 +107,16 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         when {
             uri == null -> backupStatus = "Creación de copia cancelada."
             json == null -> backupStatus = "No había datos preparados para exportar."
-            else -> runCatching {
-                val stream = context.contentResolver.openOutputStream(uri)
-                    ?: error("Android no permitió escribir el archivo.")
-                stream.bufferedWriter().use { it.write(json) }
-            }.onSuccess {
-                backupStatus = "Copia guardada correctamente."
-            }.onFailure {
-                backupStatus = "No se pudo guardar la copia: ${it.message ?: "error de escritura"}"
+            else -> scope.launch(Dispatchers.IO) {
+                runCatching {
+                    val stream = context.contentResolver.openOutputStream(uri)
+                        ?: error("Android no permitió escribir el archivo.")
+                    stream.bufferedWriter().use { it.write(json) }
+                }.onSuccess {
+                    backupStatus = "Copia guardada correctamente."
+                }.onFailure {
+                    backupStatus = "No se pudo guardar la copia: ${it.message ?: "error de escritura"}"
+                }
             }
         }
         backupJson = null
@@ -125,15 +128,18 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             backupStatus = "Hay una restauración en curso. Espera a que termine."
             return@rememberLauncherForActivityResult
         }
-        runCatching {
-            context.contentResolver.openInputStream(uri)?.use { readUtf8Limited(it, BackupSecurityRules.MAX_UTF8_BYTES) }
-        }.onSuccess { raw ->
-            if (raw != null) {
-                pendingRestoreJson = raw
-                restoreFileName = uri.lastPathSegment ?: "copia de seguridad"
+        // Leer hasta 10 MB fuera del hilo principal (la UI no debe bloquearse).
+        scope.launch(Dispatchers.IO) {
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.use { readUtf8Limited(it, BackupSecurityRules.MAX_UTF8_BYTES) }
+            }.onSuccess { raw ->
+                if (raw != null) {
+                    pendingRestoreJson = raw
+                    restoreFileName = uri.lastPathSegment ?: "copia de seguridad"
+                }
+            }.onFailure {
+                backupStatus = "No se pudo leer la copia: ${it.message ?: "archivo inválido"}"
             }
-        }.onFailure {
-            backupStatus = "No se pudo leer la copia: ${it.message ?: "archivo inválido"}"
         }
     }
     val overlayPermission = if (BuildConfig.OVERLAY_ENABLED) {

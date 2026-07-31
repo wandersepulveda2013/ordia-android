@@ -599,6 +599,12 @@ class OrdiaViewModel(
                 } else {
                     _backupState.value = BackupRestoreState.Error(result.message)
                 }
+            } catch (error: Exception) {
+                // Red de seguridad: BackupManager no debería lanzar, pero si algo
+                // inesperado ocurre, el usuario ve un error y la UI vuelve a Idle.
+                _backupState.value = BackupRestoreState.Error(
+                    "No se pudo restaurar la copia: ${error.message ?: "error inesperado"}"
+                )
             } finally {
                 restoreMutex.unlock()
             }
