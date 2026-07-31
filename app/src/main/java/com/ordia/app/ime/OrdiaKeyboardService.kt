@@ -49,11 +49,17 @@ private class PendingSuggestion(
  * - Envía el texto al ContextEngine para detección de intenciones
  * - Muestra una tarjeta de sugerencia en la barra de candidatos
  * - Nunca almacena texto completo, conversaciones ni pulsaciones
- * - No procesa contraseñas, PIN, OTP ni contenido sensible
+ * - No procesa contraseñas, PIN, OTP ni contenido sensible: los campos con
+ *   variación password/webPassword/numberPassword y las apps bloqueadas por
+ *   [com.ordia.app.context.ContextPrivacyFilter] se ignoran por completo
+ *   (el texto se escribe en la app, pero jamás se captura ni se analiza)
+ * - La tecla "ABC" cambia al siguiente IME del sistema; "↵" envía la acción
+ *   del editor (Done/Send/Search/Next...) o salto de línea en multilínea
  * - No modifica ni reemplaza el texto escrito en la aplicación
  *
  * Privacidad: el buffer de entrada se borra inmediatamente después del análisis.
  * No se registran pulsaciones individuales, solo el texto completo al enviar.
+ * Los patrones "No detectar" se persisten únicamente como hash SHA-256.
  */
 class OrdiaKeyboardService : InputMethodService(),
     KeyboardView.OnKeyboardActionListener {
@@ -82,6 +88,7 @@ class OrdiaKeyboardService : InputMethodService(),
 
     // --- Estado ---
     private var pendingText: StringBuilder = StringBuilder()
+    private var sensitiveField = false
     private var currentSuggestion: PendingSuggestion? = null
     private val suggestionQueue = ArrayDeque<PendingSuggestion>(3)
     private var isPaused = false
@@ -142,14 +149,27 @@ class OrdiaKeyboardService : InputMethodService(),
         super.onStartInputView(info, restarting)
         currentEditorInfo = info
         pendingText = StringBuilder()
+        analysisJob?.cancel()
         clearSuggestion()
 
         // Cancelar auto-cierre pendiente
         autoCloseJob?.cancel()
 
-        // Detectar campos sensibles
-        if (info != null && isSensitiveInputType(info)) {
-            // No analizar campos de contraseña, PIN, etc.
+        // Detectar campos sensibles: contraseñas/PIN/OTP (variación password,
+        // numberPassword, date/time) o apps bloqueadas por privacidad.
+        sensitiveField = KeyboardPrivacyGuard.shouldIgnore(
+            info?.inputType ?: 0,
+            info?.packageName
+        )
+
+        if (sensitiveField) {
+            // No capturar ni analizar nada mientras el campo sea sensible.
+            // Las sugerencias previas no deben mostrarse sobre una contraseña.
+            suggestionQueue.clear()
+            currentSuggestion = null
+            candidateContainer?.visibility = View.GONE
+            suggestionActions?.visibility = View.GONE
+            suggestionText?.text = ""
         }
     }
 
@@ -197,10 +217,12 @@ class OrdiaKeyboardService : InputMethodService(),
         val inputConnection = currentInputConnection ?: return
         when (primaryCode) {
             Keyboard.KEYCODE_DONE -> {
+                // Tecla "↵": analizar el texto capturado y enviar la acción del editor.
                 commitAndAnalyze(inputConnection)
+                sendEditorAction(inputConnection)
             }
             Keyboard.KEYCODE_DELETE -> {
-                if (pendingText.isNotEmpty()) {
+                if (!sensitiveField && pendingText.isNotEmpty()) {
                     pendingText.deleteCharAt(pendingText.length - 1)
                 }
                 inputConnection.deleteSurroundingText(1, 0)
@@ -208,19 +230,33 @@ class OrdiaKeyboardService : InputMethodService(),
             Keyboard.KEYCODE_SHIFT -> {
                 // Alternar mayúsculas no implementado en MVP
             }
+            Keyboard.KEYCODE_MODE_CHANGE -> {
+                // Tecla "ABC": cambiar al siguiente IME del sistema.
+                switchToNextInputMethod(false)
+            }
             else -> {
+                if (primaryCode < 0) return // Códigos de control no manejados
                 val code = primaryCode.toChar()
-                pendingText.append(code)
+                // El texto siempre se escribe en la app; en campos sensibles
+                // jamás se captura para análisis.
                 inputConnection.commitText(code.toString(), 1)
-                scheduleAnalysis()
+                if (!sensitiveField) {
+                    appendPendingText(code)
+                    scheduleAnalysis()
+                }
             }
         }
     }
 
     override fun onText(text: CharSequence?) {
-        text?.let { pendingText.append(it) }
         currentInputConnection?.commitText(text ?: "", 1)
-        scheduleAnalysis()
+        if (!sensitiveField) {
+            text?.let { pendingText.append(it) }
+            if (pendingText.length > KeyboardPrivacyGuard.MAX_BUFFER_CHARS) {
+                pendingText.delete(0, pendingText.length - KeyboardPrivacyGuard.MAX_BUFFER_CHARS)
+            }
+            scheduleAnalysis()
+        }
     }
 
     override fun onPress(primaryCode: Int) {}
@@ -245,6 +281,7 @@ class OrdiaKeyboardService : InputMethodService(),
 
     /** Envía el texto completo al motor contextual */
     private fun commitAndAnalyze(inputConnection: InputConnection?) {
+        if (sensitiveField) return
         if (pendingText.isBlank()) return
         if (isPaused) return
         analysisJob?.cancel()
@@ -263,9 +300,17 @@ class OrdiaKeyboardService : InputMethodService(),
         return text
     }
 
+    /** Añade un carácter al buffer con tope de tamaño */
+    private fun appendPendingText(char: Char) {
+        pendingText.append(char)
+        if (pendingText.length > KeyboardPrivacyGuard.MAX_BUFFER_CHARS) {
+            pendingText.delete(0, pendingText.length - KeyboardPrivacyGuard.MAX_BUFFER_CHARS)
+        }
+    }
+
     /** Programa análisis con debounce */
     private fun scheduleAnalysis() {
-        if (isPaused) return
+        if (isPaused || sensitiveField) return
         analysisJob?.cancel()
         analysisJob = scope.launch {
             delay(1500L) // 1.5 segundos de pausa
@@ -279,7 +324,9 @@ class OrdiaKeyboardService : InputMethodService(),
 
     /** Procesa con el motor contextual */
     private fun processWithEngine(text: String) {
-        if (text.isBlank() || isPaused) return
+        if (text.isBlank() || isPaused || sensitiveField) return
+        // "No detectar": descartar frases que el usuario ha marcado previamente.
+        if (isIgnoredText(text)) return
 
         // Mostrar indicador de análisis
         showAnalysisIndicator()
@@ -292,10 +339,14 @@ class OrdiaKeyboardService : InputMethodService(),
 
         when (result) {
             is ContextResult.PendingConfirmation -> {
-                enqueueSuggestion(result.intent, result.confirmationId)
+                if (!isIgnoredText(result.intent.title)) {
+                    enqueueSuggestion(result.intent, result.confirmationId)
+                }
             }
             is ContextResult.Created -> {
-                enqueueSuggestion(result.intent, confirmationId = null)
+                if (!isIgnoredText(result.intent.title)) {
+                    enqueueSuggestion(result.intent, confirmationId = null)
+                }
             }
             is ContextResult.Discarded -> {
                 // Silencio
@@ -410,10 +461,13 @@ class OrdiaKeyboardService : InputMethodService(),
         dontDetectText?.setOnClickListener {
             currentSuggestion?.let { pending ->
                 val intent = pending.intent
-                // Guardar patrón para no detectar frases similares
-                val pattern = intent.title.take(100)
+                // Guardar patrón para no detectar frases similares.
+                // Solo se persiste el hash SHA-256 normalizado, nunca el texto en claro.
+                val patternHash = KeyboardPrivacyGuard.sha256Hex(
+                    KeyboardPrivacyGuard.normalizeTokens(intent.title.take(100))
+                )
                 prefs.edit().putStringSet(PREF_IGNORED_PATTERNS,
-                    (prefs.getStringSet(PREF_IGNORED_PATTERNS, emptySet()) ?: emptySet()) + pattern
+                    (prefs.getStringSet(PREF_IGNORED_PATTERNS, emptySet()) ?: emptySet()) + patternHash
                 ).apply()
                 clearSuggestion()
                 showNextSuggestion()
@@ -541,17 +595,21 @@ class OrdiaKeyboardService : InputMethodService(),
     // Utilidades
     // ========================================================================
 
-    /** Verifica si el tipo de entrada es sensible */
-    private fun isSensitiveInputType(info: EditorInfo): Boolean {
-        val variation = info.inputType and EditorInfo.TYPE_MASK_VARIATION
-        val type = info.inputType and EditorInfo.TYPE_MASK_CLASS
-        if (variation == EditorInfo.TYPE_TEXT_VARIATION_PASSWORD ||
-            variation == EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
-            variation == EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD) return true
-        if (type == EditorInfo.TYPE_CLASS_NUMBER &&
-            variation == EditorInfo.TYPE_NUMBER_VARIATION_PASSWORD) return true
-        if (type == EditorInfo.TYPE_CLASS_DATETIME) return true
-        return false
+    /** Envía la acción del editor o un salto de línea en campos multilínea */
+    private fun sendEditorAction(inputConnection: InputConnection?) {
+        // sendDefaultEditorAction(true) ejecuta la acción asociada a "Enter"
+        // (Done/Next/Send/Search/Go) si existe y no está desactivada por el editor.
+        if (!sendDefaultEditorAction(true)) {
+            // Sin acción definida: campo multilínea o libre → salto de línea.
+            inputConnection?.commitText("\n", 1)
+        }
+    }
+
+    /** Verifica si un texto coincide con un patrón "No detectar" (por hash) */
+    private fun isIgnoredText(text: String): Boolean {
+        val ignored = prefs.getStringSet(PREF_IGNORED_PATTERNS, emptySet()) ?: emptySet()
+        if (ignored.isEmpty()) return false
+        return KeyboardPrivacyGuard.sha256Hex(KeyboardPrivacyGuard.normalizeTokens(text)) in ignored
     }
 
     override fun onDestroy() {
