@@ -60,6 +60,20 @@ class ContextEngine private constructor(appContext: Context) {
     suspend fun processEventAsync(event: ContextEvent): ContextResult = withContext(Dispatchers.Default) {
         Log.d(TAG, "Processing event from ${event.source}")
 
+        // 0. Filtro de privacidad previo (ORD-005): paquetes bloqueados (banca,
+        //    autenticadores, gestores de contraseñas, apps médicas), campos de
+        //    entrada sensibles y contenido sensible se descartan ANTES de
+        //    cualquier análisis, para TODAS las fuentes (accesibilidad,
+        //    notificaciones, IME, UI). Evita además el coste de la inferencia
+        //    local sobre datos que jamás deben procesarse.
+        if (ContextPrivacyFilter.shouldBlock(event)) {
+            Log.d(TAG, "Privacy filter blocked event from ${event.source}")
+            return@withContext ContextResult.Discarded(
+                reason = DiscardReason.PRIVACY_FILTER,
+                source = event.source
+            )
+        }
+
         // 1. Analizar con el motor de inteligencia unificado
         val request = IntelligenceRequest(
             originalText = event.rawText,
