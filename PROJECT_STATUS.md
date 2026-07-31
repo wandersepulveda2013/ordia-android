@@ -32,7 +32,8 @@ Referencia completa de hallazgos y correcciones: [`AUDITORIA_ORDIA_2026.md`](AUD
 - 6 APKs generados; release R8 de ~16 MB con `DEBUGGABLE=false`; job `sign` del CI valida con `aapt2 dump badging`.
 - APK de entrega para el celular: `deliverables/Ordia-3.0-debug-2026-07-31.apk` (variante `previewAdvanced`, debug, 36.2 MB).
 - Wrapper de Gradle con `distributionSha256Sum` y validación en CI.
-- Hallazgos críticos de la auditoría: **3/3 P0 corregidos, 8/8 P1 corregidos, 12/12 P2 corregidos**; 2 bloqueos por CI documentados (ORD-015 migración Room, ORD-032 FTS) y 5 abiertos (4 P3 + 1 P4) sin impacto en la línea base.
+- Hallazgos críticos de la auditoría: **3/3 P0 corregidos, 8/8 P1 corregidos, 12/12 P2 corregidos**; 2 bloqueos por CI documentados (ORD-015 migración Room, ORD-032 FTS) y 4 abiertos (3 P3 + 1 P4) sin impacto en la línea base.
+- ORD-027 (touch targets) cerrado: 13 targets a 48dp en `ordia_suggestion_card.xml`, `ordia_external_confirmation.xml` y `ordia_keyboard_view.xml`; además `minHeight=48dp` en `dont_detect_text` y `widget_capture`.
 - ORD-026 (i18n en layouts) cerrado: las 23 strings hardcodeadas de los 4 layouts XML pasan a recursos `@string` (15 existentes + 8 nuevos con el mismo texto); lint `HardcodedText` 23→0 y `UnusedResources` 26→9 en `previewAdvancedDebug`.
 - ORD-030 (labels de servicios) cerrado: manifests fuente y mergeados verificados como **UTF-8 válido** (el "mojibake" era un falso positivo de lectura Latin-1); corregido el acento del label del notification listener en `previewFull` ("Ordia" → "Ordía").
 - ORD-037 (reglas de backup muertas) cerrado: eliminados `res/xml/backup_rules.xml` y `data_extraction_rules.xml`, config inaplicable con `allowBackup=false`.
