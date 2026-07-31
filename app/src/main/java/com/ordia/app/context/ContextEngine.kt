@@ -74,6 +74,17 @@ class ContextEngine private constructor(appContext: Context) {
             )
         }
 
+        // 0b. Rate-limit por fuente y tope diario global (ORD-024): protege
+        //     CPU y batería frente a ráfagas (notificaciones, accesibilidad,
+        //     IME). Los eventos descartados aquí no llegan a la inferencia.
+        if (!ContextRateLimiter.shouldProcess(event.source)) {
+            Log.d(TAG, "Rate-limited event from ${event.source}")
+            return@withContext ContextResult.Discarded(
+                reason = DiscardReason.RATE_LIMITED,
+                source = event.source
+            )
+        }
+
         // 1. Analizar con el motor de inteligencia unificado
         val request = IntelligenceRequest(
             originalText = event.rawText,

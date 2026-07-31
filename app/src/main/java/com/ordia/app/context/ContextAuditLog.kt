@@ -273,7 +273,8 @@ enum class DiscardReason {
     BLOCKED_CONTENT,
     DUPLICATE,
     CASUAL_CHAT,
-    USER_REJECTED
+    USER_REJECTED,
+    RATE_LIMITED
 }
 
 /** Una entrada del registro de auditoría */
