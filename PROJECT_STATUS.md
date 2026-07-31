@@ -27,7 +27,7 @@ Referencia completa de hallazgos y correcciones: [`AUDITORIA_ORDIA_2026.md`](AUD
 ## Verificado en este entorno
 
 - `./gradlew clean test lint assembleDebug assembleRelease`: **OK** en las 6 variantes (3 flavors × debug/release).
-- **948 pruebas unitarias, 0 fallos** (158 × 6 variantes). Las 19 nuevas pruebas de `BackupManagerTest` cubren el flujo de restauración: round-trip export/import, validación previa diferenciada (versión, colecciones, checksum, relaciones, ciclos, duplicados, ítems incompletos), journal preventivo verificable, rollback de preferencias y verificación posterior.
+- **1236 pruebas unitarias, 0 fallos** (206 × 6 variantes). Incluyen las 19 de `BackupManagerTest`, 18 de `ContextPrivacyFilterTest`, 16 de `ExternalSecureContextTest`, 9 de `ContextRateLimiterTest` y 5 nuevas de `IntelligenceModelManagerTest` (total 67 nuevas en esta iteración de la auditoría).
 - Lint sin errores (solo warnings P3/P4 documentados en la auditoría).
 - 6 APKs generados; release R8 de ~16 MB con `DEBUGGABLE=false`; job `sign` del CI valida con `aapt2 dump badging`.
 - APK de entrega para el celular: `deliverables/Ordia-3.0-debug-2026-07-31.apk` (variante `previewAdvanced`, debug, 36.2 MB).

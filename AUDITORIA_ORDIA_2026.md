@@ -57,7 +57,7 @@
 | ORD-027 | P3 | Accesibilidad | Touch targets < 48dp en `ordia_suggestion_card.xml` (32dp), `ordia_external_confirmation.xml` (40dp), `ordia_keyboard_view.xml` (32-36dp) | layouts XML | Accesibilidad táctil | Alturas mínimas 48dp | ABIERTO |
 | ORD-028 | P3 | Accesibilidad | ~22 iconos Compose clicables sin `contentDescription` (`Icon(..., null)`) | `ui/components/TaskComponents.kt:177-213`, `EditorDialogs.kt:108-149`, `AppComponents.kt:97-342`, `QuickCaptureActivity.kt:93` | TalkBack mudo | `contentDescription` descriptivo | ABIERTO |
 | ORD-029 | P3 | i18n | Textos hardcodeados en Compose y servicios (100+); varias cadenas existen en `strings.xml` sin usarse (p. ej. `external_suggestion_no_permission`) | `GuardianOverlayService.kt:195-204,443`, `QuickCaptureActivity.kt:72-139`, `Navigation.kt:170`, `OrdiaUpdateManager.kt:332-333` | Sin traducción | Centralizar en `strings.xml` + `stringResource` | ABIERTO |
-| ORD-030 | P3 | Manifiesto | Mojibake de codificación en labels de servicios (`OrdA-a A� atenciA3n contextual`, `OrdA-a A� teclado contextual`) | `app/src/previewFull/AndroidManifest.xml`, `app/src/previewAdvanced/AndroidManifest.xml` | Labels corruptos en ajustes del sistema | Corregir codificación UTF-8 | ABIERTO |
+| ORD-030 | P3 | Manifiesto | Labels de servicios con apariencia de mojibake en ajustes del sistema (`OrdA-a A� atenciA3n contextual`, `OrdA-a A� teclado contextual`) | `app/src/previewFull/AndroidManifest.xml`, `app/src/previewAdvanced/AndroidManifest.xml` | Labels corruptos en ajustes del sistema | Verificar codificación UTF-8 y acentos | CORREGIDO — verificado: los manifests fuente y los mergeados (`merged_manifest/`, `packaged_manifests/`) son **UTF-8 válido** (round-trip decode/encode idéntico; bytes `C3AD`=í, `C2B7`=·, `C3B3`=ó), por lo que el informe era un falso positivo de lectura Latin-1; defecto real corregido: label del notification listener en `previewFull` decía "Ordia" sin acento → "Ordía · atención contextual" |
 | ORD-031 | P3 | Respaldos | Export JSON sin checksum propio; adjuntos guardados como URIs `content://` (referencias) | `backup/BackupManager.kt:40-64,512-521` | Backup no detecta corrupción; adjuntos no recuperables | SHA-256 en export + documentación | CORREGIDO (checksum) — formato v4 con campo `checksum` SHA-256 del contenido sin el propio campo; import v4 rechaza copias dañadas o modificadas; v2-3 aceptadas como heredadas. Adjuntos `content://` documentados como limitación |
 | ORD-032 | P3 | BD | Búsquedas con `LIKE '%q%'` (full scan) sin FTS4/5 en TaskDao/ProjectDao/NoteDao | `data/local/Daos.kt:40,82,127` | Degradación con BD grande | FTS4/5 | BLOQUEADO/DIFERIDO — FTS exige nuevas entidades FTS4 + migración de esquema (v3) que no es verificable en CI por la misma causa que ORD-015 (`app/schemas/` sin versionar). Riesgo asumido mientras la BD no sea grande |
 | ORD-033 | P3 | Privacidad | `ContextAuditLog.titleHash` trunca SHA-256 a 64 bits sin sal → recuperable por diccionario | `context/ContextAuditLog.kt:172-179` | Reconstrucción de frases | SHA-256 completo + sal por instalación | CORREGIDO (d0ff692) — `titleHash` con SHA-256 completo y sal aleatoria persistente (16 bytes) |
@@ -70,14 +70,14 @@
 
 | Estado | P0 | P1 | P2 | P3 | P4 | Total |
 |---|---|---|---|---|---|---|
-| CORREGIDO | 3 | 8 | 12 | 4 | 0 | 27 |
+| CORREGIDO | 3 | 8 | 12 | 5 | 0 | 28 |
 | BLOQUEADO (CI: `app/schemas/` sin versionar) | 0 | 0 | 1 | 1 | 0 | 2 |
-| ABIERTO | 0 | 0 | 0 | 6 | 2 | 8 |
+| ABIERTO | 0 | 0 | 0 | 5 | 2 | 7 |
 | DESCARTADO | — | — | — | — | — | 2 (agentes) |
 
-Cerrados: ORD-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 016, 017, 018, 019, 020, 021, 022, 023, 024, 031, 033, 034, 035.
+Cerrados: ORD-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 016, 017, 018, 019, 020, 021, 022, 023, 024, 030, 031, 033, 034, 035.
 Bloqueados: ORD-015 (migración Room 1→2 sin test en CI), ORD-032 (FTS).
-Abiertos: P3 (ORD-025, 026, 027, 028, 029, 030) y P4 (ORD-036, 037).
+Abiertos: P3 (ORD-025, 026, 027, 028, 029) y P4 (ORD-036, 037).
 
 ### P0/P1 resumen
 
