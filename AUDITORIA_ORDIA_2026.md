@@ -41,7 +41,7 @@
 | ORD-011 | P1 | Éxitos falsos | `ModelDownloadWorker` es **stub** (`Result.success()` sin descargar); `ensureModelDownloaded` devuelve `true` tras encolar un worker no-op | `intelligence/IntelligenceModelManager.kt:191-224,419-434` | "Modelo descargado" sin modelo real; path muerto engañoso | Implementar descarga real en el worker o eliminar `ensureModelDownloaded` | CORREGIDO (9d315c1) — `ModelDownloadWorker` es `CoroutineWorker` real con `MAX_DOWNLOAD_ATTEMPTS=5` y `MAX_MODEL_BYTES` aplicado; `IntelligenceModelManagerTest` 9/9 |
 | ORD-012 | P2 | Batería | `GuardianOverlayService` hace polling `while(true) delay(60s)` en `Dispatchers.Main` + `analyzeText` sin dispatcher en "Preguntar" | `overlay/GuardianOverlayService.kt:121-131,389-391` | 1440 wakes/día del main; overlay congelado durante análisis | Programar one-shot en el borde de quiet hours; `withContext(Default)` | CORREGIDO (d68fdb9) — polling sustituido por `scheduleQuietHoursBoundaryCheck()`: one-shot que despierta en el próximo borde quiet↔no quiet (semántica de `GuardianEngine.isQuietHours`, máx. 24 h, 6 h si no hay quiet hours) y se reprograma al despertar; `Job` cancelable en `onDestroy`; `analyzeText` de "Preguntar" movido a `Dispatchers.Default` |
 | ORD-013 | P2 | Motor local | `MAX_MODEL_BYTES` (3 GB) definido pero **nunca aplicado** en el bucle de descarga; servidor puede llenar el disco | `intelligence/IntelligenceModelManager.kt:33,285-296` | Agotamiento de almacenamiento | `require(totalBytes <= MAX_MODEL_BYTES)` en el bucle | CORREGIDO (9d315c1) — límite aplicado en el bucle de descarga con error visible |
-| ORD-014 | P2 | Motor local | Checksum SHA-256 en TOFU: se descarga del **mismo host** que el modelo; `expectedSha256 = null` | `intelligence/IntelligenceModelManager.kt:45-75,247` | Compromiso del CDN compromete modelo y checksum | Hardcodear SHA-256 oficial (o documentar el riesgo) | ABIERTO |
+| ORD-014 | P2 | Motor local | Checksum SHA-256 en TOFU: se descarga del **mismo host** que el modelo; `expectedSha256 = null` | `intelligence/IntelligenceModelManager.kt:45-75,247` | Compromiso del CDN compromete modelo y checksum | Hardcodear SHA-256 oficial (o documentar el riesgo) | CORREGIDO (7e9a428) — sin hardcodear hash (los archivos de Google en HuggingFace se actualizan y un hash erróneo bloquearía descargas legítimas). La primera verificación es TOFU (riesgo residual documentado) y el hash verificado se fija en prefs privadas (`ordia_model_checksums`); las re-descargas usan el valor fijado y nunca vuelven a confiar en el checksum remoto. `deleteModel` limpia el pin. 5 tests nuevos de `isValidSha256Hex` |
 | ORD-015 | P2 | BD | Migración 1→2 declarada pero **sin schema `1.json`** exportado y **sin test de migración** (`MigrationTestHelper`) | `data/local/OrdiaDatabase.kt:45-168`; `app/schemas/…/2.json` (solo v2) | Crash en arranque para usuarios con BD v1; migración no verificable | Regenerar 1.json + test de migración | BLOQUEADO — `app/schemas/` está en `.gitignore`; sin versionar el schema v1 no hay `MigrationTestHelper` en CI. Decisión pendiente: versionar schemas o aceptar el riesgo documentado |
 | ORD-016 | P2 | Concurrencia | SQLite/SharedPreferences síncronos en hilos main de servicios: `ContextAuditLog` (`db.insert`/`delete`), `ContextualSuggestionStore` (`prefs.commit()`), lectura de backup 10 MB en main | `context/ContextAuditLog.kt:25-36,41-53`; `context/ContextualSuggestionStore.kt:64,70`; `ui/screens/SettingsScreen.kt:111-119` | Jank/ANR; `SecureRandom` bloqueante en main | `withContext(Dispatchers.IO)`; `apply()` | CORREGIDO (33a1e5c, 9526920) — lectura/escritura de copias movidas a `Dispatchers.IO` en SettingsScreen; `ContextualSuggestionStore` usa `apply()` en lugar de `commit()`; los `insert`/`delete` del `ContextAuditLog` ya corren en `Dispatchers.Default` vía `ContextEngine.processEventAsync` (documentado en el código; las lecturas sin llamadores activos deberán envolverse en IO al conectarse a UI) |
 | ORD-017 | P2 | IME | Teclas "↵" (-4) y "ABC" (-3) caen al `else` e insertan caracteres de control (U+FFFD/U+FFFC) en la app anfitriona; `KEYCODE_DONE` nunca se produce; sin `imeOptions` (Next/Done/Search/Send) ni multiline | `ime/OrdiaKeyboardService.kt:196-218`; `res/xml/ordia_keyboard_qwerty.xml:56-60` | Corrupción de la entrada del usuario | Manejar -3 (switchToNextInputMethod) y -4 (sendDefaultEditorAction/commit según imeOptions) | CORREGIDO (e90e941) — teclas -3/-4 resueltas en `onKey` |
@@ -70,14 +70,14 @@
 
 | Estado | P0 | P1 | P2 | P3 | P4 | Total |
 |---|---|---|---|---|---|---|
-| CORREGIDO | 3 | 8 | 9 | 4 | 0 | 24 |
+| CORREGIDO | 3 | 8 | 10 | 4 | 0 | 25 |
 | BLOQUEADO (CI: `app/schemas/` sin versionar) | 0 | 0 | 1 | 1 | 0 | 2 |
-| ABIERTO | 0 | 0 | 3 | 6 | 2 | 11 |
+| ABIERTO | 0 | 0 | 2 | 6 | 2 | 10 |
 | DESCARTADO | — | — | — | — | — | 2 (agentes) |
 
-Cerrados: ORD-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 016, 017, 019, 020, 021, 022, 023, 031, 033, 034, 035.
+Cerrados: ORD-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 016, 017, 019, 020, 021, 022, 023, 031, 033, 034, 035.
 Bloqueados: ORD-015 (migración Room 1→2 sin test en CI), ORD-032 (FTS).
-Abiertos prioritarios: ORD-014 (TOFU del checksum, `expectedSha256` sigue nulo), ORD-018 (contexto externo inseguro), ORD-024 (rate-limit).
+Abiertos prioritarios: ORD-018 (contexto externo inseguro), ORD-024 (rate-limit).
 
 ### P0/P1 resumen
 
