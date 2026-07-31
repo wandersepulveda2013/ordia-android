@@ -23,7 +23,7 @@
             android:layout_weight="1"
             android:textSize="11sp"
             android:textColor="#D9BC7A"
-            android:text="Tarea" />
+            android:text="@string/suggestion_type_task" />
 
         <TextView
             android:id="@+id/card_suggestion_date"
@@ -31,7 +31,7 @@
             android:layout_height="wrap_content"
             android:textSize="11sp"
             android:textColor="#888888"
-            android:text="Sin fecha" />
+            android:text="@string/suggestion_no_date" />
     </LinearLayout>
 
     <!-- Título interpretado -->
@@ -77,7 +77,7 @@
             android:layout_width="0dp"
             android:layout_height="32dp"
             android:layout_weight="1"
-            android:text="Agregar"
+            android:text="@string/external_suggestion_add"
             android:textSize="12sp"
             android:padding="2dp"
             android:layout_marginEnd="3dp"
@@ -88,7 +88,7 @@
             android:layout_width="0dp"
             android:layout_height="32dp"
             android:layout_weight="1"
-            android:text="Editar"
+            android:text="@string/external_suggestion_edit"
             android:textSize="12sp"
             android:padding="2dp"
             android:layout_marginEnd="3dp"
@@ -99,7 +99,7 @@
             android:layout_width="0dp"
             android:layout_height="32dp"
             android:layout_weight="1"
-            android:text="Posponer"
+            android:text="@string/external_suggestion_postpone"
             android:textSize="12sp"
             android:padding="2dp"
             android:layout_marginEnd="3dp"
@@ -110,7 +110,7 @@
             android:layout_width="0dp"
             android:layout_height="32dp"
             android:layout_weight="1"
-            android:text="Ignorar"
+            android:text="@string/external_suggestion_ignore"
             android:textSize="12sp"
             android:padding="2dp"
             style="@style/OrdiaCandidateButton" />

@@ -32,4 +32,12 @@
     <string name="external_suggestion_no_permission">Sugerencia pendiente — activa superposición para verla</string>
     <string name="external_suggestion_quiet_hours">Horas silenciosas — sugerencia encolada</string>
     <string name="external_suggestion_from_source">Desde %1$s</string>
+    <string name="external_suggestion_title_hint">Título</string>
+    <string name="keyboard_suggestion_remind_short">Recordar</string>
+    <string name="suggestion_type_task">Tarea</string>
+    <string name="suggestion_no_date">Sin fecha</string>
+    <string name="widget_next_step">ORDIA · SIGUIENTE PASO</string>
+    <string name="widget_all_clear">Todo está en orden</string>
+    <string name="widget_zero_pending">0 pendientes</string>
+    <string name="widget_capture">+ Capturar</string>
 </resources>

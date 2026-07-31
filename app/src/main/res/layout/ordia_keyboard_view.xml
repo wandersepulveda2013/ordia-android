@@ -39,7 +39,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Analizando..."
+                    android:text="@string/keyboard_analyzing"
                     android:textSize="13sp"
                     android:textColor="#888888" />
                 <ProgressBar
@@ -74,7 +74,7 @@
                     android:layout_width="0dp"
                     android:layout_height="36dp"
                     android:layout_weight="1"
-                    android:text="Agregar"
+                    android:text="@string/keyboard_suggestion_add"
                     android:textSize="13sp"
                     android:padding="4dp"
                     android:layout_marginEnd="4dp"
@@ -85,7 +85,7 @@
                     android:layout_width="0dp"
                     android:layout_height="36dp"
                     android:layout_weight="1"
-                    android:text="Editar"
+                    android:text="@string/keyboard_suggestion_edit"
                     android:textSize="13sp"
                     android:padding="4dp"
                     android:layout_marginEnd="4dp"
@@ -96,7 +96,7 @@
                     android:layout_width="0dp"
                     android:layout_height="36dp"
                     android:layout_weight="1"
-                    android:text="Recordar"
+                    android:text="@string/keyboard_suggestion_remind_short"
                     android:textSize="13sp"
                     android:padding="4dp"
                     android:layout_marginEnd="4dp"
@@ -108,7 +108,7 @@
                     android:layout_height="36dp"
                     android:src="@android:drawable/ic_menu_close_clear_cancel"
                     android:background="?android:attr/selectableItemBackground"
-                    android:contentDescription="Ignorar"
+                    android:contentDescription="@string/keyboard_suggestion_ignore"
                     android:scaleType="centerInside"
                     android:padding="6dp" />
             </LinearLayout>
@@ -128,7 +128,7 @@
                     android:layout_height="32dp"
                     android:src="@android:drawable/ic_menu_myplaces"
                     android:background="?android:attr/selectableItemBackground"
-                    android:contentDescription="Guardián"
+                    android:contentDescription="@string/keyboard_guardian"
                     android:scaleType="centerInside"
                     android:padding="4dp" />
 
@@ -138,7 +138,7 @@
                     android:layout_height="32dp"
                     android:src="@android:drawable/ic_lock_lock"
                     android:background="?android:attr/selectableItemBackground"
-                    android:contentDescription="Privacidad"
+                    android:contentDescription="@string/keyboard_privacy"
                     android:scaleType="centerInside"
                     android:padding="4dp" />
 
@@ -151,7 +151,7 @@
                     android:id="@+id/dont_detect_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="No detectar frases similares"
+                    android:text="@string/keyboard_dont_detect_similar"
                     android:textSize="11sp"
                     android:textColor="#888888"
                     android:padding="4dp"
@@ -163,7 +163,7 @@
                     android:layout_height="32dp"
                     android:src="@android:drawable/ic_media_pause"
                     android:background="?android:attr/selectableItemBackground"
-                    android:contentDescription="Pausar 1 hora"
+                    android:contentDescription="@string/keyboard_pause_1h"
                     android:scaleType="centerInside"
                     android:padding="4dp" />
             </LinearLayout>
