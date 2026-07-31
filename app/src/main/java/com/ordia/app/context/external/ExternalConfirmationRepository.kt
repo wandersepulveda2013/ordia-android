@@ -169,6 +169,7 @@ class ExternalConfirmationRepository(context: Context) {
             put("title", s.title)
             put("dueAt", s.dueAt ?: -1L)
             put("source", s.source.name)
+            put("sourcePackage", s.sourcePackage ?: "")
             put("priority", s.priority)
             put("confidence", s.confidence.toDouble())
             put("createdAt", s.createdAt)
@@ -186,6 +187,7 @@ class ExternalConfirmationRepository(context: Context) {
                 title = json.getString("title"),
                 dueAt = json.optLong("dueAt", -1L).let { if (it < 0) null else it },
                 source = ContextCaptureSource.valueOf(json.getString("source")),
+                sourcePackage = json.optString("sourcePackage", "").takeIf { it.isNotEmpty() },
                 priority = json.getInt("priority"),
                 confidence = json.getDouble("confidence").toFloat(),
                 createdAt = json.getLong("createdAt"),

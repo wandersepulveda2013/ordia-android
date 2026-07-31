@@ -188,6 +188,7 @@ class OrdiaKeyboardService : InputMethodService(),
                 title = pending.intent.title,
                 dueAt = pending.intent.dueAt,
                 source = pending.intent.source,
+                sourcePackage = pending.intent.sourcePackage,
                 priority = ExternalSuggestion.calculatePriority(pending.intent.kind, pending.intent.dueAt),
                 confidence = pending.intent.confidence
             )
@@ -202,6 +203,7 @@ class OrdiaKeyboardService : InputMethodService(),
                 title = pending.intent.title,
                 dueAt = pending.intent.dueAt,
                 source = pending.intent.source,
+                sourcePackage = pending.intent.sourcePackage,
                 priority = ExternalSuggestion.calculatePriority(pending.intent.kind, pending.intent.dueAt),
                 confidence = pending.intent.confidence
             )

@@ -325,10 +325,11 @@ class ExternalConfirmationTest {
 
     @Test
     fun `app en lista de exclusion no se procesa`() {
-        // Simulado: el controlador verifica antes de encolar
-        val pkg = "com.android.bank"
+        // Simulado: el controlador verifica antes de encolar.
+        // El set usa paquetes reales por prefijo (com.bbva.mx, com.banorte...).
         val securePackages = ExternalConfirmationController.SECURE_PACKAGES
-        assertTrue(securePackages.contains(pkg))
+        assertTrue(securePackages.contains("com.bbva"))
+        assertTrue(securePackages.contains("com.bitwarden"))
     }
 
     // ========================================================================

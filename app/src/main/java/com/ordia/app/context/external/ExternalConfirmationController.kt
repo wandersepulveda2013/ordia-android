@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
 import android.view.WindowManager
@@ -60,15 +59,11 @@ class ExternalConfirmationController private constructor(
         const val ACTION_POSTPONE = "com.ordia.app.action.POSTPONE_SUGGESTION"
         const val ACTION_OPEN = "com.ordia.app.action.OPEN_SUGGESTION"
 
-        // Paquetes sensibles donde nunca mostrar tarjeta externa
-        val SECURE_PACKAGES = setOf(
-            "com.android.bank",
-            "com.android.contacts",
-            "com.android.settings",
-            "com.google.android.apps.authenticator2",
-            "com.google.android.apps.photos",
-            "com.android.vending",
-        )
+        // Paquetes sensibles donde nunca mostrar tarjeta externa.
+        // Fuente única de verdad: ExternalSecureContext (compatible con el
+        // ContextPrivacyFilter del pipeline contextual). Los nombres reales
+        // incluyen sufijos (com.bbva.mx), por eso se compara por prefijo.
+        val SECURE_PACKAGES: Set<String> = ExternalSecureContext.SECURE_PACKAGES
 
         @JvmStatic
         fun getInstance(context: Context): ExternalConfirmationController {
@@ -192,8 +187,9 @@ class ExternalConfirmationController private constructor(
         if (!isEnabled) return
         if (!canShowExternal()) return
 
-        // Seguridad: verificar app de origen
-        if (isSecureContext()) {
+        // Seguridad: verificar app de origen usando el paquete real del evento
+        // (el antiguo getForegroundPackage siempre devolvía null; ORD-018).
+        if (isSecureContext(intent.sourcePackage)) {
             Log.d(TAG, "Contexto seguro, ignorando sugerencia")
             return
         }
@@ -247,9 +243,22 @@ class ExternalConfirmationController private constructor(
      * Recibe una sugerencia desde el IME para integrar con la cola externa.
      * El IME muestra primero en su barra de candidatos.
      * Si el teclado se cierra sin resolver, se traslada aquí.
+     *
+     * La ruta IME también aplica las verificaciones de seguridad (paquete de
+     * origen y contenido sensible) que se aplicaban solo en la ruta del
+     * ContextEngine; sin ellas, una sugerencia de una app sensible podía
+     * colarse al cerrar el teclado (ORD-018).
      */
     fun receiveFromIME(suggestion: ExternalSuggestion) {
         if (!isEnabled) return
+        if (isSecureContext(suggestion.sourcePackage)) {
+            Log.d(TAG, "Contexto seguro desde IME, ignorando sugerencia")
+            return
+        }
+        if (ExternalSecureContext.isSensitiveTitle(suggestion.title)) {
+            Log.d(TAG, "Contenido sensible potencial desde IME, ignorando")
+            return
+        }
         enqueueAndShow(suggestion)
     }
 
@@ -480,38 +489,20 @@ class ExternalConfirmationController private constructor(
         return true
     }
 
-    /** Verifica si la app actual está en una lista de exclusión o es sensible. */
-    private fun isSecureContext(): Boolean {
-        val currentPkg = getForegroundPackage() ?: return false
-        if (currentPkg in SECURE_PACKAGES) return true
-        if (currentPkg in repository.excludedApps) return true
-        return false
-    }
+    /**
+     * Verifica si el paquete de origen está en la lista de exclusión o es
+     * sensible (banca, autenticadores, gestores de contraseñas, apps
+     * médicas). Usa el `sourcePackage` del evento/IME, que sí está
+     * disponible, en lugar del antiguo `getForegroundPackage()` que siempre
+     * devolvía null (ORD-018). `null` (desconocido) no bloquea: el pipeline
+     * contextual ya filtró el contenido antes de producir la sugerencia.
+     */
+    private fun isSecureContext(packageName: String?): Boolean =
+        ExternalSecureContext.isSecurePackage(packageName, SECURE_PACKAGES, repository.excludedApps)
 
     /** Verifica si el intent contiene contenido sensible. */
-    private fun isSensitiveContent(intent: ContextIntent): Boolean {
-        val title = intent.title.lowercase()
-        // Palabras clave de contenido sensible
-        val sensitivePatterns = listOf(
-            "contraseña", "password", "pin", "otp", "código de verificación",
-            "token", "clave", "credencial", "numero de tarjeta",
-            "iban", "cvv", "cvc", "documento de identidad", "rut", "dni",
-            "seguro social", "historial clínico", "diagnóstico"
-        )
-        return sensitivePatterns.any { title.contains(it) }
-    }
-
-    /** Obtiene el paquete de la aplicación en primer plano. */
-    private fun getForegroundPackage(): String? {
-        return try {
-            val mgr = app.getSystemService(Context.POWER_SERVICE) as? PowerManager
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                // No podemos acceder directamente a UsageStatsManager sin permisos
-                // Usar una aproximación: el paquete de origen del intent ya viene en ContextIntent
-                null
-            } else null
-        } catch (_: Exception) { null }
-    }
+    private fun isSensitiveContent(intent: ContextIntent): Boolean =
+        ExternalSecureContext.isSensitiveTitle(intent.title)
 
     /** ¿Tenemos permiso de superposición? */
     private fun hasOverlayPermission(): Boolean {

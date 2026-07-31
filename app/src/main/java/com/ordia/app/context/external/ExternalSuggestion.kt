@@ -29,6 +29,9 @@ data class ExternalSuggestion(
     /** Origen de la captura. */
     val source: ContextCaptureSource,
 
+    /** Paquete de la aplicación de origen (si está disponible). */
+    val sourcePackage: String? = null,
+
     /** Prioridad calculada para la cola. */
     val priority: Int = 0,
 
