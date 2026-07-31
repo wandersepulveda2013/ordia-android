@@ -45,6 +45,7 @@ import com.ordia.app.domain.TaskMutationGate
 import com.ordia.app.reminders.ReminderScheduler
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import com.ordia.app.BuildConfig
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
@@ -53,6 +54,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 sealed interface UiEvent {
@@ -528,6 +530,19 @@ class OrdiaViewModel(
     }
 
     fun importBackup(raw: String) = viewModelScope.launch {
+        // ORD-022: respaldo preventivo automático del estado actual ANTES de
+        // reemplazar datos. La ventana DataStore↔Room no es transaccional y
+        // un cierre del proceso a mitad de la restauración podría perder los
+        // datos anteriores; este journal permite recuperarlos.
+        val preventiveSaved = runCatching {
+            val snapshot = backupManager.exportJson()
+            val file = java.io.File(appContext.filesDir, PRE_RESTORE_BACKUP_FILENAME)
+            withContext(Dispatchers.IO) {
+                file.writeText(snapshot, Charsets.UTF_8)
+            }
+            true
+        }.getOrDefault(false)
+
         val result = backupManager.importJson(raw)
         if (result.success) {
             val restored = preferencesRepository.preferences.first()
@@ -539,7 +554,14 @@ class OrdiaViewModel(
                 appContext.stopService(android.content.Intent(appContext, com.ordia.app.overlay.GuardianOverlayService::class.java))
             }
         }
-        _events.emit(UiEvent.Message(result.message))
+        _events.emit(UiEvent.Message(
+            when {
+                result.success && preventiveSaved ->
+                    result.message + " Se guardó un respaldo preventivo de tus datos anteriores en el almacenamiento privado."
+                result.success -> result.message + " AVISO: no se pudo crear el respaldo preventivo de tus datos anteriores."
+                else -> result.message
+            }
+        ))
         updateWidget()
     }
 
@@ -586,5 +608,10 @@ class OrdiaViewModel(
             reminderScheduler,
             backupManager
         ) as T
+    }
+
+    companion object {
+        /** Journal del respaldo preventivo creado antes de cada restauración (ORD-022). */
+        private const val PRE_RESTORE_BACKUP_FILENAME = "ordia_pre_restore_backup.json"
     }
 }

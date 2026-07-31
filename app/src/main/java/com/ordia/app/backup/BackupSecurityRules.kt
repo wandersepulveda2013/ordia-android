@@ -3,6 +3,7 @@ package com.ordia.app.backup
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 
 /** Pure limits and graph/JSON checks used before a backup may replace local data. */
 object BackupSecurityRules {
@@ -11,17 +12,34 @@ object BackupSecurityRules {
     const val MAX_TOTAL_ITEMS = 250_000
     const val MAX_JSON_DEPTH = 64
     const val MAX_SAFE_EPOCH_MILLIS = 32_503_680_000_000L // 3000-01-01 UTC
+    const val CURRENT_EXPORT_VERSION = 4
+
+    /** Versión del formato de copia con checksum SHA-256 obligatorio. */
+    const val CHECKSUM_VERSION = 4
+
     val requiredCollections = setOf(
         "projects", "tasks", "notes", "habits", "habitLogs", "focusSessions",
         "routines", "routineSteps", "tags", "taskTags", "attachments"
     )
 
-    fun supportsVersion(version: Int): Boolean = version in 2..3
+    fun supportsVersion(version: Int): Boolean = version in 2..CURRENT_EXPORT_VERSION
     fun inputSizeAllowed(utf8Bytes: Int): Boolean = utf8Bytes in 2..MAX_UTF8_BYTES
     fun collectionSizeAllowed(size: Int): Boolean = size in 0..MAX_ITEMS_PER_COLLECTION
     fun totalSizeAllowed(size: Int): Boolean = size in 0..MAX_TOTAL_ITEMS
     fun hasAllCollections(names: Set<String>): Boolean = requiredCollections.all(names::contains)
     fun hasDuplicatePairs(pairs: Collection<Pair<Long, Long>>): Boolean = pairs.toSet().size != pairs.size
+
+    /**
+     * SHA-256 hexadecimal en minúsculas de un contenido (ORD-031).
+     * Se usa para detectar corrupción o modificación en copias de seguridad.
+     */
+    fun sha256Hex(bytes: ByteArray): String =
+        MessageDigest.getInstance("SHA-256").digest(bytes)
+            .joinToString("") { "%02x".format(it) }
+
+    /** ¿El valor tiene el formato correcto de un checksum SHA-256 (64 hex)? */
+    fun isValidChecksumFormat(value: String): Boolean =
+        value.length == 64 && value.all { it.isDigit() || it in 'a'..'f' }
 
     fun decodeUtf8Strict(bytes: ByteArray): String? = runCatching {
         StandardCharsets.UTF_8.newDecoder()

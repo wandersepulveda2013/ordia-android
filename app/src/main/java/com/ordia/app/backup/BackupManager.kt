@@ -37,8 +37,15 @@ class BackupManager(
 ) {
     private val operationMutex = Mutex()
 
-    suspend fun exportJson(): String = operationMutex.withLock {
-        withContext(Dispatchers.IO) {
+    /**
+     * Construye el JSON de la copia (sin adquirir el mutex).
+     *
+     * ORD-031: desde la versión 4 el JSON incluye un campo "checksum" con el
+     * SHA-256 del contenido SIN el propio campo. Se añade en último lugar
+     * para que al verificar (parsear, quitar "checksum" y reserializar) el
+     * resto de claves conserve el orden original.
+     */
+    private suspend fun buildExportJson(): String {
         val root = JSONObject()
             .put("format", "ordia-backup")
             .put("version", CURRENT_VERSION)
@@ -55,12 +62,21 @@ class BackupManager(
         root.put("tags", JSONArray().apply { database.tagDao().getAllNow().forEach { put(it.toJson()) } })
         root.put("taskTags", JSONArray().apply { database.taskTagDao().getAllNow().forEach { put(it.toJson()) } })
         root.put("attachments", JSONArray().apply { database.attachmentDao().getAllNow().forEach { put(it.toJson()) } })
-        val raw = root.toString(2)
-        require(BackupSecurityRules.inputSizeAllowed(raw.toByteArray(Charsets.UTF_8).size)) {
+        val contentJson = root.toString(2)
+        require(BackupSecurityRules.inputSizeAllowed(contentJson.toByteArray(Charsets.UTF_8).size)) {
             "La copia supera el límite seguro de 10 MB. Reduce notas o adjuntos registrados antes de exportar."
         }
-        raw
+        // Checksum del contenido sin el propio campo (ORD-031).
+        root.put("checksum", BackupSecurityRules.sha256Hex(contentJson.toByteArray(Charsets.UTF_8)))
+        val final = root.toString(2)
+        require(BackupSecurityRules.inputSizeAllowed(final.toByteArray(Charsets.UTF_8).size)) {
+            "La copia supera el límite seguro de 10 MB. Reduce notas o adjuntos registrados antes de exportar."
         }
+        return final
+    }
+
+    suspend fun exportJson(): String = operationMutex.withLock {
+        withContext(Dispatchers.IO) { buildExportJson() }
     }
 
     suspend fun importJson(raw: String): ImportResult = operationMutex.withLock {
@@ -84,7 +100,7 @@ class BackupManager(
         if (!BackupSecurityRules.supportsVersion(version)) {
             return@withContext ImportResult(false, "La versión de la copia ($version) no es compatible.")
         }
-        val allowedTopLevel = BackupSecurityRules.requiredCollections + setOf("format", "version", "createdAt", "preferences")
+        val allowedTopLevel = BackupSecurityRules.requiredCollections + setOf("format", "version", "createdAt", "preferences", "checksum")
         val topLevelKeys = buildSet {
             val iterator = root.keys()
             while (iterator.hasNext()) add(iterator.next())
@@ -100,6 +116,24 @@ class BackupManager(
             val createdAt = root.requiredLong("createdAt")
             require(createdAt in 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
         }.getOrElse { return@withContext ImportResult(false, "La fecha de creación de la copia no es válida.") }
+
+        // ORD-031: desde la versión 4 el checksum es obligatorio. Se verifica
+        // sobre el contenido sin el propio campo, detectando corrupción o
+        // modificación del archivo. Las versiones 2-3 (sin checksum) se
+        // aceptan por compatibilidad como formato heredado.
+        if (version >= BackupSecurityRules.CHECKSUM_VERSION) {
+            val checksum = runCatching { root.getString("checksum") }.getOrNull()
+            if (checksum == null || !BackupSecurityRules.isValidChecksumFormat(checksum)) {
+                return@withContext ImportResult(false, "La copia no contiene un checksum SHA-256 válido. El archivo está dañado o fue modificado.")
+            }
+            root.remove("checksum")
+            val reserialized = runCatching { root.toString(2) }
+                .getOrElse { return@withContext ImportResult(false, "La copia no pudo verificarse (JSON inválido).") }
+            val actualChecksum = BackupSecurityRules.sha256Hex(reserialized.toByteArray(Charsets.UTF_8))
+            if (actualChecksum != checksum) {
+                return@withContext ImportResult(false, "La copia no supera la verificación de integridad. El archivo está dañado o fue modificado.")
+            }
+        }
 
         val presentCollections = BackupSecurityRules.requiredCollections.filterTo(mutableSetOf()) { root.has(it) }
         if (!BackupSecurityRules.hasAllCollections(presentCollections)) {
@@ -205,7 +239,7 @@ class BackupManager(
     data class ImportResult(val success: Boolean, val message: String)
 
     companion object {
-        private const val CURRENT_VERSION = 3
+        private const val CURRENT_VERSION = 4
     }
 }
 
