@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ordia.app.backup.BackupManager
+import com.ordia.app.backup.RestorePhase
 import com.ordia.app.data.local.AttachmentEntity
 import com.ordia.app.data.local.AttachmentOwnerType
 import com.ordia.app.data.local.FocusSessionEntity
@@ -45,22 +46,48 @@ import com.ordia.app.domain.TaskMutationGate
 import com.ordia.app.reminders.ReminderScheduler
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import com.ordia.app.BuildConfig
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 sealed interface UiEvent {
     data class Message(val text: String) : UiEvent
     data class TaskSaved(val id: Long) : UiEvent
     data class NoteSaved(val id: Long) : UiEvent
+}
+
+/**
+ * Estado observable del flujo de restauración.
+ *
+ * La UI lo usa para mostrar progreso real, deshabilitar acciones durante el
+ * proceso y mostrar éxito únicamente tras la verificación de persistencia.
+ */
+sealed interface BackupRestoreState {
+    data object Idle : BackupRestoreState
+    data class FileSelected(val fileName: String?) : BackupRestoreState
+    data object Validating : BackupRestoreState
+    data object CreatingSafetyBackup : BackupRestoreState
+    data object Restoring : BackupRestoreState
+    data object Verifying : BackupRestoreState
+    data class Success(val message: String) : BackupRestoreState
+    data class Error(val message: String) : BackupRestoreState
+
+    /** Estados en los que un restore está en curso (la UI debe bloquear acciones). */
+    val inProgress: Boolean
+        get() = when (this) {
+            is FileSelected, is Validating, is CreatingSafetyBackup, is Restoring, is Verifying -> true
+            else -> false
+        }
 }
 
 data class OrdiaUiState(
@@ -163,6 +190,12 @@ class OrdiaViewModel(
 ) : ViewModel() {
     private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
     val events = _events.asSharedFlow()
+
+    private val _backupState = MutableStateFlow<BackupRestoreState>(BackupRestoreState.Idle)
+    val backupState: kotlinx.coroutines.flow.StateFlow<BackupRestoreState> = _backupState.asStateFlow()
+
+    /** Candado adicional contra dos restores simultáneos a nivel de ViewModel. */
+    private val restoreMutex = kotlinx.coroutines.sync.Mutex()
 
     private val core = combine(
         taskRepository.tasks,
@@ -529,40 +562,52 @@ class OrdiaViewModel(
             .onFailure { _events.emit(UiEvent.Message("No se pudo crear la copia: ${it.message}")) }
     }
 
-    fun importBackup(raw: String) = viewModelScope.launch {
-        // ORD-022: respaldo preventivo automático del estado actual ANTES de
-        // reemplazar datos. La ventana DataStore↔Room no es transaccional y
-        // un cierre del proceso a mitad de la restauración podría perder los
-        // datos anteriores; este journal permite recuperarlos.
-        val preventiveSaved = runCatching {
-            val snapshot = backupManager.exportJson()
-            val file = java.io.File(appContext.filesDir, PRE_RESTORE_BACKUP_FILENAME)
-            withContext(Dispatchers.IO) {
-                file.writeText(snapshot, Charsets.UTF_8)
-            }
-            true
-        }.getOrDefault(false)
-
-        val result = backupManager.importJson(raw)
-        if (result.success) {
-            val restored = preferencesRepository.preferences.first()
-            if (BuildConfig.SELF_UPDATE_ENABLED) {
-                if (restored.autoUpdateEnabled) com.ordia.app.updates.OrdiaUpdateManager.schedule(appContext)
-                else com.ordia.app.updates.OrdiaUpdateManager.cancelSchedule(appContext)
-            }
-            if (BuildConfig.OVERLAY_ENABLED) {
-                appContext.stopService(android.content.Intent(appContext, com.ordia.app.overlay.GuardianOverlayService::class.java))
+    /**
+     * Inicia el flujo de restauración con estados observables.
+     *
+     * La confirmación del usuario (diálogo "¿Restaurar esta copia?") ocurre en
+     * la UI ANTES de llamar a este método; aquí se bloquean pulsaciones
+     * duplicadas y restores concurrentes, y el éxito solo se publica después
+     * de que [BackupManager] haya verificado la persistencia.
+     */
+    fun restoreBackup(raw: String, fileName: String? = null) {
+        // Doble pulsación o proceso ya en curso.
+        if (_backupState.value !is BackupRestoreState.Idle) return
+        if (!restoreMutex.tryLock()) return
+        _backupState.value = BackupRestoreState.FileSelected(fileName)
+        viewModelScope.launch {
+            try {
+                val result = backupManager.importBackup(raw) { phase ->
+                    _backupState.value = when (phase) {
+                        RestorePhase.VALIDATING -> BackupRestoreState.Validating
+                        RestorePhase.CREATING_SAFETY_BACKUP -> BackupRestoreState.CreatingSafetyBackup
+                        RestorePhase.RESTORING -> BackupRestoreState.Restoring
+                        RestorePhase.VERIFYING -> BackupRestoreState.Verifying
+                    }
+                }
+                if (result.success) {
+                    val restored = preferencesRepository.preferences.first()
+                    if (BuildConfig.SELF_UPDATE_ENABLED) {
+                        if (restored.autoUpdateEnabled) com.ordia.app.updates.OrdiaUpdateManager.schedule(appContext)
+                        else com.ordia.app.updates.OrdiaUpdateManager.cancelSchedule(appContext)
+                    }
+                    if (BuildConfig.OVERLAY_ENABLED) {
+                        appContext.stopService(android.content.Intent(appContext, com.ordia.app.overlay.GuardianOverlayService::class.java))
+                    }
+                    _backupState.value = BackupRestoreState.Success(result.message)
+                    updateWidget()
+                } else {
+                    _backupState.value = BackupRestoreState.Error(result.message)
+                }
+            } finally {
+                restoreMutex.unlock()
             }
         }
-        _events.emit(UiEvent.Message(
-            when {
-                result.success && preventiveSaved ->
-                    result.message + " Se guardó un respaldo preventivo de tus datos anteriores en el almacenamiento privado."
-                result.success -> result.message + " AVISO: no se pudo crear el respaldo preventivo de tus datos anteriores."
-                else -> result.message
-            }
-        ))
-        updateWidget()
+    }
+
+    /** Vuelve al estado inicial tras mostrar el resultado del restore. */
+    fun dismissRestoreResult() {
+        _backupState.value = BackupRestoreState.Idle
     }
 
     fun setThemeMode(value: ThemeMode) = viewModelScope.launch { preferencesRepository.setThemeMode(value) }
@@ -608,10 +653,5 @@ class OrdiaViewModel(
             reminderScheduler,
             backupManager
         ) as T
-    }
-
-    companion object {
-        /** Journal del respaldo preventivo creado antes de cada restauración (ORD-022). */
-        private const val PRE_RESTORE_BACKUP_FILENAME = "ordia_pre_restore_backup.json"
     }
 }

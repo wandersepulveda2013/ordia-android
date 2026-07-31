@@ -64,7 +64,7 @@ private val Context.ordiaDataStore by preferencesDataStore(
     corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() }
 )
 
-class PreferencesRepository(private val context: Context) {
+class PreferencesRepository(private val context: Context) : com.ordia.app.backup.BackupPreferences {
     private object Keys {
         val themeMode = stringPreferencesKey("theme_mode")
         val legacyDarkMode = booleanPreferencesKey("dark_mode")
@@ -157,15 +157,15 @@ class PreferencesRepository(private val context: Context) {
     suspend fun setCompactNavigation(value: Boolean) = edit { it[Keys.compactNavigation] = value }
     suspend fun setDarkMode(enabled: Boolean) = setThemeMode(if (enabled) ThemeMode.DARK else ThemeMode.LIGHT)
 
-    suspend fun exportJson(): JSONObject = preferences.first().toJson()
+    override suspend fun exportJson(): JSONObject = preferences.first().toJson()
 
-    suspend fun snapshot(): UserPreferences = preferences.first()
+    override suspend fun snapshot(): UserPreferences = preferences.first()
 
     /** Decodes a backup without mutating DataStore. Every v3 field is type- and range-checked. */
-    fun decodeBackupJson(json: JSONObject): UserPreferences = json.toValidatedUserPreferences()
+    override fun decodeBackupJson(json: JSONObject): UserPreferences = json.toValidatedUserPreferences()
 
     /** Overlay activation is deliberately disabled until the user opens Ordia in a visible context. */
-    suspend fun restoreSnapshot(value: UserPreferences, allowGuardianEnabled: Boolean = false) {
+    override suspend fun restoreSnapshot(value: UserPreferences, allowGuardianEnabled: Boolean) {
         edit { values ->
             values.clear()
             write(values, if (allowGuardianEnabled) value else value.copy(guardianEnabled = false))

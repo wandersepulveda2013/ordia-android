@@ -2,6 +2,7 @@ package com.ordia.app.di
 
 import android.content.Context
 import com.ordia.app.backup.BackupManager
+import com.ordia.app.backup.RoomBackupStore
 import com.ordia.app.context.ContextualSettingsStore
 import com.ordia.app.context.ContextualSuggestionStore
 import com.ordia.app.data.local.OrdiaDatabase
@@ -30,5 +31,10 @@ class AppContainer(context: Context) {
     val tagRepository = TagRepository(database.tagDao(), database.taskTagDao())
     val attachmentRepository = AttachmentRepository(database.attachmentDao())
     val reminderScheduler = ReminderScheduler(context)
-    val backupManager = BackupManager(database, preferencesRepository, reminderScheduler)
+    val backupManager = BackupManager(
+        backupStore = RoomBackupStore(database),
+        preferences = preferencesRepository,
+        reminderScheduler = reminderScheduler,
+        preRestoreBackupFile = java.io.File(context.filesDir, com.ordia.app.backup.BackupManager.PRE_RESTORE_BACKUP_FILENAME)
+    )
 }

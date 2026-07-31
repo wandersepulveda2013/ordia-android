@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -39,6 +40,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,6 +63,7 @@ import com.ordia.app.data.preferences.ThemeMode
 import com.ordia.app.domain.DateRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
+import com.ordia.app.ui.BackupRestoreState
 import com.ordia.app.ui.components.InfoBanner
 import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.overlay.GuardianOverlayService
@@ -78,7 +81,9 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
     val scope = rememberCoroutineScope()
     var backupJson by remember { mutableStateOf<String?>(null) }
     var pendingRestoreJson by remember { mutableStateOf<String?>(null) }
+    var restoreFileName by remember { mutableStateOf<String?>(null) }
     var backupStatus by remember { mutableStateOf<String?>(null) }
+    val backupRestoreState by vm.backupState.collectAsState()
     var quietStart by remember(state.preferences.quietStartMinutes) { mutableStateOf(DateRules.minutesToClock(state.preferences.quietStartMinutes)) }
     var quietEnd by remember(state.preferences.quietEndMinutes) { mutableStateOf(DateRules.minutesToClock(state.preferences.quietEndMinutes)) }
     var guardianName by remember(state.preferences.guardianName) { mutableStateOf(state.preferences.guardianName) }
@@ -114,10 +119,19 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         backupJson = null
     }
     val openBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) runCatching {
+        if (uri == null) return@rememberLauncherForActivityResult
+        // No permitir seleccionar otra copia mientras hay una restauración en curso.
+        if (vm.backupState.value.inProgress) {
+            backupStatus = "Hay una restauración en curso. Espera a que termine."
+            return@rememberLauncherForActivityResult
+        }
+        runCatching {
             context.contentResolver.openInputStream(uri)?.use { readUtf8Limited(it, BackupSecurityRules.MAX_UTF8_BYTES) }
         }.onSuccess { raw ->
-            if (raw != null) pendingRestoreJson = raw
+            if (raw != null) {
+                pendingRestoreJson = raw
+                restoreFileName = uri.lastPathSegment ?: "copia de seguridad"
+            }
         }.onFailure {
             backupStatus = "No se pudo leer la copia: ${it.message ?: "archivo inválido"}"
         }
@@ -142,18 +156,39 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         AlertDialog(
             onDismissRequest = { pendingRestoreJson = null },
             title = { Text("¿Restaurar esta copia?") },
-            text = { Text("La restauración reemplazará todas las tareas, notas, proyectos, hábitos, rutinas y ajustes actuales. Crea una copia reciente antes de continuar.") },
+            text = { Text("La restauración reemplazará todas las tareas, notas, proyectos, hábitos, rutinas y ajustes actuales. Antes de continuar se creará un respaldo automático de tus datos actuales en el almacenamiento privado.") },
             confirmButton = {
                 Button(onClick = {
+                    val name = restoreFileName
                     pendingRestoreJson = null
-                    backupStatus = "Restaurando la copia…"
-                    vm.importBackup(raw)
+                    restoreFileName = null
+                    vm.restoreBackup(raw, name)
                 }) { Text("Reemplazar y restaurar") }
             },
             dismissButton = {
                 TextButton(onClick = { pendingRestoreJson = null }) { Text("Cancelar") }
             }
         )
+    }
+
+    when (val restoreResult = backupRestoreState) {
+        is BackupRestoreState.Success -> AlertDialog(
+            onDismissRequest = { vm.dismissRestoreResult() },
+            title = { Text("Copia restaurada") },
+            text = { Text(restoreResult.message) },
+            confirmButton = {
+                Button(onClick = { vm.dismissRestoreResult() }) { Text("Entendido") }
+            }
+        )
+        is BackupRestoreState.Error -> AlertDialog(
+            onDismissRequest = { vm.dismissRestoreResult() },
+            title = { Text("No se pudo restaurar la copia") },
+            text = { Text(restoreResult.message) },
+            confirmButton = {
+                Button(onClick = { vm.dismissRestoreResult() }) { Text("Entendido") }
+            }
+        )
+        else -> Unit
     }
 
     LazyColumn(
@@ -485,6 +520,14 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             SettingsCard(Icons.Outlined.Backup, "Copia de seguridad") {
                 Text("Exporta tareas, proyectos, notas, hábitos, rutinas, sesiones, ajustes y progreso del guardián en un archivo local sin cifrar. Los adjuntos se guardan como referencias, no como copias de sus archivos.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 backupStatus?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                when (val restoreProgress = backupRestoreState) {
+                    is BackupRestoreState.FileSelected -> ProgressLine("Leyendo la copia seleccionada…")
+                    is BackupRestoreState.Validating -> ProgressLine("Validando la copia…")
+                    is BackupRestoreState.CreatingSafetyBackup -> ProgressLine("Creando respaldo preventivo de tus datos actuales…")
+                    is BackupRestoreState.Restoring -> ProgressLine("Restaurando datos…")
+                    is BackupRestoreState.Verifying -> ProgressLine("Verificando que los datos quedaron restaurados…")
+                    else -> Unit
+                }
                 Button(onClick = {
                     vm.exportBackup { json ->
                         backupJson = json
@@ -494,7 +537,11 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                     Icon(Icons.Outlined.Backup, null)
                     Text("Crear copia", Modifier.padding(start = 8.dp))
                 }
-                OutlinedButton(onClick = { openBackup.launch(arrayOf("application/json", "text/plain")) }, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = { openBackup.launch(arrayOf("application/json", "text/plain")) },
+                    enabled = !backupRestoreState.inProgress,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Icon(Icons.Outlined.Restore, null)
                     Text("Restaurar copia", Modifier.padding(start = 8.dp))
                 }
@@ -530,6 +577,22 @@ private fun SettingsCard(
             }
             content()
         }
+    }
+}
+
+/** Línea de progreso del flujo de restauración (Fase 4). */
+@Composable
+private fun ProgressLine(text: String) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        androidx.compose.material3.CircularProgressIndicator(
+            modifier = Modifier.size(18.dp),
+            strokeWidth = 2.dp
+        )
+        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
     }
 }
 

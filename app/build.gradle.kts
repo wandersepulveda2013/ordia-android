@@ -181,6 +181,10 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+    // org.json real en tests JVM: la implementación de Android no está disponible
+    // fuera del dispositivo y el flujo de backup (BackupManager) está construido
+    // sobre JSONObject/JSONArray. Solo se usa en src/test (~72 KB).
+    testImplementation("org.json:json:20231013")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:core-ktx:1.6.1")
     androidTestImplementation("androidx.room:room-testing:2.8.4")

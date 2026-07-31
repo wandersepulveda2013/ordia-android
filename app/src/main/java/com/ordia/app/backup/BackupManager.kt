@@ -1,6 +1,5 @@
 package com.ordia.app.backup
 
-import androidx.room.withTransaction
 import com.ordia.app.data.local.AttachmentEntity
 import com.ordia.app.data.local.AttachmentOwnerType
 import com.ordia.app.data.local.FocusSessionEntity
@@ -8,7 +7,6 @@ import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitFrequency
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteEntity
-import com.ordia.app.data.local.OrdiaDatabase
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.ProjectStatus
 import com.ordia.app.data.local.RecurrenceFrequency
@@ -19,21 +17,43 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.data.local.TaskTagCrossRef
-import com.ordia.app.data.preferences.PreferencesRepository
 import com.ordia.app.data.preferences.UserPreferences
-import com.ordia.app.reminders.ReminderScheduler
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URI
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
+/** Fases observables del flujo de restauración para la UI. */
+enum class RestorePhase { VALIDATING, CREATING_SAFETY_BACKUP, RESTORING, VERIFYING }
+
+/** Resultado de la validación previa: datos parseados sin tocar la base. */
+data class ValidatedBackup(
+    val data: RestoreData,
+    val preferences: UserPreferences?,
+    val version: Int
+)
+
+/**
+ * Coordina exportación, validación y restauración atómica de las copias.
+ *
+ * Contrato de seguridad del flujo de restore:
+ *  1. [validateAndParse] valida TODO el archivo (formato, versión, checksum,
+ *     campos, límites, identificadores duplicados y relaciones) antes de
+ *     tocar datos.
+ *  2. [writePreRestoreBackup] crea y VERIFICA el journal preventivo; si falla,
+ *     [importBackup] se cancela y no modifica la base.
+ *  3. [BackupStore.replaceAll] reemplaza los datos en UNA única transacción
+ *     Room: cualquier fallo produce rollback total.
+ *  4. [verifyRestored] relee lo persistido y solo entonces se informa éxito.
+ */
 class BackupManager(
-    private val database: OrdiaDatabase,
-    private val preferencesRepository: PreferencesRepository,
-    private val reminderScheduler: ReminderScheduler
+    private val backupStore: BackupStore,
+    private val preferences: BackupPreferences,
+    private val reminderScheduler: ReminderSchedulerPort,
+    private val preRestoreBackupFile: java.io.File
 ) {
     private val operationMutex = Mutex()
 
@@ -46,22 +66,23 @@ class BackupManager(
      * resto de claves conserve el orden original.
      */
     private suspend fun buildExportJson(): String {
+        val current = backupStore.readAll()
         val root = JSONObject()
             .put("format", "ordia-backup")
             .put("version", CURRENT_VERSION)
             .put("createdAt", System.currentTimeMillis())
-            .put("preferences", preferencesRepository.exportJson())
-        root.put("projects", JSONArray().apply { database.projectDao().getAllNow().forEach { put(it.toJson()) } })
-        root.put("tasks", JSONArray().apply { database.taskDao().getAllNow().forEach { put(it.toJson()) } })
-        root.put("notes", JSONArray().apply { database.noteDao().getAllNow().forEach { put(it.toJson()) } })
-        root.put("habits", JSONArray().apply { database.habitDao().getAllNow().forEach { put(it.toJson()) } })
-        root.put("habitLogs", JSONArray().apply { database.habitLogDao().getAllNow().forEach { put(it.toJson()) } })
-        root.put("focusSessions", JSONArray().apply { database.focusSessionDao().getAllNow().forEach { put(it.toJson()) } })
-        root.put("routines", JSONArray().apply { database.routineDao().getAllNow().forEach { put(it.toJson()) } })
-        root.put("routineSteps", JSONArray().apply { database.routineStepDao().getAllNow().forEach { put(it.toJson()) } })
-        root.put("tags", JSONArray().apply { database.tagDao().getAllNow().forEach { put(it.toJson()) } })
-        root.put("taskTags", JSONArray().apply { database.taskTagDao().getAllNow().forEach { put(it.toJson()) } })
-        root.put("attachments", JSONArray().apply { database.attachmentDao().getAllNow().forEach { put(it.toJson()) } })
+            .put("preferences", preferences.exportJson())
+        root.put("projects", JSONArray().apply { current.projects.forEach { put(it.toJson()) } })
+        root.put("tasks", JSONArray().apply { current.tasks.forEach { put(it.toJson()) } })
+        root.put("notes", JSONArray().apply { current.notes.forEach { put(it.toJson()) } })
+        root.put("habits", JSONArray().apply { current.habits.forEach { put(it.toJson()) } })
+        root.put("habitLogs", JSONArray().apply { current.habitLogs.forEach { put(it.toJson()) } })
+        root.put("focusSessions", JSONArray().apply { current.focusSessions.forEach { put(it.toJson()) } })
+        root.put("routines", JSONArray().apply { current.routines.forEach { put(it.toJson()) } })
+        root.put("routineSteps", JSONArray().apply { current.routineSteps.forEach { put(it.toJson()) } })
+        root.put("tags", JSONArray().apply { current.tags.forEach { put(it.toJson()) } })
+        root.put("taskTags", JSONArray().apply { current.taskTags.forEach { put(it.toJson()) } })
+        root.put("attachments", JSONArray().apply { current.attachments.forEach { put(it.toJson()) } })
         val contentJson = root.toString(2)
         require(BackupSecurityRules.inputSizeAllowed(contentJson.toByteArray(Charsets.UTF_8).size)) {
             "La copia supera el límite seguro de 10 MB. Reduce notas o adjuntos registrados antes de exportar."
@@ -79,26 +100,114 @@ class BackupManager(
         withContext(Dispatchers.IO) { buildExportJson() }
     }
 
-    suspend fun importJson(raw: String): ImportResult = operationMutex.withLock {
-        withContext(Dispatchers.IO) {
-        val rawBytes = raw.toByteArray(Charsets.UTF_8)
-        if (!BackupSecurityRules.inputSizeAllowed(rawBytes.size)) {
-            return@withContext ImportResult(false, "La copia está vacía o supera el límite de 10 MB.")
+    /**
+     * Flujo completo de restauración.
+     *
+     * @param raw contenido íntegro del archivo de copia
+     * @param onPhase callback de progreso (se invoca en el orden
+     *   VALIDATING → CREATING_SAFETY_BACKUP → RESTORING → VERIFYING)
+     * @return [ImportResult.success] solo si la verificación posterior confirmó
+     *   la persistencia; cualquier fallo deja la base sin cambios o, si el
+     *   fallo ocurre tras el commit, se informa que no pudo verificarse.
+     */
+    suspend fun importBackup(raw: String, onPhase: (RestorePhase) -> Unit = {}): ImportResult =
+        operationMutex.withLock {
+            withContext(Dispatchers.IO) {
+                onPhase(RestorePhase.VALIDATING)
+                val validated = runCatching { validateAndParse(raw) }
+                    .getOrElse {
+                        return@withContext ImportResult(false, it.message ?: "La copia no es válida.")
+                    }
+
+                onPhase(RestorePhase.CREATING_SAFETY_BACKUP)
+                if (!writePreRestoreBackup()) {
+                    return@withContext ImportResult(
+                        false,
+                        "No se pudo crear el respaldo preventivo (${preRestoreBackupFile.name}) en el almacenamiento privado. " +
+                            "La restauración se canceló y tus datos no se modificaron."
+                    )
+                }
+
+                onPhase(RestorePhase.RESTORING)
+                var oldPreferences: UserPreferences? = null
+                var preferencesApplied = false
+                try {
+                    // DataStore y Room no comparten transacción: se aplican las
+                    // preferencias primero y se compensan si Room rechaza algo.
+                    if (validated.preferences != null) {
+                        oldPreferences = preferences.snapshot()
+                        preferences.restoreSnapshot(validated.preferences, allowGuardianEnabled = false)
+                        preferencesApplied = true
+                    }
+                    // Reemplazo atómico: borrado + inserción en una transacción Room.
+                    backupStore.replaceAll(validated.data)
+                } catch (error: Exception) {
+                    val rollbackFailure = if (preferencesApplied) {
+                        oldPreferences?.let { previous ->
+                            runCatching { preferences.restoreSnapshot(previous, allowGuardianEnabled = true) }.exceptionOrNull()
+                        }
+                    } else null
+                    val suffix = if (rollbackFailure == null) "" else " Revisa los ajustes de la aplicación."
+                    return@withContext ImportResult(
+                        false,
+                        "No se pudo aplicar la restauración. La base de datos conservó su estado anterior.$suffix"
+                    )
+                }
+
+                val reminderWarning = runCatching {
+                    reminderScheduler.cancelAllAndAwait()
+                    val now = System.currentTimeMillis()
+                    validated.data.tasks.asSequence()
+                        .filter { !it.completed && !it.archived }
+                        .filter { (it.reminderAt ?: it.dueAt)?.let { trigger -> trigger > now } == true }
+                        .forEach(reminderScheduler::schedule)
+                }.exceptionOrNull()
+
+                onPhase(RestorePhase.VERIFYING)
+                val verified = runCatching { verifyRestored(validated) }.getOrDefault(false)
+                if (!verified) {
+                    return@withContext ImportResult(
+                        false,
+                        "La restauración no pudo verificarse y no se confirma que haya terminado correctamente. " +
+                            "Tus datos anteriores están en el respaldo preventivo ${preRestoreBackupFile.name} del almacenamiento privado."
+                    )
+                }
+
+                val journalNote = "Se guardó un respaldo preventivo de tus datos anteriores (${preRestoreBackupFile.name}) en el almacenamiento privado."
+                ImportResult(
+                    true,
+                    if (reminderWarning == null) {
+                        "Copia restaurada correctamente. Se reconstruyeron los recordatorios futuros; abre Ajustes para reactivar el guardián flotante. $journalNote"
+                    } else {
+                        "Copia restaurada, pero Android no pudo reconstruir todos los recordatorios. Revisa las tareas programadas. $journalNote"
+                    }
+                )
+            }
         }
-        BackupSecurityRules.validateJsonEnvelope(raw)?.let { return@withContext ImportResult(false, it) }
+
+    /**
+     * Valida TODO el contenido de la copia sin modificar datos.
+     * Lanza [IllegalArgumentException] con un mensaje claro y diferenciado.
+     */
+    private fun validateAndParse(raw: String): ValidatedBackup {
+        val rawBytes = raw.toByteArray(Charsets.UTF_8)
+        require(BackupSecurityRules.inputSizeAllowed(rawBytes.size)) {
+            "La copia está vacía o supera el límite de 10 MB."
+        }
+        BackupSecurityRules.validateJsonEnvelope(raw)?.let { throw IllegalArgumentException(it) }
         val root = runCatching { JSONObject(raw) }
-            .getOrElse { return@withContext ImportResult(false, "El archivo no contiene JSON válido.") }
+            .getOrElse { throw IllegalArgumentException("El archivo no contiene JSON válido.") }
         val format = runCatching { root.get("format") }.getOrNull()
         if (format !is String || format != "ordia-backup") {
-            return@withContext ImportResult(false, "El archivo no es una copia de seguridad de Ordia.")
+            throw IllegalArgumentException("El archivo no es una copia de seguridad de Ordia.")
         }
         val rawVersion = runCatching { root.get("version") }.getOrNull()
         if (rawVersion !is Number || rawVersion.toDouble() != rawVersion.toInt().toDouble()) {
-            return@withContext ImportResult(false, "La versión de la copia no es un entero válido.")
+            throw IllegalArgumentException("La versión de la copia no es un entero válido.")
         }
         val version = rawVersion.toInt()
         if (!BackupSecurityRules.supportsVersion(version)) {
-            return@withContext ImportResult(false, "La versión de la copia ($version) no es compatible.")
+            throw IllegalArgumentException("La versión de la copia ($version) no es compatible.")
         }
         val allowedTopLevel = BackupSecurityRules.requiredCollections + setOf("format", "version", "createdAt", "preferences", "checksum")
         val topLevelKeys = buildSet {
@@ -107,15 +216,15 @@ class BackupManager(
         }
         val unexpectedTopLevel = topLevelKeys - allowedTopLevel
         if (unexpectedTopLevel.isNotEmpty()) {
-            return@withContext ImportResult(false, "La copia contiene secciones desconocidas: ${unexpectedTopLevel.sorted().joinToString()}.")
+            throw IllegalArgumentException("La copia contiene secciones desconocidas: ${unexpectedTopLevel.sorted().joinToString()}.")
         }
         if (!root.has("createdAt") || root.isNull("createdAt")) {
-            return@withContext ImportResult(false, "La copia no contiene su fecha de creación.")
+            throw IllegalArgumentException("La copia no contiene su fecha de creación.")
         }
         runCatching {
             val createdAt = root.requiredLong("createdAt")
             require(createdAt in 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
-        }.getOrElse { return@withContext ImportResult(false, "La fecha de creación de la copia no es válida.") }
+        }.getOrElse { throw IllegalArgumentException("La fecha de creación de la copia no es válida.") }
 
         // ORD-031: desde la versión 4 el checksum es obligatorio. Se verifica
         // sobre el contenido sin el propio campo, detectando corrupción o
@@ -124,155 +233,101 @@ class BackupManager(
         if (version >= BackupSecurityRules.CHECKSUM_VERSION) {
             val checksum = runCatching { root.getString("checksum") }.getOrNull()
             if (checksum == null || !BackupSecurityRules.isValidChecksumFormat(checksum)) {
-                return@withContext ImportResult(false, "La copia no contiene un checksum SHA-256 válido. El archivo está dañado o fue modificado.")
+                throw IllegalArgumentException("La copia no contiene un checksum SHA-256 válido. El archivo está dañado o fue modificado.")
             }
             root.remove("checksum")
             val reserialized = runCatching { root.toString(2) }
-                .getOrElse { return@withContext ImportResult(false, "La copia no pudo verificarse (JSON inválido).") }
+                .getOrElse { throw IllegalArgumentException("La copia no pudo verificarse (JSON inválido).") }
             val actualChecksum = BackupSecurityRules.sha256Hex(reserialized.toByteArray(Charsets.UTF_8))
             if (actualChecksum != checksum) {
-                return@withContext ImportResult(false, "La copia no supera la verificación de integridad. El archivo está dañado o fue modificado.")
+                throw IllegalArgumentException("La copia no supera la verificación de integridad. El archivo está dañado o fue modificado.")
             }
         }
 
         val presentCollections = BackupSecurityRules.requiredCollections.filterTo(mutableSetOf()) { root.has(it) }
         if (!BackupSecurityRules.hasAllCollections(presentCollections)) {
             val missing = (BackupSecurityRules.requiredCollections - presentCollections).sorted().joinToString()
-            return@withContext ImportResult(false, "La copia está incompleta. Faltan: $missing.")
+            throw IllegalArgumentException("La copia está incompleta. Faltan: $missing.")
         }
         if (version >= 3 && root.optJSONObject("preferences") == null) {
-            return@withContext ImportResult(false, "La copia no contiene los ajustes de Ordia.")
+            throw IllegalArgumentException("La copia no contiene los ajustes de Ordia.")
         }
 
-        var oldPreferences: UserPreferences? = null
-        var preferencesApplied = false
-        try {
-            // Parse and validate every value before changing DataStore or Room.
-            val projects = root.requiredArray("projects").validatedMap("projects") { it.toProject() }
-            val tasks = root.requiredArray("tasks").validatedMap("tasks") { it.toTask() }
-            val notes = root.requiredArray("notes").validatedMap("notes") { it.toNote() }
-            val habits = root.requiredArray("habits").validatedMap("habits") { it.toHabit() }
-            val habitLogs = root.requiredArray("habitLogs").validatedMap("habitLogs") { it.toHabitLog() }
-            val focusSessions = root.requiredArray("focusSessions").validatedMap("focusSessions") { it.toFocusSession() }
-            val routines = root.requiredArray("routines").validatedMap("routines") { it.toRoutine() }
-            val routineSteps = root.requiredArray("routineSteps").validatedMap("routineSteps") { it.toRoutineStep() }
-            val tags = root.requiredArray("tags").validatedMap("tags") { it.toTag() }
-            val taskTags = root.requiredArray("taskTags").validatedMap("taskTags") { it.toTaskTag() }
-            val attachments = root.requiredArray("attachments").validatedMap("attachments") { it.toAttachment() }
-            val total = listOf(
-                projects.size, tasks.size, notes.size, habits.size, habitLogs.size,
-                focusSessions.size, routines.size, routineSteps.size, tags.size,
-                taskTags.size, attachments.size
-            ).sum()
-            require(BackupSecurityRules.totalSizeAllowed(total)) { "La copia contiene demasiados registros." }
-            validateRelationships(
-                projects, tasks, notes, habits, habitLogs, focusSessions,
-                routines, routineSteps, tags, taskTags, attachments
-            )
-            val restoredPreferences = if (version >= 3) {
-                preferencesRepository.decodeBackupJson(root.getJSONObject("preferences"))
-            } else null
+        // Parse y validación de cada valor ANTES de cambiar DataStore o Room.
+        val data = RestoreData(
+            projects = root.requiredArray("projects").validatedMap("projects") { it.toProject() },
+            tasks = root.requiredArray("tasks").validatedMap("tasks") { it.toTask() },
+            notes = root.requiredArray("notes").validatedMap("notes") { it.toNote() },
+            habits = root.requiredArray("habits").validatedMap("habits") { it.toHabit() },
+            habitLogs = root.requiredArray("habitLogs").validatedMap("habitLogs") { it.toHabitLog() },
+            focusSessions = root.requiredArray("focusSessions").validatedMap("focusSessions") { it.toFocusSession() },
+            routines = root.requiredArray("routines").validatedMap("routines") { it.toRoutine() },
+            routineSteps = root.requiredArray("routineSteps").validatedMap("routineSteps") { it.toRoutineStep() },
+            tags = root.requiredArray("tags").validatedMap("tags") { it.toTag() },
+            taskTags = root.requiredArray("taskTags").validatedMap("taskTags") { it.toTaskTag() },
+            attachments = root.requiredArray("attachments").validatedMap("attachments") { it.toAttachment() }
+        )
+        val total = data.totalCount
+        require(BackupSecurityRules.totalSizeAllowed(total)) { "La copia contiene demasiados registros." }
+        validateRelationships(data)
+        val restoredPreferences = if (version >= 3) {
+            preferences.decodeBackupJson(root.getJSONObject("preferences"))
+        } else null
+        return ValidatedBackup(data, restoredPreferences, version)
+    }
 
-            // DataStore and Room cannot share one transaction. Apply preferences first and compensate
-            // with the previous snapshot if Room rejects any row.
-            if (restoredPreferences != null) {
-                oldPreferences = preferencesRepository.snapshot()
-                preferencesRepository.restoreSnapshot(restoredPreferences, allowGuardianEnabled = false)
-                preferencesApplied = true
-            }
+    /**
+     * Crea el journal preventivo del estado actual y lo verifica:
+     * el archivo debe existir, no estar vacío y contener JSON válido.
+     */
+    private suspend fun writePreRestoreBackup(): Boolean = runCatching {
+        val snapshot = buildExportJson()
+        preRestoreBackupFile.parentFile?.mkdirs()
+        withContext(Dispatchers.IO) { preRestoreBackupFile.writeText(snapshot, Charsets.UTF_8) }
+        val existsAndNotEmpty = preRestoreBackupFile.exists() && preRestoreBackupFile.length() > 2L
+        val parses = existsAndNotEmpty && runCatching { JSONObject(preRestoreBackupFile.readText()) }.isSuccess
+        parses
+    }.getOrDefault(false)
 
-            database.withTransaction {
-                database.attachmentDao().deleteAll()
-                database.taskTagDao().deleteAll()
-                database.tagDao().deleteAll()
-                database.routineStepDao().deleteAll()
-                database.routineDao().deleteAll()
-                database.focusSessionDao().deleteAll()
-                database.habitLogDao().deleteAll()
-                database.habitDao().deleteAll()
-                database.noteDao().deleteAll()
-                database.taskDao().deleteAll()
-                database.projectDao().deleteAll()
-
-                database.projectDao().insertAll(projects)
-                database.taskDao().insertAll(tasks)
-                database.noteDao().insertAll(notes)
-                database.habitDao().insertAll(habits)
-                database.habitLogDao().insertAll(habitLogs)
-                database.focusSessionDao().insertAll(focusSessions)
-                database.routineDao().insertAll(routines)
-                database.routineStepDao().insertAll(routineSteps)
-                database.tagDao().insertAll(tags)
-                database.taskTagDao().insertAll(taskTags)
-                database.attachmentDao().insertAll(attachments)
-            }
-
-            val reminderWarning = runCatching {
-                reminderScheduler.cancelAllAndAwait()
-                val now = System.currentTimeMillis()
-                tasks.asSequence()
-                    .filter { !it.completed && !it.archived }
-                    .filter { (it.reminderAt ?: it.dueAt)?.let { trigger -> trigger > now } == true }
-                    .forEach(reminderScheduler::schedule)
-            }.exceptionOrNull()
-
-            ImportResult(
-                true,
-                if (reminderWarning == null) {
-                    "Copia restaurada correctamente. Se reconstruyeron los recordatorios futuros; abre Ajustes para reactivar el guardián flotante."
-                } else {
-                    "Copia restaurada, pero Android no pudo reconstruir todos los recordatorios. Revisa las tareas programadas."
-                }
-            )
-        } catch (error: Exception) {
-            val rollbackFailure = if (preferencesApplied) {
-                oldPreferences?.let { previous ->
-                    runCatching { preferencesRepository.restoreSnapshot(previous, allowGuardianEnabled = true) }.exceptionOrNull()
-                }
-            } else null
-            val suffix = if (rollbackFailure == null) "" else " Los datos no cambiaron, pero revisa los ajustes de la aplicación."
-            ImportResult(false, "No se pudo restaurar la copia: ${error.message ?: "error desconocido"}.$suffix")
-        }
-        }
+    /**
+     * Verificación posterior al commit: relee lo persistido y confirma que
+     * las cantidades coinciden con el backup y que las relaciones siguen
+     * siendo válidas (sin referencias huérfanas).
+     */
+    private suspend fun verifyRestored(validated: ValidatedBackup): Boolean {
+        val stored = backupStore.readAll()
+        if (!validated.data.countsMatch(stored)) return false
+        return runCatching { validateRelationships(stored) }.isSuccess
     }
 
     data class ImportResult(val success: Boolean, val message: String)
 
     companion object {
         private const val CURRENT_VERSION = 4
+
+        /** Nombre del journal preventivo en almacenamiento privado (ORD-022). */
+        const val PRE_RESTORE_BACKUP_FILENAME = "ordia_pre_restore_backup.json"
     }
 }
 
-private fun validateRelationships(
-    projects: List<ProjectEntity>,
-    tasks: List<TaskEntity>,
-    notes: List<NoteEntity>,
-    habits: List<HabitEntity>,
-    habitLogs: List<HabitLogEntity>,
-    focusSessions: List<FocusSessionEntity>,
-    routines: List<RoutineEntity>,
-    routineSteps: List<RoutineStepEntity>,
-    tags: List<TagEntity>,
-    taskTags: List<TaskTagCrossRef>,
-    attachments: List<AttachmentEntity>
-) {
+private fun validateRelationships(data: RestoreData) {
     fun requirePositiveUnique(label: String, ids: List<Long>): Set<Long> {
         require(ids.all { it > 0L }) { "$label contiene identificadores inválidos." }
         require(ids.toSet().size == ids.size) { "$label contiene identificadores duplicados." }
         return ids.toSet()
     }
-    val projectIds = requirePositiveUnique("Proyectos", projects.map { it.id })
-    val taskIds = requirePositiveUnique("Tareas", tasks.map { it.id })
-    val noteIds = requirePositiveUnique("Notas", notes.map { it.id })
-    val habitIds = requirePositiveUnique("Hábitos", habits.map { it.id })
-    requirePositiveUnique("Sesiones", focusSessions.map { it.id })
-    val routineIds = requirePositiveUnique("Rutinas", routines.map { it.id })
-    requirePositiveUnique("Pasos de rutina", routineSteps.map { it.id })
-    val tagIds = requirePositiveUnique("Etiquetas", tags.map { it.id })
-    requirePositiveUnique("Adjuntos", attachments.map { it.id })
-    require(tags.map { it.name }.toSet().size == tags.size) { "La copia contiene etiquetas duplicadas." }
+    val projectIds = requirePositiveUnique("Proyectos", data.projects.map { it.id })
+    val taskIds = requirePositiveUnique("Tareas", data.tasks.map { it.id })
+    val noteIds = requirePositiveUnique("Notas", data.notes.map { it.id })
+    val habitIds = requirePositiveUnique("Hábitos", data.habits.map { it.id })
+    requirePositiveUnique("Sesiones", data.focusSessions.map { it.id })
+    val routineIds = requirePositiveUnique("Rutinas", data.routines.map { it.id })
+    requirePositiveUnique("Pasos de rutina", data.routineSteps.map { it.id })
+    val tagIds = requirePositiveUnique("Etiquetas", data.tags.map { it.id })
+    requirePositiveUnique("Adjuntos", data.attachments.map { it.id })
+    require(data.tags.map { it.name }.toSet().size == data.tags.size) { "La copia contiene etiquetas duplicadas." }
 
-    tasks.forEach { task ->
+    data.tasks.forEach { task ->
         require(task.projectId == null || task.projectId in projectIds) { "Una tarea referencia un proyecto inexistente." }
         require(task.parentTaskId == null || (task.parentTaskId in taskIds && task.parentTaskId != task.id)) {
             "Una tarea tiene una relación padre inválida."
@@ -295,26 +350,26 @@ private fun validateRelationships(
             require(task.recurrenceDays.isBlank()) { "Una tarea no semanal contiene días de recurrencia inesperados." }
         }
     }
-    require(!BackupSecurityRules.hasParentCycle(tasks.associate { it.id to it.parentTaskId })) { "La copia contiene un ciclo entre subtareas." }
-    projects.forEach { project -> require(project.createdAt <= project.updatedAt) { "Un proyecto fue actualizado antes de ser creado." } }
-    notes.forEach { note ->
+    require(!BackupSecurityRules.hasParentCycle(data.tasks.associate { it.id to it.parentTaskId })) { "La copia contiene un ciclo entre subtareas." }
+    data.projects.forEach { project -> require(project.createdAt <= project.updatedAt) { "Un proyecto fue actualizado antes de ser creado." } }
+    data.notes.forEach { note ->
         require(note.projectId == null || note.projectId in projectIds) { "Una nota referencia un proyecto inexistente." }
         require(note.createdAt <= note.updatedAt) { "Una nota fue actualizada antes de ser creada." }
     }
-    habits.forEach { habit ->
+    data.habits.forEach { habit ->
         require(habit.createdAt <= habit.updatedAt) { "Un hábito fue actualizado antes de ser creado." }
         val allowed = if (habit.frequency == HabitFrequency.MONTHLY) 1..31 else 1..7
         require(BackupSecurityRules.parseUniqueDayList(habit.activeDays, allowed) != null) {
             "Un hábito contiene días activos inválidos."
         }
     }
-    habitLogs.forEach { log ->
+    data.habitLogs.forEach { log ->
         require(log.habitId in habitIds) { "Un registro referencia un hábito inexistente." }
     }
-    require(!BackupSecurityRules.hasDuplicatePairs(habitLogs.map { it.habitId to it.epochDay })) {
+    require(!BackupSecurityRules.hasDuplicatePairs(data.habitLogs.map { it.habitId to it.epochDay })) {
         "La copia contiene registros de hábitos duplicados."
     }
-    focusSessions.forEach { session ->
+    data.focusSessions.forEach { session ->
         require(session.taskId == null || session.taskId in taskIds) { "Una sesión referencia una tarea inexistente." }
         require(session.startedAt >= 0L) { "Una sesión contiene una fecha inicial inválida." }
         require(session.endedAt == null || session.endedAt >= session.startedAt) { "Una sesión termina antes de comenzar." }
@@ -326,18 +381,18 @@ private fun validateRelationships(
             require(session.actualMinutes == measured) { "El tiempo registrado de una sesión no coincide con su duración real." }
         }
     }
-    routines.forEach { routine -> require(routine.createdAt <= routine.updatedAt) { "Una rutina fue actualizada antes de ser creada." } }
-    routineSteps.forEach { step -> require(step.routineId in routineIds) { "Un paso referencia una rutina inexistente." } }
-    require(routineSteps.groupBy { it.routineId }.values.all { steps ->
+    data.routines.forEach { routine -> require(routine.createdAt <= routine.updatedAt) { "Una rutina fue actualizada antes de ser creada." } }
+    data.routineSteps.forEach { step -> require(step.routineId in routineIds) { "Un paso referencia una rutina inexistente." } }
+    require(data.routineSteps.groupBy { it.routineId }.values.all { steps ->
         steps.map { it.position }.toSet().size == steps.size
     }) { "Una rutina contiene posiciones de pasos duplicadas." }
-    taskTags.forEach { link ->
+    data.taskTags.forEach { link ->
         require(link.taskId in taskIds && link.tagId in tagIds) { "Una relación de etiqueta es inválida." }
     }
-    require(!BackupSecurityRules.hasDuplicatePairs(taskTags.map { it.taskId to it.tagId })) {
+    require(!BackupSecurityRules.hasDuplicatePairs(data.taskTags.map { it.taskId to it.tagId })) {
         "La copia contiene relaciones de etiquetas duplicadas."
     }
-    attachments.forEach { attachment ->
+    data.attachments.forEach { attachment ->
         val ownerExists = when (attachment.ownerType) {
             AttachmentOwnerType.TASK -> attachment.ownerId in taskIds
             AttachmentOwnerType.NOTE -> attachment.ownerId in noteIds
@@ -346,8 +401,6 @@ private fun validateRelationships(
         require(ownerExists) { "Un adjunto referencia un elemento inexistente." }
     }
 }
-
-
 
 private val REQUIRED_ITEM_FIELDS = mapOf(
     "projects" to setOf("id", "name", "description", "colorHex", "icon", "status", "targetDate", "archived", "createdAt", "updatedAt"),
