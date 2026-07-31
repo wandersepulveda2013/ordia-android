@@ -26,7 +26,7 @@ class ContextualSuggestionStore(context: Context) {
     }
 
     fun remove(id: String) = synchronized(lock) { write(read().filterNot { it.id == id }) }
-    fun clear() = synchronized(lock) { prefs.edit().remove(KEY_ITEMS).commit() }
+    fun clear() = synchronized(lock) { prefs.edit().remove(KEY_ITEMS).apply() }
 
     private fun read(): List<ContextualSuggestion> = runCatching {
         val array = JSONArray(prefs.getString(KEY_ITEMS, "[]") ?: "[]")
@@ -61,13 +61,15 @@ class ContextualSuggestionStore(context: Context) {
                 .put("sourcePackage", suggestion.sourcePackage ?: "")
                 .put("createdAt", suggestion.createdAt))
         }
-        check(prefs.edit().putString(KEY_ITEMS, array.toString()).commit()) { "No se pudo guardar la bandeja contextual." }
+        // apply() actualiza la memoria al instante y persiste en segundo plano
+        // (commit() bloqueaba el hilo llamante, ORD-016).
+        prefs.edit().putString(KEY_ITEMS, array.toString()).apply()
     }
 
     private fun saltedId(input: String): String {
         val salt = prefs.getString(KEY_SALT, null) ?: ByteArray(32).also(SecureRandom()::nextBytes)
             .joinToString("") { "%02x".format(it) }
-            .also { prefs.edit().putString(KEY_SALT, it).commit() }
+            .also { prefs.edit().putString(KEY_SALT, it).apply() }
         return MessageDigest.getInstance("SHA-256")
             .digest("$salt|$input".toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }

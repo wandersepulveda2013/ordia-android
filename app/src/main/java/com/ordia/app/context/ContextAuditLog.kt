@@ -88,6 +88,12 @@ class ContextAuditLog(context: Context) {
 
     /**
      * Obtiene todos los registros en orden cronológico descendente.
+     *
+     * NOTA (ORD-016): operación síncrona de SQLite. Los métodos de escritura
+     * de este registro se invocan desde [com.ordia.app.context.ContextEngine.processEventAsync]
+     * (Dispatchers.Default), nunca en main. Las lecturas (esta, [getStats],
+     * [exportAsJson]) no tienen aún llamadores en UI; cuando se conecten a una
+     * pantalla deben envolverse en `withContext(Dispatchers.IO)`.
      */
     fun getAllEntries(limit: Int = 100): List<AuditEntry> {
         val db = dbHelper.readableDatabase
