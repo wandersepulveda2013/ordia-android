@@ -2,10 +2,12 @@ package com.ordia.app.accessibility
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityManager
 import android.view.accessibility.AccessibilityNodeInfo
 import com.ordia.app.context.ContextCaptureSource
 import com.ordia.app.context.ContextEngine
@@ -44,9 +46,10 @@ class OrdiaAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         val info = AccessibilityServiceInfo().apply {
-            eventTypes = AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED or
-                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
-                AccessibilityEvent.TYPE_VIEW_CLICKED
+            // Solo eventos de cambio de texto: es lo único que procesa el
+            // handler. No registrar tipos que se ignoran ahorra batería y
+            // alinea la configuración con ordia_accessibility_config.xml.
+            eventTypes = AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
             notificationTimeout = 500
             flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
@@ -69,9 +72,12 @@ class OrdiaAccessibilityService : AccessibilityService() {
         // Verificar consentimiento: aplicación autorizada
         if (!isPackageAuthorized(packageName)) return
 
-        // Obtener el texto del evento
+        // Obtener el texto del evento (descarta campos password/masked)
+        val sourceIsPassword = event.source?.isPassword == true
         val text = getEventText(event) ?: return
-        if (text.isBlank() || text.length < 8) return
+
+        // Política de privacidad: nunca procesar campos sensibles ni textos triviales
+        if (!AccessibilityTextPolicy.shouldProcessText(text, sourceIsPassword)) return
 
         // Crear evento contextual y procesar (asíncrono, fuera del main)
         val contextEvent = ContextEvent(
@@ -119,24 +125,29 @@ class OrdiaAccessibilityService : AccessibilityService() {
 
     /** Obtiene texto de un evento de accesibilidad */
     private fun getEventText(event: AccessibilityEvent): String? {
-        // De los eventos de texto
-        val text = event.text?.joinToString(" ")?.trim()?.take(MAX_TEXT_LENGTH)
+        // De los eventos de texto (con tope de longitud)
+        val text = event.text?.joinToString(" ")?.trim()?.take(AccessibilityTextPolicy.MAX_TEXT_LENGTH)
         if (!text.isNullOrBlank()) return text
 
         // Del nodo raíz
         val source = event.source ?: return null
-        val nodeText = extractTextFromNode(source)
+        val nodeText = extractTextFromNode(source, 0)
         source.recycle()
         return nodeText
     }
 
-    /** Extrae texto de un nodo de accesibilidad */
-    private fun extractTextFromNode(node: AccessibilityNodeInfo): String? {
-        if (node.text != null) return node.text.toString().take(MAX_TEXT_LENGTH)
+    /** Extrae texto de un nodo de accesibilidad, con profundidad acotada */
+    private fun extractTextFromNode(node: AccessibilityNodeInfo, depth: Int): String? {
+        // ORD-035: nunca extraer texto de campos password/masked
+        if (AccessibilityTextPolicy.isSensitiveNode(node.isPassword)) return null
+        // ORD-034: la recursión no puede bajar más de MAX_NODE_DEPTH niveles
+        if (!AccessibilityTextPolicy.canDescend(depth)) return null
+
+        if (node.text != null) return node.text.toString().take(AccessibilityTextPolicy.MAX_TEXT_LENGTH)
         // Intentar con contenido
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
-            val text = extractTextFromNode(child)
+            val text = extractTextFromNode(child, depth + 1)
             child.recycle()
             if (text != null) return text
         }
@@ -177,7 +188,7 @@ class OrdiaAccessibilityService : AccessibilityService() {
     }
 
     private val prefs: SharedPreferences by lazy {
-        getSharedPreferences("ordia_accessibility", MODE_PRIVATE)
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
     }
 
     override fun onDestroy() {
@@ -187,14 +198,46 @@ class OrdiaAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "OrdiaAccessibility"
-        private const val KEY_ENABLED = "capture_enabled"
+        private const val PREFS_NAME = "ordia_accessibility"
+        const val KEY_ENABLED = "capture_enabled"
         private const val KEY_AUTHORIZED_PACKAGES = "authorized_packages"
-        private const val MAX_TEXT_LENGTH = 4_000
 
         const val ACTION_ENABLE = "com.ordia.app.action.ACCESSIBILITY_ENABLE"
         const val ACTION_DISABLE = "com.ordia.app.action.ACCESSIBILITY_DISABLE"
         const val ACTION_AUTHORIZE_PACKAGE = "com.ordia.app.action.AUTHORIZE_PACKAGE"
         const val ACTION_UNAUTHORIZE_PACKAGE = "com.ordia.app.action.UNAUTHORIZE_PACKAGE"
         const val EXTRA_PACKAGE_NAME = "package_name"
+
+        /** Estado de captura guardado por el usuario (UI y servicio comparten prefs). */
+        fun isCaptureEnabled(context: Context): Boolean =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getBoolean(KEY_ENABLED, false)
+
+        /**
+         * Activa/desactiva la captura. Persiste la preferencia y, si el
+         * servicio está vivo, le entrega la orden directamente. Si no está
+         * corriendo (no activado en ajustes del sistema), la preferencia se
+         * aplicará en la próxima conexión del servicio.
+         */
+        fun setCaptureEnabled(context: Context, enabled: Boolean) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit().putBoolean(KEY_ENABLED, enabled).apply()
+            runCatching {
+                context.startService(
+                    Intent(context, OrdiaAccessibilityService::class.java)
+                        .setAction(if (enabled) ACTION_ENABLE else ACTION_DISABLE)
+                )
+            }
+        }
+
+        /** ¿Está el servicio activado por el usuario en Ajustes → Accesibilidad? */
+        fun isServiceEnabledInSystem(context: Context): Boolean {
+            val manager = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
+                ?: return false
+            return manager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+                .any { service ->
+                    service.resolveInfo?.serviceInfo?.packageName == context.packageName &&
+                        service.resolveInfo.serviceInfo.name == OrdiaAccessibilityService::class.java.name
+                }
+        }
     }
 }

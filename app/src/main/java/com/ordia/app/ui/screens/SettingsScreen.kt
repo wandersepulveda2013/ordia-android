@@ -53,6 +53,7 @@ import com.ordia.app.BuildConfig
 import com.ordia.app.R
 import com.ordia.app.backup.BackupSecurityRules
 import com.ordia.app.OrdiaApplication
+import com.ordia.app.accessibility.OrdiaAccessibilityService
 import com.ordia.app.data.preferences.GuardianMode
 import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.data.preferences.InterfaceMode
@@ -84,6 +85,10 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
     var updateStatus by remember { mutableStateOf<String?>(null) }
     var guardianStatus by remember { mutableStateOf<String?>(null) }
     var quietStatus by remember { mutableStateOf<String?>(null) }
+    var accessibilityStatus by remember { mutableStateOf<String?>(null) }
+    var accessibilityEnabled by remember {
+        mutableStateOf(OrdiaAccessibilityService.isCaptureEnabled(context))
+    }
     var notificationsGranted by remember {
         mutableStateOf(
             Build.VERSION.SDK_INT < 33 ||
@@ -339,6 +344,41 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                 quietStatus?.let { status ->
                     Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+        }
+
+        if (BuildConfig.ADVANCED_CONTEXT_ENABLED) {
+            item { SectionHeader("Captura avanzada") }
+            item {
+                InfoBanner(
+                    "Solo con tu consentimiento",
+                    "Captura texto visible en pantalla para crear tareas y notas desde otras aplicaciones. Nunca procesa contraseñas, PIN, OTP ni campos sensibles, y solo funciona en aplicaciones que autorices."
+                )
+            }
+            item {
+                SettingSwitch(
+                    "Captura de pantalla avanzada",
+                    if (OrdiaAccessibilityService.isServiceEnabledInSystem(context)) {
+                        "El servicio está activado en Ajustes del sistema."
+                    } else {
+                        "Requiere activar «Ordía · captura de pantalla» en Ajustes del sistema."
+                    },
+                    accessibilityEnabled
+                ) { enabled ->
+                    accessibilityEnabled = enabled
+                    OrdiaAccessibilityService.setCaptureEnabled(context, enabled)
+                    accessibilityStatus = if (!enabled) {
+                        "Captura avanzada desactivada."
+                    } else if (OrdiaAccessibilityService.isServiceEnabledInSystem(context)) {
+                        "Captura avanzada activada. Autoriza aplicaciones para empezar."
+                    } else {
+                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        "Activa «Ordía · captura de pantalla» en Ajustes de accesibilidad para empezar."
+                    }
+                }
+            }
+            accessibilityStatus?.let { status ->
+                item { Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         }
 
