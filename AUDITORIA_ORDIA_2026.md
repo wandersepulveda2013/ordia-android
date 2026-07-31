@@ -64,20 +64,20 @@
 | ORD-034 | P3 | Accesibilidad | Recursión sin límite de profundidad en `extractTextFromNode`; config XML vs programática duplicada; eventos registrados que el handler ignora | `accessibility/OrdiaAccessibilityService.kt:35-48,120-130` | StackOverflow improbable; batería | Límite 10 niveles; alinear config | CORREGIDO (afc4095) — `AccessibilityTextPolicy.canDescend` ≤10 niveles; config XML alineada; `AccessibilityTextPolicyTest` 15/15 |
 | ORD-035 | P3 | Accesibilidad | `extractTextFromNode` no descarta nodos password/masked | `accessibility/OrdiaAccessibilityService.kt:120-130` | Fuga si el SO no redacta | Chequeo `isPassword()`/masked | CORREGIDO (afc4095) — `AccessibilityTextPolicy.isSensitiveNode` descarta nodos password/masked |
 | ORD-036 | P4 | Varios | Lint menor: `Autofill` (1), `ButtonStyle` (2), `StaticFieldLeak` (1), `DataExtractionRules` (1), `ObsoleteSdkInt` (4), `KaptUsageInsteadOfKsp` (1) | `lint-results-previewAdvancedDebug.xml` | Calidad | Corregir en iteraciones P4 | ABIERTO |
-| ORD-037 | P4 | Varios | `data_extraction_rules.xml`/`backup_rules.xml` sin referencia en el manifest (con `allowBackup=false`) | `app/src/main/AndroidManifest.xml:8-16` | Señal contradictoria | Referenciar o eliminar | ABIERTO |
+| ORD-037 | P4 | Varios | `data_extraction_rules.xml`/`backup_rules.xml` sin referencia en el manifest (con `allowBackup=false`) | `app/src/main/AndroidManifest.xml:8-16` | Señal contradictoria | Referenciar o eliminar | CORREGIDO — eliminados `res/xml/backup_rules.xml` y `res/xml/data_extraction_rules.xml` (config muerta: con `allowBackup=false` las reglas nunca se aplican; el app gestiona respaldo propio vía `BackupManager`); líneas retiradas de `artifacts/source-manifest.sha256` |
 
 ## Estado de corrección (rama `feature/ordia-audit-critical-fixes`)
 
 | Estado | P0 | P1 | P2 | P3 | P4 | Total |
 |---|---|---|---|---|---|---|
-| CORREGIDO | 3 | 8 | 12 | 5 | 0 | 28 |
+| CORREGIDO | 3 | 8 | 12 | 5 | 1 | 29 |
 | BLOQUEADO (CI: `app/schemas/` sin versionar) | 0 | 0 | 1 | 1 | 0 | 2 |
-| ABIERTO | 0 | 0 | 0 | 5 | 2 | 7 |
+| ABIERTO | 0 | 0 | 0 | 5 | 1 | 6 |
 | DESCARTADO | — | — | — | — | — | 2 (agentes) |
 
-Cerrados: ORD-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 016, 017, 018, 019, 020, 021, 022, 023, 024, 030, 031, 033, 034, 035.
+Cerrados: ORD-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 016, 017, 018, 019, 020, 021, 022, 023, 024, 030, 031, 033, 034, 035, 037.
 Bloqueados: ORD-015 (migración Room 1→2 sin test en CI), ORD-032 (FTS).
-Abiertos: P3 (ORD-025, 026, 027, 028, 029) y P4 (ORD-036, 037).
+Abiertos: P3 (ORD-025, 026, 027, 028, 029) y P4 (ORD-036).
 
 ### P0/P1 resumen
 

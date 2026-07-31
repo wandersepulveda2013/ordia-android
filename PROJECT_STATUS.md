@@ -32,7 +32,9 @@ Referencia completa de hallazgos y correcciones: [`AUDITORIA_ORDIA_2026.md`](AUD
 - 6 APKs generados; release R8 de ~16 MB con `DEBUGGABLE=false`; job `sign` del CI valida con `aapt2 dump badging`.
 - APK de entrega para el celular: `deliverables/Ordia-3.0-debug-2026-07-31.apk` (variante `previewAdvanced`, debug, 36.2 MB).
 - Wrapper de Gradle con `distributionSha256Sum` y validación en CI.
-- Hallazgos críticos de la auditoría: **3/3 P0 corregidos, 8/8 P1 corregidos, 12/12 P2 corregidos**; 2 bloqueos por CI documentados (ORD-015 migración Room, ORD-032 FTS) y 8 abiertos (P3/P4) sin impacto en la línea base.
+- Hallazgos críticos de la auditoría: **3/3 P0 corregidos, 8/8 P1 corregidos, 12/12 P2 corregidos**; 2 bloqueos por CI documentados (ORD-015 migración Room, ORD-032 FTS) y 6 abiertos (5 P3 + 1 P4) sin impacto en la línea base.
+- ORD-030 (labels de servicios) cerrado: manifests fuente y mergeados verificados como **UTF-8 válido** (el "mojibake" era un falso positivo de lectura Latin-1); corregido el acento del label del notification listener en `previewFull` ("Ordia" → "Ordía").
+- ORD-037 (reglas de backup muertas) cerrado: eliminados `res/xml/backup_rules.xml` y `data_extraction_rules.xml`, config inaplicable con `allowBackup=false`.
 - ORD-012 (batería overlay) corregido: el polling de 60 s del `GuardianOverlayService` se sustituyó por un one-shot que despierta solo en el próximo borde de quiet hours; `analyzeText` de "Preguntar" corre en `Dispatchers.Default`.
 - ORD-005 (filtro de paquetes) corregido: `ContextPrivacyFilter` se aplica ahora en `ContextEngine.processEventAsync` para todas las fuentes, antes de la inferencia local.
 - ORD-014 (TOFU del checksum del modelo) corregido: el SHA-256 verificado se fija localmente tras la primera descarga y las re-descargas no vuelven a confiar en el checksum remoto.
