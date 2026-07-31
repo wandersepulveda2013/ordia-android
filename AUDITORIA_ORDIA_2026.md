@@ -53,7 +53,7 @@
 | ORD-023 | P2 | Privacidad | Patrones "No detectar" guardados en claro (título derivado) en prefs `ordia_keyboard` sin límite | `ime/OrdiaKeyboardService.kt:410-421` | Persistencia en claro de frases | Guardar hash (`normalizeTokensHash`) + acotar | CORREGIDO (e90e941) — patrones "No detectar" persistidos como SHA-256 (`KeyboardPrivacyGuard.sha256Hex`) |
 | ORD-024 | P2 | Privacidad | Sin rate-limit por fuente/global en el pipeline contextual; solo debounce 1.5s (IME) y `notificationTimeout=500` (accesibilidad) | `context/ContextEngine.kt:43-109`; `ime/OrdiaKeyboardService.kt:267-278` | CPU/batería; ventana de procesamiento de texto ampliada | Rate-limiter por fuente (~2s + tope diario) | CORREGIDO (b8765f6) — `ContextRateLimiter` (JVM puro): mínimo 2 s entre eventos de la misma fuente y tope global de 500 eventos/día, descartando silenciosamente el exceso en `processEventAsync` antes de la inferencia local; `DiscardReason.RATE_LIMITED`; `ContextRateLimiterTest` 9 casos |
 | ORD-025 | P3 | BD | `TaskEntity.parentTaskId` sin self-FK: borrar tarea padre deja subtareas huérfanas | `data/local/Entities.kt:46` | Datos huérfanos | Self-FK con CASCADE/SET_NULL o validación en borrado | ABIERTO |
-| ORD-026 | P3 | i18n | 23 strings hardcodeadas en layouts con recursos YA existentes sin usar (lint `HardcodedText` 23, `UnusedResources` 26) | `res/layout/ordia_keyboard_view.xml`, `ordia_suggestion_card.xml`, `ordia_widget.xml`, `ordia_external_confirmation.xml` | Sin i18n; strings divergentes | Referenciar `@string/...` existentes | ABIERTO |
+| ORD-026 | P3 | i18n | 23 strings hardcodeadas en layouts con recursos YA existentes sin usar (lint `HardcodedText` 23, `UnusedResources` 26) | `res/layout/ordia_keyboard_view.xml`, `ordia_suggestion_card.xml`, `ordia_widget.xml`, `ordia_external_confirmation.xml` | Sin i18n; strings divergentes | Referenciar `@string/...` existentes | CORREGIDO — las 23 strings de los 4 layouts ahora referencian recursos: existentes (`keyboard_analyzing`, `keyboard_suggestion_add/edit/ignore`, `keyboard_guardian`, `keyboard_privacy`, `keyboard_dont_detect_similar`, `keyboard_pause_1h`, `external_suggestion_edit_title/cancel/save/add/edit/postpone/ignore`) y 8 nuevos con el mismo texto (`external_suggestion_title_hint`, `keyboard_suggestion_remind_short`, `suggestion_type_task`, `suggestion_no_date`, `widget_next_step`, `widget_all_clear`, `widget_zero_pending`, `widget_capture`). Lint `HardcodedText`: 23 → **0** en `previewAdvancedDebug`; `UnusedResources`: 26 → **9** (los restantes requieren cambios en Kotlin, ver ORD-029) |
 | ORD-027 | P3 | Accesibilidad | Touch targets < 48dp en `ordia_suggestion_card.xml` (32dp), `ordia_external_confirmation.xml` (40dp), `ordia_keyboard_view.xml` (32-36dp) | layouts XML | Accesibilidad táctil | Alturas mínimas 48dp | ABIERTO |
 | ORD-028 | P3 | Accesibilidad | ~22 iconos Compose clicables sin `contentDescription` (`Icon(..., null)`) | `ui/components/TaskComponents.kt:177-213`, `EditorDialogs.kt:108-149`, `AppComponents.kt:97-342`, `QuickCaptureActivity.kt:93` | TalkBack mudo | `contentDescription` descriptivo | ABIERTO |
 | ORD-029 | P3 | i18n | Textos hardcodeados en Compose y servicios (100+); varias cadenas existen en `strings.xml` sin usarse (p. ej. `external_suggestion_no_permission`) | `GuardianOverlayService.kt:195-204,443`, `QuickCaptureActivity.kt:72-139`, `Navigation.kt:170`, `OrdiaUpdateManager.kt:332-333` | Sin traducción | Centralizar en `strings.xml` + `stringResource` | ABIERTO |
@@ -70,14 +70,14 @@
 
 | Estado | P0 | P1 | P2 | P3 | P4 | Total |
 |---|---|---|---|---|---|---|
-| CORREGIDO | 3 | 8 | 12 | 5 | 1 | 29 |
+| CORREGIDO | 3 | 8 | 12 | 6 | 1 | 30 |
 | BLOQUEADO (CI: `app/schemas/` sin versionar) | 0 | 0 | 1 | 1 | 0 | 2 |
-| ABIERTO | 0 | 0 | 0 | 5 | 1 | 6 |
+| ABIERTO | 0 | 0 | 0 | 4 | 1 | 5 |
 | DESCARTADO | — | — | — | — | — | 2 (agentes) |
 
-Cerrados: ORD-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 016, 017, 018, 019, 020, 021, 022, 023, 024, 030, 031, 033, 034, 035, 037.
+Cerrados: ORD-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 016, 017, 018, 019, 020, 021, 022, 023, 024, 026, 030, 031, 033, 034, 035, 037.
 Bloqueados: ORD-015 (migración Room 1→2 sin test en CI), ORD-032 (FTS).
-Abiertos: P3 (ORD-025, 026, 027, 028, 029) y P4 (ORD-036).
+Abiertos: P3 (ORD-025, 027, 028, 029) y P4 (ORD-036).
 
 ### P0/P1 resumen
 
