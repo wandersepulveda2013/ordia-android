@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -49,9 +50,11 @@ import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.preferences.InterfaceMode
+import com.ordia.app.domain.DaySummary
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.GuardianEngine
 import com.ordia.app.domain.NaturalTaskParser
+import com.ordia.app.domain.SummaryEngine
 import com.ordia.app.domain.WhatNowEngine
 import com.ordia.app.domain.WhatNowReason
 import com.ordia.app.ui.OrdiaUiState
@@ -103,6 +106,7 @@ fun TodayScreen(
     val dayTotal = state.todayTasks.size + completedToday
     val dayProgress = if (dayTotal == 0) 0f else completedToday.toFloat() / dayTotal
     val whatNow = remember(state.tasks) { WhatNowEngine.suggest(state.tasks) }
+    val summary = remember(state.tasks) { SummaryEngine.summarize(state.tasks, System.currentTimeMillis()) }
     val guardian = GuardianEngine.snapshot(
         tasks = state.tasks,
         habits = state.habits,
@@ -269,6 +273,8 @@ fun TodayScreen(
                 }
             }
         }
+
+        item { DaySummaryCard(summary) }
 
         item {
             Card(
@@ -509,9 +515,90 @@ private fun whatNowReasonLabel(reason: WhatNowReason): String = when (reason) {
     WhatNowReason.SCHEDULED_LATER -> stringResource(R.string.what_now_reason_scheduled_later)
 }
 
+/**
+ * Resumen del día: lo completado hoy, lo pendiente con su estimación,
+ * las atrasadas, la bandeja por revisar y el ritmo semanal.
+ */
+@Composable
+private fun DaySummaryCard(summary: DaySummary) {
+    val narrative = when {
+        summary.overdue > 0 -> stringResource(
+            R.string.summary_line_overdue,
+            summary.overdue,
+            summary.remainingToday,
+            summary.remainingMinutesToday
+        )
+        summary.remainingToday > 0 -> stringResource(
+            R.string.summary_line_remaining,
+            summary.remainingToday,
+            summary.remainingMinutesToday
+        )
+        else -> stringResource(R.string.summary_no_remaining)
+    }
+    val weeklyAverage = String.format(composeLocale(), "%.1f", summary.weekDailyAverage)
+    val trend = when {
+        summary.completedThisWeek == 0 -> null
+        summary.completedToday > summary.weekDailyAverage * 1.2f -> stringResource(R.string.summary_week_ahead)
+        summary.completedToday * 1.2f < summary.weekDailyAverage -> stringResource(R.string.summary_week_behind)
+        else -> null
+    }
+    Card(
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                stringResource(R.string.summary_eyebrow),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                stringResource(R.string.summary_completed_pending, summary.completedToday, summary.remainingToday),
+                style = MaterialTheme.typography.titleLarge
+            )
+            Text(
+                narrative,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (summary.inboxPending > 0) {
+                Text(
+                    stringResource(R.string.summary_inbox, summary.inboxPending),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            Text(
+                stringResource(R.string.summary_week, summary.completedThisWeek, weeklyAverage),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            trend?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun greeting(): String = when (java.time.LocalTime.now().hour) {
     in 5..11 -> stringResource(R.string.today_greeting_morning)
     in 12..18 -> stringResource(R.string.today_greeting_afternoon)
     else -> stringResource(R.string.today_greeting_evening)
+}
+
+@Suppress("NonObservableLocale")
+@Composable
+private fun composeLocale(): java.util.Locale {
+    val locales = androidx.compose.ui.platform.LocalConfiguration.current.locales
+    return if (locales.isEmpty()) java.util.Locale.getDefault() else locales.get(0)
 }

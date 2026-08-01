@@ -41,6 +41,17 @@
     <string name="what_now_reason_scheduled_later">Programada para más tarde</string>
     <string name="what_now_empty">No hay nada pendiente ahora. Bien hecho.</string>
     <string name="what_now_open">Abrir</string>
+
+    <!-- Resumen de hoy (SummaryEngine, BLOQUE 8) -->
+    <string name="summary_eyebrow">RESUMEN DE HOY</string>
+    <string name="summary_completed_pending">%1$d completadas · %2$d para hoy</string>
+    <string name="summary_line_remaining">Quedan %1$d tareas para hoy (~%2$d min).</string>
+    <string name="summary_line_overdue">Tienes %1$d atrasadas y %2$d para hoy (~%3$d min).</string>
+    <string name="summary_no_remaining">No quedan tareas para hoy.</string>
+    <string name="summary_inbox">%1$d en la bandeja por revisar.</string>
+    <string name="summary_week">Esta semana: %1$d completadas · %2$s por día</string>
+    <string name="summary_week_ahead">Hoy vas por delante de tu promedio.</string>
+    <string name="summary_week_behind">Recupera ritmo: hoy vas por debajo de tu promedio.</string>
     <string name="today_stat_completed_support">histórico de tareas</string>
     <string name="today_stat_percent">%1$d%%</string>
     <string name="today_quick_capture_title">Captura inteligente</string>
