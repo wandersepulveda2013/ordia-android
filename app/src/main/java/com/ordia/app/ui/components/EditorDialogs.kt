@@ -1,4 +1,4 @@
-package com.ordia.app.ui.components
+﻿package com.ordia.app.ui.components
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
@@ -92,7 +92,7 @@ fun TaskEditorDialog(
         text = {
             Column(
                 Modifier.fillMaxWidth().heightIn(max = 620.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.external_suggestion_title_hint)) }, singleLine = true)
                 OutlinedTextField(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_task_details)) }, minLines = 2, maxLines = 4)
@@ -241,7 +241,7 @@ fun ProjectEditorDialog(existing: ProjectEntity? = null, onDismiss: () -> Unit, 
         onDismissRequest = onDismiss,
         title = { Text(if (existing == null) stringResource(R.string.dialog_project_new) else stringResource(R.string.dialog_project_edit)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_name)) }, singleLine = true)
                 OutlinedTextField(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_description)) }, minLines = 3)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -264,7 +264,7 @@ fun HabitEditorDialog(existing: HabitEntity? = null, onDismiss: () -> Unit, onSa
         onDismissRequest = onDismiss,
         title = { Text(if (existing == null) stringResource(R.string.dialog_habit_new) else stringResource(R.string.dialog_habit_edit)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_habit_title)) }, singleLine = true)
                 OutlinedTextField(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_habit_why)) }, minLines = 2)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -287,7 +287,7 @@ fun RoutineEditorDialog(existing: RoutineEntity? = null, existingSteps: List<Str
         onDismissRequest = onDismiss,
         title = { Text(if (existing == null) stringResource(R.string.dialog_routine_new) else stringResource(R.string.dialog_routine_edit)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_name)) }, singleLine = true)
                 OutlinedTextField(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_description)) }, minLines = 2)
                 OutlinedTextField(steps, { steps = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_routine_steps)) }, minLines = 5)
