@@ -372,6 +372,13 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             ) { scope.launch { repository.setGuardianAnimations(it) } }
         }
         item {
+            SettingSwitch(
+                stringResource(R.string.settings_learning_switch),
+                stringResource(R.string.settings_learning_desc),
+                state.preferences.learningEnabled
+            ) { scope.launch { repository.setLearningEnabled(it) } }
+        }
+        item {
             SettingsCard(null, stringResource(R.string.settings_card_quiet_hours)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(quietStart, { quietStart = it.take(5) }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_quiet_from)) }, singleLine = true)

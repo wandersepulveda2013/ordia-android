@@ -193,6 +193,8 @@
     <string name="settings_save_name">Guardar nombre</string>
     <string name="settings_guardian_animations">Animaciones del guardián</string>
     <string name="settings_guardian_animations_desc">Permite movimiento, parpadeo, reacciones y efectos de evolución.</string>
+    <string name="settings_learning_switch">Aprendizaje local</string>
+    <string name="settings_learning_desc">Ordía aprende de tus tareas completadas para ajustar tu planificador. Todo ocurre en tu dispositivo; nada sale del teléfono.</string>
     <string name="settings_card_quiet_hours">Horas de silencio</string>
     <string name="settings_quiet_from">Desde</string>
     <string name="settings_quiet_to">Hasta</string>

@@ -54,7 +54,8 @@ data class UserPreferences(
     val weekStartsMonday: Boolean = true,
     val defaultFocusMinutes: Int = 25,
     val reduceMotion: Boolean = false,
-    val compactNavigation: Boolean = false
+    val compactNavigation: Boolean = false,
+    val learningEnabled: Boolean = false
 ) {
     val darkMode: Boolean get() = themeMode == ThemeMode.DARK
 }
@@ -89,6 +90,7 @@ class PreferencesRepository(private val context: Context) : com.ordia.app.backup
         val defaultFocusMinutes = intPreferencesKey("default_focus_minutes")
         val reduceMotion = booleanPreferencesKey("reduce_motion")
         val compactNavigation = booleanPreferencesKey("compact_navigation")
+        val learningEnabled = booleanPreferencesKey("learning_enabled")
     }
 
     val preferences: Flow<UserPreferences> = context.ordiaDataStore.data
@@ -155,6 +157,7 @@ class PreferencesRepository(private val context: Context) : com.ordia.app.backup
     suspend fun setDefaultFocusMinutes(value: Int) = edit { it[Keys.defaultFocusMinutes] = value.coerceIn(5, 180) }
     suspend fun setReduceMotion(value: Boolean) = edit { it[Keys.reduceMotion] = value }
     suspend fun setCompactNavigation(value: Boolean) = edit { it[Keys.compactNavigation] = value }
+    suspend fun setLearningEnabled(value: Boolean) = edit { it[Keys.learningEnabled] = value }
     suspend fun setDarkMode(enabled: Boolean) = setThemeMode(if (enabled) ThemeMode.DARK else ThemeMode.LIGHT)
 
     override suspend fun exportJson(): JSONObject = preferences.first().toJson()
@@ -203,7 +206,8 @@ class PreferencesRepository(private val context: Context) : com.ordia.app.backup
             weekStartsMonday = values[Keys.weekStartsMonday] ?: true,
             defaultFocusMinutes = (values[Keys.defaultFocusMinutes] ?: 25).coerceIn(5, 180),
             reduceMotion = values[Keys.reduceMotion] ?: false,
-            compactNavigation = values[Keys.compactNavigation] ?: false
+            compactNavigation = values[Keys.compactNavigation] ?: false,
+            learningEnabled = values[Keys.learningEnabled] ?: false
         )
     }
 
@@ -230,6 +234,7 @@ class PreferencesRepository(private val context: Context) : com.ordia.app.backup
         .put("defaultFocusMinutes", defaultFocusMinutes)
         .put("reduceMotion", reduceMotion)
         .put("compactNavigation", compactNavigation)
+        .put("learningEnabled", learningEnabled)
 
     private fun JSONObject.toValidatedUserPreferences(): UserPreferences {
         val required = setOf(
@@ -289,7 +294,9 @@ class PreferencesRepository(private val context: Context) : com.ordia.app.backup
             weekStartsMonday = requiredBoolean("weekStartsMonday"),
             defaultFocusMinutes = focusMinutes,
             reduceMotion = requiredBoolean("reduceMotion"),
-            compactNavigation = requiredBoolean("compactNavigation")
+            compactNavigation = requiredBoolean("compactNavigation"),
+            // Opt-in reciente: se lee como opcional para no romper copias antiguas.
+            learningEnabled = if (has("learningEnabled")) getBoolean("learningEnabled") else false
         )
     }
 
@@ -369,6 +376,7 @@ class PreferencesRepository(private val context: Context) : com.ordia.app.backup
         values[Keys.defaultFocusMinutes] = value.defaultFocusMinutes
         values[Keys.reduceMotion] = value.reduceMotion
         values[Keys.compactNavigation] = value.compactNavigation
+        values[Keys.learningEnabled] = value.learningEnabled
     }
 
     private suspend fun edit(block: (MutablePreferences) -> Unit) {

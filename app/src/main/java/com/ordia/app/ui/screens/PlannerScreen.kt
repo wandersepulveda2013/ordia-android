@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayPlanner
+import com.ordia.app.domain.LearningEngine
 import com.ordia.app.domain.PlanReason
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.ui.OrdiaUiState
@@ -89,8 +90,16 @@ fun PlannerScreen(
     val weekStart = selectedDate.with(TemporalAdjusters.previousOrSame(weekStartDay))
     val week = (0..6).map { weekStart.plusDays(it.toLong()) }
     val tasksOnDate = state.pendingTasks.filter { TaskRules.isDueOn(it, selectedDate) }
-    val suggestedPlan = remember(state.tasks, selectedDate) {
-        DayPlanner.build(state.tasks, selectedDate)
+    val suggestedPlan = remember(state.tasks, selectedDate, state.preferences.learningEnabled) {
+        val profile = if (state.preferences.learningEnabled) {
+            LearningEngine.learn(state.tasks, System.currentTimeMillis())
+        } else null
+        DayPlanner.build(
+            state.tasks,
+            selectedDate,
+            dayStartMinute = profile?.dayStartMinute ?: 9 * 60,
+            dayEndMinute = profile?.dayEndMinute ?: 18 * 60
+        )
     }
 
     LazyColumn(

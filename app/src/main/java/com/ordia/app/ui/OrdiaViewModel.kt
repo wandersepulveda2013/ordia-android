@@ -40,6 +40,8 @@ import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayPlanner
 import com.ordia.app.domain.GuardianCoach
 import com.ordia.app.domain.HabitRules
+import com.ordia.app.domain.LearningEngine
+import com.ordia.app.domain.LearningProfile
 import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockCodec
 import com.ordia.app.domain.NaturalTaskParser
@@ -687,13 +689,31 @@ class OrdiaViewModel(
      * automatización con tipo "replan" para poder deshacerla.
      */
     fun replanDay(date: java.time.LocalDate) = viewModelScope.launch {
-        val plan = DayPlanner.build(uiState.value.tasks, date, includeScheduledOnDate = true)
+        val profile = plannerProfile()
+        val plan = DayPlanner.build(
+            uiState.value.tasks,
+            date,
+            dayStartMinute = profile?.dayStartMinute ?: 9 * 60,
+            dayEndMinute = profile?.dayEndMinute ?: 18 * 60,
+            includeScheduledOnDate = true
+        )
         if (plan.blocks.isEmpty()) {
             _events.emit(UiEvent.Message(appContext.getString(R.string.planner_replan_none)))
             return@launch
         }
         val message = applyBlocks(plan, plan.blocks, "replan")
         _events.emit(UiEvent.AutomationApplied(message.first, message.second))
+    }
+
+    /**
+     * Perfil de horarios aprendido localmente (opt-in). Devuelve null si el
+     * usuario no activó el aprendizaje; entonces se usan los valores fijos.
+     */
+    private fun plannerProfile(): LearningProfile? {
+        val prefs = uiState.value.preferences
+        return if (prefs.learningEnabled) {
+            LearningEngine.learn(uiState.value.tasks, System.currentTimeMillis())
+        } else null
     }
 
     /** Comparte la lógica de aplicar bloques: snapshot previo, update y log. */
