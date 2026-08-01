@@ -87,7 +87,7 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
 
         item {
             Card(
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(30.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Row(

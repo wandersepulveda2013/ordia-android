@@ -80,7 +80,7 @@ fun TaskRow(
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true }),
-        shape = RoundedCornerShape(22.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = if (task.completed) {
                 MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.72f)
@@ -92,16 +92,16 @@ fun TaskRow(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.78f))
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(start = 8.dp, top = 10.dp, end = 6.dp, bottom = 10.dp),
+            Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, end = 6.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(Modifier.width(4.dp).height(48.dp), contentAlignment = Alignment.Center) {
-                Surface(Modifier.width(4.dp).height(40.dp), shape = CircleShape, color = accent) {}
+            Box(Modifier.width(4.dp).height(46.dp), contentAlignment = Alignment.Center) {
+                Surface(Modifier.width(4.dp).height(38.dp), shape = CircleShape, color = accent) {}
             }
             Checkbox(checked = task.completed, onCheckedChange = { onToggle() })
             Column(
                 Modifier.weight(1f).padding(start = 2.dp),
-                verticalArrangement = Arrangement.spacedBy(7.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     Text(

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -108,7 +107,7 @@ fun PlannerScreen(
                     val selected = date == selectedDate
                     Surface(
                         modifier = Modifier.clickable { selectedDate = date; month = YearMonth.from(date) },
-                        shape = RoundedCornerShape(18.dp),
+                        shape = MaterialTheme.shapes.small,
                         color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
                         contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                         border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
