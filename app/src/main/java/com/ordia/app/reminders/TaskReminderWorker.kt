@@ -29,7 +29,7 @@ class TaskReminderWorker(
         if (taskId <= 0L) return Result.failure()
         val app = applicationContext as? OrdiaApplication ?: return Result.failure()
         val task = app.container.taskRepository.get(taskId) ?: return Result.success()
-        if (task.completed || task.archived) return Result.success()
+        if (task.completed || task.archived || task.status == com.ordia.app.data.local.TaskStatus.CANCELLED) return Result.success()
 
         val preferences = app.container.preferencesRepository.preferences.first()
         val now = Instant.now().atZone(ZoneId.systemDefault())

@@ -50,6 +50,19 @@
             android:name=".reminders.ReminderActionReceiver"
             android:exported="false" />
 
+        <!-- Re-sincroniza recordatorios al cambiar hora, fecha o zona horaria.
+             No usa BOOT_COMPLETED para no añadir permisos: WorkManager restaura
+             sus trabajos tras reinicio. -->
+        <receiver
+            android:name=".reminders.ReminderResyncReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".widget.OrdiaWidgetProvider"
             android:exported="true">
