@@ -71,4 +71,9 @@
     <string name="component_guardian_mood_playful">juguetón</string>
     <string name="component_guardian_mood_concerned">preocupado</string>
     <string name="component_guardian_description">Guardián de Ordia, estado %1$s</string>
+
+    <!-- Estados base (rediseño limpio). -->
+    <string name="component_loading">Cargando…</string>
+    <string name="component_error_title">No se pudo cargar</string>
+    <string name="component_error_retry">Reintentar</string>
 </resources>

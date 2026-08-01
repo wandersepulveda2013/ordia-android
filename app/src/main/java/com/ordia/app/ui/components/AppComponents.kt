@@ -26,6 +26,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -163,14 +164,14 @@ fun StatCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(22.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.78f))
     ) {
         Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(7.dp)
+            Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(
                 Modifier.fillMaxWidth(),
@@ -184,13 +185,13 @@ fun StatCard(
                 )
                 Surface(shape = CircleShape, color = accent.copy(alpha = 0.14f)) {
                     if (icon != null) {
-                        Icon(icon, null, Modifier.padding(7.dp).size(16.dp), tint = accent)
+                        Icon(icon, null, Modifier.padding(6.dp).size(15.dp), tint = accent)
                     } else {
                         Box(Modifier.padding(10.dp).size(6.dp).background(accent, CircleShape))
                     }
                 }
             }
-            Text(value, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text(value, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
             if (supporting != null) {
                 Text(
                     supporting,
@@ -212,29 +213,148 @@ fun EmptyState(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth().ordiaWorkSurface(),
-        shape = RoundedCornerShape(28.dp),
+        shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
-            Modifier.padding(horizontal = 28.dp, vertical = 32.dp),
+            Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(9.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            GuardianAvatar(62.dp)
-            Text(title, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+            GuardianAvatar(48.dp)
+            Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
             Text(
                 description,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
             if (actionLabel != null && onAction != null) {
-                Spacer(Modifier.height(4.dp))
-                Button(onClick = onAction) {
+                Spacer(Modifier.height(2.dp))
+                Button(
+                    onClick = onAction,
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                ) {
                     Text(actionLabel)
-                    Icon(Icons.Outlined.ArrowForward, null, Modifier.padding(start = 8.dp).size(17.dp))
+                    Icon(Icons.Outlined.ArrowForward, null, Modifier.padding(start = 6.dp).size(16.dp))
                 }
+            }
+        }
+    }
+}
+
+/** Fila de lista reutilizable (rediseño limpio): título, soporte, icono y acción opcionales. */
+@Composable
+fun OrdiaListItem(
+    title: String,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    subtitle: String? = null,
+    icon: ImageVector? = null,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+    trailing: (@Composable () -> Unit)? = null
+) {
+    val base = modifier
+        .fillMaxWidth()
+        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+    Row(
+        base.padding(horizontal = 4.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (icon != null) {
+            Surface(shape = MaterialTheme.shapes.small, color = iconTint.copy(alpha = 0.13f)) {
+                Icon(icon, null, Modifier.padding(9.dp).size(19.dp), tint = iconTint)
+            }
+            Spacer(Modifier.width(12.dp))
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        if (trailing != null) {
+            Spacer(Modifier.width(10.dp))
+            trailing()
+        }
+    }
+}
+
+/** Etiqueta tipo píldora para estados (rediseño limpio). */
+@Composable
+fun StatusBadge(
+    text: String,
+    modifier: Modifier = Modifier,
+    background: Color = MaterialTheme.colorScheme.primaryContainer,
+    content: Color = MaterialTheme.colorScheme.onPrimaryContainer
+) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(999.dp), color = background) {
+        Text(
+            text,
+            Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = content,
+            maxLines = 1
+        )
+    }
+}
+
+/** Estado de carga (rediseño limpio). */
+@Composable
+fun OrdiaLoading(modifier: Modifier = Modifier, label: String? = null) {
+    Column(
+        modifier.fillMaxWidth().padding(vertical = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        CircularProgressIndicator(Modifier.size(26.dp), strokeWidth = 3.dp)
+        Text(
+            label ?: stringResource(R.string.component_loading),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/** Estado de error con reintento opcional (rediseño limpio). */
+@Composable
+fun OrdiaError(
+    modifier: Modifier = Modifier,
+    message: String? = null,
+    onRetry: (() -> Unit)? = null
+) {
+    Column(
+        modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(stringResource(R.string.component_error_title), style = MaterialTheme.typography.titleMedium)
+        if (message != null) {
+            Text(
+                message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+        if (onRetry != null) {
+            OutlinedButton(
+                onClick = onRetry,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(stringResource(R.string.component_error_retry))
             }
         }
     }
@@ -346,7 +466,7 @@ fun ActionCard(
     Card(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(22.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
     ) {
@@ -380,7 +500,7 @@ fun SectionSurface(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(26.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
     ) {
