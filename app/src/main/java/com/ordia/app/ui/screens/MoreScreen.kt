@@ -52,6 +52,7 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
     )
     val daily = listOf(
         MoreEntry(Destination.Inbox, stringResource(R.string.more_inbox_desc), state.inboxTasks.size.toString(), MaterialTheme.colorScheme.primary),
+        MoreEntry(Destination.Planner, stringResource(R.string.more_planner_desc), null, MaterialTheme.colorScheme.secondary),
         MoreEntry(Destination.Focus, stringResource(R.string.more_focus_desc), stringResource(R.string.more_focus_minutes_badge, state.focusMinutesThisWeek), MaterialTheme.colorScheme.tertiary),
         MoreEntry(Destination.Search, stringResource(R.string.more_search_desc), null, MaterialTheme.colorScheme.secondary),
         MoreEntry(Destination.Guardian, stringResource(R.string.more_guardian_desc), stringResource(R.string.more_guardian_level_badge, guardian.level), MaterialTheme.colorScheme.tertiary),

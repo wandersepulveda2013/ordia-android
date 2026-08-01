@@ -19,6 +19,12 @@ enum class HabitFrequency { DAILY, WEEKLY, MONTHLY }
 
 enum class AttachmentOwnerType { TASK, NOTE, PROJECT }
 
+enum class CaptureSource { COMPOSER, SHARE, PROCESS_TEXT, VOICE, CLIPBOARD, ATTACHMENT, KEYBOARD, WIDGET }
+
+enum class CaptureTarget { AUTO, INBOX, TASK, NOTE, REMINDER }
+
+enum class CaptureStatus { PENDING, PROCESSED, FAILED }
+
 @Entity(
     tableName = "tasks",
     foreignKeys = [
@@ -237,3 +243,42 @@ data class AutomationLogEntity(
     @ColumnInfo(defaultValue = "0") val undone: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 )
+
+/**
+ * Historial duradero de la captura universal. El contenido se inserta antes
+ * de intentar transformarlo; por eso ni un fallo del analizador ni un cierre
+ * durante la conversión puede hacer desaparecer la entrada original.
+ */
+@Entity(
+    tableName = "captures",
+    indices = [Index("createdAt"), Index("status"), Index("fingerprint")]
+)
+data class CaptureEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val content: String,
+    val source: CaptureSource = CaptureSource.COMPOSER,
+    val requestedTarget: CaptureTarget = CaptureTarget.AUTO,
+    val resolvedTarget: CaptureTarget = CaptureTarget.INBOX,
+    val status: CaptureStatus = CaptureStatus.PENDING,
+    @ColumnInfo(defaultValue = "''") val attachmentUri: String = "",
+    @ColumnInfo(defaultValue = "''") val mimeType: String = "",
+    @ColumnInfo(defaultValue = "''") val fingerprint: String = "",
+    @ColumnInfo(defaultValue = "''") val resultType: String = "",
+    val resultId: Long? = null,
+    @ColumnInfo(defaultValue = "''") val errorCode: String = "",
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+/** Un único borrador principal recuperable, extensible a más slots en el futuro. */
+@Entity(tableName = "capture_drafts")
+data class CaptureDraftEntity(
+    @PrimaryKey val slot: String = PRIMARY_SLOT,
+    val content: String = "",
+    val target: CaptureTarget = CaptureTarget.AUTO,
+    @ColumnInfo(defaultValue = "''") val attachmentUri: String = "",
+    @ColumnInfo(defaultValue = "''") val mimeType: String = "",
+    val updatedAt: Long = System.currentTimeMillis()
+) {
+    companion object { const val PRIMARY_SLOT = "main" }
+}

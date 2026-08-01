@@ -21,6 +21,15 @@ class Converters {
     @TypeConverter fun attachmentOwnerToString(value: AttachmentOwnerType): String = value.name
     @TypeConverter fun stringToAttachmentOwner(value: String): AttachmentOwnerType = enumOrDefault(value, AttachmentOwnerType.NOTE)
 
+    @TypeConverter fun captureSourceToString(value: CaptureSource): String = value.name
+    @TypeConverter fun stringToCaptureSource(value: String): CaptureSource = enumOrDefault(value, CaptureSource.COMPOSER)
+
+    @TypeConverter fun captureTargetToString(value: CaptureTarget): String = value.name
+    @TypeConverter fun stringToCaptureTarget(value: String): CaptureTarget = enumOrDefault(value, CaptureTarget.AUTO)
+
+    @TypeConverter fun captureStatusToString(value: CaptureStatus): String = value.name
+    @TypeConverter fun stringToCaptureStatus(value: String): CaptureStatus = enumOrDefault(value, CaptureStatus.PENDING)
+
     private inline fun <reified T : Enum<T>> enumOrDefault(value: String, fallback: T): T =
         runCatching { enumValueOf<T>(value) }.getOrDefault(fallback)
 }

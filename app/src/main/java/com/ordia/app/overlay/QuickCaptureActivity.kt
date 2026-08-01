@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognizerIntent
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,11 +35,16 @@ import androidx.lifecycle.lifecycleScope
 import com.ordia.app.OrdiaApplication
 import com.ordia.app.R
 import com.ordia.app.data.local.NoteEntity
+import com.ordia.app.data.local.CaptureEntity
+import com.ordia.app.data.local.CaptureSource
+import com.ordia.app.data.local.CaptureStatus
+import com.ordia.app.data.local.CaptureTarget
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockCodec
 import com.ordia.app.domain.NaturalTaskParser
+import com.ordia.app.domain.UniversalCaptureEngine
 import com.ordia.app.ui.theme.OrdiaTheme
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -112,29 +118,84 @@ class QuickCaptureActivity : ComponentActivity() {
                                 onClick = {
                                     val clean = text.trim()
                                     lifecycleScope.launch {
-                                        if (mode == MODE_NOTE) {
-                                            container.noteRepository.add(
-                                                NoteEntity(
-                                                    title = clean.lineSequence().firstOrNull()?.take(60).orEmpty().ifBlank { quickNoteFallback },
-                                                    body = clean,
-                                                    blocksData = NoteBlockCodec.encode(listOf(NoteBlock(text = clean)))
+                                        val requestedTarget = if (mode == MODE_NOTE) CaptureTarget.NOTE else CaptureTarget.TASK
+                                        val source = if (dictatedText.value.isNotBlank()) CaptureSource.VOICE else CaptureSource.COMPOSER
+                                        val interpretation = UniversalCaptureEngine.interpret(clean, requestedTarget)
+                                        val now = System.currentTimeMillis()
+                                        var capture = CaptureEntity(
+                                            content = clean,
+                                            source = source,
+                                            requestedTarget = requestedTarget,
+                                            resolvedTarget = interpretation.target,
+                                            status = CaptureStatus.PENDING,
+                                            fingerprint = UniversalCaptureEngine.fingerprint(clean),
+                                            createdAt = now,
+                                            updatedAt = now
+                                        )
+                                        runCatching {
+                                            val captureId = container.captureRepository.insert(capture)
+                                            capture = capture.copy(id = captureId)
+                                            val result = if (mode == MODE_NOTE) {
+                                                "NOTE" to container.noteRepository.add(
+                                                    NoteEntity(
+                                                        title = interpretation.title.take(60).ifBlank { quickNoteFallback },
+                                                        body = clean,
+                                                        blocksData = NoteBlockCodec.encode(listOf(NoteBlock(text = clean))),
+                                                        createdAt = now,
+                                                        updatedAt = now
+                                                    )
+                                                )
+                                            } else {
+                                                val parsed = interpretation.parsedTask ?: NaturalTaskParser.parse(clean)
+                                                val reminderAt = parsed.reminderOffsetMinutes
+                                                    ?.takeIf { parsed.dueAt != null }
+                                                    ?.let { offset -> parsed.dueAt!! - offset * 60_000L }
+                                                val task = TaskEntity(
+                                                    title = parsed.title,
+                                                    details = clean,
+                                                    dueAt = parsed.dueAt,
+                                                    reminderAt = reminderAt,
+                                                    durationMinutes = parsed.durationMinutes ?: 25,
+                                                    priority = parsed.priority,
+                                                    recurrence = parsed.recurrence,
+                                                    recurrenceInterval = parsed.recurrenceInterval,
+                                                    recurrenceDays = parsed.recurrenceDays,
+                                                    status = if (parsed.dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED,
+                                                    createdAt = now,
+                                                    updatedAt = now
+                                                )
+                                                val taskId = container.taskRepository.add(task)
+                                                if (task.dueAt != null || task.reminderAt != null) {
+                                                    container.reminderScheduler.schedule(task.copy(id = taskId))
+                                                }
+                                                "TASK" to taskId
+                                            }
+                                            container.captureRepository.update(
+                                                capture.copy(
+                                                    status = CaptureStatus.PROCESSED,
+                                                    resultType = result.first,
+                                                    resultId = result.second,
+                                                    updatedAt = System.currentTimeMillis()
                                                 )
                                             )
-                                        } else {
-                                            val parsed = NaturalTaskParser.parse(clean)
-                                            val task = TaskEntity(
-                                                title = parsed.title,
-                                                dueAt = parsed.dueAt,
-                                                priority = parsed.priority,
-                                                status = if (parsed.dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED
-                                            )
-                                            val taskId = container.taskRepository.add(task)
-                                            if (task.dueAt != null) {
-                                                container.reminderScheduler.schedule(task.copy(id = taskId))
+                                            com.ordia.app.widget.OrdiaWidgetUpdater.updateAll(this@QuickCaptureActivity)
+                                            finish()
+                                        }.onFailure { error ->
+                                            if (capture.id > 0L) {
+                                                container.captureRepository.update(
+                                                    capture.copy(
+                                                        status = CaptureStatus.FAILED,
+                                                        errorCode = error.javaClass.simpleName.take(80),
+                                                        updatedAt = System.currentTimeMillis()
+                                                    )
+                                                )
                                             }
+                                            Toast.makeText(
+                                                this@QuickCaptureActivity,
+                                                R.string.quick_capture_save_failed,
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
-                                        com.ordia.app.widget.OrdiaWidgetUpdater.updateAll(this@QuickCaptureActivity)
-                                        finish()
                                     }
                                 },
                                 enabled = text.isNotBlank(),

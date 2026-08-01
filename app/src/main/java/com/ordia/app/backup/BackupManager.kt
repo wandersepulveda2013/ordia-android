@@ -2,6 +2,11 @@ package com.ordia.app.backup
 
 import com.ordia.app.data.local.AttachmentEntity
 import com.ordia.app.data.local.AttachmentOwnerType
+import com.ordia.app.data.local.CaptureDraftEntity
+import com.ordia.app.data.local.CaptureEntity
+import com.ordia.app.data.local.CaptureSource
+import com.ordia.app.data.local.CaptureStatus
+import com.ordia.app.data.local.CaptureTarget
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitFrequency
@@ -83,6 +88,8 @@ class BackupManager(
         root.put("tags", JSONArray().apply { current.tags.forEach { put(it.toJson()) } })
         root.put("taskTags", JSONArray().apply { current.taskTags.forEach { put(it.toJson()) } })
         root.put("attachments", JSONArray().apply { current.attachments.forEach { put(it.toJson()) } })
+        root.put("captures", JSONArray().apply { current.captures.forEach { put(it.toJson()) } })
+        root.put("captureDrafts", JSONArray().apply { current.captureDrafts.forEach { put(it.toJson()) } })
         val contentJson = root.toString(2)
         require(BackupSecurityRules.inputSizeAllowed(contentJson.toByteArray(Charsets.UTF_8).size)) {
             "La copia supera el límite seguro de 10 MB. Reduce notas o adjuntos registrados antes de exportar."
@@ -244,9 +251,10 @@ class BackupManager(
             }
         }
 
-        val presentCollections = BackupSecurityRules.requiredCollections.filterTo(mutableSetOf()) { root.has(it) }
-        if (!BackupSecurityRules.hasAllCollections(presentCollections)) {
-            val missing = (BackupSecurityRules.requiredCollections - presentCollections).sorted().joinToString()
+        val requiredForVersion = BackupSecurityRules.requiredCollectionsFor(version)
+        val presentCollections = requiredForVersion.filterTo(mutableSetOf()) { root.has(it) }
+        if (!BackupSecurityRules.hasAllCollections(presentCollections, version)) {
+            val missing = (requiredForVersion - presentCollections).sorted().joinToString()
             throw IllegalArgumentException("La copia está incompleta. Faltan: $missing.")
         }
         if (version >= 3 && root.optJSONObject("preferences") == null) {
@@ -265,7 +273,13 @@ class BackupManager(
             routineSteps = root.requiredArray("routineSteps").validatedMap("routineSteps") { it.toRoutineStep() },
             tags = root.requiredArray("tags").validatedMap("tags") { it.toTag() },
             taskTags = root.requiredArray("taskTags").validatedMap("taskTags") { it.toTaskTag() },
-            attachments = root.requiredArray("attachments").validatedMap("attachments") { it.toAttachment() }
+            attachments = root.requiredArray("attachments").validatedMap("attachments") { it.toAttachment() },
+            captures = if (version >= 5) {
+                root.requiredArray("captures").validatedMap("captures") { it.toCapture() }
+            } else emptyList(),
+            captureDrafts = if (version >= 5) {
+                root.requiredArray("captureDrafts").validatedMap("captureDrafts") { it.toCaptureDraft() }
+            } else emptyList()
         )
         val total = data.totalCount
         require(BackupSecurityRules.totalSizeAllowed(total)) { "La copia contiene demasiados registros." }
@@ -303,7 +317,7 @@ class BackupManager(
     data class ImportResult(val success: Boolean, val message: String)
 
     companion object {
-        private const val CURRENT_VERSION = 4
+        private const val CURRENT_VERSION = BackupSecurityRules.CURRENT_EXPORT_VERSION
 
         /** Nombre del journal preventivo en almacenamiento privado (ORD-022). */
         const val PRE_RESTORE_BACKUP_FILENAME = "ordia_pre_restore_backup.json"
@@ -325,7 +339,11 @@ private fun validateRelationships(data: RestoreData) {
     requirePositiveUnique("Pasos de rutina", data.routineSteps.map { it.id })
     val tagIds = requirePositiveUnique("Etiquetas", data.tags.map { it.id })
     requirePositiveUnique("Adjuntos", data.attachments.map { it.id })
+    requirePositiveUnique("Capturas", data.captures.map { it.id })
     require(data.tags.map { it.name }.toSet().size == data.tags.size) { "La copia contiene etiquetas duplicadas." }
+    require(data.captureDrafts.map { it.slot }.toSet().size == data.captureDrafts.size) {
+        "La copia contiene borradores de captura duplicados."
+    }
 
     data.tasks.forEach { task ->
         require(task.projectId == null || task.projectId in projectIds) { "Una tarea referencia un proyecto inexistente." }
@@ -400,6 +418,24 @@ private fun validateRelationships(data: RestoreData) {
         }
         require(ownerExists) { "Un adjunto referencia un elemento inexistente." }
     }
+    data.captures.forEach { capture ->
+        require(capture.createdAt <= capture.updatedAt) { "Una captura fue actualizada antes de crearse." }
+        require(capture.content.isNotBlank() || capture.attachmentUri.isNotBlank()) { "Una captura está vacía." }
+        require(Regex("^[0-9a-f]{64}$").matches(capture.fingerprint)) { "Una captura tiene una huella inválida." }
+        if (capture.status == CaptureStatus.PROCESSED) {
+            val resultId = requireNotNull(capture.resultId) { "Una captura procesada no contiene resultado." }
+            val validResult = when (capture.resultType) {
+                "TASK" -> resultId in taskIds
+                "NOTE" -> resultId in noteIds
+                else -> false
+            }
+            require(validResult) { "Una captura procesada referencia un resultado inexistente." }
+        }
+    }
+    data.captureDrafts.forEach { draft ->
+        require(Regex("^[A-Za-z0-9_-]{1,64}$").matches(draft.slot)) { "Un borrador tiene un identificador inválido." }
+        require(draft.updatedAt in 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS) { "Un borrador contiene una fecha inválida." }
+    }
 }
 
 private val REQUIRED_ITEM_FIELDS = mapOf(
@@ -413,7 +449,9 @@ private val REQUIRED_ITEM_FIELDS = mapOf(
     "routineSteps" to setOf("id", "routineId", "title", "durationMinutes", "position"),
     "tags" to setOf("id", "name", "colorHex"),
     "taskTags" to setOf("taskId", "tagId"),
-    "attachments" to setOf("id", "ownerType", "ownerId", "uri", "displayName", "mimeType", "sizeBytes", "createdAt")
+    "attachments" to setOf("id", "ownerType", "ownerId", "uri", "displayName", "mimeType", "sizeBytes", "createdAt"),
+    "captures" to setOf("id", "content", "source", "requestedTarget", "resolvedTarget", "status", "attachmentUri", "mimeType", "fingerprint", "resultType", "resultId", "errorCode", "createdAt", "updatedAt"),
+    "captureDrafts" to setOf("slot", "content", "target", "attachmentUri", "mimeType", "updatedAt")
 )
 
 private fun JSONObject.requiredArray(name: String): JSONArray =
@@ -606,6 +644,69 @@ private fun JSONObject.toAttachment() = AttachmentEntity(
     },
     sizeBytes = longValue("sizeBytes", 0L, 0L..Long.MAX_VALUE), createdAt = longValue("createdAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
 )
+
+private fun CaptureEntity.toJson() = JSONObject()
+    .put("id", id)
+    .put("content", content)
+    .put("source", source.name)
+    .put("requestedTarget", requestedTarget.name)
+    .put("resolvedTarget", resolvedTarget.name)
+    .put("status", status.name)
+    .put("attachmentUri", attachmentUri)
+    .put("mimeType", mimeType)
+    .put("fingerprint", fingerprint)
+    .put("resultType", resultType)
+    .putNullable("resultId", resultId)
+    .put("errorCode", errorCode)
+    .put("createdAt", createdAt)
+    .put("updatedAt", updatedAt)
+
+private fun JSONObject.toCapture() = CaptureEntity(
+    id = requiredLong("id"),
+    content = text("content", 100_000),
+    source = enumValue("source", CaptureSource.COMPOSER),
+    requestedTarget = enumValue("requestedTarget", CaptureTarget.AUTO),
+    resolvedTarget = enumValue("resolvedTarget", CaptureTarget.INBOX),
+    status = enumValue("status", CaptureStatus.PENDING),
+    attachmentUri = optionalContentUri("attachmentUri"),
+    mimeType = text("mimeType", 500),
+    fingerprint = requiredText("fingerprint", 64).also {
+        require(Regex("^[0-9a-f]{64}$").matches(it)) { "La huella de una captura no es válida." }
+    },
+    resultType = text("resultType", 32),
+    resultId = longOrNull("resultId"),
+    errorCode = text("errorCode", 80),
+    createdAt = longValue("createdAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS),
+    updatedAt = longValue("updatedAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
+)
+
+private fun CaptureDraftEntity.toJson() = JSONObject()
+    .put("slot", slot)
+    .put("content", content)
+    .put("target", target.name)
+    .put("attachmentUri", attachmentUri)
+    .put("mimeType", mimeType)
+    .put("updatedAt", updatedAt)
+
+private fun JSONObject.toCaptureDraft() = CaptureDraftEntity(
+    slot = requiredText("slot", 64),
+    content = text("content", 100_000),
+    target = enumValue("target", CaptureTarget.AUTO),
+    attachmentUri = optionalContentUri("attachmentUri"),
+    mimeType = text("mimeType", 500),
+    updatedAt = longValue("updatedAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
+)
+
+private fun JSONObject.optionalContentUri(name: String): String {
+    val value = text(name, 20_000)
+    if (value.isBlank()) return ""
+    val parsed = runCatching { URI(value) }.getOrNull() ?: error("El URI de una captura no es válido.")
+    require(parsed.scheme?.lowercase() == "content" && !parsed.isOpaque && !parsed.authority.isNullOrBlank()) {
+        "El URI de una captura no es un content URI jerárquico válido."
+    }
+    require(parsed.fragment == null) { "El URI de una captura contiene un fragmento no permitido." }
+    return value
+}
 
 private inline fun <reified T : Enum<T>> JSONObject.enumValue(name: String, fallback: T): T {
     if (!has(name) || isNull(name)) return fallback

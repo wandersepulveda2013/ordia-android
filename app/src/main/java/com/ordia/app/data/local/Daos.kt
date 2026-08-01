@@ -404,3 +404,45 @@ interface AutomationLogDao {
     @Query("DELETE FROM automation_log")
     suspend fun deleteAll()
 }
+
+@Dao
+interface CaptureDao {
+    @Query("SELECT * FROM captures ORDER BY createdAt DESC LIMIT :limit")
+    fun observeRecent(limit: Int = 100): Flow<List<CaptureEntity>>
+
+    @Query("SELECT * FROM captures ORDER BY createdAt DESC")
+    suspend fun getAllNow(): List<CaptureEntity>
+
+    @Query("SELECT * FROM capture_drafts ORDER BY slot")
+    suspend fun getDraftsNow(): List<CaptureDraftEntity>
+
+    @Query("SELECT * FROM capture_drafts WHERE slot = :slot LIMIT 1")
+    fun observeDraft(slot: String = CaptureDraftEntity.PRIMARY_SLOT): Flow<CaptureDraftEntity?>
+
+    @Query("SELECT * FROM captures WHERE fingerprint = :fingerprint AND createdAt >= :since ORDER BY createdAt DESC LIMIT 1")
+    suspend fun findRecentDuplicate(fingerprint: String, since: Long): CaptureEntity?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insert(capture: CaptureEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(captures: List<CaptureEntity>): List<Long>
+
+    @Update
+    suspend fun update(capture: CaptureEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertDraft(draft: CaptureDraftEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDrafts(drafts: List<CaptureDraftEntity>)
+
+    @Query("DELETE FROM capture_drafts WHERE slot = :slot")
+    suspend fun deleteDraft(slot: String = CaptureDraftEntity.PRIMARY_SLOT)
+
+    @Query("DELETE FROM captures")
+    suspend fun deleteAll()
+
+    @Query("DELETE FROM capture_drafts")
+    suspend fun deleteAllDrafts()
+}

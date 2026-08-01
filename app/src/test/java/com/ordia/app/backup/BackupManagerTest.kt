@@ -2,6 +2,11 @@ package com.ordia.app.backup
 
 import com.ordia.app.data.local.AttachmentEntity
 import com.ordia.app.data.local.AttachmentOwnerType
+import com.ordia.app.data.local.CaptureDraftEntity
+import com.ordia.app.data.local.CaptureEntity
+import com.ordia.app.data.local.CaptureSource
+import com.ordia.app.data.local.CaptureStatus
+import com.ordia.app.data.local.CaptureTarget
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
@@ -76,6 +81,24 @@ class BackupManagerTest {
                 uri = "content://com.ordia.app/adjunto/1", displayName = "archivo.txt",
                 mimeType = "text/plain", sizeBytes = 100, createdAt = 1000L
             )
+        ),
+        captures = listOf(
+            CaptureEntity(
+                id = 12,
+                content = "Tarea",
+                source = CaptureSource.COMPOSER,
+                requestedTarget = CaptureTarget.TASK,
+                resolvedTarget = CaptureTarget.TASK,
+                status = CaptureStatus.PROCESSED,
+                fingerprint = "a".repeat(64),
+                resultType = "TASK",
+                resultId = 2,
+                createdAt = 1000L,
+                updatedAt = 1000L
+            )
+        ),
+        captureDrafts = listOf(
+            CaptureDraftEntity(content = "Borrador", updatedAt = 1000L)
         )
     )
 
@@ -97,7 +120,7 @@ class BackupManagerTest {
     ) = BackupManager(store, prefs, scheduler, journal)
 
     /** Recalcula el checksum después de modificar el JSON (como haría la app). */
-    private fun rewrap(root: JSONObject, version: Int = 4): String {
+    private fun rewrap(root: JSONObject, version: Int = 5): String {
         root.put("version", version)
         root.remove("checksum")
         val content = root.toString(2)
@@ -236,6 +259,22 @@ class BackupManagerTest {
 
         assertTrue(result.message, result.success)
         assertTrue(destinationStore.current.totalCount == 0)
+    }
+
+    @Test
+    fun version4BackupWithoutCaptureCollectionsRemainsCompatible() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val legacy = JSONObject(origin.exportJson()).apply {
+            remove("captures")
+            remove("captureDrafts")
+        }
+        val destinationStore = FakeBackupStore(otherData())
+
+        val result = newManager(destinationStore).importBackup(rewrap(legacy, version = 4))
+
+        assertTrue(result.message, result.success)
+        assertTrue(destinationStore.current.captures.isEmpty())
+        assertTrue(destinationStore.current.captureDrafts.isEmpty())
     }
 
     @Test

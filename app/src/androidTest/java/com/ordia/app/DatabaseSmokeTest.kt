@@ -6,6 +6,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ordia.app.data.local.AttachmentEntity
 import com.ordia.app.data.local.AttachmentOwnerType
+import com.ordia.app.data.local.CaptureDraftEntity
+import com.ordia.app.data.local.CaptureEntity
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.OrdiaDatabase
 import com.ordia.app.data.local.ProjectEntity
@@ -49,10 +51,14 @@ class DatabaseSmokeTest {
                 sizeBytes = 12
             )
         )
+        database.captureDao().insert(CaptureEntity(content = "Texto de captura", fingerprint = "b".repeat(64)))
+        database.captureDao().upsertDraft(CaptureDraftEntity(content = "Borrador recuperable"))
 
         assertNotNull(database.taskDao().getById(taskId))
         assertEquals(projectId, database.taskDao().getById(taskId)?.projectId)
         assertEquals(1, database.noteDao().observeByProject(projectId).first().size)
         assertEquals(1, database.attachmentDao().observeForOwner(AttachmentOwnerType.NOTE, noteId).first().size)
+        assertEquals("Texto de captura", database.captureDao().getAllNow().single().content)
+        assertEquals("Borrador recuperable", database.captureDao().getDraftsNow().single().content)
     }
 }

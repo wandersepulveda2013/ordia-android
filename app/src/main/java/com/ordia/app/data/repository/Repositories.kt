@@ -23,6 +23,9 @@ import com.ordia.app.data.local.TaskDao
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskTagCrossRef
 import com.ordia.app.data.local.TaskTagDao
+import com.ordia.app.data.local.CaptureDao
+import com.ordia.app.data.local.CaptureDraftEntity
+import com.ordia.app.data.local.CaptureEntity
 import kotlinx.coroutines.flow.Flow
 
 class TaskRepository(private val dao: TaskDao) {
@@ -130,4 +133,16 @@ class AttachmentRepository(private val dao: AttachmentDao) {
         dao.observeForOwner(type, ownerId)
     suspend fun add(attachment: AttachmentEntity): Long = dao.insert(attachment)
     suspend fun delete(attachment: AttachmentEntity) = dao.delete(attachment)
+}
+
+class CaptureRepository(private val dao: CaptureDao) {
+    val recent: Flow<List<CaptureEntity>> = dao.observeRecent()
+    val draft: Flow<CaptureDraftEntity?> = dao.observeDraft()
+
+    suspend fun insert(capture: CaptureEntity): Long = dao.insert(capture)
+    suspend fun update(capture: CaptureEntity) = dao.update(capture)
+    suspend fun findRecentDuplicate(fingerprint: String, since: Long): CaptureEntity? =
+        dao.findRecentDuplicate(fingerprint, since)
+    suspend fun saveDraft(draft: CaptureDraftEntity) = dao.upsertDraft(draft)
+    suspend fun clearDraft() = dao.deleteDraft()
 }

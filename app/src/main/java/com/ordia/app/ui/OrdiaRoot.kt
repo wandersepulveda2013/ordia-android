@@ -24,6 +24,8 @@ import com.ordia.app.context.ContextResult
 import com.ordia.app.context.ContextualKind
 import com.ordia.app.context.ContextualSuggestion
 import com.ordia.app.data.local.TaskPriority
+import com.ordia.app.data.local.CaptureSource
+import com.ordia.app.data.local.CaptureTarget
 import com.ordia.app.domain.GuardianEngine
 import com.ordia.app.ui.components.ContextualSuggestionDialog
 import com.ordia.app.ui.navigation.Destination
@@ -57,6 +59,8 @@ private fun ContextIntent.toContextualSuggestion(): ContextualSuggestion {
 @Composable
 fun OrdiaRoot(
     incomingText: String? = null,
+    incomingAttachmentUri: String? = null,
+    incomingMimeType: String? = null,
     requestedDestination: String? = null,
     requestedTaskId: Long? = null,
     onIncomingTextConsumed: () -> Unit = {},
@@ -76,6 +80,7 @@ fun OrdiaRoot(
             tagRepository = app.container.tagRepository,
             attachmentRepository = app.container.attachmentRepository,
             automationLogRepository = app.container.automationLogRepository,
+            captureRepository = app.container.captureRepository,
             preferencesRepository = app.container.preferencesRepository,
             reminderScheduler = app.container.reminderScheduler,
             backupManager = app.container.backupManager
@@ -110,8 +115,17 @@ fun OrdiaRoot(
         app.container.preferencesRepository.syncGuardianExperience(guardianDerivedExperience)
     }
 
-    LaunchedEffect(incomingText) {
-        incomingText?.takeIf { it.isNotBlank() }?.let { text ->
+    LaunchedEffect(incomingText, incomingAttachmentUri, incomingMimeType) {
+        if (!incomingAttachmentUri.isNullOrBlank()) {
+            viewModel.submitCapture(
+                content = incomingText.orEmpty(),
+                requestedTarget = CaptureTarget.AUTO,
+                source = CaptureSource.SHARE,
+                attachmentUri = incomingAttachmentUri,
+                mimeType = incomingMimeType.orEmpty()
+            )
+            onIncomingTextConsumed()
+        } else incomingText?.takeIf { it.isNotBlank() }?.let { text ->
             if (app.container.contextualSettingsStore.isActive()) {
                 val engine = ContextEngine.getInstance(context)
                 val source = ContextCaptureSource.SHARED_TEXT

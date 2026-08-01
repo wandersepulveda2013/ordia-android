@@ -29,3 +29,29 @@ Validación del bloque:
 - `testPreviewAdvancedDebugUnitTest`: 285 pruebas, 0 fallos.
 - `lintPreviewAdvancedDebug`: 0 errores.
 - `assemblePreviewAdvancedDebug`: correcto.
+
+## Bloque 2 — captura universal y escritura rápida
+
+- Nueva pantalla **Capturar** con compositor amplio, envío por teclado, voz, adjuntos y pegado desde portapapeles.
+- Destino automático o explícito: Bandeja, tarea, nota y recordatorio.
+- Intérprete local y determinista; conserva el texto original antes de crear cualquier elemento.
+- Historial persistente con origen, estado, fecha y acceso al resultado creado.
+- Borrador principal con guardado automático y recuperación tras cerrar o reiniciar la aplicación.
+- Deduplicación temporal por huella SHA-256 para evitar dobles pulsaciones.
+- Captura conectada desde Inicio, el FAB/actividad rápida y `ACTION_SEND` de texto, imágenes o archivos.
+- Las listas de varias líneas se convierten en notas con bloques de verificación.
+- Las notas nuevas ahora se guardan automáticamente después de 800 ms de edición significativa.
+- Barra inferior móvil de cinco destinos: Inicio, Tareas, Capturar, Notas y Más; Planificador permanece accesible desde Más.
+- Room v4 con `captures` y `capture_drafts`, índices, conversores y migración no destructiva 3→4.
+- Esquemas Room 2, 3 y 4 incorporados al control de versiones.
+- Formato de respaldo v5: incluye capturas y borradores, conserva checksum y acepta copias v2–v4.
+- El IME real existente continúa siendo opcional, local y excluye campos sensibles; no registra pulsaciones.
+- Las imágenes se conservan como adjuntos. No se declara OCR porque el proyecto no tenía un motor OCR verificable.
+
+Validación del bloque:
+
+- `testPreviewAdvancedDebugUnitTest`: 292 pruebas, 0 fallos.
+- `compilePreviewAdvancedDebugAndroidTestKotlin`: correcto; incluye contrato de migración 3→4.
+- `lintPreviewAdvancedDebug`: 0 errores, 111 advertencias heredadas o informativas (una menos que el bloque 1).
+- `assemblePreviewAdvancedDebug`: correcto.
+- APK: `app/build/outputs/apk/previewAdvanced/debug/app-previewAdvanced-debug.apk`.

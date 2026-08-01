@@ -16,8 +16,7 @@ __pycache__/
 # Kotlin daemon errors
 .kotlin/
 
-# Room schema (generated)
-app/schemas/
+# Los esquemas de Room se versionan: son el contrato verificable de migración.
 
 # Secrets and credentials
 .env

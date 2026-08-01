@@ -21,9 +21,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TagEntity::class,
         TaskTagCrossRef::class,
         AttachmentEntity::class,
-        AutomationLogEntity::class
+        AutomationLogEntity::class,
+        CaptureEntity::class,
+        CaptureDraftEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -40,9 +42,47 @@ abstract class OrdiaDatabase : RoomDatabase() {
     abstract fun taskTagDao(): TaskTagDao
     abstract fun attachmentDao(): AttachmentDao
     abstract fun automationLogDao(): AutomationLogDao
+    abstract fun captureDao(): CaptureDao
 
     companion object {
         @Volatile private var instance: OrdiaDatabase? = null
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS captures (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        content TEXT NOT NULL,
+                        source TEXT NOT NULL,
+                        requestedTarget TEXT NOT NULL,
+                        resolvedTarget TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        attachmentUri TEXT NOT NULL DEFAULT '',
+                        mimeType TEXT NOT NULL DEFAULT '',
+                        fingerprint TEXT NOT NULL DEFAULT '',
+                        resultType TEXT NOT NULL DEFAULT '',
+                        resultId INTEGER,
+                        errorCode TEXT NOT NULL DEFAULT '',
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_captures_createdAt ON captures(createdAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_captures_status ON captures(status)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_captures_fingerprint ON captures(fingerprint)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS capture_drafts (
+                        slot TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        target TEXT NOT NULL,
+                        attachmentUri TEXT NOT NULL DEFAULT '',
+                        mimeType TEXT NOT NULL DEFAULT '',
+                        updatedAt INTEGER NOT NULL,
+                        PRIMARY KEY(slot)
+                    )
+                """.trimIndent())
+            }
+        }
 
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -193,7 +233,7 @@ abstract class OrdiaDatabase : RoomDatabase() {
                     OrdiaDatabase::class.java,
                     "ordia.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { instance = it }
             }

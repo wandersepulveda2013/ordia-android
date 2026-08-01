@@ -35,6 +35,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.AddTask
+import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -81,6 +82,7 @@ import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.GuardianAvatar
 import com.ordia.app.ui.screens.ArchiveScreen
 import com.ordia.app.ui.screens.ContextualAttentionScreen
+import com.ordia.app.ui.screens.CaptureScreen
 import com.ordia.app.ui.screens.FocusScreen
 import com.ordia.app.ui.screens.GuardianScreen
 import com.ordia.app.ui.screens.HabitsScreen
@@ -103,6 +105,7 @@ sealed class Destination(val route: String, @StringRes val labelRes: Int, val ic
     data object Today : Destination("today", R.string.nav_today, Icons.Outlined.Home)
     data object Inbox : Destination("inbox", R.string.nav_inbox, Icons.Outlined.Inbox)
     data object Tasks : Destination("tasks", R.string.nav_tasks, Icons.Outlined.CheckCircle)
+    data object Capture : Destination("capture", R.string.nav_capture, Icons.Outlined.AddCircleOutline)
     data object Planner : Destination("planner", R.string.nav_planner, Icons.Outlined.CalendarMonth)
     data object Projects : Destination("projects", R.string.nav_projects, Icons.Outlined.Folder)
     data object Notes : Destination("notes", R.string.nav_notes, Icons.Outlined.Description)
@@ -126,9 +129,10 @@ sealed class Destination(val route: String, @StringRes val labelRes: Int, val ic
     }
 }
 
-private val compactItems = listOf(Destination.Today, Destination.Tasks, Destination.Planner, Destination.More)
+private val compactItems = listOf(Destination.Today, Destination.Tasks, Destination.Capture, Destination.Notes, Destination.More)
 private val compactMoreRoutes = setOf(
     Destination.Inbox.route,
+    Destination.Planner.route,
     Destination.Projects.route,
     Destination.Notes.route,
     Destination.Habits.route,
@@ -144,6 +148,7 @@ private val topLevelRoutes = setOf(
     Destination.Today.route,
     Destination.Inbox.route,
     Destination.Tasks.route,
+    Destination.Capture.route,
     Destination.Planner.route,
     Destination.Projects.route,
     Destination.Notes.route,
@@ -160,15 +165,15 @@ private val topLevelRoutes = setOf(
 
 private fun wideItems(mode: InterfaceMode): List<Destination> = when (mode) {
     InterfaceMode.SIMPLE -> listOf(
-        Destination.Today, Destination.Inbox, Destination.Tasks, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Planner,
         Destination.Notes, Destination.Guardian, Destination.Focus, Destination.Search
     )
     InterfaceMode.ORGANIZED -> listOf(
-        Destination.Today, Destination.Inbox, Destination.Tasks, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Planner,
         Destination.Projects, Destination.Notes, Destination.Habits, Destination.Guardian, Destination.Focus, Destination.Search
     )
     InterfaceMode.ADVANCED -> listOf(
-        Destination.Today, Destination.Inbox, Destination.Tasks, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Planner,
         Destination.Projects, Destination.Notes, Destination.Habits, Destination.Guardian, Destination.Focus,
         Destination.Search, Destination.Statistics, Destination.Archive
     )
@@ -302,6 +307,14 @@ private fun OrdiaNavHost(
         }
         composable(Destination.Inbox.route) { InboxScreen(state, vm, padding, onTask = { navController.navigate(Destination.task(it)) }) }
         composable(Destination.Tasks.route) { TasksScreen(state, vm, padding, onTask = { navController.navigate(Destination.task(it)) }) }
+        composable(Destination.Capture.route) {
+            CaptureScreen(
+                vm = vm,
+                padding = padding,
+                onTask = { navController.navigate(Destination.task(it)) },
+                onNote = { navController.navigate(Destination.note(it)) }
+            )
+        }
         composable(Destination.Planner.route) { PlannerScreen(state, vm, padding, onTask = { navController.navigate(Destination.task(it)) }) }
         composable(Destination.Projects.route) { ProjectsScreen(state, vm, padding, onProject = { navController.navigate(Destination.project(it)) }) }
         composable(Destination.Notes.route) { NotesScreen(state, vm, padding, onNote = { navController.navigate(Destination.note(it)) }) }

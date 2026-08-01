@@ -1,6 +1,7 @@
 package com.ordia.app
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -14,6 +15,8 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val incomingText = androidx.compose.runtime.mutableStateOf<String?>(null)
+    private val incomingAttachmentUri = androidx.compose.runtime.mutableStateOf<String?>(null)
+    private val incomingMimeType = androidx.compose.runtime.mutableStateOf<String?>(null)
     private val requestedDestination = androidx.compose.runtime.mutableStateOf<String?>(null)
     private val requestedTaskId = androidx.compose.runtime.mutableStateOf<Long?>(null)
 
@@ -24,9 +27,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             OrdiaRoot(
                 incomingText = incomingText.value,
+                incomingAttachmentUri = incomingAttachmentUri.value,
+                incomingMimeType = incomingMimeType.value,
                 requestedDestination = requestedDestination.value,
                 requestedTaskId = requestedTaskId.value,
-                onIncomingTextConsumed = { incomingText.value = null },
+                onIncomingTextConsumed = {
+                    incomingText.value = null
+                    incomingAttachmentUri.value = null
+                    incomingMimeType.value = null
+                },
                 onNavigationRequestConsumed = {
                     requestedDestination.value = null
                     requestedTaskId.value = null
@@ -51,7 +60,20 @@ class MainActivity : ComponentActivity() {
         when (intent.action) {
             Intent.ACTION_SEND -> {
                 incomingText.value = intent.getStringExtra(Intent.EXTRA_TEXT)?.take(MAX_SHARED_TEXT_CHARS)
+                @Suppress("DEPRECATION")
+                val stream = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+                incomingAttachmentUri.value = stream?.toString()
+                incomingMimeType.value = intent.type
+                if (stream != null) {
+                    runCatching {
+                        contentResolver.takePersistableUriPermission(
+                            stream,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                    }
+                }
                 intent.removeExtra(Intent.EXTRA_TEXT)
+                intent.removeExtra(Intent.EXTRA_STREAM)
                 intent.action = null
             }
             Intent.ACTION_PROCESS_TEXT -> {

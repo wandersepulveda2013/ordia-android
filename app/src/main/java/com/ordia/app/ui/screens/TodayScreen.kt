@@ -61,6 +61,8 @@ import com.ordia.app.ui.components.TaskRow
 import com.ordia.app.ui.components.recurrenceChipLabel
 import com.ordia.app.domain.NaturalTaskParser
 import com.ordia.app.data.local.TaskPriority
+import com.ordia.app.data.local.CaptureSource
+import com.ordia.app.data.local.CaptureTarget
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -102,7 +104,11 @@ fun TodayScreen(
     val summary = remember(state.tasks) { SummaryEngine.summarize(state.tasks, System.currentTimeMillis()) }
     val capture = {
         if (quickText.isNotBlank()) {
-            vm.addSmartTask(quickText)
+            vm.submitCapture(
+                content = quickText,
+                requestedTarget = CaptureTarget.AUTO,
+                source = CaptureSource.COMPOSER
+            )
             quickText = ""
         }
     }

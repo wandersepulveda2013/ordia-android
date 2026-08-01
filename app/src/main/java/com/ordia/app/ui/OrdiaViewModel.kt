@@ -10,6 +10,11 @@ import com.ordia.app.R
 import com.ordia.app.data.local.AttachmentEntity
 import com.ordia.app.data.local.AttachmentOwnerType
 import com.ordia.app.data.local.AutomationLogEntity
+import com.ordia.app.data.local.CaptureDraftEntity
+import com.ordia.app.data.local.CaptureEntity
+import com.ordia.app.data.local.CaptureSource
+import com.ordia.app.data.local.CaptureStatus
+import com.ordia.app.data.local.CaptureTarget
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
@@ -29,6 +34,7 @@ import com.ordia.app.data.preferences.ThemeMode
 import com.ordia.app.data.preferences.UserPreferences
 import com.ordia.app.data.repository.AttachmentRepository
 import com.ordia.app.data.repository.AutomationLogRepository
+import com.ordia.app.data.repository.CaptureRepository
 import com.ordia.app.data.repository.FocusRepository
 import com.ordia.app.data.repository.HabitRepository
 import com.ordia.app.data.repository.NoteRepository
@@ -44,6 +50,7 @@ import com.ordia.app.domain.LearningEngine
 import com.ordia.app.domain.LearningProfile
 import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockCodec
+import com.ordia.app.domain.NoteBlockType
 import com.ordia.app.domain.NaturalTaskParser
 import com.ordia.app.domain.OnboardingCompleter
 import com.ordia.app.domain.ParsedTaskInput
@@ -54,6 +61,7 @@ import com.ordia.app.domain.SubtaskRules
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.domain.TaskSnapshotCodec
 import com.ordia.app.domain.TaskMutationGate
+import com.ordia.app.domain.UniversalCaptureEngine
 import com.ordia.app.reminders.ReminderScheduler
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import com.ordia.app.BuildConfig
@@ -65,6 +73,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -187,6 +196,11 @@ private data class SecondaryState(
     val links: List<TaskTagCrossRef>
 )
 
+data class CaptureDraftState(
+    val loaded: Boolean = false,
+    val draft: CaptureDraftEntity? = null
+)
+
 class OrdiaViewModel(
     private val appContext: Context,
     private val taskRepository: TaskRepository,
@@ -198,6 +212,7 @@ class OrdiaViewModel(
     private val tagRepository: TagRepository,
     private val attachmentRepository: AttachmentRepository,
     private val automationLogRepository: AutomationLogRepository,
+    private val captureRepository: CaptureRepository,
     private val preferencesRepository: PreferencesRepository,
     private val reminderScheduler: ReminderScheduler,
     private val backupManager: BackupManager
@@ -210,6 +225,12 @@ class OrdiaViewModel(
 
     /** Candado adicional contra dos restores simultáneos a nivel de ViewModel. */
     private val restoreMutex = kotlinx.coroutines.sync.Mutex()
+
+    val recentCaptures: StateFlow<List<CaptureEntity>> = captureRepository.recent
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val captureDraftState: StateFlow<CaptureDraftState> = captureRepository.draft
+        .map { CaptureDraftState(loaded = true, draft = it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CaptureDraftState())
 
     private val core = combine(
         taskRepository.tasks,
@@ -811,12 +832,216 @@ class OrdiaViewModel(
         }
     }
 
-    fun captureSharedText(text: String) {
-        val clean = text.trim()
-        if (clean.isBlank()) return
-        // Captura universal: se interpreta como tarea; si la confianza es baja
-        // queda en la Bandeja (INBOX) para revisión, sin perder el texto.
-        addSmartTask(clean)
+    fun captureSharedText(text: String) = submitCapture(
+        content = text,
+        requestedTarget = CaptureTarget.AUTO,
+        source = CaptureSource.SHARE
+    )
+
+    /**
+     * Persiste el borrador mientras se escribe. La captura puede recuperarse
+     * después de cerrar la pantalla o reiniciar el proceso de la aplicación.
+     */
+    fun saveCaptureDraft(
+        content: String,
+        target: CaptureTarget,
+        attachmentUri: String = "",
+        mimeType: String = ""
+    ) = viewModelScope.launch {
+        if (content.isBlank() && attachmentUri.isBlank() && target == CaptureTarget.AUTO) {
+            captureRepository.clearDraft()
+        } else {
+            captureRepository.saveDraft(
+                CaptureDraftEntity(
+                    content = content.take(UniversalCaptureEngine.MAX_CONTENT_CHARS),
+                    target = target,
+                    attachmentUri = attachmentUri,
+                    mimeType = mimeType,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    fun clearCaptureDraft() = viewModelScope.launch { captureRepository.clearDraft() }
+
+    /**
+     * Punto de entrada único de la captura. Primero escribe el original en el
+     * historial y solo después intenta convertirlo en tarea, nota o bandeja.
+     */
+    fun submitCapture(
+        content: String,
+        requestedTarget: CaptureTarget = CaptureTarget.AUTO,
+        source: CaptureSource = CaptureSource.COMPOSER,
+        attachmentUri: String = "",
+        mimeType: String = "",
+        onSaved: (resultType: String, resultId: Long) -> Unit = { _, _ -> }
+    ) {
+        val original = content.take(UniversalCaptureEngine.MAX_CONTENT_CHARS)
+        if (original.isBlank() && attachmentUri.isBlank()) return
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            val fingerprint = UniversalCaptureEngine.fingerprint(original, attachmentUri)
+            val duplicate = captureRepository.findRecentDuplicate(
+                fingerprint,
+                now - CAPTURE_DUPLICATE_WINDOW_MS
+            )
+            if (duplicate != null) {
+                _events.emit(UiEvent.Message(appContext.getString(R.string.capture_duplicate_ignored)))
+                return@launch
+            }
+
+            val interpretation = UniversalCaptureEngine.interpret(
+                raw = original,
+                requested = requestedTarget,
+                hasAttachment = attachmentUri.isNotBlank()
+            )
+            var stored = CaptureEntity(
+                content = original,
+                source = source,
+                requestedTarget = requestedTarget,
+                resolvedTarget = interpretation.target,
+                status = CaptureStatus.PENDING,
+                attachmentUri = attachmentUri,
+                mimeType = mimeType,
+                fingerprint = fingerprint,
+                createdAt = now,
+                updatedAt = now
+            )
+            val captureId = captureRepository.insert(stored)
+            stored = stored.copy(id = captureId)
+
+            try {
+                val result = when (interpretation.target) {
+                    CaptureTarget.NOTE -> "NOTE" to createNoteFromCapture(
+                        title = interpretation.title,
+                        body = interpretation.body,
+                        checklist = interpretation.checklist,
+                        attachmentUri = attachmentUri,
+                        mimeType = mimeType
+                    )
+                    CaptureTarget.AUTO -> error("La captura AUTO no fue resuelta")
+                    CaptureTarget.INBOX,
+                    CaptureTarget.TASK,
+                    CaptureTarget.REMINDER -> "TASK" to createTaskFromCapture(
+                        interpretation = interpretation,
+                        original = original,
+                        attachmentUri = attachmentUri,
+                        mimeType = mimeType
+                    )
+                }
+                captureRepository.update(
+                    stored.copy(
+                        status = CaptureStatus.PROCESSED,
+                        resultType = result.first,
+                        resultId = result.second,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+                captureRepository.clearDraft()
+                updateWidget()
+                onSaved(result.first, result.second)
+                _events.emit(UiEvent.Message(appContext.getString(R.string.capture_saved_success)))
+            } catch (error: Exception) {
+                captureRepository.update(
+                    stored.copy(
+                        status = CaptureStatus.FAILED,
+                        errorCode = error.javaClass.simpleName.take(80),
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+                _events.emit(UiEvent.Message(appContext.getString(R.string.capture_saved_for_retry)))
+            }
+        }
+    }
+
+    private suspend fun createNoteFromCapture(
+        title: String,
+        body: String,
+        checklist: Boolean,
+        attachmentUri: String,
+        mimeType: String
+    ): Long {
+        val blocks = if (checklist) {
+            body.lineSequence()
+                .map { it.trim().replace(Regex("^(?:[-*•]|\\d+[.)]|\\[\\s?])\\s+"), "") }
+                .filter(String::isNotBlank)
+                .map { NoteBlock(type = NoteBlockType.CHECKLIST, text = it) }
+                .toList()
+        } else {
+            listOf(NoteBlock(text = body))
+        }
+        val now = System.currentTimeMillis()
+        val noteId = noteRepository.add(
+            NoteEntity(
+                title = title.trim().ifBlank { appContext.getString(R.string.capture_untitled_note) },
+                body = NoteBlockCodec.toPlainText(blocks),
+                blocksData = NoteBlockCodec.encode(blocks),
+                createdAt = now,
+                updatedAt = now
+            )
+        )
+        attachCaptureIfPresent(AttachmentOwnerType.NOTE, noteId, attachmentUri, mimeType)
+        return noteId
+    }
+
+    private suspend fun createTaskFromCapture(
+        interpretation: com.ordia.app.domain.CaptureInterpretation,
+        original: String,
+        attachmentUri: String,
+        mimeType: String
+    ): Long {
+        val parsed = interpretation.parsedTask ?: NaturalTaskParser.parse(interpretation.title)
+        val reminderAt = parsed.reminderOffsetMinutes
+            ?.takeIf { parsed.dueAt != null }
+            ?.let { offset -> parsed.dueAt!! - offset * 60_000L }
+            ?: parsed.dueAt.takeIf { interpretation.target == CaptureTarget.REMINDER }
+        val status = when {
+            interpretation.target == CaptureTarget.INBOX -> TaskStatus.INBOX
+            parsed.confidence < 0.5f || parsed.dueAt == null -> TaskStatus.INBOX
+            else -> TaskStatus.PLANNED
+        }
+        val now = System.currentTimeMillis()
+        val task = TaskEntity(
+            title = parsed.title.trim().ifBlank { appContext.getString(R.string.capture_untitled_task) },
+            details = original,
+            dueAt = parsed.dueAt,
+            reminderAt = reminderAt,
+            durationMinutes = parsed.durationMinutes ?: 25,
+            priority = parsed.priority,
+            status = status,
+            recurrence = parsed.recurrence,
+            recurrenceInterval = parsed.recurrenceInterval,
+            recurrenceDays = parsed.recurrenceDays,
+            createdAt = now,
+            updatedAt = now
+        )
+        val taskId = taskRepository.add(task)
+        if (task.reminderAt != null || task.dueAt != null) {
+            reminderScheduler.schedule(task.copy(id = taskId))
+        }
+        attachCaptureIfPresent(AttachmentOwnerType.TASK, taskId, attachmentUri, mimeType)
+        return taskId
+    }
+
+    private suspend fun attachCaptureIfPresent(
+        ownerType: AttachmentOwnerType,
+        ownerId: Long,
+        attachmentUri: String,
+        mimeType: String
+    ) {
+        if (attachmentUri.isBlank()) return
+        attachmentRepository.add(
+            AttachmentEntity(
+                ownerType = ownerType,
+                ownerId = ownerId,
+                uri = attachmentUri,
+                displayName = attachmentUri.substringAfterLast('/').ifBlank {
+                    appContext.getString(R.string.capture_attachment_name)
+                },
+                mimeType = mimeType.ifBlank { "application/octet-stream" }
+            )
+        )
     }
 
     fun exportBackup(onReady: (String) -> Unit) = viewModelScope.launch {
@@ -941,6 +1166,7 @@ class OrdiaViewModel(
         private val tagRepository: TagRepository,
         private val attachmentRepository: AttachmentRepository,
         private val automationLogRepository: AutomationLogRepository,
+        private val captureRepository: CaptureRepository,
         private val preferencesRepository: PreferencesRepository,
         private val reminderScheduler: ReminderScheduler,
         private val backupManager: BackupManager
@@ -957,9 +1183,14 @@ class OrdiaViewModel(
             tagRepository,
             attachmentRepository,
             automationLogRepository,
+            captureRepository,
             preferencesRepository,
             reminderScheduler,
             backupManager
         ) as T
+    }
+
+    private companion object {
+        const val CAPTURE_DUPLICATE_WINDOW_MS = 5_000L
     }
 }

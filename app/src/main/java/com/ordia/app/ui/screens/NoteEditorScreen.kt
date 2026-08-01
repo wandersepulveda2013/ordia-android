@@ -136,7 +136,7 @@ fun NoteEditorScreen(
     }
 
     androidx.compose.runtime.LaunchedEffect(title, blocks.toList(), dirty, currentId) {
-        if (dirty && currentId > 0L) {
+        if (dirty && (currentId > 0L || hasMeaningfulContent())) {
             delay(800)
             saveCurrent()
         }
