@@ -61,6 +61,7 @@
     <string name="onboarding_back">Atrás</string>
     <string name="onboarding_continue">Continuar</string>
     <string name="onboarding_enter">Entrar a Ordia</string>
+    <string name="onboarding_save_error">No se pudo guardar tu selección. Compruébalo e inténtalo de nuevo.</string>
 
     <!-- Pantalla Proyectos (ProjectsScreen, ORD-029 i18n). -->
     <string name="projects_header_eyebrow">RESULTADOS CONCRETOS</string>

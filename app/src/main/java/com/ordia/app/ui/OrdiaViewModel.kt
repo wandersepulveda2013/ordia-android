@@ -45,6 +45,7 @@ import com.ordia.app.domain.LearningProfile
 import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockCodec
 import com.ordia.app.domain.NaturalTaskParser
+import com.ordia.app.domain.OnboardingCompleter
 import com.ordia.app.domain.ParsedTaskInput
 import com.ordia.app.domain.RecurrenceEngine
 import com.ordia.app.domain.ReminderSync
@@ -879,7 +880,15 @@ class OrdiaViewModel(
     }
 
     fun setThemeMode(value: ThemeMode) = viewModelScope.launch { preferencesRepository.setThemeMode(value) }
-    fun setInterfaceMode(value: InterfaceMode) = viewModelScope.launch { preferencesRepository.setInterfaceMode(value) }
+    fun setInterfaceMode(value: InterfaceMode) = viewModelScope.launch {
+        try {
+            preferencesRepository.setInterfaceMode(value)
+        } catch (t: Throwable) {
+            // Un fallo de escritura no debe dejar la selección sin explicación: se avisa y
+            // el usuario puede volver a tocar el modo.
+            _events.tryEmit(UiEvent.Message(appContext.getString(R.string.onboarding_save_error)))
+        }
+    }
     fun setGuardianEnabled(value: Boolean) = viewModelScope.launch { preferencesRepository.setGuardianEnabled(value) }
     fun setGuardianMode(value: GuardianMode) = viewModelScope.launch { preferencesRepository.setGuardianMode(value) }
     fun setQuietHours(start: Int, end: Int) = viewModelScope.launch { preferencesRepository.setQuietHours(start, end) }
@@ -889,6 +898,35 @@ class OrdiaViewModel(
     fun setReduceMotion(value: Boolean) = viewModelScope.launch { preferencesRepository.setReduceMotion(value) }
     fun setCompactNavigation(value: Boolean) = viewModelScope.launch { preferencesRepository.setCompactNavigation(value) }
     fun setDarkMode(enabled: Boolean) = viewModelScope.launch { preferencesRepository.setDarkMode(enabled) }
+
+    private val _onboardingBusy = MutableStateFlow(false)
+
+    /** true mientras se persiste la finalización del onboarding (bloquea dobles toques en "Entrar a Ordia"). */
+    val onboardingBusy: StateFlow<Boolean> = _onboardingBusy.asStateFlow()
+
+    private val onboardingCompleter = OnboardingCompleter {
+        preferencesRepository.setOnboardingComplete(true)
+    }
+
+    /**
+     * Finaliza el onboarding de forma segura:
+     * - Bloquea dobles disparos (un segundo toque mientras persiste no navega dos veces).
+     * - Navega de forma reactiva cuando [UserPreferences.onboardingComplete] llega a true,
+     *   es decir, cuando la persistencia ya terminó (no exige reiniciar la aplicación).
+     * - Si la escritura falla, muestra un mensaje comprensible y deja reintentar: el
+     *   usuario nunca queda atrapado en la pantalla de selección de modo.
+     */
+    fun finishOnboarding() {
+        if (_onboardingBusy.value) return
+        _onboardingBusy.value = true
+        viewModelScope.launch {
+            val ok = onboardingCompleter.run()
+            if (!ok) {
+                _events.tryEmit(UiEvent.Message(appContext.getString(R.string.onboarding_save_error)))
+            }
+            _onboardingBusy.value = false
+        }
+    }
 
     private fun updateWidget() = OrdiaWidgetUpdater.updateAll(appContext)
 

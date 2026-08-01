@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -18,7 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,10 +37,22 @@ import com.ordia.app.ui.components.ordiaWorkSurface
 fun OnboardingScreen(
     selectedMode: InterfaceMode,
     onModeSelected: (InterfaceMode) -> Unit,
-    onFinish: () -> Unit
+    onFinish: () -> Unit,
+    finishing: Boolean = false
 ) {
-    var page by remember { mutableIntStateOf(0) }
-    Box(Modifier.fillMaxSize().ordiaWorkSurface().padding(24.dp), contentAlignment = Alignment.Center) {
+    // rememberSaveable: un cambio de orientación no devuelve al usuario a la página 0.
+    var page by rememberSaveable { mutableIntStateOf(0) }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .ordiaWorkSurface()
+            // Edge-to-edge: el contenido nunca queda detrás de la barra de estado/navegación.
+            .systemBarsPadding()
+            // Pantallas pequeñas y fuentes grandes: el botón Continuar/Entrar siempre es
+            // alcanzable desplazando el contenido (antes quedaba recortado sin salida).
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp)
+    ) {
         Column(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -86,9 +100,15 @@ fun OnboardingScreen(
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                if (page > 0) OutlinedButton(onClick = { page-- }) { Text(stringResource(R.string.onboarding_back)) }
+                if (page > 0) OutlinedButton(onClick = { page-- }, enabled = !finishing) { Text(stringResource(R.string.onboarding_back)) }
                 Spacer(Modifier.width(10.dp))
-                Button(onClick = { if (page < 2) page++ else onFinish() }) { Text(if (page < 2) stringResource(R.string.onboarding_continue) else stringResource(R.string.onboarding_enter)) }
+                Button(
+                    onClick = {
+                        if (page < 2) page++
+                        else if (!finishing) onFinish()
+                    },
+                    enabled = !finishing
+                ) { Text(if (page < 2) stringResource(R.string.onboarding_continue) else stringResource(R.string.onboarding_enter)) }
             }
         }
     }

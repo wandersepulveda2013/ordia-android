@@ -82,6 +82,7 @@ fun OrdiaRoot(
         )
     )
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val onboardingBusy by viewModel.onboardingBusy.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
     var pendingContext by remember { mutableStateOf<ContextualSuggestion?>(null) }
@@ -218,7 +219,8 @@ fun OrdiaRoot(
             OnboardingScreen(
                 selectedMode = state.preferences.interfaceMode,
                 onModeSelected = viewModel::setInterfaceMode,
-                onFinish = { viewModel.setOnboardingComplete() }
+                onFinish = viewModel::finishOnboarding,
+                finishing = onboardingBusy
             )
         } else {
             OrdiaNavigation(

@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.ordia.app.domain.GuardianEngine
+import com.ordia.app.domain.resolveInterfaceMode
 import java.io.IOException
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -185,7 +186,7 @@ class PreferencesRepository(private val context: Context) : com.ordia.app.backup
         val species = values[Keys.guardianSpecies]?.toEnumOrNull<GuardianSpecies>() ?: GuardianSpecies.LUMI
         return UserPreferences(
             themeMode = theme,
-            interfaceMode = values[Keys.interfaceMode]?.toEnumOrNull<InterfaceMode>() ?: InterfaceMode.ORGANIZED,
+            interfaceMode = resolveInterfaceMode(values[Keys.interfaceMode]),
             guardianEnabled = values[Keys.guardianEnabled] ?: false,
             guardianMode = values[Keys.guardianMode]?.toEnumOrNull<GuardianMode>() ?: GuardianMode.DISCREET,
             guardianName = values[Keys.guardianName]?.take(24).orEmpty().ifBlank { species.defaultName },
