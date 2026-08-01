@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_assistant">Asistente</string>
+    <string name="nav_workspace">Espacio</string>
+    <string name="more_assistant_desc">Organiza, resume y decide sin enviar tus datos</string>
+    <string name="more_workspace_desc">Paneles adaptables para teléfono, tableta y escritorio</string>
+    <string name="assistant_eyebrow">AYUDA LOCAL Y EXPLICABLE</string>
+    <string name="assistant_title">Asistente de Ordía</string>
+    <string name="assistant_subtitle">Pregunta con lenguaje natural y actúa sobre tus datos reales.</string>
+    <string name="assistant_private">Funciona sin conexión ni clave de API. Tus datos permanecen en este dispositivo.</string>
+    <string name="assistant_prompt_day">Organiza mi día</string>
+    <string name="assistant_prompt_now">¿Qué hago ahora?</string>
+    <string name="assistant_prompt_overdue">¿Qué olvidé?</string>
+    <string name="assistant_prompt_minimal">Plan mínimo para hoy</string>
+    <string name="assistant_field">¿En qué te ayudo?</string>
+    <string name="assistant_ask">Preguntar</string>
+    <string name="assistant_action_planner">Abrir planificación</string>
+    <string name="assistant_action_conversations">Revisar conversaciones</string>
+    <string name="assistant_action_replan">Reprogramar vencidas</string>
+    <string name="assistant_action_note">Guardar nota</string>
+    <string name="assistant_action_search">Abrir búsqueda</string>
+    <string name="search_kind_conversation">CONVERSACIÓN</string>
+    <string name="search_kind_commitment">COMPROMISO</string>
+    <string name="search_kind_automation">AUTOMATIZACIÓN</string>
+    <string name="workspace_eyebrow">TU CENTRO DE TRABAJO</string>
+    <string name="workspace_title">Espacio adaptable</string>
+    <string name="workspace_subtitle">Abre, minimiza, cierra y recupera paneles; el diseño se adapta al ancho disponible.</string>
+    <string name="workspace_panels">Paneles</string>
+    <string name="workspace_tasks">Tareas</string>
+    <string name="workspace_notes">Notas</string>
+    <string name="workspace_conversations">Conversaciones</string>
+    <string name="workspace_automations">Automatizaciones</string>
+    <string name="workspace_plan">Plan diario</string>
+    <string name="workspace_search">Búsqueda</string>
+    <string name="workspace_search_hint">Busca en tareas, notas, conversaciones, compromisos y reglas.</string>
+    <string name="workspace_items">%1$d elementos disponibles</string>
+    <string name="workspace_open_full">Abrir vista completa</string>
+    <string name="workspace_minimize">Minimizar panel</string>
+    <string name="workspace_restore">Restaurar panel</string>
+    <string name="workspace_close">Cerrar panel</string>
+</resources>

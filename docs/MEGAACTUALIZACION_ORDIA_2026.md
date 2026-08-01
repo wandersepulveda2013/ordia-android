@@ -125,3 +125,40 @@ Validación del bloque:
 - Pruebas de respaldo v2–v8, checksum y restauración segura: correctas.
 - `compilePreviewAdvancedDebugAndroidTestKotlin`: correcto; incluye migración 6→7 y smoke test Room.
 - `compilePreviewAdvancedDebugKotlin`: correcto.
+
+## Bloque 6 — asistente local y búsqueda universal
+
+- Nuevo **Asistente de Ordía** conectado a tareas, conversaciones y compromisos reales.
+- Respuestas deterministas para organizar el día, elegir la siguiente acción, recuperar vencidos, preparar un plan mínimo, localizar tareas rápidas, resumir conversaciones y crear notas.
+- Acciones explícitas y reversibles: abrir planificación, revisar conversaciones, reprogramar vencidas, guardar una nota o abrir la búsqueda.
+- Funcionamiento completamente local y sin conexión; no requiere cuenta, clave de API ni envía información fuera del dispositivo.
+- La arquitectura de inteligencia opcional permanece separada detrás del proveedor existente, sin convertir una API externa en requisito.
+- Búsqueda universal ampliada a tareas, proyectos, notas, hábitos, conversaciones, compromisos y automatizaciones.
+- Consultas naturales como «vencidas», «importantes», «pendientes con Carlos» y búsquedas sin tildes se resuelven localmente.
+- Acceso integrado desde Más y desde el rail adaptable.
+
+Validación del bloque:
+
+- Pruebas unitarias del asistente, búsqueda y selección por prioridad: correctas.
+- `compilePreviewAdvancedDebugKotlin`: correcto.
+
+## Bloque 7 — espacio multipanel adaptable
+
+- Nuevo **Espacio adaptable** con paneles reales de tareas, notas, conversaciones, automatizaciones, plan diario y búsqueda.
+- Los paneles pueden abrirse, activarse, minimizarse, restaurarse y cerrarse; el estado se serializa con `rememberSaveable` y sobrevive a rotaciones.
+- Teléfonos muestran un panel principal y un gestor compacto; tabletas muestran gestor y contenido; anchos de escritorio pueden mostrar dos paneles simultáneos.
+- Cada panel presenta datos vivos y abre su vista funcional completa, sin contenido ficticio.
+- Rail lateral desplazable para evitar recortes al aumentar opciones, tamaño de fuente o reducir la altura disponible.
+- Controles con descripciones de accesibilidad y listas acotadas para mantener el rendimiento.
+
+Validación del bloque:
+
+- Pruebas del reductor, ciclo abrir/minimizar/restaurar/cerrar, persistencia por rotación y recuperación ante estado corrupto: correctas.
+- Compilación conjunta de navegación adaptable y todas las pantallas: correcta.
+
+## Bloque 8 — endurecimiento y entrega
+
+- Privacidad local por defecto, observación consentida y ausencia total de `AccessibilityService` conservadas como invariantes de seguridad.
+- Navegación y controles nuevos incluyen etiquetas accesibles; las superficies se adaptan sin depender de tamaños fijos de teléfono.
+- Consultas y vistas nuevas procesan colecciones acotadas en pantalla; Room conserva índices para los flujos persistentes.
+- La entrega final se valida con todas las pruebas JVM, compilación instrumental, lint y las tres variantes APK debug.

@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Archive
@@ -83,6 +85,7 @@ import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.GuardianAvatar
 import com.ordia.app.ui.screens.ArchiveScreen
+import com.ordia.app.ui.screens.AssistantScreen
 import com.ordia.app.ui.screens.AutomationsScreen
 import com.ordia.app.ui.screens.ConversationsScreen
 import com.ordia.app.ui.screens.CaptureScreen
@@ -102,6 +105,8 @@ import com.ordia.app.ui.screens.StatisticsScreen
 import com.ordia.app.ui.screens.TaskDetailScreen
 import com.ordia.app.ui.screens.TasksScreen
 import com.ordia.app.ui.screens.TodayScreen
+import com.ordia.app.ui.screens.WorkspaceScreen
+import com.ordia.app.workspace.WorkspacePanel
 import com.ordia.app.overlay.QuickCaptureActivity
 
 sealed class Destination(val route: String, @StringRes val labelRes: Int, val icon: ImageVector) {
@@ -122,6 +127,8 @@ sealed class Destination(val route: String, @StringRes val labelRes: Int, val ic
     data object Guardian : Destination("guardian", R.string.nav_guardian, Icons.Outlined.Psychology)
     data object Conversations : Destination("conversations", R.string.nav_conversations, Icons.Outlined.ChatBubbleOutline)
     data object Automations : Destination("automations", R.string.nav_automations, Icons.Outlined.Bolt)
+    data object Assistant : Destination("assistant", R.string.nav_assistant, Icons.Outlined.AutoAwesome)
+    data object Workspace : Destination("workspace", R.string.nav_workspace, Icons.Outlined.EditNote)
 
     companion object {
         const val TASK_ROUTE = "task/{taskId}"
@@ -147,6 +154,8 @@ private val compactMoreRoutes = setOf(
     Destination.Guardian.route,
     Destination.Conversations.route,
     Destination.Automations.route,
+    Destination.Assistant.route,
+    Destination.Workspace.route,
     Destination.Settings.route
 )
 private val topLevelRoutes = setOf(
@@ -165,21 +174,23 @@ private val topLevelRoutes = setOf(
     Destination.Guardian.route,
     Destination.Conversations.route,
     Destination.Automations.route,
+    Destination.Assistant.route,
+    Destination.Workspace.route,
     Destination.Settings.route,
     Destination.More.route
 )
 
 private fun wideItems(mode: InterfaceMode): List<Destination> = when (mode) {
     InterfaceMode.SIMPLE -> listOf(
-        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Conversations, Destination.Automations, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Assistant, Destination.Workspace, Destination.Conversations, Destination.Automations, Destination.Planner,
         Destination.Notes, Destination.Guardian, Destination.Focus, Destination.Search
     )
     InterfaceMode.ORGANIZED -> listOf(
-        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Conversations, Destination.Automations, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Assistant, Destination.Workspace, Destination.Conversations, Destination.Automations, Destination.Planner,
         Destination.Projects, Destination.Notes, Destination.Habits, Destination.Guardian, Destination.Focus, Destination.Search
     )
     InterfaceMode.ADVANCED -> listOf(
-        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Conversations, Destination.Automations, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Assistant, Destination.Workspace, Destination.Conversations, Destination.Automations, Destination.Planner,
         Destination.Projects, Destination.Notes, Destination.Habits, Destination.Guardian, Destination.Focus,
         Destination.Search, Destination.Statistics, Destination.Archive
     )
@@ -211,8 +222,8 @@ fun OrdiaNavigation(
                             }
                         }
                     ) {
-                        wideItems(state.preferences.interfaceMode).forEach { item ->
-                            NavigationRailItem(
+                        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                            wideItems(state.preferences.interfaceMode).forEach { item -> NavigationRailItem(
                                 selected = route == item.route,
                                 onClick = { navController.navigateSingle(item.route) },
                                 icon = { Icon(item.icon, stringResource(item.labelRes)) },
@@ -222,9 +233,8 @@ fun OrdiaNavigation(
                                     selectedTextColor = MaterialTheme.colorScheme.primary,
                                     indicatorColor = MaterialTheme.colorScheme.primaryContainer
                                 )
-                            )
+                            ) }
                         }
-                        Spacer(Modifier.weight(1f))
                         NavigationRailItem(
                             selected = route == Destination.Settings.route,
                             onClick = { navController.navigateSingle(Destination.Settings.route) },
@@ -297,6 +307,7 @@ private fun OrdiaNavHost(
     vm: OrdiaViewModel,
     padding: androidx.compose.foundation.layout.PaddingValues
 ) {
+    var searchSeed by rememberSaveable { mutableStateOf("") }
     NavHost(navController, startDestination = Destination.Today.route, modifier = Modifier.fillMaxSize()) {
         composable(Destination.Today.route) {
             TodayScreen(
@@ -335,14 +346,38 @@ private fun OrdiaNavHost(
             )
         }
         composable(Destination.Automations.route) { AutomationsScreen(vm = vm, padding = padding) }
+        composable(Destination.Assistant.route) {
+            AssistantScreen(state, vm, padding,
+                onPlanner = { navController.navigateSingle(Destination.Planner.route) },
+                onConversations = { navController.navigateSingle(Destination.Conversations.route) },
+                onSearch = { searchSeed = it; navController.navigateSingle(Destination.Search.route) },
+                onTask = { navController.navigate(Destination.task(it)) }
+            )
+        }
+        composable(Destination.Workspace.route) {
+            WorkspaceScreen(state, vm, padding) { panel ->
+                navController.navigateSingle(when (panel) {
+                    WorkspacePanel.TASKS -> Destination.Tasks.route
+                    WorkspacePanel.NOTES -> Destination.Notes.route
+                    WorkspacePanel.CONVERSATIONS -> Destination.Conversations.route
+                    WorkspacePanel.AUTOMATIONS -> Destination.Automations.route
+                    WorkspacePanel.DAILY_PLAN -> Destination.Planner.route
+                    WorkspacePanel.SEARCH -> Destination.Search.route
+                })
+            }
+        }
         composable(Destination.Search.route) {
             SearchScreen(
                 state,
+                vm,
                 padding,
+                initialQuery = searchSeed,
                 onTask = { navController.navigate(Destination.task(it)) },
                 onProject = { navController.navigate(Destination.project(it)) },
                 onNote = { navController.navigate(Destination.note(it)) },
-                onHabits = { navController.navigateSingle(Destination.Habits.route) }
+                onHabits = { navController.navigateSingle(Destination.Habits.route) },
+                onConversations = { navController.navigateSingle(Destination.Conversations.route) },
+                onAutomations = { navController.navigateSingle(Destination.Automations.route) }
             )
         }
         composable(Destination.Statistics.route) { StatisticsScreen(state, padding) }

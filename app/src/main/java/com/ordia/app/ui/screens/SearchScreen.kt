@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Spa
@@ -24,6 +26,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -32,21 +36,29 @@ import com.ordia.app.R
 import com.ordia.app.domain.SearchEngine
 import com.ordia.app.domain.SearchKind
 import com.ordia.app.ui.OrdiaUiState
+import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.EmptyState
 import com.ordia.app.ui.components.ScreenHeader
 
 @Composable
 fun SearchScreen(
     state: OrdiaUiState,
+    vm: OrdiaViewModel,
     contentPadding: PaddingValues,
+    initialQuery: String = "",
     onTask: (Long) -> Unit,
     onProject: (Long) -> Unit,
     onNote: (Long) -> Unit,
-    onHabits: () -> Unit
+    onHabits: () -> Unit,
+    onConversations: () -> Unit,
+    onAutomations: () -> Unit
 ) {
-    var query by remember { mutableStateOf("") }
-    val results = remember(query, state.tasks, state.projects, state.notes, state.habits) {
-        SearchEngine.search(query, state.tasks, state.projects, state.notes, state.habits)
+    var query by rememberSaveable(initialQuery) { mutableStateOf(initialQuery) }
+    val conversations by vm.conversations.collectAsStateWithLifecycle()
+    val commitments by vm.commitments.collectAsStateWithLifecycle()
+    val automations by vm.automationRules.collectAsStateWithLifecycle()
+    val results = remember(query, state.tasks, state.projects, state.notes, state.habits, conversations, commitments, automations) {
+        SearchEngine.search(query, state.tasks, state.projects, state.notes, state.habits, conversations, commitments, automations)
     }
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -65,6 +77,8 @@ fun SearchScreen(
                         SearchKind.PROJECT -> onProject(result.id)
                         SearchKind.NOTE -> onNote(result.id)
                         SearchKind.HABIT -> onHabits()
+                        SearchKind.CONVERSATION, SearchKind.COMMITMENT -> onConversations()
+                        SearchKind.AUTOMATION -> onAutomations()
                     }
                 }) {
                     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -74,6 +88,8 @@ fun SearchScreen(
                                 SearchKind.PROJECT -> Icons.Outlined.Folder
                                 SearchKind.NOTE -> Icons.Outlined.Description
                                 SearchKind.HABIT -> Icons.Outlined.Spa
+                                SearchKind.CONVERSATION, SearchKind.COMMITMENT -> Icons.Outlined.ChatBubbleOutline
+                                SearchKind.AUTOMATION -> Icons.Outlined.Bolt
                             },
                             contentDescription = null
                         )
@@ -95,4 +111,7 @@ private fun SearchKind.label(): String = when (this) {
     SearchKind.PROJECT -> stringResource(R.string.search_kind_project)
     SearchKind.NOTE -> stringResource(R.string.search_kind_note)
     SearchKind.HABIT -> stringResource(R.string.search_kind_habit)
+    SearchKind.CONVERSATION -> stringResource(R.string.search_kind_conversation)
+    SearchKind.COMMITMENT -> stringResource(R.string.search_kind_commitment)
+    SearchKind.AUTOMATION -> stringResource(R.string.search_kind_automation)
 }
