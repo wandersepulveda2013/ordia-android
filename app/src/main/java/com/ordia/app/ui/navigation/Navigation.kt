@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -167,10 +170,10 @@ fun OrdiaNavigation(
                     NavigationRail(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         header = {
-                            Column(Modifier.padding(top = 16.dp, bottom = 10.dp)) {
-                                GuardianAvatar(42.dp)
-                                Spacer(Modifier.height(6.dp))
-                                Text(stringResource(R.string.app_short_name), style = MaterialTheme.typography.labelLarge)
+                            Column(Modifier.padding(top = 12.dp, bottom = 8.dp)) {
+                                GuardianAvatar(36.dp)
+                                Spacer(Modifier.height(4.dp))
+                                Text(stringResource(R.string.app_short_name), style = MaterialTheme.typography.labelMedium)
                             }
                         }
                     ) {
@@ -213,26 +216,31 @@ fun OrdiaNavigation(
                 containerColor = MaterialTheme.colorScheme.background,
                 bottomBar = {
                     if (showTopLevelNavigation) {
-                        NavigationBar(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                            tonalElevation = 4.dp
-                        ) {
-                            compactItems.forEach { item ->
-                                val selected = route == item.route || (item == Destination.More && route in compactMoreRoutes)
-                                NavigationBarItem(
-                                    selected = selected,
-                                    onClick = { navController.navigateSingle(item.route) },
-                                    icon = { Icon(item.icon, stringResource(item.labelRes)) },
-                                    label = { Text(stringResource(item.labelRes)) },
-                                    alwaysShowLabel = true,
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        Column(Modifier.navigationBarsPadding()) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+                            NavigationBar(
+                                modifier = Modifier.height(64.dp),
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                tonalElevation = 0.dp,
+                                windowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp)
+                            ) {
+                                compactItems.forEach { item ->
+                                    val selected = route == item.route || (item == Destination.More && route in compactMoreRoutes)
+                                    NavigationBarItem(
+                                        selected = selected,
+                                        onClick = { navController.navigateSingle(item.route) },
+                                        icon = { Icon(item.icon, stringResource(item.labelRes)) },
+                                        label = { Text(stringResource(item.labelRes)) },
+                                        alwaysShowLabel = false,
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                     }
