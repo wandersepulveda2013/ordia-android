@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.domain.DateRules
+import com.ordia.app.domain.SubtaskRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.EmptyState
@@ -45,7 +46,8 @@ fun TaskDetailScreen(
     vm: OrdiaViewModel,
     taskId: Long,
     contentPadding: PaddingValues,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onTask: (Long) -> Unit
 ) {
     val task = state.task(taskId)
     var editing by remember(taskId) { mutableStateOf(false) }
@@ -68,6 +70,9 @@ fun TaskDetailScreen(
         )
     }
     val subtasks = state.subtasks(task.id)
+    val canAddSubtask = remember(state.tasks, task.id) {
+        SubtaskRules.canAddSubtask(task, state.tasks.associateBy { it.id })
+    }
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 12.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
@@ -94,10 +99,16 @@ fun TaskDetailScreen(
             }
         }
         item { Text(stringResource(R.string.task_detail_steps), style = MaterialTheme.typography.titleLarge) }
-        item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(subtaskText, { subtaskText = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.task_detail_add_subtask)) }, singleLine = true)
-                IconButton(onClick = { vm.addTask(subtaskText, parentTaskId = task.id); subtaskText = "" }, enabled = subtaskText.isNotBlank()) { Icon(Icons.Outlined.Add, stringResource(R.string.task_detail_add_subtask)) }
+        if (canAddSubtask) {
+            item {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(subtaskText, { subtaskText = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.task_detail_add_subtask)) }, singleLine = true)
+                    IconButton(onClick = { vm.addSubtask(task, subtaskText); subtaskText = "" }, enabled = subtaskText.isNotBlank()) { Icon(Icons.Outlined.Add, stringResource(R.string.task_detail_add_subtask)) }
+                }
+            }
+        } else {
+            item {
+                Text(stringResource(R.string.subtask_max_depth), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         if (subtasks.isEmpty()) item { Text(stringResource(R.string.task_detail_no_subtasks), color = MaterialTheme.colorScheme.onSurfaceVariant) }
@@ -105,7 +116,7 @@ fun TaskDetailScreen(
             TaskRow(
                 task = subtask,
                 onToggle = { vm.toggleTask(subtask) },
-                onEdit = { },
+                onEdit = { onTask(subtask.id) },
                 onDelete = { vm.deleteTask(subtask) }
             )
         }

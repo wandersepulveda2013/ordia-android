@@ -47,6 +47,7 @@ import com.ordia.app.domain.ParsedTaskInput
 import com.ordia.app.domain.RecurrenceEngine
 import com.ordia.app.domain.ReminderSync
 import com.ordia.app.domain.RoutineRules
+import com.ordia.app.domain.SubtaskRules
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.domain.TaskSnapshotCodec
 import com.ordia.app.domain.TaskMutationGate
@@ -350,6 +351,29 @@ class OrdiaViewModel(
         )
     )
 
+    /**
+     * Añade una subtarea al padre respetando la profundidad máxima del árbol.
+     * Si el padre ya está en la profundidad máxima, muestra un mensaje y no crea nada.
+     */
+    fun addSubtask(parent: TaskEntity, title: String) {
+        val clean = title.trim()
+        if (clean.isBlank()) return
+        viewModelScope.launch {
+            val tasksById = uiState.value.tasks.associateBy { it.id }
+            if (!SubtaskRules.canAddSubtask(parent, tasksById)) {
+                _events.emit(UiEvent.Message(appContext.getString(R.string.subtask_max_depth)))
+                return@launch
+            }
+            saveTask(
+                TaskEntity(
+                    title = clean,
+                    status = TaskStatus.INBOX,
+                    parentTaskId = parent.id
+                )
+            )
+        }
+    }
+
     fun toggleTask(task: TaskEntity) {
         viewModelScope.launch {
             TaskMutationGate.mutex.withLock {
@@ -370,9 +394,64 @@ class OrdiaViewModel(
                         reminderScheduler.schedule(next.copy(id = nextId))
                     }
                 } else if (updated.reminderAt != null || updated.dueAt != null) reminderScheduler.schedule(updated)
+
+                // Subtareas: el padre se completa automáticamente al cerrar la
+                // última, y se reabre al reactivar una subtarea.
+                current.parentTaskId?.let { parentId ->
+                    val parent = taskRepository.get(parentId) ?: return@let
+                    val siblings = taskRepository.subtasks(parentId)
+                    if (completing && SubtaskRules.shouldAutoCompleteParent(parent, siblings)) {
+                        completeParentAutomatically(parent, now)
+                    } else if (!completing && SubtaskRules.shouldAutoReopenParent(parent, siblings)) {
+                        val reopened = parent.copy(
+                            completed = false,
+                            status = if (parent.dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED,
+                            completedAt = null,
+                            updatedAt = now
+                        )
+                        taskRepository.update(reopened)
+                        if (reopened.reminderAt != null || reopened.dueAt != null) reminderScheduler.schedule(reopened)
+                    }
+                }
             }
             updateWidget()
         }
+    }
+
+    /**
+     * Completa automáticamente una tarea padre al cerrar su última subtarea,
+     * con los mismos efectos laterales que un toggle normal y registro de
+     * automatización para poder deshacerlo (restaura el padre sin tocar las
+     * subtareas, que completó el propio usuario).
+     */
+    private suspend fun completeParentAutomatically(parent: TaskEntity, now: Long) {
+        val before = taskRepository.get(parent.id) ?: return
+        val updated = before.copy(
+            completed = true,
+            status = TaskStatus.COMPLETED,
+            completedAt = now,
+            updatedAt = now
+        )
+        taskRepository.update(updated)
+        reminderScheduler.cancel(before.id)
+        RecurrenceEngine.nextOccurrence(before, now)?.let { next ->
+            val nextId = taskRepository.add(next)
+            reminderScheduler.schedule(next.copy(id = nextId))
+        }
+        val logId = automationLogRepository.insert(
+            AutomationLogEntity(
+                type = "subtask_auto",
+                description = appContext.getString(R.string.automation_desc_subtask_auto, before.title),
+                affectedTaskIdsJson = TaskSnapshotCodec.encodeIds(listOf(before.id)),
+                undoPayloadJson = TaskSnapshotCodec.encodeMap(mapOf(before.id to before))
+            )
+        )
+        _events.emit(
+            UiEvent.AutomationApplied(
+                logId,
+                appContext.getString(R.string.subtask_parent_auto_completed, before.title)
+            )
+        )
     }
 
     fun deleteTask(task: TaskEntity) {

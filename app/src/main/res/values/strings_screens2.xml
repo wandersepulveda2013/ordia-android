@@ -85,6 +85,8 @@
     <string name="task_detail_steps">Pasos</string>
     <string name="task_detail_add_subtask">Añadir subtarea</string>
     <string name="task_detail_no_subtasks">Divide la tarea en pasos pequeños cuando lo necesites.</string>
+    <string name="subtask_max_depth">Las subtareas llegan hasta 3 niveles de profundidad.</string>
+    <string name="subtask_parent_auto_completed">Se completó “%1$s”: cerró su última subtarea.</string>
     <string name="task_detail_tags">Etiquetas: %1$s</string>
     <string name="task_detail_unavailable">Tarea no disponible</string>
     <string name="task_detail_unavailable_desc">Puede haber sido archivada o eliminada.</string>
