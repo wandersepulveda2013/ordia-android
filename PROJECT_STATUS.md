@@ -1,7 +1,7 @@
 # Estado de Ordia
 
-Fecha de corte: 31 de julio de 2026
-Rama de trabajo: `feature/ordia-audit-critical-fixes` (base `8ecfa07`)
+Fecha de corte: 1 de agosto de 2026
+Rama de trabajo: `feature/ordia-assistant-evolution` (base `8ecfa07`)
 Referencia completa de hallazgos y correcciones: [`AUDITORIA_ORDIA_2026.md`](AUDITORIA_ORDIA_2026.md)
 
 ## Implementado en código fuente
@@ -27,11 +27,12 @@ Referencia completa de hallazgos y correcciones: [`AUDITORIA_ORDIA_2026.md`](AUD
 ## Verificado en este entorno
 
 - `./gradlew clean test lint assembleDebug assembleRelease`: **OK** en las 6 variantes (3 flavors × debug/release).
-- **1278 pruebas unitarias, 0 fallos** (213 × 6 variantes). Incluyen las 19 de `BackupManagerTest`, 18 de `ContextPrivacyFilterTest`, 16 de `ExternalSecureContextTest`, 9 de `ContextRateLimiterTest`, 5 nuevas de `IntelligenceModelManagerTest` y 7 de `TaskTreeTest` (total 74 nuevas en esta iteración de la auditoría).
-- Lint sin errores (solo warnings P3/P4 documentados en la auditoría).
+- **1644 pruebas unitarias, 0 fallos** (274 × 6 variantes).
+- Lint sin errores (solo warnings P3/P4 documentados en la auditoría; `previewAdvancedDebug` con 0 `UnusedResources`).
 - 6 APKs generados; release R8 de ~16 MB con `DEBUGGABLE=false`; job `sign` del CI valida con `aapt2 dump badging`.
-- APK de entrega para el celular: `deliverables/Ordia-3.0-debug-2026-07-31.apk` (variante `previewAdvanced`, debug, 36.2 MB).
+- APK de entrega para el celular: `deliverables/Ordia-3.0-debug-2026-08-01.apk` (variante `previewAdvanced`, debug, 37.2 MB, paquete `com.ordia.app.preview.advanced`, `3.0.0-preview-advanced`, minSdk 26, target 36; verificada con `aapt2 dump badging`).
 - Wrapper de Gradle con `distributionSha256Sum` y validación en CI.
+- Evolución de asistente de organización personal completada (10 bloques, commits `25d2c5a`→`8e77d3a`, validación final `56a0adc`): analizador NLU en español con captura segura a bandeja; preview de interpretación con chips; plan automático del día con motivos/conflictos, log de automatizaciones y deshacer (`DayPlanner`/`AutomationLogEntity`/`TaskSnapshotCodec`, Room v3 con `MIGRATION_2_3`); replanificación del día; tarjeta "Qué hago ahora" (`WhatNowEngine`); resincronización de recordatorios ante zona horaria/hora/fecha; rutinas adaptables (respetan ejecución diaria y son deshacibles); resumen del día y ritmo semanal (`SummaryEngine`); subtareas inteligentes (autocompletar padre, reapertura, límite de profundidad 3, deshacer); aprendizaje local opt-in del planificador (`LearningEngine`, preferencia desactivada por defecto, nunca en la nube). Regresión completa 1644 tests (274×6), 0 fallos; lint `previewAdvancedDebug` 0 errores / 0 `UnusedResources`; APK regenerado y verificado con aapt2. `56a0adc` corrige la única regresión de lint detectada en la validación final (string `root_context_inactive` sin uso desde BLOQUE 1). Limitación documentada: no hay emulador/ADB en este equipo; la adaptabilidad y el flujo se verificaron por tests, lint y APK instalable.
 - Hallazgos críticos de la auditoría: **3/3 P0 corregidos, 8/8 P1 corregidos, 12/12 P2 corregidos, 10/10 P3 corregidos**; 2 bloqueos por CI documentados (ORD-015 migración Room, ORD-032 FTS) y 0 hallazgos abiertos.
 - ORD-025 (subtareas huérfanas) cerrado: `TaskRepository.deletePermanently` usa `TaskDao.deleteSubtreeAndSelf`, que recoge el subárbol completo (`TaskTree.collectIds`, BFS tolerante a ciclos, JVM puro) y lo borra en una única transacción; 7 tests nuevos.
 - ORD-029 (i18n en Kotlin) **cerrado**: localizados los 4 archivos citados por la auditoría (65 strings), todos los literales visibles de pantallas Compose, componentes y servicios (~300 strings en 6 archivos de recursos nuevos) y, en 1b6f8d0, los últimos literales residuales (NotesScreen, NoteEditorScreen, FocusScreen, HabitsScreen, PlannerScreen, SettingsScreen) con 14 claves muertas eliminadas. En 95bb5cd se cerró el resto: `label` de los 15 destinos de `Navigation.kt` → `@StringRes labelRes` (`nav_*`) resuelto con `stringResource`; vocabulario del guardián (`species`/`stage`/`mood`/`archetype`/`interaction` en GuardianScreen, TodayScreen, SettingsScreen, VirtualGuardian y GuardianPetView) → mapper `ui/GuardianLabels.kt` (36 recursos). **El dominio queda sin texto de producto** (`GuardianEngine`/`GuardianSpecies` pierden `label`/`description`; conservan `minimumXp`/`bond`/`event`/`defaultName`). Lint `previewAdvancedDebug`: 0 errores / 0 `UnusedResources` / 102 warnings; regresión 1278 tests, 0 fallos; APK regenerado y verificado. Residual documentado: mensajes dinámicos del guardián generados en dominio (`GuardianCoach`) — contenido del motor, no literales de UI.
@@ -56,7 +57,7 @@ No hay `adb` disponible en este equipo. Para instalar la APK en el celular:
 ```powershell
 # 1. Con el celular en modo desarrollador y depuración USB activada
 & "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" devices          # verificar autorización
-& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install -r deliverables/Ordia-3.0-debug-2026-07-31.apk
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" install -r deliverables/Ordia-3.0-debug-2026-08-01.apk
 # 2. Alternativa sin cable: copiar la APK al celular y abrir el archivo con el instalador del sistema
 ```
 

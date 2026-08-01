@@ -1,5 +1,18 @@
 # 3.0.0
 
+## Asistente de organización personal (evolución asistida, 10 bloques)
+
+- Analizador de lenguaje natural en español: repetición (`cada lunes y jueves`, `todos los días`), recordatorio "N antes", duración y confianza; captura segura a bandeja.
+- Preview de interpretación con chips (repetición/recordatorio) y revisión antes de guardar.
+- Plan automático del día con motivos y conflictos, log de automatizaciones, respaldo con deshacer (`undoLastAutomation`) y selección por bloque.
+- Replanificación del día (replan), botón "Replanificar día" y selección de bloques compartida.
+- Tarjeta "Qué hago ahora" (WhatNowEngine) con razonamientos y prioridad por agenda.
+- Sincronización de recordatorios ante cambios de zona horaria, hora y fecha; guardas para tareas canceladas.
+- Rutinas adaptables: respetan "ya ejecutada hoy", registran automatización y se pueden deshacer.
+- Resumen del día y ritmo semanal (SummaryEngine determinista): completadas, pendientes + minutos, atrasadas, bandeja y tendencia semanal.
+- Subtareas inteligentes: autocompletar el padre, reabrir al desmarcar, límite de profundidad y deshacer.
+- Aprendizaje local opt-in: perfil de horarios del planificador (percentiles, ventana 28 días) desde preferencias, nunca en la nube.
+
 - Atención contextual local y opcional.
 - Confirmación obligatoria antes de crear elementos.
 - Integración con Compartir y Procesar texto.
