@@ -1,10 +1,13 @@
 package com.ordia.app.accessibility
 
 /**
- * Política de extracción de texto para la captura avanzada de pantalla.
+ * Invariantes heredadas de privacidad conservadas como lógica pura para que
+ * las pruebas históricas sigan protegiendo datos sensibles.
  *
  * Lógica pura, sin dependencias de Android, para poder probarla en JVM.
- * El servicio de accesibilidad delega aquí las decisiones de privacidad:
+ * Ordía ya no registra ni ejecuta un AccessibilityService. Estas reglas no
+ * están conectadas a ninguna captura de interfaz y se mantienen únicamente
+ * como regresión defensiva:
  * - Nunca procesar campos password/masked (ORD-035).
  * - Descartar textos demasiado cortos para reducir ruido y batería.
  * - Recursión acotada al explorar árboles de nodos (ORD-034).

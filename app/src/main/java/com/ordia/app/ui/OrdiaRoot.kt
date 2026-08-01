@@ -83,6 +83,8 @@ fun OrdiaRoot(
             automationLogRepository = app.container.automationLogRepository,
             captureRepository = app.container.captureRepository,
             conversationRepository = app.container.conversationRepository,
+            observationRepository = app.container.observationRepository,
+            contextualSettingsStore = app.container.contextualSettingsStore,
             preferencesRepository = app.container.preferencesRepository,
             reminderScheduler = app.container.reminderScheduler,
             backupManager = app.container.backupManager
@@ -186,7 +188,7 @@ fun OrdiaRoot(
             requestedDestination == "focus" -> navController.navigate(Destination.Focus.route)
             requestedDestination == "guardian" -> navController.navigate(Destination.Guardian.route)
             requestedDestination == "settings" -> navController.navigate(Destination.Settings.route)
-            requestedDestination == "contextual" -> navController.navigate(Destination.Contextual.route)
+            requestedDestination == "contextual" -> navController.navigate(Destination.Conversations.route)
             requestedDestination == "conversations" -> navController.navigate(Destination.Conversations.route)
         }
         if (requestedDestination != null || requestedTaskId != null) onNavigationRequestConsumed()

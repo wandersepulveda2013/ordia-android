@@ -82,7 +82,6 @@ import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.GuardianAvatar
 import com.ordia.app.ui.screens.ArchiveScreen
-import com.ordia.app.ui.screens.ContextualAttentionScreen
 import com.ordia.app.ui.screens.ConversationsScreen
 import com.ordia.app.ui.screens.CaptureScreen
 import com.ordia.app.ui.screens.FocusScreen
@@ -119,7 +118,6 @@ sealed class Destination(val route: String, @StringRes val labelRes: Int, val ic
     data object Settings : Destination("settings", R.string.nav_settings, Icons.Outlined.Settings)
     data object More : Destination("more", R.string.nav_more, Icons.Outlined.MoreHoriz)
     data object Guardian : Destination("guardian", R.string.nav_guardian, Icons.Outlined.Psychology)
-    data object Contextual : Destination("contextual", R.string.nav_contextual, Icons.Outlined.AutoAwesome)
     data object Conversations : Destination("conversations", R.string.nav_conversations, Icons.Outlined.ChatBubbleOutline)
 
     companion object {
@@ -144,7 +142,6 @@ private val compactMoreRoutes = setOf(
     Destination.Statistics.route,
     Destination.Archive.route,
     Destination.Guardian.route,
-    Destination.Contextual.route,
     Destination.Conversations.route,
     Destination.Settings.route
 )
@@ -162,7 +159,6 @@ private val topLevelRoutes = setOf(
     Destination.Statistics.route,
     Destination.Archive.route,
     Destination.Guardian.route,
-    Destination.Contextual.route,
     Destination.Conversations.route,
     Destination.Settings.route,
     Destination.More.route
@@ -326,7 +322,6 @@ private fun OrdiaNavHost(
         composable(Destination.Habits.route) { HabitsScreen(state, vm, padding) }
         composable(Destination.Focus.route) { FocusScreen(state, vm, padding) }
         composable(Destination.Guardian.route) { GuardianScreen(state, padding) }
-        composable(Destination.Contextual.route) { ContextualAttentionScreen(state, vm, padding) }
         composable(Destination.Conversations.route) {
             ConversationsScreen(
                 vm = vm,

@@ -146,15 +146,6 @@
     <string name="settings_quiet_format_hint">Usa el formato HH:mm, por ejemplo 22:00.</string>
     <string name="settings_quiet_same_time">La hora inicial y final deben ser diferentes.</string>
     <string name="settings_quiet_saved">Horario de silencio guardado.</string>
-    <string name="settings_section_capture">Captura avanzada</string>
-    <string name="settings_capture_banner_title">Solo con tu consentimiento</string>
-    <string name="settings_capture_banner_text">Captura texto visible en pantalla para crear tareas y notas desde otras aplicaciones. Nunca procesa contraseñas, PIN, OTP ni campos sensibles, y solo funciona en aplicaciones que autorices.</string>
-    <string name="settings_capture_switch">Captura de pantalla avanzada</string>
-    <string name="settings_capture_service_active">El servicio está activado en Ajustes del sistema.</string>
-    <string name="settings_capture_service_required">Requiere activar «Ordía · captura de pantalla» en Ajustes del sistema.</string>
-    <string name="settings_capture_disabled">Captura avanzada desactivada.</string>
-    <string name="settings_capture_activated">Captura avanzada activada. Autoriza aplicaciones para empezar.</string>
-    <string name="settings_capture_open_accessibility">Activa «Ordía · captura de pantalla» en Ajustes de accesibilidad para empezar.</string>
     <string name="settings_section_updates">Actualizaciones automáticas</string>
     <string name="settings_updates_banner_title">Actualización segura</string>
     <string name="settings_updates_banner_text">Ordía comprueba GitHub Releases, valida el SHA-256, el paquete y la firma de la APK. Android siempre exige un toque final para autorizar la instalación.</string>

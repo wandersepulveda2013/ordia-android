@@ -17,8 +17,9 @@ class BackupSecurityRulesTest {
         assertTrue(BackupSecurityRules.supportsVersion(4))
         assertTrue(BackupSecurityRules.supportsVersion(5))
         assertTrue(BackupSecurityRules.supportsVersion(6))
+        assertTrue(BackupSecurityRules.supportsVersion(7))
         assertFalse(BackupSecurityRules.supportsVersion(1))
-        assertFalse(BackupSecurityRules.supportsVersion(7))
+        assertFalse(BackupSecurityRules.supportsVersion(8))
         assertFalse(BackupSecurityRules.inputSizeAllowed(BackupSecurityRules.MAX_UTF8_BYTES + 1))
         assertFalse(BackupSecurityRules.collectionSizeAllowed(BackupSecurityRules.MAX_ITEMS_PER_COLLECTION + 1))
     }

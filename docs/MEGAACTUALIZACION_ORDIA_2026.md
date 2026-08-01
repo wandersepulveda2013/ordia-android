@@ -78,3 +78,29 @@ Validación del bloque:
 - `compilePreviewAdvancedDebugAndroidTestKotlin`: correcto; incluye contratos de migración 3→4 y 4→5.
 - `lintPreviewAdvancedDebug`: 0 errores, 111 advertencias heredadas o informativas; no aumentaron respecto al bloque 2.
 - `assembleDebug`: correcto; se generaron las tres APK debug (`previewAdvanced`, `previewFull` y `previewSafe`).
+
+## Bloque 4 — observación consentida y privacidad
+
+- `NotificationListenerService` opcional conservado únicamente en las variantes Full y Advanced; Safe no declara el componente ni acceso a Internet.
+- Observación desactivada por defecto, con activación explícita, estado visible, acceso directo al permiso de Android, pausa de una hora, reanudación y revocación interna.
+- Lista cerrada y configurable de fuentes: WhatsApp, WhatsApp Business, Telegram, Signal y Google Messages. Cada aplicación requiere autorización individual.
+- Modo fijo **solo detectar compromisos**: la notificación se procesa localmente y solo se persiste cuando el motor encuentra una propuesta revisable.
+- Retención mínima: se guardan resumen, acción y metadatos necesarios; `rawContent` permanece vacío y el original no se conserva.
+- Filtro previo para paquetes bancarios, billeteras, autenticadores, salud, contraseñas, OTP, 2FA, tarjetas, notificaciones continuas y resúmenes de grupo.
+- Deduplicación persistente mediante SHA-256, límite diario, procesamiento acotado a 4.000 caracteres y ausencia de contenido en logs.
+- Centro de Conversaciones ampliado con fuentes autorizadas, estado del permiso, controles de privacidad, borrado selectivo de datos observados e historial de consentimiento sin texto de mensajes.
+- Eliminado por completo el servicio de accesibilidad anterior, su permiso, manifiesto, configuración XML y pantalla de activación. Ordía no usa `AccessibilityService` para leer chats ni interfaces.
+- Room v6 con `observed_sources` y `consent_events`, índices, DAO transaccional y migración no destructiva 5→6.
+- Esquema Room 6 incorporado al control de versiones y prueba instrumental que preserva conversaciones existentes.
+- Formato de respaldo v7 con fuentes e historial de consentimiento; acepta copias v2–v6 y siempre restaura las fuentes desactivadas para exigir una nueva decisión local.
+
+Validación del bloque:
+
+- `test`: 1.878 pruebas JVM (313 por cada una de las seis variantes), 0 fallos, 0 errores y 0 omitidas.
+- `compilePreviewAdvancedDebugAndroidTestKotlin`: correcto; incluye migración 5→6, consentimiento y borrado selectivo de conversaciones observadas.
+- `lintPreviewAdvancedDebug`: 0 errores, 108 advertencias y 1 observación informativa; dos advertencias menos que en el bloque 3.
+- `assembleDebug`: correcto; se generaron las tres APK debug.
+- Manifiestos fusionados de Advanced: 0 referencias a `AccessibilityService` o `BIND_ACCESSIBILITY_SERVICE`.
+- APK Advanced: 37.616.121 bytes; SHA-256 `d51318a2203e0543cce489ca35103d55402160d497c247c371f8dcaeac343c6b`.
+- APK Full: 37.615.765 bytes; SHA-256 `ce61411070c1e940be30f6e54fc4b1452b52c35aa0d046f315fdbe303cc0ddb0`.
+- APK Safe: 37.598.577 bytes; SHA-256 `ac9430863daee492d681253fb585b1a72840d3edb75c50dec41e30f23326b360`.

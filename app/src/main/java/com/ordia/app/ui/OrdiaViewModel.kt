@@ -19,6 +19,9 @@ import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.ConversationSourceType
+import com.ordia.app.data.local.ConsentEventEntity
+import com.ordia.app.data.local.ConsentEventType
+import com.ordia.app.data.local.ObservedSourceEntity
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
@@ -43,6 +46,7 @@ import com.ordia.app.data.repository.ConversationRepository
 import com.ordia.app.data.repository.FocusRepository
 import com.ordia.app.data.repository.HabitRepository
 import com.ordia.app.data.repository.NoteRepository
+import com.ordia.app.data.repository.ObservationRepository
 import com.ordia.app.data.repository.ProjectRepository
 import com.ordia.app.data.repository.RoutineRepository
 import com.ordia.app.data.repository.TagRepository
@@ -71,6 +75,7 @@ import com.ordia.app.conversations.ChatImportParser
 import com.ordia.app.conversations.CommitmentEngine
 import com.ordia.app.conversations.ConversationPreview
 import com.ordia.app.conversations.ConversationSummaryEngine
+import com.ordia.app.context.ContextualSettingsStore
 import com.ordia.app.reminders.ReminderScheduler
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import com.ordia.app.BuildConfig
@@ -212,6 +217,13 @@ data class CaptureDraftState(
     val draft: CaptureDraftEntity? = null
 )
 
+data class ObservationRuntimeState(
+    val enabled: Boolean = false,
+    val pausedUntil: Long = 0L
+) {
+    val paused: Boolean get() = pausedUntil > System.currentTimeMillis()
+}
+
 class OrdiaViewModel(
     private val appContext: Context,
     private val taskRepository: TaskRepository,
@@ -225,6 +237,8 @@ class OrdiaViewModel(
     private val automationLogRepository: AutomationLogRepository,
     private val captureRepository: CaptureRepository,
     private val conversationRepository: ConversationRepository,
+    private val observationRepository: ObservationRepository,
+    private val contextualSettingsStore: ContextualSettingsStore,
     private val preferencesRepository: PreferencesRepository,
     private val reminderScheduler: ReminderScheduler,
     private val backupManager: BackupManager
@@ -250,8 +264,35 @@ class OrdiaViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val pendingCommitments: StateFlow<List<CommitmentEntity>> = conversationRepository.pendingCommitments
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val observedSources: StateFlow<List<ObservedSourceEntity>> = observationRepository.sources
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val consentHistory: StateFlow<List<ConsentEventEntity>> = observationRepository.consentHistory
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val _observationRuntime = MutableStateFlow(
+        ObservationRuntimeState(contextualSettingsStore.enabled, contextualSettingsStore.pausedUntil)
+    )
+    val observationRuntime: StateFlow<ObservationRuntimeState> = _observationRuntime.asStateFlow()
     private val _sharedConversationPreview = MutableStateFlow<ConversationPreview?>(null)
     val sharedConversationPreview: StateFlow<ConversationPreview?> = _sharedConversationPreview.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            val legacyPackages = contextualSettingsStore.allowedPackages()
+            legacyPackages.forEach { packageName ->
+                if (observationRepository.getSource(packageName) == null) {
+                    runCatching {
+                        observationRepository.configureSource(
+                            packageName = packageName,
+                            displayName = packageName,
+                            enabled = true,
+                            onlyCommitments = true
+                        )
+                    }
+                }
+            }
+            if (legacyPackages.isNotEmpty()) contextualSettingsStore.clearAllowedPackages()
+        }
+    }
 
     private val core = combine(
         taskRepository.tasks,
@@ -1203,6 +1244,75 @@ class OrdiaViewModel(
         _events.emit(UiEvent.Message(appContext.getString(R.string.conversation_deleted)))
     }
 
+    fun setObservationEnabled(enabled: Boolean) = viewModelScope.launch {
+        contextualSettingsStore.enabled = enabled
+        contextualSettingsStore.notificationSuggestions = enabled
+        if (enabled) contextualSettingsStore.resume()
+        observationRepository.recordConsent(
+            if (enabled) ConsentEventType.OBSERVATION_ENABLED else ConsentEventType.OBSERVATION_DISABLED
+        )
+        refreshObservationRuntime()
+        _events.emit(
+            UiEvent.Message(
+                appContext.getString(
+                    if (enabled) R.string.observation_enabled_message else R.string.observation_disabled_message
+                )
+            )
+        )
+    }
+
+    fun configureObservedSource(packageName: String, displayName: String, enabled: Boolean) = viewModelScope.launch {
+        observationRepository.configureSource(packageName, displayName, enabled, onlyCommitments = true)
+    }
+
+    fun pauseObservationOneHour() = viewModelScope.launch {
+        contextualSettingsStore.pauseOneHour()
+        observationRepository.recordConsent(ConsentEventType.PAUSED)
+        refreshObservationRuntime()
+        _events.emit(UiEvent.Message(appContext.getString(R.string.observation_paused_message)))
+    }
+
+    fun resumeObservation() = viewModelScope.launch {
+        contextualSettingsStore.resume()
+        observationRepository.recordConsent(ConsentEventType.RESUMED)
+        refreshObservationRuntime()
+        _events.emit(UiEvent.Message(appContext.getString(R.string.observation_resumed_message)))
+    }
+
+    fun clearObservedConversationData() = viewModelScope.launch {
+        conversationRepository.clearBySource(ConversationSourceType.NOTIFICATION)
+        observationRepository.recordConsent(ConsentEventType.DATA_CLEARED)
+        _events.emit(UiEvent.Message(appContext.getString(R.string.observation_data_cleared_message)))
+    }
+
+    fun recordNotificationPermissionReviewed() = viewModelScope.launch {
+        observationRepository.recordConsent(ConsentEventType.PERMISSION_REVIEWED)
+    }
+
+    fun recordNotificationPermissionState(granted: Boolean) = viewModelScope.launch {
+        observationRepository.recordConsent(
+            if (granted) ConsentEventType.SYSTEM_PERMISSION_GRANTED else ConsentEventType.SYSTEM_PERMISSION_REVOKED
+        )
+    }
+
+    fun revokeObservationInternally() = viewModelScope.launch {
+        contextualSettingsStore.enabled = false
+        contextualSettingsStore.notificationSuggestions = false
+        contextualSettingsStore.resume()
+        contextualSettingsStore.clearAllowedPackages()
+        observationRepository.disableAllSources()
+        observationRepository.recordConsent(ConsentEventType.INTERNAL_ACCESS_REVOKED)
+        refreshObservationRuntime()
+        _events.emit(UiEvent.Message(appContext.getString(R.string.observation_revoked_message)))
+    }
+
+    private fun refreshObservationRuntime() {
+        _observationRuntime.value = ObservationRuntimeState(
+            enabled = contextualSettingsStore.enabled,
+            pausedUntil = contextualSettingsStore.pausedUntil
+        )
+    }
+
     fun exportBackup(onReady: (String) -> Unit) = viewModelScope.launch {
         runCatching { backupManager.exportJson() }
             .onSuccess(onReady)
@@ -1327,6 +1437,8 @@ class OrdiaViewModel(
         private val automationLogRepository: AutomationLogRepository,
         private val captureRepository: CaptureRepository,
         private val conversationRepository: ConversationRepository,
+        private val observationRepository: ObservationRepository,
+        private val contextualSettingsStore: ContextualSettingsStore,
         private val preferencesRepository: PreferencesRepository,
         private val reminderScheduler: ReminderScheduler,
         private val backupManager: BackupManager
@@ -1345,6 +1457,8 @@ class OrdiaViewModel(
             automationLogRepository,
             captureRepository,
             conversationRepository,
+            observationRepository,
+            contextualSettingsStore,
             preferencesRepository,
             reminderScheduler,
             backupManager

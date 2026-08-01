@@ -1,30 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Pantallas batch 2 (ORD-029 i18n): contextual, proyectos, estadísticas, tareas, archivo, enfoque, hábitos, planificador. -->
-
-    <!-- ContextualAttentionScreen -->
-    <string name="attention_eyebrow">PRIVADO Y OPCIONAL</string>
-    <string name="attention_title">Atención contextual</string>
-    <string name="attention_subtitle">Ordía detecta posibles compromisos localmente y siempre pide confirmación.</string>
-    <string name="attention_reading_unavailable_title">Lectura de notificaciones no disponible</string>
-    <string name="attention_reading_unavailable_body">Esta Preview segura no incluye lectura de notificaciones. Puedes seguir usando el análisis de texto compartido o seleccionado manualmente. La lectura de notificaciones está disponible en la compilación avanzada separada.</string>
-    <string name="attention_processing_setting">Procesamiento contextual</string>
-    <string name="attention_processing_setting_desc">Permite analizar texto compartido o seleccionado.</string>
-    <string name="attention_notifications_setting">Sugerencias desde notificaciones</string>
-    <string name="attention_notifications_setting_desc">Solo procesa el texto visible de notificaciones autorizadas; nunca guarda la conversación completa.</string>
-    <string name="attention_allowed_apps">Aplicaciones autorizadas</string>
-    <string name="attention_allowed_apps_desc">Aunque Android conceda acceso global, Ordía solo procesa las aplicaciones que actives aquí.</string>
-    <string name="attention_access_granted">Acceso a notificaciones autorizado</string>
-    <string name="attention_access_not_granted">Acceso a notificaciones no autorizado</string>
-    <string name="attention_access_body">Ordía funciona manualmente sin este permiso. Actívalo solo si deseas sugerencias en la bandeja contextual.</string>
-    <string name="attention_open_permissions">Abrir permisos de notificaciones</string>
-    <string name="attention_pause_one_hour">Pausar durante una hora</string>
-    <string name="attention_clear_suggestions">Borrar sugerencias</string>
-    <string name="attention_pending_suggestions">Sugerencias pendientes</string>
-    <string name="attention_pending_suggestions_desc">Solo se guardan título, tipo, fecha estimada y una huella no reversible.</string>
-    <string name="attention_no_suggestions">No hay sugerencias. Selecciona texto y usa ‘Procesar texto con Ordía’, o comparte un mensaje con la aplicación.</string>
-    <string name="attention_confidence">%1$s · confianza %2$d %%</string>
-    <string name="attention_discard">Descartar</string>
+    <!-- Pantallas batch 2 (ORD-029 i18n): proyectos, estadísticas, tareas, archivo, enfoque, hábitos y planificador. -->
 
     <!-- ProjectDetailScreen -->
     <string name="project_detail_unavailable">Proyecto no disponible</string>

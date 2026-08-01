@@ -473,6 +473,9 @@ abstract class ConversationDao {
     @Query("SELECT * FROM commitments WHERE id = :id LIMIT 1")
     abstract suspend fun getCommitment(id: Long): CommitmentEntity?
 
+    @Query("SELECT COUNT(*) FROM conversations WHERE sourceType = :sourceType AND createdAt >= :since")
+    abstract suspend fun countConversationsSince(sourceType: ConversationSourceType, since: Long): Int
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     protected abstract suspend fun insertConversation(conversation: ConversationEntity): Long
 
@@ -507,9 +510,97 @@ abstract class ConversationDao {
     @Query("DELETE FROM conversations WHERE id = :id")
     abstract suspend fun deleteConversation(id: Long)
 
+    @Query("DELETE FROM conversations WHERE sourceType = :sourceType")
+    abstract suspend fun deleteConversationsBySource(sourceType: ConversationSourceType)
+
     @Query("DELETE FROM commitments")
     abstract suspend fun deleteAllCommitments()
 
     @Query("DELETE FROM conversations")
     abstract suspend fun deleteAllConversations()
+}
+
+@Dao
+abstract class ObservationDao {
+    @Query("SELECT * FROM observed_sources ORDER BY enabled DESC, displayName COLLATE NOCASE")
+    abstract fun observeSources(): Flow<List<ObservedSourceEntity>>
+
+    @Query("SELECT * FROM consent_events ORDER BY occurredAt DESC, id DESC LIMIT 100")
+    abstract fun observeConsentHistory(): Flow<List<ConsentEventEntity>>
+
+    @Query("SELECT * FROM observed_sources WHERE packageName = :packageName LIMIT 1")
+    abstract suspend fun getSource(packageName: String): ObservedSourceEntity?
+
+    @Query("SELECT * FROM observed_sources ORDER BY displayName COLLATE NOCASE")
+    abstract suspend fun getSourcesNow(): List<ObservedSourceEntity>
+
+    @Query("SELECT * FROM consent_events ORDER BY occurredAt DESC, id DESC")
+    abstract suspend fun getConsentEventsNow(): List<ConsentEventEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    protected abstract suspend fun upsertSource(source: ObservedSourceEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun restoreSources(sources: List<ObservedSourceEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun restoreConsentEvents(events: List<ConsentEventEntity>)
+
+    @Insert
+    protected abstract suspend fun insertConsentEvent(event: ConsentEventEntity): Long
+
+    @Query("UPDATE observed_sources SET enabled = 0, updatedAt = :now WHERE enabled = 1")
+    abstract suspend fun disableAllSources(now: Long)
+
+    @Query("DELETE FROM consent_events WHERE id NOT IN (SELECT id FROM consent_events ORDER BY occurredAt DESC, id DESC LIMIT :keep)")
+    protected abstract suspend fun pruneConsentEvents(keep: Int)
+
+    @Transaction
+    open suspend fun configureSource(
+        packageName: String,
+        displayName: String,
+        enabled: Boolean,
+        onlyCommitments: Boolean,
+        now: Long
+    ) {
+        val existing = getSource(packageName)
+        if (existing?.enabled == enabled &&
+            existing.onlyCommitments == onlyCommitments &&
+            existing.displayName == displayName
+        ) return
+        upsertSource(
+            ObservedSourceEntity(
+                packageName = packageName,
+                displayName = displayName,
+                enabled = enabled,
+                onlyCommitments = onlyCommitments,
+                createdAt = existing?.createdAt ?: now,
+                updatedAt = now
+            )
+        )
+        insertConsentEvent(
+            ConsentEventEntity(
+                eventType = if (enabled) ConsentEventType.SOURCE_ENABLED else ConsentEventType.SOURCE_DISABLED,
+                sourcePackage = packageName,
+                occurredAt = now
+            )
+        )
+        pruneConsentEvents(200)
+    }
+
+    @Transaction
+    open suspend fun recordConsent(
+        eventType: ConsentEventType,
+        sourcePackage: String = "",
+        now: Long = System.currentTimeMillis()
+    ) {
+        insertConsentEvent(ConsentEventEntity(eventType = eventType, sourcePackage = sourcePackage, occurredAt = now))
+        pruneConsentEvents(200)
+    }
+
+    @Query("DELETE FROM consent_events")
+    abstract suspend fun deleteAllConsentEvents()
+
+    @Query("DELETE FROM observed_sources")
+    abstract suspend fun deleteAllSources()
 }

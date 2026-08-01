@@ -6,7 +6,6 @@
     <string name="reminders_channel_name">Recordatorios</string>
     <string name="reminders_channel_description">Avisos de tareas y hábitos programados.</string>
     <string name="widget_description">Muestra tu próximo paso y el número de tareas pendientes.</string>
-    <string name="accessibility_service_description">Permite a Ordía detectar intenciones organizativas desde el texto visible en pantalla. No se procesan contraseñas, datos bancarios ni contenido sensible. Solo funciona en aplicaciones que autorices explícitamente.</string>
     <string name="keyboard_analyzing">Analizando...</string>
     <string name="keyboard_suggestion_add">Agregar</string>
     <string name="keyboard_suggestion_edit">Editar</string>

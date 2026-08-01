@@ -14,6 +14,7 @@ import com.ordia.app.data.repository.CaptureRepository
 import com.ordia.app.data.repository.ConversationRepository
 import com.ordia.app.data.repository.HabitRepository
 import com.ordia.app.data.repository.NoteRepository
+import com.ordia.app.data.repository.ObservationRepository
 import com.ordia.app.data.repository.ProjectRepository
 import com.ordia.app.data.repository.RoutineRepository
 import com.ordia.app.data.repository.TagRepository
@@ -36,6 +37,7 @@ class AppContainer(context: Context) {
     val automationLogRepository = AutomationLogRepository(database.automationLogDao())
     val captureRepository = CaptureRepository(database.captureDao())
     val conversationRepository = ConversationRepository(database.conversationDao())
+    val observationRepository = ObservationRepository(database.observationDao())
     val reminderScheduler = ReminderScheduler(context)
     val backupManager = BackupManager(
         backupStore = RoomBackupStore(database),

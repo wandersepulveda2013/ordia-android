@@ -31,6 +31,8 @@ class ContextualSettingsStore(context: Context) {
 
     fun isActive(now: Long = System.currentTimeMillis()): Boolean = enabled && pausedUntil <= now
     fun pauseOneHour(now: Long = System.currentTimeMillis()) { pausedUntil = now + 60 * 60_000L }
+    fun resume() { pausedUntil = 0L }
+    fun clearAllowedPackages() { prefs.edit().remove(KEY_ALLOWED_PACKAGES).apply() }
 
     companion object {
         private const val KEY_ENABLED = "enabled"

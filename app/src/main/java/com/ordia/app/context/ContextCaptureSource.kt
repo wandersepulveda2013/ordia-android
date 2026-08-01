@@ -21,7 +21,8 @@ enum class ContextCaptureSource(
     /** Notificaciones autorizadas vía NotificationListenerService */
     NOTIFICATION("Notificaciones", requiresPermission = true),
 
-    /** Captura de pantalla avanzada vía AccessibilityService (solo previewAdvanced) */
+    /** Valor heredado para compatibilidad de datos y pruebas; nunca se activa en la aplicación. */
+    @Deprecated("Ordía no usa AccessibilityService para leer interfaces")
     SCREEN_ADVANCED("Pantalla avanzada", requiresPermission = true, isAdvanced = true),
 
     /** Entrada de voz */

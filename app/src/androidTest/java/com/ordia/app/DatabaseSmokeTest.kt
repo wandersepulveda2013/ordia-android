@@ -77,6 +77,33 @@ class DatabaseSmokeTest {
                 )
             )
         )
+        val observedConversationId = database.conversationDao().insertGraph(
+            conversation = ConversationEntity(
+                sourceType = ConversationSourceType.NOTIFICATION,
+                sourcePackage = "com.whatsapp",
+                title = "Compromiso observado",
+                summary = "Una propuesta pendiente.",
+                contentHash = "e".repeat(64),
+                messageCount = 1
+            ),
+            commitments = listOf(
+                CommitmentEntity(
+                    conversationId = 0,
+                    kind = CommitmentKind.REQUEST,
+                    owner = CommitmentOwner.SELF,
+                    action = "Responder mañana",
+                    confidence = 0.9f,
+                    fingerprint = "f".repeat(64)
+                )
+            )
+        )
+        database.observationDao().configureSource(
+            packageName = "com.whatsapp",
+            displayName = "WhatsApp",
+            enabled = true,
+            onlyCommitments = true,
+            now = 1000L
+        )
 
         assertNotNull(database.taskDao().getById(taskId))
         assertEquals(projectId, database.taskDao().getById(taskId)?.projectId)
@@ -86,5 +113,12 @@ class DatabaseSmokeTest {
         assertEquals("Borrador recuperable", database.captureDao().getDraftsNow().single().content)
         assertEquals(conversationId, database.conversationDao().getCommitmentsNow().single().conversationId)
         assertEquals("Chat de prueba", database.conversationDao().getConversation(conversationId)?.title)
+        assertEquals(true, database.observationDao().getSource("com.whatsapp")?.enabled)
+        assertEquals("com.whatsapp", database.observationDao().getConsentEventsNow().single().sourcePackage)
+
+        database.conversationDao().deleteConversationsBySource(ConversationSourceType.NOTIFICATION)
+        assertEquals(null, database.conversationDao().getConversation(observedConversationId))
+        assertNotNull(database.conversationDao().getConversation(conversationId))
+        assertEquals(true, database.observationDao().getSource("com.whatsapp")?.enabled)
     }
 }

@@ -42,6 +42,9 @@ class Converters {
     @TypeConverter fun commitmentStatusToString(value: CommitmentReviewStatus): String = value.name
     @TypeConverter fun stringToCommitmentStatus(value: String): CommitmentReviewStatus = enumOrDefault(value, CommitmentReviewStatus.PENDING)
 
+    @TypeConverter fun consentEventToString(value: ConsentEventType): String = value.name
+    @TypeConverter fun stringToConsentEvent(value: String): ConsentEventType = enumOrDefault(value, ConsentEventType.OBSERVATION_DISABLED)
+
     private inline fun <reified T : Enum<T>> enumOrDefault(value: String, fallback: T): T =
         runCatching { enumValueOf<T>(value) }.getOrDefault(fallback)
 }

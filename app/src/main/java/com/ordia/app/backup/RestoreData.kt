@@ -5,6 +5,8 @@ import com.ordia.app.data.local.CaptureDraftEntity
 import com.ordia.app.data.local.CaptureEntity
 import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.ConversationEntity
+import com.ordia.app.data.local.ConsentEventEntity
+import com.ordia.app.data.local.ObservedSourceEntity
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
@@ -37,13 +39,15 @@ data class RestoreData(
     val captures: List<CaptureEntity> = emptyList(),
     val captureDrafts: List<CaptureDraftEntity> = emptyList(),
     val conversations: List<ConversationEntity> = emptyList(),
-    val commitments: List<CommitmentEntity> = emptyList()
+    val commitments: List<CommitmentEntity> = emptyList(),
+    val observedSources: List<ObservedSourceEntity> = emptyList(),
+    val consentEvents: List<ConsentEventEntity> = emptyList()
 ) {
     val totalCount: Int
         get() = projects.size + tasks.size + notes.size + habits.size + habitLogs.size +
             focusSessions.size + routines.size + routineSteps.size + tags.size +
             taskTags.size + attachments.size + captures.size + captureDrafts.size +
-            conversations.size + commitments.size
+            conversations.size + commitments.size + observedSources.size + consentEvents.size
 
     /** Compara el número de registros de cada colección con otro estado. */
     fun countsMatch(other: RestoreData): Boolean =
@@ -61,5 +65,7 @@ data class RestoreData(
             captures.size == other.captures.size &&
             captureDrafts.size == other.captureDrafts.size &&
             conversations.size == other.conversations.size &&
-            commitments.size == other.commitments.size
+            commitments.size == other.commitments.size &&
+            observedSources.size == other.observedSources.size &&
+            consentEvents.size == other.consentEvents.size
 }

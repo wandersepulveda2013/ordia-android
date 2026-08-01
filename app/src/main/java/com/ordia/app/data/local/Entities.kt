@@ -35,6 +35,20 @@ enum class CommitmentOwner { SELF, OTHER, UNKNOWN }
 
 enum class CommitmentReviewStatus { PENDING, CONVERTED, DISMISSED }
 
+enum class ConsentEventType {
+    OBSERVATION_ENABLED,
+    OBSERVATION_DISABLED,
+    SOURCE_ENABLED,
+    SOURCE_DISABLED,
+    PAUSED,
+    RESUMED,
+    DATA_CLEARED,
+    PERMISSION_REVIEWED,
+    SYSTEM_PERMISSION_GRANTED,
+    SYSTEM_PERMISSION_REVOKED,
+    INTERNAL_ACCESS_REVOKED
+}
+
 @Entity(
     tableName = "tasks",
     foreignKeys = [
@@ -361,4 +375,30 @@ data class CommitmentEntity(
     val resultTaskId: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
+)
+
+/** Fuente de notificaciones autorizada explícitamente por paquete. */
+@Entity(
+    tableName = "observed_sources",
+    indices = [Index("enabled"), Index("updatedAt")]
+)
+data class ObservedSourceEntity(
+    @PrimaryKey val packageName: String,
+    val displayName: String,
+    @ColumnInfo(defaultValue = "0") val enabled: Boolean = false,
+    @ColumnInfo(defaultValue = "1") val onlyCommitments: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+/** Auditoría de consentimiento sin texto de mensajes ni datos derivados. */
+@Entity(
+    tableName = "consent_events",
+    indices = [Index("occurredAt"), Index("sourcePackage")]
+)
+data class ConsentEventEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val eventType: ConsentEventType,
+    @ColumnInfo(defaultValue = "''") val sourcePackage: String = "",
+    val occurredAt: Long = System.currentTimeMillis()
 )

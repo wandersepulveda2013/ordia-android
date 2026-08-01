@@ -25,9 +25,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CaptureEntity::class,
         CaptureDraftEntity::class,
         ConversationEntity::class,
-        CommitmentEntity::class
+        CommitmentEntity::class,
+        ObservedSourceEntity::class,
+        ConsentEventEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -46,9 +48,38 @@ abstract class OrdiaDatabase : RoomDatabase() {
     abstract fun automationLogDao(): AutomationLogDao
     abstract fun captureDao(): CaptureDao
     abstract fun conversationDao(): ConversationDao
+    abstract fun observationDao(): ObservationDao
 
     companion object {
         @Volatile private var instance: OrdiaDatabase? = null
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS observed_sources (
+                        packageName TEXT NOT NULL,
+                        displayName TEXT NOT NULL,
+                        enabled INTEGER NOT NULL DEFAULT 0,
+                        onlyCommitments INTEGER NOT NULL DEFAULT 1,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        PRIMARY KEY(packageName)
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_observed_sources_enabled ON observed_sources(enabled)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_observed_sources_updatedAt ON observed_sources(updatedAt)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS consent_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        eventType TEXT NOT NULL,
+                        sourcePackage TEXT NOT NULL DEFAULT '',
+                        occurredAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_consent_events_occurredAt ON consent_events(occurredAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_consent_events_sourcePackage ON consent_events(sourcePackage)")
+            }
+        }
 
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -286,7 +317,7 @@ abstract class OrdiaDatabase : RoomDatabase() {
                     OrdiaDatabase::class.java,
                     "ordia.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
                     .also { instance = it }
             }

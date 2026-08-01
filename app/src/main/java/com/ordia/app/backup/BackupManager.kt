@@ -13,11 +13,14 @@ import com.ordia.app.data.local.CommitmentOwner
 import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.ConversationSourceType
+import com.ordia.app.data.local.ConsentEventEntity
+import com.ordia.app.data.local.ConsentEventType
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitFrequency
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteEntity
+import com.ordia.app.data.local.ObservedSourceEntity
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.ProjectStatus
 import com.ordia.app.data.local.RecurrenceFrequency
@@ -98,6 +101,8 @@ class BackupManager(
         root.put("captureDrafts", JSONArray().apply { current.captureDrafts.forEach { put(it.toJson()) } })
         root.put("conversations", JSONArray().apply { current.conversations.forEach { put(it.toJson()) } })
         root.put("commitments", JSONArray().apply { current.commitments.forEach { put(it.toJson()) } })
+        root.put("observedSources", JSONArray().apply { current.observedSources.forEach { put(it.toJson()) } })
+        root.put("consentEvents", JSONArray().apply { current.consentEvents.forEach { put(it.toJson()) } })
         val contentJson = root.toString(2)
         require(BackupSecurityRules.inputSizeAllowed(contentJson.toByteArray(Charsets.UTF_8).size)) {
             "La copia supera el límite seguro de 10 MB. Reduce notas o adjuntos registrados antes de exportar."
@@ -293,6 +298,14 @@ class BackupManager(
             } else emptyList(),
             commitments = if (version >= 6) {
                 root.requiredArray("commitments").validatedMap("commitments") { it.toCommitment() }
+            } else emptyList(),
+            observedSources = if (version >= 7) {
+                root.requiredArray("observedSources").validatedMap("observedSources") {
+                    it.toObservedSource().copy(enabled = false, onlyCommitments = true)
+                }
+            } else emptyList(),
+            consentEvents = if (version >= 7) {
+                root.requiredArray("consentEvents").validatedMap("consentEvents") { it.toConsentEvent() }
             } else emptyList()
         )
         val total = data.totalCount
@@ -356,6 +369,11 @@ private fun validateRelationships(data: RestoreData) {
     requirePositiveUnique("Capturas", data.captures.map { it.id })
     val conversationIds = requirePositiveUnique("Conversaciones", data.conversations.map { it.id })
     requirePositiveUnique("Compromisos", data.commitments.map { it.id })
+    requirePositiveUnique("Eventos de consentimiento", data.consentEvents.map { it.id })
+    val observedPackages = data.observedSources.map { it.packageName }.toSet()
+    require(observedPackages.size == data.observedSources.size) {
+        "La copia contiene fuentes observadas duplicadas."
+    }
     require(data.tags.map { it.name }.toSet().size == data.tags.size) { "La copia contiene etiquetas duplicadas." }
     require(data.captureDrafts.map { it.slot }.toSet().size == data.captureDrafts.size) {
         "La copia contiene borradores de captura duplicados."
@@ -506,6 +524,24 @@ private fun validateRelationships(data: RestoreData) {
             require(taskId in taskIds) { "Un compromiso referencia una tarea inexistente." }
         }
     }
+    data.observedSources.forEach { source ->
+        require(Regex("^[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z][A-Za-z0-9_]*)+$").matches(source.packageName)) {
+            "Una fuente observada contiene un paquete inválido."
+        }
+        require(source.displayName.isNotBlank()) { "Una fuente observada no contiene nombre." }
+        require(source.createdAt <= source.updatedAt) { "Una fuente observada fue actualizada antes de crearse." }
+        require(source.onlyCommitments) { "Una fuente observada intenta restaurar un modo de retención no permitido." }
+        require(!source.enabled) { "Las fuentes restauradas deben quedar desactivadas." }
+    }
+    require(data.consentEvents.size <= 1_000) { "La copia contiene demasiados eventos de consentimiento." }
+    data.consentEvents.forEach { event ->
+        require(event.sourcePackage.isBlank() || event.sourcePackage in observedPackages) {
+            "Un evento de consentimiento referencia una fuente inexistente."
+        }
+        require(event.occurredAt in 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS) {
+            "Un evento de consentimiento contiene una fecha inválida."
+        }
+    }
 }
 
 private val REQUIRED_ITEM_FIELDS = mapOf(
@@ -523,7 +559,9 @@ private val REQUIRED_ITEM_FIELDS = mapOf(
     "captures" to setOf("id", "content", "source", "requestedTarget", "resolvedTarget", "status", "attachmentUri", "mimeType", "fingerprint", "resultType", "resultId", "errorCode", "createdAt", "updatedAt"),
     "captureDrafts" to setOf("slot", "content", "target", "attachmentUri", "mimeType", "updatedAt"),
     "conversations" to setOf("id", "sourceType", "sourcePackage", "title", "participants", "summary", "rawContent", "retainsOriginal", "contentHash", "messageCount", "createdAt", "updatedAt"),
-    "commitments" to setOf("id", "conversationId", "kind", "owner", "actor", "action", "location", "dueAt", "confidence", "suggestedReminderAt", "reviewStatus", "fingerprint", "resultTaskId", "createdAt", "updatedAt")
+    "commitments" to setOf("id", "conversationId", "kind", "owner", "actor", "action", "location", "dueAt", "confidence", "suggestedReminderAt", "reviewStatus", "fingerprint", "resultTaskId", "createdAt", "updatedAt"),
+    "observedSources" to setOf("packageName", "displayName", "enabled", "onlyCommitments", "createdAt", "updatedAt"),
+    "consentEvents" to setOf("id", "eventType", "sourcePackage", "occurredAt")
 )
 
 private fun JSONObject.requiredArray(name: String): JSONArray =
@@ -844,6 +882,36 @@ private fun JSONObject.toCommitment() = CommitmentEntity(
     resultTaskId = longOrNull("resultTaskId"),
     createdAt = longValue("createdAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS),
     updatedAt = longValue("updatedAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
+)
+
+private fun ObservedSourceEntity.toJson() = JSONObject()
+    .put("packageName", packageName)
+    .put("displayName", displayName)
+    .put("enabled", enabled)
+    .put("onlyCommitments", onlyCommitments)
+    .put("createdAt", createdAt)
+    .put("updatedAt", updatedAt)
+
+private fun JSONObject.toObservedSource() = ObservedSourceEntity(
+    packageName = requiredText("packageName", 180),
+    displayName = requiredText("displayName", 100),
+    enabled = booleanValue("enabled", false),
+    onlyCommitments = booleanValue("onlyCommitments", true),
+    createdAt = longValue("createdAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS),
+    updatedAt = longValue("updatedAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
+)
+
+private fun ConsentEventEntity.toJson() = JSONObject()
+    .put("id", id)
+    .put("eventType", eventType.name)
+    .put("sourcePackage", sourcePackage)
+    .put("occurredAt", occurredAt)
+
+private fun JSONObject.toConsentEvent() = ConsentEventEntity(
+    id = requiredLong("id"),
+    eventType = enumValue("eventType", ConsentEventType.OBSERVATION_DISABLED),
+    sourcePackage = text("sourcePackage", 180),
+    occurredAt = longValue("occurredAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
 )
 
 private fun JSONObject.optionalContentUri(name: String): String {

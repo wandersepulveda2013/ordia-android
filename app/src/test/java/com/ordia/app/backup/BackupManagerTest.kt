@@ -12,10 +12,13 @@ import com.ordia.app.data.local.CommitmentKind
 import com.ordia.app.data.local.CommitmentOwner
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.ConversationSourceType
+import com.ordia.app.data.local.ConsentEventEntity
+import com.ordia.app.data.local.ConsentEventType
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteEntity
+import com.ordia.app.data.local.ObservedSourceEntity
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.RoutineEntity
 import com.ordia.app.data.local.RoutineStepEntity
@@ -131,6 +134,24 @@ class BackupManagerTest {
                 createdAt = 1000L,
                 updatedAt = 1000L
             )
+        ),
+        observedSources = listOf(
+            ObservedSourceEntity(
+                packageName = "com.whatsapp",
+                displayName = "WhatsApp",
+                enabled = true,
+                onlyCommitments = true,
+                createdAt = 1000L,
+                updatedAt = 1000L
+            )
+        ),
+        consentEvents = listOf(
+            ConsentEventEntity(
+                id = 15,
+                eventType = ConsentEventType.SOURCE_ENABLED,
+                sourcePackage = "com.whatsapp",
+                occurredAt = 1000L
+            )
         )
     )
 
@@ -152,7 +173,7 @@ class BackupManagerTest {
     ) = BackupManager(store, prefs, scheduler, journal)
 
     /** Recalcula el checksum después de modificar el JSON (como haría la app). */
-    private fun rewrap(root: JSONObject, version: Int = 6): String {
+    private fun rewrap(root: JSONObject, version: Int = 7): String {
         root.put("version", version)
         root.remove("checksum")
         val content = root.toString(2)
@@ -275,6 +296,7 @@ class BackupManagerTest {
         )
         assertTrue(destinationStore.current.countsMatch(sampleData()))
         assertEquals("Proyecto", destinationStore.current.projects.first().name)
+        assertFalse(destinationStore.current.observedSources.single().enabled)
         // Solo la tarea futura abierta se reprograma (no la completada ni las pasadas).
         assertEquals(listOf(10L), scheduler.scheduled)
         assertEquals(1, scheduler.cancelCalls)
@@ -356,6 +378,23 @@ class BackupManagerTest {
         assertFalse(result.success)
         assertTrue(result.message.contains("sin consentimiento"))
         assertEquals("Viejo", destinationStore.current.projects.single().name)
+    }
+
+    @Test
+    fun version6BackupWithoutObservationCollectionsRemainsCompatible() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val legacy = JSONObject(origin.exportJson()).apply {
+            remove("observedSources")
+            remove("consentEvents")
+        }
+        val destinationStore = FakeBackupStore(otherData())
+
+        val result = newManager(destinationStore).importBackup(rewrap(legacy, version = 6))
+
+        assertTrue(result.message, result.success)
+        assertTrue(destinationStore.current.observedSources.isEmpty())
+        assertTrue(destinationStore.current.consentEvents.isEmpty())
+        assertEquals(1, destinationStore.current.conversations.size)
     }
 
     @Test

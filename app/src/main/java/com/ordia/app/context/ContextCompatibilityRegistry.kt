@@ -36,10 +36,6 @@ class ContextCompatibilityRegistry(private val appContext: Context) {
             } else false
         }
 
-    /** ¿Soporta AccessibilityService avanzado? */
-    val supportsAdvancedScreenCapture: Boolean
-        get() = sdkInt >= Build.VERSION_CODES.JELLY_BEAN_MR2
-
     /** ¿Soporta entrada por voz (SpeechRecognizer)? */
     val supportsVoiceCapture: Boolean
         get() = sdkInt >= Build.VERSION_CODES.JELLY_BEAN
@@ -110,11 +106,6 @@ class ContextCompatibilityRegistry(private val appContext: Context) {
         // Notificaciones: requiere NotificationListenerService
         sources.add(ContextCaptureSource.NOTIFICATION)
 
-        // Captura avanzada de pantalla: requiere AccessibilityService
-        if (supportsAdvancedScreenCapture) {
-            sources.add(ContextCaptureSource.SCREEN_ADVANCED)
-        }
-
         // Voz: requiere Google Play Services
         if (supportsVoiceCapture && hasGoogleVoiceSupport) {
             sources.add(ContextCaptureSource.VOICE)
@@ -144,7 +135,6 @@ class ContextCompatibilityRegistry(private val appContext: Context) {
             appendLine("Active sources: ${activeCaptureSources().joinToString { it.name }}")
             appendLine("Clipboard capture: $supportsClipboardCapture")
             appendLine("Notification capture: $supportsNotificationCapture")
-            appendLine("Screen capture (advanced): $supportsAdvancedScreenCapture")
             appendLine("Voice capture: $supportsVoiceCapture ($hasGoogleVoiceSupport)")
             appendLine("Ordía keyboard: $supportsOrdíaKeyboard")
             appendLine("Encrypted storage: $supportsEncryptedStorage")

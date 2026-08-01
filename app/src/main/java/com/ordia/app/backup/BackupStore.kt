@@ -26,6 +26,8 @@ class RoomBackupStore(private val database: OrdiaDatabase) : BackupStore {
         database.withTransaction {
             // Orden de borrado e inserción coherente con las relaciones FK:
             // se eliminan primero las tablas hijas y se insertan las padres antes.
+            database.observationDao().deleteAllConsentEvents()
+            database.observationDao().deleteAllSources()
             database.conversationDao().deleteAllCommitments()
             database.conversationDao().deleteAllConversations()
             database.captureDao().deleteAllDrafts()
@@ -57,6 +59,8 @@ class RoomBackupStore(private val database: OrdiaDatabase) : BackupStore {
             database.captureDao().insertDrafts(data.captureDrafts)
             database.conversationDao().insertConversations(data.conversations)
             database.conversationDao().restoreCommitments(data.commitments)
+            database.observationDao().restoreSources(data.observedSources)
+            database.observationDao().restoreConsentEvents(data.consentEvents)
         }
     }
 
@@ -75,6 +79,8 @@ class RoomBackupStore(private val database: OrdiaDatabase) : BackupStore {
         captures = database.captureDao().getAllNow(),
         captureDrafts = database.captureDao().getDraftsNow(),
         conversations = database.conversationDao().getConversationsNow(),
-        commitments = database.conversationDao().getCommitmentsNow()
+        commitments = database.conversationDao().getCommitmentsNow(),
+        observedSources = database.observationDao().getSourcesNow(),
+        consentEvents = database.observationDao().getConsentEventsNow()
     )
 }

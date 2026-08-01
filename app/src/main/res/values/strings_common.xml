@@ -27,7 +27,6 @@
     <string name="nav_settings">Ajustes</string>
     <string name="nav_more">Más</string>
     <string name="nav_guardian">Guardián</string>
-    <string name="nav_contextual">Contexto</string>
     <string name="fab_capture">Capturar</string>
     <string name="fab_close">Cerrar captura</string>
     <string name="fab_task">Nueva tarea</string>

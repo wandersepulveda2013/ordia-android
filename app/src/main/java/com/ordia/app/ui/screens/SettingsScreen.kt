@@ -57,7 +57,6 @@ import com.ordia.app.BuildConfig
 import com.ordia.app.R
 import com.ordia.app.backup.BackupSecurityRules
 import com.ordia.app.OrdiaApplication
-import com.ordia.app.accessibility.OrdiaAccessibilityService
 import com.ordia.app.data.preferences.GuardianMode
 import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.data.preferences.InterfaceMode
@@ -98,10 +97,6 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
     var updateStatus by remember { mutableStateOf<String?>(null) }
     var guardianStatus by remember { mutableStateOf<String?>(null) }
     var quietStatus by remember { mutableStateOf<String?>(null) }
-    var accessibilityStatus by remember { mutableStateOf<String?>(null) }
-    var accessibilityEnabled by remember {
-        mutableStateOf(OrdiaAccessibilityService.isCaptureEnabled(context))
-    }
     var notificationsGranted by remember {
         mutableStateOf(
             Build.VERSION.SDK_INT < 33 ||
@@ -399,41 +394,6 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                 quietStatus?.let { status ->
                     Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            }
-        }
-
-        if (BuildConfig.ADVANCED_CONTEXT_ENABLED) {
-            item { SectionHeader(stringResource(R.string.settings_section_capture)) }
-            item {
-                InfoBanner(
-                    stringResource(R.string.settings_capture_banner_title),
-                    stringResource(R.string.settings_capture_banner_text)
-                )
-            }
-            item {
-                SettingSwitch(
-                    stringResource(R.string.settings_capture_switch),
-                    if (OrdiaAccessibilityService.isServiceEnabledInSystem(context)) {
-                        stringResource(R.string.settings_capture_service_active)
-                    } else {
-                        stringResource(R.string.settings_capture_service_required)
-                    },
-                    accessibilityEnabled
-                ) { enabled ->
-                    accessibilityEnabled = enabled
-                    OrdiaAccessibilityService.setCaptureEnabled(context, enabled)
-                    accessibilityStatus = if (!enabled) {
-                        context.getString(R.string.settings_capture_disabled)
-                    } else if (OrdiaAccessibilityService.isServiceEnabledInSystem(context)) {
-                        context.getString(R.string.settings_capture_activated)
-                    } else {
-                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                        context.getString(R.string.settings_capture_open_accessibility)
-                    }
-                }
-            }
-            accessibilityStatus?.let { status ->
-                item { Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         }
 

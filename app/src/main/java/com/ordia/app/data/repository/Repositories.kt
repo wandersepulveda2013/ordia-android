@@ -29,6 +29,11 @@ import com.ordia.app.data.local.CaptureEntity
 import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.ConversationDao
 import com.ordia.app.data.local.ConversationEntity
+import com.ordia.app.data.local.ConversationSourceType
+import com.ordia.app.data.local.ConsentEventEntity
+import com.ordia.app.data.local.ConsentEventType
+import com.ordia.app.data.local.ObservationDao
+import com.ordia.app.data.local.ObservedSourceEntity
 import kotlinx.coroutines.flow.Flow
 
 class TaskRepository(private val dao: TaskDao) {
@@ -165,11 +170,49 @@ class ConversationRepository(private val dao: ConversationDao) {
     }
 
     suspend fun getConversation(id: Long): ConversationEntity? = dao.getConversation(id)
+    suspend fun findByHash(contentHash: String): ConversationEntity? = dao.findConversationByHash(contentHash)
+    suspend fun countSince(sourceType: ConversationSourceType, since: Long): Int =
+        dao.countConversationsSince(sourceType, since)
     suspend fun getCommitment(id: Long): CommitmentEntity? = dao.getCommitment(id)
     suspend fun updateCommitment(commitment: CommitmentEntity) = dao.updateCommitment(commitment)
     suspend fun deleteConversation(id: Long) = dao.deleteConversation(id)
+    suspend fun clearBySource(sourceType: ConversationSourceType) = dao.deleteConversationsBySource(sourceType)
     suspend fun clearAll() {
         dao.deleteAllCommitments()
         dao.deleteAllConversations()
+    }
+}
+
+class ObservationRepository(private val dao: ObservationDao) {
+    val sources: Flow<List<ObservedSourceEntity>> = dao.observeSources()
+    val consentHistory: Flow<List<ConsentEventEntity>> = dao.observeConsentHistory()
+
+    suspend fun getSource(packageName: String): ObservedSourceEntity? = dao.getSource(packageName)
+
+    suspend fun configureSource(
+        packageName: String,
+        displayName: String,
+        enabled: Boolean,
+        onlyCommitments: Boolean = true
+    ) {
+        require(PACKAGE_PATTERN.matches(packageName)) { "Paquete de origen inválido." }
+        dao.configureSource(
+            packageName = packageName,
+            displayName = displayName.trim().take(100).ifBlank { packageName },
+            enabled = enabled,
+            onlyCommitments = onlyCommitments,
+            now = System.currentTimeMillis()
+        )
+    }
+
+    suspend fun recordConsent(type: ConsentEventType, sourcePackage: String = "") {
+        require(sourcePackage.isBlank() || PACKAGE_PATTERN.matches(sourcePackage)) { "Paquete de origen inválido." }
+        dao.recordConsent(type, sourcePackage)
+    }
+
+    suspend fun disableAllSources() = dao.disableAllSources(System.currentTimeMillis())
+
+    private companion object {
+        val PACKAGE_PATTERN = Regex("^[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z][A-Za-z0-9_]*)+$")
     }
 }

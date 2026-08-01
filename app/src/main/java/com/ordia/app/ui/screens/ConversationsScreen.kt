@@ -2,7 +2,9 @@ package com.ordia.app.ui.screens
 
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.provider.OpenableColumns
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -17,11 +19,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.AddTask
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FileOpen
+import androidx.compose.material.icons.outlined.NotificationsNone
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -51,6 +58,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.core.app.NotificationManagerCompat
+import com.ordia.app.BuildConfig
 import com.ordia.app.R
 import com.ordia.app.conversations.ChatImportParser
 import com.ordia.app.conversations.CommitmentEngine
@@ -61,8 +72,12 @@ import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.CommitmentOwner
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.ConversationSourceType
+import com.ordia.app.data.local.ConsentEventEntity
+import com.ordia.app.data.local.ConsentEventType
+import com.ordia.app.data.local.ObservedSourceEntity
 import com.ordia.app.domain.DateRules
 import com.ordia.app.ui.OrdiaViewModel
+import com.ordia.app.ui.ObservationRuntimeState
 import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.ui.components.SectionHeader
 import java.io.Reader
@@ -86,6 +101,9 @@ fun ConversationsScreen(
     val commitments by vm.commitments.collectAsStateWithLifecycle()
     val pending by vm.pendingCommitments.collectAsStateWithLifecycle()
     val sharedPreview by vm.sharedConversationPreview.collectAsStateWithLifecycle()
+    val observedSources by vm.observedSources.collectAsStateWithLifecycle()
+    val consentHistory by vm.consentHistory.collectAsStateWithLifecycle()
+    val observationRuntime by vm.observationRuntime.collectAsStateWithLifecycle()
     var preview by remember { mutableStateOf<ConversationPreview?>(null) }
     var previewSource by remember { mutableStateOf(ConversationSourceType.IMPORTED) }
     var selfParticipant by remember { mutableStateOf<String?>(null) }
@@ -94,6 +112,18 @@ fun ConversationsScreen(
     var pasteText by remember { mutableStateOf("") }
     var parseError by remember { mutableStateOf<String?>(null) }
     var deleteTarget by remember { mutableStateOf<ConversationEntity?>(null) }
+    var showClearObservedData by remember { mutableStateOf(false) }
+    var listenerGranted by remember {
+        mutableStateOf(NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName))
+    }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        val granted = NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
+        if (granted != listenerGranted) {
+            listenerGranted = granted
+            vm.recordNotificationPermissionState(granted)
+        }
+    }
 
     LaunchedEffect(sharedPreview?.contentHash) {
         sharedPreview?.let {
@@ -186,6 +216,23 @@ fun ConversationsScreen(
         )
     }
 
+    if (showClearObservedData) {
+        AlertDialog(
+            onDismissRequest = { showClearObservedData = false },
+            title = { Text(stringResource(R.string.observation_clear_dialog_title)) },
+            text = { Text(stringResource(R.string.observation_clear_dialog_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.clearObservedConversationData()
+                    showClearObservedData = false
+                }) { Text(stringResource(R.string.observation_clear_data)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearObservedData = false }) { Text(stringResource(R.string.action_cancel)) }
+            }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -202,6 +249,49 @@ fun ConversationsScreen(
                 stringResource(R.string.conversation_title),
                 stringResource(R.string.conversation_subtitle)
             )
+        }
+        item {
+            ObservationControlCard(
+                available = BuildConfig.CONTEXT_NOTIFICATION_ACCESS_ENABLED,
+                runtime = observationRuntime,
+                listenerGranted = listenerGranted,
+                onEnabled = vm::setObservationEnabled,
+                onPermission = {
+                    vm.recordNotificationPermissionReviewed()
+                    context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                },
+                onPause = vm::pauseObservationOneHour,
+                onResume = vm::resumeObservation,
+                onStop = {
+                    vm.revokeObservationInternally()
+                    if (listenerGranted) {
+                        vm.recordNotificationPermissionReviewed()
+                        context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    }
+                },
+                onClear = { showClearObservedData = true }
+            )
+        }
+        if (BuildConfig.CONTEXT_NOTIFICATION_ACCESS_ENABLED) {
+            item {
+                SectionHeader(
+                    stringResource(R.string.observation_sources_title),
+                    stringResource(R.string.observation_sources_subtitle)
+                )
+            }
+            items(OBSERVATION_APPS, key = { "source-${it.packageName}" }) { appOption ->
+                val source = observedSources.firstOrNull { it.packageName == appOption.packageName }
+                ObservationSourceCard(
+                    app = appOption,
+                    source = source,
+                    onEnabled = { enabled ->
+                        vm.configureObservedSource(appOption.packageName, appOption.label, enabled)
+                    }
+                )
+            }
+            item {
+                ConsentHistoryCard(consentHistory.take(8))
+            }
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -305,6 +395,165 @@ fun ConversationsScreen(
         }
     }
 }
+
+@Composable
+private fun ObservationControlCard(
+    available: Boolean,
+    runtime: ObservationRuntimeState,
+    listenerGranted: Boolean,
+    onEnabled: (Boolean) -> Unit,
+    onPermission: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onStop: () -> Unit,
+    onClear: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.Security, null, tint = MaterialTheme.colorScheme.primary)
+                Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                    Text(stringResource(R.string.observation_title), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(
+                            if (available) R.string.observation_subtitle else R.string.observation_unavailable
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (available) {
+                    Switch(checked = runtime.enabled, onCheckedChange = onEnabled)
+                }
+            }
+            if (!available) return@Column
+
+            val status = when {
+                !runtime.enabled -> stringResource(R.string.observation_status_off)
+                runtime.paused -> stringResource(R.string.observation_status_paused)
+                !listenerGranted -> stringResource(R.string.observation_status_permission_required)
+                else -> stringResource(R.string.observation_status_active)
+            }
+            Text(status, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                stringResource(R.string.observation_only_commitments),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item {
+                    OutlinedButton(onClick = onPermission) {
+                        Icon(Icons.AutoMirrored.Outlined.OpenInNew, null)
+                        Text(stringResource(R.string.observation_permission), Modifier.padding(start = 6.dp))
+                    }
+                }
+                item {
+                    OutlinedButton(onClick = if (runtime.paused) onResume else onPause, enabled = runtime.enabled) {
+                        Icon(if (runtime.paused) Icons.Outlined.PlayArrow else Icons.Outlined.Pause, null)
+                        Text(
+                            stringResource(
+                                if (runtime.paused) R.string.observation_resume else R.string.observation_pause
+                            ),
+                            Modifier.padding(start = 6.dp)
+                        )
+                    }
+                }
+            }
+            OutlinedButton(onClick = onClear, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.observation_clear_data))
+            }
+            TextButton(onClick = onStop, modifier = Modifier.fillMaxWidth(), enabled = runtime.enabled) {
+                Text(stringResource(R.string.observation_stop))
+            }
+            if (listenerGranted) {
+                Text(
+                    stringResource(R.string.observation_android_revoke_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ObservationSourceCard(
+    app: ObservationApp,
+    source: ObservedSourceEntity?,
+    onEnabled: (Boolean) -> Unit
+) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+        Row(
+            Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(Icons.Outlined.NotificationsNone, null)
+            Column(Modifier.weight(1f)) {
+                Text(app.label, style = MaterialTheme.typography.titleSmall)
+                Text(app.packageName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    stringResource(R.string.observation_source_commitments_only),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Switch(checked = source?.enabled == true, onCheckedChange = onEnabled)
+        }
+    }
+}
+
+@Composable
+private fun ConsentHistoryCard(events: List<ConsentEventEntity>) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionHeader(
+            stringResource(R.string.observation_history_title),
+            stringResource(R.string.observation_history_subtitle)
+        )
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (events.isEmpty()) {
+                    Text(stringResource(R.string.observation_history_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    events.forEach { event ->
+                        Column {
+                            Text(consentEventLabel(event.eventType), style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                buildString {
+                                    if (event.sourcePackage.isNotBlank()) append(event.sourcePackage).append(" · ")
+                                    append(DateRules.formatDate(event.occurredAt)).append(" · ")
+                                    append(DateRules.formatTime(event.occurredAt))
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun consentEventLabel(type: ConsentEventType): String = stringResource(
+    when (type) {
+        ConsentEventType.OBSERVATION_ENABLED -> R.string.consent_event_observation_enabled
+        ConsentEventType.OBSERVATION_DISABLED -> R.string.consent_event_observation_disabled
+        ConsentEventType.SOURCE_ENABLED -> R.string.consent_event_source_enabled
+        ConsentEventType.SOURCE_DISABLED -> R.string.consent_event_source_disabled
+        ConsentEventType.PAUSED -> R.string.consent_event_paused
+        ConsentEventType.RESUMED -> R.string.consent_event_resumed
+        ConsentEventType.DATA_CLEARED -> R.string.consent_event_data_cleared
+        ConsentEventType.PERMISSION_REVIEWED -> R.string.consent_event_permission_reviewed
+        ConsentEventType.SYSTEM_PERMISSION_GRANTED -> R.string.consent_event_permission_granted
+        ConsentEventType.SYSTEM_PERMISSION_REVOKED -> R.string.consent_event_permission_revoked
+        ConsentEventType.INTERNAL_ACCESS_REVOKED -> R.string.consent_event_access_revoked
+    }
+)
 
 @Composable
 private fun ConversationPreviewCard(
@@ -491,3 +740,13 @@ private fun readBounded(reader: Reader, maxChars: Int): String {
     }
     return output.toString()
 }
+
+private data class ObservationApp(val label: String, val packageName: String)
+
+private val OBSERVATION_APPS = listOf(
+    ObservationApp("WhatsApp", "com.whatsapp"),
+    ObservationApp("WhatsApp Business", "com.whatsapp.w4b"),
+    ObservationApp("Telegram", "org.telegram.messenger"),
+    ObservationApp("Signal", "org.thoughtcrime.securesms"),
+    ObservationApp("Google Messages", "com.google.android.apps.messaging")
+)
