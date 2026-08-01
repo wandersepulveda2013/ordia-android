@@ -91,13 +91,13 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                 color = MaterialTheme.colorScheme.surfaceContainerLow
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(22.dp),
+                    modifier = Modifier.fillMaxWidth().padding(18.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     VirtualGuardian(
                         snapshot = snapshot,
-                        size = 220.dp,
+                        size = 160.dp,
                         animationsEnabled = state.preferences.guardianAnimations && !state.preferences.reduceMotion
                     )
                     Text(

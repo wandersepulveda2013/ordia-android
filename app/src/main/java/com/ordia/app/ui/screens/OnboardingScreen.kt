@@ -38,20 +38,20 @@ fun OnboardingScreen(
     onFinish: () -> Unit
 ) {
     var page by remember { mutableIntStateOf(0) }
-    Box(Modifier.fillMaxSize().ordiaWorkSurface().padding(28.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize().ordiaWorkSurface().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            GuardianAvatar(92.dp, if (page == 2) GuardianMood.HAPPY else GuardianMood.CALM)
+            GuardianAvatar(72.dp, if (page == 2) GuardianMood.HAPPY else GuardianMood.CALM)
             Text(
                 when (page) {
                     0 -> stringResource(R.string.app_tagline)
                     1 -> stringResource(R.string.onboarding_page1_title)
                     else -> stringResource(R.string.onboarding_page2_title)
                 },
-                style = MaterialTheme.typography.displayMedium,
+                style = MaterialTheme.typography.displaySmall,
                 textAlign = TextAlign.Center
             )
             Text(
