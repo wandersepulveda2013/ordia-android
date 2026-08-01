@@ -5,9 +5,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Backups desactivados por diseño (ver app/lint.xml → DataExtractionRules):
+         allowBackup=false gobierna API 26-30; dataExtractionRules (exclusión total,
+         res/xml/data_extraction_rules.xml) gobierna API 31+. -->
     <application
         android:name=".OrdiaApplication"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:usesCleartextTraffic="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"

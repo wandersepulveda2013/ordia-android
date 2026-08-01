@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ORD-036: mantiene las copias de seguridad desactivadas en Android 12+.
+     android:allowBackup="false" queda para API < 31; desde API 31 el mecanismo
+     activo es android:dataExtractionRules y este archivo excluye TODO (la app
+     es local-first y de privacidad: los datos no salen del dispositivo). -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+    </device-transfer>
+</data-extraction-rules>

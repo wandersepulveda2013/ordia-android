@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ORD-036: política de respaldo de Ordía documentada de forma explícita.
+     El manifest ya declara allowBackup="false" (gobierna API 26-30) y
+     android:dataExtractionRules con exclusión total (gobierna API 31+).
+     El lint pide además android:fullBackupContent para API 26-30, pero ese
+     atributo solo se consulta si allowBackup=true; con false, el archivo sería
+     config muerta (mismo criterio que ORD-037: no mantener reglas inaplicables). -->
+<lint>
+    <issue id="DataExtractionRules">
+        <ignore path="src/main/AndroidManifest.xml" />
+    </issue>
+</lint>

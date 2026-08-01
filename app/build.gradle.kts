@@ -166,6 +166,9 @@ dependencies {
 
     implementation("androidx.room:room-runtime:2.8.4")
     implementation("androidx.room:room-ktx:2.8.4")
+    // kapt, no KSP: KSP 2.1.0-1.0.29 (único para Kotlin 2.1.0) embebe
+    // kotlinx-serialization-core 1.7.3 en el classloader del worker y sombrea el 1.8.1
+    // que requiere el processor de Room 2.8.4 → AbstractMethodError (ver ORD-036).
     kapt("androidx.room:room-compiler:2.8.4")
 
     implementation("androidx.datastore:datastore-preferences:1.2.1")

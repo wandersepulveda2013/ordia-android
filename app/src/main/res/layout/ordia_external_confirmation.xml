@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Actividad compacta y translúcida para editar sugerencia externa -->
+<!-- Actividad compacta y translúcida para editar sugerencia externa.
+     ButtonStyle: los botones del pie son FILLED a propósito (overlay oscuro con
+     acento dorado; diseño propio, no una button bar de Material). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="320dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -8,7 +11,8 @@
     android:layout_gravity="center"
     android:background="@drawable/ordia_candidate_background"
     android:padding="20dp"
-    android:elevation="12dp">
+    android:elevation="12dp"
+    tools:ignore="ButtonStyle">
 
     <TextView
         android:layout_width="wrap_content"
@@ -46,7 +50,8 @@
         android:paddingBottom="8dp"
         android:visibility="gone" />
 
-    <!-- Campo editable -->
+    <!-- Campo editable: título efímero de la sugerencia; NO es dato autofillable
+         (ni usuario, ni email, ni contraseña) → importanteForAutofill="no". -->
     <EditText
         android:id="@+id/confirmation_input_title"
         android:layout_width="match_parent"
@@ -58,7 +63,8 @@
         android:padding="8dp"
         android:gravity="start"
         android:singleLine="true"
-        android:inputType="text" />
+        android:inputType="text"
+        android:importantForAutofill="no" />
 
     <!-- Botones -->
     <LinearLayout

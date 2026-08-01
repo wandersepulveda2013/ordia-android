@@ -1,12 +1,12 @@
 package com.ordia.app.context.external
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import android.view.WindowManager
@@ -41,6 +41,9 @@ class ExternalConfirmationController private constructor(
         private const val NOTIFICATION_ID = 2001
         private const val QUEUE_EXPIRY_CHECK_MS = 60_000L
 
+        // El singleton guarda SIEMPRE applicationContext (ver getInstance), por lo
+        // que no retiene Activities ni vistas: vive lo que el proceso (ORD-036).
+        @SuppressLint("StaticFieldLeak")
         @Volatile
         private var instance: ExternalConfirmationController? = null
 
@@ -504,12 +507,8 @@ class ExternalConfirmationController private constructor(
     private fun isSensitiveContent(intent: ContextIntent): Boolean =
         ExternalSecureContext.isSensitiveTitle(intent.title)
 
-    /** ¿Tenemos permiso de superposición? */
-    private fun hasOverlayPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Settings.canDrawOverlays(app)
-        } else true
-    }
+    /** ¿Tenemos permiso de superposición? (minSdk 26 ⇒ M siempre disponible) */
+    private fun hasOverlayPermission(): Boolean = Settings.canDrawOverlays(app)
 
     /** ¿Estamos en horas silenciosas? */
     private fun isQuietHours(): Boolean {
@@ -528,19 +527,18 @@ class ExternalConfirmationController private constructor(
     // Notificaciones
     // ========================================================================
 
+    // minSdk 26 ⇒ los canales de notificación existen siempre (O+).
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                NOTIFICATION_CHANNEL_ID,
-                app.getString(R.string.external_suggestion_channel_name),
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = app.getString(R.string.external_suggestion_channel_description)
-                setShowBadge(false)
-            }
-            val nm = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            NOTIFICATION_CHANNEL_ID,
+            app.getString(R.string.external_suggestion_channel_name),
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = app.getString(R.string.external_suggestion_channel_description)
+            setShowBadge(false)
         }
+        val nm = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(channel)
     }
 
     /** Configura un Intent para abrir la edición de una sugerencia. */
