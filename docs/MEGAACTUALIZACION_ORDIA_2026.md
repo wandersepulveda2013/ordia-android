@@ -162,3 +162,15 @@ Validación del bloque:
 - Navegación y controles nuevos incluyen etiquetas accesibles; las superficies se adaptan sin depender de tamaños fijos de teléfono.
 - Consultas y vistas nuevas procesan colecciones acotadas en pantalla; Room conserva índices para los flujos persistentes.
 - La entrega final se valida con todas las pruebas JVM, compilación instrumental, lint y las tres variantes APK debug.
+
+Validación final de entrega:
+
+- `test`: 1.950 pruebas JVM en 246 suites, 0 fallos, 0 errores y 0 omitidas.
+- `compilePreviewAdvancedDebugAndroidTestKotlin`: correcto; todos los contratos instrumentales compilan.
+- `lintPreviewAdvancedDebug`: 0 errores, 109 advertencias y 1 observación informativa.
+- `assembleDebug`: correcto; se generaron las variantes Advanced, Full y Safe.
+- Los 12 manifiestos fusionados inspeccionados contienen 0 referencias a `AccessibilityService` o `BIND_ACCESSIBILITY_SERVICE`.
+- APK Advanced: 36.919.665 bytes; SHA-256 `274e3825ed540650113541b5534b2660b3fa19faa42578e31a99c7e255400fbb`.
+- APK Full: 36.919.473 bytes; SHA-256 `3d63255f1c385104da1e907b7c2729a0d0c9f3eac8b09352cba022697f5a886e`.
+- APK Safe: 36.918.669 bytes; SHA-256 `841dbc03a32d0300124068644033f6519d98d38b76a704c0d3fb4b9717fc47a1`.
+- Aplicación base `com.ordia.app`, `versionName 3.0.0-preview`, `minSdk 26`, `targetSdk 36` y `compileSdk 36`.
