@@ -178,6 +178,8 @@
     <string name="automation_nothing_to_undo">No hay nada que deshacer.</string>
     <string name="automation_desc_day_plan">Plan del día %1$s · %2$d tareas</string>
     <string name="automation_desc_replan">Replanificación del día %1$s · %2$d tareas</string>
+    <string name="automation_desc_routine">Rutina %1$s · %2$d pasos</string>
+    <string name="automation_undone_created">Se quitaron las tareas creadas de la bandeja.</string>
     <string name="root_note_created_from_context">Creada desde texto compartido y confirmada por el usuario.</string>
     <string name="root_task_created_from_context">Sugerencia contextual confirmada por el usuario.</string>
 </resources>

@@ -45,6 +45,8 @@ import com.ordia.app.domain.NoteBlockCodec
 import com.ordia.app.domain.NaturalTaskParser
 import com.ordia.app.domain.ParsedTaskInput
 import com.ordia.app.domain.RecurrenceEngine
+import com.ordia.app.domain.ReminderSync
+import com.ordia.app.domain.RoutineRules
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.domain.TaskSnapshotCodec
 import com.ordia.app.domain.TaskMutationGate
@@ -499,31 +501,61 @@ class OrdiaViewModel(
         }
     }
 
+    /**
+     * Ejecuta una rutina: añade sus pasos a la bandeja como tareas, evitando
+     * duplicados si ya se ejecutó hoy, y registra la automatización para poder
+     * deshacerla (elimina las tareas creadas si siguen intactas).
+     */
     fun runRoutine(routine: RoutineEntity) {
         viewModelScope.launch {
             val steps = routineRepository.stepsFor(routine.id)
+            if (steps.isEmpty()) {
+                _events.emit(UiEvent.Message(appContext.getString(R.string.routine_empty)))
+                return@launch
+            }
+            if (RoutineRules.wasRunToday(uiState.value.tasks, routine.name, java.time.LocalDate.now())) {
+                _events.emit(UiEvent.Message(appContext.getString(R.string.routine_already_in_inbox)))
+                return@launch
+            }
             val now = System.currentTimeMillis()
-            steps.forEachIndexed { index, step ->
+            val createdIds = steps.mapIndexedNotNull { index, step ->
                 taskRepository.add(
                     TaskEntity(
                         title = step.title,
-                        details = "Rutina: ${routine.name}",
+                        details = RoutineRules.routineDetail(routine.name),
                         durationMinutes = step.durationMinutes,
                         status = TaskStatus.INBOX,
                         sortOrder = index,
                         createdAt = now + index,
                         updatedAt = now + index
                     )
-                )
+                ).takeIf { it > 0L }
+            }
+            if (createdIds.isEmpty()) {
+                _events.emit(UiEvent.Message(appContext.getString(R.string.routine_empty)))
+                return@launch
             }
             updateWidget()
-            _events.emit(UiEvent.Message("La rutina se añadió a tu bandeja."))
+            val logId = automationLogRepository.insert(
+                AutomationLogEntity(
+                    type = "routine",
+                    description = appContext.getString(R.string.automation_desc_routine, routine.name, createdIds.size),
+                    affectedTaskIdsJson = TaskSnapshotCodec.encodeIds(createdIds),
+                    undoPayloadJson = "{}"
+                )
+            )
+            _events.emit(
+                UiEvent.AutomationApplied(
+                    logId,
+                    appContext.getString(R.string.routine_added_to_inbox, routine.name)
+                )
+            )
         }
     }
 
     fun archiveRoutine(routine: RoutineEntity) = viewModelScope.launch {
         routineRepository.archive(routine.id)
-        _events.emit(UiEvent.Message("Rutina movida al archivo."))
+        _events.emit(UiEvent.Message(appContext.getString(R.string.routine_archived)))
     }
 
     fun restoreArchived(kind: String, id: Long) = viewModelScope.launch {
@@ -640,7 +672,8 @@ class OrdiaViewModel(
             return@launch
         }
         val before = TaskSnapshotCodec.decodeMap(log.undoPayloadJson)
-        if (before.isEmpty()) {
+        val createdIds = TaskSnapshotCodec.decodeIds(log.affectedTaskIdsJson)
+        if (before.isEmpty() && createdIds.isEmpty()) {
             _events.emit(UiEvent.Message(appContext.getString(R.string.automation_nothing_to_undo)))
             return@launch
         }
@@ -656,9 +689,18 @@ class OrdiaViewModel(
                 }
             }
         }
+        // Tareas creadas por una automatización (p. ej. rutina): se eliminan
+        // solo si siguen intactas en la bandeja (sin completar/modificar).
+        val removedCreated = createdIds.mapNotNull { taskRepository.get(it) }
+            .filter { !it.completed && !it.archived && it.status == TaskStatus.INBOX }
+            .map { it.id }
+            .also { ids -> ids.forEach { taskRepository.deletePermanently(it) } }
+            .size
         automationLogRepository.markUndone(log.id)
         updateWidget()
-        _events.emit(UiEvent.Message(appContext.getString(R.string.automation_undone)))
+        val message = if (removedCreated > 0) appContext.getString(R.string.automation_undone_created)
+        else appContext.getString(R.string.automation_undone)
+        _events.emit(UiEvent.Message(message))
     }
 
     fun saveFocusSession(taskId: Long?, startedAt: Long, endedAt: Long, plannedMinutes: Int, completed: Boolean, notes: String = "") {

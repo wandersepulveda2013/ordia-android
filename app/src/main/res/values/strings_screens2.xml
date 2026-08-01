@@ -180,6 +180,10 @@
     <string name="habits_routine_edit">Editar rutina</string>
     <string name="habits_routine_archive">Archivar rutina</string>
     <string name="habits_run_routine">Añadir rutina a la bandeja</string>
+    <string name="routine_added_to_inbox">Rutina %1$s añadida a tu bandeja.</string>
+    <string name="routine_already_in_inbox">Esta rutina ya está en tu bandeja. Complétala antes de volver a añadirla.</string>
+    <string name="routine_empty">Esta rutina no tiene pasos.</string>
+    <string name="routine_archived">Rutina movida al archivo.</string>
 
     <!-- PlannerScreen -->
     <string name="planner_eyebrow">MIRA EL TIEMPO</string>
