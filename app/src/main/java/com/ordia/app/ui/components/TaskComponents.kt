@@ -49,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.local.ProjectEntity
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.domain.DateRules
@@ -234,4 +235,93 @@ fun PriorityPill(text: String, isUrgent: Boolean = false) {
             color = if (isUrgent) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer
         )
     }
+}
+
+/**
+ * Chips de revisión de una captura interpretada (captura universal).
+ *
+ * Muestra los datos que el analizador local entendió (fecha, recordatorio,
+ * duración, repetición) y, opcionalmente, un aviso de revisión cuando la
+ * captura aterrizó en la Bandeja.
+ */
+@Composable
+fun CaptureChips(
+    chips: List<String>,
+    hint: String? = null,
+    modifier: Modifier = Modifier
+) {
+    if (chips.isEmpty() && hint == null) return
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (chips.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                chips.take(4).forEach { text ->
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ) {
+                        Text(
+                            text,
+                            Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+        hint?.let { text ->
+            Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+                Text(
+                    text,
+                    Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
+    }
+}
+
+/** Etiqueta legible de una repetición para chips de captura (o null si no repite). */
+@Composable
+fun recurrenceChipLabel(frequency: RecurrenceFrequency, interval: Int, days: String): String? = when (frequency) {
+    RecurrenceFrequency.NONE -> null
+    RecurrenceFrequency.DAILY ->
+        if (interval <= 1) stringResource(R.string.capture_chip_recurrence_daily_1)
+        else stringResource(R.string.capture_chip_recurrence_daily_n, interval)
+    RecurrenceFrequency.WEEKLY -> {
+        val dayNumbers = days.split(',')
+            .mapNotNull { it.trim().toIntOrNull() }
+            .filter { it in 1..7 }
+            .distinct()
+            .sorted()
+        when {
+            dayNumbers.isEmpty() ->
+                if (interval <= 1) stringResource(R.string.capture_chip_recurrence_weekly)
+                else stringResource(R.string.capture_chip_recurrence_weekly_n, interval)
+            else -> {
+                val dayLabels = mutableListOf<String>()
+                for (day in dayNumbers) dayLabels += stringResource(shortDayRes(day))
+                stringResource(R.string.capture_chip_recurrence_weekly_days, dayLabels.joinToString(", "))
+            }
+        }
+    }
+    RecurrenceFrequency.MONTHLY ->
+        if (interval <= 1) stringResource(R.string.capture_chip_recurrence_monthly_1)
+        else stringResource(R.string.capture_chip_recurrence_monthly_n, interval)
+    RecurrenceFrequency.YEARLY ->
+        if (interval <= 1) stringResource(R.string.capture_chip_recurrence_yearly_1)
+        else stringResource(R.string.capture_chip_recurrence_yearly_n, interval)
+}
+
+private fun shortDayRes(iso: Int): Int = when (iso) {
+    1 -> R.string.day_short_mon
+    2 -> R.string.day_short_tue
+    3 -> R.string.day_short_wed
+    4 -> R.string.day_short_thu
+    5 -> R.string.day_short_fri
+    6 -> R.string.day_short_sat
+    else -> R.string.day_short_sun
 }

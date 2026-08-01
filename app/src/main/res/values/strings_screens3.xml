@@ -148,6 +148,29 @@
     <string name="root_context_discarded">Ordía no procesó el texto porque era sensible o no contenía una intención clara.</string>
     <string name="root_context_inactive">Activa la atención contextual para procesar texto compartido.</string>
     <string name="root_capture_saved_to_inbox">Capturado en la bandeja de entrada.</string>
+
+    <!-- Captura universal (BLOQUE 2): revisión de lo interpretado por el analizador. -->
+    <string name="capture_hint_inbox">Irá a la Bandeja para revisión</string>
+    <string name="capture_chip_reminder">Recuerda %1$d min antes</string>
+    <string name="capture_chip_reminder_abs">Recuerdo: %1$s %2$s</string>
+    <string name="capture_chip_duration">%1$d min</string>
+    <string name="capture_chip_recurrence_daily_1">Cada día</string>
+    <string name="capture_chip_recurrence_daily_n">Cada %1$d días</string>
+    <string name="capture_chip_recurrence_weekly">Cada semana</string>
+    <string name="capture_chip_recurrence_weekly_n">Cada %1$d semanas</string>
+    <string name="capture_chip_recurrence_weekly_days">Cada %1$s</string>
+    <string name="capture_chip_recurrence_monthly_1">Cada mes</string>
+    <string name="capture_chip_recurrence_monthly_n">Cada %1$d meses</string>
+    <string name="capture_chip_recurrence_yearly_1">Cada año</string>
+    <string name="capture_chip_recurrence_yearly_n">Cada %1$d años</string>
+    <string name="day_short_mon">Lun</string>
+    <string name="day_short_tue">Mar</string>
+    <string name="day_short_wed">Mié</string>
+    <string name="day_short_thu">Jue</string>
+    <string name="day_short_fri">Vie</string>
+    <string name="day_short_sat">Sáb</string>
+    <string name="day_short_sun">Dom</string>
+    <string name="inbox_task_pending_review">Captura pendiente de revisión</string>
     <string name="root_note_created_from_context">Creada desde texto compartido y confirmada por el usuario.</string>
     <string name="root_task_created_from_context">Sugerencia contextual confirmada por el usuario.</string>
 </resources>

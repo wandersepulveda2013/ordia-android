@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,13 +44,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.GuardianEngine
+import com.ordia.app.domain.NaturalTaskParser
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.ActionCard
+import com.ordia.app.ui.components.CaptureChips
 import com.ordia.app.ui.components.EmptyState
 import com.ordia.app.ui.components.VirtualGuardian
 import com.ordia.app.ui.components.ProgressRing
@@ -59,6 +64,7 @@ import com.ordia.app.ui.components.StatCard
 import com.ordia.app.ui.labelRes
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
+import com.ordia.app.ui.components.recurrenceChipLabel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -291,6 +297,24 @@ fun TodayScreen(
                         ) {
                             Icon(Icons.Outlined.ArrowForward, stringResource(R.string.today_quick_capture_save))
                         }
+                    }
+                    val preview = remember(quickText) {
+                        if (quickText.isBlank()) null else NaturalTaskParser.parse(quickText)
+                    }
+                    preview?.let { p ->
+                        val previewChips = buildList {
+                            p.dueAt?.let { add("${DateRules.formatDate(it)} ${DateRules.formatTime(it)}".trim()) }
+                            if (p.priority != TaskPriority.NORMAL) {
+                                add(stringResource(if (p.priority == TaskPriority.URGENT) R.string.dialog_priority_urgent else R.string.dialog_priority_high))
+                            }
+                            p.reminderOffsetMinutes?.let { add(stringResource(R.string.capture_chip_reminder, it)) }
+                            p.durationMinutes?.let { add(stringResource(R.string.capture_chip_duration, it)) }
+                            recurrenceChipLabel(p.recurrence, p.recurrenceInterval, p.recurrenceDays)?.let { add(it) }
+                        }
+                        CaptureChips(
+                            chips = previewChips,
+                            hint = if (p.confidence < 0.5f) stringResource(R.string.capture_hint_inbox) else null
+                        )
                     }
                 }
             }
