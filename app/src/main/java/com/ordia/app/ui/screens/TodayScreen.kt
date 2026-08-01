@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.local.RecurrenceFrequency
@@ -51,6 +52,8 @@ import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.GuardianEngine
 import com.ordia.app.domain.NaturalTaskParser
+import com.ordia.app.domain.WhatNowEngine
+import com.ordia.app.domain.WhatNowReason
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.ActionCard
@@ -99,6 +102,7 @@ fun TodayScreen(
     }
     val dayTotal = state.todayTasks.size + completedToday
     val dayProgress = if (dayTotal == 0) 0f else completedToday.toFloat() / dayTotal
+    val whatNow = remember(state.tasks) { WhatNowEngine.suggest(state.tasks) }
     val guardian = GuardianEngine.snapshot(
         tasks = state.tasks,
         habits = state.habits,
@@ -387,8 +391,30 @@ fun TodayScreen(
 
         if (state.preferences.interfaceMode != InterfaceMode.SIMPLE && state.habits.isNotEmpty()) {
             item { SectionHeader(stringResource(R.string.today_habits_title), stringResource(R.string.today_habits_support)) }
-            item {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            if (whatNow != null) {
+                Card(onClick = { onTask(whatNow.task.id) }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(stringResource(R.string.what_now_eyebrow), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+                            Text(stringResource(R.string.what_now_title), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Text(whatNow.task.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Text(whatNowReasonLabel(whatNow.reason), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        }
+                        Icon(Icons.Outlined.ArrowForward, stringResource(R.string.what_now_open), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                    }
+                }
+            } else {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(stringResource(R.string.what_now_empty), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+
+        item {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(state.habits, key = { it.id }) { habit ->
                         val count = state.habitCount(habit.id)
                         val progress = (count.toFloat() / habit.targetPerPeriod.coerceAtLeast(1)).coerceIn(0f, 1f)
@@ -470,6 +496,17 @@ private fun TaskItem(state: OrdiaUiState, vm: OrdiaViewModel, task: TaskEntity, 
         onDuplicate = { vm.duplicateTask(task) },
         onDelete = { vm.deleteTask(task) }
     )
+}
+
+@Composable
+private fun whatNowReasonLabel(reason: WhatNowReason): String = when (reason) {
+    WhatNowReason.IN_PROGRESS_NOW -> stringResource(R.string.what_now_reason_in_progress)
+    WhatNowReason.OVERDUE -> stringResource(R.string.what_now_reason_overdue)
+    WhatNowReason.DUE_TODAY -> stringResource(R.string.what_now_reason_due_today)
+    WhatNowReason.URGENT -> stringResource(R.string.what_now_reason_urgent)
+    WhatNowReason.HIGH_PRIORITY -> stringResource(R.string.what_now_reason_high)
+    WhatNowReason.NEXT_INBOX -> stringResource(R.string.what_now_reason_inbox)
+    WhatNowReason.SCHEDULED_LATER -> stringResource(R.string.what_now_reason_scheduled_later)
 }
 
 @Composable

@@ -28,6 +28,19 @@
     <string name="today_stat_focus">Enfoque</string>
     <string name="today_stat_focus_support">últimos 7 días</string>
     <string name="today_stat_completed">Completado</string>
+
+    <!-- ¿Qué hago ahora? (WhatNowEngine, BLOQUE 5) -->
+    <string name="what_now_eyebrow">SUGERENCIA DE ORDIA</string>
+    <string name="what_now_title">Qué hago ahora</string>
+    <string name="what_now_reason_in_progress">En curso ahora mismo</string>
+    <string name="what_now_reason_overdue">Atrasada</string>
+    <string name="what_now_reason_due_today">Vence hoy</string>
+    <string name="what_now_reason_urgent">Prioridad urgente</string>
+    <string name="what_now_reason_high">Prioridad alta</string>
+    <string name="what_now_reason_inbox">Primera de la Bandeja</string>
+    <string name="what_now_reason_scheduled_later">Programada para más tarde</string>
+    <string name="what_now_empty">No hay nada pendiente ahora. Bien hecho.</string>
+    <string name="what_now_open">Abrir</string>
     <string name="today_stat_completed_support">histórico de tareas</string>
     <string name="today_stat_percent">%1$d%%</string>
     <string name="today_quick_capture_title">Captura inteligente</string>
