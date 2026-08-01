@@ -52,7 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
-import com.ordia.app.ui.theme.OrdiaGoldSoft
+import com.ordia.app.ui.theme.OrdiaAccent
 
 /**
  * Barra superior compacta (52–56 dp). Rediseño limpio: encabezado denso con
@@ -364,7 +364,7 @@ fun OrdiaError(
 fun GuardianAvatar(size: Dp, mood: GuardianMood = GuardianMood.CALM, modifier: Modifier = Modifier) {
     val background = MaterialTheme.colorScheme.primary
     val foreground = MaterialTheme.colorScheme.onPrimary
-    val accent = OrdiaGoldSoft
+    val accent = OrdiaAccent
     val description = stringResource(R.string.component_guardian_description, stringResource(mood.labelRes))
     Canvas(
         modifier = modifier.size(size).semantics {

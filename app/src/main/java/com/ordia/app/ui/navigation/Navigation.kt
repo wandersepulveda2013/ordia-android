@@ -1,6 +1,9 @@
 package com.ordia.app.ui.navigation
 
+import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,23 +13,32 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.outlined.AddTask
 import androidx.compose.material3.Icon
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -41,9 +53,19 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -75,6 +97,7 @@ import com.ordia.app.ui.screens.StatisticsScreen
 import com.ordia.app.ui.screens.TaskDetailScreen
 import com.ordia.app.ui.screens.TasksScreen
 import com.ordia.app.ui.screens.TodayScreen
+import com.ordia.app.overlay.QuickCaptureActivity
 
 sealed class Destination(val route: String, @StringRes val labelRes: Int, val icon: ImageVector) {
     data object Today : Destination("today", R.string.nav_today, Icons.Outlined.Home)
@@ -207,13 +230,19 @@ fun OrdiaNavigation(
                 Scaffold(
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     containerColor = MaterialTheme.colorScheme.background,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    floatingActionButton = {
+                        QuickCaptureFab(route, navController)
+                    }
                 ) { padding -> OrdiaNavHost(navController, state, viewModel, padding) }
             }
         } else {
             Scaffold(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 containerColor = MaterialTheme.colorScheme.background,
+                floatingActionButton = {
+                    if (showTopLevelNavigation) QuickCaptureFab(route, navController)
+                },
                 bottomBar = {
                     if (showTopLevelNavigation) {
                         Column(Modifier.navigationBarsPadding()) {
@@ -265,7 +294,10 @@ private fun OrdiaNavHost(
                 padding,
                 onTask = { navController.navigate(Destination.task(it)) },
                 onOpenFocus = { navController.navigateSingle(Destination.Focus.route) },
-                onOpenInbox = { navController.navigateSingle(Destination.Inbox.route) }
+                onOpenInbox = { navController.navigateSingle(Destination.Inbox.route) },
+                onOpenPlanner = { navController.navigateSingle(Destination.Planner.route) },
+                onReviewMessages = { navController.navigateSingle(Destination.Contextual.route) },
+                onQuickNote = { navController.navigate(Destination.note(0L)) }
             )
         }
         composable(Destination.Inbox.route) { InboxScreen(state, vm, padding, onTask = { navController.navigate(Destination.task(it)) }) }
@@ -330,6 +362,84 @@ private fun OrdiaNavHost(
                 onBack = { navController.popBackStack() },
                 onTask = { navController.navigate(Destination.task(it)) },
                 onNote = { navController.navigate(Destination.note(it)) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuickCaptureFab(route: String, navController: NavHostController) {
+    val context = LocalContext.current
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(route) {
+        expanded = QuickCaptureMenuState.reduce(expanded, QuickCaptureMenuEvent.NAVIGATE)
+    }
+    BackHandler(expanded) {
+        expanded = QuickCaptureMenuState.reduce(expanded, QuickCaptureMenuEvent.BACK)
+    }
+
+    fun launchCapture(mode: String, voice: Boolean = false) {
+        expanded = false
+        context.startActivity(
+            Intent(context, QuickCaptureActivity::class.java)
+                .putExtra(QuickCaptureActivity.EXTRA_MODE, mode)
+                .putExtra(QuickCaptureActivity.EXTRA_START_VOICE, voice)
+        )
+    }
+
+    Box(
+        Modifier.onPreviewKeyEvent { event ->
+            if (expanded && event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
+                expanded = QuickCaptureMenuState.reduce(expanded, QuickCaptureMenuEvent.ESCAPE)
+                true
+            } else false
+        }
+    ) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = {
+                expanded = QuickCaptureMenuState.reduce(expanded, QuickCaptureMenuEvent.OUTSIDE)
+            }
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.fab_task)) },
+                leadingIcon = { Icon(Icons.Outlined.AddTask, null) },
+                onClick = { launchCapture(QuickCaptureActivity.MODE_TASK) }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.fab_note)) },
+                leadingIcon = { Icon(Icons.Outlined.EditNote, null) },
+                onClick = { launchCapture(QuickCaptureActivity.MODE_NOTE) }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.fab_voice)) },
+                leadingIcon = { Icon(Icons.Outlined.Mic, null) },
+                onClick = { launchCapture(QuickCaptureActivity.MODE_TASK, voice = true) }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.fab_organize)) },
+                leadingIcon = { Icon(Icons.Outlined.CalendarMonth, null) },
+                onClick = {
+                    expanded = QuickCaptureMenuState.reduce(expanded, QuickCaptureMenuEvent.NAVIGATE)
+                    navController.navigateSingle(Destination.Planner.route)
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.fab_messages)) },
+                leadingIcon = { Icon(Icons.Outlined.AutoAwesome, null) },
+                onClick = {
+                    expanded = QuickCaptureMenuState.reduce(expanded, QuickCaptureMenuEvent.NAVIGATE)
+                    navController.navigateSingle(Destination.Contextual.route)
+                }
+            )
+        }
+        FloatingActionButton(onClick = {
+            expanded = QuickCaptureMenuState.reduce(expanded, QuickCaptureMenuEvent.TOGGLE)
+        }) {
+            Icon(
+                if (expanded) Icons.Outlined.Close else Icons.Outlined.Add,
+                stringResource(if (expanded) R.string.fab_close else R.string.fab_capture),
+                Modifier.size(24.dp)
             )
         }
     }

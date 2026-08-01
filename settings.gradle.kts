@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Ordia"
+rootProject.name = "Ordía"
 include(":app")

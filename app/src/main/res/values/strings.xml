@@ -29,7 +29,7 @@
     <string name="keyboard_suggestion_remind_short">Recordar</string>
     <string name="suggestion_type_task">Tarea</string>
     <string name="suggestion_no_date">Sin fecha</string>
-    <string name="widget_next_step">ORDIA · SIGUIENTE PASO</string>
+    <string name="widget_next_step">ORDÍA · SIGUIENTE PASO</string>
     <string name="widget_all_clear">Todo está en orden</string>
     <string name="widget_zero_pending">0 pendientes</string>
     <string name="widget_capture">+ Capturar</string>
@@ -39,13 +39,13 @@
 
     <!-- Captura rápida (QuickCaptureActivity, ORD-029) -->
     <string name="quick_capture_title">Captura rápida</string>
-    <string name="quick_capture_subtitle">Guárdalo ahora. Ordia te ayuda a organizarlo después.</string>
+    <string name="quick_capture_subtitle">Guárdalo ahora. Ordía te ayuda a organizarlo después.</string>
     <string name="quick_capture_note">Nota</string>
     <string name="quick_capture_task_hint">¿Qué necesitas hacer?</string>
     <string name="quick_capture_note_hint">¿Qué quieres guardar?</string>
     <string name="quick_capture_dictate">Dictar</string>
     <string name="quick_capture_fallback_title">Nota rápida</string>
-    <string name="quick_capture_voice_prompt">Habla para guardar en Ordia</string>
+    <string name="quick_capture_voice_prompt">Habla para guardar en Ordía</string>
 
     <!-- Guardián: panel y asistente (GuardianOverlayService, ORD-029) -->
     <string name="guardian_action_pet">Acariciar</string>
@@ -69,18 +69,18 @@
     <string name="guardian_quiet_hours_notification">Horas de silencio: el guardián permanece discreto.</string>
     <string name="guardian_active_notification">Tu compañero virtual está activo. Tócalo para interactuar.</string>
     <string name="guardian_notification_hide">Ocultar</string>
-    <string name="guardian_channel_description_full">Mantiene disponible el compañero virtual flotante de Ordia.</string>
+    <string name="guardian_channel_description_full">Mantiene disponible el compañero virtual flotante de Ordía.</string>
 
     <!-- Actualizaciones (OrdiaUpdateManager, ORD-029) -->
-    <string name="update_download_title">Actualización de Ordia</string>
+    <string name="update_download_title">Actualización de Ordía</string>
     <string name="update_download_description">Descargando %1$s</string>
-    <string name="update_available_title">Nueva versión de Ordia</string>
+    <string name="update_available_title">Nueva versión de Ordía</string>
     <string name="update_available_text">%1$s está disponible. Toca para revisar.</string>
     <string name="update_ready_title">Ordía está lista para actualizarse</string>
     <string name="update_ready_text">La APK fue verificada. Android requiere una confirmación final.</string>
     <string name="update_discarded_title">Actualización descartada</string>
-    <string name="update_channel_name">Actualizaciones de Ordia</string>
-    <string name="update_channel_description">Descarga y avisa cuando una versión nueva de Ordia está disponible.</string>
+    <string name="update_channel_name">Actualizaciones de Ordía</string>
+    <string name="update_channel_description">Descarga y avisa cuando una versión nueva de Ordía está disponible.</string>
     <string name="update_fail_store_channel">Este canal se actualiza desde su tienda de aplicaciones.</string>
     <string name="update_fail_not_stable">La publicación más reciente no es una versión estable.</string>
     <string name="update_fail_no_tag">La publicación no contiene una etiqueta de versión.</string>
@@ -91,10 +91,14 @@
     <string name="update_fail_no_checksum">La publicación no incluye el checksum exacto de %1$s.</string>
     <string name="update_fail_bad_checksum">El checksum publicado es ausente, ambiguo o inválido.</string>
     <string name="update_fail_github">No se pudo consultar GitHub Releases.</string>
-    <string name="update_invalid_not_managed">La descarga no pertenece a Ordia.</string>
+    <string name="update_invalid_not_managed">La descarga no pertenece a Ordía.</string>
     <string name="update_invalid_no_checksum">No existe un checksum esperado para la descarga.</string>
     <string name="update_invalid_no_size">No existe un tamaño esperado válido para la descarga.</string>
-    <string name="update_invalid_old_version">La versión descargada ya no es más reciente que Ordia.</string>
+    <string name="update_invalid_old_version">La versión descargada ya no es más reciente que Ordía.</string>
+
+    <!-- Servicios opcionales: etiquetas visibles en Ajustes de Android -->
+    <string name="notification_listener_label">Ordía · conversaciones</string>
+    <string name="ime_service_label">Teclado de Ordía</string>
     <string name="update_invalid_incomplete">La descarga no terminó correctamente.</string>
     <string name="update_invalid_bad_size">El tamaño de la APK descargada no es válido.</string>
     <string name="update_invalid_size_mismatch">El tamaño descargado no coincide con el publicado.</string>

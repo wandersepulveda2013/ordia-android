@@ -1,10 +1,10 @@
-# Ordia 3.0
+# Ordía 3.0
 
-Ordia 3.0 integra la base organizativa local-first, guardianes virtuales y atención contextual privada.
+Ordía 3.0 integra la base organizativa local-first, guardianes virtuales y atención contextual privada.
 
-# Ordia 2.0
+# Ordía 2.0
 
-Ordia es un sistema personal Android, local primero, que conecta tareas, proyectos, planificación, notas, hábitos, rutinas, enfoque y un guardián virtual.
+Ordía es un sistema personal Android, local primero, que conecta tareas, proyectos, planificación, notas, hábitos, rutinas, enfoque y un guardián virtual.
 
 ## Incluido
 

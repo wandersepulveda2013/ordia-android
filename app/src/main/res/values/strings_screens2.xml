@@ -13,7 +13,7 @@
     <string name="attention_notifications_setting">Sugerencias desde notificaciones</string>
     <string name="attention_notifications_setting_desc">Solo procesa el texto visible de notificaciones autorizadas; nunca guarda la conversación completa.</string>
     <string name="attention_allowed_apps">Aplicaciones autorizadas</string>
-    <string name="attention_allowed_apps_desc">Aunque Android conceda acceso global, Ordia solo procesa las aplicaciones que actives aquí.</string>
+    <string name="attention_allowed_apps_desc">Aunque Android conceda acceso global, Ordía solo procesa las aplicaciones que actives aquí.</string>
     <string name="attention_access_granted">Acceso a notificaciones autorizado</string>
     <string name="attention_access_not_granted">Acceso a notificaciones no autorizado</string>
     <string name="attention_access_body">Ordía funciona manualmente sin este permiso. Actívalo solo si deseas sugerencias en la bandeja contextual.</string>
@@ -22,7 +22,7 @@
     <string name="attention_clear_suggestions">Borrar sugerencias</string>
     <string name="attention_pending_suggestions">Sugerencias pendientes</string>
     <string name="attention_pending_suggestions_desc">Solo se guardan título, tipo, fecha estimada y una huella no reversible.</string>
-    <string name="attention_no_suggestions">No hay sugerencias. Selecciona texto y usa ‘Procesar texto con Ordia’, o comparte un mensaje con la aplicación.</string>
+    <string name="attention_no_suggestions">No hay sugerencias. Selecciona texto y usa ‘Procesar texto con Ordía’, o comparte un mensaje con la aplicación.</string>
     <string name="attention_confidence">%1$s · confianza %2$d %%</string>
     <string name="attention_discard">Descartar</string>
 
@@ -129,7 +129,7 @@
 
     <!-- ArchiveScreen -->
     <string name="archive_delete_permanent">Eliminar definitivamente</string>
-    <string name="archive_delete_confirm">“%1$s” se borrará de Ordia y no podrá recuperarse.</string>
+    <string name="archive_delete_confirm">“%1$s” se borrará de Ordía y no podrá recuperarse.</string>
     <string name="archive_eyebrow">RECUPERA LO QUE NECESITES</string>
     <string name="archive_title">Archivo</string>
     <string name="archive_subtitle">Los elementos archivados permanecen locales hasta que los elimines definitivamente.</string>
@@ -195,7 +195,7 @@
     <string name="planner_prev_month">Mes anterior</string>
     <string name="planner_next_month">Mes siguiente</string>
     <string name="planner_auto_plan">Plan automático local</string>
-    <string name="planner_auto_plan_empty">Añade tareas para que Ordia proponga un orden realista.</string>
+    <string name="planner_auto_plan_empty">Añade tareas para que Ordía proponga un orden realista.</string>
     <string name="planner_auto_plan_summary">%1$d bloques · %2$d min ocupados · %3$d min libres</string>
     <string name="planner_hide">Ocultar</string>
     <string name="planner_view">Ver plan</string>

@@ -57,6 +57,7 @@ class QuickCaptureActivity : ComponentActivity() {
         val container = (application as OrdiaApplication).container
         val initialMode = intent.getStringExtra(EXTRA_MODE) ?: MODE_TASK
         val initialText = intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
+        val startVoice = intent.getBooleanExtra(EXTRA_START_VOICE, false)
         setContent {
             OrdiaTheme {
                 var mode by remember { mutableStateOf(initialMode) }
@@ -64,6 +65,9 @@ class QuickCaptureActivity : ComponentActivity() {
                 val voice = dictatedText.value
                 LaunchedEffect(voice) {
                     if (voice.isNotBlank() && voice != text) text = voice
+                }
+                LaunchedEffect(startVoice) {
+                    if (startVoice) launchVoiceRecognition()
                 }
                 val title = stringResource(R.string.quick_capture_title)
                 val subtitle = stringResource(R.string.quick_capture_subtitle)
@@ -154,6 +158,7 @@ class QuickCaptureActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_MODE = "capture_mode"
+        const val EXTRA_START_VOICE = "start_voice"
         const val MODE_TASK = "task"
         const val MODE_NOTE = "note"
     }

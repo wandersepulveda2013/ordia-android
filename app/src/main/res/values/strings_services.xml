@@ -11,9 +11,9 @@
     <string name="external_suggestion_unknown_kind">Desconocido</string>
 
     <!-- Actualización (UpdateInstallActivity, ORD-029) -->
-    <string name="update_install_not_authorized">No se autorizó la instalación de actualizaciones de Ordia.</string>
+    <string name="update_install_not_authorized">No se autorizó la instalación de actualizaciones de Ordía.</string>
     <string name="update_install_permission_error">Android no pudo abrir el permiso de instalación.</string>
-    <string name="update_install_launch_error">Android no pudo abrir el instalador de Ordia.</string>
+    <string name="update_install_launch_error">Android no pudo abrir el instalador de Ordía.</string>
 
     <!-- Guardián (GuardianPetView, ORD-029) -->
     <string name="pet_accessibility_description">%1$s, %2$s, etapa %3$s</string>

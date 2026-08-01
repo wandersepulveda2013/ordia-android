@@ -53,8 +53,8 @@
     <string name="task_subtask_progress">%1$d/%2$d</string>
 
     <!-- ContextualSuggestionDialog.kt (ORD-029 i18n). -->
-    <string name="suggestion_confirm_title">¿Quieres que Ordia lo recuerde?</string>
-    <string name="suggestion_privacy_note">El análisis ocurrió en tu teléfono. Ordia no guardó la conversación original.</string>
+    <string name="suggestion_confirm_title">¿Quieres que Ordía lo recuerde?</string>
+    <string name="suggestion_privacy_note">El análisis ocurrió en tu teléfono. Ordía no guardó la conversación original.</string>
     <string name="suggestion_confidence">Confianza: %1$d %%</string>
     <string name="suggestion_discard">Descartar</string>
 
@@ -70,7 +70,7 @@
     <string name="component_guardian_mood_proud">orgulloso</string>
     <string name="component_guardian_mood_playful">juguetón</string>
     <string name="component_guardian_mood_concerned">preocupado</string>
-    <string name="component_guardian_description">Guardián de Ordia, estado %1$s</string>
+    <string name="component_guardian_description">Guardián de Ordía, estado %1$s</string>
 
     <!-- Estados base (rediseño limpio). -->
     <string name="component_loading">Cargando…</string>

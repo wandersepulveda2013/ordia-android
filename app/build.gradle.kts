@@ -53,7 +53,7 @@ android {
             buildConfigField("boolean", "CONTEXT_NOTIFICATION_ACCESS_ENABLED", "false")
             buildConfigField("boolean", "ADVANCED_CONTEXT_ENABLED", "false")
             buildConfigField("boolean", "PREVIEW", "true")
-            resValue("string", "app_name", "Ordía 3 Preview")
+            resValue("string", "app_name", "Ordía")
         }
 
         create("previewFull") {
@@ -67,7 +67,7 @@ android {
             buildConfigField("boolean", "CONTEXT_NOTIFICATION_ACCESS_ENABLED", "true")
             buildConfigField("boolean", "ADVANCED_CONTEXT_ENABLED", "false")
             buildConfigField("boolean", "PREVIEW", "true")
-            resValue("string", "app_name", "Ordía 3 Preview Full")
+            resValue("string", "app_name", "Ordía")
         }
 
         create("previewAdvanced") {
@@ -81,7 +81,7 @@ android {
             buildConfigField("boolean", "CONTEXT_NOTIFICATION_ACCESS_ENABLED", "true")
             buildConfigField("boolean", "ADVANCED_CONTEXT_ENABLED", "true")
             buildConfigField("boolean", "PREVIEW", "true")
-            resValue("string", "app_name", "Ordía 3 Preview Advanced")
+            resValue("string", "app_name", "Ordía")
         }
     }
 

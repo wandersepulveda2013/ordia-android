@@ -28,4 +28,11 @@
     <string name="nav_more">Más</string>
     <string name="nav_guardian">Guardián</string>
     <string name="nav_contextual">Contexto</string>
+    <string name="fab_capture">Capturar</string>
+    <string name="fab_close">Cerrar captura</string>
+    <string name="fab_task">Nueva tarea</string>
+    <string name="fab_note">Nota rápida</string>
+    <string name="fab_voice">Capturar por voz</string>
+    <string name="fab_organize">Organizar el día</string>
+    <string name="fab_messages">Revisar mensajes</string>
 </resources>

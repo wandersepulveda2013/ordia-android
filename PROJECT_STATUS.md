@@ -1,4 +1,4 @@
-# Estado de Ordia
+# Estado de Ordía
 
 Fecha de corte: 1 de agosto de 2026
 Rama de trabajo: `feature/ordia-assistant-evolution` (base `8ecfa07`)
