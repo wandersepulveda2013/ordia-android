@@ -146,7 +146,6 @@
     <!-- Raíz de la app (OrdiaRoot, ORD-029 i18n). -->
     <string name="root_context_detected">Detectado: %1$s — %2$s</string>
     <string name="root_context_discarded">Ordía no procesó el texto porque era sensible o no contenía una intención clara.</string>
-    <string name="root_context_inactive">Activa la atención contextual para procesar texto compartido.</string>
     <string name="root_capture_saved_to_inbox">Capturado en la bandeja de entrada.</string>
 
     <!-- Captura universal (BLOQUE 2): revisión de lo interpretado por el analizador. -->
