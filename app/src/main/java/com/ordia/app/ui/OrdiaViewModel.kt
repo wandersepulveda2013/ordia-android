@@ -40,6 +40,7 @@ import com.ordia.app.domain.HabitRules
 import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockCodec
 import com.ordia.app.domain.NaturalTaskParser
+import com.ordia.app.domain.ParsedTaskInput
 import com.ordia.app.domain.RecurrenceEngine
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.domain.TaskMutationGate
@@ -252,7 +253,7 @@ class OrdiaViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OrdiaUiState())
 
-    fun saveTask(task: TaskEntity, tagIds: Set<Long> = emptySet()) {
+    fun saveTask(task: TaskEntity, tagIds: Set<Long> = emptySet(), preserveInbox: Boolean = false) {
         val clean = task.title.trim()
         if (clean.isBlank()) return
         viewModelScope.launch {
@@ -262,6 +263,7 @@ class OrdiaViewModel(
                 details = task.details.trim(),
                 status = when {
                     task.completed -> TaskStatus.COMPLETED
+                    preserveInbox -> task.status
                     task.status == TaskStatus.INBOX && task.dueAt != null -> TaskStatus.PLANNED
                     else -> task.status
                 },
@@ -285,8 +287,39 @@ class OrdiaViewModel(
     }
 
     fun addSmartTask(input: String) {
-        val parsed = NaturalTaskParser.parse(input)
-        addTask(parsed.title, dueAt = parsed.dueAt, priority = parsed.priority)
+        addParsedTask(NaturalTaskParser.parse(input))
+    }
+
+    /**
+     * Crea una tarea a partir de la interpretación del analizador local.
+     *
+     * Si la confianza es baja o no hay fecha, la captura aterriza en la Bandeja
+     * (INBOX) para revisión sin perder texto; las señales extraídas (recordatorio,
+     * duración, repetición) se conservan.
+     */
+    fun addParsedTask(parsed: ParsedTaskInput) {
+        val reminderAt = parsed.reminderOffsetMinutes
+            ?.takeIf { parsed.dueAt != null }
+            ?.let { offset -> parsed.dueAt!! - offset * 60_000L }
+        val status = when {
+            parsed.confidence < 0.5f -> TaskStatus.INBOX
+            parsed.dueAt == null -> TaskStatus.INBOX
+            else -> TaskStatus.PLANNED
+        }
+        saveTask(
+            TaskEntity(
+                title = parsed.title,
+                dueAt = parsed.dueAt,
+                reminderAt = reminderAt,
+                durationMinutes = parsed.durationMinutes ?: 25,
+                priority = parsed.priority,
+                recurrence = parsed.recurrence,
+                recurrenceInterval = parsed.recurrenceInterval,
+                recurrenceDays = parsed.recurrenceDays,
+                status = status
+            ),
+            preserveInbox = status == TaskStatus.INBOX
+        )
     }
 
     fun addTask(
@@ -553,7 +586,9 @@ class OrdiaViewModel(
     fun captureSharedText(text: String) {
         val clean = text.trim()
         if (clean.isBlank()) return
-        addNote(clean.lineSequence().firstOrNull()?.take(60).orEmpty().ifBlank { "Contenido compartido" }, clean)
+        // Captura universal: se interpreta como tarea; si la confianza es baja
+        // queda en la Bandeja (INBOX) para revisión, sin perder el texto.
+        addSmartTask(clean)
     }
 
     fun exportBackup(onReady: (String) -> Unit) = viewModelScope.launch {

@@ -147,6 +147,7 @@
     <string name="root_context_detected">Detectado: %1$s — %2$s</string>
     <string name="root_context_discarded">Ordía no procesó el texto porque era sensible o no contenía una intención clara.</string>
     <string name="root_context_inactive">Activa la atención contextual para procesar texto compartido.</string>
+    <string name="root_capture_saved_to_inbox">Capturado en la bandeja de entrada.</string>
     <string name="root_note_created_from_context">Creada desde texto compartido y confirmada por el usuario.</string>
     <string name="root_task_created_from_context">Sugerencia contextual confirmada por el usuario.</string>
 </resources>

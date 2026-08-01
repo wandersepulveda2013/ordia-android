@@ -1,5 +1,6 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskPriority
 import java.time.DayOfWeek
 import java.time.Instant
@@ -7,35 +8,112 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
-/** Analizador pequeño y determinista para capturas rápidas en español. No usa red. */
+/**
+ * Resultado del analizador de lenguaje natural en español.
+ *
+ * El analizador es 100 % local y determinista (sin red ni IA remota).
+ * Los campos nuevos usan valores por defecto para no romper llamadas existentes.
+ */
 data class ParsedTaskInput(
     val title: String,
     val dueAt: Long?,
-    val priority: TaskPriority
+    val priority: TaskPriority,
+    /** Duración estimada en minutos, p. ej. "durante 45 minutos". */
+    val durationMinutes: Int? = null,
+    /** Recordatorio "N antes" de la fecha límite, p. ej. "recuérdame 2 horas antes". */
+    val reminderOffsetMinutes: Int? = null,
+    val recurrence: RecurrenceFrequency = RecurrenceFrequency.NONE,
+    val recurrenceInterval: Int = 1,
+    /** Días de repetición semanal (ISO 1..7, CSV), p. ej. "1,4" para lunes y jueves. */
+    val recurrenceDays: String = "",
+    /** Categoría inferida por contexto (trabajo, casa, compras, salud, personal). */
+    val category: String = "",
+    /** 1.0 si la captura es interpretable, 0.35 si es texto libre sin señales. */
+    val confidence: Float = 1f
 )
 
 object NaturalTaskParser {
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
     private val weekdayPattern = Regex("""(?i)\b(?:el\s+)?(?:pr[oó]ximo\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b""")
     private val relativePattern = Regex("""(?i)\ben\s+(\d{1,3})\s*(minutos?|mins?|horas?|d[ií]as?)\b""")
+    private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
     private val timePatterns = listOf(
         Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b([01]?\d|2[0-3]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
-        Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b""")
+        Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b"""),
+        Regex("""(?i)\bmediod[ií]a\b"""),
+        Regex("""(?i)\bmedianoche\b""")
+    )
+    private val reminderPatterns = listOf(
+        Regex("""(?i)\b(?:recuérdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?(\d{1,3})\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
+        Regex("""(?i)\b(\d{1,3})\s*(minutos?|horas?|d[ií]as?)\s+antes\b""")
+    )
+    private val durationPatterns = listOf(
+        Regex("""(?i)\((\d{1,3})\s*(minutos?|min|horas?|hora)\)"""),
+        Regex("""(?i)\b(?:durante|por)\s+(\d{1,3})\s*(minutos?|min|horas?|hora)\b"""),
+        Regex("""(?i)\b(\d{1,3})\s*(minutos?|min)\b"""),
+        Regex("""(?i)\b(\d{1,3})\s*(horas?)\b""")
+    )
+
+    private val weekdays = mapOf(
+        "lunes" to DayOfWeek.MONDAY,
+        "martes" to DayOfWeek.TUESDAY,
+        "miércoles" to DayOfWeek.WEDNESDAY,
+        "miercoles" to DayOfWeek.WEDNESDAY,
+        "jueves" to DayOfWeek.THURSDAY,
+        "viernes" to DayOfWeek.FRIDAY,
+        "sábado" to DayOfWeek.SATURDAY,
+        "sabado" to DayOfWeek.SATURDAY,
+        "domingo" to DayOfWeek.SUNDAY
+    )
+
+    private val months = mapOf(
+        "enero" to 1, "febrero" to 2, "marzo" to 3, "abril" to 4,
+        "mayo" to 5, "junio" to 6, "julio" to 7, "agosto" to 8,
+        "septiembre" to 9, "setiembre" to 9, "octubre" to 10,
+        "noviembre" to 11, "diciembre" to 12
+    )
+
+    private val categories = listOf(
+        "trabajo" to listOf("reunión", "reunion", "informe", "reporte", "cliente", "contrato", "presentación", "presentacion", "entregar", "proyecto", "oficina", "correo", "email", "junta", "gerente", "jefe"),
+        "compras" to listOf("comprar", "compra", "supermercado", "mercado", "farmacia", "tienda", "recados", "mandado", "leche", "víveres", "viveres"),
+        "salud" to listOf("médico", "medico", "doctor", "cita", "gimnasio", "ejercicio", "correr", "dentista", "salud", "medicina", "pastillas", "vacuna", "análisis", "analisis"),
+        "casa" to listOf("limpiar", "cocinar", "lavar", "cocina", "casa", "hogar", "reparar", "jardín", "jardin", "basura", "tramitar", "luz", "agua", "gas"),
+        "personal" to listOf("llamar a", "familia", "mamá", "mama", "papá", "papa", "herman", "pareja", "amigo", "amiga", "cumpleaños", "cumpleanos", "aniversario")
     )
 
     fun parse(text: String, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): ParsedTaskInput {
         val base = Instant.ofEpochMilli(now).atZone(zone)
         var working = text.trim()
-        val lower = working.lowercase()
+        val original = text.trim()
+
         val priority = when {
-            "!urgente" in lower || "#urgente" in lower -> TaskPriority.URGENT
-            "!alta" in lower || "#alta" in lower -> TaskPriority.HIGH
-            "!baja" in lower || "#baja" in lower -> TaskPriority.LOW
+            "!urgente" in working.lowercase() || "#urgente" in working.lowercase() -> TaskPriority.URGENT
+            "!alta" in working.lowercase() || "#alta" in working.lowercase() -> TaskPriority.HIGH
+            "!baja" in working.lowercase() || "#baja" in working.lowercase() -> TaskPriority.LOW
             else -> TaskPriority.NORMAL
         }
         working = working.replace(Regex("""(?i)(?:!|#)(urgente|alta|baja)\b"""), " ")
 
+        // Recordatorio "N antes" (se extrae antes que la duración para no confundir unidades).
+        val reminderOffsetMinutes = reminderPatterns.asSequence()
+            .mapNotNull { it.find(working) }
+            .minByOrNull { it.range.first }
+            ?.let { match ->
+                val amount = match.groupValues[1].toLongOrNull() ?: return@let null
+                val unit = match.groupValues[2].lowercase()
+                val minutes = when {
+                    unit.startsWith("min") -> amount
+                    unit.startsWith("hora") -> amount * 60
+                    else -> amount * 24 * 60
+                }
+                minutes.toInt().coerceIn(1, 60 * 24 * 30)
+            }
+        reminderPatterns.forEach { pattern ->
+            pattern.findAll(working).forEach { working = working.replace(it.value, " ") }
+        }
+
+        // Fecha relativa "en N minutos/horas/días".
         val relativeMatch = relativePattern.find(working)
         val relativeDueAt = relativeMatch?.let { match ->
             val amount = match.groupValues[1].toLongOrNull() ?: 0L
@@ -47,16 +125,23 @@ object NaturalTaskParser {
             }
             now + millis
         }
+        relativeMatch?.let { working = working.replace(it.value, " ") }
+
+        // Repetición: se procesa antes que la fecha para que "cada viernes" no se lea como fecha suelta.
+        val recurrence = parseRecurrence(working)
+        recurrence.phraseRanges.sortedByDescending { it.first }.forEach { range ->
+            working = working.substring(0, range.first) + " " + working.substring(range.last + 1)
+        }
+
         val weekdayMatch = weekdayPattern.find(working)
         val numericDateMatch = numericDatePattern.find(working)
+        val monthNameMatch = monthNamePattern.find(working)
         val date = when {
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
-            weekdayMatch != null -> nextWeekday(
-                base.toLocalDate(),
-                weekdayMatch.groupValues[1].toDayOfWeek()
-            )
+            weekdayMatch != null -> nextWeekday(base.toLocalDate(), weekdayMatch.groupValues[1].toDayOfWeek())
+            monthNameMatch != null -> parseMonthNameDate(base.toLocalDate(), monthNameMatch)
             numericDateMatch != null -> {
                 val day = numericDateMatch.groupValues[1].toIntOrNull()
                 val month = numericDateMatch.groupValues[2].toIntOrNull()
@@ -68,51 +153,166 @@ object NaturalTaskParser {
                 }
                 if (day == null || month == null) null else runCatching { LocalDate.of(year, month, day) }.getOrNull()
             }
+            // Repetición semanal con días explícitos: primera ocurrencia futura.
+            recurrence.frequency == RecurrenceFrequency.WEEKLY && recurrence.days.isNotEmpty() -> recurrence.days
+                .mapNotNull { it.toDayOfWeekOrNull() }
+                .map { nextWeekday(base.toLocalDate(), it) }
+                .minOrNull()
             else -> null
         }
 
         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
         val parsedTime = timeMatch?.let { match ->
-            var hour = match.groupValues[1].toInt()
-            val minute = match.groupValues[2].toIntOrNull() ?: 0
-            val meridiem = match.groupValues[3].lowercase().replace(".", "").replace(" ", "")
-            if (meridiem == "pm" && hour < 12) hour += 12
-            if (meridiem == "am" && hour == 12) hour = 0
-            LocalTime.of(hour, minute)
+            when {
+                match.value.lowercase().contains("mediodía") || match.value.lowercase().contains("mediodia") -> LocalTime.NOON
+                match.value.lowercase().contains("medianoche") -> LocalTime.MIDNIGHT
+                else -> {
+                    var hour = match.groupValues[1].toInt()
+                    val minute = match.groupValues[2].toIntOrNull() ?: 0
+                    val meridiem = match.groupValues[3].lowercase().replace(".", "").replace(" ", "")
+                    if (meridiem == "pm" && hour < 12) hour += 12
+                    if (meridiem == "am" && hour == 12) hour = 0
+                    LocalTime.of(hour, minute)
+                }
+            }
         }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
 
-        relativeMatch?.value?.let { working = working.replace(it, " ") }
-        weekdayMatch?.value?.let { working = working.replace(it, " ") }
-        timeMatch?.value?.let { working = working.replace(it, " ") }
+        // Duración: no se aplica a "en N minutos" (esa es fecha relativa, ya eliminada).
+        val durationMatch = durationPatterns.asSequence()
+            .mapNotNull { it.find(working) }
+            .minByOrNull { it.range.first }
+            ?.takeIf { match -> !Regex("""(?i)\ben\s*$""").containsMatchIn(working.substring(0, match.range.first)) }
+        val durationMinutes = durationMatch?.let { match ->
+            val amount = match.groupValues[1].toIntOrNull() ?: return@let null
+            val unit = match.groupValues[2].lowercase()
+            (if (unit.startsWith("hora")) amount * 60 else amount).coerceIn(5, 24 * 60)
+        }
+        durationMatch?.let { working = working.replace(it.value, " ") }
+
+        val category = categories.firstOrNull { (_, keywords) -> keywords.any { working.contains(it, ignoreCase = true) } }?.first.orEmpty()
+
+        // Limpieza de la frase para el título.
         working = working
             .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
+            .let { value -> weekdayPattern.replace(value, " ") }
+            .let { value -> monthNamePattern.replace(value, " ") }
             .let { value -> numericDatePattern.replace(value, " ") }
+            .let { value -> timePatterns.fold(value) { acc, pattern -> pattern.replace(acc, " ") } }
+            .replace(Regex("""(?i)\bantes\s+del?\b|\bpara\s+el\b|\bpara\s+mañana\b|\bhasta\s+el\b"""), " ")
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
             .replace(Regex("""\s+"""), " ")
             .trim(' ', ',', '.', '-')
 
+        val confidence = when {
+            relativeDueAt != null -> 1.0f
+            dueAt != null && parsedTime != null -> 1.0f
+            dueAt != null -> 0.9f
+            priority != TaskPriority.NORMAL || durationMinutes != null || reminderOffsetMinutes != null ||
+                recurrence.frequency != RecurrenceFrequency.NONE || category.isNotEmpty() -> 0.6f
+            else -> 0.35f
+        }
+
         return ParsedTaskInput(
-            title = working.ifBlank { text.trim() }.take(240),
+            title = working.ifBlank { original }.take(240),
             dueAt = dueAt,
-            priority = priority
+            priority = priority,
+            durationMinutes = durationMinutes,
+            reminderOffsetMinutes = reminderOffsetMinutes,
+            recurrence = recurrence.frequency,
+            recurrenceInterval = recurrence.interval,
+            recurrenceDays = recurrence.days.joinToString(","),
+            category = category,
+            confidence = confidence
         )
     }
 
+    private data class RecurrenceResult(
+        val frequency: RecurrenceFrequency,
+        val interval: Int,
+        val days: List<Int>,
+        val phraseRanges: List<IntRange>
+    )
+
+    private fun parseRecurrence(working: String): RecurrenceResult {
+        val base = RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), emptyList())
+        val phrases = mutableListOf<IntRange>()
+
+        // "todos los viernes" / "cada lunes y jueves" / "los viernes"
+        val weeklyDayPatterns = listOf(
+            Regex("""(?i)\btodos\s+los\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""),
+            Regex("""(?i)\bcada\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+y\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))?\b"""),
+            Regex("""(?i)\blos\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b""")
+        )
+        val weeklyMatch = weeklyDayPatterns.asSequence()
+            .mapNotNull { pattern -> pattern.find(working) }
+            .minByOrNull { it.range.first }
+        if (weeklyMatch != null) {
+            val days = (1..weeklyMatch.groupValues.lastIndex).mapNotNull { index ->
+                weeklyMatch.groupValues[index].takeIf { it.isNotBlank() }?.toDayOfWeekOrNull()?.value
+            }.distinct().sorted()
+            if (days.isNotEmpty()) {
+                phrases += weeklyMatch.range
+                return RecurrenceResult(RecurrenceFrequency.WEEKLY, 1, days, phrases)
+            }
+        }
+
+        // "cada N días/semanas/meses/años"
+        val intervalPattern = Regex("""(?i)\bcada\s+(\d{1,3})\s*(d[ií]as?|semanas?|meses?|a[nñ]os?)\b""")
+        intervalPattern.find(working)?.let { match ->
+            val interval = match.groupValues[1].toIntOrNull()?.coerceIn(1, 366) ?: return@let
+            val unit = match.groupValues[2].lowercase()
+            val frequency = when {
+                unit.startsWith("d") -> RecurrenceFrequency.DAILY
+                unit.startsWith("s") -> RecurrenceFrequency.WEEKLY
+                unit.startsWith("mes") -> RecurrenceFrequency.MONTHLY
+                unit.contains("añ") || unit.startsWith("an") -> RecurrenceFrequency.YEARLY
+                else -> return@let
+            }
+            phrases += match.range
+            return RecurrenceResult(frequency, interval, emptyList(), phrases)
+        }
+
+        val fixedPatterns = listOf(
+            Regex("""(?i)\btodos\s+los\s+d[ií]as\b|\bcada\s+d[ií]a\b|\bdiariamente\b""") to RecurrenceFrequency.DAILY,
+            Regex("""(?i)\btodas\s+las\s+[sS]emanas\b|\bcada\s+[sS]emana\b|\bsemanalmente\b""") to RecurrenceFrequency.WEEKLY,
+            Regex("""(?i)\btodos\s+los\s+meses\b|\bcada\s+mes\b|\bmensualmente\b""") to RecurrenceFrequency.MONTHLY,
+            Regex("""(?i)\btodos\s+los\s+a[nñ]os\b|\bcada\s+a[nñ]o\b|\banualmente\b""") to RecurrenceFrequency.YEARLY
+        )
+        fixedPatterns.forEach { (pattern, frequency) ->
+            pattern.find(working)?.let { match ->
+                phrases += match.range
+                return RecurrenceResult(frequency, 1, emptyList(), phrases)
+            }
+        }
+
+        return base
+    }
+
+    private fun parseMonthNameDate(today: LocalDate, match: MatchResult): LocalDate? {
+        val day = match.groupValues[1].toIntOrNull() ?: return null
+        val month = months[match.groupValues[2].lowercase()] ?: return null
+        val rawYear = match.groupValues[3].toIntOrNull()
+        val year = when {
+            rawYear == null -> today.year
+            rawYear < 100 -> 2000 + rawYear
+            else -> rawYear
+        }
+        var date = runCatching { LocalDate.of(year, month, day) }.getOrNull() ?: return null
+        if (rawYear == null && date.isBefore(today)) date = date.plusYears(1)
+        return date
+    }
 
     private fun nextWeekday(from: LocalDate, target: DayOfWeek): LocalDate {
         val delta = (target.value - from.dayOfWeek.value + 7) % 7
         return from.plusDays(if (delta == 0) 7 else delta.toLong())
     }
 
-    private fun String.toDayOfWeek(): DayOfWeek = when (lowercase()) {
-        "lunes" -> DayOfWeek.MONDAY
-        "martes" -> DayOfWeek.TUESDAY
-        "miércoles", "miercoles" -> DayOfWeek.WEDNESDAY
-        "jueves" -> DayOfWeek.THURSDAY
-        "viernes" -> DayOfWeek.FRIDAY
-        "sábado", "sabado" -> DayOfWeek.SATURDAY
-        else -> DayOfWeek.SUNDAY
-    }
+    private fun String.toDayOfWeek(): DayOfWeek = weekdays[this.lowercase()] ?: DayOfWeek.MONDAY
+
+    private fun String.toDayOfWeekOrNull(): DayOfWeek? = weekdays[this.lowercase()]
+
+    private fun Int.toDayOfWeekOrNull(): DayOfWeek? =
+        if (this in 1..7) DayOfWeek.of(this) else null
 }

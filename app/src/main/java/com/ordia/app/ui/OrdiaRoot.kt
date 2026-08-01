@@ -130,7 +130,11 @@ fun OrdiaRoot(
                     }
                 }
             } else {
-                snackbarHostState.showSnackbar(context.getString(R.string.root_context_inactive))
+                // Captura universal segura: sin motor contextual activo, el texto
+                // compartido se interpreta como tarea y cae en la Bandeja (INBOX)
+                // si la confianza es baja. Nada se pierde.
+                viewModel.captureSharedText(text)
+                snackbarHostState.showSnackbar(context.getString(R.string.root_capture_saved_to_inbox))
             }
             onIncomingTextConsumed()
         }
