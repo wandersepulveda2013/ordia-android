@@ -2,6 +2,7 @@ package com.ordia.app.ui
 
 import android.annotation.SuppressLint
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -74,6 +75,7 @@ fun OrdiaRoot(
             routineRepository = app.container.routineRepository,
             tagRepository = app.container.tagRepository,
             attachmentRepository = app.container.attachmentRepository,
+            automationLogRepository = app.container.automationLogRepository,
             preferencesRepository = app.container.preferencesRepository,
             reminderScheduler = app.container.reminderScheduler,
             backupManager = app.container.backupManager
@@ -170,6 +172,13 @@ fun OrdiaRoot(
         viewModel.events.collect { event ->
             when (event) {
                 is UiEvent.Message -> snackbarHostState.showSnackbar(event.text)
+                is UiEvent.AutomationApplied -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = event.message,
+                        actionLabel = context.getString(R.string.automation_undo_action)
+                    )
+                    if (result == SnackbarResult.ActionPerformed) viewModel.undoLastAutomation()
+                }
                 else -> Unit
             }
         }

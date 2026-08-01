@@ -6,8 +6,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ordia.app.backup.BackupManager
 import com.ordia.app.backup.RestorePhase
+import com.ordia.app.R
 import com.ordia.app.data.local.AttachmentEntity
 import com.ordia.app.data.local.AttachmentOwnerType
+import com.ordia.app.data.local.AutomationLogEntity
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
@@ -26,6 +28,7 @@ import com.ordia.app.data.preferences.PreferencesRepository
 import com.ordia.app.data.preferences.ThemeMode
 import com.ordia.app.data.preferences.UserPreferences
 import com.ordia.app.data.repository.AttachmentRepository
+import com.ordia.app.data.repository.AutomationLogRepository
 import com.ordia.app.data.repository.FocusRepository
 import com.ordia.app.data.repository.HabitRepository
 import com.ordia.app.data.repository.NoteRepository
@@ -43,6 +46,7 @@ import com.ordia.app.domain.NaturalTaskParser
 import com.ordia.app.domain.ParsedTaskInput
 import com.ordia.app.domain.RecurrenceEngine
 import com.ordia.app.domain.TaskRules
+import com.ordia.app.domain.TaskSnapshotCodec
 import com.ordia.app.domain.TaskMutationGate
 import com.ordia.app.reminders.ReminderScheduler
 import com.ordia.app.widget.OrdiaWidgetUpdater
@@ -65,6 +69,8 @@ sealed interface UiEvent {
     data class Message(val text: String) : UiEvent
     data class TaskSaved(val id: Long) : UiEvent
     data class NoteSaved(val id: Long) : UiEvent
+    /** Automatización aplicada; la UI ofrece deshacer con [AutomationApplied.logId]. */
+    data class AutomationApplied(val logId: Long, val message: String) : UiEvent
 }
 
 /**
@@ -185,6 +191,7 @@ class OrdiaViewModel(
     private val routineRepository: RoutineRepository,
     private val tagRepository: TagRepository,
     private val attachmentRepository: AttachmentRepository,
+    private val automationLogRepository: AutomationLogRepository,
     private val preferencesRepository: PreferencesRepository,
     private val reminderScheduler: ReminderScheduler,
     private val backupManager: BackupManager
@@ -549,11 +556,22 @@ class OrdiaViewModel(
         viewModelScope.launch { tagRepository.add(TagEntity(name = clean)) }
     }
 
-    fun applyDayPlan(plan: DayPlanner.Plan) = viewModelScope.launch {
+    /**
+     * Aplica un plan del día a las tareas seleccionadas (o a todas si
+     * [blockIds] es null) y registra la automatización para poder deshacerla.
+     */
+    fun applyDayPlan(plan: DayPlanner.Plan, blockIds: Set<Long>? = null) = viewModelScope.launch {
         val now = System.currentTimeMillis()
+        val selected = plan.blocks.filter { blockIds == null || blockIds.contains(it.taskId) }
+        if (selected.isEmpty()) {
+            _events.emit(UiEvent.Message(appContext.getString(R.string.planner_none_selected)))
+            return@launch
+        }
+        val before = mutableMapOf<Long, TaskEntity>()
         var updated = 0
-        plan.blocks.forEach { block ->
+        selected.forEach { block ->
             val task = taskRepository.get(block.taskId) ?: return@forEach
+            before[task.id] = task
             val start = DateRules.toEpochMillis(plan.date, block.startMinute)
             val end = DateRules.toEpochMillis(plan.date, block.endMinute)
             val normalized = task.copy(
@@ -567,12 +585,48 @@ class OrdiaViewModel(
             updated++
         }
         updateWidget()
-        _events.emit(
-            UiEvent.Message(
-                if (updated == 0) "No había tareas para planificar."
-                else "Plan aplicado a $updated ${if (updated == 1) "tarea" else "tareas"}."
+        val logId = automationLogRepository.insert(
+            AutomationLogEntity(
+                type = "day_plan",
+                description = appContext.getString(R.string.automation_desc_day_plan, plan.date.toString(), updated),
+                affectedTaskIdsJson = TaskSnapshotCodec.encodeIds(selected.map { it.taskId }),
+                undoPayloadJson = TaskSnapshotCodec.encodeMap(before)
             )
         )
+        val message = if (updated == 1) appContext.getString(R.string.planner_applied_one)
+        else appContext.getString(R.string.planner_applied_many, updated)
+        _events.emit(UiEvent.AutomationApplied(logId, message))
+    }
+
+    /**
+     * Restaura el estado previo de la última automatización no deshecha
+     * (plan del día, replanificación, "qué hago ahora", rutina).
+     */
+    fun undoLastAutomation() = viewModelScope.launch {
+        val log = automationLogRepository.latestNotUndone() ?: run {
+            _events.emit(UiEvent.Message(appContext.getString(R.string.automation_nothing_to_undo)))
+            return@launch
+        }
+        val before = TaskSnapshotCodec.decodeMap(log.undoPayloadJson)
+        if (before.isEmpty()) {
+            _events.emit(UiEvent.Message(appContext.getString(R.string.automation_nothing_to_undo)))
+            return@launch
+        }
+        val now = System.currentTimeMillis()
+        before.forEach { (id, snapshot) ->
+            val current = taskRepository.get(id) ?: return@forEach
+            if (current != snapshot) {
+                taskRepository.update(snapshot.copy(updatedAt = now))
+                if (snapshot.completed || snapshot.status == TaskStatus.CANCELLED || (snapshot.reminderAt == null && snapshot.dueAt == null)) {
+                    reminderScheduler.cancel(id)
+                } else {
+                    reminderScheduler.schedule(snapshot.copy(id = id))
+                }
+            }
+        }
+        automationLogRepository.markUndone(log.id)
+        updateWidget()
+        _events.emit(UiEvent.Message(appContext.getString(R.string.automation_undone)))
     }
 
     fun saveFocusSession(taskId: Long?, startedAt: Long, endedAt: Long, plannedMinutes: Int, completed: Boolean, notes: String = "") {
@@ -675,6 +729,7 @@ class OrdiaViewModel(
         private val routineRepository: RoutineRepository,
         private val tagRepository: TagRepository,
         private val attachmentRepository: AttachmentRepository,
+        private val automationLogRepository: AutomationLogRepository,
         private val preferencesRepository: PreferencesRepository,
         private val reminderScheduler: ReminderScheduler,
         private val backupManager: BackupManager
@@ -690,6 +745,7 @@ class OrdiaViewModel(
             routineRepository,
             tagRepository,
             attachmentRepository,
+            automationLogRepository,
             preferencesRepository,
             reminderScheduler,
             backupManager

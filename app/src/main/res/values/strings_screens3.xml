@@ -171,6 +171,12 @@
     <string name="day_short_sat">Sáb</string>
     <string name="day_short_sun">Dom</string>
     <string name="inbox_task_pending_review">Captura pendiente de revisión</string>
+
+    <!-- Historial de automatizaciones y deshacer (BLOQUE 3). -->
+    <string name="automation_undo_action">Deshacer</string>
+    <string name="automation_undone">Cambios deshechos.</string>
+    <string name="automation_nothing_to_undo">No hay nada que deshacer.</string>
+    <string name="automation_desc_day_plan">Plan del día %1$s · %2$d tareas</string>
     <string name="root_note_created_from_context">Creada desde texto compartido y confirmada por el usuario.</string>
     <string name="root_task_created_from_context">Sugerencia contextual confirmada por el usuario.</string>
 </resources>

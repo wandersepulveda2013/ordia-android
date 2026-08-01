@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayPlanner
+import com.ordia.app.domain.PlanReason
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
@@ -46,8 +48,10 @@ import com.ordia.app.ui.components.SectionHeader
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
@@ -71,6 +75,7 @@ fun PlannerScreen(
     var month by remember { mutableStateOf(YearMonth.now()) }
     var adding by remember { mutableStateOf(false) }
     var showSuggestedPlan by remember { mutableStateOf(false) }
+    var selectedBlockIds by remember { mutableStateOf(setOf<Long>()) }
     val currentLocale = composeLocale()
     if (adding) TaskEditorDialog(
         projects = state.projects,
@@ -142,16 +147,24 @@ fun PlannerScreen(
                     }
                     if (showSuggestedPlan) {
                         suggestedPlan.blocks.forEach { block ->
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    "${DateRules.minutesToClock(block.startMinute)}–${DateRules.minutesToClock(block.endMinute)}",
-                                    style = MaterialTheme.typography.labelLarge
-                                )
-                                Column(Modifier.weight(1f)) {
-                                    Text(block.title, style = MaterialTheme.typography.bodyLarge)
-                                    if (block.overdue) Text(stringResource(R.string.planner_overdue), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-                                }
-                            }
+                            val conflict = suggestedPlan.conflicts.firstOrNull { it.taskId == block.taskId }
+                            val originalStart = if (conflict != null) {
+                                val start = state.tasks.firstOrNull { it.id == block.taskId }?.startAt
+                                if (start != null) {
+                                    val zone = Instant.ofEpochMilli(start).atZone(ZoneId.systemDefault())
+                                    DateRules.minutesToClock(zone.hour * 60 + zone.minute)
+                                } else null
+                            } else null
+                            BlockRow(
+                                block = block,
+                                selected = block.taskId in selectedBlockIds,
+                                onToggle = {
+                                    selectedBlockIds = if (block.taskId in selectedBlockIds) selectedBlockIds - block.taskId
+                                    else selectedBlockIds + block.taskId
+                                },
+                                reasonLabel = plannerReasonLabel(block.reason),
+                                conflictLabel = if (conflict != null) stringResource(R.string.planner_conflict_moved, originalStart ?: "—", DateRules.minutesToClock(block.startMinute)) else null
+                            )
                         }
                         if (suggestedPlan.unscheduledTaskIds.isNotEmpty()) {
                             Text(
@@ -161,8 +174,27 @@ fun PlannerScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Button(onClick = { vm.applyDayPlan(suggestedPlan); showSuggestedPlan = false }, modifier = Modifier.fillMaxWidth()) {
-                            Text(stringResource(R.string.planner_apply))
+                        Button(
+                            onClick = {
+                                vm.applyDayPlan(suggestedPlan, selectedBlockIds.takeIf { it.isNotEmpty() })
+                                showSuggestedPlan = false
+                                selectedBlockIds = emptySet()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                if (selectedBlockIds.isEmpty()) stringResource(R.string.planner_apply)
+                                else stringResource(R.string.planner_apply_selection, selectedBlockIds.size)
+                            )
+                        }
+                        if (selectedBlockIds.isNotEmpty()) {
+                            Text(
+                                stringResource(R.string.planner_select_hint),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }
@@ -195,6 +227,52 @@ fun PlannerScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun plannerReasonLabel(reason: PlanReason): String = when (reason) {
+    PlanReason.OVERDUE -> stringResource(R.string.planner_reason_overdue)
+    PlanReason.URGENT -> stringResource(R.string.planner_reason_urgent)
+    PlanReason.HIGH_PRIORITY -> stringResource(R.string.planner_reason_high)
+    PlanReason.DUE_TODAY -> stringResource(R.string.planner_reason_due_today)
+    PlanReason.SCHEDULED_TIME -> stringResource(R.string.planner_reason_scheduled)
+    PlanReason.INBOX -> stringResource(R.string.planner_reason_inbox)
+}
+
+@Composable
+private fun BlockRow(
+    block: DayPlanner.Block,
+    selected: Boolean,
+    onToggle: () -> Unit,
+    reasonLabel: String,
+    conflictLabel: String?
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(checked = selected, onCheckedChange = null)
+            Text(
+                "${DateRules.minutesToClock(block.startMinute)}–${DateRules.minutesToClock(block.endMinute)}",
+                style = MaterialTheme.typography.labelLarge
+            )
+            Column(Modifier.weight(1f)) {
+                Text(block.title, style = MaterialTheme.typography.bodyLarge)
+                Text(reasonLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (block.overdue) Text(stringResource(R.string.planner_overdue), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            }
+        }
+        if (conflictLabel != null) {
+            Text(
+                conflictLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(start = 52.dp, bottom = 4.dp)
+            )
         }
     }
 }

@@ -218,3 +218,22 @@ data class AttachmentEntity(
     @ColumnInfo(defaultValue = "0") val sizeBytes: Long = 0,
     val createdAt: Long = System.currentTimeMillis()
 )
+
+/**
+ * Historial de automatizaciones del asistente (plan del día, replanificación,
+ * "qué hago ahora", rutinas). Guarda el estado previo de las tareas afectadas
+ * en JSON para poder deshacer los cambios.
+ */
+@Entity(tableName = "automation_log")
+data class AutomationLogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** Tipo de automatización: "day_plan", "reschedule", "what_now", "routine". */
+    val type: String,
+    val description: String = "",
+    /** Lista JSON de IDs de tareas afectadas. */
+    @ColumnInfo(defaultValue = "[]") val affectedTaskIdsJson: String = "[]",
+    /** Mapa JSON {taskId: snapshot previo} para deshacer. */
+    @ColumnInfo(defaultValue = "{}") val undoPayloadJson: String = "{}",
+    @ColumnInfo(defaultValue = "0") val undone: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
+)

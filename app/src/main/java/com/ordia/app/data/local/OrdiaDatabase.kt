@@ -20,9 +20,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         RoutineStepEntity::class,
         TagEntity::class,
         TaskTagCrossRef::class,
-        AttachmentEntity::class
+        AttachmentEntity::class,
+        AutomationLogEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -38,9 +39,27 @@ abstract class OrdiaDatabase : RoomDatabase() {
     abstract fun tagDao(): TagDao
     abstract fun taskTagDao(): TaskTagDao
     abstract fun attachmentDao(): AttachmentDao
+    abstract fun automationLogDao(): AutomationLogDao
 
     companion object {
         @Volatile private var instance: OrdiaDatabase? = null
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS automation_log (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        type TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        affectedTaskIdsJson TEXT NOT NULL DEFAULT '[]',
+                        undoPayloadJson TEXT NOT NULL DEFAULT '{}',
+                        undone INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_automation_log_undone ON automation_log(undone)")
+            }
+        }
 
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -174,7 +193,7 @@ abstract class OrdiaDatabase : RoomDatabase() {
                     OrdiaDatabase::class.java,
                     "ordia.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { instance = it }
             }

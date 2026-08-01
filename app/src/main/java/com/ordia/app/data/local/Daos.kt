@@ -383,3 +383,24 @@ interface AttachmentDao {
     @Query("DELETE FROM attachments")
     suspend fun deleteAll()
 }
+
+@Dao
+interface AutomationLogDao {
+    @Query("SELECT * FROM automation_log ORDER BY id DESC LIMIT :limit")
+    fun observeRecent(limit: Int = 50): Flow<List<AutomationLogEntity>>
+
+    @Query("SELECT * FROM automation_log WHERE undone = 0 ORDER BY id DESC LIMIT 1")
+    suspend fun latestNotUndone(): AutomationLogEntity?
+
+    @Query("SELECT * FROM automation_log WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): AutomationLogEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(log: AutomationLogEntity): Long
+
+    @Query("UPDATE automation_log SET undone = 1 WHERE id = :id")
+    suspend fun markUndone(id: Long)
+
+    @Query("DELETE FROM automation_log")
+    suspend fun deleteAll()
+}

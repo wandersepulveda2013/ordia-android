@@ -8,6 +8,7 @@ import com.ordia.app.context.ContextualSuggestionStore
 import com.ordia.app.data.local.OrdiaDatabase
 import com.ordia.app.data.preferences.PreferencesRepository
 import com.ordia.app.data.repository.AttachmentRepository
+import com.ordia.app.data.repository.AutomationLogRepository
 import com.ordia.app.data.repository.FocusRepository
 import com.ordia.app.data.repository.HabitRepository
 import com.ordia.app.data.repository.NoteRepository
@@ -30,6 +31,7 @@ class AppContainer(context: Context) {
     val routineRepository = RoutineRepository(database.routineDao(), database.routineStepDao())
     val tagRepository = TagRepository(database.tagDao(), database.taskTagDao())
     val attachmentRepository = AttachmentRepository(database.attachmentDao())
+    val automationLogRepository = AutomationLogRepository(database.automationLogDao())
     val reminderScheduler = ReminderScheduler(context)
     val backupManager = BackupManager(
         backupStore = RoomBackupStore(database),
