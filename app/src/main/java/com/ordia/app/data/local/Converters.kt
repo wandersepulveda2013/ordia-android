@@ -45,6 +45,18 @@ class Converters {
     @TypeConverter fun consentEventToString(value: ConsentEventType): String = value.name
     @TypeConverter fun stringToConsentEvent(value: String): ConsentEventType = enumOrDefault(value, ConsentEventType.OBSERVATION_DISABLED)
 
+    @TypeConverter fun automationTriggerToString(value: AutomationTrigger): String = value.name
+    @TypeConverter fun stringToAutomationTrigger(value: String): AutomationTrigger = enumOrDefault(value, AutomationTrigger.MANUAL)
+
+    @TypeConverter fun automationConditionToString(value: AutomationCondition): String = value.name
+    @TypeConverter fun stringToAutomationCondition(value: String): AutomationCondition = enumOrDefault(value, AutomationCondition.ALWAYS)
+
+    @TypeConverter fun automationActionToString(value: AutomationAction): String = value.name
+    @TypeConverter fun stringToAutomationAction(value: String): AutomationAction = enumOrDefault(value, AutomationAction.PLAN_DAY)
+
+    @TypeConverter fun automationResultToString(value: AutomationRuleResult): String = value.name
+    @TypeConverter fun stringToAutomationResult(value: String): AutomationRuleResult = enumOrDefault(value, AutomationRuleResult.NEVER)
+
     private inline fun <reified T : Enum<T>> enumOrDefault(value: String, fallback: T): T =
         runCatching { enumValueOf<T>(value) }.getOrDefault(fallback)
 }

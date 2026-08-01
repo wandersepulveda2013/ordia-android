@@ -17,6 +17,10 @@ import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.OrdiaDatabase
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.AutomationRuleEntity
+import com.ordia.app.data.local.AutomationTrigger
+import com.ordia.app.data.local.AutomationCondition
+import com.ordia.app.data.local.AutomationAction
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -104,6 +108,17 @@ class DatabaseSmokeTest {
             onlyCommitments = true,
             now = 1000L
         )
+        database.automationRuleDao().insert(
+            AutomationRuleEntity(
+                name = "Preparar día",
+                instruction = "Cada mañana prepara mi día",
+                trigger = AutomationTrigger.DAILY_MORNING,
+                condition = AutomationCondition.HAS_INBOX_TASKS,
+                action = AutomationAction.PLAN_DAY,
+                explanation = "Plan local reversible",
+                definitionHash = "9".repeat(64)
+            )
+        )
 
         assertNotNull(database.taskDao().getById(taskId))
         assertEquals(projectId, database.taskDao().getById(taskId)?.projectId)
@@ -115,6 +130,7 @@ class DatabaseSmokeTest {
         assertEquals("Chat de prueba", database.conversationDao().getConversation(conversationId)?.title)
         assertEquals(true, database.observationDao().getSource("com.whatsapp")?.enabled)
         assertEquals("com.whatsapp", database.observationDao().getConsentEventsNow().single().sourcePackage)
+        assertEquals("Preparar día", database.automationRuleDao().getAllNow().single().name)
 
         database.conversationDao().deleteConversationsBySource(ConversationSourceType.NOTIFICATION)
         assertEquals(null, database.conversationDao().getConversation(observedConversationId))

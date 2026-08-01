@@ -28,6 +28,8 @@ class RoomBackupStore(private val database: OrdiaDatabase) : BackupStore {
             // se eliminan primero las tablas hijas y se insertan las padres antes.
             database.observationDao().deleteAllConsentEvents()
             database.observationDao().deleteAllSources()
+            database.automationLogDao().deleteAll()
+            database.automationRuleDao().deleteAll()
             database.conversationDao().deleteAllCommitments()
             database.conversationDao().deleteAllConversations()
             database.captureDao().deleteAllDrafts()
@@ -61,6 +63,8 @@ class RoomBackupStore(private val database: OrdiaDatabase) : BackupStore {
             database.conversationDao().restoreCommitments(data.commitments)
             database.observationDao().restoreSources(data.observedSources)
             database.observationDao().restoreConsentEvents(data.consentEvents)
+            database.automationRuleDao().insertAll(data.automationRules)
+            database.automationLogDao().insertAll(data.automationLogs)
         }
     }
 
@@ -81,6 +85,8 @@ class RoomBackupStore(private val database: OrdiaDatabase) : BackupStore {
         conversations = database.conversationDao().getConversationsNow(),
         commitments = database.conversationDao().getCommitmentsNow(),
         observedSources = database.observationDao().getSourcesNow(),
-        consentEvents = database.observationDao().getConsentEventsNow()
+        consentEvents = database.observationDao().getConsentEventsNow(),
+        automationRules = database.automationRuleDao().getAllNow(),
+        automationLogs = database.automationLogDao().getAllNow()
     )
 }

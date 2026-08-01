@@ -10,6 +10,8 @@ import com.ordia.app.R
 import com.ordia.app.data.local.AttachmentEntity
 import com.ordia.app.data.local.AttachmentOwnerType
 import com.ordia.app.data.local.AutomationLogEntity
+import com.ordia.app.data.local.AutomationRuleEntity
+import com.ordia.app.data.local.AutomationRuleResult
 import com.ordia.app.data.local.CaptureDraftEntity
 import com.ordia.app.data.local.CaptureEntity
 import com.ordia.app.data.local.CaptureSource
@@ -41,6 +43,7 @@ import com.ordia.app.data.preferences.ThemeMode
 import com.ordia.app.data.preferences.UserPreferences
 import com.ordia.app.data.repository.AttachmentRepository
 import com.ordia.app.data.repository.AutomationLogRepository
+import com.ordia.app.data.repository.AutomationRuleRepository
 import com.ordia.app.data.repository.CaptureRepository
 import com.ordia.app.data.repository.ConversationRepository
 import com.ordia.app.data.repository.FocusRepository
@@ -79,6 +82,10 @@ import com.ordia.app.context.ContextualSettingsStore
 import com.ordia.app.reminders.ReminderScheduler
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import com.ordia.app.BuildConfig
+import com.ordia.app.automation.AutomationEngine
+import com.ordia.app.automation.AutomationParseResult
+import com.ordia.app.automation.AutomationRuleCatalog
+import com.ordia.app.automation.AutomationScheduler
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -235,6 +242,8 @@ class OrdiaViewModel(
     private val tagRepository: TagRepository,
     private val attachmentRepository: AttachmentRepository,
     private val automationLogRepository: AutomationLogRepository,
+    private val automationRuleRepository: AutomationRuleRepository,
+    private val automationEngine: AutomationEngine,
     private val captureRepository: CaptureRepository,
     private val conversationRepository: ConversationRepository,
     private val observationRepository: ObservationRepository,
@@ -257,6 +266,10 @@ class OrdiaViewModel(
     val captureDraftState: StateFlow<CaptureDraftState> = captureRepository.draft
         .map { CaptureDraftState(loaded = true, draft = it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CaptureDraftState())
+    val automationRules: StateFlow<List<AutomationRuleEntity>> = automationRuleRepository.rules
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val automationHistory: StateFlow<List<AutomationLogEntity>> = automationRuleRepository.history
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val conversations: StateFlow<List<ConversationEntity>> = conversationRepository.conversations
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -1306,6 +1319,50 @@ class OrdiaViewModel(
         _events.emit(UiEvent.Message(appContext.getString(R.string.observation_revoked_message)))
     }
 
+    fun createAutomationFromText(instruction: String) = viewModelScope.launch {
+        when (val parsed = AutomationRuleCatalog.parse(instruction)) {
+            is AutomationParseResult.Unsupported -> _events.emit(UiEvent.Message(parsed.reason))
+            is AutomationParseResult.Supported -> saveAutomation(parsed.template.toEntity())
+        }
+    }
+
+    fun createAutomationTemplate(key: String) = viewModelScope.launch {
+        val template = AutomationRuleCatalog.byKey(key) ?: return@launch
+        saveAutomation(template.toEntity())
+    }
+
+    private suspend fun saveAutomation(rule: AutomationRuleEntity) {
+        val (_, created) = automationRuleRepository.save(rule)
+        _events.emit(UiEvent.Message(if (created) "Automatización creada; actívala cuando estés listo." else "Esa automatización ya existe."))
+    }
+
+    fun setAutomationEnabled(rule: AutomationRuleEntity, enabled: Boolean) = viewModelScope.launch {
+        automationRuleRepository.update(rule.copy(enabled = enabled, updatedAt = System.currentTimeMillis()))
+        AutomationScheduler.sync(appContext, automationRuleRepository)
+        _events.emit(UiEvent.Message(if (enabled) "Automatización activada." else "Automatización pausada."))
+    }
+
+    fun deleteAutomation(rule: AutomationRuleEntity) = viewModelScope.launch {
+        automationRuleRepository.delete(rule.id)
+        AutomationScheduler.sync(appContext, automationRuleRepository)
+        _events.emit(UiEvent.Message("Automatización eliminada; su historial se conserva."))
+    }
+
+    fun testAutomation(rule: AutomationRuleEntity) = viewModelScope.launch {
+        val outcome = automationEngine.runRule(rule, manual = true, test = true)
+        _events.emit(UiEvent.Message("Prueba sin cambios: ${outcome.message}"))
+    }
+
+    fun runAutomationNow(rule: AutomationRuleEntity) = viewModelScope.launch {
+        val outcome = automationEngine.runRule(rule, manual = true)
+        if (outcome.changed && outcome.logId > 0 && outcome.result == AutomationRuleResult.SUCCESS) {
+            updateWidget()
+            _events.emit(UiEvent.AutomationApplied(outcome.logId, outcome.message))
+        } else {
+            _events.emit(UiEvent.Message(outcome.message))
+        }
+    }
+
     private fun refreshObservationRuntime() {
         _observationRuntime.value = ObservationRuntimeState(
             enabled = contextualSettingsStore.enabled,
@@ -1435,6 +1492,8 @@ class OrdiaViewModel(
         private val tagRepository: TagRepository,
         private val attachmentRepository: AttachmentRepository,
         private val automationLogRepository: AutomationLogRepository,
+        private val automationRuleRepository: AutomationRuleRepository,
+        private val automationEngine: AutomationEngine,
         private val captureRepository: CaptureRepository,
         private val conversationRepository: ConversationRepository,
         private val observationRepository: ObservationRepository,
@@ -1455,6 +1514,8 @@ class OrdiaViewModel(
             tagRepository,
             attachmentRepository,
             automationLogRepository,
+            automationRuleRepository,
+            automationEngine,
             captureRepository,
             conversationRepository,
             observationRepository,

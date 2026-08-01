@@ -104,3 +104,24 @@ Validación del bloque:
 - APK Advanced: 37.616.121 bytes; SHA-256 `d51318a2203e0543cce489ca35103d55402160d497c247c371f8dcaeac343c6b`.
 - APK Full: 37.615.765 bytes; SHA-256 `ce61411070c1e940be30f6e54fc4b1452b52c35aa0d046f315fdbe303cc0ddb0`.
 - APK Safe: 37.598.577 bytes; SHA-256 `ac9430863daee492d681253fb585b1a72840d3edb75c50dec41e30f23326b360`.
+
+## Bloque 5 — automatizaciones explicables y reversibles
+
+- Nuevo centro **Automatizaciones**, accesible desde Más y desde el rail de tabletas.
+- Creación mediante lenguaje natural acotado y cuatro plantillas reales: preparar el día, reprogramar vencidas, agrupar tareas rápidas y revisar compromisos de mensajes.
+- Cada regla persiste nombre, instrucción, activador, condición, acción, explicación, estado, frecuencia mínima, máximo diario, último resultado y error.
+- Las reglas nacen desactivadas; el usuario puede probarlas sin cambios, activarlas, ejecutarlas ahora, pausarlas o eliminarlas.
+- Motor local separado de la UI; usa datos Room reales, `DayPlanner`, tareas y compromisos pendientes.
+- WorkManager ejecuta reglas matutinas/nocturnas con batería no baja; las reglas de apertura se evalúan al iniciar la aplicación.
+- Protección contra bucles, dobles ejecuciones por frecuencia, máximo diario, duplicados de definición y creación repetida de la revisión de mensajes.
+- Los cambios registran snapshots previos en el historial existente y ofrecen deshacer; las pruebas nunca modifican tareas.
+- Errores acotados y visibles; el worker realiza como máximo dos reintentos transitorios y no crea bucles infinitos.
+- Room v7 con `automation_rules`, índices y migración no destructiva 6→7; los logs anteriores se preservan.
+- Respaldo v8 incluye reglas e historial, acepta copias v2–v7 y restaura todas las reglas desactivadas.
+
+Validación del bloque:
+
+- Pruebas dirigidas de parser, condiciones, planificación, límites, bucles, duplicados y horarios: correctas.
+- Pruebas de respaldo v2–v8, checksum y restauración segura: correctas.
+- `compilePreviewAdvancedDebugAndroidTestKotlin`: correcto; incluye migración 6→7 y smoke test Room.
+- `compilePreviewAdvancedDebugKotlin`: correcto.

@@ -9,6 +9,7 @@ import com.ordia.app.data.local.OrdiaDatabase
 import com.ordia.app.data.preferences.PreferencesRepository
 import com.ordia.app.data.repository.AttachmentRepository
 import com.ordia.app.data.repository.AutomationLogRepository
+import com.ordia.app.data.repository.AutomationRuleRepository
 import com.ordia.app.data.repository.FocusRepository
 import com.ordia.app.data.repository.CaptureRepository
 import com.ordia.app.data.repository.ConversationRepository
@@ -20,6 +21,7 @@ import com.ordia.app.data.repository.RoutineRepository
 import com.ordia.app.data.repository.TagRepository
 import com.ordia.app.data.repository.TaskRepository
 import com.ordia.app.reminders.ReminderScheduler
+import com.ordia.app.automation.AutomationEngine
 
 class AppContainer(context: Context) {
     val database: OrdiaDatabase = OrdiaDatabase.getInstance(context)
@@ -35,10 +37,17 @@ class AppContainer(context: Context) {
     val tagRepository = TagRepository(database.tagDao(), database.taskTagDao())
     val attachmentRepository = AttachmentRepository(database.attachmentDao())
     val automationLogRepository = AutomationLogRepository(database.automationLogDao())
+    val automationRuleRepository = AutomationRuleRepository(database.automationRuleDao(), database.automationLogDao())
     val captureRepository = CaptureRepository(database.captureDao())
     val conversationRepository = ConversationRepository(database.conversationDao())
     val observationRepository = ObservationRepository(database.observationDao())
     val reminderScheduler = ReminderScheduler(context)
+    val automationEngine = AutomationEngine(
+        automationRuleRepository,
+        taskRepository,
+        conversationRepository,
+        reminderScheduler
+    )
     val backupManager = BackupManager(
         backupStore = RoomBackupStore(database),
         preferences = preferencesRepository,

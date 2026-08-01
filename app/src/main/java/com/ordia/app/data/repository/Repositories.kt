@@ -34,6 +34,9 @@ import com.ordia.app.data.local.ConsentEventEntity
 import com.ordia.app.data.local.ConsentEventType
 import com.ordia.app.data.local.ObservationDao
 import com.ordia.app.data.local.ObservedSourceEntity
+import com.ordia.app.data.local.AutomationRuleDao
+import com.ordia.app.data.local.AutomationRuleEntity
+import com.ordia.app.data.local.AutomationTrigger
 import kotlinx.coroutines.flow.Flow
 
 class TaskRepository(private val dao: TaskDao) {
@@ -49,6 +52,7 @@ class TaskRepository(private val dao: TaskDao) {
     suspend fun restore(id: Long) = dao.restore(id)
     suspend fun deletePermanently(id: Long) = dao.deleteSubtreeAndSelf(id)
     suspend fun search(query: String): List<TaskEntity> = dao.search(query)
+    suspend fun getAllNow(): List<TaskEntity> = dao.getAllNow()
 }
 
 class ProjectRepository(private val dao: ProjectDao) {
@@ -174,6 +178,7 @@ class ConversationRepository(private val dao: ConversationDao) {
     suspend fun countSince(sourceType: ConversationSourceType, since: Long): Int =
         dao.countConversationsSince(sourceType, since)
     suspend fun getCommitment(id: Long): CommitmentEntity? = dao.getCommitment(id)
+    suspend fun getCommitmentsNow(): List<CommitmentEntity> = dao.getCommitmentsNow()
     suspend fun updateCommitment(commitment: CommitmentEntity) = dao.updateCommitment(commitment)
     suspend fun deleteConversation(id: Long) = dao.deleteConversation(id)
     suspend fun clearBySource(sourceType: ConversationSourceType) = dao.deleteConversationsBySource(sourceType)
@@ -181,6 +186,29 @@ class ConversationRepository(private val dao: ConversationDao) {
         dao.deleteAllCommitments()
         dao.deleteAllConversations()
     }
+}
+
+class AutomationRuleRepository(
+    private val ruleDao: AutomationRuleDao,
+    private val logDao: com.ordia.app.data.local.AutomationLogDao
+) {
+    val rules: Flow<List<AutomationRuleEntity>> = ruleDao.observeAll()
+    val history: Flow<List<com.ordia.app.data.local.AutomationLogEntity>> = logDao.observeRecent(100)
+
+    suspend fun save(rule: AutomationRuleEntity): Pair<Long, Boolean> {
+        val existing = ruleDao.findByDefinition(rule.definitionHash)
+        if (existing != null) return existing.id to false
+        val id = ruleDao.insert(rule)
+        return id to (id > 0L)
+    }
+
+    suspend fun get(id: Long): AutomationRuleEntity? = ruleDao.getById(id)
+    suspend fun enabledFor(trigger: AutomationTrigger): List<AutomationRuleEntity> = ruleDao.enabledFor(trigger)
+    suspend fun allNow(): List<AutomationRuleEntity> = ruleDao.getAllNow()
+    suspend fun update(rule: AutomationRuleEntity) = ruleDao.update(rule)
+    suspend fun delete(id: Long) = ruleDao.deleteById(id)
+    suspend fun countRuns(ruleId: Long, since: Long): Int = logDao.countSince("rule:$ruleId", since)
+    suspend fun log(entry: com.ordia.app.data.local.AutomationLogEntity): Long = logDao.insert(entry)
 }
 
 class ObservationRepository(private val dao: ObservationDao) {

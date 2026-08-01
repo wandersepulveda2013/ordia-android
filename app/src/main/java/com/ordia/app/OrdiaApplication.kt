@@ -5,6 +5,8 @@ import com.ordia.app.di.AppContainer
 import com.ordia.app.BuildConfig
 import com.ordia.app.reminders.TaskReminderWorker
 import com.ordia.app.updates.OrdiaUpdateManager
+import com.ordia.app.automation.AutomationScheduler
+import com.ordia.app.data.local.AutomationTrigger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,6 +31,8 @@ class OrdiaApplication : Application() {
             } else {
                 OrdiaUpdateManager.cancelSchedule(this@OrdiaApplication)
             }
+            AutomationScheduler.sync(this@OrdiaApplication, container.automationRuleRepository)
+            container.automationEngine.runTrigger(AutomationTrigger.APP_OPEN)
             // The floating foreground service is intentionally not started here. Android may create
             // the process from a background worker, where starting this service is restricted.
         }

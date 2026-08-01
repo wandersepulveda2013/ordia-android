@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.AddTask
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -82,6 +83,7 @@ import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.GuardianAvatar
 import com.ordia.app.ui.screens.ArchiveScreen
+import com.ordia.app.ui.screens.AutomationsScreen
 import com.ordia.app.ui.screens.ConversationsScreen
 import com.ordia.app.ui.screens.CaptureScreen
 import com.ordia.app.ui.screens.FocusScreen
@@ -119,6 +121,7 @@ sealed class Destination(val route: String, @StringRes val labelRes: Int, val ic
     data object More : Destination("more", R.string.nav_more, Icons.Outlined.MoreHoriz)
     data object Guardian : Destination("guardian", R.string.nav_guardian, Icons.Outlined.Psychology)
     data object Conversations : Destination("conversations", R.string.nav_conversations, Icons.Outlined.ChatBubbleOutline)
+    data object Automations : Destination("automations", R.string.nav_automations, Icons.Outlined.Bolt)
 
     companion object {
         const val TASK_ROUTE = "task/{taskId}"
@@ -143,6 +146,7 @@ private val compactMoreRoutes = setOf(
     Destination.Archive.route,
     Destination.Guardian.route,
     Destination.Conversations.route,
+    Destination.Automations.route,
     Destination.Settings.route
 )
 private val topLevelRoutes = setOf(
@@ -160,21 +164,22 @@ private val topLevelRoutes = setOf(
     Destination.Archive.route,
     Destination.Guardian.route,
     Destination.Conversations.route,
+    Destination.Automations.route,
     Destination.Settings.route,
     Destination.More.route
 )
 
 private fun wideItems(mode: InterfaceMode): List<Destination> = when (mode) {
     InterfaceMode.SIMPLE -> listOf(
-        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Conversations, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Conversations, Destination.Automations, Destination.Planner,
         Destination.Notes, Destination.Guardian, Destination.Focus, Destination.Search
     )
     InterfaceMode.ORGANIZED -> listOf(
-        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Conversations, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Conversations, Destination.Automations, Destination.Planner,
         Destination.Projects, Destination.Notes, Destination.Habits, Destination.Guardian, Destination.Focus, Destination.Search
     )
     InterfaceMode.ADVANCED -> listOf(
-        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Conversations, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Conversations, Destination.Automations, Destination.Planner,
         Destination.Projects, Destination.Notes, Destination.Habits, Destination.Guardian, Destination.Focus,
         Destination.Search, Destination.Statistics, Destination.Archive
     )
@@ -329,6 +334,7 @@ private fun OrdiaNavHost(
                 onTask = { navController.navigate(Destination.task(it)) }
             )
         }
+        composable(Destination.Automations.route) { AutomationsScreen(vm = vm, padding = padding) }
         composable(Destination.Search.route) {
             SearchScreen(
                 state,

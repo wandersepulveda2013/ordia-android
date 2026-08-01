@@ -31,6 +31,12 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.data.local.TaskTagCrossRef
+import com.ordia.app.data.local.AutomationRuleEntity
+import com.ordia.app.data.local.AutomationLogEntity
+import com.ordia.app.data.local.AutomationTrigger
+import com.ordia.app.data.local.AutomationCondition
+import com.ordia.app.data.local.AutomationAction
+import com.ordia.app.data.local.AutomationRuleResult
 import com.ordia.app.data.preferences.UserPreferences
 import org.json.JSONArray
 import org.json.JSONObject
@@ -103,6 +109,8 @@ class BackupManager(
         root.put("commitments", JSONArray().apply { current.commitments.forEach { put(it.toJson()) } })
         root.put("observedSources", JSONArray().apply { current.observedSources.forEach { put(it.toJson()) } })
         root.put("consentEvents", JSONArray().apply { current.consentEvents.forEach { put(it.toJson()) } })
+        root.put("automationRules", JSONArray().apply { current.automationRules.forEach { put(it.toJson()) } })
+        root.put("automationLogs", JSONArray().apply { current.automationLogs.forEach { put(it.toJson()) } })
         val contentJson = root.toString(2)
         require(BackupSecurityRules.inputSizeAllowed(contentJson.toByteArray(Charsets.UTF_8).size)) {
             "La copia supera el límite seguro de 10 MB. Reduce notas o adjuntos registrados antes de exportar."
@@ -306,6 +314,14 @@ class BackupManager(
             } else emptyList(),
             consentEvents = if (version >= 7) {
                 root.requiredArray("consentEvents").validatedMap("consentEvents") { it.toConsentEvent() }
+            } else emptyList(),
+            automationRules = if (version >= 8) {
+                root.requiredArray("automationRules").validatedMap("automationRules") {
+                    it.toAutomationRule().copy(enabled = false)
+                }
+            } else emptyList(),
+            automationLogs = if (version >= 8) {
+                root.requiredArray("automationLogs").validatedMap("automationLogs") { it.toAutomationLog() }
             } else emptyList()
         )
         val total = data.totalCount
@@ -370,6 +386,8 @@ private fun validateRelationships(data: RestoreData) {
     val conversationIds = requirePositiveUnique("Conversaciones", data.conversations.map { it.id })
     requirePositiveUnique("Compromisos", data.commitments.map { it.id })
     requirePositiveUnique("Eventos de consentimiento", data.consentEvents.map { it.id })
+    requirePositiveUnique("Reglas de automatización", data.automationRules.map { it.id })
+    requirePositiveUnique("Historial de automatizaciones", data.automationLogs.map { it.id })
     val observedPackages = data.observedSources.map { it.packageName }.toSet()
     require(observedPackages.size == data.observedSources.size) {
         "La copia contiene fuentes observadas duplicadas."
@@ -542,6 +560,27 @@ private fun validateRelationships(data: RestoreData) {
             "Un evento de consentimiento contiene una fecha inválida."
         }
     }
+    require(data.automationRules.map { it.definitionHash }.toSet().size == data.automationRules.size) {
+        "La copia contiene automatizaciones duplicadas."
+    }
+    data.automationRules.forEach { rule ->
+        require(!rule.enabled) { "Las automatizaciones restauradas deben quedar desactivadas." }
+        require(rule.name.isNotBlank() && rule.explanation.isNotBlank()) { "Una automatización está incompleta." }
+        require(rule.frequencyMinutes in 15..10_080 && rule.maxRunsPerDay in 1..20) {
+            "Una automatización contiene límites inválidos."
+        }
+        require(Regex("^[0-9a-f]{64}$").matches(rule.definitionHash)) { "Una automatización tiene una huella inválida." }
+        require(rule.createdAt <= rule.updatedAt) { "Una automatización fue actualizada antes de crearse." }
+    }
+    data.automationLogs.forEach { log ->
+        require(log.type.length <= 100 && log.description.length <= 2_000) { "Un registro de automatización es demasiado grande." }
+        require(log.affectedTaskIdsJson.length <= 100_000 && log.undoPayloadJson.length <= 2_000_000) {
+            "Un registro de automatización contiene un estado de deshacer demasiado grande."
+        }
+        require(log.createdAt in 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS) {
+            "Un registro de automatización contiene una fecha inválida."
+        }
+    }
 }
 
 private val REQUIRED_ITEM_FIELDS = mapOf(
@@ -561,7 +600,9 @@ private val REQUIRED_ITEM_FIELDS = mapOf(
     "conversations" to setOf("id", "sourceType", "sourcePackage", "title", "participants", "summary", "rawContent", "retainsOriginal", "contentHash", "messageCount", "createdAt", "updatedAt"),
     "commitments" to setOf("id", "conversationId", "kind", "owner", "actor", "action", "location", "dueAt", "confidence", "suggestedReminderAt", "reviewStatus", "fingerprint", "resultTaskId", "createdAt", "updatedAt"),
     "observedSources" to setOf("packageName", "displayName", "enabled", "onlyCommitments", "createdAt", "updatedAt"),
-    "consentEvents" to setOf("id", "eventType", "sourcePackage", "occurredAt")
+    "consentEvents" to setOf("id", "eventType", "sourcePackage", "occurredAt"),
+    "automationRules" to setOf("id", "name", "instruction", "trigger", "condition", "action", "explanation", "enabled", "frequencyMinutes", "maxRunsPerDay", "lastRunAt", "lastResult", "lastError", "definitionHash", "createdAt", "updatedAt"),
+    "automationLogs" to setOf("id", "type", "description", "affectedTaskIdsJson", "undoPayloadJson", "undone", "createdAt")
 )
 
 private fun JSONObject.requiredArray(name: String): JSONArray =
@@ -912,6 +953,48 @@ private fun JSONObject.toConsentEvent() = ConsentEventEntity(
     eventType = enumValue("eventType", ConsentEventType.OBSERVATION_DISABLED),
     sourcePackage = text("sourcePackage", 180),
     occurredAt = longValue("occurredAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
+)
+
+private fun AutomationRuleEntity.toJson() = JSONObject()
+    .put("id", id).put("name", name).put("instruction", instruction)
+    .put("trigger", trigger.name).put("condition", condition.name).put("action", action.name)
+    .put("explanation", explanation).put("enabled", enabled)
+    .put("frequencyMinutes", frequencyMinutes).put("maxRunsPerDay", maxRunsPerDay)
+    .putNullable("lastRunAt", lastRunAt).put("lastResult", lastResult.name).put("lastError", lastError)
+    .put("definitionHash", definitionHash).put("createdAt", createdAt).put("updatedAt", updatedAt)
+
+private fun JSONObject.toAutomationRule() = AutomationRuleEntity(
+    id = requiredLong("id"),
+    name = requiredText("name", 200),
+    instruction = requiredText("instruction", 500),
+    trigger = enumValue("trigger", AutomationTrigger.MANUAL),
+    condition = enumValue("condition", AutomationCondition.ALWAYS),
+    action = enumValue("action", AutomationAction.PLAN_DAY),
+    explanation = requiredText("explanation", 1_000),
+    enabled = booleanValue("enabled", false),
+    frequencyMinutes = intValue("frequencyMinutes", 60, 15..10_080),
+    maxRunsPerDay = intValue("maxRunsPerDay", 3, 1..20),
+    lastRunAt = epochMillisOrNull("lastRunAt"),
+    lastResult = enumValue("lastResult", AutomationRuleResult.NEVER),
+    lastError = text("lastError", 500),
+    definitionHash = requiredText("definitionHash", 64),
+    createdAt = longValue("createdAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS),
+    updatedAt = longValue("updatedAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
+)
+
+private fun AutomationLogEntity.toJson() = JSONObject()
+    .put("id", id).put("type", type).put("description", description)
+    .put("affectedTaskIdsJson", affectedTaskIdsJson).put("undoPayloadJson", undoPayloadJson)
+    .put("undone", undone).put("createdAt", createdAt)
+
+private fun JSONObject.toAutomationLog() = AutomationLogEntity(
+    id = requiredLong("id"),
+    type = requiredText("type", 100),
+    description = text("description", 2_000),
+    affectedTaskIdsJson = text("affectedTaskIdsJson", 100_000, "[]"),
+    undoPayloadJson = text("undoPayloadJson", 2_000_000, "{}"),
+    undone = booleanValue("undone", false),
+    createdAt = longValue("createdAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
 )
 
 private fun JSONObject.optionalContentUri(name: String): String {

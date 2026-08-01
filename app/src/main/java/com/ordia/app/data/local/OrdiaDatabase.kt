@@ -27,9 +27,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ConversationEntity::class,
         CommitmentEntity::class,
         ObservedSourceEntity::class,
-        ConsentEventEntity::class
+        ConsentEventEntity::class,
+        AutomationRuleEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -49,9 +50,38 @@ abstract class OrdiaDatabase : RoomDatabase() {
     abstract fun captureDao(): CaptureDao
     abstract fun conversationDao(): ConversationDao
     abstract fun observationDao(): ObservationDao
+    abstract fun automationRuleDao(): AutomationRuleDao
 
     companion object {
         @Volatile private var instance: OrdiaDatabase? = null
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS automation_rules (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        instruction TEXT NOT NULL,
+                        trigger TEXT NOT NULL,
+                        condition TEXT NOT NULL,
+                        action TEXT NOT NULL,
+                        explanation TEXT NOT NULL,
+                        enabled INTEGER NOT NULL DEFAULT 0,
+                        frequencyMinutes INTEGER NOT NULL DEFAULT 60,
+                        maxRunsPerDay INTEGER NOT NULL DEFAULT 3,
+                        lastRunAt INTEGER,
+                        lastResult TEXT NOT NULL DEFAULT 'NEVER',
+                        lastError TEXT NOT NULL DEFAULT '',
+                        definitionHash TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_automation_rules_enabled ON automation_rules(enabled)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_automation_rules_trigger ON automation_rules(trigger)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_automation_rules_definitionHash ON automation_rules(definitionHash)")
+            }
+        }
 
         val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -317,7 +347,7 @@ abstract class OrdiaDatabase : RoomDatabase() {
                     OrdiaDatabase::class.java,
                     "ordia.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .build()
                     .also { instance = it }
             }

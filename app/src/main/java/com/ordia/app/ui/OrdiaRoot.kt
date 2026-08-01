@@ -81,6 +81,8 @@ fun OrdiaRoot(
             tagRepository = app.container.tagRepository,
             attachmentRepository = app.container.attachmentRepository,
             automationLogRepository = app.container.automationLogRepository,
+            automationRuleRepository = app.container.automationRuleRepository,
+            automationEngine = app.container.automationEngine,
             captureRepository = app.container.captureRepository,
             conversationRepository = app.container.conversationRepository,
             observationRepository = app.container.observationRepository,

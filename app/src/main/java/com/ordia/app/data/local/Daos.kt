@@ -395,13 +395,55 @@ interface AutomationLogDao {
     @Query("SELECT * FROM automation_log WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): AutomationLogEntity?
 
+    @Query("SELECT * FROM automation_log ORDER BY id")
+    suspend fun getAllNow(): List<AutomationLogEntity>
+
+    @Query("SELECT COUNT(*) FROM automation_log WHERE type = :type AND createdAt >= :since AND undone = 0")
+    suspend fun countSince(type: String, since: Long): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(log: AutomationLogEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(logs: List<AutomationLogEntity>)
 
     @Query("UPDATE automation_log SET undone = 1 WHERE id = :id")
     suspend fun markUndone(id: Long)
 
     @Query("DELETE FROM automation_log")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface AutomationRuleDao {
+    @Query("SELECT * FROM automation_rules ORDER BY enabled DESC, updatedAt DESC")
+    fun observeAll(): Flow<List<AutomationRuleEntity>>
+
+    @Query("SELECT * FROM automation_rules ORDER BY id")
+    suspend fun getAllNow(): List<AutomationRuleEntity>
+
+    @Query("SELECT * FROM automation_rules WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): AutomationRuleEntity?
+
+    @Query("SELECT * FROM automation_rules WHERE trigger = :trigger AND enabled = 1 ORDER BY id")
+    suspend fun enabledFor(trigger: AutomationTrigger): List<AutomationRuleEntity>
+
+    @Query("SELECT * FROM automation_rules WHERE definitionHash = :hash LIMIT 1")
+    suspend fun findByDefinition(hash: String): AutomationRuleEntity?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(rule: AutomationRuleEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(rules: List<AutomationRuleEntity>)
+
+    @Update
+    suspend fun update(rule: AutomationRuleEntity)
+
+    @Query("DELETE FROM automation_rules WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM automation_rules")
     suspend fun deleteAll()
 }
 

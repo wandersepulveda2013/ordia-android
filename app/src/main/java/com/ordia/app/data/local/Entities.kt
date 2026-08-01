@@ -49,6 +49,14 @@ enum class ConsentEventType {
     INTERNAL_ACCESS_REVOKED
 }
 
+enum class AutomationTrigger { MANUAL, APP_OPEN, DAILY_MORNING, DAILY_EVENING }
+
+enum class AutomationCondition { ALWAYS, HAS_INBOX_TASKS, HAS_OVERDUE_TASKS, HAS_QUICK_TASKS, HAS_PENDING_COMMITMENTS }
+
+enum class AutomationAction { PLAN_DAY, RESCHEDULE_OVERDUE, BATCH_QUICK_TASKS, REVIEW_COMMITMENTS }
+
+enum class AutomationRuleResult { NEVER, SUCCESS, SKIPPED, FAILED, TESTED }
+
 @Entity(
     tableName = "tasks",
     foreignKeys = [
@@ -254,6 +262,33 @@ data class AttachmentEntity(
  * "qué hago ahora", rutinas). Guarda el estado previo de las tareas afectadas
  * en JSON para poder deshacer los cambios.
  */
+@Entity(
+    tableName = "automation_rules",
+    indices = [
+        Index("enabled"),
+        Index("trigger"),
+        Index(value = ["definitionHash"], unique = true)
+    ]
+)
+data class AutomationRuleEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val instruction: String,
+    val trigger: AutomationTrigger,
+    val condition: AutomationCondition,
+    val action: AutomationAction,
+    val explanation: String,
+    @ColumnInfo(defaultValue = "0") val enabled: Boolean = false,
+    @ColumnInfo(defaultValue = "60") val frequencyMinutes: Int = 60,
+    @ColumnInfo(defaultValue = "3") val maxRunsPerDay: Int = 3,
+    val lastRunAt: Long? = null,
+    @ColumnInfo(defaultValue = "'NEVER'") val lastResult: AutomationRuleResult = AutomationRuleResult.NEVER,
+    @ColumnInfo(defaultValue = "''") val lastError: String = "",
+    val definitionHash: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
 @Entity(tableName = "automation_log")
 data class AutomationLogEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

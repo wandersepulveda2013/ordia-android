@@ -25,6 +25,11 @@ import com.ordia.app.data.local.RoutineStepEntity
 import com.ordia.app.data.local.TagEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskTagCrossRef
+import com.ordia.app.data.local.AutomationRuleEntity
+import com.ordia.app.data.local.AutomationLogEntity
+import com.ordia.app.data.local.AutomationTrigger
+import com.ordia.app.data.local.AutomationCondition
+import com.ordia.app.data.local.AutomationAction
 import com.ordia.app.data.preferences.GuardianMode
 import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.data.preferences.InterfaceMode
@@ -152,6 +157,19 @@ class BackupManagerTest {
                 sourcePackage = "com.whatsapp",
                 occurredAt = 1000L
             )
+        ),
+        automationRules = listOf(
+            AutomationRuleEntity(
+                id = 16, name = "Preparar día", instruction = "Cada mañana prepara mi día",
+                trigger = AutomationTrigger.DAILY_MORNING,
+                condition = AutomationCondition.HAS_INBOX_TASKS,
+                action = AutomationAction.PLAN_DAY,
+                explanation = "Plan local reversible", enabled = true,
+                definitionHash = "d".repeat(64), createdAt = 1000L, updatedAt = 1000L
+            )
+        ),
+        automationLogs = listOf(
+            AutomationLogEntity(id = 17, type = "rule:16", description = "Plan preparado", createdAt = 1000L)
         )
     )
 
@@ -173,7 +191,7 @@ class BackupManagerTest {
     ) = BackupManager(store, prefs, scheduler, journal)
 
     /** Recalcula el checksum después de modificar el JSON (como haría la app). */
-    private fun rewrap(root: JSONObject, version: Int = 7): String {
+    private fun rewrap(root: JSONObject, version: Int = 8): String {
         root.put("version", version)
         root.remove("checksum")
         val content = root.toString(2)
@@ -297,6 +315,7 @@ class BackupManagerTest {
         assertTrue(destinationStore.current.countsMatch(sampleData()))
         assertEquals("Proyecto", destinationStore.current.projects.first().name)
         assertFalse(destinationStore.current.observedSources.single().enabled)
+        assertFalse(destinationStore.current.automationRules.single().enabled)
         // Solo la tarea futura abierta se reprograma (no la completada ni las pasadas).
         assertEquals(listOf(10L), scheduler.scheduled)
         assertEquals(1, scheduler.cancelCalls)
@@ -395,6 +414,23 @@ class BackupManagerTest {
         assertTrue(destinationStore.current.observedSources.isEmpty())
         assertTrue(destinationStore.current.consentEvents.isEmpty())
         assertEquals(1, destinationStore.current.conversations.size)
+    }
+
+    @Test
+    fun version7BackupWithoutAutomationCollectionsRemainsCompatible() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val legacy = JSONObject(origin.exportJson()).apply {
+            remove("automationRules")
+            remove("automationLogs")
+        }
+        val destinationStore = FakeBackupStore(otherData())
+
+        val result = newManager(destinationStore).importBackup(rewrap(legacy, version = 7))
+
+        assertTrue(result.message, result.success)
+        assertTrue(destinationStore.current.automationRules.isEmpty())
+        assertTrue(destinationStore.current.automationLogs.isEmpty())
+        assertEquals(1, destinationStore.current.observedSources.size)
     }
 
     @Test

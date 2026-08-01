@@ -17,6 +17,8 @@ import com.ordia.app.data.local.RoutineStepEntity
 import com.ordia.app.data.local.TagEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskTagCrossRef
+import com.ordia.app.data.local.AutomationRuleEntity
+import com.ordia.app.data.local.AutomationLogEntity
 
 /**
  * Conjunto completo de datos que una copia de seguridad puede contener.
@@ -41,13 +43,16 @@ data class RestoreData(
     val conversations: List<ConversationEntity> = emptyList(),
     val commitments: List<CommitmentEntity> = emptyList(),
     val observedSources: List<ObservedSourceEntity> = emptyList(),
-    val consentEvents: List<ConsentEventEntity> = emptyList()
+    val consentEvents: List<ConsentEventEntity> = emptyList(),
+    val automationRules: List<AutomationRuleEntity> = emptyList(),
+    val automationLogs: List<AutomationLogEntity> = emptyList()
 ) {
     val totalCount: Int
         get() = projects.size + tasks.size + notes.size + habits.size + habitLogs.size +
             focusSessions.size + routines.size + routineSteps.size + tags.size +
             taskTags.size + attachments.size + captures.size + captureDrafts.size +
-            conversations.size + commitments.size + observedSources.size + consentEvents.size
+            conversations.size + commitments.size + observedSources.size + consentEvents.size +
+            automationRules.size + automationLogs.size
 
     /** Compara el número de registros de cada colección con otro estado. */
     fun countsMatch(other: RestoreData): Boolean =
@@ -67,5 +72,7 @@ data class RestoreData(
             conversations.size == other.conversations.size &&
             commitments.size == other.commitments.size &&
             observedSources.size == other.observedSources.size &&
-            consentEvents.size == other.consentEvents.size
+            consentEvents.size == other.consentEvents.size &&
+            automationRules.size == other.automationRules.size &&
+            automationLogs.size == other.automationLogs.size
 }
