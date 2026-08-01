@@ -145,6 +145,9 @@ fun PlannerScreen(
                             enabled = suggestedPlan.blocks.isNotEmpty()
                         ) { Text(if (showSuggestedPlan) stringResource(R.string.planner_hide) else stringResource(R.string.planner_view)) }
                     }
+                    OutlinedButton(onClick = { vm.replanDay(selectedDate) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.planner_replan))
+                    }
                     if (showSuggestedPlan) {
                         suggestedPlan.blocks.forEach { block ->
                             val conflict = suggestedPlan.conflicts.firstOrNull { it.taskId == block.taskId }

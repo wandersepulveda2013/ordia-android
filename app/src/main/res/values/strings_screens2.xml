@@ -197,6 +197,10 @@
     <string name="planner_unscheduled_single">%1$d tarea no cabe en este horario.</string>
     <string name="planner_unscheduled_plural">%1$d tareas no caben en este horario.</string>
     <string name="planner_apply">Aplicar este plan</string>
+    <string name="planner_replan">Replanificar día</string>
+    <string name="planner_replan_none">No hay tareas para replanificar este día.</string>
+    <string name="planner_replanned_one">Día replanificado: 1 tarea.</string>
+    <string name="planner_replanned_many">Día replanificado: %1$d tareas.</string>
     <string name="planner_apply_selection">Aplicar selección (%1$d)</string>
     <string name="planner_select_hint">Toca las tareas para elegir cuáles aplicar</string>
     <string name="planner_applied_one">Plan aplicado a 1 tarea.</string>

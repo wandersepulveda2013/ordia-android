@@ -46,6 +46,7 @@ object DayPlanner {
         dayEndMinute: Int = 18 * 60,
         breakMinutes: Int = 10,
         includeInbox: Boolean = true,
+        includeScheduledOnDate: Boolean = false,
         now: Long = System.currentTimeMillis(),
         zone: ZoneId = ZoneId.systemDefault()
     ): Plan {
@@ -59,7 +60,10 @@ object DayPlanner {
             .filter { task ->
                 val dueOnDate = TaskRules.isDueOn(task, date, zone)
                 val overdueByDate = task.dueAt?.let { DateRules.toLocalDate(it, zone).isBefore(date) } == true
-                dueOnDate || overdueByDate || (includeInbox && task.dueAt == null)
+                val scheduledOnDate = includeScheduledOnDate && task.startAt?.let {
+                    DateRules.toLocalDate(it, zone) == date
+                } == true
+                dueOnDate || overdueByDate || scheduledOnDate || (includeInbox && task.dueAt == null)
             }
             .sortedWith(
                 compareByDescending<TaskEntity> { TaskRules.isOverdue(it, now) }

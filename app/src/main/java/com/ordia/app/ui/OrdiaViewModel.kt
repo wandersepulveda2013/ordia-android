@@ -561,15 +561,40 @@ class OrdiaViewModel(
      * [blockIds] es null) y registra la automatización para poder deshacerla.
      */
     fun applyDayPlan(plan: DayPlanner.Plan, blockIds: Set<Long>? = null) = viewModelScope.launch {
-        val now = System.currentTimeMillis()
         val selected = plan.blocks.filter { blockIds == null || blockIds.contains(it.taskId) }
         if (selected.isEmpty()) {
             _events.emit(UiEvent.Message(appContext.getString(R.string.planner_none_selected)))
             return@launch
         }
+        val message = applyBlocks(plan, selected, "day_plan")
+        _events.emit(UiEvent.AutomationApplied(message.first, message.second))
+    }
+
+    /**
+     * Replanifica el día: recalcula el plan incluyendo las tareas que ya tenían
+     * hora prevista ese día y reubica los bloques que no caben. Registra la
+     * automatización con tipo "replan" para poder deshacerla.
+     */
+    fun replanDay(date: java.time.LocalDate) = viewModelScope.launch {
+        val plan = DayPlanner.build(uiState.value.tasks, date, includeScheduledOnDate = true)
+        if (plan.blocks.isEmpty()) {
+            _events.emit(UiEvent.Message(appContext.getString(R.string.planner_replan_none)))
+            return@launch
+        }
+        val message = applyBlocks(plan, plan.blocks, "replan")
+        _events.emit(UiEvent.AutomationApplied(message.first, message.second))
+    }
+
+    /** Comparte la lógica de aplicar bloques: snapshot previo, update y log. */
+    private suspend fun applyBlocks(
+        plan: DayPlanner.Plan,
+        blocks: List<DayPlanner.Block>,
+        type: String
+    ): Pair<Long, String> {
+        val now = System.currentTimeMillis()
         val before = mutableMapOf<Long, TaskEntity>()
         var updated = 0
-        selected.forEach { block ->
+        blocks.forEach { block ->
             val task = taskRepository.get(block.taskId) ?: return@forEach
             before[task.id] = task
             val start = DateRules.toEpochMillis(plan.date, block.startMinute)
@@ -587,15 +612,22 @@ class OrdiaViewModel(
         updateWidget()
         val logId = automationLogRepository.insert(
             AutomationLogEntity(
-                type = "day_plan",
-                description = appContext.getString(R.string.automation_desc_day_plan, plan.date.toString(), updated),
-                affectedTaskIdsJson = TaskSnapshotCodec.encodeIds(selected.map { it.taskId }),
+                type = type,
+                description = when (type) {
+                    "replan" -> appContext.getString(R.string.automation_desc_replan, plan.date.toString(), updated)
+                    else -> appContext.getString(R.string.automation_desc_day_plan, plan.date.toString(), updated)
+                },
+                affectedTaskIdsJson = TaskSnapshotCodec.encodeIds(blocks.map { it.taskId }),
                 undoPayloadJson = TaskSnapshotCodec.encodeMap(before)
             )
         )
-        val message = if (updated == 1) appContext.getString(R.string.planner_applied_one)
-        else appContext.getString(R.string.planner_applied_many, updated)
-        _events.emit(UiEvent.AutomationApplied(logId, message))
+        val message = when {
+            type == "replan" && updated == 1 -> appContext.getString(R.string.planner_replanned_one)
+            type == "replan" -> appContext.getString(R.string.planner_replanned_many, updated)
+            updated == 1 -> appContext.getString(R.string.planner_applied_one)
+            else -> appContext.getString(R.string.planner_applied_many, updated)
+        }
+        return logId to message
     }
 
     /**

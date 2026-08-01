@@ -91,4 +91,36 @@ class DayPlannerTest {
 
         assertEquals(0, plan.conflicts.size)
     }
+
+    @Test
+    fun taskScheduledOnDateOnlyIncludedWhenReplanFlagIsSet() {
+        // Programada hoy 15:00 pero vence mañana: no es "due" hoy.
+        val scheduled = TaskEntity(
+            id = 8, title = "Programada", durationMinutes = 30,
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(15, 0), zone),
+            dueAt = DateRules.toEpochMillis(date.plusDays(1), LocalTime.of(12, 0), zone)
+        )
+
+        val normal = DayPlanner.build(listOf(scheduled), date, 9 * 60, 18 * 60, breakMinutes = 0, now = now, zone = zone)
+        val replan = DayPlanner.build(listOf(scheduled), date, 9 * 60, 18 * 60, breakMinutes = 0, includeScheduledOnDate = true, now = now, zone = zone)
+
+        assertTrue(normal.blocks.isEmpty())
+        assertEquals(1, replan.blocks.size)
+        assertEquals(8L, replan.blocks.first().taskId)
+        // La replanificación la reubica y avisa del conflicto con la hora prevista.
+        assertEquals(9 * 60, replan.blocks.first().startMinute)
+        assertEquals(1, replan.conflicts.size)
+        assertEquals(PlanConflictKind.MOVED_FROM_SCHEDULED_TIME, replan.conflicts.first().kind)
+    }
+
+    @Test
+    fun replanKeepsInboxAndDueTasksOnDate() {
+        val due = TaskEntity(id = 5, title = "Vence hoy", durationMinutes = 30, dueAt = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone))
+        val inbox = TaskEntity(id = 6, title = "Bandeja", durationMinutes = 30)
+
+        val plan = DayPlanner.build(listOf(due, inbox), date, 9 * 60, 18 * 60, breakMinutes = 0, includeScheduledOnDate = true, now = now, zone = zone)
+
+        assertEquals(2, plan.blocks.size)
+        assertEquals(setOf(5L, 6L), plan.blocks.map { it.taskId }.toSet())
+    }
 }
