@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowForward
@@ -131,7 +130,7 @@ fun TodayScreen(
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(32.dp))
+                    .clip(MaterialTheme.shapes.extraLarge)
                     .background(
                         Brush.linearGradient(
                             listOf(
@@ -140,7 +139,7 @@ fun TodayScreen(
                             )
                         )
                     )
-                    .padding(22.dp)
+                    .padding(20.dp)
             ) {
                 Row(
                     Modifier.fillMaxWidth(),
@@ -263,7 +262,7 @@ fun TodayScreen(
 
         item {
             Card(
-                shape = RoundedCornerShape(24.dp),
+                shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
@@ -300,12 +299,12 @@ fun TodayScreen(
         item {
             val insight = state.guardianInsight
             Surface(
-                shape = RoundedCornerShape(26.dp),
+                shape = MaterialTheme.shapes.large,
                 color = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             ) {
                 Row(
-                    Modifier.fillMaxWidth().padding(18.dp),
+                    Modifier.fillMaxWidth().padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(15.dp)
                 ) {
@@ -372,10 +371,10 @@ fun TodayScreen(
                         Card(
                             onClick = { vm.toggleHabit(habit) },
                             modifier = Modifier.width(230.dp),
-                            shape = RoundedCornerShape(24.dp),
+                            shape = MaterialTheme.shapes.large,
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
                         ) {
-                            Column(Modifier.padding(17.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     Text(habit.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                                     Text(stringResource(R.string.today_progress_percent, (progress * 100).toInt()), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
@@ -395,10 +394,10 @@ fun TodayScreen(
             items(state.projects.take(3), key = { "project-${it.id}" }) { project ->
                 val progress = state.projectProgress(project.id)
                 Card(
-                    shape = RoundedCornerShape(22.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
                 ) {
-                    Column(Modifier.fillMaxWidth().padding(17.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text(project.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                             Text(stringResource(R.string.today_progress_percent, (progress * 100).toInt()), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
@@ -412,17 +411,17 @@ fun TodayScreen(
         item {
             Surface(
                 onClick = onOpenFocus,
-                shape = RoundedCornerShape(26.dp),
+                shape = MaterialTheme.shapes.large,
                 color = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer
             ) {
                 Row(
-                    Modifier.fillMaxWidth().padding(20.dp),
+                    Modifier.fillMaxWidth().padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.tertiary) {
-                        Icon(Icons.Outlined.Timer, null, Modifier.padding(12.dp), tint = MaterialTheme.colorScheme.onTertiary)
+                    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.tertiary) {
+                        Icon(Icons.Outlined.Timer, null, Modifier.padding(10.dp), tint = MaterialTheme.colorScheme.onTertiary)
                     }
                     Column(Modifier.weight(1f)) {
                         Text(stringResource(R.string.today_focus_block_title), style = MaterialTheme.typography.titleMedium)

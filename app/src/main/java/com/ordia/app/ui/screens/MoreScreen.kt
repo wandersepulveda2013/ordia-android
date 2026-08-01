@@ -1,12 +1,24 @@
 package com.ordia.app.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -15,9 +27,10 @@ import com.ordia.app.R
 import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.domain.GuardianEngine
 import com.ordia.app.ui.OrdiaUiState
-import com.ordia.app.ui.components.ActionCard
+import com.ordia.app.ui.components.OrdiaListItem
 import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.ui.components.SectionHeader
+import com.ordia.app.ui.components.StatusBadge
 import com.ordia.app.ui.navigation.Destination
 
 private data class MoreEntry(
@@ -69,7 +82,7 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
             20.dp,
             padding.calculateBottomPadding() + 32.dp
         ),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {
             ScreenHeader(
@@ -80,38 +93,65 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
         }
 
         item { SectionHeader(stringResource(R.string.more_section_daily), stringResource(R.string.more_section_daily_supporting)) }
-        daily.forEach { entry ->
-            item(key = entry.destination.route) { ToolCard(entry, open) }
-        }
+        item(key = "group-daily") { GroupedTools(daily, open) }
 
         item { SectionHeader(stringResource(R.string.more_section_organize), stringResource(R.string.more_section_organize_supporting)) }
-        organize.forEach { entry ->
-            item(key = entry.destination.route) { ToolCard(entry, open) }
-        }
+        item(key = "group-organize") { GroupedTools(organize, open) }
 
         if (review.isNotEmpty()) {
             item { SectionHeader(stringResource(R.string.more_section_review), stringResource(R.string.more_section_review_supporting)) }
-            review.forEach { entry ->
-                item(key = entry.destination.route) { ToolCard(entry, open) }
-            }
+            item(key = "group-review") { GroupedTools(review, open) }
         }
 
         item { SectionHeader(stringResource(R.string.more_section_system), stringResource(R.string.more_section_system_supporting)) }
-        system.forEach { entry ->
-            item(key = entry.destination.route) { ToolCard(entry, open) }
-        }
+        item(key = "group-system") { GroupedTools(system, open) }
     }
 }
 
+/** Apartado agrupado: una tarjeta con filas separadas por barras divisorias. */
 @Composable
-private fun ToolCard(entry: MoreEntry, open: (String) -> Unit) {
-    ActionCard(
-        title = stringResource(entry.destination.labelRes),
-        description = entry.description,
-        icon = entry.destination.icon,
-        onClick = { open(entry.destination.route) },
-        modifier = Modifier.fillMaxWidth(),
-        badge = entry.badge,
-        accent = entry.accent
-    )
+private fun GroupedTools(entries: List<MoreEntry>, open: (String) -> Unit) {
+    Card(
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
+    ) {
+        Column(Modifier.fillMaxWidth()) {
+            entries.forEachIndexed { index, entry ->
+                if (index > 0) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 53.dp, end = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                    )
+                }
+                OrdiaListItem(
+                    title = stringResource(entry.destination.labelRes),
+                    subtitle = entry.description,
+                    icon = entry.destination.icon,
+                    iconTint = entry.accent,
+                    onClick = { open(entry.destination.route) },
+                    trailing = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            if (entry.badge != null) {
+                                StatusBadge(
+                                    entry.badge,
+                                    background = entry.accent.copy(alpha = 0.12f),
+                                    content = entry.accent
+                                )
+                            }
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                null,
+                                Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                )
+            }
+        }
+    }
 }
