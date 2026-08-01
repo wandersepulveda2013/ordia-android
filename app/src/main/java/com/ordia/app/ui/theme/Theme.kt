@@ -8,88 +8,95 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.ordia.app.data.preferences.ThemeMode
 
-val OrdiaInk = Color(0xFF202331)
-val OrdiaCream = Color(0xFFF6F4EF)
-val OrdiaPaper = Color(0xFFFFFEFB)
-val OrdiaGold = Color(0xFF8B651D)
-val OrdiaGoldSoft = Color(0xFFE4C77E)
-val OrdiaSage = Color(0xFF4E7C6C)
+/**
+ * Identidad visual Ordia (rediseño limpio, no saturado).
+ * - Fondo blanco cálido, superficies blancas, bordes suaves y sombras discretas.
+ * - Primario: violeta profundo. Secundario: lavanda suave. Acento: dorado cálido.
+ * - Texto: azul marino muy oscuro / gris azulado. Positivo: verde suave. Error: rojo moderado.
+ */
+val OrdiaInk = Color(0xFF1C2340)        // Azul marino muy oscuro (texto principal)
+val OrdiaInkSoft = Color(0xFF5B6173)    // Gris azulado (texto secundario)
+val OrdiaCream = Color(0xFFF8F7F4)      // Blanco cálido (fondo)
+val OrdiaPaper = Color(0xFFFFFFFF)      // Superficies
+val OrdiaGold = Color(0xFF8B651D)       // Acento dorado cálido
+val OrdiaGoldSoft = Color(0xFFE4C77E)   // Acento dorado suave
+val OrdiaSage = Color(0xFF3E8F6D)       // Verde suave (estados positivos)
 val OrdiaRose = Color(0xFFB25F6B)
-val OrdiaLavender = Color(0xFF7868D8)
-val OrdiaIndigo = Color(0xFF5E58C7)
+val OrdiaLavender = Color(0xFF7A6FD0)   // Lavanda (secundario)
+val OrdiaViolet = Color(0xFF4E43B8)     // Violeta profundo (primario)
 val OrdiaMint = Color(0xFF73B7A2)
 val OrdiaSunset = Color(0xFFE5A05A)
-val OrdiaNight = Color(0xFF12131A)
+val OrdiaNight = Color(0xFF13141B)      // Navy profundo (fondo oscuro)
 
 private val LightColors = lightColorScheme(
-    primary = OrdiaIndigo,
+    primary = OrdiaViolet,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFE7E4FF),
-    onPrimaryContainer = Color(0xFF211B63),
-    secondary = OrdiaGold,
+    primaryContainer = Color(0xFFE9E6FF),
+    onPrimaryContainer = Color(0xFF241C66),
+    secondary = OrdiaLavender,
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFF8E7BE),
-    onSecondaryContainer = Color(0xFF332400),
+    secondaryContainer = Color(0xFFEFEDFB),
+    onSecondaryContainer = Color(0xFF2B2460),
     tertiary = OrdiaSage,
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFD6F0E5),
+    tertiaryContainer = Color(0xFFDDF2E7),
     onTertiaryContainer = Color(0xFF0B3A2D),
     background = OrdiaCream,
     onBackground = OrdiaInk,
     surface = OrdiaPaper,
     onSurface = OrdiaInk,
-    surfaceVariant = Color(0xFFEDEAF2),
-    onSurfaceVariant = Color(0xFF5E5C68),
+    surfaceVariant = Color(0xFFF0EFF6),
+    onSurfaceVariant = OrdiaInkSoft,
     surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFFAF8F4),
-    surfaceContainer = Color(0xFFF2F0EC),
-    surfaceContainerHigh = Color(0xFFECE9E5),
-    surfaceContainerHighest = Color(0xFFE5E2DE),
-    outline = Color(0xFF7A7884),
-    outlineVariant = Color(0xFFD3D0DA),
-    error = Color(0xFFB3261E),
+    surfaceContainerLow = Color(0xFFF5F4F1),
+    surfaceContainer = Color(0xFFF1F0ED),
+    surfaceContainerHigh = Color(0xFFECEAF0),
+    surfaceContainerHighest = Color(0xFFE5E3EA),
+    outline = Color(0xFF7A7E8E),
+    outlineVariant = Color(0xFFD9D7E0),
+    error = Color(0xFFC04848),
     onError = Color.White,
-    errorContainer = Color(0xFFF9DEDC),
-    onErrorContainer = Color(0xFF410E0B),
-    inverseSurface = Color(0xFF303038),
-    inverseOnSurface = Color(0xFFF5F1F7),
-    inversePrimary = Color(0xFFC8C2FF),
+    errorContainer = Color(0xFFF9E3E3),
+    onErrorContainer = Color(0xFF5C1A1A),
+    inverseSurface = Color(0xFF2A2F45),
+    inverseOnSurface = Color(0xFFF4F4F8),
+    inversePrimary = Color(0xFFC9C3FF),
     scrim = Color.Black
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFC8C2FF),
-    onPrimary = Color(0xFF302A78),
-    primaryContainer = Color(0xFF46408E),
-    onPrimaryContainer = Color(0xFFE7E4FF),
-    secondary = OrdiaGoldSoft,
-    onSecondary = Color(0xFF3D2F00),
-    secondaryContainer = Color(0xFF584500),
-    onSecondaryContainer = Color(0xFFF8E7BE),
-    tertiary = Color(0xFF9BD5C0),
-    onTertiary = Color(0xFF00382B),
-    tertiaryContainer = Color(0xFF245143),
-    onTertiaryContainer = Color(0xFFD6F0E5),
+    primary = Color(0xFFC9C3FF),
+    onPrimary = Color(0xFF2F2770),
+    primaryContainer = Color(0xFF4A41A8),
+    onPrimaryContainer = Color(0xFFE9E6FF),
+    secondary = Color(0xFFB7B0E8),
+    onSecondary = Color(0xFF332C60),
+    secondaryContainer = Color(0xFF524B8C),
+    onSecondaryContainer = Color(0xFFEDEBFF),
+    tertiary = Color(0xFF8FCFAE),
+    onTertiary = Color(0xFF0A3B2A),
+    tertiaryContainer = Color(0xFF25604A),
+    onTertiaryContainer = Color(0xFFDDF2E7),
     background = OrdiaNight,
-    onBackground = Color(0xFFE7E1E8),
-    surface = Color(0xFF191A22),
-    onSurface = Color(0xFFE7E1E8),
-    surfaceVariant = Color(0xFF47464F),
-    onSurfaceVariant = Color(0xFFC9C5D0),
+    onBackground = Color(0xFFE7E6EE),
+    surface = Color(0xFF1A1B24),
+    onSurface = Color(0xFFE7E6EE),
+    surfaceVariant = Color(0xFF454556),
+    onSurfaceVariant = Color(0xFFC6C6D3),
     surfaceContainerLowest = Color(0xFF0D0E14),
-    surfaceContainerLow = Color(0xFF171820),
-    surfaceContainer = Color(0xFF1D1E26),
-    surfaceContainerHigh = Color(0xFF272831),
-    surfaceContainerHighest = Color(0xFF32323B),
-    outline = Color(0xFF938F9A),
-    outlineVariant = Color(0xFF47464F),
+    surfaceContainerLow = Color(0xFF181922),
+    surfaceContainer = Color(0xFF1E1F29),
+    surfaceContainerHigh = Color(0xFF282935),
+    surfaceContainerHighest = Color(0xFF33343F),
+    outline = Color(0xFF8E8E9C),
+    outlineVariant = Color(0xFF454556),
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005),
     errorContainer = Color(0xFF93000A),
     onErrorContainer = Color(0xFFFFDAD6),
-    inverseSurface = Color(0xFFE7E1E8),
-    inverseOnSurface = Color(0xFF303038),
-    inversePrimary = OrdiaIndigo,
+    inverseSurface = Color(0xFFE7E6EE),
+    inverseOnSurface = Color(0xFF2A2F45),
+    inversePrimary = OrdiaViolet,
     scrim = Color.Black
 )
 
