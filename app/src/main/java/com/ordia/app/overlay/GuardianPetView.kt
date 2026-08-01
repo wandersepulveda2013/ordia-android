@@ -13,6 +13,7 @@ import com.ordia.app.R
 import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.data.preferences.UserPreferences
 import com.ordia.app.domain.GuardianEngine
+import com.ordia.app.ui.labelRes
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -54,8 +55,8 @@ class GuardianPetView(context: Context) : View(context) {
         contentDescription = context.getString(
             R.string.pet_accessibility_description,
             preferences.guardianName,
-            preferences.guardianSpecies.label,
-            stage.label
+            context.getString(preferences.guardianSpecies.labelRes()),
+            context.getString(stage.labelRes())
         )
         if (this.animationsAllowed) {
             when {

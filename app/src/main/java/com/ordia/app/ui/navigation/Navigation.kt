@@ -1,5 +1,6 @@
 package com.ordia.app.ui.navigation
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -72,22 +73,22 @@ import com.ordia.app.ui.screens.TaskDetailScreen
 import com.ordia.app.ui.screens.TasksScreen
 import com.ordia.app.ui.screens.TodayScreen
 
-sealed class Destination(val route: String, val label: String, val icon: ImageVector) {
-    data object Today : Destination("today", "Hoy", Icons.Outlined.Home)
-    data object Inbox : Destination("inbox", "Bandeja", Icons.Outlined.Inbox)
-    data object Tasks : Destination("tasks", "Tareas", Icons.Outlined.CheckCircle)
-    data object Planner : Destination("planner", "Plan", Icons.Outlined.CalendarMonth)
-    data object Projects : Destination("projects", "Proyectos", Icons.Outlined.Folder)
-    data object Notes : Destination("notes", "Notas", Icons.Outlined.Description)
-    data object Habits : Destination("habits", "Hábitos", Icons.Outlined.Spa)
-    data object Focus : Destination("focus", "Enfoque", Icons.Outlined.Timer)
-    data object Search : Destination("search", "Buscar", Icons.Outlined.Search)
-    data object Statistics : Destination("statistics", "Progreso", Icons.Outlined.BarChart)
-    data object Archive : Destination("archive", "Archivo", Icons.Outlined.Archive)
-    data object Settings : Destination("settings", "Ajustes", Icons.Outlined.Settings)
-    data object More : Destination("more", "Más", Icons.Outlined.MoreHoriz)
-    data object Guardian : Destination("guardian", "Guardián", Icons.Outlined.Psychology)
-    data object Contextual : Destination("contextual", "Contexto", Icons.Outlined.AutoAwesome)
+sealed class Destination(val route: String, @StringRes val labelRes: Int, val icon: ImageVector) {
+    data object Today : Destination("today", R.string.nav_today, Icons.Outlined.Home)
+    data object Inbox : Destination("inbox", R.string.nav_inbox, Icons.Outlined.Inbox)
+    data object Tasks : Destination("tasks", R.string.nav_tasks, Icons.Outlined.CheckCircle)
+    data object Planner : Destination("planner", R.string.nav_planner, Icons.Outlined.CalendarMonth)
+    data object Projects : Destination("projects", R.string.nav_projects, Icons.Outlined.Folder)
+    data object Notes : Destination("notes", R.string.nav_notes, Icons.Outlined.Description)
+    data object Habits : Destination("habits", R.string.nav_habits, Icons.Outlined.Spa)
+    data object Focus : Destination("focus", R.string.nav_focus, Icons.Outlined.Timer)
+    data object Search : Destination("search", R.string.nav_search, Icons.Outlined.Search)
+    data object Statistics : Destination("statistics", R.string.nav_statistics, Icons.Outlined.BarChart)
+    data object Archive : Destination("archive", R.string.nav_archive, Icons.Outlined.Archive)
+    data object Settings : Destination("settings", R.string.nav_settings, Icons.Outlined.Settings)
+    data object More : Destination("more", R.string.nav_more, Icons.Outlined.MoreHoriz)
+    data object Guardian : Destination("guardian", R.string.nav_guardian, Icons.Outlined.Psychology)
+    data object Contextual : Destination("contextual", R.string.nav_contextual, Icons.Outlined.AutoAwesome)
 
     companion object {
         const val TASK_ROUTE = "task/{taskId}"
@@ -177,8 +178,8 @@ fun OrdiaNavigation(
                             NavigationRailItem(
                                 selected = route == item.route,
                                 onClick = { navController.navigateSingle(item.route) },
-                                icon = { Icon(item.icon, item.label) },
-                                label = { Text(item.label) },
+                                icon = { Icon(item.icon, stringResource(item.labelRes)) },
+                                label = { Text(stringResource(item.labelRes)) },
                                 colors = NavigationRailItemDefaults.colors(
                                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                     selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -190,8 +191,8 @@ fun OrdiaNavigation(
                         NavigationRailItem(
                             selected = route == Destination.Settings.route,
                             onClick = { navController.navigateSingle(Destination.Settings.route) },
-                            icon = { Icon(Destination.Settings.icon, Destination.Settings.label) },
-                            label = { Text(Destination.Settings.label) },
+                            icon = { Icon(Destination.Settings.icon, stringResource(Destination.Settings.labelRes)) },
+                            label = { Text(stringResource(Destination.Settings.labelRes)) },
                             colors = NavigationRailItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                 selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -221,8 +222,8 @@ fun OrdiaNavigation(
                                 NavigationBarItem(
                                     selected = selected,
                                     onClick = { navController.navigateSingle(item.route) },
-                                    icon = { Icon(item.icon, item.label) },
-                                    label = { Text(item.label) },
+                                    icon = { Icon(item.icon, stringResource(item.labelRes)) },
+                                    label = { Text(stringResource(item.labelRes)) },
                                     alwaysShowLabel = true,
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,

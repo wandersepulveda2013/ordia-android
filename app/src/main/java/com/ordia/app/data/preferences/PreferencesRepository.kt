@@ -23,13 +23,13 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 enum class InterfaceMode { SIMPLE, ORGANIZED, ADVANCED }
 enum class GuardianMode { DORMANT, DISCREET, COMPANION }
 
-enum class GuardianSpecies(val label: String, val defaultName: String, val description: String) {
-    LUMI("Lumi", "Lumi", "Ser de luz curioso que cambia de brillo con tus avances."),
-    MOSS("Moss", "Moss", "Criatura de bosque tranquila que florece con tus hábitos."),
-    ORBIT("Orbit", "Orbit", "Compañero cósmico que reúne pequeñas estrellas de progreso."),
-    EMBER("Ember", "Ember", "Espíritu de fuego amable que se fortalece con tu enfoque."),
-    TIDE("Tide", "Tide", "Guardián acuático adaptable que aprende de tus ritmos."),
-    NOVA("Nova", "Nova", "Ser celeste expresivo que evoluciona con grandes proyectos.")
+enum class GuardianSpecies(val defaultName: String) {
+    LUMI("Lumi"),
+    MOSS("Moss"),
+    ORBIT("Orbit"),
+    EMBER("Ember"),
+    TIDE("Tide"),
+    NOVA("Nova")
 }
 
 data class UserPreferences(

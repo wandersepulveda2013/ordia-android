@@ -21,39 +21,39 @@ import java.time.ZoneId
  * meaningful, but repeatedly tapping the guardian can never replace real progress in Ordia.
  */
 object GuardianEngine {
-    enum class Stage(val label: String, val minimumXp: Int) {
-        SPARK("Chispa", 0),
-        HATCHLING("Cría", 180),
-        YOUNG("Joven", 520),
-        COMPANION("Compañero", 1_100),
-        ASCENDED("Ascendido", 2_200)
+    enum class Stage(val minimumXp: Int) {
+        SPARK(0),
+        HATCHLING(180),
+        YOUNG(520),
+        COMPANION(1_100),
+        ASCENDED(2_200)
     }
 
-    enum class Mood(val label: String) {
-        CALM("tranquilo"),
-        HAPPY("feliz"),
-        FOCUSED("concentrado"),
-        SLEEPY("con sueño"),
-        CURIOUS("curioso"),
-        PROUD("orgulloso"),
-        PLAYFUL("juguetón"),
-        CONCERNED("preocupado")
+    enum class Mood {
+        CALM,
+        HAPPY,
+        FOCUSED,
+        SLEEPY,
+        CURIOUS,
+        PROUD,
+        PLAYFUL,
+        CONCERNED
     }
 
-    enum class Archetype(val label: String, val description: String) {
-        BALANCED("Equilibrado", "Combina organización, constancia, ideas y descanso."),
-        ACHIEVER("Impulsor", "Crece principalmente al terminar tareas y proyectos."),
-        FOCUSED("Centinela", "Su forma refleja sesiones largas de concentración."),
-        CONSISTENT("Guardián de rachas", "Evoluciona con hábitos repetidos y rutinas sostenibles."),
-        CREATIVE("Explorador", "Se fortalece al capturar notas, ideas y conocimiento.")
+    enum class Archetype {
+        BALANCED,
+        ACHIEVER,
+        FOCUSED,
+        CONSISTENT,
+        CREATIVE
     }
 
-    enum class Interaction(val label: String, val bond: Int, val event: String) {
-        PET("Acariciar", 3, "pet"),
-        PLAY("Jugar", 5, "play"),
-        FEED("Dar energía", 4, "feed"),
-        TALK("Conversar", 4, "talk"),
-        REST("Descansar", 2, "rest")
+    enum class Interaction(val bond: Int, val event: String) {
+        PET(3, "pet"),
+        PLAY(5, "play"),
+        FEED(4, "feed"),
+        TALK(4, "talk"),
+        REST(2, "rest")
     }
 
     data class Snapshot(

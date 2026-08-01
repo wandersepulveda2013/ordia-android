@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.domain.GuardianEngine
+import com.ordia.app.ui.labelRes
 import kotlin.math.sin
 
 @Composable
@@ -56,9 +57,9 @@ fun VirtualGuardian(
     val description = stringResource(
         R.string.pet_guardian_description,
         snapshot.name,
-        snapshot.species.label,
-        snapshot.stage.label,
-        snapshot.mood.label
+        stringResource(snapshot.species.labelRes()),
+        stringResource(snapshot.stage.labelRes()),
+        stringResource(snapshot.mood.labelRes())
     )
 
     Box(

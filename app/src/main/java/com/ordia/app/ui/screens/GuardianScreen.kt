@@ -47,6 +47,8 @@ import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.ui.components.SectionHeader
 import com.ordia.app.ui.components.StatCard
 import com.ordia.app.ui.components.VirtualGuardian
+import com.ordia.app.ui.descriptionRes
+import com.ordia.app.ui.labelRes
 import kotlinx.coroutines.launch
 
 @Composable
@@ -99,13 +101,13 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                         animationsEnabled = state.preferences.guardianAnimations && !state.preferences.reduceMotion
                     )
                     Text(
-                        stringResource(R.string.guardian_screen_identity_line, snapshot.species.label, snapshot.stage.label, snapshot.level),
+                        stringResource(R.string.guardian_screen_identity_line, stringResource(snapshot.species.labelRes()), stringResource(snapshot.stage.labelRes()), snapshot.level),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.tertiaryContainer) {
                         Text(
-                            stringResource(R.string.guardian_screen_personality, snapshot.archetype.label),
+                            stringResource(R.string.guardian_screen_personality, stringResource(snapshot.archetype.labelRes())),
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -122,7 +124,7 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                     )
                     Text(
                         snapshot.nextStage?.let {
-                            stringResource(R.string.guardian_screen_next_stage_progress, snapshot.experienceToNext, it.label, (snapshot.progressToNext * 100).toInt())
+                            stringResource(R.string.guardian_screen_next_stage_progress, snapshot.experienceToNext, stringResource(it.labelRes()), (snapshot.progressToNext * 100).toInt())
                         } ?: stringResource(R.string.guardian_screen_max_evolution),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -200,13 +202,13 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(GuardianEngine.Interaction.entries) { interaction ->
                     Button(onClick = { scope.launch { repository.interactGuardian(interaction) } }) {
-                        Text(interaction.label)
+                        Text(stringResource(interaction.labelRes()))
                     }
                 }
             }
         }
 
-        item { SectionHeader(stringResource(R.string.guardian_screen_evolution_path), snapshot.archetype.description) }
+        item { SectionHeader(stringResource(R.string.guardian_screen_evolution_path), stringResource(snapshot.archetype.descriptionRes())) }
         item { SectionHeader(stringResource(R.string.guardian_screen_growth_activity), stringResource(R.string.guardian_screen_growth_activity_sub)) }
         item {
             Card {
@@ -242,12 +244,12 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                             FilterChip(
                                 selected = state.preferences.guardianSpecies == species,
                                 onClick = { scope.launch { repository.setGuardianSpecies(species) } },
-                                label = { Text(species.label) }
+                                label = { Text(stringResource(species.labelRes())) }
                             )
                         }
                     }
                     Text(
-                        state.preferences.guardianSpecies.description,
+                        stringResource(state.preferences.guardianSpecies.descriptionRes()),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

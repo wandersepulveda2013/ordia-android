@@ -57,6 +57,7 @@ import com.ordia.app.ui.components.ProgressRing
 import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.ui.components.SectionHeader
 import com.ordia.app.ui.components.StatCard
+import com.ordia.app.ui.labelRes
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
 import java.time.LocalDate
@@ -314,8 +315,8 @@ fun TodayScreen(
                         animationsEnabled = state.preferences.guardianAnimations && !state.preferences.reduceMotion
                     )
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(stringResource(R.string.today_guardian_identity, guardian.name.uppercase(), guardian.stage.label.uppercase()), style = MaterialTheme.typography.labelSmall)
-                        Text(stringResource(R.string.today_guardian_mood, guardian.mood.label), style = MaterialTheme.typography.titleLarge)
+                        Text(stringResource(R.string.today_guardian_identity, guardian.name.uppercase(), stringResource(guardian.stage.labelRes()).uppercase()), style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.today_guardian_mood, stringResource(guardian.mood.labelRes())), style = MaterialTheme.typography.titleLarge)
                         Text(
                             guardian.message,
                             style = MaterialTheme.typography.bodyMedium,

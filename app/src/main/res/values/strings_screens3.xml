@@ -107,6 +107,42 @@
     <string name="guardian_screen_save_name">Guardar nombre</string>
     <string name="guardian_screen_kindness_note">Ordía no enferma ni castiga al guardián cuando descansas. La mascota acompaña tu vida; no intenta convertirla en una obligación.</string>
 
+    <!-- Vocabulario del guardián: especies, etapas, arquetipos e interacciones (ORD-029 i18n).
+         El dominio (GuardianEngine/GuardianSpecies) no contiene texto de producto;
+         la capa UI resuelve estas etiquetas desde recursos. -->
+    <string name="guardian_species_lumi">Lumi</string>
+    <string name="guardian_species_moss">Moss</string>
+    <string name="guardian_species_orbit">Orbit</string>
+    <string name="guardian_species_ember">Ember</string>
+    <string name="guardian_species_tide">Tide</string>
+    <string name="guardian_species_nova">Nova</string>
+    <string name="guardian_species_lumi_desc">Ser de luz curioso que cambia de brillo con tus avances.</string>
+    <string name="guardian_species_moss_desc">Criatura de bosque tranquila que florece con tus hábitos.</string>
+    <string name="guardian_species_orbit_desc">Compañero cósmico que reúne pequeñas estrellas de progreso.</string>
+    <string name="guardian_species_ember_desc">Espíritu de fuego amable que se fortalece con tu enfoque.</string>
+    <string name="guardian_species_tide_desc">Guardián acuático adaptable que aprende de tus ritmos.</string>
+    <string name="guardian_species_nova_desc">Ser celeste expresivo que evoluciona con grandes proyectos.</string>
+    <string name="guardian_stage_spark">Chispa</string>
+    <string name="guardian_stage_hatchling">Cría</string>
+    <string name="guardian_stage_young">Joven</string>
+    <string name="guardian_stage_companion">Compañero</string>
+    <string name="guardian_stage_ascended">Ascendido</string>
+    <string name="guardian_archetype_balanced">Equilibrado</string>
+    <string name="guardian_archetype_balanced_desc">Combina organización, constancia, ideas y descanso.</string>
+    <string name="guardian_archetype_achiever">Impulsor</string>
+    <string name="guardian_archetype_achiever_desc">Crece principalmente al terminar tareas y proyectos.</string>
+    <string name="guardian_archetype_focused">Centinela</string>
+    <string name="guardian_archetype_focused_desc">Su forma refleja sesiones largas de concentración.</string>
+    <string name="guardian_archetype_consistent">Guardián de rachas</string>
+    <string name="guardian_archetype_consistent_desc">Evoluciona con hábitos repetidos y rutinas sostenibles.</string>
+    <string name="guardian_archetype_creative">Explorador</string>
+    <string name="guardian_archetype_creative_desc">Se fortalece al capturar notas, ideas y conocimiento.</string>
+    <string name="guardian_interaction_pet">Acariciar</string>
+    <string name="guardian_interaction_play">Jugar</string>
+    <string name="guardian_interaction_feed">Dar energía</string>
+    <string name="guardian_interaction_talk">Conversar</string>
+    <string name="guardian_interaction_rest">Descansar</string>
+
     <!-- Raíz de la app (OrdiaRoot, ORD-029 i18n). -->
     <string name="root_context_detected">Detectado: %1$s — %2$s</string>
     <string name="root_context_discarded">Ordía no procesó el texto porque era sensible o no contenía una intención clara.</string>

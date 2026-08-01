@@ -106,7 +106,7 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
 @Composable
 private fun ToolCard(entry: MoreEntry, open: (String) -> Unit) {
     ActionCard(
-        title = entry.destination.label,
+        title = stringResource(entry.destination.labelRes),
         description = entry.description,
         icon = entry.destination.icon,
         onClick = { open(entry.destination.route) },

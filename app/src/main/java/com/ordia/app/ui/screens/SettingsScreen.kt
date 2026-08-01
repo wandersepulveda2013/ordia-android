@@ -68,6 +68,8 @@ import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.BackupRestoreState
 import com.ordia.app.ui.components.InfoBanner
 import com.ordia.app.ui.components.ScreenHeader
+import com.ordia.app.ui.descriptionRes
+import com.ordia.app.ui.labelRes
 import com.ordia.app.overlay.GuardianOverlayService
 import com.ordia.app.ui.components.SectionHeader
 import com.ordia.app.updates.OrdiaUpdateManager
@@ -351,12 +353,12 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                         FilterChip(
                             selected = state.preferences.guardianSpecies == species,
                             onClick = { scope.launch { repository.setGuardianSpecies(species) } },
-                            label = { Text(species.label) }
+                            label = { Text(stringResource(species.labelRes())) }
                         )
                     }
                 }
                 Text(
-                    state.preferences.guardianSpecies.description,
+                    stringResource(state.preferences.guardianSpecies.descriptionRes()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

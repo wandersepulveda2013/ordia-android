@@ -65,5 +65,10 @@
     <string name="component_guardian_mood_calm">tranquilo</string>
     <string name="component_guardian_mood_happy">feliz</string>
     <string name="component_guardian_mood_focused">concentrado</string>
+    <string name="component_guardian_mood_sleepy">con sueño</string>
+    <string name="component_guardian_mood_curious">curioso</string>
+    <string name="component_guardian_mood_proud">orgulloso</string>
+    <string name="component_guardian_mood_playful">juguetón</string>
+    <string name="component_guardian_mood_concerned">preocupado</string>
     <string name="component_guardian_description">Guardián de Ordia, estado %1$s</string>
 </resources>
