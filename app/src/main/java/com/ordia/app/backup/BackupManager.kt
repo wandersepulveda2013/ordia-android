@@ -7,6 +7,12 @@ import com.ordia.app.data.local.CaptureEntity
 import com.ordia.app.data.local.CaptureSource
 import com.ordia.app.data.local.CaptureStatus
 import com.ordia.app.data.local.CaptureTarget
+import com.ordia.app.data.local.CommitmentEntity
+import com.ordia.app.data.local.CommitmentKind
+import com.ordia.app.data.local.CommitmentOwner
+import com.ordia.app.data.local.CommitmentReviewStatus
+import com.ordia.app.data.local.ConversationEntity
+import com.ordia.app.data.local.ConversationSourceType
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitFrequency
@@ -90,6 +96,8 @@ class BackupManager(
         root.put("attachments", JSONArray().apply { current.attachments.forEach { put(it.toJson()) } })
         root.put("captures", JSONArray().apply { current.captures.forEach { put(it.toJson()) } })
         root.put("captureDrafts", JSONArray().apply { current.captureDrafts.forEach { put(it.toJson()) } })
+        root.put("conversations", JSONArray().apply { current.conversations.forEach { put(it.toJson()) } })
+        root.put("commitments", JSONArray().apply { current.commitments.forEach { put(it.toJson()) } })
         val contentJson = root.toString(2)
         require(BackupSecurityRules.inputSizeAllowed(contentJson.toByteArray(Charsets.UTF_8).size)) {
             "La copia supera el límite seguro de 10 MB. Reduce notas o adjuntos registrados antes de exportar."
@@ -279,6 +287,12 @@ class BackupManager(
             } else emptyList(),
             captureDrafts = if (version >= 5) {
                 root.requiredArray("captureDrafts").validatedMap("captureDrafts") { it.toCaptureDraft() }
+            } else emptyList(),
+            conversations = if (version >= 6) {
+                root.requiredArray("conversations").validatedMap("conversations") { it.toConversation() }
+            } else emptyList(),
+            commitments = if (version >= 6) {
+                root.requiredArray("commitments").validatedMap("commitments") { it.toCommitment() }
             } else emptyList()
         )
         val total = data.totalCount
@@ -340,9 +354,17 @@ private fun validateRelationships(data: RestoreData) {
     val tagIds = requirePositiveUnique("Etiquetas", data.tags.map { it.id })
     requirePositiveUnique("Adjuntos", data.attachments.map { it.id })
     requirePositiveUnique("Capturas", data.captures.map { it.id })
+    val conversationIds = requirePositiveUnique("Conversaciones", data.conversations.map { it.id })
+    requirePositiveUnique("Compromisos", data.commitments.map { it.id })
     require(data.tags.map { it.name }.toSet().size == data.tags.size) { "La copia contiene etiquetas duplicadas." }
     require(data.captureDrafts.map { it.slot }.toSet().size == data.captureDrafts.size) {
         "La copia contiene borradores de captura duplicados."
+    }
+    require(data.conversations.map { it.contentHash }.toSet().size == data.conversations.size) {
+        "La copia contiene conversaciones duplicadas."
+    }
+    require(data.commitments.map { it.fingerprint }.toSet().size == data.commitments.size) {
+        "La copia contiene compromisos duplicados."
     }
 
     data.tasks.forEach { task ->
@@ -436,6 +458,54 @@ private fun validateRelationships(data: RestoreData) {
         require(Regex("^[A-Za-z0-9_-]{1,64}$").matches(draft.slot)) { "Un borrador tiene un identificador inválido." }
         require(draft.updatedAt in 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS) { "Un borrador contiene una fecha inválida." }
     }
+    data.conversations.forEach { conversation ->
+        require(conversation.createdAt <= conversation.updatedAt) {
+            "Una conversación fue actualizada antes de crearse."
+        }
+        require(Regex("^[0-9a-f]{64}$").matches(conversation.contentHash)) {
+            "Una conversación tiene una huella inválida."
+        }
+        require(conversation.messageCount in 1..20_000) {
+            "Una conversación contiene una cantidad de mensajes inválida."
+        }
+        require(conversation.retainsOriginal || conversation.rawContent.isBlank()) {
+            "Una conversación conserva contenido original sin consentimiento."
+        }
+        require(!conversation.retainsOriginal || conversation.rawContent.isNotBlank()) {
+            "Una conversación marcada para conservar el original está vacía."
+        }
+        require(
+            conversation.sourcePackage.isBlank() ||
+                Regex("^[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z][A-Za-z0-9_]*)+$").matches(conversation.sourcePackage)
+        ) { "Una conversación contiene un paquete de origen inválido." }
+    }
+    data.commitments.forEach { commitment ->
+        require(commitment.conversationId in conversationIds) {
+            "Un compromiso referencia una conversación inexistente."
+        }
+        require(commitment.createdAt <= commitment.updatedAt) {
+            "Un compromiso fue actualizado antes de crearse."
+        }
+        require(commitment.confidence.isFinite() && commitment.confidence in 0f..1f) {
+            "Un compromiso tiene una confianza inválida."
+        }
+        require(Regex("^[0-9a-f]{64}$").matches(commitment.fingerprint)) {
+            "Un compromiso tiene una huella inválida."
+        }
+        require(commitment.dueAt == null || commitment.dueAt in 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS) {
+            "Un compromiso contiene una fecha inválida."
+        }
+        require(
+            commitment.suggestedReminderAt == null ||
+                commitment.suggestedReminderAt in 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS
+        ) { "Un compromiso contiene un recordatorio inválido." }
+        require(commitment.reviewStatus == CommitmentReviewStatus.CONVERTED || commitment.resultTaskId == null) {
+            "Un compromiso no convertido referencia una tarea."
+        }
+        commitment.resultTaskId?.let { taskId ->
+            require(taskId in taskIds) { "Un compromiso referencia una tarea inexistente." }
+        }
+    }
 }
 
 private val REQUIRED_ITEM_FIELDS = mapOf(
@@ -451,7 +521,9 @@ private val REQUIRED_ITEM_FIELDS = mapOf(
     "taskTags" to setOf("taskId", "tagId"),
     "attachments" to setOf("id", "ownerType", "ownerId", "uri", "displayName", "mimeType", "sizeBytes", "createdAt"),
     "captures" to setOf("id", "content", "source", "requestedTarget", "resolvedTarget", "status", "attachmentUri", "mimeType", "fingerprint", "resultType", "resultId", "errorCode", "createdAt", "updatedAt"),
-    "captureDrafts" to setOf("slot", "content", "target", "attachmentUri", "mimeType", "updatedAt")
+    "captureDrafts" to setOf("slot", "content", "target", "attachmentUri", "mimeType", "updatedAt"),
+    "conversations" to setOf("id", "sourceType", "sourcePackage", "title", "participants", "summary", "rawContent", "retainsOriginal", "contentHash", "messageCount", "createdAt", "updatedAt"),
+    "commitments" to setOf("id", "conversationId", "kind", "owner", "actor", "action", "location", "dueAt", "confidence", "suggestedReminderAt", "reviewStatus", "fingerprint", "resultTaskId", "createdAt", "updatedAt")
 )
 
 private fun JSONObject.requiredArray(name: String): JSONArray =
@@ -502,6 +574,15 @@ private fun JSONObject.intValue(name: String, fallback: Int, range: IntRange = I
     require(value in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) { "$name está fuera de rango." }
     val result = value.toInt()
     require(result in range) { "$name está fuera de rango." }
+    return result
+}
+
+private fun JSONObject.floatValue(name: String, fallback: Float, range: ClosedFloatingPointRange<Float>): Float {
+    if (!has(name) || isNull(name)) return fallback
+    val value = get(name)
+    require(value is Number) { "$name debe ser numérico." }
+    val result = value.toFloat()
+    require(result.isFinite() && result in range) { "$name está fuera de rango." }
     return result
 }
 
@@ -694,6 +775,74 @@ private fun JSONObject.toCaptureDraft() = CaptureDraftEntity(
     target = enumValue("target", CaptureTarget.AUTO),
     attachmentUri = optionalContentUri("attachmentUri"),
     mimeType = text("mimeType", 500),
+    updatedAt = longValue("updatedAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
+)
+
+private fun ConversationEntity.toJson() = JSONObject()
+    .put("id", id)
+    .put("sourceType", sourceType.name)
+    .put("sourcePackage", sourcePackage)
+    .put("title", title)
+    .put("participants", participants)
+    .put("summary", summary)
+    .put("rawContent", rawContent)
+    .put("retainsOriginal", retainsOriginal)
+    .put("contentHash", contentHash)
+    .put("messageCount", messageCount)
+    .put("createdAt", createdAt)
+    .put("updatedAt", updatedAt)
+
+private fun JSONObject.toConversation() = ConversationEntity(
+    id = requiredLong("id"),
+    sourceType = enumValue("sourceType", ConversationSourceType.IMPORTED),
+    sourcePackage = text("sourcePackage", 255),
+    title = requiredText("title", 500),
+    participants = text("participants", 10_000),
+    summary = requiredText("summary", 100_000),
+    rawContent = text("rawContent", 2_000_000),
+    retainsOriginal = booleanValue("retainsOriginal", false),
+    contentHash = requiredText("contentHash", 64).also {
+        require(Regex("^[0-9a-f]{64}$").matches(it)) { "La huella de una conversación no es válida." }
+    },
+    messageCount = intValue("messageCount", 0, 1..20_000),
+    createdAt = longValue("createdAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS),
+    updatedAt = longValue("updatedAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
+)
+
+private fun CommitmentEntity.toJson() = JSONObject()
+    .put("id", id)
+    .put("conversationId", conversationId)
+    .put("kind", kind.name)
+    .put("owner", owner.name)
+    .put("actor", actor)
+    .put("action", action)
+    .put("location", location)
+    .putNullable("dueAt", dueAt)
+    .put("confidence", confidence.toDouble())
+    .putNullable("suggestedReminderAt", suggestedReminderAt)
+    .put("reviewStatus", reviewStatus.name)
+    .put("fingerprint", fingerprint)
+    .putNullable("resultTaskId", resultTaskId)
+    .put("createdAt", createdAt)
+    .put("updatedAt", updatedAt)
+
+private fun JSONObject.toCommitment() = CommitmentEntity(
+    id = requiredLong("id"),
+    conversationId = requiredLong("conversationId"),
+    kind = enumValue("kind", CommitmentKind.INFORMATION),
+    owner = enumValue("owner", CommitmentOwner.UNKNOWN),
+    actor = text("actor", 500),
+    action = requiredText("action", 10_000),
+    location = text("location", 500),
+    dueAt = epochMillisOrNull("dueAt"),
+    confidence = floatValue("confidence", 0f, 0f..1f),
+    suggestedReminderAt = epochMillisOrNull("suggestedReminderAt"),
+    reviewStatus = enumValue("reviewStatus", CommitmentReviewStatus.PENDING),
+    fingerprint = requiredText("fingerprint", 64).also {
+        require(Regex("^[0-9a-f]{64}$").matches(it)) { "La huella de un compromiso no es válida." }
+    },
+    resultTaskId = longOrNull("resultTaskId"),
+    createdAt = longValue("createdAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS),
     updatedAt = longValue("updatedAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
 )
 

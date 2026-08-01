@@ -446,3 +446,70 @@ interface CaptureDao {
     @Query("DELETE FROM capture_drafts")
     suspend fun deleteAllDrafts()
 }
+
+@Dao
+abstract class ConversationDao {
+    @Query("SELECT * FROM conversations ORDER BY createdAt DESC")
+    abstract fun observeConversations(): Flow<List<ConversationEntity>>
+
+    @Query("SELECT * FROM commitments ORDER BY CASE reviewStatus WHEN 'PENDING' THEN 0 WHEN 'CONVERTED' THEN 1 ELSE 2 END, createdAt DESC")
+    abstract fun observeCommitments(): Flow<List<CommitmentEntity>>
+
+    @Query("SELECT * FROM commitments WHERE reviewStatus = 'PENDING' ORDER BY dueAt IS NULL, dueAt ASC, createdAt DESC")
+    abstract fun observePendingCommitments(): Flow<List<CommitmentEntity>>
+
+    @Query("SELECT * FROM conversations ORDER BY createdAt DESC")
+    abstract suspend fun getConversationsNow(): List<ConversationEntity>
+
+    @Query("SELECT * FROM commitments ORDER BY createdAt DESC")
+    abstract suspend fun getCommitmentsNow(): List<CommitmentEntity>
+
+    @Query("SELECT * FROM conversations WHERE id = :id LIMIT 1")
+    abstract suspend fun getConversation(id: Long): ConversationEntity?
+
+    @Query("SELECT * FROM conversations WHERE contentHash = :contentHash LIMIT 1")
+    abstract suspend fun findConversationByHash(contentHash: String): ConversationEntity?
+
+    @Query("SELECT * FROM commitments WHERE id = :id LIMIT 1")
+    abstract suspend fun getCommitment(id: Long): CommitmentEntity?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    protected abstract suspend fun insertConversation(conversation: ConversationEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    protected abstract suspend fun insertCommitments(commitments: List<CommitmentEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun insertConversations(conversations: List<ConversationEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun restoreCommitments(commitments: List<CommitmentEntity>): List<Long>
+
+    @Update
+    abstract suspend fun updateCommitment(commitment: CommitmentEntity)
+
+    @Transaction
+    open suspend fun insertGraph(
+        conversation: ConversationEntity,
+        commitments: List<CommitmentEntity>
+    ): Long {
+        val insertedId = insertConversation(conversation)
+        if (insertedId <= 0L) {
+            val existingId = findConversationByHash(conversation.contentHash)?.id ?: return 0L
+            return -existingId
+        }
+        if (commitments.isNotEmpty()) {
+            insertCommitments(commitments.map { it.copy(conversationId = insertedId) })
+        }
+        return insertedId
+    }
+
+    @Query("DELETE FROM conversations WHERE id = :id")
+    abstract suspend fun deleteConversation(id: Long)
+
+    @Query("DELETE FROM commitments")
+    abstract suspend fun deleteAllCommitments()
+
+    @Query("DELETE FROM conversations")
+    abstract suspend fun deleteAllConversations()
+}

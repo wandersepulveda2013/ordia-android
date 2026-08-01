@@ -1,0 +1,74 @@
+package com.ordia.app.conversations
+
+import com.ordia.app.data.local.CommitmentKind
+import com.ordia.app.data.local.CommitmentOwner
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class CommitmentEngineTest {
+    @Test
+    fun classifiesOwnAndOtherCommitmentsFromSelectedIdentity() {
+        val messages = listOf(
+            ChatMessage("Yo", "Te envío el informe mañana a las 8"),
+            ChatMessage("Carlos", "Yo me encargo de llamar el lunes")
+        )
+
+        val result = CommitmentEngine.extract(messages, selfParticipant = "Yo", scopeHash = "chat-1")
+
+        assertEquals(2, result.size)
+        assertEquals(CommitmentOwner.SELF, result[0].owner)
+        assertEquals(CommitmentOwner.OTHER, result[1].owner)
+        assertNotNull(result[0].dueAt)
+    }
+
+    @Test
+    fun classifiesRequestsAndMeetings() {
+        val result = CommitmentEngine.extract(
+            listOf(
+                ChatMessage("Ana", "Envíame el informe antes del viernes"),
+                ChatMessage("Ana", "Nos vemos el lunes en la oficina central")
+            ),
+            selfParticipant = "Yo",
+            scopeHash = "chat-2"
+        )
+
+        assertEquals(CommitmentKind.REQUEST, result[0].kind)
+        assertEquals(CommitmentKind.MEETING, result[1].kind)
+        assertTrue(result[1].location.contains("oficina", ignoreCase = true))
+    }
+
+    @Test
+    fun blocksVerificationCodesBeforeExtraction() {
+        val text = "Tu código de verificación es 482913. No olvides guardarlo"
+
+        assertTrue(ConversationPrivacyPolicy.containsSensitiveContent(text))
+        assertTrue(
+            CommitmentEngine.extract(
+                listOf(ChatMessage("Sistema", text)),
+                scopeHash = "chat-3"
+            ).isEmpty()
+        )
+    }
+
+    @Test
+    fun duplicateMessagesProduceOneProposal() {
+        val message = ChatMessage("Ana", "Te llamo mañana")
+        val result = CommitmentEngine.extract(listOf(message, message), scopeHash = "chat-4")
+
+        assertEquals(1, result.size)
+        assertFalse(result.single().fingerprint.isBlank())
+    }
+
+    @Test
+    fun summaryDoesNotCopyWholeConversation() {
+        val preview = ChatImportParser.parse("Ana: Te llamo mañana\nYo: Gracias", "chat.txt")
+        val commitments = CommitmentEngine.extract(preview.messages, "Yo", preview.contentHash)
+        val summary = ConversationSummaryEngine.summarize(preview, commitments)
+
+        assertTrue(summary.contains("2 mensajes"))
+        assertFalse(summary.contains("Te llamo mañana"))
+    }
+}

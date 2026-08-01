@@ -12,7 +12,7 @@ object BackupSecurityRules {
     const val MAX_TOTAL_ITEMS = 250_000
     const val MAX_JSON_DEPTH = 64
     const val MAX_SAFE_EPOCH_MILLIS = 32_503_680_000_000L // 3000-01-01 UTC
-    const val CURRENT_EXPORT_VERSION = 5
+    const val CURRENT_EXPORT_VERSION = 6
 
     /** Versión del formato de copia con checksum SHA-256 obligatorio. */
     const val CHECKSUM_VERSION = 4
@@ -21,14 +21,18 @@ object BackupSecurityRules {
         "projects", "tasks", "notes", "habits", "habitLogs", "focusSessions",
         "routines", "routineSteps", "tags", "taskTags", "attachments"
     )
-    val requiredCollections = legacyCollections + setOf("captures", "captureDrafts")
+    val captureCollections = legacyCollections + setOf("captures", "captureDrafts")
+    val requiredCollections = captureCollections + setOf("conversations", "commitments")
 
     fun supportsVersion(version: Int): Boolean = version in 2..CURRENT_EXPORT_VERSION
     fun inputSizeAllowed(utf8Bytes: Int): Boolean = utf8Bytes in 2..MAX_UTF8_BYTES
     fun collectionSizeAllowed(size: Int): Boolean = size in 0..MAX_ITEMS_PER_COLLECTION
     fun totalSizeAllowed(size: Int): Boolean = size in 0..MAX_TOTAL_ITEMS
-    fun requiredCollectionsFor(version: Int): Set<String> =
-        if (version >= 5) requiredCollections else legacyCollections
+    fun requiredCollectionsFor(version: Int): Set<String> = when {
+        version >= 6 -> requiredCollections
+        version >= 5 -> captureCollections
+        else -> legacyCollections
+    }
     fun hasAllCollections(names: Set<String>, version: Int = CURRENT_EXPORT_VERSION): Boolean =
         requiredCollectionsFor(version).all(names::contains)
     fun hasDuplicatePairs(pairs: Collection<Pair<Long, Long>>): Boolean = pairs.toSet().size != pairs.size

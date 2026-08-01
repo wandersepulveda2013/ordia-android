@@ -23,6 +23,7 @@ import com.ordia.app.context.ContextIntentKind
 import com.ordia.app.context.ContextResult
 import com.ordia.app.context.ContextualKind
 import com.ordia.app.context.ContextualSuggestion
+import com.ordia.app.conversations.ChatImportParser
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.CaptureSource
 import com.ordia.app.data.local.CaptureTarget
@@ -81,6 +82,7 @@ fun OrdiaRoot(
             attachmentRepository = app.container.attachmentRepository,
             automationLogRepository = app.container.automationLogRepository,
             captureRepository = app.container.captureRepository,
+            conversationRepository = app.container.conversationRepository,
             preferencesRepository = app.container.preferencesRepository,
             reminderScheduler = app.container.reminderScheduler,
             backupManager = app.container.backupManager
@@ -126,7 +128,12 @@ fun OrdiaRoot(
             )
             onIncomingTextConsumed()
         } else incomingText?.takeIf { it.isNotBlank() }?.let { text ->
-            if (app.container.contextualSettingsStore.isActive()) {
+            if (ChatImportParser.looksLikeConversation(text)) {
+                viewModel.prepareSharedConversation(text)
+                navController.navigate(Destination.Conversations.route) {
+                    launchSingleTop = true
+                }
+            } else if (app.container.contextualSettingsStore.isActive()) {
                 val engine = ContextEngine.getInstance(context)
                 val source = ContextCaptureSource.SHARED_TEXT
                 val result = engine.processTextAsync(text, source)
@@ -180,6 +187,7 @@ fun OrdiaRoot(
             requestedDestination == "guardian" -> navController.navigate(Destination.Guardian.route)
             requestedDestination == "settings" -> navController.navigate(Destination.Settings.route)
             requestedDestination == "contextual" -> navController.navigate(Destination.Contextual.route)
+            requestedDestination == "conversations" -> navController.navigate(Destination.Conversations.route)
         }
         if (requestedDestination != null || requestedTaskId != null) onNavigationRequestConsumed()
     }

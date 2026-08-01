@@ -113,6 +113,7 @@ class MainActivity : ComponentActivity() {
         const val OPEN_GUARDIAN = "guardian"
         const val OPEN_SETTINGS = "settings"
         const val OPEN_CONTEXTUAL = "contextual"
+        const val OPEN_CONVERSATIONS = "conversations"
         private const val MAX_SHARED_TEXT_CHARS = 100_000
     }
 }

@@ -30,6 +30,18 @@ class Converters {
     @TypeConverter fun captureStatusToString(value: CaptureStatus): String = value.name
     @TypeConverter fun stringToCaptureStatus(value: String): CaptureStatus = enumOrDefault(value, CaptureStatus.PENDING)
 
+    @TypeConverter fun conversationSourceToString(value: ConversationSourceType): String = value.name
+    @TypeConverter fun stringToConversationSource(value: String): ConversationSourceType = enumOrDefault(value, ConversationSourceType.SHARED)
+
+    @TypeConverter fun commitmentKindToString(value: CommitmentKind): String = value.name
+    @TypeConverter fun stringToCommitmentKind(value: String): CommitmentKind = enumOrDefault(value, CommitmentKind.INFORMATION)
+
+    @TypeConverter fun commitmentOwnerToString(value: CommitmentOwner): String = value.name
+    @TypeConverter fun stringToCommitmentOwner(value: String): CommitmentOwner = enumOrDefault(value, CommitmentOwner.UNKNOWN)
+
+    @TypeConverter fun commitmentStatusToString(value: CommitmentReviewStatus): String = value.name
+    @TypeConverter fun stringToCommitmentStatus(value: String): CommitmentReviewStatus = enumOrDefault(value, CommitmentReviewStatus.PENDING)
+
     private inline fun <reified T : Enum<T>> enumOrDefault(value: String, fallback: T): T =
         runCatching { enumValueOf<T>(value) }.getOrDefault(fallback)
 }

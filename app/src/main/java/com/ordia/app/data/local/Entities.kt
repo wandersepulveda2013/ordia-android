@@ -25,6 +25,16 @@ enum class CaptureTarget { AUTO, INBOX, TASK, NOTE, REMINDER }
 
 enum class CaptureStatus { PENDING, PROCESSED, FAILED }
 
+enum class ConversationSourceType { SHARED, IMPORTED, NOTIFICATION }
+
+enum class CommitmentKind {
+    SELF_COMMITMENT, OTHER_COMMITMENT, REQUEST, MEETING, PURCHASE, REMINDER, INFORMATION
+}
+
+enum class CommitmentOwner { SELF, OTHER, UNKNOWN }
+
+enum class CommitmentReviewStatus { PENDING, CONVERTED, DISMISSED }
+
 @Entity(
     tableName = "tasks",
     foreignKeys = [
@@ -282,3 +292,73 @@ data class CaptureDraftEntity(
 ) {
     companion object { const val PRIMARY_SLOT = "main" }
 }
+
+/**
+ * Conversación compartida o importada con retención explícita. En modo
+ * resumen solamente [rawContent] queda vacío: se guardan el resumen y los
+ * compromisos seleccionados, nunca el chat completo por defecto.
+ */
+@Entity(
+    tableName = "conversations",
+    indices = [
+        Index(value = ["contentHash"], unique = true),
+        Index("sourceType"),
+        Index("createdAt")
+    ]
+)
+data class ConversationEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val sourceType: ConversationSourceType,
+    @ColumnInfo(defaultValue = "''") val sourcePackage: String = "",
+    val title: String,
+    @ColumnInfo(defaultValue = "''") val participants: String = "",
+    val summary: String,
+    @ColumnInfo(defaultValue = "''") val rawContent: String = "",
+    @ColumnInfo(defaultValue = "0") val retainsOriginal: Boolean = false,
+    val contentHash: String,
+    @ColumnInfo(defaultValue = "0") val messageCount: Int = 0,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(
+    tableName = "commitments",
+    foreignKeys = [
+        ForeignKey(
+            entity = ConversationEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["conversationId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = TaskEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["resultTaskId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
+    indices = [
+        Index("conversationId"),
+        Index("reviewStatus"),
+        Index("dueAt"),
+        Index("resultTaskId"),
+        Index(value = ["fingerprint"], unique = true)
+    ]
+)
+data class CommitmentEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val conversationId: Long,
+    val kind: CommitmentKind,
+    val owner: CommitmentOwner = CommitmentOwner.UNKNOWN,
+    @ColumnInfo(defaultValue = "''") val actor: String = "",
+    val action: String,
+    @ColumnInfo(defaultValue = "''") val location: String = "",
+    val dueAt: Long? = null,
+    val confidence: Float,
+    val suggestedReminderAt: Long? = null,
+    val reviewStatus: CommitmentReviewStatus = CommitmentReviewStatus.PENDING,
+    val fingerprint: String,
+    val resultTaskId: Long? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)

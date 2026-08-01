@@ -23,9 +23,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AttachmentEntity::class,
         AutomationLogEntity::class,
         CaptureEntity::class,
-        CaptureDraftEntity::class
+        CaptureDraftEntity::class,
+        ConversationEntity::class,
+        CommitmentEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -43,9 +45,60 @@ abstract class OrdiaDatabase : RoomDatabase() {
     abstract fun attachmentDao(): AttachmentDao
     abstract fun automationLogDao(): AutomationLogDao
     abstract fun captureDao(): CaptureDao
+    abstract fun conversationDao(): ConversationDao
 
     companion object {
         @Volatile private var instance: OrdiaDatabase? = null
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS conversations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        sourceType TEXT NOT NULL,
+                        sourcePackage TEXT NOT NULL DEFAULT '',
+                        title TEXT NOT NULL,
+                        participants TEXT NOT NULL DEFAULT '',
+                        summary TEXT NOT NULL,
+                        rawContent TEXT NOT NULL DEFAULT '',
+                        retainsOriginal INTEGER NOT NULL DEFAULT 0,
+                        contentHash TEXT NOT NULL,
+                        messageCount INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_conversations_contentHash ON conversations(contentHash)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_conversations_sourceType ON conversations(sourceType)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_conversations_createdAt ON conversations(createdAt)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS commitments (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        conversationId INTEGER NOT NULL,
+                        kind TEXT NOT NULL,
+                        owner TEXT NOT NULL,
+                        actor TEXT NOT NULL DEFAULT '',
+                        action TEXT NOT NULL,
+                        location TEXT NOT NULL DEFAULT '',
+                        dueAt INTEGER,
+                        confidence REAL NOT NULL,
+                        suggestedReminderAt INTEGER,
+                        reviewStatus TEXT NOT NULL,
+                        fingerprint TEXT NOT NULL,
+                        resultTaskId INTEGER,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        FOREIGN KEY(conversationId) REFERENCES conversations(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(resultTaskId) REFERENCES tasks(id) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_commitments_conversationId ON commitments(conversationId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_commitments_reviewStatus ON commitments(reviewStatus)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_commitments_dueAt ON commitments(dueAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_commitments_resultTaskId ON commitments(resultTaskId)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_commitments_fingerprint ON commitments(fingerprint)")
+            }
+        }
 
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -233,7 +286,7 @@ abstract class OrdiaDatabase : RoomDatabase() {
                     OrdiaDatabase::class.java,
                     "ordia.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { instance = it }
             }

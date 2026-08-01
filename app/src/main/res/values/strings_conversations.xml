@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_conversations">Conversaciones</string>
+    <string name="more_conversations_desc">Importa chats, revisa resúmenes y convierte compromisos en tareas.</string>
+
+    <string name="conversation_eyebrow">CENTRO PRIVADO</string>
+    <string name="conversation_title">Conversaciones</string>
+    <string name="conversation_subtitle">Analiza exportaciones y texto compartido en tu dispositivo. Tú decides qué conservar.</string>
+    <string name="conversation_import">Importar</string>
+    <string name="conversation_paste">Pegar</string>
+    <string name="conversation_import_default_name">Conversación importada</string>
+    <string name="conversation_import_read_error">No se pudo leer el archivo seleccionado.</string>
+    <string name="conversation_parse_failed">No se pudo reconocer una conversación legible.</string>
+    <string name="conversation_paste_title">Pegar conversación</string>
+    <string name="conversation_paste_label">Mensajes o conversación exportada</string>
+    <string name="conversation_pasted_name">Conversación pegada</string>
+    <string name="conversation_analyze">Analizar</string>
+
+    <string name="conversation_preview_title">Vista previa local</string>
+    <string name="conversation_preview_counts">%1$s · %2$s · %3$s</string>
+    <plurals name="conversation_message_count">
+        <item quantity="one">%1$d mensaje</item>
+        <item quantity="other">%1$d mensajes</item>
+    </plurals>
+    <plurals name="conversation_participant_count">
+        <item quantity="one">%1$d participante</item>
+        <item quantity="other">%1$d participantes</item>
+    </plurals>
+    <plurals name="conversation_commitment_count">
+        <item quantity="one">%1$d compromiso</item>
+        <item quantity="other">%1$d compromisos</item>
+    </plurals>
+    <string name="conversation_identity_title">¿Quién eres en esta conversación?</string>
+    <string name="conversation_identity_unknown">No indicar</string>
+    <string name="conversation_sensitive_omitted">Contenido sensible omitido</string>
+    <string name="conversation_retain_original">Conservar conversación completa</string>
+    <string name="conversation_retain_original_desc">Desactivado por defecto. Sin esto, Ordía guarda únicamente el resumen y los compromisos.</string>
+    <string name="conversation_save_review">Guardar para revisar</string>
+    <string name="conversation_save_failed">No se pudo guardar la conversación.</string>
+    <plurals name="conversation_saved">
+        <item quantity="one">Conversación guardada con %1$d compromiso pendiente.</item>
+        <item quantity="other">Conversación guardada con %1$d compromisos pendientes.</item>
+    </plurals>
+    <plurals name="conversation_duplicate">
+        <item quantity="one">Esta conversación ya existe. Hay %1$d compromiso disponible.</item>
+        <item quantity="other">Esta conversación ya existe. Hay %1$d compromisos disponibles.</item>
+    </plurals>
+
+    <string name="commitment_pending_title">Compromisos por revisar</string>
+    <plurals name="commitment_pending_subtitle">
+        <item quantity="one">%1$d propuesta; no se crea sin tu confirmación.</item>
+        <item quantity="other">%1$d propuestas; ninguna se crea sin tu confirmación.</item>
+    </plurals>
+    <string name="commitment_empty">No hay compromisos pendientes.</string>
+    <string name="commitment_owner_self">Tú</string>
+    <string name="commitment_owner_other">Otra persona</string>
+    <string name="commitment_owner_unknown">Por confirmar</string>
+    <string name="commitment_meta">%1$s · Confianza %2$d%%</string>
+    <string name="commitment_location">Lugar: %1$s</string>
+    <string name="commitment_create_task">Crear tarea</string>
+    <string name="commitment_discard">Descartar</string>
+    <string name="commitment_converted">Compromiso convertido en tarea.</string>
+    <string name="commitment_dismissed">Propuesta descartada.</string>
+
+    <string name="conversation_history_title">Historial</string>
+    <string name="conversation_history_subtitle">Resúmenes guardados y resultados de la revisión.</string>
+    <string name="conversation_history_empty">Todavía no has guardado conversaciones.</string>
+    <string name="conversation_history_meta">%1$s · %2$s</string>
+    <string name="conversation_original_retained">Original conservado por tu elección</string>
+    <string name="conversation_summary_only">Solo resumen y compromisos</string>
+    <string name="conversation_open_created_task">Abrir tarea creada</string>
+    <string name="conversation_delete_action">Eliminar conversación</string>
+    <string name="conversation_delete_title">Eliminar conversación</string>
+    <string name="conversation_delete_body">Se eliminarán “%1$s” y sus compromisos asociados. Las tareas ya creadas permanecerán.</string>
+    <string name="conversation_deleted">Conversación y compromisos eliminados.</string>
+</resources>

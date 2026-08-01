@@ -55,3 +55,26 @@ Validación del bloque:
 - `lintPreviewAdvancedDebug`: 0 errores, 111 advertencias heredadas o informativas (una menos que el bloque 1).
 - `assemblePreviewAdvancedDebug`: correcto.
 - APK: `app/build/outputs/apk/previewAdvanced/debug/app-previewAdvanced-debug.apk`.
+
+## Bloque 3 — conversaciones y compromisos
+
+- Nuevo centro **Conversaciones**, accesible desde Inicio, Más, el rail de tabletas y el menú de captura rápida.
+- Importación local y acotada de exportaciones TXT tipo WhatsApp y JSON de Telegram, además de texto pegado o compartido.
+- Vista previa con participantes, mensajes legibles y contenido sensible omitido antes de guardar.
+- Selección opcional de la identidad propia para distinguir compromisos personales y de otras personas.
+- Motor determinista local para solicitudes, reuniones, compras, recordatorios y compromisos; extrae fecha, lugar, responsable, confianza y recordatorio sugerido.
+- Códigos OTP, contraseñas, datos de autenticación y números de tarjeta se bloquean antes de llegar al extractor.
+- Ninguna propuesta crea una tarea automáticamente: cada compromiso queda pendiente hasta que el usuario lo convierte o descarta.
+- Retención mínima por defecto: se guardan resumen y compromisos; el chat completo solo se conserva mediante un interruptor explícito.
+- Historial eliminable, enlaces a tareas creadas, borrado en cascada y deduplicación persistente por SHA-256.
+- `ACTION_SEND` admite texto, imágenes y archivos; los textos con estructura de chat abren directamente la vista previa de Conversaciones.
+- Room v5 con `conversations` y `commitments`, claves foráneas, índices y migración no destructiva 4→5.
+- Esquema Room 5 incorporado al control de versiones y prueba instrumental específica de migración.
+- Formato de respaldo v6 con conversaciones y compromisos, validación de consentimiento/relaciones y compatibilidad con copias v2–v5.
+
+Validación del bloque:
+
+- `test`: 1,824 pruebas JVM (304 por cada una de las seis variantes), 0 fallos, 0 errores y 0 omitidas.
+- `compilePreviewAdvancedDebugAndroidTestKotlin`: correcto; incluye contratos de migración 3→4 y 4→5.
+- `lintPreviewAdvancedDebug`: 0 errores, 111 advertencias heredadas o informativas; no aumentaron respecto al bloque 2.
+- `assembleDebug`: correcto; se generaron las tres APK debug (`previewAdvanced`, `previewFull` y `previewSafe`).

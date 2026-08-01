@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
@@ -82,6 +83,7 @@ import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.GuardianAvatar
 import com.ordia.app.ui.screens.ArchiveScreen
 import com.ordia.app.ui.screens.ContextualAttentionScreen
+import com.ordia.app.ui.screens.ConversationsScreen
 import com.ordia.app.ui.screens.CaptureScreen
 import com.ordia.app.ui.screens.FocusScreen
 import com.ordia.app.ui.screens.GuardianScreen
@@ -118,6 +120,7 @@ sealed class Destination(val route: String, @StringRes val labelRes: Int, val ic
     data object More : Destination("more", R.string.nav_more, Icons.Outlined.MoreHoriz)
     data object Guardian : Destination("guardian", R.string.nav_guardian, Icons.Outlined.Psychology)
     data object Contextual : Destination("contextual", R.string.nav_contextual, Icons.Outlined.AutoAwesome)
+    data object Conversations : Destination("conversations", R.string.nav_conversations, Icons.Outlined.ChatBubbleOutline)
 
     companion object {
         const val TASK_ROUTE = "task/{taskId}"
@@ -142,6 +145,7 @@ private val compactMoreRoutes = setOf(
     Destination.Archive.route,
     Destination.Guardian.route,
     Destination.Contextual.route,
+    Destination.Conversations.route,
     Destination.Settings.route
 )
 private val topLevelRoutes = setOf(
@@ -159,21 +163,22 @@ private val topLevelRoutes = setOf(
     Destination.Archive.route,
     Destination.Guardian.route,
     Destination.Contextual.route,
+    Destination.Conversations.route,
     Destination.Settings.route,
     Destination.More.route
 )
 
 private fun wideItems(mode: InterfaceMode): List<Destination> = when (mode) {
     InterfaceMode.SIMPLE -> listOf(
-        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Conversations, Destination.Planner,
         Destination.Notes, Destination.Guardian, Destination.Focus, Destination.Search
     )
     InterfaceMode.ORGANIZED -> listOf(
-        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Conversations, Destination.Planner,
         Destination.Projects, Destination.Notes, Destination.Habits, Destination.Guardian, Destination.Focus, Destination.Search
     )
     InterfaceMode.ADVANCED -> listOf(
-        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Conversations, Destination.Planner,
         Destination.Projects, Destination.Notes, Destination.Habits, Destination.Guardian, Destination.Focus,
         Destination.Search, Destination.Statistics, Destination.Archive
     )
@@ -301,7 +306,7 @@ private fun OrdiaNavHost(
                 onOpenFocus = { navController.navigateSingle(Destination.Focus.route) },
                 onOpenInbox = { navController.navigateSingle(Destination.Inbox.route) },
                 onOpenPlanner = { navController.navigateSingle(Destination.Planner.route) },
-                onReviewMessages = { navController.navigateSingle(Destination.Contextual.route) },
+                onReviewMessages = { navController.navigateSingle(Destination.Conversations.route) },
                 onQuickNote = { navController.navigate(Destination.note(0L)) }
             )
         }
@@ -322,6 +327,13 @@ private fun OrdiaNavHost(
         composable(Destination.Focus.route) { FocusScreen(state, vm, padding) }
         composable(Destination.Guardian.route) { GuardianScreen(state, padding) }
         composable(Destination.Contextual.route) { ContextualAttentionScreen(state, vm, padding) }
+        composable(Destination.Conversations.route) {
+            ConversationsScreen(
+                vm = vm,
+                padding = padding,
+                onTask = { navController.navigate(Destination.task(it)) }
+            )
+        }
         composable(Destination.Search.route) {
             SearchScreen(
                 state,
@@ -442,7 +454,7 @@ private fun QuickCaptureFab(route: String, navController: NavHostController) {
                 leadingIcon = { Icon(Icons.Outlined.AutoAwesome, null) },
                 onClick = {
                     expanded = QuickCaptureMenuState.reduce(expanded, QuickCaptureMenuEvent.NAVIGATE)
-                    navController.navigateSingle(Destination.Contextual.route)
+                    navController.navigateSingle(Destination.Conversations.route)
                 }
             )
         }

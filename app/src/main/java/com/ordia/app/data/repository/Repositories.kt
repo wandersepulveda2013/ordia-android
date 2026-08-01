@@ -26,6 +26,9 @@ import com.ordia.app.data.local.TaskTagDao
 import com.ordia.app.data.local.CaptureDao
 import com.ordia.app.data.local.CaptureDraftEntity
 import com.ordia.app.data.local.CaptureEntity
+import com.ordia.app.data.local.CommitmentEntity
+import com.ordia.app.data.local.ConversationDao
+import com.ordia.app.data.local.ConversationEntity
 import kotlinx.coroutines.flow.Flow
 
 class TaskRepository(private val dao: TaskDao) {
@@ -145,4 +148,28 @@ class CaptureRepository(private val dao: CaptureDao) {
         dao.findRecentDuplicate(fingerprint, since)
     suspend fun saveDraft(draft: CaptureDraftEntity) = dao.upsertDraft(draft)
     suspend fun clearDraft() = dao.deleteDraft()
+}
+
+class ConversationRepository(private val dao: ConversationDao) {
+    val conversations: Flow<List<ConversationEntity>> = dao.observeConversations()
+    val commitments: Flow<List<CommitmentEntity>> = dao.observeCommitments()
+    val pendingCommitments: Flow<List<CommitmentEntity>> = dao.observePendingCommitments()
+
+    suspend fun saveGraph(conversation: ConversationEntity, commitments: List<CommitmentEntity>): Pair<Long, Boolean> {
+        val result = dao.insertGraph(conversation, commitments)
+        return when {
+            result > 0L -> result to true
+            result < 0L -> -result to false
+            else -> 0L to false
+        }
+    }
+
+    suspend fun getConversation(id: Long): ConversationEntity? = dao.getConversation(id)
+    suspend fun getCommitment(id: Long): CommitmentEntity? = dao.getCommitment(id)
+    suspend fun updateCommitment(commitment: CommitmentEntity) = dao.updateCommitment(commitment)
+    suspend fun deleteConversation(id: Long) = dao.deleteConversation(id)
+    suspend fun clearAll() {
+        dao.deleteAllCommitments()
+        dao.deleteAllConversations()
+    }
 }

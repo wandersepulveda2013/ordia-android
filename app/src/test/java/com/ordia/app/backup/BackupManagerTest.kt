@@ -7,6 +7,11 @@ import com.ordia.app.data.local.CaptureEntity
 import com.ordia.app.data.local.CaptureSource
 import com.ordia.app.data.local.CaptureStatus
 import com.ordia.app.data.local.CaptureTarget
+import com.ordia.app.data.local.CommitmentEntity
+import com.ordia.app.data.local.CommitmentKind
+import com.ordia.app.data.local.CommitmentOwner
+import com.ordia.app.data.local.ConversationEntity
+import com.ordia.app.data.local.ConversationSourceType
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
@@ -99,6 +104,33 @@ class BackupManagerTest {
         ),
         captureDrafts = listOf(
             CaptureDraftEntity(content = "Borrador", updatedAt = 1000L)
+        ),
+        conversations = listOf(
+            ConversationEntity(
+                id = 13,
+                sourceType = ConversationSourceType.IMPORTED,
+                title = "Chat de proyecto",
+                participants = "Ana\nYo",
+                summary = "Dos mensajes con una solicitud pendiente.",
+                contentHash = "b".repeat(64),
+                messageCount = 2,
+                createdAt = 1000L,
+                updatedAt = 1000L
+            )
+        ),
+        commitments = listOf(
+            CommitmentEntity(
+                id = 14,
+                conversationId = 13,
+                kind = CommitmentKind.REQUEST,
+                owner = CommitmentOwner.SELF,
+                actor = "Ana",
+                action = "Envíame el informe mañana",
+                confidence = 0.9f,
+                fingerprint = "c".repeat(64),
+                createdAt = 1000L,
+                updatedAt = 1000L
+            )
         )
     )
 
@@ -120,7 +152,7 @@ class BackupManagerTest {
     ) = BackupManager(store, prefs, scheduler, journal)
 
     /** Recalcula el checksum después de modificar el JSON (como haría la app). */
-    private fun rewrap(root: JSONObject, version: Int = 5): String {
+    private fun rewrap(root: JSONObject, version: Int = 6): String {
         root.put("version", version)
         root.remove("checksum")
         val content = root.toString(2)
@@ -275,6 +307,55 @@ class BackupManagerTest {
         assertTrue(result.message, result.success)
         assertTrue(destinationStore.current.captures.isEmpty())
         assertTrue(destinationStore.current.captureDrafts.isEmpty())
+    }
+
+    @Test
+    fun version5BackupWithoutConversationCollectionsRemainsCompatible() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val legacy = JSONObject(origin.exportJson()).apply {
+            remove("conversations")
+            remove("commitments")
+        }
+        val destinationStore = FakeBackupStore(otherData())
+
+        val result = newManager(destinationStore).importBackup(rewrap(legacy, version = 5))
+
+        assertTrue(result.message, result.success)
+        assertTrue(destinationStore.current.conversations.isEmpty())
+        assertTrue(destinationStore.current.commitments.isEmpty())
+        assertEquals(1, destinationStore.current.captures.size)
+    }
+
+    @Test
+    fun version6RejectsCommitmentWhoseConversationDoesNotExist() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val tampered = JSONObject(origin.exportJson()).apply {
+            getJSONArray("commitments").getJSONObject(0).put("conversationId", 999L)
+        }
+        val destinationStore = FakeBackupStore(otherData())
+
+        val result = newManager(destinationStore).importBackup(rewrap(tampered))
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("conversación inexistente"))
+        assertEquals("Viejo", destinationStore.current.projects.single().name)
+    }
+
+    @Test
+    fun version6RejectsRawConversationWithoutRetentionConsent() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val tampered = JSONObject(origin.exportJson()).apply {
+            getJSONArray("conversations").getJSONObject(0)
+                .put("rawContent", "Contenido que no debía conservarse")
+                .put("retainsOriginal", false)
+        }
+        val destinationStore = FakeBackupStore(otherData())
+
+        val result = newManager(destinationStore).importBackup(rewrap(tampered))
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("sin consentimiento"))
+        assertEquals("Viejo", destinationStore.current.projects.single().name)
     }
 
     @Test

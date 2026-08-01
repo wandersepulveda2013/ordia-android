@@ -15,6 +15,10 @@ import com.ordia.app.data.local.CaptureEntity
 import com.ordia.app.data.local.CaptureSource
 import com.ordia.app.data.local.CaptureStatus
 import com.ordia.app.data.local.CaptureTarget
+import com.ordia.app.data.local.CommitmentEntity
+import com.ordia.app.data.local.CommitmentReviewStatus
+import com.ordia.app.data.local.ConversationEntity
+import com.ordia.app.data.local.ConversationSourceType
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
@@ -35,6 +39,7 @@ import com.ordia.app.data.preferences.UserPreferences
 import com.ordia.app.data.repository.AttachmentRepository
 import com.ordia.app.data.repository.AutomationLogRepository
 import com.ordia.app.data.repository.CaptureRepository
+import com.ordia.app.data.repository.ConversationRepository
 import com.ordia.app.data.repository.FocusRepository
 import com.ordia.app.data.repository.HabitRepository
 import com.ordia.app.data.repository.NoteRepository
@@ -62,6 +67,10 @@ import com.ordia.app.domain.TaskRules
 import com.ordia.app.domain.TaskSnapshotCodec
 import com.ordia.app.domain.TaskMutationGate
 import com.ordia.app.domain.UniversalCaptureEngine
+import com.ordia.app.conversations.ChatImportParser
+import com.ordia.app.conversations.CommitmentEngine
+import com.ordia.app.conversations.ConversationPreview
+import com.ordia.app.conversations.ConversationSummaryEngine
 import com.ordia.app.reminders.ReminderScheduler
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import com.ordia.app.BuildConfig
@@ -76,6 +85,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.LocalDate
@@ -213,6 +224,7 @@ class OrdiaViewModel(
     private val attachmentRepository: AttachmentRepository,
     private val automationLogRepository: AutomationLogRepository,
     private val captureRepository: CaptureRepository,
+    private val conversationRepository: ConversationRepository,
     private val preferencesRepository: PreferencesRepository,
     private val reminderScheduler: ReminderScheduler,
     private val backupManager: BackupManager
@@ -231,6 +243,15 @@ class OrdiaViewModel(
     val captureDraftState: StateFlow<CaptureDraftState> = captureRepository.draft
         .map { CaptureDraftState(loaded = true, draft = it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CaptureDraftState())
+
+    val conversations: StateFlow<List<ConversationEntity>> = conversationRepository.conversations
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val commitments: StateFlow<List<CommitmentEntity>> = conversationRepository.commitments
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val pendingCommitments: StateFlow<List<CommitmentEntity>> = conversationRepository.pendingCommitments
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val _sharedConversationPreview = MutableStateFlow<ConversationPreview?>(null)
+    val sharedConversationPreview: StateFlow<ConversationPreview?> = _sharedConversationPreview.asStateFlow()
 
     private val core = combine(
         taskRepository.tasks,
@@ -1044,6 +1065,144 @@ class OrdiaViewModel(
         )
     }
 
+    fun prepareSharedConversation(raw: String, title: String = "Contenido compartido") {
+        if (raw.isBlank()) return
+        viewModelScope.launch {
+            val preview = runCatching {
+                withContext(Dispatchers.Default) { ChatImportParser.parse(raw, title) }
+            }.getOrElse {
+                _events.emit(UiEvent.Message(appContext.getString(R.string.conversation_parse_failed)))
+                return@launch
+            }
+            _sharedConversationPreview.value = preview
+        }
+    }
+
+    fun clearSharedConversationPreview() {
+        _sharedConversationPreview.value = null
+    }
+
+    fun saveConversationPreview(
+        preview: ConversationPreview,
+        retainOriginal: Boolean,
+        selfParticipant: String?,
+        sourceType: ConversationSourceType = ConversationSourceType.IMPORTED,
+        sourcePackage: String = "",
+        onSaved: (Boolean) -> Unit = {}
+    ) = viewModelScope.launch {
+        val drafts = withContext(Dispatchers.Default) {
+            CommitmentEngine.extract(preview.messages, selfParticipant, preview.contentHash)
+        }
+        val summary = withContext(Dispatchers.Default) {
+            ConversationSummaryEngine.summarize(preview, drafts)
+        }
+        val now = System.currentTimeMillis()
+        val conversation = ConversationEntity(
+            sourceType = sourceType,
+            sourcePackage = sourcePackage.take(180),
+            title = preview.title.take(160),
+            participants = ChatImportParser.encodeParticipants(preview.participants),
+            summary = summary.take(4_000),
+            rawContent = if (retainOriginal) preview.rawContent else "",
+            retainsOriginal = retainOriginal,
+            contentHash = preview.contentHash,
+            messageCount = preview.messages.size,
+            createdAt = now,
+            updatedAt = now
+        )
+        val entities = drafts.map { draft ->
+            CommitmentEntity(
+                conversationId = 0,
+                kind = draft.kind,
+                owner = draft.owner,
+                actor = draft.actor,
+                action = draft.action,
+                location = draft.location,
+                dueAt = draft.dueAt,
+                confidence = draft.confidence,
+                suggestedReminderAt = draft.suggestedReminderAt,
+                fingerprint = draft.fingerprint,
+                createdAt = now,
+                updatedAt = now
+            )
+        }
+        val (id, created) = try {
+            conversationRepository.saveGraph(conversation, entities)
+        } catch (_: Exception) {
+            _events.emit(UiEvent.Message(appContext.getString(R.string.conversation_save_failed)))
+            onSaved(false)
+            return@launch
+        }
+        if (id <= 0L) {
+            _events.emit(UiEvent.Message(appContext.getString(R.string.conversation_save_failed)))
+            onSaved(false)
+            return@launch
+        }
+        _sharedConversationPreview.value = null
+        _events.emit(
+            UiEvent.Message(
+                appContext.resources.getQuantityString(
+                    if (created) R.plurals.conversation_saved else R.plurals.conversation_duplicate,
+                    entities.size,
+                    entities.size
+                )
+            )
+        )
+        onSaved(true)
+    }
+
+    fun convertCommitmentToTask(commitmentId: Long) = viewModelScope.launch {
+        val commitment = conversationRepository.getCommitment(commitmentId) ?: return@launch
+        if (commitment.reviewStatus != CommitmentReviewStatus.PENDING) return@launch
+        val parsed = NaturalTaskParser.parse(commitment.action)
+        val now = System.currentTimeMillis()
+        val task = TaskEntity(
+            title = parsed.title,
+            details = buildString {
+                append(commitment.action)
+                if (commitment.actor.isNotBlank()) append("\n\nPersona: ${commitment.actor}")
+                if (commitment.location.isNotBlank()) append("\nLugar: ${commitment.location}")
+            },
+            dueAt = commitment.dueAt,
+            reminderAt = commitment.suggestedReminderAt,
+            durationMinutes = parsed.durationMinutes ?: 25,
+            priority = parsed.priority,
+            status = if (commitment.dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED,
+            createdAt = now,
+            updatedAt = now
+        )
+        val taskId = taskRepository.add(task)
+        if (task.dueAt != null || task.reminderAt != null) {
+            reminderScheduler.schedule(task.copy(id = taskId))
+        }
+        conversationRepository.updateCommitment(
+            commitment.copy(
+                reviewStatus = CommitmentReviewStatus.CONVERTED,
+                resultTaskId = taskId,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+        updateWidget()
+        _events.emit(UiEvent.Message(appContext.getString(R.string.commitment_converted)))
+    }
+
+    fun dismissCommitment(commitmentId: Long) = viewModelScope.launch {
+        val commitment = conversationRepository.getCommitment(commitmentId) ?: return@launch
+        if (commitment.reviewStatus != CommitmentReviewStatus.PENDING) return@launch
+        conversationRepository.updateCommitment(
+            commitment.copy(
+                reviewStatus = CommitmentReviewStatus.DISMISSED,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+        _events.emit(UiEvent.Message(appContext.getString(R.string.commitment_dismissed)))
+    }
+
+    fun deleteConversation(conversationId: Long) = viewModelScope.launch {
+        conversationRepository.deleteConversation(conversationId)
+        _events.emit(UiEvent.Message(appContext.getString(R.string.conversation_deleted)))
+    }
+
     fun exportBackup(onReady: (String) -> Unit) = viewModelScope.launch {
         runCatching { backupManager.exportJson() }
             .onSuccess(onReady)
@@ -1167,6 +1326,7 @@ class OrdiaViewModel(
         private val attachmentRepository: AttachmentRepository,
         private val automationLogRepository: AutomationLogRepository,
         private val captureRepository: CaptureRepository,
+        private val conversationRepository: ConversationRepository,
         private val preferencesRepository: PreferencesRepository,
         private val reminderScheduler: ReminderScheduler,
         private val backupManager: BackupManager
@@ -1184,6 +1344,7 @@ class OrdiaViewModel(
             attachmentRepository,
             automationLogRepository,
             captureRepository,
+            conversationRepository,
             preferencesRepository,
             reminderScheduler,
             backupManager
