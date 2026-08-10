@@ -1,0 +1,248 @@
+name: Ordia Autonomous Merge
+
+on:
+  # Evaluación inmediata cuando una PR autónoma cambia.
+  # pull_request_target se ejecuta con el código de la rama base (main, confiable).
+  # Este workflow NUNCA hace checkout del código del PR: solo consulta metadata
+  # y checks vía API y efectúa el merge cuando es seguro.
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+  # Respaldo: barrido periódico por si los checks terminan después del evento
+  # o el evento no se disparó (ej. PR creada vía API).
+  schedule:
+    - cron: "*/15 * * * *"
+
+  workflow_dispatch:
+
+concurrency:
+  group: ordia-autonomous-merge
+  cancel-in-progress: false
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: read
+      statuses: read
+
+    steps:
+      - name: Auto-merge seguro de PRs autónomas hacia jules/autonomous-ordia
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python <<'PY'
+          import json
+          import os
+          import re
+          import urllib.request
+          import urllib.error
+
+          API = "https://api.github.com"
+          REPO = os.environ.get("GITHUB_REPOSITORY", "")
+          TOKEN = os.environ.get("GH_TOKEN", "")
+          BASE = "jules/autonomous-ordia"
+          AGENT_OWNER = "wandersepulveda2013"
+
+          # Señal fuerte de rama creada por una sesión autónoma de Jules:
+          # prefijo de tipo + separador + descripción + (timestamp de 10-20 dígitos)
+          JULES_BRANCH_RE = re.compile(
+              r"^(fix|feat|perf|refactor|test|optimize|security|add|remove|code-health|chore|docs)"
+              r"(/|-)[a-z0-9-]+(-\d{10,20})?$"
+          )
+          # Combinación de señales: el patrón de rama ES la señal fuerte.
+          # El autor (propietario) es señal adicional débil, no exclusiva.
+
+          def api(path, method="GET", payload=None):
+              data = json.dumps(payload).encode("utf-8") if payload is not None else None
+              req = urllib.request.Request(
+                  f"{API}{path}",
+                  data=data,
+                  method=method,
+                  headers={
+                      "Authorization": f"Bearer {TOKEN}",
+                      "Accept": "application/vnd.github+json",
+                      "User-Agent": "ordia-auto-merge",
+                      "Content-Type": "application/json"
+                  }
+              )
+              with urllib.request.urlopen(req, timeout=60) as resp:
+                  body = resp.read()
+                  return json.loads(body) if body else {}
+
+          def collect_prs():
+              all_prs = []
+              page = 1
+              while True:
+                  prs = api(f"/repos/{REPO}/pulls?state=open&base={BASE}&per_page=50&page={page}")
+                  all_prs.extend(prs)
+                  if len(prs) < 50:
+                      break
+                  page += 1
+              return all_prs
+
+          log = []
+          merged_any = False
+          try:
+              open_prs = collect_prs()
+          except Exception as e:
+              print(f"::error::No se pudieron listar PRs: {e}")
+              open_prs = []
+
+          for pr in open_prs:
+              number = pr.get("number")
+              base_ref = (pr.get("base") or {}).get("ref")
+              head_ref = (pr.get("head") or {}).get("ref")
+              head_sha = (pr.get("head") or {}).get("sha")
+              title = pr.get("title") or ""
+
+              # ── GUARDA 1: base ref EXACTAMENTE jules/autonomous-ordia ──
+              if base_ref != BASE:
+                  log.append(f"PR #{number}: base='{base_ref}' != '{BASE}' → SKIP")
+                  continue
+
+              # ── GUARDA 2: NUNCA merge hacia main ──
+              if base_ref == "main":
+                  print(f"::error::PR #{number}: base es main. MERGE PROHIBIDO. SKIP.")
+                  log.append(f"PR #{number}: base es main → MERGE PROHIBIDO (guard clause) → SKIP")
+                  continue
+
+              # ── GUARDA 3: PR inequívocamente de una sesión autónoma de Jules ──
+              # Señal fuerte: patrón de rama head con sufijo timestamp.
+              # Señal adicional: mismo repo (no fork) y autor propietario.
+              head_repo_id = (pr.get("head") or {}).get("repo") or {}
+              base_repo_id = (pr.get("base") or {}).get("repo") or {}
+              is_fork = head_repo_id.get("id") != base_repo_id.get("id")
+              if is_fork:
+                  log.append(f"PR #{number}: proviene de un fork → no es sesión autónoma → SKIP")
+                  continue
+              if not JULES_BRANCH_RE.match(head_ref or ""):
+                  log.append(f"PR #{number}: head ref '{head_ref}' no coincide con patrón Jules → SKIP")
+                  continue
+
+              # ── GUARDA 4: no draft ──
+              if pr.get("draft"):
+                  log.append(f"PR #{number}: es draft → SKIP")
+                  continue
+
+              # ── GUARDAS 5 y 6: mergeable y sin conflictos ──
+              mergeable = pr.get("mergeable")
+              mergeable_state = pr.get("mergeable_state")  # clean|dirty|behind|unstable|blocked
+              if mergeable is False:
+                  log.append(f"PR #{number}: no mergeable → SKIP")
+                  continue
+              if mergeable_state in ("dirty", "blocked", "unstable"):
+                  log.append(f"PR #{number}: mergeable_state='{mergeable_state}' → SKIP")
+                  continue
+              if mergeable_state == "behind":
+                  try:
+                      api(f"/repos/{REPO}/pulls/{number}/update-branch", method="PUT", payload={})
+                      log.append(f"PR #{number}: behind → update-branch solicitado; se reintentará en el próximo ciclo")
+                  except Exception as e:
+                      log.append(f"PR #{number}: behind y no se pudo actualizar ({e}) → SKIP")
+                  continue
+
+              # ── GUARDAS 7-10: todos los checks terminados y SUCCESS ──
+              failures = []
+              pending = []
+              security_fail = False
+              try:
+                  cr = api(f"/repos/{REPO}/commits/{head_sha}/check-runs")
+                  for run in cr.get("check_runs", []):
+                      name = run.get("name") or "?"
+                      status = run.get("status")
+                      conclusion = run.get("conclusion")
+                      if status in ("queued", "in_progress", "waiting"):
+                          pending.append(name)
+                      elif conclusion in ("failure", "cancelled", "timed_out",
+                                          "action_required", "stale", "startup_failure"):
+                          failures.append(f"{name}:{conclusion}")
+                      elif conclusion not in ("success", "neutral", "skipped"):
+                          failures.append(f"{name}:{conclusion}")
+                      # ── GUARDA 11: security/secret checks deben ser SUCCESS ──
+                      if re.search(r"(secret|security|codeql|scan|dependency|supply|sast)", name, re.I):
+                          if conclusion != "success":
+                              security_fail = True
+              except Exception as e:
+                  log.append(f"PR #{number}: error consultando check-runs ({e}) → SKIP")
+                  continue
+
+              # Combined status (legacy statuses API) como refuerzo
+              try:
+                  combined = api(f"/repos/{REPO}/commits/{head_sha}/status")
+                  cs = combined.get("state")
+                  if cs == "pending":
+                      pending.append("status:pending")
+                  elif cs in ("failure", "error"):
+                      failures.append(f"status:{cs}")
+              except Exception:
+                  pass
+
+              if security_fail:
+                  log.append(f"PR #{number}: un security/secret check no es SUCCESS → SKIP")
+                  continue
+              if pending:
+                  log.append(f"PR #{number}: checks aún en curso ({', '.join(pending[:5])}) → SKIP")
+                  continue
+              if failures:
+                  log.append(f"PR #{number}: checks NO exitosos ({', '.join(failures[:5])}) → SKIP")
+                  continue
+
+              # ── GUARDA 12: merge squash, SIN force merge ──
+              try:
+                  result = api(f"/repos/{REPO}/pulls/{number}/merge", method="PUT", payload={
+                      "commit_title": f"{title} (#{number})",
+                      "merge_method": "squash"
+                  })
+                  # Nuevo HEAD de la rama autónoma tras el merge
+                  new_head = ""
+                  try:
+                      br = api(f"/repos/{REPO}/branches/{BASE}")
+                      new_head = (br.get("commit") or {}).get("sha", "")
+                  except Exception:
+                      pass
+                  merged = (result or {}).get("merged")
+                  log.append(
+                      f"PR #{number}: MERGED={merged} squash | head={head_sha} | "
+                      f"checks_ok=1 | nuevoHEAD={new_head}"
+                  )
+                  try:
+                      api(f"/repos/{REPO}/issues/{number}/comments", method="POST", payload={
+                          "body": (
+                              f"Auto-merge seguro completado (squash) hacia `{BASE}`.\n"
+                              f"Head SHA: `{head_sha}`\n"
+                              f"Nuevo HEAD de `{BASE}`: `{new_head}`"
+                          )
+                      })
+                  except Exception:
+                      pass
+                  merged_any = True
+              except urllib.error.HTTPError as e:
+                  detail = ""
+                  try:
+                      detail = e.read().decode("utf-8", errors="replace")[:400]
+                  except Exception:
+                      pass
+                  log.append(f"PR #{number}: merge rechazado por GitHub ({e.code}) → no forzado {detail}")
+              except Exception as e:
+                  log.append(f"PR #{number}: error en merge ({e}) → no forzado")
+
+          # ── Logging / trazabilidad ──
+          with open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a", encoding="utf-8") as f:
+              f.write("## Auto-merge autónomo (jules/autonomous-ordia)\n")
+              f.write(f"- PRs abiertas evaluadas: {len(open_prs)}\n")
+              f.write(f"- Merged en esta ejecución: {merged_any}\n")
+              f.write("\n### Detalle\n")
+              for line in log:
+                  f.write(f"- {line}\n")
+              if not log:
+                  f.write("- Sin PRs evaluables.\n")
+
+          print("PRs evaluadas:", len(open_prs))
+          print("Merged:", merged_any)
+          for line in log:
+              print(line)
+          PY
