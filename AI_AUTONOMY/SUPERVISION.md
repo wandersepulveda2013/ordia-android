@@ -50,7 +50,28 @@ automáticamente salvo lo que la propia sesión haya commiteado.
 - Secretos en el repo.
 - `git push --force` en historial (git lo registrará; sospecha).
 
-## 5. Decisión de avance a main
+## 5. Advertencia: workflow heredado en `main`
+
+`origin/main` contiene el workflow `ordia-autonomous-jules.yml` ANTERIOR (commit `9d05dd2`),
+que apunta a `main` como rama de trabajo y tiene cron diario. Ese workflow NO sigue el modelo
+actual (rama autónoma + failsafes) y lanzaría sesiones hacia `main` si se ejecuta.
+
+**Acción recomendada para el humano** (no la puede hacer un agente):
+- Desactivar temporalmente el workflow en `main` (Settings → Actions → Workflows → desactivar),
+  o
+- Mergear `jules/autonomous-ordia` → `main` (el archivo nuevo reemplaza al heredado),
+  o
+- Marcar el archivo heredado como inactivo editándolo en `main`.
+
+## 6. Señales de alarma
+
+- Commits que tocan `main` (no debe pasar nunca).
+- Cambios que simulan capacidades (IA falsa, éxito inventado, progreso falso).
+- Tests eliminados o comentados.
+- Secretos en el repo.
+- `git push --force` en historial (git lo registrará; sospecha).
+
+## 7. Decisión de avance a main
 
 - Solo un humano decide mover `jules/autonomous-ordia` → `main`.
 - Sugerencia: revisar el RUN_LOG, correr la suite completa y hacer merge por PR normal.

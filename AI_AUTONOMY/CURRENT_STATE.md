@@ -6,7 +6,7 @@
 
 - **Fecha/hora (UTC)**: 2026-08-10 (bootstrap del sistema autónomo + workflow Jules)
 - **Branch**: `jules/autonomous-ordia`
-- **HEAD**: `969059d` + commit de workflow Jules (ver `git log` para el hash exacto)
+- **HEAD**: `7c3f8d1` (workflow Jules) + commit de advertencia workflow heredado (ver `git log`)
 - **Workflow autónomo**: `.github/workflows/ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
 
 ## Último trabajo realizado
