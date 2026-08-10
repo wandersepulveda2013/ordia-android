@@ -1,0 +1,266 @@
+name: Ordia Autonomous Jules
+
+on:
+  schedule:
+    # 03:00 AM República Dominicana = 07:00 UTC
+    - cron: "0 7 * * *"
+
+  workflow_dispatch:
+
+concurrency:
+  group: ordia-autonomous-jules
+  cancel-in-progress: false
+
+jobs:
+  launch-jules:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Find Ordia repository in Jules
+        id: source
+        env:
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+        run: |
+          python <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          req = urllib.request.Request(
+              "https://jules.googleapis.com/v1alpha/sources?pageSize=100",
+              headers={"x-goog-api-key": os.environ["JULES_API_KEY"]}
+          )
+
+          with urllib.request.urlopen(req) as response:
+              data = json.load(response)
+
+          target = None
+
+          for source in data.get("sources", []):
+              repo = source.get("githubRepo", {})
+              if (
+                  repo.get("owner") == "wandersepulveda2013"
+                  and repo.get("repo") == "ordia-android"
+              ):
+                  target = source
+                  break
+
+          if not target:
+              raise SystemExit(
+                  "ERROR: ordia-android no aparece entre los repositorios conectados a Jules."
+              )
+
+          branches = [
+              branch.get("displayName")
+              for branch in target.get("githubRepo", {}).get("branches", [])
+          ]
+
+          preferred = "feature/ordia-total-rebuild-2026-08-10"
+
+          if preferred not in branches:
+              raise SystemExit(
+                  f"ERROR: No existe en Jules la rama requerida: {preferred}. "
+                  f"Ramas disponibles: {branches}"
+              )
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write(f"source={target['name']}\n")
+              f.write(f"branch={preferred}\n")
+
+          print("Repositorio encontrado:", target["name"])
+          print("Rama inicial:", preferred)
+          PY
+
+      - name: Launch autonomous Ordia session
+        env:
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+          JULES_SOURCE: ${{ steps.source.outputs.source }}
+          STARTING_BRANCH: ${{ steps.source.outputs.branch }}
+        run: |
+          python <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          prompt = r"""
+          ORDÍA — DESARROLLO AUTÓNOMO CONTINUO
+
+          Trabaja sobre wandersepulveda2013/ordia-android.
+
+          Esta es una ejecución autónoma recurrente.
+          NO empieces el proyecto desde cero.
+          NO repitas trabajo ya terminado correctamente.
+
+          Tu objetivo permanente es continuar desarrollando, auditando,
+          corrigiendo y mejorando Ordía de manera profesional.
+
+          PRIMERA OBLIGACIÓN:
+
+          Inspecciona el estado REAL del repositorio y los commits existentes.
+
+          Si existen, lee completamente:
+
+          - AGENTS.md
+          - AI_AUTONOMY/MISSION.md
+          - AI_AUTONOMY/CURRENT_STATE.md
+          - AI_AUTONOMY/BACKLOG.md
+          - AI_AUTONOMY/DECISIONS.md
+          - AI_AUTONOMY/RUN_LOG.md
+
+          También inspecciona el trabajo anterior realizado por Codex.
+
+          PRIORIDAD:
+
+          P0:
+          - pérdida o corrupción de datos
+          - crashes
+          - privacidad
+          - seguridad
+          - funciones falsas o engañosas
+          - ANR
+          - operaciones destructivas
+
+          P1:
+          - funciones esenciales incompletas
+          - persistencia
+          - recordatorios
+          - automatizaciones
+          - navegación
+          - lifecycle
+          - workers
+          - estados incorrectos
+
+          P2:
+          - arquitectura
+          - rendimiento
+          - accesibilidad
+          - UX
+          - mantenibilidad
+
+          P3:
+          - refinamiento visual
+          - microinteracciones
+          - coherencia estética
+
+          Ordía debe convertirse progresivamente en una aplicación Android
+          moderna, estable, elegante, minimalista, rápida, fiable y realmente
+          útil.
+
+          Su diseño debe sentirse profesional y premium, principalmente
+          blanco y negro, limpio y coherente.
+
+          NO hagas cambios únicamente para aparentar actividad.
+
+          CALIDAD > CANTIDAD.
+
+          CICLO DE TRABAJO:
+
+          INSPECCIONAR
+          -> SELECCIONAR EL PROBLEMA MÁS IMPORTANTE
+          -> IDENTIFICAR CAUSA RAÍZ
+          -> IMPLEMENTAR
+          -> PROBAR
+          -> CORREGIR
+          -> VOLVER A PROBAR
+          -> DOCUMENTAR
+
+          Ejecuta tests relacionados con cualquier modificación.
+
+          Cuando sea razonable ejecuta también:
+          - unit tests
+          - lint
+          - build de la variante correspondiente
+
+          Nunca:
+          - elimines tests para esconder errores
+          - falsifiques resultados
+          - simules funcionalidades
+          - inventes IA
+          - inventes estados de éxito
+          - introduzcas secretos
+          - hagas modificaciones destructivas
+          - reduzcas calidad para hacer pasar tests
+
+          Si encuentras un problema que necesita información humana y no puede
+          resolverse responsablemente:
+
+          1. documenta el bloqueo;
+          2. no inventes la respuesta;
+          3. continúa con otro problema independiente.
+
+          Si no existen todavía los archivos AI_AUTONOMY, créalos:
+
+          AI_AUTONOMY/MISSION.md
+          AI_AUTONOMY/CURRENT_STATE.md
+          AI_AUTONOMY/BACKLOG.md
+          AI_AUTONOMY/DECISIONS.md
+          AI_AUTONOMY/RUN_LOG.md
+
+          Úsalos como memoria persistente entre ejecuciones.
+
+          BACKLOG debe contener:
+          ID | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO | ACCIÓN | TEST
+
+          Estados:
+          OPEN
+          IN_PROGRESS
+          BLOCKED
+          FIXED
+          VERIFIED
+          WONT_FIX
+          NOT_APPLICABLE
+
+          Al terminar esta ejecución:
+
+          - actualiza CURRENT_STATE.md
+          - actualiza BACKLOG.md
+          - añade una entrada a RUN_LOG.md
+          - actualiza DECISIONS.md si hubo decisiones importantes
+          - ejecuta pruebas pertinentes
+          - revisa los cambios
+          - asegúrate de no incluir secretos
+
+          IMPORTANTE:
+
+          El objetivo no es resolver todo Ordía en una sola ejecución.
+
+          El objetivo es conseguir progreso REAL, verificable y acumulativo,
+          de forma que la siguiente ejecución automática pueda continuar
+          exactamente donde terminó esta.
+
+          No solicites aprobación del plan.
+
+          Trabaja autónomamente.
+          """
+
+          body = {
+              "title": "Ordía — Autonomous Development",
+              "prompt": prompt,
+              "sourceContext": {
+                  "source": os.environ["JULES_SOURCE"],
+                  "githubRepoContext": {
+                      "startingBranch": os.environ["STARTING_BRANCH"]
+                  }
+              },
+              "requirePlanApproval": False,
+              "automationMode": "AUTO_CREATE_PR"
+          }
+
+          req = urllib.request.Request(
+              "https://jules.googleapis.com/v1alpha/sessions",
+              data=json.dumps(body).encode("utf-8"),
+              headers={
+                  "x-goog-api-key": os.environ["JULES_API_KEY"],
+                  "Content-Type": "application/json"
+              },
+              method="POST"
+          )
+
+          with urllib.request.urlopen(req) as response:
+              result = json.load(response)
+
+          print("Jules iniciado correctamente.")
+          print("Session:", result.get("name"))
+          print("URL:", result.get("url"))
+          print("State:", result.get("state"))
+          PY
