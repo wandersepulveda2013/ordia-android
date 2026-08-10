@@ -4,17 +4,25 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-10 (bootstrap del sistema autónomo + workflow Jules)
-- **Branch**: `jules/autonomous-ordia`
-- **HEAD**: `7c3f8d1` (workflow Jules) + commit de advertencia workflow heredado (ver `git log`)
-- **Workflow autónomo**: `.github/workflows/ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
+- **Fecha/hora (UTC)**: 2026-08-10 (corrección de infraestructura del sistema autónomo)
+- **Branch de trabajo**: `jules/autonomous-ordia` (HEAD `cc1a1e3`)
+- **main**: `d5b3b60` — contiene SOLO infraestructura de orquestación (workflows), no el rebuild
+- **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
+- **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
 
 ## Último trabajo realizado
 
-- Workflow autónomo Jules actualizado y validado (ver RUN_LOG sesión 001):
-  - Rama de trabajo `jules/autonomous-ordia` (nunca `main`); cron cada 2h; failsafes por
-    variable `ORDIA_AUTONOMY_ENABLED` y por archivo `AI_AUTONOMY/AUTONOMY_BYPASS`; session lock
-    por PR abierta; verificación de rama contra la API de Jules; prompt maestro ampliado.
+- Corrección de infraestructura (ver RUN_LOG sesión 002):
+  - `origin/main` actualizado a `d5b3b60` con la versión definitiva de los 3 workflows:
+    - `ordia-autonomous-jules.yml`: cron 2h, `preferred = "jules/autonomous-ordia"`, failsafes
+      (variable + bypass), session lock robusto (sessions API + PRs + checks), anti-loop,
+      contexto de PRs fallidas, `requirePlanApproval: False`, `automationMode: AUTO_CREATE_PR`.
+    - `ordia-autonomous-merge.yml` (NUEVO): auto-merge squash seguro hacia la rama autónoma con
+      12 guardas; guard clause explícito contra `main`; logging + comentario post-merge.
+    - `android-ci.yml` (NUEVO en main): CI para push/PR hacia `main` y `jules/autonomous-ordia`.
+  - Verificado con `git show origin/main:...` que el cron real es `17 */2 * * *` y que NO existe
+    camino automático `* → main`.
+- (Histórico) Workflow Jules v1 y consolidación del rebuild de Codex (ver sesiones 000-001).
 - Consolidación y publicación del rebuild de Codex (`feature/ordia-total-rebuild-2026-08-10` → `d34ffd8`):
   1. `feat(intelligence)`: elimina modelo local TFLite simulado; unifica proveedor real.
   2. `feat(privacy)`: guardián de teclado y filtro de privacidad contextual endurecidos.
@@ -46,21 +54,26 @@
 - Warnings de deprecación no bloqueantes (ej. `Icons.Outlined.InsertDriveFile` → AutoMirrored).
 - El workflow Jules necesita `jules/autonomous-ordia` visible en la API de Sources antes de
   lanzar sesiones (verificado en cada ejecución; si no aparece, la sesión NO se lanza).
+- El auto-merge requiere que las PRs de Jules tengan checks exitosos; si `secrets.JULES_API_KEY`
+  no está configurado o el conector no ve la rama, el scheduler no lanza sesiones (no falla el job).
 
 ## Bloqueos
 
-- Ninguno activo.
+- Ninguno activo. El único paso que requiere al humano: configurar `secrets.JULES_API_KEY` y
+  arrancar el primer ciclo manual (workflow_dispatch).
 
 ## Siguiente tarea recomendada
 
 - Arrancar el primer ciclo Jules: ejecutar manualmente el workflow
   `Ordia Autonomous Jules` (Actions → workflow_dispatch) tras confirmar
   `secrets.JULES_API_KEY` y la sincronización de la rama en el conector de Jules.
+  Observar después `Ordia Autonomous Merge` (workflow_dispatch o cron `*/15`).
 
 ## PR pendiente
 
-- Ninguno.
+- Ninguno (el auto-merge gestiona las PRs autónomas hacia `jules/autonomous-ordia`).
 
 ## Estado CI
 
-- Pendiente de la primera ejecución del ciclo autónomo.
+- `android-ci.yml` activo en `main` y en la rama autónoma; verify corre en push/PR hacia ambas.
+- Pendiente la primera ejecución del ciclo autónomo real (requiere `JULES_API_KEY`).

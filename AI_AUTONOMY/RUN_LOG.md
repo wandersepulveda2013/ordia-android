@@ -85,3 +85,85 @@
 - (pendiente) docs(autonomy): workflow Jules actualizado + memoria (este commit).
 
 ---
+
+## SESIÓN 002 — Corrección de infraestructura: auto-merge y publicación en main
+
+- **Fecha (UTC)**: 2026-08-10
+- **Trigger**: corrección final del sistema autónomo (dos problemas críticos detectados)
+- **Resultado**: ÉXITO (infraestructura publicada; falta solo el primer ciclo real manual)
+
+### Problemas críticos detectados
+
+1. **El workflow nuevo no está en `main`**: GitHub Actions ejecuta los schedulers desde la
+   default branch. `origin/main` seguía en `9d05dd2` con la versión vieja (cron `0 7 * * *`,
+   `preferred = "main"`), así que el cron de 2h NUNCA correría.
+2. **`AUTO_CREATE_PR` no es auto-merge**: el session lock antiguo (cualquier PR abierta → no
+   lanzar) habría bloqueado la autonomía indefinidamente tras la primera PR de Jules.
+
+### Qué se hizo
+
+1. `git fetch --all --prune` + consulta a la API de GitHub (25 PRs, todas `base:main`, autor
+   propietario `wandersepulveda2013`): la señal fiable de PR de Jules es el patrón de rama head
+   (`fix/desc-<timestamp>`, regex), no el autor.
+2. Reescrito `.github/workflows/ordia-autonomous-jules.yml` (versión definitiva):
+   - cron `17 */2 * * *` + `workflow_dispatch`; permisos mínimos (solo lectura); timeout 20 min.
+   - Failsafes: variable `ORDIA_AUTONOMY_ENABLED` (false/0/no/off → deshabilitada; si no existe
+     → habilitada) y archivo `AI_AUTONOMY/AUTONOMY_BYPASS`.
+   - Paso `Find Ordia repository in Jules` con `preferred = "jules/autonomous-ordia"`.
+   - Paso `Session lock` (id `lock`): consulta Jules Sessions API (fail-open; estados activos
+     `QUEUED/PLANNING/IN_PROGRESS/PAUSED/AWAITING_*` → `skip_active_session`); evalúa PRs abiertas
+     hacia la rama autónoma y sus checks (fallida → `proceed_with_failure_context`; CI corriendo →
+     `skip_ci_running`; lista → `skip_ready_for_merge`; ≥4 PRs → `skip_too_many_prs`; draft/stale →
+     contexto); anti-loop por área fallada ≥2 veces; contexto en `/tmp/autonomy-context.json`.
+   - Paso `Launch autonomous Ordia session` condicionado a `decision == proceed |
+     proceed_with_failure_context`; inyecta contexto de PRs fallidas/atascadas al prompt;
+     `requirePlanApproval: False`; `automationMode: AUTO_CREATE_PR`.
+3. Creado `.github/workflows/ordia-autonomous-merge.yml` (NUEVO): auto-merge squash hacia
+   `jules/autonomous-ordia` con 12 guardas:
+   (1) base ref exacto `jules/autonomous-ordia`; (2) guard clause `base == "main"` → MERGE
+   PROHIBIDO; (3) no fork + patrón de rama Jules; (4) no draft; (5-6) `mergeable` y
+   `mergeable_state` clean (behind → update-branch vía API); (7-10) todos los check-runs
+   success/neutral/skipped, sin queued/in_progress/pending/waiting ni failure/cancelled/
+   timed_out/action_required/stale/startup_failure (+ combined status); (11) security/secret/
+   codeql/scan/dependency checks deben ser success; (12) merge squash sin force
+   (`POST /pulls/{n}/merge` con `merge_method=squash`).
+   Trigger: `pull_request_target` (opened/synchronize/reopened/ready_for_review) + cron
+   `*/15 * * * *` + `workflow_dispatch`; concurrency group, `cancel-in-progress: false`.
+   Permisos: `contents: write`, `pull-requests: write`, `checks: read`, `statuses: read`.
+   Logging a `GITHUB_STEP_SUMMARY` (PR number, head SHA, checks, resultado, nuevo HEAD de la rama)
+   + comentario post-merge en la PR.
+4. Ampliado `.github/workflows/android-ci.yml`: `branches: [main, jules/autonomous-ordia]` para
+   push y pull_request (verify corre en PRs hacia la rama autónoma; sign/publish solo en main).
+5. Validado YAML con js-yaml (Node en temp, fuera del repo): 3/3 válidos, heredocs balanceados,
+   llaves `{}` equilibradas, sin `${{ }}` dentro de los heredocs Python. Permisos job-level
+   verificados (jules: read-only; merge: write mínimo; android-ci verify: read+checks write).
+6. Publicado en `main` SOLO infraestructura (rama `infra/autonomous-main` desde `origin/main`,
+   sin rebuild): `9d05dd2..d5b3b60` → main.
+   - `origin/main` ahora: `android-ci.yml`, `build-apk.yml`, `ordia-autonomous-jules.yml`,
+     `ordia-autonomous-merge.yml`.
+   - Verificado con `git show origin/main:...`: cron `17 */2 * * *`, `preferred =
+     "jules/autonomous-ordia"`, `requirePlanApproval: False`, `automationMode: AUTO_CREATE_PR`,
+     guard clause main en el merge, `merge_method: squash`.
+   - Sin camino automático `* → main`: scheduler crea PRs hacia la rama autónoma; auto-merge solo
+     hacia la rama autónoma con guard clause; build-apk/android-ci son CI puro.
+7. Publicada la rama autónoma con la infraestructura definitiva: `d84aeab..cc1a1e3`.
+
+### Problemas encontrados
+
+- Ninguno nuevo. `gh` y Python local siguen NO disponibles (validación YAML con Node/js-yaml en
+  temp). No se pudo lanzar un ciclo real de prueba (falta `secrets.JULES_API_KEY`).
+
+### Prerrequisitos para el primer ciclo real (humano)
+
+1. Confirmar que `secrets.JULES_API_KEY` existe en el repo (Settings → Secrets → Actions).
+2. Confirmar que el conector de Jules ve la rama `jules/autonomous-ordia`.
+3. (Opcional) Ejecutar manualmente `Ordia Autonomous Jules` (workflow_dispatch) y
+   `Ordia Autonomous Merge` (workflow_dispatch) para observar el primer ciclo.
+
+### Commits creados
+
+- `d5b3b60` (main, infraestructural) ci(autonomy): infraestructura definitiva del sistema autónomo en main
+- `cc1a1e3` (jules/autonomous-ordia) ci(autonomy): session lock robusto, auto-merge seguro y CI sobre la rama autónoma
+- (pendiente) docs(autonomy): memoria de la sesión 002 (este commit)
+
+---
