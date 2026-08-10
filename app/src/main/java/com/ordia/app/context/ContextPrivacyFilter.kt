@@ -1,96 +1,103 @@
 package com.ordia.app.context
 
 /**
- * Filtro de privacidad para eventos contextuales.
- * Bloquea contenido sensible antes de cualquier análisis.
- *
- * Reglas:
- * - No procesar campos de contraseña, PIN, OTP, CVV, tarjetas, números bancarios.
- * - No procesar aplicaciones bancarias, autenticadores, médicas, de contraseñas.
- * - No procesar contenido sexual, violencia, drogas, delitos, acoso, autolesiones.
- * - No procesar navegación privada ni campos marcados como sensibles.
- * - El filtro es determinista y no requiere red.
+ * Filtro local que descarta datos sensibles antes de cualquier análisis.
+ * Las reglas son deterministas, no usan red y se aplican a todas las fuentes.
  */
 object ContextPrivacyFilter {
 
-    /** Paquetes de aplicaciones bloqueadas completamente */
-    private val BLOCKED_PACKAGES = setOf(
-        "com.android.chrome",           // Chrome (navegación privada manejada aparte)
-        // Aplicaciones bancarias conocidas
+    private val blockedPackagePrefixes = setOf(
+        "com.android.chrome",
         "com.bancomer", "com.banamex", "com.santander", "com.bbva",
         "com.hsbc", "com.scotiabank", "com.banregio", "com.azteca",
         "com.banorte", "com.inbursa", "com.afirme", "com.interacciones",
-        // Autenticadores
         "com.google.android.apps.authenticator2", "com.authy",
         "com.microsoft.authenticator", "com.lastpass.authenticator",
         "com.duosecurity", "com.okta.android.auth",
-        // Gestores de contraseñas
         "com.lastpass", "com.1password", "com.dashlane",
         "com.bitwarden", "com.keepass.android", "com.enpass",
-        // Aplicaciones médicas
         "com.health", "com.medical", "com.clinic", "com.hospital"
     )
 
-    /** Patrones de contenido a bloquear */
-    private val BLOCKED_CONTENT_PATTERNS = listOf(
-        // Credenciales y datos sensibles
-        Regex("""\b(contraseña|password|passwd|pwd|clave|pin)\b""", RegexOption.IGNORE_CASE),
-        Regex("""\b(otp|2fa|two.?factor|verificación)\b""", RegexOption.IGNORE_CASE),
-        Regex("""\b(cvv|código de seguridad|número de tarjeta|card number)\b""", RegexOption.IGNORE_CASE),
-        Regex("""\b(número de cuenta|account number|clabe|iban|swift)\b""", RegexOption.IGNORE_CASE),
-        // Contenido sexual explícito
+    private val blockedPackageFragments = setOf(
+        "bank", "banco", "banking", "wallet", "authenticator",
+        "password", "keepass", "medical", "healthcare"
+    )
+
+    private val blockedContentPatterns = listOf(
+        Regex("""\b(contraseña|contrasena|password|passwd|pwd|clave|pin)\b""", RegexOption.IGNORE_CASE),
+        Regex("""\b(otp|2fa|two.?factor|verificación|verificacion|código de acceso|codigo de acceso)\b""", RegexOption.IGNORE_CASE),
+        Regex("""\b(cvv|cvc|código de seguridad|codigo de seguridad|número de tarjeta|numero de tarjeta|card number)\b""", RegexOption.IGNORE_CASE),
+        Regex("""\b(número de cuenta|numero de cuenta|account number|clabe|iban|swift|cédula|cedula)\b""", RegexOption.IGNORE_CASE),
+        Regex("""\b(seed phrase|recovery phrase|frase semilla|frase de recuperación|frase de recuperacion|palabras de recuperación|palabras de recuperacion|mnemonic)\b""", RegexOption.IGNORE_CASE),
+        Regex("""-----BEGIN [A-Z ]*PRIVATE KEY-----""", RegexOption.IGNORE_CASE),
+        Regex("""\b(?:0x)?[0-9a-f]{64}\b""", RegexOption.IGNORE_CASE),
+        Regex("""\b[A-Z]{2}\s?\d{2}(?:\s?[A-Z0-9]){11,30}\b"""),
         Regex("""\b(sexo|sexual|desnud|porno|xxx|eróti|intimidad)\b""", RegexOption.IGNORE_CASE),
-        // Violencia y delitos
         Regex("""\b(matar|asesinar|violar|robar|secuestr|bomba|arma|amenaza)\b""", RegexOption.IGNORE_CASE),
-        // Drogas
-        Regex("""\b(droga|cocaína|marihuana|heroína|metanfetamina|narcotráfico)\b""", RegexOption.IGNORE_CASE),
-        // Acoso
-        Regex("""\b(acoso|hostigamiento|extorsión|chantaje)\b""", RegexOption.IGNORE_CASE),
-        // Autolesiones
-        Regex("""\b(suicidi|autolesión|hacerme daño|quitarme la vida)\b""", RegexOption.IGNORE_CASE),
-        // Información bancaria
-        Regex("""\b(transferencia|depósito|retiro|saldo|estado de cuenta)\b""", RegexOption.IGNORE_CASE),
-        // Política y religión (contenido polarizante no organizativo)
-        Regex("""\b(partido político|elección|campaña política|votar por)\b""", RegexOption.IGNORE_CASE)
+        Regex("""\b(droga|cocaína|cocaina|marihuana|heroína|heroina|metanfetamina|narcotráfico|narcotrafico)\b""", RegexOption.IGNORE_CASE),
+        Regex("""\b(acoso|hostigamiento|extorsión|extorsion|chantaje)\b""", RegexOption.IGNORE_CASE),
+        Regex("""\b(suicidi|autolesión|autolesion|hacerme daño|hacerme dano|quitarme la vida)\b""", RegexOption.IGNORE_CASE),
+        Regex("""\b(transferencia|depósito|deposito|retiro|saldo|estado de cuenta)\b""", RegexOption.IGNORE_CASE),
+        Regex("""\b(partido político|partido politico|elección|eleccion|campaña política|campana politica|votar por)\b""", RegexOption.IGNORE_CASE)
     )
 
-    /** Campos de entrada que deben ser ignorados */
-    private val SENSITIVE_INPUT_TYPES = setOf(
+    private val sensitiveInputTypes = setOf(
         "password", "textPassword", "textVisiblePassword", "textWebEditTextPassword",
-        "numberPassword", "date", "time" // fecha/hora en campos específicos
+        "numberPassword", "date", "time"
     )
 
-    /**
-     * Verifica si un evento debe ser bloqueado por razones de privacidad.
-     * Retorna true si el evento debe ser descartado silenciosamente.
-     */
+    private val sensitiveMetadataCue = Regex(
+        """\b(password|passwd|pin|otp|2fa|cvv|cvc|card.?number|credit.?card|private.?key|seed.?phrase|recovery.?phrase|contraseña|contrasena|clave|tarjeta)\b""",
+        RegexOption.IGNORE_CASE
+    )
+
+    private val cardCandidate = Regex("""(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)""")
+    private val numericSecret = Regex("""^\s*\d{4,8}\s*$""")
+    private val shortNumericSecret = Regex("""^\s*\d{3,4}\s*$""")
+
     fun shouldBlock(event: ContextEvent): Boolean {
-        // Bloquear por paquete
-        event.sourcePackage?.let { pkg ->
-            if (BLOCKED_PACKAGES.any { pkg.startsWith(it, ignoreCase = true) }) return true
-        }
+        event.sourcePackage?.let { if (isPackageBlocked(it)) return true }
+        if (event.metadata.any { (key, value) ->
+                key.contains("input", ignoreCase = true) &&
+                    (isSensitiveInputType(value) || sensitiveMetadataCue.containsMatchIn(value))
+            }) return true
 
-        // Bloquear por tipo de entrada sensible
-        event.metadata["inputType"]?.let { type ->
-            if (SENSITIVE_INPUT_TYPES.contains(type)) return true
-        }
-
-        // Bloquear por contenido
-        val text = event.safeText
-        return BLOCKED_CONTENT_PATTERNS.any { it.containsMatchIn(text) }
+        return containsSensitiveContent(event.safeText, event.metadata)
     }
 
-    /**
-     * Determina si un paquete debe ser bloqueado.
-     */
+    fun containsSensitiveContent(text: String, metadata: Map<String, String> = emptyMap()): Boolean {
+        if (text.isBlank()) return false
+        if (blockedContentPatterns.any { it.containsMatchIn(text) }) return true
+        if (numericSecret.matches(text)) return true
+        if (metadata["inputClass"].equals("number", ignoreCase = true) && shortNumericSecret.matches(text)) return true
+        return cardCandidate.findAll(text).any { candidate ->
+            val digits = candidate.value.filter(Char::isDigit)
+            digits.length in 13..19 && passesLuhn(digits)
+        }
+    }
+
     fun isPackageBlocked(packageName: String): Boolean {
-        return BLOCKED_PACKAGES.any { packageName.startsWith(it, ignoreCase = true) }
+        val normalized = packageName.lowercase()
+        return blockedPackagePrefixes.any { normalized.startsWith(it.lowercase()) } ||
+            blockedPackageFragments.any { it in normalized }
     }
 
-    /**
-     * Verifica si un tipo de entrada es sensible y debe ignorarse.
-     */
-    fun isSensitiveInputType(inputType: String): Boolean {
-        return SENSITIVE_INPUT_TYPES.contains(inputType)
+    fun isSensitiveInputType(inputType: String): Boolean =
+        sensitiveInputTypes.any { it.equals(inputType, ignoreCase = true) }
+
+    private fun passesLuhn(digits: String): Boolean {
+        var sum = 0
+        var doubleDigit = false
+        for (index in digits.indices.reversed()) {
+            var value = digits[index].digitToInt()
+            if (doubleDigit) {
+                value *= 2
+                if (value > 9) value -= 9
+            }
+            sum += value
+            doubleDigit = !doubleDigit
+        }
+        return sum > 0 && sum % 10 == 0
     }
 }

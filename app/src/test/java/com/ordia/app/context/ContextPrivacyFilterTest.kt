@@ -102,6 +102,31 @@ class ContextPrivacyFilterTest {
     }
 
     @Test
+    fun validSpacedCardNumber_withoutLabel_blocked() {
+        assertTrue(ContextPrivacyFilter.shouldBlock(event(text = "4111 1111 1111 1111")))
+    }
+
+    @Test
+    fun nakedOtp_blocked() {
+        assertTrue(ContextPrivacyFilter.shouldBlock(event(text = "482913")))
+    }
+
+    @Test
+    fun pemPrivateKey_blocked() {
+        assertTrue(ContextPrivacyFilter.shouldBlock(event(text = "-----BEGIN PRIVATE KEY-----")))
+    }
+
+    @Test
+    fun seedPhraseCue_blocked() {
+        assertTrue(ContextPrivacyFilter.shouldBlock(event(text = "Mi frase semilla es uno dos tres")))
+    }
+
+    @Test
+    fun genericBankingPackageFragment_blocked() {
+        assertTrue(ContextPrivacyFilter.shouldBlock(event(sourcePackage = "org.example.mobilebanking")))
+    }
+
+    @Test
     fun selfHarmContent_blocked() {
         assertTrue(ContextPrivacyFilter.shouldBlock(event(text = "me siento mal, ideas de hacerme daño")))
     }
