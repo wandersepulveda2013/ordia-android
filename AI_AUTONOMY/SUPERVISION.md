@@ -7,13 +7,26 @@
 
 - Rama de trabajo autónomo: `jules/autonomous-ordia`.
 - Rama de publicación del rebuild: `feature/ordia-total-rebuild-2026-08-10`.
-- Memoria persistente: `AI_AUTONOMY/` (MISSION, CURRENT_STATE, BACKLOG, DECISIONS, RUN_LOG, AGENTS).
-- Automatización: workflow `.github/workflows/ordia-autonomous-jules.yml` (si existe).
+- Memoria persistente: `AI_AUTONOMY/` (MISSION, CURRENT_STATE, BACKLOG, DECISIONS, RUN_LOG, AGENTS, SUPERVISION).
+- Automatización: workflow `.github/workflows/ordia-autonomous-jules.yml` (cron cada 2h + dispatch).
+- CI existente (main): `.github/workflows/android-ci.yml` y `.github/workflows/build-apk.yml`.
+
+### Comportamiento del workflow Jules
+
+1. **Failsafe por variable**: si `vars.ORDIA_AUTONOMY_ENABLED` es `false`/`0`/`no`/`off`,
+   la sesión NO se lanza. Si no existe (o es cualquier otro valor), se lanza (autonomía por defecto).
+2. **Failsafe por archivo**: si existe `AI_AUTONOMY/AUTONOMY_BYPASS` en `jules/autonomous-ordia`,
+   la sesión NO se lanza.
+3. **Session lock por PR**: si existe una PR abierta hacia `jules/autonomous-ordia`,
+   la sesión NO se lanza (evita solape entre ciclos de 2h).
+4. **Rama de trabajo**: la sesión de Jules trabaja sobre `jules/autonomous-ordia`
+   (verificado contra la API de Jules; si la rama aún no está sincronizada, el ciclo se omite).
+5. **PRs**: `automationMode: AUTO_CREATE_PR` → Jules crea la PR hacia `jules/autonomous-ordia`, NUNCA a `main`.
 
 ## 2. Cómo detener la autonomía (parada de emergencia)
 
 1. **Desactivar la variable**: en GitHub Settings → Secrets and variables → Actions →
-   Variables → `ORDIA_AUTONOMY_ENABLED` = `false`.
+   Variables → `ORDIA_AUTONOMY_ENABLED` = `false`. El workflow la comprueba y no lanza.
 2. **Bypass por archivo**: crear `AI_AUTONOMY/AUTONOMY_BYPASS` en `jules/autonomous-ordia`
    (cualquier contenido). El workflow lo detecta y NO inicia sesiones nuevas.
 3. **Cancelar runs**: en la pestaña Actions, Cancelar el run activo.

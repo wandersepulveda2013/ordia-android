@@ -39,7 +39,49 @@
 
 ---
 
-## SESIÓN 001 — (pendiente)
+## SESIÓN 001 — Actualización del workflow autónomo Jules
 
-- **Trigger**: primer ciclo del workflow Jules
-- **Estado**: pendiente de primera ejecución
+- **Fecha (UTC)**: 2026-08-10 (segunda parte del bootstrap)
+- **Trigger**: continuar plan de sistema autónomo (fases 8-31)
+- **Resultado**: ÉXITO (parcial — sin `gh` local ni clave de API no se puede ejecutar un ciclo de prueba)
+
+### Qué se hizo
+
+1. Descubierto que `origin/main` ya contenía `.github/workflows/ordia-autonomous-jules.yml`
+   (creado en `182f80d`, reparado en `9d05dd2`) — la rama del rebuild divergió antes y NO lo incluía.
+2. Leído el workflow existente: apuntaba a `main` como rama inicial (INCORRECTO para el nuevo modelo).
+3. Creado `.github/workflows/ordia-autonomous-jules.yml` actualizado en `jules/autonomous-ordia`:
+   - **Rama de trabajo**: `jules/autonomous-ordia` (nunca `main`).
+   - **Cron**: cada 2 horas en el minuto 17 (`17 */2 * * *`) + `workflow_dispatch`.
+   - **Failsafe variable**: `vars.ORDIA_AUTONOMY_ENABLED` (false/0/no/off → no lanza).
+   - **Failsafe archivo**: `AI_AUTONOMY/AUTONOMY_BYPASS` → no lanza.
+   - **Session lock**: comprueba PRs abiertas hacia `jules/autonomous-ordia`; si hay, no lanza.
+   - **Verificación de rama en la API de Jules** antes de lanzar (la rama debe existir en el conector).
+   - **Prompt maestro ampliado**: auditoría periódica del trabajo de Codex, anti-fake-IA explícito,
+     testing por variante, UI/UX en español blanco/negro, NO CICLOS NI ACTIVIDAD FALSA,
+     RAMA Y PRs explícitos.
+4. Validado el YAML con `js-yaml` (Node, instalado en temp fuera del repo): sintaxis válida,
+   heredocs Python balanceados (2 abren/2 cierran), r-string equilibrado, sin `${{ }}` dentro
+   de los heredocs Python, llaves `{}` del dict equilibradas, cero tabuladores.
+5. Actualizada la memoria: `SUPERVISION.md` (comportamiento del workflow y parada de emergencia),
+   `DECISIONS.md` (failsafe activo por defecto, session lock por PR, verificación de rama en API, cron 2h).
+
+### Problemas encontrados
+
+- `gh` NO está instalado localmente → no se pudo verificar la existencia de `secrets.JULES_API_KEY`
+  ni lanzar un ciclo de prueba desde la terminal. Documentado; el workflow fallará con mensaje claro
+  si la clave no está configurada en el repo.
+- Python local NO disponible → validación YAML hecha con Node/js-yaml en temp (fuera del repo).
+
+### Prerrequisitos para el primer ciclo real (humano)
+
+1. Confirmar que `secrets.JULES_API_KEY` existe en el repo (Settings → Secrets → Actions).
+2. Confirmar que el conector de Jules ve la rama `jules/autonomous-ordia`.
+3. (Opcional) Crear variable `ORDIA_AUTONOMY_ENABLED` = `false` solo si NO se quiere autonomía por defecto.
+
+### Commits creados
+
+- `969059d` docs(autonomy): memoria persistente AI_AUTONOMY y guía AGENTS (sesión 000).
+- (pendiente) docs(autonomy): workflow Jules actualizado + memoria (este commit).
+
+---

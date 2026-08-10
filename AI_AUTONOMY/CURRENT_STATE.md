@@ -4,12 +4,17 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-10 (sesión de bootstrap del sistema autónomo)
+- **Fecha/hora (UTC)**: 2026-08-10 (bootstrap del sistema autónomo + workflow Jules)
 - **Branch**: `jules/autonomous-ordia`
-- **HEAD**: `d34ffd8` (inicio del sistema autónomo; incluye todo el rebuild de Codex consolidado)
+- **HEAD**: `969059d` + commit de workflow Jules (ver `git log` para el hash exacto)
+- **Workflow autónomo**: `.github/workflows/ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
 
 ## Último trabajo realizado
 
+- Workflow autónomo Jules actualizado y validado (ver RUN_LOG sesión 001):
+  - Rama de trabajo `jules/autonomous-ordia` (nunca `main`); cron cada 2h; failsafes por
+    variable `ORDIA_AUTONOMY_ENABLED` y por archivo `AI_AUTONOMY/AUTONOMY_BYPASS`; session lock
+    por PR abierta; verificación de rama contra la API de Jules; prompt maestro ampliado.
 - Consolidación y publicación del rebuild de Codex (`feature/ordia-total-rebuild-2026-08-10` → `d34ffd8`):
   1. `feat(intelligence)`: elimina modelo local TFLite simulado; unifica proveedor real.
   2. `feat(privacy)`: guardián de teclado y filtro de privacidad contextual endurecidos.
@@ -48,7 +53,9 @@
 
 ## Siguiente tarea recomendada
 
-- Arrancar el primer ciclo Jules (workflow `ordia-autonomous-jules.yml`, branch `jules/autonomous-ordia`).
+- Arrancar el primer ciclo Jules: ejecutar manualmente el workflow
+  `Ordia Autonomous Jules` (Actions → workflow_dispatch) tras confirmar
+  `secrets.JULES_API_KEY` y la sincronización de la rama en el conector de Jules.
 
 ## PR pendiente
 
