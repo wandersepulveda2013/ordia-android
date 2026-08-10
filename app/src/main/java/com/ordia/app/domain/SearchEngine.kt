@@ -20,24 +20,44 @@ object SearchEngine {
     ): List<SearchResult> {
         val normalized = query.foldForSearch()
         if (normalized.isBlank()) return emptyList()
-        fun matches(vararg values: String) = values.any { it.foldForSearch().contains(normalized) }
-        return buildList {
-            tasks.filter { !it.archived && matches(it.title, it.details) }.forEach {
-                add(SearchResult(SearchKind.TASK, it.id, it.title, it.details.take(90)))
+
+        val results = ArrayList<Pair<SearchResult, Boolean>>()
+
+        for (it in tasks) {
+            if (it.archived) continue
+            val titleFolded = it.title.foldForSearch()
+            if (titleFolded.contains(normalized) || it.details.foldForSearch().contains(normalized)) {
+                results.add(SearchResult(SearchKind.TASK, it.id, it.title, it.details.take(90)) to titleFolded.startsWith(normalized))
             }
-            projects.filter { !it.archived && matches(it.name, it.description) }.forEach {
-                add(SearchResult(SearchKind.PROJECT, it.id, it.name, it.description.take(90)))
+        }
+        for (it in projects) {
+            if (it.archived) continue
+            val titleFolded = it.name.foldForSearch()
+            if (titleFolded.contains(normalized) || it.description.foldForSearch().contains(normalized)) {
+                results.add(SearchResult(SearchKind.PROJECT, it.id, it.name, it.description.take(90)) to titleFolded.startsWith(normalized))
             }
-            notes.filter { !it.archived && matches(it.title, it.body) }.forEach {
-                add(SearchResult(SearchKind.NOTE, it.id, it.title, it.body.take(90)))
+        }
+        for (it in notes) {
+            if (it.archived) continue
+            val titleFolded = it.title.foldForSearch()
+            if (titleFolded.contains(normalized) || it.body.foldForSearch().contains(normalized)) {
+                results.add(SearchResult(SearchKind.NOTE, it.id, it.title, it.body.take(90)) to titleFolded.startsWith(normalized))
             }
-            habits.filter { !it.archived && matches(it.title, it.details) }.forEach {
-                add(SearchResult(SearchKind.HABIT, it.id, it.title, it.details.take(90)))
+        }
+        for (it in habits) {
+            if (it.archived) continue
+            val titleFolded = it.title.foldForSearch()
+            if (titleFolded.contains(normalized) || it.details.foldForSearch().contains(normalized)) {
+                results.add(SearchResult(SearchKind.HABIT, it.id, it.title, it.details.take(90)) to titleFolded.startsWith(normalized))
             }
-        }.sortedWith(compareBy<SearchResult> { if (it.title.foldForSearch().startsWith(normalized)) 0 else 1 }.thenBy { it.title })
+        }
+
+        return results.sortedWith(compareBy<Pair<SearchResult, Boolean>> { if (it.second) 0 else 1 }.thenBy { it.first.title }).map { it.first }
     }
 }
 
+private val DIACRITICS_REGEX = Regex("\\p{M}+")
+
 private fun String.foldForSearch(): String =
     Normalizer.normalize(trim().lowercase(), Normalizer.Form.NFD)
-        .replace(Regex("\\p{M}+"), "")
+        .replace(DIACRITICS_REGEX, "")
