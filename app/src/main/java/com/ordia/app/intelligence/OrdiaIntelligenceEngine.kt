@@ -10,9 +10,7 @@ import android.util.Log
  * analizar texto (ContextEngine, IME, Guardian).
  *
  * COMPORTAMIENTO:
- * - Delega en IntelligenceRouter que elige entre BasicRuleProvider
- *   (reglas/regex, SIEMPRE disponible) y LocalModelProvider
- *   (Gemma 2B en dispositivo, requiere descarga).
+ * - Delega en IntelligenceRouter y su motor de reglas deterministas local.
  * - Siempre ejecuta SafetyGate ANTES de cualquier proveedor.
  * - El texto original se descarta después del análisis.
  * - Memoria solo almacena acciones confirmadas (nunca texto).
@@ -23,7 +21,6 @@ import android.util.Log
  * @see IntelligenceRouter Enrutador interno
  * @see IntelligenceSafetyGate Filtro de seguridad
  * @see BasicRuleProvider Modo reglas (fallback)
- * @see LocalModelProvider Inteligencia local real
  */
 class OrdiaIntelligenceEngine private constructor(appContext: Context) {
 
@@ -35,19 +32,6 @@ class OrdiaIntelligenceEngine private constructor(appContext: Context) {
     /** Nombre del proveedor activo para UI */
     val activeProviderDisplayName: String
         get() = router.activeProviderName
-
-    /** ¿La inteligencia local está disponible? */
-    val isLocalModelAvailable: Boolean
-        get() = router.isLocalModelAvailable
-
-    /** ¿La inferencia local real está implementada? (ORD-003: hoy es false) */
-    val isLocalModelInferenceSupported: Boolean
-        get() = router.isLocalModelInferenceSupported
-
-    /** ¿El modo local está activado? (aunque el modelo no esté cargado) */
-    var isLocalModelEnabled: Boolean
-        get() = router.isLocalModelEnabled
-        set(value) { router.setLocalModelEnabled(value) }
 
     /**
      * Analiza un texto y produce una respuesta estructurada.
@@ -83,21 +67,13 @@ class OrdiaIntelligenceEngine private constructor(appContext: Context) {
      */
     fun confirmAction(label: String, response: IntelligenceResponse) {
         router.recordActionConfirmed(label, response.schema)
-        Log.d(TAG, "Acción confirmada: $label")
-    }
-
-    /**
-     * Intenta cargar el modelo local (requiere que el archivo TFLite esté descargado).
-     */
-    suspend fun loadLocalModel(): Boolean {
-        return router.loadLocalModel()
+        Log.d(TAG, "Acción confirmada localmente")
     }
 
     /**
      * Prepara el motor para ser destruido.
      */
     fun shutdown() {
-        // Liberar recursos del modelo si está cargado
         Log.d(TAG, "OrdiaIntelligenceEngine shutdown")
     }
 

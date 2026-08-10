@@ -27,8 +27,8 @@ interface IntelligenceProvider {
 
     /**
      * Indica si el proveedor está disponible actualmente.
-     * BasicRuleProvider siempre devuelve true.
-     * LocalModelProvider devuelve true solo si el modelo está cargado en memoria.
+     * El proveedor determinista incluido devuelve true. Cualquier proveedor
+     * opcional futuro debe exponer aquí su disponibilidad real y verificable.
      */
     val isAvailable: Boolean
         get() = true

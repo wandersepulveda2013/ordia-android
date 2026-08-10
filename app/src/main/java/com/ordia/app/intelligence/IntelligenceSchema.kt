@@ -1,11 +1,9 @@
 package com.ordia.app.intelligence
 
 /**
- * Esquema de salida estructurada JSON que TODO proveedor de inteligencia
- * (BasicRuleProvider y LocalModelProvider) debe cumplir.
- *
- * El modelo local (Gemma 2B via MediaPipe) recibe este esquema en el prompt
- * de sistema para garantizar que la salida sea parseable como JSON válido.
+ * Esquema de salida estructurada que debe cumplir cualquier proveedor de
+ * inteligencia. En esta versión lo produce el motor determinista local;
+ * no existe un modelo generativo conectado.
  *
  * @property actor Quién realiza la acción: yo, alguien, alguienMas, nosotros
  * @property polarity positivo (afirmativo) o negativo (negación explícita)

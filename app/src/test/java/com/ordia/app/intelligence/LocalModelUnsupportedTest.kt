@@ -10,29 +10,27 @@ import org.junit.Test
 /**
  * Pruebas del contrato honesto del motor local (ORD-003).
  *
- * La inferencia local NO está implementada (Gemma TFLite requiere la API de
- * tarea con tokenizador). Estas pruebas garantizan que el estado Unsupported
- * sea explícito y documentado, y que la respuesta lo propague sin fingir éxito.
+ * El modelo generativo NO está integrado. Estas pruebas garantizan que el
+ * estado sea explícito y que ninguna respuesta finja inferencia.
  */
 class LocalModelUnsupportedTest {
 
     @Test
     fun unsupportedReasonIsDocumentedAndNonBlank() {
-        val reason = LocalModelProvider.UNSUPPORTED_REASON
+        val reason = GenerativeModelStatus.UNAVAILABLE_REASON
         assertTrue(reason.isNotBlank())
         // Debe explicar la causa técnica (tokenizador / API de tarea).
         assertTrue(
             "La razón debe documentar la causa técnica: $reason",
-            reason.contains("tokenizador") || reason.contains("API de tarea")
+            reason.contains("no está integrado")
         )
     }
 
     @Test
     fun unsupportedReasonExplainsWhatWorks() {
-        val reason = LocalModelProvider.UNSUPPORTED_REASON
-        // Debe ser honesta sobre lo que sí funciona (descarga/carga).
-        assertTrue(reason.contains("descarga"))
-        assertTrue(reason.contains("carga"))
+        val reason = GenerativeModelStatus.UNAVAILABLE_REASON
+        assertTrue(reason.contains("reglas deterministas"))
+        assertTrue(reason.contains("no ofrece descargas"))
     }
 
     @Test
@@ -40,9 +38,9 @@ class LocalModelUnsupportedTest {
         val response = IntelligenceResponse(
             schema = IntelligenceSchema(),
             providerSource = ProviderSource.LOCAL_MODEL,
-            unsupportedReason = LocalModelProvider.UNSUPPORTED_REASON
+            unsupportedReason = GenerativeModelStatus.UNAVAILABLE_REASON
         )
-        assertEquals(LocalModelProvider.UNSUPPORTED_REASON, response.unsupportedReason)
+        assertEquals(GenerativeModelStatus.UNAVAILABLE_REASON, response.unsupportedReason)
         assertEquals(ProviderSource.LOCAL_MODEL, response.providerSource)
     }
 
@@ -57,7 +55,7 @@ class LocalModelUnsupportedTest {
         val response = IntelligenceResponse(
             schema = IntelligenceSchema(),
             providerSource = ProviderSource.LOCAL_MODEL,
-            unsupportedReason = LocalModelProvider.UNSUPPORTED_REASON
+            unsupportedReason = GenerativeModelStatus.UNAVAILABLE_REASON
         )
         assertFalse(response.isActionable)
         assertEquals(0f, response.confidenceScore)
@@ -77,8 +75,8 @@ class LocalModelUnsupportedTest {
 
     @Test
     fun reasonIsStableConstant() {
-        assertNotNull(LocalModelProvider.UNSUPPORTED_REASON)
+        assertNotNull(GenerativeModelStatus.UNAVAILABLE_REASON)
         // Una constante const no cambia entre llamadas.
-        assertEquals(LocalModelProvider.UNSUPPORTED_REASON, LocalModelProvider.UNSUPPORTED_REASON)
+        assertEquals(GenerativeModelStatus.UNAVAILABLE_REASON, GenerativeModelStatus.UNAVAILABLE_REASON)
     }
 }

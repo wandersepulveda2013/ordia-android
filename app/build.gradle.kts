@@ -171,14 +171,6 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.2.1")
     implementation("androidx.work:work-runtime-ktx:2.11.2")
 
-    // TensorFlow Lite: ejecución local de modelos de lenguaje en dispositivo.
-    // Carga modelos TFLite (Gemma 2B, Gemma 3 1B cuantizados ~800MB-1.5GB).
-    // Compatible con Kotlin 2.1.0 y todas las versiones de Android 8.0+.
-    // Nota: tensorflow-lite-gpu NO se incluye: no se usa ningún GpuDelegate y
-    // sus clases hacen fallar la minificación R8 del build de release.
-    // https://www.tensorflow.org/lite
-    implementation("org.tensorflow:tensorflow-lite:2.16.1")
-
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     // org.json real en tests JVM: la implementación de Android no está disponible
