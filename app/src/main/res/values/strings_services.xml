@@ -3,12 +3,20 @@
     <!-- Teclado (OrdiaKeyboardService, ORD-029) -->
     <string name="keyboard_privacy_active">Privacidad activa: no se almacena texto, contraseñas ni contenido sensible. Análisis solo en español.</string>
     <string name="keyboard_paused">Análisis pausado por 1 hora. Presiona aquí para reanudar.</string>
+    <string name="keyboard_analysis_blocked_field">Ordía no analiza este campo sensible.</string>
+    <string name="keyboard_analysis_missing_app">Ordía no puede identificar esta aplicación; análisis desactivado.</string>
+    <string name="keyboard_analysis_off_app">Ordía no analiza %1$s.</string>
+    <string name="keyboard_analysis_on_app">Análisis local activo para %1$s.</string>
+    <string name="keyboard_analysis_allow">Permitir</string>
+    <string name="keyboard_analysis_revoke">Revocar</string>
 
     <!-- Sugerencias externas (ExternalConfirmation*, ORD-029) -->
     <string name="external_suggestion_channel_name">Sugerencias de Ordía</string>
     <string name="external_suggestion_channel_description">Sugerencias contextuales cuando falta permiso de superposición</string>
     <string name="external_suggestion_untitled">Sin título</string>
     <string name="external_suggestion_unknown_kind">Desconocido</string>
+    <string name="context_action_saving">Guardando en Ordía…</string>
+    <string name="context_action_save_failed">No se pudo guardar. La sugerencia sigue pendiente.</string>
 
     <!-- Actualización (UpdateInstallActivity, ORD-029) -->
     <string name="update_install_not_authorized">No se autorizó la instalación de actualizaciones de Ordía.</string>

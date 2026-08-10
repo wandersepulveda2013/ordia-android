@@ -23,10 +23,12 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.ordia.app.MainActivity
 import com.ordia.app.OrdiaApplication
 import com.ordia.app.R
+import com.ordia.app.context.external.ContextActionConfirmationResult
 import com.ordia.app.context.external.ExternalConfirmationController
 import com.ordia.app.context.external.ExternalSuggestion
 import com.ordia.app.context.external.ExternalSuggestionAction
@@ -572,9 +574,23 @@ class GuardianOverlayService : Service() {
 
         // Actions
         val controller = ExternalConfirmationController.getInstance(this)
-        card.findViewById<Button>(R.id.card_action_add)?.setOnClickListener {
-            controller.addSuggestion(suggestion)
-            hideSuggestionCard()
+        card.findViewById<Button>(R.id.card_action_add)?.let { addButton ->
+            addButton.setOnClickListener {
+                addButton.isEnabled = false
+                scope.launch {
+                    val result = controller.addSuggestion(suggestion)
+                    if (result is ContextActionConfirmationResult.Success) {
+                        hideSuggestionCard()
+                    } else {
+                        addButton.isEnabled = true
+                        Toast.makeText(
+                            this@GuardianOverlayService,
+                            R.string.context_action_save_failed,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
         }
         card.findViewById<Button>(R.id.card_action_edit)?.setOnClickListener {
             val editIntent = controller.createEditIntent(suggestion)

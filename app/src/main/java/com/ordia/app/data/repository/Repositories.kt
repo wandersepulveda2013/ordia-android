@@ -153,6 +153,7 @@ class CaptureRepository(private val dao: CaptureDao) {
 
     suspend fun insert(capture: CaptureEntity): Long = dao.insert(capture)
     suspend fun update(capture: CaptureEntity) = dao.update(capture)
+    suspend fun delete(id: Long) = dao.deleteById(id)
     suspend fun findRecentDuplicate(fingerprint: String, since: Long): CaptureEntity? =
         dao.findRecentDuplicate(fingerprint, since)
     suspend fun saveDraft(draft: CaptureDraftEntity) = dao.upsertDraft(draft)

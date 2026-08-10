@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="nav_capture">Capturar</string>
+    <string name="more_capture_desc">Abre la captura completa para recordatorios, archivos y texto.</string>
     <string name="more_planner_desc">Organiza fechas y bloques del día.</string>
     <string name="capture_header_eyebrow">ENTRADA UNIVERSAL</string>
     <string name="capture_header_title">Captura todo. Decide después.</string>
@@ -34,6 +35,10 @@
     <string name="capture_source_composer">Captura</string>
     <string name="capture_saved_success">Captura guardada y organizada.</string>
     <string name="capture_saved_for_retry">El original quedó guardado. La organización se podrá reintentar.</string>
+    <string name="capture_retry_explanation">El original está a salvo. Puedes intentar organizarlo otra vez.</string>
+    <string name="capture_retry">Reintentar</string>
+    <string name="capture_discard_failed">Descartar captura fallida</string>
+    <string name="capture_failed_discarded">Captura fallida descartada.</string>
     <string name="capture_duplicate_ignored">Esta captura ya se guardó hace unos segundos.</string>
     <string name="capture_untitled_note">Nota rápida</string>
     <string name="capture_untitled_task">Revisar captura</string>

@@ -26,6 +26,16 @@
             android:launchMode="singleTop"
             android:theme="@style/Theme.Ordia.QuickCapture" />
 
+        <!-- Trampolín interno para shortcuts: su taskAffinity aislado evita que
+             los flags obligatorios del launcher limpien la tarea de Ordía. -->
+        <activity
+            android:name=".shortcuts.OrdiaShortcutActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Ordia.Shortcut" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -44,7 +54,21 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
+
+        <service
+            android:name=".quicksettings.OrdiaCaptureTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_ordia"
+            android:label="@string/quick_settings_capture_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
 
         <receiver
             android:name=".reminders.ReminderActionReceiver"

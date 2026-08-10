@@ -132,6 +132,13 @@
     <string name="focus_reset">Reiniciar</string>
     <string name="focus_pause">Pausar</string>
     <string name="focus_start">Empezar</string>
+    <string name="focus_resume">Continuar</string>
+    <string name="task_attachments_title">Adjuntos</string>
+    <string name="task_attachment_add">Adjuntar</string>
+    <string name="task_attachments_empty">No hay archivos adjuntos.</string>
+    <string name="task_attachment_remove">Quitar %1$s</string>
+    <string name="task_attachment_access_failed">No se pudo conservar acceso a ese archivo.</string>
+    <string name="task_attachment_open_failed">Ninguna aplicación pudo abrir este archivo.</string>
     <string name="focus_finish">Finalizar</string>
     <string name="focus_note">Al terminar se registrará el tiempo real. Las pausas no bloquean el teléfono ni leen otras aplicaciones.</string>
 
@@ -165,11 +172,28 @@
 
     <!-- PlannerScreen -->
     <string name="planner_eyebrow">MIRA EL TIEMPO</string>
-    <string name="planner_title">Planificador</string>
-    <string name="planner_subtitle">Coloca cada tarea donde realmente cabe.</string>
-    <string name="planner_action">Planificar</string>
+    <string name="planner_title">Calendario</string>
+    <string name="planner_subtitle">Revisa fechas límite y horas previstas sin perder el plan del día.</string>
+    <string name="planner_action">Nueva tarea</string>
+    <string name="planner_view_day">Día</string>
+    <string name="planner_view_week">Semana</string>
+    <string name="planner_view_month">Mes</string>
+    <string name="planner_view_agenda">Agenda</string>
+    <string name="planner_today">Hoy</string>
+    <string name="planner_prev_day">Día anterior</string>
+    <string name="planner_next_day">Día siguiente</string>
+    <string name="planner_prev_week">Semana anterior</string>
+    <string name="planner_next_week">Semana siguiente</string>
     <string name="planner_prev_month">Mes anterior</string>
     <string name="planner_next_month">Mes siguiente</string>
+    <string name="planner_tasks_only_notice">Este calendario muestra tareas de Ordía con fecha límite u hora prevista. No crea ni sincroniza eventos externos.</string>
+    <string name="planner_week_empty_day">Sin tareas programadas.</string>
+    <string name="planner_agenda_title">Próxima agenda</string>
+    <string name="planner_agenda_supporting">Tareas programadas durante los próximos %1$d días.</string>
+    <string name="planner_agenda_empty">Agenda despejada</string>
+    <string name="planner_agenda_empty_desc">No hay tareas con fecha límite u hora prevista en este periodo.</string>
+    <string name="planner_starts_at">Empieza a las %1$s</string>
+    <string name="planner_due_at">Vence a las %1$s</string>
     <string name="planner_auto_plan">Plan automático local</string>
     <string name="planner_auto_plan_empty">Añade tareas para que Ordía proponga un orden realista.</string>
     <string name="planner_auto_plan_summary">%1$d bloques · %2$d min ocupados · %3$d min libres</string>

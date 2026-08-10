@@ -473,6 +473,9 @@ interface CaptureDao {
     @Update
     suspend fun update(capture: CaptureEntity)
 
+    @Query("DELETE FROM captures WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertDraft(draft: CaptureDraftEntity)
 

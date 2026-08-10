@@ -36,8 +36,12 @@ class ReminderActionReceiver : BroadcastReceiver() {
                             }
                             context.getSystemService(android.app.NotificationManager::class.java).cancel(taskId.hashCode())
                         }
-                        ACTION_SNOOZE -> if (!task.completed && !task.archived && task.status != TaskStatus.CANCELLED)
-                            app.container.reminderScheduler.scheduleAt(taskId, System.currentTimeMillis() + 10 * 60_000L)
+                        ACTION_SNOOZE -> if (!task.completed && !task.archived && task.status != TaskStatus.CANCELLED) {
+                            val now = System.currentTimeMillis()
+                            val snoozedAt = now + 10 * 60_000L
+                            repo.update(task.copy(reminderAt = snoozedAt, updatedAt = now))
+                            app.container.reminderScheduler.scheduleAt(taskId, snoozedAt)
+                        }
                     }
                 }
                 OrdiaWidgetUpdater.updateAll(context)

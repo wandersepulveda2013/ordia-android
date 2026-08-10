@@ -15,6 +15,7 @@
     <string name="conversation_paste_label">Mensajes o conversación exportada</string>
     <string name="conversation_pasted_name">Conversación pegada</string>
     <string name="conversation_analyze">Analizar</string>
+    <string name="conversation_analyzing">Analizando…</string>
 
     <string name="conversation_preview_title">Vista previa local</string>
     <string name="conversation_preview_counts">%1$s · %2$s · %3$s</string>

@@ -30,7 +30,7 @@ class OrdiaUpdateWorker(
             OrdiaUpdateManager.CheckResult.UpToDate -> Result.success()
             is OrdiaUpdateManager.CheckResult.Failed -> {
                 // A malformed release must not create an endless battery-consuming retry loop.
-                if (runAttemptCount < MAX_TRANSIENT_RETRIES) Result.retry() else Result.success()
+                if (runAttemptCount < MAX_TRANSIENT_RETRIES) Result.retry() else Result.failure()
             }
             is OrdiaUpdateManager.CheckResult.Available -> {
                 val canNotify = notificationsAvailable(applicationContext)
@@ -42,7 +42,7 @@ class OrdiaUpdateWorker(
                             userInitiated = false
                         ) == null
                     ) {
-                        if (runAttemptCount < MAX_TRANSIENT_RETRIES) Result.retry() else Result.success()
+                        if (runAttemptCount < MAX_TRANSIENT_RETRIES) Result.retry() else Result.failure()
                     } else Result.success()
                 } else {
                     if (canNotify) OrdiaUpdateManager.showAvailable(applicationContext, result.release)

@@ -56,6 +56,7 @@ data class UserPreferences(
     val defaultFocusMinutes: Int = 25,
     val reduceMotion: Boolean = false,
     val compactNavigation: Boolean = false,
+    val showFloatingCapture: Boolean = true,
     val learningEnabled: Boolean = false
 ) {
     val darkMode: Boolean get() = themeMode == ThemeMode.DARK
@@ -91,6 +92,7 @@ class PreferencesRepository(private val context: Context) : com.ordia.app.backup
         val defaultFocusMinutes = intPreferencesKey("default_focus_minutes")
         val reduceMotion = booleanPreferencesKey("reduce_motion")
         val compactNavigation = booleanPreferencesKey("compact_navigation")
+        val showFloatingCapture = booleanPreferencesKey("show_floating_capture")
         val learningEnabled = booleanPreferencesKey("learning_enabled")
     }
 
@@ -158,6 +160,7 @@ class PreferencesRepository(private val context: Context) : com.ordia.app.backup
     suspend fun setDefaultFocusMinutes(value: Int) = edit { it[Keys.defaultFocusMinutes] = value.coerceIn(5, 180) }
     suspend fun setReduceMotion(value: Boolean) = edit { it[Keys.reduceMotion] = value }
     suspend fun setCompactNavigation(value: Boolean) = edit { it[Keys.compactNavigation] = value }
+    suspend fun setShowFloatingCapture(value: Boolean) = edit { it[Keys.showFloatingCapture] = value }
     suspend fun setLearningEnabled(value: Boolean) = edit { it[Keys.learningEnabled] = value }
     suspend fun setDarkMode(enabled: Boolean) = setThemeMode(if (enabled) ThemeMode.DARK else ThemeMode.LIGHT)
 
@@ -208,6 +211,7 @@ class PreferencesRepository(private val context: Context) : com.ordia.app.backup
             defaultFocusMinutes = (values[Keys.defaultFocusMinutes] ?: 25).coerceIn(5, 180),
             reduceMotion = values[Keys.reduceMotion] ?: false,
             compactNavigation = values[Keys.compactNavigation] ?: false,
+            showFloatingCapture = values[Keys.showFloatingCapture] ?: true,
             learningEnabled = values[Keys.learningEnabled] ?: false
         )
     }
@@ -235,6 +239,7 @@ class PreferencesRepository(private val context: Context) : com.ordia.app.backup
         .put("defaultFocusMinutes", defaultFocusMinutes)
         .put("reduceMotion", reduceMotion)
         .put("compactNavigation", compactNavigation)
+        .put("showFloatingCapture", showFloatingCapture)
         .put("learningEnabled", learningEnabled)
 
     private fun JSONObject.toValidatedUserPreferences(): UserPreferences {
@@ -296,6 +301,8 @@ class PreferencesRepository(private val context: Context) : com.ordia.app.backup
             defaultFocusMinutes = focusMinutes,
             reduceMotion = requiredBoolean("reduceMotion"),
             compactNavigation = requiredBoolean("compactNavigation"),
+            // Preferencia nueva: las copias anteriores conservan el FAB visible.
+            showFloatingCapture = if (has("showFloatingCapture")) requiredBoolean("showFloatingCapture") else true,
             // Opt-in reciente: se lee como opcional para no romper copias antiguas.
             learningEnabled = if (has("learningEnabled")) getBoolean("learningEnabled") else false
         )
@@ -377,6 +384,7 @@ class PreferencesRepository(private val context: Context) : com.ordia.app.backup
         values[Keys.defaultFocusMinutes] = value.defaultFocusMinutes
         values[Keys.reduceMotion] = value.reduceMotion
         values[Keys.compactNavigation] = value.compactNavigation
+        values[Keys.showFloatingCapture] = value.showFloatingCapture
         values[Keys.learningEnabled] = value.learningEnabled
     }
 

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="search_palette_header_subtitle">Abre una sección o encuentra tareas, proyectos, notas y hábitos.</string>
+    <string name="search_palette_field_label">Buscar o ejecutar un comando</string>
+    <string name="search_palette_frequent">Comandos frecuentes</string>
+    <string name="search_palette_commands">Comandos</string>
+    <string name="search_palette_entities">Resultados</string>
+    <string name="search_kind_command">COMANDO</string>
+
+    <string name="search_command_capture">Capturar</string>
+    <string name="search_command_capture_desc">Abrir la captura rápida de Ordía</string>
+    <string name="search_command_today">Hoy</string>
+    <string name="search_command_today_desc">Ir a tu vista de hoy</string>
+    <string name="search_command_calendar">Calendario</string>
+    <string name="search_command_calendar_desc">Abrir el planificador y calendario</string>
+    <string name="search_command_notes">Notas</string>
+    <string name="search_command_notes_desc">Abrir todas tus notas</string>
+    <string name="search_command_habits">Hábitos</string>
+    <string name="search_command_habits_desc">Revisar hábitos y rutinas</string>
+    <string name="search_command_focus">Enfoque</string>
+    <string name="search_command_focus_desc">Abrir el temporizador de enfoque</string>
+    <string name="search_command_automations">Automatizaciones</string>
+    <string name="search_command_automations_desc">Administrar reglas y automatizaciones</string>
+    <string name="search_command_settings">Ajustes</string>
+    <string name="search_command_settings_desc">Configurar Ordía y sus preferencias</string>
+    <string name="search_command_privacy">Privacidad</string>
+    <string name="search_command_privacy_desc">Revisar la privacidad de la inteligencia local</string>
+    <string name="search_command_intelligence">Inteligencia</string>
+    <string name="search_command_intelligence_desc">Ver el modo y estado de la inteligencia local</string>
+</resources>

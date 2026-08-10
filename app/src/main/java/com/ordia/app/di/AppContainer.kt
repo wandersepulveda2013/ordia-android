@@ -5,6 +5,10 @@ import com.ordia.app.backup.BackupManager
 import com.ordia.app.backup.RoomBackupStore
 import com.ordia.app.context.ContextualSettingsStore
 import com.ordia.app.context.ContextualSuggestionStore
+import com.ordia.app.context.external.ConfirmExternalSuggestionUseCase
+import com.ordia.app.context.external.RepositoryContextActionPersistence
+import com.ordia.app.context.external.SharedPreferencesContextActionReceiptStore
+import com.ordia.app.context.external.WorkManagerContextActionReminderScheduler
 import com.ordia.app.data.local.OrdiaDatabase
 import com.ordia.app.data.preferences.PreferencesRepository
 import com.ordia.app.data.repository.AttachmentRepository
@@ -42,6 +46,11 @@ class AppContainer(context: Context) {
     val conversationRepository = ConversationRepository(database.conversationDao())
     val observationRepository = ObservationRepository(database.observationDao())
     val reminderScheduler = ReminderScheduler(context)
+    val confirmExternalSuggestion = ConfirmExternalSuggestionUseCase(
+        persistence = RepositoryContextActionPersistence(taskRepository, noteRepository),
+        reminderScheduler = WorkManagerContextActionReminderScheduler(reminderScheduler),
+        receiptStore = SharedPreferencesContextActionReceiptStore(context)
+    )
     val automationEngine = AutomationEngine(
         automationRuleRepository,
         taskRepository,

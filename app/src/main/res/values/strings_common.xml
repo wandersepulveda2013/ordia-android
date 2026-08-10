@@ -16,7 +16,7 @@
     <string name="nav_today">Hoy</string>
     <string name="nav_inbox">Bandeja</string>
     <string name="nav_tasks">Tareas</string>
-    <string name="nav_planner">Plan</string>
+    <string name="nav_planner">Calendario</string>
     <string name="nav_projects">Proyectos</string>
     <string name="nav_notes">Notas</string>
     <string name="nav_habits">Hábitos</string>
@@ -27,11 +27,13 @@
     <string name="nav_settings">Ajustes</string>
     <string name="nav_more">Más</string>
     <string name="nav_guardian">Guardián</string>
+    <string name="nav_intelligence">Inteligencia</string>
     <string name="fab_capture">Capturar</string>
     <string name="fab_close">Cerrar captura</string>
     <string name="fab_task">Nueva tarea</string>
     <string name="fab_note">Nota rápida</string>
+    <string name="fab_reminder_capture">Recordatorio o captura</string>
+    <string name="fab_habits">Abrir hábitos</string>
     <string name="fab_voice">Capturar por voz</string>
-    <string name="fab_organize">Organizar el día</string>
-    <string name="fab_messages">Revisar mensajes</string>
+    <string name="fab_assistant">Abrir asistente</string>
 </resources>

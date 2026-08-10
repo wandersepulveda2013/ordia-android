@@ -30,6 +30,14 @@
     <!-- Inteligencia de Ordía (IntelligenceScreen, ORD-029 i18n) -->
     <string name="intel_header_eyebrow">INTELIGENCIA</string>
     <string name="intel_header_title">Inteligencia de Ordía</string>
+    <string name="intel_rules_active_title">Reglas locales · activas</string>
+    <string name="intel_rules_active_desc">Ordía interpreta capturas con reglas deterministas en el dispositivo. No necesita conexión ni descarga modelos.</string>
+    <string name="intel_rules_scope_title">QUÉ PUEDE HACER</string>
+    <string name="intel_rules_scope_desc">• Detectar tareas y recordatorios explícitos.\n• Reconocer fechas, prioridades y algunas categorías.\n• Proponer una acción y esperar tu confirmación.\n\nNo redacta texto libre ni comprende conversaciones como un modelo generativo.</string>
+    <string name="intel_generative_title">MODELO GENERATIVO</string>
+    <string name="intel_generative_unavailable">No disponible en esta versión</string>
+    <string name="intel_generative_reason">La descarga fue desactivada porque Ordía todavía no integra una inferencia generativa válida. Así no ocupa cientos de megabytes con un archivo que no podría usar.</string>
+    <string name="intel_privacy_verified_desc">El análisis activo ocurre en el dispositivo. El filtro de privacidad descarta campos sensibles y las acciones detectadas requieren confirmación.</string>
     <string name="intel_section_current_mode">Modo actual</string>
     <string name="intel_mode_local_model">Inteligencia local (modelo)</string>
     <string name="intel_mode_local_enabled">Local activado (inferencia pendiente)</string>

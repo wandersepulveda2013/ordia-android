@@ -3,7 +3,9 @@
     <string name="nav_assistant">Asistente</string>
     <string name="nav_workspace">Espacio</string>
     <string name="more_assistant_desc">Organiza, resume y decide sin enviar tus datos</string>
+    <string name="more_intelligence_desc">Consulta qué análisis local está activo y cuáles son sus límites</string>
     <string name="more_workspace_desc">Paneles adaptables para teléfono, tableta y escritorio</string>
+    <string name="more_experimental_badge">Experimental</string>
     <string name="assistant_eyebrow">AYUDA LOCAL Y EXPLICABLE</string>
     <string name="assistant_title">Asistente de Ordía</string>
     <string name="assistant_subtitle">Pregunta con lenguaje natural y actúa sobre tus datos reales.</string>

@@ -12,6 +12,8 @@
     <string name="more_section_review_supporting">Aprende de tu actividad y recupera información archivada.</string>
     <string name="more_section_system">Sistema</string>
     <string name="more_section_system_supporting">Configura Ordía para que se adapte a tu forma de trabajar.</string>
+    <string name="more_section_experimental">Experimental</string>
+    <string name="more_section_experimental_supporting">Funciones en evolución que todavía no forman parte de la navegación principal.</string>
     <string name="more_inbox_desc">Procesa capturas rápidas y decide su siguiente paso.</string>
     <string name="more_focus_desc">Temporizador, sesiones y tiempo de concentración real.</string>
     <string name="more_focus_minutes_badge">%1$dm</string>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_show_floating_capture">Mostrar botón flotante</string>
+    <string name="settings_show_floating_capture_desc">Muestra el acceso rápido para crear tareas, notas y capturas. Puedes reactivarlo aquí en cualquier momento.</string>
+</resources>
