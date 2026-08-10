@@ -479,9 +479,14 @@ class OrdiaViewModel(
 
     fun applyDayPlan(plan: DayPlanner.Plan) = viewModelScope.launch {
         val now = System.currentTimeMillis()
-        var updated = 0
+
+        val taskIds = plan.blocks.map { it.taskId }
+        val fetchedTasks = taskRepository.getByIds(taskIds).associateBy { it.id }
+
+        val normalizedTasks = mutableListOf<TaskEntity>()
+
         plan.blocks.forEach { block ->
-            val task = taskRepository.get(block.taskId) ?: return@forEach
+            val task = fetchedTasks[block.taskId] ?: return@forEach
             val start = DateRules.toEpochMillis(plan.date, block.startMinute)
             val end = DateRules.toEpochMillis(plan.date, block.endMinute)
             val normalized = task.copy(
@@ -490,10 +495,15 @@ class OrdiaViewModel(
                 status = if (task.completed) TaskStatus.COMPLETED else TaskStatus.PLANNED,
                 updatedAt = now
             )
-            taskRepository.update(normalized)
+            normalizedTasks.add(normalized)
             normalized.reminderAt?.let { reminderScheduler.schedule(normalized) }
-            updated++
         }
+
+        if (normalizedTasks.isNotEmpty()) {
+            taskRepository.updateAll(normalizedTasks)
+        }
+
+        val updated = normalizedTasks.size
         updateWidget()
         _events.emit(
             UiEvent.Message(
