@@ -424,19 +424,18 @@ class OrdiaViewModel(
         viewModelScope.launch {
             val steps = routineRepository.stepsFor(routine.id)
             val now = System.currentTimeMillis()
-            steps.forEachIndexed { index, step ->
-                taskRepository.add(
-                    TaskEntity(
-                        title = step.title,
-                        details = "Rutina: ${routine.name}",
-                        durationMinutes = step.durationMinutes,
-                        status = TaskStatus.INBOX,
-                        sortOrder = index,
-                        createdAt = now + index,
-                        updatedAt = now + index
-                    )
+            val tasks = steps.mapIndexed { index, step ->
+                TaskEntity(
+                    title = step.title,
+                    details = "Rutina: ${routine.name}",
+                    durationMinutes = step.durationMinutes,
+                    status = TaskStatus.INBOX,
+                    sortOrder = index,
+                    createdAt = now + index,
+                    updatedAt = now + index
                 )
             }
+            taskRepository.addAll(tasks)
             updateWidget()
             _events.emit(UiEvent.Message("La rutina se añadió a tu bandeja."))
         }
