@@ -207,6 +207,7 @@ class BackupManagerTest {
         var current: RestoreData = initial
         var throwOnReplace: Exception? = null
         var corruptReadAfterReplace = false
+        var mutateValueAfterReplace = false
         private var replaced = false
 
         override suspend fun replaceAll(data: RestoreData) {
@@ -220,6 +221,14 @@ class BackupManagerTest {
                 // Simula un commit que no persistió todo: la verificación debe fallar.
                 replaced = false
                 return current.copy(tasks = current.tasks.drop(1))
+            }
+            if (replaced && mutateValueAfterReplace) {
+                replaced = false
+                return current.copy(
+                    projects = current.projects.mapIndexed { index, project ->
+                        if (index == 0) project.copy(name = "Valor alterado") else project
+                    }
+                )
             }
             return current
         }
@@ -637,7 +646,7 @@ class BackupManagerTest {
     }
 
     @Test
-    fun verificationFailureReportsPreventiveJournal() = runBlocking {
+    fun verificationFailureRollsBackDataAutomatically() = runBlocking {
         val origin = newManager(FakeBackupStore(sampleData()))
         val backup = origin.exportJson()
 
@@ -647,8 +656,21 @@ class BackupManagerTest {
         val result = newManager(store, journal = journal).importBackup(backup)
 
         assertFalse(result.success)
-        assertTrue(result.message.contains("no pudo verificarse"))
-        assertTrue(result.message.contains(journal.name))
+        assertTrue(result.message.contains("revirtió automáticamente"))
+        assertEquals("Viejo", store.current.projects.first().name)
+    }
+
+    @Test
+    fun verificationDetectsChangedValuesEvenWhenCountsMatch() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val backup = origin.exportJson()
+
+        val store = FakeBackupStore(otherData()).apply { mutateValueAfterReplace = true }
+        val result = newManager(store).importBackup(backup)
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("revirtió automáticamente"))
+        assertEquals("Viejo", store.current.projects.first().name)
     }
 
     @Test

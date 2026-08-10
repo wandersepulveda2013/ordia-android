@@ -75,4 +75,26 @@ data class RestoreData(
             consentEvents.size == other.consentEvents.size &&
             automationRules.size == other.automationRules.size &&
             automationLogs.size == other.automationLogs.size
+
+    /** Compara cada valor persistido ignorando únicamente el orden SQL. */
+    fun contentMatches(other: RestoreData): Boolean =
+        projects.toSet() == other.projects.toSet() &&
+            tasks.toSet() == other.tasks.toSet() &&
+            notes.toSet() == other.notes.toSet() &&
+            habits.toSet() == other.habits.toSet() &&
+            habitLogs.toSet() == other.habitLogs.toSet() &&
+            focusSessions.toSet() == other.focusSessions.toSet() &&
+            routines.toSet() == other.routines.toSet() &&
+            routineSteps.toSet() == other.routineSteps.toSet() &&
+            tags.toSet() == other.tags.toSet() &&
+            taskTags.toSet() == other.taskTags.toSet() &&
+            attachments.toSet() == other.attachments.toSet() &&
+            captures.toSet() == other.captures.toSet() &&
+            captureDrafts.toSet() == other.captureDrafts.toSet() &&
+            conversations.toSet() == other.conversations.toSet() &&
+            commitments.toSet() == other.commitments.toSet() &&
+            observedSources.toSet() == other.observedSources.toSet() &&
+            consentEvents.toSet() == other.consentEvents.toSet() &&
+            automationRules.toSet() == other.automationRules.toSet() &&
+            automationLogs.toSet() == other.automationLogs.toSet()
 }

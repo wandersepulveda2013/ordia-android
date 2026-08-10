@@ -135,8 +135,8 @@ class BackupManager(
      * @param onPhase callback de progreso (se invoca en el orden
      *   VALIDATING → CREATING_SAFETY_BACKUP → RESTORING → VERIFYING)
      * @return [ImportResult.success] solo si la verificación posterior confirmó
-     *   la persistencia; cualquier fallo deja la base sin cambios o, si el
-     *   fallo ocurre tras el commit, se informa que no pudo verificarse.
+     *   cada valor persistido. Un fallo posterior al commit intenta restaurar
+     *   automáticamente el estado previo antes de devolver el control.
      */
     suspend fun importBackup(raw: String, onPhase: (RestorePhase) -> Unit = {}): ImportResult =
         operationMutex.withLock {
@@ -156,6 +156,12 @@ class BackupManager(
                     )
                 }
 
+                val oldData = runCatching { backupStore.readAll() }.getOrElse {
+                    return@withContext ImportResult(
+                        false,
+                        "No se pudo leer el estado actual. La restauración se canceló y tus datos no se modificaron."
+                    )
+                }
                 onPhase(RestorePhase.RESTORING)
                 var oldPreferences: UserPreferences? = null
                 var preferencesApplied = false
@@ -182,6 +188,31 @@ class BackupManager(
                     )
                 }
 
+                onPhase(RestorePhase.VERIFYING)
+                val verified = runCatching { verifyRestored(validated) }.getOrDefault(false)
+                if (!verified) {
+                    val dataRollback = runCatching { backupStore.replaceAll(oldData) }.exceptionOrNull()
+                    val preferencesRollback = if (preferencesApplied) {
+                        oldPreferences?.let { previous ->
+                            runCatching { preferences.restoreSnapshot(previous, allowGuardianEnabled = true) }.exceptionOrNull()
+                        }
+                    } else null
+                    if (dataRollback == null && preferencesRollback == null) {
+                        return@withContext ImportResult(
+                            false,
+                            "La restauración no superó la verificación. Ordía revirtió automáticamente los cambios y conservó tus datos anteriores."
+                        )
+                    }
+                    return@withContext ImportResult(
+                        false,
+                        "La restauración no pudo verificarse y no se confirma que haya terminado correctamente. " +
+                            "Tus datos anteriores están en el respaldo preventivo ${preRestoreBackupFile.name} del almacenamiento privado."
+                    )
+                }
+
+                // Los efectos externos se reconstruyen únicamente después de
+                // verificar el commit. Así un rollback nunca deja recordatorios
+                // correspondientes a datos descartados.
                 val reminderWarning = runCatching {
                     reminderScheduler.cancelAllAndAwait()
                     val now = System.currentTimeMillis()
@@ -190,16 +221,6 @@ class BackupManager(
                         .filter { (it.reminderAt ?: it.dueAt)?.let { trigger -> trigger > now } == true }
                         .forEach(reminderScheduler::schedule)
                 }.exceptionOrNull()
-
-                onPhase(RestorePhase.VERIFYING)
-                val verified = runCatching { verifyRestored(validated) }.getOrDefault(false)
-                if (!verified) {
-                    return@withContext ImportResult(
-                        false,
-                        "La restauración no pudo verificarse y no se confirma que haya terminado correctamente. " +
-                            "Tus datos anteriores están en el respaldo preventivo ${preRestoreBackupFile.name} del almacenamiento privado."
-                    )
-                }
 
                 val journalNote = "Se guardó un respaldo preventivo de tus datos anteriores (${preRestoreBackupFile.name}) en el almacenamiento privado."
                 ImportResult(
@@ -227,7 +248,7 @@ class BackupManager(
             .getOrElse { throw IllegalArgumentException("El archivo no contiene JSON válido.") }
         val format = runCatching { root.get("format") }.getOrNull()
         if (format !is String || format != "ordia-backup") {
-            throw IllegalArgumentException("El archivo no es una copia de seguridad de Ordia.")
+            throw IllegalArgumentException("El archivo no es una copia de seguridad de Ordía.")
         }
         val rawVersion = runCatching { root.get("version") }.getOrNull()
         if (rawVersion !is Number || rawVersion.toDouble() != rawVersion.toInt().toDouble()) {
@@ -279,7 +300,7 @@ class BackupManager(
             throw IllegalArgumentException("La copia está incompleta. Faltan: $missing.")
         }
         if (version >= 3 && root.optJSONObject("preferences") == null) {
-            throw IllegalArgumentException("La copia no contiene los ajustes de Ordia.")
+            throw IllegalArgumentException("La copia no contiene los ajustes de Ordía.")
         }
 
         // Parse y validación de cada valor ANTES de cambiar DataStore o Room.
@@ -347,13 +368,12 @@ class BackupManager(
     }.getOrDefault(false)
 
     /**
-     * Verificación posterior al commit: relee lo persistido y confirma que
-     * las cantidades coinciden con el backup y que las relaciones siguen
-     * siendo válidas (sin referencias huérfanas).
+     * Verificación posterior al commit: relee lo persistido y confirma cada
+     * valor (ignorando solo el orden SQL) y todas las relaciones.
      */
     private suspend fun verifyRestored(validated: ValidatedBackup): Boolean {
         val stored = backupStore.readAll()
-        if (!validated.data.countsMatch(stored)) return false
+        if (!validated.data.contentMatches(stored)) return false
         return runCatching { validateRelationships(stored) }.isSuccess
     }
 
