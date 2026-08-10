@@ -233,12 +233,17 @@ class OrdiaViewModel(
                 normalized.id
             }
             if (normalized.reminderAt != null || normalized.dueAt != null) reminderScheduler.schedule(normalized.copy(id = id)) else reminderScheduler.cancel(id)
+
+            val tagsToUnlink = mutableListOf<Long>()
             uiState.value.tags.forEach { tag ->
                 val currentlyLinked = uiState.value.taskTags.any { it.taskId == id && it.tagId == tag.id }
                 when {
                     tag.id in tagIds && !currentlyLinked -> tagRepository.link(id, tag.id)
-                    tag.id !in tagIds && currentlyLinked -> tagRepository.unlink(id, tag.id)
+                    tag.id !in tagIds && currentlyLinked -> tagsToUnlink.add(tag.id)
                 }
+            }
+            if (tagsToUnlink.isNotEmpty()) {
+                tagRepository.unlinkList(id, tagsToUnlink)
             }
             updateWidget()
             _events.emit(UiEvent.TaskSaved(id))

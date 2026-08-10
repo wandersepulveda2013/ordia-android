@@ -340,6 +340,9 @@ interface TaskTagDao {
     @Query("DELETE FROM task_tag_cross_ref WHERE taskId = :taskId AND tagId = :tagId")
     suspend fun remove(taskId: Long, tagId: Long)
 
+    @Query("DELETE FROM task_tag_cross_ref WHERE taskId = :taskId AND tagId IN (:tagIds)")
+    suspend fun removeList(taskId: Long, tagIds: List<Long>)
+
     @Query("DELETE FROM task_tag_cross_ref")
     suspend fun deleteAll()
 }
