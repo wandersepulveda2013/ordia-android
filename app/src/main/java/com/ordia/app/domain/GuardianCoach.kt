@@ -3,7 +3,6 @@ package com.ordia.app.domain
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.TaskEntity
-import java.time.LocalDate
 import java.time.ZoneId
 
 /**
