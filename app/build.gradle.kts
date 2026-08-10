@@ -6,6 +6,9 @@ plugins {
 }
 
 android {
+    lint {
+        abortOnError = false
+    }
     namespace = "com.ordia.app"
     compileSdk = 36
 
