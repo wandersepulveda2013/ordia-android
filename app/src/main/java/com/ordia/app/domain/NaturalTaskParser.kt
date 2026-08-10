@@ -26,80 +26,105 @@ object NaturalTaskParser {
 
     fun parse(text: String, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): ParsedTaskInput {
         val base = Instant.ofEpochMilli(now).atZone(zone)
-        var working = text.trim()
-        val lower = working.lowercase()
-        val priority = when {
-            "!urgente" in lower || "#urgente" in lower -> TaskPriority.URGENT
-            "!alta" in lower || "#alta" in lower -> TaskPriority.HIGH
-            "!baja" in lower || "#baja" in lower -> TaskPriority.LOW
-            else -> TaskPriority.NORMAL
-        }
-        working = working.replace(Regex("""(?i)(?:!|#)(urgente|alta|baja)\b"""), " ")
+        val working = text.trim()
+        val priority = parsePriority(working.lowercase())
 
         val relativeMatch = relativePattern.find(working)
-        val relativeDueAt = relativeMatch?.let { match ->
-            val amount = match.groupValues[1].toLongOrNull() ?: 0L
-            val unit = match.groupValues[2].lowercase()
-            val millis = when {
-                unit.startsWith("min") -> amount * 60_000L
-                unit.startsWith("hora") -> amount * 60 * 60_000L
-                else -> amount * 24 * 60 * 60_000L
-            }
-            now + millis
-        }
+        val relativeDueAt = parseRelativeDueAt(relativeMatch, now)
+
         val weekdayMatch = weekdayPattern.find(working)
         val numericDateMatch = numericDatePattern.find(working)
-        val date = when {
-            Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
-            Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
-            Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
-            weekdayMatch != null -> nextWeekday(
-                base.toLocalDate(),
-                weekdayMatch.groupValues[1].toDayOfWeek()
-            )
-            numericDateMatch != null -> {
-                val day = numericDateMatch.groupValues[1].toIntOrNull()
-                val month = numericDateMatch.groupValues[2].toIntOrNull()
-                val rawYear = numericDateMatch.groupValues[3].toIntOrNull()
-                val year = when {
-                    rawYear == null -> base.year
-                    rawYear < 100 -> 2000 + rawYear
-                    else -> rawYear
-                }
-                if (day == null || month == null) null else runCatching { LocalDate.of(year, month, day) }.getOrNull()
-            }
-            else -> null
-        }
+        val date = parseDate(working, base, weekdayMatch, numericDateMatch)
 
         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
-        val parsedTime = timeMatch?.let { match ->
-            var hour = match.groupValues[1].toInt()
-            val minute = match.groupValues[2].toIntOrNull() ?: 0
-            val meridiem = match.groupValues[3].lowercase().replace(".", "").replace(" ", "")
-            if (meridiem == "pm" && hour < 12) hour += 12
-            if (meridiem == "am" && hour == 12) hour = 0
-            LocalTime.of(hour, minute)
-        }
+        val parsedTime = parseTime(timeMatch)
+
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
 
-        relativeMatch?.value?.let { working = working.replace(it, " ") }
-        weekdayMatch?.value?.let { working = working.replace(it, " ") }
-        timeMatch?.value?.let { working = working.replace(it, " ") }
-        working = working
-            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
-            .let { value -> numericDatePattern.replace(value, " ") }
-            .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
-            .replace(Regex("""\s+"""), " ")
-            .trim(' ', ',', '.', '-')
+        val finalTitle = cleanupText(working, relativeMatch, weekdayMatch, timeMatch)
 
         return ParsedTaskInput(
-            title = working.ifBlank { text.trim() }.take(240),
+            title = finalTitle.ifBlank { text.trim() }.take(240),
             dueAt = dueAt,
             priority = priority
         )
     }
 
+
+    private fun parsePriority(lower: String): TaskPriority = when {
+        "!urgente" in lower || "#urgente" in lower -> TaskPriority.URGENT
+        "!alta" in lower || "#alta" in lower -> TaskPriority.HIGH
+        "!baja" in lower || "#baja" in lower -> TaskPriority.LOW
+        else -> TaskPriority.NORMAL
+    }
+
+    private fun parseRelativeDueAt(match: MatchResult?, now: Long): Long? = match?.let {
+        val amount = it.groupValues[1].toLongOrNull() ?: 0L
+        val unit = it.groupValues[2].lowercase()
+        val millis = when {
+            unit.startsWith("min") -> amount * 60_000L
+            unit.startsWith("hora") -> amount * 60 * 60_000L
+            else -> amount * 24 * 60 * 60_000L
+        }
+        now + millis
+    }
+
+    private fun parseDate(
+        working: String,
+        base: java.time.ZonedDateTime,
+        weekdayMatch: MatchResult?,
+        numericDateMatch: MatchResult?
+    ): LocalDate? = when {
+        Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
+        Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
+        Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
+        weekdayMatch != null -> nextWeekday(
+            base.toLocalDate(),
+            weekdayMatch.groupValues[1].toDayOfWeek()
+        )
+        numericDateMatch != null -> {
+            val day = numericDateMatch.groupValues[1].toIntOrNull()
+            val month = numericDateMatch.groupValues[2].toIntOrNull()
+            val rawYear = numericDateMatch.groupValues[3].toIntOrNull()
+            val year = when {
+                rawYear == null -> base.year
+                rawYear < 100 -> 2000 + rawYear
+                else -> rawYear
+            }
+            if (day == null || month == null) null else runCatching { LocalDate.of(year, month, day) }.getOrNull()
+        }
+        else -> null
+    }
+
+    private fun parseTime(match: MatchResult?): LocalTime? = match?.let {
+        var hour = it.groupValues[1].toInt()
+        val minute = it.groupValues[2].toIntOrNull() ?: 0
+        val meridiem = it.groupValues[3].lowercase().replace(".", "").replace(" ", "")
+        if (meridiem == "pm" && hour < 12) hour += 12
+        if (meridiem == "am" && hour == 12) hour = 0
+        LocalTime.of(hour, minute)
+    }
+
+    private fun cleanupText(
+        text: String,
+        relativeMatch: MatchResult?,
+        weekdayMatch: MatchResult?,
+        timeMatch: MatchResult?
+    ): String {
+        var working = text
+        working = working.replace(Regex("""(?i)(?:!|#)(urgente|alta|baja)\b"""), " ")
+        relativeMatch?.value?.let { working = working.replace(it, " ") }
+        weekdayMatch?.value?.let { working = working.replace(it, " ") }
+        timeMatch?.value?.let { working = working.replace(it, " ") }
+
+        return working
+            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
+            .let { value -> numericDatePattern.replace(value, " ") }
+            .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
+            .replace(Regex("""\s+"""), " ")
+            .trim(' ', ',', '.', '-')
+    }
 
     private fun nextWeekday(from: LocalDate, target: DayOfWeek): LocalDate {
         val delta = (target.value - from.dayOfWeek.value + 7) % 7
