@@ -62,6 +62,7 @@ object WhatNowEngine {
         !task.completed && !task.archived && task.status != TaskStatus.CANCELLED && task.parentTaskId == null
 
     private fun rank(task: TaskEntity, now: Long, today: LocalDate, zone: ZoneId): Int = when {
+        task.status == TaskStatus.IN_PROGRESS -> 6
         isInProgressNow(task, now) -> 5
         TaskRules.isOverdue(task, now) -> 4
         isScheduledLater(task, now) -> -1
@@ -72,6 +73,7 @@ object WhatNowEngine {
     }
 
     private fun reason(task: TaskEntity, now: Long, today: LocalDate, zone: ZoneId): WhatNowReason = when {
+        task.status == TaskStatus.IN_PROGRESS -> WhatNowReason.IN_PROGRESS_NOW
         isInProgressNow(task, now) -> WhatNowReason.IN_PROGRESS_NOW
         TaskRules.isOverdue(task, now) -> WhatNowReason.OVERDUE
         isScheduledLater(task, now) -> WhatNowReason.SCHEDULED_LATER

@@ -34,6 +34,17 @@ class WhatNowEngineTest {
     }
 
     @Test
+    fun explicitlyStartedTaskWinsWithoutScheduledStart() {
+        val started = task(1, "Ya iniciada").copy(status = TaskStatus.IN_PROGRESS)
+        val urgent = task(2, "Urgente", TaskPriority.URGENT)
+
+        val suggestion = WhatNowEngine.suggest(listOf(urgent, started), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.IN_PROGRESS_NOW, suggestion.reason)
+    }
+
+    @Test
     fun prefersOverdueOverUrgentWithoutDate() {
         val overdue = task(1, "Atrasada").copy(dueAt = DateRules.toEpochMillis(date.minusDays(1), LocalTime.of(18, 0), zone))
         val urgent = task(2, "Urgente", TaskPriority.URGENT)
