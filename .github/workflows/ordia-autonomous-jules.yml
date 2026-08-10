@@ -144,6 +144,17 @@ jobs:
       #   (activas o esperando; no lanzar otra sesión)
       #   COMPLETED / TERMINAL / ERROR / CANCELLED → no bloquear
       #
+      # IMPORTANTE: solo bloquean las sesiones de NUESTRO sistema autónomo.
+      # Se exige SIMULTÁNEAMENTE:
+      #   - source == JULES_SOURCE (sources/github/wandersepulveda2013/ordia-android)
+      #   - title == "Ordía — Autonomous Development"
+      #   - state realmente activo
+      #   - (opcional) sourceContext.githubRepoContext.startingBranch ==
+      #     "jules/autonomous-ordia" si la API lo expone (ausencia no rompe)
+      # Cualquier otra sesión de Jules del mismo repo (Testing Improvement,
+      # Performance Optimization, Code Health, Security, Suggested Tasks,
+      # tareas manuales, sesiones "Ready for review") NO bloquea al agente.
+      #
       # Heurística de PRs hacia jules/autonomous-ordia:
       #   A) Sesión activa (API)            → SKIP
       #   B) CI corriendo en PR abierta     → SKIP temporal
@@ -196,6 +207,17 @@ jobs:
                   return json.load(resp)
 
           # ---- 1) Sesión activa de Jules (fail-open si la API no responde) ----
+          # SOLO bloquea si la sesión pertenece a NUESTRO sistema autónomo:
+          #   source == JULES_SOURCE
+          #   title == "Ordía — Autonomous Development"
+          #   state realmente activo
+          #   (opcional) sourceContext.githubRepoContext.startingBranch ==
+          #     "jules/autonomous-ordia" si la API lo expone; su ausencia no rompe.
+          # Las demás sesiones de Jules del mismo repositorio NO bloquean.
+          AUTONOMOUS_TITLE = "Ordía — Autonomous Development"
+          AUTONOMOUS_BRANCH = "jules/autonomous-ordia"
+          ACTIVE_STATES = ("QUEUED", "PLANNING", "IN_PROGRESS", "PAUSED",
+                           "AWAITING_PLAN_APPROVAL", "AWAITING_USER_FEEDBACK")
           active_session = False
           session_state = None
           try:
@@ -208,21 +230,31 @@ jobs:
               sessions = sess_data.get("sessions", [])
               for s in sessions:
                   src = s.get("sourceContext", {}).get("source") or ""
+                  title = s.get("title") or ""
                   st = s.get("state") or ""
-                  if src == os.environ.get("JULES_SOURCE", "") and st:
-                      active_states = ("QUEUED", "PLANNING", "IN_PROGRESS", "PAUSED",
-                                       "AWAITING_PLAN_APPROVAL", "AWAITING_USER_FEEDBACK")
-                      if st in active_states:
-                          active_session = True
-                          session_state = st
-                          break
+                  if src != os.environ.get("JULES_SOURCE", ""):
+                      continue
+                  if title != AUTONOMOUS_TITLE:
+                      # Otra sesión de Jules del mismo repo: no bloquea.
+                      continue
+                  if st not in ACTIVE_STATES:
+                      continue
+                  # Campo opcional: si la API expone startingBranch, exigir la rama autónoma.
+                  gh_ctx = s.get("sourceContext", {}).get("githubRepoContext") or {}
+                  starting_branch = gh_ctx.get("startingBranch") or ""
+                  if starting_branch and starting_branch != AUTONOMOUS_BRANCH:
+                      # Sesión con startingBranch distinto: no es nuestro agente.
+                      continue
+                  active_session = True
+                  session_state = st
+                  break
           except Exception as e:
               # Fail-open: sin respuesta de la API no bloqueamos por esto.
               print("::warning::No se pudo consultar sesiones de Jules:", e)
 
           if active_session:
               context["decision"] = "skip_active_session"
-              context["decision_reason"] = f"Sesión de Jules activa (state={session_state})."
+              context["decision_reason"] = f"Sesión autónoma de Jules activa (state={session_state}, title={AUTONOMOUS_TITLE})."
               with open("/tmp/autonomy-context.json", "w", encoding="utf-8") as f:
                   json.dump(context, f)
               with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
