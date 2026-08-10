@@ -23,10 +23,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
@@ -57,11 +55,11 @@ class QuickCaptureActivity : ComponentActivity() {
         val initialText = intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
         setContent {
             OrdiaTheme {
-                var mode by remember { mutableStateOf(initialMode) }
-                var text by remember { mutableStateOf(initialText) }
+                val modeState = remember { mutableStateOf(initialMode) }
+                val textState = remember { mutableStateOf(initialText) }
                 val voice = dictatedText.value
                 LaunchedEffect(voice) {
-                    if (voice.isNotBlank() && voice != text) text = voice
+                    if (voice.isNotBlank() && voice != textState.value) textState.value = voice
                 }
                 Surface(
                     modifier = Modifier.padding(16.dp),
@@ -75,15 +73,15 @@ class QuickCaptureActivity : ComponentActivity() {
                             color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(selected = mode == MODE_TASK, onClick = { mode = MODE_TASK }, label = { Text("Tarea") })
-                            FilterChip(selected = mode == MODE_NOTE, onClick = { mode = MODE_NOTE }, label = { Text("Nota") })
+                            FilterChip(selected = modeState.value == MODE_TASK, onClick = { modeState.value = MODE_TASK }, label = { Text("Tarea") })
+                            FilterChip(selected = modeState.value == MODE_NOTE, onClick = { modeState.value = MODE_NOTE }, label = { Text("Nota") })
                         }
                         OutlinedTextField(
-                            value = text,
-                            onValueChange = { text = it },
+                            value = textState.value,
+                            onValueChange = { textState.value = it },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 3,
-                            label = { Text(if (mode == MODE_TASK) "¿Qué necesitas hacer?" else "¿Qué quieres guardar?") }
+                            label = { Text(if (modeState.value == MODE_TASK) "¿Qué necesitas hacer?" else "¿Qué quieres guardar?") }
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             OutlinedButton(
@@ -95,9 +93,9 @@ class QuickCaptureActivity : ComponentActivity() {
                             }
                             Button(
                                 onClick = {
-                                    val clean = text.trim()
+                                    val clean = textState.value.trim()
                                     lifecycleScope.launch {
-                                        if (mode == MODE_NOTE) {
+                                        if (modeState.value == MODE_NOTE) {
                                             container.noteRepository.add(
                                                 NoteEntity(
                                                     title = clean.lineSequence().firstOrNull()?.take(60).orEmpty().ifBlank { "Nota rápida" },
@@ -122,7 +120,7 @@ class QuickCaptureActivity : ComponentActivity() {
                                         finish()
                                     }
                                 },
-                                enabled = text.isNotBlank(),
+                                enabled = textState.value.isNotBlank(),
                                 modifier = Modifier.weight(1f)
                             ) { Text("Guardar") }
                         }
