@@ -2,8 +2,9 @@ name: Ordia Autonomous Jules
 
 on:
   schedule:
-    # Cada 30 minutos en los minutos 17 y 47 (evita el minuto 00 y reduce solape con CI).
-    - cron: "17,47 * * * *"
+    # Cada 15 minutos en los minutos 2, 17, 32 y 47 (~96 oportunidades/24h;
+    # evita el minuto 00 y reduce solape con CI).
+    - cron: "2,17,32,47 * * * *"
 
   workflow_dispatch:
 
