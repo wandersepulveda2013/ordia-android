@@ -316,7 +316,10 @@ class OrdiaViewModel(
                 updatedAt = now
             )
             val id = taskRepository.add(copy)
-            uiState.value.tagsForTask(task.id).forEach { tagRepository.link(id, it.id) }
+            val tags = uiState.value.tagsForTask(task.id)
+            if (tags.isNotEmpty()) {
+                tagRepository.linkAll(id, tags.map { it.id })
+            }
             if (copy.reminderAt != null || copy.dueAt != null) reminderScheduler.schedule(copy.copy(id = id))
             updateWidget()
         }

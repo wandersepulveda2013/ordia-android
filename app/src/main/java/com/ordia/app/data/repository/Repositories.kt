@@ -121,6 +121,7 @@ class TagRepository(
     suspend fun add(tag: TagEntity): Long = tagDao.insert(tag)
     suspend fun delete(tag: TagEntity) = tagDao.delete(tag)
     suspend fun link(taskId: Long, tagId: Long) = taskTagDao.add(TaskTagCrossRef(taskId, tagId))
+    suspend fun linkAll(taskId: Long, tagIds: List<Long>) = taskTagDao.insertAll(tagIds.map { TaskTagCrossRef(taskId, it) })
     suspend fun unlink(taskId: Long, tagId: Long) = taskTagDao.remove(taskId, tagId)
 }
 
