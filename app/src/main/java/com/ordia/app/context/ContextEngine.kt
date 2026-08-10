@@ -6,7 +6,6 @@ import com.ordia.app.intelligence.IntelligenceRequest
 import com.ordia.app.intelligence.IntelligenceResponse
 import com.ordia.app.intelligence.OrdiaIntelligenceEngine
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 /**
@@ -22,12 +21,7 @@ import kotlinx.coroutines.withContext
  * Uso desde cualquier fuente de captura:
  *   ContextEngine.getInstance(context).processEventAsync(event)  // en una corrutina
  *
- * PRECAUCIÓN DE CONCURRENCIA:
- * El análisis (incluida la inferencia del modelo local) puede tardar segundos.
- * Las fuentes de captura (accesibilidad, notificaciones, IME, UI) DEBEN usar
- * las variantes suspend (*Async) desde una corrutina. Las variantes síncronas
- * (processEvent/processText) bloquean el hilo llamante y solo deben usarse en
- * contexto no-UI o pruebas.
+ * El análisis se expone únicamente como API suspend para no bloquear la UI.
  */
 class ContextEngine private constructor(appContext: Context) {
 
@@ -38,17 +32,6 @@ class ContextEngine private constructor(appContext: Context) {
 
     /** Oyentes de eventos del pipeline */
     private val listeners = mutableListOf<ContextEngineListener>()
-
-    /**
-     * Procesa un evento contextual completo (variante síncrona).
-     *
-     * BLOQUEA el hilo llamante durante todo el pipeline (incluida la
-     * inferencia del modelo local). Úsala solo desde contexto no-UI o pruebas;
-     * las fuentes de captura deben usar [processEventAsync].
-     */
-    fun processEvent(event: ContextEvent): ContextResult = runBlocking {
-        processEventAsync(event)
-    }
 
     /**
      * Procesa un evento contextual completo (variante suspend).
@@ -111,7 +94,7 @@ class ContextEngine private constructor(appContext: Context) {
 
         // 4. Verificar duplicados
         if (deduplicator.isDuplicate(intent)) {
-            Log.d(TAG, "Duplicate intent: ${intent.kind} — ${intent.title.take(40)}")
+            Log.d(TAG, "Duplicate intent: ${intent.kind}")
             auditLog.logIntentDiscarded(intent, DiscardReason.DUPLICATE)
             notifyOnDiscarded(intent, DiscardReason.DUPLICATE)
             return@withContext ContextResult.Discarded(
@@ -132,7 +115,7 @@ class ContextEngine private constructor(appContext: Context) {
         if (needsConfirmation) {
             val confirmationId = confirmationCoordinator.registerPending(intent)
             auditLog.logIntentDiscarded(intent, DiscardReason.LOW_CONFIDENCE)
-            Log.d(TAG, "Pending confirmation $confirmationId for: ${intent.title.take(40)}")
+            Log.d(TAG, "Pending confirmation for ${intent.kind}")
             notifyOnPending(intent, confirmationId)
             ContextResult.PendingConfirmation(
                 confirmationId = confirmationId,
@@ -143,7 +126,7 @@ class ContextEngine private constructor(appContext: Context) {
             intelligenceEngine.confirmAction(intent.title, intelligenceResponse)
             auditLog.logIntentCreated(intent)
             notifyOnCreated(intent)
-            Log.d(TAG, "Auto-confirmed: ${intent.kind} — ${intent.title.take(40)}")
+            Log.d(TAG, "Auto-confirmed: ${intent.kind}")
             ContextResult.Created(intent)
         }
     }
@@ -187,16 +170,6 @@ class ContextEngine private constructor(appContext: Context) {
             com.ordia.app.intelligence.ActionSuggested.HOUSEHOLD -> ContextIntentKind.HOUSEHOLD
             com.ordia.app.intelligence.ActionSuggested.NONE -> ContextIntentKind.UNKNOWN
         }
-    }
-
-    /**
-     * Procesa texto plano desde cualquier fuente (variante síncrona).
-     *
-     * BLOQUEA el hilo llamante. Úsala solo desde contexto no-UI o pruebas;
-     * las fuentes de captura deben usar [processTextAsync].
-     */
-    fun processText(text: String, source: ContextCaptureSource): ContextResult = runBlocking {
-        processTextAsync(text, source)
     }
 
     /**

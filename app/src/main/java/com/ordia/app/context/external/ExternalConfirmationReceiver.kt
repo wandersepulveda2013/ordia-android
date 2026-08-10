@@ -4,6 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * BroadcastReceiver para acciones rápidas desde notificaciones de sugerencias externas.
@@ -36,7 +40,17 @@ class ExternalConfirmationReceiver : BroadcastReceiver() {
 
         when (action) {
             ExternalConfirmationController.ACTION_ADD -> {
-                controller.addSuggestion(current)
+                val pendingResult = goAsync()
+                CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                    try {
+                        val result = controller.addSuggestion(current)
+                        if (result is ContextActionConfirmationResult.Failure) {
+                            Log.w(TAG, "No se pudo confirmar la sugerencia; etapa=${result.stage}")
+                        }
+                    } finally {
+                        pendingResult.finish()
+                    }
+                }
             }
             ExternalConfirmationController.ACTION_IGNORE -> {
                 controller.ignoreSuggestion(current)

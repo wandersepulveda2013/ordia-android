@@ -15,6 +15,10 @@ import androidx.core.app.NotificationManagerCompat
 import com.ordia.app.R
 import com.ordia.app.context.*
 import java.security.MessageDigest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 /**
  * Controlador central de confirmaciones contextuales externas.
@@ -134,28 +138,44 @@ class ExternalConfirmationController private constructor(
     private var engine: ContextEngine? = null
 
     @Volatile
-    private var lastProcessedHash: Int = 0
+    private var confirmationUseCase: ConfirmExternalSuggestionUseCase? = null
+
+    @Volatile
+    private var initialized = false
+
+    private val confirmationMutex = Mutex()
 
     // ========================================================================
     // Inicialización y ciclo de vida
     // ========================================================================
 
-    /** Inicializa el controlador y se registra en el ContextEngine. */
-    fun initialize(engine: ContextEngine) {
-        if (isEnabled) return
+    /**
+     * Inicializa dependencias, pero nunca concede consentimiento ni activa la
+     * observacion por si sola. Solo restaura la cola si ambos opt-ins ya fueron
+     * persistidos por una accion explicita del usuario.
+     */
+    @Synchronized
+    fun initialize(engine: ContextEngine, confirmationUseCase: ConfirmExternalSuggestionUseCase) {
+        this.confirmationUseCase = confirmationUseCase
+        if (initialized) return
         this.engine = engine
         engine.addListener(this)
-        isEnabled = repository.externalConfirmationEnabled
+        initialized = true
+        isEnabled = repository.externalConfirmationEnabled && repository.consentGiven
         createNotificationChannel()
 
-        // Restaurar cola persistida
-        val saved = repository.loadQueue()
-        if (saved.isNotEmpty()) {
-            queue.restore(saved)
-            Log.d(TAG, "Cola restaurada: ${saved.size} sugerencias")
+        if (isEnabled) {
+            val saved = repository.loadQueue()
+            if (saved.isNotEmpty()) {
+                queue.restore(saved)
+                Log.d(TAG, "Cola restaurada: ${saved.size} sugerencias")
+            }
+        } else {
+            queue.clear()
+            repository.clearQueue()
         }
 
-        Log.d(TAG, "Controlador de confirmaciones externas inicializado")
+        Log.d(TAG, "Controlador de confirmaciones externas inicializado; activo=$isEnabled")
     }
 
     /** Desactiva el controlador. */
@@ -163,21 +183,31 @@ class ExternalConfirmationController private constructor(
         isEnabled = false
         engine?.removeListener(this)
         engine = null
+        confirmationUseCase = null
+        initialized = false
         queue.clear()
         repository.clearQueue()
         Log.d(TAG, "Controlador detenido")
     }
 
-    /** Activa o desactiva las confirmaciones externas. */
-    fun setEnabled(enabled: Boolean) {
-        isEnabled = enabled
-        repository.externalConfirmationEnabled = enabled
-        if (!enabled) {
+    /** Activa confirmaciones externas solo si el consentimiento ya existe. */
+    fun setEnabled(enabled: Boolean): Boolean {
+        val effective = enabled && repository.consentGiven
+        isEnabled = effective
+        repository.externalConfirmationEnabled = effective
+        if (!effective) {
             queue.clear()
             repository.clearQueue()
             hideNotification()
             notifyGuardian(null, GuardSuggestionEvent.DISMISSED)
         }
+        return effective == enabled
+    }
+
+    /** Registra o revoca el opt-in; concederlo no activa la funcion automaticamente. */
+    fun setConsentGiven(given: Boolean) {
+        repository.consentGiven = given
+        if (!given) setEnabled(false)
     }
 
     fun isEnabled(): Boolean = isEnabled
@@ -253,7 +283,7 @@ class ExternalConfirmationController private constructor(
      * colarse al cerrar el teclado (ORD-018).
      */
     fun receiveFromIME(suggestion: ExternalSuggestion) {
-        if (!isEnabled) return
+        if (!canShowExternal()) return
         if (isSecureContext(suggestion.sourcePackage)) {
             Log.d(TAG, "Contexto seguro desde IME, ignorando sugerencia")
             return
@@ -265,18 +295,6 @@ class ExternalConfirmationController private constructor(
         enqueueAndShow(suggestion)
     }
 
-    /**
-     * Marca una sugerencia como resuelta desde el IME.
-     * Elimina de la cola externa para evitar duplicados.
-     */
-    fun resolveFromIME(suggestionId: String) {
-        queue.remove(suggestionId)
-        if (queue.getCurrent()?.id == suggestionId) {
-            queue.advanceToNext()
-        }
-        persistQueue()
-    }
-
     /** Verifica si un ID ya está siendo procesado (dedup IME/overlay). */
     fun isProcessing(id: String): Boolean {
         return queue.contains(id)
@@ -286,25 +304,36 @@ class ExternalConfirmationController private constructor(
     // Acciones del usuario
     // ========================================================================
 
-    /** Procesa la acción "Agregar": crea la entidad. */
-    fun addSuggestion(suggestion: ExternalSuggestion) {
-        val engine = this.engine ?: return
-        Log.d(TAG, "Agregando sugerencia: ${suggestion.id}")
+    /**
+     * Persiste la entidad y su recordatorio antes de resolver el motor o
+     * retirar la sugerencia. Ante cualquier fallo la cola queda intacta.
+     */
+    suspend fun addSuggestion(suggestion: ExternalSuggestion): ContextActionConfirmationResult =
+        confirmationMutex.withLock {
+            val useCase = confirmationUseCase
+                ?: return@withLock ContextActionConfirmationResult.Failure(
+                    ContextActionFailureStage.NOT_INITIALIZED
+                )
+            Log.d(TAG, "Confirmando sugerencia de tipo ${suggestion.kind}")
+            val result = withContext(Dispatchers.IO) { useCase(suggestion) }
 
-        // Resolver confirmación si aplica
-        if (suggestion.confirmationId.isNotEmpty()) {
-            engine.resolveConfirmation(suggestion.confirmationId, true)
+            withContext(Dispatchers.Main.immediate) {
+                if (result is ContextActionConfirmationResult.Success) {
+                    if (suggestion.confirmationId.isNotEmpty()) {
+                        engine?.resolveConfirmation(suggestion.confirmationId, true)
+                    }
+                    queue.updateState(suggestion.id, ExternalSuggestionState.RESOLVED)
+                    queue.remove(suggestion.id)
+                    queue.advanceToNext()
+                    persistQueue()
+                    notifyGuardian(queue.getCurrent(), GuardSuggestionEvent.CONFIRMING)
+                    scheduleGuardianReturnToIdle()
+                } else {
+                    notifyGuardian(suggestion, GuardSuggestionEvent.WAITING_FOR_DECISION)
+                }
+            }
+            result
         }
-
-        queue.updateState(suggestion.id, ExternalSuggestionState.RESOLVED)
-        queue.remove(suggestion.id)
-        queue.advanceToNext()
-        persistQueue()
-
-        notifyGuardian(queue.getCurrent(), GuardSuggestionEvent.CONFIRMING)
-        // El overlay volverá a idle después de la confirmación visual
-        scheduleGuardianReturnToIdle()
-    }
 
     /** Abre editor compacto para editar sugerencia. */
     fun editSuggestion(suggestion: ExternalSuggestion, action: ExternalSuggestionAction.Edit) {

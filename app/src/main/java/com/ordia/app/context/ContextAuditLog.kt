@@ -216,7 +216,7 @@ class ContextAuditLog(context: Context) {
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL(
                 """
-                CREATE TABLE $TABLE_AUDIT (
+                CREATE TABLE IF NOT EXISTS $TABLE_AUDIT (
                     $COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,
                     $COL_KIND TEXT NOT NULL,
                     $COL_TITLE_HASH TEXT NOT NULL,
@@ -230,17 +230,26 @@ class ContextAuditLog(context: Context) {
                 """.trimIndent()
             )
             db.execSQL(
-                "CREATE INDEX idx_audit_timestamp ON $TABLE_AUDIT($COL_TIMESTAMP)"
+                "CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON $TABLE_AUDIT($COL_TIMESTAMP)"
             )
             db.execSQL(
-                "CREATE INDEX idx_audit_action ON $TABLE_AUDIT($COL_ACTION)"
+                "CREATE INDEX IF NOT EXISTS idx_audit_action ON $TABLE_AUDIT($COL_ACTION)"
             )
         }
 
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-            // En producción, migrar; para preview, recrear
-            db.execSQL("DROP TABLE IF EXISTS $TABLE_AUDIT")
+            // El esquema v1 ya contiene columnas opcionales para evolución.
+            // Nunca se destruye el historial: se aseguran tabla e índices y las
+            // futuras versiones deben añadir migraciones explícitas aquí.
             onCreate(db)
+        }
+
+        override fun onOpen(db: SQLiteDatabase) {
+            super.onOpen(db)
+            if (!db.isReadOnly) {
+                val cutoff = System.currentTimeMillis() - DEFAULT_RETENTION_MS
+                db.delete(TABLE_AUDIT, "$COL_TIMESTAMP < ?", arrayOf(cutoff.toString()))
+            }
         }
     }
 
