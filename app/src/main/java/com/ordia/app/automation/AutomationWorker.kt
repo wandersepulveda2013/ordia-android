@@ -28,7 +28,11 @@ class AutomationWorker(context: Context, params: WorkerParameters) : CoroutineWo
         val trigger = AutomationSchedulePolicy.triggerForHour(ZonedDateTime.now().hour) ?: return Result.success()
         val outcomes = app.container.automationEngine.runTrigger(trigger)
         val failed = outcomes.any { it.result == AutomationRuleResult.FAILED }
-        return if (failed && runAttemptCount < 2) Result.retry() else Result.success()
+        return when {
+            !failed -> Result.success()
+            runAttemptCount < 2 -> Result.retry()
+            else -> Result.failure()
+        }
     }
 }
 
