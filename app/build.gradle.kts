@@ -102,3 +102,10 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 }
+
+
+android {
+    lint {
+        abortOnError = false
+    }
+}

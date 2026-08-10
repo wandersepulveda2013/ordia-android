@@ -193,9 +193,13 @@ fun NoteEditorScreen(
                         TextButton(
                             onClick = {
                                 val uri = android.net.Uri.parse(attachment.uri)
-                                val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, attachment.mimeType)
-                                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                runCatching { context.startActivity(intent) }
+                                val scheme = uri.scheme?.lowercase()
+                                if (scheme == "content" || scheme == "file" || scheme == "http" || scheme == "https") {
+                                    val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, attachment.mimeType)
+                                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    val chooser = Intent.createChooser(intent, null)
+                                    runCatching { context.startActivity(chooser) }
+                                }
                             },
                             modifier = Modifier.weight(1f)
                         ) {
