@@ -6,6 +6,9 @@ plugins {
 }
 
 android {
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
     namespace = "com.ordia.app"
     compileSdk = 36
 
