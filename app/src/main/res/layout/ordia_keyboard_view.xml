@@ -7,6 +7,34 @@
     android:orientation="vertical"
     android:gravity="bottom">
 
+    <!-- Consentimiento por aplicación: el análisis empieza desactivado. -->
+    <LinearLayout
+        android:id="@+id/analysis_permission_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="8dp"
+        android:background="#121225">
+
+        <TextView
+            android:id="@+id/analysis_permission_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="12sp"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/analysis_permission_button"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:minWidth="88dp"
+            android:textSize="12sp" />
+    </LinearLayout>
+
     <!-- Barra de candidatos (inicialmente oculta) -->
     <FrameLayout
         android:id="@+id/candidate_bar_container"

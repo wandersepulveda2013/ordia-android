@@ -89,6 +89,25 @@ class KeyboardPrivacyGuardTest {
         assertFalse(KeyboardPrivacyGuard.shouldIgnore(inputType, null))
     }
 
+    @Test
+    fun unknownPackage_isNotAllowedUntilExplicitOptIn() {
+        val inputType = EditorInfo.TYPE_CLASS_TEXT or EditorInfo.TYPE_TEXT_VARIATION_NORMAL
+        assertFalse(KeyboardPrivacyGuard.isAnalysisAllowed(inputType, "com.example.app", emptySet()))
+        assertTrue(KeyboardPrivacyGuard.isAnalysisAllowed(inputType, "com.example.app", setOf("com.example.app")))
+    }
+
+    @Test
+    fun blockedPackage_cannotBeAllowed() {
+        val inputType = EditorInfo.TYPE_CLASS_TEXT or EditorInfo.TYPE_TEXT_VARIATION_NORMAL
+        assertFalse(KeyboardPrivacyGuard.isAnalysisAllowed(inputType, "com.bbva", setOf("com.bbva")))
+    }
+
+    @Test
+    fun sensitiveHint_isIgnored() {
+        val inputType = EditorInfo.TYPE_CLASS_NUMBER
+        assertTrue(KeyboardPrivacyGuard.shouldIgnore(inputType, "com.example.app", fieldHint = "Código OTP"))
+    }
+
     // ── Normalización de tokens ──────────────────────────────────────────────
 
     @Test

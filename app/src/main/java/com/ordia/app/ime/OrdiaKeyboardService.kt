@@ -18,8 +18,11 @@ import androidx.core.content.ContextCompat
 import com.ordia.app.R
 import com.ordia.app.context.ContextCaptureSource
 import com.ordia.app.context.ContextEngine
+import com.ordia.app.context.ContextEvent
 import com.ordia.app.context.ContextIntent
+import com.ordia.app.context.ContextPrivacyFilter
 import com.ordia.app.context.ContextResult
+import com.ordia.app.context.external.ContextActionConfirmationResult
 import com.ordia.app.context.external.ExternalConfirmationController
 import com.ordia.app.context.external.ExternalSuggestion
 import kotlinx.coroutines.CoroutineScope
@@ -39,6 +42,18 @@ import kotlinx.coroutines.launch
 private class PendingSuggestion(
     val intent: ContextIntent,
     val confirmationId: String
+)
+
+private fun PendingSuggestion.toExternalSuggestion(): ExternalSuggestion = ExternalSuggestion(
+    id = intent.id,
+    confirmationId = confirmationId,
+    kind = intent.kind,
+    title = intent.title,
+    dueAt = intent.dueAt,
+    source = intent.source,
+    sourcePackage = intent.sourcePackage,
+    priority = ExternalSuggestion.calculatePriority(intent.kind, intent.dueAt),
+    confidence = intent.confidence
 )
 
 /**
@@ -85,10 +100,13 @@ class OrdiaKeyboardService : InputMethodService(),
     private var actionPrivacy: ImageButton? = null
     private var actionGuardian: ImageButton? = null
     private var actionPause: ImageButton? = null
+    private var analysisPermissionText: TextView? = null
+    private var analysisPermissionButton: Button? = null
 
     // --- Estado ---
     private var pendingText: StringBuilder = StringBuilder()
     private var sensitiveField = false
+    private var hardBlockedField = false
     private var currentSuggestion: PendingSuggestion? = null
     private val suggestionQueue = ArrayDeque<PendingSuggestion>(3)
     private var isPaused = false
@@ -130,6 +148,8 @@ class OrdiaKeyboardService : InputMethodService(),
         actionPrivacy = root.findViewById(R.id.action_privacy)
         actionGuardian = root.findViewById(R.id.action_guardian)
         actionPause = root.findViewById(R.id.action_pause)
+        analysisPermissionText = root.findViewById(R.id.analysis_permission_text)
+        analysisPermissionButton = root.findViewById(R.id.analysis_permission_button)
 
         // Configurar acciones
         setupActions()
@@ -157,10 +177,22 @@ class OrdiaKeyboardService : InputMethodService(),
 
         // Detectar campos sensibles: contraseñas/PIN/OTP (variación password,
         // numberPassword, date/time) o apps bloqueadas por privacidad.
-        sensitiveField = KeyboardPrivacyGuard.shouldIgnore(
-            info?.inputType ?: 0,
-            info?.packageName
+        val inputType = info?.inputType ?: 0
+        val packageName = info?.packageName
+        hardBlockedField = KeyboardPrivacyGuard.shouldIgnore(
+            inputType = inputType,
+            packageName = packageName,
+            fieldHint = info?.hintText?.toString(),
+            privateImeOptions = info?.privateImeOptions
         )
+        sensitiveField = !KeyboardPrivacyGuard.isAnalysisAllowed(
+            inputType = inputType,
+            packageName = packageName,
+            allowedPackages = allowedPackages(),
+            fieldHint = info?.hintText?.toString(),
+            privateImeOptions = info?.privateImeOptions
+        )
+        updateAnalysisPermissionUi()
 
         if (sensitiveField) {
             // No capturar ni analizar nada mientras el campo sea sensible.
@@ -174,6 +206,8 @@ class OrdiaKeyboardService : InputMethodService(),
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
+        pendingText = StringBuilder()
+        analysisJob?.cancel()
         // Transferir sugerencias no resueltas al controlador externo
         val controller = ExternalConfirmationController.getInstance(this)
         val unresolved = suggestionQueue.toList()
@@ -181,33 +215,11 @@ class OrdiaKeyboardService : InputMethodService(),
 
         if (currentSuggestion != null) {
             val pending = currentSuggestion!!
-            val extSuggestion = ExternalSuggestion(
-                id = pending.intent.id,
-                confirmationId = pending.confirmationId,
-                kind = pending.intent.kind,
-                title = pending.intent.title,
-                dueAt = pending.intent.dueAt,
-                source = pending.intent.source,
-                sourcePackage = pending.intent.sourcePackage,
-                priority = ExternalSuggestion.calculatePriority(pending.intent.kind, pending.intent.dueAt),
-                confidence = pending.intent.confidence
-            )
-            controller.receiveFromIME(extSuggestion)
+            controller.receiveFromIME(pending.toExternalSuggestion())
         }
 
         unresolved.forEach { pending ->
-            val extSuggestion = ExternalSuggestion(
-                id = pending.intent.id,
-                confirmationId = pending.confirmationId,
-                kind = pending.intent.kind,
-                title = pending.intent.title,
-                dueAt = pending.intent.dueAt,
-                source = pending.intent.source,
-                sourcePackage = pending.intent.sourcePackage,
-                priority = ExternalSuggestion.calculatePriority(pending.intent.kind, pending.intent.dueAt),
-                confidence = pending.intent.confidence
-            )
-            controller.receiveFromIME(extSuggestion)
+            controller.receiveFromIME(pending.toExternalSuggestion())
         }
 
         clearSuggestion()
@@ -323,7 +335,7 @@ class OrdiaKeyboardService : InputMethodService(),
         analysisJob = scope.launch {
             delay(1500L) // 1.5 segundos de pausa
             if (!isActive) return@launch
-            val text = pendingText.toString().trim()
+            val text = takeText()
             if (text.length >= 4) {
                 processWithEngine(text)
             }
@@ -336,11 +348,26 @@ class OrdiaKeyboardService : InputMethodService(),
         // "No detectar": descartar frases que el usuario ha marcado previamente.
         if (isIgnoredText(text)) return
 
+        val editor = currentEditorInfo ?: return
+        val event = ContextEvent(
+            source = ContextCaptureSource.KEYBOARD,
+            rawText = text,
+            timestampMs = System.currentTimeMillis(),
+            sourcePackage = editor.packageName,
+            sourceLabel = applicationLabel(editor.packageName),
+            metadata = mapOf(
+                "inputClass" to KeyboardPrivacyGuard.inputClassName(editor.inputType),
+                "inputType" to editor.inputType.toString(),
+                "fieldHint" to editor.hintText?.toString().orEmpty()
+            )
+        )
+        if (ContextPrivacyFilter.shouldBlock(event)) return
+
         // Mostrar indicador de análisis
         showAnalysisIndicator()
 
         val engine = ContextEngine.getInstance(this)
-        val result = engine.processTextAsync(text, ContextCaptureSource.KEYBOARD)
+        val result = engine.processEventAsync(event)
 
         // Ocultar indicador (se reanuda en el hilo main)
         hideAnalysisIndicator()
@@ -432,16 +459,25 @@ class OrdiaKeyboardService : InputMethodService(),
     // ========================================================================
 
     private fun setupActions() {
+        analysisPermissionButton?.setOnClickListener { toggleCurrentPackagePermission() }
+
         actionAdd?.setOnClickListener {
             currentSuggestion?.let { pending ->
-                if (pending.confirmationId.isNotEmpty()) {
-                    val engine = ContextEngine.getInstance(this)
-                    engine.resolveConfirmation(pending.confirmationId, true)
+                actionAdd?.isEnabled = false
+                suggestionText?.setText(R.string.context_action_saving)
+                scope.launch {
+                    val result = ExternalConfirmationController.getInstance(this@OrdiaKeyboardService)
+                        .addSuggestion(pending.toExternalSuggestion())
+                    actionAdd?.isEnabled = true
+                    if (result is ContextActionConfirmationResult.Success) {
+                        if (currentSuggestion?.intent?.id == pending.intent.id) {
+                            clearSuggestion()
+                            showNextSuggestion()
+                        }
+                    } else if (currentSuggestion?.intent?.id == pending.intent.id) {
+                        suggestionText?.setText(R.string.context_action_save_failed)
+                    }
                 }
-                // Notificar al controlador externo
-                ExternalConfirmationController.getInstance(this).resolveFromIME(pending.intent.id)
-                clearSuggestion()
-                showNextSuggestion()
             }
         }
 
@@ -620,6 +656,65 @@ class OrdiaKeyboardService : InputMethodService(),
         return KeyboardPrivacyGuard.sha256Hex(KeyboardPrivacyGuard.normalizeTokens(text)) in ignored
     }
 
+    private fun allowedPackages(): Set<String> =
+        prefs.getStringSet(PREF_ALLOWED_PACKAGES, emptySet()).orEmpty().toSet()
+
+    private fun toggleCurrentPackagePermission() {
+        val editor = currentEditorInfo ?: return
+        val packageName = editor.packageName ?: return
+        if (hardBlockedField) return
+        val next = allowedPackages().toMutableSet()
+        if (packageName in next) next.remove(packageName) else next.add(packageName)
+        prefs.edit().putStringSet(PREF_ALLOWED_PACKAGES, next).apply()
+        sensitiveField = !KeyboardPrivacyGuard.isAnalysisAllowed(
+            inputType = editor.inputType,
+            packageName = packageName,
+            allowedPackages = next,
+            fieldHint = editor.hintText?.toString(),
+            privateImeOptions = editor.privateImeOptions
+        )
+        if (sensitiveField) {
+            pendingText = StringBuilder()
+            analysisJob?.cancel()
+            suggestionQueue.clear()
+            clearSuggestion()
+        }
+        updateAnalysisPermissionUi()
+    }
+
+    private fun updateAnalysisPermissionUi() {
+        val editor = currentEditorInfo
+        val packageName = editor?.packageName
+        val label = applicationLabel(packageName)
+        when {
+            hardBlockedField -> {
+                analysisPermissionText?.setText(R.string.keyboard_analysis_blocked_field)
+                analysisPermissionButton?.visibility = View.GONE
+            }
+            packageName.isNullOrBlank() -> {
+                analysisPermissionText?.setText(R.string.keyboard_analysis_missing_app)
+                analysisPermissionButton?.visibility = View.GONE
+            }
+            packageName in allowedPackages() -> {
+                analysisPermissionText?.text = getString(R.string.keyboard_analysis_on_app, label)
+                analysisPermissionButton?.setText(R.string.keyboard_analysis_revoke)
+                analysisPermissionButton?.visibility = View.VISIBLE
+            }
+            else -> {
+                analysisPermissionText?.text = getString(R.string.keyboard_analysis_off_app, label)
+                analysisPermissionButton?.setText(R.string.keyboard_analysis_allow)
+                analysisPermissionButton?.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun applicationLabel(packageName: String?): String {
+        if (packageName.isNullOrBlank()) return getString(R.string.app_name)
+        return runCatching {
+            packageManager.getApplicationLabel(packageManager.getApplicationInfo(packageName, 0)).toString()
+        }.getOrDefault(packageName)
+    }
+
     override fun onDestroy() {
         analysisJob?.cancel()
         autoCloseJob?.cancel()
@@ -631,5 +726,6 @@ class OrdiaKeyboardService : InputMethodService(),
         private const val PREF_PAUSED = "keyboard_paused"
         private const val PREF_PAUSE_UNTIL = "keyboard_pause_until"
         private const val PREF_IGNORED_PATTERNS = "keyboard_ignored_patterns"
+        private const val PREF_ALLOWED_PACKAGES = "keyboard_allowed_packages"
     }
 }
