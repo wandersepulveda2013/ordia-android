@@ -26,7 +26,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,9 +58,9 @@ fun ProjectDetailScreen(
         Column(Modifier.fillMaxSize().padding(contentPadding).padding(20.dp)) { EmptyState(stringResource(R.string.project_detail_unavailable), stringResource(R.string.project_detail_unavailable_desc), stringResource(R.string.project_detail_volver), onBack) }
         return
     }
-    var editing by remember { mutableStateOf(false) }
-    var addingTask by remember { mutableStateOf(false) }
-    var addingNote by remember { mutableStateOf(false) }
+    var editing by rememberSaveable(projectId) { mutableStateOf(false) }
+    var addingTask by rememberSaveable(projectId) { mutableStateOf(false) }
+    var addingNote by rememberSaveable(projectId) { mutableStateOf(false) }
     if (editing) ProjectEditorDialog(project, { editing = false }, { vm.saveProject(it); editing = false })
     if (addingTask) TaskEditorDialog(
         projects = state.projects,
@@ -118,8 +118,8 @@ fun ProjectDetailScreen(
 
 @Composable
 private fun QuickNoteDialog(onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
-    var title by remember { mutableStateOf("") }
-    var body by remember { mutableStateOf("") }
+    var title by rememberSaveable { mutableStateOf("") }
+    var body by rememberSaveable { mutableStateOf("") }
     val untitledLabel = stringResource(R.string.project_detail_note_untitled)
     AlertDialog(
         onDismissRequest = onDismiss,

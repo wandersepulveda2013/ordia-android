@@ -32,7 +32,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -66,6 +68,7 @@ import com.ordia.app.data.local.CaptureTarget
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import kotlinx.coroutines.delay
 
 /**
  * Inicio orientado a decisiones. Mantiene visibles la captura y el siguiente
@@ -99,9 +102,16 @@ fun TodayScreen(
         )
     }
 
-    val today = LocalDate.now()
-    val whatNow = remember(state.tasks) { WhatNowEngine.suggest(state.tasks) }
-    val summary = remember(state.tasks) { SummaryEngine.summarize(state.tasks, System.currentTimeMillis()) }
+    var clockNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(60_000L)
+            clockNow = System.currentTimeMillis()
+        }
+    }
+    val today = remember(clockNow) { LocalDate.now() }
+    val whatNow = remember(state.tasks, clockNow) { WhatNowEngine.suggest(state.tasks, clockNow) }
+    val summary = remember(state.tasks, clockNow) { SummaryEngine.summarize(state.tasks, clockNow) }
     val capture = {
         if (quickText.isNotBlank()) {
             vm.submitCapture(

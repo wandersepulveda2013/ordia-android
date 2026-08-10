@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
@@ -61,12 +62,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
@@ -93,6 +99,7 @@ import com.ordia.app.ui.screens.FocusScreen
 import com.ordia.app.ui.screens.GuardianScreen
 import com.ordia.app.ui.screens.HabitsScreen
 import com.ordia.app.ui.screens.InboxScreen
+import com.ordia.app.ui.screens.IntelligenceScreen
 import com.ordia.app.ui.screens.MoreScreen
 import com.ordia.app.ui.screens.NoteEditorScreen
 import com.ordia.app.ui.screens.NotesScreen
@@ -128,6 +135,7 @@ sealed class Destination(val route: String, @StringRes val labelRes: Int, val ic
     data object Conversations : Destination("conversations", R.string.nav_conversations, Icons.Outlined.ChatBubbleOutline)
     data object Automations : Destination("automations", R.string.nav_automations, Icons.Outlined.Bolt)
     data object Assistant : Destination("assistant", R.string.nav_assistant, Icons.Outlined.AutoAwesome)
+    data object Intelligence : Destination("intelligence", R.string.nav_intelligence, Icons.Outlined.AutoAwesome)
     data object Workspace : Destination("workspace", R.string.nav_workspace, Icons.Outlined.EditNote)
 
     companion object {
@@ -140,12 +148,11 @@ sealed class Destination(val route: String, @StringRes val labelRes: Int, val ic
     }
 }
 
-private val compactItems = listOf(Destination.Today, Destination.Tasks, Destination.Capture, Destination.Notes, Destination.More)
+private val compactItems = listOf(Destination.Today, Destination.Tasks, Destination.Notes, Destination.Planner, Destination.More)
 private val compactMoreRoutes = setOf(
+    Destination.Capture.route,
     Destination.Inbox.route,
-    Destination.Planner.route,
     Destination.Projects.route,
-    Destination.Notes.route,
     Destination.Habits.route,
     Destination.Focus.route,
     Destination.Search.route,
@@ -155,6 +162,7 @@ private val compactMoreRoutes = setOf(
     Destination.Conversations.route,
     Destination.Automations.route,
     Destination.Assistant.route,
+    Destination.Intelligence.route,
     Destination.Workspace.route,
     Destination.Settings.route
 )
@@ -175,6 +183,7 @@ private val topLevelRoutes = setOf(
     Destination.Conversations.route,
     Destination.Automations.route,
     Destination.Assistant.route,
+    Destination.Intelligence.route,
     Destination.Workspace.route,
     Destination.Settings.route,
     Destination.More.route
@@ -182,15 +191,15 @@ private val topLevelRoutes = setOf(
 
 private fun wideItems(mode: InterfaceMode): List<Destination> = when (mode) {
     InterfaceMode.SIMPLE -> listOf(
-        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Assistant, Destination.Workspace, Destination.Conversations, Destination.Automations, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Assistant, Destination.Conversations, Destination.Automations, Destination.Planner,
         Destination.Notes, Destination.Guardian, Destination.Focus, Destination.Search
     )
     InterfaceMode.ORGANIZED -> listOf(
-        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Assistant, Destination.Workspace, Destination.Conversations, Destination.Automations, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Assistant, Destination.Conversations, Destination.Automations, Destination.Planner,
         Destination.Projects, Destination.Notes, Destination.Habits, Destination.Guardian, Destination.Focus, Destination.Search
     )
     InterfaceMode.ADVANCED -> listOf(
-        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Assistant, Destination.Workspace, Destination.Conversations, Destination.Automations, Destination.Planner,
+        Destination.Today, Destination.Capture, Destination.Inbox, Destination.Tasks, Destination.Assistant, Destination.Conversations, Destination.Automations, Destination.Planner,
         Destination.Projects, Destination.Notes, Destination.Habits, Destination.Guardian, Destination.Focus,
         Destination.Search, Destination.Statistics, Destination.Archive
     )
@@ -203,7 +212,28 @@ fun OrdiaNavigation(
     viewModel: OrdiaViewModel,
     snackbarHostState: SnackbarHostState
 ) {
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    val navigationFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(navigationFocusRequester) {
+        navigationFocusRequester.requestFocus()
+    }
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .focusRequester(navigationFocusRequester)
+            .onPreviewKeyEvent { event ->
+                if (
+                    event.type == KeyEventType.KeyDown &&
+                    event.key == Key.K &&
+                    (event.isCtrlPressed || event.isMetaPressed)
+                ) {
+                    navController.navigateSingle(Destination.Search.route)
+                    true
+                } else {
+                    false
+                }
+            }
+            .focusable()
+    ) {
         val useRail = maxWidth >= 760.dp && !state.preferences.compactNavigation
         val entry by navController.currentBackStackEntryAsState()
         val route = entry?.destination?.route.orEmpty()
@@ -253,7 +283,9 @@ fun OrdiaNavigation(
                     containerColor = MaterialTheme.colorScheme.background,
                     modifier = Modifier.weight(1f),
                     floatingActionButton = {
-                        QuickCaptureFab(route, navController)
+                        if (state.preferences.showFloatingCapture && route != Destination.Capture.route) {
+                            QuickCaptureFab(route, navController)
+                        }
                     }
                 ) { padding -> OrdiaNavHost(navController, state, viewModel, padding) }
             }
@@ -262,7 +294,13 @@ fun OrdiaNavigation(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 containerColor = MaterialTheme.colorScheme.background,
                 floatingActionButton = {
-                    if (showTopLevelNavigation) QuickCaptureFab(route, navController)
+                    if (
+                        showTopLevelNavigation &&
+                        state.preferences.showFloatingCapture &&
+                        route != Destination.Capture.route
+                    ) {
+                        QuickCaptureFab(route, navController)
+                    }
                 },
                 bottomBar = {
                     if (showTopLevelNavigation) {
@@ -281,7 +319,7 @@ fun OrdiaNavigation(
                                         onClick = { navController.navigateSingle(item.route) },
                                         icon = { Icon(item.icon, stringResource(item.labelRes)) },
                                         label = { Text(stringResource(item.labelRes)) },
-                                        alwaysShowLabel = false,
+                                        alwaysShowLabel = true,
                                         colors = NavigationBarItemDefaults.colors(
                                             selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                             selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -354,6 +392,7 @@ private fun OrdiaNavHost(
                 onTask = { navController.navigate(Destination.task(it)) }
             )
         }
+        composable(Destination.Intelligence.route) { IntelligenceScreen(contentPadding = padding) }
         composable(Destination.Workspace.route) {
             WorkspaceScreen(state, vm, padding) { panel ->
                 navController.navigateSingle(when (panel) {
@@ -372,12 +411,20 @@ private fun OrdiaNavHost(
                 vm,
                 padding,
                 initialQuery = searchSeed,
+                onCapture = { navController.navigateSingle(Destination.Capture.route) },
+                onToday = { navController.navigateSingle(Destination.Today.route) },
+                onCalendar = { navController.navigateSingle(Destination.Planner.route) },
+                onNotes = { navController.navigateSingle(Destination.Notes.route) },
                 onTask = { navController.navigate(Destination.task(it)) },
                 onProject = { navController.navigate(Destination.project(it)) },
                 onNote = { navController.navigate(Destination.note(it)) },
                 onHabits = { navController.navigateSingle(Destination.Habits.route) },
+                onFocus = { navController.navigateSingle(Destination.Focus.route) },
                 onConversations = { navController.navigateSingle(Destination.Conversations.route) },
-                onAutomations = { navController.navigateSingle(Destination.Automations.route) }
+                onAutomations = { navController.navigateSingle(Destination.Automations.route) },
+                onSettings = { navController.navigateSingle(Destination.Settings.route) },
+                onPrivacy = { navController.navigateSingle(Destination.Intelligence.route) },
+                onIntelligence = { navController.navigateSingle(Destination.Intelligence.route) }
             )
         }
         composable(Destination.Statistics.route) { StatisticsScreen(state, padding) }
@@ -473,24 +520,32 @@ private fun QuickCaptureFab(route: String, navController: NavHostController) {
                 onClick = { launchCapture(QuickCaptureActivity.MODE_NOTE) }
             )
             DropdownMenuItem(
+                text = { Text(stringResource(R.string.fab_reminder_capture)) },
+                leadingIcon = { Icon(Icons.Outlined.AddCircleOutline, null) },
+                onClick = {
+                    expanded = QuickCaptureMenuState.reduce(expanded, QuickCaptureMenuEvent.NAVIGATE)
+                    navController.navigateSingle(Destination.Capture.route)
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.fab_habits)) },
+                leadingIcon = { Icon(Icons.Outlined.Spa, null) },
+                onClick = {
+                    expanded = QuickCaptureMenuState.reduce(expanded, QuickCaptureMenuEvent.NAVIGATE)
+                    navController.navigateSingle(Destination.Habits.route)
+                }
+            )
+            DropdownMenuItem(
                 text = { Text(stringResource(R.string.fab_voice)) },
                 leadingIcon = { Icon(Icons.Outlined.Mic, null) },
                 onClick = { launchCapture(QuickCaptureActivity.MODE_TASK, voice = true) }
             )
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.fab_organize)) },
-                leadingIcon = { Icon(Icons.Outlined.CalendarMonth, null) },
-                onClick = {
-                    expanded = QuickCaptureMenuState.reduce(expanded, QuickCaptureMenuEvent.NAVIGATE)
-                    navController.navigateSingle(Destination.Planner.route)
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.fab_messages)) },
+                text = { Text(stringResource(R.string.fab_assistant)) },
                 leadingIcon = { Icon(Icons.Outlined.AutoAwesome, null) },
                 onClick = {
                     expanded = QuickCaptureMenuState.reduce(expanded, QuickCaptureMenuEvent.NAVIGATE)
-                    navController.navigateSingle(Destination.Conversations.route)
+                    navController.navigateSingle(Destination.Assistant.route)
                 }
             )
         }

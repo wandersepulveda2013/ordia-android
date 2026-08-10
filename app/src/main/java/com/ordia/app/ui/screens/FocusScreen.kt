@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.domain.FocusClock
+import com.ordia.app.domain.FocusTimerRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.GuardianAvatar
@@ -54,17 +55,27 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
     var remainingSeconds by rememberSaveable { mutableIntStateOf(plannedMinutes * 60) }
     var running by rememberSaveable { mutableStateOf(false) }
     var startedAt by rememberSaveable { mutableLongStateOf(0L) }
+    var deadlineAt by rememberSaveable { mutableLongStateOf(0L) }
     var taskId by rememberSaveable { mutableStateOf<Long?>(state.nextTask?.id) }
     var taskMenu by remember { mutableStateOf(false) }
 
-    LaunchedEffect(running, remainingSeconds) {
-        if (running && remainingSeconds > 0) {
-            delay(1_000)
-            remainingSeconds--
-        } else if (running && remainingSeconds == 0) {
-            running = false
-            val end = System.currentTimeMillis()
-            vm.saveFocusSession(taskId, startedAt, end, plannedMinutes, true)
+    LaunchedEffect(running, deadlineAt) {
+        while (running && deadlineAt > 0L) {
+            val now = System.currentTimeMillis()
+            val next = FocusTimerRules.remainingSeconds(deadlineAt, now)
+            remainingSeconds = next
+            if (next == 0) {
+                val completedStart = startedAt
+                running = false
+                startedAt = 0L
+                deadlineAt = 0L
+                remainingSeconds = plannedMinutes * 60
+                if (completedStart > 0L) {
+                    vm.saveFocusSession(taskId, completedStart, now, plannedMinutes, true)
+                }
+                break
+            }
+            delay(250L)
         }
     }
 
@@ -73,6 +84,7 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
         plannedMinutes = minutes
         remainingSeconds = minutes * 60
         startedAt = 0L
+        deadlineAt = 0L
     }
 
     Column(
@@ -110,11 +122,24 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { reset() }) { Icon(Icons.Outlined.Refresh, stringResource(R.string.focus_reset)) }
             Button(onClick = {
-                if (!running && startedAt == 0L) startedAt = System.currentTimeMillis()
-                running = !running
+                val now = System.currentTimeMillis()
+                if (running) {
+                    remainingSeconds = FocusTimerRules.remainingSeconds(deadlineAt, now)
+                    deadlineAt = 0L
+                    running = false
+                } else if (remainingSeconds > 0) {
+                    if (startedAt == 0L) startedAt = now
+                    deadlineAt = now + remainingSeconds * 1_000L
+                    running = true
+                }
             }) {
                 Icon(if (running) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, null)
-                Text(if (running) stringResource(R.string.focus_pause) else stringResource(R.string.focus_start), Modifier.padding(start = 7.dp))
+                Text(
+                    if (running) stringResource(R.string.focus_pause)
+                    else if (startedAt > 0L) stringResource(R.string.focus_resume)
+                    else stringResource(R.string.focus_start),
+                    Modifier.padding(start = 7.dp)
+                )
             }
             IconButton(
                 onClick = {

@@ -268,6 +268,13 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             }
         }
         item { SettingSwitch(stringResource(R.string.settings_compact_nav), stringResource(R.string.settings_compact_nav_desc), state.preferences.compactNavigation, vm::setCompactNavigation) }
+        item {
+            SettingSwitch(
+                stringResource(R.string.settings_show_floating_capture),
+                stringResource(R.string.settings_show_floating_capture_desc),
+                state.preferences.showFloatingCapture
+            ) { enabled -> scope.launch { repository.setShowFloatingCapture(enabled) } }
+        }
         item { SettingSwitch(stringResource(R.string.settings_reduce_motion), stringResource(R.string.settings_reduce_motion_desc), state.preferences.reduceMotion, vm::setReduceMotion) }
 
         item { SectionHeader(stringResource(R.string.settings_section_guardian)) }

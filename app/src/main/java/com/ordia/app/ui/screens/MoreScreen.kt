@@ -50,23 +50,23 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
         notes = state.notes,
         preferences = state.preferences
     )
-    val daily = listOf(
-        MoreEntry(Destination.Inbox, stringResource(R.string.more_inbox_desc), state.inboxTasks.size.toString(), MaterialTheme.colorScheme.primary),
-        MoreEntry(Destination.Planner, stringResource(R.string.more_planner_desc), null, MaterialTheme.colorScheme.secondary),
-        MoreEntry(Destination.Focus, stringResource(R.string.more_focus_desc), stringResource(R.string.more_focus_minutes_badge, state.focusMinutesThisWeek), MaterialTheme.colorScheme.tertiary),
-        MoreEntry(Destination.Search, stringResource(R.string.more_search_desc), null, MaterialTheme.colorScheme.secondary),
-        MoreEntry(Destination.Assistant, stringResource(R.string.more_assistant_desc), null, MaterialTheme.colorScheme.primary),
-        MoreEntry(Destination.Workspace, stringResource(R.string.more_workspace_desc), null, MaterialTheme.colorScheme.tertiary),
-        MoreEntry(Destination.Guardian, stringResource(R.string.more_guardian_desc), stringResource(R.string.more_guardian_level_badge, guardian.level), MaterialTheme.colorScheme.tertiary),
-        MoreEntry(Destination.Conversations, stringResource(R.string.more_conversations_desc), null, MaterialTheme.colorScheme.primary),
-        MoreEntry(Destination.Automations, stringResource(R.string.more_automations_desc), null, MaterialTheme.colorScheme.secondary)
-    )
+    val daily = buildList {
+        if (!state.preferences.showFloatingCapture) {
+            add(MoreEntry(Destination.Capture, stringResource(R.string.more_capture_desc), null, MaterialTheme.colorScheme.primary))
+        }
+        add(MoreEntry(Destination.Inbox, stringResource(R.string.more_inbox_desc), state.inboxTasks.size.toString(), MaterialTheme.colorScheme.primary))
+        add(MoreEntry(Destination.Focus, stringResource(R.string.more_focus_desc), stringResource(R.string.more_focus_minutes_badge, state.focusMinutesThisWeek), MaterialTheme.colorScheme.tertiary))
+        add(MoreEntry(Destination.Search, stringResource(R.string.more_search_desc), null, MaterialTheme.colorScheme.secondary))
+        add(MoreEntry(Destination.Assistant, stringResource(R.string.more_assistant_desc), null, MaterialTheme.colorScheme.primary))
+        add(MoreEntry(Destination.Guardian, stringResource(R.string.more_guardian_desc), stringResource(R.string.more_guardian_level_badge, guardian.level), MaterialTheme.colorScheme.tertiary))
+        add(MoreEntry(Destination.Conversations, stringResource(R.string.more_conversations_desc), null, MaterialTheme.colorScheme.primary))
+        add(MoreEntry(Destination.Automations, stringResource(R.string.more_automations_desc), null, MaterialTheme.colorScheme.secondary))
+    }
     val organize = buildList {
         if (state.preferences.interfaceMode != InterfaceMode.SIMPLE) {
             add(MoreEntry(Destination.Projects, stringResource(R.string.more_projects_desc), state.projects.size.toString(), MaterialTheme.colorScheme.primary))
             add(MoreEntry(Destination.Habits, stringResource(R.string.more_habits_desc), state.habits.size.toString(), MaterialTheme.colorScheme.tertiary))
         }
-        add(MoreEntry(Destination.Notes, stringResource(R.string.more_notes_desc), state.notes.size.toString(), MaterialTheme.colorScheme.secondary))
     }
     val review = buildList {
         if (state.preferences.interfaceMode == InterfaceMode.ADVANCED) {
@@ -75,7 +75,16 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
         }
     }
     val system = listOf(
+        MoreEntry(Destination.Intelligence, stringResource(R.string.more_intelligence_desc), null, MaterialTheme.colorScheme.primary),
         MoreEntry(Destination.Settings, stringResource(R.string.more_settings_desc), null, MaterialTheme.colorScheme.tertiary)
+    )
+    val experimental = listOf(
+        MoreEntry(
+            Destination.Workspace,
+            stringResource(R.string.more_workspace_desc),
+            stringResource(R.string.more_experimental_badge),
+            MaterialTheme.colorScheme.secondary
+        )
     )
 
     LazyColumn(
@@ -99,8 +108,10 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
         item { SectionHeader(stringResource(R.string.more_section_daily), stringResource(R.string.more_section_daily_supporting)) }
         item(key = "group-daily") { GroupedTools(daily, open) }
 
-        item { SectionHeader(stringResource(R.string.more_section_organize), stringResource(R.string.more_section_organize_supporting)) }
-        item(key = "group-organize") { GroupedTools(organize, open) }
+        if (organize.isNotEmpty()) {
+            item { SectionHeader(stringResource(R.string.more_section_organize), stringResource(R.string.more_section_organize_supporting)) }
+            item(key = "group-organize") { GroupedTools(organize, open) }
+        }
 
         if (review.isNotEmpty()) {
             item { SectionHeader(stringResource(R.string.more_section_review), stringResource(R.string.more_section_review_supporting)) }
@@ -109,6 +120,9 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
 
         item { SectionHeader(stringResource(R.string.more_section_system), stringResource(R.string.more_section_system_supporting)) }
         item(key = "group-system") { GroupedTools(system, open) }
+
+        item { SectionHeader(stringResource(R.string.more_section_experimental), stringResource(R.string.more_section_experimental_supporting)) }
+        item(key = "group-experimental") { GroupedTools(experimental, open) }
     }
 }
 

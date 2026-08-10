@@ -1,6 +1,10 @@
 package com.ordia.app.ui
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
@@ -11,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
@@ -206,6 +211,15 @@ fun OrdiaRoot(
                     )
                     if (result == SnackbarResult.ActionPerformed) viewModel.undoLastAutomation()
                 }
+                is UiEvent.Archived -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = event.message,
+                        actionLabel = context.getString(R.string.archive_undo_action)
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.restoreArchived(event.kind, event.id)
+                    }
+                }
                 else -> Unit
             }
         }
@@ -242,12 +256,16 @@ fun OrdiaRoot(
     }
 
         if (!state.preferences.onboardingComplete) {
-            OnboardingScreen(
-                selectedMode = state.preferences.interfaceMode,
-                onModeSelected = viewModel::setInterfaceMode,
-                onFinish = viewModel::finishOnboarding,
-                finishing = onboardingBusy
-            )
+            Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+                Box(Modifier.padding(padding)) {
+                    OnboardingScreen(
+                        selectedMode = state.preferences.interfaceMode,
+                        onModeSelected = viewModel::setInterfaceMode,
+                        onFinish = viewModel::finishOnboarding,
+                        finishing = onboardingBusy
+                    )
+                }
+            }
         } else {
             OrdiaNavigation(
                 navController = navController,

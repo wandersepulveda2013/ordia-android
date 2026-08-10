@@ -16,7 +16,6 @@ import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Science
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,7 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,7 +50,7 @@ import com.ordia.app.ui.components.SectionHeader
 fun AutomationsScreen(vm: OrdiaViewModel, padding: PaddingValues) {
     val rules by vm.automationRules.collectAsStateWithLifecycle()
     val history by vm.automationHistory.collectAsStateWithLifecycle()
-    var instruction by remember { mutableStateOf("") }
+    var instruction by rememberSaveable { mutableStateOf("") }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -173,7 +172,11 @@ private fun AutomationRuleCard(
                     Text(stringResource(R.string.automation_run), Modifier.padding(start = 6.dp))
                 }
             }
-            AssistChip(onClick = {}, label = { Text(stringResource(R.string.automation_last_result, rule.lastResult.name)) })
+            Text(
+                stringResource(R.string.automation_last_result, rule.lastResult.name),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -190,17 +193,14 @@ private fun AutomationHistoryRow(log: AutomationLogEntity) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            AssistChip(
-                onClick = {},
-                label = {
-                    Text(
-                        when {
-                            log.undone -> stringResource(R.string.automation_status_undone)
-                            log.type.startsWith("test:") -> stringResource(R.string.automation_status_test)
-                            else -> stringResource(R.string.automation_status_done)
-                        }
-                    )
-                }
+            Text(
+                when {
+                    log.undone -> stringResource(R.string.automation_status_undone)
+                    log.type.startsWith("test:") -> stringResource(R.string.automation_status_test)
+                    else -> stringResource(R.string.automation_status_done)
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

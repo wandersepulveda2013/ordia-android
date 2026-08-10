@@ -28,6 +28,8 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -37,6 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -322,12 +325,17 @@ fun CaptureScreen(
             }
         } else {
             items(history, key = { it.id }) { capture ->
-                CaptureHistoryRow(capture) {
-                    when (capture.resultType) {
-                        "TASK" -> capture.resultId?.let(onTask)
-                        "NOTE" -> capture.resultId?.let(onNote)
-                    }
-                }
+                CaptureHistoryRow(
+                    capture = capture,
+                    onOpen = {
+                        when (capture.resultType) {
+                            "TASK" -> capture.resultId?.let(onTask)
+                            "NOTE" -> capture.resultId?.let(onNote)
+                        }
+                    },
+                    onRetry = { vm.retryCapture(capture) },
+                    onDiscard = { vm.discardFailedCapture(capture) }
+                )
             }
         }
     }
@@ -354,7 +362,12 @@ private fun CaptureTargetSelector(selected: CaptureTarget, onSelect: (CaptureTar
 }
 
 @Composable
-private fun CaptureHistoryRow(capture: CaptureEntity, onOpen: () -> Unit) {
+private fun CaptureHistoryRow(
+    capture: CaptureEntity,
+    onOpen: () -> Unit,
+    onRetry: () -> Unit,
+    onDiscard: () -> Unit
+) {
     val canOpen = capture.status == CaptureStatus.PROCESSED && capture.resultId != null
     Card(
         modifier = Modifier.fillMaxWidth().clickable(enabled = canOpen, onClick = onOpen),
@@ -378,6 +391,22 @@ private fun CaptureHistoryRow(capture: CaptureEntity, onOpen: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall
             )
+            if (capture.status == CaptureStatus.FAILED) {
+                Text(
+                    stringResource(R.string.capture_retry_explanation),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onRetry, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Outlined.Refresh, null)
+                        Text(stringResource(R.string.capture_retry), Modifier.padding(start = 6.dp))
+                    }
+                    OutlinedButton(onClick = onDiscard) {
+                        Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.capture_discard_failed))
+                    }
+                }
+            }
         }
     }
 }

@@ -83,6 +83,7 @@ import com.ordia.app.reminders.ReminderScheduler
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import com.ordia.app.BuildConfig
 import com.ordia.app.automation.AutomationEngine
+import com.ordia.app.automation.AutomationUndoRules
 import com.ordia.app.automation.AutomationParseResult
 import com.ordia.app.automation.AutomationRuleCatalog
 import com.ordia.app.automation.AutomationScheduler
@@ -109,6 +110,7 @@ sealed interface UiEvent {
     data class NoteSaved(val id: Long) : UiEvent
     /** Automatización aplicada; la UI ofrece deshacer con [AutomationApplied.logId]. */
     data class AutomationApplied(val logId: Long, val message: String) : UiEvent
+    data class Archived(val kind: String, val id: Long, val message: String) : UiEvent
 }
 
 /**
@@ -158,7 +160,9 @@ data class OrdiaUiState(
     val nextTask: TaskEntity? get() = guardianInsight.taskId?.let(::task) ?: TaskRules.nextBestTask(tasks)
     val rootTasks: List<TaskEntity> get() = tasks.filter { it.parentTaskId == null }
     val pendingTasks: List<TaskEntity> get() = rootTasks.filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
-    val inboxTasks: List<TaskEntity> get() = pendingTasks.filter { it.status == TaskStatus.INBOX && it.dueAt == null }
+    // La Bandeja es una cola de revisión por estado. Una fecha extraída con
+    // baja confianza no debe sacar silenciosamente la captura de esa cola.
+    val inboxTasks: List<TaskEntity> get() = pendingTasks.filter { it.status == TaskStatus.INBOX }
     val overdueTasks: List<TaskEntity> get() = pendingTasks.filter { TaskRules.isOverdue(it) }
     val todayTasks: List<TaskEntity> get() = pendingTasks.filter { TaskRules.isDueToday(it) && !TaskRules.isOverdue(it) }
     val completedCount: Int get() = rootTasks.count { it.completed }
@@ -558,7 +562,7 @@ class OrdiaViewModel(
             reminderScheduler.cancel(task.id)
             taskRepository.archive(task.id)
             updateWidget()
-            _events.emit(UiEvent.Message("Tarea movida al archivo."))
+            _events.emit(UiEvent.Archived("task", task.id, appContext.getString(R.string.task_archived)))
         }
     }
 
@@ -593,7 +597,7 @@ class OrdiaViewModel(
 
     fun deleteProject(project: ProjectEntity) = viewModelScope.launch {
         projectRepository.archive(project.id)
-        _events.emit(UiEvent.Message("Proyecto archivado."))
+        _events.emit(UiEvent.Archived("project", project.id, appContext.getString(R.string.project_archived)))
     }
 
     fun saveNote(note: NoteEntity, blocks: List<NoteBlock>? = null, onSaved: (Long) -> Unit = {}) {
@@ -622,7 +626,7 @@ class OrdiaViewModel(
 
     fun deleteNote(note: NoteEntity) = viewModelScope.launch {
         noteRepository.archive(note.id)
-        _events.emit(UiEvent.Message("Nota archivada."))
+        _events.emit(UiEvent.Archived("note", note.id, appContext.getString(R.string.note_archived)))
     }
 
     fun togglePin(note: NoteEntity) = viewModelScope.launch {
@@ -631,12 +635,12 @@ class OrdiaViewModel(
 
     fun addAttachment(attachment: AttachmentEntity) = viewModelScope.launch {
         attachmentRepository.add(attachment)
-        _events.emit(UiEvent.Message("Archivo adjuntado."))
+        _events.emit(UiEvent.Message(appContext.getString(R.string.attachment_added)))
     }
 
     fun deleteAttachment(attachment: AttachmentEntity) = viewModelScope.launch {
         attachmentRepository.delete(attachment)
-        _events.emit(UiEvent.Message("Adjunto eliminado de la nota."))
+        _events.emit(UiEvent.Message(appContext.getString(R.string.attachment_removed)))
     }
 
     fun saveHabit(habit: HabitEntity) {
@@ -659,7 +663,7 @@ class OrdiaViewModel(
 
     fun deleteHabit(habit: HabitEntity) = viewModelScope.launch {
         habitRepository.archive(habit.id)
-        _events.emit(UiEvent.Message("Hábito movido al archivo."))
+        _events.emit(UiEvent.Archived("habit", habit.id, appContext.getString(R.string.habit_archived)))
     }
 
     fun saveRoutine(routine: RoutineEntity, stepTitles: List<String>) {
@@ -733,7 +737,7 @@ class OrdiaViewModel(
 
     fun archiveRoutine(routine: RoutineEntity) = viewModelScope.launch {
         routineRepository.archive(routine.id)
-        _events.emit(UiEvent.Message(appContext.getString(R.string.routine_archived)))
+        _events.emit(UiEvent.Archived("routine", routine.id, appContext.getString(R.string.routine_archived)))
     }
 
     fun restoreArchived(kind: String, id: Long) = viewModelScope.launch {
@@ -745,7 +749,7 @@ class OrdiaViewModel(
             "routine" -> routineRepository.restore(id)
         }
         updateWidget()
-        _events.emit(UiEvent.Message("Elemento restaurado."))
+        _events.emit(UiEvent.Message(appContext.getString(R.string.item_restored)))
     }
 
     fun deleteArchivedPermanently(kind: String, id: Long) = viewModelScope.launch {
@@ -757,7 +761,7 @@ class OrdiaViewModel(
             "routine" -> routineRepository.deletePermanently(id)
         }
         updateWidget()
-        _events.emit(UiEvent.Message("Elemento eliminado definitivamente."))
+        _events.emit(UiEvent.Message(appContext.getString(R.string.item_deleted_permanently)))
     }
 
     fun addTag(name: String) {
@@ -868,8 +872,9 @@ class OrdiaViewModel(
             return@launch
         }
         val before = TaskSnapshotCodec.decodeMap(log.undoPayloadJson)
-        val createdIds = TaskSnapshotCodec.decodeIds(log.affectedTaskIdsJson)
-        if (before.isEmpty() && createdIds.isEmpty()) {
+        val affectedIds = TaskSnapshotCodec.decodeIds(log.affectedTaskIdsJson)
+        val createdIds = AutomationUndoRules.createdTaskIds(affectedIds, before.keys)
+        if (before.isEmpty() && affectedIds.isEmpty()) {
             _events.emit(UiEvent.Message(appContext.getString(R.string.automation_nothing_to_undo)))
             return@launch
         }
@@ -885,8 +890,9 @@ class OrdiaViewModel(
                 }
             }
         }
-        // Tareas creadas por una automatización (p. ej. rutina): se eliminan
-        // solo si siguen intactas en la bandeja (sin completar/modificar).
+        // affectedTaskIdsJson también contiene tareas preexistentes modificadas.
+        // Solo los IDs sin snapshot previo fueron creados por la automatización.
+        // Aun así se eliminan únicamente si siguen intactos en la bandeja.
         val removedCreated = createdIds.mapNotNull { taskRepository.get(it) }
             .filter { !it.completed && !it.archived && it.status == TaskStatus.INBOX }
             .map { it.id }
@@ -903,7 +909,7 @@ class OrdiaViewModel(
         viewModelScope.launch {
             val actual = ((endedAt - startedAt) / 60_000L).toInt().coerceAtLeast(0)
             focusRepository.add(FocusSessionEntity(taskId = taskId, startedAt = startedAt, endedAt = endedAt, plannedMinutes = plannedMinutes, actualMinutes = actual, completed = completed, notes = notes))
-            _events.emit(UiEvent.Message(if (completed) "Sesión de enfoque completada." else "Sesión guardada."))
+            _events.emit(UiEvent.Message(appContext.getString(if (completed) R.string.focus_session_completed else R.string.focus_session_saved)))
         }
     }
 
@@ -986,47 +992,83 @@ class OrdiaViewModel(
             val captureId = captureRepository.insert(stored)
             stored = stored.copy(id = captureId)
 
-            try {
-                val result = when (interpretation.target) {
-                    CaptureTarget.NOTE -> "NOTE" to createNoteFromCapture(
-                        title = interpretation.title,
-                        body = interpretation.body,
-                        checklist = interpretation.checklist,
-                        attachmentUri = attachmentUri,
-                        mimeType = mimeType
-                    )
-                    CaptureTarget.AUTO -> error("La captura AUTO no fue resuelta")
-                    CaptureTarget.INBOX,
-                    CaptureTarget.TASK,
-                    CaptureTarget.REMINDER -> "TASK" to createTaskFromCapture(
-                        interpretation = interpretation,
-                        original = original,
-                        attachmentUri = attachmentUri,
-                        mimeType = mimeType
-                    )
-                }
-                captureRepository.update(
-                    stored.copy(
-                        status = CaptureStatus.PROCESSED,
-                        resultType = result.first,
-                        resultId = result.second,
-                        updatedAt = System.currentTimeMillis()
-                    )
+            processStoredCapture(stored, interpretation, onSaved)
+        }
+    }
+
+    fun retryCapture(capture: CaptureEntity) {
+        if (capture.status != CaptureStatus.FAILED) return
+        viewModelScope.launch {
+            val interpretation = UniversalCaptureEngine.interpret(
+                raw = capture.content,
+                requested = capture.requestedTarget,
+                hasAttachment = capture.attachmentUri.isNotBlank()
+            )
+            val pending = capture.copy(
+                resolvedTarget = interpretation.target,
+                status = CaptureStatus.PENDING,
+                errorCode = "",
+                updatedAt = System.currentTimeMillis()
+            )
+            captureRepository.update(pending)
+            processStoredCapture(pending, interpretation)
+        }
+    }
+
+    fun discardFailedCapture(capture: CaptureEntity) {
+        if (capture.status != CaptureStatus.FAILED) return
+        viewModelScope.launch {
+            captureRepository.delete(capture.id)
+            _events.emit(UiEvent.Message(appContext.getString(R.string.capture_failed_discarded)))
+        }
+    }
+
+    private suspend fun processStoredCapture(
+        stored: CaptureEntity,
+        interpretation: com.ordia.app.domain.CaptureInterpretation,
+        onSaved: (resultType: String, resultId: Long) -> Unit = { _, _ -> }
+    ) {
+        try {
+            val result = when (interpretation.target) {
+                CaptureTarget.NOTE -> "NOTE" to createNoteFromCapture(
+                    title = interpretation.title,
+                    body = interpretation.body,
+                    checklist = interpretation.checklist,
+                    attachmentUri = stored.attachmentUri,
+                    mimeType = stored.mimeType
                 )
-                captureRepository.clearDraft()
-                updateWidget()
-                onSaved(result.first, result.second)
-                _events.emit(UiEvent.Message(appContext.getString(R.string.capture_saved_success)))
-            } catch (error: Exception) {
-                captureRepository.update(
-                    stored.copy(
-                        status = CaptureStatus.FAILED,
-                        errorCode = error.javaClass.simpleName.take(80),
-                        updatedAt = System.currentTimeMillis()
-                    )
+                CaptureTarget.AUTO -> error("La captura AUTO no fue resuelta")
+                CaptureTarget.INBOX,
+                CaptureTarget.TASK,
+                CaptureTarget.REMINDER -> "TASK" to createTaskFromCapture(
+                    interpretation = interpretation,
+                    original = stored.content,
+                    attachmentUri = stored.attachmentUri,
+                    mimeType = stored.mimeType
                 )
-                _events.emit(UiEvent.Message(appContext.getString(R.string.capture_saved_for_retry)))
             }
+            captureRepository.update(
+                stored.copy(
+                    status = CaptureStatus.PROCESSED,
+                    resultType = result.first,
+                    resultId = result.second,
+                    errorCode = "",
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+            captureRepository.clearDraft()
+            updateWidget()
+            onSaved(result.first, result.second)
+            _events.emit(UiEvent.Message(appContext.getString(R.string.capture_saved_success)))
+        } catch (error: Exception) {
+            captureRepository.update(
+                stored.copy(
+                    status = CaptureStatus.FAILED,
+                    errorCode = error.javaClass.simpleName.take(80),
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+            _events.emit(UiEvent.Message(appContext.getString(R.string.capture_saved_for_retry)))
         }
     }
 
@@ -1333,24 +1375,24 @@ class OrdiaViewModel(
 
     private suspend fun saveAutomation(rule: AutomationRuleEntity) {
         val (_, created) = automationRuleRepository.save(rule)
-        _events.emit(UiEvent.Message(if (created) "Automatización creada; actívala cuando estés listo." else "Esa automatización ya existe."))
+        _events.emit(UiEvent.Message(appContext.getString(if (created) R.string.automation_created else R.string.automation_already_exists)))
     }
 
     fun setAutomationEnabled(rule: AutomationRuleEntity, enabled: Boolean) = viewModelScope.launch {
         automationRuleRepository.update(rule.copy(enabled = enabled, updatedAt = System.currentTimeMillis()))
         AutomationScheduler.sync(appContext, automationRuleRepository)
-        _events.emit(UiEvent.Message(if (enabled) "Automatización activada." else "Automatización pausada."))
+        _events.emit(UiEvent.Message(appContext.getString(if (enabled) R.string.automation_enabled else R.string.automation_paused)))
     }
 
     fun deleteAutomation(rule: AutomationRuleEntity) = viewModelScope.launch {
         automationRuleRepository.delete(rule.id)
         AutomationScheduler.sync(appContext, automationRuleRepository)
-        _events.emit(UiEvent.Message("Automatización eliminada; su historial se conserva."))
+        _events.emit(UiEvent.Message(appContext.getString(R.string.automation_deleted)))
     }
 
     fun testAutomation(rule: AutomationRuleEntity) = viewModelScope.launch {
         val outcome = automationEngine.runRule(rule, manual = true, test = true)
-        _events.emit(UiEvent.Message("Prueba sin cambios: ${outcome.message}"))
+        _events.emit(UiEvent.Message(appContext.getString(R.string.automation_test_result, outcome.message)))
     }
 
     fun runAutomationNow(rule: AutomationRuleEntity) = viewModelScope.launch {
@@ -1373,7 +1415,7 @@ class OrdiaViewModel(
     fun exportBackup(onReady: (String) -> Unit) = viewModelScope.launch {
         runCatching { backupManager.exportJson() }
             .onSuccess(onReady)
-            .onFailure { _events.emit(UiEvent.Message("No se pudo crear la copia: ${it.message}")) }
+            .onFailure { _events.emit(UiEvent.Message(appContext.getString(R.string.backup_export_failed))) }
     }
 
     /**

@@ -49,6 +49,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -108,8 +109,9 @@ fun ConversationsScreen(
     var previewSource by remember { mutableStateOf(ConversationSourceType.IMPORTED) }
     var selfParticipant by remember { mutableStateOf<String?>(null) }
     var retainOriginal by remember { mutableStateOf(false) }
-    var showPaste by remember { mutableStateOf(false) }
-    var pasteText by remember { mutableStateOf("") }
+    var showPaste by rememberSaveable { mutableStateOf(false) }
+    var parsingPaste by rememberSaveable { mutableStateOf(false) }
+    var pasteText by rememberSaveable { mutableStateOf("") }
     var parseError by remember { mutableStateOf<String?>(null) }
     var deleteTarget by remember { mutableStateOf<ConversationEntity?>(null) }
     var showClearObservedData by remember { mutableStateOf(false) }
@@ -174,7 +176,7 @@ fun ConversationsScreen(
             text = {
                 OutlinedTextField(
                     value = pasteText,
-                    onValueChange = { pasteText = it.take(ChatImportParser.MAX_IMPORT_CHARS) },
+                    onValueChange = { pasteText = it.take(MAX_SAVEABLE_PASTE_CHARS) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 8,
                     label = { Text(stringResource(R.string.conversation_paste_label)) }
@@ -182,16 +184,27 @@ fun ConversationsScreen(
             },
             confirmButton = {
                 TextButton(
-                    enabled = pasteText.isNotBlank(),
+                    enabled = pasteText.isNotBlank() && !parsingPaste,
                     onClick = {
-                        runCatching { ChatImportParser.parse(pasteText, pastedName) }
-                            .onSuccess {
+                        parsingPaste = true
+                        scope.launch {
+                            runCatching {
+                                withContext(Dispatchers.Default) {
+                                    ChatImportParser.parse(pasteText, pastedName)
+                                }
+                            }.onSuccess {
                                 setPreview(it, ConversationSourceType.SHARED)
                                 showPaste = false
-                            }
-                            .onFailure { parseError = it.message }
+                            }.onFailure { parseError = parseFailed }
+                            parsingPaste = false
+                        }
                     }
-                ) { Text(stringResource(R.string.conversation_analyze)) }
+                ) {
+                    Text(
+                        if (parsingPaste) stringResource(R.string.conversation_analyzing)
+                        else stringResource(R.string.conversation_analyze)
+                    )
+                }
             },
             dismissButton = {
                 TextButton(onClick = { showPaste = false }) { Text(stringResource(R.string.action_cancel)) }
@@ -395,6 +408,8 @@ fun ConversationsScreen(
         }
     }
 }
+
+private const val MAX_SAVEABLE_PASTE_CHARS = 100_000
 
 @Composable
 private fun ObservationControlCard(
