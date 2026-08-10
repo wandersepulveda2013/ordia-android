@@ -55,7 +55,7 @@ jobs:
               for branch in target.get("githubRepo", {}).get("branches", [])
           ]
 
-          preferred = "feature/ordia-total-rebuild-2026-08-10"
+          preferred = "main"
 
           if preferred not in branches:
               raise SystemExit(
