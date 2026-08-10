@@ -122,6 +122,7 @@ class TagRepository(
     suspend fun delete(tag: TagEntity) = tagDao.delete(tag)
     suspend fun link(taskId: Long, tagId: Long) = taskTagDao.add(TaskTagCrossRef(taskId, tagId))
     suspend fun unlink(taskId: Long, tagId: Long) = taskTagDao.remove(taskId, tagId)
+    suspend fun unlinkList(taskId: Long, tagIds: List<Long>) = taskTagDao.removeList(taskId, tagIds)
 }
 
 class AttachmentRepository(private val dao: AttachmentDao) {
