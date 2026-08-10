@@ -2,9 +2,9 @@ name: Ordia 3.0 CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, jules/autonomous-ordia]
   pull_request:
-    branches: [main]
+    branches: [main, jules/autonomous-ordia]
   workflow_dispatch:
 
 concurrency:

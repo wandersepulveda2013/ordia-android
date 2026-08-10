@@ -3,7 +3,6 @@ name: Ordia Autonomous Jules
 on:
   schedule:
     # Cada 2 horas en el minuto 17 (evita el minuto 00 y reduce solape con CI).
-    # Hora local República Dominicana: cada 2 horas en el minuto 17 -04:00 → 21:17/23:17/01:17...
     - cron: "17 */2 * * *"
 
   workflow_dispatch:
@@ -15,16 +14,20 @@ concurrency:
 jobs:
   launch-jules:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: read
       pull-requests: read
+      checks: read
+      statuses: read
+      actions: read
 
     steps:
       # ─────────────────────────────────────────────────────────
       # FAILSAFE 1 — Variable ORDIA_AUTONOMY_ENABLED
-      # Si la variable existe y es "false"/"0"/"no", la autonomía
+      # Si la variable existe y es "false"/"0"/"no"/"off", la autonomía
       # queda desactivada y ninguna sesión nueva se lanza.
+      # Si la variable NO existe, la autonomía permanece habilitada.
       # ─────────────────────────────────────────────────────────
       - name: Failsafe — variable ORDIA_AUTONOMY_ENABLED
         id: failsafe
@@ -69,39 +72,11 @@ jobs:
           fi
 
       # ─────────────────────────────────────────────────────────
-      # SESSION LOCK — PR abierta hacia jules/autonomous-ordia
-      # Si la sesión anterior aún tiene una PR abierta hacia la rama
-      # autónoma, la nueva sesión NO se lanza (evita solapes y ciclos).
-      # ─────────────────────────────────────────────────────────
-      - name: Session lock — PR abierta hacia jules/autonomous-ordia
-        id: prcheck
-        if: steps.failsafe.outputs.disabled != 'true' && steps.bypass.outputs.bypassed != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          curl -sf \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls?state=open&base=jules/autonomous-ordia&per_page=20" \
-            -o prs.json || { echo "::warning::No se pudo consultar PRs (red/API). Se procede con cautela."; }
-          open_count=0
-          if [ -f prs.json ]; then
-            open_count=$(python3 -c "import json;print(len(json.load(open('prs.json'))))" 2>/dev/null || echo 0)
-          fi
-          if [ "$open_count" -gt 0 ]; then
-            echo "locked=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::Hay $open_count PR abierta(s) hacia jules/autonomous-ordia. La sesión anterior sigue activa; no se lanza otra."
-          else
-            echo "locked=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      # ─────────────────────────────────────────────────────────
       # Buscar el repositorio en Jules y verificar la rama autónoma
       # ─────────────────────────────────────────────────────────
       - name: Find Ordia repository in Jules
         id: source
-        if: steps.failsafe.outputs.disabled != 'true' && steps.bypass.outputs.bypassed != 'true' && steps.prcheck.outputs.locked != 'true'
+        if: steps.failsafe.outputs.disabled != 'true' && steps.bypass.outputs.bypassed != 'true'
         env:
           JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
         run: |
@@ -158,11 +133,251 @@ jobs:
           PY
 
       # ─────────────────────────────────────────────────────────
+      # SESSION LOCK ROBUSTO + CONTEXTO DE PRs FALLIDAS
+      #
+      # Decide si se puede lanzar una nueva sesión y recopila el
+      # contexto de PRs autónomas fallidas/atascadas para inyectarlo
+      # en el prompt de la sesión.
+      #
+      # Estados de la sesión (Jules Sessions API):
+      #   QUEUED, PLANNING, IN_PROGRESS, PAUSED, AWAITING_* → bloquear
+      #   (activas o esperando; no lanzar otra sesión)
+      #   COMPLETED / TERMINAL / ERROR / CANCELLED → no bloquear
+      #
+      # Heurística de PRs hacia jules/autonomous-ordia:
+      #   A) Sesión activa (API)            → SKIP
+      #   B) CI corriendo en PR abierta     → SKIP temporal
+      #   C) PR fallida en CI               → PROCEED con contexto de fallo
+      #   D) PR lista para merge            → SKIP (dejar actuar al auto-merge)
+      #   E) PR antigua/atascada/draft      → PROCEED con aviso de recuperación
+      #
+      # Límites anti-loop:
+      #   - máx. PRs abiertas hacia la rama autónoma: 4
+      #   - si la misma área falló >= 2 veces, no recrear la PR;
+      #     marcarla para revisión humana.
+      # ─────────────────────────────────────────────────────────
+      - name: Session lock — estado de sesiones y PRs autónomas
+        id: lock
+        if: steps.failsafe.outputs.disabled != 'true' && steps.bypass.outputs.bypassed != 'true' && steps.source.outputs.source != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+          JULES_SOURCE: ${{ steps.source.outputs.source }}
+        run: |
+          python <<'PY'
+          import json
+          import os
+          import urllib.request
+          import urllib.error
+
+          API = "https://api.github.com"
+          REPO = os.environ.get("GITHUB_REPOSITORY", "wandersepulveda2013/ordia-android")
+          TOKEN = os.environ.get("GH_TOKEN", "")
+          BASE = "jules/autonomous-ordia"
+
+          context = {
+              "failed_prs": [],
+              "stale_prs": [],
+              "loop_warning": False,
+              "decision": "proceed",
+              "decision_reason": "No hay sesión activa ni PR abierta hacia la rama autónoma."
+          }
+
+          def gh_get(path):
+              req = urllib.request.Request(
+                  f"{API}{path}",
+                  headers={
+                      "Authorization": f"Bearer {TOKEN}",
+                      "Accept": "application/vnd.github+json",
+                      "User-Agent": "ordia-autonomy"
+                  }
+              )
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  return json.load(resp)
+
+          # ---- 1) Sesión activa de Jules (fail-open si la API no responde) ----
+          active_session = False
+          session_state = None
+          try:
+              req = urllib.request.Request(
+                  "https://jules.googleapis.com/v1alpha/sessions?pageSize=100",
+                  headers={"x-goog-api-key": os.environ.get("JULES_API_KEY", "")}
+              )
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  sess_data = json.load(resp)
+              sessions = sess_data.get("sessions", [])
+              for s in sessions:
+                  src = s.get("sourceContext", {}).get("source") or ""
+                  st = s.get("state") or ""
+                  if src == os.environ.get("JULES_SOURCE", "") and st:
+                      active_states = ("QUEUED", "PLANNING", "IN_PROGRESS", "PAUSED",
+                                       "AWAITING_PLAN_APPROVAL", "AWAITING_USER_FEEDBACK")
+                      if st in active_states:
+                          active_session = True
+                          session_state = st
+                          break
+          except Exception as e:
+              # Fail-open: sin respuesta de la API no bloqueamos por esto.
+              print("::warning::No se pudo consultar sesiones de Jules:", e)
+
+          if active_session:
+              context["decision"] = "skip_active_session"
+              context["decision_reason"] = f"Sesión de Jules activa (state={session_state})."
+              with open("/tmp/autonomy-context.json", "w", encoding="utf-8") as f:
+                  json.dump(context, f)
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+                  f.write(f"decision={context['decision']}\n")
+                  f.write(f"reason={context['decision_reason']}\n")
+              raise SystemExit(0)
+
+          # ---- 2) PRs abiertas hacia la rama autónoma ----
+          import re
+          JULES_BRANCH_RE = re.compile(
+              r"^(fix|feat|perf|refactor|test|optimize|security|add|remove|code-health|chore|docs)"
+              r"(/|-)[a-z0-9-]+(-\d{10,20})?$"
+          )
+
+          open_prs = []
+          try:
+              open_prs = gh_get(f"/repos/{REPO}/pulls?state=open&base={BASE}&per_page=20")
+          except Exception as e:
+              print("::warning::No se pudo consultar PRs abiertas:", e)
+
+          # ---- 3) PRs cerradas recientes (anti-loop) ----
+          closed_recent = []
+          try:
+              closed_recent = gh_get(f"/repos/{REPO}/pulls?state=closed&base={BASE}&per_page=20&sort=updated&direction=desc")
+          except Exception:
+              pass
+
+          jules_open = [p for p in open_prs if p.get("head", {}).get("ref")]
+          # Filtrar solo PRs con patrón de rama Jules
+          jules_prs = [p for p in jules_open if JULES_BRANCH_RE.match(p.get("head", {}).get("ref") or "")]
+
+          if len(jules_open) > 0 and len(jules_prs) == 0:
+              # PRs hacia la rama autónoma que NO tienen patrón Jules: pueden ser
+              # humanas o de otro agente. No las bloqueamos, pero no las mergeamos.
+              context["decision_reason"] += (
+                  f" Se detectaron {len(jules_open)} PR abierta(s) sin patrón Jules; no se bloquean."
+              )
+
+          if len(jules_prs) >= 4:
+              context["decision"] = "skip_too_many_prs"
+              context["decision_reason"] = f"Ya hay {len(jules_prs)} PRs autónomas abiertas hacia {BASE}."
+          elif jules_prs:
+              # Evaluar el estado de checks de cada PR para decidir
+              blocked_by_ci = False
+              blocked_by_ready = False
+              for pr in jules_prs:
+                  head_sha = pr.get("head", {}).get("sha")
+                  draft = pr.get("draft", False)
+                  number = pr.get("number")
+                  title = pr.get("title")
+                  head_ref = pr.get("head", {}).get("ref", "")
+
+                  checks = {"failed": [], "running": 0}
+                  try:
+                      cr = gh_get(f"/repos/{REPO}/commits/{head_sha}/check-runs")
+                      for run in cr.get("check_runs", []):
+                          status = run.get("status")
+                          concl = run.get("conclusion")
+                          name = run.get("name", "?")
+                          if status in ("queued", "in_progress"):
+                              checks["running"] += 1
+                          elif concl in ("failure", "cancelled", "timed_out",
+                                         "action_required", "stale", "startup_failure"):
+                              checks["failed"].append(name)
+                  except Exception:
+                      pass
+
+                  if draft:
+                      context["stale_prs"].append({
+                          "number": number, "title": title, "headRef": head_ref,
+                          "reason": "draft"
+                      })
+                      continue
+
+                  if checks["failed"]:
+                      context["failed_prs"].append({
+                          "number": number, "title": title, "headRef": head_ref,
+                          "checksFailed": checks["failed"][:5]
+                      })
+                      continue  # PR fallida NO bloquea: la nueva sesión recibe el fallo
+
+                  if checks["running"] > 0:
+                      blocked_by_ci = True
+                      context["decision_reason"] = (
+                          f"PR #{number} con CI en progreso ({checks['running']} checks)."
+                      )
+                      continue
+
+                  # Sin checks fallidos ni en progreso: está lista (o sin checks)
+                  blocked_by_ready = True
+                  context["decision_reason"] = (
+                      f"PR #{number} lista para merge (o sin checks). Se deja actuar al auto-merge."
+                  )
+
+              # Anti-loop: mismo área fallada >= 2 veces
+              area_fail = {}
+              for fpr in context["failed_prs"]:
+                  base_area = fpr["headRef"].split("-")[0] if fpr["headRef"] else "?"
+                  area_fail[base_area] = area_fail.get(base_area, 0) + 1
+              for area, cnt in area_fail.items():
+                  if cnt >= 2:
+                      context["loop_warning"] = True
+                      context["decision_reason"] += (
+                          f" AVISO LOOP: el área '{area}' ha fallado {cnt} veces. "
+                          "La nueva sesión NO debe recrear esa PR; debe marcarla "
+                          "BLOCKED/NEEDS_REVIEW para revisión humana."
+                      )
+
+              if context["failed_prs"]:
+                  # PR fallida: la sesión puede proceder con el fallo como prioridad
+                  context["decision"] = "proceed_with_failure_context"
+                  if not context["decision_reason"].startswith("PR #"):
+                      context["decision_reason"] = (
+                          f"Se detectaron {len(context['failed_prs'])} PR(s) fallida(s); "
+                          "la sesión recibe el contexto y prioriza corregir la regresión."
+                      )
+              elif blocked_by_ci:
+                  context["decision"] = "skip_ci_running"
+              elif blocked_by_ready:
+                  context["decision"] = "skip_ready_for_merge"
+              else:
+                  context["decision"] = "proceed"
+                  context["decision_reason"] = "PRs presentes pero sin señal de bloqueo."
+
+          # PRs cerradas recientes sin merge (para contexto, no bloquean)
+          for pr in closed_recent[:5]:
+              head_ref = pr.get("head", {}).get("ref") or ""
+              if JULES_BRANCH_RE.match(head_ref) and pr.get("merged_at") is None:
+                  context["stale_prs"].append({
+                      "number": pr.get("number"),
+                      "title": pr.get("title"),
+                      "headRef": head_ref,
+                      "reason": "closed_without_merge"
+                  })
+
+          # Guardar contexto y outputs
+          with open("/tmp/autonomy-context.json", "w", encoding="utf-8") as f:
+              json.dump(context, f)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write(f"decision={context['decision']}\n")
+              f.write(f"reason={context['decision_reason']}\n")
+
+          print("DECISION:", context["decision"])
+          print("REASON:", context["decision_reason"])
+          print("FAILED_PRS:", json.dumps(context["failed_prs"], ensure_ascii=False))
+          PY
+
+      # ─────────────────────────────────────────────────────────
       # Lanzar la sesión autónoma de Jules.
       # La PR se crea SIEMPRE hacia jules/autonomous-ordia (nunca main).
+      # El contexto de PRs fallidas/atascadas se inyecta al prompt.
       # ─────────────────────────────────────────────────────────
       - name: Launch autonomous Ordia session
-        if: steps.failsafe.outputs.disabled != 'true' && steps.bypass.outputs.bypassed != 'true' && steps.prcheck.outputs.locked != 'true' && steps.source.outputs.branch != ''
+        if: steps.failsafe.outputs.disabled != 'true' && steps.bypass.outputs.bypassed != 'true' && steps.source.outputs.branch != '' && (steps.lock.outputs.decision == 'proceed' || steps.lock.outputs.decision == 'proceed_with_failure_context')
         env:
           JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
           JULES_SOURCE: ${{ steps.source.outputs.source }}
@@ -172,6 +387,14 @@ jobs:
           import json
           import os
           import urllib.request
+
+          # Contexto de PRs autónomas (fallidas/atascadas) si existe
+          context = {}
+          try:
+              with open("/tmp/autonomy-context.json", "r", encoding="utf-8") as f:
+                  context = json.load(f)
+          except Exception:
+              pass
 
           prompt = r"""
           ORDÍA — DESARROLLO AUTÓNOMO CONTINUO
@@ -190,9 +413,10 @@ jobs:
           - Tu rama de trabajo y destino de PR es: jules/autonomous-ordia.
           - NUNCA hagas push ni PR a main.
           - Cualquier PR que crees debe apuntar a jules/autonomous-ordia.
-          - Si ya existe una PR abierta de una sesión anterior hacia
-            jules/autonomous-ordia, revisa su estado ANTES de crear otra:
-            no dupliques trabajo; aporta solo si falta algo claro.
+          - La PR será revisada y MERGEADA AUTOMÁTICAMENTE por
+            "Ordia Autonomous Merge" si su CI pasa y es segura.
+            Por eso tus PRs deben ser pequeñas, con CI verde y sin
+            conflictos.
 
           PRIMERA OBLIGACIÓN:
 
@@ -283,6 +507,8 @@ jobs:
           - build de la variante correspondiente
           Si una modificación rompe una variante distinta a la que tocaste,
           corrígela antes de terminar.
+          Recuerda que tu PR pasará CI automáticamente; deja la rama lista
+          con checks verdes.
 
           INTERFAZ Y UX:
 
@@ -357,6 +583,45 @@ jobs:
 
           Trabaja autónomamente.
           """
+
+          # ── Inyectar contexto de PRs fallidas/atascadas al prompt ──
+          if context.get("failed_prs") or context.get("stale_prs"):
+              prompt += "\n\n==========================================\n"
+              prompt += "CONTEXTO DE PRs AUTÓNOMAS RECIENTES (INFRAESTRUCTURA)\n"
+              prompt += "==========================================\n"
+
+              if context.get("loop_warning"):
+                  prompt += (
+                      "AVISO ANTI-LOOP: el mismo área ha fallado varias veces. "
+                      "NO recrees la misma PR. Marca el problema BLOCKED/NEEDS_REVIEW "
+                      "en BACKLOG.md y continúa con trabajo independiente.\n"
+                  )
+
+              if context.get("failed_prs"):
+                  prompt += "\nPRs autónomas que FALLARON CI (prioridad: corregir la regresión):\n"
+                  for fpr in context["failed_prs"]:
+                      prompt += (
+                          f"- PR #{fpr['number']}: {fpr.get('title','')} "
+                          f"(rama {fpr.get('headRef','')})\n"
+                          f"  Checks fallidos: {', '.join(fpr.get('checksFailed', []))}\n"
+                      )
+                  prompt += (
+                      "Si puedes corregir la regresión de forma segura, hazlo y abre "
+                      "una PR NUEVA (no reuses la rama fallida). Si no puedes resolverla "
+                      "tras intentos razonables, márcala BLOCKED/NEEDS_REVIEW y continúa "
+                      "con otro problema independiente.\n"
+                  )
+
+              if context.get("stale_prs"):
+                  prompt += "\nPRs autónomas atascadas/cerradas sin merge (revisar si procede):\n"
+                  for spr in context["stale_prs"][:5]:
+                      prompt += (
+                          f"- PR #{spr['number']}: {spr.get('title','')} "
+                          f"(rama {spr.get('headRef','')}, motivo: {spr.get('reason','')})\n"
+                      )
+                  prompt += (
+                      "Si son PRs antiguas sin valor, puedes cerrarlas. No fuerces merges.\n"
+                  )
 
           body = {
               "title": "Ordía — Autonomous Development",
