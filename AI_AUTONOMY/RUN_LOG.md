@@ -1133,6 +1133,74 @@ caían en el `else` dejando `date=null` → `dueAt=null`.
 - Auditoría funcional no-parser: What Now (tareas programadas vs. inbox), búsqueda,
   automatizaciones, contexto, GuardianEngine, LearningEngine.
 
+---
+
+## 2026-08-11 — OpenHands — Ciclo 20a (auditoría funcional no-parser)
+
+- **HEAD inicial**: `cd80eb0` (origin/openhands/autonomous-ordia); tras `git pull --ff-only`.
+- **Branch**: `openhands/autonomous-ordia`.
+
+### Objetivo
+- Auditoría funcional no-parser iniciada en la prioridad del ciclo 19: What Now, búsqueda,
+  automatizaciones, GuardianEngine, LearningEngine, inteligencia, contexto.
+
+### Cambios (2 bugs P1 encontrados y corregidos)
+
+1. **SummaryEngine — subtareas inflaban los conteos del resumen diario** (commit `7127b7e`):
+   `dailySummary` contaba `completedToday`/`completedWeek`/`dueToday` sobre TODAS las tareas,
+   incluyendo subtareas (sin filtrar `parentTaskId == null`). Al completar un padre con N
+   subtareas (auto-completadas en cascada), el resumen mostraba `completedToday = N+1` en vez
+   de 1 (doble conteo). El resumen del día es una superficie de decisión del usuario; el doble
+   conteo infla la percepción de progreso y distorsiona el "¿cuánto hice hoy?". Fix:
+   `parentTaskId == null` en los conteos del snapshot; las subtareas siguen existiendo y
+   aportando al progreso visual de su padre (vía `SubtaskRules.progress`), pero el resumen
+   cuenta tareas lógicas (raíces), consistente con `WhatNowEngine.isCandidate` y
+   `AutomationActionPlanner` (que ya filtraban raíces). Test nuevo `summaryCountsOnlyRootTasks`.
+
+2. **SearchEngine — "nota X" no encontraba notas sin la palabra "nota" en el contenido**
+   (commit `c1bab04`): la búsqueda por tipo `nota` filtraba resultados donde el tipo de la
+   entidad era `NOTE`, pero para notas la coincidencia semántica requiere reconocer el
+   **término de consulta** "nota"/"notas"/"apunte"/"apuntes" como el tipo buscado, no que el
+   contenido de la nota contenga esa palabra. Las notas rara vez incluyen la palabra "nota"
+   en su cuerpo, así que una consulta "nota ideas" no devolvía notas aunque existieran.
+   Asimétrico con tareas/conversaciones/compromisos, que ya tenían `semanticMatches` con su
+   set de términos. Fix: `NOTE_TERMS` set + `semanticMatches` fallback para notes, análogo al
+   resto. Test nuevo `noteTypeFilterDoesNotRequireTheWordNotaInContent`.
+
+### Auditoría sin hallazgos (motores sólidos)
+- `RecurrenceEngine.kt`, `TaskRules.kt`, `DayPlanner.kt`, `PlannerCalendar.kt`,
+  `QuietHours.kt`, `RoutineRules.kt`, `HabitRules.kt`, `GuardianEngine.kt`,
+  `LearningEngine.kt`, `SubtaskRules.kt`, `WhatNowEngine.kt`, `DateRules.kt`,
+  `TaskSnapshotCodec.kt`, `UniversalCaptureEngine.kt`, `FocusTimerRules.kt`,
+  `ReminderSync.kt`, `TaskMutationGate.kt`, `AutomationRules.kt` (catalog + guard),
+  `AutomationEngine.kt`, `AutomationUndoRules.kt`.
+
+### Tests
+- `bash tools/run_domain_tests.sh` → **222 tests OK** (25 clases).
+- `bash tools/run_domain_checks.sh` → **25 assertions OK**.
+- NO VERIFICADO: gradle/lint/assemble/Android/Room con DAOs reales (sin Android SDK).
+
+### Hallazgos adicionales
+- `GuardianEngine.completedToday`/`completedAll`/`activityExperience` incluyen subtareas.
+  Decidido NO cambiar: el guardián mide **actividad** (cada registro completado es actividad
+  real) y su XP es explícitamente "derivada de registros reales"; no es un conteo de
+  "tareas lógicas" como el resumen diario. Distinto al bug de SummaryEngine. Dejado como
+  hallazgo documentado, no como fix.
+- `AutomationEngine` es robusto: loop guard (chainDepth>1), límites frecuencia/diario,
+  snapshots de deshacer capturados ANTES de aplicar updates, `runCatching` para fallos,
+  no duplica revisión de compromisos (marker check).
+
+### Commits / push
+- `7127b7e` fix(summary): subtareas inflaban los conteos del resumen diario
+- `c1bab04` fix(search): "nota X" no encontraba notas sin la palabra "nota"
+- Push a `openhands/autonomous-ordia`.
+- **HEAD final**: `c1bab04`.
+
+### Siguiente prioridad
+- Continuar descubrimiento: context/external (ContextPrivacyFilter, app usage), conversations
+  (compromisos), accesibilidad, rendimiento. O buscar oportunidades de producto (no solo
+  auditoría): ¿el What Now podría agrupar/replanificar mejor? ¿la captura podría sugerir
+  categoría/proyecto automáticamente con más cobertura de keywords?
 
 ---
 
@@ -1177,7 +1245,7 @@ etiqueta, "a primera hora", "24:00"=medianoche, etc.).
 - El usuario arranca el supervisor en su máquina (comando único en `tools/SUPERVISOR.md`).
   Tras eso, cada run continúa el desarrollo desde el HEAD de `openhands/autonomous-ordia`.
 
-## SESIÓN 019 — Ciclo 20 (NaturalTaskParser: recurrencia semanal de varios días)
+## SESIÓN 019 — Ciclo 20b (NaturalTaskParser: recurrencia semanal de varios días)
 
 - **Fecha (UTC)**: 2026-08-11
 - **HEAD inicial**: `73e4fef` (tras sincronizar con remoto: otro run commiteó "supervisor

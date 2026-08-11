@@ -170,4 +170,52 @@ class SummaryEngineTest {
         assertEquals(1, s.remainingToday)
         assertEquals(1, s.inboxPending)
     }
+
+    @Test
+    fun subtasksDoNotInflateOverdueCount() {
+        // Un padre atrasado con dos subtareas también atrasadas debe contar
+        // como 1 sola tarea raíz atrasada, no 3 (las subtareas son anidadas).
+        val tasks = listOf(
+            task(1, dueAt = at(today.minusDays(1), 8)),
+            task(2, dueAt = at(today.minusDays(1), 8)).copy(parentTaskId = 1),
+            task(3, dueAt = at(today.minusDays(1), 8)).copy(parentTaskId = 1)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(1, s.overdue)
+    }
+
+    @Test
+    fun subtasksDoNotInflateRemainingToday() {
+        // Un padre con dueAt hoy y dos subtareas también hoy cuenta como 1
+        // pendiente de hoy; la duración es la del padre, no la suma de las tres.
+        val tasks = listOf(
+            task(1, dueAt = at(today, 9), durationMinutes = 30),
+            task(2, dueAt = at(today, 9), durationMinutes = 20).copy(parentTaskId = 1),
+            task(3, dueAt = at(today, 9), durationMinutes = 15).copy(parentTaskId = 1)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(1, s.remainingToday)
+        assertEquals(30, s.remainingMinutesToday)
+    }
+
+    @Test
+    fun subtasksDoNotInflateCompletedToday() {
+        // Completar las dos subtareas auto-completa al padre: el usuario hizo
+        // 2 acciones reales; el resumen debe mostrar 1 completada hoy (raíz),
+        // no 3 (padre + 2 subtareas).
+        val tasks = listOf(
+            task(1, dueAt = at(today, 9), completed = true, completedAt = at(today, 12)),
+            task(2, completed = true, completedAt = at(today, 11)).copy(parentTaskId = 1),
+            task(3, completed = true, completedAt = at(today, 12)).copy(parentTaskId = 1)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(1, s.completedToday)
+        assertEquals(1, s.completedThisWeek)
+    }
 }

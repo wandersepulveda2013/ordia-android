@@ -19,7 +19,7 @@
 ## Estado
 
 - **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 20)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD inicial `73e4fef`, final por commit)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (base `cd80eb0`; merge de 2 runs concurrentes: SummaryEngine+SearchEngine y parser semanal)
 - **main**: contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
@@ -48,7 +48,24 @@
   interés distinto). Tests: +2 (coerce 600→180 y 5→10; coherencia plan↔resumen). **223 domain tests OK,
   smoke 25 OK.** NO VERIFICADO: gradle/lint/Android/Room.
 
-- **Sesión OpenHands — Ciclo 20, Unidad 1 (NaturalTaskParser — recurrencia semanal de varios días)**:
+- **Sesión OpenHands — Ciclo 20a (auditoría funcional no-parser)**: 2 bugs P1 corregidos.
+  (1) **SummaryEngine** — `dailySummary` contaba `completedToday`/`completedWeek`/`dueToday`
+  sobre TODAS las tareas (incluidas subtareas), inflando el resumen al completar un padre
+  con subtareas (auto-completadas en cascada daban N+1 en vez de 1). Fix: filtrar
+  `parentTaskId == null` en los conteos del snapshot (consistente con WhatNowEngine y
+  AutomationActionPlanner). Test `summaryCountsOnlyRootTasks`. Commit `7127b7e`.
+  (2) **SearchEngine** — la búsqueda "nota X" no encontraba notas cuyo contenido no
+  contuviera la palabra "nota" (las notas casi nunca la incluyen). Asimetría con
+  tareas/conversaciones/compromisos que ya tenían `semanticMatches`. Fix: `NOTE_TERMS` set
+  + `semanticMatches` fallback para notes. Test
+  `noteTypeFilterDoesNotRequireTheWordNotaInContent`. Commit `c1bab04`.
+  Auditoría completa del resto de motores no-parser (RecurrenceEngine, TaskRules,
+  DayPlanner, QuietHours, RoutineRules, HabitRules, GuardianEngine, LearningEngine,
+  SubtaskRules, WhatNowEngine, DateRules, TaskSnapshotCodec, UniversalCaptureEngine,
+  FocusTimerRules, ReminderSync, AutomationRules, AutomationEngine, AutomationUndoRules)
+  **sin hallazgos P0/P1**: el trabajo previo es sólido. **222 domain tests OK, smoke 25 OK.**
+
+- **Sesión OpenHands — Ciclo 20b (NaturalTaskParser — recurrencia semanal de varios días)**:
   P1 corregido — pérdida de datos silenciosa en rutinas semanales con varios días. La forma
   más común en español ("reunión los lunes y jueves") NO se parseaba: solo el patrón
   `cada X y Z` admitía dos días; `todos los X`, `los X` capturaban **un solo día** y dejaban

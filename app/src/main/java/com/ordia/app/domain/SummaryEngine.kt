@@ -29,10 +29,15 @@ object SummaryEngine {
     /**
      * Calcula el resumen para el día de `now` y los últimos 7 días.
      *
-     * - completedToday: tareas completadas cuyo `completedAt` cae hoy.
-     * - remainingToday: tareas activas con `dueAt` u `startAt` hoy.
+     * Todos los conteos consideran solo tareas raíz (`parentTaskId == null`), igual
+     * que What Now, el planificador y el guardián: las subtareas son anidadas y
+     * contarlas además del padre infla los números de la tarjeta de resumen
+     * (un padre con 3 subtareas vencidas mostraba overdue=4 en vez de 1).
+     *
+     * - completedToday: tareas raíz completadas cuyo `completedAt` cae hoy.
+     * - remainingToday: tareas raíz activas con `dueAt` u `startAt` hoy.
      * - remainingMinutesToday: suma de `durationMinutes` de las anteriores.
-     * - overdue: tareas activas vencidas según `TaskRules.isOverdue`.
+     * - overdue: tareas raíz activas vencidas según `TaskRules.isOverdue`.
      * - inboxPending: tareas en estado INBOX sin archivar (por revisar).
      * - completedThisWeek: completadas entre hoy-6 y hoy (inclusive).
      * - weekDailyAverage: completedThisWeek / 7.
@@ -49,20 +54,27 @@ object SummaryEngine {
             !task.completed && !task.archived && task.status != TaskStatus.CANCELLED
         }
         val completedToday = tasks.count { task ->
-            task.completed && task.completedAt?.let { DateRules.toLocalDate(it, zone) == today } == true
+            task.parentTaskId == null &&
+                task.completed && task.completedAt?.let { DateRules.toLocalDate(it, zone) == today } == true
         }
         val remainingTodayTasks = tasks.filter { task ->
-            active(task) && (onDate(task.dueAt, today, zone) || onDate(task.startAt, today, zone))
+            task.parentTaskId == null &&
+                active(task) && (onDate(task.dueAt, today, zone) || onDate(task.startAt, today, zone))
         }
         val remainingToday = remainingTodayTasks.size
         val remainingMinutesToday = remainingTodayTasks.sumOf { TaskRules.plannedDuration(it) }
-        val overdue = tasks.count { TaskRules.isOverdue(it, now) }
-        val inboxPending = tasks.count { it.status == TaskStatus.INBOX && !it.archived }
+        val overdue = tasks.count { task ->
+            task.parentTaskId == null && TaskRules.isOverdue(task, now)
+        }
+        val inboxPending = tasks.count { task ->
+            task.parentTaskId == null && task.status == TaskStatus.INBOX && !task.archived
+        }
         val completedThisWeek = tasks.count { task ->
-            task.completed && task.completedAt?.let {
-                val date = DateRules.toLocalDate(it, zone)
-                !date.isBefore(firstOfWeek) && !date.isAfter(today)
-            } == true
+            task.parentTaskId == null &&
+                task.completed && task.completedAt?.let {
+                    val date = DateRules.toLocalDate(it, zone)
+                    !date.isBefore(firstOfWeek) && !date.isAfter(today)
+                } == true
         }
         val weekDailyAverage = completedThisWeek / 7f
 

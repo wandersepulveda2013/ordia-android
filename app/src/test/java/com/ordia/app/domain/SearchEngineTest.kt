@@ -37,4 +37,20 @@ class SearchEngineTest {
         assertEquals(1, results.size)
         assertEquals(7L, results.first().id)
     }
+
+    @Test fun noteTypeFilterDoesNotRequireTheWordNotaInContent() {
+        // "nota proyecto" debe encontrar una nota sobre "proyecto" aunque la
+        // nota no contenga la palabra "nota" (igual que "tarea X" filtra tareas
+        // sin exigir la palabra "tarea" en su contenido).
+        val results = SearchEngine.search(
+            "nota proyecto",
+            emptyList(),
+            emptyList(),
+            listOf(NoteEntity(id = 11, title = "Proyecto Q3", body = "")),
+            emptyList()
+        )
+        assertEquals(1, results.size)
+        assertEquals(SearchKind.NOTE, results.first().kind)
+        assertEquals(11L, results.first().id)
+    }
 }
