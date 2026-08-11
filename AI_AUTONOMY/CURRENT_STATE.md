@@ -258,6 +258,16 @@
   listas con comas). +3 tests (`parsesLosWeekdaysWithY`, `parsesTodosLosWeekdaysWithY`,
   `parsesCommaDayList`). 221 OK, smoke 25 OK.
 
+  ACTUALIZACIÓN ciclo 20 — Unidad 2 (SummaryEngine/DayPlanner — coherencia de minutos):
+  P2 de consistencia corregido. La badge "Xm" de Today sumaba `durationMinutes` en bruto
+  mientras el plan del día coerciona a 10..180 → el resumen y el plan discrepaban (tarea
+  de 600m mostraba 600m pero el plan solo agenda 180m; tarea por defecto 5m contaba 5m
+  cuando el plan la trataba como 10m). Fix: fuente única de verdad
+  `TaskRules.plannedDuration` (constantes `MIN_PLAN_MINUTES=10`/`MAX_PLAN_MINUTES=180`),
+  usada por DayPlanner.build y SummaryEngine.summarize. WhatNowEngine intacto (su
+  `coerceAtLeast(10)` es para detección de en-curso, interés distinto). +2 tests
+  (coerce de 600→180 y 5→10; coherencia plan↔resumen en día despejado). 223 OK, smoke 25 OK.
+
 ## PR pendiente
 
 - Ninguno (el auto-merge gestiona las PRs autónomas hacia `jules/autonomous-ordia`).

@@ -55,7 +55,7 @@ object SummaryEngine {
             active(task) && (onDate(task.dueAt, today, zone) || onDate(task.startAt, today, zone))
         }
         val remainingToday = remainingTodayTasks.size
-        val remainingMinutesToday = remainingTodayTasks.sumOf { it.durationMinutes }
+        val remainingMinutesToday = remainingTodayTasks.sumOf { TaskRules.plannedDuration(it) }
         val overdue = tasks.count { TaskRules.isOverdue(it, now) }
         val inboxPending = tasks.count { it.status == TaskStatus.INBOX && !it.archived }
         val completedThisWeek = tasks.count { task ->
