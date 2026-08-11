@@ -1,0 +1,32 @@
+# Ordía Continuous Evolution — supervisor en contenedor always-on.
+# Uso (Cloud-first, para poder apagar el PC):
+#   1. Crea .env con:  OPENHANDS_API_KEY=...  GITHUB_TOKEN=...
+#   2. docker compose up -d
+# El contenedor se reinicia solo (restart: unless-stopped).
+# Logs: docker compose logs -f
+
+services:
+  ordia-supervisor:
+    image: python:3.12-slim
+    container_name: ordia-supervisor
+    restart: unless-stopped
+    working_dir: /app
+    env_file: .env
+    environment:
+      - ORDIA_POLL_INTERVAL=25
+      - ORDIA_COOLDOWN=15
+      - ORDIA_HEARTBEAT_INTERVAL=90
+      - ORDIA_LEASE_TTL=300
+      - ORDIA_CRON_FALLBACK=0
+    command: >
+      bash -c "apt-get update -qq && apt-get install -y -qq git >/dev/null &&
+      if [ ! -d ordia-android/.git ]; then
+        git clone https://github.com/wandersepulveda2013/ordia-android.git;
+      fi &&
+      cd ordia-android && git fetch origin openhands/autonomous-ordia &&
+      git checkout openhands/autonomous-ordia && git pull --ff-only origin openhands/autonomous-ordia &&
+      python3 tools/ordia_supervisor.py"
+    volumes:
+      - ordia-repo:/app/ordia-android
+volumes:
+  ordia-repo:

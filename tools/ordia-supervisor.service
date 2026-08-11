@@ -1,0 +1,32 @@
+# Ordía supervisor — unidad systemd (Linux).
+# Instalación (Cloud-first, para poder apagar el PC):
+#   sudo cp tools/ordia-supervisor.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ordia-supervisor
+# Logs: journalctl -u ordia-supervisor -f
+# El sistema reinicia el proceso si cae (Restart=always).
+
+[Unit]
+Description=Ordia Continuous Evolution — supervisor autónomo
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/ordia-android
+Environment=ORDIA_POLL_INTERVAL=25
+Environment=ORDIA_COOLDOWN=15
+Environment=ORDIA_HEARTBEAT_INTERVAL=90
+Environment=ORDIA_LEASE_TTL=300
+Environment=ORDIA_CRON_FALLBACK=0
+# Carga credenciales desde un EnvironmentFile (no commiteado):
+EnvironmentFile=%h/ordia-android/tools/.env
+ExecStart=/usr/bin/python3 %h/ordia-android/tools/ordia_supervisor.py
+Restart=always
+RestartSec=20
+# Detención limpia: el supervisor rehabilita el cron al recibir SIGTERM.
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

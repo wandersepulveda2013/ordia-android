@@ -43,3 +43,12 @@ ordia-3.0-upgrade/
 
 # Auditoría: logs transitorios de builds de verificación
 logs-*.txt
+
+# Supervisor autónomo: estado local y sentineles (no se commitean)
+tools/ordia_supervisor.log
+tools/ordia_supervisor.lock
+tools/supervisor.out
+tools/supervisor.pid
+tools/STOP
+tools/PAUSE
+

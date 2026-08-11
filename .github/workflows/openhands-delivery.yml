@@ -1,0 +1,195 @@
+name: Ordia OpenHands Delivery
+
+# Continuous Delivery para la rama autónoma de OpenHands.
+# Construye la variante previewAdvanced (release, firmada), calcula SHA-256 y
+# publica una GitHub Release inmutable con el naming EXACTO que espera el
+# auto-updater de la app (UpdateSecurityRules):
+#   tag:      v3.0.{run_number}-code-{versionCode}
+#   apk:      Ordia-3.0-code-{versionCode}.apk
+#   checksum: Ordia-3.0-code-{versionCode}.apk.sha256
+# Si fallan los gates (tests/lint/assemble) NO se publica nada.
+
+on:
+  push:
+    branches:
+      - openhands/autonomous-ordia
+  workflow_dispatch:
+
+permissions:
+  contents: write   # necesario para crear GitHub Releases
+
+concurrency:
+  # Una sola build por rama; los pushes rápidos cancelan builds obsoletas y
+  # queda como Release final el HEAD válido más reciente.
+  group: openhands-delivery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deliver:
+    name: Build, sign & publish previewAdvanced
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Preparar Java 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Instalar Gradle 8.13
+        uses: gradle/actions/setup-gradle@017a9effdb900e5b5b2fddfb590a105619dca3c3 # v4.4.2
+        with:
+          gradle-version: "8.13"
+
+      - name: Calcular versionCode y nombres de artifact
+        id: ver
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN="${{ github.run_number }}"
+          ATTEMPT="${{ github.run_attempt }}"
+          VERSION_CODE=$(( 1300000000 + RUN * 100 + ATTEMPT ))
+          # Sanity: Android Int.MAX_VALUE
+          if [ "$VERSION_CODE" -gt 2147483647 ]; then
+            echo "versionCode exceeds Int.MAX_VALUE"; exit 1
+          fi
+          TAG="v3.0.${RUN}-code-${VERSION_CODE}"
+          APK="Ordia-3.0-code-${VERSION_CODE}.apk"
+          SHA="${APK}.sha256"
+          {
+            echo "version_code=${VERSION_CODE}"
+            echo "tag=${TAG}"
+            echo "apk=${APK}"
+            echo "sha=${SHA}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Verificar (tests + lint + assemble previewAdvanced release)
+        shell: bash
+        run: |
+          ./gradlew clean test lint assemblePreviewAdvancedRelease --stacktrace
+
+      - name: Localizar APK sin firmar
+        id: apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          UNSIGNED=$(find app/build/outputs/apk -type f -name "*previewAdvanced*release*.apk" | head -1)
+          test -n "$UNSIGNED" || { echo "No se encontró la APK previewAdvanced release"; exit 1; }
+          echo "unsigned=$UNSIGNED" >> "$GITHUB_OUTPUT"
+
+      - name: Rechazar APK debuggable antes de firmar
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          AAPT2=$(find "$SDK_ROOT/build-tools" -name aapt2 -type f 2>/dev/null | head -1)
+          if [ -n "$AAPT2" ]; then
+            if "$AAPT2" dump badging "${{ steps.apk.outputs.unsigned }}" | grep -q "application-debuggable"; then
+              echo "REFUSING to ship a debuggable APK"; exit 1
+            fi
+          fi
+
+      - name: Restaurar keystore y firmar APK
+        id: sign
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.ORDIA_UPDATE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ORDIA_UPDATE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ORDIA_UPDATE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ORDIA_UPDATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "${KEYSTORE_B64:-}" || { echo "Falta el secret ORDIA_UPDATE_KEYSTORE_BASE64 (ver tools/keystore/README.md)"; exit 1; }
+          test -n "${KEYSTORE_PASSWORD:-}" || { echo "Falta ORDIA_UPDATE_KEYSTORE_PASSWORD"; exit 1; }
+          test -n "${KEY_ALIAS:-}" || { echo "Falta ORDIA_UPDATE_KEY_ALIAS"; exit 1; }
+          test -n "${KEY_PASSWORD:-}" || { echo "Falta ORDIA_UPDATE_KEY_PASSWORD"; exit 1; }
+          test "$KEY_ALIAS" != "androiddebugkey" || { echo "No se permite la debug key genérica"; exit 1; }
+
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > /tmp/ordia-update.keystore
+          chmod 600 /tmp/ordia-update.keystore
+          keytool -list -keystore /tmp/ordia-update.keystore -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          APKSIGNER=$(find "$SDK_ROOT" -name apksigner -type f 2>/dev/null | head -1)
+          test -n "$APKSIGNER" || APKSIGNER=$(find "$SDK_ROOT/build-tools" -name apksigner -type f 2>/dev/null | head -1)
+          test -n "$APKSIGNER" || { echo "apksigner no encontrado"; exit 1; }
+
+          OUT="${{ steps.ver.outputs.apk }}"
+          cp "${{ steps.apk.outputs.unsigned }}" "$OUT"
+          "$APKSIGNER" sign \
+            --ks /tmp/ordia-update.keystore \
+            --ks-pass "pass:$KEYSTORE_PASSWORD" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --key-pass "pass:$KEY_PASSWORD" \
+            --out "$OUT" "$OUT"
+          "$APKSIGNER" verify --verbose "$OUT" >/dev/null
+          rm -f /tmp/ordia-update.keystore
+          echo "signed=$OUT" >> "$GITHUB_OUTPUT"
+
+      - name: Verificar versionCode interno de la APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          AAPT2=$(find "$SDK_ROOT/build-tools" -name aapt2 -type f 2>/dev/null | head -1)
+          test -n "$AAPT2" || { echo "aapt2 no encontrado"; exit 1; }
+          PKG=$("$AAPT2" dump packagename "${{ steps.sign.outputs.signed }}" 2>/dev/null | head -1)
+          echo "packageName=$PKG"
+          test "$PKG" = "com.ordia.app.preview.advanced" || { echo "packageName inesperado: $PKG"; exit 1; }
+          BADGING=$("$AAPT2" dump badging "${{ steps.sign.outputs.signed }}" 2>/dev/null)
+          ACTUAL=$(echo "$BADGING" | grep -oE "versionCode='[0-9]+'" | head -1 | grep -oE "[0-9]+")
+          EXPECTED="${{ steps.ver.outputs.version_code }}"
+          echo "versionCode interno=$ACTUAL esperado=$EXPECTED"
+          test "$ACTUAL" = "$EXPECTED" || { echo "El versionCode interno de la APK no coincide con el tag"; exit 1; }
+
+      - name: Calcular SHA-256
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="${{ steps.sign.outputs.signed }}"
+          SHA="${{ steps.ver.outputs.sha }}"
+          sha256sum "$APK" | awk '{print $1 "  ${{ steps.ver.outputs.apk }}"}' > "$SHA"
+          echo "Checksum:"; cat "$SHA"
+          sha256sum -c "$SHA"
+
+      - name: Subir APK firmado como artefacto
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ordia-previewadvanced-signed
+          path: |
+            ${{ steps.sign.outputs.signed }}
+            ${{ steps.ver.outputs.sha }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publicar GitHub Release inmutable
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.ver.outputs.tag }}"
+          APK="${{ steps.sign.outputs.signed }}"
+          SHA="${{ steps.ver.outputs.sha }}"
+          # No sobrescribir releases existentes (Parte N).
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "La release $TAG ya existe; no se sobrescribe."
+            exit 0
+          fi
+          COMMIT="${{ github.sha }}"
+          SHORT="${COMMIT:0:7}"
+          NOTES="Build autónoma de OpenHands — canal previewAdvanced.
+          - Commit: ${COMMIT}
+          - versionCode: ${{ steps.ver.outputs.version_code }}
+          - Canal: OpenHands Preview Advanced
+          - Firma: estable (ORDIA_UPDATE_KEYSTORE_*)."
+          gh release create "$TAG" "$APK" "$SHA" \
+            --title "Ordía ${{ steps.ver.outputs.tag }}" \
+            --notes "$NOTES" \
+            --latest \
+            --repo "$GITHUB_REPOSITORY"
+          echo "Release publicada: $TAG"

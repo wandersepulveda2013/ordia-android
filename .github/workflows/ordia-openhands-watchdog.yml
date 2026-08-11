@@ -1,0 +1,133 @@
+name: Ordia OpenHands Watchdog
+
+# Watchdog externo para el supervisor persistente. Sobrevive a un crash del
+# supervisor (kill -9, apagón, VM muerta) porque vive en GitHub Actions.
+#
+# Cadencia: cada 15 min. Comprueba:
+#   1. Runs activos de la Automation (vía OpenHands Automations API).
+#   2. Lease/heartbeat del supervisor (vía GitHub Gist ORDIA_SUPERVISOR_GIST_ID).
+# Si NO hay runs activos Y el supervisor está caído (lease ausente o expirado):
+#   - rehabilita el cron de la Automation (modo degradado) si estaba apagado,
+#   - opcionalmente dispatcha un run de recuperación (solo si no hay run activo).
+# Garantiza MAX_CONCURRENT_RUNS=1: nunca dispatcha si existe un run PENDING/RUNNING.
+# Concurrencia del propio watchdog: 1 (no se solapa consigo mismo).
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ordia-openhands-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      OPENHANDS_HOST: https://app.all-hands.dev
+      AUTOMATION_ID: b3bd3870-6c75-4d66-8113-412afc835c5f
+      GIST_ID: ${{ secrets.ORDIA_SUPERVISOR_GIST_ID }}
+
+    steps:
+      - name: Watchdog
+        env:
+          OPENHANDS_API_KEY: ${{ secrets.OPENHANDS_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "=== Ordía watchdog $(date -u +%FT%TZ) ==="
+
+          oh_get() {
+            curl -fsS -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+              "${OPENHANDS_HOST}${1}" 2>/dev/null || echo "{}"
+          }
+          oh_patch() {
+            curl -fsS -X PATCH -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+              -H "Content-Type: application/json" -d "${2}" \
+              "${OPENHANDS_HOST}${1}" >/dev/null 2>&1 || true
+          }
+          oh_post() {
+            curl -fsS -X POST -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+              -H "Content-Type: application/json" -d '{}' \
+              "${OPENHANDS_HOST}${1}" 2>/dev/null || echo "{}"
+          }
+
+          # 1. Runs activos de la Automation.
+          RUNS_JSON=$(oh_get "/api/automation/v1/${AUTOMATION_ID}/runs?limit=50")
+          ACTIVE=$(echo "$RUNS_JSON" | python3 -c '
+          import sys, json
+          try:
+            runs = json.load(sys.stdin).get("runs", [])
+            act = [r for r in runs if r.get("status") in ("PENDING","RUNNING")]
+            print(len(act))
+          except Exception:
+            print(0)
+          ')
+          echo "Runs activos: ${ACTIVE}"
+
+          # 2. Estado del cron actual.
+          AUTO_JSON=$(oh_get "/api/automation/v1/${AUTOMATION_ID}")
+          CRON_ENABLED=$(echo "$AUTO_JSON" | python3 -c '
+          import sys, json
+          try: print("true" if json.load(sys.stdin).get("enabled") else "false")
+          except Exception: print("unknown")
+          ')
+          echo "Cron enabled: ${CRON_ENABLED}"
+
+          # 3. Lease del supervisor (gist).
+          SUPERVISOR_ALIVE="unknown"
+          if [ -n "${GIST_ID:-}" ]; then
+            LEASE=$(curl -fsS -H "Authorization: Bearer ${GH_TOKEN}" \
+              "https://api.github.com/gists/${GIST_ID}" 2>/dev/null || echo "{}")
+            SUPERVISOR_ALIVE=$(echo "$LEASE" | python3 -c '
+          import sys, json, time
+          try:
+            g = json.load(sys.stdin)
+            content = g["files"].get("ordia_supervisor_state.json", {}).get("content", "{}")
+            s = json.loads(content)
+            exp = s.get("expiresAt", 0)
+            print("true" if time.time() < exp else "false")
+          except Exception:
+            print("unknown")
+          ')
+          fi
+          echo "Supervisor alive: ${SUPERVISOR_ALIVE}"
+
+          # 4. Decisión.
+          if [ "${ACTIVE}" -gt 0 ]; then
+            echo "Hay run(es) activo(s). No se dispatcha nada (MAX_CONCURRENT=1)."
+            # Si el supervisor está caído pero hay un run corriendo, dejarlo terminar.
+            exit 0
+          fi
+
+          # No hay runs activos.
+          if [ "${SUPERVISOR_ALIVE}" = "true" ]; then
+            echo "Supervisor activo y sin runs. El supervisor se encargará del próximo run."
+            # Asegurar cron apagado mientras el supervisor vive (evita concurrencia ciega).
+            if [ "${CRON_ENABLED}" = "true" ]; then
+              echo "Cron estaba habilitado; apagándolo (el supervisor orquesta)."
+              oh_patch "/api/automation/v1/${AUTOMATION_ID}" '{"enabled":false}'
+            fi
+            exit 0
+          fi
+
+          # Supervisor caído o desconocido: modo degradado.
+          echo "Supervisor caído/desconocido. Activando modo degradado."
+          if [ "${CRON_ENABLED}" != "true" ]; then
+            echo "Rehabilitando el cron como watchdog (15 min)."
+            oh_patch "/api/automation/v1/${AUTOMATION_ID}" '{"enabled":true}'
+          fi
+          # Dispatchar un run de recuperación (no hay run activo, es seguro).
+          echo "Dispatchando run de recuperación..."
+          oh_post "/api/automation/v1/${AUTOMATION_ID}/dispatch" >/dev/null || true
+          echo "Watchdog completo."
+
+      - name: Summary
+        shell: bash
+        run: echo "Ordía watchdog ejecutado $(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"

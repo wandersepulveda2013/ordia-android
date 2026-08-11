@@ -1548,3 +1548,55 @@ preserva el patrón `primeraHoraPattern`).
   (dueAt=null, sin soporte de fin de semana), "mañana a primera hora". Validar
   combinaciones con recurrencia. Buscar P1 datos/recordatorios en workers/backup.
 
+
+---
+
+---
+
+## 2026-08-11 — Continuous Delivery + Self-Update + Supervisor v2 (OpenHands)
+
+### Objetivo
+Integrar Continuous Evolution → Continuous Delivery → Self-Update para que las
+builds de `openhands/autonomous-ordia` lleguen al teléfono del usuario y se
+instalen automáticamente.
+
+### Cambios
+- Delivery workflow `.github/workflows/openhands-delivery.yml` (nuevo): push a
+  `openhands/autonomous-ordia` → tests+lint+assemble `previewAdvanced` release →
+  firma con `ORDIA_UPDATE_KEYSTORE_*` → SHA-256 → GitHub Release con naming
+  EXACTO que `UpdateSecurityRules` espera (`v3.0.N-code-C`,
+  `Ordia-3.0-code-C.apk` + `.sha256`). Gates; concurrency cancela builds obsoletas;
+  no sobrescribe releases.
+- Watchdog `.github/workflows/ordia-openhands-watchdog.yml` (nuevo): cada 15 min,
+  comprueba runs activos + lease gist; si supervisor caído y sin runs, rehabilita
+  cron + dispatch recovery. Concurrencia 1.
+- Supervisor v2 `tools/ordia_supervisor.py`: lock cross-platform (fcntl/msvcrt/
+  pidfile), lease distribuido vía GitHub Gist (heartbeat ~90s, TTL 300s, expira si
+  muere sin finally), STOP/PAUSE/RESUME, backoff.
+- Service mode: `tools/docker-compose.yml`, `tools/ordia-supervisor.service`,
+  `tools/install-supervisor.sh`.
+- Observabilidad: `tools/ordia-status.py`. Keystore guía: `tools/keystore/README.md`.
+- Tests supervisor: `tools/test_supervisor.py`.
+
+### Bug crítico encontrado y corregido
+`android-ci.yml` existente publicaba releases con tag `v3.0.0-build.N` y asset
+`Ordia-3.0-signed.apk`, pero `UpdateSecurityRules.parseVersionCodeFromTag` espera
+`v3.0.N-code-C` y `expectedApkName`=`Ordia-3.0-code-C.apk`. El auto-updater NUNCA
+detectaba actualización (parseTag→null→fail). El nuevo workflow corrige el mismatch.
+La rama autónoma además NO disparaba CI (solo main/jules).
+
+### Tests
+- `python3 tools/test_supervisor.py` → PASS (lock cross-platform, lease TTL, guard
+  concurrencia, backoff acotado).
+- Naming verificado con regex: tag/apk/sha coinciden con `UpdateSecurityRules`.
+- `UpdateSecurityRulesTest` (Kotlin, ya existente) cubre el naming del workflow.
+- Gradle/Android: NO VERIFICADO (sin SDK). Watchdog/supervisor loop infinito: NO
+  VERIFICADO (no es entorno persistente).
+
+### Commit / push
+- `feat(infra): continuous delivery + supervisor v2 + watchdog + self-update infra`
+
+### Siguiente prioridad
+- Tras configurar los GitHub Secrets de firma, la primera push a la rama debe
+  producir una Release instalable. Verificar end-to-end cuando existan secretos.
+- Volver al ciclo normal de Evolution (auditar/implementar features de Ordía).

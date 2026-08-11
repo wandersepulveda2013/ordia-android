@@ -333,4 +333,22 @@
 ## Estado CI
 
 - `android-ci.yml` activo en `main` y en la rama autónoma; verify corre en push/PR hacia ambas.
-- Pendiente la primera ejecución del ciclo autónomo real (requiere `JULES_API_KEY`).
+- **Continuous Delivery**: `.github/workflows/openhands-delivery.yml` dispara en push a
+  `openhands/autonomous-ordia`: construye `previewAdvanced` release firmada, publica GitHub
+  Release con naming EXACTO que el auto-updater espera (`v3.0.N-code-C`,
+  `Ordia-3.0-code-C.apk` + `.sha256`). Gates tests+lint+assemble; no publica builds rotas.
+- **Watchdog**: `.github/workflows/ordia-openhands-watchdog.yml` cada 15 min rehabilita el
+  cron + dispatch recovery si el supervisor cae (lease gist expirado).
+- **Self-update** en la app (`OrdiaUpdateManager`, `UpdateSecurityRules`, `OrdiaUpdateWorker`,
+  `UpdateInstallActivity`) ya implementado y verificado a nivel domain; el auto-updater
+  consulta `releases/latest`, valida SHA-256, firma compatible, versionCode superior,
+  packageName correcto, y lanza el instalador oficial (Android pide confirmación).
+
+## Riesgos / pendientes
+
+- La rama `openhands/autonomous-ordia` requiere los GitHub Secrets de firma
+  (`ORDIA_UPDATE_KEYSTORE_*`) para publicar APKs instalables. Sin ellos, el delivery
+  workflow falla en el step de firma (esperado: no publica nada).
+- La primera instalación en el teléfono requiere que la firma estable coincida con la APK
+  instalada; si difiere, hace falta UNA última instalación manual limpia.
+- Sin Android SDK en este entorno: tests de Android/Room/ViewModel NO VERIFICADOS.
