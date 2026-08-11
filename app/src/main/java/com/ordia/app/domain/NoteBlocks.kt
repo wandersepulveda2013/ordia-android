@@ -30,22 +30,27 @@ object NoteBlockCodec {
     fun decode(data: String, fallbackBody: String = ""): List<NoteBlock> {
         if (data.isBlank()) return fallbackBody.lines().filter { it.isNotBlank() }.map { NoteBlock(text = it) }
             .ifEmpty { listOf(NoteBlock()) }
-        return runCatching {
-            val array = JSONArray(data)
-            buildList {
-                for (index in 0 until array.length()) {
-                    val item = array.getJSONObject(index)
-                    add(
-                        NoteBlock(
-                            id = item.optString("id").ifBlank { UUID.randomUUID().toString() },
-                            type = runCatching { NoteBlockType.valueOf(item.optString("type")) }.getOrDefault(NoteBlockType.PARAGRAPH),
-                            text = item.optString("text"),
-                            checked = item.optBoolean("checked", false)
-                        )
+        // Si el JSON raíz no es un array válido (truncado, corrupto), degradamos
+        // a la representación en texto plano (fallbackBody). Pero si el array es
+        // válido, conservamos todos los bloques sanos y descartamos solo los
+        // elementos malformados: antes, un único elemento corrupto hacía perder
+        // TODOS los bloques (data loss silencioso).
+        val array = runCatching { JSONArray(data) }.getOrNull()
+            ?: return listOf(NoteBlock(text = fallbackBody)).ifEmpty { listOf(NoteBlock()) }
+        val blocks = buildList {
+            for (index in 0 until array.length()) {
+                val item = runCatching { array.getJSONObject(index) }.getOrNull() ?: continue
+                add(
+                    NoteBlock(
+                        id = item.optString("id").ifBlank { UUID.randomUUID().toString() },
+                        type = runCatching { NoteBlockType.valueOf(item.optString("type")) }.getOrDefault(NoteBlockType.PARAGRAPH),
+                        text = item.optString("text"),
+                        checked = item.optBoolean("checked", false)
                     )
-                }
+                )
             }
-        }.getOrElse { listOf(NoteBlock(text = fallbackBody)) }.ifEmpty { listOf(NoteBlock()) }
+        }
+        return blocks.ifEmpty { listOf(NoteBlock(text = fallbackBody)).ifEmpty { listOf(NoteBlock()) } }
     }
 
     fun toPlainText(blocks: List<NoteBlock>): String = blocks.joinToString("\n") { block ->
