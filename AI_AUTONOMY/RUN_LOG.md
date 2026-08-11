@@ -1898,3 +1898,51 @@ Continuar evolución autónoma P2 visible. La MISIÓN exige CONTINUAR, no detene
 
 ### Siguiente
 - Continuar: próxima mejora P2 visible. No detenerse.
+
+
+---
+
+## Ciclo 27 — 2026-08-11 — Limpieza deuda técnica + accesibilidad (3 commits, 3 releases)
+
+### Objetivo
+Continuar evolución P2/P3. La MISIÓN exige ciclo interminable: no detenerse.
+
+### Cambios (3 commits → 3 releases firmadas consecutivas)
+
+#### 1. Eliminar string muerta today_what_now_action (commit 3d4c780 → release v3.0.15)
+- Quedó sin referenciar tras el ciclo 25 (removí el action What Now duplicado).
+- Sin dependencias (no hay values-es ni getIdentifier dinámico).
+
+#### 2. Eliminar 46 strings huérfanas intel_* (commit e714f57 → release v3.0.16)
+- Feature de modelo local/Gemma (intel_mode_local_*, intel_download_*, intel_state_*) se simplificó
+  fuera de IntelligenceScreen pero dejó 46 cadenas definidas y sin referenciar.
+- Las 12 intel_* todavía usadas por IntelligenceScreen se conservaron.
+- Script Python removió líneas; XML validado; verificado que las 12 usadas siguen presentes.
+
+#### 3. Accesibilidad TodayScreen planner IconButton (commit bd82841 → release v3.0.17)
+- IconButton(onOpenPlanner) con Icon(ArrowForward, null) → null hacía que TalkBack anunciara
+  control sin etiqueta.
+- Añadida string today_open_planner_cd y usada como contentDescription.
+- Auditoría completa de IconButtons accionables solos: todos los demás ya tienen contentDescription.
+
+### Tests
+- CI runs: 31524634470 (e714f57) success, 31525626150 (bd82841) success.
+- Verificar (tests+lint+assemble) OK en ambos. Firma OK / release OK.
+- 6 releases firmadas consecutivas funcionando (v3.0.12 → v3.0.17).
+
+### Auditoría (sin cambios de estado — ya correcto)
+- BackupManager.restore: valida SHA-256, versión, secciones, fecha, faltantes; IllegalArgumentException
+  con mensajes claros; sin catch vacío. Backlog P2 manifiesto corrupto → REVISADO (no requiere fix).
+- i18n: sin texto hardcodeado en pantallas (todo via stringResource). Backlog P2 → REVISADO.
+- AppComponents/VirtualGuardian (trabajo de Jules): quadraticBezierTo correcto (no deprecado),
+  LocalClipboardManager correcto (API moderna), iconos null solo en Buttons con texto (correcto).
+- NoteBlockCodec.decode robusto (fallback graceful). NaturalTaskParser soporta días weekend individuales.
+- OnboardingScreen tiene scroll. Planner/Tasks/Conversations/Intelligence sin card-in-card.
+
+### Hallazgos para próximas ejecuciones
+- Quedan ~17 strings sin uso adicionales (common_yes/no, ime_service_label, etc.) — P3 bajo.
+- Frase compuesta "este fin de semana" no soportada en parser (P3, no pérdida datos).
+- 6-variant compile check sigue OPEN (requiere CI/env Android dedicado).
+
+### Siguiente
+- Continuar ciclo interminable. Próxima mejora P2/P3 visible.

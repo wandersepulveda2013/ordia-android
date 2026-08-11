@@ -376,18 +376,15 @@
 - Cadena de la MISIÓN funcionando: OBSERVAR→DECIDIR→MEJORAR→PROBAR→COMMIT→PUSH→CI→RELEASE→USUARIO.
 - Cada push a `openhands/autonomous-ordia` produce una release firmada con versionCode creciente.
 
-## Última mejora (ciclo 26 — P2 VERIFIED vía CI)
+## Última mejora (ciclo 27 — P2/P3 VERIFIED vía CI)
 
-- **CaptureScreen**: aplanada la `Card` anidada del preview de interpretación → `Surface`
-  (sin border/elevation extra). Elimina patrón "card-in-card" prohibido por la MISIÓN.
-- **TaskDetailScreen**: `Icons.Outlined.InsertDriveFile` (deprecado) →
-  `Icons.AutoMirrored.Outlined.InsertDriveFile`. 1 lint warning menos.
-- CI run 31522884362 (job 93884233254) **success**. Release `v3.0.14-code-1300001401`
-  publicada (4ta release firmada consecutiva, ambas mejoras en una sola release por
-  concurrency cancel-in-progress).
-- Backlog P2 "deprecated InsertDriveFile icon" → FIXED.
-- Auditoría: NoteBlockCodec robusto (OK); NaturalTaskParser ya soporta weekend (P3 → NA);
-  OnboardingScreen ya tiene scroll (OK); PlannerScreen/TasksScreen sin card-in-card (OK).
+- Limpieza de deuda técnica de strings + accesibilidad. 3 commits → 3 releases firmadas:
+  - **v3.0.15**: removida string muerta `today_what_now_action` (3d4c780).
+  - **v3.0.16**: removidas 46 strings huérfanas `intel_*` de feature local-model removida (e714f57).
+  - **v3.0.17**: añadido contentDescription al IconButton "abrir planner" de TodayScreen (bd82841).
+- CI runs 31524634470 + 31525626150 **success**. 6 releases firmadas consecutivas (v3.0.12→v3.0.17).
+- Auditorías sin cambios: BackupManager.restore robusto (REVISADO), i18n consistente (REVISADO),
+  AppComponents/VirtualGuardian de Jules correctos, NoteBlockCodec robusto, parser OK, onboarding OK.
 
 ## Riesgos / pendientes
 
