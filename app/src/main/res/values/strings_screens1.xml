@@ -177,7 +177,6 @@
     <!-- Inicio compacto de Ordía -->
     <string name="today_organize_day">Organizar mi día</string>
     <string name="today_organize_day_desc">Ordía propone un orden realista y reversible.</string>
-    <string name="today_what_now_action">Qué hago ahora</string>
     <string name="today_review_messages">Revisar mensajes</string>
     <string name="today_quick_note">Nota rápida</string>
     <string name="today_overdue_summary">%1$d pendientes vencidos, resumidos sin alertas innecesarias.</string>
