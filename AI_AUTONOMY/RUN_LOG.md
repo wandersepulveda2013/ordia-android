@@ -1062,3 +1062,73 @@ al límite del mes destino en vez de saltar el mes. No había helper de anclaje 
 ### Siguiente prioridad
 - Auditoría funcional no-parser: What Now (tareas programadas vs. inbox), búsqueda,
   automatizaciones, contexto, GuardianEngine, LearningEngine.
+
+## SESIÓN 018 — Ciclo 19 (NaturalTaskParser: anclaje de recurrencias de intervalo)
+
+- **Fecha (UTC)**: 2026-08-11
+- **HEAD inicial**: `cf9841e`
+- **Trigger**: continuidad de autonomía; revisión del ciclo 17/18 reveló un bug
+  **simétrico** que dejó recurrencias de intervalo (no mensuales) sin `dueAt`.
+
+### Problema seleccionado
+
+P1 — Recurrencias de **intervalo** sin fecha explícita (diaria "cada día", quincenal
+"cada 2 semanas", mensual/anual sin día "cada mes"/"cada año") se creaban con
+`dueAt=null`. El bloque `when` de resolución de fecha solo anclaba recurrencias con día
+explícito (semanal con días, mensual con día del mes). Resultado: la primera ocurrencia
+era **invisible** — no aparecía en What Now/planificador; su recordatorio **nunca
+disparaba** (`ReminderSync` usa `reminderAt ?: dueAt`, ambos null); se olvidaba hasta su
+primer completado (recién entonces `RecurrenceEngine` infería el siguiente desde
+`completedAt`). Es la continuación lógica del bug mensual de los ciclos 17 (parser) y
+18 (engine).
+
+### Causa raíz
+
+En `NaturalTaskParser.parseRecurrence()`, el `when` que deriva la fecha de la primera
+ocurrencia tenía casos para "fecha explícita" (hoy/mañana/día de semana/día de mes) y para
+"recurrencia semanal con días" y "mensual con día del mes", pero **ningún caso para
+recurrencias de intervalo puro** (DAILY/WEEKLY-interval/YEARLY-interval sin día), que
+caían en el `else` dejando `date=null` → `dueAt=null`.
+
+### Solución
+
+- Nuevo caso al final del `when`: `recurrence.frequency != NONE -> base.toLocalDate()`
+  ancla la primera ocurrencia a la **fecha de captura** cuando ninguna fecha explícita se
+  resolvió antes. Las fechas explícitas conservan prioridad porque se evalúan primero en
+  el `when`. Para "cada día a las 8" el ancla es hoy + la hora explícita.
+- `RecurrenceEngine.nextOccurrence` ya maneja `dueAt` no nulo correctamente: la próxima
+  ocurrencia = `dueAt + intervalo`, coherente. Sin cambio de esquema Room.
+
+### Archivos modificados
+
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`
+  (caso `recurrence.frequency != NONE -> base.toLocalDate()` en el `when` de resolución
+  de fecha)
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`
+  (2 tests actualizados de `assertNull(dueAt)` a fecha de captura; +3 tests nuevos:
+  `parsesDailyRecurrenceWithTime`, `parsesYearlyRecurrence`,
+  `parsesIntervalRecurrencePreservesExplicitDate`)
+
+### Tests
+
+- Red primero: tests nuevos/existentes fallaban con `dueAt=null`.
+- `bash tools/run_domain_tests.sh` → **218 tests OK** (25 clases) (215 + 3 netos tras
+  actualizar 2 existentes).
+- `bash tools/run_domain_checks.sh` → **25 assertions OK**.
+- NO VERIFICADO: gradle/lint/Android/Room (sin Android SDK).
+
+### Hallazgos adicionales
+
+- Las recurrencias con fecha explícita ("reunión cada lunes el 30 de julio") preservan la
+  fecha explícita porque se evalúa antes que el nuevo caso de anclaje por defecto.
+- Cierra el conjunto de bugs de anclaje de primera ocurrencia: mensual (ciclo 17), avance
+  mensual (ciclo 18) y ahora intervalo (ciclo 19). Todas las recurrencias tienen primera
+  ocurrencia visible y recordable.
+
+### Commit / push
+- fix(parser): recurrencias de intervalo ancladas a fecha de captura — push al cierre.
+- HEAD final: pendiente.
+
+### Siguiente prioridad
+- Auditoría funcional no-parser: What Now (tareas programadas vs. inbox), búsqueda,
+  automatizaciones, contexto, GuardianEngine, LearningEngine.

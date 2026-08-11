@@ -66,7 +66,10 @@ class NaturalTaskParserTest {
         assertEquals("Tomar vitaminas", result.title)
         assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
         assertEquals(1, result.recurrenceInterval)
-        assertNull(result.dueAt)
+        // Antes dueAt=null: la tarea diaria nunca tenía fecha ni recordatorio y se olvidaba.
+        // Ahora se ancla a hoy (la fecha de captura) para ser accionable y recordable.
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
     @Test fun parsesIntervalRecurrence() {
@@ -74,7 +77,36 @@ class NaturalTaskParserTest {
         assertEquals("Lavar el coche", result.title)
         assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
         assertEquals(2, result.recurrenceInterval)
-        assertNull(result.dueAt)
+        // Antes dueAt=null: la recurrencia quincenal era invisible hasta su completado.
+        // Ahora se ancla a hoy para arrancar el ciclo inmediatamente.
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Recurrencias de intervalo (diaria/quincenal/anual) sin fecha explícita se anclan a
+    // la fecha de captura para no ser invisibles (P1: antes dueAt=null → sin recordatorio,
+    // sin aparición en What Now/planificador → tarea olvidada). Simétrico al anclaje
+    // mensual y semanal-con-días. La fecha explícita sigue teniendo prioridad.
+    @Test fun dailyRecurrenceAnchorsToCaptureDateAndKeepsExplicitTime() {
+        val result = NaturalTaskParser.parse("Tomar medicina cada día a las 8", now, zone)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun yearlyIntervalRecurrenceAnchorsToCaptureDate() {
+        val result = NaturalTaskParser.parse("Renovar licencia cada año", now, zone)
+        assertEquals(RecurrenceFrequency.YEARLY, result.recurrence)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun intervalRecurrenceWithExplicitDateKeepsExplicitDate() {
+        // "cada 2 semanas el viernes": la fecha explícita tiene prioridad sobre el anclaje.
+        val result = NaturalTaskParser.parse("Lavar el coche cada 2 semanas el viernes", now, zone)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
     // Mensual anclado a día del mes ("el 15 de cada mes"): antes el día quedaba como

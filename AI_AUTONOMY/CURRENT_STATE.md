@@ -4,13 +4,31 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 18)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD inicial `324d1e6`, final `c709e26`)
+- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 19)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD inicial `cf9841e`, final pendiente de commit)
 - **main**: contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
 
 ## Último trabajo realizado
+
+- **Sesión OpenHands — Ciclo 19 (NaturalTaskParser — anclaje de recurrencias de intervalo)**:
+  P1 corregido — recurrencias de **intervalo** (diaria "cada día", quincenal "cada 2 semanas",
+  mensual/anual sin día explícito "cada mes"/"cada año") se creaban con `dueAt=null` porque el
+  bloque `when` de resolución de fecha solo anclaba recurrencias con día explícito (semanal con
+  días, mensual con día del mes). Resultado: una tarea recurrente de intervalo era **invisible**
+  — no aparecía en What Now/planificador, su recordatorio **nunca disparaba** (ReminderSync usa
+  `reminderAt ?: dueAt`, ambos null) y se olvidaba hasta su primer completado (recién entonces
+  RecurrenceEngine infería el siguiente desde `completedAt`). Simétrico al bug mensual de los
+  ciclos 17 (parser) y 18 (engine). Fix: nuevo caso `recurrence.frequency != NONE ->
+  base.toLocalDate()` que ancla la primera ocurrencia a la **fecha de captura** cuando ninguna
+  fecha explícita se resolvió antes en el `when`. Las fechas explícitas (hoy/mañana/día de
+  semana/día del mes) siguen teniendo prioridad porque se evalúan antes. Para "cada día a las 8"
+  el ancla es hoy + la hora explícita. RecurrenceEngine produce la próxima ocurrencia coherente
+  (hoy + intervalo). Tests: actualizados `parsesDailyRecurrence`/`parsesIntervalRecurrence`
+  (de `assertNull(dueAt)` a `assertEquals(fecha de captura)`), +3 tests nuevos (diaria con hora,
+  anual, intervalo con fecha explícita preserva la fecha). **218 domain tests OK, smoke 25 OK.**
+  NO VERIFICADO: gradle/lint/Android/Room (sin Android SDK).
 
 - **Sesión OpenHands — Ciclo 18 (RecurrenceEngine — anclaje mensual)**: P1 corregido — el
   avance de recurrencia mensual usaba `base.plusMonths(interval)` que **clampa** los días
@@ -103,7 +121,7 @@
 ## Tests ejecutados
 
 - **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` (sin Android SDK).
-- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 215 tests OK (25 clases);
+- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 218 tests OK (25 clases);
   `bash tools/run_domain_checks.sh` → 25 assertions OK.
 
 ## Problemas conocidos
@@ -190,6 +208,17 @@
   `nextMonthly` ancla al día del mes y salta los meses que no lo contienen, conservando
   hora y zona. Días 1-28 idéntico; solo cambian 29-31, ahora correctos. 3 tests nuevos,
   215 OK, smoke 25 OK. Cierra el ciclo completo de la funcionalidad mensual del ciclo 17.
+
+  ACTUALIZACIÓN ciclo 19 (NaturalTaskParser — anclaje de recurrencias de intervalo): P1
+  corregido — recurrencias de **intervalo** sin fecha explícita (diaria "cada día",
+  quincenal "cada 2 semanas", mensual/anual "cada mes"/"cada año") dejaban `dueAt=null`
+  porque el `when` de resolución de fecha solo anclaba recurrencias con día explícito. La
+  primera ocurrencia era invisible (no en What Now; recordatorio nunca disparaba). Fix:
+  nuevo caso `recurrence.frequency != NONE -> base.toLocalDate()` al final del `when`
+  ancla la primera ocurrencia a la fecha de captura, respetando fechas explícitas previas.
+  Simétrico al fix mensual de los ciclos 17-18. 2 tests actualizados (de `assertNull`
+  a fecha de captura) + 3 nuevos (diaria con hora, anual, intervalo con fecha explícita).
+  218 OK, smoke 25 OK.
 
 ## PR pendiente
 

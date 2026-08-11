@@ -290,6 +290,12 @@ object NaturalTaskParser {
             // futura con ese día (avanza de mes si ya pasó o si el día no existe).
             recurrence.frequency == RecurrenceFrequency.MONTHLY && recurrence.monthlyDayOfMonth != null ->
                 nextMonthlyDate(base.toLocalDate(), recurrence.monthlyDayOfMonth)
+            // Recurrencias de intervalo (diaria, semanal/quincenal/mensual/anual sin día
+            // explícito): se anclan a la fecha de captura. Antes quedaban con dueAt=null y
+            // la tarea recurrente era invisible (sin recordatorio, sin aparición en What
+            // Now/planificador → se olvidaba). La fecha explícita ya se resolvió arriba en
+            // este when, así que esto solo alcanza las recurrencias sin anclaje específico.
+            recurrence.frequency != RecurrenceFrequency.NONE -> base.toLocalDate()
             else -> null
         }
 
