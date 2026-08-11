@@ -513,6 +513,20 @@ class BackupManagerTest {
     }
 
     @Test
+    fun corruptedManifestDoesNotCrash() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val root = org.json.JSONObject(origin.exportJson())
+        root.put("preferences", "esto no es un json object sino un string corrupto")
+
+        val store = FakeBackupStore(otherData())
+        val result = newManager(store).importBackup(rewrap(root))
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("ajustes de Ordía"))
+        assertEquals("Viejo", store.current.projects.first().name)
+    }
+
+    @Test
     fun missingCreatedAtIsRejected() = runBlocking {
         val origin = newManager(FakeBackupStore(sampleData()))
         val root = JSONObject(origin.exportJson())
