@@ -210,13 +210,7 @@ fun TodayScreen(
         }
 
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactAction(
-                    label = stringResource(R.string.today_what_now_action),
-                    icon = Icons.Outlined.ArrowForward,
-                    onClick = { whatNow?.let { onTask(it.task.id) } ?: onOpenInbox() },
-                    modifier = Modifier.weight(1f)
-                )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 CompactAction(
                     label = stringResource(R.string.today_review_messages),
                     icon = Icons.Outlined.ChatBubbleOutline,
