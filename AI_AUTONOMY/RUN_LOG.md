@@ -1649,3 +1649,16 @@ El conector de tiempo relativo distingue horas (`"dentro de 3 horas"`) de días
 - Continuar auditoría del parser: "este fin de semana" / "el fin de semana" (dueAt=null,
   sin soporte de fin de semana — gap P3). Validar "mañana a primera hora" vs "a primera hora".
 - Auditar lógica de sincronización de recordatorios (workers) en busca de P1 datos.
+
+---
+
+### Verificación CI (run 31491777388, post-fix)
+- ✓ Verificar (tests + lint + assemble previewAdvanced release) — PASSED en CI
+  real (Gradle clean+test+lint+assembleRelease verde en runner GitHub).
+- ✓ Localizar APK sin firmar — PASSED.
+- ✓ Rechazar APK debuggable antes de firmar — PASSED (gate de seguridad funciona).
+- ✗ Restaurar keystore y firmar APK — falló EXACTAMENTE en
+  `test -n "${KEYSTORE_B64:-}"` → "Falta el secret ORDIA_UPDATE_KEYSTORE_BASE64".
+  Comportamiento esperado y seguro: sin secrets de firma, no publica nada.
+- Bug gradlew exit 126 (gradlew tracked 100644) corregido: chmod +x en workflow +
+  modo 100755 en git.
