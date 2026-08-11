@@ -61,6 +61,7 @@ fun PlannerScreen(
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     var month by remember { mutableStateOf(YearMonth.now()) }
     var adding by remember { mutableStateOf(false) }
+    val locale = androidx.compose.ui.text.intl.Locale.current.platformLocale
     var showSuggestedPlan by remember { mutableStateOf(false) }
     if (adding) TaskEditorDialog(
         projects = state.projects,
@@ -87,7 +88,7 @@ fun PlannerScreen(
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { month = month.minusMonths(1); selectedDate = month.atDay(1) }) { Icon(Icons.Outlined.ChevronLeft, "Mes anterior") }
-                Text(month.month.getDisplayName(TextStyle.FULL, Locale.getDefault()).replaceFirstChar { it.uppercase() } + " ${month.year}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text(month.month.getDisplayName(TextStyle.FULL, locale).replaceFirstChar { it.uppercase() } + " ${month.year}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 IconButton(onClick = { month = month.plusMonths(1); selectedDate = month.atDay(1) }) { Icon(Icons.Outlined.ChevronRight, "Mes siguiente") }
             }
         }
@@ -103,7 +104,7 @@ fun PlannerScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column(Modifier.padding(horizontal = 18.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).uppercase(), style = MaterialTheme.typography.labelSmall)
+                            Text(date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale).uppercase(), style = MaterialTheme.typography.labelSmall)
                             Text(date.dayOfMonth.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                             val count = state.pendingTasks.count { TaskRules.isDueOn(it, date) }
                             Text(if (count == 0) "—" else count.toString(), style = MaterialTheme.typography.bodySmall)
@@ -157,7 +158,7 @@ fun PlannerScreen(
                 }
             }
         }
-        item { SectionHeader(selectedDate.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.getDefault())).replaceFirstChar { it.uppercase() }, "${tasksOnDate.size} tareas") }
+        item { SectionHeader(selectedDate.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", locale)).replaceFirstChar { it.uppercase() }, "${tasksOnDate.size} tareas") }
         if (tasksOnDate.isEmpty()) {
             item { EmptyState("Día disponible", "No hay tareas planificadas para esta fecha.", "Añadir tarea", onAction = { adding = true }) }
         } else {
