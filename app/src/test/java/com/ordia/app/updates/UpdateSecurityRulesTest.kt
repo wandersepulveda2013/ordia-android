@@ -55,4 +55,53 @@ class UpdateSecurityRulesTest {
         assertEquals(expected, UpdateSecurityRules.selectExpectedApk(listOf(expected), code))
     }
 
+    /**
+     * Contract test: the names produced by .github/workflows/openhands-delivery.yml MUST be
+     * accepted by UpdateSecurityRules. This prevents the regression where CI published
+     * v3.0.0-build.N / Ordia-3.0-signed.apk and the updater silently rejected everything.
+     *
+     * Workflow formulas (openhands-delivery.yml):
+     *   VERSION_CODE = 1_300_000_000 + (RUN * 100) + ATTEMPT   (matches build.gradle.kts)
+     *   TAG = "v3.0.${RUN}-code-${VERSION_CODE}"
+     *   APK = "Ordia-3.0-code-${VERSION_CODE}.apk"
+     *   SHA = "${APK}.sha256"
+     */
+    @Test fun ciWorkflowNaming_isAcceptedByUpdater() {
+        for (run in listOf(1, 42, 428)) {
+            val attempt = 1
+            val versionCode = 1_300_000_000 + (run * 100) + attempt
+            val tag = "v3.0.$run-code-$versionCode"
+            val apk = "Ordia-3.0-code-$versionCode.apk"
+            val sha = "$apk.sha256"
+
+            // Updater parses the versionCode from the tag and accepts it.
+            assertEquals(versionCode, UpdateSecurityRules.parseVersionCodeFromTag(tag))
+            // Updater selects exactly this APK name.
+            assertEquals(apk, UpdateSecurityRules.expectedApkName(versionCode))
+            assertEquals(apk, UpdateSecurityRules.selectExpectedApk(listOf(apk), versionCode))
+            // Checksum asset name is the APK name + ".sha256".
+            assertEquals("$apk.sha256", sha)
+            // A canonical checksum line for this APK parses correctly.
+            val hash = "b".repeat(64)
+            assertEquals(hash, UpdateSecurityRules.parseChecksum("$hash  $apk", apk))
+            // The release download URL with this tag + name is trusted.
+            assertTrue(
+                UpdateSecurityRules.isTrustedReleaseAssetUrl(
+                    "https://github.com/wandersepulveda2013/ordia-android/releases/download/$tag/$apk",
+                    apk
+                )
+            )
+        }
+    }
+
+    @Test fun ciWorkflowNaming_rejectsOldBrokenFormats() {
+        // The OLD android-ci format that the updater must STILL reject (regression guard).
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.0-build.5"))
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.0-signed"))
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("latest"))
+        // Old asset names are not selected.
+        assertNull(UpdateSecurityRules.selectExpectedApk(listOf("Ordia-3.0-signed.apk"), 1_300_000_101))
+        assertNull(UpdateSecurityRules.selectExpectedApk(listOf("Ordia-3.0.apk"), 1_300_000_101))
+    }
+
 }

@@ -100,7 +100,10 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            buildConfigField("boolean", "SELF_UPDATE_ENABLED", "false")
+            // No override SELF_UPDATE_ENABLED here: in AGP a buildType field would
+            // override the product-flavor field (buildTypes are applied last),
+            // silently disabling self-update on previewAdvanced/previewFull releases.
+            // Each flavor declares its own SELF_UPDATE_ENABLED correctly.
             if (stableSigningConfigured) signingConfig = signingConfigs.getByName("stableUpdate")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
