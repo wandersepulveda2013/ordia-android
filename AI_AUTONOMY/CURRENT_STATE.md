@@ -47,7 +47,12 @@
   como medianoche (regex de hora `2[0-3]` rechazaba 24) → `dueAt=null` (info-loss: tarea sin
   recordatorio) y basura "a las 24" en el título. Fix: regex `2[0-3]`→`2[0-4]`; `hour==24`→
   `LocalTime.MIDNIGHT` con meridiem explícito (bloquea offset PM). 3 tests nuevos. 172 tests OK.
-- **Verificación JVM**: 172 tests del dominio PASS (25 clases); smoke 25 assertions OK.
+- **Sesión OpenHands 004 — Ciclo 8 (NaturalTaskParser)**: `weekdayPattern` no capturaba prefijo
+  `del`/`de` ni sufijo `que viene`/`próximo(s|a)` → residuos en título MUY comunes: "reunión del
+  jueves"→"reunión del", "el viernes que viene"→"...que viene", "el miércoles próximo"→"...próximo".
+  Fix: regex extendido con prefijo `el|del|de` y sufijo `que viene|próximo(s|a)`; group 1 sigue
+  siendo el día (no rompe toDayOfWeek/parseRecurrence). 6 tests nuevos. 178 tests OK.
+- **Verificación JVM**: 178 tests del dominio PASS (25 clases); smoke 25 assertions OK.
 - `./gradlew test/lint/assemble`: sigue NO VERIFICADO (sin Android SDK en el entorno).
 
 ## Áreas modificadas
@@ -58,7 +63,7 @@
 ## Tests ejecutados
 
 - **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` (sin Android SDK).
-- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 172 tests OK (25 clases);
+- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 178 tests OK (25 clases);
   `bash tools/run_domain_checks.sh` → 25 assertions OK.
 
 ## Problemas conocidos
@@ -76,6 +81,7 @@
 - Parser: residuos de título NO limpiados detectados en probe ciclo 7: "a primera hora" sin
   interpretar/limpiar; "que viene" tras fecha ("el viernes que viene"); "del" huérfano
   ("a las 3pm del jueves"); rango horario "de 18 a 20" no parseado. Candidatos a ciclo 8.
+  (~~"que viene" y "del" huérfano~~ RESUELTO ciclo 8; pendientes "a primera hora" y "de 18 a 20".)
 - NoteEditor: `blocks` (mutableStateListOf) no es `rememberSaveable`; si el proceso muere dentro
   de la ventana de autosave (800 ms) se pierden los últimos cambios de bloques (el `title` sí
   sobrevive). Tradeoff de debounce, no corregido en esta sesión (P2/P3).
@@ -90,10 +96,10 @@
 
 ## Siguiente tarea recomendada
 
-- Ciclo 7 ejecutado: fix del parser "a las 24"/"24:00" = medianoche (antes dueAt=null + basura en
-  título; info-loss real de recordatorio). 3 tests nuevos, 172 tests OK. Continuar autonomía:
-  ciclo 8 candidato a limpiar residuos de título ("a primera hora", "que viene", "del" huérfano)
-  y/o parsear rango horario "de 18 a 20"; evaluar impacto real antes de implementar. Luego UX:
+- Ciclo 8 ejecutado: fix del parser residuos de día de la semana (prefijo `del`/`de` y sufijo
+  `que viene`/`próximo(s|a)` no capturados → título sucio en casos MUY comunes). 6 tests nuevos,
+  178 tests OK. Continuar autonomía: ciclo 9 candidato a "a primera hora" (→~09:00 + limpiar
+  título) y/o rango horario "de 18 a 20"; evaluar impacto real antes de implementar. Luego UX:
   Onboarding responsive, NoteEditor `rememberSaveable` (P2/P3), atomicidad de `saveRoutine` (P3),
   ítems P2 (deprecación de iconos, i18n, QA de variantes). Verificación Gradle/Android pendiente.
 

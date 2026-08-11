@@ -379,4 +379,47 @@ class NaturalTaskParserTest {
         assertEquals("Cena", result.title)
         assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
     }
+
+    // --- Limpieza de prefijos/sufijos de día de la semana (ciclo 8) ---
+    // "del jueves", "el viernes que viene", "el miércoles próximo" dejaban
+    // residuos ("del", "que viene", "próximo") en el título.
+
+    @Test fun delWeekdayLimpiaPrefijoDel() {
+        val result = NaturalTaskParser.parse("Reunión del jueves", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun delWeekdayConHoraLimpiaPrefijoDel() {
+        val result = NaturalTaskParser.parse("Reunión a las 3pm del jueves", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun elWeekdayQueVieneLimpiaSufijo() {
+        val result = NaturalTaskParser.parse("Llamar a mamá el viernes que viene", now, zone)
+        assertEquals("Llamar a mamá", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elWeekdayProximoLimpiaSufijo() {
+        val result = NaturalTaskParser.parse("Ir al dentista el miércoles próximo", now, zone)
+        assertEquals("Ir al dentista", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun delWeekdayQueVieneConHoraLimpiaTodo() {
+        val result = NaturalTaskParser.parse("Clase de yoga del viernes que viene a las 8", now, zone)
+        assertEquals("Clase de yoga", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun elWeekdaySinSufijoSigueFuncionando() {
+        val result = NaturalTaskParser.parse("Entregar reporte el viernes a las 15:00", now, zone)
+        assertEquals("Entregar reporte", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
 }

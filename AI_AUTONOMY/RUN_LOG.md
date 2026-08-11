@@ -517,3 +517,45 @@ Casos de título que dejan basura/residuos NO limpiados (candidatos a ciclo 8):
 ### Siguiente prioridad
 - Ciclo 8: limpiar residuos de título ("que viene", "del" huérfano, "a primera hora") y/o
   parsear rango horario "de 18 a 20". Evaluar impacto real antes de implementar.
+
+---
+
+## SESIÓN 004 — Ciclo 8 (NaturalTaskParser: residuos de día de la semana)
+
+- **Fecha (UTC)**: 2026-08-11
+- **HEAD inicial**: `accbdff` (ciclo 7)
+- **Trigger**: continuación autonomía — limpiar residuos de título en casos MUY comunes.
+- **Resultado**: ÉXITO — VERIFIED
+
+### Problema seleccionado
+- **Prioridad**: P3 (calidad de título en captura ultrarrápida).
+- **Causa raíz**: `weekdayPattern` solo capturaba el prefijo `el`/`próximo` pero NO:
+  - prefijo `del`/`de` ("reunión del jueves", "a las 3pm del jueves", "factura del martes");
+  - sufijo `que viene`/`próximo(s|a)` ("el viernes que viene", "el miércoles próximo").
+  Al limpiar el día, los tokens adyacentes quedaban huérfanos en el título: "reunión del",
+  "llamar a mamá que viene", "ir al dentista próximo". Casos de uso extremadamente comunes.
+
+### Solución
+- Extendido `weekdayPattern` para capturar prefijo `del`/`de` y sufijo `que viene`/`próximo(s|a)`.
+- Group 1 sigue siendo el día (no rompe `toDayOfWeek()` ni `parseRecurrence`).
+- El `.replace(value, " ")` del cleanup ahora consume prefijo+día+sufijo completos.
+
+### Tests
+- 6 tests nuevos de regresión (del jueves, del jueves con hora, el viernes que viene,
+  el miércoles próximo, del viernes que viene con hora, preservación de "el viernes a las 15:00").
+- `bash tools/run_domain_tests.sh` → 178 tests OK (25 clases). (+6 respecto a ciclo 7)
+- `bash tools/run_domain_checks.sh` → 25 assertions OK.
+- `./gradlew test/lint/assemble`: NO VERIFICADO (sin Android SDK).
+
+### Archivos modificados
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (regex extendido)
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+48, 6 tests)
+
+### Hallazgos adicionales
+- Probe confirmó 10/10 casos ahora limpios (antes 7/10 con residuos).
+- Pendientes ciclo 9 (P3 menores): "a primera hora" (sin interpretar); rango horario
+  "de 18 a 20" (no parseado, dueAt=null). Ver BACKLOG.
+
+### Siguiente prioridad
+- Ciclo 9: "a primera hora" → ~09:00 + limpiar del título; o rango horario "de 18 a 20".
+  Evaluar impacto real antes de implementar. Luego UX/ítems P2.
