@@ -18,14 +18,27 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 20)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (base `cd80eb0`; merge de 2 runs concurrentes: SummaryEngine+SearchEngine y parser semanal)
+- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 22)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (base `379886e`; ciclo 22: parser días relativos + hora)
 - **main**: contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
 
 ## Último trabajo realizado
 
+- **Sesión OpenHands — Ciclo 22 (NaturalTaskParser — días relativos + hora explícita)**:
+  P1 de captura corregido. Al combinar **fecha relativa en días** con **hora explícita** (p. ej.
+  "dentro de 3 días a primera hora" o "en 2 días a las 9"), el parser calculaba la fecha
+  relativa y tenía `parsedTime`, pero la rama `dueAt` usaba `today + parsedTime` (perdía los
+  días) o descartaba la hora y usaba la fecha relativa a medianoche. Ambos caminos eran
+  incorrectos para la intención del usuario. Fix mínimo: flag `relativeIsDays` (true para
+  días, false para minutos/horas) y nueva rama que combina la **fecha** de `relativeDueAt`
+  con la **hora** de `parsedTime`. Las horas relativas ("en 3 horas") no se combinan (la hora
+  relativa ya define el instante). Tests: +3 TDD (`relativeDaysRespectsExplicitTime`,
+  `relativeDaysRespectsPrimeraHora`, `relativeDaysWithoutTimeKeepsCurrentTime`).
+  **235 domain tests OK, smoke 25 OK.** NO VERIFICADO: gradle/lint/Android/UI.
+
+- **Sesión OpenHands — Ciclo 21 (NaturalTaskParser — "mañana por la tarde/noche/mañana")**:
 - **Sesión OpenHands — Ciclo 21 (NaturalTaskParser — "mañana por la tarde/noche/mañana")**:
   P1 de captura corregido. El conector "por la" no era reconocido como parte del día suelta
   (solo "a la"/"de la"), así la frase cotidianísima "mañana por la tarde" dejaba "por la

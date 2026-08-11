@@ -497,6 +497,29 @@ class NaturalTaskParserTest {
         assertEquals(now + 45 * 60_000L, result.dueAt)
     }
 
+    // Fecha relativa en DÍAS + hora explícita/canónica: la hora del día debe respetarse
+    // (antes se ignoraba y se usaba la hora actual del timestamp). Solo aplica a días:
+    // minutos/horas son eventos cercanos donde la hora actual es intencional.
+    @Test fun relativeDaysRespectsExplicitTime() {
+        val result = NaturalTaskParser.parse("Entregar informe dentro de 3 días a las 9", now, zone)
+        assertEquals("Entregar informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun relativeDaysRespectsPrimeraHora() {
+        val result = NaturalTaskParser.parse("Entregar informe en 2 días a primera hora", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun relativeDaysWithoutTimeKeepsCurrentTime() {
+        // Sin hora explícita, se conserva el comportamiento previo (now + N días).
+        val result = NaturalTaskParser.parse("Comprar pan en un día", now, zone)
+        assertEquals("Comprar pan", result.title)
+        assertEquals(now + 1 * 24 * 60 * 60_000L, result.dueAt)
+    }
+
     // --- Meridiem "de la tarde/noche/mañana" (antes se ignoraba: hora errónea + título sucio) ---
 
     @Test fun deLaTardeAppliesPmOffset() {

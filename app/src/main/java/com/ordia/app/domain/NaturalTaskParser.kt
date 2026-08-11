@@ -225,6 +225,10 @@ object NaturalTaskParser {
 
         // Fecha relativa "en/dentro de N minutos/horas/días" (N = dígitos o palabra).
         val relativeMatch = relativePattern.find(working)
+        val relativeIsDays = relativeMatch?.let { m ->
+            val unit = m.groupValues[2].lowercase()
+            !unit.startsWith("min") && !unit.startsWith("hora")
+        } ?: false
         val relativeDueAt = relativeMatch?.let { match ->
             val amount = parseWrittenNumber(match.groupValues[1]) ?: 0L
             val unit = match.groupValues[2].lowercase()
@@ -346,7 +350,11 @@ object NaturalTaskParser {
                 t.plusHours(12) else t
         } ?: partOfDayTime ?: standalonePartOfDayTime ?: primeraHoraMatch?.let { primeraHoraTime }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
-        val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
+        val dueAt = when {
+            relativeDueAt != null && relativeIsDays && parsedTime != null ->
+                DateRules.toEpochMillis(DateRules.toLocalDate(relativeDueAt, zone), parsedTime, zone)
+            else -> relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
+        }
 
         // Duración: no se aplica a "en N minutos" (esa es fecha relativa, ya eliminada).
         // Rango horario "de H1 a H2 [horas]": se procesa primero para que el segundo

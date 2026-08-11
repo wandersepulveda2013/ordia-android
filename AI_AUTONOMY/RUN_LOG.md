@@ -1600,3 +1600,52 @@ La rama autónoma además NO disparaba CI (solo main/jules).
 - Tras configurar los GitHub Secrets de firma, la primera push a la rama debe
   producir una Release instalable. Verificar end-to-end cuando existan secretos.
 - Volver al ciclo normal de Evolution (auditar/implementar features de Ordía).
+
+
+---
+
+## Ciclo 22 — 2026-08-11 (Sesión OpenHands — auditoría parser: días relativos + hora)
+
+- **HEAD inicial**: `379886e` (sync OK con `origin/openhands/autonomous-ordia`; base local
+  estaba obsoleta tras 3 commits del run de infra → `git stash` + `pull --ff-only` + `stash pop`,
+  sin force ni reset destructivo).
+- **Anti-colisión**: al iniciar, la rama remota había avanzado 3 commits; mi trabajo del
+  parser (no commiteado) se preservó vía stash y se re-aplicó limpio sobre el HEAD actualizado.
+
+### Problema seleccionado (P1 — captura)
+`NaturalTaskParser` perdía la hora cuando se combinaba **fecha relativa en días** con **hora
+explícita**. Ej: `"Entregar informe dentro de 3 días a primera hora"` → el parser calculaba
+la fecha relativa (`now + 3d`) y, al existir `parsedTime` (`09:00` de "a primera hora"), la
+rama de `dueAt` tomaba el camino de `parsedTime != null` usando `today + parsedTime` en vez de
+combinar la fecha relativa con la hora. Resultado: la tarea quedaba para **hoy a las 09:00**
+(perdiendo los 3 días) o, según el orden de ramas, se descartaba la hora y se usaba sólo la
+fecha relativa a medianoche. Ambos caminos eran incorrectos para la intención del usuario.
+
+### Causa raíz
+El conector de tiempo relativo distingue horas (`"dentro de 3 horas"`) de días
+(`"dentro de 3 días"`), pero la rama final de `dueAt` no usaba esa distinción: cuando había
+`parsedTime`, ignoraba `relativeDueAt` (fecha relativa) y caía a `today + parsedTime`.
+
+### Solución (cambio mínimo, sin nueva pantalla)
+- Añadido flag `relativeIsDays` (true cuando el match relativo es en días, false para horas).
+- Nueva rama en `dueAt`: si `relativeDueAt != null && relativeIsDays && parsedTime != null`
+  → combinar la **fecha** de `relativeDueAt` con la **hora** de `parsedTime`. Así
+  `"dentro de 3 días a primera hora"` → `now+3d 09:00` (antes `09:00` hoy / hora perdida).
+- Las horas relativas (`"dentro de 3 horas"`) siguen sin combinar con `parsedTime`
+  (no tiene sentido: la hora relativa ya define el instante).
+
+### Tests
+- `bash tools/run_domain_tests.sh` → **235 tests PASS** (232 previos + 3 nuevos de regresión:
+  `dentroDe3DiasAPrimeraHoraCombinaFechaRelativaConHora`,
+  `dentroDeNDiasConHoraExplícitaCombinaFechaYHora`,
+  `en3DiasALasCincoDeLaTardeCombinaFechaYHora`).
+- `bash tools/run_domain_checks.sh` → smoke 25 assertions OK.
+- NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+
+### Commit / push
+- `fix(parser): combinar días relativos con hora explícita (dentro de 3 días a primera hora)`
+
+### Siguiente prioridad
+- Continuar auditoría del parser: "este fin de semana" / "el fin de semana" (dueAt=null,
+  sin soporte de fin de semana — gap P3). Validar "mañana a primera hora" vs "a primera hora".
+- Auditar lógica de sincronización de recordatorios (workers) en busca de P1 datos.
