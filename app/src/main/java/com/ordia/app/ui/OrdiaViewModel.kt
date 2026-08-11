@@ -675,11 +675,9 @@ class OrdiaViewModel(
                 routineRepository.update(routine.copy(name = clean, updatedAt = now))
                 routine.id
             }
-            val existing = uiState.value.routineSteps(id)
-            existing.forEach { routineRepository.deleteStep(it) }
-            stepTitles.map { it.trim() }.filter { it.isNotBlank() }.forEachIndexed { index, title ->
-                routineRepository.addStep(RoutineStepEntity(routineId = id, title = title, position = index))
-            }
+            val steps = stepTitles.map { it.trim() }.filter { it.isNotBlank() }
+                .mapIndexed { index, title -> RoutineStepEntity(routineId = id, title = title, position = index) }
+            routineRepository.replaceSteps(id, steps)
         }
     }
 

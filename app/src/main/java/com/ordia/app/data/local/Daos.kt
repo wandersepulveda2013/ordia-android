@@ -314,8 +314,22 @@ interface RoutineStepDao {
     @Delete
     suspend fun delete(step: RoutineStepEntity)
 
+    @Query("DELETE FROM routine_steps WHERE routineId = :routineId")
+    suspend fun deleteByRoutine(routineId: Long)
+
     @Query("DELETE FROM routine_steps")
     suspend fun deleteAll()
+
+    /**
+     * Reemplaza atómicamente todos los pasos de una rutina. Sin transacción, un proceso
+     * que muera entre el borrado y las inserciones dejaría la rutina con pasos parciales
+     * o sin pasos, perdiendo el trabajo del usuario.
+     */
+    @Transaction
+    suspend fun replaceSteps(routineId: Long, steps: List<RoutineStepEntity>) {
+        deleteByRoutine(routineId)
+        steps.forEach { insert(it) }
+    }
 }
 
 @Dao

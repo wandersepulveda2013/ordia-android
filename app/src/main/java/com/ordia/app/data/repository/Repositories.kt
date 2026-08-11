@@ -125,6 +125,7 @@ class RoutineRepository(
     suspend fun updateStep(step: RoutineStepEntity) = stepDao.update(step)
     suspend fun deleteStep(step: RoutineStepEntity) = stepDao.delete(step)
     suspend fun stepsFor(routineId: Long): List<RoutineStepEntity> = stepDao.getByRoutine(routineId)
+    suspend fun replaceSteps(routineId: Long, steps: List<RoutineStepEntity>) = stepDao.replaceSteps(routineId, steps)
 }
 
 class TagRepository(

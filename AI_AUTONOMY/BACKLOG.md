@@ -13,7 +13,7 @@
 | P2 | i18n | Revisar coherencia de cadenas nuevas (command_palette, feedback, floating_capture, android_access) | inspección manual pendiente | OPEN |
 | P2 | QA | Verificar que las 6 variantes (Safe/Full/Advanced × debug/release) compilan tras cambios | `./gradlew test` | OPEN |
 | P2 | Backup | Comprobar restauración con manifiesto corrupto (escenario adverso) | revisión de `RestoreData` | OPEN |
-| P3 | Rutinas | `saveRoutine` hace delete-then-reinsert de pasos sin transacción atómica; si el proceso muere a mitad, la rutina queda con pasos parciales/perdidos | `OrdiaViewModel.saveRoutine` L678-682 | OPEN |
+| P3 | Rutinas | ~~`saveRoutine` hace delete-then-reinsert de pasos sin transacción atómica; si el proceso muere a mitad, la rutina queda con pasos parciales/perdidos~~ FIXED ciclo 15: `RoutineStepDao.replaceSteps` (`@Transaction` delete+insert) + `saveRoutine` lo usa | `OrdiaViewModel.saveRoutine`; `Daos.kt` `replaceSteps`; smoke+202 tests OK; NO VERIFICADO (DAO/Room requiere Android) | FIXED (NO VERIFICADO Room) |
 | P3 | UX | Pulido visual de pantallas renovadas del workspace | capturas tras sesión | OPEN |
 
 ## Auditorías estáticas realizadas (sin hallazgos P0/P1)
@@ -25,7 +25,7 @@
 | Recordatorios | ReminderScheduler (enqueueUniqueWork REPLACE), TaskReminderWorker (re-lee task, filtra completed/archived/cancelled, quiet hours reschedule, POST_NOTIFICATIONS retry), ReminderActionReceiver (exported=false, mutex), ReminderResyncReceiver (TIMEZONE/TIME/DATE, futuro-only) | inspección estática ciclo 3 | OK (no requiere fix) |
 | Seguridad/Manifiesto | allowBackup=false, cleartextTraffic=false, ReminderActionReceiver exported=false, ReminderResyncReceiver exported=true (requerido por system broadcasts, filtra acciones), MainActivity SEND/PROCESS_TEXT (texto capado, URI permiso en runCatching) | inspección estática ciclo 2 | OK (no requiere fix) |
 | Task completion+recurrence | toggleTask bajo TaskMutationGate.mutex, RecurrenceEngine (reminder/start offset preservado, guard de avance), subtask auto-complete con logging de undo | inspección estática ciclo 2 | OK (no requiere fix) |
-| Rutinas | RoutineRules (dedup wasRunToday), runRoutine (sortOrder preserva orden, undo real vía AutomationUndoRules), archive/restore. Minor: saveRoutine delete-then-reinsert no transaccional (P3) | inspección estática ciclo 4 | OK (P3 menor: atomicidad de saveRoutine) |
+| Rutinas | RoutineRules (dedup wasRunToday), runRoutine (sortOrder preserva orden, undo real vía AutomationUndoRules), archive/restore. saveRoutine ahora transaccional (`replaceSteps`) ciclo 15 | inspección estática ciclo 4 + fix ciclo 15 | OK (atomicidad de saveRoutine resuelta) |
 
 ## Completados
 
@@ -53,3 +53,4 @@
 | P2 | Parser | `prioridad alta:` y `urgente`/`importante` a mitad de frase no fijan prioridad ("Llamar mamá urgente" → NORMAL) | probe JVM ciclo 10 | FIXED → VERIFIED ciclo 13 (sufijo "urgente"/"importante" final → URGENT/HIGH + guard de negación "no es urgente"; 4 tests, 197 OK) |
 | P2 | Parser | Duraciones fraccionarias sin dígitos ("media hora", "(un) cuarto de hora") no reconocidas: `durationMinutes`=null y residuo en el título | probe JVM ciclo 14 | FIXED → VERIFIED ciclo 14 (`fractionalDurationPattern`, guard "hora" para no confundir "cuarto"=habitación; 5 tests, 202 OK) |
 | P3 | Parser | "Reunión de 30 minutos" deja residuo "de" en título | probe JVM ciclo 10 | ABIERTO |
+| P3 | Rutinas | `saveRoutine` delete-then-reinsert no atómico: crash entre borrado e inserción dejaba pasos parciales/perdidos | `OrdiaViewModel.saveRoutine`; `RoutineStepDao.replaceSteps` (`@Transaction`); smoke+202 domain tests OK | FIXED → NO VERIFICADO (Room/DAO requiere Android) ciclo 15 |

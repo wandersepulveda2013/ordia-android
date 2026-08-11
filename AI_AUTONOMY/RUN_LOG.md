@@ -838,3 +838,50 @@ Casos de título que dejan basura/residuos NO limpiados (candidatos a ciclo 8):
 
 ### Commit / push
 - (commit al final del ciclo)
+
+---
+
+## Ciclo 15 — 2026-08-11 (OpenHands, autonomía)
+
+### Contexto
+- HEAD inicial: `9c5222f` (feat(parser): duraciones fraccionarias).
+- Branch: `openhands/autonomous-ordia`.
+- Auditoría funcional fuera del parser: persistencia/rutinas.
+
+### Problema seleccionado
+- P3 (datos) — `saveRoutine` no atómico: delete-then-reinsert de pasos de rutina sin transacción.
+
+### Causa raíz
+- `OrdiaViewModel.saveRoutine` borraba cada paso existente y luego insertaba los nuevos
+  en llamadas DAO separadas. Si el proceso moría entre el borrado y las inserciones, la
+  rutina quedaba con pasos parciales o sin pasos (pérdida de trabajo del usuario). Además
+  leía los pasos existentes desde `uiState` (memoria) en vez de la fuente de verdad.
+
+### Solución
+- `RoutineStepDao.replaceSteps(routineId, steps)` con `@Transaction` (deleteByRoutine +
+  insert por paso), siguiendo el patrón de `deleteSubtreeAndSelf`.
+- `RoutineRepository.replaceSteps(...)` expuesto.
+- `saveRoutine` construye la lista limpia de pasos y los reemplaza atómicamente.
+- Reasigna `position` por índice (orden de visualización).
+
+### Archivos modificados
+- `app/src/main/java/com/ordia/app/data/local/Daos.kt` (+deleteByRoutine, +replaceSteps @Transaction)
+- `app/src/main/java/com/ordia/app/data/repository/Repositories.kt` (+replaceSteps)
+- `app/src/main/java/com/ordia/app/ui/OrdiaViewModel.kt` (saveRoutine usa replaceSteps)
+
+### Tests
+- `bash tools/run_domain_tests.sh` -> 202 tests OK (25 clases). (sin regresión)
+- `bash tools/run_domain_checks.sh` -> 25 assertions OK.
+- Sintaxis DAO/Repository verificada con kotlinc + stubs (sin errores en líneas cambiadas).
+- NO VERIFICADO: integración DAO/Room/gradle requiere Android SDK.
+
+### Hallazgos adicionales
+- Recurrencia mensual verificada correcta (`plusMonths(1)`); Probe3 discrepancia era por `due` distinto, no bug.
+- `addStep`/`deleteStep` del repositorio ya no usados por `saveRoutine` (se conservan para API).
+
+### Commit / push
+- fix(data): `saveRoutine` atómico con replaceSteps @Transaction (previene pérdida de pasos en crash)
+- push a `openhands/autonomous-ordia`.
+
+### Siguiente prioridad
+- Continuar auditoría funcional no-parser (tareas/búsqueda/What Now/automatizaciones) o resolver P3 pendientes del parser.

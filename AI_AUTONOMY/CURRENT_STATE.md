@@ -142,6 +142,16 @@
   para no confundir "cuarto"=habitación. 5 tests nuevos, 202 OK, smoke 25 OK. Pendientes:
   residuo "de" en "Reunión de 30 minutos" (P3), rango "de 18 a 20" → dueAt=null (P3).
 
+  ACTUALIZACIÓN ciclo 15 (auditoría funcional no-parser — persistencia/rutinas): fix P3
+  atomicidad de `saveRoutine`. El guardado de una rutina hacía delete-then-reinsert de los
+  pasos SIN transacción: un crash/kill del proceso entre el `deleteStep` (por cada paso) y
+  los `addStep` dejaba la rutina con pasos parciales o sin pasos → pérdida de trabajo del
+  usuario. Fix: `RoutineStepDao.replaceSteps(routineId, steps)` con `@Transaction`
+  (deleteByRoutine + insert por paso), expuesto en `RoutineRepository.replaceSteps`, y
+  `saveRoutine` ahora construye la lista de pasos y los reemplaza atómicamente. Limpia además
+  un patrón frágil (leía pasos desde `uiState` en memoria en vez de la fuente de verdad).
+  202 domain tests OK, smoke 25 OK. NO VERIFICADO: integración DAO/Room requiere Android SDK.
+
 ## PR pendiente
 
 - Ninguno (el auto-merge gestiona las PRs autónomas hacia `jules/autonomous-ordia`).
