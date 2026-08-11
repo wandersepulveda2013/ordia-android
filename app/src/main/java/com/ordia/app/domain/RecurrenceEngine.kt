@@ -4,6 +4,7 @@ import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskStatus
 import java.time.Instant
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -38,8 +39,28 @@ object RecurrenceEngine {
         RecurrenceFrequency.NONE -> base
         RecurrenceFrequency.DAILY -> base.plusDays(interval)
         RecurrenceFrequency.WEEKLY -> nextWeekly(base, interval, days)
-        RecurrenceFrequency.MONTHLY -> base.plusMonths(interval)
+        RecurrenceFrequency.MONTHLY -> nextMonthly(base, interval)
         RecurrenceFrequency.YEARLY -> base.plusYears(interval)
+    }
+
+    /**
+     * Avanza una recurrencia mensual anclada al día del mes de [base], saltando los
+     * meses que no contienen ese día (p. ej. "el 31 de cada mes" salta feb → mar 31)
+     * en lugar de clampar a feb 28. Así el motor coincide con el anclaje que usa
+     * `NaturalTaskParser.nextMonthlyDate`, evitando deriva silenciosa del día
+     * (31 → 30 → 30…) tras el primer ciclo. Conserva la hora y zona de `base`.
+     */
+    private fun nextMonthly(base: ZonedDateTime, interval: Long): ZonedDateTime {
+        val day = base.dayOfMonth
+        var ym = YearMonth.from(base).plusMonths(interval)
+        repeat(24) {
+            if (day <= ym.lengthOfMonth()) {
+                return base.withYear(ym.year).withMonth(ym.monthValue).withDayOfMonth(day)
+            }
+            ym = ym.plusMonths(1)
+        }
+        // Reserva: día ≤ 31 siempre halla mes válido en 24 iteraciones.
+        return base.plusMonths(interval)
     }
 
     private fun nextWeekly(base: ZonedDateTime, interval: Long, recurrenceDays: String): ZonedDateTime {

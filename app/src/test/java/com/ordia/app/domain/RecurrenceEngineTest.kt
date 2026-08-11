@@ -33,4 +33,32 @@ class RecurrenceEngineTest {
         val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(next.dueAt!!, zone))
     }
+
+    @Test fun monthly_anchorsToDayOfMonthAndSkipsMonthsLackingIt() {
+        // "el 31 de cada mes": ene 31 + 1 mes NO debe dar feb 28 (clamp),
+        // sino saltar a mar 31 (feb no tiene 31). Coincide con el anclaje del parser.
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 1, 31), LocalTime.of(8, 0), zone)
+        val task = TaskEntity(title = "Mensual 31", dueAt = due, recurrence = RecurrenceFrequency.MONTHLY)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 3, 31), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(next.dueAt, zone))
+    }
+
+    @Test fun monthly_preservesDayForCommonDays() {
+        // Dias 1-28: comportamiento estable, sin deriva (caso mas comun: "el 15 de cada mes").
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 1, 15), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(title = "Renta", dueAt = due, recurrence = RecurrenceFrequency.MONTHLY)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 2, 15), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(next.dueAt, zone))
+    }
+
+    @Test fun monthly_advancesPastCompletedAt() {
+        // Si se completa despues del vencimiento, no regresa al pasado.
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 1, 31), LocalTime.NOON, zone)
+        val task = TaskEntity(title = "Mensual 31", dueAt = due, recurrence = RecurrenceFrequency.MONTHLY)
+        val late = DateRules.toEpochMillis(LocalDate.of(2026, 3, 1), LocalTime.NOON, zone)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = late, zone = zone))
+        assertEquals(LocalDate.of(2026, 3, 31), DateRules.toLocalDate(next.dueAt!!, zone))
+    }
 }
