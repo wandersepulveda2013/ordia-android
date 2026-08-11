@@ -44,7 +44,7 @@ object NaturalTaskParser {
     )
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
     private val timePatterns = listOf(
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche)?\b"""),
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?\b"""),
         Regex("""(?i)\b([01]?\d|2[0-3]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b"""),
         Regex("""(?i)\b(?:al\s+|a\s+la\s+)?mediod[ií]a\b"""),
@@ -71,6 +71,19 @@ object NaturalTaskParser {
         "manana" to LocalTime.of(9, 0),
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0)
+    )
+
+    /**
+     * Parte del día suelta: "a la tarde/noche/madrugada", "de la tarde/noche/madrugada".
+     * NO fuerza fecha (solo hora del día sobre la fecha parseada). Sirve como contexto PM
+     * para horas sin meridiem ("mañana a la tarde a las 4" → 16:00) y como hora canónica
+     * de respaldo ("jugar tenis de la tarde" → 15:00). "mañana/madrugada" son AM.
+     */
+    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:a\s+la|de\s+la)\s+(tarde|noche|madrugada)\b""")
+    private val standalonePartOfDayTimes = mapOf(
+        "tarde" to LocalTime.of(15, 0),
+        "noche" to LocalTime.of(21, 0),
+        "madrugada" to LocalTime.of(4, 0)
     )
 
     private val weekdays = mapOf(
@@ -162,6 +175,15 @@ object NaturalTaskParser {
         val monthNameMatch = monthNamePattern.find(working)
         val partOfDayMatch = partOfDayPattern.find(working)
         val partOfDayTime = partOfDayMatch?.let { partOfDayTimes[it.groupValues[1].lowercase()] }
+        val standalonePartOfDayMatch = standalonePartOfDayPattern.find(working)
+        val standalonePartOfDayKey = standalonePartOfDayMatch?.groupValues?.get(1)?.lowercase()
+        val standalonePartOfDayTime = standalonePartOfDayKey?.let { standalonePartOfDayTimes[it] }
+        // Contexto PM: una parte del día de tarde/noche (explícita "esta tarde" o suelta "a la noche")
+        // aplica offset +12 a una hora sin meridiem ("esta tarde a las 4" → 16:00).
+        val partOfDayPmKeys = setOf("tarde", "noche")
+        val hasPartOfDayPmContext =
+            partOfDayMatch?.let { it.groupValues[1].lowercase() in partOfDayPmKeys } == true ||
+            standalonePartOfDayKey in partOfDayPmKeys
         val date = when {
             // Debe ir antes que el "mañana" genérico: "esta mañana" contiene "mañana"
             // y no debe interpretarse como "el día de mañana".
@@ -198,26 +220,36 @@ object NaturalTaskParser {
         }
 
         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
-        val explicitTime = timeMatch?.let { match ->
+        val explicitTimeData = timeMatch?.let { match ->
             val mv = match.value.lowercase()
             when {
-                mv.contains("mediodía") || mv.contains("mediodia") -> LocalTime.NOON
-                mv.contains("medianoche") -> LocalTime.MIDNIGHT
+                mv.contains("mediodía") || mv.contains("mediodia") -> LocalTime.NOON to true
+                mv.contains("medianoche") -> LocalTime.MIDNIGHT to true
                 else -> {
                     var hour = match.groupValues[1].toInt()
                     val minute = match.groupValues[2].toIntOrNull() ?: 0
                     val meridiem = match.groupValues[3].lowercase().replace(".", "").replace(" ", "")
-                    // "de la tarde"/"de la noche" → 12h posterior; "de la mañana" → am.
+                    // "de la tarde"/"de la noche" → 12h posterior; "de la mañana/madrugada" → am.
                     val isPm = meridiem == "pm" || meridiem == "delatarde" || meridiem == "delanoche"
-                    val isAm = meridiem == "am" || meridiem == "delamañana" || meridiem == "delamanaana"
+                    val isAm = meridiem == "am" || meridiem == "delamañana" || meridiem == "delamanaana" || meridiem == "delamadrugada"
                     if (isPm && hour < 12) hour += 12
                     if (isAm && hour == 12) hour = 0
-                    LocalTime.of(hour, minute)
+                    // "12 de la noche" = medianoche (00:00), no 12:00 del mediodía.
+                    if (isPm && hour == 12 && meridiem == "delanoche") hour = 0
+                    LocalTime.of(hour, minute) to meridiem.isNotEmpty()
                 }
             }
         }
+        val explicitTime = explicitTimeData?.first
+        val hasExplicitMeridiem = explicitTimeData?.second == true
         // Un tiempo explícito tiene prioridad sobre la hora canónica de la parte del día.
-        val parsedTime = explicitTime ?: partOfDayTime
+        // Si la hora explícita vino sin meridiem (p.ej. "a las 4") y hay contexto PM de
+        // parte del día ("esta tarde"/"a la noche"), se aplica el offset +12 ("esta tarde
+        // a las 4" → 16:00, no 04:00).
+        val parsedTime = explicitTime?.let { t ->
+            if (!hasExplicitMeridiem && hasPartOfDayPmContext && t.hour in 1..11)
+                t.plusHours(12) else t
+        } ?: partOfDayTime ?: standalonePartOfDayTime
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
 
@@ -242,6 +274,7 @@ object NaturalTaskParser {
         working = working
             .let { value -> partOfDayPattern.replace(value, " ") }
             .let { value -> timePatterns.fold(value) { acc, pattern -> pattern.replace(acc, " ") } }
+            .let { value -> standalonePartOfDayPattern.replace(value, " ") }
             .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
             .let { value -> weekdayPattern.replace(value, " ") }
             // Solo se elimina la fecha "5 de marzo" si el mes es válido: así "9 de la"

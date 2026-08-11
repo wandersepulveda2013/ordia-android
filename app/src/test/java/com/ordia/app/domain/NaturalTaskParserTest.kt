@@ -315,4 +315,48 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
+
+    // --- Contexto PM de parte del día aplicado a hora sin meridiem (ciclo 6) ---
+
+    @Test fun estaTardeConHoraSinMeridiemAplicaPm() {
+        val result = NaturalTaskParser.parse("Reunión esta tarde a las 4", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(16, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun estaNocheConHoraSinMeridiemAplicaPm() {
+        val result = NaturalTaskParser.parse("Llamar hoy esta noche a las 9", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aLaTardeSueltaDefineHoraYNoFuerzaFecha() {
+        val result = NaturalTaskParser.parse("Ver a juan mañana a la tarde", now, zone)
+        assertEquals("Ver a juan", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun deLaTardeSueltaDaHoraCanonicaHoy() {
+        val result = NaturalTaskParser.parse("Jugar tenis de la tarde", now, zone)
+        assertEquals("Jugar tenis", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // --- "12 de la noche" = medianoche (00:00), no 12:00 del mediodía (ciclo 6) ---
+
+    @Test fun doceDeLaNocheEsMedianoche() {
+        val result = NaturalTaskParser.parse("Fiesta a las 12 de la noche", now, zone)
+        assertEquals("Fiesta", result.title)
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun deLaMadrugadaEsAmYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Despertar a las 4 de la madrugada", now, zone)
+        assertEquals("Despertar", result.title)
+        assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
 }

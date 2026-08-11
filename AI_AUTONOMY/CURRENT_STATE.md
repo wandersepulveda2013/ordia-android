@@ -33,7 +33,17 @@
   backlog). Resuelto BUG3 (P2): parser ahora reconoce números escritos en tiempo relativo
   ("en dos horas", "dentro de tres días", "en una hora") y el introductor "dentro de".
   8 tests nuevos. Commit `a48c5d7`.
-- **Verificación JVM**: 155 tests del dominio PASS (25 clases); smoke 25 assertions OK.
+- **Sesión OpenHands 004 — Ciclo 5 (NaturalTaskParser)**: P1 corregido — "de la tarde/noche/mañana"
+  como meridiem ignorado ("a las 4 de la tarde" → 04:00); "al mediodía"/"a la medianoche" y
+  "esta mañana" dejaban restos en el título (orden de limpieza). 8 tests nuevos. Commit `4a20688`.
+- **Sesión OpenHands 004 — Ciclo 6 (NaturalTaskParser)**: P1 corregido — contexto PM de parte del
+  día NO se aplicaba a hora sin meridiem ("esta tarde a las 4" → 04:00 AM en vez de 16:00;
+  "esta noche a las 9" → 09:00 AM en vez de 21:00; "mañana a la tarde" → 09:00 + "a la tarde"
+  en título); "12 de la noche" → 12:00 (mediodía) en vez de 00:00 (medianoche); "de la madrugada"
+  no reconocido. Fix quirúrgico: `standalonePartOfDayPattern`, `hasPartOfDayPmContext`,
+  `explicitTime` emite `Pair<LocalTime,Boolean>`, contexto PM a hora sin meridiem. 6 tests
+  nuevos. Commit pendiente (esta run).
+- **Verificación JVM**: 169 tests del dominio PASS (25 clases); smoke 25 assertions OK.
 - `./gradlew test/lint/assemble`: sigue NO VERIFICADO (sin Android SDK en el entorno).
 
 ## Áreas modificadas
@@ -44,7 +54,7 @@
 ## Tests ejecutados
 
 - **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` (sin Android SDK).
-- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 155 tests OK (25 clases);
+- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 169 tests OK (25 clases);
   `bash tools/run_domain_checks.sh` → 25 assertions OK.
 
 ## Problemas conocidos
@@ -56,11 +66,15 @@
   JVM pura sin Robolectric/Android SDK); no verificados.
 - Parser: ~~números escritos en expresiones relativas ("en dos horas") no parseados (P2)~~ RESUELTO (ciclo 4).
 - Parser: ~~"de la tarde/noche/mañana" como meridiem ignorado (hora AM errónea); "al mediodía"/"a la medianoche" y "esta mañana" dejaban restos en el título~~ RESUELTO (ciclo 5, 8 tests nuevos).
+- Parser: ~~contexto PM de parte del día no aplicado a hora sin meridiem; "12 de la noche"=mediodía; "de la madrugada" no reconocido~~ RESUELTO (ciclo 6, 6 tests nuevos).
+- Parser: casos límite menores P3 abiertos: "salir de madrugada" (sin "a las"/"a la") no reconocido;
+  "a las 24" → null; "a las 3.5" → ".5" suelto. Ver BACKLOG.
 - NoteEditor: `blocks` (mutableStateListOf) no es `rememberSaveable`; si el proceso muere dentro
   de la ventana de autosave (800 ms) se pierden los últimos cambios de bloques (el `title` sí
   sobrevive). Tradeoff de debounce, no corregido en esta sesión (P2/P3).
-- El workflow Jules necesita `jules/autonomous-ordia` visible en la API de Sources antes de lanzar.
-- El auto-merge requiere `secrets.JULES_API_KEY` configurado y checks exitosos.
+- El workflow autónomo (Jules/OpenHands) opera sobre `openhands/autonomous-ordia` en esta sesión;
+  la memoria histórica referenciaba `jules/autonomous-ordia`. Auto-merge requiere
+  `secrets.JULES_API_KEY` configurado y checks exitosos.
 
 ## Bloqueos
 
@@ -69,11 +83,13 @@
 
 ## Siguiente tarea recomendada
 
-- Ciclo 5 ejecutado: fix del parser (meridiem "de la tarde/noche" + limpieza de título). Continuar
-  autonomía: Ciclo 6 = auditoría de Onboarding (caber en pantallas pequeñas, botones accesibles,
-  sin scroll imposible) y responsive. Después: NoteEditor `rememberSaveable` (P2/P3),
-  atomicidad de `saveRoutine` (P3), ítems P2 (deprecación de iconos, i18n, QA de variantes).
-  La verificación de Gradle/Android queda pendiente hasta que exista un entorno con SDK.
+- Ciclo 6 ejecutado: fix del parser (contexto PM de parte del día sobre hora sin meridiem;
+  "12 de la noche"=medianoche; "de la madrugada"; parte del día suelta "a la/de la tarde").
+  Continuar autonomía: seguir auditando el parser (casos límite P3 abiertos), luego UX:
+  Onboarding responsive (caber en pantallas pequeñas, botones accesibles, sin scroll imposible),
+  NoteEditor `rememberSaveable` (P2/P3), atomicidad de `saveRoutine` (P3), ítems P2 (deprecación
+  de iconos, i18n, QA de variantes). La verificación de Gradle/Android queda pendiente hasta
+  que exista un entorno con SDK.
 
 ## PR pendiente
 

@@ -389,11 +389,71 @@ manifiesto y notas. Buscar bugs P0/P1 reales.
 - `./gradlew test/lint/assemble`: NO VERIFICADO (sin Android SDK).
 
 ### Commits
-- (pendiente de push en este run) fix: parser reconoce "de la tarde/noche" y limpia título.
+- `4a20688` fix: parser reconoce "de la tarde/noche" y limpia título. (pushed a origin/openhands/autonomous-ordia)
 
 ### Siguiente prioridad
 - Ciclo 6: auditoría de Onboarding (responsive, pantallas pequeñas) y NoteEditor
   `rememberSaveable`; seguir auditando el parser (casos límite: "a las 3pm de la tarde",
   horas con "de la madrugada", meses con tildes en mayúsculas).
+
+---
+
+## Ciclo 6 (2026-08-11) — parser: contexto PM de parte del día + "12 de la noche" = medianoche
+
+- HEAD inicial: `fa44990` (docs: memoria ciclos 3-4). Rama: `openhands/autonomous-ordia` (synced).
+- Entorno: OpenJDK 21, kotlinc 2.1.20, libs en /tmp/libs. Baseline pre-fix: 163 tests + 25 smoke OK.
+
+### Problema seleccionado (P1 — tareas programadas 12h equivocadas)
+Auditoría con `Probe2.kt` (/tmp/parser-probe/) reveló 4 bugs P1 de alto impacto, frases
+ESPAÑOLAS EXTREMADAMENTE COMUNES que el parser interpretaba en horario totalmente errado:
+
+1. **"esta tarde a las 4"** → 04:00 (4 AM!) en vez de 16:00.
+2. **"esta noche a las 9"** → 09:00 (9 AM!) en vez de 21:00.
+3. **"mañana a la tarde"** → 09:00 + "a la tarde" pegado en el título (sin PM aplicado).
+4. **"a las 12 de la noche"** → 12:00 (mediodía) en vez de 00:00 (medianoche).
+
+### Causa raíz
+- `explicitTime` (hora "a las 4", sin meridiem) tenía prioridad sobre `partOfDayTime`
+  ("esta tarde"), pero al no propagar el contexto PM de la parte del día, la hora quedaba AM.
+- No existía reconocimiento de parte del día "suelta" ("a la tarde"/"de la tarde" sin "esta"):
+  no aportaba hora canónica ni contexto PM, y dejaba restos en el título.
+- "12 de la noche": el fix del ciclo 5 hacía `+12` para horas 1-11, pero para hora 12 dejaba 12
+  (mediodía); el caso "12 de la noche"=medianoche quedaba mal.
+- "de la madrugada" no estaba como meridiem en `timePatterns[0]` (dejaba restos en título).
+
+### Solución (mínima, quirúrgica en `NaturalTaskParser.kt`)
+1. Nuevo `standalonePartOfDayPattern` = `(a la|de la) (tarde|noche|madrugada)` con horas canónicas
+   (tarde 15, noche 21, madrugada 4). NO fuerza fecha (solo hora del día sobre la fecha parseada).
+2. `hasPartOfDayPmContext`: true si parte del día (esta o suelta) es tarde/noche.
+3. `explicitTime` ahora emite `Pair<LocalTime, Boolean>` (hora + tuvo meridiem explícito).
+4. Contexto PM: si hora explícita sin meridiem + contexto PM + hora en 1..11 → +12.
+5. Fallback de hora: `partOfDayTime ?: standalonePartOfDayTime` cuando no hay hora explícita.
+6. "12 de la noche" → 00:00 (caso especial: noche + 12 = medianoche, no mediodía).
+7. "de la madrugada" añadido a `timePatterns[0]` y a `isAm` (12→0).
+8. Limpieza de título: `standalonePartOfDayPattern.replace` después de `timePatterns`,
+   antes del borrado genérico (evita restos "a la"/"de la").
+
+### Tests
+- 6 tests nuevos de regresión: `estaTardeConHoraSinMeridiemAplicaPm`,
+  `estaNocheConHoraSinMeridiemAplicaPm`, `aLaTardeSueltaDefineHoraYNoFuerzaFecha`,
+  `deLaTardeSueltaDaHoraCanonicaHoy`, `doceDeLaNocheEsMedianoche`,
+  `deLaMadrugadaEsAmYLimpiaTitulo`.
+- `bash tools/run_domain_tests.sh` → 169 tests PASS (25 clases), 0 FAIL.
+- `bash tools/run_domain_checks.sh` → 25 assertions OK.
+- `./gradlew test/lint/assemble`: NO VERIFICADO (sin Android SDK).
+
+### Archivos modificados
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (+27/-6)
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+43)
+
+### Hallazgos adicionales (menores, no abordados esta run)
+- "salir de madrugada" (sin "a las"/"a la") no es reconocido (deja "de madrugada" en título,
+  dueAt null). Caso raro; el patrón standalone exige "a la"/"de la". Para backlog.
+- "a las 24" → null (24:00 es válido como medianoche pero raro). Menor.
+- "a las 3.5" → comportamiento extraño (".5" suelto en título). Edge, no feature real.
+
+### Siguiente prioridad
+- Continuar auditoría del parser (casos límite), luego UX: Onboarding responsive,
+  NoteEditor `rememberSaveable`, atomicidad de `saveRoutine`. Ver BACKLOG.
 
 ---
