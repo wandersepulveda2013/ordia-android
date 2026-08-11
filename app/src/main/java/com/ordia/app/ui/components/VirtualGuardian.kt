@@ -192,7 +192,7 @@ private fun DrawScope.drawMoss(center: Offset, radius: Float, palette: GuardianP
     drawCircle(palette.body, radius, center)
     val leaf = Path().apply {
         moveTo(center.x - radius * 0.38f, center.y - radius * 0.74f)
-        quadraticBezierTo(center.x - radius * 0.75f, center.y - radius * 1.08f, center.x - radius * 0.15f, center.y - radius * 1.02f)
+        quadraticTo(center.x - radius * 0.75f, center.y - radius * 1.08f, center.x - radius * 0.15f, center.y - radius * 1.02f)
         close()
     }
     drawPath(leaf, palette.accent)
