@@ -2013,3 +2013,30 @@ Continuar el ciclo interminable de mejora continua P2/P3. Cerrar la auditoría d
 
 ### Siguiente
 - Continuar ciclo interminable. Próxima mejora P2/P3 visible (no detenerse).
+
+---
+
+## Ciclo 28 (cont.) — NaturalTaskParser: "fin de semana" → próximo sábado — 2026-08-11T21:4Z
+
+### Objetivo
+Cerrar el candidato P3 listado en CURRENT_STATE ("este fin de semana" no soportado en el parser).
+
+### Cambio (1 commit)
+- `5b6f714` — `NaturalTaskParser` ahora reconoce "este/el/próximo fin de semana" y "fin de semana"
+  suelto → próximo sábado (hora canónica 09:00, consistente con días sueltos). Antes la frase
+  quedaba sin fecha (INBOX) y "fin de semana" como residuo en el título. Hora explícita respetada
+  ("el fin de semana a las 20:00" → sábado 20:00). TDD: +3 tests.
+
+### Tests — VERIFICADO localmente
+- `./gradlew :app:testPreviewSafeDebugUnitTest` (con Android SDK instalado en el agente):
+  **462 tests, 0 failures, 0 errors, 0 skipped** en 48 clases.
+- CI `5b6f714` success (Verificar). CI `118f020` (docs previo) cancelled por concurrencia (no fallo).
+
+### Nota
+- Android SDK (platform-tools, platforms;android-36, build-tools 35/36) se instaló en `/tmp/android-sdk`
+  para poder correr los tests unitarios JVM localmente en esta sesión. `local.properties` (gitignored)
+  apunta ahí. No persiste entre sesiones; la próxima ejecución que quiera correr gradle debe recrearlo.
+
+### Siguiente
+- Continuar ciclo interminable P2/P3. Candidatos: derivedStateOf/keys en LazyColumns grandes,
+  BackHandler en pantallas anidadas, contraste onSurfaceVariant.

@@ -15,16 +15,16 @@
 ## Estado
 
 - **Fecha (UTC)**: 2026-08-11 (fin ciclo 28)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD `072c252`)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD `5b6f714`)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-## Último trabajo — Ciclo 28 (accesibilidad, strings, UX adjuntos)
+## Último trabajo — Ciclo 28 (a11y, strings, UX adjuntos, parser fin de semana)
 
-5 commits → 5 releases firmadas consecutivas (v3.0.19 → v3.0.23):
+6 commits → 6 releases firmadas consecutivas (v3.0.19 → v3.0.24):
 
 1. `109c14d` — Role.Button en OrdiaListItem (AppComponents:260). TalkBack ahora anuncia botón.
 2. `b39fd73` — Roles semánticos en todos los clickables restantes: CaptureScreen card
@@ -40,6 +40,10 @@
    silencioso). P1 subyacente documentado en BACKLOG.
 
 CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Firma/release OK.
+
+6. `5b6f714` — `NaturalTaskParser` reconoce "este/el/próximo fin de semana" y "fin de semana"
+   suelto → próximo sábado (09:00 canónico). Antes: sin fecha + residuo en título. +3 tests.
+   **VERIFICADO localmente**: `./gradlew :app:testPreviewSafeDebugUnitTest` = 462 tests, 0 fail.
 
 ## Riesgos / bloqueos
 
@@ -71,6 +75,4 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 
 - Continuar ciclo interminable P2/P3 (UX, a11y, deuda técnica). No detenerse.
 - Candidatos: revisar `derivedStateOf`/keys en LazyColumns grandes; auditar `BackHandler` en
-  pantallas anidadas; revisar contraste de `onSurfaceVariant` en tokens secundarios; "este fin
-  de semana" no soportado en NaturalTaskParser (P3, no pérdida datos).
-
+  pantallas anidadas; revisar contraste de `onSurfaceVariant` en tokens secundarios.
