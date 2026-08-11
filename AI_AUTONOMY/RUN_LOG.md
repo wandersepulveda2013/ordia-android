@@ -167,3 +167,57 @@
 - (pendiente) docs(autonomy): memoria de la sesión 002 (este commit)
 
 ---
+
+## Sesión 003 — 2026-08-11 (OpenHands: auditoría + fix de verificación de dominio)
+
+**Objetivo**: primera ejecución de OpenHands. Inspeccionar el estado real del repo, leer la
+memoria `AI_AUTONOMY`, auditar el trabajo previo de Jules/Codex, ejecutar una baseline razonable,
+reconstruir prioridades y resolver el problema ejecutable de mayor prioridad verificable.
+
+**Entorno**: rama `jules/autonomous-ordia` (HEAD inicial `ecd6151`). Sin Android SDK en el entorno;
+se instaló OpenJDK 21 + kotlinc 2.1.20 + JUnit4/hamcrest/org.json/kotlinx-coroutines (-jvm) en /tmp.
+
+### Cambios
+
+- `tools/domain-smoke/DomainSmoke.kt`: fix del smoke obsoleto. El assertion
+  `search.map { it.kind }.toSet() == SearchKind.entries.toSet()` fallaba siempre porque
+  `SearchKind` se amplió a 7 valores (TASK, PROJECT, NOTE, HABIT, CONVERSATION, COMMITMENT,
+  AUTOMATION) pero el smoke solo alimenta 4 listas. Alineado con `SearchEngineTest` (set explícito
+  de los 4 kinds core).
+- `tools/domain-smoke/PreferenceStubs.kt` (NUEVO): stubs JVM de `ThemeMode`, `InterfaceMode`,
+  `GuardianMode`, `GuardianSpecies`, `UserPreferences`, `PreferencesRepository` (con
+  `DAILY_INTERACTION_LIMIT`) para compilar/ejecutar los tests del dominio que dependen de
+  `data.preferences` sin Android DataStore. Solo se usa desde tools/, no forma parte de la app.
+- `AI_AUTONOMY/BACKLOG.md`, `CURRENT_STATE.md`, `RUN_LOG.md`, `DECISIONS.md`: memoria actualizada.
+
+### Tests
+
+- `bash tools/run_domain_checks.sh` → **PASS** (25 assertions) [antes FAIL: "Universal search failed"].
+- Tests unitarios del dominio (JUnit4, JVM): **125 tests PASS, 0 FAIL, 0 skip**.
+- `./gradlew test/lint/assemble`: **NO VERIFICADO** (sin Android SDK en el entorno).
+
+### Hallazgos de auditoría
+
+- La rama `jules/autonomous-ordia` es el rebuild Ordía 3.0 (275+ archivos); `main` solo tiene
+  infra de orquestación. NO trabajar sobre main.
+- Trabajo previo de Jules/Codex auditado: recordatorios (ReminderScheduler con WorkManager
+  unique work + cancelAllAndAwait, ReminderActionReceiver con mutex+snooze real), persistencia
+  (BackupManager con checksum SHA-256 ORD-031, RestoreData atómico via withTransaction),
+  IA (TFLite simulado eliminado → IntelligenceProvider real), privacidad (IME guard, context
+  filter). Trabajo REAL y robusto, no simulado.
+- `SearchEngine` correctamente ampliado a 7 kinds; `SearchEngineTest` correcto; solo el smoke
+  estaba desactualizado.
+- `NoteBlocks.kt`/`TaskSnapshotCodec.kt` (dominio) acoplados a `org.json` (API Android) — deuda
+  técnica menor, funcional.
+
+### Commit
+
+- (pendiente de crear en este paso) fix(test): alinear domain smoke con SearchKind ampliado
+
+### Siguiente prioridad
+
+- Auditoría de persistencia (Room cascadas/índices/transacciones/N+1) y recordatorios/WorkManager
+  con Android SDK (gradle). Ítems P0/P1 del BACKLOG: restauración con manifiesto corrupto, backup
+  adverso. La verificación de dominio ya está verde.
+
+---

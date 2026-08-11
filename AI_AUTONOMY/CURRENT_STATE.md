@@ -4,39 +4,28 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-10 (corrección de infraestructura del sistema autónomo)
-- **Branch de trabajo**: `jules/autonomous-ordia` (HEAD `cc1a1e3`)
-- **main**: `d5b3b60` — contiene SOLO infraestructura de orquestación (workflows), no el rebuild
+- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands 003 — audit+fix dominio)
+- **Branch de trabajo**: `jules/autonomous-ordia` (HEAD inicial `ecd6151`)
+- **main**: contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
 
 ## Último trabajo realizado
 
-- Corrección de infraestructura (ver RUN_LOG sesión 002):
-  - `origin/main` actualizado a `d5b3b60` con la versión definitiva de los 3 workflows:
-    - `ordia-autonomous-jules.yml`: cron 2h, `preferred = "jules/autonomous-ordia"`, failsafes
-      (variable + bypass), session lock robusto (sessions API + PRs + checks), anti-loop,
-      contexto de PRs fallidas, `requirePlanApproval: False`, `automationMode: AUTO_CREATE_PR`.
-    - `ordia-autonomous-merge.yml` (NUEVO): auto-merge squash seguro hacia la rama autónoma con
-      12 guardas; guard clause explícito contra `main`; logging + comentario post-merge.
-    - `android-ci.yml` (NUEVO en main): CI para push/PR hacia `main` y `jules/autonomous-ordia`.
-  - Verificado con `git show origin/main:...` que el cron real es `17 */2 * * *` y que NO existe
-    camino automático `* → main`.
-- (Histórico) Workflow Jules v1 y consolidación del rebuild de Codex (ver sesiones 000-001).
-- Consolidación y publicación del rebuild de Codex (`feature/ordia-total-rebuild-2026-08-10` → `d34ffd8`):
-  1. `feat(intelligence)`: elimina modelo local TFLite simulado; unifica proveedor real.
-  2. `feat(privacy)`: guardián de teclado y filtro de privacidad contextual endurecidos.
-  3. `feat(context)`: confirmación externa consentida y auditoría de contexto.
-  4. `feat(automation)`: reglas locales explicables y reversibles.
-  5. `feat(domain)`: paleta de comandos, temporizador de foco, calendario de planificador.
-  6. `feat(ui)`: pantallas, navegación y estado renovados.
-  7. `feat(shortcuts)`: tile de captura en Quick Settings y accesos directos.
-  8. `feat(backup)`: mejora restauración y seguridad del respaldo.
-  9. `feat(integration)`: manifiesto, DI, datos, servicios y strings cableados.
-- Correcciones aplicadas durante la validación del rebuild:
-  - `ContextPrivacyFilter` fragmentos de paquete sin punto (banca genérica como `mobilebanking`).
-  - `OrdiaCaptureTileService`: `@SuppressLint("StartActivityAndCollapseDeprecated")`.
-  - `TaskDetailScreen`: `stringResource` en ámbito composable en vez de `context.getString`.
+- **Sesión OpenHands 003 (esta ejecución)**: auditoría y fix de la verificación estática de dominio.
+  - Se descubrió que `tools/run_domain_checks.sh` (smoke de dominio) ESTABA ROTO: `DomainSmoke.kt`
+    comparaba `SearchKind.entries.toSet()` (7 kinds tras ampliar `SearchKind` con CONVERSATION,
+    COMMITMENT, AUTOMATION) pero el smoke solo alimenta 4 listas (tasks/proyectos/notas/hábitos),
+    así que el assertion "Universal search failed" siempre fallaba. El test unitario
+    `SearchEngineTest` ya usaba el set correcto de 4 kinds core; el smoke quedó obsoleto.
+  - Fix: alinear el smoke con `SearchEngineTest` (set explícito de TASK/PROJECT/NOTE/HABIT).
+  - Verificación JVM (sin Android SDK, usando kotlinc + JUnit4 + stubs de Room/Preferences):
+    `bash tools/run_domain_checks.sh` → 25 assertions OK; 125 tests del dominio OK
+    (DateRules, DayPlanner, FocusTimer, Guardian, Habit, NaturalTaskParser, Onboarding,
+    PlannerCalendar, QuietHours, Recurrence, ReminderSync, Routine, Search, Subtask,
+    Summary, TaskRules, TaskSnapshotCodec, UniversalCapture, WhatNow, CommandPalette, etc.).
+  - Se añadieron stubs JVM (`tools/domain-smoke/PreferenceStubs.kt`) para compilar los tests
+    del dominio que dependen de `data.preferences` (DataStore no disponible fuera de Android).
 
 ## Áreas modificadas
 
@@ -45,17 +34,21 @@
 
 ## Tests ejecutados
 
-- `./gradlew test` → 6 variantes, todas verdes.
-- `./gradlew lintPreviewSafeDebug` → verde (2 errores corregidos).
-- `./gradlew assembleDebug assembleRelease` → verde (solo warnings de deprecación no bloqueantes).
+- **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` en esta
+  sesión (sin Android SDK en el entorno). El estado "6 variantes verdes" corresponde a sesiones
+  previas de Jules y NO fue reproducido aquí.
+- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_checks.sh` → 25 assertions OK; 125 tests
+  unitarios del dominio OK con JUnit4 (compilados con kotlinc 2.1.20 + stubs Room/Preferences).
 
 ## Problemas conocidos
 
-- Warnings de deprecación no bloqueantes (ej. `Icons.Outlined.InsertDriveFile` → AutoMirrored).
-- El workflow Jules necesita `jules/autonomous-ordia` visible en la API de Sources antes de
-  lanzar sesiones (verificado en cada ejecución; si no aparece, la sesión NO se lanza).
-- El auto-merge requiere que las PRs de Jules tengan checks exitosos; si `secrets.JULES_API_KEY`
-  no está configurado o el conector no ve la rama, el scheduler no lanza sesiones (no falla el job).
+- Warnings de deprecación no bloqueantes (ej. `Icons.Outlined.InsertDriveFile` → AutoMirrored) — ver BACKLOG.
+- `NoteBlocks.kt` y `TaskSnapshotCodec.kt` (dominio) dependen de `org.json` (API Android); en tests
+  se sustituye por `org.json:json:20231013` real. Acoplamiento del dominio a Android, pero funcional.
+- Tests de `backup`/`context`/`repositories` requieren DAOs/RoomDatabase/Context (no ejecutables en
+  JVM pura sin Robolectric/Android SDK); no verificados en esta sesión.
+- El workflow Jules necesita `jules/autonomous-ordia` visible en la API de Sources antes de lanzar.
+- El auto-merge requiere `secrets.JULES_API_KEY` configurado y checks exitosos.
 
 ## Bloqueos
 
@@ -64,10 +57,10 @@
 
 ## Siguiente tarea recomendada
 
-- Arrancar el primer ciclo Jules: ejecutar manualmente el workflow
-  `Ordia Autonomous Jules` (Actions → workflow_dispatch) tras confirmar
-  `secrets.JULES_API_KEY` y la sincronización de la rama en el conector de Jules.
-  Observar después `Ordia Autonomous Merge` (workflow_dispatch o cron `*/15`).
+- Profundizar la auditoría de persistencia (Room: cascadas, índices, transacciones, N+1) y de
+  recordatorios/WorkManager con un entorno que tenga Android SDK (gradle lint/assemble), ya que
+  esos tests no son ejecutables en JVM pura. Priorizar los ítems P0/P1 del BACKLOG (backup adverso,
+  restauración con manifiesto corrupto). La verificación de dominio (esta sesión) ya está verde.
 
 ## PR pendiente
 

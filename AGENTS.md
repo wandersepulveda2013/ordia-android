@@ -56,3 +56,20 @@ Una tarea está terminada cuando:
 El sistema autónomo es experimental. Supervisa `jules/autonomous-ordia` periódicamente.
 Cualquier sesión sospechosa se puede detener desactivando `ORDIA_AUTONOMY_ENABLED`
 (ver `AI_AUTONOMY/SUPERVISION.md`).
+
+## 6. Verificación sin Android SDK (entorno JVM puro)
+
+Cuando el entorno NO tenga Android SDK (gradle inutilizable), la verificación del dominio
+es reproducible con kotlinc + JUnit4 + stubs:
+
+- Instalar: OpenJDK 21, kotlinc 2.1.20, junit-4.13.2, hamcrest-core-1.3, kotlin-stdlib-2.1.20,
+  org.json:json:20231013, kotlinx-coroutines-core-jvm 1.10.2, kotlinx-coroutines-test-jvm 1.10.2.
+- `bash tools/run_domain_checks.sh` → compila `RoomStubs.kt` + subconjunto del dominio y corre
+  el smoke (25 assertions). Es la baseline mínima de dominio.
+- Para correr TODOS los tests del dominio: compilar `tools/domain-smoke/RoomStubs.kt`,
+  `tools/domain-smoke/PreferenceStubs.kt`, `app/src/main/java/com/ordia/app/data/local/Entities.kt`,
+  `app/src/main/java/com/ordia/app/data/local/TaskTree.kt`, `app/src/main/java/com/ordia/app/domain/*.kt`
+  y `app/src/test/java/com/ordia/app/domain/*.kt` con kotlinc (-cp las jars anteriores) y ejecutar
+  `org.junit.runner.JUnitCore <testes>` → 125 tests.
+- LIMITACIÓN: tests de `backup`, `context`, `repositories`, `ime`, UI y DAOs requieren
+  DAOs/RoomDatabase/Context (Android). No son ejecutables en JVM pura; marcar NO VERIFICADO.

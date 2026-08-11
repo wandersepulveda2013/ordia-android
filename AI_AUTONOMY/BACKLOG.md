@@ -22,3 +22,4 @@
 | P1 | Privacy | Fragmentos de paquete sin punto (banca genérica) no se filtraban | `ContextPrivacyFilterTest` | FIXED |
 | P1 | Capture | `StartActivityAndCollapseDeprecated` en tile de Quick Settings | lint | FIXED |
 | P1 | UI | `stringResource` fuera del ámbito composable en `TaskDetailScreen` | lint | FIXED |
+| P2 | Tests | `tools/domain-smoke/DomainSmoke.kt` obsoleto tras ampliar `SearchKind` a 7 valores: el smoke comparaba `SearchKind.entries.toSet()` (7 kinds) pero solo alimentaba 4 listas (tasks/proyectos/notas/hábitos) → `run_domain_checks.sh` fallaba con "Universal search failed" | `bash tools/run_domain_checks.sh` (reproducido); alineado con `SearchEngineTest` que usa el set correcto de 4 kinds core | FIXED → VERIFIED (smoke 25 assertions OK + 125 tests dominio OK con kotlinc/JUnit4 en JVM) |

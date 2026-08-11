@@ -78,7 +78,14 @@ fun main() {
         listOf(NoteEntity(id = 3, title = "Ideas", body = "Cambios para Toolisto")),
         listOf(HabitEntity(id = 4, title = "Revisión", details = "Abrir Toolisto"))
     )
-    checkThat(search.map { it.kind }.toSet() == SearchKind.entries.toSet(), "Universal search failed")
+    // SearchKind ahora incluye CONVERSATION, COMMITMENT y AUTOMATION, pero este
+    // smoke solo alimenta tareas/proyectos/notas/hábitos: el conjunto esperado es
+    // el de los cuatro kinds core (alineado con SearchEngineTest). Usar
+    // SearchKind.entries.toSet() sería un bug obsoleto que nunca podría pasar.
+    val coreKinds = setOf(
+        SearchKind.TASK, SearchKind.PROJECT, SearchKind.NOTE, SearchKind.HABIT
+    )
+    checkThat(search.map { it.kind }.toSet() == coreKinds, "Universal search failed")
     checkThat(search.first().kind == SearchKind.PROJECT, "Search ranking failed")
     val accentSearch = SearchEngine.search(
         "habito", emptyList(), emptyList(), emptyList(),
