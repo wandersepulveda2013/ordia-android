@@ -114,6 +114,35 @@ class NaturalTaskParserTest {
         assertEquals(30, result.durationMinutes)
     }
 
+    // "Nh" compacto debe reconocerse como duración en horas, no dejar "2h" en el título
+    // ni interpretarse como minutos.
+    @Test fun parsesCompactHoursDuration() {
+        val result = NaturalTaskParser.parse("Trabajar 2h", now, zone)
+        assertEquals("Trabajar", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun parsesCompactSingleHourDuration() {
+        val result = NaturalTaskParser.parse("Estudiar 1h", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(60, result.durationMinutes)
+    }
+
+    // "2horas" (palabra completa) sigue funcionando y el compacto "2h" no la roba ni deja residuo.
+    @Test fun compactHoursDoesNotStealFullWord() {
+        val result = NaturalTaskParser.parse("Reunión 2horas", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    // "Nh" compacto como duración NO interfiere con un recordatorio "N min antes".
+    @Test fun compactHoursDurationWithReminder() {
+        val result = NaturalTaskParser.parse("Estudiar 2h recuérdame 15 min antes", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(15, result.reminderOffsetMinutes)
+    }
+
     @Test fun parsesMonthNameDate() {
         val result = NaturalTaskParser.parse("Entregar reporte antes del 5 de agosto", now, zone)
         assertEquals("Entregar reporte", result.title)

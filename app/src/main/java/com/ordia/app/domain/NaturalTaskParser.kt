@@ -60,7 +60,11 @@ object NaturalTaskParser {
         Regex("""(?i)\((\d{1,3})\s*(minutos?|min|horas?|hora)\)"""),
         Regex("""(?i)\b(?:durante|por)\s+(\d{1,3})\s*(minutos?|min|horas?|hora)\b"""),
         Regex("""(?i)\b(\d{1,3})\s*(minutos?|min)\b"""),
-        Regex("""(?i)\b(\d{1,3})\s*(horas?)\b""")
+        Regex("""(?i)\b(\d{1,3})\s*(horas?)\b"""),
+        // Compacto "Nh" (p. ej. "Trabajar 2h", "Estudiar 1h"). El \b final evita
+        // casar "2horas" (h seguida de 'o' no es límite de palabra), así no roba
+        // ni deja residuo frente al patrón completo "horas?".
+        Regex("""(?i)\b(\d{1,3})\s*(h)\b""")
     )
 
     /** "urgente" como palabra inicial, para detección de prioridad sin prefijo. */
@@ -290,7 +294,7 @@ object NaturalTaskParser {
         val durationMinutes = durationMatch?.let { match ->
             val amount = match.groupValues[1].toIntOrNull() ?: return@let null
             val unit = match.groupValues[2].lowercase()
-            (if (unit.startsWith("hora")) amount * 60 else amount).coerceIn(5, 24 * 60)
+            (if (unit.startsWith("hora") || unit == "h") amount * 60 else amount).coerceIn(5, 24 * 60)
         }
         durationMatch?.let { working = working.replace(it.value, " ") }
 
