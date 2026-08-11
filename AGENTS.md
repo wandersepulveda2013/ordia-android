@@ -63,9 +63,30 @@ Para continuidad real (run termina → siguiente run en ~15–40 s, no horas), e
 supervisor persistente: `tools/ordia_supervisor.py` (+ `tools/ordia_supervisor.sh`,
 `tools/SUPERVISOR.md`). Se ejecuta en una máquina siempre encendida y orquesta la
 Automation `Ordía Continuous Evolution` (id `b3bd3870-6c75-4d66-8113-412afc835c5f`)
-garantizando `MAX_CONCURRENT_RUNS=1`. Deshabilita el cron al arrancar y lo rehabilita
-al detenerse (red de seguridad). La rama de trabajo es **`openhands/autonomous-ordia`**
+garantizando `MAX_CONCURRENT_RUNS=1`. v2: lock cross-platform (fcntl/msvcrt/pidfile),
+lease distribuido vía GitHub Gist (heartbeat ~90s, TTL 300s), watchdog GitHub Actions
+(`.github/workflows/ordia-openhands-watchdog.yml`) que sobrevive a kill -9/apagón y
+rehabilita el cron si el supervisor cae. Despliegue cloud-first:
+`tools/docker-compose.yml` / `tools/ordia-supervisor.service` / `tools/install-supervisor.sh`.
+Observabilidad: `tools/ordia-status.py`. La rama de trabajo es **`openhands/autonomous-ordia`**
 (memoria Git persistente del desarrollo de OpenHands). Ver `tools/SUPERVISOR.md`.
+
+## 5c. Continuous Delivery + Self-Update
+
+- **Delivery**: `.github/workflows/openhands-delivery.yml` dispara en push a
+  `openhands/autonomous-ordia`: construye `previewAdvanced` release firmada con
+  `ORDIA_UPDATE_KEYSTORE_*`, publica una GitHub Release con el naming EXACTO que el
+  auto-updater espera (`v3.0.N-code-C`, `Ordia-3.0-code-C.apk` + `.sha256`). Gates
+  tests+lint+assemble; no publica builds rotas. Concurrencia cancela builds obsoletas.
+- **Self-Update** (en la app): `OrdiaUpdateManager` + `UpdateSecurityRules` +
+  `OrdiaUpdateWorker` + `UpdateInstallActivity`. Solo cuando
+  `BuildConfig.SELF_UPDATE_ENABLED==true` (previewAdvanced/previewFull). Valida SHA-256,
+  firma compatible, versionCode superior, packageName correcto; lanza el instalador
+  oficial (Android pide confirmación). Frecuencia: WorkManager 12h + check manual.
+- **Firma estable**: ver `tools/keystore/README.md` para generar el keystore y cargar
+  los 4 GitHub Secrets. Sin ellos, el delivery falla en el step de firma (esperado: no
+  publica nada). La primera instalación en el teléfono puede requerir UNA última
+  instalación manual limpia si la firma actual difiere.
 
 ## 6. Verificación sin Android SDK (entorno JVM puro)
 

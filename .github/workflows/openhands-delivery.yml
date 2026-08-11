@@ -70,6 +70,7 @@ jobs:
       - name: Verificar (tests + lint + assemble previewAdvanced release)
         shell: bash
         run: |
+          chmod +x gradlew
           ./gradlew clean test lint assemblePreviewAdvancedRelease --stacktrace
 
       - name: Localizar APK sin firmar
