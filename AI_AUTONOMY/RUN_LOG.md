@@ -167,3 +167,12 @@
 - (pendiente) docs(autonomy): memoria de la sesión 002 (este commit)
 
 ---
+
+## Ejecución Autónoma - $(date +"%Y-%m-%d %H:%M:%S")
+
+- **Tarea principal:** Corrección de warnings de deprecación (Iconos y LocalClipboard).
+- **Acciones:**
+  - Migración de `Icons.Outlined.*` a `Icons.AutoMirrored.Outlined.*` en componentes de la UI (AppComponents, WorkspaceScreen, NoteEditorScreen, OnboardingScreen, ProjectDetailScreen, ProjectsScreen, TaskDetailScreen, TodayScreen).
+  - Sustitución de `LocalClipboardManager` por `LocalClipboard` en `CaptureScreen.kt` usando `rememberCoroutineScope()` para lectura asíncrona del clip entry.
+- **Estado de Compilación:** Compilación en `compilePreviewSafeDebugKotlin` exitosa, pasando también pruebas de unidad `testPreviewSafeDebugUnitTest`.
+- **Archivos Autonomía:** `BACKLOG.md` y `CURRENT_STATE.md` actualizados reflejando las mejoras integradas.
