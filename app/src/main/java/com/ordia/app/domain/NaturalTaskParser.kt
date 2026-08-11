@@ -44,11 +44,11 @@ object NaturalTaskParser {
     )
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
     private val timePatterns = listOf(
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche)?\b"""),
         Regex("""(?i)\b([01]?\d|2[0-3]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b"""),
-        Regex("""(?i)\bmediod[ií]a\b"""),
-        Regex("""(?i)\bmedianoche\b""")
+        Regex("""(?i)\b(?:al\s+|a\s+la\s+)?mediod[ií]a\b"""),
+        Regex("""(?i)\b(?:al\s+|a\s+la\s+)?medianoche\b""")
     )
     private val reminderPatterns = listOf(
         Regex("""(?i)\b(?:recuérdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?(\d{1,3})\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
@@ -199,15 +199,19 @@ object NaturalTaskParser {
 
         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
         val explicitTime = timeMatch?.let { match ->
+            val mv = match.value.lowercase()
             when {
-                match.value.lowercase().contains("mediodía") || match.value.lowercase().contains("mediodia") -> LocalTime.NOON
-                match.value.lowercase().contains("medianoche") -> LocalTime.MIDNIGHT
+                mv.contains("mediodía") || mv.contains("mediodia") -> LocalTime.NOON
+                mv.contains("medianoche") -> LocalTime.MIDNIGHT
                 else -> {
                     var hour = match.groupValues[1].toInt()
                     val minute = match.groupValues[2].toIntOrNull() ?: 0
                     val meridiem = match.groupValues[3].lowercase().replace(".", "").replace(" ", "")
-                    if (meridiem == "pm" && hour < 12) hour += 12
-                    if (meridiem == "am" && hour == 12) hour = 0
+                    // "de la tarde"/"de la noche" → 12h posterior; "de la mañana" → am.
+                    val isPm = meridiem == "pm" || meridiem == "delatarde" || meridiem == "delanoche"
+                    val isAm = meridiem == "am" || meridiem == "delamañana" || meridiem == "delamanaana"
+                    if (isPm && hour < 12) hour += 12
+                    if (isAm && hour == 12) hour = 0
                     LocalTime.of(hour, minute)
                 }
             }
@@ -232,13 +236,22 @@ object NaturalTaskParser {
         val category = categories.firstOrNull { (_, keywords) -> keywords.any { working.contains(it, ignoreCase = true) } }?.first.orEmpty()
 
         // Limpieza de la frase para el título.
+        // Orden crítico: partOfDay ("esta mañana") y las horas ("a las 9 de la mañana")
+        // deben eliminarse ANTES del borrado genérico de "mañana"/"hoy", porque ambos
+        // contienen "mañana"; si se borra primero, dejan restos huérfanos ("esta", "de la").
         working = working
-            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
             .let { value -> partOfDayPattern.replace(value, " ") }
-            .let { value -> weekdayPattern.replace(value, " ") }
-            .let { value -> monthNamePattern.replace(value, " ") }
-            .let { value -> numericDatePattern.replace(value, " ") }
             .let { value -> timePatterns.fold(value) { acc, pattern -> pattern.replace(acc, " ") } }
+            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
+            .let { value -> weekdayPattern.replace(value, " ") }
+            // Solo se elimina la fecha "5 de marzo" si el mes es válido: así "9 de la"
+            // (en "a las 9 de la tarde") no se destruye y deja restos en el título.
+            .replace(monthNamePattern) { m ->
+                if (months.any { (name, _) ->
+                        m.groupValues[2].equals(name, ignoreCase = true)
+                    }) " " else m.value
+            }
+            .let { value -> numericDatePattern.replace(value, " ") }
             .replace(Regex("""(?i)\bantes\s+del?\b|\bpara\s+el\b|\bpara\s+mañana\b|\bhasta\s+el\b"""), " ")
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
             .replace(Regex("""\s+"""), " ")

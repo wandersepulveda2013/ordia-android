@@ -55,6 +55,7 @@
 - Tests de `backup`/`context`/`repositories` requieren DAOs/RoomDatabase/Context (no ejecutables en
   JVM pura sin Robolectric/Android SDK); no verificados.
 - Parser: ~~números escritos en expresiones relativas ("en dos horas") no parseados (P2)~~ RESUELTO (ciclo 4).
+- Parser: ~~"de la tarde/noche/mañana" como meridiem ignorado (hora AM errónea); "al mediodía"/"a la medianoche" y "esta mañana" dejaban restos en el título~~ RESUELTO (ciclo 5, 8 tests nuevos).
 - NoteEditor: `blocks` (mutableStateListOf) no es `rememberSaveable`; si el proceso muere dentro
   de la ventana de autosave (800 ms) se pierden los últimos cambios de bloques (el `title` sí
   sobrevive). Tradeoff de debounce, no corregido en esta sesión (P2/P3).
@@ -68,8 +69,9 @@
 
 ## Siguiente tarea recomendada
 
-- Continuar autonomía: Ciclo 5 = auditoría de Onboarding (caber en pantallas pequeñas, botones
-  accesibles, sin scroll imposible) y responsive. Después: NoteEditor `rememberSaveable` (P2/P3),
+- Ciclo 5 ejecutado: fix del parser (meridiem "de la tarde/noche" + limpieza de título). Continuar
+  autonomía: Ciclo 6 = auditoría de Onboarding (caber en pantallas pequeñas, botones accesibles,
+  sin scroll imposible) y responsive. Después: NoteEditor `rememberSaveable` (P2/P3),
   atomicidad de `saveRoutine` (P3), ítems P2 (deprecación de iconos, i18n, QA de variantes).
   La verificación de Gradle/Android queda pendiente hasta que exista un entorno con SDK.
 

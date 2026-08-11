@@ -259,4 +259,60 @@ class NaturalTaskParserTest {
         assertEquals("Revisar el horno", result.title)
         assertEquals(now + 45 * 60_000L, result.dueAt)
     }
+
+    // --- Meridiem "de la tarde/noche/mañana" (antes se ignoraba: hora errónea + título sucio) ---
+
+    @Test fun deLaTardeAppliesPmOffset() {
+        val result = NaturalTaskParser.parse("Cita hoy a las 4 de la tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(16, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun deLaNocheAppliesPmOffset() {
+        val result = NaturalTaskParser.parse("Reunión hoy a las 7 de la noche", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(19, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun deLaMananaKeepsAmHour() {
+        val result = NaturalTaskParser.parse("Desayuno hoy a las 9 de la mañana", now, zone)
+        assertEquals("Desayuno", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun deLaTardeWithMinutesAppliesPmOffset() {
+        val result = NaturalTaskParser.parse("Cita hoy a las 4:30 de la tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(16, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun deLaTardeDoesNotBreakTitle() {
+        val result = NaturalTaskParser.parse("Cita a las 9 de la tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // --- Frases "al mediodía" / "a la medianoche" limpias en el título ---
+
+    @Test fun alMediodiaParsesNoonAndCleanTitle() {
+        val result = NaturalTaskParser.parse("Almuerzo mañana al mediodía", now, zone)
+        assertEquals("Almuerzo", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.NOON, DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aLaMedianocheParsesMidnightAndCleanTitle() {
+        val result = NaturalTaskParser.parse("Entregar tarea a la medianoche", now, zone)
+        assertEquals("Entregar tarea", result.title)
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // --- "esta mañana" no debe dejar "esta" huérfano en el título ---
+
+    @Test fun estaMananaCleanedFullyFromTitle() {
+        val result = NaturalTaskParser.parse("Correo al jefe esta mañana", now, zone)
+        assertEquals("Correo al jefe", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
 }

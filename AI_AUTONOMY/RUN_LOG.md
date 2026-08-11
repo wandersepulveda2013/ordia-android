@@ -355,3 +355,45 @@ manifiesto y notas. Buscar bugs P0/P1 reales.
   ítems P2 pendientes.
 
 ---
+
+## Ciclo 5 — 2026-08-11
+
+- HEAD inicial: `fa44990` (docs: memoria ciclos 3-4).
+- Entorno: OpenJDK 21, kotlinc 2.1.20, libs en /tmp/libs. Baseline pre-fix: 155 tests + 25 smoke OK.
+
+### BUG4 (P1) resuelto — parser: meridiem "de la tarde/noche" + limpieza de título
+- `timePatterns` no reconocía "de la mañana/tarde/noche" como meridiem: "a las 4 de la tarde" →
+  hora 04:00 (madrugada) en vez de 16:00; "a las 9 de la tarde" → 09:00 en vez de 21:00.
+  Bug serio de P0/P1: tarea programada en horario totalmente equivocado.
+- `mediodía`/`medianoche` solo capturaban la palabra, no "al mediodía"/"a la medianoche":
+  dejaban "al"/"a la" sueltos en el título.
+- Orden de limpieza destruía "esta mañana": el borrado genérico de "mañana" corría ANTES que
+  `partOfDayPattern.replace`, dejando "esta" huérfano ("correo al jefe esta").
+- Fix (mínimo):
+  1. `timePatterns[0]` ("a las…") acepta opcional `de la mañana|tarde|noche` como grupo meridiem.
+  2. `mediodía`/`medianoche` aceptan prefijo opcional `al ` / `a la ` para limpiar el título.
+  3. `explicitTime` normaliza el meridiem extendido: "de la tarde"/"de la noche" → pm (+12),
+     "de la mañana" → am (12→0).
+  4. Limpieza del título reordenada: `partOfDayPattern` y `timePatterns` se aplican ANTES del
+     borrado genérico de "mañana"/"hoy" (ambos contienen "mañana").
+  5. `monthNamePattern.replace` ahora es condicional: solo elimina si el mes es válido, evitando
+     que "9 de la" (en "a las 9 de la tarde") se destruya y deje "a las" + "tarde" sueltos.
+
+### Tests
+- 8 tests nuevos de regresión: `deLaTardeAppliesPmOffset`, `deLaNocheAppliesPmOffset`,
+  `deLaMananaKeepsAmHour`, `deLaTardeWithMinutesAppliesPmOffset`, `deLaTardeDoesNotBreakTitle`,
+  `alMediodiaParsesNoonAndCleanTitle`, `aLaMedianocheParsesMidnightAndCleanTitle`,
+  `estaMananaCleanedFullyFromTitle`.
+- `bash tools/run_domain_tests.sh` → 163 tests PASS (25 clases), 0 FAIL.
+- `bash tools/run_domain_checks.sh` → 25 assertions OK.
+- `./gradlew test/lint/assemble`: NO VERIFICADO (sin Android SDK).
+
+### Commits
+- (pendiente de push en este run) fix: parser reconoce "de la tarde/noche" y limpia título.
+
+### Siguiente prioridad
+- Ciclo 6: auditoría de Onboarding (responsive, pantallas pequeñas) y NoteEditor
+  `rememberSaveable`; seguir auditando el parser (casos límite: "a las 3pm de la tarde",
+  horas con "de la madrugada", meses con tildes en mayúsculas).
+
+---
