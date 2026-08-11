@@ -70,6 +70,16 @@ object NaturalTaskParser {
     /** "urgente" como palabra inicial, para detección de prioridad sin prefijo. */
     private val leadingUrgentPattern = Regex("""(?i)^urgente\b""")
 
+    /**
+     * "urgente"/"importante" como palabra FINAL (con puntuación opcional): el usuario añade la
+     * prioridad como sufijo en texto libre ("Llamar mamá urgente"). Más honesto que casar a
+     * mitad de frase (evita "no es urgente el documento" a mitad, que no sería palabra final).
+     */
+    private val trailingPriorityPattern = Regex("""(?i)\b(urgente|importante)\b\s*[.!?]?$""")
+
+    /** Formas copulativas negadas que neutralizan un "urgente"/"importante" final real. */
+    private val negatedPriorityPattern = Regex("""(?i)\bno\s+(?:es|era|fue|parece|ser[áa])\s+(?:lo\s+)?(?:urgente|importante)\b\s*[.!?]?$""")
+
     /** Partes del día: "esta mañana/tarde/noche". Implican fecha=hoy + hora canónica. */
     private val partOfDayPattern = Regex("""(?i)\besta\s+(ma[nñ]ana|tarde|noche)\b""")
     private val partOfDayTimes = mapOf(
@@ -144,6 +154,9 @@ object NaturalTaskParser {
         val original = text.trim()
 
         val lower = working.lowercase()
+        val trailingPriorityWord = trailingPriorityPattern.find(lower)
+            ?.takeIf { !negatedPriorityPattern.containsMatchIn(lower) }
+            ?.groupValues?.get(1)
         val priority = when {
             "!urgente" in lower || "#urgente" in lower -> TaskPriority.URGENT
             "!alta" in lower || "#alta" in lower -> TaskPriority.HIGH
@@ -152,10 +165,17 @@ object NaturalTaskParser {
             // sin prefijo. No se detecta a mitad de frase para evitar falsos positivos
             // como "no es urgente".
             leadingUrgentPattern.containsMatchIn(lower) -> TaskPriority.URGENT
+            // "urgente"/"importante" como palabra FINAL: sufijo de prioridad en texto libre
+            // ("Llamar mamá urgente"), salvo negación ("no es urgente").
+            trailingPriorityWord == "urgente" -> TaskPriority.URGENT
+            trailingPriorityWord == "importante" -> TaskPriority.HIGH
             else -> TaskPriority.NORMAL
         }
         working = working.replace(Regex("""(?i)(?:!|#)(urgente|alta|baja)\b"""), " ")
             .replace(leadingUrgentPattern, " ")
+        if (trailingPriorityWord != null) {
+            working = working.replace(trailingPriorityPattern, " ")
+        }
 
         // Recordatorio "N antes" (se extrae antes que la duración para no confundir unidades).
         val reminderOffsetMinutes = reminderPatterns.asSequence()

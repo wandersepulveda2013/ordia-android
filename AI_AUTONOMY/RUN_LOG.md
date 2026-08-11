@@ -752,3 +752,51 @@ Casos de título que dejan basura/residuos NO limpiados (candidatos a ciclo 8):
 ### Siguiente prioridad
 - Prioridad a mitad de frase ("urgente"/"importante" como palabra suelta en cualquier
   posición → HIGH) — P2, alto valor (evita olvidos de tareas urgentes).
+
+---
+
+## SESIÓN 013 — Prioridad por sufijo final "urgente"/"importante"
+
+- **Fecha (UTC)**: 2026-08-11
+- **Rama**: `openhands/autonomous-ordia`
+- **HEAD inicial**: c265777
+- **Prioridad**: P2 (evita olvidos: el usuario expresa prioridad en texto libre como palabra
+  final "Llamar mamá urgente"; antes caía a NORMAL).
+- **Causa raíz**: la detección de "urgente" sin prefijo solo cubría la palabra INICIAL
+  (`leadingUrgentPattern`). "urgente"/"importante" como palabra final (sufijo de prioridad)
+  no se reconocían, por diseño para evitar falsos positivos de mitad de frase ("no es
+  urgente el documento"). Resultado: prioridad genuina del usuario ignorada en el patrón de
+  captura más natural ("Llamar mamá urgente").
+
+### Solución
+- `trailingPriorityPattern`: `\b(urgente|importante)\b\s*[.!?]?$` → detecta la palabra final.
+  - "urgente" → URGENT, "importante" → HIGH.
+  - Se limpia del título (igual que el prefijo `!urgente` y el `leadingUrgentPattern`).
+- `negatedPriorityPattern`: `\bno\s+(?:es|era|fue|parece|ser[áa])\s+(?:lo\s+)?(?:urgente|importante)\b\s*[.!?]?$`
+  → guard de negación. "no es urgente" como palabra final NO activa prioridad (NORMAL) y se
+  conserva como contenido del título.
+- Orden de prioridad respetado: prefijos `!`/`#` > inicial > sufijo final (sin negación).
+
+### Tests
+- 4 tests nuevos de regresión:
+  - "Llamar mamá urgente" → URGENT, título="Llamar mamá".
+  - "Enviar factura importante" → HIGH, título="Enviar factura".
+  - "Comprar leche urgente!" → URGENT, título="Comprar leche".
+  - "Revisar el documento, no es urgente" → NORMAL, título conservado.
+- `bash tools/run_domain_tests.sh` -> 197 tests OK (25 clases). (+4 respecto a ciclo 12)
+- `bash tools/run_domain_checks.sh` -> 25 assertions OK.
+- NO VERIFICADO: gradle/lint/assemble.
+
+### Archivos modificados
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`
+  (+trailingPriorityPattern, +negatedPriorityPattern, +rama sufijo final en `when` de prioridad,
+  +limpieza del sufijo del título)
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+4 tests)
+
+### Hallazgos adicionales (auditoría ciclo 13)
+- Residuo "de" en "Reunión de 30 minutos" (P3, pendiente).
+- Rango horario "de 18 a 20" → dueAt=null (P3, pendiente de evaluación).
+
+### Siguiente prioridad
+- Nueva auditoría funcional del parser con casos reales adicionales, o resolver el residuo
+  "de" (P3) si aporta claridad. Continuar evitando feature bloat.

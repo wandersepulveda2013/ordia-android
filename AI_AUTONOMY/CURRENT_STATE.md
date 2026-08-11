@@ -73,7 +73,13 @@
   (el `\b` final evita casar "2horas"); detección de unidad ampliada (`h`→horas).
   4 tests nuevos (2h/1h compactos, 2horas intacto, 2h+recordatorio sin interferencia).
   193 tests OK.
-- **Verificación JVM**: 193 tests del dominio PASS (25 clases); smoke 25 assertions OK.
+- **Ciclo 13 (NaturalTaskParser)**: P2 — "urgente"/"importante" como sufijo final no fijaba
+  prioridad ("Llamar mamá urgente" → NORMAL). El usuario expresa prioridad como palabra final
+  en texto libre; no se detectaba para evitar falsos positivos de mitad de frase. Fix:
+  `trailingPriorityPattern` (`\b(urgente|importante)\b\s*[.!?]?$`) → URGENT/HIGH, con guard
+  de negación `negatedPriorityPattern` ("no es/era/fue/parece urgente") → NORMAL. La palabra
+  reconocida se limpia del título. 4 tests nuevos. 197 tests OK.
+- **Verificación JVM**: 197 tests del dominio PASS (25 clases); smoke 25 assertions OK.
 - `./gradlew test/lint/assemble`: sigue NO VERIFICADO (sin Android SDK en el entorno).
 
 ## Áreas modificadas
@@ -84,7 +90,7 @@
 ## Tests ejecutados
 
 - **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` (sin Android SDK).
-- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 193 tests OK (25 clases);
+- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 197 tests OK (25 clases);
   `bash tools/run_domain_checks.sh` → 25 assertions OK.
 
 ## Problemas conocidos
@@ -124,6 +130,11 @@
   fijan prioridad (P2), residuo "de" en "Reunión de 30 minutos" (P3), rango "de 18 a 20"
   → dueAt=null (P3). Continuar autonomía: prioridad a mitad de frase (P2, alto valor —
   "Llamar mamá urgente" debería ser HIGH) o nueva auditoría funcional.
+
+  ACTUALIZACIÓN ciclo 13: fix P2 prioridad por sufijo final ("urgente"/"importante" como
+  palabra final → URGENT/HIGH, con guard de negación). 4 tests nuevos, 197 OK, smoke 25 OK.
+  Pendientes: residuo "de" en "Reunión de 30 minutos" (P3), rango "de 18 a 20" → dueAt=null
+  (P3). Continuar: nueva auditoría funcional o siguiente P3 con valor real.
 
 ## PR pendiente
 

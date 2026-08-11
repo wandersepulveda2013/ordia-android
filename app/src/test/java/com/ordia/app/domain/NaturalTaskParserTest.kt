@@ -292,6 +292,33 @@ class NaturalTaskParserTest {
         assertEquals("Revisar si es urgente el documento", result.title)
     }
 
+    // ── Regresión BUG4b: "urgente"/"importante" como palabra FINAL (sufijo de prioridad) ──
+
+    @Test fun trailingUrgenteSetsUrgentPriority() {
+        val result = NaturalTaskParser.parse("Llamar mamá urgente", now, zone)
+        assertEquals(TaskPriority.URGENT, result.priority)
+        assertEquals("Llamar mamá", result.title)
+    }
+
+    @Test fun trailingImportanteSetsHighPriority() {
+        val result = NaturalTaskParser.parse("Enviar factura importante", now, zone)
+        assertEquals(TaskPriority.HIGH, result.priority)
+        assertEquals("Enviar factura", result.title)
+    }
+
+    @Test fun trailingUrgenteWithPunctuationSetsUrgentPriority() {
+        val result = NaturalTaskParser.parse("Comprar leche urgente!", now, zone)
+        assertEquals(TaskPriority.URGENT, result.priority)
+        assertEquals("Comprar leche", result.title)
+    }
+
+    @Test fun negatedTrailingUrgenteDoesNotSetPriority() {
+        // "no es urgente" como palabra final NO debe activar URGENT (negación).
+        val result = NaturalTaskParser.parse("Revisar el documento, no es urgente", now, zone)
+        assertEquals(TaskPriority.NORMAL, result.priority)
+        assertEquals("Revisar el documento, no es urgente", result.title)
+    }
+
     // ── Regresión BUG3: números escritos en expresiones relativas ──
 
     @Test fun writtenNumberRelativeHoursParsesDueAt() {
