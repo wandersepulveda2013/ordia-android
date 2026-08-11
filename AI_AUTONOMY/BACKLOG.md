@@ -45,5 +45,5 @@
 | P3 | Parser | "salir de madrugada" (sin "a las"/"a la") no reconocido; deja "de madrugada" en título, dueAt null | probe JVM | ABIERTO (caso raro) |
 | P3 | Parser | "a las 24" → null (24:00 = medianoche válido pero no aceptado); "a las 3.5" → ".5" suelto en título | probe JVM | PARCIAL: "a las 24" RESUELTO ciclo 7 (172 tests OK); "a las 3.5" sigue ABIERTO |
 | P3 | Parser | Residuos de título no limpiados: "que viene" tras fecha ("el viernes que viene"); "del" huérfano ("a las 3pm del jueves", "reunión del jueves") | probe JVM ciclo 7 | FIXED ciclo 8 (commit pendiente); `weekdayPattern` extendido con prefijo `el\|del\|de` y sufijo `que viene\|próximo(s\|a)`; 6 tests nuevos, 178 OK |
-| P3 | Parser | "a primera hora" (sin interpretar/limpiar; queda en título, debería ser ~09:00 inicio de jornada) | probe JVM ciclo 7 | ABIERTO (candidato a ciclo 9) |
+| P3 | Parser | "a primera hora" (sin interpretar/limpiar; queda en título, debería ser ~09:00 inicio de jornada) | probe JVM ciclo 7 | FIXED → VERIFIED ciclo 9 (`primeraHoraPattern` + `primeraHoraTime` 09:00 como fallback de `parsedTime`; limpieza de título tras `standalonePartOfDayPattern`; 4 tests nuevos, 182 OK) |
 | P3 | Parser | Rango horario "de 18 a 20" no parseado (dueAt=null, title y hora nulos) | probe JVM ciclo 7 | ABIERTO (candidato a ciclo 9) |

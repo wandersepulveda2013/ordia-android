@@ -559,3 +559,54 @@ Casos de título que dejan basura/residuos NO limpiados (candidatos a ciclo 8):
 ### Siguiente prioridad
 - Ciclo 9: "a primera hora" → ~09:00 + limpiar del título; o rango horario "de 18 a 20".
   Evaluar impacto real antes de implementar. Luego UX/ítems P2.
+
+---
+
+## SESIÓN 004 — Ciclo 9 (NaturalTaskParser: "a primera hora")
+
+- **Fecha (UTC)**: 2026-08-11
+- **HEAD inicial**: `c06e1da` (ciclo 8)
+- **Trigger**: continuación autonomía — frase natural muy común sin interpretar.
+- **Resultado**: ÉXITO — VERIFIED
+
+### Problema seleccionado
+- **Prioridad**: P2 (captura ultrarrápida + persistencia: la frase no generaba recordatorio).
+- **Causa raíz**: "a primera hora" (y "a primera hora de la mañana/madrugada") no tenía
+  patrón dedicado. El parser: (1) NO asignaba hora → `dueAt=null` (sin recordatorio) salvo
+  que hubiera otra fecha; (2) dejaba residuo "a primera hora" en el título. Frase de uso
+  cotidiano ("ir al dentista mañana a primera hora") quedaba incompleta.
+
+### Solución
+- Nuevo `primeraHoraPattern`: `(?i)\b(?:a\s+)?primera\s+horas?(?:\s+de\s+la\s+(?:mañana|madrugada))?\b`
+  (acepta ñ y "manana" sin acento por robustez de teclado).
+- `primeraHoraTime = LocalTime.of(9, 0)` como hora canónica de inicio de jornada.
+- Se aplica como **fallback** en `parsedTime` (después de hora explícita y partes del día),
+  así una hora de reloj siempre gana y "de la tarde" sigue usando `standalonePartOfDayPattern`.
+- Limpieza del título: `.let { primeraHoraPattern.replace(it, " ") }` tras
+  `standalonePartOfDayPattern` (orden correcto: si "primera hora de la tarde", el patrón
+  standalone consume "de la tarde" primero y el de primera hora consume "a primera hora").
+
+### Tests
+- 4 tests nuevos de regresión:
+  - "mañana a primera hora" → 09:00 + título limpio;
+  - "a primera hora" sin fecha → hoy 09:00;
+  - "del jueves a primera hora de la mañana" → jueves 09:00 + título "Reunión";
+  - no deja residuo "primera"/"hora" en el título.
+- `bash tools/run_domain_tests.sh` → 182 tests OK (25 clases). (+4 respecto a ciclo 8)
+- `bash tools/run_domain_checks.sh` → 25 assertions OK.
+- Probe adicional sobre 6 casos reales: todos limpios y con hora correcta (09:00; "de la
+  tarde"=15:00 vía standalone). NO VERIFICADO: gradle/lint/assemble (sin Android SDK).
+
+### Archivos modificados
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (+patrón, +fallback, +cleanup)
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+4 tests, +import assertFalse)
+
+### Hallazgos adicionales
+- "a primera hora de la tarde" (caso aislado sin contenido) dejaba el título completo;
+  con contenido real ("Reunión a primera hora de la tarde") se limpia correctamente y
+  asigna 15:00 vía standalone. No es un bug real; se documentó en el patrón.
+- Pendiente ciclo 10: rango horario "de 18 a 20" (dueAt=null, no parseado). Evaluar
+  impacto real y si aporta utilidad (rango vs. hora única).
+
+### Siguiente prioridad
+- Ciclo 10: rango "de 18 a 20" o nueva auditoría funcional (captura/What Now/inteligencia).

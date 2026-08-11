@@ -86,6 +86,15 @@ object NaturalTaskParser {
         "madrugada" to LocalTime.of(4, 0)
     )
 
+    /**
+     * "a primera hora" (opcionalmente "de la mañana/madrugada"): inicio de jornada ~09:00.
+     * Frase natural muy común; antes dejaba residuo en el título y no se interpretaba.
+     * Como es una hora canónica de respaldo (no un reloj explícito), no fuerza contexto PM.
+     */
+    private val primeraHoraPattern =
+        Regex("""(?i)\b(?:a\s+)?primera\s+horas?(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|madrugada))?\b""")
+    private val primeraHoraTime = LocalTime.of(9, 0)
+
     private val weekdays = mapOf(
         "lunes" to DayOfWeek.MONDAY,
         "martes" to DayOfWeek.TUESDAY,
@@ -178,6 +187,7 @@ object NaturalTaskParser {
         val standalonePartOfDayMatch = standalonePartOfDayPattern.find(working)
         val standalonePartOfDayKey = standalonePartOfDayMatch?.groupValues?.get(1)?.lowercase()
         val standalonePartOfDayTime = standalonePartOfDayKey?.let { standalonePartOfDayTimes[it] }
+        val primeraHoraMatch = primeraHoraPattern.find(working)
         // Contexto PM: una parte del día de tarde/noche (explícita "esta tarde" o suelta "a la noche")
         // aplica offset +12 a una hora sin meridiem ("esta tarde a las 4" → 16:00).
         val partOfDayPmKeys = setOf("tarde", "noche")
@@ -256,7 +266,7 @@ object NaturalTaskParser {
         val parsedTime = explicitTime?.let { t ->
             if (!hasExplicitMeridiem && hasPartOfDayPmContext && t.hour in 1..11)
                 t.plusHours(12) else t
-        } ?: partOfDayTime ?: standalonePartOfDayTime
+        } ?: partOfDayTime ?: standalonePartOfDayTime ?: primeraHoraMatch?.let { primeraHoraTime }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
 
@@ -282,6 +292,7 @@ object NaturalTaskParser {
             .let { value -> partOfDayPattern.replace(value, " ") }
             .let { value -> timePatterns.fold(value) { acc, pattern -> pattern.replace(acc, " ") } }
             .let { value -> standalonePartOfDayPattern.replace(value, " ") }
+            .let { value -> primeraHoraPattern.replace(value, " ") }
             .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
             .let { value -> weekdayPattern.replace(value, " ") }
             // Solo se elimina la fecha "5 de marzo" si el mes es válido: así "9 de la"

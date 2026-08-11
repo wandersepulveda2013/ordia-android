@@ -3,6 +3,7 @@ package com.ordia.app.domain
 import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -421,5 +422,33 @@ class NaturalTaskParserTest {
         assertEquals("Entregar reporte", result.title)
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun primeraHoraInterpretaInicioJornadaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Ir al dentista mañana a primera hora", now, zone)
+        assertEquals("Ir al dentista", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun primeraHoraSinFechaUsaHoy() {
+        val result = NaturalTaskParser.parse("Llamar a Ana a primera hora", now, zone)
+        assertEquals("Llamar a Ana", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun primeraHoraDeLaMananaSeLimpiaCompleta() {
+        val result = NaturalTaskParser.parse("Reunión del jueves a primera hora de la mañana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun primeraHoraNoAnadeResiduo() {
+        val result = NaturalTaskParser.parse("Enviar el reporte a primera hora", now, zone)
+        assertEquals("Enviar el reporte", result.title)
+        assertFalse(result.title.contains("primera", ignoreCase = true))
+        assertFalse(result.title.contains("hora", ignoreCase = true))
     }
 }

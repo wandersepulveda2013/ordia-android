@@ -52,7 +52,13 @@
   jueves"→"reunión del", "el viernes que viene"→"...que viene", "el miércoles próximo"→"...próximo".
   Fix: regex extendido con prefijo `el|del|de` y sufijo `que viene|próximo(s|a)`; group 1 sigue
   siendo el día (no rompe toDayOfWeek/parseRecurrence). 6 tests nuevos. 178 tests OK.
-- **Verificación JVM**: 178 tests del dominio PASS (25 clases); smoke 25 assertions OK.
+- **Sesión OpenHands 004 — Ciclo 9 (NaturalTaskParser)**: "a primera hora" (y "...de la
+  mañana/madrugada") no tenía patrón → no asignaba hora (`dueAt=null`, sin recordatorio salvo
+  otra fecha) y dejaba residuo "a primera hora" en el título. Frase cotidiana ("ir al dentista
+  mañana a primera hora") quedaba incompleta. Fix: `primeraHoraPattern` + `primeraHoraTime`
+  (09:00) como fallback de `parsedTime` (después de hora explícita y partes del día); limpieza
+  del título tras `standalonePartOfDayPattern`. 4 tests nuevos. 182 tests OK.
+- **Verificación JVM**: 182 tests del dominio PASS (25 clases); smoke 25 assertions OK.
 - `./gradlew test/lint/assemble`: sigue NO VERIFICADO (sin Android SDK en el entorno).
 
 ## Áreas modificadas
@@ -63,7 +69,7 @@
 ## Tests ejecutados
 
 - **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` (sin Android SDK).
-- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 178 tests OK (25 clases);
+- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 182 tests OK (25 clases);
   `bash tools/run_domain_checks.sh` → 25 assertions OK.
 
 ## Problemas conocidos
@@ -81,7 +87,8 @@
 - Parser: residuos de título NO limpiados detectados en probe ciclo 7: "a primera hora" sin
   interpretar/limpiar; "que viene" tras fecha ("el viernes que viene"); "del" huérfano
   ("a las 3pm del jueves"); rango horario "de 18 a 20" no parseado. Candidatos a ciclo 8.
-  (~~"que viene" y "del" huérfano~~ RESUELTO ciclo 8; pendientes "a primera hora" y "de 18 a 20".)
+  (~~"que viene" y "del" huérfano~~ RESUELTO ciclo 8; ~~"a primera hora"~~ RESUELTO ciclo 9;
+  pendiente "de 18 a 20".)
 - NoteEditor: `blocks` (mutableStateListOf) no es `rememberSaveable`; si el proceso muere dentro
   de la ventana de autosave (800 ms) se pierden los últimos cambios de bloques (el `title` sí
   sobrevive). Tradeoff de debounce, no corregido en esta sesión (P2/P3).
@@ -96,12 +103,13 @@
 
 ## Siguiente tarea recomendada
 
-- Ciclo 8 ejecutado: fix del parser residuos de día de la semana (prefijo `del`/`de` y sufijo
-  `que viene`/`próximo(s|a)` no capturados → título sucio en casos MUY comunes). 6 tests nuevos,
-  178 tests OK. Continuar autonomía: ciclo 9 candidato a "a primera hora" (→~09:00 + limpiar
-  título) y/o rango horario "de 18 a 20"; evaluar impacto real antes de implementar. Luego UX:
-  Onboarding responsive, NoteEditor `rememberSaveable` (P2/P3), atomicidad de `saveRoutine` (P3),
-  ítems P2 (deprecación de iconos, i18n, QA de variantes). Verificación Gradle/Android pendiente.
+- Ciclo 9 ejecutado: fix del parser "a primera hora" (no generaba recordatorio + residuo en
+  título; ahora → 09:00 como fallback y título limpio). 4 tests nuevos, 182 tests OK. Continuar
+  autonomía: ciclo 10 candidato a rango horario "de 18 a 20" (evaluar impacto real: ¿rango
+  vs. hora única aporta utilidad? Ordía usa `dueAt` único); nueva auditoría funcional
+  (captura/What Now/inteligencia/priorización) o UX (Onboarding responsive, NoteEditor
+  `rememberSaveable` P2/P3, atomicidad de `saveRoutine` P3, deprecación de iconos, i18n).
+  Verificación Gradle/Android pendiente.
 
 ## PR pendiente
 
