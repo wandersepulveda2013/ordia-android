@@ -1439,9 +1439,112 @@ en la condición + docstring que explica el porqué.
 
 ### Commit / push
 - fix(rutinas): evitar duplicados al re-disparar rutina tras completar la tanda del día.
-- HEAD final: por commit.
+- HEAD: e5773c0.
 
 ### Siguiente prioridad
 - Seguir auditoría funcional no-parser (OnboardingCompleter, PlannerCalendar,
   CommandPaletteCatalog, QuietHoursRules, SubtaskRules, HabitRules). Buscar P1
   datos/recordatorios antes que P2 cosmetic.
+
+## Ciclo 20 — Unidad 4 (Merge de integración con remoto)
+
+- **Fecha (UTC)**: 2026-08-11
+- **HEAD inicial**: e5773c0 (Unidad 3, no pusheado por divergencia)
+- **Prioridad**: Integridad de rama (anti-colisión)
+
+### Problema seleccionado
+El push de Unidad 3 (e5773c0) fue rechazado: el remoto
+`openhands/autonomous-ordia` avanzó con trabajo de otra ejecución (commits
+`7127b7e` summary subtasks, `c1bab04` search "nota X", `db62f6d` docs, merges
+`5c21ee6`/`f8fa87d`). Mi base (6f2ae9f) estaba obsoleta.
+
+### Causa raíz
+Ejecuciones concurrentes sobre la misma rama. Mi fix tocaba
+`RoutineRules.kt`/`RoutineRulesTest.kt`; el remoto tocaba
+`SearchEngine.kt`/`SummaryEngine.kt` + tests. Sin conflicto de código. Solo
+los docs `AI_AUTONOMY/BACKLOG.md` y `CURRENT_STATE.md` chocaron (ambos
+append-only).
+
+### Solución
+`git merge origin/openhands/autonomous-ordia` (no force, no reset destructivo;
+patrón de merge ya usado por el remoto en 5c21ee6/f8fa87d). Resueltos los
+conflictos de docs combinando ambas entradas (sin pérdida de trabajo): la fila
+de Rutinas con la nota del fix ciclo 20 + la nueva fila de auditoría de motores
+no-parser; en CURRENT_STATE se preservaron las 3 unidades + la auditoría 20a.
+RUN_LOG auto-mergeó limpio.
+
+### Tests
+- `bash tools/run_domain_tests.sh` → **228 tests OK** (25 clases) (224 locales
+  + 4 del remoto: `summaryCountsOnlyRootTasks`,
+  `noteTypeFilterDoesNotRequireTheWordNotaInContent` y asociados).
+- `bash tools/run_domain_checks.sh` → **25 assertions OK**.
+- NO VERIFICADO: gradle/Android/ViewModel real.
+
+### Archivos
+- `AI_AUTONOMY/BACKLOG.md`, `AI_AUTONOMY/CURRENT_STATE.md` (resolución de
+  conflicto).
+- Trae del remoto: `SearchEngine.kt`, `SummaryEngine.kt`, sus tests, RUN_LOG.
+
+### Commit / push
+- Merge commit 6e99822: "Merge remote-tracking branch 'origin/openhands/autonomous-ordia'
+  into openhands/autonomous-ordia".
+- Push OK a `openhands/autonomous-ordia` con `github_token` (f8fa87d..6e99822).
+  (Nota: `GITHUB_TOKEN` rechazado; `github_token` válido.)
+
+### Siguiente prioridad
+- Auditoría no-parser restante: `OnboardingCompleter`, `PlannerCalendar`,
+  `CommandPaletteCatalog`, `SubtaskRules`, `HabitRules`. Buscar P1 datos antes
+  que P2.
+
+## Ciclo 21 — Unidad 1 (NaturalTaskParser — "mañana por la tarde/noche/mañana")
+
+- **Fecha (UTC)**: 2026-08-11
+- **HEAD inicial**: 6e99822 (origin/openhands/autonomous-ordia, sincronizado tras merge ciclo 20)
+- **Prioridad**: P1 — captura/persistencia (título mangulado + hora incorrecta en frase cotidiana)
+
+### Problema seleccionado
+Investigación TDD del parser (continuación del ciclo 20) reveló que la frase
+natural "mañana por la tarde" (y variantes noche/mañana) se procesaba mal:
+- el título quedaba como "Reunión por la tarde" (residuo "por la tarde" huérfano);
+- la hora se fijaba en 09:00 (default) en vez de la hora canónica de la tarde (15:00).
+
+"mañana por la mañana" dejaba "por la" huérfano. Frase cotidianísima en español.
+
+### Causa raíz
+`standalonePartOfDayPattern` solo reconocía los conectores "a la" y "de la"
+(p.ej. "a la tarde", "de la tarde"), NO "por la". Y el mapa de horas canónicas
+(`standalonePartOfDayTimes`) no incluía "mañana"/"manana". Al no casar, la
+frase no se consumía como señal horaria ni se limpiaba del título; como
+`parsedTime` quedaba nulo, `dueAt` usaba `LocalTime.of(9,0)` por defecto.
+
+### Solución
+Fix mínimo (un patrón, sin nueva pantalla): extender
+`standalonePartOfDayPattern` a `(?:a\s+la|de\s+la|por\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)`
+y añadir `mañana`/`manana` → 09:00 (AM) al mapa. Esto corrige título **y** hora
+a la vez para tarde(15:00)/noche(21:00)/mañana(09:00), y como "mañana" es AM
+(no está en `partOfDayPmKeys`), no introduce falsos offsets PM. Verificado que
+no rompe "a las 9 de la mañana" (el meridiem explícito del `timePatterns` tiene
+prioridad) ni "a primera hora de la mañana" (orden de limpieza del título
+preserva el patrón `primeraHoraPattern`).
+
+### Tests
+- `bash tools/run_domain_tests.sh` → **232 tests OK** (25 clases) (228 + 4 nuevos).
+- `bash tools/run_domain_checks.sh` → **25 assertions OK**.
+- TDD: los 4 tests se escribieron primero y fallaron exactamente con el bug
+  documentado (`expected:<Reunión[]> but was:<Reunión[ por la tarde]>`, etc.),
+  luego el fix los puso en verde.
+- NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs reales.
+
+### Archivos
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (patrón + mapa + doc).
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+4 tests).
+
+### Commit / push
+- fix(parser): reconocer "mañana por la tarde/noche/mañana" (título + hora canónica).
+- HEAD final: por commit.
+
+### Siguiente prioridad
+- Continuar auditoría del parser: "pasado mañana por la tarde", "el fin de semana"
+  (dueAt=null, sin soporte de fin de semana), "mañana a primera hora". Validar
+  combinaciones con recurrencia. Buscar P1 datos/recordatorios en workers/backup.
+

@@ -26,6 +26,25 @@
 
 ## Último trabajo realizado
 
+- **Sesión OpenHands — Ciclo 21 (NaturalTaskParser — "mañana por la tarde/noche/mañana")**:
+  P1 de captura corregido. El conector "por la" no era reconocido como parte del día suelta
+  (solo "a la"/"de la"), así la frase cotidianísima "mañana por la tarde" dejaba "por la
+  tarde" como residuo en el título **y** usaba 09:00 en vez de la hora canónica de la tarde
+  (15:00). "mañana por la mañana" dejaba "por la" huérfano. Fix mínimo: extender
+  `standalonePartOfDayPattern` para aceptar "por la" e incluir "mañana/manana" en el mapa
+  de horas canónicas (09:00, AM). Un patrón, sin nueva pantalla: corrige título + hora
+  simultáneamente para tarde(15:00)/noche(21:00)/mañana(09:00). Tests: +4 TDD
+  (`mananaPorLaTardeDefineFechaYHoraCanonicaYLimpiaTitulo`,
+  `mananaPorLaNocheEs21hYLimpiaTitulo`, `mananaPorLaMananaEs9hYLimpiaTitulo`,
+  `mananaPorLaTardeConHoraSinMeridiemAplicaPm`). **232 domain tests OK, smoke 25 OK.**
+  NO VERIFICADO: gradle/lint/Android/UI.
+
+- **Sesión OpenHands — Ciclo 20, Unidad 4 (Merge de integración con remoto)**:
+  Integridad de rama. El push de Unidad 3 (e5773c0) fue rechazado por divergencia: el remoto
+  `openhands/autonomous-ordia` avanzó con trabajo de otra ejecución (search "nota X",
+  subtasks, docs). `git merge origin/openhands/autonomous-ordia` (no force, no reset
+  destructivo), conflictos de docs resueltos combinando ambas entradas. 228 tests OK, smoke 25 OK.
+
 - **Sesión OpenHands — Ciclo 20, Unidad 3 (Rutinas — duplicados al re-disparar tras completar)**:
   P1 corregido — `RoutineRules.wasRunToday` solo contaba tareas **pendientes** creadas hoy. Al
   completar todas las tareas de la rutina de hoy, `wasRunToday` devolvía `false` y un nuevo

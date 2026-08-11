@@ -597,6 +597,39 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- "mañana por la tarde/noche/mañana" (ciclo 21) ---
+    // "por la" no era conector reconocido de parte del día (solo "a la"/"de la"), así
+    // "mañana por la tarde" dejaba "por la tarde" en el título Y usaba 09:00 en vez de
+    // la hora canónica de la tarde. Frase cotidianísima en español.
+
+    @Test fun mananaPorLaTardeDefineFechaYHoraCanonicaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión mañana por la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mananaPorLaNocheEs21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Llamar a mamá mañana por la noche", now, zone)
+        assertEquals("Llamar a mamá", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mananaPorLaMananaEs9hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Enviar informe mañana por la mañana", now, zone)
+        assertEquals("Enviar informe", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mananaPorLaTardeConHoraSinMeridiemAplicaPm() {
+        val result = NaturalTaskParser.parse("Reunión mañana por la tarde a las 4", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(16, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- "a las 24" / "24:00" = medianoche (ciclo 7) ---
 
     @Test fun aLas24EsMedianocheYLimpiaTitulo() {

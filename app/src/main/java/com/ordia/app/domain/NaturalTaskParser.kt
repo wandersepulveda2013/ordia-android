@@ -110,16 +110,24 @@ object NaturalTaskParser {
     )
 
     /**
-     * Parte del día suelta: "a la tarde/noche/madrugada", "de la tarde/noche/madrugada".
-     * NO fuerza fecha (solo hora del día sobre la fecha parseada). Sirve como contexto PM
-     * para horas sin meridiem ("mañana a la tarde a las 4" → 16:00) y como hora canónica
-     * de respaldo ("jugar tenis de la tarde" → 15:00). "mañana/madrugada" son AM.
+     * Parte del día suelta: "a la tarde/noche/madrugada", "de la tarde/noche/madrugada",
+     * "por la tarde/noche/mañana". NO fuerza fecha (solo hora del día sobre la fecha
+     * parseada). Sirve como contexto PM para horas sin meridiem ("mañana a la tarde
+     * a las 4" → 16:00) y como hora canónica de respaldo ("jugar tenis de la tarde"
+     * → 15:00). "mañana/madrugada" son AM.
+     *
+     * "por la" se incluye porque "mañana por la tarde/noche/mañana" es la forma natural
+     * más común de combinar día relativo + parte del día en español; antes el conector
+     * "por la" no se reconocía y la frase quedaba como residuo en el título, con hora
+     * 09:00 en vez de la canónica de la parte del día.
      */
-    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:a\s+la|de\s+la)\s+(tarde|noche|madrugada)\b""")
+    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:a\s+la|de\s+la|por\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)\b""")
     private val standalonePartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),
-        "madrugada" to LocalTime.of(4, 0)
+        "madrugada" to LocalTime.of(4, 0),
+        "mañana" to LocalTime.of(9, 0),
+        "manana" to LocalTime.of(9, 0)
     )
 
     /**
