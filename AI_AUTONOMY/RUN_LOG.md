@@ -167,3 +167,14 @@
 - (pendiente) docs(autonomy): memoria de la sesión 002 (este commit)
 
 ---
+## 2026-08-11 - Correcciones de deprecación
+
+- **Objetivo**: Resolver advertencias de compilación reportadas por lint relacionadas con clases o métodos deprecados en la interfaz de usuario.
+- **Acciones**:
+  - Reemplazo de iconos de la clase `Icons.Outlined.*` como `InsertDriveFile`, `ArrowForward`, `ArrowBack`, `FormatListBulleted`, `Notes`, `Send`, `OpenInNew` por sus correspondientes versiones `Icons.AutoMirrored.Outlined.*` en todas las pantallas.
+  - Migración del portapapeles en `CaptureScreen` de `LocalClipboardManager` a la nueva API `LocalClipboard`, integrando el método asíncrono `getClipEntry` envuelto en un contexto de corrutina.
+  - Actualización de `quadraticBezierTo` a `quadraticTo` en el componente `VirtualGuardian`.
+- **Resultados**:
+  - La compilación es completamente exitosa sin estas advertencias de deprecación.
+  - Las pruebas unitarias (`./gradlew test`) se mantienen verdes.
+  - Actualizado estado `CURRENT_STATE` y movido el issue a completados en `BACKLOG.md`.

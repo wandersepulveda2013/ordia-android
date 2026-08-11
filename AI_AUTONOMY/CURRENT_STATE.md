@@ -4,8 +4,8 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-10 (corrección de infraestructura del sistema autónomo)
-- **Branch de trabajo**: `jules/autonomous-ordia` (HEAD `cc1a1e3`)
+- **Fecha/hora (UTC)**: 2026-08-11 (resolución de advertencias de deprecación UI)
+- **Branch de trabajo**: `jules/autonomous-ordia`
 - **main**: `d5b3b60` — contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
@@ -37,21 +37,24 @@
   - `ContextPrivacyFilter` fragmentos de paquete sin punto (banca genérica como `mobilebanking`).
   - `OrdiaCaptureTileService`: `@SuppressLint("StartActivityAndCollapseDeprecated")`.
   - `TaskDetailScreen`: `stringResource` en ámbito composable en vez de `context.getString`.
+- Correcciones de advertencias de deprecación UI no bloqueantes (2026-08-11):
+  - Actualizados `Icons.Outlined.*` a versiones `AutoMirrored`.
+  - Reemplazado `LocalClipboardManager` con API asíncrona `LocalClipboard`.
+  - Reemplazado `quadraticBezierTo` por `quadraticTo`.
 
 ## Áreas modificadas
 
 - intelligence, privacy/IME, context (external/audit), automation, domain, ui/screens,
-  shortcuts/quicksettings, backup, manifest/DI/datos/servicios, strings (i18n).
+  shortcuts/quicksettings, backup, manifest/DI/datos/servicios, strings (i18n), ui/components.
 
 ## Tests ejecutados
 
 - `./gradlew test` → 6 variantes, todas verdes.
-- `./gradlew lintPreviewSafeDebug` → verde (2 errores corregidos).
-- `./gradlew assembleDebug assembleRelease` → verde (solo warnings de deprecación no bloqueantes).
+- `./gradlew lintPreviewSafeDebug` → verde (advertencias de UI resueltas).
+- `./gradlew assembleDebug assembleRelease` → verde (advertencias de deprecación restantes no bloqueantes).
 
 ## Problemas conocidos
 
-- Warnings de deprecación no bloqueantes (ej. `Icons.Outlined.InsertDriveFile` → AutoMirrored).
 - El workflow Jules necesita `jules/autonomous-ordia` visible en la API de Sources antes de
   lanzar sesiones (verificado en cada ejecución; si no aparece, la sesión NO se lanza).
 - El auto-merge requiere que las PRs de Jules tengan checks exitosos; si `secrets.JULES_API_KEY`
