@@ -5,7 +5,7 @@
 ## Estado
 
 - **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 19)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD inicial `cf9841e`, final pendiente de commit)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD inicial `cf9841e`, final `c3958ee`)
 - **main**: contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)

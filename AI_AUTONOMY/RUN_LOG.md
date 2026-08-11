@@ -1127,7 +1127,7 @@ caían en el `else` dejando `date=null` → `dueAt=null`.
 
 ### Commit / push
 - fix(parser): recurrencias de intervalo ancladas a fecha de captura — push al cierre.
-- HEAD final: pendiente.
+- HEAD final: `c3958ee`.
 
 ### Siguiente prioridad
 - Auditoría funcional no-parser: What Now (tareas programadas vs. inbox), búsqueda,
