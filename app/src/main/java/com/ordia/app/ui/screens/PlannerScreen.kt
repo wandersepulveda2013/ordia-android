@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -579,7 +580,7 @@ private fun MonthDayCell(
         else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
     }
     Surface(
-        modifier = modifier.padding(1.dp).aspectRatio(0.8f).clickable(onClick = onClick),
+        modifier = modifier.padding(1.dp).aspectRatio(0.8f).clickable(role = Role.Button, onClick = onClick),
         shape = MaterialTheme.shapes.small,
         color = container,
         contentColor = content,
@@ -825,7 +826,7 @@ private fun BlockRow(
 ) {
     Column(Modifier.fillMaxWidth()) {
         Row(
-            Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(vertical = 2.dp),
+            Modifier.fillMaxWidth().clickable(role = Role.Switch, onClick = onToggle).padding(vertical = 2.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

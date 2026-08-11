@@ -144,7 +144,7 @@ fun SectionHeader(
                 action,
                 modifier = Modifier
                     .clip(RoundedCornerShape(999.dp))
-                    .clickable(onClick = onAction)
+                    .clickable(role = Role.Button, onClick = onAction)
                     .background(MaterialTheme.colorScheme.primaryContainer)
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 style = MaterialTheme.typography.labelMedium,
