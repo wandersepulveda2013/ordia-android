@@ -46,10 +46,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,6 +67,7 @@ import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.ui.components.SectionHeader
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
@@ -81,7 +83,8 @@ fun CaptureScreen(
     val draft = draftState.draft
     val history by vm.recentCaptures.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
 
     var text by rememberSaveable { mutableStateOf("") }
     var targetName by rememberSaveable { mutableStateOf(CaptureTarget.AUTO.name) }
@@ -211,12 +214,17 @@ fun CaptureScreen(
                         )
                         AssistChip(
                             onClick = {
-                                val pasted = clipboard.getText()?.text.orEmpty().trim()
-                                if (pasted.isBlank()) {
-                                    Toast.makeText(context, R.string.capture_clipboard_empty, Toast.LENGTH_SHORT).show()
-                                } else {
-                                    text = listOf(text.trim(), pasted).filter(String::isNotBlank).joinToString("\n")
-                                    sourceName = CaptureSource.CLIPBOARD.name
+                                scope.launch {
+                                    val clipEntry = clipboard.getClipEntry()
+                                    val pasted = clipEntry?.clipData?.let { data ->
+                                        if (data.itemCount > 0) data.getItemAt(0)?.text?.toString() else null
+                                    }.orEmpty().trim()
+                                    if (pasted.isBlank()) {
+                                        Toast.makeText(context, R.string.capture_clipboard_empty, Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        text = listOf(text.trim(), pasted).filter(String::isNotBlank).joinToString("\n")
+                                        sourceName = CaptureSource.CLIPBOARD.name
+                                    }
                                 }
                             },
                             label = { Text(stringResource(R.string.capture_action_paste)) },

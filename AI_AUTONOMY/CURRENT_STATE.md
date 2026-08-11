@@ -37,21 +37,24 @@
   - `ContextPrivacyFilter` fragmentos de paquete sin punto (banca genérica como `mobilebanking`).
   - `OrdiaCaptureTileService`: `@SuppressLint("StartActivityAndCollapseDeprecated")`.
   - `TaskDetailScreen`: `stringResource` en ámbito composable en vez de `context.getString`.
+- Correcciones de deprecación aplicadas:
+  - Reemplazo de iconos deprecados `Icons.Outlined` por `Icons.AutoMirrored.Outlined`.
+  - Migración de `LocalClipboardManager` a `LocalClipboard` con lectura asíncrona de portapapeles.
 
 ## Áreas modificadas
 
 - intelligence, privacy/IME, context (external/audit), automation, domain, ui/screens,
   shortcuts/quicksettings, backup, manifest/DI/datos/servicios, strings (i18n).
+- UI / Components: Iconos y Clipboard.
 
 ## Tests ejecutados
 
 - `./gradlew test` → 6 variantes, todas verdes.
 - `./gradlew lintPreviewSafeDebug` → verde (2 errores corregidos).
-- `./gradlew assembleDebug assembleRelease` → verde (solo warnings de deprecación no bloqueantes).
+- `./gradlew compilePreviewSafeDebugKotlin` → verde, corregidos los warnings de deprecación.
 
 ## Problemas conocidos
 
-- Warnings de deprecación no bloqueantes (ej. `Icons.Outlined.InsertDriveFile` → AutoMirrored).
 - El workflow Jules necesita `jules/autonomous-ordia` visible en la API de Sources antes de
   lanzar sesiones (verificado en cada ejecución; si no aparece, la sesión NO se lanza).
 - El auto-merge requiere que las PRs de Jules tengan checks exitosos; si `secrets.JULES_API_KEY`
