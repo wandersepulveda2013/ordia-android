@@ -55,6 +55,18 @@ object NaturalTaskParser {
         Regex("""(?i)\b(\d{1,3})\s*(horas?)\b""")
     )
 
+    /** "urgente" como palabra inicial, para detección de prioridad sin prefijo. */
+    private val leadingUrgentPattern = Regex("""(?i)^urgente\b""")
+
+    /** Partes del día: "esta mañana/tarde/noche". Implican fecha=hoy + hora canónica. */
+    private val partOfDayPattern = Regex("""(?i)\besta\s+(ma[nñ]ana|tarde|noche)\b""")
+    private val partOfDayTimes = mapOf(
+        "mañana" to LocalTime.of(9, 0),
+        "manana" to LocalTime.of(9, 0),
+        "tarde" to LocalTime.of(15, 0),
+        "noche" to LocalTime.of(21, 0)
+    )
+
     private val weekdays = mapOf(
         "lunes" to DayOfWeek.MONDAY,
         "martes" to DayOfWeek.TUESDAY,
@@ -87,13 +99,19 @@ object NaturalTaskParser {
         var working = text.trim()
         val original = text.trim()
 
+        val lower = working.lowercase()
         val priority = when {
-            "!urgente" in working.lowercase() || "#urgente" in working.lowercase() -> TaskPriority.URGENT
-            "!alta" in working.lowercase() || "#alta" in working.lowercase() -> TaskPriority.HIGH
-            "!baja" in working.lowercase() || "#baja" in working.lowercase() -> TaskPriority.LOW
+            "!urgente" in lower || "#urgente" in lower -> TaskPriority.URGENT
+            "!alta" in lower || "#alta" in lower -> TaskPriority.HIGH
+            "!baja" in lower || "#baja" in lower -> TaskPriority.LOW
+            // "urgente" como palabra inicial (ej. "urgente enviar documento mañana")
+            // sin prefijo. No se detecta a mitad de frase para evitar falsos positivos
+            // como "no es urgente".
+            leadingUrgentPattern.containsMatchIn(lower) -> TaskPriority.URGENT
             else -> TaskPriority.NORMAL
         }
         working = working.replace(Regex("""(?i)(?:!|#)(urgente|alta|baja)\b"""), " ")
+            .replace(leadingUrgentPattern, " ")
 
         // Recordatorio "N antes" (se extrae antes que la duración para no confundir unidades).
         val reminderOffsetMinutes = reminderPatterns.asSequence()
@@ -136,7 +154,12 @@ object NaturalTaskParser {
         val weekdayMatch = weekdayPattern.find(working)
         val numericDateMatch = numericDatePattern.find(working)
         val monthNameMatch = monthNamePattern.find(working)
+        val partOfDayMatch = partOfDayPattern.find(working)
+        val partOfDayTime = partOfDayMatch?.let { partOfDayTimes[it.groupValues[1].lowercase()] }
         val date = when {
+            // Debe ir antes que el "mañana" genérico: "esta mañana" contiene "mañana"
+            // y no debe interpretarse como "el día de mañana".
+            partOfDayMatch != null -> base.toLocalDate()
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
@@ -151,7 +174,14 @@ object NaturalTaskParser {
                     rawYear < 100 -> 2000 + rawYear
                     else -> rawYear
                 }
-                if (day == null || month == null) null else runCatching { LocalDate.of(year, month, day) }.getOrNull()
+                if (day == null || month == null) null else {
+                    runCatching { LocalDate.of(year, month, day) }.getOrNull()?.let { date ->
+                        // Sin año explícito, una fecha pasada se entiende como del próximo año
+                        // (consistente con parseMonthNameDate). Evita programar tareas en el
+                        // pasado, donde los recordatorios nunca dispararían.
+                        if (rawYear == null && date.isBefore(base.toLocalDate())) date.plusYears(1) else date
+                    }
+                }
             }
             // Repetición semanal con días explícitos: primera ocurrencia futura.
             recurrence.frequency == RecurrenceFrequency.WEEKLY && recurrence.days.isNotEmpty() -> recurrence.days
@@ -162,7 +192,7 @@ object NaturalTaskParser {
         }
 
         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
-        val parsedTime = timeMatch?.let { match ->
+        val explicitTime = timeMatch?.let { match ->
             when {
                 match.value.lowercase().contains("mediodía") || match.value.lowercase().contains("mediodia") -> LocalTime.NOON
                 match.value.lowercase().contains("medianoche") -> LocalTime.MIDNIGHT
@@ -176,6 +206,8 @@ object NaturalTaskParser {
                 }
             }
         }
+        // Un tiempo explícito tiene prioridad sobre la hora canónica de la parte del día.
+        val parsedTime = explicitTime ?: partOfDayTime
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
 
@@ -196,6 +228,7 @@ object NaturalTaskParser {
         // Limpieza de la frase para el título.
         working = working
             .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
+            .let { value -> partOfDayPattern.replace(value, " ") }
             .let { value -> weekdayPattern.replace(value, " ") }
             .let { value -> monthNamePattern.replace(value, " ") }
             .let { value -> numericDatePattern.replace(value, " ") }

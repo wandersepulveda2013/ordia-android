@@ -135,4 +135,77 @@ class NaturalTaskParserTest {
         assertEquals("trabajo", result.category)
         assertEquals(0.6f, result.confidence, 0.001f)
     }
+
+    // ── Regresión BUG1: fecha numérica sin año en el pasado rueda al año siguiente ──
+
+    @Test fun numericDateWithoutYearInPastRollsToNextYear() {
+        val result = NaturalTaskParser.parse("Pagar factura 5/3", now, zone)
+        assertEquals("Pagar factura", result.title)
+        // 5/3 = 5 de marzo; hoy es 29-jul-2026 → debe rodar a 2027.
+        assertEquals(LocalDate.of(2027, 3, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun numericDateWithoutYearInFutureStaysThisYear() {
+        val result = NaturalTaskParser.parse("Pagar factura 15/12", now, zone)
+        assertEquals(LocalDate.of(2026, 12, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun numericDateTodayDoesNotRollForward() {
+        val result = NaturalTaskParser.parse("Pagar factura 29/7", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun numericDateWithExplicitYearNeverRolls() {
+        // Año explícito en el pasado: no se interpreta como futuro (el usuario lo dijo).
+        val result = NaturalTaskParser.parse("Revisar contrato 10/1/2024", now, zone)
+        assertEquals(LocalDate.of(2024, 1, 10), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // ── Regresión BUG2: "esta mañana/tarde/noche" ──
+
+    @Test fun estaNocheSetsTonightCanonicalTime() {
+        val result = NaturalTaskParser.parse("Pagar factura esta noche", now, zone)
+        assertEquals("Pagar factura", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun estaTardeSetsAfternoonCanonicalTime() {
+        val result = NaturalTaskParser.parse("Pagar factura esta tarde", now, zone)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun estaMananaIsNotMistakenForTomorrow() {
+        // "esta mañana" contiene "mañana"; antes se interpretaba como "el día de mañana".
+        val result = NaturalTaskParser.parse("Pagar factura esta mañana", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun explicitTimeOverridesPartOfDayCanonicalTime() {
+        val result = NaturalTaskParser.parse("Pagar factura esta noche a las 22:15", now, zone)
+        assertEquals(LocalTime.of(22, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun partOfDayIsAccentTolerant() {
+        val result = NaturalTaskParser.parse("Pagar factura esta manana", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // ── Regresión BUG4: "urgente" como palabra inicial (sin prefijo !/#) ──
+
+    @Test fun leadingUrgenteSetsUrgentPriority() {
+        val result = NaturalTaskParser.parse("urgente enviar documento mañana", now, zone)
+        assertEquals(TaskPriority.URGENT, result.priority)
+        // "urgente" se limpia del título.
+        assertEquals("enviar documento", result.title)
+    }
+
+    @Test fun midSentenceUrgenteDoesNotSetPriority() {
+        // "es urgente" a mitad de frase NO debe activar URGENT (evita falsos positivos).
+        val result = NaturalTaskParser.parse("Revisar si es urgente el documento", now, zone)
+        assertEquals(TaskPriority.NORMAL, result.priority)
+        assertEquals("Revisar si es urgente el documento", result.title)
+    }
 }
