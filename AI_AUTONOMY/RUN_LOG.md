@@ -1946,3 +1946,70 @@ Continuar evolución P2/P3. La MISIÓN exige ciclo interminable: no detenerse.
 
 ### Siguiente
 - Continuar ciclo interminable. Próxima mejora P2/P3 visible.
+
+---
+
+## Ciclo 28 — Accesibilidad (roles semánticos), strings 100% limpios, UX adjuntos — 2026-08-11T21:Z
+
+### Objetivo
+Continuar el ciclo interminable de mejora continua P2/P3. Cerrar la auditoría de
+`Modifier.clickable` sin `Role` y consolidar deuda técnica de strings/UX.
+
+### Cambios (5 commits → 5 releases firmadas consecutivas)
+
+#### 1. Role.Button en OrdiaListItem (commit 109c14d → release v3.0.19)
+- `AppComponents.kt:260` OrdiaListItem row clickable sin role → TalkBack sin hint de botón.
+- Añadido `role = Role.Button`. Sin cambio visual.
+
+#### 2. Roles semánticos en clickables restantes (commit b39fd73 → release v3.0.20)
+- CaptureScreen:378 capture card → Role.Button.
+- PlannerScreen:583 day cell → Role.Button.
+- PlannerScreen:829 conflict toggle row (con Checkbox) → Role.Switch.
+- AppComponents:147 EmptyState action text → Role.Button.
+- Verificado: 0 `.clickable(` sin role en `app/src/main`. Auditoría completada.
+
+#### 3. 10 strings huérfanas eliminadas (commit a71cf42 → release v3.0.21)
+- common_yes/no, common_downloaded/not_downloaded (sin diálogos de confirmación que las usen).
+- more_notes_desc/more_planner_desc (Notes/Planner no aparecen en MoreScreen).
+- search_empty_prompt_*/search_field_label/search_header_subtitle (reemplazadas por
+  search_palette_*/search_no_results_* en SearchScreen).
+- Verificado cero `getIdentifier` dinámicos; manifests de variantes (ime_service_label,
+  notification_listener_label, shortcut_*) conservados. Script recursivo sobre app/src/**:
+  defined=1024 == referenced=1024, unused=0. **Tabla de strings 100% limpia.**
+
+#### 4. Toast al no poder abrir adjunto en NoteEditor (commit cf1e4df → release v3.0.22)
+- `NoteEditorScreen` tragaba `startActivity` fallido en runCatching silencioso (tap → nada).
+- TaskDetailScreen ya mostraba toast. Alineado NoteEditor con patrón + string
+  `note_editor_open_attachment_failed`. Consistencia UX.
+
+#### 5. Log al fallar permiso persistente de adjunto en Capture (commit 072c252 → release v3.0.23)
+- `CaptureScreen` takePersistableUriPermission en runCatching silencioso; sin traza si fallaba.
+- Añadido `Log.w` en onFailure. Documentado P1 subyacente en BACKLOG (adjuntos guardan URI
+  externo, no contenido copiado → solución robusta requiere copiar a filesDir + migración).
+
+### Tests
+- CI runs: 109c14d cancelled (superseded por b39fd73), b39fd73 success, a71cf42 success,
+  cf1e4df success, 072c252 success. Verificar (tests+lint+assemble) OK en todos los pushados.
+- Firma OK / release OK en cada push (workflow publica en cada push a la branch).
+- 12 releases firmadas consecutivas funcionando (v3.0.12 → v3.0.23).
+
+### Auditorías (sin hallazgos P0/P1 nuevos)
+- **Componentes exportados (Manifest)**: MainActivity (MAIN/LAUNCHER, SEND */*, PROCESS_TEXT —
+  legítimos para captura compartida), OrdiaCaptureTileService (BIND_QUICK_SETTINGS_TILE),
+  ReminderResyncReceiver (TIMEZONE/TIME_SET/DATE_CHANGED del sistema), OrdiaWidgetProvider
+  (APPWIDGET_UPDATE). previewAdvanced/Full: NotificationListener (BIND_NOTIFICATION_LISTENER_SERVICE),
+  IME (BIND_INPUT_METHOD), FileProvider exported=false. Todos protegidos con permisos BIND del
+  sistema o exported=false. Sin problema de seguridad.
+- **startActivity externos**: IntelligenceActionExecutor (executeAppointment/executeCall) usan
+  try/catch con fallback a executeTask — robusto. Navigation.launchCapture abre actividad propia.
+  ConversationsScreen abre Settings del sistema. Sin issue.
+- **catch vacíos**: 0 encontrados. runCatching con manejo o fallback en los críticos.
+
+### Hallazgos para próximas ejecuciones
+- P1 OPEN: adjuntos guardan URI externo (BACKLOG ciclo 28) — requiere sesión dedicada para
+  migración a contenido interno.
+- P2 OPEN: 6-variant compile check sigue pendiente (requiere env Android/CI dedicado).
+- P3 OPEN: pulido visual de pantallas renovadas del workspace.
+
+### Siguiente
+- Continuar ciclo interminable. Próxima mejora P2/P3 visible (no detenerse).
