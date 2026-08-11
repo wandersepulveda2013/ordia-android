@@ -221,3 +221,35 @@ se instaló OpenJDK 21 + kotlinc 2.1.20 + JUnit4/hamcrest/org.json/kotlinx-corou
   adverso. La verificación de dominio ya está verde.
 
 ---
+
+## Sesión 004 — 2026-08-11 (OpenHands: autonomía nocturna, Ciclo 1: NaturalTaskParser)
+
+**Objetivo**: continuar autonomía. Auditar área funcional crítica P1 (parser) en profundidad.
+**Entorno**: rama `jules/autonomous-ordia` (HEAD inicial `35fb204`). Sin Android SDK; kotlinc/JUnit4 en /tmp.
+
+### Método
+- Probe JVM reproducible (`/tmp/parser-probe/Probe.kt`) que invoca `NaturalTaskParser.parse` con casos
+  reales en español (fechas numéricas, esta noche/tarde/mañana, números escritos, 12/24h, urgente).
+- Comparación con comportamiento esperado y con `parseMonthNameDate` (consistencia).
+
+### Bugs encontrados y corregidos (commit `fb53e8c`)
+- BUG1 (P1): fecha numérica sin año en el pasado no rodaba al año siguiente. "5/3" el 29-jul → 2026-03-05
+  (pasada). Inconsistente con "5 de julio"→2027. Una fecha pasada hace que el recordatorio nunca dispare
+  (ReminderSync filtra trigger<=now). Fix: rodar a +1 año si rawYear==null y date<today.
+- BUG2 (P1): "esta mañana/tarde/noche" no reconocidas; además "esta mañana" se leía como "mañana" (tomorrow)
+  porque contiene "mañana". Fix: rama partOfDay antes que la de "mañana"; horas canónicas (9/15/21), tolerant
+  a acentos; tiempo explícito tiene prioridad.
+- BUG4 (P1): "urgente" como palabra inicial no se detectaba sin prefijo !/#. Fix: `^urgente\b`; no se
+  detecta a mitad de frase (evita "no es urgente").
+- BUG3 (P2, OPEN): números escritos en "en dos horas"/"dentro de tres días" no parseados. Queda en backlog.
+
+### Tests
+- 136 domain tests PASS (125 previos + 11 nuevos de regresión), 0 FAIL.
+- `bash tools/run_domain_checks.sh` → 25 assertions OK.
+- `./gradlew test/lint/assemble`: NO VERIFICADO (sin Android SDK).
+
+### Siguiente prioridad
+- Ciclo 2: auditoría estática de persistencia (Room cascadas/índices/transacciones/N+1, restore atómico).
+  Después recordatorios end-to-end, notas, rutinas.
+
+---

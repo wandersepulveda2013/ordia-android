@@ -4,41 +4,36 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands 003 — audit+fix dominio)
-- **Branch de trabajo**: `jules/autonomous-ordia` (HEAD inicial `ecd6151`)
+- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands 004 — autonomía nocturna, ciclo 1: parser)
+- **Branch de trabajo**: `jules/autonomous-ordia` (HEAD inicial `35fb204`)
 - **main**: contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
 
 ## Último trabajo realizado
 
-- **Sesión OpenHands 003 (esta ejecución)**: auditoría y fix de la verificación estática de dominio.
-  - Se descubrió que `tools/run_domain_checks.sh` (smoke de dominio) ESTABA ROTO: `DomainSmoke.kt`
-    comparaba `SearchKind.entries.toSet()` (7 kinds tras ampliar `SearchKind` con CONVERSATION,
-    COMMITMENT, AUTOMATION) pero el smoke solo alimenta 4 listas (tasks/proyectos/notas/hábitos),
-    así que el assertion "Universal search failed" siempre fallaba. El test unitario
-    `SearchEngineTest` ya usaba el set correcto de 4 kinds core; el smoke quedó obsoleto.
-  - Fix: alinear el smoke con `SearchEngineTest` (set explícito de TASK/PROJECT/NOTE/HABIT).
-  - Verificación JVM (sin Android SDK, usando kotlinc + JUnit4 + stubs de Room/Preferences):
-    `bash tools/run_domain_checks.sh` → 25 assertions OK; 125 tests del dominio OK
-    (DateRules, DayPlanner, FocusTimer, Guardian, Habit, NaturalTaskParser, Onboarding,
-    PlannerCalendar, QuietHours, Recurrence, ReminderSync, Routine, Search, Subtask,
-    Summary, TaskRules, TaskSnapshotCodec, UniversalCapture, WhatNow, CommandPalette, etc.).
-  - Se añadieron stubs JVM (`tools/domain-smoke/PreferenceStubs.kt`) para compilar los tests
-    del dominio que dependen de `data.preferences` (DataStore no disponible fuera de Android).
+- **Sesión OpenHands 004 (autonomía nocturna) — Ciclo 1: NaturalTaskParser**. Se auditó el parser
+  con un probe JVM reproducible y se encontraron 4 bugs reales (3 P1 + 1 P2):
+  - BUG1 (P1): fecha numérica sin año en el pasado NO rodaba al año siguiente (inconsistente con
+    fechas con nombre de mes). Provocaba tareas con fecha pasada → recordatorio nunca dispara.
+  - BUG2 (P1): "esta mañana/tarde/noche" no reconocidas; además "esta mañana" se interpretaba como
+    "el día de mañana" (contiene "mañana").
+  - BUG4 (P1): "urgente" como palabra inicial no se detectaba como prioridad sin prefijo !/#.
+  - BUG3 (P2, todavía OPEN): números escritos en expresiones relativas ("en dos horas").
+  - Se corrigieron BUG1/2/4 con fix mínimo y 11 tests de regresión. Commit `fb53e8c`.
+- **Verificación JVM**: 136 tests del dominio PASS (125 previos + 11 nuevos); smoke 25 assertions OK.
+- `./gradlew test/lint/assemble`: sigue NO VERIFICADO (sin Android SDK en el entorno).
 
 ## Áreas modificadas
 
-- intelligence, privacy/IME, context (external/audit), automation, domain, ui/screens,
+- intelligence, privacy/IME, context (external/audit), automation, domain (parser), ui/screens,
   shortcuts/quicksettings, backup, manifest/DI/datos/servicios, strings (i18n).
 
 ## Tests ejecutados
 
-- **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` en esta
-  sesión (sin Android SDK en el entorno). El estado "6 variantes verdes" corresponde a sesiones
-  previas de Jules y NO fue reproducido aquí.
-- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_checks.sh` → 25 assertions OK; 125 tests
-  unitarios del dominio OK con JUnit4 (compilados con kotlinc 2.1.20 + stubs Room/Preferences).
+- **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` (sin Android SDK).
+- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_checks.sh` → 25 assertions OK;
+  136 tests unitarios del dominio OK (incl. 11 nuevos de regresión del parser).
 
 ## Problemas conocidos
 
@@ -46,7 +41,8 @@
 - `NoteBlocks.kt` y `TaskSnapshotCodec.kt` (dominio) dependen de `org.json` (API Android); en tests
   se sustituye por `org.json:json:20231013` real. Acoplamiento del dominio a Android, pero funcional.
 - Tests de `backup`/`context`/`repositories` requieren DAOs/RoomDatabase/Context (no ejecutables en
-  JVM pura sin Robolectric/Android SDK); no verificados en esta sesión.
+  JVM pura sin Robolectric/Android SDK); no verificados.
+- Parser: números escritos en expresiones relativas ("en dos horas") no parseados (P2, OPEN).
 - El workflow Jules necesita `jules/autonomous-ordia` visible en la API de Sources antes de lanzar.
 - El auto-merge requiere `secrets.JULES_API_KEY` configurado y checks exitosos.
 
@@ -57,10 +53,9 @@
 
 ## Siguiente tarea recomendada
 
-- Profundizar la auditoría de persistencia (Room: cascadas, índices, transacciones, N+1) y de
-  recordatorios/WorkManager con un entorno que tenga Android SDK (gradle lint/assemble), ya que
-  esos tests no son ejecutables en JVM pura. Priorizar los ítems P0/P1 del BACKLOG (backup adverso,
-  restauración con manifiesto corrupto). La verificación de dominio (esta sesión) ya está verde.
+- Continuar autonomía: Ciclo 2 = auditoría estática de persistencia (Room: cascadas, índices,
+  transacciones, N+1, restore atómico). Después recordatorios end-to-end, notas, rutinas.
+  BUG3 (números escritos en parser) queda como P2 abierto para más adelante.
 
 ## PR pendiente
 
