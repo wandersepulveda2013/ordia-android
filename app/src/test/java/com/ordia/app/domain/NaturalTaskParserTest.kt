@@ -84,6 +84,23 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "N min antes" debe interpretarse como recordatorio, no como duración.
+    // Antes, "30 min antes" caía en el patrón de duración (\d min) porque el
+    // patrón de recordatorio "\d antes" no aceptaba la abreviatura "min".
+    @Test fun parsesAbbreviatedMinBeforeAsReminder() {
+        val result = NaturalTaskParser.parse("Avisar 30 min antes", now, zone)
+        assertEquals("Avisar", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun parsesAbbreviatedMinBeforeAsReminderWithoutVerb() {
+        val result = NaturalTaskParser.parse("Reunión 15 min antes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(15, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
     @Test fun parsesDurationPhrase() {
         val result = NaturalTaskParser.parse("Preparar presentación durante 45 minutos", now, zone)
         assertEquals("Preparar presentación", result.title)

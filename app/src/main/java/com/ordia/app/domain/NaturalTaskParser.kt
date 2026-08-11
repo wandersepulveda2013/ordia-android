@@ -52,7 +52,9 @@ object NaturalTaskParser {
     )
     private val reminderPatterns = listOf(
         Regex("""(?i)\b(?:recuérdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?(\d{1,3})\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
-        Regex("""(?i)\b(\d{1,3})\s*(minutos?|horas?|d[ií]as?)\s+antes\b""")
+        // "N min/hora antes": debe aceptar las mismas abreviaturas que la duración
+        // (min, hora) para que "30 min antes" sea recordatorio y no caiga como duración.
+        Regex("""(?i)\b(\d{1,3})\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s+antes\b""")
     )
     private val durationPatterns = listOf(
         Regex("""(?i)\((\d{1,3})\s*(minutos?|min|horas?|hora)\)"""),

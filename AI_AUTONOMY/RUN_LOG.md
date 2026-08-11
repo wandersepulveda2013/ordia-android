@@ -610,3 +610,46 @@ Casos de título que dejan basura/residuos NO limpiados (candidatos a ciclo 8):
 
 ### Siguiente prioridad
 - Ciclo 10: rango "de 18 a 20" o nueva auditoría funcional (captura/What Now/inteligencia).
+
+---
+
+## SESIÓN 010 — Bug: "N min antes" clasificado como duración, no recordatorio
+
+- **Fecha (UTC)**: 2026-08-11
+- **Rama**: `openhands/autonomous-ordia`
+- **HEAD inicial**: 41b3abc
+- **Prioridad**: P1 (recordatorio perdido: el usuario esperaba un recordatorio pero obtenía una duración).
+- **Causa raíz**: El patrón de recordatorio #2 `(\d{1,3})\s*(minutos?|horas?|días?)\s+antes`
+  NO aceptaba la abreviatura `min` (ni `hora`), mientras que el patrón de duración #3
+  `(\d{1,3})\s*(minutos?|min)\b` SÍ la aceptaba. Como los recordatorios se extraen ANTES
+  que la duración, "30 min antes" no casaba como recordatorio y caía como duración:
+  - `Avisar 30 min antes` -> dur=30, rem=null, título="Avisar antes" (recordatorio perdido).
+  - `Reunión 15 min antes` -> dur=15, rem=null (recordatorio perdido).
+
+### Solución
+- Patrón de recordatorio #2 ampliado a `(\d{1,3})\s*(minutos?|min|horas?|hora|días?|día)\s+antes`
+  para aceptar las mismas abreviaturas que el patrón #1 y que el de duración. Ahora
+  "30 min antes" se reconoce como recordatorio ANTES de llegar al de duración.
+- Mínimo cambio: 1 línea de regex + comentario explicativo.
+
+### Tests
+- 2 tests nuevos de regresión:
+  - "Avisar 30 min antes" -> rem=30, dur=null, título="Avisar".
+  - "Reunión 15 min antes" (sin verbo de recordatorio) -> rem=15, dur=null, título="Reunión".
+- `bash tools/run_domain_tests.sh` -> 184 tests OK (25 clases). (+2 respecto a ciclo 9)
+- `bash tools/run_domain_checks.sh` -> 25 assertions OK.
+- Probe sobre 8 casos de recordatorio/duración: todos correctos. NO VERIFICADO: gradle/lint/assemble.
+
+### Archivos modificados
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (patrón reminder #2 ampliado)
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+2 tests)
+
+### Hallazgos adicionales (auditoría ciclo 10)
+- Probe amplio reveló más oportunidades reales (a evaluar en próximos ciclos):
+  - `#tag`/`@tag` no se limpia del título ni asigna categoría explícita (P2).
+  - `Reunión de 30 minutos` deja residuo "de" en título (P3).
+  - `Trabajar 2h` no reconoce "2h" compacto como duración (P2).
+  - `prioridad alta:` y `urgente`/`importante` a mitad de frase no fijan prioridad (P2).
+
+### Siguiente prioridad
+- Limpiar `#tag`/`@tag` del título y honrar categoría explícita, o bien "2h" compacto.

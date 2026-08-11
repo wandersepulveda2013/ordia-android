@@ -103,13 +103,13 @@
 
 ## Siguiente tarea recomendada
 
-- Ciclo 9 ejecutado: fix del parser "a primera hora" (no generaba recordatorio + residuo en
-  título; ahora → 09:00 como fallback y título limpio). 4 tests nuevos, 182 tests OK. Continuar
-  autonomía: ciclo 10 candidato a rango horario "de 18 a 20" (evaluar impacto real: ¿rango
-  vs. hora única aporta utilidad? Ordía usa `dueAt` único); nueva auditoría funcional
-  (captura/What Now/inteligencia/priorización) o UX (Onboarding responsive, NoteEditor
-  `rememberSaveable` P2/P3, atomicidad de `saveRoutine` P3, deprecación de iconos, i18n).
-  Verificación Gradle/Android pendiente.
+- Ciclo 10 ejecutado: fix P1 "N min antes" clasificado como duración (recordatorio perdido).
+  Patrón de reminder #2 ampliado para aceptar abreviatura `min`/`hora`; 2 tests nuevos,
+  184 tests OK, smoke 25 OK. Auditoría ciclo 10 descubrió: `#tag`/`@tag` no se limpia del
+  título ni asigna categoría explícita (P2), `Trabajar 2h` no reconoce "2h" compacto (P2),
+  `prioridad alta:`/`urgente` a mitad de frase no fijan prioridad (P2), residuo "de" en
+  "Reunión de 30 minutos" (P3). Continuar autonomía: limpiar `#tag`/`@tag` + categoría
+  explícita, o "2h" compacto. Verificación Gradle/Android pendiente.
 
 ## PR pendiente
 
