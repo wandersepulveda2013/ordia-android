@@ -939,3 +939,66 @@ Casos de título que dejan basura/residuos NO limpiados (candidatos a ciclo 8):
 ### Siguiente prioridad
 - Nueva auditoría funcional no-parser (tareas/búsqueda/What Now/automatizaciones/contexto)
   o siguientes P3 del parser ("salir de madrugada", "a las 3.5").
+
+---
+
+## Sesión OpenHands 004 — Ciclo 17 (NaturalTaskParser — recurrencia mensual anclada)
+
+- **Fecha (UTC)**: 2026-08-11
+- **HEAD inicial**: `63400f3` (origin/openhands/autonomous-ordia, sincronizado vía pull)
+- **Ciclo**: 17 (continúa ciclo 16)
+
+### Problema seleccionado
+P1 — Recurrencia mensual anclada a día del mes ("el 15 de cada mes") NO se parseaba.
+`dueAt` quedaba `null`, el día se quedaba como residuo en el título ("Pagar la cuenta el 15 de"),
+la tarea mensual nunca tenía fecha de vencimiento y los recordatorios no disparaban.
+
+### Causa raíz
+`parseRecurrence` reconocía "cada mes" (frecuencia simple) y "cada N meses" (intervalo),
+pero NO el patrón anclado `N de/del (cada) mes` ("el 15 de cada mes"). Sin anclaje, el día
+caía al título y no se generaba fecha. Hallazgo lateral: la rama `monthNameMatch != null`
+del `when` de fecha seleccionaba la fecha nominal de mes aunque `parseMonthNameDate`
+devolviera `null` (mes inválido), de modo que un sufijo de hora "8 de la manana" generaba
+la falsa coincidencia "8 de la" (mes="la" inexistente → null) y anulaba la resolución de
+fecha de repeticiones mensuales/semanales con hora explícita.
+
+### Solución
+- `RecurrenceResult` +`monthlyDayOfMonth: Int?` (día del mes anclado).
+- `parseRecurrence`: patrón `monthlyDayPattern = \b(?:el|los)?\s*(\d{1,2})\s+(?:de|del)\s+(?:cada\s+)?mes(es)?\b`;
+  captura el día (1..31), marca la frase para limpieza y devuelve `MONTHLY` anclado.
+- `nextMonthlyDate(from, day)`: próxima fecha con ese día, inclusive si es hoy; avanza de
+  mes si el día no existe en el mes actual (31 en feb) o ya pasó; recorre ≤24 meses.
+- Rama en el `when` de fecha: `recurrence.frequency==MONTHLY && monthlyDayOfMonth!=null -> nextMonthlyDate`.
+- Fix lateral: `monthNameDate` = `monthNameMatch?.let { parseMonthNameDate(...) }`;
+  la rama de fecha usa `monthNameDate != null` (fecha resuelta, no mera coincidencia regex),
+  evitando que "8 de la manana" sombre repeticiones con hora.
+
+### Archivos modificados
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`
+  (+`RecurrenceResult.monthlyDayOfMonth`; `monthlyDayPattern` en `parseRecurrence`;
+  `nextMonthlyDate`; rama MONTHLY en `when`; `monthNameDate` resolución)
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`
+  (+3 tests: `parsesMonthlyDayOfMonthRecurrence`, `parsesMonthlyDayOfMonthTodayInclusive`,
+  `monthlyDayOfMonthKeepsExplicitTime`)
+
+### Tests
+- `bash tools/run_domain_tests.sh` -> 212 tests OK (25 clases). (+3 desde 209)
+- `bash tools/run_domain_checks.sh` -> 25 assertions OK.
+- Probe JVM (12 casos): anclaje a próximo mes, día hoy inclusive, 31 (jul existe), 30
+  (jul existe), 10 con hora "de la manana" (antes `due=hoy` ahora `2026-08-10 08:00`),
+  "15 de agosto"/"1 de enero" (fecha única, NO recurrente — patrón requiere "mes").
+- NO VERIFICADO: gradle/lint/Android/Room (sin Android SDK).
+
+### Hallazgos adicionales
+- BACKLOG: entrada P1 mensual anclado añadida a Completados → VERIFIED.
+- Caso menor no resuelto (preexistente, word-order raro): "pagar cada mes el 15" (día
+  DESPUÉS de "cada mes") queda como MONTHLY sin anclaje + "el 15" en título. No es
+  regresión; no se sobre-ingeniería (orden poco común).
+- "cada mes" a secas sigue sin fecha (ambiguo, sin día): comportamiento preexistente correcto.
+
+### Commit / push
+- (pendiente; se commitea a continuación)
+
+### Siguiente prioridad
+- Auditoría funcional no-parser (tareas/búsqueda/What Now/automatizaciones/contexto) o
+  siguientes P2/P3 del backlog (lint `InsertDriveFile` AutoMirrored, i18n strings).

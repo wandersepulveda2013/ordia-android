@@ -12,6 +12,18 @@
 
 ## Último trabajo realizado
 
+- **Sesión OpenHands 004 — Ciclo 16 (NaturalTaskParser — mensual anclado)**: P1 corregido —
+  recurrencia mensual anclada a día del mes ("el 15 de cada mes", "los 30 del mes",
+  "15 de cada mes") NO se parseaba: el día quedaba como residuo en el título y `dueAt=null`,
+  de modo que la tarea mensual nunca recibía fecha de vencimiento y los recordatorios no
+  disparaban. Ahora `parseRecurrence` reconoce el patrón `N de/del (cada) mes(es)`,
+  ancla la primera ocurrencia al próximo día N (inclusive si es hoy; avanza de mes si el
+  día no existe, p. ej. 31 en feb) vía `nextMonthlyDate`, y limpia el título. Además fix
+  lateral: `monthNameDate` se computa como fecha resuelta (no basta con que la regex
+  "mes" coincida) para que un sufijo de hora "8 de la manana" no cree la falsa fecha
+  "8 de la" y anule la resolución de fecha de repeticiones mensuales/semanales con hora.
+  3 tests nuevos (212 domain tests OK, smoke 25 OK). Commit (pendiente).
+
 - **Sesión OpenHands 004 — Ciclo 1 (NaturalTaskParser)**: 3 bugs P1 corregidos (fecha numérica
   pasada, esta noche/tarde/mañana, urgente inicial), 11 tests de regresión. Commit `fb53e8c`.
 - **Sesión OpenHands 004 — Ciclo 2 (auditoría persistencia + recordatorios + seguridad)**: inspección

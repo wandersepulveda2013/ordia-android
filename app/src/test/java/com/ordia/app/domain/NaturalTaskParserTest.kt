@@ -77,6 +77,34 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    // Mensual anclado a día del mes ("el 15 de cada mes"): antes el día quedaba como
+    // residuo en el título y dueAt=null (la tarea nunca tenía fecha, los recordatorios
+    // no disparaban). Ahora se ancla al próximo día 15 y se limpia el título.
+    @Test fun parsesMonthlyDayOfMonthRecurrence() {
+        val result = NaturalTaskParser.parse("Pagar la cuenta el 15 de cada mes", now, zone)
+        assertEquals("Pagar la cuenta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        // 29-jul → el 15 ya pasó este mes → 15-ago.
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesMonthlyDayOfMonthTodayInclusive() {
+        val result = NaturalTaskParser.parse("Cobro el 29 de cada mes", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // El sufijo de hora "de la manana" no debe crear una falsa fecha "8 de la" que
+    // anule la recurrencia mensual: la fecha debe ser el día del mes, la hora la dada.
+    @Test fun monthlyDayOfMonthKeepsExplicitTime() {
+        val result = NaturalTaskParser.parse("Renta el 10 de cada mes a las 8 de la manana", now, zone)
+        assertEquals("Renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 10), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     @Test fun parsesReminderOffsetBeforeDue() {
         val result = NaturalTaskParser.parse("Presentar propuesta el viernes recuérdame 2 horas antes", now, zone)
         assertEquals("Presentar propuesta", result.title)

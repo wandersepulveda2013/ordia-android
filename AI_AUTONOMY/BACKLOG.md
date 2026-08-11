@@ -31,6 +31,7 @@
 
 | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|----------|--------|
+| P1 | Parser | Recurrencia mensual anclada a día del mes ("el 15 de cada mes") NO se parseaba: el día quedaba como residuo en el título ("Pagar la cuenta el 15 de") y `dueAt=null` → la tarea mensual nunca tenía fecha y los recordatorios no disparaban. Además, sufijo de hora "de la manana" creaba falsa fecha "8 de la" que anulaba la resolución de fecha de repeticiones mensuales/semanales con hora | probe JVM (12 casos): `due=2026-08-15` tras anclaje; `Renta el 10 de cada mes a las 8 de la manana` → `due=2026-08-10 08:00` (antes `due=hoy`); 3 tests `parsesMonthlyDayOfMonthRecurrence`, `parsesMonthlyDayOfMonthTodayInclusive`, `monthlyDayOfMonthKeepsExplicitTime` | FIXED → VERIFIED (212 domain tests PASS; smoke 25 OK; NO VERIFICADO gradle/Android) ciclo 16 |
 | P1 | Privacy | Fragmentos de paquete sin punto (banca genérica) no se filtraban | `ContextPrivacyFilterTest` | FIXED |
 | P1 | Capture | `StartActivityAndCollapseDeprecated` en tile de Quick Settings | lint | FIXED |
 | P1 | UI | `stringResource` fuera del ámbito composable en `TaskDetailScreen` | lint | FIXED |
