@@ -365,20 +365,24 @@
   consulta `releases/latest`, valida SHA-256, firma compatible, versionCode superior,
   packageName correcto, y lanza el instalador oficial (Android pide confirmación).
 
-## Estado de entrega (CICLO 24 — VERIFIED)
+## Estado de entrega (CICLO 25 — VERIFIED, entrega continua)
 
-- **Primera APK firmada instalable PRODUCIDA y verificada** vía CI run `31505311240`.
-- Release publicada: `v3.0.8-code-1300000801` (Latest, pública).
-  - Asset: `Ordia-3.0-code-1300000801.apk` (2 738 083 bytes) + `.sha256`.
-  - URL: https://github.com/wandersepulveda2013/ordia-android/releases/tag/v3.0.8-code-1300000801
-- Verificación independiente local (descargando la APK de la release):
-  - SHA-256 `74953d29…b05a83` coincide con `.sha256` y con CI.
-  - versionCode `1300000801`, versionName `3.0.8-preview-advanced.1`.
-  - packageName `com.ordia.app.preview.advanced` (coincide con el updater).
-  - NO debuggable. Firma APK Signature Scheme v2 (`0x7109871a`) + v1 JAR (alias ORDIA-UP).
-  - `UpdateInstallActivity` compilado en `classes.dex`; `SELF_UPDATE_ENABLED=true` (fix P0 activo).
-- Artefacto CI `ordia-previewadvanced-signed` (id 9107169334) también disponible en la run.
-- **T4 = VERIFIED**. CI entrega APK firmada reproduciblemente en cada push a la rama.
+- **Delivery reproducible confirmado**: 3 releases firmadas consecutivas publicadas.
+  - `v3.0.8-code-1300000801` (ciclo 24, primer APK firmada).
+  - `v3.0.9-code-1300000901` (commit docs e3b7234).
+  - `v3.0.11-code-1300001101` (ciclo 25, **primera mejora P2 visible** publicada).
+- La última release (Latest) contiene la mejora de simpleza de TodayScreen.
+  - URL: https://github.com/wandersepulveda2013/ordia-android/releases/tag/v3.0.11-code-1300001101
+- Cadena de la MISIÓN funcionando: OBSERVAR→DECIDIR→MEJORAR→PROBAR→COMMIT→PUSH→CI→RELEASE→USUARIO.
+- Cada push a `openhands/autonomous-ordia` produce una release firmada con versionCode creciente.
+
+## Última mejora (ciclo 25 — P2 VERIFIED vía CI)
+
+- **TodayScreen**: eliminado el action "What Now" duplicado (aparecía como botón en la fila
+  de 3 AND como card dedicada con eyebrow+razón). La fila ahora tiene 2 actions equilibrados
+  (Revisar mensajes, Nota rápida) con más respiración. Jerarquía más clara, menos ruido.
+- CI run 31520002066 (job 93874503437) **success**: Verificar (tests+lint+assemble) ✓,
+  firma ✓, release publicada ✓. SmokeTest sigue pasando (busca "SIGUIENTE PASO", no tocado).
 
 ## Riesgos / pendientes
 
@@ -387,6 +391,7 @@
 - La primera instalación en el teléfono requiere que la firma estable coincida con la APK
   instalada; si difiere, hace falta UNA última instalación manual limpia.
 - **T5 (auto-update N→N+1 end-to-end en dispositivo real) = BLOCKED-external**: requiere
-  hardware Android; el agente no puede ejecutarlo. Pendiente de validación humana.
+  hardware Android; el agente no puede ejecutarlo. NO detiene la evolución — se salta y
+  se continúa con mejoras P2.
 - Sin Android SDK en este entorno: tests de Android/Room/ViewModel NO VERIFICADOS
   localmente (sí corren en CI dentro del step `Verificar`).

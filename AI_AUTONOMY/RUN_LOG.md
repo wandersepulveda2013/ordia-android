@@ -1794,3 +1794,65 @@ Producir la primera APK instalable firmada vía CI y verificar la cadena complet
 
 ### Siguiente prioridad
 - T5 end-to-end en teléfono: instalar `Ordia-3.0-code-1300000801.apk`, disparar una nueva release (versionCode superior), y confirmar que Ordía la detecta/descarga/instala. Fuera del alcance del agente sin dispositivo.
+
+---
+
+## Ciclo 25 — 2026-08-11 — Primera mejora P2 visible (simpleza UI) publicada en release
+
+### Objetivo
+Reanudar la evolución autónoma bajo la nueva MISIÓN (administrar producto integralmente,
+priorizar P2 visible cuando no hay P0/P1). Reducir ruido visual en la pantalla principal.
+
+### Contexto
+- MISIÓN actualizada (commit b004771): rol de administrador autónomo permanente del producto,
+  P2 = evolución real visible, BLOCKED-external no detiene evolución.
+- Sin P0/P1 abiertos (T4 delivery VERIFIED; T5 BLOCKED-external dispositivo).
+
+### Problema P2 encontrado
+TodayScreen mostraba What Now DOS veces: (1) como CompactAction en la fila de 3 botones y
+(2) como Card dedicada con eyebrow+razón justo debajo. Mismo destino
+(onTask(whatNow.id) ?: onOpenInbox), dos entradas = ruido visual y jerarquía confusa.
+El action duplicado no aportaba nada que la card rica no cumpliera mejor.
+
+### Causa raíz
+Decisión de diseño previa: la fila de 3 CompactActions incluía un atajo a What Now
+redundante con la card principal. No es un bug; es ruido de jerarquía.
+
+### Solución
+- Quité el CompactAction "What Now" de la fila (1 línea). La card dedicada sigue presente
+  con eyebrow "SIGUIENTE PASO" + título + razón + flecha.
+- La fila pasa de 3 a 2 actions equilibrados (Revisar mensajes, Nota rápida) con más
+  respiración (spacing 8dp → 10dp).
+- NO toqué el reloj de recomposición cada 60s: tras análisis tiene propósito funcional
+  (detectar tareas que se vuelven overdue sin interacción del usuario). Quitarlo sería P1.
+- Cadena today_what_now_action quedó sin referencia; la dejé en strings (no rompe).
+
+### Archivos
+- Modificado: app/src/main/java/com/ordia/app/ui/screens/TodayScreen.kt (1 inserción, 7 eliminaciones).
+
+### Tests
+- CI run 31520002066 (job 93874503437) — **success** ✓
+  - Verificar (testReleaseUnitTest + lint + assemblePreviewAdvancedRelease) ✓
+  - Rechazar APK debuggable ✓ / Firmar APK ✓ / Verificar versionCode ✓ / SHA-256 ✓
+  - Publicar GitHub Release ✓
+- SmokeTest.firstLaunchOrTodayScreen_isVisible busca "SIGUIENTE PASO" (eyebrow de la card
+  What Now, NO tocada) → sigue pasando.
+- Sin SDK local: compilación validada por CI.
+
+### Release
+- Tag: v3.0.11-code-1300001101 (Latest)
+- Commit: 2dfce3a
+- Esta es la TERCERA release firmada consecutiva reproducible (1300000801→0901→1101).
+  Confirma la cadena de entrega de la nueva MISIÓN: OBSERVAR→…→RELEASE→USUARIO.
+
+### Hallazgos
+- android-ci.yml solo corre en main/jules/autonomous-ordia (no en openhands/autonomous-ordia),
+  pero openhands-delivery.yml incluye step Verificar equivalente → cobertura OK.
+- Reproducibilidad del delivery confirmada: cada push produce release firmada.
+
+### Estado
+- Mejora P2 VERIFIED vía CI. Usuario verá Today más limpio en v3.0.11.
+
+### Siguiente prioridad
+- Otra mejora P2 visible: revisar CaptureScreen (captura rápida es núcleo del producto)
+  o simplificar más pantallas principales. Continúa autónomamente.
