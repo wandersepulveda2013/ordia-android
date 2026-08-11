@@ -457,3 +457,63 @@ ESPAÑOLAS EXTREMADAMENTE COMUNES que el parser interpretaba en horario totalmen
   NoteEditor `rememberSaveable`, atomicidad de `saveRoutine`. Ver BACKLOG.
 
 ---
+
+---
+
+## CICLO 7 — Parser: "a las 24" / "24:00" = medianoche
+
+- **Fecha (UTC)**: 2026-08-11
+- **HEAD inicial**: 4f43c0b (ciclo 6, en origin)
+- **Trigger**: continuación autónoma; auditoría de casos límite del parser.
+
+### Problema seleccionado (P3 → resulta info-loss real)
+
+"a las 24" (forma común de medianoche en horarios de transporte, farmacias 24h, cierre de pubs)
+NO se reconocía como hora válida: el regex de hora `([01]?\d|2[0-3])` solo aceptaba 0-23, así que
+"a las 24" producía `dueAt=null` (tarea SIN recordatorio) y dejaba "a las 24" como basura en el
+título. Casos verificados antes del fix:
+- "comprar pan a las 24" → title='comprar pan a las 24', dueAt=null
+- "reunion a las 24:00" → title='reunion a las 24:00', dueAt=null
+- "cena a las 24 de la noche" → title='cena a las 24' (basura), dueAt=21:00 (inconsistente)
+
+Pérdida de información: el usuario cree que dejó una tarea para medianoche y en realidad queda
+sin hora/recordatorio. Por eso se sube de P3 a impacto real de info-loss.
+
+### Causa raíz
+- `timePatterns[0]` y `[1]` usaban `2[0-3]` para la hora → 24 no casaba.
+- Sin casamiento de hora, "24" sobrevivía al limpiado de título y "de la noche" sí se parseaba
+  por separado, generando el resultado inconsistente.
+
+### Solución (mínima, en `NaturalTaskParser.kt`)
+1. Regex de hora `2[0-3]` → `2[0-4]` en `timePatterns[0]` y `[1]` (acepta 20-24).
+2. En `explicitTime`: si `hour == 24` → `LocalTime.MIDNIGHT to true` (medianoche absoluta).
+   Marcar `meridiem=true` bloquea que el contexto PM de parte del día aplique +12 sobre un 24
+   que ya es absoluto (24 no es 12, no entra en `hour<12`). "24" se comporta igual que
+   "medianoche"/"a las 0".
+3. Al casar la hora, el token "24" (con sus variantes "24:00", "24 de la noche") se elimina del
+   título en el limpiado genérico, dejando el título limpio.
+
+### Tests
+- 3 tests nuevos de regresión: `aLas24EsMedianocheYLimpiaTitulo`,
+  `aLas24ConMinutosEsMedianoche`, `aLas24DeLaNocheLimpiaTituloYEsMedianoche`.
+- `bash tools/run_domain_tests.sh` → 172 tests PASS (25 clases), 0 FAIL.
+- `bash tools/run_domain_checks.sh` → 25 assertions OK.
+- `./gradlew test/lint/assemble`: NO VERIFICADO (sin Android SDK).
+
+### Archivos modificados
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (+18/-11)
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+20)
+
+### Hallazgos adicionales (probe de descubrimiento ciclo 7)
+Casos de título que dejan basura/residuos NO limpiados (candidatos a ciclo 8):
+- "ir al dentista mañana a primera hora" → title='ir al dentista a primera hora' ("a primera
+  hora" NO se interpreta ni se limpia; debería ser ~09:00 inicio de jornada).
+- "llamar a mamá el viernes que viene" → title='llamar a mamá que viene' ("que viene" se queda).
+- "reunion a las 3pm del jueves" → title='reunion del' ("del" huérfano por limpiado de fecha).
+- "reunion de 18 a 20" → rango horario no parseado (title y dueAt nulos). Rango válido de horas.
+- "pasado mañana a las 4" → 04:00 AM (no aplica contexto; hora sin meridiem sin parte del día
+  queda AM — consistente con diseño, no bug).
+
+### Siguiente prioridad
+- Ciclo 8: limpiar residuos de título ("que viene", "del" huérfano, "a primera hora") y/o
+  parsear rango horario "de 18 a 20". Evaluar impacto real antes de implementar.

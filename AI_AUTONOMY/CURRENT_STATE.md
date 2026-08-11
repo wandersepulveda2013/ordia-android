@@ -42,8 +42,12 @@
   en título); "12 de la noche" → 12:00 (mediodía) en vez de 00:00 (medianoche); "de la madrugada"
   no reconocido. Fix quirúrgico: `standalonePartOfDayPattern`, `hasPartOfDayPmContext`,
   `explicitTime` emite `Pair<LocalTime,Boolean>`, contexto PM a hora sin meridiem. 6 tests
-  nuevos. Commit pendiente (esta run).
-- **Verificación JVM**: 169 tests del dominio PASS (25 clases); smoke 25 assertions OK.
+  nuevos. Commit `4f43c0b`.
+- **Sesión OpenHands 004 — Ciclo 7 (NaturalTaskParser)**: "a las 24" / "24:00" no se reconocía
+  como medianoche (regex de hora `2[0-3]` rechazaba 24) → `dueAt=null` (info-loss: tarea sin
+  recordatorio) y basura "a las 24" en el título. Fix: regex `2[0-3]`→`2[0-4]`; `hour==24`→
+  `LocalTime.MIDNIGHT` con meridiem explícito (bloquea offset PM). 3 tests nuevos. 172 tests OK.
+- **Verificación JVM**: 172 tests del dominio PASS (25 clases); smoke 25 assertions OK.
 - `./gradlew test/lint/assemble`: sigue NO VERIFICADO (sin Android SDK en el entorno).
 
 ## Áreas modificadas
@@ -54,7 +58,7 @@
 ## Tests ejecutados
 
 - **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` (sin Android SDK).
-- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 169 tests OK (25 clases);
+- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 172 tests OK (25 clases);
   `bash tools/run_domain_checks.sh` → 25 assertions OK.
 
 ## Problemas conocidos
@@ -68,7 +72,10 @@
 - Parser: ~~"de la tarde/noche/mañana" como meridiem ignorado (hora AM errónea); "al mediodía"/"a la medianoche" y "esta mañana" dejaban restos en el título~~ RESUELTO (ciclo 5, 8 tests nuevos).
 - Parser: ~~contexto PM de parte del día no aplicado a hora sin meridiem; "12 de la noche"=mediodía; "de la madrugada" no reconocido~~ RESUELTO (ciclo 6, 6 tests nuevos).
 - Parser: casos límite menores P3 abiertos: "salir de madrugada" (sin "a las"/"a la") no reconocido;
-  "a las 24" → null; "a las 3.5" → ".5" suelto. Ver BACKLOG.
+  "a las 3.5" → ".5" suelto. Ver BACKLOG. (~~"a las 24" → null~~ RESUELTO ciclo 7.)
+- Parser: residuos de título NO limpiados detectados en probe ciclo 7: "a primera hora" sin
+  interpretar/limpiar; "que viene" tras fecha ("el viernes que viene"); "del" huérfano
+  ("a las 3pm del jueves"); rango horario "de 18 a 20" no parseado. Candidatos a ciclo 8.
 - NoteEditor: `blocks` (mutableStateListOf) no es `rememberSaveable`; si el proceso muere dentro
   de la ventana de autosave (800 ms) se pierden los últimos cambios de bloques (el `title` sí
   sobrevive). Tradeoff de debounce, no corregido en esta sesión (P2/P3).
@@ -83,13 +90,12 @@
 
 ## Siguiente tarea recomendada
 
-- Ciclo 6 ejecutado: fix del parser (contexto PM de parte del día sobre hora sin meridiem;
-  "12 de la noche"=medianoche; "de la madrugada"; parte del día suelta "a la/de la tarde").
-  Continuar autonomía: seguir auditando el parser (casos límite P3 abiertos), luego UX:
-  Onboarding responsive (caber en pantallas pequeñas, botones accesibles, sin scroll imposible),
-  NoteEditor `rememberSaveable` (P2/P3), atomicidad de `saveRoutine` (P3), ítems P2 (deprecación
-  de iconos, i18n, QA de variantes). La verificación de Gradle/Android queda pendiente hasta
-  que exista un entorno con SDK.
+- Ciclo 7 ejecutado: fix del parser "a las 24"/"24:00" = medianoche (antes dueAt=null + basura en
+  título; info-loss real de recordatorio). 3 tests nuevos, 172 tests OK. Continuar autonomía:
+  ciclo 8 candidato a limpiar residuos de título ("a primera hora", "que viene", "del" huérfano)
+  y/o parsear rango horario "de 18 a 20"; evaluar impacto real antes de implementar. Luego UX:
+  Onboarding responsive, NoteEditor `rememberSaveable` (P2/P3), atomicidad de `saveRoutine` (P3),
+  ítems P2 (deprecación de iconos, i18n, QA de variantes). Verificación Gradle/Android pendiente.
 
 ## PR pendiente
 

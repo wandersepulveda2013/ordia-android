@@ -44,8 +44,8 @@ object NaturalTaskParser {
     )
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
     private val timePatterns = listOf(
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?\b"""),
-        Regex("""(?i)\b([01]?\d|2[0-3]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?\b"""),
+        Regex("""(?i)\b([01]?\d|2[0-4]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b"""),
         Regex("""(?i)\b(?:al\s+|a\s+la\s+)?mediod[ií]a\b"""),
         Regex("""(?i)\b(?:al\s+|a\s+la\s+)?medianoche\b""")
@@ -228,15 +228,22 @@ object NaturalTaskParser {
                 else -> {
                     var hour = match.groupValues[1].toInt()
                     val minute = match.groupValues[2].toIntOrNull() ?: 0
-                    val meridiem = match.groupValues[3].lowercase().replace(".", "").replace(" ", "")
-                    // "de la tarde"/"de la noche" → 12h posterior; "de la mañana/madrugada" → am.
-                    val isPm = meridiem == "pm" || meridiem == "delatarde" || meridiem == "delanoche"
-                    val isAm = meridiem == "am" || meridiem == "delamañana" || meridiem == "delamanaana" || meridiem == "delamadrugada"
-                    if (isPm && hour < 12) hour += 12
-                    if (isAm && hour == 12) hour = 0
-                    // "12 de la noche" = medianoche (00:00), no 12:00 del mediodía.
-                    if (isPm && hour == 12 && meridiem == "delanoche") hour = 0
-                    LocalTime.of(hour, minute) to meridiem.isNotEmpty()
+                    // "a las 24" / "24:00" = medianoche (00:00), forma común en horarios.
+                    // Se marca como meridiem explícito para evitar que el contexto PM de
+                    // parte del día aplique un offset (24 ya es absoluto).
+                    if (hour == 24) {
+                        LocalTime.MIDNIGHT to true
+                    } else {
+                        val meridiem = match.groupValues[3].lowercase().replace(".", "").replace(" ", "")
+                        // "de la tarde"/"de la noche" → 12h posterior; "de la mañana/madrugada" → am.
+                        val isPm = meridiem == "pm" || meridiem == "delatarde" || meridiem == "delanoche"
+                        val isAm = meridiem == "am" || meridiem == "delamañana" || meridiem == "delamanaana" || meridiem == "delamadrugada"
+                        if (isPm && hour < 12) hour += 12
+                        if (isAm && hour == 12) hour = 0
+                        // "12 de la noche" = medianoche (00:00), no 12:00 del mediodía.
+                        if (isPm && hour == 12 && meridiem == "delanoche") hour = 0
+                        LocalTime.of(hour, minute) to meridiem.isNotEmpty()
+                    }
                 }
             }
         }

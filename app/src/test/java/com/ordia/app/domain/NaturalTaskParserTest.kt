@@ -359,4 +359,24 @@ class NaturalTaskParserTest {
         assertEquals("Despertar", result.title)
         assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
+
+    // --- "a las 24" / "24:00" = medianoche (ciclo 7) ---
+
+    @Test fun aLas24EsMedianocheYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Comprar pan a las 24", now, zone)
+        assertEquals("Comprar pan", result.title)
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas24ConMinutosEsMedianoche() {
+        val result = NaturalTaskParser.parse("Reunión a las 24:00", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas24DeLaNocheLimpiaTituloYEsMedianoche() {
+        val result = NaturalTaskParser.parse("Cena a las 24 de la noche", now, zone)
+        assertEquals("Cena", result.title)
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
+    }
 }
