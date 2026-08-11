@@ -125,9 +125,42 @@ class SummaryEngineTest {
     }
 
     @Test
+    fun remainingMinutesCoercesPerTaskToPlanBounds() {
+        // La badge de minutos debe ser coherente con el plan del día:
+        // una tarea sin duración (5m por defecto) cuenta como el mínimo del
+        // plan (10m) y una tarea enorme (600m) se acota al máximo del plan (180m),
+        // igual que hace DayPlanner. Así el resumen no muestra minutos que el
+        // plan no podría acomodar.
+        val tasks = listOf(
+            task(1, dueAt = at(today, 9), durationMinutes = 600), // cap 180
+            task(2, dueAt = at(today, 11), durationMinutes = 5)   // floor 10
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(2, s.remainingToday)
+        assertEquals(180 + 10, s.remainingMinutesToday)
+    }
+
+    @Test
+    fun remainingMinutesMatchesDayPlannerScheduledMinutes() {
+        // Coherencia plan vs resumen: para un día despejado, la suma de
+        // plannedDuration de las tareas de hoy (resumen) coincide con la
+        // suma de duraciones de los bloques que el plan logra agendar.
+        val tasks = listOf(
+            task(1, dueAt = at(today, 9), durationMinutes = 30),
+            task(2, dueAt = at(today, 11), durationMinutes = 45),
+            task(3, dueAt = at(today, 14), durationMinutes = 60)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+        val plan = DayPlanner.build(tasks, today, now = now, zone = zone)
+
+        assertEquals(s.remainingMinutesToday, plan.scheduledMinutes - (plan.blocks.size - 1) * 10)
+    }
+
+    @Test
     fun priorityIsNotPartOfSummary() {
-        // Sanidad: el resumen no depende de prioridad; una tarea prioritaria
-        // de hoy simplemente cuenta como pendiente de hoy.
         val tasks = listOf(
             task(1, dueAt = at(today, 9), status = TaskStatus.INBOX).copy(priority = TaskPriority.URGENT)
         )

@@ -1316,3 +1316,61 @@ Peor: la rutina resultante solo contenía el primer día.
   TaskMutationGate, QuietHoursRules. Revisar el minor issue de SummaryEngine
   (`remainingMinutesToday` sin coerce como DayPlanner).
 
+---
+
+## Ciclo 20 — Unidad 2 (SummaryEngine / DayPlanner — coherencia de minutos)
+
+- Fecha: 2026-08-11
+- HEAD inicial: 9302e5a (tras push de la unidad 1)
+- Rama: `openhands/autonomous-ordia`
+
+### Problema seleccionado
+P2 (consistencia/correctitud de mÃ©trica de headline): la badge "Xm" de la
+pantalla Today (`SummaryEngine.remainingMinutesToday`) sumaba
+`task.durationMinutes` en bruto, mientras `DayPlanner` (el plan del dÃ­a que el
+usuario ve justo debajo) coerciona cada tarea a `coerceIn(10, 180)`. El
+headline y el plan discrepaban: una tarea de 600m mostraba "600m" pendientes
+pero el plan solo agenda 180m; una tarea con duraciÃ³n por defecto 5m contaba
+5m cuando el plan la trataba como 10m.
+
+### Causa raÃ­z
+Tres motores trataban la duraciÃ³n de forma distinta: `DayPlanner`
+`coerceIn(10,180)`, `WhatNowEngine.isInProgressNow` `coerceAtLeast(10)`, y
+`SummaryEngine` suma cruda. NÃºmeros mÃ¡gicos `10`/`180` duplicados.
+
+### SoluciÃ³n
+Fuente Ãºnica de verdad `TaskRules.plannedDuration(task): Int` =
+`task.durationMinutes.coerceIn(MIN_PLAN_MINUTES, MAX_PLAN_MINUTES)` con
+constantes `MIN_PLAN_MINUTES=10`, `MAX_PLAN_MINUTES=180`. Usada por
+`DayPlanner.build` (sustituye `coerceIn(10,180)`) y `SummaryEngine.summarize`
+(sustituye `sumOf { it.durationMinutes }`). `WhatNowEngine` se deja intacto
+(su `coerceAtLeast(10)` detecta "Â¿sigue en curso?", interÃ©s distinto; capar a
+180 cambiarÃ­a comportamiento). Menos duplicaciÃ³n, mÃ¡s coherencia.
+
+### Archivos
+- `app/src/main/java/com/ordia/app/domain/TaskRules.kt` (+`plannedDuration`, constantes)
+- `app/src/main/java/com/ordia/app/domain/DayPlanner.kt` (usa `TaskRules.plannedDuration`)
+- `app/src/main/java/com/ordia/app/domain/SummaryEngine.kt` (usa `TaskRules.plannedDuration`)
+- `app/src/test/java/com/ordia/app/domain/SummaryEngineTest.kt`
+  (+2 tests: `remainingMinutesCoercesPerTaskToPlanBounds`, `remainingMinutesMatchesDayPlannerScheduledMinutes`)
+
+### Tests
+- `bash tools/run_domain_tests.sh` â **223 tests OK** (25 clases) (221 + 2 netos).
+- `bash tools/run_domain_checks.sh` â **25 assertions OK**.
+- NO VERIFICADO: gradle/lint/Android/Room (sin Android SDK).
+
+### Hallazgos adicionales
+- AuditorÃ­a rÃ¡pida de `WhatNowEngine`: lÃ³gica de ranking correcta
+  (IN_PROGRESS > en-curso-ahora > atrasada > vence-hoy > urgente > alta > inbox;
+  scheduled-later se respeta con rank -1). Sin bug P1 encontrado.
+- `TaskRules.nextBestTask` usa `thenByDescending { priorityScore }` mientras
+  `DayPlanner`/`WhatNow` usan `compareByDescending` con `priorityScore`; coherente.
+
+### Commit / push
+- perf(ux): coherencia de minutos plan vs resumen (`TaskRules.plannedDuration`) â push al cierre.
+
+### Siguiente prioridad
+- Continuar auditorÃ­a funcional no-parser: UniversalCaptureEngine, FocusClock/FocusTimerRules,
+  GuardianCoach, OnboardingCompleter, PlannerCalendar, CommandPaletteCatalog,
+  TaskMutationGate, QuietHours. Buscar oportunidades de producto reales (P1 datos > P2).
+

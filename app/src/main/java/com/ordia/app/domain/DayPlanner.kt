@@ -80,7 +80,7 @@ object DayPlanner {
         var cursor = dayStartMinute
 
         candidates.forEach { task ->
-            val duration = task.durationMinutes.coerceIn(10, 180)
+            val duration = TaskRules.plannedDuration(task)
             val gap = if (blocks.isEmpty()) 0 else breakMinutes
             val proposedStart = cursor + gap
             val proposedEnd = proposedStart + duration
