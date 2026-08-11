@@ -141,8 +141,10 @@ jobs:
       # en el prompt de la sesión.
       #
       # Estados de la sesión (Jules Sessions API):
-      #   QUEUED, PLANNING, IN_PROGRESS, PAUSED, AWAITING_* → bloquear
+      #   QUEUED, PLANNING, IN_PROGRESS, AWAITING_* → bloquear
       #   (activas o esperando; no lanzar otra sesión)
+      #   PAUSED → NO bloquea (una sesión pausada manualmente no impide
+      #   el lanzamiento de una nueva)
       #   COMPLETED / TERMINAL / ERROR / CANCELLED → no bloquear
       #
       # IMPORTANTE: solo bloquean las sesiones de NUESTRO sistema autónomo.
@@ -217,7 +219,7 @@ jobs:
           # Las demás sesiones de Jules del mismo repositorio NO bloquean.
           AUTONOMOUS_TITLE = "Ordía — Autonomous Development"
           AUTONOMOUS_BRANCH = "jules/autonomous-ordia"
-          ACTIVE_STATES = ("QUEUED", "PLANNING", "IN_PROGRESS", "PAUSED",
+          ACTIVE_STATES = ("QUEUED", "PLANNING", "IN_PROGRESS",
                            "AWAITING_PLAN_APPROVAL", "AWAITING_USER_FEEDBACK")
           active_session = False
           session_state = None
