@@ -4,13 +4,31 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 19)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD inicial `cf9841e`, final `c3958ee`)
+- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 20)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD inicial `cd80eb0`, final `c1bab04`)
 - **main**: contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
 
 ## Último trabajo realizado
+
+- **Sesión OpenHands — Ciclo 20 (auditoría funcional no-parser)**: 2 bugs P1 corregidos.
+  (1) **SummaryEngine** — `dailySummary` contaba `completedToday`/`completedWeek`/`dueToday`
+  sobre TODAS las tareas (incluidas subtareas), inflando el resumen al completar un padre
+  con subtareas (auto-completadas en cascada daban N+1 en vez de 1). Fix: filtrar
+  `parentTaskId == null` en los conteos del snapshot (consistente con WhatNowEngine y
+  AutomationActionPlanner). Test `summaryCountsOnlyRootTasks`. Commit `7127b7e`.
+  (2) **SearchEngine** — la búsqueda "nota X" no encontraba notas cuyo contenido no
+  contuviera la palabra "nota" (las notas casi nunca la incluyen). Asimetría con
+  tareas/conversaciones/compromisos que ya tenían `semanticMatches`. Fix: `NOTE_TERMS` set
+  + `semanticMatches` fallback para notes. Test
+  `noteTypeFilterDoesNotRequireTheWordNotaInContent`. Commit `c1bab04`.
+  Auditoría completa del resto de motores no-parser (RecurrenceEngine, TaskRules,
+  DayPlanner, QuietHours, RoutineRules, HabitRules, GuardianEngine, LearningEngine,
+  SubtaskRules, WhatNowEngine, DateRules, TaskSnapshotCodec, UniversalCaptureEngine,
+  FocusTimerRules, ReminderSync, AutomationRules, AutomationEngine, AutomationUndoRules)
+  **sin hallazgos P0/P1**: el trabajo previo es sólido. **222 domain tests OK, smoke 25 OK.**
+  NO VERIFICADO: gradle/lint/Android/Room (sin Android SDK).
 
 - **Sesión OpenHands — Ciclo 19 (NaturalTaskParser — anclaje de recurrencias de intervalo)**:
   P1 corregido — recurrencias de **intervalo** (diaria "cada día", quincenal "cada 2 semanas",
