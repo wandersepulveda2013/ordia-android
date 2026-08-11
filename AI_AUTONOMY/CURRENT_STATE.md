@@ -26,7 +26,29 @@
 
 ## Último trabajo realizado
 
-- **Sesión OpenHands — Ciclo 20 (NaturalTaskParser — recurrencia semanal de varios días)**:
+- **Sesión OpenHands — Ciclo 20, Unidad 3 (Rutinas — duplicados al re-disparar tras completar)**:
+  P1 corregido — `RoutineRules.wasRunToday` solo contaba tareas **pendientes** creadas hoy. Al
+  completar todas las tareas de la rutina de hoy, `wasRunToday` devolvía `false` y un nuevo
+  disparo de `runRoutine` (reabrir app, worker, o tap manual) volvía a añadir los pasos →
+  **tareas duplicadas** en la bandeja justo cuando el usuario había sido productivo. El guardia
+  anti-duplicados se derrotaba a sí mismo. Fix: una tarea creada hoy cuenta como "rutina ya
+  ejecutada hoy" aun si está completada (solo archivado/cancelado no bloquean). El test
+  `wasRunTodayFalseWhenTaskCompleted` codificaba el bug como deseado; se corrigió a
+  `wasRunTodayTrueWhenCreatedTodayAndCompleted` + `wasRunTodayTrueWhenTodayBatchPartiallyCompleted`.
+  Tests: **224 domain tests OK, smoke 25 OK.** NO VERIFICADO: gradle/Android/ViewModel real.
+
+- **Sesión OpenHands — Ciclo 20, Unidad 2 (SummaryEngine / DayPlanner — coherencia de minutos)**:
+  P2 corregido — la badge "Xm" de la pantalla Today (`SummaryEngine.remainingMinutesToday`)
+  sumaba `durationMinutes` en bruto mientras `DayPlanner` coerciona cada tarea a `coerceIn(10,180)`.
+  El headline y el plan del día discrepaban: una tarea de 600m mostraba "600m" pendientes pero el
+  plan solo agenda 180m; una tarea con duración por defecto 5m contaba 5m cuando el plan la trataba
+  como 10m. Fix: fuente única de verdad `TaskRules.plannedDuration` (constantes
+  `MIN_PLAN_MINUTES=10` / `MAX_PLAN_MINUTES=180`), usada por `DayPlanner.build` y
+  `SummaryEngine.summarize`. WhatNowEngine intacto (su `coerceAtLeast(10)` detecta "sigue en curso",
+  interés distinto). Tests: +2 (coerce 600→180 y 5→10; coherencia plan↔resumen). **223 domain tests OK,
+  smoke 25 OK.** NO VERIFICADO: gradle/lint/Android/Room.
+
+- **Sesión OpenHands — Ciclo 20, Unidad 1 (NaturalTaskParser — recurrencia semanal de varios días)**:
   P1 corregido — pérdida de datos silenciosa en rutinas semanales con varios días. La forma
   más común en español ("reunión los lunes y jueves") NO se parseaba: solo el patrón
   `cada X y Z` admitía dos días; `todos los X`, `los X` capturaban **un solo día** y dejaban

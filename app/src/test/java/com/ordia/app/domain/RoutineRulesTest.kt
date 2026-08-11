@@ -33,10 +33,12 @@ class RoutineRulesTest {
     }
 
     @Test
-    fun wasRunTodayFalseWhenTaskCompleted() {
+    fun wasRunTodayTrueWhenCreatedTodayAndCompleted() {
+        // Completar la tanda de hoy significa que la rutina ya se ejecutó:
+        // un nuevo disparo no debe duplicar tareas en la bandeja.
         val tasks = listOf(routineTask(1, todayEpoch, status = TaskStatus.COMPLETED).copy(completed = true))
 
-        assertFalse(RoutineRules.wasRunToday(tasks, "Mañana", today, zone))
+        assertTrue(RoutineRules.wasRunToday(tasks, "Mañana", today, zone))
     }
 
     @Test
@@ -46,6 +48,18 @@ class RoutineRulesTest {
 
         assertFalse(RoutineRules.wasRunToday(listOf(archived), "Mañana", today, zone))
         assertFalse(RoutineRules.wasRunToday(listOf(cancelled), "Mañana", today, zone))
+    }
+
+    @Test
+    fun wasRunTodayTrueWhenTodayBatchPartiallyCompleted() {
+        // Escenario del bug: el usuario completó parte de la rutina de hoy y un
+        // re-disparo no debe duplicar los pasos restantes.
+        val tasks = listOf(
+            routineTask(1, todayEpoch, status = TaskStatus.COMPLETED).copy(completed = true),
+            routineTask(2, todayEpoch, status = TaskStatus.INBOX)
+        )
+
+        assertTrue(RoutineRules.wasRunToday(tasks, "Mañana", today, zone))
     }
 
     @Test

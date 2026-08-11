@@ -1306,3 +1306,74 @@ constantes `MIN_PLAN_MINUTES=10`, `MAX_PLAN_MINUTES=180`. Usada por
   GuardianCoach, OnboardingCompleter, PlannerCalendar, CommandPaletteCatalog,
   TaskMutationGate, QuietHours. Buscar oportunidades de producto reales (P1 datos > P2).
 
+
+---
+
+## Ciclo 20 — Unidad 3 (Rutinas — duplicados al re-disparar tras completar)
+
+- **Fecha (UTC)**: 2026-08-11
+- **HEAD inicial**: 6f2ae9f (cierre Unidad 2)
+- **Prioridad**: P1 (persistencia/duplicación de tareas)
+- **Área**: Rutinas (`RoutineRules.wasRunToday`, `OrdiaViewModel.runRoutine`)
+
+### Problema seleccionado
+`RoutineRules.wasRunToday` solo contaba tareas **pendientes** creadas hoy
+(`!completed && !archived && status != CANCELLED`). Al completar todas las
+tareas de la rutina de hoy, `wasRunToday` devolvía `false` → un nuevo disparo de
+`runRoutine` (reabrir app, worker, o tap manual) volvía a añadir los pasos →
+**tareas duplicadas** en la bandeja justo cuando el usuario había sido productivo.
+El guardia anti-duplicados se derrotaba a sí mismo.
+
+### Causa raíz
+El filtro exigía estado pendiente, confundiendo "rutina ejecutada hoy" con
+"rutina ejecutada hoy y aún pendiente". Completar la tanda = la rutina YA se
+ejecutó; no debe re-añadirse. El test `wasRunTodayFalseWhenTaskCompleted`
+codificaba el bug como deseado.
+
+### Solución
+`wasRunToday` ahora devuelve true si existe al menos una tarea de la rutina
+creada hoy y **no archivada ni cancelada** (la compleción ya no la excluye).
+Archivado/cancelado se mantienen fuera (semántica de descarte explícito del
+usuario; fuera del alcance del bug claro y ambigua). Cambio mínimo de 1 línea
+en la condición + docstring que explica el porqué.
+
+### Archivos
+- `app/src/main/java/com/ordia/app/domain/RoutineRules.kt` (`wasRunToday`: quita `!task.completed`)
+- `app/src/test/java/com/ordia/app/domain/RoutineRulesTest.kt`
+  (corrige `wasRunTodayFalseWhenTaskCompleted` → `wasRunTodayTrueWhenCreatedTodayAndCompleted`;
+  +`wasRunTodayTrueWhenTodayBatchPartiallyCompleted`)
+
+### Tests
+- `bash tools/run_domain_tests.sh` → **224 tests OK** (25 clases) (222 + 2 netos).
+- `bash tools/run_domain_checks.sh` → **25 assertions OK**.
+- NO VERIFICADO: gradle/Android/ViewModel real (sin Android SDK; `runRoutine` en
+  `OrdiaViewModel` requiere repositorios/Room).
+
+### Hallazgos adicionales
+- `ReminderSync.triggers`: lógica correcta (futuro-only, mismo disparo que
+  `ReminderScheduler.schedule`; re-sincronización no duplica notificaciones).
+- `TaskSnapshotCodec`: robusto para su propósito (decode defensivo con
+  `runCatching`, enums con fallback; snapshots los produce el propio codec así
+  las keys siempre existen). El caso "key ausente → 0 (1970)" solo afecta JSON
+  externo/malformado, no snapshots internos → no es bug activo.
+- `GuardianEngine`: XP/mood/archetype derivados de registros reales (no random,
+  no reglas disfrazadas de IA) → honesto, conforme a "IA honesta".
+- `DayPlanner`: recupera tareas vencidas (`overdueByDate` las incluye y ordena
+  primero); `scheduledMinutes`/`remainingMinutes` coherentes con `SummaryEngine`.
+- `SearchEngine`: sólido; sort solo prioriza "empieza con" → oportunidad P2
+  menor (vencidas/incompletas antes) registrada mentalmente, no implementada
+  (evitar feature bloat; impacto bajo).
+
+### AI_AUTONOMY actualizado
+- `BACKLOG.md`: +entrada P1 Rutinas (FIXED→VERIFIED ciclo 20); nota de auditoría
+  de Rutinas actualizada.
+- `CURRENT_STATE.md`: +Unidad 3 en "Último trabajo realizado".
+
+### Commit / push
+- fix(rutinas): evitar duplicados al re-disparar rutina tras completar la tanda del día.
+- HEAD final: por commit.
+
+### Siguiente prioridad
+- Seguir auditoría funcional no-parser (OnboardingCompleter, PlannerCalendar,
+  CommandPaletteCatalog, QuietHoursRules, SubtaskRules, HabitRules). Buscar P1
+  datos/recordatorios antes que P2 cosmetic.

@@ -25,8 +25,16 @@ object RoutineRules {
         tasks.filter { isCreatedByRoutine(it, routineName) }
 
     /**
-     * Devuelve true si la rutina ya se ejecutó hoy y sus tareas siguen
-     * pendientes (sin completar/archivar/cancelar).
+     * Devuelve true si la rutina ya se ejecutó hoy: existe al menos una tarea
+     * generada por ella (mismo `details` "Rutina: <nombre>") creada hoy y que no
+     * haya sido archivada ni cancelada.
+     *
+     * Una tarea completada también cuenta: significa que la rutina se ejecutó
+     * hoy y el usuario ya avanzó esa tanda, por lo que un nuevo disparo
+     * (reabrir la app, worker o acción manual) NO debe volver a añadirla, ya
+     * que duplicaría tareas en la bandeja. Antes se exigía que la tarea
+     * estuviera pendiente, lo que provocaba duplicados justo cuando el usuario
+     * había sido productivo y completado la rutina del día.
      */
     fun wasRunToday(
         tasks: List<TaskEntity>,
@@ -34,7 +42,7 @@ object RoutineRules {
         today: LocalDate,
         zone: ZoneId = ZoneId.systemDefault()
     ): Boolean = tasksFromRoutine(tasks, routineName).any { task ->
-        !task.completed && !task.archived && task.status != TaskStatus.CANCELLED &&
+        !task.archived && task.status != TaskStatus.CANCELLED &&
             Instant.ofEpochMilli(task.createdAt).atZone(zone).toLocalDate() == today
     }
 }
