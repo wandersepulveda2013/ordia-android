@@ -4,36 +4,40 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands 004 — autonomía nocturna, ciclo 1: parser)
-- **Branch de trabajo**: `jules/autonomous-ordia` (HEAD inicial `35fb204`)
+- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands 004 — autonomía nocturna, ciclos 1-3)
+- **Branch de trabajo**: `jules/autonomous-ordia` (HEAD inicial `35fb204`, final `2ae258a`)
 - **main**: contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
 
 ## Último trabajo realizado
 
-- **Sesión OpenHands 004 (autonomía nocturna) — Ciclo 1: NaturalTaskParser**. Se auditó el parser
-  con un probe JVM reproducible y se encontraron 4 bugs reales (3 P1 + 1 P2):
-  - BUG1 (P1): fecha numérica sin año en el pasado NO rodaba al año siguiente (inconsistente con
-    fechas con nombre de mes). Provocaba tareas con fecha pasada → recordatorio nunca dispara.
-  - BUG2 (P1): "esta mañana/tarde/noche" no reconocidas; además "esta mañana" se interpretaba como
-    "el día de mañana" (contiene "mañana").
-  - BUG4 (P1): "urgente" como palabra inicial no se detectaba como prioridad sin prefijo !/#.
-  - BUG3 (P2, todavía OPEN): números escritos en expresiones relativas ("en dos horas").
-  - Se corrigieron BUG1/2/4 con fix mínimo y 11 tests de regresión. Commit `fb53e8c`.
-- **Verificación JVM**: 136 tests del dominio PASS (125 previos + 11 nuevos); smoke 25 assertions OK.
+- **Sesión OpenHands 004 — Ciclo 1 (NaturalTaskParser)**: 3 bugs P1 corregidos (fecha numérica
+  pasada, esta noche/tarde/mañana, urgente inicial), 11 tests de regresión. Commit `fb53e8c`.
+- **Sesión OpenHands 004 — Ciclo 2 (auditoría persistencia + recordatorios + seguridad)**: inspección
+  estática completa de Entities/DAOs/OrdiaDatabase/BackupStore/repositories/toggleTask+RecurrenceEngine/
+  ReminderScheduler/TaskReminderWorker/ReminderActionReceiver/ReminderResyncReceiver/AndroidManifest.
+  **Sin hallazgos P0/P1**: el trabajo previo de Jules en estas áreas es sólido (backup atómico,
+  cascadas correctas, mutex de mutación, recordatorios no exportados, quiet hours, permisos).
+  Registrado en BACKLOG como auditorías OK.
+- **Sesión OpenHands 004 — Ciclo 2b (NoteBlockCodec)**: P1 data-loss corregido — un elemento
+  malformado en el array de bloques hacía perder TODOS los bloques. Fix: parseo por elemento,
+  descartar malformados, conservar válidos. 11 tests nuevos (sin cobertura previa). Commit `2ae258a`.
+  Además se añadió `tools/run_domain_tests.sh` (runner JUnit4 reutilizable).
+- **Verificación JVM**: 147 tests del dominio PASS (136 + 11 parser + 11 notes, contados sobre 25
+  clases de test); smoke 25 assertions OK.
 - `./gradlew test/lint/assemble`: sigue NO VERIFICADO (sin Android SDK en el entorno).
 
 ## Áreas modificadas
 
-- intelligence, privacy/IME, context (external/audit), automation, domain (parser), ui/screens,
-  shortcuts/quicksettings, backup, manifest/DI/datos/servicios, strings (i18n).
+- intelligence, privacy/IME, context (external/audit), automation, domain (parser + notes),
+  ui/screens, shortcuts/quicksettings, backup, manifest/DI/datos/servicios, strings (i18n).
 
 ## Tests ejecutados
 
 - **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` (sin Android SDK).
-- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_checks.sh` → 25 assertions OK;
-  136 tests unitarios del dominio OK (incl. 11 nuevos de regresión del parser).
+- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 147 tests OK (25 clases);
+  `bash tools/run_domain_checks.sh` → 25 assertions OK.
 
 ## Problemas conocidos
 
@@ -43,6 +47,9 @@
 - Tests de `backup`/`context`/`repositories` requieren DAOs/RoomDatabase/Context (no ejecutables en
   JVM pura sin Robolectric/Android SDK); no verificados.
 - Parser: números escritos en expresiones relativas ("en dos horas") no parseados (P2, OPEN).
+- NoteEditor: `blocks` (mutableStateListOf) no es `rememberSaveable`; si el proceso muere dentro
+  de la ventana de autosave (800 ms) se pierden los últimos cambios de bloques (el `title` sí
+  sobrevive). Tradeoff de debounce, no corregido en esta sesión (P2/P3).
 - El workflow Jules necesita `jules/autonomous-ordia` visible en la API de Sources antes de lanzar.
 - El auto-merge requiere `secrets.JULES_API_KEY` configurado y checks exitosos.
 
@@ -53,9 +60,9 @@
 
 ## Siguiente tarea recomendada
 
-- Continuar autonomía: Ciclo 2 = auditoría estática de persistencia (Room: cascadas, índices,
-  transacciones, N+1, restore atómico). Después recordatorios end-to-end, notas, rutinas.
-  BUG3 (números escritos en parser) queda como P2 abierto para más adelante.
+- Continuar autonomía: Ciclo 4 = auditoría de rutinas (queries, batch, concurrencia, N+1).
+  Después: BUG3 (números escritos en parser, P2), ítems P2 pendientes (deprecación de iconos,
+  i18n). La verificación de Gradle/Android queda pendiente hasta que exista un entorno con SDK.
 
 ## PR pendiente
 

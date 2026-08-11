@@ -16,6 +16,16 @@
 | P2 | Parser | `NaturalTaskParser` no reconoce números escritos en expresiones relativas: "en dos horas", "dentro de tres días" | probe JVM: `due=null` para "en dos horas" | OPEN |
 | P3 | UX | Pulido visual de pantallas renovadas del workspace | capturas tras sesión | OPEN |
 
+## Auditorías estáticas realizadas (sin hallazgos P0/P1)
+
+| ÁREA | ALCANCE | EVIDENCIA | ESTADO |
+|------|---------|----------|--------|
+| Persistencia/Room | Entities (FK + índices), Daos (deleteSubtreeAndSelf transaccional, cascadas), OrdiaDatabase (migraciones 1-7, sin fallbackToDestructiveMigration) | inspección estática ciclo 2 | OK (no requiere fix) |
+| Backup/Restore | BackupStore.replaceAll en `withTransaction` atómica (orden FK coherente), pre-restore backup, verify-after-commit + rollback, checksum SHA-256, mutex | inspección estática ciclo 2 | OK (no requiere fix) |
+| Recordatorios | ReminderScheduler (enqueueUniqueWork REPLACE), TaskReminderWorker (re-lee task, filtra completed/archived/cancelled, quiet hours reschedule, POST_NOTIFICATIONS retry), ReminderActionReceiver (exported=false, mutex), ReminderResyncReceiver (TIMEZONE/TIME/DATE, futuro-only) | inspección estática ciclo 3 | OK (no requiere fix) |
+| Seguridad/Manifiesto | allowBackup=false, cleartextTraffic=false, ReminderActionReceiver exported=false, ReminderResyncReceiver exported=true (requerido por system broadcasts, filtra acciones), MainActivity SEND/PROCESS_TEXT (texto capado, URI permiso en runCatching) | inspección estática ciclo 2 | OK (no requiere fix) |
+| Task completion+recurrence | toggleTask bajo TaskMutationGate.mutex, RecurrenceEngine (reminder/start offset preservado, guard de avance), subtask auto-complete con logging de undo | inspección estática ciclo 2 | OK (no requiere fix) |
+
 ## Completados
 
 | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
@@ -23,7 +33,8 @@
 | P1 | Privacy | Fragmentos de paquete sin punto (banca genérica) no se filtraban | `ContextPrivacyFilterTest` | FIXED |
 | P1 | Capture | `StartActivityAndCollapseDeprecated` en tile de Quick Settings | lint | FIXED |
 | P1 | UI | `stringResource` fuera del ámbito composable en `TaskDetailScreen` | lint | FIXED |
-| P1 | Parser | Fecha numérica sin año en el pasado NO rodaba al año siguiente (inconsistente con fechas con nombre de mes): "Pagar factura 5/3" dicho el 29-jul devolvía 2026-03-05 (pasada) → recordatorio nunca dispara (ReminderSync filtra trigger<=now) | probe JVM reproducido; `numericDateWithoutYearInPastRollsToNextYear` | FIXED → VERIFIED (136 domain tests PASS en JVM/kotlinc) |
-| P1 | Parser | "esta mañana/tarde/noche" no se reconocían; además "esta mañana" se interpretaba como "el día de mañana" (contiene "mañana") | probe JVM reproducido; `estaMananaIsNotMistakenForTomorrow` | FIXED → VERIFIED (136 domain tests PASS) |
-| P1 | Parser | "urgente" como palabra inicial no se detectaba como prioridad sin prefijo !/# | probe JVM reproducido; `leadingUrgenteSetsUrgentPriority` | FIXED → VERIFIED (136 domain tests PASS) |
-| P2 | Tests | `tools/domain-smoke/DomainSmoke.kt` obsoleto tras ampliar `SearchKind` a 7 valores: el smoke comparaba `SearchKind.entries.toSet()` (7 kinds) pero solo alimentaba 4 listas (tasks/proyectos/notas/hábitos) → `run_domain_checks.sh` fallaba con "Universal search failed" | `bash tools/run_domain_checks.sh` (reproducido); alineado con `SearchEngineTest` que usa el set correcto de 4 kinds core | FIXED → VERIFIED (smoke 25 assertions OK + 125 tests dominio OK con kotlinc/JUnit4 en JVM) |
+| P1 | Parser | Fecha numérica sin año en el pasado NO rodaba al año siguiente | probe JVM; `numericDateWithoutYearInPastRollsToNextYear` | FIXED → VERIFIED (147 domain tests PASS) |
+| P1 | Parser | "esta mañana/tarde/noche" no reconocidas; "esta mañana" se leía como "mañana" | probe JVM; `estaMananaIsNotMistakenForTomorrow` | FIXED → VERIFIED (147 domain tests PASS) |
+| P1 | Parser | "urgente" como palabra inicial no se detectaba sin prefijo !/# | probe JVM; `leadingUrgenteSetsUrgentPriority` | FIXED → VERIFIED (147 domain tests PASS) |
+| P1 | Notas | `NoteBlockCodec.decode` perdía TODOS los bloques si un único elemento del array JSON estaba malformado (catch-all alrededor del bucle) | probe JVM: `[HEADING válido, "badstring", PARAGRAPH válido]` → 1 bloque vacío; test `singleMalformedElementDoesNotDiscardValidBlocks` | FIXED → VERIFIED (147 domain tests PASS; 11 tests nuevos, sin cobertura previa) |
+| P2 | Tests | `DomainSmoke.kt` obsoleto tras ampliar `SearchKind` | `run_domain_checks.sh` reproducido; alineado con `SearchEngineTest` | FIXED → VERIFIED (smoke 25 assertions OK) |

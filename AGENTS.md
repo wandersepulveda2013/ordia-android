@@ -66,10 +66,9 @@ es reproducible con kotlinc + JUnit4 + stubs:
   org.json:json:20231013, kotlinx-coroutines-core-jvm 1.10.2, kotlinx-coroutines-test-jvm 1.10.2.
 - `bash tools/run_domain_checks.sh` → compila `RoomStubs.kt` + subconjunto del dominio y corre
   el smoke (25 assertions). Es la baseline mínima de dominio.
-- Para correr TODOS los tests del dominio: compilar `tools/domain-smoke/RoomStubs.kt`,
-  `tools/domain-smoke/PreferenceStubs.kt`, `app/src/main/java/com/ordia/app/data/local/Entities.kt`,
-  `app/src/main/java/com/ordia/app/data/local/TaskTree.kt`, `app/src/main/java/com/ordia/app/domain/*.kt`
-  y `app/src/test/java/com/ordia/app/domain/*.kt` con kotlinc (-cp las jars anteriores) y ejecutar
-  `org.junit.runner.JUnitCore <testes>` → 125 tests.
+- Para correr TODOS los tests del dominio: `bash tools/run_domain_tests.sh` → compila
+  `tools/domain-smoke/RoomStubs.kt` + `PreferenceStubs.kt`, `Entities.kt`, todo el dominio
+  (`app/src/main/java/com/ordia/app/domain/*.kt`) y todos los tests (`app/src/test/.../domain/*.kt`)
+  con kotlinc (-cp las jars anteriores) y los ejecuta con `JUnitCore` → 147 tests (25 clases).
 - LIMITACIÓN: tests de `backup`, `context`, `repositories`, `ime`, UI y DAOs requieren
   DAOs/RoomDatabase/Context (Android). No son ejecutables en JVM pura; marcar NO VERIFICADO.

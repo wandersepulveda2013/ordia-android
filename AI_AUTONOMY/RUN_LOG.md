@@ -253,3 +253,53 @@ se instaló OpenJDK 21 + kotlinc 2.1.20 + JUnit4/hamcrest/org.json/kotlinx-corou
   Después recordatorios end-to-end, notas, rutinas.
 
 ---
+
+## Sesión 004 — 2026-08-11 (OpenHands: autonomía nocturna, Ciclos 2-3: persistencia, recordatorios, notas)
+
+**Objetivo**: auditar persistencia/Room, backup/restore, recordatorios end-to-end, seguridad del
+manifiesto y notas. Buscar bugs P0/P1 reales.
+**Entorno**: rama `jules/autonomous-ordia`. Sin Android SDK; kotlinc/JUnit4 en /tmp.
+
+### Auditoría estática (sin hallazgos P0/P1)
+- **Persistencia/Room**: Entities con FK + índices correctos; `TaskDao.deleteSubtreeAndSelf`
+  transaccional (resuelve huérfanos de `parentTaskId`, ORD-025); OrdiaDatabase con migraciones
+  1→7 y SIN `fallbackToDestructiveMigration` (no hay pérdida silenciosa por schema mismatch).
+- **Backup/Restore**: `RoomBackupStore.replaceAll` dentro de `database.withTransaction` atómica,
+  orden de borrado/inserción coherente con FK; pre-restore backup verificado; verify-after-commit
+  con rollback; checksum SHA-256 (ORD-031); mutex de operación. Sólido.
+- **Recordatorios**: `ReminderScheduler` usa `enqueueUniqueWork`+REPLACE (sin duplicados);
+  `TaskReminderWorker` re-lee la tarea y filtra completed/archived/cancelled, maneja quiet hours
+  (reschedule a nextEndMillis), reintenta si falta POST_NOTIFICATIONS; `ReminderActionReceiver`
+  exported=false (no spoofable) y bajo `TaskMutationGate.mutex`; `ReminderResyncReceiver` solo
+  re-encola futuros (ReminderSync filtra trigger<=now). Sólido.
+- **Manifiesto**: allowBackup=false, usesCleartextTraffic=false; MainActivity SEND/PROCESS_TEXT
+  (texto capado a MAX_SHARED_TEXT_CHARS, URI permiso en runCatching). Sólido.
+- **toggleTask + RecurrenceEngine**: mutex, reminder/start offset preservado en recurrencia,
+  guard de avance (<=completedAt), subtask auto-complete con undo log. Sólido.
+
+### Bug P1 encontrado y corregido (commit `2ae258a`)
+- `NoteBlockCodec.decode`: el `runCatching` envolvía TODO el bucle de parseo. Si un único elemento
+  del array JSON estaba malformado (p.ej. un string donde se esperaba un objeto),
+  `array.getJSONObject(i)` lanzaba y el catch devolvía `listOf(NoteBlock(text = fallbackBody))`,
+  perdiendo TODOS los bloques (data loss silencioso). Probe: `[HEADING válido, "badstring",
+  PARAGRAPH válido]` → antes 1 bloque vacío.
+- Fix: validar el array raíz por separado (si no es JSON → fallbackBody, degradación conocida);
+  parsear cada elemento de forma aislada, descartar malformados (continue), conservar válidos;
+  caer al fallback solo si TODOS fallan. Ahora → 2 bloques válidos.
+- 11 tests nuevos en `NoteBlockCodecTest.kt` (la clase NO tenía cobertura previa): round-trip
+  de todos los tipos, fallback a body, elemento malformado, todos malformados, tipo desconocido
+  (forward-compat), id faltante, array vacío, truncated JSON, toPlainText.
+
+### Infraestructura
+- `tools/run_domain_tests.sh`: runner JUnit4 reutilizable que compila stubs + dominio + tests y
+  los ejecuta con `JUnitCore`. Para futuras sesiones autónomas sin Android SDK.
+
+### Tests
+- `bash tools/run_domain_tests.sh` → 147 tests PASS (25 clases), 0 FAIL.
+- `bash tools/run_domain_checks.sh` → 25 assertions OK.
+- `./gradlew test/lint/assemble`: NO VERIFICADO (sin Android SDK).
+
+### Siguiente prioridad
+- Ciclo 4: auditoría de rutinas (queries, batch, concurrencia, N+1). Después BUG3 (parser P2).
+
+---
