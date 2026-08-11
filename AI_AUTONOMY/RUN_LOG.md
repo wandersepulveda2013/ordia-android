@@ -167,3 +167,24 @@
 - (pendiente) docs(autonomy): memoria de la sesión 002 (este commit)
 
 ---
+## SESIÓN 003 — Deprecación de iconos y Fix de BackupManager (Corrupción de manifiesto)
+
+- **Fecha (UTC)**: $(date -u +%Y-%m-%d)
+- **Trigger**: Ejecución autónoma recurrente
+- **Resultado**: ÉXITO
+
+### Qué se hizo
+
+1. **Reemplazo de iconos deprecados (P2 UI)**:
+   - Se reemplazaron `Icons.Outlined.InsertDriveFile`, `Icons.Outlined.ArrowBack` y `Icons.Outlined.FormatListBulleted` por sus versiones `AutoMirrored` (`Icons.AutoMirrored.Outlined...`) en `NoteEditorScreen.kt` y `TaskDetailScreen.kt`.
+2. **Corrección de BackupManager (P2 Backup)**:
+   - Se detectó un problema en `BackupManager.kt` donde `root.optJSONObject("preferences") == null` podía causar un crash en el restore si la clave `preferences` existía pero no era un `JSONObject` (ej. era un String por corrupción).
+   - Se actualizó la validación en `BackupManager.kt` para usar `root.opt("preferences")` y verificar su tipo explícitamente (`is org.json.JSONObject`).
+3. **Tests (P2 QA)**:
+   - Se añadió la prueba `corruptedManifestDoesNotCrash` en `BackupManagerTest.kt` para garantizar que no haya crashes ante una corrupción de tipos en el manifiesto (`preferences` siendo un String en lugar de JSON Object).
+   - Se comprobó exitosamente las variantes mediante JVM Tests.
+4. **Actualización de Backlog**:
+   - Los tickets resueltos de Backup y UI Icons se movieron a la sección de Completados en `AI_AUTONOMY/BACKLOG.md`.
+
+### Problemas encontrados
+- Fallo inicial de compilación al aplicar el test de backup por problemas de imports y mocks de test (solucionado implementándolo en el mismo bloque `BackupManagerTest.kt` reutilizando `rewrap` y los Fakes).

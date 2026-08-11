@@ -37,10 +37,12 @@
   - `ContextPrivacyFilter` fragmentos de paquete sin punto (banca genérica como `mobilebanking`).
   - `OrdiaCaptureTileService`: `@SuppressLint("StartActivityAndCollapseDeprecated")`.
   - `TaskDetailScreen`: `stringResource` en ámbito composable en vez de `context.getString`.
+- (Sesión actual): Fix a vulnerabilidad de crash en `BackupManager` por manifiesto corrupto en validación de settings.
+- (Sesión actual): Reemplazo de Iconos Outlined deprecados a AutoMirrored.
 
 ## Áreas modificadas
 
-- intelligence, privacy/IME, context (external/audit), automation, domain, ui/screens,
+- intelligence, privacy/IME, context (external/audit), automation, domain, ui/screens, backup, tests,
   shortcuts/quicksettings, backup, manifest/DI/datos/servicios, strings (i18n).
 
 ## Tests ejecutados
@@ -51,7 +53,7 @@
 
 ## Problemas conocidos
 
-- Warnings de deprecación no bloqueantes (ej. `Icons.Outlined.InsertDriveFile` → AutoMirrored).
+- Warnings de deprecación no bloqueantes menores restantes.
 - El workflow Jules necesita `jules/autonomous-ordia` visible en la API de Sources antes de
   lanzar sesiones (verificado en cada ejecución; si no aparece, la sesión NO se lanza).
 - El auto-merge requiere que las PRs de Jules tengan checks exitosos; si `secrets.JULES_API_KEY`

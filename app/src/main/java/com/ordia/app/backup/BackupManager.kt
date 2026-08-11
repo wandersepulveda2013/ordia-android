@@ -299,8 +299,11 @@ class BackupManager(
             val missing = (requiredForVersion - presentCollections).sorted().joinToString()
             throw IllegalArgumentException("La copia está incompleta. Faltan: $missing.")
         }
-        if (version >= 3 && root.optJSONObject("preferences") == null) {
-            throw IllegalArgumentException("La copia no contiene los ajustes de Ordía.")
+        if (version >= 3) {
+            val prefs = root.opt("preferences")
+            if (prefs == null || prefs !is org.json.JSONObject) {
+                throw IllegalArgumentException("La copia no contiene los ajustes de Ordía.")
+            }
         }
 
         // Parse y validación de cada valor ANTES de cambiar DataStore o Room.
