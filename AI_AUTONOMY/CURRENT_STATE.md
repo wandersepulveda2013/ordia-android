@@ -2,6 +2,20 @@
 
 > Actualizar AL FINAL de cada sesión autónoma.
 
+## Modo continuo (supervisor persistente) — 2026-08-11
+
+- **Arquitectura de continuidad real**: se añadió `tools/ordia_supervisor.py` (+ `ordia_supervisor.sh`,
+  `SUPERVISOR.md`). Un proceso persistente en una máquina siempre encendida del usuario orquesta la
+  Automation `Ordía Continuous Evolution` (id `b3bd3870-…`), garantizando `MAX_CONCURRENT_RUNS=1` y
+  encadenando runs en **~15–40 s** (no horas).
+- **Hallazgo**: el cron del automation service dispatcha ciegamente sin comprobar runs activos →
+  se detectaron **2 runs concurrentes** (violaba MAX_CONCURRENT=1). El supervisor lo resuelve
+  deshabilitando el cron al arrancar y rehabilitándolo al detenerse (watchdog de seguridad).
+- **Timeout** de la automation subido 600→**1800 s**: los runs marcados "FAILED" por timeout
+  igual commiteaban+pusheaban antes de morir (el corte era prematuro).
+- **Sin supervisor**: el cron cada 15 min es modo degradado (huecos hasta 15 min, concurrencia
+  ocasional). **Con supervisor**: continuidad de segundos, 1 agente. Ver `tools/SUPERVISOR.md`.
+
 ## Estado
 
 - **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 19)

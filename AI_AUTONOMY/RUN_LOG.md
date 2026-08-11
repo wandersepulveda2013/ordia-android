@@ -1132,3 +1132,47 @@ caían en el `else` dejando `date=null` → `dueAt=null`.
 ### Siguiente prioridad
 - Auditoría funcional no-parser: What Now (tareas programadas vs. inbox), búsqueda,
   automatizaciones, contexto, GuardianEngine, LearningEngine.
+
+
+---
+
+## Sesión OpenHands — 2026-08-11 (modo continuo: supervisor persistente)
+
+**Objetivo**: implementar continuidad real 24/7 (run termina → siguiente run en segundos, no horas).
+**Entorno**: rama `openhands/autonomous-ordia`. HEAD inicial `cd80eb0` (sincronizado desde remoto,
+que había avanzado 19 commits por los runs cron previos: recurrencia mensual anclada, saveRoutine
+atómico @Transaction, duraciones compactas/fraccionarias, prioridad por sufijo, categoría por
+etiqueta, "a primera hora", "24:00"=medianoche, etc.).
+
+### Hallazgos críticos
+- **Todos los runs cron+manual aparecían FAILED por timeout de 600 s**, pero el agente SÍ
+  commiteaba+pusheaba antes de morir (el remoto avanzó 19 commits). El corte era prematuro.
+- **El cron del automation service NO previene concurrencia**: dispatcha ciegamente sin comprobar
+  runs activos. Se detectaron **2 runs concurrentes** (violaba MAX_CONCURRENT=1).
+
+### Arquitectura implementada
+- `tools/ordia_supervisor.py`: supervisor persistente (solo stdlib: urllib/json/fcntl). Loop:
+  comprueba runs activos vía API → si ninguno, dispatcha → espera (poll ~25 s) → repite con
+  cooldown ~15 s. Lock de proceso (flock), backoff exponencial tras fallos, STOP/PAUSE/RESUME
+  via archivos sentinel, logs. MAX_CONCURRENT_RUNS=1 garantizado.
+- `tools/ordia_supervisor.sh` + `tools/SUPERVISOR.md`: lanzador y documentación (comando único
+  para el usuario en una máquina siempre encendida).
+- El supervisor deshabilita el cron al arrancar (evita concurrencia) y lo rehabilita al detenerse
+  (watchdog de seguridad).
+- Automation `Ordía Continuous Evolution`: timeout 600→**1800 s**, cron → `*/15 * * * *`
+  (watchdog degradado). **Cron deshabilitado ahora** mientras no corra el supervisor.
+
+### Intervalos reales
+- Con supervisor: **~15–40 s** entre runs.
+- Sin supervisor (solo cron cada 15 min): hasta 15 min + concurrencia ocasional.
+
+### Tests
+- Smoke del supervisor: módulo carga, habla con la API (list_runs/active_runs OK), detecta
+  correctamente el run RUNNING existente. NO se ejecutó el loop infinito aquí (no es entorno
+  persistente). `bash tools/run_domain_tests.sh` NO ejecutado en esta sesión (sin cambios de
+  dominio); último estado conocido: 218 tests OK (ciclo 19).
+- Gradle/Android: NO VERIFICADO (sin Android SDK).
+
+### Siguiente prioridad
+- El usuario arranca el supervisor en su máquina (comando único en `tools/SUPERVISOR.md`).
+  Tras eso, cada run continúa el desarrollo desde el HEAD de `openhands/autonomous-ordia`.

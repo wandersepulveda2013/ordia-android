@@ -57,6 +57,16 @@ El sistema autónomo es experimental. Supervisa `jules/autonomous-ordia` periód
 Cualquier sesión sospechosa se puede detener desactivando `ORDIA_AUTONOMY_ENABLED`
 (ver `AI_AUTONOMY/SUPERVISION.md`).
 
+## 5b. Modo continuo (supervisor persistente)
+
+Para continuidad real (run termina → siguiente run en ~15–40 s, no horas), existe un
+supervisor persistente: `tools/ordia_supervisor.py` (+ `tools/ordia_supervisor.sh`,
+`tools/SUPERVISOR.md`). Se ejecuta en una máquina siempre encendida y orquesta la
+Automation `Ordía Continuous Evolution` (id `b3bd3870-6c75-4d66-8113-412afc835c5f`)
+garantizando `MAX_CONCURRENT_RUNS=1`. Deshabilita el cron al arrancar y lo rehabilita
+al detenerse (red de seguridad). La rama de trabajo es **`openhands/autonomous-ordia`**
+(memoria Git persistente del desarrollo de OpenHands). Ver `tools/SUPERVISOR.md`.
+
 ## 6. Verificación sin Android SDK (entorno JVM puro)
 
 Cuando el entorno NO tenga Android SDK (gradle inutilizable), la verificación del dominio
