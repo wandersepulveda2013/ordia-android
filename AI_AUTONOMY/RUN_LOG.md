@@ -303,3 +303,55 @@ manifiesto y notas. Buscar bugs P0/P1 reales.
 - Ciclo 4: auditoría de rutinas (queries, batch, concurrencia, N+1). Después BUG3 (parser P2).
 
 ---
+
+## Sesión 004 (cont.) — 2026-08-11 (OpenHands: Ciclos 3-4: recordatorios, rutinas, BUG3)
+
+**Objetivo**: auditar recordatorios end-to-end, rutinas y resolver BUG3 (P2 parser).
+**Entorno**: rama `jules/autonomous-ordia`. Sin Android SDK; kotlinc/JUnit4 en /tmp.
+
+### Ciclo 3 — Recordatorios (sin hallazgos P0/P1)
+- `ReminderScheduler`: `enqueueUniqueWork` + `REPLACE` → sin duplicados; cancelación reutiliza
+  mismo unique name.
+- `TaskReminderWorker`: re-lee la tarea (no confía en el snapshot de entrada), filtra
+  completed/archived/cancelled, respeta quiet hours (reschedule a `nextEndMillis`), reintenta
+  si falta `POST_NOTIFICATIONS`.
+- `ReminderActionReceiver`: `exported=false` (no spoofable), bajo `TaskMutationGate.mutex`.
+- `ReminderResyncReceiver`: solo re-encola futuros (`ReminderSync` filtra `trigger<=now`);
+  responde a TIME/TIMEZONE/DATE.
+- Conclusión: la capa de recordatorios es sólida. No se encontraron P0/P1.
+
+### Ciclo 4 — Rutinas (sin hallazgos P0/P1; P3 menor)
+- `RoutineRules.wasRunToday`: dedup correcta (filtra completed/archived/cancelled y compara
+  `createdAt` con `today`).
+- `runRoutine`: crea tareas con `sortOrder=index` → el orden de los pasos se preserva en la
+  bandeja (observeAll ordena por `sortOrder ASC`). `createdAt=now+index` solo evita empates.
+- `undoLastAutomation` + `AutomationUndoRules.createdTaskIds`: el undo de rutina es REAL —
+  elimina las tareas creadas si siguen intactas en inbox (no borra las que el usuario ya
+  completó/modificó). Testeado (`routine_withoutSnapshots_treatsEveryAffectedTaskAsCreated`).
+- P3 menor: `saveRoutine` hace `deleteStep` por cada paso existente + `addStep` por cada paso
+  nuevo SIN transacción atómica; si el proceso muere a mitad, la rutina queda con pasos
+  parciales. Registrado en BACKLOG (P3, OPEN).
+
+### BUG3 (P2) resuelto — commit `a48c5d7`
+- `relativePattern` exigía dígitos (`\d{1,3}`) → "en dos horas", "dentro de tres días",
+  "en una hora" no se parseaban (`dueAt=null`).
+- Fix: patrón acepta dígitos O palabras (un/una, dos..doce) e introductor "dentro de";
+  `parseWrittenNumber()` convierte el grupo. Cobertura 1-12 (casos comunes en español).
+- 8 tests nuevos (incl. regresión de dígitos).
+
+### Tests
+- `bash tools/run_domain_tests.sh` → 155 tests PASS (25 clases), 0 FAIL.
+- `bash tools/run_domain_checks.sh` → 25 assertions OK.
+- `./gradlew test/lint/assemble`: NO VERIFICADO (sin Android SDK).
+
+### Commits
+- `2ae258a` fix: NoteBlockCodec.decode resiliente por elemento.
+- `78b4ef4` docs(autonomy): memoria ciclos 2-3.
+- `a48c5d7` fix: parser reconoce números escritos en tiempo relativo.
+
+### Siguiente prioridad
+- Ciclo 5: auditoría de Onboarding (caber en pantallas pequeñas, botones accesibles, sin scroll
+  imposible) y responsive. Después: NoteEditor `rememberSaveable`, atomicidad de `saveRoutine`,
+  ítems P2 pendientes.
+
+---
