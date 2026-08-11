@@ -18,13 +18,28 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 19)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD inicial `cf9841e`, final `c3958ee`)
+- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 20)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD inicial `73e4fef`, final por commit)
 - **main**: contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
 
 ## Último trabajo realizado
+
+- **Sesión OpenHands — Ciclo 20 (NaturalTaskParser — recurrencia semanal de varios días)**:
+  P1 corregido — pérdida de datos silenciosa en rutinas semanales con varios días. La forma
+  más común en español ("reunión los lunes y jueves") NO se parseaba: solo el patrón
+  `cada X y Z` admitía dos días; `todos los X`, `los X` capturaban **un solo día** y dejaban
+  "y jueves" como residuo en el título (probado: "reunión los lunes y jueves a las 10" →
+  `title='reunión y'`, `recurrenceDays='1'` — perdía el jueves y la rutina solo repetía lunes).
+  Una tarea recurrente que pierde días es una promesa rota al usuario (cita/reunión que no
+  aparece en los días correctos). Fix: se unificaron los 3 patrones `weeklyDayPatterns` en
+  uno solo `dayListPattern` que captura una **lista de días** separados por `,` o `y` y los
+  extrae con `dayNameRegex.findAll`. Menos código, más capacidad: además de "los X y Z" ahora
+  soporta listas con comas ("lunes, miércoles y viernes"). No rompe casos existentes (todos
+  los viernes → 5; cada lunes y jueves → 1,4). Tests: +3 (`parsesLosWeekdaysWithY`,
+  `parsesTodosLosWeekdaysWithY`, `parsesCommaDayList`). **221 domain tests OK, smoke 25 OK.**
+  NO VERIFICADO: gradle/lint/Android/Room (sin Android SDK).
 
 - **Sesión OpenHands — Ciclo 19 (NaturalTaskParser — anclaje de recurrencias de intervalo)**:
   P1 corregido — recurrencias de **intervalo** (diaria "cada día", quincenal "cada 2 semanas",
@@ -135,7 +150,7 @@
 ## Tests ejecutados
 
 - **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` (sin Android SDK).
-- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 218 tests OK (25 clases);
+- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 221 tests OK (25 clases);
   `bash tools/run_domain_checks.sh` → 25 assertions OK.
 
 ## Problemas conocidos
@@ -233,6 +248,15 @@
   Simétrico al fix mensual de los ciclos 17-18. 2 tests actualizados (de `assertNull`
   a fecha de captura) + 3 nuevos (diaria con hora, anual, intervalo con fecha explícita).
   218 OK, smoke 25 OK.
+
+  ACTUALIZACIÓN ciclo 20 (NaturalTaskParser — recurrencia semanal de varios días): P1
+  corregido — pérdida de datos silenciosa en rutinas semanales. "los lunes y jueves"
+  (la forma natural más común en español) solo capturaba un día y dejaba "y jueves" en el
+  título → la rutina repetía solo el primer día. Fix: unificación de los 3 patrones
+  `weeklyDayPatterns` en un `dayListPattern` que captura una lista de días (separados por
+  `,` o `y`) extraída con `dayNameRegex.findAll`. Menos código, más capacidad (soporta
+  listas con comas). +3 tests (`parsesLosWeekdaysWithY`, `parsesTodosLosWeekdaysWithY`,
+  `parsesCommaDayList`). 221 OK, smoke 25 OK.
 
 ## PR pendiente
 

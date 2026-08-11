@@ -1176,3 +1176,75 @@ etiqueta, "a primera hora", "24:00"=medianoche, etc.).
 ### Siguiente prioridad
 - El usuario arranca el supervisor en su máquina (comando único en `tools/SUPERVISOR.md`).
   Tras eso, cada run continúa el desarrollo desde el HEAD de `openhands/autonomous-ordia`.
+
+## SESIÓN 019 — Ciclo 20 (NaturalTaskParser: recurrencia semanal de varios días)
+
+- **Fecha (UTC)**: 2026-08-11
+- **HEAD inicial**: `73e4fef` (tras sincronizar con remoto: otro run commiteó "supervisor
+  persistente" — no tocaba mis archivos; rebase no destructivo vía stash+pull+pop limpio)
+- **Trigger**: auditoría funcional del parser con probe JVM de 20 casos reales de captura.
+
+### Problema seleccionado
+
+P1 — **Pérdida de datos silenciosa en rutinas semanales de varios días.** La forma natural
+más común en español para una rutina semanal con varios días ("reunión los lunes y jueves")
+NO se parseaba correctamente: el parser solo admitía dos días con el patrón `cada X y Z`,
+pero `todos los X` y `los X` capturaban **un solo día**. El resultado era doblemente malo:
+
+- "reunión los lunes y jueves a las 10" → `title='reunión y'` (residuo "y jueves" en el título)
+- `recurrenceDays='1'` → la rutina repetía **solo los lunes**, perdiendo el jueves.
+
+Una tarea recurrente que pierde días es una promesa rota al usuario: una cita o reunión que
+no aparece en los días correctos. Es un bug de datos (persistencia/rutinas), P1.
+
+### Causa raíz
+
+En `NaturalTaskParser.parseRecurrence()`, `weeklyDayPatterns` eran **tres** regex separadas
+con grupos de captura por día. Solo la variante `cada` tenía un grupo opcional `y Z` para un
+segundo día. Las variantes `todos los X` y `los X` solo capturaban un día y, al aparecer "y
+jueves" a continuación, este no casaba con ningún patrón y quedaba como residuo en el título.
+Peor: la rutina resultante solo contenía el primer día.
+
+### Solución
+
+- Unificación de los 3 patrones en **uno solo** `dayListPattern` que captura un **conector**
+  (`todos los|cada|los`) seguido de una **lista de días** separados por `,` o `y`. Los días
+  se extraen con `dayNameRegex.findAll(groupValues[1])` → `distinct().sorted().toList()`.
+- Menos código, más capacidad: además de arreglar "los X y Z" y "todos los X y Z", ahora
+  soporta **listas con comas** ("lunes, miércoles y viernes" → `1,3,5`).
+- No rompe casos existentes: "todos los viernes" → `5`; "cada lunes y jueves" → `1,4`;
+  "los viernes" → `5`. Casos no-día ("cada 2 semanas", "cada día", "los lapices") no casan
+  y caen a su lógica correspondiente (intervalo / DAILY / sin recurrencia).
+
+### Archivos modificados
+
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`
+  (`parseRecurrence`: 3 patrones → 1 `dayListPattern` + `dayNameRegex`)
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`
+  (+3 tests: `parsesLosWeekdaysWithY`, `parsesTodosLosWeekdaysWithY`, `parsesCommaDayList`)
+
+### Tests
+
+- Red primero: la probe mostró el bug (`title='reunión y'`, `days='1'`); tras el fix
+  `title='reunión'`, `days='1,4'`.
+- `bash tools/run_domain_tests.sh` → **221 tests OK** (25 clases) (218 + 3 netos).
+- `bash tools/run_domain_checks.sh` → **25 assertions OK**.
+- NO VERIFICADO: gradle/lint/Android/Room (sin Android SDK).
+
+### Hallazgos adicionales
+
+- La probe también confirmó que el resto del parser (recurrencias mensuales/anuales, duraciones,
+  prioridades, recordatorios relativos, categorías) funciona correctamente en los 20 casos
+  probados — incluyendo los fixes de los ciclos 17-19.
+- Continúa la línea de corrección de bugs de datos en recurrencias del parser, cerrando otra
+  forma de pérdida silenciosa.
+
+### Commit / push
+- fix(parser): recurrencia semanal de varios días ("los lunes y jueves") — push al cierre.
+
+### Siguiente prioridad
+- Continuar auditoría funcional: UniversalCaptureEngine, FocusClock/FocusTimerRules,
+  GuardianCoach, OnboardingCompleter, PlannerCalendar, CommandPaletteCatalog,
+  TaskMutationGate, QuietHoursRules. Revisar el minor issue de SummaryEngine
+  (`remainingMinutesToday` sin coerce como DayPlanner).
+
