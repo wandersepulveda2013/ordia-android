@@ -2,8 +2,9 @@ name: Ordia Autonomous Jules
 
 on:
   schedule:
-    # 03:00 AM República Dominicana = 07:00 UTC
-    - cron: "0 7 * * *"
+    # Cada 15 minutos en los minutos 2, 17, 32 y 47 (~96 oportunidades/24h;
+    # evita el minuto 00 y reduce solape con CI).
+    - cron: "2,17,32,47 * * * *"
 
   workflow_dispatch:
 
@@ -14,10 +15,69 @@ concurrency:
 jobs:
   launch-jules:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+      statuses: read
+      actions: read
 
     steps:
+      # ─────────────────────────────────────────────────────────
+      # FAILSAFE 1 — Variable ORDIA_AUTONOMY_ENABLED
+      # Si la variable existe y es "false"/"0"/"no"/"off", la autonomía
+      # queda desactivada y ninguna sesión nueva se lanza.
+      # Si la variable NO existe, la autonomía permanece habilitada.
+      # ─────────────────────────────────────────────────────────
+      - name: Failsafe — variable ORDIA_AUTONOMY_ENABLED
+        id: failsafe
+        run: |
+          set -euo pipefail
+          enabled="${{ vars.ORDIA_AUTONOMY_ENABLED }}"
+          case "${enabled,,}" in
+            false|0|no|off)
+              echo "disabled=true" >> "$GITHUB_OUTPUT"
+              echo "::notice::ORDIA_AUTONOMY_ENABLED=$enabled → autonomía desactivada. Sesión no lanzada."
+              ;;
+            *)
+              echo "disabled=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      # ─────────────────────────────────────────────────────────
+      # Checkout de la rama autónoma (no main).
+      # ─────────────────────────────────────────────────────────
+      - name: Checkout agent branch
+        if: steps.failsafe.outputs.disabled != 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: jules/autonomous-ordia
+          persist-credentials: false
+
+      # ─────────────────────────────────────────────────────────
+      # FAILSAFE 2 — Bypass por archivo
+      # Si existe AI_AUTONOMY/AUTONOMY_BYPASS en la rama autónoma,
+      # ninguna sesión nueva se lanza.
+      # ─────────────────────────────────────────────────────────
+      - name: Failsafe — archivo de bypass AI_AUTONOMY/AUTONOMY_BYPASS
+        id: bypass
+        if: steps.failsafe.outputs.disabled != 'true'
+        run: |
+          set -euo pipefail
+          if [ -f AI_AUTONOMY/AUTONOMY_BYPASS ]; then
+            echo "bypassed=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Se encontró AI_AUTONOMY/AUTONOMY_BYPASS. Sesión no lanzada."
+          else
+            echo "bypassed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ─────────────────────────────────────────────────────────
+      # Buscar el repositorio en Jules y verificar la rama autónoma
+      # ─────────────────────────────────────────────────────────
       - name: Find Ordia repository in Jules
         id: source
+        if: steps.failsafe.outputs.disabled != 'true' && steps.bypass.outputs.bypassed != 'true'
         env:
           JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
         run: |
@@ -55,12 +115,14 @@ jobs:
               for branch in target.get("githubRepo", {}).get("branches", [])
           ]
 
-          preferred = "main"
+          preferred = "jules/autonomous-ordia"
 
           if preferred not in branches:
               raise SystemExit(
                   f"ERROR: No existe en Jules la rama requerida: {preferred}. "
-                  f"Ramas disponibles: {branches}"
+                  f"Ramas disponibles: {branches}  "
+                  "Es posible que la rama no se haya sincronizado aún. "
+                  "Reintente en el próximo ciclo."
               )
 
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
@@ -71,7 +133,286 @@ jobs:
           print("Rama inicial:", preferred)
           PY
 
+      # ─────────────────────────────────────────────────────────
+      # SESSION LOCK ROBUSTO + CONTEXTO DE PRs FALLIDAS
+      #
+      # Decide si se puede lanzar una nueva sesión y recopila el
+      # contexto de PRs autónomas fallidas/atascadas para inyectarlo
+      # en el prompt de la sesión.
+      #
+      # Estados de la sesión (Jules Sessions API):
+      #   QUEUED, PLANNING, IN_PROGRESS, AWAITING_* → bloquear
+      #   (activas o esperando; no lanzar otra sesión)
+      #   PAUSED → NO bloquea (una sesión pausada manualmente no impide
+      #   el lanzamiento de una nueva)
+      #   COMPLETED / TERMINAL / ERROR / CANCELLED → no bloquear
+      #
+      # IMPORTANTE: solo bloquean las sesiones de NUESTRO sistema autónomo.
+      # Se exige SIMULTÁNEAMENTE:
+      #   - source == JULES_SOURCE (sources/github/wandersepulveda2013/ordia-android)
+      #   - title == "Ordía — Autonomous Development"
+      #   - state realmente activo
+      #   - (opcional) sourceContext.githubRepoContext.startingBranch ==
+      #     "jules/autonomous-ordia" si la API lo expone (ausencia no rompe)
+      # Cualquier otra sesión de Jules del mismo repo (Testing Improvement,
+      # Performance Optimization, Code Health, Security, Suggested Tasks,
+      # tareas manuales, sesiones "Ready for review") NO bloquea al agente.
+      #
+      # Heurística de PRs hacia jules/autonomous-ordia:
+      #   A) Sesión activa (API)            → SKIP
+      #   B) CI corriendo en PR abierta     → SKIP temporal
+      #   C) PR fallida en CI               → PROCEED con contexto de fallo
+      #   D) PR lista para merge            → SKIP (dejar actuar al auto-merge)
+      #   E) PR antigua/atascada/draft      → PROCEED con aviso de recuperación
+      #
+      # Límites anti-loop:
+      #   - máx. PRs abiertas hacia la rama autónoma: 4
+      #   - si la misma área falló >= 2 veces, no recrear la PR;
+      #     marcarla para revisión humana.
+      # ─────────────────────────────────────────────────────────
+      - name: Session lock — estado de sesiones y PRs autónomas
+        id: lock
+        if: steps.failsafe.outputs.disabled != 'true' && steps.bypass.outputs.bypassed != 'true' && steps.source.outputs.source != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+          JULES_SOURCE: ${{ steps.source.outputs.source }}
+        run: |
+          python <<'PY'
+          import json
+          import os
+          import urllib.request
+          import urllib.error
+
+          API = "https://api.github.com"
+          REPO = os.environ.get("GITHUB_REPOSITORY", "wandersepulveda2013/ordia-android")
+          TOKEN = os.environ.get("GH_TOKEN", "")
+          BASE = "jules/autonomous-ordia"
+
+          context = {
+              "failed_prs": [],
+              "stale_prs": [],
+              "loop_warning": False,
+              "decision": "proceed",
+              "decision_reason": "No hay sesión activa ni PR abierta hacia la rama autónoma."
+          }
+
+          def gh_get(path):
+              req = urllib.request.Request(
+                  f"{API}{path}",
+                  headers={
+                      "Authorization": f"Bearer {TOKEN}",
+                      "Accept": "application/vnd.github+json",
+                      "User-Agent": "ordia-autonomy"
+                  }
+              )
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  return json.load(resp)
+
+          # ---- 1) Sesión activa de Jules (fail-open si la API no responde) ----
+          # SOLO bloquea si la sesión pertenece a NUESTRO sistema autónomo:
+          #   source == JULES_SOURCE
+          #   title == "Ordía — Autonomous Development"
+          #   state realmente activo
+          #   (opcional) sourceContext.githubRepoContext.startingBranch ==
+          #     "jules/autonomous-ordia" si la API lo expone; su ausencia no rompe.
+          # Las demás sesiones de Jules del mismo repositorio NO bloquean.
+          AUTONOMOUS_TITLE = "Ordía — Autonomous Development"
+          AUTONOMOUS_BRANCH = "jules/autonomous-ordia"
+          ACTIVE_STATES = ("QUEUED", "PLANNING", "IN_PROGRESS",
+                           "AWAITING_PLAN_APPROVAL", "AWAITING_USER_FEEDBACK")
+          active_session = False
+          session_state = None
+          try:
+              req = urllib.request.Request(
+                  "https://jules.googleapis.com/v1alpha/sessions?pageSize=100",
+                  headers={"x-goog-api-key": os.environ.get("JULES_API_KEY", "")}
+              )
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  sess_data = json.load(resp)
+              sessions = sess_data.get("sessions", [])
+              for s in sessions:
+                  src = s.get("sourceContext", {}).get("source") or ""
+                  title = s.get("title") or ""
+                  st = s.get("state") or ""
+                  if src != os.environ.get("JULES_SOURCE", ""):
+                      continue
+                  if title != AUTONOMOUS_TITLE:
+                      # Otra sesión de Jules del mismo repo: no bloquea.
+                      continue
+                  if st not in ACTIVE_STATES:
+                      continue
+                  # Campo opcional: si la API expone startingBranch, exigir la rama autónoma.
+                  gh_ctx = s.get("sourceContext", {}).get("githubRepoContext") or {}
+                  starting_branch = gh_ctx.get("startingBranch") or ""
+                  if starting_branch and starting_branch != AUTONOMOUS_BRANCH:
+                      # Sesión con startingBranch distinto: no es nuestro agente.
+                      continue
+                  active_session = True
+                  session_state = st
+                  break
+          except Exception as e:
+              # Fail-open: sin respuesta de la API no bloqueamos por esto.
+              print("::warning::No se pudo consultar sesiones de Jules:", e)
+
+          if active_session:
+              context["decision"] = "skip_active_session"
+              context["decision_reason"] = f"Sesión autónoma de Jules activa (state={session_state}, title={AUTONOMOUS_TITLE})."
+              with open("/tmp/autonomy-context.json", "w", encoding="utf-8") as f:
+                  json.dump(context, f)
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+                  f.write(f"decision={context['decision']}\n")
+                  f.write(f"reason={context['decision_reason']}\n")
+              raise SystemExit(0)
+
+          # ---- 2) PRs abiertas hacia la rama autónoma ----
+          import re
+          JULES_BRANCH_RE = re.compile(
+              r"^(fix|feat|perf|refactor|test|optimize|security|add|remove|code-health|chore|docs)"
+              r"(/|-)[a-z0-9-]+(-\d{10,20})?$"
+          )
+
+          open_prs = []
+          try:
+              open_prs = gh_get(f"/repos/{REPO}/pulls?state=open&base={BASE}&per_page=20")
+          except Exception as e:
+              print("::warning::No se pudo consultar PRs abiertas:", e)
+
+          # ---- 3) PRs cerradas recientes (anti-loop) ----
+          closed_recent = []
+          try:
+              closed_recent = gh_get(f"/repos/{REPO}/pulls?state=closed&base={BASE}&per_page=20&sort=updated&direction=desc")
+          except Exception:
+              pass
+
+          jules_open = [p for p in open_prs if p.get("head", {}).get("ref")]
+          # Filtrar solo PRs con patrón de rama Jules
+          jules_prs = [p for p in jules_open if JULES_BRANCH_RE.match(p.get("head", {}).get("ref") or "")]
+
+          if len(jules_open) > 0 and len(jules_prs) == 0:
+              # PRs hacia la rama autónoma que NO tienen patrón Jules: pueden ser
+              # humanas o de otro agente. No las bloqueamos, pero no las mergeamos.
+              context["decision_reason"] += (
+                  f" Se detectaron {len(jules_open)} PR abierta(s) sin patrón Jules; no se bloquean."
+              )
+
+          if len(jules_prs) >= 4:
+              context["decision"] = "skip_too_many_prs"
+              context["decision_reason"] = f"Ya hay {len(jules_prs)} PRs autónomas abiertas hacia {BASE}."
+          elif jules_prs:
+              # Evaluar el estado de checks de cada PR para decidir
+              blocked_by_ci = False
+              blocked_by_ready = False
+              for pr in jules_prs:
+                  head_sha = pr.get("head", {}).get("sha")
+                  draft = pr.get("draft", False)
+                  number = pr.get("number")
+                  title = pr.get("title")
+                  head_ref = pr.get("head", {}).get("ref", "")
+
+                  checks = {"failed": [], "running": 0}
+                  try:
+                      cr = gh_get(f"/repos/{REPO}/commits/{head_sha}/check-runs")
+                      for run in cr.get("check_runs", []):
+                          status = run.get("status")
+                          concl = run.get("conclusion")
+                          name = run.get("name", "?")
+                          if status in ("queued", "in_progress"):
+                              checks["running"] += 1
+                          elif concl in ("failure", "cancelled", "timed_out",
+                                         "action_required", "stale", "startup_failure"):
+                              checks["failed"].append(name)
+                  except Exception:
+                      pass
+
+                  if draft:
+                      context["stale_prs"].append({
+                          "number": number, "title": title, "headRef": head_ref,
+                          "reason": "draft"
+                      })
+                      continue
+
+                  if checks["failed"]:
+                      context["failed_prs"].append({
+                          "number": number, "title": title, "headRef": head_ref,
+                          "checksFailed": checks["failed"][:5]
+                      })
+                      continue  # PR fallida NO bloquea: la nueva sesión recibe el fallo
+
+                  if checks["running"] > 0:
+                      blocked_by_ci = True
+                      context["decision_reason"] = (
+                          f"PR #{number} con CI en progreso ({checks['running']} checks)."
+                      )
+                      continue
+
+                  # Sin checks fallidos ni en progreso: está lista (o sin checks)
+                  blocked_by_ready = True
+                  context["decision_reason"] = (
+                      f"PR #{number} lista para merge (o sin checks). Se deja actuar al auto-merge."
+                  )
+
+              # Anti-loop: mismo área fallada >= 2 veces
+              area_fail = {}
+              for fpr in context["failed_prs"]:
+                  base_area = fpr["headRef"].split("-")[0] if fpr["headRef"] else "?"
+                  area_fail[base_area] = area_fail.get(base_area, 0) + 1
+              for area, cnt in area_fail.items():
+                  if cnt >= 2:
+                      context["loop_warning"] = True
+                      context["decision_reason"] += (
+                          f" AVISO LOOP: el área '{area}' ha fallado {cnt} veces. "
+                          "La nueva sesión NO debe recrear esa PR; debe marcarla "
+                          "BLOCKED/NEEDS_REVIEW para revisión humana."
+                      )
+
+              if context["failed_prs"]:
+                  # PR fallida: la sesión puede proceder con el fallo como prioridad
+                  context["decision"] = "proceed_with_failure_context"
+                  if not context["decision_reason"].startswith("PR #"):
+                      context["decision_reason"] = (
+                          f"Se detectaron {len(context['failed_prs'])} PR(s) fallida(s); "
+                          "la sesión recibe el contexto y prioriza corregir la regresión."
+                      )
+              elif blocked_by_ci:
+                  context["decision"] = "skip_ci_running"
+              elif blocked_by_ready:
+                  context["decision"] = "skip_ready_for_merge"
+              else:
+                  context["decision"] = "proceed"
+                  context["decision_reason"] = "PRs presentes pero sin señal de bloqueo."
+
+          # PRs cerradas recientes sin merge (para contexto, no bloquean)
+          for pr in closed_recent[:5]:
+              head_ref = pr.get("head", {}).get("ref") or ""
+              if JULES_BRANCH_RE.match(head_ref) and pr.get("merged_at") is None:
+                  context["stale_prs"].append({
+                      "number": pr.get("number"),
+                      "title": pr.get("title"),
+                      "headRef": head_ref,
+                      "reason": "closed_without_merge"
+                  })
+
+          # Guardar contexto y outputs
+          with open("/tmp/autonomy-context.json", "w", encoding="utf-8") as f:
+              json.dump(context, f)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write(f"decision={context['decision']}\n")
+              f.write(f"reason={context['decision_reason']}\n")
+
+          print("DECISION:", context["decision"])
+          print("REASON:", context["decision_reason"])
+          print("FAILED_PRS:", json.dumps(context["failed_prs"], ensure_ascii=False))
+          PY
+
+      # ─────────────────────────────────────────────────────────
+      # Lanzar la sesión autónoma de Jules.
+      # La PR se crea SIEMPRE hacia jules/autonomous-ordia (nunca main).
+      # El contexto de PRs fallidas/atascadas se inyecta al prompt.
+      # ─────────────────────────────────────────────────────────
       - name: Launch autonomous Ordia session
+        if: steps.failsafe.outputs.disabled != 'true' && steps.bypass.outputs.bypassed != 'true' && steps.source.outputs.branch != '' && (steps.lock.outputs.decision == 'proceed' || steps.lock.outputs.decision == 'proceed_with_failure_context')
         env:
           JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
           JULES_SOURCE: ${{ steps.source.outputs.source }}
@@ -81,6 +422,14 @@ jobs:
           import json
           import os
           import urllib.request
+
+          # Contexto de PRs autónomas (fallidas/atascadas) si existe
+          context = {}
+          try:
+              with open("/tmp/autonomy-context.json", "r", encoding="utf-8") as f:
+                  context = json.load(f)
+          except Exception:
+              pass
 
           prompt = r"""
           ORDÍA — DESARROLLO AUTÓNOMO CONTINUO
@@ -94,6 +443,16 @@ jobs:
           Tu objetivo permanente es continuar desarrollando, auditando,
           corrigiendo y mejorando Ordía de manera profesional.
 
+          RAMA Y PRs:
+
+          - Tu rama de trabajo y destino de PR es: jules/autonomous-ordia.
+          - NUNCA hagas push ni PR a main.
+          - Cualquier PR que crees debe apuntar a jules/autonomous-ordia.
+          - La PR será revisada y MERGEADA AUTOMÁTICAMENTE por
+            "Ordia Autonomous Merge" si su CI pasa y es segura.
+            Por eso tus PRs deben ser pequeñas, con CI verde y sin
+            conflictos.
+
           PRIMERA OBLIGACIÓN:
 
           Inspecciona el estado REAL del repositorio y los commits existentes.
@@ -106,8 +465,20 @@ jobs:
           - AI_AUTONOMY/BACKLOG.md
           - AI_AUTONOMY/DECISIONS.md
           - AI_AUTONOMY/RUN_LOG.md
+          - AI_AUTONOMY/SUPERVISION.md
 
-          También inspecciona el trabajo anterior realizado por Codex.
+          También inspecciona el trabajo anterior realizado por Codex y por
+          sesiones anteriores de Jules.
+
+          AUDITORÍA PERIÓDICA DEL TRABAJO DE CODEX:
+
+          En cada ejecución, dedica un tiempo a auditar el trabajo existente:
+          - ¿Hay funciones falsas, modelos simulados o estados de éxito falsos?
+          - ¿Hay promesas de IA que no son reales?
+          - ¿Hay secretos o claves en el código?
+          - ¿Hay tests eliminados o comentados para esconder errores?
+          Registra cualquier hallazgo en AI_AUTONOMY/BACKLOG.md con su
+          evidencia. NO corrijas todo de una vez: prioriza P0.
 
           PRIORIDAD:
 
@@ -142,14 +513,11 @@ jobs:
           - microinteracciones
           - coherencia estética
 
-          Ordía debe convertirse progresivamente en una aplicación Android
-          moderna, estable, elegante, minimalista, rápida, fiable y realmente
-          útil.
+          NO CICLOS NI ACTIVIDAD FALSA:
 
-          Su diseño debe sentirse profesional y premium, principalmente
-          blanco y negro, limpio y coherente.
-
-          NO hagas cambios únicamente para aparentar actividad.
+          - NO hagas cambios únicamente para aparentar actividad.
+          - Si no hay ningún P0/P1 real, haz una mejora P2 sólida con tests.
+          - No "arregles" lo que ya está bien solo para tocar código.
 
           CALIDAD > CANTIDAD.
 
@@ -164,27 +532,45 @@ jobs:
           -> VOLVER A PROBAR
           -> DOCUMENTAR
 
-          Ejecuta tests relacionados con cualquier modificación.
+          TESTING:
 
-          Cuando sea razonable ejecuta también:
+          Ejecuta siempre los tests relacionados con cualquier modificación.
+          Cuando toques código compartido (core, data, domain, di), ejecuta
+          la suite de la variante afectada. Cuando sea razonable ejecuta:
           - unit tests
           - lint
           - build de la variante correspondiente
+          Si una modificación rompe una variante distinta a la que tocaste,
+          corrígela antes de terminar.
+          Recuerda que tu PR pasará CI automáticamente; deja la rama lista
+          con checks verdes.
 
-          Nunca:
+          INTERFAZ Y UX:
+
+          - La interfaz está en español; mantén el idioma.
+          - Diseño profesional y premium, principalmente blanco y negro,
+            limpio y coherente, minimalista, moderno.
+          - No uses emojis como iconos; usa iconografía coherente del tema.
+          - No uses fuentes serif como Times New Roman.
+          - Las cadenas nuevas van a res/values/strings_*.xml.
+          - No añadas botones decorativos ni funciones sin uso real.
+
+          NUNCA:
+
           - elimines tests para esconder errores
           - falsifiques resultados
-          - simules funcionalidades
-          - inventes IA
+          - simules funcionalidades (IA, descargas, backup, éxito, progreso)
+          - inventes IA ni afirmes capacidades inexistentes
           - inventes estados de éxito
           - introduzcas secretos
-          - hagas modificaciones destructivas
+          - hagas modificaciones destructivas (force push, rebase, reset, clean)
           - reduzcas calidad para hacer pasar tests
+          - toques main
 
           Si encuentras un problema que necesita información humana y no puede
           resolverse responsablemente:
 
-          1. documenta el bloqueo;
+          1. documenta el bloqueo (BLOCKED en BACKLOG.md);
           2. no inventes la respuesta;
           3. continúa con otro problema independiente.
 
@@ -214,7 +600,7 @@ jobs:
 
           - actualiza CURRENT_STATE.md
           - actualiza BACKLOG.md
-          - añade una entrada a RUN_LOG.md
+          - añade una entrada a RUN_LOG.md (append-only, no borres anteriores)
           - actualiza DECISIONS.md si hubo decisiones importantes
           - ejecuta pruebas pertinentes
           - revisa los cambios
@@ -232,6 +618,45 @@ jobs:
 
           Trabaja autónomamente.
           """
+
+          # ── Inyectar contexto de PRs fallidas/atascadas al prompt ──
+          if context.get("failed_prs") or context.get("stale_prs"):
+              prompt += "\n\n==========================================\n"
+              prompt += "CONTEXTO DE PRs AUTÓNOMAS RECIENTES (INFRAESTRUCTURA)\n"
+              prompt += "==========================================\n"
+
+              if context.get("loop_warning"):
+                  prompt += (
+                      "AVISO ANTI-LOOP: el mismo área ha fallado varias veces. "
+                      "NO recrees la misma PR. Marca el problema BLOCKED/NEEDS_REVIEW "
+                      "en BACKLOG.md y continúa con trabajo independiente.\n"
+                  )
+
+              if context.get("failed_prs"):
+                  prompt += "\nPRs autónomas que FALLARON CI (prioridad: corregir la regresión):\n"
+                  for fpr in context["failed_prs"]:
+                      prompt += (
+                          f"- PR #{fpr['number']}: {fpr.get('title','')} "
+                          f"(rama {fpr.get('headRef','')})\n"
+                          f"  Checks fallidos: {', '.join(fpr.get('checksFailed', []))}\n"
+                      )
+                  prompt += (
+                      "Si puedes corregir la regresión de forma segura, hazlo y abre "
+                      "una PR NUEVA (no reuses la rama fallida). Si no puedes resolverla "
+                      "tras intentos razonables, márcala BLOCKED/NEEDS_REVIEW y continúa "
+                      "con otro problema independiente.\n"
+                  )
+
+              if context.get("stale_prs"):
+                  prompt += "\nPRs autónomas atascadas/cerradas sin merge (revisar si procede):\n"
+                  for spr in context["stale_prs"][:5]:
+                      prompt += (
+                          f"- PR #{spr['number']}: {spr.get('title','')} "
+                          f"(rama {spr.get('headRef','')}, motivo: {spr.get('reason','')})\n"
+                      )
+                  prompt += (
+                      "Si son PRs antiguas sin valor, puedes cerrarlas. No fuerces merges.\n"
+                  )
 
           body = {
               "title": "Ordía — Autonomous Development",
