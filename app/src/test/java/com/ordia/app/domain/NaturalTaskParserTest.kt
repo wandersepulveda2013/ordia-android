@@ -154,6 +154,42 @@ class NaturalTaskParserTest {
         assertEquals(0.6f, result.confidence, 0.001f)
     }
 
+    // ── Categoría explícita por etiqueta "#cat"/"@cat" ──
+
+    @Test fun explicitHashTagSetsCategoryAndCleansTitle() {
+        val result = NaturalTaskParser.parse("Comprar leche #compras", now, zone)
+        assertEquals("Comprar leche", result.title)
+        assertEquals("compras", result.category)
+    }
+
+    @Test fun explicitAtTagSetsCategoryAndCleansTitle() {
+        val result = NaturalTaskParser.parse("Llamar a Ana @trabajo", now, zone)
+        assertEquals("Llamar a Ana", result.title)
+        assertEquals("trabajo", result.category)
+    }
+
+    @Test fun explicitTagOverridesKeywordInference() {
+        // "comprar"/"leche" inferirían "compras", pero el usuario pidió "personal".
+        val result = NaturalTaskParser.parse("Comprar leche #personal", now, zone)
+        assertEquals("Comprar leche", result.title)
+        assertEquals("personal", result.category)
+    }
+
+    @Test fun unknownTagStaysInTitleAndDoesNotSetCategory() {
+        // "#proyecto" no es un nombre de categoría: queda como contenido del usuario
+        // y la categoría se infiere normalmente por keywords (trabajo).
+        val result = NaturalTaskParser.parse("Reunión #proyecto", now, zone)
+        assertEquals("Reunión #proyecto", result.title)
+        assertEquals("trabajo", result.category)
+    }
+
+    @Test fun explicitTagCombinedWithDateAndTime() {
+        val result = NaturalTaskParser.parse("Reunión de equipo #trabajo mañana a las 10", now, zone)
+        assertEquals("Reunión de equipo", result.title)
+        assertEquals("trabajo", result.category)
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // ── Regresión BUG1: fecha numérica sin año en el pasado rueda al año siguiente ──
 
     @Test fun numericDateWithoutYearInPastRollsToNextYear() {

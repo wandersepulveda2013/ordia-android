@@ -653,3 +653,56 @@ Casos de título que dejan basura/residuos NO limpiados (candidatos a ciclo 8):
 
 ### Siguiente prioridad
 - Limpiar `#tag`/`@tag` del título y honrar categoría explícita, o bien "2h" compacto.
+
+---
+
+## SESIÓN 011 — Categoría explícita por etiqueta "#cat"/"@cat" + limpieza del título
+
+- **Fecha (UTC)**: 2026-08-11
+- **Rama**: `openhands/autonomous-ordia`
+- **HEAD inicial**: 0c02eaf
+- **Prioridad**: P2 (UX/inteligencia: el usuario etiquetaba con `#cat`/`@cat` pero la etiqueta
+  quedaba como residuo feo en el título y, peor, `@trabajo` se ignoraba y la categoría se
+  infería por keywords —a veces mal, p. ej. "Llamar a Ana @trabajo" → cat=personal—).
+- **Causa raíz**: El parser solo detectaba categoría por keywords ("comprar", "reunión"...).
+  No existía manejo de etiquetas explícitas `#cat`/`@cat`. El usuario al escribir `#trabajo`
+  o `@compras` expresaba su intención de categoría, pero:
+  1. La etiqueta quedaba en el título ("Comprar leche #compras").
+  2. `@cat` no se reconocía y la categoría se infería (mal) por keywords.
+  3. `#cat` válida (p. ej. `#personal`) era invalidada por keywords contradictorias.
+
+### Solución
+- Nuevo patrón `explicitCategoryPattern` = `[#@](trabajo|compras|salud|casa|personal)\b`,
+  construido a partir de los nombres de categoría conocidos (no hardcodeado, evita
+  divergencia con `categories`). Solo reconoce categorías conocidas, así un hashtag de
+  contenido como `#proyecto` o `#vacaciones` NO se roba como categoría ni se elimina.
+- En `parse()`, la categoría explícita se extrae ANTES de la inferencia por keywords y
+  tiene prioridad: si el usuario etiquetó `#personal`, gana sobre "comprar leche"→compras.
+- La etiqueta reconocida se elimina del título ("Comprar leche #compras" → "Comprar leche").
+- Etiquetas desconocidas (p. ej. `#proyecto`) permanecen intactas en el título (contenido
+  del usuario) y la categoría se infiere normalmente.
+
+### Tests
+- 5 tests nuevos de regresión:
+  - `#compras` limpia título y asigna categoría.
+  - `@trabajo` limpia título y asigna categoría (antes se ignoraba → personal).
+  - `#personal` sobreescribe la inferencia por keywords.
+  - `#proyecto` (desconocido) queda en el título y la categoría se infiere (trabajo).
+  - `#trabajo` combinado con fecha y hora: título limpio + categoría + hora correcta.
+- `bash tools/run_domain_tests.sh` -> 189 tests OK (25 clases). (+5 respecto a ciclo 10)
+- `bash tools/run_domain_checks.sh` -> 25 assertions OK.
+- Probe sobre 10 casos: todos correctos. NO VERIFICADO: gradle/lint/assemble.
+
+### Archivos modificados
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`
+  (+`explicitCategoryPattern`, +extracción con prioridad sobre keywords, +comentario)
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+5 tests)
+
+### Hallazgos adicionales (auditoría ciclo 11)
+- `Trabajar 2h` / `Estudiar 1h`: "Nh" compacto no se reconoce como duración (P2, pendiente).
+- `Reunión de 30 minutos` deja residuo "de" en título (P3, pendiente).
+- Rango horario "de 18 a 20" → dueAt=null (P3, pendiente de evaluación).
+- Title residue "que viene" tras día de semana (P3, pendiente).
+
+### Siguiente prioridad
+- "Nh" compacto como duración ("Trabajar 2h" → dur=120) — P2, alto valor (captura rápida).

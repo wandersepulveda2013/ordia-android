@@ -124,6 +124,16 @@ object NaturalTaskParser {
         "personal" to listOf("llamar a", "familia", "mamá", "mama", "papá", "papa", "herman", "pareja", "amigo", "amiga", "cumpleaños", "cumpleanos", "aniversario")
     )
 
+    /**
+     * Categoría explícita del usuario vía etiqueta "#cat" o "@cat". Solo se reconoce
+     * si coincide con un nombre de categoría conocido; así "#proyecto" (un hashtag de
+     * contenido) no se roba como categoría ni se elimina del título. La etiqueta
+     * explícita tiene prioridad sobre la inferencia por keywords (el usuario dijo qué
+     * quiere) y se limpia del título para no dejar residuo.
+     */
+    private val explicitCategoryPattern =
+        Regex("""(?i)[#@](${categories.joinToString("|") { Regex.escape(it.first) }})\b""")
+
     fun parse(text: String, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): ParsedTaskInput {
         val base = Instant.ofEpochMilli(now).atZone(zone)
         var working = text.trim()
@@ -284,7 +294,16 @@ object NaturalTaskParser {
         }
         durationMatch?.let { working = working.replace(it.value, " ") }
 
-        val category = categories.firstOrNull { (_, keywords) -> keywords.any { working.contains(it, ignoreCase = true) } }?.first.orEmpty()
+        // Categoría: la etiqueta explícita "#cat"/"@cat" del usuario tiene prioridad
+        // sobre la inferencia por keywords. Se extrae y se elimina del título.
+        val explicitCategoryMatch = explicitCategoryPattern.find(working)
+        val explicitCategory = explicitCategoryMatch?.groupValues?.get(1)?.lowercase().orEmpty()
+        if (explicitCategoryMatch != null) {
+            working = explicitCategoryPattern.replace(working, " ")
+        }
+        val category = explicitCategory.ifEmpty {
+            categories.firstOrNull { (_, keywords) -> keywords.any { working.contains(it, ignoreCase = true) } }?.first.orEmpty()
+        }
 
         // Limpieza de la frase para el título.
         // Orden crítico: partOfDay ("esta mañana") y las horas ("a las 9 de la mañana")

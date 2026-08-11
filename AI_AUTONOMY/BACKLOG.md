@@ -48,7 +48,7 @@
 | P3 | Parser | "a primera hora" (sin interpretar/limpiar; queda en título, debería ser ~09:00 inicio de jornada) | probe JVM ciclo 7 | FIXED → VERIFIED ciclo 9 (`primeraHoraPattern` + `primeraHoraTime` 09:00 como fallback de `parsedTime`; limpieza de título tras `standalonePartOfDayPattern`; 4 tests nuevos, 182 OK) |
 | P3 | Parser | Rango horario "de 18 a 20" no parseado (dueAt=null, title y hora nulos) | probe JVM ciclo 7 | ABIERTO (candidato a ciclo 9) |
 | P1 | Parser | "N min antes" clasificado como DURACIÓN en vez de recordatorio: patrón reminder #2 `(\d)(minutos?\|horas?\|días?) antes` no aceptaba abreviatura `min`/`hora`; caía al patrón de duración `\d min` | probe JVM ciclo 10; 2 tests `parsesAbbreviatedMinBeforeAsReminder`, `parsesAbbreviatedMinBeforeAsReminderWithoutVerb` | FIXED → VERIFIED ciclo 10 (184 tests OK; smoke 25 OK) |
-| P2 | Parser | `#tag`/`@tag` no se limpia del título ni asigna categoría explícita (cat se infiere por keywords, ignora tag del usuario) | probe JVM ciclo 10 | ABIERTO |
+| P2 | Parser | ~~`#tag`/`@tag` no se limpia del título ni asigna categoría explícita (cat se infiere por keywords, ignora tag del usuario)~~ RESUELTO ciclo 11: `explicitCategoryPattern` reconoce categorías conocidas, prioridad sobre keywords, limpia título | probe JVM ciclo 10 | FIXED |
 | P2 | Parser | "2h" compacto no reconocido como duración ("Trabajar 2h" → dur=null, "2h" en título) | probe JVM ciclo 10 | ABIERTO |
 | P2 | Parser | `prioridad alta:` y `urgente`/`importante` a mitad de frase no fijan prioridad ("Llamar mamá urgente" → NORMAL) | probe JVM ciclo 10 | ABIERTO |
 | P3 | Parser | "Reunión de 30 minutos" deja residuo "de" en título | probe JVM ciclo 10 | ABIERTO |
