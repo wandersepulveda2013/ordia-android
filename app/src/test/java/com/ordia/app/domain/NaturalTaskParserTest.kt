@@ -791,4 +791,28 @@ class NaturalTaskParserTest {
         assertEquals("Juntada", result.title)
         assertEquals(120, result.durationMinutes)
     }
+
+    // "este/el/próximo fin de semana" y "fin de semana" suelto → próximo sábado.
+    // Es una de las frases de fecha más comunes en español y antes quedaba sin fecha
+    // (INBOX) con "fin de semana" como residuo en el título. now=miércoles 2026-07-29 →
+    // sábado 2026-08-01, hora canónica 09:00 (mismo default que los días sueltos).
+    @Test fun esteFinDeSemanaProgramaProximoSabadoYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Comprar pan este fin de semana", now, zone)
+        assertEquals("Comprar pan", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun finDeSemanaSueltoProgramaProximoSabadoYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pintar la valla fin de semana", now, zone)
+        assertEquals("Pintar la valla", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elFinDeSemanaRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Fiesta el fin de semana a las 20:00", now, zone)
+        assertEquals("Fiesta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
 }

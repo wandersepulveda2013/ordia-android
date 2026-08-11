@@ -35,6 +35,8 @@ data class ParsedTaskInput(
 object NaturalTaskParser {
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
     private val weekdayPattern = Regex("""(?i)\b(?:el\s+|del\s+|de\s+)?(?:pr[oó]ximo\s+|pr[oó]xima\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+que\s+viene|\s+pr[oó]ximos?|\s+pr[oó]ximas?)?\b""")
+    /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado. */
+    private val weekendPattern = Regex("""(?i)\b(?:este\s+|el\s+|pr[oó]ximo\s+)?fin\s+de\s+semana\b""")
     /**
      * Fecha relativa: "en N minutos/horas/días" o "dentro de N ...". Acepta dígitos
      * o números escritos (una/un, dos, ..., doce). "una"/"un" → 1.
@@ -248,6 +250,7 @@ object NaturalTaskParser {
         }
 
         val weekdayMatch = weekdayPattern.find(working)
+        val weekendMatch = weekendPattern.find(working)
         val numericDateMatch = numericDatePattern.find(working)
         val monthNameMatch = monthNamePattern.find(working)
         // Solo cuenta como fecha si el mes es válido: así "8 de la manana" (sufijo de
@@ -273,6 +276,7 @@ object NaturalTaskParser {
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
+            weekendMatch != null -> nextWeekday(base.toLocalDate(), DayOfWeek.SATURDAY)
             weekdayMatch != null -> nextWeekday(base.toLocalDate(), weekdayMatch.groupValues[1].toDayOfWeek())
             monthNameDate != null -> monthNameDate
             numericDateMatch != null -> {
@@ -422,6 +426,7 @@ object NaturalTaskParser {
             .let { value -> primeraHoraPattern.replace(value, " ") }
             .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
             .let { value -> weekdayPattern.replace(value, " ") }
+            .let { value -> weekendPattern.replace(value, " ") }
             // Solo se elimina la fecha "5 de marzo" si el mes es válido: así "9 de la"
             // (en "a las 9 de la tarde") no se destruye y deja restos en el título.
             .replace(monthNamePattern) { m ->
