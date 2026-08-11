@@ -365,11 +365,28 @@
   consulta `releases/latest`, valida SHA-256, firma compatible, versionCode superior,
   packageName correcto, y lanza el instalador oficial (Android pide confirmación).
 
+## Estado de entrega (CICLO 24 — VERIFIED)
+
+- **Primera APK firmada instalable PRODUCIDA y verificada** vía CI run `31505311240`.
+- Release publicada: `v3.0.8-code-1300000801` (Latest, pública).
+  - Asset: `Ordia-3.0-code-1300000801.apk` (2 738 083 bytes) + `.sha256`.
+  - URL: https://github.com/wandersepulveda2013/ordia-android/releases/tag/v3.0.8-code-1300000801
+- Verificación independiente local (descargando la APK de la release):
+  - SHA-256 `74953d29…b05a83` coincide con `.sha256` y con CI.
+  - versionCode `1300000801`, versionName `3.0.8-preview-advanced.1`.
+  - packageName `com.ordia.app.preview.advanced` (coincide con el updater).
+  - NO debuggable. Firma APK Signature Scheme v2 (`0x7109871a`) + v1 JAR (alias ORDIA-UP).
+  - `UpdateInstallActivity` compilado en `classes.dex`; `SELF_UPDATE_ENABLED=true` (fix P0 activo).
+- Artefacto CI `ordia-previewadvanced-signed` (id 9107169334) también disponible en la run.
+- **T4 = VERIFIED**. CI entrega APK firmada reproduciblemente en cada push a la rama.
+
 ## Riesgos / pendientes
 
-- La rama `openhands/autonomous-ordia` requiere los GitHub Secrets de firma
-  (`ORDIA_UPDATE_KEYSTORE_*`) para publicar APKs instalables. Sin ellos, el delivery
-  workflow falla en el step de firma (esperado: no publica nada).
+- Los GitHub Secrets de firma (`ORDIA_UPDATE_KEYSTORE_*`) YA están configurados por el
+  usuario y funcionan. No tocarlos ni regenerar el keystore.
 - La primera instalación en el teléfono requiere que la firma estable coincida con la APK
   instalada; si difiere, hace falta UNA última instalación manual limpia.
-- Sin Android SDK en este entorno: tests de Android/Room/ViewModel NO VERIFICADOS.
+- **T5 (auto-update N→N+1 end-to-end en dispositivo real) = BLOCKED-external**: requiere
+  hardware Android; el agente no puede ejecutarlo. Pendiente de validación humana.
+- Sin Android SDK en este entorno: tests de Android/Room/ViewModel NO VERIFICADOS
+  localmente (sí corren en CI dentro del step `Verificar`).

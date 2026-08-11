@@ -1734,3 +1734,63 @@ Se generó un keystore con keytool y se documentó el flujo de 1 comando en
   Tras ello, un push vacío produce la primera APK instalable + auto-actualizable.
 - Tras verificar end-to-end (instalar N, publicar N+1, comprobar que Ordía lo detecta),
   cerrar ORD-UPD como VERIFIED.
+
+
+---
+
+## Ciclo 24 — 2026-08-11 — Signed APK VERIFIED end-to-end (T4 COMPLETE)
+
+### Objetivo
+Producir la primera APK instalable firmada vía CI y verificar la cadena completa (artefacto, release, SHA-256, firma, packageName, versionCode, no-debuggable, updater compiled).
+
+### Contexto
+- Usuario cargó manualmente los 4 GitHub Secrets de firma (`ORDIA_UPDATE_KEYSTORE_*`).
+- Ciclo 23 dejó la rama `openhands/autonomous-ordia` en `cd96ee5` con la fix P0 del override `SELF_UPDATE_ENABLED=false` y un commit vacío de trigger.
+- CI run `31505311240` (trigger push) encolado al inicio de este ciclo.
+
+### Cambios de código
+- NINGUNO. El trabajo previo (ciclo 23) era correcto; este ciclo fue de verificación.
+
+### Resultado CI run 31505311240 (job 93825270234) — TODOS VERDES
+- ✓ Set up job / Checkout / Java 17 / Gradle 8.13 / versionCode
+- ✓ Verificar (tests + lint + assemble previewAdvanced release)
+- ✓ Localizar APK sin firmar
+- ✓ Rechazar APK debuggable antes de firmar
+- ✓ **Restaurar keystore y firmar APK** (antes fallaba por secrets ausentes → ahora pasa)
+- ✓ Verificar versionCode interno de la APK
+- ✓ Calcular SHA-256
+- ✓ Subir APK firmado como artefacto
+- ✓ Publicar GitHub Release inmutable
+- ✓ Complete job
+
+### Release publicada
+- Tag: `v3.0.8-code-1300000801` (Latest, no draft, no prerelease)
+- Assets:
+  - `Ordia-3.0-code-1300000801.apk` (2 738 083 bytes)
+  - `Ordia-3.0-code-1300000801.apk.sha256` (96 bytes)
+- URL: https://github.com/wandersepulveda2013/ordia-android/releases/tag/v3.0.8-code-1300000801
+- Commit: cd96ee5bed9bab37f3f0fbb39bafe3f4d24fd8b2
+
+### Artefacto CI
+- `ordia-previewadvanced-signed` (2 038 290 bytes, id 9107169334) adjunto a la run.
+
+### Verificación independiente local (descargué la APK de la release)
+- **SHA-256** = `74953d2999c9a2c29860cddf38373b5685275e5594a9601676c49151f5b05a83` — coincide EXACTO con el `.sha256` publicado y con el reportado por CI.
+- **versionCode** (parseado del AndroidManifest.xml binario) = `1300000801` ✓
+- **versionName** = `3.0.8-preview-advanced.1` ✓
+- **applicationId / packageName** = `com.ordia.app.preview.advanced` ✓ (string idx 111)
+- **debuggable** = AUSENTE en el manifest → NO debuggable ✓
+- **Firma** = APK Signature Scheme v2 (`0x7109871a`) presente en el APK Signing Block ✓ + v1 JAR sig (`META-INF/ORDIA-UP.SF` + `ORDIA-UP.RSA`, alias `ordia-update`/ORDIA-UP).
+- **Updater compilado en** = `UpdateInstallActivity` presente en `classes.dex` ✓
+- **SELF_UPDATE_ENABLED** = true confirmado en código HEAD (líneas 64/77 true; release{} sin override — la fix P0 del ciclo 23 está activa en esta build).
+
+### Tests
+- Contract tests `UpdateSecurityRulesTest` ejecutados dentro del step `Verificar` (verde).
+- Sin tests nuevos este ciclo (no hubo cambios de código).
+
+### Estado
+- **T4 VERIFIED**: CI produce APK firmada instalable + auto-actualizable reproduciblemente.
+- Queda T5 (verificar auto-update N→N+1 en dispositivo real) — requiere hardware Android; el agente no puede ejecutarlo. Marcado BLOCKED-external en BACKLOG.
+
+### Siguiente prioridad
+- T5 end-to-end en teléfono: instalar `Ordia-3.0-code-1300000801.apk`, disparar una nueva release (versionCode superior), y confirmar que Ordía la detecta/descarga/instala. Fuera del alcance del agente sin dispositivo.
