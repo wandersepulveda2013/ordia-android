@@ -135,6 +135,7 @@
     <string name="today_quick_note">Nota rápida</string>
     <string name="today_overdue_summary">%1$d pendientes vencidos, resumidos sin alertas innecesarias.</string>
     <string name="today_overdue_recovery">Preparar un nuevo comienzo</string>
+    <string name="today_open_planner_cd">Abrir el planificador para reorganizar</string>
     <string name="today_next_deadlines">Próximos pasos</string>
     <string name="today_next_deadlines_support">Solo lo que merece atención ahora.</string>
     <string name="today_capture_type_hint">Escribe una tarea, nota, idea o recordatorio</string>

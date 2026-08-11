@@ -10,9 +10,9 @@
 | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|----------|--------|
 | P2 | UI | `Icons.Outlined.InsertDriveFile` deprecado; usar `Icons.AutoMirrored.Outlined.InsertDriveFile` | warning de compilación en `TaskDetailScreen` | FIXED → VERIFIED (CI ciclo 26; run 31522884362 success, release v3.0.14) |
-| P2 | i18n | Revisar coherencia de cadenas nuevas (command_palette, feedback, floating_capture, android_access) | inspección manual pendiente | OPEN |
+| P2 | i18n | Revisar coherencia de cadenas nuevas (command_palette, feedback, floating_capture, android_access) | inspección manual pendiente | REVISADO — no hay texto hardcodeado en pantallas (todo via stringResource); eliminadas 47 strings huérfanas (today_what_now_action + 46 intel_* de feature local-model removida). No requiere fix |
 | P2 | QA | Verificar que las 6 variantes (Safe/Full/Advanced × debug/release) compilan tras cambios | `./gradlew test` | OPEN |
-| P2 | Backup | Comprobar restauración con manifiesto corrupto (escenario adverso) | revisión de `RestoreData` | OPEN |
+| P2 | Backup | Comprobar restauración con manifiesto corrupto (escenario adverso) | revisión de `RestoreData` | REVISADO — `BackupManager.validateAndParse` ya valida SHA-256 checksum, version, secciones desconocidas, fecha creación, faltantes; lanza `IllegalArgumentException` con mensajes claros; `catch(Exception)` devuelve `ImportResult(false,msg)`. Sin error silencioso. No requiere fix |
 | P3 | Rutinas | ~~`saveRoutine` hace delete-then-reinsert de pasos sin transacción atómica; si el proceso muere a mitad, la rutina queda con pasos parciales/perdidos~~ FIXED ciclo 15: `RoutineStepDao.replaceSteps` (`@Transaction` delete+insert) + `saveRoutine` lo usa | `OrdiaViewModel.saveRoutine`; `Daos.kt` `replaceSteps`; smoke+202 tests OK; NO VERIFICADO (DAO/Room requiere Android) | FIXED (NO VERIFICADO Room) |
 | P3 | UX | Pulido visual de pantallas renovadas del workspace | capturas tras sesión | OPEN |
 

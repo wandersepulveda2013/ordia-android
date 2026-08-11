@@ -249,7 +249,7 @@ fun TodayScreen(
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
-                        IconButton(onClick = onOpenPlanner) { Icon(Icons.Outlined.ArrowForward, null) }
+                        IconButton(onClick = onOpenPlanner) { Icon(Icons.Outlined.ArrowForward, stringResource(R.string.today_open_planner_cd)) }
                     }
                 }
             }
