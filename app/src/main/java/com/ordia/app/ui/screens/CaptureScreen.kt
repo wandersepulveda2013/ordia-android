@@ -40,6 +40,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -248,7 +249,10 @@ fun CaptureScreen(
                     }
 
                     interpretation?.let { preview ->
-                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                            shape = MaterialTheme.shapes.medium
+                        ) {
                             Column(Modifier.fillMaxWidth().padding(12.dp)) {
                                 Text(stringResource(R.string.capture_preview_title), style = MaterialTheme.typography.labelMedium)
                                 Text(captureTargetLabel(preview.target), style = MaterialTheme.typography.titleMedium)
