@@ -77,3 +77,6 @@
 
 - `android-ci.yml` activo en `main` y en la rama autónoma; verify corre en push/PR hacia ambas.
 - Pendiente la primera ejecución del ciclo autónomo real (requiere `JULES_API_KEY`).
+
+## 2026-08-11 - Fixed Deprecated Icons
+- Replaced deprecated `Icons.Outlined.*` calls with their `Icons.AutoMirrored.Outlined.*` counterparts (`ArrowForward`, `ArrowBack`, `InsertDriveFile`, `Notes`, `FormatListBulleted`, `Send`, `OpenInNew`) across the UI codebase to resolve Compose 1.7.0+ deprecation warnings.

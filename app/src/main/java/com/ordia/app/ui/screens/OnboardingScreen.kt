@@ -23,7 +23,7 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Notes
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -179,7 +179,7 @@ private fun OnboardingArtwork(page: Int) {
                 )
             }
             MiniIllustrationCard(
-                icon = Icons.Outlined.Notes,
+                icon = Icons.AutoMirrored.Outlined.Notes,
                 modifier = Modifier.align(Alignment.TopStart)
             )
             MiniIllustrationCard(

@@ -15,7 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Minimize
-import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -99,7 +99,7 @@ private fun PanelManager(open: List<WorkspacePanel>, minimized: Set<WorkspacePan
                     }
                     if (panel in open) {
                         IconButton(onClick = { dispatch(if (panel in minimized) WorkspaceEvent.Activate(panel) else WorkspaceEvent.Minimize(panel)) }) {
-                            Icon(if (panel in minimized) Icons.Outlined.OpenInNew else Icons.Outlined.Minimize, stringResource(if (panel in minimized) R.string.workspace_restore else R.string.workspace_minimize))
+                            Icon(if (panel in minimized) Icons.AutoMirrored.Outlined.OpenInNew else Icons.Outlined.Minimize, stringResource(if (panel in minimized) R.string.workspace_restore else R.string.workspace_minimize))
                         }
                         IconButton(onClick = { dispatch(WorkspaceEvent.Close(panel)) }) { Icon(Icons.Outlined.Close, stringResource(R.string.workspace_close)) }
                     }

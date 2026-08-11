@@ -167,3 +167,8 @@
 - (pendiente) docs(autonomy): memoria de la sesión 002 (este commit)
 
 ---
+
+### Run: 2026-08-11T05:13:44Z
+- **Task**: Fix deprecated `Icons.Outlined.*` calls.
+- **Action**: Used a shell script to replace `ArrowForward`, `ArrowBack`, `InsertDriveFile`, `Notes`, `FormatListBulleted`, `Send`, and `OpenInNew` with their `AutoMirrored` counterparts. Verified compilation and tests.
+- **Outcome**: Resolved deprecation warnings and updated `BACKLOG.md` to mark the issue as FIXED.
