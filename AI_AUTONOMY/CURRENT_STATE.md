@@ -376,13 +376,18 @@
 - Cadena de la MISIÓN funcionando: OBSERVAR→DECIDIR→MEJORAR→PROBAR→COMMIT→PUSH→CI→RELEASE→USUARIO.
 - Cada push a `openhands/autonomous-ordia` produce una release firmada con versionCode creciente.
 
-## Última mejora (ciclo 25 — P2 VERIFIED vía CI)
+## Última mejora (ciclo 26 — P2 VERIFIED vía CI)
 
-- **TodayScreen**: eliminado el action "What Now" duplicado (aparecía como botón en la fila
-  de 3 AND como card dedicada con eyebrow+razón). La fila ahora tiene 2 actions equilibrados
-  (Revisar mensajes, Nota rápida) con más respiración. Jerarquía más clara, menos ruido.
-- CI run 31520002066 (job 93874503437) **success**: Verificar (tests+lint+assemble) ✓,
-  firma ✓, release publicada ✓. SmokeTest sigue pasando (busca "SIGUIENTE PASO", no tocado).
+- **CaptureScreen**: aplanada la `Card` anidada del preview de interpretación → `Surface`
+  (sin border/elevation extra). Elimina patrón "card-in-card" prohibido por la MISIÓN.
+- **TaskDetailScreen**: `Icons.Outlined.InsertDriveFile` (deprecado) →
+  `Icons.AutoMirrored.Outlined.InsertDriveFile`. 1 lint warning menos.
+- CI run 31522884362 (job 93884233254) **success**. Release `v3.0.14-code-1300001401`
+  publicada (4ta release firmada consecutiva, ambas mejoras en una sola release por
+  concurrency cancel-in-progress).
+- Backlog P2 "deprecated InsertDriveFile icon" → FIXED.
+- Auditoría: NoteBlockCodec robusto (OK); NaturalTaskParser ya soporta weekend (P3 → NA);
+  OnboardingScreen ya tiene scroll (OK); PlannerScreen/TasksScreen sin card-in-card (OK).
 
 ## Riesgos / pendientes
 

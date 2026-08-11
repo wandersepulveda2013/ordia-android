@@ -1856,3 +1856,45 @@ redundante con la card principal. No es un bug; es ruido de jerarquía.
 ### Siguiente prioridad
 - Otra mejora P2 visible: revisar CaptureScreen (captura rápida es núcleo del producto)
   o simplificar más pantallas principales. Continúa autónomamente.
+
+---
+
+## Ciclo 26 — 2026-08-11 — Dos mejoras P2 visibles (captura + icono) en una release
+
+### Objetivo
+Continuar evolución autónoma P2 visible. La MISIÓN exige CONTINUAR, no detenerse tras cada mejora.
+
+### Mejoras
+
+#### 1. CaptureScreen: aplanar Card anidada (P2 visual)
+- Problema: el preview de interpretación era una `Card` DENTRO del `Card` principal de captura
+  — patrón "card-in-card" que la MISIÓN prohíbe (ruido visual, doble contención).
+- Solución: reemplazada por `Surface`(surfaceContainer, shape medium, sin border/elevation extra).
+  Lee como sección del mismo contenedor. Sin cambio de comportamiento.
+- Archivo: CaptureScreen.kt (commit 3f896db).
+
+#### 2. TaskDetailScreen: icono deprecado (P2 backlog OPEN)
+- Problema: `Icons.Outlined.InsertDriveFile` deprecado → lint warning.
+- Solución: `Icons.AutoMirrored.Outlined.InsertDriveFile` (versión correcta para iconos espejables).
+  Compose BOM 2026.06.00 la soporta.
+- Archivo: TaskDetailScreen.kt (commit 837ca63). Backlog P2 "deprecated InsertDriveFile icon" → FIXED.
+
+### Tests
+- CI run 31522884362 (job 93884233254) — **success** ✓
+  - Verificar (tests+lint+assemble) ✓ — ahora con 1 lint warning menos (icono corregido).
+  - Firma ✓ / versionCode ✓ / SHA-256 ✓ / Release ✓.
+- Run 31522754097 (3f896db solo) fue cancelada por concurrency (cancel-in-progress) → la release
+  final 837ca63 contiene ambos cambios. Eficiente: no se publican releases intermedias obsoletas.
+
+### Release
+- Tag: v3.0.14-code-1300001401 (Latest). 4ta release firmada consecutiva.
+
+### Auditoría (sin cambios de estado)
+- NoteBlockCodec.decode ya robusto (fallback graceful, descarta solo elementos corruptos) — OK.
+- NaturalTaskParser soporta sábado/domingo, "esta tarde/noche", "dentro de", "próximo" — backlog P3
+  "weekend parser support" ya cubierto → marcar NOT_APPLICABLE.
+- OnboardingScreen ya tiene verticalScroll + widthIn(max=520) + systemBarsPadding — caber OK.
+- PlannerScreen / TasksScreen: sin card-in-card — limpios.
+
+### Siguiente
+- Continuar: próxima mejora P2 visible. No detenerse.
