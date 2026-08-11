@@ -997,7 +997,8 @@ fecha de repeticiones mensuales/semanales con hora explícita.
 - "cada mes" a secas sigue sin fecha (ambiguo, sin día): comportamiento preexistente correcto.
 
 ### Commit / push
-- (pendiente; se commitea a continuación)
+- `ae43af3` (feat(parser): recurrencia mensual anclada a día del mes) — push a openhands/autonomous-ordia (pendiente push en este run)
+- HEAD final: `ae43af3`
 
 ### Siguiente prioridad
 - Auditoría funcional no-parser (tareas/búsqueda/What Now/automatizaciones/contexto) o
