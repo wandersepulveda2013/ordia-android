@@ -846,7 +846,6 @@ Casos de título que dejan basura/residuos NO limpiados (candidatos a ciclo 8):
 ### Contexto
 - HEAD inicial: `9c5222f` (feat(parser): duraciones fraccionarias).
 - Branch: `openhands/autonomous-ordia`.
-- Auditoría funcional fuera del parser: persistencia/rutinas.
 
 ### Problema seleccionado
 - P3 (datos) — `saveRoutine` no atómico: delete-then-reinsert de pasos de rutina sin transacción.
@@ -1003,3 +1002,63 @@ fecha de repeticiones mensuales/semanales con hora explícita.
 ### Siguiente prioridad
 - Auditoría funcional no-parser (tareas/búsqueda/What Now/automatizaciones/contexto) o
   siguientes P2/P3 del backlog (lint `InsertDriveFile` AutoMirrored, i18n strings).
+
+---
+
+## SESIÓN 017 — Ciclo 18 (RecurrenceEngine: anclaje mensual consistente con parser)
+
+- **Fecha (UTC)**: 2026-08-11
+- **HEAD inicial**: `324d1e6` (origin/openhands/autonomous-ordia; push del ciclo 17
+  completado al inicio de este run con `github_token`)
+- **Ciclo**: 18 (continúa ciclo 17 — cierra consistencia parser↔engine de la nueva
+  funcionalidad de recurrencia mensual)
+
+### Problema seleccionado
+P1 — `RecurrenceEngine` mensual NO anclaba al día del mes: usaba `base.plusMonths(interval)`,
+que **clampa** los días 29-31 al último día válido del mes destino (p. ej. ene 31 + 1 mes →
+feb 28). Esto hacía **derivar el ancla** de una recurrencia "el 31 de cada mes" (31 → 30 → 30…)
+y era **inconsistente** con el anclaje de `NaturalTaskParser.nextMonthlyDate` (que salta los
+meses sin el día). Tras completar la primera ocurrencia generada por el parser, el engine
+rompía la promesa de "cada día 31". La nueva funcionalidad del ciclo 17 quedaba a medias en
+el ciclo de vida real (completion → próxima ocurrencia).
+
+### Causa raíz
+`advance` para `MONTHLY` = `base.plusMonths(interval)`. `java.time` clampa el día del mes
+al límite del mes destino en vez de saltar el mes. No había helper de anclaje mensual.
+
+### Solución
+- `RecurrenceEngine.nextMonthly(base, interval)`: ancla al `base.dayOfMonth`, busca el
+  primer mes a partir de `base + interval` que contenga ese día (`YearMonth.lengthOfMonth`),
+  conservando hora y zona de `base`. Recorre ≤24 iteraciones (día ≤31 siempre halla mes
+  válido: 31 existe en jul/ago/oct/dic).
+- `advance` MONTHLY ahora llama a `nextMonthly`.
+- Para días 1-28 (caso más común: "el 15 de cada mes") el comportamiento es **idéntico**
+  (todo mes los contiene). Solo cambia días 29-31, ahora correctos y coherentes con el parser.
+
+### Archivos modificados
+- `app/src/main/java/com/ordia/app/domain/RecurrenceEngine.kt`
+  (+import `YearMonth`; `nextMonthly`; `advance` MONTHLY → `nextMonthly`)
+- `app/src/test/java/com/ordia/app/domain/RecurrenceEngineTest.kt`
+  (+3 tests: `monthly_anchorsToDayOfMonthAndSkipsMonthsLackingIt`,
+  `monthly_preservesDayForCommonDays`, `monthly_advancesPastCompletedAt`)
+
+### Tests
+- Red primero: 2 failures (`feb 28` en vez de `mar 31`; `mar 28` en completión tardía).
+- `bash tools/run_domain_tests.sh` → **215 tests OK** (25 clases) (212 + 3).
+- `bash tools/run_domain_checks.sh` → **25 assertions OK** (kotlinc en PATH vía
+  /tmp/kotlinc-home/kotlinc/bin).
+- NO VERIFICADO: gradle/lint/Android/Room (sin Android SDK).
+
+### Commit / push
+- `c709e26` (fix(parser): RecurrenceEngine mensual anclaje) — push al cierre del run.
+- HEAD final: `c709e26`
+
+### Hallazgos adicionales
+- Funcionalidad de recurrencia mensual del ciclo 17 ahora cierra su ciclo completo
+  (parser → primera fecha → completion → próxima fecha coherente).
+- No se requiere cambio de esquema Room: el ancla se infiere del `dueAt` de la tarea
+  completada (día del mes), evitando una migración no verificable sin Android SDK.
+
+### Siguiente prioridad
+- Auditoría funcional no-parser: What Now (tareas programadas vs. inbox), búsqueda,
+  automatizaciones, contexto, GuardianEngine, LearningEngine.

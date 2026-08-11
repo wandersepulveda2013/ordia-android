@@ -4,25 +4,26 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 16)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD inicial `0f14ded`)
+- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 18)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD inicial `324d1e6`, final `c709e26`)
 - **main**: contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
 
 ## Último trabajo realizado
 
-- **Sesión OpenHands 004 — Ciclo 16 (NaturalTaskParser — mensual anclado)**: P1 corregido —
-  recurrencia mensual anclada a día del mes ("el 15 de cada mes", "los 30 del mes",
-  "15 de cada mes") NO se parseaba: el día quedaba como residuo en el título y `dueAt=null`,
-  de modo que la tarea mensual nunca recibía fecha de vencimiento y los recordatorios no
-  disparaban. Ahora `parseRecurrence` reconoce el patrón `N de/del (cada) mes(es)`,
-  ancla la primera ocurrencia al próximo día N (inclusive si es hoy; avanza de mes si el
-  día no existe, p. ej. 31 en feb) vía `nextMonthlyDate`, y limpia el título. Además fix
-  lateral: `monthNameDate` se computa como fecha resuelta (no basta con que la regex
-  "mes" coincida) para que un sufijo de hora "8 de la manana" no cree la falsa fecha
-  "8 de la" y anule la resolución de fecha de repeticiones mensuales/semanales con hora.
-  3 tests nuevos (212 domain tests OK, smoke 25 OK). Commit (pendiente).
+- **Sesión OpenHands — Ciclo 18 (RecurrenceEngine — anclaje mensual)**: P1 corregido — el
+  avance de recurrencia mensual usaba `base.plusMonths(interval)` que **clampa** los días
+  29-31 al último día del mes destino (ene 31 → feb 28), derivando el ancla de "el 31 de
+  cada mes" (31→30→30…) y siendo **inconsistente** con `NaturalTaskParser.nextMonthlyDate`
+  (que salta los meses sin el día). La nueva funcionalidad del ciclo 17 (parser mensual
+  anclado) quedaba a medias: el parser generaba la primera fecha correcta, pero al
+  completarla el engine rompía la promesa del día. Fix: `RecurrenceEngine.nextMonthly`
+  ancla al `base.dayOfMonth`, busca el primer mes (desde `base+interval`) que contenga ese
+  día (`YearMonth.lengthOfMonth`), conservando hora y zona. Días 1-28 (caso más común,
+  "el 15 de cada mes") idéntico; solo cambian días 29-31, ahora correctos y coherentes con
+  el parser. No requiere migración de esquema: el ancla se infiere del `dueAt` de la tarea
+  completada. 3 tests nuevos (215 domain tests OK, smoke 25 OK). Commit `c709e26`.
 
 - **Sesión OpenHands 004 — Ciclo 1 (NaturalTaskParser)**: 3 bugs P1 corregidos (fecha numérica
   pasada, esta noche/tarde/mañana, urgente inicial), 11 tests de regresión. Commit `fb53e8c`.
@@ -102,7 +103,7 @@
 ## Tests ejecutados
 
 - **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` (sin Android SDK).
-- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 209 tests OK (25 clases);
+- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 215 tests OK (25 clases);
   `bash tools/run_domain_checks.sh` → 25 assertions OK.
 
 ## Problemas conocidos
@@ -174,6 +175,21 @@
   hora≥13, así "comprar de 2 a 5 entradas" no se toca); la duración numérica posterior ahora
   arrastra el conector "de " cuando lo precede. 7 tests nuevos, 209 OK, smoke 25 OK.
   NO VERIFICADO: gradle/lint/Android (sin Android SDK).
+
+  ACTUALIZACIÓN ciclo 17 (NaturalTaskParser — mensual anclado): P1 corregido — recurrencia
+  mensual anclada a día del mes ("el 15 de cada mes") NO se parseaba. `parseRecurrence`
+  reconoce el patrón `N de/del (cada) mes(es)`, ancla la primera ocurrencia al próximo día N
+  (inclusive si es hoy; avanza de mes si el día no existe) vía `nextMonthlyDate`. Fix
+  lateral: `monthNameDate` se computa como fecha resuelta (no basta con que la regex "mes"
+  coincida) para que "8 de la manana" no cree la falsa fecha "8 de la". 3 tests nuevos,
+  212 OK, smoke 25 OK.
+
+  ACTUALIZACIÓN ciclo 18 (RecurrenceEngine — anclaje mensual consistente con parser): P1
+  corregido — el avance mensual usaba `base.plusMonths` que clampa días 29-31 (ene 31 →
+  feb 28), derivando el ancla de "el 31 de cada mes" e inconsistente con el parser. Fix:
+  `nextMonthly` ancla al día del mes y salta los meses que no lo contienen, conservando
+  hora y zona. Días 1-28 idéntico; solo cambian 29-31, ahora correctos. 3 tests nuevos,
+  215 OK, smoke 25 OK. Cierra el ciclo completo de la funcionalidad mensual del ciclo 17.
 
 ## PR pendiente
 
