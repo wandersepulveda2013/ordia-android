@@ -2,7 +2,6 @@
 <resources>
     <string name="nav_capture">Capturar</string>
     <string name="more_capture_desc">Abre la captura completa para recordatorios, archivos y texto.</string>
-    <string name="more_planner_desc">Organiza fechas y bloques del día.</string>
     <string name="capture_header_eyebrow">ENTRADA UNIVERSAL</string>
     <string name="capture_header_title">Captura todo. Decide después.</string>
     <string name="capture_header_subtitle">Escribe, dicta, pega o adjunta. Ordía conserva el original antes de organizarlo.</string>

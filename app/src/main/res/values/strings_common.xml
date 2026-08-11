@@ -7,10 +7,6 @@
     <string name="action_add">Añadir</string>
     <string name="action_edit">Editar</string>
     <string name="action_understood">Entendido</string>
-    <string name="common_yes">Sí</string>
-    <string name="common_no">No</string>
-    <string name="common_downloaded">Descargado</string>
-    <string name="common_not_downloaded">No descargado</string>
 
     <!-- Navegación: etiquetas de destinos (Navigation.kt, ORD-029 i18n). -->
     <string name="nav_today">Hoy</string>

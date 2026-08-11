@@ -22,7 +22,6 @@
     <string name="more_guardian_level_badge">Nv. %1$d</string>
     <string name="more_projects_desc">Agrupa tareas y notas alrededor de resultados concretos.</string>
     <string name="more_habits_desc">Registra constancia, objetivos y rachas sin presión.</string>
-    <string name="more_notes_desc">Crea páginas flexibles para ideas, decisiones e información.</string>
     <string name="more_statistics_desc">Analiza tendencias reales de tareas, hábitos y enfoque.</string>
     <string name="more_completion_rate_badge">%1$s%%</string>
     <string name="more_archive_desc">Recupera o elimina elementos que ya no están activos.</string>
@@ -39,10 +38,6 @@
     <!-- Pantalla Búsqueda (SearchScreen, ORD-029 i18n). -->
     <string name="search_header_eyebrow">ENCUENTRA SIN NAVEGAR</string>
     <string name="search_header_title">Búsqueda</string>
-    <string name="search_header_subtitle">Busca tareas, proyectos, notas y hábitos al mismo tiempo.</string>
-    <string name="search_field_label">¿Qué estás buscando?</string>
-    <string name="search_empty_prompt_title">Escribe para buscar</string>
-    <string name="search_empty_prompt_subtitle">Ordía busca localmente; tu información no sale del dispositivo.</string>
     <string name="search_no_results_title">Sin resultados</string>
     <string name="search_no_results_subtitle">Prueba con otra palabra o una parte del título.</string>
     <string name="search_kind_task">TAREA</string>
