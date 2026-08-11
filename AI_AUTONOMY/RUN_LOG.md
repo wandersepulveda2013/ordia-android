@@ -1662,3 +1662,75 @@ El conector de tiempo relativo distingue horas (`"dentro de 3 horas"`) de días
   Comportamiento esperado y seguro: sin secrets de firma, no publica nada.
 - Bug gradlew exit 126 (gradlew tracked 100644) corregido: chmod +x en workflow +
   modo 100755 en git.
+
+---
+
+## Ciclo 23 — 2026-08-11 (Sesión OpenHands — objetivo: APK instalable + self-update)
+
+- **HEAD inicial**: `e2e1314` (sync OK con remote).
+- **HEAD final**: `23289c3` (pushed, working tree limpio).
+
+### Problema seleccionado (P0/P1 — objetivo usuario)
+El usuario quiere una APK instalable que pueda auto-actualizarse en el futuro.
+Auditoría reveló DOS bugs reales que hacían que el self-update estuviera **silenciosamente
+muerto** aunque toda la infraestructura existía y los tests pasaban:
+
+1. **P0 — `SELF_UPDATE_ENABLED` overridden to false on release builds** (root cause):
+   `app/build.gradle.kts` declaraba `buildConfigField("boolean","SELF_UPDATE_ENABLED","false")`
+   en el buildType `release`. En AGP, un campo de buildType **pisa** al del product flavor
+   (los buildTypes se aplican al final). Por tanto `previewAdvancedRelease` y
+   `previewFullRelease` compilaban con `SELF_UPDATE_ENABLED=false` aunque el flavor dijera
+   `true`. Resultado: una APK perfectamente construida y firmada **jamás** podría buscar ni
+   instalar actualizaciones — `OrdiaUpdateManager.schedule()` y `checkDetailed()` retornan
+   inmediatamente. Funcionalidad falsamente implementada (exactamente el tipo que la misión
+   prohíbe). FIX: eliminar el override del buildType; cada flavor declara su valor correcto.
+
+2. **P1 — contrato CI↔updater sin test de regresión**: ya existía el mismatch resuelto
+   (tag `v3.0.N-code-C` / asset `Ordia-3.0-code-C.apk`), pero no había test que impidiera
+   que el bug reaparezca silenciosamente. FIX: añadidos 2 tests contract en
+   `UpdateSecurityRulesTest`:
+   - `ciWorkflowNaming_isAcceptedByUpdater`: replica las fórmulas EXACTAS de
+     `openhands-delivery.yml` y afirma que `UpdateSecurityRules` las acepta (parseTag,
+     expectedApkName, selectExpectedApk, parseChecksum, URL confiable).
+   - `ciWorkflowNaming_rejectsOldBrokenFormats`: asegura que los formatos viejos rotos
+     (`v3.0.0-build.5`, `Ordia-3.0-signed.apk`, `Ordia-3.0.apk`) sigan rechazados.
+
+### Solución
+- Mínima: 1 línea eliminada en `app/build.gradle.kts` + 49 líneas de tests contract.
+- No se añadió infraestructura nueva (el usuario pidió no sobre-ingeniería).
+
+### Auditoría del updater (confirmado correcto, NO modificado)
+- `OrdiaUpdateManager.checkDetailed`: consulta `releases/latest`, rechaza draft/prerelease,
+  parsea versionCode del tag, rechaza `<= VERSION_CODE`, valida URL host/github.com,
+  selecciona asset exacto por nombre, descarga con checksum SHA-256, valida tamaño.
+- `validateDownloadedPackageLocked`: copia+hash del bytes privados, verifica SHA-256
+  doble (fuente + privado), `verifyArchive` valida packageName==installed, versionCode==tag,
+  `signaturesAreCompatible` (soporta rotación de claves vía signingCertificateHistory).
+- `UpdateInstallActivity`: valida ANTES de instalar, `canRequestPackageInstalls()`,
+  lleva a `ACTION_MANAGE_UNKNOWN_APP_SOURCES` si falta, lanza `ACTION_INSTALL_PACKAGE`
+  (instalador oficial de Android). NO es instalación silenciosa (respeta Android).
+- Post-actualización: datos sobreviven (misma applicationId + firma compatible → Android
+  trata como upgrade, Room migra, DataStore persiste).
+
+### Tests
+- CI run **31500689793** (post-fix): `Verificar` ✓ PASSED en runner real — incluye los 2
+  tests contract nuevos + clean + lint + assemblePreviewAdvancedRelease.
+- Local: NO VERIFICADO gradle (sin Android SDK en agente).
+- `Restaurar keystore y firmar APK` ✗ en guard `ORDIA_UPDATE_KEYSTORE_BASE64`
+  (comportamiento seguro esperado — sin secrets de firma, no publica).
+
+### Bloqueo externo real (NO resolvible por el agente)
+El `GITHUB_TOKEN` del agente **no puede gestionar Actions secrets** (HTTP 403 en
+`/actions/secrets/public-key` y `/gists`). El scope es vacío. Por tanto, los 4 secrets
+de firma (`ORDIA_UPDATE_KEYSTORE_*`) **deben ser cargados por el usuario una vez**.
+Se generó un keystore con keytool y se documentó el flujo de 1 comando en
+`tools/keystore/README.md`. El keystore no se subió al repo (riesgo de seguridad).
+
+### Commit / push
+- `fix(updater): SELF_UPDATE_ENABLED was silently overridden false on release builds`
+
+### Siguiente prioridad
+- **Usuario**: cargar los 4 GitHub Secrets de firma (ver `tools/keystore/README.md`).
+  Tras ello, un push vacío produce la primera APK instalable + auto-actualizable.
+- Tras verificar end-to-end (instalar N, publicar N+1, comprobar que Ordía lo detecta),
+  cerrar ORD-UPD como VERIFIED.

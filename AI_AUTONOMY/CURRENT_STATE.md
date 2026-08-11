@@ -18,25 +18,33 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 22)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (base `379886e`; ciclo 22: parser días relativos + hora)
+- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 23)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD `23289c3`)
 - **main**: contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
 
 ## Último trabajo realizado
 
-- **Sesión OpenHands — Ciclo 22 (NaturalTaskParser — días relativos + hora explícita)**:
-  P1 de captura corregido. Al combinar **fecha relativa en días** con **hora explícita** (p. ej.
-  "dentro de 3 días a primera hora" o "en 2 días a las 9"), el parser calculaba la fecha
-  relativa y tenía `parsedTime`, pero la rama `dueAt` usaba `today + parsedTime` (perdía los
-  días) o descartaba la hora y usaba la fecha relativa a medianoche. Ambos caminos eran
-  incorrectos para la intención del usuario. Fix mínimo: flag `relativeIsDays` (true para
-  días, false para minutos/horas) y nueva rama que combina la **fecha** de `relativeDueAt`
-  con la **hora** de `parsedTime`. Las horas relativas ("en 3 horas") no se combinan (la hora
-  relativa ya define el instante). Tests: +3 TDD (`relativeDaysRespectsExplicitTime`,
-  `relativeDaysRespectsPrimeraHora`, `relativeDaysWithoutTimeKeepsCurrentTime`).
-  **235 domain tests OK, smoke 25 OK.** NO VERIFICADO: gradle/lint/Android/UI.
+- **Sesión OpenHands — Ciclo 23 (APK instalable + self-update)**: objetivo del usuario: recibir
+  una APK instalable que pueda auto-actualizarse. Se encontró y corrigió un **bug P0 silencioso**:
+  el buildType `release` declaraba `SELF_UPDATE_ENABLED=false`, que en AGP pisa el valor del
+  flavor (buildTypes van al final). Por tanto `previewAdvancedRelease` y `previewFullRelease`
+  compilaban con self-update DESACTIVADO aunque el flavor dijera `true` → una APK firmada
+  jamás buscaría ni instalaría actualizaciones. Fix: eliminar el override (cada flavor declara
+  su valor). +2 tests contract (CI↔updater naming) en `UpdateSecurityRulesTest`. CI run
+  31500689793: `Verificar` ✓ PASSED. Firma ✗ en guard `ORDIA_UPDATE_KEYSTORE_BASE64`
+  (esperado — secrets de firma pendientes de carga por el usuario).
+
+## Riesgos / bloqueos
+
+- **BLOQUEO EXTERNO**: el `GITHUB_TOKEN` del agente no puede gestionar Actions secrets
+  (HTTP 403). Los 4 secrets `ORDIA_UPDATE_KEYSTORE_*` deben ser cargados por el usuario
+  una sola vez (`tools/keystore/README.md`). Hasta entonces, CI compila+testea+ensambla
+  pero no firma ni publica Release.
+- **Sin emulador Android** en el agente: la prueba N→N+1 end-to-end real no se ejecutó.
+  El flujo de actualización está cubierto por tests unitarios contract pero NO por una
+  prueba de instalación real en dispositivo.
 
 - **Sesión OpenHands — Ciclo 21 (NaturalTaskParser — "mañana por la tarde/noche/mañana")**:
 - **Sesión OpenHands — Ciclo 21 (NaturalTaskParser — "mañana por la tarde/noche/mañana")**:
