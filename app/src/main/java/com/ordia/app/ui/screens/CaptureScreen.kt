@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.speech.RecognizerIntent
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -136,6 +137,8 @@ fun CaptureScreen(
                     uri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
+            }.onFailure {
+                Log.w("CaptureScreen", "takePersistableUriPermission failed", it)
             }
             attachmentUri = uri.toString()
             attachmentMime = context.contentResolver.getType(uri).orEmpty()
