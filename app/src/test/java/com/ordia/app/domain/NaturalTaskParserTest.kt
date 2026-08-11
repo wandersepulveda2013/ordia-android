@@ -208,4 +208,55 @@ class NaturalTaskParserTest {
         assertEquals(TaskPriority.NORMAL, result.priority)
         assertEquals("Revisar si es urgente el documento", result.title)
     }
+
+    // ── Regresión BUG3: números escritos en expresiones relativas ──
+
+    @Test fun writtenNumberRelativeHoursParsesDueAt() {
+        val result = NaturalTaskParser.parse("Llamar a cliente en dos horas", now, zone)
+        assertEquals("Llamar a cliente", result.title)
+        assertEquals(now + 2 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun writtenNumberRelativeDaysParsesDueAt() {
+        val result = NaturalTaskParser.parse("Enviar propuesta en tres días", now, zone)
+        assertEquals("Enviar propuesta", result.title)
+        assertEquals(now + 3 * 24 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun writtenNumberUnaHoraParsesDueAt() {
+        val result = NaturalTaskParser.parse("Revisar correo en una hora", now, zone)
+        assertEquals("Revisar correo", result.title)
+        assertEquals(now + 1 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun writtenNumberUnDiaParsesDueAt() {
+        val result = NaturalTaskParser.parse("Comprar pan en un día", now, zone)
+        assertEquals("Comprar pan", result.title)
+        assertEquals(now + 1 * 24 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun dentroDeWrittenNumberParsesDueAt() {
+        val result = NaturalTaskParser.parse("Reunión dentro de dos horas", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(now + 2 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun dentroDeDigitsParsesDueAt() {
+        val result = NaturalTaskParser.parse("Reunión dentro de 30 minutos", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(now + 30 * 60_000L, result.dueAt)
+    }
+
+    @Test fun writtenNumberUpToTwelveParsesDueAt() {
+        val result = NaturalTaskParser.parse("Entregar en doce horas", now, zone)
+        assertEquals("Entregar", result.title)
+        assertEquals(now + 12 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun digitRelativeStillParsesAfterWrittenNumberSupport() {
+        // Regresión: el soporte de números escritos no debe romper los dígitos.
+        val result = NaturalTaskParser.parse("Revisar el horno en 45 minutos", now, zone)
+        assertEquals("Revisar el horno", result.title)
+        assertEquals(now + 45 * 60_000L, result.dueAt)
+    }
 }
