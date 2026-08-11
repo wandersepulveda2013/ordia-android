@@ -76,6 +76,17 @@ object NaturalTaskParser {
     private val fractionalDurationPattern =
         Regex("""(?i)\b(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\b""")
 
+    /**
+     * Rango horario "de H1 a H2" / "H1 a H2 horas" (citas, clases, reuniones con ventana).
+     * Implica duración = (H2-H1)*60 min y se elimina del título. Para no falsear datos
+     * (p. ej. "comprar de 2 a 5 entradas") solo se acepta cuando hay evidencia de horario:
+     * unidad final ("horas"/"hs"/"h") o alguna hora >= 13 (formato 24h inequívoco).
+     * Antes "de 18 a 20 horas" dejaba "20 horas" como duración de 20h (1200 min, falso).
+     * No fija hora de inicio (ambigua sin meridiem); solo la duración, de forma honesta.
+     */
+    private val timeRangePattern =
+        Regex("""(?i)\b(?:de\s+)?(\d{1,2})\s*(?:a|-)\s*(\d{1,2})(\s*(?:horas?|hs|h))?\b""")
+
     /** "urgente" como palabra inicial, para detección de prioridad sin prefijo. */
     private val leadingUrgentPattern = Regex("""(?i)^urgente\b""")
 
@@ -316,6 +327,20 @@ object NaturalTaskParser {
         val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
 
         // Duración: no se aplica a "en N minutos" (esa es fecha relativa, ya eliminada).
+        // Rango horario "de H1 a H2 [horas]": se procesa primero para que el segundo
+        // número no sea robado como duración numérica ("de 18 a 20 horas" → 20h falsas).
+        val rangeMatch = timeRangePattern.find(working)?.let { m ->
+            val start = m.groupValues[1].toIntOrNull()
+            val end = m.groupValues[2].toIntOrNull()
+            if (start != null && end != null && end > start && end <= 24 &&
+                start in 0..23 && (end - start) * 60 <= 24 * 60 &&
+                (m.groupValues[3].isNotEmpty() || start >= 13 || end >= 13)
+            ) m else null
+        }
+        val rangeDurationMinutes = rangeMatch?.let { (it.groupValues[2].toInt() - it.groupValues[1].toInt()) * 60 }
+            ?.coerceIn(5, 24 * 60)
+        rangeMatch?.let { working = working.replace(it.value, " ") }
+
         val durationMatch = durationPatterns.asSequence()
             .mapNotNull { it.find(working) }
             .minByOrNull { it.range.first }
@@ -324,6 +349,7 @@ object NaturalTaskParser {
         // aparte y se elige la ocurrencia más a la izquierda respecto a la duración numérica.
         val fractionalMatch = fractionalDurationPattern.find(working)
         val durationMinutes = when {
+            rangeDurationMinutes != null -> rangeDurationMinutes
             durationMatch != null && (fractionalMatch == null ||
                 durationMatch.range.first <= fractionalMatch.range.first) -> {
                 val amount = durationMatch.groupValues[1].toIntOrNull()
@@ -336,7 +362,12 @@ object NaturalTaskParser {
             }
             else -> null
         }
-        durationMatch?.let { working = working.replace(it.value, " ") }
+        durationMatch?.let { match ->
+            // "Reunión de 30 min": el "de" antes de la duración es conector, se elimina junto.
+            val withConnector = Regex("(?i)\\bde\\s+" + Regex.escape(match.value))
+            working = if (withConnector.containsMatchIn(working)) withConnector.replace(working, " ")
+                else working.replace(match.value, " ")
+        }
         fractionalMatch?.let { working = working.replace(it.value, " ") }
 
         // Categoría: la etiqueta explícita "#cat"/"@cat" del usuario tiene prioridad

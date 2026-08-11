@@ -881,7 +881,61 @@ Casos de título que dejan basura/residuos NO limpiados (candidatos a ciclo 8):
 
 ### Commit / push
 - fix(data): `saveRoutine` atómico con replaceSteps @Transaction (previene pérdida de pasos en crash)
-- push a `openhands/autonomous-ordia`.
+- commit `0f14ded`; push OK a `openhands/autonomous-ordia` (9c5222f..0f14ded).
 
 ### Siguiente prioridad
 - Continuar auditoría funcional no-parser (tareas/búsqueda/What Now/automatizaciones) o resolver P3 pendientes del parser.
+
+---
+
+## Run 2026-08-11 — Ciclo 16 (OpenHands, autonomía)
+
+### Contexto inicial
+- HEAD inicial: `0f14ded`.
+- Branch: `openhands/autonomous-ordia`.
+
+### Problema seleccionado
+- P3 (parser/captura) — Rango horario "de H1 a H2 [horas]" no parseado + residuo "de" en
+  duraciones numéricas.
+
+### Causa raíz
+- `NaturalTaskParser` no tenía patrón para rangos horarios. "Cita de 18 a 20" dejaba el
+  rango completo en el título y `durationMinutes=null`. Peor, "Clase de 18 a 20 horas"
+  casaba "20 horas" con el patrón de duración numérica → 20h (1200 min) falso.
+- Además, el conector "de" antes de una duración numérica ("Reunión de 30 minutos") no se
+  eliminaba junto con la duración → título "Reunión de".
+
+### Solución
+- `timeRangePattern` = `\b(?:de\s+)?(\d{1,2})\s*(?:a|-)\s*(\d{1,2})(\s*(?:horas?|hs|h))?\b`.
+- Se procesa ANTES que `durationPatterns` para que el segundo número no sea robado como
+  duración. Duración = (end-start)*60 min, con sanitización (end>start, end<=24, ≤24h).
+- Guard anti-falso-positivo: solo se acepta como rango horario si hay unidad final o alguna
+  hora>=13 (formato 24h inequívoco). "Comprar de 2 a 5 entradas" no se toca.
+- No fija hora de inicio (ambigua sin meridiem); solo la duración, de forma honesta.
+- La duración numérica posterior arrastra el conector "de " cuando lo precede (regex
+  `\bde\s+<dur>`), limpiando "Reunión de 30 minutos" → "Reunión".
+
+### Archivos modificados
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`
+  (+`timeRangePattern`; lógica de rango + conector "de" en bloque de duración)
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`
+  (+7 tests: rango con unidad, 24h sin unidad, horas pequeñas con unidad, anti-falso-positivo
+  en conteo, rango con texto final, conector "de" en min/horas)
+
+### Tests
+- `bash tools/run_domain_tests.sh` -> 209 tests OK (25 clases). (+7 desde 202)
+- `bash tools/run_domain_checks.sh` -> 25 assertions OK.
+- Verificación con probe JVM cubriendo 15 casos (rango/anti-falso/duraciones/horas).
+- NO VERIFICADO: gradle/lint/Android (sin Android SDK).
+
+### Hallazgos adicionales
+- BACKLOG: 2 entradas P3 parser (rango "de 18 a 20", residuo "de") marcadas FIXED → VERIFIED.
+- "Trabajo de 8 a 12 horas" → 240 min correcto (guard por unidad).
+- "Reunión de 18 a 20 con juan" → "Reunión con juan" + 120 min (preserva texto final).
+
+### Commit / push
+- (pendiente; se commitea a continuación)
+
+### Siguiente prioridad
+- Nueva auditoría funcional no-parser (tareas/búsqueda/What Now/automatizaciones/contexto)
+  o siguientes P3 del parser ("salir de madrugada", "a las 3.5").

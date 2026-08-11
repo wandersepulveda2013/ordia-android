@@ -596,4 +596,52 @@ class NaturalTaskParserTest {
         assertFalse(result.title.contains("primera", ignoreCase = true))
         assertFalse(result.title.contains("hora", ignoreCase = true))
     }
+
+    // Rango horario "de H1 a H2 [horas]": la ventana se interpreta como duración y no
+    // deja residuo. Antes "Clase de 18 a 20 horas" dejaba "20 horas" como 20h (1200 min).
+    @Test fun rangeWithHoursUnitParsesDuration() {
+        val result = NaturalTaskParser.parse("Clase de 18 a 20 horas", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun range24hFormatWithoutUnitParsesDuration() {
+        val result = NaturalTaskParser.parse("Cita de 18 a 20", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun rangeSmallHoursWithUnitParsesDuration() {
+        // "9 a 11 horas": con unidad sí es rango aunque ambas < 13.
+        val result = NaturalTaskParser.parse("Clase de 9 a 11 horas", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun rangeDoesNotFalsePositiveOnItemCount() {
+        // "de 2 a 5 entradas": sin unidad y ambas < 13 → NO es rango horario.
+        val result = NaturalTaskParser.parse("Comprar de 2 a 5 entradas", now, zone)
+        assertEquals("Comprar de 2 a 5 entradas", result.title)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun rangeRemovesWindowButKeepsTrailingText() {
+        val result = NaturalTaskParser.parse("Reunión de 18 a 20 con Juan", now, zone)
+        assertEquals("Reunión con Juan", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    // "de" antes de una duración numérica es conector ("Reunión de 30 min") y debe
+    // eliminarse junto con la duración, sin dejar residuo.
+    @Test fun deConnectorBeforeDurationIsRemoved() {
+        val result = NaturalTaskParser.parse("Reunión de 30 minutos", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(30, result.durationMinutes)
+    }
+
+    @Test fun deConnectorBeforeHourDurationIsRemoved() {
+        val result = NaturalTaskParser.parse("Juntada de 2 horas", now, zone)
+        assertEquals("Juntada", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
 }

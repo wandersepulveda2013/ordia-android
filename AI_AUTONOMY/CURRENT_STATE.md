@@ -4,8 +4,8 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 11)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD inicial `0c02eaf`)
+- **Fecha/hora (UTC)**: 2026-08-11 (sesión OpenHands — autonomía, ciclo 16)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD inicial `0f14ded`)
 - **main**: contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
@@ -90,7 +90,7 @@
 ## Tests ejecutados
 
 - **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` (sin Android SDK).
-- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 197 tests OK (25 clases);
+- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 209 tests OK (25 clases);
   `bash tools/run_domain_checks.sh` → 25 assertions OK.
 
 ## Problemas conocidos
@@ -109,7 +109,7 @@
   interpretar/limpiar; "que viene" tras fecha ("el viernes que viene"); "del" huérfano
   ("a las 3pm del jueves"); rango horario "de 18 a 20" no parseado. Candidatos a ciclo 8.
   (~~"que viene" y "del" huérfano~~ RESUELTO ciclo 8; ~~"a primera hora"~~ RESUELTO ciclo 9;
-  pendiente "de 18 a 20".)
+  ~~"de 18 a 20"~~ RESUELTO ciclo 16.)
 - NoteEditor: `blocks` (mutableStateListOf) no es `rememberSaveable`; si el proceso muere dentro
   de la ventana de autosave (800 ms) se pierden los últimos cambios de bloques (el `title` sí
   sobrevive). Tradeoff de debounce, no corregido en esta sesión (P2/P3).
@@ -151,6 +151,17 @@
   `saveRoutine` ahora construye la lista de pasos y los reemplaza atómicamente. Limpia además
   un patrón frágil (leía pasos desde `uiState` en memoria en vez de la fuente de verdad).
   202 domain tests OK, smoke 25 OK. NO VERIFICADO: integración DAO/Room requiere Android SDK.
+
+  ACTUALIZACIÓN ciclo 16 (NaturalTaskParser — duraciones/rangos): tres bugs P3 de captura
+  rápida corregidos. (1) Rango horario "de H1 a H2 [horas]" no se parseaba como duración
+  ("Cita de 18 a 20" → dur=null, "Cita de 18 a 20" en título; "Clase de 18 a 20 horas" →
+  dur=1200 falso, el segundo número se robaba como 20h). (2) Conector "de" antes de una
+  duración numérica quedaba como residuo en el título ("Reunión de 30 minutos" → "Reunión
+  de"; "Juntada de 2 horas" → "Juntada de"). Fix: `timeRangePattern` procesa primero el
+  rango (dur=(H2-H1)*60) con guard anti-falso-positivo (requiere unidad final o alguna
+  hora≥13, así "comprar de 2 a 5 entradas" no se toca); la duración numérica posterior ahora
+  arrastra el conector "de " cuando lo precede. 7 tests nuevos, 209 OK, smoke 25 OK.
+  NO VERIFICADO: gradle/lint/Android (sin Android SDK).
 
 ## PR pendiente
 
