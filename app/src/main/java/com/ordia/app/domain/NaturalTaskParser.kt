@@ -455,19 +455,19 @@ object NaturalTaskParser {
         val base = RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), emptyList())
         val phrases = mutableListOf<IntRange>()
 
-        // "todos los viernes" / "cada lunes y jueves" / "los viernes"
-        val weeklyDayPatterns = listOf(
-            Regex("""(?i)\btodos\s+los\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""),
-            Regex("""(?i)\bcada\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+y\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))?\b"""),
-            Regex("""(?i)\blos\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b""")
-        )
-        val weeklyMatch = weeklyDayPatterns.asSequence()
-            .mapNotNull { pattern -> pattern.find(working) }
-            .minByOrNull { it.range.first }
+        // "todos los viernes" / "cada lunes y jueves" / "los lunes y jueves".
+        // Un único patrón captura una lista de días separados por "," o "y" para que
+        // "los lunes y jueves" no pierda el jueves (antes solo "cada X y Z" admitía
+        // dos días; "los X y Z" casaba un solo día y dejaba "y jueves" como residuo,
+        // creando una rutina que solo repetía el primer día → pérdida de datos).
+        val dayListPattern =
+            Regex("""(?i)\b(?:todos\s+los|cada|los)\s+((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s*(?:,|y)\s*(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))*)\b""")
+        val dayNameRegex = Regex("""(?i)lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo""")
+        val weeklyMatch = dayListPattern.find(working)
         if (weeklyMatch != null) {
-            val days = (1..weeklyMatch.groupValues.lastIndex).mapNotNull { index ->
-                weeklyMatch.groupValues[index].takeIf { it.isNotBlank() }?.toDayOfWeekOrNull()?.value
-            }.distinct().sorted()
+            val days = dayNameRegex.findAll(weeklyMatch.groupValues[1])
+                .mapNotNull { it.value.toDayOfWeekOrNull()?.value }
+                .distinct().sorted().toList()
             if (days.isNotEmpty()) {
                 phrases += weeklyMatch.range
                 return RecurrenceResult(RecurrenceFrequency.WEEKLY, 1, days, phrases)

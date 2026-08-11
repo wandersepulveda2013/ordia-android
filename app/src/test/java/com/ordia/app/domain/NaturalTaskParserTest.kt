@@ -61,6 +61,37 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "los lunes y jueves" es la forma natural más común para varios días en español.
+    // Antes el parser solo admitía dos días con "cada X y Z"; con "los X y Z" casaba
+    // un solo día y dejaba "y jueves" como residuo, creando una rutina que repetía solo
+    // el primer día y perdía el resto → pérdida de datos silenciosa en rutinas.
+    @Test fun parsesLosWeekdaysWithY() {
+        val result = NaturalTaskParser.parse("Reunión los lunes y jueves a las 10", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,4", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesTodosLosWeekdaysWithY() {
+        val result = NaturalTaskParser.parse("Gimnasio todos los lunes y miércoles", now, zone)
+        assertEquals("Gimnasio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3", result.recurrenceDays)
+        // Desde miércoles 29-jul al mediodía: el miércoles (hoy) ya pasó su slot,
+        // así que la siguiente ocurrencia es el lunes 03-ago.
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesCommaDayList() {
+        val result = NaturalTaskParser.parse("Clases los lunes, miércoles y viernes", now, zone)
+        assertEquals("Clases", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3,5", result.recurrenceDays)
+        // Desde miércoles 29-jul al mediodía: el miércoles (hoy) ya pasó, el viernes 31-jul.
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun parsesDailyRecurrence() {
         val result = NaturalTaskParser.parse("Tomar vitaminas cada día", now, zone)
         assertEquals("Tomar vitaminas", result.title)
