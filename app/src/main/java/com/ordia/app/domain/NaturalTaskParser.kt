@@ -67,6 +67,15 @@ object NaturalTaskParser {
         Regex("""(?i)\b(\d{1,3})\s*(h)\b""")
     )
 
+    /**
+     * Duraciones fraccionarias comunes en español sin dígitos: "media hora" (30 min) y
+     * "(un) cuarto de hora" (15 min). Los patrones de dígitos no las capturan, así que
+     * quedaban como residuo en el título y `durationMinutes` era null. "cuarto" requiere
+     * "hora" después para no casar "cuarto" = habitación ("limpiar el cuarto").
+     */
+    private val fractionalDurationPattern =
+        Regex("""(?i)\b(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\b""")
+
     /** "urgente" como palabra inicial, para detección de prioridad sin prefijo. */
     private val leadingUrgentPattern = Regex("""(?i)^urgente\b""")
 
@@ -311,12 +320,24 @@ object NaturalTaskParser {
             .mapNotNull { it.find(working) }
             .minByOrNull { it.range.first }
             ?.takeIf { match -> !Regex("""(?i)\ben\s*$""").containsMatchIn(working.substring(0, match.range.first)) }
-        val durationMinutes = durationMatch?.let { match ->
-            val amount = match.groupValues[1].toIntOrNull() ?: return@let null
-            val unit = match.groupValues[2].lowercase()
-            (if (unit.startsWith("hora") || unit == "h") amount * 60 else amount).coerceIn(5, 24 * 60)
+        // Duración fraccionaria sin dígitos ("media hora"/"cuarto de hora"): se computa
+        // aparte y se elige la ocurrencia más a la izquierda respecto a la duración numérica.
+        val fractionalMatch = fractionalDurationPattern.find(working)
+        val durationMinutes = when {
+            durationMatch != null && (fractionalMatch == null ||
+                durationMatch.range.first <= fractionalMatch.range.first) -> {
+                val amount = durationMatch.groupValues[1].toIntOrNull()
+                val unit = durationMatch.groupValues[2].lowercase()
+                amount?.let { (if (unit.startsWith("hora") || unit == "h") it * 60 else it).coerceIn(5, 24 * 60) }
+            }
+            fractionalMatch != null -> {
+                val text = fractionalMatch.value.lowercase()
+                (if (text.contains("media")) 30 else 15).coerceIn(5, 24 * 60)
+            }
+            else -> null
         }
         durationMatch?.let { working = working.replace(it.value, " ") }
+        fractionalMatch?.let { working = working.replace(it.value, " ") }
 
         // Categoría: la etiqueta explícita "#cat"/"@cat" del usuario tiene prioridad
         // sobre la inferencia por keywords. Se extrae y se elimina del título.

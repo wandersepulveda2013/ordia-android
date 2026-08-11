@@ -136,6 +136,12 @@
   Pendientes: residuo "de" en "Reunión de 30 minutos" (P3), rango "de 18 a 20" → dueAt=null
   (P3). Continuar: nueva auditoría funcional o siguiente P3 con valor real.
 
+  ACTUALIZACIÓN ciclo 14: fix P2 duraciones fraccionarias sin dígitos ("media hora" → 30 min,
+  "(un) cuarto de hora" → 15 min). Antes no casaban con patrones de dígitos y dejaban residuo
+  en el título + `durationMinutes`=null. Patrón `fractionalDurationPattern` con guard "hora"
+  para no confundir "cuarto"=habitación. 5 tests nuevos, 202 OK, smoke 25 OK. Pendientes:
+  residuo "de" en "Reunión de 30 minutos" (P3), rango "de 18 a 20" → dueAt=null (P3).
+
 ## PR pendiente
 
 - Ninguno (el auto-merge gestiona las PRs autónomas hacia `jules/autonomous-ordia`).

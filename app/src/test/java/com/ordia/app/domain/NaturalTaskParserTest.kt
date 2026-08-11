@@ -143,6 +143,42 @@ class NaturalTaskParserTest {
         assertEquals(15, result.reminderOffsetMinutes)
     }
 
+    // --- Duraciones fraccionarias sin dígitos (ciclo 14) ---
+    // "media hora" y "(un) cuarto de hora" no casan con los patrones de dígitos y
+    // dejaban residuo en el título + durationMinutes=null.
+    @Test fun mediaHoraEsDuracionDe30Min() {
+        val result = NaturalTaskParser.parse("Estudiar media hora", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(30, result.durationMinutes)
+    }
+
+    @Test fun cuartoDeHoraEsDuracionDe15Min() {
+        val result = NaturalTaskParser.parse("Leer un cuarto de hora", now, zone)
+        assertEquals("Leer", result.title)
+        assertEquals(15, result.durationMinutes)
+    }
+
+    @Test fun cuartoHoraSinUnEsDuracionDe15Min() {
+        val result = NaturalTaskParser.parse("Pausa cuarto de hora", now, zone)
+        assertEquals("Pausa", result.title)
+        assertEquals(15, result.durationMinutes)
+    }
+
+    @Test fun mediaHoraConFechaYHoraNoInterfiere() {
+        val result = NaturalTaskParser.parse("Estudiar media hora mañana a las 3pm", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(30, result.durationMinutes)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // "cuarto" como habitación NO debe interpretarse como duración.
+    @Test fun cuartoComoHabitacionNoEsDuracion() {
+        val result = NaturalTaskParser.parse("Limpiar el cuarto", now, zone)
+        assertEquals("Limpiar el cuarto", result.title)
+        assertNull(result.durationMinutes)
+    }
+
     @Test fun parsesMonthNameDate() {
         val result = NaturalTaskParser.parse("Entregar reporte antes del 5 de agosto", now, zone)
         assertEquals("Entregar reporte", result.title)

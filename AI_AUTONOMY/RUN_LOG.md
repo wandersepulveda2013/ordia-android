@@ -800,3 +800,41 @@ Casos de título que dejan basura/residuos NO limpiados (candidatos a ciclo 8):
 ### Siguiente prioridad
 - Nueva auditoría funcional del parser con casos reales adicionales, o resolver el residuo
   "de" (P3) si aporta claridad. Continuar evitando feature bloat.
+
+## SESIÓN 014 — Duraciones fraccionarias "media hora"/"cuarto de hora"
+
+- **Fecha**: 2026-08-11
+- **HEAD inicial**: 6486ce3
+- **Rama**: `openhands/autonomous-ordia`
+
+### Problema seleccionado
+- **Prioridad**: P2 (captura: el usuario expresa duración en fracciones comunes del español sin dígitos; antes se perdía la duración y quedaba residuo en el título).
+- **Causa raíz**: `durationPatterns` requieren dígitos (`\d{1,3}`). Frases muy comunes como "media hora" (30 min) y "(un) cuarto de hora" (15 min) no casaban, así que `durationMinutes` quedaba null y la frase se conservaba como residuo en el título ("Estudiar media hora" → título="Estudiar media hora", dur=null).
+
+### Solución
+- `fractionalDurationPattern`: `\b(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\b`.
+  - "media hora" → 30 min, "(un) cuarto de hora"/"cuarto de hora" → 15 min.
+  - Guard de "hora": "cuarto" solo ("Limpiar el cuarto") NO casa (cuarto=habitación).
+- Integrado en el bloque de duración: ocurrencia más a la izquierda entre duración numérica y fraccionaria; se limpia del título en cualquier caso.
+- `coerceIn(5, 24*60)` preserva los límites existentes.
+
+### Tests
+- 5 tests nuevos: media hora=30, un cuarto de hora=15, cuarto de hora=15, media hora+fecha/hora no interfiere, cuarto=habitación no es duración.
+- `bash tools/run_domain_tests.sh` -> 202 tests OK (25 clases). (+5 respecto a ciclo 13)
+- `bash tools/run_domain_checks.sh` -> 25 assertions OK.
+- NO VERIFICADO: gradle/lint/assemble.
+
+### Archivos modificados
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (+fractionalDurationPattern, +rama fraccionaria en durationMinutes, +limpieza)
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+5 tests)
+
+### Hallazgos adicionales (auditoría ciclo 14)
+- Residuo "de" en "Reunión de 30 minutos" (P3, sigue ABIERTO).
+- Rango horario "de 18 a 20" → dueAt=null (P3, sigue pendiente).
+- "finde"/"fin de semana" no se parsea como fecha (ambigüedad de design: ¿sábado? se omite).
+
+### Siguiente prioridad
+- Resolver el residuo "de" (P3), o evaluar rango horario "de 18 a 20". De lo contrario nueva auditoría funcional fuera del parser (tareas/rutinas/búsqueda/What Now).
+
+### Commit / push
+- (commit al final del ciclo)
