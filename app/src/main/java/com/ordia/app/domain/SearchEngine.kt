@@ -59,7 +59,7 @@ object SearchEngine {
             projects.filter { !typed && !it.archived && matches(it.name, it.description) }.forEach {
                 add(SearchResult(SearchKind.PROJECT, it.id, it.name, it.description.take(90)))
             }
-            notes.filter { (!typed || wantsNotes) && !it.archived && matches(it.title, it.body) }.forEach {
+            notes.filter { (!typed || wantsNotes) && !it.archived && (matches(it.title, it.body) || semanticMatches(NOTE_TERMS, it.title, it.body)) }.forEach {
                 add(SearchResult(SearchKind.NOTE, it.id, it.title, it.body.take(90)))
             }
             habits.filter { !typed && !it.archived && matches(it.title, it.details) }.forEach {
@@ -81,6 +81,7 @@ object SearchEngine {
         "de", "del", "la", "las", "el", "los", "con", "que", "mis", "mi", "cosas", "mostrar", "muestra"
     )
     private val TASK_TERMS = setOf("tarea", "pendient", "vencid", "important")
+    private val NOTE_TERMS = setOf("nota")
     private val MESSAGE_TERMS = setOf("mensaje", "conversacion", "chat")
     private val COMMITMENT_TERMS = setOf("compromiso", "pendient", "sin", "fecha")
 }
