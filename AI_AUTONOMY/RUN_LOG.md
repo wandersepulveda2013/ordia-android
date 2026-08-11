@@ -706,3 +706,49 @@ Casos de título que dejan basura/residuos NO limpiados (candidatos a ciclo 8):
 
 ### Siguiente prioridad
 - "Nh" compacto como duración ("Trabajar 2h" → dur=120) — P2, alto valor (captura rápida).
+
+---
+
+## SESIÓN 012 — Duración compacta "Nh" ("Trabajar 2h" → 120 min)
+
+- **Fecha (UTC)**: 2026-08-11
+- **Rama**: `openhands/autonomous-ordia`
+- **HEAD inicial**: 7cdc803
+- **Prioridad**: P2 (captura rápida: "2h"/"1h" es la forma natural y compacta de expresar
+  duración; antes no se reconocía y quedaba "2h" como residuo feo en el título sin
+  asignar duración).
+- **Causa raíz**: `durationPatterns` solo reconocía unidades completas (`minutos`, `min`,
+  `horas`, `hora`). La abreviatura compacta "h" pegada al número ("2h") no casaba con
+  ningún patrón, así que `durationMinutes=null` y "2h" se quedaba en el título.
+
+### Solución
+- Nuevo patrón `\b(\d{1,3})\s*(h)\b` añadido al final de `durationPatterns`.
+- El `\b` final es clave: en "2horas" la 'h' va seguida de 'o' (ambos word chars), por lo
+  que NO hay límite de palabra entre ellas → el patrón compacto NO casa "2horas". Así no
+  roba el prefijo ni deja residuo "oras"; el patrón completo `horas?` sigue manejándolo.
+- Detección de unidad ampliada: `unit.startsWith("hora") || unit == "h"` → horas (×60).
+
+### Tests
+- 4 tests nuevos de regresión:
+  - "Trabajar 2h" → dur=120, título="Trabajar".
+  - "Estudiar 1h" → dur=60, título="Estudiar".
+  - "Reunión 2horas" → dur=120, título limpio (el compacto no roba la palabra completa).
+  - "Estudiar 2h recuérdame 15 min antes" → dur=120 + rem=15 (sin interferencia).
+- `bash tools/run_domain_tests.sh` -> 193 tests OK (25 clases). (+4 respecto a ciclo 11)
+- `bash tools/run_domain_checks.sh` -> 25 assertions OK.
+- NO VERIFICADO: gradle/lint/assemble.
+
+### Archivos modificados
+- `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`
+  (+patrón compacto `\b(\d)\s*h\b`, +comentario, +unit check `h`→horas)
+- `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+4 tests)
+
+### Hallazgos adicionales (auditoría ciclo 12)
+- `prioridad alta:`/`urgente`/`importante` a mitad de frase no fijan prioridad (P2, pendiente —
+  alto valor: "Llamar mamá urgente" debería ser HIGH).
+- Residuo "de" en "Reunión de 30 minutos" (P3, pendiente).
+- Rango horario "de 18 a 20" → dueAt=null (P3, pendiente de evaluación).
+
+### Siguiente prioridad
+- Prioridad a mitad de frase ("urgente"/"importante" como palabra suelta en cualquier
+  posición → HIGH) — P2, alto valor (evita olvidos de tareas urgentes).

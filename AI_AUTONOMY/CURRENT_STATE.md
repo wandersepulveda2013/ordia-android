@@ -67,7 +67,13 @@
   (construido de `categories`, solo categorías conocidas) con prioridad sobre la inferencia
   por keywords; la etiqueta reconocida se limpia del título. Etiquetas desconocidas
   (`#proyecto`) se conservan como contenido del usuario. 5 tests nuevos. 189 tests OK.
-- **Verificación JVM**: 189 tests del dominio PASS (25 clases); smoke 25 assertions OK.
+- **Ciclo 12 (NaturalTaskParser)**: P2 — "Nh" compacto ("Trabajar 2h", "Estudiar 1h") no se
+  reconocía como duración: quedaba como residuo en el título y `durationMinutes=null`. Caso de
+  captura rápida muy común. Fix: patrón `\b(\d{1,3})\s*(h)\b` al final de `durationPatterns`
+  (el `\b` final evita casar "2horas"); detección de unidad ampliada (`h`→horas).
+  4 tests nuevos (2h/1h compactos, 2horas intacto, 2h+recordatorio sin interferencia).
+  193 tests OK.
+- **Verificación JVM**: 193 tests del dominio PASS (25 clases); smoke 25 assertions OK.
 - `./gradlew test/lint/assemble`: sigue NO VERIFICADO (sin Android SDK en el entorno).
 
 ## Áreas modificadas
@@ -78,7 +84,7 @@
 ## Tests ejecutados
 
 - **NO VERIFICADO (gradle/Android)**: no se ejecutó `./gradlew test`/`lint`/`assemble` (sin Android SDK).
-- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 189 tests OK (25 clases);
+- **VERIFICADO (JVM/kotlinc)**: `bash tools/run_domain_tests.sh` → 193 tests OK (25 clases);
   `bash tools/run_domain_checks.sh` → 25 assertions OK.
 
 ## Problemas conocidos
@@ -112,13 +118,12 @@
 
 ## Siguiente tarea recomendada
 
-- Ciclo 11 ejecutado: fix P2 etiquetas `#cat`/`@cat` explícitas — ahora se reconocen como
-  categoría (con prioridad sobre la inferencia por keywords) y se limpian del título.
-  Etiquetas desconocidas se conservan como contenido. 5 tests nuevos, 189 tests OK, smoke
-  25 OK. Auditoría ciclo 11 descubrió: "2h"/"1h" compacto no reconocido como duración (P2,
-  alto valor para captura rápida), residuo "de" en "Reunión de 30 minutos" (P3), rango
-  horario "de 18 a 20" → dueAt=null (P3). Continuar autonomía: reconocer "Nh" compacto
-  como duración. Verificación Gradle/Android pendiente.
+- Ciclo 12 ejecutado: fix P2 duración compacta "Nh" ("Trabajar 2h" → 120 min). Patrón
+  `\b(\d)\s*h\b` + unit check "h"→horas; 4 tests nuevos, 193 OK, smoke 25 OK. Pendientes de
+  la auditoría ciclo 10-11: `prioridad alta:`/`urgente`/`importante` a mitad de frase no
+  fijan prioridad (P2), residuo "de" en "Reunión de 30 minutos" (P3), rango "de 18 a 20"
+  → dueAt=null (P3). Continuar autonomía: prioridad a mitad de frase (P2, alto valor —
+  "Llamar mamá urgente" debería ser HIGH) o nueva auditoría funcional.
 
 ## PR pendiente
 
