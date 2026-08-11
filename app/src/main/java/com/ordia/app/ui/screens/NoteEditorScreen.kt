@@ -3,6 +3,7 @@ package com.ordia.app.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.provider.OpenableColumns
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.BackHandler
@@ -199,7 +200,9 @@ fun NoteEditorScreen(
                                 val uri = android.net.Uri.parse(attachment.uri)
                                 val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, attachment.mimeType)
                                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                runCatching { context.startActivity(intent) }
+                                runCatching { context.startActivity(intent) }.onFailure {
+                                    Toast.makeText(context, R.string.note_editor_open_attachment_failed, Toast.LENGTH_SHORT).show()
+                                }
                             },
                             modifier = Modifier.weight(1f)
                         ) {

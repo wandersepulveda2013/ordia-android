@@ -200,6 +200,7 @@
     <string name="note_editor_title_placeholder">Título de la nota</string>
     <string name="note_editor_attachments">Archivos adjuntos</string>
     <string name="note_editor_remove_attachment">Quitar %1$s</string>
+    <string name="note_editor_open_attachment_failed">Ninguna aplicación pudo abrir este archivo.</string>
     <string name="note_editor_add_block">Añadir bloque</string>
     <string name="note_editor_move_up">Mover arriba</string>
     <string name="note_editor_move_down">Mover abajo</string>
