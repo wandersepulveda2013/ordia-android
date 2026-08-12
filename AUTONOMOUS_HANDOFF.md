@@ -41,47 +41,57 @@
 - `app/src/test/java/com/ordia/app/data/repository/TaskMutationGateTest.kt`: tests de serialización (misma tarea) y concurrencia (tareas distintas).
 
 ## Trabajo en curso
-- Bloque estable completado (B1–B5 + P1 + P2 + P6). Build y tests verdes.
-- Próximo: ejecutar verificación completa estilo CI (lint + assembleDebug + assembleRelease) antes de dar por válido el bloque.
+- Bloque estable completado y verificado (B1–B5 + P1 + P2 + P4 + P6 + fix lint).
+- Verificación completa estilo CI ejecutada: `lintDebug` OK, `testDebugUnitTest` OK (27 tests, 0 fallos), `assembleDebug` OK, `assembleRelease` OK.
+- Próximo: abrir PR de `autonomous/delete-subtree-concurrency` → `main` y continuar auditoría (ver "Próximos pasos").
 
 ## Commits realizados (branch `autonomous/delete-subtree-concurrency`)
 - `5f887eb` fix(tasks): delete full subtree + cleanup attachments/reminders on permanent delete
 - `c94a1d5` fix(repo): clean PROJECT/NOTE attachments on permanent delete + transactions
 - `c06ae21` feat(tasks): per-task TaskMutationGate serialization for save/toggle
 - `304a7ef` fix(backup): re-schedule task reminders after restoring a backup
+- `d48eeb4` fix(lint): read system locale observably in PlannerScreen (NonObservableLocale)
 
 ## Pruebas ejecutadas
 - `:app:compileDebugKotlin` — OK (solo warnings de deprecación preexistentes).
-- `:app:testDebugUnitTest` — OK: 27 tests, 0 fallos (incluye `TaskMutationGateTest`).
+- `:app:testDebugUnitTest` — OK: 27 tests, 0 fallos (incluye `TaskMutationGateTest`: serialización + concurrencia).
+- `:app:lintDebug` — OK (0 errores; 32 warnings preexistentes).
 - `:app:assembleDebug` — BUILD SUCCESSFUL.
-- (Pendiente: `lint` + `assembleRelease` para paridad con CI.)
+- `:app:assembleRelease` — BUILD SUCCESSFUL.
 
 ## Bugs encontrados
 - B1 (CRÍTICO): subtasks huérfanos al eliminar tarea permanentemente. → CORREGIDO.
 - B2 (ALTO): reminders de subtasks no cancelados al eliminar el padre. → CORREGIDO.
 - B3 (MEDIO): attachments TASK huérfanos al eliminar tareas. → CORREGIDO.
 - B4 (MEDIO): borrado sin transacción. → CORREGIDO.
-- B5 (BAJO/MEDIO): concurrencia de mutaciones sobre la misma tarea sin serialización. → PARCIAL (serializa borrado permanente de tareas vía `TaskMutationGate`; faltan otras mutaciones).
+- B5 (BAJO/MEDIO): concurrencia de mutaciones sobre la misma tarea sin serialización. → CORREGIDO (`saveTask`/`toggleTask`/borrado permanente serializados por-id con `TaskMutationGate`).
+- B6 (MEDIO): `BackupManager.importJson` no reprogramaba reminders tras restaurar. → CORREGIDO.
+- B7 (BAJO): 3 errores lint `NonObservableLocale` en `PlannerScreen.kt` (preexistentes) abortaban `lint`. → CORREGIDO.
 
 ## Bugs pendientes / próximos pasos
-- P1: Extender `TaskMutationGate` a `saveTask`/`toggleTask`/`archiveTask` para serializar todas las mutaciones de una misma tarea (Mutex por-id sería ideal, no global, para no serializar todo).
-- P2: Aplicar el mismo patrón de limpieza de attachments a `ProjectRepository.deletePermanently`, `NoteRepository.deletePermanently`, `HabitRepository.deletePermanently` (attachments de NOTE/PROJECT no se limpian; habit_logs sí por FK CASCADE).
-- P3: Considerar ForeignKey self-reference `parentTaskId` con `onDelete = CASCADE` + migración v2→v3 (recreación de tabla). Decidido NO hacerlo ahora para evitar duplicar el cascade con `deleteSubtreeAndSelf` y por riesgo en migración; la integridad se garantiza a nivel de app. Revisar si conviene para defensa en profundidad.
-- P4: Validar `deleteByIds` con listas vacías (Room genera `IN ()` inválido). En `deleteSubtreeAndSelf` se guarda con `if (ids.isNotEmpty())` antes de llamar a `deleteForOwners`, pero `deleteByIds(ids)` también debe protegerse → verificar.
-- P5: Añadir tests de instrumentación (Room) para `collectSubtreeIds` y `deleteSubtreeAndSelf` (requieren `androidx.room:room-testing`, ya presente en androidTest).
-- P6: Auditar `BackupManager` restore: al restaurar, los reminders no se reprograman para tareas con `reminderAt`/`dueAt`.
+- P1: ~~Extender `TaskMutationGate` a `saveTask`/`toggleTask`~~ → HECHO.
+- P2: ~~Limpieza attachments en Project/Note~~ → HECHO. Habit/Routine no gestionan attachments.
+- P3: ForeignKey self-reference `parentTaskId` con `onDelete=CASCADE` + migración. Decidido NO (defensa en profundidad vs riesgo en migración); integridad garantizada a nivel de app por `deleteSubtreeAndSelf`. Revisar si conviene a futuro.
+- P4: ~~Proteger `deleteByIds`/`deleteForOwners` con listas vacías~~ → Cubierto (`deleteSubtreeAndSelf` valida `isEmpty()` antes de llamarlos; no se llaman con listas vacías desde otro sitio).
+- P5: Tests de instrumentación (Room) para `collectSubtreeIds` y `deleteSubtreeAndSelf` (requieren `androidx.room:room-testing` + dispositivo/emulador; no ejecutables en este entorno headless). PENDIENTE (requiere entorno de instrumentación).
+- P6: ~~`BackupManager` restore reprogramar reminders~~ → HECHO.
+- P7: `local.properties` confirmar que `.gitignore` lo excluye (no se commitea).
+- P8: Abrir PR `autonomous/delete-subtree-concurrency` → `main` una vez confirmado por el usuario (por defecto no abrir PR sin confirmación explícita).
 
 ## Decisiones arquitectónicas
 - El cancelado de reminders (WorkManager) se mantiene fuera de la transacción de BD para no acoplar WorkManager a la Tx y porque `ReminderScheduler` no es un DAO.
-- `collectSubtreeIds` usa CTE recursiva en SQL (eficiente) en lugar de recursión en Kotlin (múltiples round-trips a BD).
-- `TaskMutationGate` usa `Mutex` de corrutinas (no `ReentrantLock`) para ser seguro bajo suspensiones.
+- `collectSubtreeIds` usa CTE recursiva en SQL (eficiente) en lugar de recursión en Kotlin (múltiples round-trips a BD). Usa `UNION` (no `UNION ALL`) para evitar loops infinitos ante ciclos.
+- `TaskMutationGate` usa `Mutex` de corrutanas (no `ReentrantLock`) para ser seguro bajo suspensiones; bloqueo **por taskId** (`ConcurrentHashMap<Long, Mutex>`) para permitir concurrencia entre tareas distintas; id `0L` agrupa tareas nuevas.
+- Limpieza de attachments se hace en la capa de repositorio dentro de la transacción de BD (no por FK CASCADE) para mantener el control explícito y evitar dependencia de migraciones.
 
 ## Riesgos pendientes
-- Sin poder correr `assembleDebug`/lint aún (solo tests). Validar build completa en CI.
-- `local.properties` NO debe commitearse (es específico del entorno). Confirmar que `.gitignore` lo excluye.
+- Build completa verificada localmente (lint + test + assembleDebug + assembleRelease). Validar de nuevo en CI al abrir el PR.
+- `local.properties` NO se commitea (específico del entorno); confirmar exclusión en `.gitignore`.
+- Tests de instrumentación (P5) no ejecutables en este entorno headless.
 
 ## Cómo continuar
-1. `git checkout autonomous/delete-subtree-concurrency`.
-2. Revisar `/tmp/gradle-test.log` (si aún existe) o re-ejecutar `:app:testDebugUnitTest`.
-3. Si build verde: hacer commit(s) coherentes y push al branch.
-4. Continuar con P1–P6 en orden de prioridad.
+1. `git checkout autonomous/delete-subtree-concurrency` (branch al día con `origin`).
+2. Re-ejecutar `:app:testDebugUnitTest :app:lintDebug :app:assembleRelease` para confirmar estado verde.
+3. (Opcional, con confirmación del usuario) Abrir PR `autonomous/delete-subtree-concurrency` → `main`.
+4. Continuar con P5 (tests Room de instrumentación) si se dispone de emulador; en caso contrario, auditar otros módulos (p. ej. `Habit` reminders sin implementar, `Routine`).
+
