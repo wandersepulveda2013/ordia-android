@@ -18,7 +18,7 @@ class AppContainer(context: Context) {
     val database: OrdiaDatabase = OrdiaDatabase.getInstance(context)
 
     val preferencesRepository = PreferencesRepository(context)
-    val taskRepository = TaskRepository(database.taskDao())
+    val taskRepository = TaskRepository(database.taskDao(), database, database.attachmentDao())
     val projectRepository = ProjectRepository(database.projectDao())
     val noteRepository = NoteRepository(database.noteDao())
     val habitRepository = HabitRepository(database.habitDao(), database.habitLogDao())

@@ -32,6 +32,7 @@ import com.ordia.app.data.repository.ProjectRepository
 import com.ordia.app.data.repository.RoutineRepository
 import com.ordia.app.data.repository.TagRepository
 import com.ordia.app.data.repository.TaskRepository
+import com.ordia.app.data.repository.TaskMutationGate
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayPlanner
 import com.ordia.app.domain.GuardianCoach
@@ -461,7 +462,11 @@ class OrdiaViewModel(
 
     fun deleteArchivedPermanently(kind: String, id: Long) = viewModelScope.launch {
         when (kind) {
-            "task" -> { reminderScheduler.cancel(id); taskRepository.deletePermanently(id) }
+            "task" -> {
+                TaskMutationGate.withLock {
+                    taskRepository.deleteSubtreeAndSelf(id) { taskId -> reminderScheduler.cancel(taskId) }
+                }
+            }
             "project" -> projectRepository.deletePermanently(id)
             "note" -> noteRepository.deletePermanently(id)
             "habit" -> habitRepository.deletePermanently(id)

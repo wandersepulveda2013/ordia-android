@@ -11,6 +11,7 @@ import com.ordia.app.data.local.HabitLogDao
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteDao
 import com.ordia.app.data.local.NoteEntity
+import com.ordia.app.data.local.OrdiaDatabase
 import com.ordia.app.data.local.ProjectDao
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.RoutineDao
@@ -23,9 +24,25 @@ import com.ordia.app.data.local.TaskDao
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskTagCrossRef
 import com.ordia.app.data.local.TaskTagDao
+import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
-class TaskRepository(private val dao: TaskDao) {
+/**
+ * Serializa las mutaciones de tareas para evitar carreras de borrado/actualización concurrentes
+ * dentro de corrutinas. Usa [Mutex] de kotlinx.coroutines (seguro para suspensiones).
+ */
+object TaskMutationGate {
+    private val mutex = Mutex()
+    suspend fun <T> withLock(block: suspend () -> T): T = mutex.withLock { block() }
+}
+
+class TaskRepository(
+    private val dao: TaskDao,
+    private val database: OrdiaDatabase,
+    private val attachmentDao: AttachmentDao
+) {
     val tasks: Flow<List<TaskEntity>> = dao.observeAll()
     val archived: Flow<List<TaskEntity>> = dao.observeArchived()
     suspend fun get(id: Long): TaskEntity? = dao.getById(id)
@@ -36,8 +53,43 @@ class TaskRepository(private val dao: TaskDao) {
     suspend fun delete(task: TaskEntity) = dao.delete(task)
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun restore(id: Long) = dao.restore(id)
-    suspend fun deletePermanently(id: Long) = dao.deleteById(id)
     suspend fun search(query: String): List<TaskEntity> = dao.search(query)
+
+    /**
+     * IDs del subárbol completo bajo [rootId] (incluye [rootId] y todos sus descendientes).
+     */
+    suspend fun subtreeIds(rootId: Long): List<Long> = dao.collectSubtreeIds(rootId)
+
+    /**
+     * Borra todo el subárbol de tareas bajo [rootId] (incluida la raíz) dentro de una transacción,
+     * limpiando también los attachments de tipo TASK asociados a esas tareas.
+     * Las referencias task_tag_cross_ref se eliminan automáticamente vía ForeignKey CASCADE.
+     * El cancelado de reminders (WorkManager) debe hacerlo el llamador, ya que el repositorio
+     * no tiene acceso al scheduler; recíbelo vía [reminderCancellation] para ejecutarlo fuera de la
+     * transacción de BD.
+     */
+    suspend fun deleteSubtreeAndSelf(
+        rootId: Long,
+        reminderCancellation: suspend (Long) -> Unit = {}
+    ): List<Long> {
+        val ids = dao.collectSubtreeIds(rootId)
+        if (ids.isEmpty()) return emptyList()
+        // Cancelar reminders fuera de la transacción de BD para no acoplar WorkManager a la Tx.
+        for (taskId in ids) reminderCancellation(taskId)
+        database.withTransaction {
+            attachmentDao.deleteForOwners(AttachmentOwnerType.TASK, ids)
+            dao.deleteByIds(ids)
+        }
+        return ids
+    }
+
+    /** Borrado permanente de una sola tarea (sin subárbol): mantiene el comportamiento legacy. */
+    suspend fun deletePermanently(id: Long) {
+        database.withTransaction {
+            attachmentDao.deleteForOwner(AttachmentOwnerType.TASK, id)
+            dao.deleteById(id)
+        }
+    }
 }
 
 class ProjectRepository(private val dao: ProjectDao) {

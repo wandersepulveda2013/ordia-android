@@ -34,6 +34,20 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE parentTaskId = :parentId AND archived = 0 ORDER BY sortOrder, createdAt")
     suspend fun getSubtasks(parentId: Long): List<TaskEntity>
 
+    @Query("SELECT * FROM tasks WHERE parentTaskId = :parentId ORDER BY id")
+    suspend fun getDirectChildren(parentId: Long): List<TaskEntity>
+
+    /** IDs del subárbol completo bajo :rootId (incluye :rootId y todos los descendientes). */
+    @Query("""
+        WITH RECURSIVE descendants(id) AS (
+            SELECT id FROM tasks WHERE id = :rootId
+            UNION
+            SELECT t.id FROM tasks t INNER JOIN descendants d ON t.parentTaskId = d.id
+        )
+        SELECT id FROM descendants
+    """)
+    suspend fun collectSubtreeIds(rootId: Long): List<Long>
+
     @Query("SELECT * FROM tasks WHERE projectId = :projectId AND archived = 0 ORDER BY completed, dueAt IS NULL, dueAt")
     fun observeByProject(projectId: Long): Flow<List<TaskEntity>>
 
@@ -60,6 +74,9 @@ interface TaskDao {
 
     @Query("DELETE FROM tasks WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM tasks WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Long>)
 
     @Query("DELETE FROM tasks")
     suspend fun deleteAll()
@@ -363,6 +380,12 @@ interface AttachmentDao {
 
     @Delete
     suspend fun delete(attachment: AttachmentEntity)
+
+    @Query("DELETE FROM attachments WHERE ownerType = :ownerType AND ownerId = :ownerId")
+    suspend fun deleteForOwner(ownerType: AttachmentOwnerType, ownerId: Long)
+
+    @Query("DELETE FROM attachments WHERE ownerType = :ownerType AND ownerId IN (:ownerIds)")
+    suspend fun deleteForOwners(ownerType: AttachmentOwnerType, ownerIds: List<Long>)
 
     @Query("DELETE FROM attachments")
     suspend fun deleteAll()
