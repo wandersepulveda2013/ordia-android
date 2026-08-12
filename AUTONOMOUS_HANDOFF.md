@@ -41,9 +41,13 @@
 - `app/src/test/java/com/ordia/app/data/repository/TaskMutationGateTest.kt`: tests de serialización (misma tarea) y concurrencia (tareas distintas).
 
 ## Trabajo en curso
-- Bloque estable completado y verificado (B1–B5 + P1 + P2 + P4 + P6 + fix lint).
-- Verificación completa estilo CI ejecutada: `lintDebug` OK, `testDebugUnitTest` OK (27 tests, 0 fallos), `assembleDebug` OK, `assembleRelease` OK.
-- Próximo: abrir PR de `autonomous/delete-subtree-concurrency` → `main` y continuar auditoría (ver "Próximos pasos").
+- PR #32 abierto: https://github.com/wandersepulveda2013/ordia-android/pull/32 (`autonomous/delete-subtree-concurrency` → `main`).
+- Bloque de eliminación/concurrencia/backup/lint: COMPLETADO y verificado.
+- Iniciando siguiente bloque de auditoría: módulos `Habit` (reminders no implementados) y `Routine`.
+
+## PR
+- #32 — Fix task deletion: subtree cascade, concurrency, attachment/reminder cleanup
+  https://github.com/wandersepulveda2013/ordia-android/pull/32
 
 ## Commits realizados (branch `autonomous/delete-subtree-concurrency`)
 - `5f887eb` fix(tasks): delete full subtree + cleanup attachments/reminders on permanent delete
