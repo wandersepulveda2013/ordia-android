@@ -533,7 +533,15 @@ class OrdiaViewModel(
     }
 
     fun importBackup(raw: String) = viewModelScope.launch {
-        val result = backupManager.importJson(raw)
+        val result = backupManager.importJson(raw) { tasks ->
+            tasks.forEach { task ->
+                if (!task.completed && (task.reminderAt != null || task.dueAt != null)) {
+                    reminderScheduler.schedule(task)
+                } else {
+                    reminderScheduler.cancel(task.id)
+                }
+            }
+        }
         _events.emit(UiEvent.Message(result.message))
         updateWidget()
     }

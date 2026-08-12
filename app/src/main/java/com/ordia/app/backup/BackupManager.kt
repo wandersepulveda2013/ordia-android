@@ -42,10 +42,14 @@ class BackupManager(private val database: OrdiaDatabase) {
         return root.toString(2)
     }
 
-    suspend fun importJson(raw: String): ImportResult {
+    suspend fun importJson(
+        raw: String,
+        onTasksRestored: suspend (List<TaskEntity>) -> Unit = {}
+    ): ImportResult {
         val root = runCatching { JSONObject(raw) }.getOrElse { return ImportResult(false, "El archivo no contiene JSON válido.") }
         if (root.optString("format") != "ordia-backup") return ImportResult(false, "El archivo no es una copia de seguridad de Ordia.")
         return runCatching {
+            val tasks = root.array("tasks").mapObjects { it.toTask() }
             database.withTransaction {
                 database.attachmentDao().deleteAll()
                 database.taskTagDao().deleteAll()
@@ -60,7 +64,7 @@ class BackupManager(private val database: OrdiaDatabase) {
                 database.projectDao().deleteAll()
 
                 database.projectDao().insertAll(root.array("projects").mapObjects { it.toProject() })
-                database.taskDao().insertAll(root.array("tasks").mapObjects { it.toTask() })
+                database.taskDao().insertAll(tasks)
                 database.noteDao().insertAll(root.array("notes").mapObjects { it.toNote() })
                 database.habitDao().insertAll(root.array("habits").mapObjects { it.toHabit() })
                 database.habitLogDao().insertAll(root.array("habitLogs").mapObjects { it.toHabitLog() })
@@ -71,6 +75,8 @@ class BackupManager(private val database: OrdiaDatabase) {
                 database.taskTagDao().insertAll(root.array("taskTags").mapObjects { it.toTaskTag() })
                 database.attachmentDao().insertAll(root.array("attachments").mapObjects { it.toAttachment() })
             }
+            // Reprogramar reminders de tareas pendientes con fecha futura, fuera de la Tx.
+            onTasksRestored(tasks)
             ImportResult(true, "Copia restaurada correctamente.")
         }.getOrElse { ImportResult(false, "No se pudo restaurar la copia: ${it.message ?: "error desconocido"}") }
     }
