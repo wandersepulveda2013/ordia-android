@@ -40,10 +40,21 @@
   - `importJson(raw, onTasksRestored)` invoca el callback con las tareas restauradas (fuera de la Tx) para reprogramar reminders.
 - `app/src/test/java/com/ordia/app/data/repository/TaskMutationGateTest.kt`: tests de serialización (misma tarea) y concurrencia (tareas distintas).
 
+### Bloque 2 (auditoría ampliada)
+- `app/src/main/java/com/ordia/app/data/local/Daos.kt`: `TaskDao.archiveByIds`/`restoreByIds` (UPDATE IN-batch).
+- `app/src/main/java/com/ordia/app/data/repository/Repositories.kt`: `TaskRepository.archiveSubtreeAndSelf` y `restoreSubtreeAndSelf` (transacción + callback de reminders fuera de la Tx).
+- `app/src/main/java/com/ordia/app/ui/OrdiaViewModel.kt`: `deleteTask` archiva subárbol; `restoreArchived("task")` restaura subárbol; `importBackup` llama `reminderScheduler.cancelAll()` antes de importar.
+- `app/src/main/java/com/ordia/app/reminders/ReminderScheduler.kt`: `cancelAll()` vía `cancelAllWorkByTag(TAG_REMINDERS)`.
+- `app/src/main/java/com/ordia/app/reminders/ReminderActionReceiver.kt`: `ACTION_COMPLETE` envuelto en `TaskMutationGate.withLock(task.id)`, re-lee la tarea dentro del lock, cancela reminder de la tarea completada.
+
 ## Trabajo en curso
 - PR #32 abierto: https://github.com/wandersepulveda2013/ordia-android/pull/32 (`autonomous/delete-subtree-concurrency` → `main`).
-- Bloque de eliminación/concurrencia/backup/lint: COMPLETADO y verificado.
-- Iniciando siguiente bloque de auditoría: módulos `Habit` (reminders no implementados) y `Routine`.
+- Bloque 1 (eliminación/concurrencia/backup/lint): COMPLETADO y verificado.
+- Bloque 2 (auditoría ampliada): COMPLETADO y verificado:
+  - B8: archivado de tarea padre dejaba subtasks huérfanas + reminders vivos. → CORREGIDO (`archiveSubtreeAndSelf`/`restoreSubtreeAndSelf`).
+  - B9: `ReminderActionReceiver` completaba sin `TaskMutationGate` (carrera lost-update). → CORREGIDO.
+  - B10: importar backup dejaba reminders huérfanos de tareas previas. → CORREGIDO (`cancelAll()` antes de importar).
+- Próximo: auditar `OrdiaWidgetUpdater`, migraciones Room, y `PreferencesRepository`; considerar PR update.
 
 ## PR
 - #32 — Fix task deletion: subtree cascade, concurrency, attachment/reminder cleanup
@@ -55,6 +66,11 @@
 - `c06ae21` feat(tasks): per-task TaskMutationGate serialization for save/toggle
 - `304a7ef` fix(backup): re-schedule task reminders after restoring a backup
 - `d48eeb4` fix(lint): read system locale observably in PlannerScreen (NonObservableLocale)
+- `1896e10` docs: update AUTONOMOUS_HANDOFF.md with completed block status
+- `9a3eefb` docs: record PR #32 link in AUTONOMOUS_HANDOFF.md
+- `1981bd7` fix(tasks): archive/restore the whole subtree, not just the root task
+- `8109d4a` fix(reminders): serialize notification-complete under TaskMutationGate
+- `2d50d2b` fix(backup): cancel all existing reminders before restoring a backup
 
 ## Pruebas ejecutadas
 - `:app:compileDebugKotlin` — OK (solo warnings de deprecación preexistentes).
@@ -71,6 +87,9 @@
 - B5 (BAJO/MEDIO): concurrencia de mutaciones sobre la misma tarea sin serialización. → CORREGIDO (`saveTask`/`toggleTask`/borrado permanente serializados por-id con `TaskMutationGate`).
 - B6 (MEDIO): `BackupManager.importJson` no reprogramaba reminders tras restaurar. → CORREGIDO.
 - B7 (BAJO): 3 errores lint `NonObservableLocale` en `PlannerScreen.kt` (preexistentes) abortaban `lint`. → CORREGIDO.
+- B8 (ALTO): archivar una tarea padre solo archivaba la raíz; las subtasks quedaban activas pero inaccesibles en la UI, con reminders vivos. → CORREGIDO (`archiveSubtreeAndSelf`/`restoreSubtreeAndSelf`).
+- B9 (MEDIO): `ReminderActionReceiver` completaba la tarea sin `TaskMutationGate`, compitiendo con toggles de la UI (lost update). → CORREGIDO.
+- B10 (MEDIO): importar backup dejaba reminders (WorkManager) huérfanos de tareas previas no presentes en el backup. → CORREGIDO (`cancelAll()` antes de importar).
 
 ## Bugs pendientes / próximos pasos
 - P1: ~~Extender `TaskMutationGate` a `saveTask`/`toggleTask`~~ → HECHO.
