@@ -218,31 +218,33 @@ class OrdiaViewModel(
         val clean = task.title.trim()
         if (clean.isBlank()) return
         viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            val normalized = task.copy(
-                title = clean,
-                details = task.details.trim(),
-                status = when {
-                    task.completed -> TaskStatus.COMPLETED
-                    task.status == TaskStatus.INBOX && task.dueAt != null -> TaskStatus.PLANNED
-                    else -> task.status
-                },
-                updatedAt = now
-            )
-            val id = if (normalized.id == 0L) taskRepository.add(normalized.copy(createdAt = now)) else {
-                taskRepository.update(normalized)
-                normalized.id
-            }
-            if (normalized.reminderAt != null || normalized.dueAt != null) reminderScheduler.schedule(normalized.copy(id = id)) else reminderScheduler.cancel(id)
-            uiState.value.tags.forEach { tag ->
-                val currentlyLinked = uiState.value.taskTags.any { it.taskId == id && it.tagId == tag.id }
-                when {
-                    tag.id in tagIds && !currentlyLinked -> tagRepository.link(id, tag.id)
-                    tag.id !in tagIds && currentlyLinked -> tagRepository.unlink(id, tag.id)
+            TaskMutationGate.withLock(task.id) {
+                val now = System.currentTimeMillis()
+                val normalized = task.copy(
+                    title = clean,
+                    details = task.details.trim(),
+                    status = when {
+                        task.completed -> TaskStatus.COMPLETED
+                        task.status == TaskStatus.INBOX && task.dueAt != null -> TaskStatus.PLANNED
+                        else -> task.status
+                    },
+                    updatedAt = now
+                )
+                val id = if (normalized.id == 0L) taskRepository.add(normalized.copy(createdAt = now)) else {
+                    taskRepository.update(normalized)
+                    normalized.id
                 }
+                if (normalized.reminderAt != null || normalized.dueAt != null) reminderScheduler.schedule(normalized.copy(id = id)) else reminderScheduler.cancel(id)
+                uiState.value.tags.forEach { tag ->
+                    val currentlyLinked = uiState.value.taskTags.any { it.taskId == id && it.tagId == tag.id }
+                    when {
+                        tag.id in tagIds && !currentlyLinked -> tagRepository.link(id, tag.id)
+                        tag.id !in tagIds && currentlyLinked -> tagRepository.unlink(id, tag.id)
+                    }
+                }
+                updateWidget()
+                _events.emit(UiEvent.TaskSaved(id))
             }
-            updateWidget()
-            _events.emit(UiEvent.TaskSaved(id))
         }
     }
 
@@ -272,26 +274,28 @@ class OrdiaViewModel(
 
     fun toggleTask(task: TaskEntity) {
         viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            val completing = !task.completed
-            taskRepository.update(
-                task.copy(
-                    completed = completing,
-                    status = if (completing) TaskStatus.COMPLETED else if (task.dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED,
-                    completedAt = if (completing) now else null,
-                    updatedAt = now
+            TaskMutationGate.withLock(task.id) {
+                val now = System.currentTimeMillis()
+                val completing = !task.completed
+                taskRepository.update(
+                    task.copy(
+                        completed = completing,
+                        status = if (completing) TaskStatus.COMPLETED else if (task.dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED,
+                        completedAt = if (completing) now else null,
+                        updatedAt = now
+                    )
                 )
-            )
-            if (completing) {
-                reminderScheduler.cancel(task.id)
-                RecurrenceEngine.nextOccurrence(task, now)?.let { next ->
-                    val nextId = taskRepository.add(next)
-                    reminderScheduler.schedule(next.copy(id = nextId))
+                if (completing) {
+                    reminderScheduler.cancel(task.id)
+                    RecurrenceEngine.nextOccurrence(task, now)?.let { next ->
+                        val nextId = taskRepository.add(next)
+                        reminderScheduler.schedule(next.copy(id = nextId))
+                    }
+                } else {
+                    reminderScheduler.schedule(task)
                 }
-            } else {
-                reminderScheduler.schedule(task)
+                updateWidget()
             }
-            updateWidget()
         }
     }
 

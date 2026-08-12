@@ -28,14 +28,31 @@ import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Serializa las mutaciones de tareas para evitar carreras de borrado/actualización concurrentes
- * dentro de corrutinas. Usa [Mutex] de kotlinx.coroutines (seguro para suspensiones).
+ * Serializa las mutaciones de una misma tarea para evitar carreras de
+ * borrado/actualización concurrentes dentro de corrutinas. Usa [Mutex] de
+ * kotlinx.coroutines (seguro para suspensiones).
+ *
+ * El bloqueo es por [taskId]: operaciones sobre tareas distintas pueden
+ * ejecutarse concurrentemente. El id `0L` agrupa todas las tareas nuevas
+ * (aún sin id) para evitar duplicados de creación en conflicto.
  */
 object TaskMutationGate {
-    private val mutex = Mutex()
-    suspend fun <T> withLock(block: suspend () -> T): T = mutex.withLock { block() }
+    private val mutexes = ConcurrentHashMap<Long, Mutex>()
+    private val newTaskMutex = Mutex()
+
+    private fun mutexFor(taskId: Long): Mutex =
+        if (taskId <= 0L) newTaskMutex
+        else mutexes.getOrPut(taskId) { Mutex() }
+
+    suspend fun <T> withLock(taskId: Long, block: suspend () -> T): T =
+        mutexFor(taskId).withLock { block() }
+
+    /** Bloqueo global (p. ej. para borrado de subárbol, que toca varias tareas). */
+    private val globalMutex = Mutex()
+    suspend fun <T> withLock(block: suspend () -> T): T = globalMutex.withLock { block() }
 }
 
 class TaskRepository(
