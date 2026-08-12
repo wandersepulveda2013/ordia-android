@@ -301,8 +301,9 @@ class OrdiaViewModel(
 
     fun deleteTask(task: TaskEntity) {
         viewModelScope.launch {
-            reminderScheduler.cancel(task.id)
-            taskRepository.archive(task.id)
+            TaskMutationGate.withLock {
+                taskRepository.archiveSubtreeAndSelf(task.id) { taskId -> reminderScheduler.cancel(taskId) }
+            }
             updateWidget()
             _events.emit(UiEvent.Message("Tarea movida al archivo."))
         }
@@ -454,7 +455,13 @@ class OrdiaViewModel(
 
     fun restoreArchived(kind: String, id: Long) = viewModelScope.launch {
         when (kind) {
-            "task" -> taskRepository.restore(id)
+            "task" -> TaskMutationGate.withLock {
+                taskRepository.restoreSubtreeAndSelf(
+                    id,
+                    reminderScheduler = { task -> reminderScheduler.schedule(task) },
+                    reminderCancellation = { taskId -> reminderScheduler.cancel(taskId) }
+                )
+            }
             "project" -> projectRepository.restore(id)
             "note" -> noteRepository.restore(id)
             "habit" -> habitRepository.restore(id)

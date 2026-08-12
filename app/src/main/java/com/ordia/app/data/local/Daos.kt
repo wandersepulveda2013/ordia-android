@@ -78,6 +78,12 @@ interface TaskDao {
     @Query("DELETE FROM tasks WHERE id IN (:ids)")
     suspend fun deleteByIds(ids: List<Long>)
 
+    @Query("UPDATE tasks SET archived = 1, updatedAt = :updatedAt WHERE id IN (:ids)")
+    suspend fun archiveByIds(ids: List<Long>, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE tasks SET archived = 0, updatedAt = :updatedAt WHERE id IN (:ids)")
+    suspend fun restoreByIds(ids: List<Long>, updatedAt: Long = System.currentTimeMillis())
+
     @Query("DELETE FROM tasks")
     suspend fun deleteAll()
 }

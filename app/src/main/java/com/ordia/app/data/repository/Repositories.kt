@@ -107,6 +107,43 @@ class TaskRepository(
             dao.deleteById(id)
         }
     }
+
+    /**
+     * Archiva todo el subárbol bajo [rootId] (incluida la raíz) dentro de una transacción.
+     * Evita dejar subtasks huérfanas (activas pero inaccesibles) y con reminders vivos.
+     * El cancelado de reminders debe hacerlo el llamador vía [reminderCancellation] (fuera de la Tx).
+     */
+    suspend fun archiveSubtreeAndSelf(
+        rootId: Long,
+        reminderCancellation: suspend (Long) -> Unit = {}
+    ): List<Long> {
+        val ids = dao.collectSubtreeIds(rootId)
+        if (ids.isEmpty()) return emptyList()
+        for (taskId in ids) reminderCancellation(taskId)
+        database.withTransaction { dao.archiveByIds(ids) }
+        return ids
+    }
+
+    /**
+     * Restaura todo el subárbol bajo [rootId] (incluida la raíz) dentro de una transacción.
+     * La (re)programación de reminders debe hacerla el llamador vía [reminderScheduler] (fuera de la Tx).
+     * Devuelve las tareas restauradas para que el llamador decida qué reminders reprogramar.
+     */
+    suspend fun restoreSubtreeAndSelf(
+        rootId: Long,
+        reminderScheduler: suspend (TaskEntity) -> Unit = {},
+        reminderCancellation: suspend (Long) -> Unit = {}
+    ): List<TaskEntity> {
+        val ids = dao.collectSubtreeIds(rootId)
+        if (ids.isEmpty()) return emptyList()
+        database.withTransaction { dao.restoreByIds(ids) }
+        val restored = dao.getAllNow().filter { it.id in ids }
+        for (task in restored) {
+            if (!task.completed && (task.reminderAt != null || task.dueAt != null)) reminderScheduler(task)
+            else reminderCancellation(task.id)
+        }
+        return restored
+    }
 }
 
 class ProjectRepository(
