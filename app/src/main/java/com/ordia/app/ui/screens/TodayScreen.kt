@@ -13,7 +13,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -107,7 +107,7 @@ fun TodayScreen(
                         )
                     }
                     insight.taskId?.let { taskId ->
-                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.Outlined.ArrowForward, "Abrir recomendación") }
+                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Abrir recomendación") }
                     }
                 }
             }

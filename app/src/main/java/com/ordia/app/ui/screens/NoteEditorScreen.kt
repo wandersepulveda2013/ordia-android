@@ -17,14 +17,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.InsertDriveFile
-import androidx.compose.material.icons.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.FormatQuote
 import androidx.compose.material.icons.outlined.HorizontalRule
 import androidx.compose.material.icons.outlined.Save
@@ -144,7 +144,7 @@ fun NoteEditorScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { saveAndBack() }) { Icon(Icons.Outlined.ArrowBack, "Guardar y volver") }
+            IconButton(onClick = { saveAndBack() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Guardar y volver") }
             Text(if (dirty) "Cambios sin guardar" else "Guardado local", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
             IconButton(onClick = { attachFile() }) { Icon(Icons.Outlined.AttachFile, "Adjuntar archivo") }
             TextButton(onClick = { existing?.let { vm.deleteNote(it); onBack() } }, enabled = existing != null) { Text("Archivar") }
@@ -189,7 +189,7 @@ fun NoteEditorScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Outlined.InsertDriveFile, null, modifier = Modifier.size(22.dp))
+                        Icon(Icons.AutoMirrored.Outlined.InsertDriveFile, null, modifier = Modifier.size(22.dp))
                         TextButton(
                             onClick = {
                                 val uri = android.net.Uri.parse(attachment.uri)
@@ -294,6 +294,6 @@ private fun NoteBlockType.icon() = when (this) {
     NoteBlockType.HEADING -> Icons.Outlined.Title
     NoteBlockType.CHECKLIST -> Icons.Outlined.CheckBox
     NoteBlockType.QUOTE -> Icons.Outlined.FormatQuote
-    NoteBlockType.BULLET, NoteBlockType.NUMBERED -> Icons.Outlined.FormatListBulleted
+    NoteBlockType.BULLET, NoteBlockType.NUMBERED -> Icons.AutoMirrored.Outlined.FormatListBulleted
     NoteBlockType.DIVIDER -> Icons.Outlined.HorizontalRule
 }
