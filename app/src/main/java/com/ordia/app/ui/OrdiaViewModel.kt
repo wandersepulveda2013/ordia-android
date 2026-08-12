@@ -540,6 +540,8 @@ class OrdiaViewModel(
     }
 
     fun importBackup(raw: String) = viewModelScope.launch {
+        // Limpiar reminders previos (orphan work de tareas que el backup va a reemplazar/borrar).
+        reminderScheduler.cancelAll()
         val result = backupManager.importJson(raw) { tasks ->
             tasks.forEach { task ->
                 if (!task.completed && (task.reminderAt != null || task.dueAt != null)) {
