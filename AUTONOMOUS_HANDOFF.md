@@ -24,26 +24,37 @@
   - `TaskDao.deleteByIds(ids)`.
   - `AttachmentDao.deleteForOwner(...)` y `AttachmentDao.deleteForOwners(...)`.
 - `app/src/main/java/com/ordia/app/data/repository/Repositories.kt`:
-  - `TaskMutationGate` (object) con `kotlinx.coroutines.sync.Mutex` para serializar mutaciones de tareas (seguro para corrutinas/suspensiones).
+  - `TaskMutationGate` (object) con `kotlinx.coroutines.sync.Mutex` **por taskId** (`ConcurrentHashMap<Long, Mutex>`); id `0L` agrupa tareas nuevas; además variante global para borrado de subárbol.
   - `TaskRepository` ahora recibe `OrdiaDatabase` y `AttachmentDao`.
   - `TaskRepository.deleteSubtreeAndSelf(rootId, reminderCancellation)`: borra el subárbol en transacción, limpia attachments TASK, delega el cancelado de reminders al llamador (fuera de la Tx de BD).
   - `TaskRepository.subtreeIds(rootId)`.
   - `TaskRepository.deletePermanently(id)` ahora en transacción y limpia attachments de la tarea.
-- `app/src/main/java/com/ordia/app/di/AppContainer.kt`: actualiza construcción de `TaskRepository`.
+  - `ProjectRepository`/`NoteRepository` ahora reciben `OrdiaDatabase`+`AttachmentDao` y limpian attachments PROJECT/NOTE en `deletePermanently` (en transacción).
+- `app/src/main/java/com/ordia/app/di/AppContainer.kt`: actualiza construcción de `TaskRepository`, `ProjectRepository`, `NoteRepository`.
 - `app/src/main/java/com/ordia/app/ui/OrdiaViewModel.kt`:
   - Import `TaskMutationGate`.
   - `deleteArchivedPermanently("task", id)` usa `TaskMutationGate.withLock { taskRepository.deleteSubtreeAndSelf(id) { reminderScheduler.cancel(it) } }`.
+  - `saveTask` y `toggleTask` envueltos en `TaskMutationGate.withLock(task.id)`.
+  - `importBackup` reprograma/cancela reminders tras restaurar.
+- `app/src/main/java/com/ordia/app/backup/BackupManager.kt`:
+  - `importJson(raw, onTasksRestored)` invoca el callback con las tareas restauradas (fuera de la Tx) para reprogramar reminders.
+- `app/src/test/java/com/ordia/app/data/repository/TaskMutationGateTest.kt`: tests de serialización (misma tarea) y concurrencia (tareas distintas).
 
 ## Trabajo en curso
-- Build y tests verificados localmente (JDK 21 + Android SDK 36). Próximo: commit + push + continuar con P1–P6.
+- Bloque estable completado (B1–B5 + P1 + P2 + P6). Build y tests verdes.
+- Próximo: ejecutar verificación completa estilo CI (lint + assembleDebug + assembleRelease) antes de dar por válido el bloque.
 
-## Commits realizados
-- (pendiente: se harán tras verificar build verde) → AHORA: build verde confirmado.
+## Commits realizados (branch `autonomous/delete-subtree-concurrency`)
+- `5f887eb` fix(tasks): delete full subtree + cleanup attachments/reminders on permanent delete
+- `c94a1d5` fix(repo): clean PROJECT/NOTE attachments on permanent delete + transactions
+- `c06ae21` feat(tasks): per-task TaskMutationGate serialization for save/toggle
+- `304a7ef` fix(backup): re-schedule task reminders after restoring a backup
 
 ## Pruebas ejecutadas
 - `:app:compileDebugKotlin` — OK (solo warnings de deprecación preexistentes).
-- `:app:testDebugUnitTest` — OK: 26 tests, 0 fallos (incluye nuevo `TaskMutationGateTest`).
+- `:app:testDebugUnitTest` — OK: 27 tests, 0 fallos (incluye `TaskMutationGateTest`).
 - `:app:assembleDebug` — BUILD SUCCESSFUL.
+- (Pendiente: `lint` + `assembleRelease` para paridad con CI.)
 
 ## Bugs encontrados
 - B1 (CRÍTICO): subtasks huérfanos al eliminar tarea permanentemente. → CORREGIDO.
