@@ -19,8 +19,8 @@ class AppContainer(context: Context) {
 
     val preferencesRepository = PreferencesRepository(context)
     val taskRepository = TaskRepository(database.taskDao(), database, database.attachmentDao())
-    val projectRepository = ProjectRepository(database.projectDao())
-    val noteRepository = NoteRepository(database.noteDao())
+    val projectRepository = ProjectRepository(database.projectDao(), database, database.attachmentDao())
+    val noteRepository = NoteRepository(database.noteDao(), database, database.attachmentDao())
     val habitRepository = HabitRepository(database.habitDao(), database.habitLogDao())
     val focusRepository = FocusRepository(database.focusSessionDao())
     val routineRepository = RoutineRepository(database.routineDao(), database.routineStepDao())

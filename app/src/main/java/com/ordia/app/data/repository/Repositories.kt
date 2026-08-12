@@ -92,7 +92,11 @@ class TaskRepository(
     }
 }
 
-class ProjectRepository(private val dao: ProjectDao) {
+class ProjectRepository(
+    private val dao: ProjectDao,
+    private val database: OrdiaDatabase,
+    private val attachmentDao: AttachmentDao
+) {
     val projects: Flow<List<ProjectEntity>> = dao.observeActive()
     val archived: Flow<List<ProjectEntity>> = dao.observeArchived()
     suspend fun get(id: Long): ProjectEntity? = dao.getById(id)
@@ -101,11 +105,20 @@ class ProjectRepository(private val dao: ProjectDao) {
     suspend fun delete(project: ProjectEntity) = dao.delete(project)
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun restore(id: Long) = dao.restore(id)
-    suspend fun deletePermanently(id: Long) = dao.deleteById(id)
+    suspend fun deletePermanently(id: Long) {
+        database.withTransaction {
+            attachmentDao.deleteForOwner(AttachmentOwnerType.PROJECT, id)
+            dao.deleteById(id)
+        }
+    }
     suspend fun search(query: String): List<ProjectEntity> = dao.search(query)
 }
 
-class NoteRepository(private val dao: NoteDao) {
+class NoteRepository(
+    private val dao: NoteDao,
+    private val database: OrdiaDatabase,
+    private val attachmentDao: AttachmentDao
+) {
     val notes: Flow<List<NoteEntity>> = dao.observeAll()
     val archived: Flow<List<NoteEntity>> = dao.observeArchived()
     suspend fun get(id: Long): NoteEntity? = dao.getById(id)
@@ -114,7 +127,12 @@ class NoteRepository(private val dao: NoteDao) {
     suspend fun delete(note: NoteEntity) = dao.delete(note)
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun restore(id: Long) = dao.restore(id)
-    suspend fun deletePermanently(id: Long) = dao.deleteById(id)
+    suspend fun deletePermanently(id: Long) {
+        database.withTransaction {
+            attachmentDao.deleteForOwner(AttachmentOwnerType.NOTE, id)
+            dao.deleteById(id)
+        }
+    }
     suspend fun search(query: String): List<NoteEntity> = dao.search(query)
 }
 
