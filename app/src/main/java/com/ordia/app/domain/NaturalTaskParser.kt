@@ -38,6 +38,18 @@ object NaturalTaskParser {
     /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado. */
     private val weekendPattern = Regex("""(?i)\b(?:este\s+|el\s+|pr[oó]ximo\s+)?fin\s+de\s+semana\b""")
     /**
+     * "el jueves pasado" / "el último lunes" / "el martes anterior": última ocurrencia
+     * PASADA de ese día de la semana. El usuario reconoce que la tarea está vencida
+     * ("pagar la factura el viernes pasado"). Antes "el jueves pasado" se leía como
+     * "jueves" (próximo) por weekdayPattern y "pasado" quedaba como residuo en el
+     * título -> fecha futura errónea + título sucio. Se detecta y borra ANTES que
+     * weekdayPattern para que no capture el día como próximo.
+     */
+    private val previousWeekdayPattern = Regex("""(?i)\b(?:el|del|de)\s+([a-záéíóúüñ]+)\s+(?:pasado|anterior|último|ultimo)\b""")
+    // Orden inverso: "el último lunes"/"el pasado martes" (modificador antes del día).
+    private val previousWeekdayReversedPattern = Regex("""(?i)\b(?:el|del|de)\s+(?:último|ultimo|pasado|anterior)\s+([a-záéíóúüñ]+)\b""")
+
+    /**
      * Fecha relativa: "en N minutos/horas/días/semanas/meses/años" o "dentro de N ...".
      * Acepta dígitos o números escritos (una/un, dos, ..., veinte, treinta). "una"/"un" → 1.
      * Las semanas (×7 días), meses (×30 días) y años (×365 días) son formas muy
@@ -65,13 +77,17 @@ object NaturalTaskParser {
      * "fin de mes" / "a finales de mes" / "fin del mes" → último día del mes actual
      * (o del siguiente si hoy ya es el último día). "mediados de mes" /
      * "a mediados de mes" → día 15 del mes actual (o del siguiente si hoy ≥ 15).
-     * Vencimientos mensuales cotidianos (alquiler, tarjeta, servicios, facturas):
-     * antes quedaban sin fecha → vencimiento olvidado (sin recordatorio ni visibilidad).
-     * Se detecta y borra ANTES del período próximo para que "fin de mes" (que contiene
-     * la subcadena "mes") no deje residuo ni active por error "mes que viene".
+     * "principios de mes" / "a principios de mes" → día 1 del mes siguiente (si hoy ≥ 1,
+     * es decir, siempre: el día 1 de hoy ya pasó salvo que sea hoy mismo, en cuyo caso
+     * se mantiene hoy). Vencimientos mensuales cotidianos (alquiler, tarjeta, servicios,
+     * facturas, renovaciones): antes quedaban sin fecha → vencimiento olvidado (sin
+     * recordatorio ni visibilidad). Se detecta y borra ANTES del período próximo para
+     * que "fin de mes" (que contiene la subcadena "mes") no deje residuo ni active por
+     * error "mes que viene".
      */
     private val endOfMonthPattern = Regex("""(?i)\b(?:a\s+)?fin(?:ales|es)?\s+(?:de\s+|del\s+)mes\b""")
     private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)mes\b""")
+    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?principios?\s+(?:de\s+|del\s+)mes\b""")
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
     private val timePatterns = listOf(
         Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?\b"""),
@@ -276,6 +292,13 @@ object NaturalTaskParser {
         // resolución de fecha posterior (weekendMatch != null).
         val weekendEarlyMatch = weekendPattern.find(working)
         weekendEarlyMatch?.let { working = working.replace(it.value, " ") }
+        // "el jueves pasado" / "el último lunes": fecha pasada. Se borra ANTES que
+        // weekdayPattern para que el día no se capture como próximo y "pasado" no
+        // quede como residuo en el título.
+        val previousWeekdayMatch = previousWeekdayPattern.find(working)
+        val previousWeekdayReversedMatch = previousWeekdayReversedPattern.find(working)
+        previousWeekdayMatch?.let { working = working.replace(it.value, " ") }
+        previousWeekdayReversedMatch?.let { working = working.replace(it.value, " ") }
 
         // "fin de mes" / "finales de mes" / "mediados de mes": vencimientos mensuales
         // (alquiler, tarjeta, servicios). Se borran ANTES del período próximo para que
@@ -283,6 +306,7 @@ object NaturalTaskParser {
         // (epoch a medianoche) para combinarse con hora explícita ("fin de mes a las 18").
         val endOfMonthEarlyMatch = endOfMonthPattern.find(working)
         val midOfMonthEarlyMatch = midOfMonthPattern.find(working)
+        val startOfMonthEarlyMatch = startOfMonthPattern.find(working)
         val monthBoundaryDueAt = when {
             endOfMonthEarlyMatch != null -> {
                 val today = base.toLocalDate()
@@ -299,10 +323,18 @@ object NaturalTaskParser {
                     else fifteenthThis.plusMonths(1)
                 DateRules.toEpochMillis(target, LocalTime.of(9, 0), zone)
             }
+            startOfMonthEarlyMatch != null -> {
+                val today = base.toLocalDate()
+                val firstThis = today.withDayOfMonth(1)
+                // Si hoy es 1 (o ya pasó el 1 este mes), rueda al 1 del mes siguiente.
+                val target = if (today.isAfter(firstThis)) firstThis.plusMonths(1) else firstThis
+                DateRules.toEpochMillis(target, LocalTime.of(9, 0), zone)
+            }
             else -> null
         }
         endOfMonthEarlyMatch?.let { working = working.replace(it.value, " ") }
         midOfMonthEarlyMatch?.let { working = working.replace(it.value, " ") }
+        startOfMonthEarlyMatch?.let { working = working.replace(it.value, " ") }
 
         // Período próximo ("la semana que viene", "el mes que viene", "el año que
         // viene", "próximo mes", "la próxima semana"): +1 período (semana/mes/año).
@@ -375,6 +407,13 @@ object NaturalTaskParser {
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
+            // "el jueves pasado" / "el último lunes" / "el martes anterior": última
+            // ocurrencia pasada de ese día. Tarea vencida honesta (What Now la muestra
+            // como atrasada), no se proyecta al futuro como hacía antes weekdayMatch.
+            previousWeekdayMatch != null && previousWeekdayMatch.groupValues[1].toDayOfWeekOrNull() != null ->
+                previousWeekday(base.toLocalDate(), previousWeekdayMatch.groupValues[1].toDayOfWeek())
+            previousWeekdayReversedMatch != null && previousWeekdayReversedMatch.groupValues[1].toDayOfWeekOrNull() != null ->
+                previousWeekday(base.toLocalDate(), previousWeekdayReversedMatch.groupValues[1].toDayOfWeek())
             weekendMatch != null -> nextWeekday(base.toLocalDate(), DayOfWeek.SATURDAY)
             weekdayMatch != null -> nextWeekday(base.toLocalDate(), weekdayMatch.groupValues[1].toDayOfWeek())
             monthNameDate != null -> monthNameDate
@@ -598,6 +637,19 @@ object NaturalTaskParser {
             }
         }
 
+        // "fines de semana" / "los findes" / "este finde" como recurrencia semanal de
+        // sabado+domingo. Es la forma natural de "hago esto los findes" (estudiar,
+        // limpiar, deporte). Antes quedaba sin recurrencia y sin fecha -> la tarea
+        // repetitiva se olvidaba o aparecia una sola vez. La primera ocurrencia la
+        // resuelve la rama WEEKLY+days (proximo sabado o domingo). Distinto del
+        // singular "fin de semana" (fecha unica, proximo sabado): el plural = habito.
+        val weekendRecurrencePattern =
+            Regex("""(?i)\b(?:cada\s+)?(?:los\s+)?fines\s+de\s+semana\b|\b(?:cada\s+)?(?:los\s+|este\s+)?findes?\b""")
+        weekendRecurrencePattern.find(working)?.let { match ->
+            phrases += match.range
+            return RecurrenceResult(RecurrenceFrequency.WEEKLY, 1, listOf(6, 7), phrases)
+        }
+
         // Mensual anclado a día del mes: "el 15 de cada mes" / "los 1 del mes" /
         // "15 de cada mes". Antes "el 15 de cada mes" dejaba "el 15 de" como residuo en
         // el título y dueAt=null (la tarea mensual nunca tenía fecha, los recordatorios
@@ -659,6 +711,15 @@ object NaturalTaskParser {
     private fun nextWeekday(from: LocalDate, target: DayOfWeek): LocalDate {
         val delta = (target.value - from.dayOfWeek.value + 7) % 7
         return from.plusDays(if (delta == 0) 7 else delta.toLong())
+    }
+
+    /**
+     * última ocurrencia PASADA de [target] desde [from] (excluye hoy: si hoy es el
+     * día target, "el X pasado" refiere al de la semana anterior, no a hoy).
+     */
+    private fun previousWeekday(from: LocalDate, target: DayOfWeek): LocalDate {
+        val delta = (from.dayOfWeek.value - target.value + 7) % 7
+        return from.minusDays(if (delta == 0) 7 else delta.toLong())
     }
 
     /**
