@@ -9,11 +9,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -99,13 +102,27 @@ fun TaskDetailScreen(
             }
         }
         if (subtasks.isEmpty()) item { Text("Divide la tarea en pasos pequeños cuando lo necesites.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        items(subtasks, key = { it.id }) { subtask ->
-            TaskRow(
-                task = subtask,
-                onToggle = { vm.toggleTask(subtask) },
-                onEdit = { },
-                onDelete = { vm.deleteTask(subtask) }
-            )
+        itemsIndexed(subtasks, key = { _, subtask -> subtask.id }) { index, subtask ->
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    TaskRow(
+                        task = subtask,
+                        onToggle = { vm.toggleTask(subtask) },
+                        onEdit = { },
+                        onDelete = { vm.deleteTask(subtask) }
+                    )
+                }
+                Column {
+                    IconButton(
+                        onClick = { vm.moveSubtask(task.id, index, index - 1) },
+                        enabled = index > 0
+                    ) { Icon(Icons.Outlined.KeyboardArrowUp, "Subir") }
+                    IconButton(
+                        onClick = { vm.moveSubtask(task.id, index, index + 1) },
+                        enabled = index < subtasks.lastIndex
+                    ) { Icon(Icons.Outlined.KeyboardArrowDown, "Bajar") }
+                }
+            }
         }
         if (state.tagsForTask(task.id).isNotEmpty()) {
             item { Text("Etiquetas: ${state.tagsForTask(task.id).joinToString { it.name }}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }

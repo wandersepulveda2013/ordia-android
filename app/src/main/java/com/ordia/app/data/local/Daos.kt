@@ -86,6 +86,9 @@ interface TaskDao {
 
     @Query("DELETE FROM tasks")
     suspend fun deleteAll()
+
+    @Query("UPDATE tasks SET sortOrder = :sortOrder, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateSortOrder(id: Long, sortOrder: Int, updatedAt: Long = System.currentTimeMillis())
 }
 
 @Dao

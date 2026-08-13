@@ -42,6 +42,7 @@ import com.ordia.app.domain.NoteBlockCodec
 import com.ordia.app.domain.NaturalTaskParser
 import com.ordia.app.domain.RecurrenceEngine
 import com.ordia.app.domain.TaskRules
+import com.ordia.app.reminders.HabitReminderScheduler
 import com.ordia.app.reminders.ReminderScheduler
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -154,6 +155,7 @@ class OrdiaViewModel(
     private val attachmentRepository: AttachmentRepository,
     private val preferencesRepository: PreferencesRepository,
     private val reminderScheduler: ReminderScheduler,
+    private val habitReminderScheduler: HabitReminderScheduler,
     private val backupManager: BackupManager
 ) : ViewModel() {
     private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
@@ -328,6 +330,17 @@ class OrdiaViewModel(
         }
     }
 
+    fun moveSubtask(parentId: Long, fromIndex: Int, toIndex: Int) {
+        if (fromIndex == toIndex) return
+        viewModelScope.launch {
+            val ordered = uiState.value.subtasks(parentId).toMutableList()
+            if (fromIndex !in ordered.indices || toIndex !in ordered.indices) return@launch
+            val moved = ordered.removeAt(fromIndex)
+            ordered.add(toIndex, moved)
+            taskRepository.reorderSubtasks(parentId, ordered.map { it.id })
+        }
+    }
+
     fun saveProject(project: ProjectEntity) {
         val clean = project.name.trim()
         if (clean.isBlank()) return
@@ -391,8 +404,14 @@ class OrdiaViewModel(
         if (clean.isBlank()) return
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            if (habit.id == 0L) habitRepository.add(habit.copy(title = clean, createdAt = now, updatedAt = now))
-            else habitRepository.update(habit.copy(title = clean, updatedAt = now))
+            if (habit.id == 0L) {
+                val id = habitRepository.add(habit.copy(title = clean, createdAt = now, updatedAt = now))
+                if (habit.reminderMinutes != null) habitReminderScheduler.schedule(habit.copy(id = id))
+            } else {
+                habitRepository.update(habit.copy(title = clean, updatedAt = now))
+                if (habit.reminderMinutes != null && !habit.archived) habitReminderScheduler.schedule(habit)
+                else habitReminderScheduler.cancel(habit.id)
+            }
         }
     }
 
@@ -405,6 +424,7 @@ class OrdiaViewModel(
     }
 
     fun deleteHabit(habit: HabitEntity) = viewModelScope.launch {
+        habitReminderScheduler.cancel(habit.id)
         habitRepository.archive(habit.id)
         _events.emit(UiEvent.Message("Hábito movido al archivo."))
     }
@@ -464,7 +484,12 @@ class OrdiaViewModel(
             }
             "project" -> projectRepository.restore(id)
             "note" -> noteRepository.restore(id)
-            "habit" -> habitRepository.restore(id)
+            "habit" -> {
+                habitRepository.restore(id)
+                habitRepository.get(id)?.let { habit ->
+                    if (habit.reminderMinutes != null) habitReminderScheduler.schedule(habit)
+                }
+            }
             "routine" -> routineRepository.restore(id)
         }
         updateWidget()
@@ -480,7 +505,10 @@ class OrdiaViewModel(
             }
             "project" -> projectRepository.deletePermanently(id)
             "note" -> noteRepository.deletePermanently(id)
-            "habit" -> habitRepository.deletePermanently(id)
+            "habit" -> {
+                habitReminderScheduler.cancel(id)
+                habitRepository.deletePermanently(id)
+            }
             "routine" -> routineRepository.deletePermanently(id)
         }
         updateWidget()
@@ -540,8 +568,9 @@ class OrdiaViewModel(
     }
 
     fun importBackup(raw: String) = viewModelScope.launch {
-        // Limpiar reminders previos (orphan work de tareas que el backup va a reemplazar/borrar).
+        // Limpiar reminders previos (orphan work de tareas y hábitos que el backup va a reemplazar/borrar).
         reminderScheduler.cancelAll()
+        habitReminderScheduler.cancelAll()
         val result = backupManager.importJson(raw) { tasks ->
             tasks.forEach { task ->
                 if (!task.completed && (task.reminderAt != null || task.dueAt != null)) {
@@ -550,6 +579,10 @@ class OrdiaViewModel(
                     reminderScheduler.cancel(task.id)
                 }
             }
+        }
+        // Reprogramar recordatorios de hábitos restaurados.
+        uiState.value.habits.forEach { habit ->
+            if (!habit.archived && habit.reminderMinutes != null) habitReminderScheduler.schedule(habit)
         }
         _events.emit(UiEvent.Message(result.message))
         updateWidget()
@@ -582,6 +615,7 @@ class OrdiaViewModel(
         private val attachmentRepository: AttachmentRepository,
         private val preferencesRepository: PreferencesRepository,
         private val reminderScheduler: ReminderScheduler,
+        private val habitReminderScheduler: HabitReminderScheduler,
         private val backupManager: BackupManager
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
@@ -597,6 +631,7 @@ class OrdiaViewModel(
             attachmentRepository,
             preferencesRepository,
             reminderScheduler,
+            habitReminderScheduler,
             backupManager
         ) as T
     }

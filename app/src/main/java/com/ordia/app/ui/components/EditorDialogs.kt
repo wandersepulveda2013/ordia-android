@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -252,10 +253,13 @@ fun ProjectEditorDialog(existing: ProjectEntity? = null, onDismiss: () -> Unit, 
 
 @Composable
 fun HabitEditorDialog(existing: HabitEntity? = null, onDismiss: () -> Unit, onSave: (HabitEntity) -> Unit) {
+    val context = LocalContext.current
     var title by remember(existing?.id) { mutableStateOf(existing?.title.orEmpty()) }
     var details by remember(existing?.id) { mutableStateOf(existing?.details.orEmpty()) }
     var frequency by remember(existing?.id) { mutableStateOf(existing?.frequency ?: HabitFrequency.DAILY) }
     var target by remember(existing?.id) { mutableStateOf((existing?.targetPerPeriod ?: 1).toString()) }
+    var reminderEnabled by remember(existing?.id) { mutableStateOf(existing?.reminderMinutes != null) }
+    var reminderMinutes by remember(existing?.id) { mutableStateOf(existing?.reminderMinutes ?: 9 * 60) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (existing == null) "Nuevo hábito" else "Editar hábito") },
@@ -267,9 +271,28 @@ fun HabitEditorDialog(existing: HabitEntity? = null, onDismiss: () -> Unit, onSa
                     HabitFrequency.entries.forEach { value -> FilterChip(selected = frequency == value, onClick = { frequency = value }, label = { Text(value.label()) }) }
                 }
                 OutlinedTextField(target, { target = it.filter(Char::isDigit).take(2) }, modifier = Modifier.fillMaxWidth(), label = { Text("Meta por período") }, singleLine = true)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Recordatorio diario", Modifier.weight(1f))
+                    Switch(reminderEnabled, { reminderEnabled = it })
+                }
+                if (reminderEnabled) {
+                    OutlinedButton(
+                        onClick = {
+                            val current = LocalTime.of((reminderMinutes / 60).coerceIn(0, 23), (reminderMinutes % 60).coerceIn(0, 59))
+                            android.app.TimePickerDialog(context, { _, hour, minute -> reminderMinutes = hour * 60 + minute }, current.hour, current.minute, false).show()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Outlined.Notifications, null)
+                        Text(
+                            "%02d:%02d".format(reminderMinutes / 60, reminderMinutes % 60),
+                            Modifier.padding(start = 6.dp)
+                        )
+                    }
+                }
             }
         },
-        confirmButton = { Button(onClick = { onSave((existing ?: HabitEntity(title = title)).copy(title = title, details = details, frequency = frequency, targetPerPeriod = target.toIntOrNull()?.coerceIn(1, 20) ?: 1)) }, enabled = title.isNotBlank()) { Text("Guardar") } },
+        confirmButton = { Button(onClick = { onSave((existing ?: HabitEntity(title = title)).copy(title = title, details = details, frequency = frequency, targetPerPeriod = target.toIntOrNull()?.coerceIn(1, 20) ?: 1, reminderMinutes = if (reminderEnabled) reminderMinutes else null)) }, enabled = title.isNotBlank()) { Text("Guardar") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
 }

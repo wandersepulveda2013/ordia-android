@@ -12,6 +12,7 @@ import com.ordia.app.data.repository.ProjectRepository
 import com.ordia.app.data.repository.RoutineRepository
 import com.ordia.app.data.repository.TagRepository
 import com.ordia.app.data.repository.TaskRepository
+import com.ordia.app.reminders.HabitReminderScheduler
 import com.ordia.app.reminders.ReminderScheduler
 
 class AppContainer(context: Context) {
@@ -27,5 +28,6 @@ class AppContainer(context: Context) {
     val tagRepository = TagRepository(database.tagDao(), database.taskTagDao())
     val attachmentRepository = AttachmentRepository(database.attachmentDao())
     val reminderScheduler = ReminderScheduler(context)
+    val habitReminderScheduler = HabitReminderScheduler(context)
     val backupManager = BackupManager(database)
 }

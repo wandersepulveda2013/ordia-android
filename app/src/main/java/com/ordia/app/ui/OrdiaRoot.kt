@@ -38,6 +38,7 @@ fun OrdiaRoot(
             attachmentRepository = app.container.attachmentRepository,
             preferencesRepository = app.container.preferencesRepository,
             reminderScheduler = app.container.reminderScheduler,
+            habitReminderScheduler = app.container.habitReminderScheduler,
             backupManager = app.container.backupManager
         )
     )

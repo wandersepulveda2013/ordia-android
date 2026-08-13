@@ -72,6 +72,13 @@ class TaskRepository(
     suspend fun restore(id: Long) = dao.restore(id)
     suspend fun search(query: String): List<TaskEntity> = dao.search(query)
 
+    /** Reescribe el sortOrder de las subtareas de [parentId] según el orden de la lista dada. */
+    suspend fun reorderSubtasks(parentId: Long, orderedIds: List<Long>) {
+        database.withTransaction {
+            orderedIds.forEachIndexed { index, id -> dao.updateSortOrder(id, index) }
+        }
+    }
+
     /**
      * IDs del subárbol completo bajo [rootId] (incluye [rootId] y todos sus descendientes).
      */
