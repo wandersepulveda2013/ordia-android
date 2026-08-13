@@ -19,10 +19,16 @@ permissions:
   contents: write   # necesario para crear GitHub Releases
 
 concurrency:
-  # Una sola build por rama; los pushes rápidos cancelan builds obsoletas y
-  # queda como Release final el HEAD válido más reciente.
+  # Una sola build por rama a la vez. cancel-in-progress: false deja que la
+  # build en curso COMPLETE y publique su release; el push más reciente queda
+  # pendiente (queued) y corre a continuación. Con esto, aunque el bucle
+  # autónomo empuce commits cada pocos minutos y la build tarde ~10 min, cada
+  # build finalizada publica una release y la rama se mantiene al día (en vez
+  # de cancelar todas las builds y no publicar nada). GitHub mantiene a lo
+  # sumo 1 job pendiente por grupo; los pushes intermedios se reemplazan entre
+  # sí sin acumular cola infinita.
   group: openhands-delivery-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deliver:
