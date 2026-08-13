@@ -18,6 +18,7 @@ object GuardianCoach {
         val eyebrow: String,
         val title: String,
         val message: String,
+        val reason: String? = null,
         val taskId: Long? = null,
         val tone: Tone = Tone.CALM
     )
@@ -50,6 +51,7 @@ object GuardianCoach {
                 } else {
                     "Tienes ${overdue.size} tareas atrasadas. No intentes resolverlas todas: comienza por esta."
                 },
+                reason = "Haz esto ahora porque está pendiente desde antes de hoy.",
                 taskId = next?.id,
                 tone = Tone.GENTLE
             )
@@ -62,6 +64,7 @@ object GuardianCoach {
                 eyebrow = "PROTEGE TU DÍA",
                 title = next?.title ?: "Prioridad de hoy",
                 message = "Es lo más importante para hoy. Reserva tiempo antes de llenar el resto de la agenda.",
+                reason = "Haz esto ahora porque es la prioridad más alta del día.",
                 taskId = next?.id,
                 tone = Tone.FOCUSED
             )
@@ -69,11 +72,14 @@ object GuardianCoach {
 
         val next = TaskRules.nextBestTask(pending, now)
         if (next != null) {
+            val urgencyReason = if (TaskRules.isDueToday(next, now, zone)) "vence hoy" else "es lo siguiente en tu lista"
+            val timeReason = if (next.durationMinutes != null) "${next.durationMinutes} min" else "requiere tu atención"
             return Insight(
-                eyebrow = "SIGUIENTE PASO",
+                eyebrow = "WHAT NOW",
                 title = next.title,
                 message = next.details.takeIf { it.isNotBlank() }
-                    ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
+                    ?: "Sugerencia inteligente de tu próxima acción.",
+                reason = "Haz esto ahora porque $urgencyReason y $timeReason.",
                 taskId = next.id,
                 tone = Tone.FOCUSED
             )
