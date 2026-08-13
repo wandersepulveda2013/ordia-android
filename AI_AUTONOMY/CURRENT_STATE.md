@@ -47,6 +47,12 @@ código (`DayPlanner.kt`/`DayPlannerTest.kt`) que el remoto NO tocó (sin confli
 reescritos sobre la base remota y reetiquetados ciclo 51. Trabajo del ciclo 50 del otro run preservado.
 Sin force push, sin reset --hard, sin tocar `main`.
 
+**Colisión 2 de remoto (rebase no destructivo)**: al hacer `git fetch` previo al push, el remoto había
+avanzado `497010f`→`b3fc5f7` (otro run: `fix(manifest): resolve FileProvider merger conflict blocking
+previewAdvanced CI`). Mi commit divergía (1 ahead / 1 behind). `git rebase origin/openhands/autonomous-ordia`
+limpio (áreas ortogonales: planner vs manifest/previewAdvanced); 415 tests PASS re-confirmados tras rebase.
+Push fast-forward OK: `b3fc5f7..bf11f31`. HEAD final: `bf11f31`.
+
 **Tests**: +2 (`noConflictWhenStartAtIsOnADifferentDay`, `conflictStillReportedWhenStartAtIsOnSameDay`).
 **415 domain tests PASS** (`bash tools/run_domain_tests.sh`), smoke 25 OK. **NO VERIFICADO**:
 gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del planner.

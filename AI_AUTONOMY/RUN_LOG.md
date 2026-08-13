@@ -13,8 +13,9 @@
 - **Solución (mínima, `DayPlanner.kt`, sin nueva pantalla/botón)**: antes de comparar la hora se verifica `original.toLocalDate() == date`. Si el `startAt` es de otro día, no hay hora prevista "ese día" y no se añade el conflicto. Si cae en el mismo día, el comportamiento previo se conserva (hora distinta → conflicto real). Lógica local honesta, alineada con la intención documentada en el comentario.
 - **Tests**: +2 en `DayPlannerTest.kt`: `noConflictWhenStartAtIsOnADifferentDay` (startAt ayer → 0 conflictos) + `conflictStillReportedWhenStartAtIsOnSameDay` (startAt hoy 15:00, plan lo ubica 9:00 → conflicto real). **415 domain tests PASS** (`bash tools/run_domain_tests.sh`, 25 clases — 413 base remota c.50 + 2 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del planner en pantalla (sin Android SDK).
+- **Colisión 2 evitada (rebase no destructivo)**: al hacer `git fetch` previo al push, el remoto había avanzado `497010f`→`b3fc5f7` (otro run: `fix(manifest): resolve FileProvider merger conflict blocking previewAdvanced CI`). Mi commit local divergía (1 ahead / 1 behind). NO se forzó push. Se hizo `git rebase origin/openhands/autonomous-ordia` (rebase sobre commit propio, no sobre rama compartida de humano): cero conflictos de código (áreas ortogonales: planner vs manifest/previewAdvanced), 415 tests PASS re-confirmados, smoke 25 OK tras rebase.
 - **Archivos modificados**: `DayPlanner.kt`, `DayPlannerTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit/push de este ciclo).
+- **HEAD final**: `bf11f31` (push a openhands/autonomous-ordia OK; `b3fc5f7..bf11f31`, fast-forward tras rebase).
 
 ### Siguiente
 - Descubrimiento continuo: auditar captura, recordatorios, detección de vencidas importantes, contexto, onboarding, navegación, accesibilidad, rendimiento, privacidad.
