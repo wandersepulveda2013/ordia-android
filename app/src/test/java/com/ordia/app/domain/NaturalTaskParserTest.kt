@@ -155,6 +155,51 @@ class NaturalTaskParserTest {
         assertEquals("Reunión de equipo con el comité", result.title)
     }
 
+    // Forma BARE (sin "los"/"cada"/"todos los") de lista de días: "gym sábados y
+    // domingos", "fútbol domingos". Es tan común como la prefijada y antes caía sin
+    // recurrencia, dejando los días como residuo en el título → la rutina se
+    // olvidaba. La lista bare de 2+ días siempre es recurrencia; el singular plural
+    // marcado (sábados/domingos) también lo es (hábito semanal). Un día suelto no
+    // plural ("reunión martes") queda como fecha, no recurrencia (es ambiguo).
+    @Test fun parsesBareDayListRecurrence() {
+        val result = NaturalTaskParser.parse("Gym sábados y domingos", now, zone)
+        assertEquals("Gym", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+        // Desde miércoles 29-jul: la primera ocurrencia es el sábado 01-ago.
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesBareDayListWithExplicitTime() {
+        val result = NaturalTaskParser.parse("Reunión sábados y domingos a las 10", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun parsesBarePluralSingleDayRecurrence() {
+        val result = NaturalTaskParser.parse("Fútbol domingos a las 18", now, zone)
+        assertEquals("Fútbol", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("7", result.recurrenceDays)
+        // Desde miércoles 29-jul: la primera ocurrencia es el domingo 02-ago.
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // Un día suelto no plural ("reunión martes") es ambiguo (¿fecha?): NO debe
+    // convertirse en recurrencia; se deja como fecha única para no programar una
+    // rutina equivocada.
+    @Test fun bareSingleNonPluralDayIsNotRecurrence() {
+        val result = NaturalTaskParser.parse("Reunión martes", now, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals("", result.recurrenceDays)
+        // Fecha: el martes siguiente al miércoles 29-jul es 04-ago.
+        assertEquals(LocalDate.of(2026, 8, 4), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun parsesDailyRecurrence() {
         val result = NaturalTaskParser.parse("Tomar vitaminas cada día", now, zone)
         assertEquals("Tomar vitaminas", result.title)

@@ -22,7 +22,7 @@
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (372 tests) |
+| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests) |
 
 ## Último trabajo — Ciclo 43: parser "entre semana"/"días laborables"/"de lunes a viernes" = recurrencia semanal Lun–Vie
 
@@ -53,7 +53,6 @@ force push, sin reset --hard.
 (`tools/run_domain_checks.sh`). NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs
 reales (sin Android SDK).
 
-
 Bug de captura P2 (ciclo 42): el rango horario **sin la palabra "horas"** y con ambas horas < 13
 ("clase de 9 a 11") no se reconocía: `durationMinutes=null` y "de 9 a 11" quedaba como residuo.
 Un run paralelo (`0a77387`) envió el fix base (aceptar el rango si no le sigue sustantivo de
@@ -63,7 +62,7 @@ marcador de parte del día ("a la tarde", "por la noche"), y lo amplió. Sigue r
 "comprar de 2 a 5 entradas". Heurística honesta, conservadora.
 
 VERIFICADO localmente (JVM puro, sin Android SDK): `bash tools/run_domain_tests.sh` =
-**358 tests PASS** (353 base c.42 + 5 nuevos), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+**369 tests PASS** (365 base remota c.42 + 4 nuevos de listas bare), 25 clases. Smoke 25 OK.
 NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 
 ## Último trabajo — Ciclo 42 (cont. 2): día de semana suelto hoy con hora futura vence hoy
@@ -89,7 +88,7 @@ avanzó de `0a77387` a `727e7b8` por un run paralelo). `git fetch` + `git rebase
 origin/openhands/autonomous-ordia` (no destructivo, sin force) integró limpio sobre el nuevo HEAD.
 
 **VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
-**362 tests PASS** (358 base remota + 4 nuevos), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+**369 tests PASS** (365 base remota + 4 nuevos de listas bare), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
 NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 
 ## Último trabajo — Ciclo 42 (cont.): rango horario sin "horas" + ampliación de followers seguros
@@ -113,8 +112,31 @@ del, días de la semana y días relativos (mañana/hoy/ayer). El rechazo de "com
 entradas"/"de 2 a 5 personas" se preserva (sustantivo contable sigue fuera del set).
 
 **VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
-**358 tests PASS** (353 base remota + 5 nuevos), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+**369 tests PASS** (365 base remota + 4 nuevos de listas bare), 25 clases. Smoke 25 OK.
 NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+
+## Último trabajo — Ciclo 42: parser listas de días sin prefijo ("gym sábados y domingos")
+
+Unidad atómica del ciclo de parser natural (P1 — pérdida de datos silenciosa en rutinas). La forma
+**bare** de lista de días (sin "los"/"cada"/"todos los") es tan común como la prefijada: **"gym
+sábados y domingos"**, **"fútbol domingos a las 18"**, **"lavar auto sábados domingos"**. El
+parser solo casaba listas con prefijo, así estas caían sin recurrencia (`recurrence=NONE`) y los
+días quedaban como residuo en el título → la rutina semanal se **olvidaba en silencio** y los
+recordatorios no disparaban nunca. Complementario al ciclo 41 (separador opcional), pero distinto:
+aquí el problema era la ausencia de artículo prefijo.
+
+**Solución (mínima, `NaturalTaskParser.kt` — `parseRecurrence()`)**: reconocer listas bare de 2+
+días como recurrencia WEEKLY sin exigir "los"/"cada". Un día plural marcado ("domingos",
+"sábados") en solitario también es recurrencia (hábito semanal explícito). Un día suelto **no
+plural** ("reunión martes") sigue siendo **fecha única** (es ambiguo: ¿fecha o recurrencia?),
+para no programar una rutina equivocada. `dayNameRegex` garantiza que el match solo consume
+nombres de día reales, sin robar texto ajeno.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**357 tests PASS** (350 base + 4 nuevos: `parsesBareDayListRecurrence`,
+`parsesBareDayListWithExplicitTime`, `parsesBarePluralSingleDayRecurrence`,
+`bareSingleNonPluralDayIsNotRecurrence`), 25 clases. Smoke 25 OK. NO VERIFICADO:
+gradle/lint/assemble/Android/UI/Room (sin Android SDK).
 
 ## Último trabajo — Ciclo 38: fechas pasadas + recuperación de fechas imposibles
 
@@ -237,7 +259,7 @@ gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 | Pri | Área | Estado |
 |-----|------|--------|
 | P1 | Persistencia — adjuntos URI externo | FIXED (NO VERIFICADO Android) ciclo 32 cont.4 |
-| P1 | Parser — fechas relativas/pasadas/imposibles | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353) + ampliación followers (358) + recurrencia quincenal con palabra "cada quincena"/"quincenalmente" c.42 (365 tests) |
+| P1 | Parser — fechas relativas/pasadas/imposibles | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 (353) + ampliación followers (358) + recurrencia quincenal con palabra "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests) |
 | P2 | QA — compilar 6 variantes tras cambios | OPEN (requiere env Android) |
 | P2 | Self-Update — prueba end-to-end N→N+1 | BLOCKED-external (sin dispositivo Android) |
 | P3 | UX — pulido visual pantallas workspace renovadas | OPEN |

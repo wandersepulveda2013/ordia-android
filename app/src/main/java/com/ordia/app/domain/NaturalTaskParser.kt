@@ -953,15 +953,30 @@ object NaturalTaskParser {
         // admitir separador vacío solo casa cuando la palabra siguiente es otro
         // día, sin riesgo de robar texto ajeno ("los lunes con el equipo" para en
         // "lunes" porque "con" no es un día). Plural `s?` para sábado/domingo.
+        // Prefijo ("todos los"/"cada"/"los") opcional: la forma BARE de lista de 2+
+        // días ("gym sábados y domingos", "reunión lunes miércoles y viernes") es tan
+        // común como la prefijada y antes caía sin recurrencia, dejando los días como
+        // residuo en el título (la rutina se olvidaba). Se exige 2+ días para el caso
+        // bare: un día suelto ("reunión martes") es ambiguo (¿fecha?), así que se deja
+        // para el patrón de fecha para no programar una recurrencia equivocada.
         val dayListPattern =
-            Regex("""(?i)\b(?:todos\s+los|cada|los)\s+((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y)?\s*(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
+            Regex("""(?i)\b(?:(todos\s+los|cada|los)\s+)?((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y)?\s*(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
         val dayNameRegex = Regex("""(?i)lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo""")
         val weeklyMatch = dayListPattern.find(working)
         if (weeklyMatch != null) {
-            val days = dayNameRegex.findAll(weeklyMatch.groupValues[1])
+            val days = dayNameRegex.findAll(weeklyMatch.groupValues[2])
                 .mapNotNull { it.value.toDayOfWeekOrNull()?.value }
                 .distinct().sorted().toList()
-            if (days.isNotEmpty()) {
+            val hasPrefix = weeklyMatch.groupValues[1].isNotBlank()
+            // Bare: 2+ días siempre es recurrencia. Un día suelto solo lo es si es
+            // plural marcado (sábados/domingos), forma habitual de hábito semanal
+            // ("fútbol domingos"). Los demás días son invariables (lunes/martes…),
+            // así que "reunión martes" queda como fecha ambigua, no recurrencia.
+            val barePluralSingle = !hasPrefix && days.size == 1 &&
+                weeklyMatch.groupValues[2].lowercase().let { g ->
+                    g.contains("sábados") || g.contains("domingos")
+                }
+            if (days.isNotEmpty() && (hasPrefix || days.size >= 2 || barePluralSingle)) {
                 phrases += weeklyMatch.range
                 return RecurrenceResult(RecurrenceFrequency.WEEKLY, 1, days, phrases)
             }
