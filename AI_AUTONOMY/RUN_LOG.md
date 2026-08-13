@@ -3,7 +3,27 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
-## Ciclo 37 - 2026-08-13 (UTC) - "a las N horas" (hora, no duración falsa)
+## Ciclo 38 - 2026-08-13 (UTC) - fechas pasadas + recuperación de fechas imposibles
+
+- **Run/ciclo**: 38
+- **HEAD inicial**: bdd3dc0 (base inicial del workspace). El remoto ya estaba en `9ac1a8b` (5 commits por delante de la base local: "mediados de semana", "un par de", docs, y más). Se hizo `git fetch` + rebase de mis 2 commits locales (`5a67a47`, `b0a33a7`) sobre el remoto. Durante el run el remoto avanzó una vez más (`f2d26ba`, ciclo 37 "a las N horas"): segundo rebase, sin conflictos. Procedimiento no destructivo en ambos casos; sin STALE_RUN, sin force push, sin reset --hard.
+- **Problema seleccionado (2 unidades atómicas, P1)**:
+  1. **Fechas pasadas "hace N"/"la semana/el mes pasado"** (commit `5a67a47`→`ff3a1f4`): `NaturalTaskParser` no reconocía fechas pasadas cotidianas ("pagué hace 2 días", "revisé el informe la semana pasada", "reunión el mes pasado"). Causa raíz: `agoPattern` ("hace N") no existía; `lastPeriodPattern` ("la semana/el mes/el año pasado") no existía y además `previousWeekdayPattern` ("el mes pasado") capturaba la frase, dejando grupo1="mes" (no es día → sin fecha) y **borraba** la frase del título. Resultado: `dueAt=null` (tarea sin recordatorio, invisible en What Now/planificador) **Y** frase temporal como basura en el título. También "hace poco"/"hace un rato" (coloquial = "recién") no se resolvían. Solución: nuevos `agoPattern` (resta N días/semanas/meses/años, o 3h para "poco"/"un rato") y `lastPeriodPattern` (resta 7d/30d/365d), detectados **antes** de `previousWeekdayPattern`, integrados al inicio de la cadena `effectiveRelativeDueAt` (las fechas pasadas son explícitas y tienen prioridad sobre fechas futuras ambiguas); la hora explícita se aplica sobre la fecha pasada (tarea vencida con hora).
+  2. **Recuperación de fechas imposibles** (commit `b0a33a7`→`265fc93`): `parseMonthNameDate` usaba `LocalDate.of(year, month, day)` que lanza `DateTimeException` para fechas imposibles ("el 29 de febrero" en año no bisiesto, "el 31 de abril"). El `runCatching` devolvía `null` → caía al fallback que **deja la frase temporal en el título** y `dueAt=null` (tarea sin fecha y con basura). El usuario que escribe "el 29 de febrero" claramente quiere una fecha real, no perderla. Solución: en vez de descartar, **recuperar** con `Year`/`YearMonth`: Feb 29 no bisiesto → siguiente año bisiesto (2028); día > máx del mes (31 abr) → clamp al último día válido del **siguiente año** (30 abr 2027); Feb 30 → Feb 28. Así la frase se reconoce, se borra del título y la tarea obtiene una fecha útil (no se pierde).
+- **Prioridad**: P1 (evitar olvidos: tareas sin recordatorio + títulos sucios; datos erróneos por fechas perdidas).
+- **Solución (mínima, en `NaturalTaskParser.kt`)**: nuevos patrones `agoPattern`/`lastPeriodPattern` + variables `agoDueAt`/`lastPeriodDueAt` al inicio de `effectiveRelativeDueAt`; refactor de `parseMonthNameDate` con `java.time.Year`/`YearMonth` para clamp/recuperación. Imports añadidos: `java.time.Year`, `java.time.YearMonth`.
+- **Tests**: +9 fechas pasadas (`haceNdiasResuelveFechaPasada`, `haceUnaSemanaResuelveFechaPasada`, `haceNmesesResuelveFechaPasada`, `haceNdiasConHoraAplicaHoraSobreFechaPasada`, `laSemanaPasadaResuelveFechaPasada`, `elMesPasadoResuelveFechaPasada`, `elMesPasadoConHoraAplicaHora`, `hacePocoResuelveHaceTresHoras`, `haceUnRatoLimpiaTituloSinResiduo`) + 5 fechas imposibles. **329 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **Colisión de remoto resuelta**: conflicto en `NaturalTaskParser.kt` (remote añadió `startOfWeekDueAt`/`midOfWeekDueAt`; local añadió `agoDueAt`/`lastPeriodDueAt`) resuelto combinando ambos conjuntos en la cadena `effectiveRelativeDueAt`. Conflicto en `NaturalTaskParserTest.kt` (ambos añadieron tests al final) resuelto conservando ambos conjuntos. Rebase posterior sobre `f2d26ba` sin conflictos.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Commits**: `feat(parser): fechas pasadas "hace N"/"la semana/el mes pasado" + limpieza titulo` (`ff3a1f4`); `fix(parser): recuperar fechas imposibles (29 feb, 31 abr) en vez de perderlas` (`265fc93`).
+- **HEAD final**: `265fc93` (push exitoso a openhands/autonomous-ordia tras 2 colisiones de remoto resueltas no destructivamente).
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser descubiertos (P2): rango horario sin palabra "horas" ("clase de 9 a 11"); números escritos en recordatorios relativos ("recuérdame dos horas antes" → offset null); "la quincena" como hito financiero.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+- P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
+
+## Ciclo 37 - 2026-08-13 (UTC) - "a las N horas" (hora, no duraciÃ³n falsa)
 
 - **Run/ciclo**: 37
 - **HEAD inicial**: 46efb3e (base inicial). Durante el run el remoto avanzó TRES veces por runs paralelos: 8146acf (quincena/bimestre/semestre), e4157c1 ("un par de"), y 9ac1a8b ("mediados de semana", ciclo 36). Procedimiento no destructivo en cada caso: stash+ff+pop sobre 8146acf; rebase sobre e4157c1 (conflicto solo en CURRENT_STATE.md, resuelto conservando ambas secciones, renum. 35→36); rebase sobre 9ac1a8b sin conflictos (renum. 36→37, ya que el remoto usó ciclo 36 para "mediados de semana"). Sin STALE_RUN destructivo, sin force push, sin reset --hard.
@@ -2608,9 +2628,58 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Descubrimiento continuo: auditar captura, What Now, rutinas en busca de oportunidades de producto reales, no solo parser.
 - Nota operativa: `GITHUB_TOKEN` ausente en este entorno; usar `github_token` para push.
 
-## Ciclo 38 - 2026-08-13 (UTC)
+## Ciclo 37 - 2026-08-13 (UTC)
 
-- **Run/ciclo**: 38
+- **Run/ciclo**: 37
+- **HEAD inicial**: 9ac1a8b → detectada base obsoleta: otro run commiteó `7fa4056` ("a las N horas" como hora, no duración falsa). Stash de mi trabajo no commiteado, fast-forward limpio a `7fa4056`, reaplicación (`git stash pop`) sin conflictos (auto-merge en parser y test). Sin force push, sin reset --hard, sin sobrescribir trabajo válido del otro run.
+- **Problema seleccionado**: `NaturalTaskParser` no reconocía **"a finales de semana"** / "finales de semana" (forma plural cotidiana análoga a "finales de mes": "lo termino a finales de semana"). `weekendPattern` solo casaba `fin de semana` (singular); "finales" no casaba y la frase quedaba como residuo en el título con `dueAt=null` → tarea **olvidada** (sin recordatorio, invisible en planificador/What Now).
+- **Prioridad**: P1 (evitar olvidos, menos fricción de captura, inteligencia honesta del parser; brecha simétrica frente a `endOfMonthPattern` que sí acepta "finales de mes").
+- **Causa raíz**: `weekendPattern = \b(?:este\s+|el\s+|próximo\s+)?fin\s+de\s+semana\b` exigía `fin` exacto (singular). La palabra "finales" no casaba y, al no coincidir ningún patrón, `dueAt` quedaba null. Distinción crítica: "fines de semana" (f-i-n-e-s) ya es recurrencia WEEKLY sáb+dom en `parseRecurrence`; "finales de semana" es fecha única y no debía confundirse con ella.
+- **Solución (mínima, en `NaturalTaskParser.kt`)**:
+  - Ampliación de `weekendPattern`: `(?:a\s+)?(?:este\s+|el\s+|próximo\s+)?(?:fin|finales)\s+de\s+semana\b`. Acepta `finales` como variante y el prefijo opcional `a ` (igual que `endOfMonthPattern`/`midOfMonthPattern`).
+  - Reutiliza TODO el flujo existente: detección temprana (`weekendEarlyMatch`), borrado antes del período próximo, resolución a **próximo sábado** (igual que "fin de semana"), hora canónica 9:00, combinable con hora explícita.
+  - **No** acepta `fines` (f-i-n-e-s): como `fin` va seguido de `\s+de` y en "fines" va "es" (sin espacio), no casa → la frase llega intacta a `parseRecurrence` que sigue generando WEEKLY sáb+dom. Decisión de ambigüedad viernes/sáb/dom: resolver a sábado por **consistencia** con "fin de semana" ya existente (no introducir un tercer comportamiento).
+- **Tests**: +4 (`aFinalesDeSemanaProgramaProximoSabadoYLimpiaTitulo`, `finalesDeSemanaSueltoProgramaProximoSabadoYLimpiaTitulo`, `finalesDeSemanaRespetaHoraExplicita`, `finalesDeSemanaNoColisionaConRecurrenciaFinesDeSemana`). Verificación TDD: los 3 primeros fallaron antes del fix (residuo en título + dueAt null), pasaron tras ampliar el patrón. **319 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`). Coexisten con el fix del otro run ("a las N horas").
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+- **Commits**: feat(parser): "a finales de semana" = próximo sábado. docs(autonomy): este registro.
+- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+
+### Siguiente
+- Continuar ciclo de parser: "próxima quincena" (+15d), "próximo bimestre/semestre" (evaluar frecuencia). Buscar oportunidades de producto en otras áreas (captura, What Now, rutinas, recordatorios), no solo parser.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero; URIs ya inválidos).
+- Descubrimiento continuo: auditar recuperación de tareas olvidadas, detección de vencidas importantes, replanificación automática.
+- Nota operativa: `GITHUB_TOKEN` ausente en este entorno; usar `github_token` para push.
+
+## Ciclo 39 - 2026-08-13 (UTC) - fix: "de la mañana"/"por la mañana" NO es fecha "mañana"
+
+- **Run/ciclo**: 39
+- **HEAD inicial**: e4157c1 (ciclo 35). Base obsoleta tras dos rebases sucesivos: otro run commiteó ciclos 36/37 + 3 commits ("a las N horas", fechas imposibles, "hace N"/"la semana/el mes pasado", "a finales de semana") y luego el ciclo 38 ("fechas pasadas" + recuperación fechas imposibles). Rebase no destructivo sobre `8451597` (HEAD remoto). Auto-merge limpio en `NaturalTaskParser.kt` + test; conflictos solo en docs (CURRENT_STATE/RUN_LOG), resueltos conservando el trabajo del otro run y renumerando el mío a ciclo 39. Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
+- **Problema seleccionado**: `NaturalTaskParser` fechaba en MAÑANA tareas que usaban "de la mañana"/"por la mañana" como marcador de **hora** (parte del día), porque la palabra "mañana" colisionaba con el token de **fecha** "mañana". Ejemplos reales afectados:
+  - "Reunión a las 9 de la mañana" → se programaba para MAÑANA 09:00 (reunión perdida HOY).
+  - "Llamar a mamá por la mañana" → MAÑANA 09:00 en vez de HOY 09:00.
+  - "Desayuno a las 8 de la mañana" → MAÑANA 08:00.
+  La ambigüedad léxica "mañana" (fecha) vs "mañana" (parte del día) no se resolvía: el branch de fecha hacía match con la mera presencia de la palabra.
+- **Prioridad**: P1 (tarea en día erróneo → reunión/recordatorio perdido el mismo día; corrige captura, evita olvidos).
+- **Causa raíz**: en la rama de fecha, `Regex("""(?i)\bmañana\b""").containsMatchIn(working)` matcheaba cualquier aparición de "mañana", incluida la que forma parte de "de la mañana"/"por la mañana"/"a la mañana"/"esta mañana". Estos marcadores de hora se procesaban luego (hora canónica 09:00), pero la fecha ya había saltado a +1d.
+- **Solución (mínima, en `NaturalTaskParser.kt`)**:
+  - Reemplazada la rama `\bmañana\b` por `mananaAsDate(working)`: recorre todas las apariciones de "mañana" y devuelve `true` (fecha = mañana) sólo si **al menos una** NO está precedida por un marcador de parte del día (`de la ` / `por la ` / `a la ` / `esta `).
+  - Así "Reunión a las 9 de la mañana" (única aparición, precedida por "de la ") → NO es fecha → se queda en HOY. "Hacer X mañana por la mañana" (primera aparición suelta) → Sí fecha → mañana. "mañana a las 9" → mañana.
+  - `pasado mañana` se sigue resolviendo ANTES (rama previa, sin cambios), así que no hay regresión.
+- **Tests**: +3 regresión (`deLaMananaWithoutDateStaysToday`, `porLaMananaWithoutDateStaysToday`, `mananaPorLaMananaStillResolvesTomorrow`). **336 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases (319 base remota + 3 nuevos). Smoke 25 OK.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+- **Commits**: `cfa29cd` fix(parser): "de/por/a la mañana" (hora) no colisiona con fecha "mañana". docs(autonomy): este registro (mismo commit).
+- **HEAD final**: `cfa29cd` (push a `openhands/autonomous-ordia`, fast-forward sobre `8451597`).
+
+### Siguiente
+- Continuar descubrimiento continuo (no solo parser): auditar What Now, rutinas, captura, recordatorios, detección de vencidas.
+- Parser candidatos: "próxima quincena" (+15d), manejo robusto de múltiples marcadores temporales en una frase.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero; URIs ya inválidos).
+- Nota operativa: `GITHUB_TOKEN` ausente en este entorno; usar `github_token` para push.
+
+
+## Ciclo 40 - 2026-08-13 (UTC) - feat: recordatorios con números escritos y fracciones
+
+- **Run/ciclo**: 40 (renumerado desde 38: base f2d26ba obsoleta; merge no destructivo del remoto que avanzó con ciclos 37/38/39; auto-merge limpio en parser+test, conflictos solo en docs resueltos conservando el trabajo del otro run. Sin force push, sin reset --hard).
 - **HEAD inicial**: f2d26ba (origin/openhands/autonomous-ordia sincronizado; ciclo 37 ya en remoto).
 - **Problema seleccionado**: `NaturalTaskParser` NO reconocía **números escritos** en recordatorios relativos ("recuérdame una/dos horas antes", "una hora antes", "treinta minutos antes") ni **fracciones** ("media hora antes", "un cuarto de hora antes"): `reminderOffsetMinutes=null` y la frase quedaba como residuo en el título. Además "media hora antes" era **robado por el patrón de duración fraccionaria** (30 min falsos como duración) y el recordatorio quedaba en null. La cita se olvidaba (sin recordatorio programado).
 - **Prioridad**: P2 (evitar olvidos por recordatorio perdido; asimetría con la duración relativa "en dos horas" que sí funcionaba).
@@ -2619,9 +2688,9 @@ a un permiso persistente frágil y silencioso ante fallos.
   - `writtenAmountPattern` (dígitos o números escritos en español, simétrico a la fecha relativa) en los 2 patrones de recordatorio existentes.
   - 2 patrones nuevos de fracción con **contexto obligatorio** ("antes"/"de anticipación"/verbo) para no robar una duración real.
   - Offset vía `parseWrittenNumber`; `media hora`=30 / `cuarto de hora`=15; acceso `getOrNull(2)` seguro.
-- **Tests**: +8 (`parsesWrittenAmountReminderWithVerb`, `parsesWrittenAmountReminderTwoHours`, `parsesWrittenAmountReminderThirtyMinutes`, `parsesWrittenAmountReminderWithoutVerb`, `mediaHoraAntesEsRecordatorio`, `cuartoDeHoraAntesEsRecordatorio`, `recuerdameMediaHoraDeAnticipacion`, `mediaHoraSinAntesSigueSiendoDuracion` — regresión). **323 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **Tests**: +8 (`parsesWrittenAmountReminderWithVerb`, `parsesWrittenAmountReminderTwoHours`, `parsesWrittenAmountReminderThirtyMinutes`, `parsesWrittenAmountReminderWithoutVerb`, `mediaHoraAntesEsRecordatorio`, `cuartoDeHoraAntesEsRecordatorio`, `recuerdameMediaHoraDeAnticipacion`, `mediaHoraSinAntesSigueSiendoDuracion` — regresión). **344 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases (336 base remota + 8 nuevos). Smoke 25 OK.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
-- **Commits**: feat(parser): recordatorios con números escritos y fracciones; docs(autonomy): este registro.
+- **Commits**: `f8023fd` feat(parser): recordatorios con números escritos y fracciones; `24d31f8` docs(autonomy): registro (renumerado a 40 tras merge).
 - **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
 
 ### Siguiente

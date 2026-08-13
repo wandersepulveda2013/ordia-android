@@ -434,6 +434,42 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2024, 1, 10), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // ── Fechas imposibles: recuperación honesta en vez de pérdida ──
+    // "el 29 de febrero" (sin año, año no bisiesto) → próximo 29 de feb real.
+    // "el 31 de abril" / "el 30 de febrero" → último día válido del mes nombrado.
+    // Antes: LocalDate.of lanzaba → dueAt=null y la frase quedaba como título basura.
+
+    @Test fun feb29SinAnioRuedaAProximoBisiesto() {
+        // hoy = 29-jul-2026 (no bisiesto). "el 29 de febrero" → 29-feb-2028.
+        val result = NaturalTaskParser.parse("Renovación el 29 de febrero", now, zone)
+        assertEquals("Renovación", result.title)
+        assertEquals(LocalDate.of(2028, 2, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun feb29SinAnioSoloFechaRuedaAProximoBisiesto() {
+        val result = NaturalTaskParser.parse("el 29 de febrero", now, zone)
+        assertEquals(LocalDate.of(2028, 2, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun feb29ConAnioExplicitoNoBisiestoClampaA28() {
+        // Año explícito 2027 (no bisiesto): se respeta el año, día 29→28.
+        val result = NaturalTaskParser.parse("Cita el 29 de febrero de 2027", now, zone)
+        assertEquals(LocalDate.of(2027, 2, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dia31DeAbrilClampaA30() {
+        // Abril tiene 30 días: "el 31 de abril" → 30-abr. 30-abr-2026 ya pasó → 2027.
+        val result = NaturalTaskParser.parse("Entrega el 31 de abril", now, zone)
+        assertEquals("Entrega", result.title)
+        assertEquals(LocalDate.of(2027, 4, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dia30DeFebreroClampaA28() {
+        val result = NaturalTaskParser.parse("Pago el 30 de febrero", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2027, 2, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // ── Regresión BUG2: "esta mañana/tarde/noche" ──
 
     @Test fun estaNocheSetsTonightCanonicalTime() {
@@ -628,6 +664,28 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Entregar tarea a la medianoche", now, zone)
         assertEquals("Entregar tarea", result.title)
         assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // --- Regresión BUG: "de la mañana"/"por la mañana" como marcador de hora NO
+    //     debe interpretarse como la fecha "mañana" (antes "Reunión a las 9 de la
+    //     mañana" se programaba para MAÑANA en vez de HOY → reunión perdida el mismo día). ---
+
+    @Test fun deLaMananaWithoutDateStaysToday() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 de la mañana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun porLaMananaWithoutDateStaysToday() {
+        val result = NaturalTaskParser.parse("Llamar a mamá por la mañana", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mananaPorLaMananaStillResolvesTomorrow() {
+        val result = NaturalTaskParser.parse("Hacer X mañana por la mañana", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
     // --- "esta mañana" no debe dejar "esta" huérfano en el título ---
@@ -1452,6 +1510,116 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Pagar factura a mediados de mes", now, zone)
         assertEquals("Pagar factura", result.title)
         assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // --- "hace N días/semanas/meses/años" y "la semana/el mes/el año pasado" ---
+    // El usuario registra una tarea ya vencida ("pagué hace 2 días", "revisé el
+    // informe la semana pasada"). Antes estas formas quedaban SIN fecha y con la frase
+    // temporal intacta en el título -> tarea sin recordatorio y con basura. Ahora se
+    // resuelven a una fecha PASADA (tarea vencida honesta, visible en What Now) y se
+    // borran del título. now = 2026-07-29 (miércoles) al mediodía.
+
+    @Test fun haceNdiasResuelveFechaPasada() {
+        // 2026-07-29 - 2 días = 2026-07-27.
+        val result = NaturalTaskParser.parse("Pagar factura hace 2 días", now, zone)
+        assertEquals("Pagar factura", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun haceUnaSemanaResuelveFechaPasada() {
+        // 2026-07-29 - 7 días = 2026-07-22.
+        val result = NaturalTaskParser.parse("Enviar correo hace una semana", now, zone)
+        assertEquals("Enviar correo", result.title)
+        assertEquals(LocalDate.of(2026, 7, 22), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun haceNmesesResuelveFechaPasada() {
+        // 2026-07-29 - 3 meses (90 días) = 2026-04-30.
+        val result = NaturalTaskParser.parse("Auditar hace 3 meses", now, zone)
+        assertEquals("Auditar", result.title)
+        assertEquals(LocalDate.of(2026, 4, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun haceNdiasConHoraAplicaHoraSobreFechaPasada() {
+        // La hora explícita se aplica sobre la fecha pasada (tarea vencida con hora).
+        val result = NaturalTaskParser.parse("Pago hace 2 días a las 10", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun laSemanaPasadaResuelveFechaPasada() {
+        // 2026-07-29 - 7 días = 2026-07-22.
+        val result = NaturalTaskParser.parse("Revisar informe la semana pasada", now, zone)
+        assertEquals("Revisar informe", result.title)
+        assertEquals(LocalDate.of(2026, 7, 22), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elMesPasadoResuelveFechaPasada() {
+        // 2026-07-29 - 30 días = 2026-06-29. Antes previousWeekdayPattern capturaba
+        // "el mes pasado" (grupo1="mes", no es día -> sin fecha) y borraba la frase,
+        // dejando dueAt=null. Ahora lastPeriodPattern se detecta antes y resta el período.
+        val result = NaturalTaskParser.parse("Reunión el mes pasado", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 6, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elMesPasadoConHoraAplicaHora() {
+        val result = NaturalTaskParser.parse("Reunión el mes pasado a las 15", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 6, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun hacePocoResuelveHaceTresHoras() {
+        // "hace poco"/"hace un rato" = -3 h (heurística honesta de "recién").
+        // now=12:00 -> 09:00 del mismo día.
+        val result = NaturalTaskParser.parse("hace poco", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haceUnRatoLimpiaTituloSinResiduo() {
+        // "un rato" debe capturarse completo, no trocearse dejando "rato" en el título.
+        val result = NaturalTaskParser.parse("Llamé hace un rato", now, zone)
+        assertEquals("Llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // --- "a finales de semana" / "finales de semana" (= próximo sábado, fecha única) ---
+    // Forma plural análoga a "finales de mes": señala un fin de semana concreto, no un
+    // hábito ("lo termino a finales de semana"). Antes NO casaba "fin de semana" (singular)
+    // y caía a dueAt=null -> tarea olvidada. Ahora resuelve como "fin de semana" = sábado.
+    // OJO: "fines de semana" (f-i-n-e-s) sigue siendo recurrencia semanal, no se toca.
+
+    @Test fun aFinalesDeSemanaProgramaProximoSabadoYLimpiaTitulo() {
+        // hoy = miércoles 2026-07-29 -> sábado 2026-08-01, hora canónica 09:00.
+        val result = NaturalTaskParser.parse("Enviar el informe a finales de semana", now, zone)
+        assertEquals("Enviar el informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun finalesDeSemanaSueltoProgramaProximoSabadoYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Revisar código finales de semana", now, zone)
+        assertEquals("Revisar código", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finalesDeSemanaRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Fiesta a finales de semana a las 20:00", now, zone)
+        assertEquals("Fiesta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun finalesDeSemanaNoColisionaConRecurrenciaFinesDeSemana() {
+        // "fines de semana" (f-i-n-e-s) sigue siendo recurrencia WEEKLY sáb+dom, no fecha única.
+        val result = NaturalTaskParser.parse("Limpieza cada fines de semana", now, zone)
+        assertEquals("Limpieza", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
     }
 
     // --- "un par de" (coloquial = 2): "en un par de días/semanas/meses" ---
