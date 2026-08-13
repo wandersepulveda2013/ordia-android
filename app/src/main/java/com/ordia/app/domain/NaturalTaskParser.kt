@@ -48,18 +48,18 @@ object NaturalTaskParser {
         """(?i)\b(?:en|dentro\s+de)\s+(\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|mes(?:es)?|a[nñ]os?)\b"""
     )
     /**
-     * Período próximo: "el/la (semana|mes|año) que viene", "próximo/próxima
-     * (semana|mes|año)", "(semana|mes|año) próximo/próxima". Equivale a +1 período
-     * (semana=+7d, mes=+30d, año=+365d). Es la forma cotidianísima de posponer a la
-     * siguiente unidad de tiempo; antes ("la semana que viene", "el mes que viene",
-     * "el año que viene") quedaban sin fecha y con la frase «que viene» como residuo
+     * Período próximo ("la semana que viene", "el mes que viene", "el año que
+     * viene", "próximo mes", "la próxima semana"): +1 período (semana/mes/año).
+     * "trimestre que viene" / "próximo trimestre" = +3 meses = +90 días
+     * (plazo largo cotidiano: impuestos trimestrales, revisiones, informes).
+     * Antes estas formas quedaban sin fecha y con la frase «que viene» como residuo
      * en el título → tarea olvidada (sin recordatorio ni visibilidad).
      * "próximos días" (con o sin "en los/el/las") es la forma vaga de "dentro de
      * poco": +3 días (heurística honesta, ni IA ni azar). Antes quedaba sin fecha
      * → la tarea se olvidaba.
      */
     private val nextPeriodPattern = Regex(
-        """(?i)\b(?:el|la)?\s*(?:semana|mes|a[nñ]o)\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)\b|(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
+        """(?i)\b(?:el|la)?\s*(?:semana|mes|a[nñ]o|trimestre)\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)\b|(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o|trimestre)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
     )
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
     private val timePatterns = listOf(
@@ -274,6 +274,9 @@ object NaturalTaskParser {
         val nextPeriodDueAt = nextPeriodMatch?.let { m ->
             val text = m.value.lowercase()
             val days = when {
+                // "trimestre" se comprueba antes que "mes": "trimes**tre**" contiene
+                // la subcadena "mes", así que si "mes" fuera primero ganaría (+30d).
+                "trimestre" in text -> 90L
                 "semana" in text -> 7L
                 "mes" in text -> 30L
                 "año" in text -> 365L

@@ -1017,4 +1017,29 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
+
+    // --- "trimestre": período próximo de 3 meses (+90 días) ---
+    // "próximo trimestre" / "el trimestre que viene" / "el próximo trimestre":
+    // plazo largo cotidiano (impuestos trimestrales, revisiones, informes). Antes
+    // no se parseaba → dueAt=null → tarea olvidada (sin recordatorio ni visibilidad).
+
+    @Test fun proximoTrimestreParsesDueAt() {
+        // +90 días (3 meses × 30d, consistente con "mes que viene" = +30d).
+        val result = NaturalTaskParser.parse("Auditoría próximo trimestre", now, zone)
+        assertEquals("Auditoría", result.title)
+        assertEquals(LocalDate.of(2026, 10, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun trimestreQueVieneParsesDueAt() {
+        val result = NaturalTaskParser.parse("Cerrar informe el trimestre que viene", now, zone)
+        assertEquals("Cerrar informe", result.title)
+        assertEquals(LocalDate.of(2026, 10, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximoTrimestreRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Reunión el próximo trimestre a las 10", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 10, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
 }
