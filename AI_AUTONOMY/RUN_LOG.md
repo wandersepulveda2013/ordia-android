@@ -19,7 +19,7 @@
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, captura real en el dispositivo (parser probado solo en JVM pura con stubs).
 - **Hallazgos adicionales (descubrimiento continuo)**: probe reveló que el **rango horario CON minutos** ("clase de 9:30 a 11") o con meridiem en ambos extremos ("de 9am a 11am") NO parsea la duración correctamente (`title='Clase de a 11'`, pierde "9:30"; `dur=null`). El `timeRangePattern` captura horas en punto y deja residuo cuando hay minutos/meridiem. Documentado en BACKLOG como P2 ABIERTO (futuro run).
 - **Archivos modificados**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras push a `origin/openhands/autonomous-ordia`).
+- **HEAD final**: `db30b9c` (tras push a `origin/openhands/autonomous-ordia`; base reconciliada `e611da6` c.57+CI).
 - **Estado**: VERIFIED (JVM). 450 domain tests PASS (reconciliación limpia sobre c.57 número-escrito).
 
 ### Siguiente
