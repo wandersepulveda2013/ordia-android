@@ -471,8 +471,17 @@ object NaturalTaskParser {
         // "el jueves pasado" / "el último lunes": fecha pasada. Se borra ANTES que
         // weekdayPattern para que el día no se capture como próximo y "pasado" no
         // quede como residuo en el título.
+        // Solo se consume del título si el sustantivo es realmente un día de la
+        // semana. Antes el borrado era incondicional: "entregar el informe pasado
+        // mañana" hacía casar "el informe pasado" (grupo="informe", no es día) y se
+        // borraba igual, dejando "mañana" como fecha suelta → cita programada un día
+        // antes (P1: fecha de vencimiento errónea, "pasado mañana" roto) y eliminando
+        // "informe" del título. Validar el día antes de borrar preserva el título y
+        // deja que "pasado mañana" se resuelva correctamente en la rama de fecha.
         val previousWeekdayMatch = previousWeekdayPattern.find(working)
+            ?.takeIf { it.groupValues[1].toDayOfWeekOrNull() != null }
         val previousWeekdayReversedMatch = previousWeekdayReversedPattern.find(working)
+            ?.takeIf { it.groupValues[1].toDayOfWeekOrNull() != null }
         previousWeekdayMatch?.let { working = working.replace(it.value, " ") }
         previousWeekdayReversedMatch?.let { working = working.replace(it.value, " ") }
 

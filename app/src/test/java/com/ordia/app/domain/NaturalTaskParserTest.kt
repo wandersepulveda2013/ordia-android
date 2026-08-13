@@ -2064,6 +2064,33 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "pasado mañana": fecha relativa de dos días. Regresión P1: "entregar el
+    // informe pasado mañana" se fechaba en MAÑANA (un día antes) y borraba "informe"
+    // del título, porque previousWeekdayPattern casaba "el informe pasado" y se
+    // consumía incondicionalmente (aunque "informe" no es día de la semana). ---
+
+    @Test fun pasadoMananaResuelveDosDiasYConservaTitulo() {
+        // hoy = miércoles 2026-07-29 -> pasado mañana = viernes 2026-07-31.
+        val result = NaturalTaskParser.parse("Entregar el informe pasado mañana", now, zone)
+        assertEquals("Entregar el informe", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun pasadoMananaConHoraConservaOffsetYTitulo() {
+        val result = NaturalTaskParser.parse("Reunión pasado mañana a las 10", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun pasadoMananaNoConfundeSustantivoConDiaDeSemana() {
+        // "el proyecto pasado mañana": "proyecto" no es día de semana, no debe
+        // consumirse ni romper "pasado mañana", ni eliminarse del título.
+        val result = NaturalTaskParser.parse("Revisar el proyecto pasado mañana", now, zone)
+        assertEquals("Revisar el proyecto", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "esta semana": plazo blando = fin de la semana actual (próximo domingo) ---
 
     @Test fun estaSemanaParsesDueAtProximoDomingo() {
