@@ -7,10 +7,12 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 
 class TaskRulesTest {
     private val zone = ZoneId.of("America/Santo_Domingo")
+    private val date = LocalDate.of(2026, 7, 29)
 
     @Test
     fun dueToday_matchesCalendarDay() {
@@ -31,6 +33,32 @@ class TaskRulesTest {
         val normal = TaskEntity(id = 1, title = "Normal", priority = TaskPriority.NORMAL)
         val high = TaskEntity(id = 2, title = "Alta", priority = TaskPriority.HIGH)
         assertEquals(high, TaskRules.nextBestTask(listOf(normal, high), 100))
+    }
+
+    @Test
+    fun nextBestTask_prefersTaskHappeningNowOverUrgent() {
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val inProgress = TaskEntity(
+            id = 1, title = "En curso",
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 30), zone),
+            durationMinutes = 60
+        )
+        val urgent = TaskEntity(id = 2, title = "Urgente", priority = TaskPriority.URGENT)
+        assertEquals(inProgress, TaskRules.nextBestTask(listOf(urgent, inProgress), now, zone))
+    }
+
+    @Test
+    fun nextBestTask_prefersDueTodayOverUrgentDueTomorrow() {
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val dueToday = TaskEntity(
+            id = 1, title = "Vence hoy", priority = TaskPriority.NORMAL,
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone)
+        )
+        val urgentTomorrow = TaskEntity(
+            id = 2, title = "Urgente mañana", priority = TaskPriority.URGENT,
+            dueAt = DateRules.toEpochMillis(date.plusDays(1), LocalTime.of(18, 0), zone)
+        )
+        assertEquals(dueToday, TaskRules.nextBestTask(listOf(urgentTomorrow, dueToday), now, zone))
     }
 
     @Test

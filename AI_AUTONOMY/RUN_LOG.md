@@ -2855,3 +2855,21 @@ a un permiso persistente frágil y silencioso ante fallos.
   recordatorios, detección de vencidas, búsqueda universal en busca de oportunidades de producto.
 - Parser: manejo robusto de múltiples marcadores temporales en una frase.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+
+## Ciclo 45 - 2026-08-13 (UTC) - feat: nextBestTask time-aware (inteligencia widget/asistente)
+
+- **Run/ciclo**: 45 (renumerado: la otra ejecucion concurrente reclamo los ciclos 43 ("entre semana"/"de lunes a viernes") y 44 ("la quincena" como hito financiero). Procedimiento no destructivo: `git stash` del trabajo, `git pull --ff-only` a `a934b65`, `git stash pop`; auto-merge limpio en `TaskRules.kt` + tests (cambios ortogonales: el remoto toco `NaturalTaskParser`, yo `TaskRules`); al hacer push el remoto habia vuelto a avanzar a `e0850e6`, se hizo `git pull --rebase` (auto-merge limpio en TaskRules/BACKLOG/CURRENT_STATE; conflicto solo en RUN_LOG resuelto conservando el ciclo 44 del otro run y renumerando el mio a 45). Sin force push, sin reset --hard.
+- **HEAD inicial**: `b4ef5e4` (al inicio del run); el remoto avanzo a `a934b65` durante el run.
+- **Problema seleccionado**: `TaskRules.nextBestTask` (heuristica "que hago ahora?" usada por el widget de inicio, el asistente y el fallback nextTask del ViewModel) ordenaba solo por `overdue > prioridad > dueAt > createdAt` e ignoraba el tiempo: una tarea ocurriendo ahora mismo (`startAt<=now<=startAt+dur`, p.ej. una reunion a las 15:00 siendo las 15:00) no se priorizaba, y una URGENTE para manana se sugeria antes que una NORMAL que vence hoy. `WhatNowEngine` (tarjeta What Now de `TodayScreen`) si era time-aware, dejando al widget/asistente dando una respuesta menos oportuna que la pantalla principal - y el widget es la superficie mas vista.
+- **Prioridad**: P2 (mejora funcional de inteligencia local; "menos interfaz, mas potencia" sin nueva pantalla).
+- **Causa raiz**: `nextBestTask` no consideraba `startAt`/`durationMinutes` ni el instante actual `now`. `WhatNowEngine` si lo hacia pero solo en `TodayScreen`, no en widget/asistente.
+- **Solucion (minima, en `TaskRules.kt`)**: `nextBestTask(tasks, now, zone)` con orden honesto (no IA, no random): (1) en curso ahora (`startAt<=now<=startAt+dur`), (2) vencida, (3) vence hoy, (4) urgente, (5) alta, (6) resto por inbox/orden/creacion; las programadas para mas tarde quedan ultimas. Nuevos helpers `isInProgressNow` (privado) e `isDueToday` (publico, zona-aware, ya reusado por `GuardianCoach`). Retrocompatible: `nextBestTask(tasks)` delega con `now`/zona por defecto: `OrdiaWidgetProvider`, `AssistantEngine`, `OrdiaViewModel` siguen compilando sin cambio.
+- **Tests**: +2 (`nextBestTask_prefersTaskHappeningNowOverUrgent`, `nextBestTask_prefersDueTodayOverUrgentDueTomorrow`). **386 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases (384 base remota + 2 nuevos). Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del widget (sin Android SDK).
+- **Archivos modificados**: `TaskRules.kt`, `TaskRulesTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: `e2ab858` (rebasado sobre `e0850e6`; push a `origin/openhands/autonomous-ordia` pendiente).
+
+### Siguiente
+- Descubrimiento continuo: auditar `GuardianCoach`, `SummaryService`, `PlanEngine`, deteccion de vencidas importantes.
+- Parser: "la quincena" como hito financiero (dia 15 / fin de mes) ya resuelto por el otro run (ciclo 44).
+- P1 adjuntos: migracion lazy de adjuntos legacy (evaluar seguridad primero).

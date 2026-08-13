@@ -22,14 +22,50 @@ object TaskRules {
     fun plannedDuration(task: TaskEntity): Int =
         task.durationMinutes.coerceIn(MIN_PLAN_MINUTES, MAX_PLAN_MINUTES)
 
-    fun nextBestTask(tasks: List<TaskEntity>, now: Long = System.currentTimeMillis()): TaskEntity? =
+    /**
+     * Siguiente tarea más importante, con la misma prioridad temporal que
+     * [WhatNowEngine.suggest] (widget, asistente y "siguiente paso" del guardián
+     * comparten esta lógica): lo que ocurre ahora mismo > atrasado > vence hoy >
+     * urgente > alta > bandeja; las programadas para más tarde quedan al final.
+     * Desempate: prioridad, fecha límite más próxima, hora prevista, orden, creación.
+     */
+    fun nextBestTask(
+        tasks: List<TaskEntity>,
+        now: Long = System.currentTimeMillis(),
+        zone: ZoneId = ZoneId.systemDefault()
+    ): TaskEntity? =
         tasks.asSequence()
             .filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED && it.parentTaskId == null }
-            .sortedWith(compareByDescending<TaskEntity> { isOverdue(it, now) }
-                .thenByDescending { priorityScore(it.priority) }
-                .thenBy { it.dueAt ?: Long.MAX_VALUE }
-                .thenBy { it.createdAt })
+            .sortedWith(
+                compareByDescending<TaskEntity> { timeRank(it, now, zone) }
+                    .thenByDescending { priorityScore(it.priority) }
+                    .thenBy { it.dueAt ?: Long.MAX_VALUE }
+                    .thenBy { it.startAt ?: Long.MAX_VALUE }
+                    .thenBy { it.sortOrder }
+                    .thenBy { it.createdAt }
+            )
             .firstOrNull()
+
+    private fun timeRank(task: TaskEntity, now: Long, zone: ZoneId): Int = when {
+        task.status == TaskStatus.IN_PROGRESS -> 6
+        isInProgressNow(task, now) -> 5
+        isOverdue(task, now) -> 4
+        isScheduledLater(task, now) -> -1
+        isDueToday(task, now, zone) -> 3
+        task.priority == TaskPriority.URGENT -> 2
+        task.priority == TaskPriority.HIGH -> 1
+        else -> 0
+    }
+
+    private fun isInProgressNow(task: TaskEntity, now: Long): Boolean {
+        val start = task.startAt ?: return false
+        if (now < start) return false
+        val duration = task.durationMinutes.coerceAtLeast(10) * 60_000L
+        return now <= start + duration
+    }
+
+    private fun isScheduledLater(task: TaskEntity, now: Long): Boolean =
+        task.startAt != null && task.startAt > now
 
     fun isOverdue(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean =
         !task.completed && !task.archived && task.status != TaskStatus.CANCELLED && task.dueAt?.let { it < now } == true

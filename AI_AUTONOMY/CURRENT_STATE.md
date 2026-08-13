@@ -14,8 +14,8 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 43)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 43)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 45)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 45)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
@@ -23,6 +23,40 @@
   docs-only) → los commits de código generan releases automáticamente.
 
 | P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests) |
+
+## Último trabajo — Ciclo 44: `nextBestTask` time-aware (inteligencia widget/asistente)
+
+Mejora funcional de inteligencia local (P2 — "menos interfaz, más potencia"). `TaskRules.nextBestTask`
+(heurística "¿qué hago ahora?" usada por el **widget de inicio**, el **asistente** y el fallback
+`nextTask` del ViewModel) ordenaba solo por `overdue > prioridad > dueAt > createdAt` e **ignoraba
+el tiempo**: una tarea ocurriendo **ahora mismo** (`startAt<=now<=startAt+dur`, p.ej. una reunión
+a las 15:00 siendo las 15:00) no se priorizaba, y una **URGENTE para mañana** se sugería antes
+que una **NORMAL que vence hoy**. `WhatNowEngine` (tarjeta What Now de `TodayScreen`) sí era
+time-aware, dejando al widget/asistente dando una respuesta menos oportuna que la pantalla
+principal — y el widget es la superficie más vista.
+
+**Solución (mínima, en `TaskRules.kt`)**: `nextBestTask(tasks, now, zone)` con orden honesto (no IA,
+no random): (1) en curso ahora (`startAt<=now<=startAt+dur`), (2) vencida, (3) vence hoy,
+(4) urgente, (5) alta, (6) resto por inbox/orden/creación; las programadas para más tarde quedan
+últimas. Nuevos helpers `isInProgressNow` (privado) e `isDueToday` (público, zona-aware, ya usado
+por `GuardianCoach`). Retrocompatible: la firma existente `nextBestTask(tasks)` delega con
+`now`/zona por defecto → `OrdiaWidgetProvider`, `AssistantEngine`, `OrdiaViewModel` siguen
+compilando sin cambio.
+
+**Colisión de remoto resuelta (no destructiva)**: durante el run el remoto avanzó dos veces.
+Primero a `a934b65` (ciclo 43: parser "entre semana"/"de lunes a viernes" = recurrencia Lun–Vie):
+`git stash` → `git pull --ff-only` → `git stash pop`, auto-merge limpio en `TaskRules.kt` + tests
+(cambios ortogonales). Después, al hacer push, el remoto había vuelto a avanzar a `e0850e6`
+(ciclo 44 del otro run: "la quincena" como hito financiero día 15 / fin de mes): `git pull --rebase`,
+auto-merge limpio en `TaskRules.kt`/BACKLOG/CURRENT_STATE; conflicto solo en `RUN_LOG.md` resuelto
+conservando el ciclo 44 del otro run y renumerando el mío a **ciclo 45**. Sin force push, sin
+reset --hard.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**386 tests PASS** (384 base remota + 2 nuevos de este ciclo, 25 clases). Smoke 25 OK
+(`tools/run_domain_checks.sh`). NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs
+reales, render real del widget (sin Android SDK).
+
 
 ## Último trabajo — Ciclo 43: parser "entre semana"/"días laborables"/"de lunes a viernes" = recurrencia semanal Lun–Vie
 
