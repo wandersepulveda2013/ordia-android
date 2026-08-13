@@ -39,4 +39,30 @@ class NaturalTaskParserTest {
         assertEquals("Revisar el horno", result.title)
         assertEquals(now + 45 * 60_000L, result.dueAt)
     }
+
+    @Test fun parsesWrittenRelativeDuration() {
+        val resultHours = NaturalTaskParser.parse("Revisar el horno en dos horas", now, zone)
+        assertEquals("Revisar el horno", resultHours.title)
+        assertEquals(now + 2 * 60 * 60_000L, resultHours.dueAt)
+
+        val resultHalfHour = NaturalTaskParser.parse("Correr en media hora", now, zone)
+        assertEquals("Correr", resultHalfHour.title)
+        assertEquals(now + 30 * 60_000L, resultHalfHour.dueAt)
+
+        val resultDay = NaturalTaskParser.parse("Llamar en un dia", now, zone)
+        assertEquals("Llamar", resultDay.title)
+        assertEquals(now + 24 * 60 * 60_000L, resultDay.dueAt)
+    }
+
+    @Test fun parsesContextualTime() {
+        val resultNoche = NaturalTaskParser.parse("Revisar el horno esta noche", now, zone)
+        assertEquals("Revisar el horno", resultNoche.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(resultNoche.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(resultNoche.dueAt, zone))
+
+        val resultTarde = NaturalTaskParser.parse("Ir al super esta tarde", now, zone)
+        assertEquals("Ir al super", resultTarde.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(resultTarde.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(resultTarde.dueAt, zone))
+    }
 }

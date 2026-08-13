@@ -17,7 +17,8 @@ data class ParsedTaskInput(
 object NaturalTaskParser {
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
     private val weekdayPattern = Regex("""(?i)\b(?:el\s+)?(?:pr[oó]ximo\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b""")
-    private val relativePattern = Regex("""(?i)\ben\s+(\d{1,3})\s*(minutos?|mins?|horas?|d[ií]as?)\b""")
+    private val relativePattern = Regex("""(?i)\ben\s+(\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|quince|medio|media)\s*(minutos?|mins?|horas?|d[ií]as?)\b""")
+    private val contextualTimePattern = Regex("""(?i)\b(esta\s+noche|esta\s+tarde|esta\s+mañana|a\s+primera\s+hora|al\s+mediod[ií]a|a\s+medianoche)\b""")
     private val timePatterns = listOf(
         Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b([01]?\d|2[0-3]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
@@ -38,12 +39,27 @@ object NaturalTaskParser {
 
         val relativeMatch = relativePattern.find(working)
         val relativeDueAt = relativeMatch?.let { match ->
-            val amount = match.groupValues[1].toLongOrNull() ?: 0L
+            val amountStr = match.groupValues[1].lowercase()
+            val amount = amountStr.toLongOrNull() ?: when (amountStr) {
+                "un", "una" -> 1L
+                "dos" -> 2L
+                "tres" -> 3L
+                "cuatro" -> 4L
+                "cinco" -> 5L
+                "seis" -> 6L
+                "siete" -> 7L
+                "ocho" -> 8L
+                "nueve" -> 9L
+                "diez" -> 10L
+                "quince" -> 15L
+                else -> 0L
+            }
+            val isHalf = amountStr == "medio" || amountStr == "media"
             val unit = match.groupValues[2].lowercase()
             val millis = when {
-                unit.startsWith("min") -> amount * 60_000L
-                unit.startsWith("hora") -> amount * 60 * 60_000L
-                else -> amount * 24 * 60 * 60_000L
+                unit.startsWith("min") -> if (isHalf) 30_000L else amount * 60_000L
+                unit.startsWith("hora") -> if (isHalf) 30 * 60_000L else amount * 60 * 60_000L
+                else -> if (isHalf) 12 * 60 * 60_000L else amount * 24 * 60 * 60_000L
             }
             now + millis
         }
@@ -72,6 +88,7 @@ object NaturalTaskParser {
         }
 
         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
+        val contextualTimeMatch = contextualTimePattern.find(working)
         val parsedTime = timeMatch?.let { match ->
             var hour = match.groupValues[1].toInt()
             val minute = match.groupValues[2].toIntOrNull() ?: 0
@@ -79,6 +96,16 @@ object NaturalTaskParser {
             if (meridiem == "pm" && hour < 12) hour += 12
             if (meridiem == "am" && hour == 12) hour = 0
             LocalTime.of(hour, minute)
+        } ?: contextualTimeMatch?.let { match ->
+            val normalized = match.groupValues[1].lowercase().replace("í", "i").replace(Regex("""\s+"""), " ")
+            when (normalized) {
+                "esta noche" -> LocalTime.of(20, 0)
+                "esta tarde" -> LocalTime.of(15, 0)
+                "esta mañana", "a primera hora" -> LocalTime.of(9, 0)
+                "al mediodia" -> LocalTime.of(12, 0)
+                "a medianoche" -> LocalTime.of(0, 0)
+                else -> LocalTime.of(9, 0)
+            }
         }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
@@ -86,6 +113,7 @@ object NaturalTaskParser {
         relativeMatch?.value?.let { working = working.replace(it, " ") }
         weekdayMatch?.value?.let { working = working.replace(it, " ") }
         timeMatch?.value?.let { working = working.replace(it, " ") }
+        contextualTimeMatch?.value?.let { working = working.replace(it, " ") }
         working = working
             .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
             .let { value -> numericDatePattern.replace(value, " ") }
