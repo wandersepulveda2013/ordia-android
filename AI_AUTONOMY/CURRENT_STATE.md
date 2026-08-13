@@ -14,13 +14,41 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 32 cont.4)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 32 cont.4)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 33)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 33)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
+
+## Último trabajo — Ciclo 33: parser “principios de mes”, “fines de semana” recurrentes, días pasados
+
+Unidad atómica del ciclo de parser natural (P1 — evitar olvidos de fechas, menos fricción de
+captura). Tres capacidades nuevas del `NaturalTaskParser`, todas formas cotidianas en español que
+antes caían a `dueAt=null` o fecha errónea:
+
+1. **“principios de mes” (día 1)**: complemento de “fin/mediados de mes”. Pagos, rentas, cierres
+   que vencen el 1. Patrón `startOfMonthPattern`; rueda al 1 del mes siguiente si hoy > 1 (si hoy
+   es 1, vence hoy). Detectado y borrado ANTES del período próximo (evita colisión con “mes que
+   viene”, como ya hacían fin/mediados).
+2. **“fines de semana” (plural) como recurrencia WEEKLY sábado+domingo**: “cada fines de semana” /
+   “los findes” expresa un hábito de fin de semana. Antes el plural no casaba con el patrón singular
+   “fin de semana” (quedaba como residuo) ni generaba recurrencia. Ahora `RecurrenceFrequency.WEEKLY`
+   con `days=[6,7]` (CSV “6,7”). El patrón consume un “cada”/“los” inicial opcional para limpiar el
+   título. Singular “fin de semana” sigue siendo fecha única (próximo sábado): el plural = hábito.
+3. **“el jueves pasado” / “el último lunes” / “el martes anterior” (fecha pasada)**: el usuario
+   reconoce que la tarea quedó vencida. Antes “el jueves pasado” se leía como “jueves” (próximo)
+   por `weekdayPattern` y “pasado” quedaba en el título → fecha FUTURA errónea + título sucio. Ahora
+   se resuelve a la última ocurrencia PASADA (tarea vencida honesta, visible en What Now como
+   atrasada). Función `previousWeekday()` (excluye hoy: si hoy es ese día, va al de la semana
+   anterior). Dos patrones: orden natural (“jueves pasado”) e inverso (“último lunes”); detectados
+   y borrados ANTES de `weekdayPattern`.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**286 tests PASS** (275 base + 11 nuevos: 4 principios, 2 fines-de-semana, 5 días-pasados), 25
+clases. Smoke 25 OK. NO VERIFICADO: gradle/lint/assemble/Android/UI (sin Android SDK).
+
 
 ## Último trabajo — Ciclo 32 (cont.4): adjuntos copiados a almacenamiento interno (P1 persistencia)
 
@@ -135,7 +163,8 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 - Ciclos previos del 32: “próximos días” (+3d), “antier” (-2d), “próximo trimestre” (+90d),
   “fin de mes”/“mediados de mes”, verificados.
 - Continuar ciclo interminable. Candidatos parser: “esta semana” (vs “la semana que viene”),
-  “principios de mes” (día 1), “próximo bimestre/semestre” (evaluar frecuencia).
+  “próximo bimestre/semestre” (evaluar frecuencia), “próxima quincena” (+15d), “principios de
+  semana” (lunes). “principios de mes” (día 1) ya hecho ciclo 33.
 - P1 adjuntos: NEXT paso sería **migración de adjuntos legacy** (URIs externos antiguos ya
   guardados) — copiar contenido al abrir por primera vez si todavía accesible. Evaluar antes
   de implementar (riesgo: URIs ya inválidos). De momento `resolveAttachmentUri` no rompe legacy.

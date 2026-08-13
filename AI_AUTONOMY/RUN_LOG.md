@@ -2450,3 +2450,45 @@ a un permiso persistente frágil y silencioso ante fallos.
 ### Siguiente
 - Continuar ciclo interminable. Migración lazy de adjuntos legacy si se evalúa segura;
   si no, parser "esta semana"/"principios de mes". P2/P3 rendimiento/UX.
+
+
+---
+
+## 2026-08-13 — Ciclo 33: parser “principios de mes”, “fines de semana” recurrentes, días pasados
+
+- **HEAD inicial**: `bdd3dc0` (ciclo 32 cont.3 docs) — base local al iniciar el run.
+- **Cambio de base**: al hacer `git fetch` el remoto había avanzado a `82ba021` (ciclo 32 cont.4:
+  adjuntos a almacenamiento interno). Mi base local estaba **obsoleta** (STALE potencial). Stash +
+  `pull --ff-only` a `82ba021` + reaplicación. Conflicto en `CURRENT_STATE.md`/`RUN_LOG.md`
+  (ambos runs tocamos docs de autonomía); resuelto tomando base remota y regenerando mis ediciones
+  sobre ella. Código (`NaturalTaskParser.kt`, test) y `BACKLOG.md` se reaplicaron **sin conflicto**.
+- **Problema (P1 — evitar olvidos / menos fricción de captura)**: tres formas cotidianas en
+  español caían a `dueAt=null` o fecha errónea:
+  1. **“principios de mes”** (día 1: rentas, pagos, cierres): `startOfMonthPattern` existía como
+     regex pero sin resolución → `dueAt=null` o +30d por “mes” → vencimiento olvidado.
+  2. **“fines de semana” (plural)** (“cada fines de semana”/“los findes”): el patrón singular “fin
+     de semana” no casaba “fines” (residuo) y no existía hábito sábado+domingo → recurrencia perdida.
+  3. **“el jueves pasado” / “el último lunes” / “el martes anterior”**: `weekdayPattern` capturaba
+     el día como **próximo** y “pasado” quedaba en el título → fecha **FUTURA** errónea + título sucio
+     (tarea vencida mal fechada, no aparecía como atrasada en What Now). Orden inverso tampoco casaba.
+- **Solución (mínima, en `NaturalTaskParser.kt`)**:
+  1. Rama `startOfMonthPattern` en `monthBoundaryDueAt` (`withDayOfMonth(1)`, rueda al mes
+     siguiente si hoy>1); detectado ANTES del período próximo (evita colisión con “mes que viene”).
+  2. `weekendRecurrencePattern` (plural) → `RecurrenceFrequency.WEEKLY`, `days=[6,7]` (CSV “6,7”);
+     consume “cada”/“los” inicial; singular sigue siendo fecha única (próximo sábado).
+  3. `previousWeekdayPattern` (forward “jueves pasado”) + `previousWeekdayReversedPattern` (inverso
+     “último lunes”) + función `previousWeekday()` (última ocurrencia **pasada**, excluye hoy: si
+     hoy es ese día, va al de la semana anterior); detectados ANTES de `weekdayPattern`.
+- **Tests**: +11 (4 principios, 2 fines-de-semana, 5 días-pasados). **286 domain tests PASS**
+  (`bash tools/run_domain_tests.sh`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+- **Commits (previstos)**:
+  - feat(parser): “principios de mes”, “fines de semana” recurrentes, días pasados — este commit.
+  - docs(autonomy): registro ciclo 33 — este commit.
+- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser: “esta semana” (vs “la semana que viene”),
+  “próximo bimestre/semestre”, “próxima quincena” (+15d), “principios de semana” (lunes).
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+- P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
