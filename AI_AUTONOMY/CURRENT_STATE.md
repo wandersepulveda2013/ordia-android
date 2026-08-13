@@ -94,9 +94,13 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 
 ## Próximo trabajo
 
-- Continuar ciclo interminable. áreas de oportunidad (parser): "próximos días"
-  (forma vaga, decidir si merece un default); "próximo trimestre"; años/período próximo
-  resueltos ciclo 30. Verificar necesidad antes de implementar.
+- Ciclo 31 (DONE): fix de regresión "fin de semana que viene" — `nextPeriodPattern`
+  coincidía con la subcadena "semana que viene" y dejaba residuo "fin de" + fecha +7d en
+  lugar del próximo sábado. Resuelto: weekend detectado temprano, antes del período
+  próximo; +borrado de residuo "que viene"; +test de regresión (260 domain tests PASS).
+- Continuar ciclo interminable. áreas de oportunidad (parser): "antier" (variante de
+  anteayer); "próximos días" (forma vaga, decidir si merece un default); "próximo
+  trimestre"; años/período próximo resueltos ciclo 30.
 - P1 OPEN: adjuntos guardan URI externo (BACKLOG) — requiere sesión dedicada para copiar bytes a filesDir.
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler en pantallas anidadas;
   contraste onSurfaceVariant. No detenerse.

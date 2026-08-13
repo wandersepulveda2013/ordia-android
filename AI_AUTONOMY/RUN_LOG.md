@@ -2131,3 +2131,47 @@ planificador/What Now).
 ### Siguiente
 - Continuar ciclo interminable. Candidatos parser: "próximos días" (decidir default),
   "próximo trimestre"; P1 adjuntos URI externo si hay sesión dedicada.
+
+## Ciclo 31 — NaturalTaskParser: fix "fin de semana que viene" (regresión de período próximo) — 2026-08-13T13:4Z
+
+### Objetivo
+El `nextPeriodPattern` añadido en el ciclo 30 ("semana/mes/año que viene") coincidía
+con la subcadena "semana que viene" dentro de "fin de semana que viene". Como se procesa
+antes que `weekendPattern`, consumía "semana que viene" y dejaba el residuo **«fin de»**
+en el título, **además** de programar la tarea +7d (período "semana") en lugar del
+próximo sábado. Frase cotidísima → tarea mal fechada + título corrupto (P1).
+
+### Sincronización
+- HEAD inicial: `e467b23` (ciclo 30). `git pull --ff-only` limpio, sin divergencia.
+- Entorno: JVM puro (sin Android SDK).
+
+### Cambio
+- `NaturalTaskParser.parse`: detección temprana de `weekendPattern` y borrado de `working`
+  **antes** del procesamiento de `nextPeriodPattern`. El match se conserva en
+  `weekendEarlyMatch` y se reutiliza como `weekendMatch` en la resolución de fecha (mismo
+  valor que antes; la fecha del fin de semana se calcula igual).
+- Limpieza de título: añadido borrado de residuo huérfano `\bque\s+viene\b` (queda cuando
+  la fecha asociada —fin de semana o día de la semana— se consume pero la frase
+  modificadora no, p.ej. "el viernes que viene" tras otros reordenamientos).
+- Test de regresión: `finDeSemanaQueVieneProgramaProximoSabadoYLimpiaTitulo`
+  ("Viaje fin de semana que viene" → título "Viaje", due=próximo sábado 2026-08-01).
+
+### Tests — VERIFICADO localmente (JVM)
+- Antes del fix (probe): "fin de semana que viene" → title=[fin de], due=2026-08-05 (+7d, incorrecto).
+- Después del fix: title=[Viaje] (limpio), due=2026-08-01 (próximo sábado, correcto).
+- `bash tools/run_domain_tests.sh` = **260 tests PASS** (259 + 1 nuevo), 25 clases.
+- NO VERIFICADO: gradle/lint/assemble/Android (sin Android SDK). CI remoto ejecuta `Verificar`.
+
+### Hallazgos para próximas ejecuciones
+- Parser: "antier"/"antier" (variantes de "anteayer") no reconocidas (due=null) — pendiente.
+- Parser: "próximos días"/"en los próximos días" (vago) sigue sin parsearse.
+- P1 OPEN: adjuntos guardan URI externo (BACKLOG) — requiere sesión dedicada.
+
+### Commits
+- `fix(parser): 'fin de semana que viene' ya no deja residuo ni fecha errónea` (código + test)
+- docs(autonomy): registro ciclo 31
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser: "antier"; "próximos días" (decidir default);
+  "próximo trimestre". P1 adjuntos URI externo si hay sesión dedicada.
+
