@@ -4,6 +4,7 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
@@ -104,5 +105,69 @@ class TaskRulesTest {
     fun focusClock_formatsMinutesAndSeconds() {
         assertEquals("25:00", FocusClock.format(1500))
         assertEquals("00:00", FocusClock.format(-2))
+    }
+
+    @Test
+    fun deferToNextDay_returnsNullWithoutDueAt() {
+        val task = TaskEntity(id = 1, title = "Sin fecha")
+        assertNull(TaskRules.deferToNextDay(task, now = 0L, zone))
+    }
+
+    @Test
+    fun deferToNextDay_movesDueToTomorrowSameTime() {
+        val due = DateRules.toEpochMillis(date, LocalTime.of(18, 30), zone)
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val task = TaskEntity(id = 1, title = "Reunión", dueAt = due)
+        val deferred = TaskRules.deferToNextDay(task, now, zone)!!
+
+        assertEquals(date.plusDays(1), DateRules.toLocalDate(deferred.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 30), DateRules.toLocalTime(deferred.dueAt, zone))
+        assertEquals(now, deferred.updatedAt)
+    }
+
+    @Test
+    fun deferToNextDay_preservesReminderOffset() {
+        val due = DateRules.toEpochMillis(date, LocalTime.of(18, 30), zone)
+        val reminder = due - 30 * 60_000L // 30 min antes
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val task = TaskEntity(id = 1, title = "Recordada", dueAt = due, reminderAt = reminder)
+        val deferred = TaskRules.deferToNextDay(task, now, zone)!!
+
+        assertEquals(deferred.dueAt!! - 30 * 60_000L, deferred.reminderAt)
+        // sigue siendo 30 min antes del nuevo vencimiento
+        assertEquals(date.plusDays(1), DateRules.toLocalDate(deferred.reminderAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(deferred.reminderAt, zone))
+    }
+
+    @Test
+    fun deferToNextDay_shiftsStartBySameDelta() {
+        val start = DateRules.toEpochMillis(date, LocalTime.of(17, 0), zone)
+        val due = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone) // 1 h después del inicio
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val task = TaskEntity(id = 1, title = "Con inicio", startAt = start, dueAt = due, durationMinutes = 60)
+        val deferred = TaskRules.deferToNextDay(task, now, zone)!!
+
+        assertEquals(deferred.dueAt!! - 60 * 60_000L, deferred.startAt) // gap 1 h conservado
+        assertEquals(date.plusDays(1), DateRules.toLocalDate(deferred.startAt!!, zone))
+    }
+
+    @Test
+    fun deferToNextDay_doesNotMutateOriginal() {
+        val due = DateRules.toEpochMillis(date, LocalTime.of(18, 30), zone)
+        val task = TaskEntity(id = 1, title = "Original", dueAt = due)
+        TaskRules.deferToNextDay(task, now = 0L, zone)
+
+        assertEquals(due, task.dueAt)
+        assertNull(task.startAt)
+    }
+
+    @Test
+    fun deferToNextDay_keepsNullFieldsNull() {
+        val due = DateRules.toEpochMillis(date, LocalTime.of(18, 30), zone)
+        val task = TaskEntity(id = 1, title = "Solo vencimiento", dueAt = due)
+        val deferred = TaskRules.deferToNextDay(task, now = 0L, zone)!!
+
+        assertNull(deferred.startAt)
+        assertNull(deferred.reminderAt)
     }
 }

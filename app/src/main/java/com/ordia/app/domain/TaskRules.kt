@@ -118,4 +118,43 @@ object TaskRules {
     fun priorityScore(priority: TaskPriority): Int = when (priority) {
         TaskPriority.LOW -> 0; TaskPriority.NORMAL -> 1; TaskPriority.HIGH -> 2; TaskPriority.URGENT -> 3
     }
+
+    /**
+     * Traslada una tarea a "mañana a la misma hora", preservando la integridad
+     * de sus tiempos relativos. Es la acción detrás de la sugerencia de
+     * posposición cuando el día está saturado: una sola intención mueve la
+     * tarea sin abrir el editor.
+     *
+     * Requiere [TaskEntity.dueAt] (sin vencimiento "mañana" no está definido y
+     * añadirlo cambiaría la semántica de la tarea). Calcula el nuevo vencimiento
+     * como el día siguiente al del vencimiento actual, **a la misma hora local**
+     * (vía `ZonedDateTime`, correcto frente a cambios horarios/DST en lugar de
+     * sumar 24 h a ciegas). Todo lo demás se desplaza por el mismo delta:
+     *
+     * - [TaskEntity.startAt]: se traslada `startAt + delta`, conservando la
+     *   distancia inicio→vencimiento.
+     * - [TaskEntity.reminderAt]: se traslada `reminderAt + delta`, conservando
+     *   el offset "X min antes" exacto —crítico para recurrentes, donde
+     *   [RecurrenceEngine] reutiliza `dueAt - reminderAt` en cada ocurrencia—.
+     * - [TaskEntity.recurrence]/`recurrenceInterval`/`recurrenceDays` quedan
+     *   intactos: se posponen ESTA instancia, no la cadencia.
+     *
+     * No muta la entrada; devuelve una copia con `updatedAt = now`.
+     */
+    fun deferToNextDay(
+        task: TaskEntity,
+        now: Long = System.currentTimeMillis(),
+        zone: ZoneId = ZoneId.systemDefault()
+    ): TaskEntity? {
+        val due = task.dueAt ?: return null
+        val zoned = Instant.ofEpochMilli(due).atZone(zone)
+        val newDue = zoned.plusDays(1).toInstant().toEpochMilli()
+        val delta = newDue - due
+        return task.copy(
+            dueAt = newDue,
+            startAt = task.startAt?.plus(delta),
+            reminderAt = task.reminderAt?.plus(delta),
+            updatedAt = now
+        )
+    }
 }

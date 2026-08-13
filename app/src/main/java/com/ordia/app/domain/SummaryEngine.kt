@@ -39,7 +39,7 @@ data class DaySummary(
  * calcula para OVERLOADED; la interfaz la muestra como una sugerencia, no
  * como una acción automática (el usuario decide moverla).
  */
-data class DeferralSuggestion(val taskId: Long, val title: String)
+data class DeferralSuggestion(val taskId: Long, val title: String, val canDefer: Boolean)
 
 /**
  * Veredicto del día: convierte varios conteos (minutos restantes vs minutos
@@ -185,7 +185,7 @@ object SummaryEngine {
             compareBy<TaskEntity> { priorityDeferralWeight(it.priority) }
                 .thenBy { it.dueAt ?: it.startAt ?: 0L }
         ) ?: return null
-        return DeferralSuggestion(taskId = chosen.id, title = chosen.title)
+        return DeferralSuggestion(taskId = chosen.id, title = chosen.title, canDefer = chosen.dueAt != null)
     }
 
     /** Mayor peso = más posponible (menos urgente). LOW=NORMAL/HIGH/URGENT inverso. */

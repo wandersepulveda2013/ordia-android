@@ -1,6 +1,7 @@
 package com.ordia.app.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -333,7 +334,11 @@ fun TodayScreen(
                     if (verdict != null) {
                         val suggestion = summary.deferralSuggestion
                         val verdictText = if (verdict == R.string.summary_load_overloaded && suggestion != null) {
-                            stringResource(R.string.summary_load_overloaded_suggestion, suggestion.title)
+                            if (suggestion.canDefer) {
+                                stringResource(R.string.summary_load_overloaded_actionable, suggestion.title)
+                            } else {
+                                stringResource(R.string.summary_load_overloaded_suggestion, suggestion.title)
+                            }
                         } else {
                             stringResource(verdict)
                         }
@@ -341,7 +346,14 @@ fun TodayScreen(
                             verdictText,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 6.dp)
+                            modifier = Modifier
+                                .padding(top = 6.dp)
+                                .let {
+                                    if (verdict == R.string.summary_load_overloaded &&
+                                        suggestion != null && suggestion.canDefer) {
+                                        it.clickable { vm.deferTaskToTomorrow(suggestion.taskId) }
+                                    } else it
+                                }
                         )
                     }
                 }

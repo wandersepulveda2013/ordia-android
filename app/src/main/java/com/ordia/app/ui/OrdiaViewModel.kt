@@ -524,6 +524,21 @@ class OrdiaViewModel(
     }
 
     /**
+     * Pospone una tarea a "mañana a la misma hora" sin abrir el editor: acción
+     * directa detrás de la sugerencia de posposición cuando el día está
+     * saturado. Reusa [TaskRules.deferToNextDay] (regla pura que preserva el
+     * offset del recordatorio y la distancia inicio→vencimiento) y [saveTask]
+     * (que reagenda el recordatorio en el nuevo vencimiento).
+     */
+    fun deferTaskToTomorrow(taskId: Long) {
+        viewModelScope.launch {
+            val current = taskRepository.get(taskId) ?: return@launch
+            val deferred = TaskRules.deferToNextDay(current, System.currentTimeMillis()) ?: return@launch
+            saveTask(deferred)
+        }
+    }
+
+    /**
      * Completa automáticamente una tarea padre al cerrar su última subtarea,
      * con los mismos efectos laterales que un toggle normal y registro de
      * automatización para poder deshacerlo (restaura el padre sin tocar las
