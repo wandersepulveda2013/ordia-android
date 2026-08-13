@@ -2942,9 +2942,9 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Archivos modificados**: `DayPlanner.kt`, `PlannerScreen.kt`, `strings_screens2.xml`,
   `DayPlannerTest.kt`, `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md`.
-- **Commits**: ver `git log` (commit `fix(ux): ...` a continuación).
-- **HEAD final**: (tras push a `origin/openhands/autonomous-ordia`).
-- **Estado**: VERIFIED (JVM).
+- **Commits**: `1f04247` — `fix(ux): planificador no muestra "Vence hoy" en planes de otra fecha` (rebaseado sobre `8950d07` tras colisión con run paralelo IMMINENT_START; auto-merge limpio, cambios ortogonales).
+- **HEAD final**: `1f04247` (tras push a `origin/openhands/autonomous-ordia`).
+- **Estado**: VERIFIED (JVM). 406 domain tests PASS (393 base + 2 nuevos c.48 + 7 traídos por c.49 IMMINENT_START; rebase limpio).
 
 ### Siguiente
 - Auditoría de motores no-parser: What Now (`WhatNowEngine`), captura, rutinas, recordatorios
