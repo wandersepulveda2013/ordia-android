@@ -54,9 +54,12 @@ object NaturalTaskParser {
      * siguiente unidad de tiempo; antes ("la semana que viene", "el mes que viene",
      * "el año que viene") quedaban sin fecha y con la frase «que viene» como residuo
      * en el título → tarea olvidada (sin recordatorio ni visibilidad).
+     * "próximos días" (con o sin "en los/el/las") es la forma vaga de "dentro de
+     * poco": +3 días (heurística honesta, ni IA ni azar). Antes quedaba sin fecha
+     * → la tarea se olvidaba.
      */
     private val nextPeriodPattern = Regex(
-        """(?i)\b(?:el|la)?\s*(?:semana|mes|a[nñ]o)\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)\b|(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o)\b"""
+        """(?i)\b(?:el|la)?\s*(?:semana|mes|a[nñ]o)\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)\b|(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
     )
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
     private val timePatterns = listOf(
@@ -273,7 +276,9 @@ object NaturalTaskParser {
             val days = when {
                 "semana" in text -> 7L
                 "mes" in text -> 30L
-                else -> 365L
+                "año" in text -> 365L
+                // "próximos días" → dentro de ~3 días (heurística honesta de "pocos días").
+                else -> 3L
             }
             now + days * 24 * 60 * 60_000L
         }

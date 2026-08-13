@@ -976,4 +976,28 @@ class NaturalTaskParserTest {
         assertEquals("Visita", result.title)
         assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    @Test fun proximosDiasParsesDueAt() {
+        // "próximos días" = forma vaga de "dentro de poco": +3 días (heurística honesta).
+        // Antes quedaba sin fecha → tarea olvidada (sin recordatorio ni visibilidad).
+        val result = NaturalTaskParser.parse("Pagar factura próximos días", now, zone)
+        assertEquals("Pagar factura", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximosDiasConPrefijoParsesDueAt() {
+        // "en los próximos días" / "en el próximo días" / "en las próximos días":
+        // el prefijo "en los/el/las" es opcional y no debe quedar como residuo.
+        val result = NaturalTaskParser.parse("Llamar al dentista en los próximos días", now, zone)
+        assertEquals("Llamar al dentista", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximosDiasRespetaHoraExplicita() {
+        // Como los demás períodos próximos, "próximos días" combina con hora explícita.
+        val result = NaturalTaskParser.parse("Revisar correo en los próximos días a las 10", now, zone)
+        assertEquals("Revisar correo", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
 }
