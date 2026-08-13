@@ -7,6 +7,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.temporal.TemporalAdjusters
 
 /**
  * Resultado del analizador de lenguaje natural en español.
@@ -88,6 +89,18 @@ object NaturalTaskParser {
     private val endOfMonthPattern = Regex("""(?i)\b(?:a\s+)?fin(?:ales|es)?\s+(?:de\s+|del\s+)mes\b""")
     private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)mes\b""")
     private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?principios?\s+(?:de\s+|del\s+)mes\b""")
+    /**
+     * "esta semana" / "esta semana que viene": plazo blando de "antes de que acabe la
+     * semana" (plazos cotidianos de unos días, sin un día concreto). Antes quedaba sin
+     * fecha (la tarea se olvidaba) o, con hora explícita, se fechaba en HOY por error
+     * ("esta semana a las 18" → hoy 18:00 en vez de "fin de esta semana a las 18").
+     *
+     * Resuelve al próximo domingo (fin de la semana ISO, lunes→domingo) a las 9:00; si
+     * hoy ya es domingo, se mantiene hoy. Se detecta y borra ANTES del período próximo
+     * para que "semana" no active "semana que viene" y para limpiar "esta semana que
+     * viene" (frase confusa que el usuario usa como sinónimo de "esta semana").
+     */
+    private val thisWeekPattern = Regex("""(?i)\besta\s+semana(?:\s+que\s+viene)?\b""")
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
     private val timePatterns = listOf(
         Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?\b"""),
@@ -336,6 +349,17 @@ object NaturalTaskParser {
         midOfMonthEarlyMatch?.let { working = working.replace(it.value, " ") }
         startOfMonthEarlyMatch?.let { working = working.replace(it.value, " ") }
 
+        // "esta semana" / "esta semana que viene": fin de la semana actual (próximo
+        // domingo, ISO lunes→domingo). Se borra ANTES del período próximo para que
+        // "semana" no active "semana que viene" y para limpiar "esta semana que viene".
+        val thisWeekEarlyMatch = thisWeekPattern.find(working)
+        val thisWeekDueAt = thisWeekEarlyMatch?.let {
+            val sunday = base.toLocalDate()
+                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
+            DateRules.toEpochMillis(sunday, LocalTime.of(9, 0), zone)
+        }
+        thisWeekEarlyMatch?.let { working = working.replace(it.value, " ") }
+
         // Período próximo ("la semana que viene", "el mes que viene", "el año que
         // viene", "próximo mes", "la próxima semana"): +1 período (semana/mes/año).
         // Se trata como días relativos (como relativePattern) para combinarse con hora
@@ -358,10 +382,12 @@ object NaturalTaskParser {
         nextPeriodMatch?.let { working = working.replace(it.value, " ") }
 
         // La fecha relativa (relativePattern) tiene prioridad; luego los límites de mes
-        // ("fin de mes"/"mediados de mes"); el período próximo es el respaldo final.
-        // Todos son días (no min/hora) para combinarse con una hora explícita.
-        val effectiveRelativeDueAt = relativeDueAt ?: monthBoundaryDueAt ?: nextPeriodDueAt
-        val relativeIsDays = (relativeMatch != null || monthBoundaryDueAt != null || nextPeriodMatch != null) &&
+        // ("fin de mes"/"mediados de mes"); "esta semana"; el período próximo es el
+        // respaldo final. Todos son días (no min/hora) para combinarse con una hora explícita.
+        val effectiveRelativeDueAt =
+            relativeDueAt ?: monthBoundaryDueAt ?: thisWeekDueAt ?: nextPeriodDueAt
+        val relativeIsDays = (relativeMatch != null || monthBoundaryDueAt != null ||
+            thisWeekEarlyMatch != null || nextPeriodMatch != null) &&
             (relativeMatch?.let { m ->
                 val unit = m.groupValues[2].lowercase()
                 !unit.startsWith("min") && !unit.startsWith("hora")

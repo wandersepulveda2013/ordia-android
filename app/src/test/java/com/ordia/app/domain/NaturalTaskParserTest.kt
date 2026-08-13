@@ -1195,4 +1195,35 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 23), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
+
+    // --- "esta semana": plazo blando = fin de la semana actual (próximo domingo) ---
+
+    @Test fun estaSemanaParsesDueAtProximoDomingo() {
+        // hoy = miércoles 2026-07-29 -> fin de semana ISO = domingo 2026-08-02.
+        val result = NaturalTaskParser.parse("Llamar a mamá esta semana", now, zone)
+        assertEquals("Llamar a mamá", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun estaSemanaRespetaHoraExplicita() {
+        // Antes este caso se fechaba en HOY por error ("esta semana a las 18" → hoy 18:00).
+        val result = NaturalTaskParser.parse("Terminar informe esta semana a las 18", now, zone)
+        assertEquals("Terminar informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun estaSemanaSiHoyEsDomingoEsHoy() {
+        // hoy = domingo 2026-08-02 -> "esta semana" vence hoy (no rueda al próximo domingo).
+        val domingoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 2), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Cita esta semana", domingoNow, zone)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun estaSemanaNoColisionaConSemanaQueViene() {
+        // "la semana que viene" debe seguir siendo +7d, no "esta semana".
+        val result = NaturalTaskParser.parse("Entrega la semana que viene", now, zone)
+        assertEquals("Entrega", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }
