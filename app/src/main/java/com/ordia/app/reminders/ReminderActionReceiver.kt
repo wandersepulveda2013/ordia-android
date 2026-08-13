@@ -6,6 +6,7 @@ import android.content.Intent
 import com.ordia.app.OrdiaApplication
 import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.domain.RecurrenceEngine
+import com.ordia.app.domain.ReminderRules
 import com.ordia.app.domain.TaskMutationGate
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import kotlinx.coroutines.CoroutineScope
@@ -37,10 +38,15 @@ class ReminderActionReceiver : BroadcastReceiver() {
                             context.getSystemService(android.app.NotificationManager::class.java).cancel(taskId.hashCode())
                         }
                         ACTION_SNOOZE -> if (!task.completed && !task.archived && task.status != TaskStatus.CANCELLED) {
+                            // Snooze NO sobrescribe reminderAt: codifica la preferencia
+                            // del usuario y, en recurrentes, el offset que reutiliza
+                            // RecurrenceEngine en cada ocurrencia futura. Sobrescribirlo
+                            // con now+10 corrompería ese offset para siempre. El aplazamiento
+                            // vive solo en el worker (persistido por WorkManager).
                             val now = System.currentTimeMillis()
-                            val snoozedAt = now + 10 * 60_000L
-                            repo.update(task.copy(reminderAt = snoozedAt, updatedAt = now))
-                            app.container.reminderScheduler.scheduleAt(taskId, snoozedAt)
+                            val snoozed = ReminderRules.snooze(task, now)
+                            repo.update(snoozed.task)
+                            app.container.reminderScheduler.scheduleAt(taskId, snoozed.triggerAt)
                         }
                     }
                 }
