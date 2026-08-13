@@ -50,11 +50,11 @@ jobs:
           chmod +x gradlew
           ./gradlew clean test lint assembleDebug assembleRelease --stacktrace --no-build-cache
 
-      - name: Upload unsigned release APK (previewAdvanced, to be signed)
+      - name: Upload unsigned release APK (to be signed)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ordia-release-unsigned
-          path: app/build/outputs/apk/previewAdvanced/release/app-previewAdvanced-release-unsigned.apk
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
           retention-days: 7
 
@@ -115,7 +115,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          UNSIGNED="unsigned/app-previewAdvanced-release-unsigned.apk"
+          UNSIGNED="unsigned/app-release-unsigned.apk"
           test -f "$UNSIGNED" || { echo "Missing $UNSIGNED"; exit 1; }
 
           # Debuggable APKs must never be signed as a release.
@@ -168,7 +168,7 @@ jobs:
           echo "Using apksigner: $APKSIGNER"
 
           # Sign the release APK
-          UNSIGNED="unsigned/app-previewAdvanced-release-unsigned.apk"
+          UNSIGNED="unsigned/app-release-unsigned.apk"
           SIGNED="Ordia-3.0-signed.apk"
           cp "$UNSIGNED" "$SIGNED"
           "$APKSIGNER" sign \
