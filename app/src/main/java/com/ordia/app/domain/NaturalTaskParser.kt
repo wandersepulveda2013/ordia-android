@@ -61,6 +61,17 @@ object NaturalTaskParser {
     private val nextPeriodPattern = Regex(
         """(?i)\b(?:el|la)?\s*(?:semana|mes|a[nñ]o|trimestre)\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)\b|(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o|trimestre)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
     )
+    /**
+     * "fin de mes" / "a finales de mes" / "fin del mes" → último día del mes actual
+     * (o del siguiente si hoy ya es el último día). "mediados de mes" /
+     * "a mediados de mes" → día 15 del mes actual (o del siguiente si hoy ≥ 15).
+     * Vencimientos mensuales cotidianos (alquiler, tarjeta, servicios, facturas):
+     * antes quedaban sin fecha → vencimiento olvidado (sin recordatorio ni visibilidad).
+     * Se detecta y borra ANTES del período próximo para que "fin de mes" (que contiene
+     * la subcadena "mes") no deje residuo ni active por error "mes que viene".
+     */
+    private val endOfMonthPattern = Regex("""(?i)\b(?:a\s+)?fin(?:ales|es)?\s+(?:de\s+|del\s+)mes\b""")
+    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)mes\b""")
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
     private val timePatterns = listOf(
         Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?\b"""),
@@ -266,6 +277,33 @@ object NaturalTaskParser {
         val weekendEarlyMatch = weekendPattern.find(working)
         weekendEarlyMatch?.let { working = working.replace(it.value, " ") }
 
+        // "fin de mes" / "finales de mes" / "mediados de mes": vencimientos mensuales
+        // (alquiler, tarjeta, servicios). Se borran ANTES del período próximo para que
+        // la subcadena "mes" no active "mes que viene". Se trata como días relativos
+        // (epoch a medianoche) para combinarse con hora explícita ("fin de mes a las 18").
+        val endOfMonthEarlyMatch = endOfMonthPattern.find(working)
+        val midOfMonthEarlyMatch = midOfMonthPattern.find(working)
+        val monthBoundaryDueAt = when {
+            endOfMonthEarlyMatch != null -> {
+                val today = base.toLocalDate()
+                val lastDayThis = today.withDayOfMonth(today.lengthOfMonth())
+                val target = if (today.isBefore(lastDayThis)) lastDayThis
+                    else lastDayThis.plusMonths(1).withDayOfMonth(
+                        lastDayThis.plusMonths(1).lengthOfMonth())
+                DateRules.toEpochMillis(target, LocalTime.of(9, 0), zone)
+            }
+            midOfMonthEarlyMatch != null -> {
+                val today = base.toLocalDate()
+                val fifteenthThis = today.withDayOfMonth(15)
+                val target = if (today.isBefore(fifteenthThis)) fifteenthThis
+                    else fifteenthThis.plusMonths(1)
+                DateRules.toEpochMillis(target, LocalTime.of(9, 0), zone)
+            }
+            else -> null
+        }
+        endOfMonthEarlyMatch?.let { working = working.replace(it.value, " ") }
+        midOfMonthEarlyMatch?.let { working = working.replace(it.value, " ") }
+
         // Período próximo ("la semana que viene", "el mes que viene", "el año que
         // viene", "próximo mes", "la próxima semana"): +1 período (semana/mes/año).
         // Se trata como días relativos (como relativePattern) para combinarse con hora
@@ -287,11 +325,11 @@ object NaturalTaskParser {
         }
         nextPeriodMatch?.let { working = working.replace(it.value, " ") }
 
-        // La fecha relativa (relativePattern) tiene prioridad; el período próximo es
-        // el respaldo cuando no hubo "en N ...". Ambos son días (no min/hora) para que
-        // se combinen con una hora explícita en lugar de descartarla.
-        val effectiveRelativeDueAt = relativeDueAt ?: nextPeriodDueAt
-        val relativeIsDays = (relativeMatch != null || nextPeriodMatch != null) &&
+        // La fecha relativa (relativePattern) tiene prioridad; luego los límites de mes
+        // ("fin de mes"/"mediados de mes"); el período próximo es el respaldo final.
+        // Todos son días (no min/hora) para combinarse con una hora explícita.
+        val effectiveRelativeDueAt = relativeDueAt ?: monthBoundaryDueAt ?: nextPeriodDueAt
+        val relativeIsDays = (relativeMatch != null || monthBoundaryDueAt != null || nextPeriodMatch != null) &&
             (relativeMatch?.let { m ->
                 val unit = m.groupValues[2].lowercase()
                 !unit.startsWith("min") && !unit.startsWith("hora")

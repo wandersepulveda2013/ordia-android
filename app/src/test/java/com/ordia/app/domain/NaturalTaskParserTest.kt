@@ -1042,4 +1042,58 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 10, 27), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
+
+    // --- "fin de mes" / "finales de mes" / "mediados de mes": vencimientos mensuales ---
+    // Plazos cotidianos de pagos (alquiler, tarjeta, servicios, facturas). Antes no se
+    // parseaban → dueAt=null → vencimiento olvidado (sin recordatorio ni visibilidad).
+    // now = 2026-07-29 (julio tiene 31 días).
+
+    @Test fun finDeMesParsesDueAtUltimoDiaMesActual() {
+        val result = NaturalTaskParser.parse("Pagar alquiler fin de mes", now, zone)
+        assertEquals("Pagar alquiler", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinalesDeMesParsesDueAt() {
+        val result = NaturalTaskParser.parse("Vencer tarjeta a finales de mes", now, zone)
+        assertEquals("Vencer tarjeta", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDeMesRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Pagar factura fin de mes a las 18", now, zone)
+        assertEquals("Pagar factura", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun finDeMesRuedaAProximoMesSiHoyEsUltimoDia() {
+        // 2026-08-31 = último día de agosto → "fin de mes" rueda al último día de septiembre.
+        val ultNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 31), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Cierre contable a fin de mes", ultNow, zone)
+        assertEquals(LocalDate.of(2026, 9, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mediadosDeMesParsesDueAtDia15ProximoMes() {
+        // hoy = 29/7 ≥ 15 → mediados rueda al 15 del mes siguiente.
+        val result = NaturalTaskParser.parse("Reporte a mediados de mes", now, zone)
+        assertEquals("Reporte", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mediadosDeMesResuelveDia15MesActualSiAunNoLlega() {
+        // 2026-08-05 < 15 → mediados = 15/8 (mes actual).
+        val tempranoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 5), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Entrega mediados de mes", tempranoNow, zone)
+        assertEquals("Entrega", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDeMesNoColisionaConPeriodoProximo() {
+        // "fin de mes" contiene la subcadena "mes" pero NO debe activar "mes que viene"
+        // ni dejar residuo. El titulo queda limpio y la fecha es fin de mes (no +30d).
+        val result = NaturalTaskParser.parse("Renovar suscripcion a finales del mes", now, zone)
+        assertEquals("Renovar suscripcion", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }
