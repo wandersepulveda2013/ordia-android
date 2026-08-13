@@ -14,15 +14,15 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 55)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 55; rebase no destructivo sobre ciclo 54 intervalo+días + ciclo 53 What Now + ciclo 52 snooze)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 56)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 56; rebase no destructivo sobre ciclo 55 parser cada-mañana + ciclo 54 intervalo+días + ciclo 53 What Now)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests); **DayPlanner conflicto startAt otro día** c.51 (415 tests); **intervalo+días "cada 2 semanas los lunes"/"cada quincena los lunes y viernes"/"cada 3 semanas de lunes a viernes"** c.54 (428 tests); **"cada mañana/tarde/noche/madrugada" + "todas las mañanas/tardes/noches" como recurrencia DIARIA** con hora canónica (c.55, 435 tests) |
+| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests); **DayPlanner conflicto startAt otro día** c.51 (415 tests); **intervalo+días "cada 2 semanas los lunes"/"cada quincena los lunes y viernes"/"cada 3 semanas de lunes a viernes"** c.54 (428 tests); **"cada mañana/tarde/noche/madrugada" + "todas las mañanas/tardes/noches" como recurrencia DIARIA** con hora canónica (c.55, 435 tests); **autocompletar padre al cerrar última subtarea desde notificación** (`ReminderActionReceiver.ACTION_COMPLETE` ↔ `SubtaskRules.shouldAutoCompleteParent`) (c.56) |
 
 ## Último trabajo — Ciclo 55: Parser "cada mañana/tarde/noche/madrugada" como recurrencia DIARIA
 
@@ -59,6 +59,40 @@ helper `detectWeekInterval()`, el local el bloque `partOfDayDaily`. Resolución 
 26 clases — 428 c.54 + 7 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Las 6 pruebas del ciclo
 54 (intervalo+días) siguen en verde → sin regresión. **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room
 con DAOs reales, render real del parser en la app.
+
+## Último trabajo — Ciclo 56: autocompletar padre al cerrar última subtarea desde notificación
+
+Fix P1 de integridad de estado / tareas olvidadas. `ReminderActionReceiver.ACTION_COMPLETE`
+(completar desde la notificación) completaba la subtarea, cancelaba su recordatorio y generaba su
+recurrencia, pero **NO** completaba la tarea padre cuando era la última subtarea pendiente. La app
+(`OrdiaViewModel.toggleTask` → `completeParentAutomatically` vía `SubtaskRules.shouldAutoCompleteParent`)
+sí lo hace. Resultado: al completar el último hijo desde la notificación, el padre quedaba "pendiente"
+para siempre → **tarea olvidada**, inconsistencia entre notificación y app.
+
+**Causa raíz**: el path de notificación (`BroadcastReceiver`) duplicaba parte de la lógica de
+`toggleTask` pero omitía la rama de autocompletado del padre y el registro de automatización para
+deshacer.
+
+**Solución (mínima, `ReminderActionReceiver.kt`, sin nueva pantalla/botón)**: helper
+`completeParentIfDone(app, repo, completedSubtask, now)` llamado tras completar la subtarea en
+`ACTION_COMPLETE`. Refleja fielmente `completeParentAutomatically`: (1) `SubtaskRules.shouldAutoCompleteParent`
+(misma fuente de verdad que la app), (2) actualiza padre (completed/status COMPLETED/completedAt/updatedAt),
+(3) cancela recordatorio del padre, (4) `RecurrenceEngine.nextOccurrence` + reprograma la próxima
+ocurrencia, (5) registra `AutomationLogEntity` (type `subtask_auto`, `affectedTaskIdsJson`,
+`undoPayloadJson` con snapshot del padre) para deshacer. Sin emitir eventos de UI (un `BroadcastReceiver`
+no puede). **Mismo comportamiento que la app, ahora alcanzable desde la notificación.**
+
+**Colisión de remoto (no destructiva)**: al rebasear sobre `b5c96d5`→`69b8ef8` (ciclo 55 parser
+"cada mañana/tarde/noche"), conflicto solo en `CURRENT_STATE.md` (cabecera de estado: ambos runs
+editaban la misma línea). Resolución conservando ambos trabajos: parser c.55 preservado intacto, este
+fix renumerado a ciclo 56 (aterrizó después). Áreas ortogonales (`ReminderActionReceiver` vs
+`NaturalTaskParser`). Sin force push.
+
+**Tests**: lógica núcleo `SubtaskRules.shouldAutoCompleteParent` ya cubierta por `SubtaskRulesTest`.
+**435 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — base c.55 tras rebase). Smoke
+25 OK (`tools/run_domain_checks.sh`). **NO VERIFICADO**: el receptor `ReminderActionReceiver` en sí
+(requiere Android `Context`/`BroadcastReceiver`/Room con DAOs reales → no ejecutable en JVM pura);
+gradle/lint/assemble/UI.
 
 ## Último trabajo — Ciclo 54: Parser combina intervalo de cadencia + lista de días
 

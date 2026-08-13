@@ -3155,3 +3155,23 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Descubrimiento continuo: auditar `GuardianCoach`, `SummaryService`, `PlanEngine`, detección de vencidas importantes, búsqueda universal.
 - Parser: manejo robusto de múltiples marcadores temporales en una frase.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+
+## Ciclo 56 - 2026-08-13 (UTC) - fix(reminders): autocompletar padre al cerrar última subtarea desde notificación
+- **Run/ciclo**: 56.
+- **HEAD inicial**: `b5c96d5` (synced con `origin/openhands/autonomous-ordia`).
+- **Problema seleccionado**: `ReminderActionReceiver.ACTION_COMPLETE` completaba una subtarea, cancelaba su recordatorio y generaba su recurrencia, pero **NO** completaba la tarea padre cuando era la última subtarea pendiente. La app (`OrdiaViewModel.toggleTask` → `completeParentAutomatically` vía `SubtaskRules.shouldAutoCompleteParent`) sí lo hace. Resultado: al completar el último hijo desde la notificación, el padre quedaba "pendiente" para siempre → **tarea olvidada** (P1: recuperación de tareas olvidadas / pérdida de estado).
+- **Prioridad**: P1 (persistencia/integridad de estado, tareas olvidadas, consistencia notificación vs app).
+- **Causa raíz**: el path de notificación (`BroadcastReceiver`) duplicaba parte de la lógica de `toggleTask` pero omitía la rama de autocompletado del padre y el registro de automatización para deshacer.
+- **Solución (mínima)**: nuevo helper `completeParentIfDone(app, repo, completedSubtask, now)` en `ReminderActionReceiver`, llamado tras completar la subtarea en `ACTION_COMPLETE`. Refleja fielmente `completeParentAutomatically`: (1) `SubtaskRules.shouldAutoCompleteParent(parent, siblings)` (misma fuente de verdad que la app), (2) actualiza padre (completed/status COMPLETED/completedAt/updatedAt), (3) cancela recordatorio del padre, (4) `RecurrenceEngine.nextOccurrence` + reprograma la próxima ocurrencia, (5) registra `AutomationLogEntity` (type `subtask_auto`, `affectedTaskIdsJson`, `undoPayloadJson` con snapshot del padre) para deshacer. Sin emitir eventos de UI (un `BroadcastReceiver` no puede). Sin nueva pantalla ni botón: mismo comportamiento que la app, ahora alcanzable desde la notificación.
+- **Tests**: lógica núcleo `SubtaskRules.shouldAutoCompleteParent` ya cubierta por `SubtaskRulesTest` (JVM). **435 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — base c.55 tras rebase). Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: el receptor `ReminderActionReceiver` en sí (requiere Android `Context`/`BroadcastReceiver`/Room con DAOs reales → no ejecutable en JVM pura); gradle/lint/assemble/UI. La corrección lógica depende del mismo `SubtaskRules` ya probado.
+- **Colisión de remoto (no destructiva)**: al push, el remoto había avanzado 1 commit (ciclo 55 parser "cada mañana/tarde/noche" sobre la misma base `b5c96d5`). `git pull --rebase`: conflicto solo en `CURRENT_STATE.md` (cabecera de estado, ambos editaban la misma línea). Resolución conservando ambos trabajos; este fix renumerado de ciclo 55 → 56 (aterrizó después). Áreas ortogonales (`ReminderActionReceiver` vs `NaturalTaskParser`). Sin force push, sin reset --hard.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/reminders/ReminderActionReceiver.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (ver commit de este ciclo tras rebase+push).
+- **Estado**: FIXED (lógica); recepción Android NO VERIFICADO (sin Android SDK).
+
+### Siguiente
+- Auditoría: `GuardianCoach` detección de vencidas importantes; `SummaryService`; `PlanEngine` replanificación.
+- Parser: múltiples marcadores temporales en una frase.
+- Búsqueda universal: relaciones notas/tareas/proyectos.
+- Revisar consistencia de autocompletado/reapertura del padre en otros entry points (widget quick-complete, asistente).
