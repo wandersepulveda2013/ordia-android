@@ -5,6 +5,7 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
@@ -43,5 +44,21 @@ class GuardianCoachTest {
 
         assertEquals("Leer diez minutos", insight.title)
         assertNotNull(insight.message)
+    }
+
+    @Test
+    fun actionableInsightProvidesReasoning() {
+        val pendingTask = TaskEntity(
+            id = 3,
+            title = "Aprender Kotlin",
+            dueAt = DateRules.toEpochMillis(today, LocalTime.of(15, 0), zone),
+            priority = TaskPriority.NORMAL,
+            durationMinutes = 60
+        )
+        val insight = GuardianCoach.insight(listOf(pendingTask), emptyList(), emptyList(), now, zone)
+
+        assertEquals(3L, insight.taskId)
+        assertEquals("SIGUIENTE PASO", insight.eyebrow)
+        assertTrue(insight.message.startsWith("Haz esto ahora porque"))
     }
 }

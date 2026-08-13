@@ -39,4 +39,29 @@ class NaturalTaskParserTest {
         assertEquals("Revisar el horno", result.title)
         assertEquals(now + 45 * 60_000L, result.dueAt)
     }
+
+    @Test fun parsesConceptualTimes() {
+        val results = listOf(
+            NaturalTaskParser.parse("Ir al gym después del trabajo", now, zone),
+            NaturalTaskParser.parse("Leer antes de dormir", now, zone),
+            NaturalTaskParser.parse("Llamar al médico a primera hora", now, zone),
+            NaturalTaskParser.parse("Comer al mediodía", now, zone),
+            NaturalTaskParser.parse("Ver película esta noche", now, zone)
+        )
+
+        assertEquals("Ir al gym", results[0].title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(results[0].dueAt!!, zone))
+
+        assertEquals("Leer", results[1].title)
+        assertEquals(LocalTime.of(22, 0), DateRules.toLocalTime(results[1].dueAt!!, zone))
+
+        assertEquals("Llamar al médico", results[2].title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(results[2].dueAt!!, zone))
+
+        assertEquals("Comer", results[3].title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(results[3].dueAt!!, zone))
+
+        assertEquals("Ver película", results[4].title)
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(results[4].dueAt!!, zone))
+    }
 }

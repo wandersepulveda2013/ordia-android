@@ -23,6 +23,13 @@ object NaturalTaskParser {
         Regex("""(?i)\b([01]?\d|2[0-3]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b""")
     )
+    private val conceptualTimePatterns = listOf(
+        Regex("""(?i)\bdespu[eé]s\s+del\s+trabajo\b""") to LocalTime.of(18, 0),
+        Regex("""(?i)\bantes\s+de\s+dormir\b""") to LocalTime.of(22, 0),
+        Regex("""(?i)\ba\s+primera\s+hora\b""") to LocalTime.of(9, 0),
+        Regex("""(?i)\bal\s+mediod[ií]a\b""") to LocalTime.of(12, 0),
+        Regex("""(?i)\besta\s+noche\b""") to LocalTime.of(20, 0)
+    )
 
     fun parse(text: String, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): ParsedTaskInput {
         val base = Instant.ofEpochMilli(now).atZone(zone)
@@ -72,6 +79,16 @@ object NaturalTaskParser {
         }
 
         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
+        var conceptualMatch: MatchResult? = null
+        var conceptualTime: LocalTime? = null
+        for ((regex, time) in conceptualTimePatterns) {
+            val match = regex.find(working)
+            if (match != null && (conceptualMatch == null || match.range.first < conceptualMatch.range.first)) {
+                conceptualMatch = match
+                conceptualTime = time
+            }
+        }
+
         val parsedTime = timeMatch?.let { match ->
             var hour = match.groupValues[1].toInt()
             val minute = match.groupValues[2].toIntOrNull() ?: 0
@@ -79,13 +96,15 @@ object NaturalTaskParser {
             if (meridiem == "pm" && hour < 12) hour += 12
             if (meridiem == "am" && hour == 12) hour = 0
             LocalTime.of(hour, minute)
-        }
+        } ?: conceptualTime
+
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
 
         relativeMatch?.value?.let { working = working.replace(it, " ") }
         weekdayMatch?.value?.let { working = working.replace(it, " ") }
         timeMatch?.value?.let { working = working.replace(it, " ") }
+        conceptualMatch?.value?.let { working = working.replace(it, " ") }
         working = working
             .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
             .let { value -> numericDatePattern.replace(value, " ") }
