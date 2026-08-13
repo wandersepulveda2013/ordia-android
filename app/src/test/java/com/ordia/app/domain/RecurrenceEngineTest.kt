@@ -61,4 +61,46 @@ class RecurrenceEngineTest {
         val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = late, zone = zone))
         assertEquals(LocalDate.of(2026, 3, 31), DateRules.toLocalDate(next.dueAt!!, zone))
     }
+
+    @Test fun yearly_leapDayAnchorSkipsNonLeapYears() {
+        // "aniversario el 29 de febrero de cada año": 29/2/2024 +1 año NO debe dar
+        // 28/2/2025 (clamp que deriva el ancla para siempre), sino saltar al próximo
+        // 29 de febrero real (2028). Simétrico al mensual 31 de ciclo 18.
+        val due = DateRules.toEpochMillis(LocalDate.of(2024, 2, 29), LocalTime.of(12, 0), zone)
+        val task = TaskEntity(title = "Aniversario bisiesto", dueAt = due, reminderAt = due - 60 * 60_000L, recurrence = RecurrenceFrequency.YEARLY)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2028, 2, 29), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(next.dueAt, zone))
+        assertEquals(60 * 60_000L, next.dueAt - next.reminderAt!!)
+    }
+
+    @Test fun yearly_leapDayAnchorDoesNotDriftAcrossCycles() {
+        // Tras completar la ocurrencia de 2028, la siguiente vuelve a ser un 29 de
+        // febrero (2032), no 28/2: el ancla NO deriva. Confirma la no-regresión del
+        // comportamiento de clamp anterior (que habría dado 28/2/2029).
+        val due = DateRules.toEpochMillis(LocalDate.of(2028, 2, 29), LocalTime.of(12, 0), zone)
+        val task = TaskEntity(title = "Aniversario bisiesto", dueAt = due, recurrence = RecurrenceFrequency.YEARLY)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2032, 2, 29), DateRules.toLocalDate(next.dueAt!!, zone))
+    }
+
+    @Test fun yearly_nonLeapDayAnchorUsesPlainPlusYears() {
+        // Cualquier fecha común (no 29/2) es estable con +1 año: sin cambio de
+        // comportamiento. Regresión de que la nueva rama no altera el caso normal.
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 8, 15), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(title = "Cumple", dueAt = due, recurrence = RecurrenceFrequency.YEARLY)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2027, 8, 15), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(next.dueAt, zone))
+    }
+
+    @Test fun yearly_leapDayAnchorRespectsInterval() {
+        // "cada 4 años" anclado a 29/2: el paso mínimo se respeta; como 29/2/2024 + 4
+        // = 29/2/2028 (bisiesto), no necesita saltar más. Valida que interval > 1 no
+        // se ignora.
+        val due = DateRules.toEpochMillis(LocalDate.of(2024, 2, 29), LocalTime.of(12, 0), zone)
+        val task = TaskEntity(title = "Olimpiadas", dueAt = due, recurrence = RecurrenceFrequency.YEARLY, recurrenceInterval = 4)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2028, 2, 29), DateRules.toLocalDate(next.dueAt!!, zone))
+    }
 }

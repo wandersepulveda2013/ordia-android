@@ -4,6 +4,7 @@ import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskStatus
 import java.time.Instant
+import java.time.Year
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -40,7 +41,7 @@ object RecurrenceEngine {
         RecurrenceFrequency.DAILY -> base.plusDays(interval)
         RecurrenceFrequency.WEEKLY -> nextWeekly(base, interval, days)
         RecurrenceFrequency.MONTHLY -> nextMonthly(base, interval)
-        RecurrenceFrequency.YEARLY -> base.plusYears(interval)
+        RecurrenceFrequency.YEARLY -> nextYearly(base, interval)
     }
 
     /**
@@ -61,6 +62,28 @@ object RecurrenceEngine {
         }
         // Reserva: día ≤ 31 siempre halla mes válido en 24 iteraciones.
         return base.plusMonths(interval)
+    }
+
+    /**
+     * Avanza una recurrencia anual conservando el ancla de [base]. Simétrico a
+     * [nextMonthly]: para el 29 de febrero (única fecha que no existe en años no
+     * bisiestos), `plusYears(interval)` clamparía a 28/2 y deriva el ancla para
+     * siempre (29/2 → 28/2 → 28/2…), perdiendo cumpleaños/aniversarios caídos en
+     * día bisiesto. Aquí se salta a los años en que el 29 de febrero sí existe,
+     * respetando [interval] como paso mínimo. Cualquier otra fecha es estable con
+     * `plusYears`, así que se usa directo. Conserva hora y zona de [base].
+     */
+    private fun nextYearly(base: ZonedDateTime, interval: Long): ZonedDateTime {
+        if (base.monthValue != 2 || base.dayOfMonth != 29) return base.plusYears(interval)
+        var y = base.year + interval.toInt().coerceAtLeast(1)
+        repeat(8) {
+            if (Year.isLeap(y.toLong())) {
+                return base.withYear(y)
+            }
+            y++
+        }
+        // Reserva: siempre hay un año bisiesto en 8 iteraciones.
+        return base.plusYears(interval)
     }
 
     private fun nextWeekly(base: ZonedDateTime, interval: Long, recurrenceDays: String): ZonedDateTime {
