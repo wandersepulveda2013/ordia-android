@@ -951,6 +951,24 @@ object NaturalTaskParser {
         val base = RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), emptyList())
         val phrases = mutableListOf<IntRange>()
 
+        // Intervalo de cadencia que puede acompañar a una lista de días ("cada 2
+        // semanas los lunes", "cada quincena los lunes y viernes", "cada 3 semanas
+        // entre semana"). Sin esto, la rama de días se quedaba solo con la lista y
+        // devolvía interval=1: la cadencia quedaba como "todas las semanas" aunque el
+        // usuario pidió quincenal/cada-N-semanas, y la frase de intervalo sobraba como
+        // residuo en el título. Devuelve el intervalo y el rango a consumir, o null si
+        // no hay intervalo explícito (cadencia semanal normal).
+        fun detectWeekInterval(): Pair<Int, IntRange>? {
+            Regex("""(?i)\bcada\s+(\d{1,3})\s*semanas?\b""").find(working)?.let { m ->
+                val n = m.groupValues[1].toIntOrNull()?.coerceIn(1, 366) ?: return null
+                return n to m.range
+            }
+            Regex("""(?i)\b(?:cada\s+quincena|quincenal(?:mente)?|todas\s+las\s+quincenas)\b""").find(working)?.let { m ->
+                return 2 to m.range
+            }
+            return null
+        }
+
         // "entre semana" / "días laborables/hábiles/de semana" / "de lunes a viernes"
         // como recurrencia semanal de lunes a viernes (hábito cotidiano: gimnasio,
         // trabajo, estudio). Se evalúa ANTES que dayListPattern: "lunes a viernes" es
@@ -965,7 +983,9 @@ object NaturalTaskParser {
         val weekdayRangeMatch = weekdayRangePattern.find(working)
         if (weekdayRangeMatch != null) {
             phrases += weekdayRangeMatch.range
-            return RecurrenceResult(RecurrenceFrequency.WEEKLY, 1, listOf(1, 2, 3, 4, 5), phrases)
+            val interval = detectWeekInterval()
+            if (interval != null) phrases += interval.second
+            return RecurrenceResult(RecurrenceFrequency.WEEKLY, interval?.first ?: 1, listOf(1, 2, 3, 4, 5), phrases)
         }
 
         // "todos los viernes" / "cada lunes y jueves" / "los lunes y jueves".
@@ -1004,7 +1024,9 @@ object NaturalTaskParser {
                 }
             if (days.isNotEmpty() && (hasPrefix || days.size >= 2 || barePluralSingle)) {
                 phrases += weeklyMatch.range
-                return RecurrenceResult(RecurrenceFrequency.WEEKLY, 1, days, phrases)
+                val interval = detectWeekInterval()
+                if (interval != null) phrases += interval.second
+                return RecurrenceResult(RecurrenceFrequency.WEEKLY, interval?.first ?: 1, days, phrases)
             }
         }
 
@@ -1017,7 +1039,9 @@ object NaturalTaskParser {
             Regex("""(?i)\b(?:todos\s+los\s+|cada\s+|los\s+)?d[ií]as\s+(?:laborables|h[aá]biles|de\s+semana)\b|\bentre\s+semana\b""")
         weekdaySetPattern.find(working)?.let { match ->
             phrases += match.range
-            return RecurrenceResult(RecurrenceFrequency.WEEKLY, 1, listOf(1, 2, 3, 4, 5), phrases)
+            val interval = detectWeekInterval()
+            if (interval != null) phrases += interval.second
+            return RecurrenceResult(RecurrenceFrequency.WEEKLY, interval?.first ?: 1, listOf(1, 2, 3, 4, 5), phrases)
         }
 
         // "fines de semana" / "los findes" / "este finde" como recurrencia semanal de
@@ -1030,7 +1054,9 @@ object NaturalTaskParser {
             Regex("""(?i)\b(?:cada\s+)?(?:los\s+)?fines\s+de\s+semana\b|\b(?:cada\s+)?(?:los\s+|este\s+)?findes?\b""")
         weekendRecurrencePattern.find(working)?.let { match ->
             phrases += match.range
-            return RecurrenceResult(RecurrenceFrequency.WEEKLY, 1, listOf(6, 7), phrases)
+            val interval = detectWeekInterval()
+            if (interval != null) phrases += interval.second
+            return RecurrenceResult(RecurrenceFrequency.WEEKLY, interval?.first ?: 1, listOf(6, 7), phrases)
         }
 
         // Mensual anclado a día del mes: "el 15 de cada mes" / "los 1 del mes" /

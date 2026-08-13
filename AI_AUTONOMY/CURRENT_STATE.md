@@ -14,15 +14,46 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 53)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 53)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 54)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 54; rebase no destructivo sobre ciclo 53 What Now + ciclo 52 snooze del run paralelo)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests) |
+| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests); **DayPlanner conflicto startAt otro día** c.51 (415 tests); **intervalo+días "cada 2 semanas los lunes"/"cada quincena los lunes y viernes"/"cada 3 semanas de lunes a viernes"** c.54 (428 tests) |
+
+## Último trabajo — Ciclo 54: Parser combina intervalo de cadencia + lista de días
+
+Fix P1 de captura/recurrencia (`NaturalTaskParser.parseRecurrence`). Cuando una frase unía un
+intervalo de cadencia con una lista de días (**"cada 2 semanas los lunes"**, **"cada quincena los
+lunes y viernes"**, **"cada 3 semanas los martes y jueves"**, **"cada 2 semanas de lunes a viernes"**,
+**"cada 2 semanas los findes"**), la rama WEEKLY+days del parser se quedaba solo con la lista de días
+y devolvía `interval=1`: la rutina quedaba programada como **todas las semanas** aunque el usuario
+pidió quincenal/cada-N-semanas (cadencia errónea), y la frase de intervalo ("cada 2 semanas") **quedaba
+como residuo en el título**. Una rutina quincenal se convertía en semanal: tareas duplicadas, ruido y
+recordatorios mal cadenciados. Verificado con probe: "Gym cada 2 semanas los lunes" → antes
+`WEEKLY interval=1 days=1` + título `"Gym cada 2 semanas"`.
+
+**Causa raíz**: las ramas de días (dayListPattern, weekdayRangePattern, weekdaySetPattern,
+weekendRecurrencePattern) devolvían `interval=1` hardcoded e ignoraban cualquier intervalo explícito
+presente en la frase; además solo añadían su propio rango a `phraseRanges`, dejando la frase de
+intervalo sin consumir → residuo en el título.
+
+**Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**: helper `detectWeekInterval()`
+que detecta "cada N semanas" o "cada quincena/quincenalmente/todas las quincenas" en la frase y
+devuelve `(interval, rango)`. Las ramas de días ahora consumen ese intervalo cuando existe (lo aplican
+al `RecurrenceResult.interval` y añaden su rango a `phraseRanges` para limpiarlo del título). Sin
+intervalo explícito → `interval=1` (cadencia semanal normal, sin regresión). Lógica local honesta, sin
+random ni modelo simulado.
+
+**Tests**: +6 en `NaturalTaskParserTest.kt` (`biweeklyIntervalWithDayListCombinesIntervalAndDays`,
+`quincenaIntervalWithDayListCombinesIntervalAndDays`, `triweeklyIntervalWithMultipleDaysCombinesIntervalAndDays`,
+`biweeklyIntervalWithWeekdayRangeCombinesIntervalAndDays`, `biweeklyIntervalWithWeekendCombinesIntervalAndDays`,
+`dayListWithoutIntervalKeepsWeeklyInterval`). **428 domain tests PASS** (`bash tools/run_domain_tests.sh`,
+26 clases — 421 base c.52 snooze + 6 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room
+con DAOs reales, render real del parser en la app.
 
 ## Último trabajo — Ciclo 53: What Now desempata por prioridad (consistencia con el widget)
 

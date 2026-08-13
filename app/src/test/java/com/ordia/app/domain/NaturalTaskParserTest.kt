@@ -278,6 +278,59 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // Intervalo de cadencia + lista de días: "cada 2 semanas los lunes" debe combinar
+    // ambos (interval=2, días=[lunes]) y limpiar del título la frase de intervalo.
+    // Antes la rama de días devolvía interval=1 (cadencia semanal errónea) y dejaba
+    // "cada 2 semanas" como residuo en el título → rutina mal programada y título sucio.
+    @Test fun biweeklyIntervalWithDayListCombinesIntervalAndDays() {
+        val result = NaturalTaskParser.parse("Gym cada 2 semanas los lunes", now, zone)
+        assertEquals("Gym", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1", result.recurrenceDays)
+    }
+
+    @Test fun quincenaIntervalWithDayListCombinesIntervalAndDays() {
+        val result = NaturalTaskParser.parse("Reunión cada quincena los lunes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1", result.recurrenceDays)
+    }
+
+    @Test fun triweeklyIntervalWithMultipleDaysCombinesIntervalAndDays() {
+        val result = NaturalTaskParser.parse("Clase cada 3 semanas los martes y jueves", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertEquals("2,4", result.recurrenceDays)
+    }
+
+    @Test fun biweeklyIntervalWithWeekdayRangeCombinesIntervalAndDays() {
+        val result = NaturalTaskParser.parse("Estudio cada 2 semanas de lunes a viernes", now, zone)
+        assertEquals("Estudio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1,2,3,4,5", result.recurrenceDays)
+    }
+
+    @Test fun biweeklyIntervalWithWeekendCombinesIntervalAndDays() {
+        val result = NaturalTaskParser.parse("Limpieza cada 2 semanas los findes", now, zone)
+        assertEquals("Limpieza", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
+    // Sin intervalo explícito, la cadencia semanal normal sigue siendo interval=1.
+    @Test fun dayListWithoutIntervalKeepsWeeklyInterval() {
+        val result = NaturalTaskParser.parse("Fútbol los lunes y viernes", now, zone)
+        assertEquals("Fútbol", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertEquals("1,5", result.recurrenceDays)
+    }
+
     // Mensual anclado a día del mes ("el 15 de cada mes"): antes el día quedaba como
     // residuo en el título y dueAt=null (la tarea nunca tenía fecha, los recordatorios
     // no disparaban). Ahora se ancla al próximo día 15 y se limpia el título.

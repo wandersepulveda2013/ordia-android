@@ -3,6 +3,7 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+
 ## Ciclo 53 - 2026-08-13 (UTC) - fix: What Now desempata por prioridad (consistencia con el widget)
 - **Run/ciclo**: 53.
 - **HEAD inicial**: `d18fc32` (base local al iniciar; el remoto ya estaba en `8275185` con ciclos 52 snooze + docs — STALE_BASE detectado al fetch).
@@ -20,6 +21,26 @@
 - Descubrimiento continuo: auditar captura, recordatorios (cancelación al completar/archivar, persistencia real del snooze vía WorkManager), detección de vencidas importantes, contexto, onboarding, navegación, accesibilidad, rendimiento, privacidad.
 - Posible P1: verificar que `ReminderScheduler.scheduleAt` persiste el snooze tras reinicios (WorkManager vs AlarmManager); auditar cancelación de recordatorios al completar/archivar (evitar notificaciones de tareas ya hechas).
 - Parser: manejo robusto de múltiples marcadores temporales en una frase.
+
+## Ciclo 54 - 2026-08-13 (UTC) - fix(parser): intervalo de cadencia + lista de días ("cada 2 semanas los lunes")
+- **Run/ciclo**: 54 (renombrado desde 53: el ciclo 53 del run paralelo —What Now desempate por prioridad— ya había aterrizado en el remoto: el ciclo 52 del run paralelo —snooze reminderAt— ya había aterrizado en el remoto `de571d6`; se renumera a 53 para evitar dos entradas distintas con el mismo ciclo).
+- **HEAD inicial**: `d18fc32` (base local sincronizada; el remoto avanzó a `5e6cea8` (incluye ciclo 53 What Now) con el ciclo 52 snooze + docs — detectado al push, rebase no destructivo).
+- **Problema seleccionado**: P1 captura/recurrencia. `NaturalTaskParser.parseRecurrence`: al combinar un intervalo de cadencia con una lista de días (**"cada 2 semanas los lunes"**, **"cada quincena los lunes y viernes"**, **"cada 3 semanas los martes y jueves"**, **"cada 2 semanas de lunes a viernes"**, **"cada 2 semanas los findes"**), la rama WEEKLY+days devolvía `interval=1` hardcoded e ignoraba el intervalo explícito. Consecuencia doble: (1) la rutina quedaba programada como **todas las semanas** aunque el usuario pidió quincenal/cada-N-semanas (cadencia errónea → tareas duplicadas, recordatorios mal cadenciados); (2) la frase de intervalo ("cada 2 semanas") no se consumía y **quedaba como residuo en el título**. Verificado con probe temporal (luego eliminado): "Gym cada 2 semanas los lunes" → antes `WEEKLY interval=1 days=1` + título `"Gym cada 2 semanas"`.
+- **Prioridad**: P1 (persistencia/recurrencia/captura: cadencia errónea + título sucio + potencial duplicación de tareas recurrentes).
+- **Causa raíz**: las ramas de días (`dayListPattern`, `weekdayRangePattern`, `weekdaySetPattern`, `weekendRecurrencePattern`) devolvían `interval=1` y solo añadían su propio rango a `phraseRanges`, dejando la frase de intervalo sin consumir.
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**: helper local `detectWeekInterval()` que detecta "cada N semanas" (dígito) o "cada quincena/quincenalmente/todas las quincenas" (palabra) y devuelve `(interval, rango)`. Las 4 ramas de días consumen ese intervalo cuando existe (lo aplican a `RecurrenceResult.interval` y añaden su rango a `phraseRanges` para limpiarlo del título). Sin intervalo explícito → `interval=1` (cadencia semanal normal, sin regresión). Lógica local honesta, sin random ni modelo simulado.
+- **Tests**: +6 en `NaturalTaskParserTest.kt` (intervalo+día único, quincena+día, cada 3 semanas+múltiples días, intervalo+rango L-V, intervalo+findes, y regresión: días sin intervalo → interval=1). **428 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 422 base c.53 What-Now + 6 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del parser en la app (sin Android SDK).
+- **Descubrimiento (registrado, no implementado)**: "Nómina cada 2 semanas lunes" (sin "los") deja `days=` vacío — día suelto sin prefijo es ambiguo (¿fecha vs día de recurrencia?) y `dayListPattern` exige 2+ días o plural marcado para el caso bare; caso límite, no degradado por este fix. Auditoría de `RecurrenceEngine.nextWeekly` (interval+recurrenceDays) confirmó que el motor SÍ avanza correctamente con interval>1 (while loop) — el bug era solo de parsing, no del motor.
+- **Colisión de remoto (rebase no destructivo)**: al push, el remoto había avanzado `d18fc32`→`8275185` (4 commits: ciclo 52 snooze `ReminderRules.kt`/`ReminderActionReceiver.kt` + 3 docs). Áreas ortogonales (parser vs reminders): el remoto NO tocó `NaturalTaskParser.kt` ni su test → rebase limpio en código; único conflicto en `RUN_LOG.md` (prepend de entradas), resuelto conservando AMBAS entradas (ciclo 52 snooze del remoto + ciclo 53 parser) y renumerando. Sin force push, sin reset --hard, sin tocar `main`. Trabajo del run paralelo preservado.
+- **Archivos modificados**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (ver commit; push a openhands/autonomous-ordia).
+
+### Siguiente
+- Descubrimiento continuo: auditar recordatorios, detección de vencidas importantes, contexto, onboarding, navegación, accesibilidad, rendimiento, privacidad, backup/restore.
+- Parser: día suelto sin prefijo junto a intervalo explícito ("cada 2 semanas lunes") — evaluar si merece tratarse como día de recurrencia cuando ya hay intervalo explícito que desambigua.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+)
 
 ---
 ## Ciclo 54 - 2026-08-13 (UTC) - fix: restaurar tarea archivada re-programa su recordatorio
