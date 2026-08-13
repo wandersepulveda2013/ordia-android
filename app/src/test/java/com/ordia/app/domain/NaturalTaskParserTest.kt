@@ -1335,6 +1335,61 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // Rango horario CON MINUTOS en el extremo inicial ("clase de 9:30 a 11"). Antes la
+    // regex solo capturaba horas en punto y casaba "30 a 11" con números equivocados →
+    // dur=null y título sucio ("Clase de a 11"). Ahora calcula 90 min reales.
+    @Test fun rangeWithStartMinutesParsesRealDuration() {
+        val result = NaturalTaskParser.parse("Clase de 9:30 a 11", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(90, result.durationMinutes)
+    }
+
+    @Test fun rangeWithBothEndpointsMinutesParsesRealDuration() {
+        val result = NaturalTaskParser.parse("Clase de 9:30 a 11:30", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun rangeWithMinutesAndHoursUnitParsesRealDuration() {
+        val result = NaturalTaskParser.parse("Clase de 9:30 a 11 horas", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(90, result.durationMinutes)
+    }
+
+    // Rango con MERIDIEM en ambos extremos ("de 9am a 11am", "de 2pm a 4pm"). Antes
+    // dur=null y título sucio. El offset PM se aplica a cada extremo por separado.
+    @Test fun rangeWithMeridiemAmParsesDuration() {
+        val result = NaturalTaskParser.parse("Clase de 9am a 11am", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun rangeWithMeridiemPmParsesDuration() {
+        val result = NaturalTaskParser.parse("Reunión de 2pm a 4pm", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun rangeWithMinutesAndMeridiemParsesDuration() {
+        val result = NaturalTaskParser.parse("Curso de 8:30am a 10:30am", now, zone)
+        assertEquals("Curso", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun rangeWithDeLaTardeMeridiemParsesDuration() {
+        val result = NaturalTaskParser.parse("Clase de 9 de la tarde a 11 de la noche", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun rangeWithMinutesDoesNotClampToDayMax() {
+        // "de 8:30 a 10:30 horas": antes (solo horas en punto) capturaba fin=10 → 120,
+        // pero un caso previo con residuo devolvía 1440 (clamp 24h). Ahora 120 reales.
+        val result = NaturalTaskParser.parse("Curso de 8:30 a 10:30 horas", now, zone)
+        assertEquals("Curso", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
     // "de" antes de una duración numérica es conector ("Reunión de 30 min") y debe
     // eliminarse junto con la duración, sin dejar residuo.
     @Test fun deConnectorBeforeDurationIsRemoved() {

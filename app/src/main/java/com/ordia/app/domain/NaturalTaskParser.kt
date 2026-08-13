@@ -245,15 +245,23 @@ object NaturalTaskParser {
         Regex("""(?i)\b(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\b""")
 
     /**
-     * Rango horario "de H1 a H2" / "H1 a H2 horas" (citas, clases, reuniones con ventana).
-     * Implica duración = (H2-H1)*60 min y se elimina del título. Para no falsear datos
-     * (p. ej. "comprar de 2 a 5 entradas") solo se acepta cuando hay evidencia de horario:
-     * unidad final ("horas"/"hs"/"h") o alguna hora >= 13 (formato 24h inequívoco).
-     * Antes "de 18 a 20 horas" dejaba "20 horas" como duración de 20h (1200 min, falso).
-     * No fija hora de inicio (ambigua sin meridiem); solo la duración, de forma honesta.
+     * Rango horario "de H1[MM] [meridiem] a H2[MM] [meridiem] [horas]" (citas, clases,
+     * reuniones con ventana). Implica duración = (fin − inicio) en minutos y se elimina
+     * del título. Cada extremo admite minutos (`9:30`) y meridiem (`9am`, `9 de la tarde`)
+     * además de la forma en punto (`9`).
+     *
+     * Para no falsear datos (p. ej. "comprar de 2 a 5 entradas") solo se acepta cuando hay
+     * evidencia de horario: unidad final ("horas"/"hs"/"h"), minutos en algún extremo
+     * (`:30`, inequívoco de reloj), meridiem explícito, o alguna hora >= 13 (24h). Sin esa
+     * evidencia, el rango en punto y ambiguo (<13) requiere además que no le siga un
+     * sustantivo de cantidad (ver `followedByCount`). Antes solo se capturaban horas en
+     * punto: "clase de 9:30 a 11" casaba `30 a 11` con números equivocados → `dur=null`
+     * y título sucio. No fija hora de inicio (ambigua sin contexto); solo la duración.
+     *
+     * Grupo 1/2/3 = hora/minuto/meridiem del INICIO; 4/5/6 = fin; 7 = "horas" opcional.
      */
     private val timeRangePattern =
-        Regex("""(?i)\b(?:de\s+)?(\d{1,2})\s*(?:a|-)\s*(\d{1,2})(\s*(?:horas?|hs|h))?\b""")
+        Regex("""(?i)\b(?:de\s+)?(\d{1,2})(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?\s*(?:a|-)\s*(\d{1,2})(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s*((?:horas?|hs|h)))?\b""")
 
     /** "urgente" como palabra inicial, para detección de prioridad sin prefijo. */
     private val leadingUrgentPattern = Regex("""(?i)^urgente\b""")
@@ -843,31 +851,58 @@ object NaturalTaskParser {
         } else rawDueAt
 
         // Duración: no se aplica a "en N minutos" (esa es fecha relativa, ya eliminada).
-        // Rango horario "de H1 a H2 [horas]": se procesa primero para que el segundo
-        // número no sea robado como duración numérica ("de 18 a 20 horas" → 20h falsas).
+        // Rango horario "de H1[MM] [meridiem] a H2[MM] [meridiem] [horas]": se procesa
+        // primero para que el segundo número no sea robado como duración numérica
+        // ("de 18 a 20 horas" → 20h falsas). Cada extremo se resuelve a hora absoluta
+        // (offset PM) y la duración es (fin − inicio) en minutos reales.
         val rangeMatch = timeRangePattern.find(working)?.let { m ->
-            val start = m.groupValues[1].toIntOrNull()
-            val end = m.groupValues[2].toIntOrNull()
-            // Rango horario sin unidad ("de 9 a 11") y ambas horas < 13 (formato 12h
-            // ambiguo): se acepta SOLO si al rango no le sigue un sustantivo de cantidad
-            // ("entradas", "personas"). Si va seguido de fin de cadena o de un conector/
-            // preposición/puntuación ("con Juan", "y luego…", ", luego…") se entiende
-            // como ventana horaria. Esto distingue "clase de 9 a 11" (horario) de
-            // "comprar de 2 a 5 entradas" (cantidad) sin inventar IA ni romper 24h.
-            // Followers seguros ampliados: días de la semana y sus artículos
-            // ("el viernes"), días relativos ("mañana") y marcadores de parte del día
-            // ("a la tarde", "por la noche") que antes dejaban residuo.
+            val startH = m.groupValues[1].toIntOrNull()
+            val startM = m.groupValues[2].toIntOrNull() ?: 0
+            val startMer = m.groupValues[3].lowercase().replace(".", "").replace(" ", "")
+            val endH = m.groupValues[4].toIntOrNull()
+            val endM = m.groupValues[5].toIntOrNull() ?: 0
+            val endMer = m.groupValues[6].lowercase().replace(".", "").replace(" ", "")
+            val hasUnit = m.groupValues[7].isNotEmpty()
+            val startPm = startMer == "pm" || startMer == "delatarde" || startMer == "delanoche"
+            val endPm = endMer == "pm" || endMer == "delatarde" || endMer == "delanoche"
+            fun resolve(h: Int, mer: String, pm: Boolean): Int? = when {
+                h == 24 && mer.isEmpty() -> 0
+                h !in 0..24 -> null
+                mer.isEmpty() -> h
+                pm && h < 12 -> h + 12
+                pm && h == 12 && mer == "delanoche" -> 0
+                pm && h == 12 -> 12
+                else -> if (h == 12) 0 else h   // AM / de la mañana / madrugada
+            }
+            val sAbs = startH?.let { resolve(it, startMer, startPm) }
+            val eAbs = endH?.let { resolve(it, endMer, endPm) }
+            if (sAbs == null || eAbs == null) return@let null
+            val startHr = startH!!
+            val endHr = endH!!
+            val startMin = sAbs * 60 + startM
+            val endMin = eAbs * 60 + endM
+            // Duración solo si fin > inicio (mismo día) y rango plausible (<= 24h).
+            val hasMinutesOrMeridiem = startM != 0 || endM != 0 ||
+                startMer.isNotEmpty() || endMer.isNotEmpty()
+            // Rango en punto y ambiguo (sin unidad/minutos/meridiem, ambas < 13): solo se
+            // acepta si no le sigue un sustantivo de cantidad ("entradas", "personas").
             val followedByCount = m.range.last + 1 < working.length &&
                 !Regex("""^\s*(?:,|\.|;|:|!|\?|y\b|o\b|con\b|de\b|del\b|en\b|para\b|hasta\b|desde\b|luego\b|después\b|despues\b|pero\b|porque\b|por\b|sin\b|sobre\b|a\b|al\b|el\b|la\b|los\b|las\b|un\b|una\b|mañana\b|manana\b|hoy\b|ayer\b|anteayer\b|lunes\b|martes\b|miércoles\b|miercoles\b|jueves\b|viernes\b|sábado\b|sabado\b|domingo\b|$)""", RegexOption.IGNORE_CASE)
                     .containsMatchIn(working.substring(m.range.last + 1))
-            if (start != null && end != null && end > start && end <= 24 &&
-                start in 0..23 && (end - start) * 60 <= 24 * 60 &&
-                (m.groupValues[3].isNotEmpty() || start >= 13 || end >= 13 ||
-                    (!followedByCount && end - start in 1..11))
-            ) m else null
+            val ambiguousOnTheHour = !hasUnit && !hasMinutesOrMeridiem &&
+                startHr < 13 && endHr < 13
+            val acceptAmbiguous = !ambiguousOnTheHour ||
+                (!followedByCount && (endMin - startMin) in 60..(11 * 60))
+            val valid = endMin > startMin && (endMin - startMin) <= 24 * 60 &&
+                sAbs in 0..23 && eAbs in 0..23 && startM in 0..59 && endM in 0..59 &&
+                (hasUnit || hasMinutesOrMeridiem || sAbs >= 13 || eAbs >= 13 || acceptAmbiguous)
+            if (valid) m else null
         }
-        val rangeDurationMinutes = rangeMatch?.let { (it.groupValues[2].toInt() - it.groupValues[1].toInt()) * 60 }
-            ?.coerceIn(5, 24 * 60)
+        val rangeDurationMinutes = rangeMatch?.let {
+            val sM = it.groupValues[2].toIntOrNull() ?: 0
+            val eM = it.groupValues[5].toIntOrNull() ?: 0
+            (it.groupValues[4].toInt() * 60 + eM) - (it.groupValues[1].toInt() * 60 + sM)
+        }?.coerceIn(5, 24 * 60)
         rangeMatch?.let { working = working.replace(it.value, " ") }
 
         // Duración numérica: se descarta si el número está precedido por una frase
