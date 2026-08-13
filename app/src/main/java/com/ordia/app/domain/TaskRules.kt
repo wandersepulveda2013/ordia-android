@@ -25,8 +25,9 @@ object TaskRules {
     /**
      * Siguiente tarea más importante, con la misma prioridad temporal que
      * [WhatNowEngine.suggest] (widget, asistente y "siguiente paso" del guardián
-     * comparten esta lógica): lo que ocurre ahora mismo > atrasado > vence hoy >
-     * urgente > alta > bandeja; las programadas para más tarde quedan al final.
+     * comparten esta lógica): lo que ocurre ahora mismo > atrasado > compromiso a
+     * punto de empezar (inminente) > vence hoy > urgente > alta > bandeja; las
+     * programadas para más tarde quedan al final.
      * Desempate: prioridad, fecha límite más próxima, hora prevista, orden, creación.
      */
     fun nextBestTask(
@@ -46,10 +47,14 @@ object TaskRules {
             )
             .firstOrNull()
 
+    /** Ventana en la que un compromiso programado futuro se considera "ahora mismo". */
+    const val IMMINENT_WINDOW_MINUTES = 15
+
     private fun timeRank(task: TaskEntity, now: Long, zone: ZoneId): Int = when {
         task.status == TaskStatus.IN_PROGRESS -> 6
         isInProgressNow(task, now) -> 5
         isOverdue(task, now) -> 4
+        isImminentStart(task, now) -> 4
         isScheduledLater(task, now) -> -1
         isDueToday(task, now, zone) -> 3
         task.priority == TaskPriority.URGENT -> 2
@@ -62,6 +67,19 @@ object TaskRules {
         if (now < start) return false
         val duration = task.durationMinutes.coerceAtLeast(10) * 60_000L
         return now <= start + duration
+    }
+
+    /**
+     * Compromiso a punto de empezar: `startAt` futuro pero dentro de
+     * [IMMINENT_WINDOW_MINUTES]. Una reunión/llamada/cita que comienza en pocos
+     * minutos es exactamente "qué hago ahora", aunque aún no haya arrancado: la
+     * elevamos por encima de la Bandeja para no olvidarla. Las que empiezan más
+     * tarde siguen como último recurso ([isScheduledLater]). Fuente única de
+     * verdad compartida con [WhatNowEngine].
+     */
+    fun isImminentStart(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean {
+        val start = task.startAt ?: return false
+        return start > now && (start - now) <= IMMINENT_WINDOW_MINUTES * 60_000L
     }
 
     private fun isScheduledLater(task: TaskEntity, now: Long): Boolean =

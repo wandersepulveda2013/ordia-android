@@ -62,6 +62,45 @@ class TaskRulesTest {
     }
 
     @Test
+    fun nextBestTask_prefersImminentStartOverInbox() {
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val imminent = TaskEntity(
+            id = 1, title = "Reunión en 5 min",
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 5), zone),
+            durationMinutes = 30
+        )
+        val inbox = TaskEntity(id = 2, title = "Bandeja", priority = TaskPriority.HIGH)
+        assertEquals(imminent, TaskRules.nextBestTask(listOf(inbox, imminent), now, zone))
+    }
+
+    @Test
+    fun nextBestTask_startOutsideImminentWindowStaysDeprioritized() {
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val later = TaskEntity(
+            id = 1, title = "Reunión en 2 h",
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(12, 0), zone),
+            durationMinutes = 30
+        )
+        val inbox = TaskEntity(id = 2, title = "Bandeja", priority = TaskPriority.HIGH)
+        assertEquals(inbox, TaskRules.nextBestTask(listOf(later, inbox), now, zone))
+    }
+
+    @Test
+    fun nextBestTask_overdueBeatsImminentStart() {
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val overdue = TaskEntity(
+            id = 1, title = "Atrasada",
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        )
+        val imminent = TaskEntity(
+            id = 2, title = "Reunión en 5 min",
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 5), zone),
+            durationMinutes = 30
+        )
+        assertEquals(overdue, TaskRules.nextBestTask(listOf(imminent, overdue), now, zone))
+    }
+
+    @Test
     fun focusClock_formatsMinutesAndSeconds() {
         assertEquals("25:00", FocusClock.format(1500))
         assertEquals("00:00", FocusClock.format(-2))

@@ -94,15 +94,12 @@ object WhatNowEngine {
     }
 
     /**
-     * Compromiso a punto de empezar: startAt futuro pero dentro de [IMMINENT_WINDOW_MINUTES].
-     * Una reunion/llamada/cita que comienza en pocos minutos es exactamente "que hago ahora",
-     * aunque aun no haya arrancado: la elevamos por encima de la Bandeja para no olvidarla.
-     * Las que empiezan mas tarde siguen como ultimo recurso (isScheduledLater).
+     * Compromiso a punto de empezar: startAt futuro pero dentro de
+     * [TaskRules.IMMINENT_WINDOW_MINUTES]. Delega en [TaskRules.isImminentStart]
+     * (fuente única de verdad, compartida con el widget/asistente vía nextBestTask).
      */
-    private fun isImminentStart(task: TaskEntity, now: Long): Boolean {
-        val start = task.startAt ?: return false
-        return start > now && (start - now) <= IMMINENT_WINDOW_MINUTES * 60_000L
-    }
+    private fun isImminentStart(task: TaskEntity, now: Long): Boolean =
+        TaskRules.isImminentStart(task, now)
 
     private fun isScheduledLater(task: TaskEntity, now: Long): Boolean =
         task.startAt != null && task.startAt > now
@@ -111,7 +108,4 @@ object WhatNowEngine {
         val due = task.dueAt ?: return false
         return Instant.ofEpochMilli(due).atZone(zone).toLocalDate() == today
     }
-
-    /** Ventana en la que un compromiso programado futuro se considera "ahora mismo". */
-    private const val IMMINENT_WINDOW_MINUTES = 15
 }

@@ -24,6 +24,34 @@
 
 | P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests) |
 
+## Último trabajo — Ciclo 47 (run paralelo): `nextBestTask` alineado con IMMINENT_START (widget/asistente)
+
+Unidad atómica de fiabilidad de inteligencia (P1 — consistencia entre superficies). El ciclo 46 añadió
+la detección de **compromisos a punto de empezar** (`IMMINENT_START`, `startAt` futuro dentro de 15 min)
+al **What Now** de `TodayScreen` (`WhatNowEngine`), pero **NO** a `TaskRules.nextBestTask`, que es la
+heurística compartida por el **widget de inicio**, el **asistente** y el `nextTask` del ViewModel. Allí
+un compromiso inminente seguía cayendo en `isScheduledLater` (rank -1, último recurso): el widget
+sugería una tarea cualquiera de la Bandeja **mientras una reunión empezaba en 5 min** — la superficie más
+vista daba una respuesta menos oportuna que la pantalla principal, justo el olvido que Ordía debe evitar.
+
+**Solución (mínima, en `TaskRules.kt` + DRY)**:
+- `isImminentStart(task, now)` + `IMMINENT_WINDOW_MINUTES = 15` ahora viven en `TaskRules`
+  (públicos, fuente única de verdad). `WhatNowEngine.isImminentStart` se redujo a un delegado
+  (`TaskRules.isImminentStart`), eliminando la constante duplicada. Sin cambio de comportamiento
+  en What Now (mismas 4 pruebas).
+- `TaskRules.timeRank` añade la rama inminente (rank 4, entre OVERDUE y SCHEDULED_LATER) en
+  el mismo orden honesto que `WhatNowEngine`: EN_CURSO > EN_PROGRESO > ATRASADA > **INMINENTE** >
+  VENCE_HOY > URGENTE > ALTA > BANDEJA. Una tarea atrasada sigue ganando a un compromiso que aún
+  no empieza.
+- Retrocompatible: la firma `nextBestTask(tasks)` existente sigue delegando con `now`/zona por
+  defecto → `OrdiaWidgetProvider`, `AssistantEngine`, `OrdiaViewModel` compilan sin cambio. Sin
+  nueva pantalla, sin nuevo botón: misma heurística, consistente en todas las superficies.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**404 tests PASS** (392 base c.46 + 1 guardian run paralelo + 4 parser "el 15" + 2 guardian doble conteo + 5 nuevos de este ciclo: 3 de `nextBestTask` inminente), 25 clases. (404 verificado tras rebase)
+Smoke 25 OK (`tools/run_domain_checks.sh`). NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs
+reales, render real del widget (sin Android SDK).
+
 ## Último trabajo — Ciclo 46 (run paralelo): What Now detecta compromisos a punto de empezar (IMMINENT_START)
 
 Unidad atómica de inteligencia del "¿Qué hago ahora?" (P1 — evitar olvidos de compromisos inminentes).

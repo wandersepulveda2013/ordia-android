@@ -2927,3 +2927,20 @@ a un permiso persistente frágil y silencioso ante fallos.
 
 ### Siguiente
 - Descubrimiento continuo: auditar `WhatNowEngine`, captura, recordatorios, detección de vencidas importantes, búsqueda universal.- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+
+## Ciclo 47 (run paralelo) - 2026-08-13 (UTC) - feat: nextBestTask alineado con IMMINENT_START (widget/asistente)
+- **Run/ciclo**: 47.
+- **HEAD inicial**: `15e170f` (remoto `966b799`, sin divergencia).
+- **Problema seleccionado**: el ciclo 46 añadió detección de compromisos inminentes a `WhatNowEngine` (tarjeta What Now de `TodayScreen`), pero **NO** a `TaskRules.nextBestTask`, la heurística compartida por el **widget de inicio**, el **asistente** y el `nextTask` del ViewModel. Allí un compromiso inminente seguía cayendo en `isScheduledLater` (rank -1, último recurso): el widget sugería una tarea cualquiera de la Bandeja **mientras una reunión empezaba en 5 min**. La superficie más vista daba una respuesta menos oportuna que la pantalla principal.
+- **Prioridad**: P1 (consistencia de inteligencia entre superficies; evitar olvido de compromiso inminente en widget).
+- **Causa raíz**: `TaskRules.nextBestTask`/`timeRank` carecían de la rama inminente que `WhatNowEngine` ya tenía; además la lógica `isImminentStart`/`IMMINENT_WINDOW_MINUTES` estaba duplicada.
+- **Solución (mínima, en `TaskRules.kt` + DRY)**: `isImminentStart(task, now)` + `IMMINENT_WINDOW_MINUTES = 15` movidos a `TaskRules` (públicos, fuente única de verdad); `WhatNowEngine.isImminentStart` reducido a un delegado, eliminando la constante duplicada. `TaskRules.timeRank` añade la rama inminente (rank 4) en el mismo orden honesto que `WhatNowEngine`: EN_CURSO > EN_PROGRESO > ATRASADA > INMINENTE > VENCE_HOY > URGENTE > ALTA > BANDEJA. Una tarea atrasada sigue ganando a un compromiso que aún no empieza. Retrocompatible: `nextBestTask(tasks)` sigue delegando con `now`/zona por defecto → `OrdiaWidgetProvider`, `AssistantEngine`, `OrdiaViewModel` compilan sin cambio. Sin nueva pantalla ni botón: misma heurística, consistente en todas las superficies.
+- **Tests**: +3 (`nextBestTask_prefersImminentStartOverInbox`, `nextBestTask_startOutsideImminentWindowStaysDeprioritized`, `nextBestTask_overdueBeatsImminentStart`); las 4 pruebas de `WhatNowEngineTest` para IMMINENT_START siguen en verde (delegación sin cambio de comportamiento). **404 domain tests PASS** (`bash tools/run_domain_tests.sh`, 25 clases) tras rebase sobre los ciclos 47 "el 15" + 46 guardian del otro run (base 398 + 4 parser + 2 guardian). Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del widget (sin Android SDK).
+- **Archivos modificados**: `TaskRules.kt`, `WhatNowEngine.kt`, `TaskRulesTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: `f406365` (rebasado sobre `52a4736` del otro run: ciclos 47 "el 15" + 46 guardiÃ¡n; push pendiente a `origin/openhands/autonomous-ordia`).
+
+### Siguiente
+- Descubrimiento continuo: auditar `GuardianCoach`, `SummaryService`, `PlanEngine`, detección de vencidas importantes, búsqueda universal.
+- Parser: manejo robusto de múltiples marcadores temporales en una frase.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
