@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,7 +60,7 @@ fun ProjectsScreen(
                                 Text(project.name, style = MaterialTheme.typography.titleLarge)
                                 Text(project.description.ifBlank { project.status.name.lowercase().replaceFirstChar { it.uppercase() } }, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            IconButton(onClick = { onProject(project.id) }) { Icon(Icons.Outlined.ArrowForward, stringResource(R.string.projects_open_action)) }
+                            IconButton(onClick = { onProject(project.id) }) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, stringResource(R.string.projects_open_action)) }
                         }
                         LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                         Text(stringResource(R.string.projects_progress_completed, (progress * 100).toInt()), style = MaterialTheme.typography.labelMedium)

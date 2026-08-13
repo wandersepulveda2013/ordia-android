@@ -4,7 +4,7 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-10 (corrección de infraestructura del sistema autónomo)
+- **Fecha/hora (UTC)**: 2026-08-13 (corrección de deprecaciones de Compose)
 - **Branch de trabajo**: `jules/autonomous-ordia` (HEAD `cc1a1e3`)
 - **main**: `d5b3b60` — contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
@@ -51,7 +51,7 @@
 
 ## Problemas conocidos
 
-- Warnings de deprecación no bloqueantes (ej. `Icons.Outlined.InsertDriveFile` → AutoMirrored).
+
 - El workflow Jules necesita `jules/autonomous-ordia` visible en la API de Sources antes de
   lanzar sesiones (verificado en cada ejecución; si no aparece, la sesión NO se lanza).
 - El auto-merge requiere que las PRs de Jules tengan checks exitosos; si `secrets.JULES_API_KEY`
