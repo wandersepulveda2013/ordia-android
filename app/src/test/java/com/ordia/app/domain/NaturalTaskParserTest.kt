@@ -816,6 +816,16 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // "fin de semana que viene": el patron "semana que viene" (periodo proximo) coincide
+    // con la subcadena de "fin de semana que viene" y dejaba el residuo "fin de" en el
+    // titulo, ademas de programar +7d en lugar del proximo sabado. Regresion introducida
+    // al anadir el periodo proximo; ahora el "fin de semana" se procesa primero.
+    @Test fun finDeSemanaQueVieneProgramaProximoSabadoYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Viaje fin de semana que viene", now, zone)
+        assertEquals("Viaje", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- Fechas relativas en semanas/meses ---
     // "en una semana"/"en un mes" son de las formas más comunes en español y antes
     // quedaban SIN fecha (dueAt=null) → la tarea se olvidaba (sin recordatorio). now=2026-07-29.

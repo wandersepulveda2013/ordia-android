@@ -256,6 +256,13 @@ object NaturalTaskParser {
         }
         relativeMatch?.let { working = working.replace(it.value, " ") }
 
+        // El "fin de semana" se detecta y se borra ANTES del período próximo para que
+        // "fin de semana que viene" no active por error el patrón "semana que viene"
+        // (que dejaría el residuo «fin de» en el título). El match se conserva para la
+        // resolución de fecha posterior (weekendMatch != null).
+        val weekendEarlyMatch = weekendPattern.find(working)
+        weekendEarlyMatch?.let { working = working.replace(it.value, " ") }
+
         // Período próximo ("la semana que viene", "el mes que viene", "el año que
         // viene", "próximo mes", "la próxima semana"): +1 período (semana/mes/año).
         // Se trata como días relativos (como relativePattern) para combinarse con hora
@@ -289,7 +296,7 @@ object NaturalTaskParser {
         }
 
         val weekdayMatch = weekdayPattern.find(working)
-        val weekendMatch = weekendPattern.find(working)
+        val weekendMatch = weekendEarlyMatch
         val numericDateMatch = numericDatePattern.find(working)
         val monthNameMatch = monthNamePattern.find(working)
         // Solo cuenta como fecha si el mes es válido: así "8 de la manana" (sufijo de
@@ -472,6 +479,10 @@ object NaturalTaskParser {
             .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\banteayer\b|\bayer\b"""), " ")
             .let { value -> weekdayPattern.replace(value, " ") }
             .let { value -> weekendPattern.replace(value, " ") }
+            // "que viene" queda como residuo cuando la fecha asociada (fin de
+            // semana, día de la semana) se consume pero la frase modificadora no.
+            // Se borra aquí para no dejar basura en el título.
+            .replace(Regex("""(?i)\bque\s+viene\b"""), " ")
             // Solo se elimina la fecha "5 de marzo" si el mes es válido: así "9 de la"
             // (en "a las 9 de la tarde") no se destruye y deja restos en el título.
             .replace(monthNamePattern) { m ->
