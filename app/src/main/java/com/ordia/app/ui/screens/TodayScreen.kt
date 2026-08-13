@@ -331,8 +331,14 @@ fun TodayScreen(
                         )
                     }
                     if (verdict != null) {
+                        val suggestion = summary.deferralSuggestion
+                        val verdictText = if (verdict == R.string.summary_load_overloaded && suggestion != null) {
+                            stringResource(R.string.summary_load_overloaded_suggestion, suggestion.title)
+                        } else {
+                            stringResource(verdict)
+                        }
                         Text(
-                            stringResource(verdict),
+                            verdictText,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 6.dp)

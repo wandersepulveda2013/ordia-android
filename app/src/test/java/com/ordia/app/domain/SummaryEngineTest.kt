@@ -23,16 +23,19 @@ class SummaryEngineTest {
         completed: Boolean = false,
         completedAt: Long? = null,
         status: TaskStatus = TaskStatus.PLANNED,
-        durationMinutes: Int = 25
+        durationMinutes: Int = 25,
+        priority: TaskPriority = TaskPriority.NORMAL,
+        title: String = "T$id"
     ) = TaskEntity(
         id = id,
-        title = "T$id",
+        title = title,
         dueAt = dueAt,
         startAt = startAt,
         durationMinutes = durationMinutes,
         status = status,
         completed = completed,
-        completedAt = completedAt
+        completedAt = completedAt,
+        priority = priority
     )
 
     @Test
@@ -301,5 +304,91 @@ class SummaryEngineTest {
 
         assertEquals(90, s.remainingMinutesToday)
         assertEquals(DayLoad.ON_TRACK, s.dayLoad)
+    }
+
+    @Test
+    fun deferralSuggestion_nullWhenNotOverloaded() {
+        val tasks = listOf(
+            task(1, dueAt = at(today, 14), durationMinutes = 60),
+            task(2, dueAt = at(today, 16), durationMinutes = 60)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone) // ON_TRACK
+
+        assertEquals(DayLoad.ON_TRACK, s.dayLoad)
+        assertEquals(null, s.deferralSuggestion)
+    }
+
+    @Test
+    fun deferralSuggestion_picksLowestPriorityTaskWhenOverloaded() {
+        // now=12:00 → 360 min libres; 4×120=480 > 360 → OVERLOADED.
+        // Candidatas no vencidas: URGENT(1), HIGH(2), NORMAL(3), LOW(4) → sugiere LOW.
+        val tasks = listOf(
+            task(1, dueAt = at(today, 14), durationMinutes = 120, priority = TaskPriority.URGENT, title = "Urgente"),
+            task(2, dueAt = at(today, 15), durationMinutes = 120, priority = TaskPriority.HIGH, title = "Alta"),
+            task(3, dueAt = at(today, 16), durationMinutes = 120, priority = TaskPriority.NORMAL, title = "Normal"),
+            task(4, dueAt = at(today, 17), durationMinutes = 120, priority = TaskPriority.LOW, title = "Posponerme")
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+        val sug = s.deferralSuggestion
+        assertEquals(4L, sug?.taskId)
+        assertEquals("Posponerme", sug?.title)
+    }
+
+    @Test
+    fun deferralSuggestion_atSamePriorityPicksLatestDueToMaximizeMargin() {
+        // now=12:00 → 360 min libres; 3×120=360 == 360 → FULL. Añadimos una 4ª
+        // tarea NORMAL para saturar (4×120=480 > 360 → OVERLOADED). Todas NORMAL:
+        // gana la que vence más tarde (más margen, más segura de aplazar).
+        val tasks = listOf(
+            task(1, dueAt = at(today, 13), durationMinutes = 120, title = "Temprana"),
+            task(2, dueAt = at(today, 14), durationMinutes = 120, title = "Media"),
+            task(3, dueAt = at(today, 16), durationMinutes = 120, title = "Tardia"),
+            task(4, dueAt = at(today, 17), durationMinutes = 120, title = "Ultima")
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+        val sug = s.deferralSuggestion
+        assertEquals(4L, sug?.taskId)
+        assertEquals("Ultima", sug?.title)
+    }
+
+    @Test
+    fun deferralSuggestion_neverSuggestsOverdueTask() {
+        // A las 19:00 (pasado fin de jornada) cualquier trabajo restante satura.
+        // Hay una tarea vencida (ayer) y una de hoy NO vencida. La sugerencia
+        // debe apuntar a la de hoy, jamás a la vencida.
+        val lateNow = today.atTime(19, 0).atZone(zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            task(1, dueAt = at(today.minusDays(1), 9), durationMinutes = 10, priority = TaskPriority.LOW, title = "Vencida"),
+            task(2, dueAt = at(today, 23), durationMinutes = 10, priority = TaskPriority.URGENT, title = "DeHoy")
+        )
+
+        val s = SummaryEngine.summarize(tasks, lateNow, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+        val sug = s.deferralSuggestion
+        assertEquals(2L, sug?.taskId)
+        assertEquals("DeHoy", sug?.title)
+    }
+
+    @Test
+    fun deferralSuggestion_whenAllRemainingTasksAreOverdue_returnsNull() {
+        // A las 19:00 la única tarea restante de hoy está vencida → OVERLOADED
+        // pero no hay nada posponible sin empeorar un retraso → sin sugerencia.
+        val lateNow = today.atTime(19, 0).atZone(zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            task(1, dueAt = at(today, 8), durationMinutes = 10, priority = TaskPriority.LOW, title = "VencidaHoy")
+        )
+
+        val s = SummaryEngine.summarize(tasks, lateNow, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+        assertEquals(null, s.deferralSuggestion)
     }
 }

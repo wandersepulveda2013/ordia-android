@@ -3311,6 +3311,29 @@ a un permiso persistente frágil y silencioso ante fallos.
 - `PlanEngine` replanificación automática; búsqueda universal.
 - Parser: múltiples marcadores temporales en una frase.
 
+## Ciclo 66 - 2026-08-13 (UTC) - feat(summary): sugerencia concreta de tarea a posponer cuando el día está saturado
+
+- **Run/ciclo**: 66 (continúa directamente sobre c.65; HEAD inicial `aa65608` (c.67 monthNameMatch aterrizado en paralelo; base reconstruida tras merge; original c.65 `970b6c8`)).
+- **Problema seleccionado**: el veredicto `OVERLOADED` (c.65) decía "No cabe todo hoy. Elige qué dejar para mañana." — correcto pero **vago**: el usuario tenía que recorrer la lista mentalmente para decidir cuál tarea soltar. La decisión más útil en ese momento es **nombrar** la tarea más posponible, no añadir otro botón/pantalla. (Continúa el "Siguiente" documentado en c.65: "sugerir automáticamente qué tarea mover a mañana".) Área de dirección explícita "replanificación automática"/"priorización inteligente".
+- **Prioridad**: P2 (inteligencia/honesta; mejora funcional del resumen, no pérdida de datos).
+- **Causa raíz**: `DaySummary` no tenía ninguna noción de "cuál tarea es más posponible"; `assessDayLoad` solo decía OVERLOADED pero no aportaba una recomendación concreta.
+- **Solución (mínima, `SummaryEngine.kt` + `TodayScreen.kt` + `strings_screens1.xml`, sin nueva pantalla/botón)**:
+  - Nuevo `data class DeferralSuggestion(taskId, title)` + campo `deferralSuggestion` en `DaySummary`, poblado solo si `dayLoad == OVERLOADED`.
+  - `SummaryEngine.mostDeferrableTask`: heurística honesta y conservadora — **nunca** sugiere una vencida (`!TaskRules.isOverdue`); entre las de hoy no vencidas elige la de **menor prioridad** (`priorityDeferralWeight`: LOW 3 > NORMAL 2 > HIGH 1 > URGENT 0 = más posponible primero) y, a igual prioridad, la que **vence más tarde** (`dueAt`/`startAt` ascendente → el mayor = más margen) vía `maxWithOrNull`. No muta nada: solo nombra.
+  - `TodayScreen.kt`: la línea OVERLOADED genérica se reemplaza por "No cabe todo hoy. Una opción es dejar para mañana «<tarea>»." en la MISMA línea `bodySmall` existente. Sin tarjeta, sin botón, sin acción automática (el usuario decide; Ordía solo sugiere).
+  - Heurística determinista, sin random ni "IA". No simula modelo.
+- **Bug encontrado y corregido durante el run**: el primer desempate usaba `thenByDescending { dueAt }` creyendo que ordenaría "mayor due primero" — pero `maxWith` sobre `thenByDescending` selecciona el **mínimo** due (vence más temprano), justo lo contrario. Corregido a `thenBy { dueAt }` (ascendente → `maxWith` elige el mayor = vence más tarde). Verificado con un probe Kotlin aislado antes de re-run de tests.
+- **Tests**: +4 en `SummaryEngineTest.kt` (`deferralSuggestion_suggestsLowestPriorityNonOverdue`, `deferralSuggestion_excludesOverdueTasks`, `deferralSuggestion_atSamePriorityPicksLatestDueToMaximizeMargin`, `deferralSuggestion_whenAllRemainingTasksAreOverdue_returnsNull`). **507 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 502 c.65+c.67 paralelo + 5 netos c.66), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real de la línea en la tarjeta de Today en dispositivo.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SummaryEngine.kt`, `app/src/main/java/com/ordia/app/ui/screens/TodayScreen.kt`, `app/src/main/res/values/strings_screens1.xml`, `app/src/test/java/com/ordia/app/domain/SummaryEngineTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: `a1fa5e3` (commit c.66; push pendiente; base rebaseada sobre c.67 `aa65608` sin conflictos residuales; 507 tests PASS).
+- **Estado**: FIXED → VERIFIED (dominio JVM); UI en app NO VERIFICADO (sin Android SDK).
+
+### Siguiente
+- Sugerencia accionable: permitir posponer la tarea sugerida con UN toque (acción rápida desde la propia línea) — evaluar si aporta fricción cero o más complejidad visible.
+- `PlanEngine`/replanificación más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
+- Descubrimiento continuo: búsqueda universal; `DayPlanner` respetar pausas/existente; detección de compromisos en notas; múltiples marcadores temporales en una frase.
+
 ## Ciclo 65 - 2026-08-13 (UTC) - feat(summary): veredicto honesto del día (DayLoad) en la tarjeta de Today
 
 - **Run/ciclo**: 65 (continúa sobre c.64).

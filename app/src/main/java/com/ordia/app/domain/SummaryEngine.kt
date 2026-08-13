@@ -1,6 +1,7 @@
 package com.ordia.app.domain
 
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import java.time.Instant
 import java.time.LocalDate
@@ -23,8 +24,22 @@ data class DaySummary(
     val completedThisWeek: Int,
     val weekDailyAverage: Float,
     /** Veredicto honesto sobre si el trabajo restante de hoy cabe en el día. */
-    val dayLoad: DayLoad = DayLoad.LIGHT
+    val dayLoad: DayLoad = DayLoad.LIGHT,
+    /**
+     * Cuando [dayLoad] es OVERLOADED, sugiere la tarea de hoy más posponible
+     * (la de menor prioridad que NO esté vencida y que más capacidad libere
+     * al moverla a mañana). Null en el resto de casos. Heurística honesta:
+     * no mueve nada, solo nombra qué tarea es candidata a reprogramar.
+     */
+    val deferralSuggestion: DeferralSuggestion? = null
 )
+
+/**
+ * Tarea candidata a mover a mañana cuando el día está saturado. Solo se
+ * calcula para OVERLOADED; la interfaz la muestra como una sugerencia, no
+ * como una acción automática (el usuario decide moverla).
+ */
+data class DeferralSuggestion(val taskId: Long, val title: String)
 
 /**
  * Veredicto del día: convierte varios conteos (minutos restantes vs minutos
@@ -93,6 +108,9 @@ object SummaryEngine {
         val weekDailyAverage = completedThisWeek / 7f
 
         val dayLoad = assessDayLoad(remainingToday, remainingMinutesToday, now, zone)
+        val deferralSuggestion = if (dayLoad == DayLoad.OVERLOADED) {
+            mostDeferrableTask(remainingTodayTasks, now)
+        } else null
 
         return DaySummary(
             completedToday = completedToday,
@@ -102,7 +120,8 @@ object SummaryEngine {
             inboxPending = inboxPending,
             completedThisWeek = completedThisWeek,
             weekDailyAverage = weekDailyAverage,
-            dayLoad = dayLoad
+            dayLoad = dayLoad,
+            deferralSuggestion = deferralSuggestion
         )
     }
 
@@ -139,6 +158,36 @@ object SummaryEngine {
             remainingMinutesToday <= freeMinutes -> DayLoad.FULL
             else -> DayLoad.OVERLOADED
         }
+    }
+
+
+    /**
+     * Tarea candidata a mover a mañana cuando el día está saturado. Heurística
+     * honesta y conservadora: nunca sugiere una tarea vencida (ya llegaron
+     * tarde y posponerlas empeora el retraso). Entre las de hoy no vencidas,
+     * elige la de menor prioridad (LOW antes que NORMAL antes que HIGH antes
+     * que URGENT) y, a igual prioridad, la que vence más tarde hoy (más margen
+     * → más segura de aplazar sin riesgo inminente). No muta nada: solo nombra.
+     */
+    private fun mostDeferrableTask(
+        remainingTodayTasks: List<TaskEntity>,
+        now: Long
+    ): DeferralSuggestion? {
+        val deferrable = remainingTodayTasks.filter { !TaskRules.isOverdue(it, now) }
+        if (deferrable.isEmpty()) return null
+        val chosen = deferrable.maxWithOrNull(
+            compareBy<TaskEntity> { priorityDeferralWeight(it.priority) }
+                .thenBy { it.dueAt ?: it.startAt ?: 0L }
+        ) ?: return null
+        return DeferralSuggestion(taskId = chosen.id, title = chosen.title)
+    }
+
+    /** Mayor peso = más posponible (menos urgente). LOW=NORMAL/HIGH/URGENT inverso. */
+    private fun priorityDeferralWeight(priority: TaskPriority): Int = when (priority) {
+        TaskPriority.LOW -> 3
+        TaskPriority.NORMAL -> 2
+        TaskPriority.HIGH -> 1
+        TaskPriority.URGENT -> 0
     }
 
 
