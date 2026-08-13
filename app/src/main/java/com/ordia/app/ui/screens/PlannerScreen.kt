@@ -61,9 +61,10 @@ import java.util.Locale
 @Composable
 private fun rememberSystemLocale(): Locale {
     val configuration = LocalConfiguration.current
-    return androidx.compose.runtime.remember(configuration) {
+    val platformLocale = androidx.compose.ui.text.intl.Locale.current.platformLocale
+    return androidx.compose.runtime.remember(configuration, platformLocale) {
         val list = ConfigurationCompat.getLocales(configuration)
-        if (list == LocaleListCompat.getEmptyLocaleList()) Locale.getDefault() else list[0] ?: Locale.getDefault()
+        if (list == LocaleListCompat.getEmptyLocaleList()) platformLocale else list[0] ?: platformLocale
     }
 }
 

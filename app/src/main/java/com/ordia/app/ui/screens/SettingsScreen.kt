@@ -178,7 +178,12 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                     overlayPermission.launch(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")))
                 } else {
                     vm.setGuardianEnabled(enabled)
-                    if (enabled) startGuardian(context) else context.stopService(Intent(context, GuardianOverlayService::class.java))
+                    if (enabled) {
+                        startGuardian(context)
+                    } else {
+                        val intent = Intent(context, GuardianOverlayService::class.java)
+                        context.stopService(intent)
+                    }
                 }
             }
         }
