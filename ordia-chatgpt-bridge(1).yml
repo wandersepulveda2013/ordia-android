@@ -1,0 +1,492 @@
+name: Ordia ChatGPT Bridge
+
+on:
+  schedule:
+    - cron: "3/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ordia-chatgpt-bridge
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+  checks: read
+  statuses: read
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AIRTABLE_PAT: ${{ secrets.AIRTABLE_PAT }}
+      JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+      GH_TOKEN: ${{ github.token }}
+      AIRTABLE_BASE_ID: appCQ7gziQlAp91uZ
+      AIRTABLE_TABLE_ID: tbl7GmbYM9sgE1YnL
+      TARGET_BRANCH: jules/autonomous-ordia
+      REPO_FULL_NAME: wandersepulveda2013/ordia-android
+    steps:
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${AIRTABLE_PAT:-}" || { echo "::error::Missing AIRTABLE_PAT secret"; exit 1; }
+          test -n "${JULES_API_KEY:-}" || { echo "::error::Missing JULES_API_KEY secret"; exit 1; }
+
+      - name: Process Ordia mission queue
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import datetime as dt
+          import json
+          import os
+          import re
+          import sys
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          AIRTABLE_PAT = os.environ["AIRTABLE_PAT"]
+          JULES_API_KEY = os.environ["JULES_API_KEY"]
+          GH_TOKEN = os.environ["GH_TOKEN"]
+          BASE_ID = os.environ["AIRTABLE_BASE_ID"]
+          TABLE_ID = os.environ["AIRTABLE_TABLE_ID"]
+          TARGET_BRANCH = os.environ["TARGET_BRANCH"]
+          REPO = os.environ["REPO_FULL_NAME"]
+          AIRTABLE_API = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_ID}"
+          JULES_API = "https://jules.googleapis.com/v1alpha"
+          GITHUB_API = "https://api.github.com"
+
+          ACTIVE_STATES = {"CLAIMED", "RUNNING", "REVIEW"}
+          TERMINAL_JULES_FAILURES = {"FAILED", "CANCELLED", "ERROR"}
+
+          def now_iso():
+              return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+          def http_json(url, method="GET", headers=None, payload=None, timeout=45):
+              headers = dict(headers or {})
+              data = None
+              if payload is not None:
+                  data = json.dumps(payload).encode("utf-8")
+                  headers.setdefault("Content-Type", "application/json")
+              req = urllib.request.Request(url, data=data, method=method, headers=headers)
+              try:
+                  with urllib.request.urlopen(req, timeout=timeout) as resp:
+                      body = resp.read()
+                      return json.loads(body) if body else {}
+              except urllib.error.HTTPError as e:
+                  detail = ""
+                  try:
+                      detail = e.read().decode("utf-8", errors="replace")[:1200]
+                  except Exception:
+                      pass
+                  raise RuntimeError(f"HTTP {e.code} {method} {url}: {detail}") from e
+
+          def airtable_headers():
+              return {"Authorization": f"Bearer {AIRTABLE_PAT}"}
+
+          def airtable_list_all():
+              records = []
+              offset = None
+              while True:
+                  qs = {"pageSize": 100}
+                  if offset:
+                      qs["offset"] = offset
+                  page = http_json(
+                      AIRTABLE_API + "?" + urllib.parse.urlencode(qs),
+                      headers=airtable_headers(),
+                  )
+                  records.extend(page.get("records", []))
+                  offset = page.get("offset")
+                  if not offset:
+                      break
+              return records
+
+          def airtable_update(record_id, fields):
+              return http_json(
+                  f"{AIRTABLE_API}/{record_id}",
+                  method="PATCH",
+                  headers=airtable_headers(),
+                  payload={"fields": fields},
+              )
+
+          def jules_headers():
+              return {"x-goog-api-key": JULES_API_KEY}
+
+          def github_headers():
+              return {
+                  "Authorization": f"Bearer {GH_TOKEN}",
+                  "Accept": "application/vnd.github+json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "User-Agent": "ordia-chatgpt-bridge",
+              }
+
+          def field(record, name, default=None):
+              return (record.get("fields") or {}).get(name, default)
+
+          def status_name(record):
+              value = field(record, "Status", "")
+              if isinstance(value, dict):
+                  return value.get("name", "")
+              return str(value or "")
+
+          def update_check_time(record_id):
+              airtable_update(record_id, {"Last Checked At": now_iso()})
+
+          def find_ordia_source():
+              token = None
+              while True:
+                  params = {"pageSize": 100}
+                  if token:
+                      params["pageToken"] = token
+                  data = http_json(
+                      JULES_API + "/sources?" + urllib.parse.urlencode(params),
+                      headers=jules_headers(),
+                  )
+                  for source in data.get("sources", []):
+                      repo = source.get("githubRepo") or {}
+                      if repo.get("owner") == "wandersepulveda2013" and repo.get("repo") == "ordia-android":
+                          branches = [b.get("displayName") for b in repo.get("branches", [])]
+                          if TARGET_BRANCH not in branches:
+                              raise RuntimeError(
+                                  f"Jules source found but target branch {TARGET_BRANCH!r} is not visible. Branches={branches[:30]}"
+                              )
+                          return source.get("name")
+                  token = data.get("nextPageToken")
+                  if not token:
+                      break
+              raise RuntimeError("Ordia repository is not connected to Jules Sources API")
+
+          def jules_get_session(session_name):
+              session_name = str(session_name or "").strip()
+              if not re.fullmatch(r"sessions/[^/]+", session_name):
+                  raise RuntimeError(f"Invalid Jules Session ID in Airtable: {session_name!r}")
+              return http_json(f"{JULES_API}/{session_name}", headers=jules_headers())
+
+          def extract_pr_url(session):
+              for output in session.get("outputs", []) or []:
+                  pr = output.get("pullRequest") or {}
+                  if pr.get("url"):
+                      return pr["url"]
+              return ""
+
+          def github_pr_number(pr_url):
+              m = re.fullmatch(r"https://github\.com/wandersepulveda2013/ordia-android/pull/(\d+)/?", str(pr_url or ""))
+              return int(m.group(1)) if m else None
+
+          def evaluate_and_merge(record):
+              rid = record["id"]
+              pr_url = field(record, "PR URL", "")
+              if not field(record, "Safe To Auto Merge", False):
+                  update_check_time(rid)
+                  return False
+
+              pr_number = github_pr_number(pr_url)
+              if not pr_number:
+                  airtable_update(rid, {
+                      "Status": "BLOCKED",
+                      "Last Error": f"PR URL inválida o fuera de {REPO}: {pr_url}",
+                      "Last Checked At": now_iso(),
+                      "Safe To Auto Merge": False,
+                  })
+                  return False
+
+              pr = http_json(f"{GITHUB_API}/repos/{REPO}/pulls/{pr_number}", headers=github_headers())
+              base_ref = ((pr.get("base") or {}).get("ref") or "")
+              head = pr.get("head") or {}
+              head_ref = head.get("ref") or ""
+              head_sha = head.get("sha") or ""
+              head_repo = (head.get("repo") or {}).get("full_name") or ""
+
+              if base_ref != TARGET_BRANCH or base_ref == "main":
+                  airtable_update(rid, {
+                      "Status": "BLOCKED",
+                      "Last Error": f"Merge gate rejected PR #{pr_number}: base={base_ref!r}",
+                      "Last Checked At": now_iso(),
+                      "Safe To Auto Merge": False,
+                  })
+                  return False
+              if head_repo != REPO:
+                  airtable_update(rid, {
+                      "Status": "BLOCKED",
+                      "Last Error": f"Merge gate rejected fork PR #{pr_number}: head repo={head_repo!r}",
+                      "Last Checked At": now_iso(),
+                      "Safe To Auto Merge": False,
+                  })
+                  return False
+              if pr.get("draft"):
+                  update_check_time(rid)
+                  return False
+              if pr.get("mergeable") is False or pr.get("mergeable_state") in {"dirty", "blocked"}:
+                  airtable_update(rid, {
+                      "Status": "BLOCKED",
+                      "Last Error": f"PR #{pr_number} is not safely mergeable: {pr.get('mergeable_state')}",
+                      "Last Checked At": now_iso(),
+                      "Safe To Auto Merge": False,
+                  })
+                  return False
+
+              checks = http_json(
+                  f"{GITHUB_API}/repos/{REPO}/commits/{head_sha}/check-runs?per_page=100",
+                  headers=github_headers(),
+              ).get("check_runs", [])
+              if not checks:
+                  update_check_time(rid)
+                  return False
+
+              verify = [c for c in checks if c.get("name") == "Verify build"]
+              pending = [c.get("name") for c in checks if c.get("status") != "completed"]
+              failures = [
+                  f"{c.get('name')}:{c.get('conclusion')}"
+                  for c in checks
+                  if c.get("status") == "completed"
+                  and c.get("conclusion") not in {"success", "neutral", "skipped"}
+              ]
+              verify_ok = any(c.get("status") == "completed" and c.get("conclusion") == "success" for c in verify)
+
+              if pending:
+                  airtable_update(rid, {
+                      "Last Checked At": now_iso(),
+                      "Result": f"Supervisor autorizó; esperando CI. Pendientes: {', '.join(pending[:8])}",
+                  })
+                  return False
+              if failures or not verify_ok:
+                  airtable_update(rid, {
+                      "Status": "BLOCKED",
+                      "Last Error": "CI gate rechazó la PR: " + (", ".join(failures[:8]) or "Verify build no está SUCCESS"),
+                      "Last Checked At": now_iso(),
+                      "Safe To Auto Merge": False,
+                  })
+                  return False
+
+              result = http_json(
+                  f"{GITHUB_API}/repos/{REPO}/pulls/{pr_number}/merge",
+                  method="PUT",
+                  headers=github_headers(),
+                  payload={
+                      "merge_method": "squash",
+                      "sha": head_sha,
+                      "commit_title": f"{field(record, 'Mission ID', 'Ordia mission')} (#{pr_number})",
+                      "commit_message": "Merged by Ordia ChatGPT Bridge after Airtable supervisor authorization and green CI.",
+                  },
+              )
+              if not result.get("merged"):
+                  airtable_update(rid, {
+                      "Status": "BLOCKED",
+                      "Last Error": f"GitHub refused merge: {result.get('message', 'unknown')}",
+                      "Last Checked At": now_iso(),
+                      "Safe To Auto Merge": False,
+                  })
+                  return False
+
+              airtable_update(rid, {
+                  "Status": "DONE",
+                  "Finished At": now_iso(),
+                  "Commit SHA": result.get("sha", ""),
+                  "Result": f"PR #{pr_number} merged by bridge into {TARGET_BRANCH} after supervisor approval + green CI.",
+                  "Last Error": "",
+                  "Last Checked At": now_iso(),
+              })
+              print(f"Merged mission {field(record, 'Mission ID')} via PR #{pr_number}")
+              return True
+
+          # 1) Read queue.
+          records = airtable_list_all()
+
+          # 2) Monitor active Jules sessions and move completed work to REVIEW.
+          for record in records:
+              st = status_name(record)
+              if st not in {"RUNNING", "CLAIMED"}:
+                  continue
+              rid = record["id"]
+              session_name = field(record, "Session ID", "")
+              if not session_name:
+                  # CLAIMED without a session can happen if a prior run died between calls.
+                  # Keep it visible rather than silently launching a duplicate.
+                  airtable_update(rid, {
+                      "Status": "BLOCKED",
+                      "Last Error": "Mission was CLAIMED but has no Jules Session ID; manual/supervisor recovery required.",
+                      "Last Checked At": now_iso(),
+                  })
+                  continue
+              try:
+                  session = jules_get_session(session_name)
+                  state = session.get("state") or ""
+                  pr_url = extract_pr_url(session)
+                  if state == "COMPLETED":
+                      if pr_url:
+                          airtable_update(rid, {
+                              "Status": "REVIEW",
+                              "PR URL": pr_url,
+                              "Result": "Jules completed the mission and created a PR. Waiting for ChatGPT supervisor review.",
+                              "Last Error": "",
+                              "Last Checked At": now_iso(),
+                          })
+                      else:
+                          airtable_update(rid, {
+                              "Status": "BLOCKED",
+                              "Result": "Jules reported COMPLETED but did not return a pull request.",
+                              "Last Error": "Expected an AUTO_CREATE_PR output but none was returned.",
+                              "Last Checked At": now_iso(),
+                          })
+                  elif state in TERMINAL_JULES_FAILURES:
+                      airtable_update(rid, {
+                          "Status": "FAILED",
+                          "Finished At": now_iso(),
+                          "Last Error": f"Jules session ended in state={state}",
+                          "Last Checked At": now_iso(),
+                      })
+                  elif state == "AWAITING_USER_FEEDBACK":
+                      airtable_update(rid, {
+                          "Status": "BLOCKED",
+                          "Last Error": "Jules requires user feedback. Supervisor must inspect session before continuing.",
+                          "Last Checked At": now_iso(),
+                      })
+                  else:
+                      airtable_update(rid, {
+                          "Result": f"Jules session state: {state}",
+                          "Last Checked At": now_iso(),
+                      })
+              except Exception as exc:
+                  airtable_update(rid, {
+                      "Last Error": f"Session monitor error: {exc}"[:9000],
+                      "Last Checked At": now_iso(),
+                  })
+
+          # Refresh after monitoring.
+          records = airtable_list_all()
+
+          # 3) Merge only REVIEW missions explicitly authorized by ChatGPT supervisor.
+          merged_any = False
+          for record in records:
+              if status_name(record) == "REVIEW" and field(record, "Safe To Auto Merge", False):
+                  try:
+                      merged_any = evaluate_and_merge(record) or merged_any
+                  except Exception as exc:
+                      airtable_update(record["id"], {
+                          "Status": "BLOCKED",
+                          "Last Error": f"Merge gate exception: {exc}"[:9000],
+                          "Last Checked At": now_iso(),
+                          "Safe To Auto Merge": False,
+                      })
+
+          # 4) Never start another mission while one is active/reviewing.
+          records = airtable_list_all()
+          if any(status_name(r) in ACTIVE_STATES for r in records):
+              print("Active mission exists; no new mission started.")
+              sys.exit(0)
+
+          # 5) Claim exactly one highest-priority PENDING Jules mission.
+          pending = [
+              r for r in records
+              if status_name(r) == "PENDING"
+              and str(field(r, "Executor", "Jules")) in {"Jules", "{'name': 'Jules'}"}
+          ]
+          # Airtable REST normally returns select fields as their display string.
+          if not pending:
+              pending = [r for r in records if status_name(r) == "PENDING"]
+          if not pending:
+              print("No pending missions.")
+              sys.exit(0)
+
+          def priority(r):
+              try:
+                  return int(field(r, "Priority", 0) or 0)
+              except Exception:
+                  return 0
+
+          pending.sort(key=lambda r: (priority(r), r.get("createdTime", "")), reverse=True)
+          mission = pending[0]
+          rid = mission["id"]
+          mission_id = str(field(mission, "Mission ID", "")).strip()
+          instruction = str(field(mission, "Instruction", "")).strip()
+          branch = str(field(mission, "Target Branch", "")).strip()
+          attempts = int(field(mission, "Attempts", 0) or 0)
+
+          if not mission_id or not instruction:
+              airtable_update(rid, {
+                  "Status": "BLOCKED",
+                  "Last Error": "Mission ID or Instruction is empty.",
+                  "Last Checked At": now_iso(),
+              })
+              sys.exit(0)
+          if branch != TARGET_BRANCH:
+              airtable_update(rid, {
+                  "Status": "BLOCKED",
+                  "Last Error": f"Target Branch must be exactly {TARGET_BRANCH}; received {branch!r}.",
+                  "Last Checked At": now_iso(),
+              })
+              sys.exit(0)
+          if attempts >= 3:
+              airtable_update(rid, {
+                  "Status": "BLOCKED",
+                  "Last Error": "Maximum automatic attempts (3) reached.",
+                  "Last Checked At": now_iso(),
+              })
+              sys.exit(0)
+
+          claimed_at = now_iso()
+          airtable_update(rid, {
+              "Status": "CLAIMED",
+              "Started At": claimed_at,
+              "Last Checked At": claimed_at,
+              "Attempts": attempts + 1,
+              "Result": "Mission claimed by GitHub Actions bridge; creating Jules session.",
+              "Last Error": "",
+          })
+
+          try:
+              source = find_ordia_source()
+              safety = f"""
+
+          MANDATORY BRIDGE SAFETY CONTRACT:
+          - Mission ID: {mission_id}
+          - Work only from starting branch `{TARGET_BRANCH}`.
+          - NEVER commit, push, merge, or open a PR directly against `main`.
+          - Your pull request must target `{TARGET_BRANCH}`.
+          - Make only changes required by the mission; avoid unrelated cleanup/churn.
+          - Do not alter repository secrets, signing configuration, release publishing, or security gates unless the mission explicitly and unambiguously requires it.
+          - Run the smallest meaningful verification plus any directly relevant tests/build checks.
+          - Include `{mission_id}` in the PR title or description for traceability.
+          - Do not merge your own PR. The ChatGPT supervisor + CI gate decides that separately.
+          """.strip()
+              session = http_json(
+                  JULES_API + "/sessions",
+                  method="POST",
+                  headers=jules_headers(),
+                  payload={
+                      "prompt": instruction + "\n\n" + safety,
+                      "title": f"Ordía — ChatGPT Bridge — {mission_id}",
+                      "sourceContext": {
+                          "source": source,
+                          "githubRepoContext": {"startingBranch": TARGET_BRANCH},
+                      },
+                      "requirePlanApproval": False,
+                      "automationMode": "AUTO_CREATE_PR",
+                  },
+              )
+              session_name = session.get("name") or ""
+              session_url = session.get("url") or ""
+              if not session_name:
+                  raise RuntimeError(f"Jules create-session returned no resource name: {session}")
+              airtable_update(rid, {
+                  "Status": "RUNNING",
+                  "Session ID": session_name,
+                  "Session URL": session_url,
+                  "Result": f"Jules session created: {session.get('state', 'QUEUED')}",
+                  "Last Checked At": now_iso(),
+              })
+              print(f"Started {mission_id}: {session_name} {session_url}")
+          except Exception as exc:
+              airtable_update(rid, {
+                  "Status": "FAILED",
+                  "Finished At": now_iso(),
+                  "Last Error": f"Could not create Jules session: {exc}"[:9000],
+                  "Last Checked At": now_iso(),
+              })
+              raise
+          PY
