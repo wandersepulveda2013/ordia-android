@@ -27,21 +27,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
       - name: Validate Gradle wrapper integrity
-        uses: gradle/actions/wrapper-validation@v4
+        uses: gradle/wrapper-validation-action@f9c9c575b8b21b6485636a91ffecd10e558c62f6 # v3.5.0
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@017a9effdb900e5b5b2fddfb590a105619dca3c3 # v4.4.2
 
       - name: Run full verification (tests, lint, debug build, release build)
         shell: bash
@@ -51,7 +51,7 @@ jobs:
           ./gradlew clean test lint assembleDebug assembleRelease --stacktrace
 
       - name: Upload unsigned release APK (previewAdvanced, to be signed)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ordia-release-unsigned
           path: app/build/outputs/apk/previewAdvanced/release/app-previewAdvanced-release-unsigned.apk
@@ -59,7 +59,7 @@ jobs:
           retention-days: 7
 
       - name: Upload debug APKs (all flavors, manual QA only)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: app-debug-apks
           path: app/build/outputs/apk/*/debug/*.apk
@@ -68,7 +68,7 @@ jobs:
 
       - name: Upload test reports
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: test-reports
           path: |
@@ -106,7 +106,7 @@ jobs:
 
     steps:
       - name: Download unsigned release APK
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: ordia-release-unsigned
           path: unsigned
@@ -192,7 +192,7 @@ jobs:
           echo "SIGNED_CHECKSUM=$SIGNED.sha256" >> "$GITHUB_ENV"
 
       - name: Upload signed APK and checksum
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ordia-3.0-signed
           path: |
@@ -218,7 +218,7 @@ jobs:
 
     steps:
       - name: Download signed APK
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: ordia-3.0-signed
           path: release
