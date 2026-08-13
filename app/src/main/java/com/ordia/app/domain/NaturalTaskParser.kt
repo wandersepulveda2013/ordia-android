@@ -17,7 +17,7 @@ data class ParsedTaskInput(
 object NaturalTaskParser {
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
     private val weekdayPattern = Regex("""(?i)\b(?:el\s+)?(?:pr[oó]ximo\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b""")
-    private val relativePattern = Regex("""(?i)\ben\s+(\d{1,3})\s*(minutos?|mins?|horas?|d[ií]as?)\b""")
+    private val relativePattern = Regex("""(?i)\ben\s+(\d{1,3}|un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|quince|veinte|treinta|cuarenta|cincuenta|sesenta|media)\s*(minutos?|mins?|horas?|d[ií]as?)\b""")
     private val timePatterns = listOf(
         Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b([01]?\d|2[0-3]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
@@ -38,10 +38,33 @@ object NaturalTaskParser {
 
         val relativeMatch = relativePattern.find(working)
         val relativeDueAt = relativeMatch?.let { match ->
-            val amount = match.groupValues[1].toLongOrNull() ?: 0L
+            val amountStr = match.groupValues[1].lowercase()
             val unit = match.groupValues[2].lowercase()
+            val amount = when (amountStr) {
+                "un", "una", "uno" -> 1L
+                "dos" -> 2L
+                "tres" -> 3L
+                "cuatro" -> 4L
+                "cinco" -> 5L
+                "seis" -> 6L
+                "siete" -> 7L
+                "ocho" -> 8L
+                "nueve" -> 9L
+                "diez" -> 10L
+                "once" -> 11L
+                "doce" -> 12L
+                "quince" -> 15L
+                "veinte" -> 20L
+                "treinta" -> 30L
+                "cuarenta" -> 40L
+                "cincuenta" -> 50L
+                "sesenta" -> 60L
+                "media" -> if (unit.startsWith("hora")) 30L else 0L
+                else -> amountStr.toLongOrNull() ?: 0L
+            }
             val millis = when {
                 unit.startsWith("min") -> amount * 60_000L
+                unit.startsWith("hora") && amountStr == "media" -> 30 * 60_000L
                 unit.startsWith("hora") -> amount * 60 * 60_000L
                 else -> amount * 24 * 60 * 60_000L
             }

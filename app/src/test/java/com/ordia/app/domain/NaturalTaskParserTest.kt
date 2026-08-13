@@ -39,4 +39,16 @@ class NaturalTaskParserTest {
         assertEquals("Revisar el horno", result.title)
         assertEquals(now + 45 * 60_000L, result.dueAt)
     }
+
+    @Test fun parsesRelativeDurationWithTextNumbers() {
+        val result = NaturalTaskParser.parse("Revisar el horno en dos horas", now, zone)
+        assertEquals("Revisar el horno", result.title)
+        assertEquals(now + 2 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun parsesRelativeDurationWithMedia() {
+        val result = NaturalTaskParser.parse("Revisar el horno en media hora", now, zone)
+        assertEquals("Revisar el horno", result.title)
+        assertEquals(now + 30 * 60_000L, result.dueAt)
+    }
 }
