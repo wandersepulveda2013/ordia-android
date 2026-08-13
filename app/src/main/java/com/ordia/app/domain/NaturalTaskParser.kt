@@ -101,6 +101,17 @@ object NaturalTaskParser {
      * viene" (frase confusa que el usuario usa como sinónimo de "esta semana").
      */
     private val thisWeekPattern = Regex("""(?i)\besta\s+semana(?:\s+que\s+viene)?\b""")
+    /**
+     * "principios de semana" / "a principios de semana": plazo blando de "a inicios de
+     * la semana" (el lunes). Frases cotidianas ("lo termino a principios de semana") que
+     * antes caían a dueAt=null (tarea olvidada) o, con hora explícita, a HOY por error.
+     *
+     * Resuelve al lunes más cercano en HOY o futuro (ISO, semana lunes→domingo): si hoy
+     * es lunes, hoy; si es martes-domingo, el lunes de la semana siguiente. Como plazo
+     * blando nunca se fecha en pasado. Se detecta y borra ANTES del período próximo para
+     * que "semana" no active "semana que viene".
+     */
+    private val startOfWeekPattern = Regex("""(?i)\b(?:a\s+)?principios?\s+(?:de\s+|del\s+)semana\b""")
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
     private val timePatterns = listOf(
         Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?\b"""),
@@ -360,6 +371,16 @@ object NaturalTaskParser {
         }
         thisWeekEarlyMatch?.let { working = working.replace(it.value, " ") }
 
+        // "principios de semana": el lunes más cercano en hoy/futuro. Se borra ANTES
+        // del período próximo para que "semana" no active "semana que viene".
+        val startOfWeekEarlyMatch = startOfWeekPattern.find(working)
+        val startOfWeekDueAt = startOfWeekEarlyMatch?.let {
+            val monday = base.toLocalDate()
+                .with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY))
+            DateRules.toEpochMillis(monday, LocalTime.of(9, 0), zone)
+        }
+        startOfWeekEarlyMatch?.let { working = working.replace(it.value, " ") }
+
         // Período próximo ("la semana que viene", "el mes que viene", "el año que
         // viene", "próximo mes", "la próxima semana"): +1 período (semana/mes/año).
         // Se trata como días relativos (como relativePattern) para combinarse con hora
@@ -385,9 +406,9 @@ object NaturalTaskParser {
         // ("fin de mes"/"mediados de mes"); "esta semana"; el período próximo es el
         // respaldo final. Todos son días (no min/hora) para combinarse con una hora explícita.
         val effectiveRelativeDueAt =
-            relativeDueAt ?: monthBoundaryDueAt ?: thisWeekDueAt ?: nextPeriodDueAt
+            relativeDueAt ?: monthBoundaryDueAt ?: thisWeekDueAt ?: startOfWeekDueAt ?: nextPeriodDueAt
         val relativeIsDays = (relativeMatch != null || monthBoundaryDueAt != null ||
-            thisWeekEarlyMatch != null || nextPeriodMatch != null) &&
+            thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || nextPeriodMatch != null) &&
             (relativeMatch?.let { m ->
                 val unit = m.groupValues[2].lowercase()
                 !unit.startsWith("min") && !unit.startsWith("hora")

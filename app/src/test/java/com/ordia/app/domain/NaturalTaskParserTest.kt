@@ -1226,4 +1226,37 @@ class NaturalTaskParserTest {
         assertEquals("Entrega", result.title)
         assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    // --- "principios de semana": plazo blando al lunes más cercano (hoy/futuro) ---
+    // Antes caía a dueAt=null (olvido) o, con hora, a HOY por error. Ahora -> lunes.
+    // now = 2026-07-29 (miércoles) -> "principios de semana" = lunes 2026-08-03.
+
+    @Test fun principiosDeSemanaParsesDueAtProximoLunes() {
+        // hoy = miércoles 2026-07-29 -> el lunes ya pasó esta semana -> lunes siguiente 2026-08-03.
+        val result = NaturalTaskParser.parse("Revisar informe principios de semana", now, zone)
+        assertEquals("Revisar informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun principiosDeSemanaRespetaHoraExplicita() {
+        // Antes este caso se fechaba en HOY por error ("principios de semana a las 9" -> hoy 9:00).
+        val result = NaturalTaskParser.parse("Envío principios de semana a las 9", now, zone)
+        assertEquals("Envío", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun principiosDeSemanaSiHoyEsLunesEsHoy() {
+        // hoy = lunes 2026-08-03 -> "principios de semana" vence hoy (no rueda al lunes siguiente).
+        val lunesNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 3), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Kickoff principios de semana", lunesNow, zone)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun principiosDeSemanaNoColisionaConSemanaQueViene() {
+        // "la semana que viene" debe seguir siendo +7d (2026-08-05), no "principios de semana".
+        val result = NaturalTaskParser.parse("Entrega la semana que viene", now, zone)
+        assertEquals("Entrega", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }
