@@ -14,8 +14,8 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 66; cont. — fix P1 colisión `monthNameMatch.find()` aterrizado en paralelo)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (sobre c.65 veredicto honesto del día en el resumen de Today + c.64 fix parser standalone "N de la tarde/noche" + c.63 detección de vencidas importantes en el Guardián + c.62 integridad de recordatorios en el editor + c.61 meridiem sin "a las" + c.60 rango-minutos/meridiem + c.59 verbo-recordatorio + c.58 fracción sub-hora/"en la tarde" + c.57 número-escrito + c.56 subtarea-autocomplete + c.55 partOfDay DAILY + c.54 intervalo+días + c.53 What Now + c.52 snooze; aterriza feat: sugerencia concreta de tarea a posponer cuando el día está saturado; en paralelo aterrizó fix P1 `monthNameMatch` casaba mes inválido y ocultaba fecha real)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 67 — refina sugerencia de posposición: nunca nombra tareas en curso ni inminentes)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (sobre c.66 sugerencia concreta de tarea a posponer cuando el día está saturado + c.65 veredicto honesto del día en el resumen de Today + c.64 fix parser standalone "N de la tarde/noche" + c.63 detección de vencidas importantes en el Guardián + c.62 integridad de recordatorios en el editor + c.61 meridiem sin "a las" + c.60 rango-minutos/meridiem + c.59 verbo-recordatorio + c.58 fracción sub-hora/"en la tarde" + c.57 número-escrito + c.56 subtarea-autocomplete + c.55 partOfDay DAILY + c.54 intervalo+días + c.53 What Now + c.52 snooze; aterriza fix: sugerencia de posposición excluye tareas en curso e inminentes)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
@@ -23,6 +23,32 @@
   docs-only) → los commits de código generan releases automáticamente.
 
 | P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests); **DayPlanner conflicto startAt otro día** c.51 (415 tests); **intervalo+días "cada 2 semanas los lunes"/"cada quincena los lunes y viernes"/"cada 3 semanas de lunes a viernes"** c.54 (428 tests); **"cada mañana/tarde/noche/madrugada" + "todas las mañanas/tardes/noches" como recurrencia DIARIA** con hora canónica (c.55, 435 tests); **autocompletar padre al cerrar última subtarea desde notificación** (`ReminderActionReceiver.ACTION_COMPLETE` ↔ `SubtaskRules.shouldAutoCompleteParent`) (c.56); **intervalo con número escrito "cada dos semanas"/"cada tres meses"/"cada quince días"/"cada dos años"** (c.57, 439 tests); **fracción sub-hora "a las 9 y media"/"a las 3 y cuarto" (media→30, cuarto→15) + conector caribeño "en la tarde/noche/mañana"** (c.58, 450 tests); **verbo de recordatorio sin cantidad "recuérdame/avísame/no dejes que olvide" con fecha límite → recordatorio 30 min antes + verbo limpiado del título** (c.59, 455 tests); **rango horario con minutos/meridiem en ambos extremos "clase de 9:30 a 11"/"de 9am a 11am"/"de 2pm a 4pm" → duración real (fin−inicio) en minutos + título limpio** (c.60, 463 tests); **meridiem sin "a las" "Reunión 2pm"→14:00 (era 02:00) + hora de inicio del rango como dueAt "de 9 de la tarde a 11 de la noche"→21:00 (era 15:00)** (c.61, 469 tests); **editor de tareas preserva el offset de recordatorio personalizado al editar campos no relacionados** (`ReminderRules.resolveReminderAt` ↔ `EditorDialogs`): antes `reminderAt = due - 30min` siempre destruía offsets explícitos ("2h antes") al cambiar prioridad/proyecto/etiquetas, y para recurrentes corrompía el recordatorio de TODAS las ocurrencias futuras (c.62, 475 tests; 481 tras rebase con run paralelo c.61); **Guardián detecta vencidas importantes: la tarea más atrasada con ≥2 días (olvidada) sube a `Tone.FOCUSED` y surface cuánto tiempo lleva ("3 días"/"2 semanas") pidiendo la decisión real (hacer hoy/reprogramar/quitar) en vez de "empieza por esta"** (`GuardianCoach.forgottenAgeLabel` ↔ `FORGOTTEN_DAYS_THRESHOLD`): antes toda vencida recibía `GENTLE` + mensaje genérico idéntico sin distinguir 10 min de 10 días, sin ayudar a recuperar compromisos olvidados (c.63, 485 tests); **veredicto honesto del día en el resumen de Today: `SummaryEngine` calcula `DayLoad` (LIGHT/ON_TRACK/FULL/OVERLOADED) comparando los minutos restantes con el tiempo libre hasta el fin de jornada (9–18) y lo surface como UNA línea accionable en la tarjeta existente ("El día va a tiempo. Sigue con la siguiente tarea." / "El día está lleno pero cabe. Empieza ya la próxima tarea." / "No cabe todo hoy. Elige qué dejar para mañana.") en vez de obligar al usuario a hacer la aritmética mental (c.65, 500 tests); **sugerencia concreta de tarea a posponer cuando el día está saturado: cuando `DayLoad == OVERLOADED`, `SummaryEngine` propone UNA tarea real (la de menor prioridad y, a igual prioridad, la que vence más tarde = más margen), nunca una vencida, y la surface en la misma línea ("No cabe todo hoy. Una opción es dejar para mañana «…».") en vez del vago "elige qué dejar" (c.66, 505 tests)** |
+
+## Último trabajo — Ciclo 67: Resumen — la sugerencia de posposición nunca nombra tareas en curso ni inminentes
+
+Refinamiento P2 de fiabilidad/inteligencia honesta (`SummaryEngine` ↔ `TaskRules` ↔ `WhatNowEngine`),
+continuación directa de c.66. La sugerencia de posponer una tarea (c.66) solo excluía las **vencidas**,
+pero podía legítimamente nombrar **la reunión que empieza en 5 min** o **la tarea que el usuario está
+ejecutando ahora** (porque su `startAt`/`dueAt` las hace "menos prioritarias con más margen") — un consejo
+**dañino** que haría perder la cita.
+
+**Solución (mínima, sin nueva pantalla/botón — "mejor decisión automáticamente")**:
+- `TaskRules.isInProgressNow` pasa de **privado** a **público** (fuente única de verdad, simétrico a
+  `isImminentStart` ya público) con KDoc.
+- `WhatNowEngine.isInProgressNow` (copia privada duplicada) ahora **delega** en `TaskRules.isInProgressNow`
+  (DRY, igual que `isImminentStart`). Comportamiento idéntico; cero duplicación.
+- `SummaryEngine.mostDeferrableTask`: el filtro `deferrable` añade `!isInProgressNow && !isImminentStart`.
+  Nunca sugiere posponer lo que se está haciendo ahora ni una cita a punto de empezar; entre las
+  restantes, la heurística de prioridad+margen es la misma. Si todas las posponibles sin empeorar
+  retraso son en-curso/inminentes → sin sugerencia (null), igual que cuando solo quedan vencidas.
+- Heurística determinista, sin random ni "IA". No muta nada.
+
+**Tests**: +3 en `SummaryEngineTest.kt` (nunca sugiere en-curso, nunca sugiere inminente, solo
+posponibles en-curso/inminentes → null). **510 domain tests PASS** (`bash tools/run_domain_tests.sh`,
+26 clases — 507 c.66 + 3 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión.
+**NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real de la línea en
+la tarjeta de Today en dispositivo; integración Android del widget/asistente (`nextBestTask`, delegación
+`isInProgressNow` deja comportamiento idéntico pero sin compilar en Android).
 
 ## Último trabajo — Ciclo 66: Resumen — sugerencia concreta de tarea a posponer cuando el día está saturado
 
@@ -38,6 +64,7 @@ más útil aquí es **nombrar** la tarea más posponible, no añadir otro botón
   vencida (posponer un retraso lo empeora); entre las de hoy no vencidas elige la de **menor
   prioridad** (LOW>NORMAL>HIGH>URGENT en "posponibilidad") y, a igual prioridad, la que **vence
   más tarde** (más margen → más segura de aplazar sin riesgo inminente). No muta nada: solo nombra.
+  (c.67 refina: también excluye tareas **en curso** e **inminentes**.)
 - En `TodayScreen.kt` se reemplaza la línea OVERLOADED genérica por "No cabe todo hoy. Una opción
   es dejar para mañana «<tarea>»." dentro de la MISMA línea `bodySmall` existente. Sin tarjeta,
   sin botón, sin acción automática (el usuario decide; Ordía solo sugiere).

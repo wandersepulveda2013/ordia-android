@@ -391,4 +391,66 @@ class SummaryEngineTest {
         assertEquals(DayLoad.OVERLOADED, s.dayLoad)
         assertEquals(null, s.deferralSuggestion)
     }
+
+    @Test
+    fun deferralSuggestion_neverSuggestsInProgressTask() {
+        // now=12:00 → 360 min libres; 4×120=480 > 360 → OVERLOADED.
+        // La LOW (más posponible) está EN CURSO ahora (start 11:55, dur 120 → 11:55-13:55):
+        // posponerla sería absurdo (es lo que el usuario hace ahora). La sugerencia
+        // debe saltarla y apuntar a la siguiente más posponible: la NORMAL.
+        val inProgressStart = today.atTime(11, 55).atZone(zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            task(1, startAt = inProgressStart, durationMinutes = 120, priority = TaskPriority.LOW, title = "EnCurso"),
+            task(2, dueAt = at(today, 14), durationMinutes = 120, priority = TaskPriority.NORMAL, title = "Posponible"),
+            task(3, dueAt = at(today, 15), durationMinutes = 120, priority = TaskPriority.HIGH, title = "Alta"),
+            task(4, dueAt = at(today, 16), durationMinutes = 120, priority = TaskPriority.URGENT, title = "Urgente")
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+        val sug = s.deferralSuggestion
+        assertEquals(2L, sug?.taskId)
+        assertEquals("Posponible", sug?.title)
+    }
+
+    @Test
+    fun deferralSuggestion_neverSuggestsImminentStartTask() {
+        // now=12:00 → 360 min libres; 4×120=480 > 360 → OVERLOADED.
+        // La LOW (más posponible) es un compromiso que EMPIEZA EN 5 MIN (12:05):
+        // posponer una cita a punto de arrancar es un consejo dañino. La sugerencia
+        // debe saltarla y apuntar a la NORMAL.
+        val imminentStart = today.atTime(12, 5).atZone(zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            task(1, startAt = imminentStart, durationMinutes = 120, priority = TaskPriority.LOW, title = "Inminente"),
+            task(2, dueAt = at(today, 14), durationMinutes = 120, priority = TaskPriority.NORMAL, title = "Posponible"),
+            task(3, dueAt = at(today, 15), durationMinutes = 120, priority = TaskPriority.HIGH, title = "Alta"),
+            task(4, dueAt = at(today, 16), durationMinutes = 120, priority = TaskPriority.URGENT, title = "Urgente")
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+        val sug = s.deferralSuggestion
+        assertEquals(2L, sug?.taskId)
+        assertEquals("Posponible", sug?.title)
+    }
+
+    @Test
+    fun deferralSuggestion_whenOnlyPosponiblesAreInProgressOrImminent_returnsNull() {
+        // A las 19:00 (pasado jornada) cualquier trabajo restante satura. La única
+        // tarea de hoy posponible sin empeorar retraso es una reunión EN CURSO
+        // (empezó 18:50, dura hasta 19:50). Posponer lo que se está viviendo no
+        // ayuda → sin sugerencia.
+        val lateNow = today.atTime(19, 0).atZone(zone).toInstant().toEpochMilli()
+        val inProgressStart = today.atTime(18, 50).atZone(zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            task(1, startAt = inProgressStart, durationMinutes = 60, priority = TaskPriority.LOW, title = "EnCurso")
+        )
+
+        val s = SummaryEngine.summarize(tasks, lateNow, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+        assertEquals(null, s.deferralSuggestion)
+    }
 }

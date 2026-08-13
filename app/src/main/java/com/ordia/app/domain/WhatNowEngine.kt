@@ -89,18 +89,10 @@ object WhatNowEngine {
         else -> WhatNowReason.NEXT_INBOX
     }
 
-    private fun isInProgressNow(task: TaskEntity, now: Long): Boolean {
-        val start = task.startAt ?: return false
-        if (now < start) return false
-        val duration = task.durationMinutes.coerceAtLeast(10) * 60_000L
-        return now <= start + duration
-    }
+    private fun isInProgressNow(task: TaskEntity, now: Long): Boolean =
+        TaskRules.isInProgressNow(task, now)
 
-    /**
-     * Compromiso a punto de empezar: startAt futuro pero dentro de
-     * [TaskRules.IMMINENT_WINDOW_MINUTES]. Delega en [TaskRules.isImminentStart]
-     * (fuente única de verdad, compartida con el widget/asistente vía nextBestTask).
-     */
+    /** Compromiso a punto de empezar: delega en [TaskRules.isImminentStart] (fuente única de verdad). */
     private fun isImminentStart(task: TaskEntity, now: Long): Boolean =
         TaskRules.isImminentStart(task, now)
 

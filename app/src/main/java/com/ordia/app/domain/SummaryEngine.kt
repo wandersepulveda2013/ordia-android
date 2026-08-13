@@ -163,17 +163,23 @@ object SummaryEngine {
 
     /**
      * Tarea candidata a mover a mañana cuando el día está saturado. Heurística
-     * honesta y conservadora: nunca sugiere una tarea vencida (ya llegaron
-     * tarde y posponerlas empeora el retraso). Entre las de hoy no vencidas,
-     * elige la de menor prioridad (LOW antes que NORMAL antes que HIGH antes
-     * que URGENT) y, a igual prioridad, la que vence más tarde hoy (más margen
-     * → más segura de aplazar sin riesgo inminente). No muta nada: solo nombra.
+     * honesta y conservadora: nunca sugiere (1) una tarea vencida —ya llegaron
+     * tarde y posponerlas empeora el retraso— ni (2) una tarea ocurriendo ahora
+     * mismo o a punto de empezar (compromiso inminente) —posponer una reunión
+     * que arranca en 5 min es un consejo dañino, no ayuda. Entre las de hoy
+     * posponibles, elige la de menor prioridad (LOW antes que NORMAL antes que
+     * HIGH antes que URGENT) y, a igual prioridad, la que vence más tarde hoy
+     * (más margen → más segura de aplazar sin riesgo inminente). No muta nada.
      */
     private fun mostDeferrableTask(
         remainingTodayTasks: List<TaskEntity>,
         now: Long
     ): DeferralSuggestion? {
-        val deferrable = remainingTodayTasks.filter { !TaskRules.isOverdue(it, now) }
+        val deferrable = remainingTodayTasks.filter { task ->
+            !TaskRules.isOverdue(task, now) &&
+                !TaskRules.isInProgressNow(task, now) &&
+                !TaskRules.isImminentStart(task, now)
+        }
         if (deferrable.isEmpty()) return null
         val chosen = deferrable.maxWithOrNull(
             compareBy<TaskEntity> { priorityDeferralWeight(it.priority) }

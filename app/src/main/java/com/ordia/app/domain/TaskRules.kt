@@ -62,7 +62,13 @@ object TaskRules {
         else -> 0
     }
 
-    private fun isInProgressNow(task: TaskEntity, now: Long): Boolean {
+    /**
+     * Compromiso ocurriendo ahora mismo: `startAt` ya comenzó y no ha rebasado
+     * su duración planificada. Fuente única de verdad compartida con
+     * [WhatNowEngine] (rank de "ahora mismo") y con [SummaryEngine] (no
+     * sugiere posponer lo que se está ejecutando en este instante).
+     */
+    fun isInProgressNow(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean {
         val start = task.startAt ?: return false
         if (now < start) return false
         val duration = task.durationMinutes.coerceAtLeast(10) * 60_000L

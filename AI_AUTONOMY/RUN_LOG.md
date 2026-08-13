@@ -3311,6 +3311,29 @@ a un permiso persistente frágil y silencioso ante fallos.
 - `PlanEngine` replanificación automática; búsqueda universal.
 - Parser: múltiples marcadores temporales en una frase.
 
+## Ciclo 67 - 2026-08-13 (UTC) - fix(summary): sugerencia de posposición nunca nombra tareas en curso ni inminentes
+
+- **Run/ciclo**: 67 (continúa directamente sobre c.66; refina la heurística recién aterrizada).
+- **HEAD inicial**: `a391355` (c.66 pushed; base actualizada y sincronizada con remoto, sin divergencia).
+- **Problema seleccionado**: la sugerencia de posposición de c.66 (`mostDeferrableTask`) excluía solo las tareas **vencidas**, pero NO las **en curso ahora** (`isInProgressNow`) ni las **inminentes** (`isImminentStart`, compromiso que arranca en ≤15 min). Consecuencia real: un día saturado donde la tarea más posponible (LOW) es una reunión que empieza en 5 minutos → Ordía sugería "deja para mañana «[la reunión]»" — un consejo **dañino** que haría perder la cita. Igual si esa LOW era la que el usuario está ejecutando en ese instante. La heurística "menos prioritaria + más margen" puede elegir legítimamente un compromiso vivo porque su `startAt`/`dueAt` lo permite. P2 (fiabilidad/inteligencia honesta; el "consejo" activo puede perjudicar).
+- **Prioridad**: P2 (mejora funcional/inteligencia honesta; continuidad directa de c.66).
+- **Causa raíz**: el filtro `deferrable` solo consideraba `!isOverdue`; "lo que ocurre ahora mismo" es una noción ya modelada en `TaskRules` (`isInProgressNow`, `isImminentStart`) para `WhatNowEngine`/`nextBestTask`, pero la sugerencia de posposición no la reusaba.
+- **Solución (mínima, sin nueva pantalla/botón — "mejor decisión automáticamente")**:
+  - `TaskRules.isInProgressNow` pasa de **privado** a **público** (fuente única de verdad, simétrico a `isImminentStart` ya público) con KDoc.
+  - `WhatNowEngine.isInProgressNow` (copia privada duplicada) ahora **delega** en `TaskRules.isInProgressNow` (DRY, como ya hacía `isImminentStart`). Comportamiento idéntico; cero duplicación.
+  - `SummaryEngine.mostDeferrableTask`: el filtro `deferrable` añade `!isInProgressNow(task, now) && !isImminentStart(task, now)`. Nunca sugiere posponer lo que se está haciendo ahora ni una cita a punto de empezar; entre las restantes, la heurística de prioridad+margen es la misma. Si todas las posponibles sin empeorar retraso son en-curso/inminentes → sin sugerencia (null), igual que cuando solo quedan vencidas.
+  - Heurística determinista, sin random ni "IA". No muta nada.
+- **Tests**: +3 en `SummaryEngineTest.kt` (`deferralSuggestion_neverSuggestsInProgressTask`, `deferralSuggestion_neverSuggestsImminentStartTask`, `deferralSuggestion_whenOnlyPosponiblesAreInProgressOrImminent_returnsNull`). **510 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 507 c.66 + 3 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión en los 507 previos.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real de la línea en la tarjeta de Today en dispositivo; integración Android del widget/asistente que usa `nextBestTask` (delegación `isInProgressNow` deja comportamiento idéntico, pero sin compilar en Android).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/{TaskRules,WhatNowEngine,SummaryEngine}.kt`, `app/src/test/java/com/ordia/app/domain/SummaryEngineTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras commit+push).
+- **Estado**: FIXED → VERIFIED (dominio JVM); Android/UI NO VERIFICADO (sin Android SDK).
+
+### Siguiente
+- Evaluar `PlanEngine`/replanificación: si OVERLOADED recurrente varios días, sugerir redistribuir (no solo nombrar UNA tarea).
+- Descubrimiento continuo: búsqueda universal; `DayPlanner` respetar pausas/existente; detección de compromisos en notas; múltiples marcadores temporales en una frase; acción rápida "posponer con un toque" (evaluar fricción vs complejidad visible).
+
+
 ## Ciclo 66 - 2026-08-13 (UTC) - feat(summary): sugerencia concreta de tarea a posponer cuando el día está saturado
 
 - **Run/ciclo**: 66 (continúa directamente sobre c.65; HEAD inicial `aa65608` (c.67 monthNameMatch aterrizado en paralelo; base reconstruida tras merge; original c.65 `970b6c8`)).
@@ -3326,7 +3349,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: +4 en `SummaryEngineTest.kt` (`deferralSuggestion_suggestsLowestPriorityNonOverdue`, `deferralSuggestion_excludesOverdueTasks`, `deferralSuggestion_atSamePriorityPicksLatestDueToMaximizeMargin`, `deferralSuggestion_whenAllRemainingTasksAreOverdue_returnsNull`). **507 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 502 c.65+c.67 paralelo + 5 netos c.66), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real de la línea en la tarjeta de Today en dispositivo.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SummaryEngine.kt`, `app/src/main/java/com/ordia/app/ui/screens/TodayScreen.kt`, `app/src/main/res/values/strings_screens1.xml`, `app/src/test/java/com/ordia/app/domain/SummaryEngineTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: `996ec8a` (commit c.66; push pendiente; base rebaseada sobre c.67 `aa65608` sin conflictos residuales; 507 tests PASS).
+- **HEAD final**: `996ec8a` (commit c.66, base rebaseada sobre c.67 `aa65608` sin conflictos residuales; 507 tests PASS) + commit docs `a391355` (HEAD final tras push; ambos empujados al remoto `openhands/autonomous-ordia`).
 - **Estado**: FIXED → VERIFIED (dominio JVM); UI en app NO VERIFICADO (sin Android SDK).
 
 ### Siguiente
