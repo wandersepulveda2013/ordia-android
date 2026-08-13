@@ -43,9 +43,13 @@
                 android:resource="@xml/ordia_ime" />
         </service>
 
-        <!-- APK self-update infrastructure -->
+        <!-- APK self-update infrastructure.
+             Usa una subclase propia (UpdateFileProvider) en vez de
+             androidx.core.content.FileProvider para que el manifest merger no
+             lo fusione con el FileProvider de adjuntos del manifiesto main
+             (mismo android:name, distintas authorities → conflicto de merge). -->
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name=".updates.UpdateFileProvider"
             android:authorities="${applicationId}.update-files"
             android:exported="false"
             android:grantUriPermissions="true">
