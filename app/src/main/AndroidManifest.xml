@@ -98,5 +98,18 @@
                 android:resource="@xml/ordia_widget_info" />
         </receiver>
 
+        <!-- Expone los adjuntos copiados a almacenamiento interno para abrirlos
+             con ACTION_VIEW. authority calificado por applicationId para evitar
+             colisiones entre variantes instaladas. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.attachments"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/ordia_attachment_paths" />
+        </provider>
+
     </application>
 </manifest>

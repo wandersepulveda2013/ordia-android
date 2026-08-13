@@ -41,7 +41,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
-import com.ordia.app.data.local.AttachmentEntity
 import com.ordia.app.data.local.AttachmentOwnerType
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
@@ -89,13 +88,6 @@ fun TaskDetailScreen(
     val attachments = state.attachmentsFor(AttachmentOwnerType.TASK, task.id)
     val pickAttachment = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            val accessKept = runCatching {
-                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }.isSuccess
-            if (!accessKept) {
-                Toast.makeText(context, R.string.task_attachment_access_failed, Toast.LENGTH_SHORT).show()
-                return@rememberLauncherForActivityResult
-            }
             var displayName = uri.lastPathSegment ?: fallbackAttachmentName
             var sizeBytes = 0L
             context.contentResolver.query(
@@ -113,14 +105,12 @@ fun TaskDetailScreen(
                 }
             }
             vm.addAttachment(
-                AttachmentEntity(
-                    ownerType = AttachmentOwnerType.TASK,
-                    ownerId = task.id,
-                    uri = uri.toString(),
-                    displayName = displayName,
-                    mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream",
-                    sizeBytes = sizeBytes
-                )
+                ownerType = AttachmentOwnerType.TASK,
+                ownerId = task.id,
+                sourceUri = uri.toString(),
+                displayName = displayName,
+                mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream",
+                sizeBytes = sizeBytes
             )
         }
     }
@@ -198,11 +188,16 @@ fun TaskDetailScreen(
                 Icon(Icons.AutoMirrored.Outlined.InsertDriveFile, null, modifier = Modifier.size(22.dp))
                 TextButton(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW)
-                            .setDataAndType(android.net.Uri.parse(attachment.uri), attachment.mimeType)
-                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        runCatching { context.startActivity(intent) }.onFailure {
+                        val resolved = vm.resolveAttachmentUri(attachment.uri)
+                        if (resolved == null) {
                             Toast.makeText(context, R.string.task_attachment_open_failed, Toast.LENGTH_SHORT).show()
+                        } else {
+                            val intent = Intent(Intent.ACTION_VIEW)
+                                .setDataAndType(resolved, attachment.mimeType)
+                                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            runCatching { context.startActivity(intent) }.onFailure {
+                                Toast.makeText(context, R.string.task_attachment_open_failed, Toast.LENGTH_SHORT).show()
+                            }
                         }
                     },
                     modifier = Modifier.weight(1f)

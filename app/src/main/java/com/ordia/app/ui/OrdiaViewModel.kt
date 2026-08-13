@@ -42,6 +42,7 @@ import com.ordia.app.data.preferences.PreferencesRepository
 import com.ordia.app.data.preferences.ThemeMode
 import com.ordia.app.data.preferences.UserPreferences
 import com.ordia.app.data.repository.AttachmentRepository
+import com.ordia.app.data.repository.AttachmentStorage
 import com.ordia.app.data.repository.AutomationLogRepository
 import com.ordia.app.data.repository.AutomationRuleRepository
 import com.ordia.app.data.repository.CaptureRepository
@@ -245,6 +246,7 @@ class OrdiaViewModel(
     private val routineRepository: RoutineRepository,
     private val tagRepository: TagRepository,
     private val attachmentRepository: AttachmentRepository,
+    private val attachmentStorage: AttachmentStorage,
     private val automationLogRepository: AutomationLogRepository,
     private val automationRuleRepository: AutomationRuleRepository,
     private val automationEngine: AutomationEngine,
@@ -633,15 +635,48 @@ class OrdiaViewModel(
         noteRepository.update(note.copy(pinned = !note.pinned, updatedAt = System.currentTimeMillis()))
     }
 
-    fun addAttachment(attachment: AttachmentEntity) = viewModelScope.launch {
-        attachmentRepository.add(attachment)
+    fun addAttachment(
+        ownerType: AttachmentOwnerType,
+        ownerId: Long,
+        sourceUri: String,
+        displayName: String,
+        mimeType: String,
+        sizeBytes: Long
+    ) = viewModelScope.launch {
+        val resolvedMime = mimeType.ifBlank { "application/octet-stream" }
+        val storedUri = attachmentStorage.import(
+            sourceUri = sourceUri,
+            ownerType = ownerType,
+            ownerId = ownerId,
+            displayName = displayName
+        ) ?: sourceUri // respaldo: si la copia falla, conservar el URI original
+        attachmentRepository.add(
+            AttachmentEntity(
+                ownerType = ownerType,
+                ownerId = ownerId,
+                uri = storedUri,
+                displayName = displayName,
+                mimeType = resolvedMime,
+                sizeBytes = sizeBytes
+            )
+        )
         _events.emit(UiEvent.Message(appContext.getString(R.string.attachment_added)))
     }
 
     fun deleteAttachment(attachment: AttachmentEntity) = viewModelScope.launch {
+        attachmentStorage.deleteStored(attachment.uri)
         attachmentRepository.delete(attachment)
         _events.emit(UiEvent.Message(appContext.getString(R.string.attachment_removed)))
     }
+
+    /**
+     * Resuelve el URI de un adjunto para abrirlo con `ACTION_VIEW`. Si el adjunto
+     * vive en almacenamiento interno, lo expone vía FileProvider; si es un URI
+     * externo legacy (capturas anteriores a este cambio), lo devuelve tal cual.
+     * Devuelve `null` cuando el contenido ya no existe.
+     */
+    fun resolveAttachmentUri(storedUri: String): android.net.Uri? =
+        attachmentStorage.resolveForOpening(storedUri)
 
     fun saveHabit(habit: HabitEntity) {
         val clean = habit.title.trim()
@@ -1146,15 +1181,23 @@ class OrdiaViewModel(
         mimeType: String
     ) {
         if (attachmentUri.isBlank()) return
+        val displayName = attachmentUri.substringAfterLast('/').ifBlank {
+            appContext.getString(R.string.capture_attachment_name)
+        }
+        val resolvedMime = mimeType.ifBlank { "application/octet-stream" }
+        val storedUri = attachmentStorage.import(
+            sourceUri = attachmentUri,
+            ownerType = ownerType,
+            ownerId = ownerId,
+            displayName = displayName
+        ) ?: attachmentUri // respaldo: si la copia falla, conservar el URI original
         attachmentRepository.add(
             AttachmentEntity(
                 ownerType = ownerType,
                 ownerId = ownerId,
-                uri = attachmentUri,
-                displayName = attachmentUri.substringAfterLast('/').ifBlank {
-                    appContext.getString(R.string.capture_attachment_name)
-                },
-                mimeType = mimeType.ifBlank { "application/octet-stream" }
+                uri = storedUri,
+                displayName = displayName,
+                mimeType = resolvedMime
             )
         )
     }
@@ -1531,6 +1574,7 @@ class OrdiaViewModel(
         private val routineRepository: RoutineRepository,
         private val tagRepository: TagRepository,
         private val attachmentRepository: AttachmentRepository,
+        private val attachmentStorage: AttachmentStorage,
         private val automationLogRepository: AutomationLogRepository,
         private val automationRuleRepository: AutomationRuleRepository,
         private val automationEngine: AutomationEngine,
@@ -1553,6 +1597,7 @@ class OrdiaViewModel(
             routineRepository,
             tagRepository,
             attachmentRepository,
+            attachmentStorage,
             automationLogRepository,
             automationRuleRepository,
             automationEngine,

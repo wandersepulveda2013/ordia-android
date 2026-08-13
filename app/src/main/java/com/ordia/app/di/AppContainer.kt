@@ -12,6 +12,7 @@ import com.ordia.app.context.external.WorkManagerContextActionReminderScheduler
 import com.ordia.app.data.local.OrdiaDatabase
 import com.ordia.app.data.preferences.PreferencesRepository
 import com.ordia.app.data.repository.AttachmentRepository
+import com.ordia.app.data.repository.AttachmentStorage
 import com.ordia.app.data.repository.AutomationLogRepository
 import com.ordia.app.data.repository.AutomationRuleRepository
 import com.ordia.app.data.repository.FocusRepository
@@ -40,6 +41,7 @@ class AppContainer(context: Context) {
     val routineRepository = RoutineRepository(database.routineDao(), database.routineStepDao())
     val tagRepository = TagRepository(database.tagDao(), database.taskTagDao())
     val attachmentRepository = AttachmentRepository(database.attachmentDao())
+    val attachmentStorage = AttachmentStorage(context)
     val automationLogRepository = AutomationLogRepository(database.automationLogDao())
     val automationRuleRepository = AutomationRuleRepository(database.automationRuleDao(), database.automationLogDao())
     val captureRepository = CaptureRepository(database.captureDao())

@@ -56,7 +56,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
-import com.ordia.app.data.local.AttachmentEntity
 import com.ordia.app.data.local.AttachmentOwnerType
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.domain.NoteBlock
@@ -99,7 +98,6 @@ fun NoteEditorScreen(
 
     val pickAttachment = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null && currentId > 0L) {
-            runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
             var displayName = uri.lastPathSegment ?: defaultAttachmentName
             var sizeBytes = 0L
             context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
@@ -111,14 +109,12 @@ fun NoteEditorScreen(
                 }
             }
             vm.addAttachment(
-                AttachmentEntity(
-                    ownerType = AttachmentOwnerType.NOTE,
-                    ownerId = currentId,
-                    uri = uri.toString(),
-                    displayName = displayName,
-                    mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream",
-                    sizeBytes = sizeBytes
-                )
+                ownerType = AttachmentOwnerType.NOTE,
+                ownerId = currentId,
+                sourceUri = uri.toString(),
+                displayName = displayName,
+                mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream",
+                sizeBytes = sizeBytes
             )
         }
     }
@@ -197,11 +193,15 @@ fun NoteEditorScreen(
                         Icon(Icons.Outlined.InsertDriveFile, null, modifier = Modifier.size(22.dp))
                         TextButton(
                             onClick = {
-                                val uri = android.net.Uri.parse(attachment.uri)
-                                val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, attachment.mimeType)
-                                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                runCatching { context.startActivity(intent) }.onFailure {
+                                val resolved = vm.resolveAttachmentUri(attachment.uri)
+                                if (resolved == null) {
                                     Toast.makeText(context, R.string.note_editor_open_attachment_failed, Toast.LENGTH_SHORT).show()
+                                } else {
+                                    val intent = Intent(Intent.ACTION_VIEW).setDataAndType(resolved, attachment.mimeType)
+                                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    runCatching { context.startActivity(intent) }.onFailure {
+                                        Toast.makeText(context, R.string.note_editor_open_attachment_failed, Toast.LENGTH_SHORT).show()
+                                    }
                                 }
                             },
                             modifier = Modifier.weight(1f)
