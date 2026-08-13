@@ -2175,3 +2175,53 @@ próximo sábado. Frase cotidísima → tarea mal fechada + título corrupto (P1
 - Continuar ciclo interminable. Candidatos parser: "antier"; "próximos días" (decidir default);
   "próximo trimestre". P1 adjuntos URI externo si hay sesión dedicada.
 
+
+## Ciclo 32 — NaturalTaskParser: "próximos días" (+3d) — 2026-08-13T13:3Z
+
+### Objetivo
+Resolver el hallazgo pendiente de los ciclos 30/31: "próximos días" (con o sin "en
+los/el/las") no se parseaba → `dueAt=null` → tarea olvidada. Es la forma cotidiana y
+deliberadamente vaga de "dentro de poco". Decisión de producto: default honesto +3 días
+(ni IA ni azar; coincide con el sentido común de "pocos días").
+
+### Sincronización
+- HEAD inicial: `3540808` (ciclo 31, remoto).
+- **STALE_RUN evitado**: existía un commit local no-pushado `04a21e8` que duplicaba los
+  features del remoto (años + "semana/mes/año que viene" + "próximo X", ya en `e467b23`) y
+  SOLO añadía "próximos días". Push habría sido non-ff. Se descartó el commit duplicado
+  (`git reset --soft origin/openhands/autonomous-ordia` + `git checkout -- .`) y se
+  reconstruyó SOLO "próximos días" sobre el HEAD remoto limpio `3540808`. Sin sobrescribir
+  trabajo válido ni history compartido; sin force/reset destructivo.
+- Entorno: JVM puro (sin Android SDK).
+
+### Cambio (mínimo, reutiliza infraestructura existente)
+- `NaturalTaskParser.nextPeriodPattern`: añadida alternativa al final del regex
+  `(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b` (prefijo "en los/el/las" opcional).
+- `nextPeriodDueAt`: añadida rama `else -> 3L` ("próximos días" no contiene semana/mes/año,
+  cae al else → +3d).
+- Docstring del patrón actualizado.
+- Beneficios heredados (sin código nuevo): combina con hora explícita
+  ("en los próximos días a las 10" → fecha +3d a las 10:00) y se elimina del título sin residuo,
+  porque reutiliza el mismo `nextPeriodMatch`/`effectiveRelativeDueAt`/`relativeIsDays`.
+
+### Tests — VERIFICADO localmente (JVM)
+- Probe antes/después (now=2026-07-29): "próximos días" → antes due=null; después due=2026-08-01.
+- "en los próximos días a las 10" → due=2026-08-01 time=10:00 (combina con hora). ✓
+- Regresiones OK: "el mes que viene a las 8 de la mañana" → 2026-08-28 08:00 (no afectado);
+  "el año que viene" → 2027-07-29; "la semana que viene" → 2026-08-05; "cada lunes" → OK.
+- `bash tools/run_domain_tests.sh` = **263 tests PASS** (260 base + 3 nuevos), 25 clases.
+- `bash tools/run_domain_checks.sh` = smoke 25 assertions OK.
+- NO VERIFICADO: gradle/lint/assemble/Android (sin Android SDK). CI remoto ejecuta `Verificar`.
+
+### Hallazgos para próximas ejecuciones
+- Parser: "antier"/"antier" (variantes de "anteayer") no reconocidas (due=null) — pendiente.
+- Parser: "próximo trimestre"/"el trimestre que viene" no soportado.
+- P1 OPEN: adjuntos guardan URI externo (BACKLOG) — requiere sesión dedicada.
+
+### Commits
+- `feat(parser): parse 'próximos días' (+3d)` (código + 3 tests)
+- docs(autonomy): registro ciclo 32
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser: "antier"; "próximo trimestre".
+  P1 adjuntos URI externo si hay sesión dedicada.

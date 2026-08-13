@@ -14,15 +14,39 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 29)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD `17f058d`)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 32)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 32)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-## Último trabajo — Ciclo 29 (parser: semanas/meses + ayer/anteayer + números escritos)
+## Último trabajo — Ciclo 32 (parser: "próximos días")
+
+`NaturalTaskParser` ahora parsea **"próximos días"** (con o sin prefijo "en los/el/las") como
++3 días. Es la forma cotidiana y deliberadamente vaga de "dentro de poco"; antes quedaba con
+`dueAt=null` → la tarea se olvidaba (sin recordatorio, sin aparecer en planificador/What Now).
+La heurística +3d es honesta (ni IA ni azar) y se reutiliza toda la infraestructura de período
+próximo existente: combina con hora explícita ("en los próximos días a las 10" → fecha +3d a
+las 10:00) y se elimina del título sin residuo.
+
+Causa raíz: el `nextPeriodPattern` (añadido en ciclo 30 para "semana/mes/año que viene" y
+"próximo X") solo cubría períodos nombrados; "próximos días" no contenía semana/mes/año, así
+que no matcheaba y la fecha quedaba vacía. Extensión mínima: una alternativa al final del regex
+`(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b` y rama `else -> 3L` en el cálculo de días.
+
+**STALE_RUN evitado**: al iniciar, el remoto ya estaba en `3540808` (ciclo 31), pero existía un
+commit local no-pushado (`04a21e8`) que duplicaba los features del remoto (años + "que viene" +
+"próximo X") y solo añadía "próximos días". Se descartó el commit duplicado (`reset --soft` al
+remoto + `checkout -- .`) y se reconstruyó SOLO "próximos días" sobre el HEAD remoto limpio,
+sin sobrescribir trabajo válido ni history compartido.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**263 tests PASS** (260 base + 3 nuevos), 25 clases. Smoke 25 OK. NO VERIFICADO: gradle/lint/assemble/Android.
+
+
+## Último trabajo — Ciclo 31 (parser: fix "fin de semana que viene")
 
 `17f058d` — `NaturalTaskParser` ahora parsea fechas relativas en **semanas** y **meses** y las
 fechas pasadas **ayer/anteayer**. Antes estas formas extremadamente comunes en español ("en una
