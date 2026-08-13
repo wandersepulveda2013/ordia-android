@@ -2327,3 +2327,58 @@ largo cotidiano (impuestos trimestrales, revisiones, informes).
 ### Siguiente
 - Continuar ciclo interminable. Candidatos parser: “a finales/mediados de mes”,
   “esta semana”, “fin de mes”. P1 adjuntos URI externo si hay sesión dedicada.
+
+## Ciclo 32 (cont.3) — NaturalTaskParser: “fin de mes” / “a finales de mes” / “mediados de mes” — 2026-08-13T13:31Z
+
+### Objetivo
+Resolver hallazgo pendiente: el parser no entendía límites mensuales (“fin de mes”,
+“a finales de mes”, “mediados de mes”) — vencimientos cotidianos (alquiler, tarjeta,
+servicios). `dueAt=null` → vencimiento olvidado (sin recordatorio ni visibilidad en
+planificador/What Now). La aritmética `now + millis` no calculaba “último día del mes” ni “día 15”.
+
+### Estado del repo
+- HEAD inicial: `b24758e` (ciclo 32 cont.2, remoto, tras push de “trimestre”).
+- `git fetch origin openhands/autonomous-ordia` → local == remoto (sin divergencia, no STALE_RUN).
+- Remote con token `https://x-access-token:${github_token}@...`.
+
+### Cambios
+- Nuevos patrones `endOfMonthPattern` (`fin(?:ales|es)? (de|del) mes`, cubre
+  fin/fines/finales) y `midOfMonthPattern` (`mediados? (de|del) mes`).
+- Lógica de resolución: `LocalDate.withDayOfMonth(lengthOfMonth())` (fin de mes) y
+  `withDayOfMonth(15)` (mediados), rodando al mes siguiente si hoy ya es la fecha objetivo.
+  Fecha absoluta vía `DateRules.toEpochMillis(target, LocalTime.of(9,0), zone)`.
+- **Detección y borrado ANTES del período próximo**: “fin de mes” contiene la subcadena
+  “mes” → colisionaría con “mes que viene” (residuo + fecha +30d errónea). Bloque early-detect
+  junto a `weekendEarlyMatch`.
+- Integrados en `effectiveRelativeDueAt` (prioridad: relativa explícita > límite de mes >
+  período próximo) y `relativeIsDays=true` para combinar con hora explícita (“fin de mes a las 18”).
+
+### TDD
+- 7 tests nuevos: `finDeMesParsesDueAtUltimoDiaMesActual`, `aFinalesDeMesParsesDueAt`,
+  `finDeMesRespetaHoraExplicita`, `finDeMesRuedaAProximoMesSiHoyEsUltimoDia`,
+  `mediadosDeMesParsesDueAtDia15ProximoMes`, `mediadosDeMesResuelveDia15MesActualSiAunNoLlega`,
+  `finDeMesNoColisionaConPeriodoProximo`.
+- Red phase confirmado (7 fallaban). Green tras fix del regex (`fin(?:es)?` → `fin(?:ales|es)?`
+  para cubrir “finales”): “a finales de mes”/“a finales del mes” antes no hacían match.
+
+### Evidencia
+- now=2026-07-29T12:00 (julio=31 días). “fin de mes” → 2026-07-31 09:00. “mediados de mes”
+  (día 29 > 15) → 2026-08-15 09:00. “fin de mes a las 18” → 2026-07-31 18:00 (combina hora).
+- “Renovar suscripción a finales del mes que viene” → title limpio + due=fin de mes (no +30d).
+- Regresiones OK: “semana/mes/año que viene”, “próximos días”, “trimestre” no afectados (suite existente).
+- `bash tools/run_domain_tests.sh` = **275 tests PASS** (268 + 7 nuevos), 25 clases.
+- `bash tools/run_domain_checks.sh` = smoke 25 assertions OK.
+- NO VERIFICADO: gradle/lint/assemble/Android (sin Android SDK). CI remoto ejecuta `Verificar`.
+
+### Hallazgos para próximas ejecuciones
+- Parser: candidatos restantes — “esta semana” (vs “la semana que viene”),
+  “próximo bimestre/semestre” (poco frecuente; evaluar), “principios de mes” (día 1).
+- P1 OPEN: adjuntos guardan URI externo (BACKLOG) — requiere sesión dedicada.
+
+### Commits
+- `feat(parser): parse 'fin de mes' / 'mediados de mes' / 'a finales de mes'` (código + 7 tests).
+- docs(autonomy): registro ciclo 32 (cont.3) — este commit.
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser: “esta semana”, “principios de mes”.
+  P1 adjuntos URI externo si hay sesión dedicada.

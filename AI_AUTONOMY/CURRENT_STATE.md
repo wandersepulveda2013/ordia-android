@@ -117,13 +117,14 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 
 ## Próximo trabajo
 
-- Ciclo 32 (cont.2) (DONE): parser “próximo trimestre” / “trimestre que viene” (+90d).
-  Antes dueAt=null → tarea olvidada. Extensión de `nextPeriodPattern` + rama `trimestre`
-  (antes que `mes` por la subcadena “mes” dentro de “trimestre”). 268 domain tests PASS.
-- Ciclos previos del 32: “próximos días” (+3d) y “antier” (-2d), ambos verificados.
-- Continuar ciclo interminable. áreas de oportunidad (parser): “a finales/mediados de mes”,
-  “esta semana” (vs “la semana que viene”), “fin de mes”, “próximo bimestre/semestre”
-  (evaluar frecuencia). Años/semana/mes/trimestre/período próximo ya resueltos.
+- Ciclo 32 (cont.3) (DONE): parser “fin de mes” / “a finales de mes” / “mediados de mes”
+  (límites mensuales: alquiler, tarjeta, servicios). Antes dueAt=null → vencimiento olvidado.
+  Patrones `endOfMonthPattern`/`midOfMonthPattern` con `LocalDate.withDayOfMonth(lengthOfMonth())`/15,
+  detectados ANTES del período próximo (evita colisión “mes” vs “mes que viene”). 275 domain tests PASS.
+- Ciclos previos del 32: “próximos días” (+3d), “antier” (-2d), “próximo trimestre” (+90d), verificados.
+- Continuar ciclo interminable. Candidatos parser: “esta semana” (vs “la semana que viene”),
+  “principios de mes” (día 1), “próximo bimestre/semestre” (evaluar frecuencia).
+  Años/semana/mes/trimestre/período próximo/límites de mes ya resueltos.
 - P1 OPEN: adjuntos guardan URI externo (BACKLOG) — requiere sesión dedicada para copiar bytes a filesDir.
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler en pantallas anidadas;
   contraste onSurfaceVariant. No detenerse.
