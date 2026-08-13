@@ -128,7 +128,21 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                             modifier = Modifier
                                 .size(40.dp)
                                 .clickable { vm.setAccentPalette(palette) }
-                        ) {}
+                        ) {
+                            if (palette == com.ordia.app.data.preferences.AccentPalette.SYSTEM) {
+                                androidx.compose.foundation.layout.Box(
+                                    Modifier.fillMaxSize(),
+                                    contentAlignment = androidx.compose.ui.Alignment.Center
+                                ) {
+                                    androidx.compose.material3.Icon(
+                                        Icons.Outlined.DarkMode,
+                                        "Sistema",
+                                        tint = androidx.compose.ui.graphics.Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 Text(
@@ -278,4 +292,5 @@ private fun com.ordia.app.data.preferences.AccentPalette.label() = when (this) {
     com.ordia.app.data.preferences.AccentPalette.LAVENDER -> "Lavanda"
     com.ordia.app.data.preferences.AccentPalette.OCEAN -> "Océano"
     com.ordia.app.data.preferences.AccentPalette.TERRACOTTA -> "Terracota"
+    com.ordia.app.data.preferences.AccentPalette.SYSTEM -> "Sistema (Material You)"
 }

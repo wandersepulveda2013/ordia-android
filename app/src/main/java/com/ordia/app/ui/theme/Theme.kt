@@ -52,6 +52,10 @@ val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
     AccentPalette.TERRACOTTA to AccentSwatch(
         Color(0xFFB5603E), Color(0xFFF2DDD0), Color(0xFF33180C),
         Color(0xFFD89A78), Color(0xFF4A2417), Color(0xFFF6D9C8)
+    ),
+    AccentPalette.SYSTEM to AccentSwatch(
+        OrdiaGold, Color(0xFFF2E5C9), Color(0xFF34270F),
+        OrdiaGoldSoft, Color(0xFF4C3C1C), Color(0xFFFFE8AF)
     )
 )
 
@@ -112,22 +116,28 @@ fun OrdiaTheme(
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    val swatch = accentSwatches[accentPalette] ?: accentSwatches.getValue(AccentPalette.GOLD)
-    val base = if (dark) DarkColors else LightColors
-    val colors = if (dark) {
-        base.copy(
-            secondary = swatch.darkSecondary,
-            onSecondary = Color(0xFF1A1916),
-            secondaryContainer = swatch.darkSecondaryContainer,
-            onSecondaryContainer = swatch.darkOnSecondaryContainer
-        )
+    val colors = if (accentPalette == AccentPalette.SYSTEM && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        if (dark) androidx.compose.material3.dynamicDarkColorScheme(context)
+        else androidx.compose.material3.dynamicLightColorScheme(context)
     } else {
-        base.copy(
-            secondary = swatch.lightSecondary,
-            onSecondary = Color.White,
-            secondaryContainer = swatch.lightSecondaryContainer,
-            onSecondaryContainer = swatch.lightOnSecondaryContainer
-        )
+        val swatch = accentSwatches[accentPalette] ?: accentSwatches.getValue(AccentPalette.GOLD)
+        val base = if (dark) DarkColors else LightColors
+        if (dark) {
+            base.copy(
+                secondary = swatch.darkSecondary,
+                onSecondary = Color(0xFF1A1916),
+                secondaryContainer = swatch.darkSecondaryContainer,
+                onSecondaryContainer = swatch.darkOnSecondaryContainer
+            )
+        } else {
+            base.copy(
+                secondary = swatch.lightSecondary,
+                onSecondary = Color.White,
+                secondaryContainer = swatch.lightSecondaryContainer,
+                onSecondaryContainer = swatch.lightOnSecondaryContainer
+            )
+        }
     }
     MaterialTheme(
         colorScheme = colors,
