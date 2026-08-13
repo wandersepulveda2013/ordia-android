@@ -104,7 +104,10 @@ fun NotesScreen(
                             }
                         }
                         Text(note.body.ifBlank { "Nota vacía" }.take(180), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        state.project(note.projectId)?.let { Text(it.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary) }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            state.project(note.projectId)?.let { Text(it.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary) }
+                            Text(relativeTime(note.updatedAt), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
@@ -114,4 +117,16 @@ fun NotesScreen(
 
 private fun createTemplate(vm: OrdiaViewModel, title: String, blocks: List<NoteBlock>, onNote: (Long) -> Unit) {
     vm.saveNote(NoteEntity(title = title), blocks, onSaved = onNote)
+}
+
+private fun relativeTime(timestamp: Long): String {
+    val diffMs = System.currentTimeMillis() - timestamp
+    val minutes = diffMs / 60_000
+    return when {
+        minutes < 1 -> "ahora"
+        minutes < 60 -> "hace $minutes min"
+        minutes < 1440 -> "hace ${minutes / 60} h"
+        minutes < 10080 -> "hace ${minutes / 1440} d"
+        else -> "hace ${minutes / 10080} sem"
+    }
 }

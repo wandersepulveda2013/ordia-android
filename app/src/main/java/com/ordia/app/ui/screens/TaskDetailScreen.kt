@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -99,6 +100,15 @@ fun TaskDetailScreen(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(subtaskText, { subtaskText = it }, modifier = Modifier.weight(1f), label = { Text("Añadir subtarea") }, singleLine = true)
                 IconButton(onClick = { vm.addTask(subtaskText, parentTaskId = task.id); subtaskText = "" }, enabled = subtaskText.isNotBlank()) { Icon(Icons.Outlined.Add, "Añadir subtarea") }
+            }
+        }
+        item {
+            Text("Subtareas (${subtasks.count { it.completed }}/${subtasks.size})", style = MaterialTheme.typography.titleMedium)
+            if (subtasks.isNotEmpty()) {
+                LinearProgressIndicator(
+                    progress = { subtasks.count { it.completed }.toFloat() / subtasks.size },
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                )
             }
         }
         if (subtasks.isEmpty()) item { Text("Divide la tarea en pasos pequeños cuando lo necesites.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
