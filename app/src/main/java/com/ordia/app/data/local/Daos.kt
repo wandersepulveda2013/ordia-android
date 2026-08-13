@@ -28,6 +28,9 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): TaskEntity?
 
+    @Query("SELECT * FROM tasks WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<Long>): List<TaskEntity>
+
     @Query("SELECT * FROM tasks WHERE parentTaskId = :parentId AND archived = 0 ORDER BY sortOrder, createdAt")
     fun observeSubtasks(parentId: Long): Flow<List<TaskEntity>>
 
@@ -62,6 +65,9 @@ interface TaskDao {
 
     @Update
     suspend fun update(task: TaskEntity)
+
+    @Update
+    suspend fun updateAll(tasks: List<TaskEntity>)
 
     @Delete
     suspend fun delete(task: TaskEntity)
