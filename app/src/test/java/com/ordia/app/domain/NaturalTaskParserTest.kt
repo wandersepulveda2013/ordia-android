@@ -2039,4 +2039,39 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 2, 13), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
+
+    // --- día del mes suelto ("el 15"): anclar al día N del mes corriente/próximo ---
+    // Antes "el 15" no casaba con numericDatePattern (exige DD/MM) y se ignoraba como
+    // fecha: la hora suelta ("a las 10") se aplicaba a HOY → la cita quedaba hoy en vez
+    // del día 15 (P1: día erróneo, reunión perdida). now = 2026-07-29.
+
+    @Test fun diaDelMesSueltoRuedaAlProximoMesSiYaPaso() {
+        // "el 15" con hoy=29 → 15 ya pasó este mes → 2026-08-15.
+        val result = NaturalTaskParser.parse("Reunión el 15 a las 10", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun diaDelMesSueltoSinHoraUsaMediodiaCanónico() {
+        // Sin hora → default 09:00. hoy=29 → "el 5" → 2026-08-05 09:00.
+        val result = NaturalTaskParser.parse("Cita el 5", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun diaDelMesSueltoFuturoEsteMesSeConserva() {
+        // "el 31" con hoy=29 (julio tiene 31) → 2026-07-31 (mismo mes, futuro).
+        val result = NaturalTaskParser.parse("Cerrar facturas el 31", now, zone)
+        assertEquals("Cerrar facturas", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun diaDelMesSueltoNoColisionaConFechaConMes() {
+        // "el 15 de marzo" debe resolver mes explícito (monthNameDate), no "el 15" suelto.
+        val result = NaturalTaskParser.parse("Viaje el 15 de marzo", now, zone)
+        assertEquals("Viaje", result.title)
+        assertEquals(LocalDate.of(2027, 3, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }

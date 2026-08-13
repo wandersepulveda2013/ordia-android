@@ -2871,20 +2871,30 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Parser: manejo robusto de múltiples marcadores temporales en una frase.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
 
-## Ciclo 45 - 2026-08-13 (UTC) - feat: nextBestTask time-aware (inteligencia widget/asistente)
-
-- **Run/ciclo**: 45 (renumerado: la otra ejecucion concurrente reclamo los ciclos 43 ("entre semana"/"de lunes a viernes") y 44 ("la quincena" como hito financiero). Procedimiento no destructivo: `git stash` del trabajo, `git pull --ff-only` a `a934b65`, `git stash pop`; auto-merge limpio en `TaskRules.kt` + tests (cambios ortogonales: el remoto toco `NaturalTaskParser`, yo `TaskRules`); al hacer push el remoto habia vuelto a avanzar a `e0850e6`, se hizo `git pull --rebase` (auto-merge limpio en TaskRules/BACKLOG/CURRENT_STATE; conflicto solo en RUN_LOG resuelto conservando el ciclo 44 del otro run y renumerando el mio a 45). Sin force push, sin reset --hard.
-- **HEAD inicial**: `b4ef5e4` (al inicio del run); el remoto avanzo a `a934b65` durante el run.
-- **Problema seleccionado**: `TaskRules.nextBestTask` (heuristica "que hago ahora?" usada por el widget de inicio, el asistente y el fallback nextTask del ViewModel) ordenaba solo por `overdue > prioridad > dueAt > createdAt` e ignoraba el tiempo: una tarea ocurriendo ahora mismo (`startAt<=now<=startAt+dur`, p.ej. una reunion a las 15:00 siendo las 15:00) no se priorizaba, y una URGENTE para manana se sugeria antes que una NORMAL que vence hoy. `WhatNowEngine` (tarjeta What Now de `TodayScreen`) si era time-aware, dejando al widget/asistente dando una respuesta menos oportuna que la pantalla principal - y el widget es la superficie mas vista.
-- **Prioridad**: P2 (mejora funcional de inteligencia local; "menos interfaz, mas potencia" sin nueva pantalla).
-- **Causa raiz**: `nextBestTask` no consideraba `startAt`/`durationMinutes` ni el instante actual `now`. `WhatNowEngine` si lo hacia pero solo en `TodayScreen`, no en widget/asistente.
-- **Solucion (minima, en `TaskRules.kt`)**: `nextBestTask(tasks, now, zone)` con orden honesto (no IA, no random): (1) en curso ahora (`startAt<=now<=startAt+dur`), (2) vencida, (3) vence hoy, (4) urgente, (5) alta, (6) resto por inbox/orden/creacion; las programadas para mas tarde quedan ultimas. Nuevos helpers `isInProgressNow` (privado) e `isDueToday` (publico, zona-aware, ya reusado por `GuardianCoach`). Retrocompatible: `nextBestTask(tasks)` delega con `now`/zona por defecto: `OrdiaWidgetProvider`, `AssistantEngine`, `OrdiaViewModel` siguen compilando sin cambio.
-- **Tests**: +2 (`nextBestTask_prefersTaskHappeningNowOverUrgent`, `nextBestTask_prefersDueTodayOverUrgentDueTomorrow`). **386 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases (384 base remota + 2 nuevos). Smoke 25 OK (`tools/run_domain_checks.sh`).
-- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del widget (sin Android SDK).
-- **Archivos modificados**: `TaskRules.kt`, `TaskRulesTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: `2ef4bfa` (rebasado sobre `fc1279b` del ciclo 46 concurrente: parser "sabados y domingos"; push OK a `origin/openhands/autonomous-ordia`: `fc1279b..2ef4bfa`). Re-test tras rebase: 390 domain tests PASS (388 base + 2 nuevos), smoke 25 OK.
-
 ### Siguiente
 - Descubrimiento continuo: auditar `GuardianCoach`, `SummaryService`, `PlanEngine`, deteccion de vencidas importantes.
 - Parser: "la quincena" como hito financiero (dia 15 / fin de mes) ya resuelto por el otro run (ciclo 44).
 - P1 adjuntos: migracion lazy de adjuntos legacy (evaluar seguridad primero).
+
+---
+## Ciclo 47 - 2026-08-13 (UTC) - fix(parser): "el 15" día del mes suelto con artículo
+
+- **Run/ciclo**: 47 (renumerado desde "42 cont.3"→"46": durante el run el remoto avanzó de `e0850e6` a `a11cf48` por runs paralelos — ciclos 43/44/45/46: "entre semana"/"de lunes a viernes" `a934b65`, "la quincena" `d98862b`, listas de días bare `fc1279b`, `nextBestTask` time-aware `2ef4bfa`, guardián overdue raíz `6d0c6a4` + docs `966b799`/`a11cf48`. Procedimiento no destructivo: `git stash` del trabajo "el 15", `git pull --ff-only` a `966b799`, `git stash pop`; auto-merge limpio en `NaturalTaskParser.kt` + tests (cambios ortogonales); al push el remoto había vuelto a avanzar a `a11cf48`, `git pull --rebase`, conflicto solo en `CURRENT_STATE.md` (docs) resuelto conservando el ciclo 46 del otro run y renumerando el mío a 47. Sin force push, sin reset --hard).
+- **HEAD inicial**: `e0850e6` (al inicio del run); el remoto avanzó a `966b799` durante el run.
+- **Problema seleccionado (P1, parser)**: **"reunión el 15 a las 10"**, **"cita el 20"**, **"entregar el 5 a las 18"** se fechaban en HOY por error. Causa raíz: "el 15" no casaba con `numericDatePattern` (exige `DD/MM` con mes) ni con `monthNamePattern` (exige mes por nombre) → quedaba como residuo en el título; la hora suelta ("a las 10") se aplicaba entonces a HOY → la cita se programaba **hoy** en vez del día 15 (día erróneo, reunión perdida, recordatorio dispara hoy). Brecha ortogonal a "el 15 de marzo" (sí funcionaba vía `monthNameDate`) y a "el 15 de cada mes" (recurrencia mensual); faltaba el "el N" aislado.
+- **Prioridad**: P1 (día erróneo de cita → reunión perdida / recordatorio en día equivocado; dato visible incorrecto en planificador y What Now).
+- **Causa raíz**: ausencia de patrón para día del mes suelto con artículo; el fallback de fecha nula dejaba que la hora aislada dominara y anclara a HOY.
+- **Solución (mínima, `NaturalTaskParser.kt`)**: nuevo `dayOfMonthPattern` = `(?i)\bel\s+(\d{1,2})(?:\s+del?\s+mes)?\b(?!\s*de\s+[a-záéíóúüñ])` (casa "el 15", "el 15 del mes"; el *negative lookahead* evita colisionar con "el 15 de marzo" —lo resuelve `monthNameDate`— y "el 15 de cada mes" —recurrencia mensual—). Match nuevo `dayOfMonthDate` entre `monthNameDate` y `numericDateMatch`; rama en el `when` de `date` entre ambos para que "el 15 de marzo" gane y "el 15" aislado no caiga al fallback de hoy. Reutiliza el helper existente `nextMonthlyDate(from, day)` (día N de este mes, o del siguiente si ya pasó). Limpieza del residuo "el 15" en el título (después de `numericDatePattern.replace`). Heurística honesta (no IA, no random). Validación de rango `day in 1..31`.
+- **Tests**: +4 (`diaDelMesSueltoRuedaAlProximoMesSiYaPaso`, `diaDelMesSueltoSinHoraUsaMediodiaCanónico`, `diaDelMesSueltoFuturoEsteMesSeConserva`, `diaDelMesSueltoNoColisionaConFechaConMes`). Confirmado PASS. **395 domain tests PASS** (`bash tools/run_domain_tests.sh`, 391 base remota tras integrar ciclos 43–46 + 4 nuevos, 25 clases). Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: `cb042c7` — `fix(parser): "el 15" día del mes suelto con artículo (el 15 a las 10 → día 15, no hoy)` (incluye rebase sobre `a11cf48` + ajustes docs post-rebase).
+- **HEAD final**: `cb042c7` (tras push a `origin/openhands/autonomous-ordia`).
+- **Estado**: VERIFIED (JVM).
+
+### Siguiente
+- Parser: tiempo relativo con prefijo "de aquí a" / "de hoy en" / "para dentro de" (frases
+  cotidianas aún no cubiertas); revisar interacción de `dayOfMonthPattern` con rango horario
+  ("el 15 de 9 a 11") y con recurrencia mensual ("el 15 cada mes" — ya cubierto por `cada mes`).
+- Salir del parser y auditar What Now, captura, rutinas, recordatorios, detección de vencidas.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).

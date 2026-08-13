@@ -163,6 +163,14 @@ object NaturalTaskParser {
      */
     private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)semana\b""")
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
+    // Día del mes suelto con artículo: "reunión el 15", "cita el 20 a las 18",
+    // "entregar el 5 del mes". Antes "el 15" no casa con numericDatePattern (que exige
+    // DD/MM con mes) y quedaba como residuo en el título; la hora suelta ("a las 10") se
+    // aplicaba a HOY → la cita se programaba hoy en vez del día 15 (P1: día erróneo,
+    // reunión perdida). El lookahead negativo evita colisionar con "el 15 de marzo" (lo
+    // resuelve monthNameDate) y "el 15 de cada mes" (recurrencia mensual): no se admite
+    // "de <palabra>" tras el número salvo la fórmula "del mes".
+    private val dayOfMonthPattern = Regex("""(?i)\bel\s+(\d{1,2})(?:\s+del?\s+mes)?\b(?!\s*de\s+[a-záéíóúüñ])""")
     private val timePatterns = listOf(
         // Sufijo opcional "(horas?|hs)" tras la hora (con o sin meridiem) para consumir
         // "a las 9 horas" completo: antes "horas" quedaba como residuo en el titulo y,
@@ -632,6 +640,15 @@ object NaturalTaskParser {
         // hora, mes "la" inexistente) no sombra y anula la resolución de fecha de
         // repeticiones mensuales/semanales con hora.
         val monthNameDate = monthNameMatch?.let { parseMonthNameDate(base.toLocalDate(), it) }
+        // "el 15" / "el 15 del mes" suelto: día del mes sin mes explícito. Se resuelve
+        // DESPUÉS de monthNameDate (así "el 15 de marzo" gana) y ANTES de numericDateMatch
+        // (así "el 15" aislado se ancla al día N en vez de caer al fallback de hoy).
+        val dayOfMonthMatch = dayOfMonthPattern.find(working)
+        val dayOfMonthDate = dayOfMonthMatch?.let { m ->
+            m.groupValues[1].toIntOrNull()?.takeIf { it in 1..31 }?.let { day ->
+                nextMonthlyDate(base.toLocalDate(), day)
+            }
+        }
         val partOfDayMatch = partOfDayPattern.find(working)
         val partOfDayTime = partOfDayMatch?.let { partOfDayTimes[it.groupValues[1].lowercase()] }
         val standalonePartOfDayMatch = standalonePartOfDayPattern.find(working)
@@ -689,6 +706,11 @@ object NaturalTaskParser {
                 nextWeekdayOrSame(base.toLocalDate(), target)
             }
             monthNameDate != null -> monthNameDate
+            // "reunión el 15 a las 10": día del mes suelto. Ancla al día N de este mes, o
+            // del siguiente si ese día ya pasó (hoy > N). La hora se combina luego; si
+            // cae en pasado (mismo día, hora ya transcurrida) la cita queda como vencida
+            // (honesto: ya ocurrió), consistente con el resto del parser.
+            dayOfMonthDate != null -> dayOfMonthDate
             numericDateMatch != null -> {
                 val day = numericDateMatch.groupValues[1].toIntOrNull()
                 val month = numericDateMatch.groupValues[2].toIntOrNull()
@@ -884,6 +906,8 @@ object NaturalTaskParser {
                     }) " " else m.value
             }
             .let { value -> numericDatePattern.replace(value, " ") }
+            // "el 15" suelto ya consumido como fecha; se borra el residuo del título.
+            .let { value -> dayOfMonthPattern.replace(value, " ") }
             .replace(Regex("""(?i)\bantes\s+del?\b|\bpara\s+el\b|\bpara\s+mañana\b|\bhasta\s+el\b"""), " ")
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
             .replace(Regex("""\s+"""), " ")

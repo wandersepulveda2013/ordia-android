@@ -14,18 +14,50 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 46)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 46)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 47)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 47)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests) |
+| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests) |
 
 | P2 | Inteligencia — `nextBestTask` time-aware (widget/asistente alineado con What Now) | FIXED (c.45, run paralelo `2ef4bfa`): ordena en-curso-ahora > vencida > vence-hoy > urgente > alta > resto; `isDueToday` zona-aware. 388 tests. |
 | P1 | Inteligencia/coach — `GuardianEngine.overdue` infla subtareas vs `SummaryEngine` | FIXED (c.46): filtra `parentTaskId == null` (alineado con resumen) + expone `overdue` en `Snapshot`. 391 tests. |
+| P1 | Parser — "el 15" día del mes suelto con artículo | FIXED (c.47): `dayOfMonthPattern` ("el N"/"el N del mes") con lookahead anti-colisión; reutiliza `nextMonthlyDate`. 394 tests. |
+
+## Último trabajo — Ciclo 47: "el 15" — día del mes suelto con artículo
+
+Fix P1 de captura de citas (parser natural). Frases cotidianas como **"reunión el 15 a las 10"**,
+**"cita el 20"**, **"entregar el 5 a las 18"** se fechaban en HOY por error: "el 15" no casaba con
+`numericDatePattern` (que exige `DD/MM` con mes) y quedaba como residuo en el título; la hora suelta
+("a las 10") se aplicaba entonces a HOY → la cita se programaba hoy en vez del día 15. Día erróneo
+→ reunión perdida (no aparece como atrasada ese día, recordatorio dispara hoy). La brecha era
+ortogonal a `monthNameDate` ("el 15 de marzo" sí funcionaba) y a la recurrencia mensual
+("el 15 de cada mes"); faltaba el "el N" aislado.
+
+**Solución (mínima, `NaturalTaskParser.kt`)**: nuevo `dayOfMonthPattern` = `el N` / `el N del mes`
+con *negative lookahead* `(?!\s*de\s+[a-záéíóúüñ])` para no colisionar con "el 15 de marzo" (lo
+resuelve `monthNameDate`, evaluado antes) ni "el 15 de cada mes" (recurrencia mensual). Se ancla al
+día N reutilizando el helper existente `nextMonthlyDate(from, day)` (día N de este mes, o del
+siguiente si ya pasó). Rama nueva en el `when` de `date`, entre `monthNameDate` y `numericDateMatch`,
+para que "el 15 de marzo" gana y "el 15" aislado no caiga al fallback de hoy. Limpieza del residuo
+"el 15" en el título. Heurística honesta (no IA, no random).
+
+**Colisión de remoto (no destructiva)**: durante el run el remoto avanzó varias veces (ciclos 43–46:
+"la quincena" `d98862b`, "entre semana"/"de lunes a viernes" `a934b65`, recurrencia de listas de
+días bare `fc1279b`, `nextBestTask` time-aware `2ef4bfa`, guardián overdue raíz `6d0c6a4`).
+`git stash` → `git pull --ff-only` → `git stash pop`; auto-merge limpio en `NaturalTaskParser.kt`
++ tests (cambios ortogonales); conflicto solo en `CURRENT_STATE.md`/`RUN_LOG.md` (docs) resuelto
+conservando el trabajo del otro run y renumerando el mío a **ciclo 47**. Sin force push, sin reset
+--hard.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**394 tests PASS** (390 base remota + 4 nuevos, 25 clases). Smoke 25 OK
+(`tools/run_domain_checks.sh`). NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs
+reales (sin Android SDK).
 
 ## Último trabajo — Ciclo 46: guardián cuenta atrasados solo como tareas raíz (consistencia con resumen)
 
@@ -46,18 +78,12 @@ la UI lee por nombre) para que el invariant sea verificable y la superficie pued
 número que el resumen. `completedToday`/XP siguen contando subtareas a propósito (progreso granular
 deliberado) — solo el conteo de atrasados se alinea con la definición global.
 
-**Colisión de remoto (no destructiva)**: durante el run el remoto avanzó de `e0850e6` a `966b799`
-(ciclo 45 del otro run: `nextBestTask` time-aware + parser listas bare). `git stash` →
-`git pull --ff-only` → `git stash pop`, auto-merge limpio (cambios ortogonales: remoto tocó
-`NaturalTaskParser.kt`/`TaskRules.kt`, este run toca `GuardianEngine.kt`). Sin force push, sin
-reset --hard.
-
 **VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
 **391 tests PASS** (388 base remota c.45 + 3 del run paralelo `nextBestTask` + 1 nuevo), 25 clases.
 Smoke 25 OK (`tools/run_domain_checks.sh`). NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con
 DAOs reales (sin Android SDK). Render real del guardián/overlay.
 
-## Último trabajo — Ciclo 44: `nextBestTask` time-aware (inteligencia widget/asistente)
+## Último trabajo — Ciclo 45: `nextBestTask` time-aware (inteligencia widget/asistente)
 
 Mejora funcional de inteligencia local (P2 — "menos interfaz, más potencia"). `TaskRules.nextBestTask`
 (heurística "¿qué hago ahora?" usada por el **widget de inicio**, el **asistente** y el fallback
@@ -76,20 +102,10 @@ por `GuardianCoach`). Retrocompatible: la firma existente `nextBestTask(tasks)` 
 `now`/zona por defecto → `OrdiaWidgetProvider`, `AssistantEngine`, `OrdiaViewModel` siguen
 compilando sin cambio.
 
-**Colisión de remoto resuelta (no destructiva)**: durante el run el remoto avanzó dos veces.
-Primero a `a934b65` (ciclo 43: parser "entre semana"/"de lunes a viernes" = recurrencia Lun–Vie):
-`git stash` → `git pull --ff-only` → `git stash pop`, auto-merge limpio en `TaskRules.kt` + tests
-(cambios ortogonales). Después, al hacer push, el remoto había vuelto a avanzar a `e0850e6`
-(ciclo 44 del otro run: "la quincena" como hito financiero día 15 / fin de mes): `git pull --rebase`,
-auto-merge limpio en `TaskRules.kt`/BACKLOG/CURRENT_STATE; conflicto solo en `RUN_LOG.md` resuelto
-conservando el ciclo 44 del otro run y renumerando el mío a **ciclo 45**. Sin force push, sin
-reset --hard.
-
 **VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
 **386 tests PASS** (384 base remota + 2 nuevos de este ciclo, 25 clases). Smoke 25 OK
 (`tools/run_domain_checks.sh`). NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs
 reales, render real del widget (sin Android SDK).
-
 
 ## Último trabajo — Ciclo 43: parser "entre semana"/"días laborables"/"de lunes a viernes" = recurrencia semanal Lun–Vie
 
