@@ -15,7 +15,7 @@
 ## Estado
 
 - **Fecha (UTC)**: 2026-08-13 (ciclo 56)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 56; rebase no destructivo sobre ciclo 55 parser cada-mañana + ciclo 54 intervalo+días + ciclo 53 What Now)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD `5478f73` tras ciclo 56; rebase no destructivo sobre ciclo 55 parser cada-mañana + ciclo 54 intervalo+días + ciclo 53 What Now)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
