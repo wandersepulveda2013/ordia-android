@@ -175,14 +175,20 @@ jobs:
                   log.append(f"PR #{number}: error consultando check-runs ({e}) → SKIP")
                   continue
 
-              # Combined status (legacy statuses API) como refuerzo
+              # Combined status (legacy statuses API) como refuerzo.
+              # GitHub devuelve state="pending" con total_count=0 cuando el commit
+              # solo tiene check-runs (ya evaluados arriba) y ningún status legacy.
+              # Ese "pending" vacío NO es un check real en curso: ignorarlo para
+              # evitar bloquear PRs que sí pasaron todos sus check-runs.
               try:
                   combined = api(f"/repos/{REPO}/commits/{head_sha}/status")
                   cs = combined.get("state")
-                  if cs == "pending":
-                      pending.append("status:pending")
-                  elif cs in ("failure", "error"):
-                      failures.append(f"status:{cs}")
+                  has_statuses = combined.get("total_count", 0) > 0
+                  if has_statuses:
+                      if cs == "pending":
+                          pending.append("status:pending")
+                      elif cs in ("failure", "error"):
+                          failures.append(f"status:{cs}")
               except Exception:
                   pass
 
