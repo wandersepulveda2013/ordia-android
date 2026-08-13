@@ -243,7 +243,7 @@ V1, V2, V3, V4, V5, V6, V7, V8, V9, V14 (10 visuales) + F2, F3, F5, F7, F8, F9, 
   update checker can compare versions.
 - **Result**: CI #62 — Verify ✓, Sign ✓, Publish ✓. Release created with signed APK.
 
-### UPDATES_SECTION — COMPLETADO (pending CI #63 verification)
+### UPDATES_SECTION — COMPLETADO ✅
 - **Problem**: User reported "en la app, en el apartado de actualizaciones no
   aparece" — the updates section was empty because no update mechanism existed.
 - **Implementation**:
@@ -257,7 +257,9 @@ V1, V2, V3, V4, V5, V6, V7, V8, V9, V14 (10 visuales) + F2, F3, F5, F7, F8, F9, 
     permissions, registered FileProvider.
   - `file_paths.xml`: cache-path for APK sharing.
   - Version bumped: versionCode 10→11, versionName 1.0.0→3.0.0.
-- **CI #63**: In progress (verify → sign → publish).
+- **CI #66**: Verify ✓, Sign ✓, Publish ✓. Release `v3.0.0-11` published
+  with signed APK (1.9 MB) at
+  https://github.com/wandersepulveda2013/ordia-android/releases/tag/v3.0.0-11
 
 ## Commits (sesión 2, main branch)
 1. `fc51fc4` — build: pin kotlinx-serialization-json 1.8.1 on KSP classpath
@@ -265,25 +267,34 @@ V1, V2, V3, V4, V5, V6, V7, V8, V9, V14 (10 visuales) + F2, F3, F5, F7, F8, F9, 
 3. `b9db764` — ci: fix release APK path (was referencing non-existent buildType)
 4. `a1fb1d8` — ci: fix debug APK glob path (no flavors, direct debug/ dir)
 5. `418df93` — feat: implement in-app update checker and APK installer
+6. `aff5671` — docs: update AUTONOMOUS_HANDOFF.md with session 2
+7. `e050c18` — ci: fix aapt2 version extraction (handle quoted values)
+8. `5c65a85` — ci: add --rerun-tasks to bypass KSP incremental cache corruption
 
 ## Pruebas ejecutadas (sesión 2)
 - Local clean + kspDebugKotlin + kspReleaseKotlin — BUILD SUCCESSFUL
 - Local clean + test + lint + assembleDebug + assembleRelease — BUILD SUCCESSFUL
 - Local assembleDebug + test + assembleRelease (with update feature) — BUILD SUCCESSFUL
 - CI #62 (verify→sign→publish) — ALL PASSED
-- CI #63 (verify→sign→publish) — IN PROGRESS
+- CI #64 (verify→sign→publish) — Verify ✓, Sign ✓, Publish ✗ (aapt2 extraction bug)
+- CI #65 (verify→sign→publish) — Verify ✗ (KSP incremental cache corruption)
+- CI #66 (verify→sign→publish) — ALL PASSED ✅ (with --rerun-tasks)
 
 ## Bugs encontrados y corregidos (sesión 2)
 1. **KSP2 empty JSON in CI**: Fixed with `--no-build-cache`.
-2. **previewAdvanced buildType reference**: Fixed paths to standard release/debug dirs.
-3. **Debug APK glob path**: Fixed `*/debug/*.apk` → `debug/*.apk`.
-4. **No update mechanism in app**: Implemented full UpdateChecker + UpdateInstaller + UI.
+2. **KSP2 incremental cache corruption (intermittent)**: Fixed with `--rerun-tasks`.
+3. **previewAdvanced buildType reference**: Fixed paths to standard release/debug dirs.
+4. **Debug APK glob path**: Fixed `*/debug/*.apk` → `debug/*.apk`.
+5. **aapt2 version extraction**: Fixed regex to handle single-quoted values (`versionCode='11'`).
+6. **No update mechanism in app**: Implemented full UpdateChecker + UpdateInstaller + UI.
 
 ## Próximo paso exacto (sesión 2)
-1. **Verify CI #63 passes** — confirm release `v3.0.0-11` is published.
-2. **Test update flow on device** — install signed APK, verify "Actualizaciones" section.
+1. ✅ **CI #66 passes** — release `v3.0.0-11` published.
+2. **Test update flow on device** — install signed APK, verify "Actualizaciones" section
+   shows update status. When a newer version is released (versionCode > 11), the app
+   will show "Nueva versión disponible" with download button.
 3. **Continue deep audit** from session 1: TaskRepository/TaskMutationGate deletion
-   concurrency (already fixed in PR #32, but verify no regressions).
+   concurrency (already fixed in PR #32, verify no regressions).
 4. **P5**: Tests de instrumentación Room para `collectSubtreeIds`/`deleteSubtreeAndSelf`
    (requieren emulador).
 
