@@ -3,6 +3,24 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 42 (cont. 2) - 2026-08-13 (UTC) - día de semana suelto hoy con hora futura vence hoy
+
+- **Run/ciclo**: 42 (continuación 2 — fix P1 de captura de citas de hoy).
+- **HEAD inicial**: `727e7b8` (remoto actualizado por run paralelo). Workspace arrancó en `0a77387`; al hacer `git fetch` + `git pull --ff-only` el remoto había avanzado a `727e7b8`. Tras commit local, el push se rechazó por divergencia (más trabajo remoto); `git fetch` + `git rebase origin/openhands/autonomous-ordia` (no destructivo, sin force) integró limpio.
+- **Problema seleccionado (P1, parser)**: **"el viernes a las 18"** escrito el propio viernes **antes** de las 18:00 se programaba para el **viernes de la semana siguiente**: la cita de hoy se perdía una semana entera (reunión/cita olvidada hoy, recordatorio tardío 7 días). Causa raíz: la rama de fecha suelta usaba `nextWeekday`, que **siempre** salta +7 cuando el día objetivo es hoy (comportamiento correcto para recurrencias, que necesitan el "próximo" estricto, pero incorrecto para una fecha suelta puntual). No existía un path para "hoy si aún no llegó la hora".
+- **Prioridad**: P1 (pérdida/desplazamiento de cita del día → recordatorio 1 semana tarde; dato visible incorrecto en planificador/What Now).
+- **Solución (mínima, `NaturalTaskParser.kt`)**: nueva `nextWeekdayOrSame(from, target)` — devuelve hoy si el día objetivo coincide con el de `from`, si no delega a `nextWeekday`. La rama de fecha suelta (weekday blando) pasa a usar `nextWeekdayOrSame`; el descarte de "hoy si la hora ya pasó" se difiere al momento de combinar fecha+hora: si fecha+hora resulta pasada respecto a `now`, se rueda +7 días. Así no se agenda en pasado y no hay regresión. Las recurrencias siguen usando `nextWeekday` (próximo estricto, sin cambio). Heurística honesta (no IA).
+- **Tests**: +4 (`weekdayHoyConHoraFuturaQuedaHoy`, `weekdayHoyConHoraPasadaRuedaProximaSemana`, `weekdayHoySinHoraYMediodiaPasadoRuedaProximaSemana`, `weekdayHoyTardeConHoraFuturaQuedaHoy`). Confirmado PASS. **362 domain tests PASS** (358 base remota + 4 nuevos; tras rebase sobre `727e7b8` que añadió 5 tests del run paralelo), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Commits**: `fix(parser): día de semana suelto hoy con hora futura vence hoy` (`b4ef5e4`).
+- **HEAD final**: `b4ef5e4` (push a openhands/autonomous-ordia OK; `727e7b8..b4ef5e4`).
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser (P2): "la quincena" como hito financiero (día 15/fin de mes); "próximo bimestre/semestre".
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+- Explorar captura/What Now/rutinas en busca de oportunidades de producto.
+
+---
 ## Ciclo 42 (cont.) - 2026-08-13 (UTC) - rango horario sin "horas": ampliación de followers seguros
 
 - **Run/ciclo**: 42 (continuación — colisión con run paralelo resuelta, mejora aditiva sobre el fix base del ciclo 42).

@@ -14,15 +14,15 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 42)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 42)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 42 cont.2)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 42 cont.2)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencia quincenal | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers (día semana/parte del día) c.42 cont. (358 tests) + recurrencia quincenal con palabra "cada quincena"/"quincenalmente" c.42 (365 tests) |
+| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencia quincenal | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers (día semana/parte del día) c.42 cont. (358 tests) + recurrencia quincenal con palabra "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy (no próxima semana) c.42 cont.2 (362 tests) |
 
 Bug de captura P2 (ciclo 42): el rango horario **sin la palabra "horas"** y con ambas horas < 13
 ("clase de 9 a 11") no se reconocía: `durationMinutes=null` y "de 9 a 11" quedaba como residuo.
@@ -34,6 +34,32 @@ marcador de parte del día ("a la tarde", "por la noche"), y lo amplió. Sigue r
 
 VERIFICADO localmente (JVM puro, sin Android SDK): `bash tools/run_domain_tests.sh` =
 **358 tests PASS** (353 base c.42 + 5 nuevos), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+
+## Último trabajo — Ciclo 42 (cont. 2): día de semana suelto hoy con hora futura vence hoy
+
+Fix P1 de captura de citas de hoy (parser natural).
+
+**Problema**: **"el viernes a las 18"** escrito el propio viernes **antes** de las 18:00 se
+programaba para el **viernes de la semana siguiente**: la cita de hoy se perdía una semana
+entera (reunión/cita olvidada hoy, recordatorio 7 días tarde). Causa raíz: la rama de fecha
+suelta usaba `nextWeekday`, que **siempre** salta +7 cuando el día objetivo es hoy (correcto para
+recurrencias —necesitan "próximo" estricto— pero incorrecto para una fecha suelta puntual). No
+existía path para "hoy si aún no llegó la hora".
+
+**Solución (mínima, `NaturalTaskParser.kt`)**: nueva `nextWeekdayOrSame(from, target)` — devuelve
+hoy si el día objetivo coincide con el de `from`, si no delega a `nextWeekday`. La rama de fecha
+suelta (weekday blando) usa `nextWeekdayOrSame`; el descarte de "hoy si la hora ya pasó" se difiere
+al combinar fecha+hora: si fecha+hora resulta pasada respecto a `now`, se rueda +7 días (sin agenda
+en pasado, sin regresión). Las recurrencias siguen usando `nextWeekday` (próximo estricto, sin
+cambio). Heurística honesta (no IA).
+
+**Colisión con run paralelo (no destructiva)**: el push inicial se rechazó por divergencia (remoto
+avanzó de `0a77387` a `727e7b8` por un run paralelo). `git fetch` + `git rebase
+origin/openhands/autonomous-ordia` (no destructivo, sin force) integró limpio sobre el nuevo HEAD.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**362 tests PASS** (358 base remota + 4 nuevos), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
 NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 
 ## Último trabajo — Ciclo 42 (cont.): rango horario sin "horas" + ampliación de followers seguros
