@@ -3483,15 +3483,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: `59c0cb6` (rebase sobre `9b801a8` + commit+push OK a `origin/openhands/autonomous-ordia`, fast-forward; remoto verificado == local).
 - **Estado**: FIXED → VERIFIED (dominio JVM, 528 tests); parser en app NO VERIFICADO (sin Android SDK).
 
-### Siguiente
-- Parser: múltiples marcadores temporales en una frase (auditar interacciones acumuladas tras c.58–c.70).
-- "la semana que viene el lunes" / "el mes que viene el día 5" (combinaciones periodo+día).
-- `RecurrenceEngine.nextOccurrence` auditoría: fin de mes mensual → 31/feb, año bisiesto.
-- `SummaryService`/`SummaryEngine`: resumen del día más accionable; `PlanEngine` replanificación; búsqueda universal.
-- Auditoría progresiva: rutinas adaptables, detección de compromisos en notas, captura ultrarrápida.
-
----
-
 ## Ciclo 71 — 2026-08-13
 
 - **Run/ciclo**: 71 (rama `openhands/autonomous-ordia`). Continúa el "Siguiente" del c.69 (combinaciones periodo+día en el parser natural). Originalmente numerado c.70, pero un run paralelo legítimo reclamó c.70 (P0 crash `parseMonthNameDate` + P1 "del 2027"). Este run se renumera a c.71; ambos trabajos son ortogonales (c.70 toca `parseMonthNameDate`/`monthNamePattern`; este toca `nextMonthDayReversePattern`/`effectiveRelativeDueAt`) y se conservan.
@@ -3520,3 +3511,24 @@ a un permiso persistente frágil y silencioso ante fallos.
 - `RecurrenceEngine.nextOccurrence` auditoría: fin de mes mensual → 31/feb, año bisiesto.
 - `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
 - Descubrimiento continuo: búsqueda universal; rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; onboarding.
+
+## Ciclo 72 - 2026-08-13 (UTC) - fix(parser): "jueves que viene" dicho en jueves → próxima semana (no HOY)
+
+- **Run/ciclo**: 72 (renumerado desde c.70 tras colision con run paralelo `59c0cb6` que tomo c.70). Fix P1 integridad de agenda (día objetivo futuro agendado en el día equivocado). El bug fue identificado en el run anterior (probe JVM 28 casos); este run lo aterriza con tests unitarios + memoria + commit.
+- **STALE_BASE detectado y reconciliado (no destructivo)**: mi commit se baso en `9b801a8` (c.69); al hacer push, `origin/openhands/autonomous-ordia` habia avanzado a `59c0cb6` (c.70, run paralelo P0/P1 parser mes-nombrado). Resolucion: `git fetch` -> `git rebase origin/openhands/autonomous-ordia` (rebasa mi unico commit sobre el remoto, sin sobrescribir trabajo valido). Conflicto SOLO en `NaturalTaskParserTest.kt` (ambos anadimos tests al final) y en `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md`; resuelto conservando AMBOS conjuntos y renumerando c.70->c.71. Los cambios de **codigo** NO chocan (areas ortogonales: c.70 toca `monthNamePattern`/`parseMonthNameDate`; este run toca la rama `weekdayMatch`). Sin force push, sin reset --hard.
+- **HEAD inicial**: `9b801a8` (c.69, HEAD remoto sincronizado tras `git fetch`: el remoto había avanzado `f31388a..9b801a8` durante el run). Reconciliación segura: `stash` → `merge --ff-only origin/openhands/autonomous-ordia` → `stash pop` limpio (c.69 tocó `SummaryEngine`/`TaskRules`/`TodayScreen`/`strings`, áreas ortogonales al `weekdayMatch` del parser y a `NaturalTaskParserTest`). Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
+- **Problema seleccionado**: la forma cotidiana **"reunión el jueves que viene"** escrita un **jueves** caía en **HOY** en vez de la próxima semana. Mismo defecto con "el próximo jueves", "lunes próximos", "sábado que viene", etc., cuando hoy ya era ese día de la semana. Un compromiso explícitamente futuro se agendaba en el día equivocado. P1: integridad de agenda (fecha incorrecta).
+- **Prioridad**: P1 (fecha de cita errónea — el usuario dice "que viene" y Ordía lo agenda para hoy).
+- **Causa raíz**: `weekdayPattern` capturaba el sufijo "que viene"/"próximo" como grupo **no capturador** `(?:...)`, así el código de resolución nunca distinguía "el próximo jueves" del "jueves" suelto. Cuando `today.dayOfWeek == target`, `weekdaySameDayCandidate = true` y `nextWeekdayOrSame()` (que devuelve hoy si delta=0) dejaban la fecha en hoy, ignorando el modificador "que viene".
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**: en la rama `weekdayMatch`, `nextExplicit = mv.contains("que viene") || mv.contains("próxim")` detecta el modificador de "próxima ocurrencia" directamente en `match.value` (cubre sufijo "que viene"/"próximos" y prefijo "próximo jueves" — ambos dentro del match). Con `nextExplicit`: `weekdaySameDayCandidate = false` y se fuerza `nextWeekday(base.toLocalDate(), target)` (estricto, +7 siempre). Sin modificador, el día suelto ("el jueves a las 18" dicho en jueves con hora futura) sigue pudiendo ser hoy — **no-regresión** del comportamiento de c.42 cont.2. Mismas regex, solo cambia la rama de resolución.
+- **Tests**: +7 en `NaturalTaskParserTest.kt` con `now` = 2026-08-13 (jueves): `juevesQueVieneDichoEnJuevesAvanzaUnaSemana` (→2026-08-20), `juevesQueVieneConHoraAvanzaUnaSemana` (→2026-08-20 18:00), `proximoJuevesDichoEnJuevesAvanzaUnaSemana` (→2026-08-20), `juevesSueltoDichoEnJuevesPuedeSerHoySiHoraFutura` (no-regresión, "el jueves a las 18"→hoy 18:00), `viernesQueVieneEsManana`, `martesQueVieneEsLaProximaSemana`, `lunesProximosAvanzaUnaSemana`. **541 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 534 c.71 + 7). Rebase con run paralelo c.70 (P0/P1 parser mes-nombrado) sin conflicto de codigo; conflictos solo en tests/docs resueltos conservando ambos conjuntos., smoke 25 OK (`tools/run_domain_checks.sh`). Probe JVM (28 casos) confirmó antes/después sin regresión en "el jueves a las 18" (hoy), "viernes que viene" (mañana), etc. **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real del parser en la app (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG,BACKLOG}.md`.- **HEAD final**: pendiente de push (rebase sobre `aa0407f` remoto c.71; conflicto de docs resuelto conservando ambos runs, c.71 remoto + este c.72).
+- **Estado**: FIXED → VERIFIED (dominio JVM); parser en app NO VERIFICADO (sin Android SDK).
+
+### Siguiente
+- "la semana que viene el lunes" / "el mes que viene el día 5" (combinaciones periodo+día).
+- `RecurrenceEngine.nextOccurrence` auditoría: fin de mes mensual → 31/feb, año bisiesto.
+- `SummaryService`/`SummaryEngine`: resumen del día más accionable; `PlanEngine` replanificación; búsqueda universal.
+- Auditoría progresiva: rutinas adaptables, detección de compromisos en notas, captura ultrarrápida.
+
+---

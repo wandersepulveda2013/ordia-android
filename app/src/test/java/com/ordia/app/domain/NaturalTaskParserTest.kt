@@ -2719,4 +2719,54 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("el 10 de septiembre del 26", now, zone)
         assertEquals(LocalDate.of(2026, 9, 10), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    // --- Regresión "día que viene"/"próximo día" dicho en el propio día objetivo ---
+    // Antes, "jueves que viene" escrito un jueves caía en HOY (weekdaySameDayCandidate
+    // permitía hoy) en vez de la próxima semana → tarea agendada el día equivocado (P1).
+    // El modificador "que viene"/"próximo" debe forzar +7 incluso cuando hoy es ese día.
+
+    // Jueves 2026-08-13 a medianoche (antes de las 09:00 canónicas, hora futura).
+    private val juevesNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 13), LocalTime.MIDNIGHT, zone)
+
+    @Test fun juevesQueVieneDichoEnJuevesAvanzaUnaSemana() {
+        val result = NaturalTaskParser.parse("Reunión el jueves que viene", juevesNow, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun juevesQueVieneConHoraAvanzaUnaSemana() {
+        val result = NaturalTaskParser.parse("Reunión jueves que viene a las 9", juevesNow, zone)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun proximoJuevesDichoEnJuevesAvanzaUnaSemana() {
+        val result = NaturalTaskParser.parse("Reunión el próximo jueves", juevesNow, zone)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun juevesSueltoDichoEnJuevesPuedeSerHoySiHoraFutura() {
+        // Sin modificador "que viene"/"próximo", "el jueves a las 18" dicho el jueves
+        // (hora futura respecto a medianoche) sigue siendo HOY: la cita es hoy.
+        val result = NaturalTaskParser.parse("Reunión el jueves a las 18", juevesNow, zone)
+        assertEquals(LocalDate.of(2026, 8, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun viernesQueVieneEsManana() {
+        // "viernes que viene" dicho en jueves → viernes 2026-08-14 (mañana).
+        val result = NaturalTaskParser.parse("Reunión viernes que viene", juevesNow, zone)
+        assertEquals(LocalDate.of(2026, 8, 14), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun martesQueVieneEsLaProximaSemana() {
+        val result = NaturalTaskParser.parse("Reunión martes que viene", juevesNow, zone)
+        assertEquals(LocalDate.of(2026, 8, 18), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun lunesProximosAvanzaUnaSemana() {
+        // Hoy jueves 13/8; "lunes próximos" → lunes 17/8.
+        val result = NaturalTaskParser.parse("Reunión lunes próximos", juevesNow, zone)
+        assertEquals(LocalDate.of(2026, 8, 17), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }

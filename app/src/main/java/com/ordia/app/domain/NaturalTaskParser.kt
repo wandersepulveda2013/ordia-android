@@ -842,8 +842,16 @@ object NaturalTaskParser {
             // Sin esto, una cita de hoy con hora futura se perdía una semana entera.
             weekdayMatch != null -> {
                 val target = weekdayMatch.groupValues[1].toDayOfWeek()
-                weekdaySameDayCandidate = base.toLocalDate().dayOfWeek == target
-                nextWeekdayOrSame(base.toLocalDate(), target)
+                // "jueves que viene"/"jueves próximos"/"próximo jueves": el usuario pide
+                // explícitamente la PRÓXIMA ocurrencia, aunque hoy sea ese día. Antes, dicho
+                // un jueves, "jueves que viene" caía en HOY (tarea agendada el día equivocado;
+                // P1). Con modificador "próximo"/"que viene" forzamos +7 (nextWeekday estricto);
+                // sin él, el día suelto "el jueves" dicho en jueves puede seguir siendo hoy.
+                val mv = weekdayMatch.value.lowercase()
+                val nextExplicit = mv.contains("que viene") || mv.contains("próxim")
+                weekdaySameDayCandidate = !nextExplicit && base.toLocalDate().dayOfWeek == target
+                if (nextExplicit) nextWeekday(base.toLocalDate(), target)
+                else nextWeekdayOrSame(base.toLocalDate(), target)
             }
             monthNameDate != null -> monthNameDate
             // "reunión el 15 a las 10": día del mes suelto. Ancla al día N de este mes, o
