@@ -453,4 +453,67 @@ class SummaryEngineTest {
         assertEquals(DayLoad.OVERLOADED, s.dayLoad)
         assertEquals(null, s.deferralSuggestion)
     }
+
+    // ---- Ventana de jornada aprendida (LearningProfile) ----
+    //
+    // El veredicto del día debe usar la ventana REAL del usuario cuando se le
+    // pasa un perfil aprendido, no el 9–18 fijo. Esto es lo que evita que la
+    // tarjeta de hoy mienta para horarios no estándar.
+
+    @Test
+    fun dayLoad_usesLearnedWindow_lateSleeperNotOverloadedAt17() {
+        // A las 17:00 con jornada aprendida 9–23: quedan 6 h libres (360 min).
+        // 3 tareas de 60 min = 180 min ≤ 360/2=180 → ON_TRACK.
+        // Con la ventana fija 9–18, a las 17:00 solo quedarían 60 min → OVERLOADED.
+        val at17 = today.atTime(17, 0).atZone(zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            task(1, dueAt = at(today, 9), durationMinutes = 60),
+            task(2, dueAt = at(today, 10), durationMinutes = 60),
+            task(3, dueAt = at(today, 11), durationMinutes = 60)
+        )
+        val profile = LearningProfile(dayStartMinute = 9 * 60, dayEndMinute = 23 * 60)
+        val s = SummaryEngine.summarize(tasks, at17, zone, profile)
+        assertEquals(DayLoad.ON_TRACK, s.dayLoad)
+    }
+
+    @Test
+    fun dayLoad_usesLearnedWindow_earlyRiserOverloadedPastTheirEnd() {
+        // Jornada aprendida 6–14. A las 13:00 ya no cabe trabajo nuevo: solo
+        // queda 1 h (60 min). 2 tareas de 60 min = 120 min > 60 → OVERLOADED.
+        // Con la ventana fija 9–18, a las 13:00 quedarían 5 h → ON_TRACK (mentira).
+        val at13 = today.atTime(13, 0).atZone(zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            task(1, dueAt = at(today, 6), durationMinutes = 60),
+            task(2, dueAt = at(today, 7), durationMinutes = 60)
+        )
+        val profile = LearningProfile(dayStartMinute = 6 * 60, dayEndMinute = 14 * 60)
+        val s = SummaryEngine.summarize(tasks, at13, zone, profile)
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+    }
+
+    @Test
+    fun dayLoad_nullProfileFallsBackToDefaultWindow() {
+        // Sin perfil, comportamiento idéntico al 9–18 fijo de siempre.
+        val at12 = now // 12:00
+        val tasks = listOf(
+            task(1, dueAt = at(today, 9), durationMinutes = 60)
+        )
+        val withProfile = SummaryEngine.summarize(tasks, at12, zone, null)
+        val withExplicitDefaults = SummaryEngine.summarize(tasks, at12, zone)
+        assertEquals(withExplicitDefaults.dayLoad, withProfile.dayLoad)
+    }
+
+    @Test
+    fun dayLoad_learnedWindowDoesNotAffectCounts() {
+        // La ventana aprendida solo cambia el veredicto, no los conteos.
+        val tasks = listOf(
+            task(1, dueAt = at(today, 9), durationMinutes = 60),
+            task(2, dueAt = at(today, 10), durationMinutes = 60, completed = true, completedAt = at(today, 9))
+        )
+        val profile = LearningProfile(dayStartMinute = 6 * 60, dayEndMinute = 23 * 60)
+        val s = SummaryEngine.summarize(tasks, now, zone, profile)
+        assertEquals(1, s.completedToday)
+        assertEquals(1, s.remainingToday)
+        assertEquals(60, s.remainingMinutesToday)
+    }
 }

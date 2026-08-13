@@ -64,10 +64,12 @@ import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
 import com.ordia.app.ui.components.recurrenceChipLabel
 import com.ordia.app.domain.NaturalTaskParser
+import com.ordia.app.domain.LearningEngine
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.CaptureSource
 import com.ordia.app.data.local.CaptureTarget
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlinx.coroutines.delay
@@ -113,7 +115,17 @@ fun TodayScreen(
     }
     val today = remember(clockNow) { LocalDate.now() }
     val whatNow = remember(state.tasks, clockNow) { WhatNowEngine.suggest(state.tasks, clockNow) }
-    val summary = remember(state.tasks, clockNow) { SummaryEngine.summarize(state.tasks, clockNow) }
+    val summary = remember(state.tasks, clockNow, state.preferences.learningEnabled) {
+        // El veredicto del día (LIGHT/ON_TRACK/FULL/OVERLOADED) usa la misma
+        // ventana de jornada que el planificador. Si el aprendizaje está activo,
+        // se basa en los horarios reales del usuario en vez del 9–18 fijo, para
+        // que la tarjeta de hoy no mienta ("OVERLOADED" a las 17:00 para quien
+        // trabaja hasta las 23:00). Sin aprendizaje → defaults 9–18.
+        val profile = if (state.preferences.learningEnabled) {
+            LearningEngine.learn(state.tasks, clockNow)
+        } else null
+        SummaryEngine.summarize(state.tasks, clockNow, ZoneId.systemDefault(), profile)
+    }
     val capture = {
         if (quickText.isNotBlank()) {
             vm.submitCapture(

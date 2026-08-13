@@ -55,6 +55,29 @@ enum class DayLoad { LIGHT, ON_TRACK, FULL, OVERLOADED }
 
 object SummaryEngine {
 
+    /** Inicio de jornada por defecto (9:00), igual que DayPlanner. */
+    private const val DEFAULT_DAY_START = 9 * 60
+    /** Fin de jornada por defecto (18:00), igual que DayPlanner. */
+    private const val DEFAULT_DAY_END = 18 * 60
+
+    /**
+     * Variante que toma directamente un [LearningProfile] aprendido (o null para
+     * los valores por defecto). Facilita pasar el perfil del usuario sin
+     * desempaquetarlo a mano en cada caller de la UI.
+     */
+    fun summarize(
+        tasks: List<TaskEntity>,
+        now: Long,
+        zone: ZoneId,
+        profile: LearningProfile?
+    ): DaySummary = summarize(
+        tasks,
+        now,
+        zone,
+        dayStartMinute = profile?.dayStartMinute ?: DEFAULT_DAY_START,
+        dayEndMinute = profile?.dayEndMinute ?: DEFAULT_DAY_END
+    )
+
     /**
      * Calcula el resumen para el día de `now` y los últimos 7 días.
      *
@@ -70,11 +93,23 @@ object SummaryEngine {
      * - inboxPending: tareas en estado INBOX sin archivar (por revisar).
      * - completedThisWeek: completadas entre hoy-6 y hoy (inclusive).
      * - weekDailyAverage: completedThisWeek / 7.
+     *
+     * [dayStartMinute]/[dayEndMinute] definen la ventana de jornada usada por el
+     * veredicto [DayLoad] (minutos libres vs. minutos restantes). Por defecto
+     * 9:00–18:00; el llamador puede pasar el perfil aprendido
+     * ([LearningProfile]) para que el veredicto refleje los horarios REALES del
+     * usuario en lugar de una jornada fija —si un usuario trabaja 6–23, el día
+     * no debe decir "OVERLOADED" a las 17:00 cuando aún le quedan 6 h de
+     * capacidad, ni uno de 10–14 debe aparecer siempre "ON_TRACK". Coincide con
+     * la ventana que `DayPlanner` usa para agendar, evitando que plan y veredicto
+     * discrepen. Fuente única de verdad: los mismos límites que el planificador.
      */
     fun summarize(
         tasks: List<TaskEntity>,
         now: Long,
-        zone: ZoneId = ZoneId.systemDefault()
+        zone: ZoneId = ZoneId.systemDefault(),
+        dayStartMinute: Int = DEFAULT_DAY_START,
+        dayEndMinute: Int = DEFAULT_DAY_END
     ): DaySummary {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         val firstOfWeek = today.minusDays(6)
@@ -107,7 +142,7 @@ object SummaryEngine {
         }
         val weekDailyAverage = completedThisWeek / 7f
 
-        val dayLoad = assessDayLoad(remainingToday, remainingMinutesToday, now, zone)
+        val dayLoad = assessDayLoad(remainingToday, remainingMinutesToday, now, zone, dayStartMinute, dayEndMinute)
         val deferralSuggestion = if (dayLoad == DayLoad.OVERLOADED) {
             mostDeferrableTask(remainingTodayTasks, now)
         } else null
@@ -127,10 +162,11 @@ object SummaryEngine {
 
     /**
      * Veredicto honesto: ¿cabe el trabajo restante de hoy en el tiempo que
-     * queda de la jornada? Usa la misma ventana de jornada que DayPlanner
-     * (9:00–18:00 por defecto), de forma que "minutos restantes" y "minutos
-     * libres" hablan el mismo idioma. Si ya pasó el fin de jornada no hay
-     * capacidad libre (0 min): cualquier trabajo restante queda OVERLOADED.
+     * queda de la jornada? Usa la misma ventana de jornada que `DayPlanner`
+     * (9:00–18:00 por defecto, o el perfil aprendido si el llamador lo pasa),
+     * de forma que "minutos restantes" y "minutos libres" hablan el mismo
+     * idioma. Si ya pasó el fin de jornada no hay capacidad libre (0 min):
+     * cualquier trabajo restante queda OVERLOADED.
      *
      * Sin tareas restantes → LIGHT. Si no, compara los minutos planificados
      * restantes con los minutos libres hasta el fin de jornada:
@@ -142,14 +178,14 @@ object SummaryEngine {
         remainingToday: Int,
         remainingMinutesToday: Int,
         now: Long,
-        zone: ZoneId
+        zone: ZoneId,
+        dayStartMinute: Int,
+        dayEndMinute: Int
     ): DayLoad {
         if (remainingToday <= 0) return DayLoad.LIGHT
 
         val zonedNow = Instant.ofEpochMilli(now).atZone(zone)
         val nowMinute = zonedNow.hour * 60 + zonedNow.minute
-        val dayStartMinute = 9 * 60
-        val dayEndMinute = 18 * 60
         val freeMinutes = (dayEndMinute - maxOf(nowMinute, dayStartMinute)).coerceAtLeast(0)
         if (freeMinutes <= 0) return DayLoad.OVERLOADED
 

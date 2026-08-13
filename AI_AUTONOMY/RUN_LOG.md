@@ -3,6 +3,34 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 77 - 2026-08-13 (UTC) - feat(resumen): el veredicto del día usa la ventana de jornada APRENDIDA, no la fija 9–18
+
+- **Run/ciclo**: 77 (rama `openhands/autonomous-ordia`). Base limpia: HEAD local `268b635` (c.76 tras rebase) == remoto; `git pull --ff-only` OK sin divergencia. Continuación segura del supervisor.
+- **HEAD inicial**: `268b635` (local == remoto, sin STALE).
+- **Problema seleccionado**: auditoría de la cadena de inteligencia del resumen de Today (`SummaryEngine` c.65/c.66/c.67/c.69 ↔ `TodayScreen` ↔ `LearningEngine` ↔ `DayPlanner`) reveló que el veredicto del día (`DayLoad`: LIGHT/ON_TRACK/FULL/OVERLOADED) usaba una **ventana de jornada hardcoded 9–18**, mientras que `LearningEngine` ya perfila los horarios reales del usuario y `DayPlanner` ya los usa para agendar. **Plan y veredicto discrepaban**: un usuario nocturno (jornada real 9–23) veía "OVERLOADED" a las 17:00 cuando le quedaban 6 h de capacidad real; uno madrugador (6–14) veía "ON_TRACK" a las 13:00 cuando su día casi se acababa. La tarjeta de hoy **mentía** para cualquier horario no estándar. Área de dirección explícita "inteligencia/contexto"/"mejores resúmenes del día"/"rutinas adaptables". P1 de inteligencia honesta (no era un bug de datos, pero el veredicto era sistemáticamente erróneo para horarios no canónicos).
+- **Prioridad**: P1 (inteligencia/contexto; el veredicto guía la decisión del usuario —"no cabe, pospone X"— y era falso para perfiles no estándar).
+- **Causa raíz**: `SummaryEngine.summarize`/`assessDayLoad` tenían `dayStartMinute=9*60`/`dayEndMinute=18*60` **literales dentro del método**, sin recibir el perfil aprendido. El caller (`TodayScreen.kt:117`) llamaba `summarize(state.tasks, clockNow)` sin perfil, aunque `PlannerScreen` ya computaba `LearningEngine.learn(...)` para `DayPlanner`. Dos fuentes de verdad de la jornada (fija 9–18 vs aprendida) coexistían sin reconciliar.
+- **Solución (mínima, sin nueva pantalla/botón)**:
+  - `SummaryEngine.summarize(..., dayStartMinute: Int = DEFAULT_DAY_START_MINUTE, dayEndMinute: Int = DEFAULT_DAY_END_MINUTE)` con constantes `DEFAULT_DAY_START_MINUTE=540`/`DEFAULT_DAY_END_MINUTE=1080` (9–18), + sobrecarga `summarize(tasks, now, zone, profile: LearningProfile?)` que extrae la ventana o cae a defaults.
+  - `assessDayLoad(...)` recibe `dayStartMinute`/`dayEndMinute` y los usa en vez de las constantes hardcodeadas en `freeMinutes = dayEndMinute - max(nowMinute, dayStartMinute)`.
+  - `TodayScreen.kt`: calcula el perfil exactamente como `PlannerScreen` (`if (preferences.learningEnabled) LearningEngine.learn(state.tasks, clockNow, zone) else null`) y lo pasa a `summarize(state.tasks, clockNow, ZoneId.systemDefault(), profile)`.
+  - Ahora el veredicto y el planificador comparten **fuente única de verdad**: la ventana aprendida. Sin aprendizaje (off o sin datos) → comportamiento idéntico al anterior (no-regresión). Lógica local honesta, sin random/modelo simulado.
+- **Tests**: +4 en `SummaryEngineTest.kt` (`dayLoad_usesLearnedWindow_lateSleeperNotOverloadedAt17` jornada 9–23 a las 17:00 → ON_TRACK (era OVERLOADED con 9–18); `dayLoad_usesLearnedWindow_earlyRiserOverloadedPastTheirEnd` jornada 6–14 a las 13:00 → OVERLOADED (era ON_TRACK con 9–18, mentira); `dayLoad_nullProfileFallsBackToDefaultWindow` null ≡ defaults 9–18; `dayLoad_learnedWindowDoesNotAffectCounts` la ventana solo cambia el veredicto, no los conteos). **572 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 568 c.76 + 4), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión: todos los tests `dayLoad_*` y `deferralSuggestion_*` previos intactos (usan la firma sin perfil → defaults 9–18).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real de la tarjeta en la app (sin Android SDK). El cableado de `TodayScreen` replica el patrón ya verificado de `PlannerScreen` (`LearningEngine.learn` con `preferences.learningEnabled`).
+- **Hallazgos adicionales (descubrimiento continuo)**:
+  - La sugerencia de posposición (`mostDeferrableTask`, c.66/c.67) y el cálculo de "inminente/en-curso" (`TaskRules.isImminentStart`) NO dependen de la ventana de jornada, así que el fix del veredicto no los afecta. OK.
+  - `DayPlanner` ya usa `LearningProfile` (verificado por su existencia y uso en `PlannerScreen`); el resumen ahora se alinea con él. Posible oportunidad futura: que el `DayPlanner` y el resumen compartan UNA instancia de perfil computada una sola vez por render (micro-optimización, P3) — hoy cada uno llama `LearningEngine.learn` por separado; el costo es bajo (percentil sobre ≤28 días de tareas completadas) y no justifica una abstracción nueva todavía.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SummaryEngine.kt`, `app/src/main/java/com/ordia/app/ui/screens/TodayScreen.kt`, `app/src/test/java/com/ordia/app/domain/SummaryEngineTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras commit + push a `origin/openhands/autonomous-ordia`).
+- **Estado**: VERIFIED (JVM). 572 domain tests PASS.
+
+### Siguiente
+- P2 ABIERTO (c.76): `explicitTime` sombrea `rangeStartTime` en rango "de 6 a 8 pm" → dueAt=20:00 (fin) en vez de 18:00 (inicio). Rework de precedencia con cuidado de regresión.
+- "de 12 a 2 de la tarde" duración por horas absolutas resueltas (no raw) — cruces de mediodía.
+- Descubrimiento continuo: captura ultrarrápida, búsqueda universal, rutinas adaptables, detección de compromisos en notas.
+- Micro-optimización (P3, opcional): compartir instancia de `LearningProfile` entre `DayPlanner` y `SummaryEngine` en el mismo render.
+
+---
 ## Ciclo 76 - 2026-08-13 (UTC) - fix(parser): rango "de 6 a 8 de la tarde" propagaba mal el meridiem PM al inicio bare
 
 - **Run/ciclo**: 76 (rama `openhands/autonomous-ordia`). **STALE_BASE detectado y reconciliado**: HEAD inicial local `268b635` (c.74) pero el remoto avanzó a `37a6c2f` (c.75 paralelo: límites mensuales "mes que viene"/"próximo" + "antepasado mañana") durante el run. Reconciliación no destructiva: `git rebase origin/openhands/autonomous-ordia` reaplicó mi commit `46a9b5e` sobre `37a6c2f`. Los cambios de **código** (parser + tests) se auto-mezclaron limpiamente (áreas ortogonales: mi fix toca `rangeMatch`/`rangeStartTime` ~líneas 1005–1080; el c.75 toca `endOfMonthPattern`/`midOfMonthPattern`/`startOfMonthPattern`/`monthBaseForBoundary`/`mananaAsDate`); conflicto solo en `CURRENT_STATE.md` (docs) resuelto conservando ambos runs (renumerado a c.76 para evitar colisión con el c.75 remoto). Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
