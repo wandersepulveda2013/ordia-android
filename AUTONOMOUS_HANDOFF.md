@@ -50,11 +50,14 @@
 ## Trabajo en curso
 - PR #32 abierto: https://github.com/wandersepulveda2013/ordia-android/pull/32 (`autonomous/delete-subtree-concurrency` → `main`).
 - Bloque 1 (eliminación/concurrencia/backup/lint): COMPLETADO y verificado.
-- Bloque 2 (auditoría ampliada): COMPLETADO y verificado:
-  - B8: archivado de tarea padre dejaba subtasks huérfanas + reminders vivos. → CORREGIDO (`archiveSubtreeAndSelf`/`restoreSubtreeAndSelf`).
-  - B9: `ReminderActionReceiver` completaba sin `TaskMutationGate` (carrera lost-update). → CORREGIDO.
-  - B10: importar backup dejaba reminders huérfanos de tareas previas. → CORREGIDO (`cancelAll()` antes de importar).
-- Próximo: auditar `OrdiaWidgetUpdater`, migraciones Room, y `PreferencesRepository`; considerar PR update.
+- Bloque 2 (auditoría ampliada): COMPLETADO y verificado (B8-B10).
+- Bloque 3 (auditoría de módulos restantes + test de caracterización): COMPLETADO:
+  - `PreferencesRepository`: revisado, sin bug (valida rangos, maneja legacy darkMode, usa DataStore).
+  - `QuickCaptureActivity`: revisado, sin bug (crea tareas nuevas, no necesita TaskMutationGate; reminder solo si dueAt).
+  - `OrdiaWidgetUpdater`: revisado, sin bug.
+  - BD/migraciones (v2): revisadas; mis cambios son solo `@Query` → no requieren bump ni migración.
+  - Test de caracterización añadido: `RecurrenceEngineTest.daily_reminderWithoutDue_dropsReminderOnNextOccurrence` (documenta edge case reminder sin dueAt).
+- Próximo: seguir con P5 (tests Room instrumentación — requieren emulador) o auditar más módulos; PR #32 ya contiene todos los fixes (B1-B10) + test nuevo.
 
 ## PR
 - #32 — Fix task deletion: subtree cascade, concurrency, attachment/reminder cleanup
@@ -71,13 +74,16 @@
 - `1981bd7` fix(tasks): archive/restore the whole subtree, not just the root task
 - `8109d4a` fix(reminders): serialize notification-complete under TaskMutationGate
 - `2d50d2b` fix(backup): cancel all existing reminders before restoring a backup
+- `894780c` test(recurrence): characterize reminder drop when recurring task has no due date
+- `b24e550` docs: record block 2 (B8-B10) in AUTONOMOUS_HANDOFF.md
 
 ## Pruebas ejecutadas
 - `:app:compileDebugKotlin` — OK (solo warnings de deprecación preexistentes).
-- `:app:testDebugUnitTest` — OK: 27 tests, 0 fallos (incluye `TaskMutationGateTest`: serialización + concurrencia).
+- `:app:testDebugUnitTest` — OK: **28 tests**, 0 fallos (incluye `TaskMutationGateTest` y nuevo `RecurrenceEngineTest` de caracterización).
 - `:app:lintDebug` — OK (0 errores; 32 warnings preexistentes).
 - `:app:assembleDebug` — BUILD SUCCESSFUL.
 - `:app:assembleRelease` — BUILD SUCCESSFUL.
+- Entorno reconstruido esta sesión: OpenJDK 21 instalado (compatible con jvmTarget=17), Android cmdline-tools + platforms;android-36 + build-tools;36.0.0 + platform-tools. `local.properties` ya apunta a `/opt/android-sdk`.
 
 ## Bugs encontrados
 - B1 (CRÍTICO): subtasks huérfanos al eliminar tarea permanentemente. → CORREGIDO.
