@@ -22,28 +22,35 @@
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-## Último trabajo — Ciclo 32 (parser: "próximos días")
+## Último trabajo — Ciclo 32 (parser: "próximos días" +3d y "antier")
 
-`NaturalTaskParser` ahora parsea **"próximos días"** (con o sin prefijo "en los/el/las") como
-+3 días. Es la forma cotidiana y deliberadamente vaga de "dentro de poco"; antes quedaba con
-`dueAt=null` → la tarea se olvidaba (sin recordatorio, sin aparecer en planificador/What Now).
-La heurística +3d es honesta (ni IA ni azar) y se reutiliza toda la infraestructura de período
-próximo existente: combina con hora explícita ("en los próximos días a las 10" → fecha +3d a
-las 10:00) y se elimina del título sin residuo.
+Dos unidades atómicas de parser natural, ambas P1 (evitar olvidos de fechas):
 
-Causa raíz: el `nextPeriodPattern` (añadido en ciclo 30 para "semana/mes/año que viene" y
-"próximo X") solo cubría períodos nombrados; "próximos días" no contenía semana/mes/año, así
-que no matcheaba y la fecha quedaba vacía. Extensión mínima: una alternativa al final del regex
-`(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b` y rama `else -> 3L` en el cálculo de días.
+1. **"próximos días" (+3d)**: `NaturalTaskParser` ahora parsea **"próximos días"** (con o sin
+   prefijo "en los/el/las") como +3 días. Es la forma cotidiana y deliberadamente vaga de
+   "dentro de poco"; antes quedaba con `dueAt=null` → la tarea se olvidaba (sin recordatorio,
+   sin aparecer en planificador/What Now). La heurística +3d es honesta (ni IA ni azar) y se
+   reutiliza toda la infraestructura de período próximo existente: combina con hora explícita
+   ("en los próximos días a las 10" → fecha +3d a las 10:00) y se elimina del título sin residuo.
+   Causa raíz: el `nextPeriodPattern` (añadido en ciclo 30 para "semana/mes/año que viene" y
+   "próximo X") solo cubría períodos nombrados; "próximos días" no contenía semana/mes/año, así
+   que no matcheaba y la fecha quedaba vacía. Extensión mínima: una alternativa al final del regex
+   `(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b` y rama `else -> 3L` en el cálculo de días.
 
-**STALE_RUN evitado**: al iniciar, el remoto ya estaba en `3540808` (ciclo 31), pero existía un
-commit local no-pushado (`04a21e8`) que duplicaba los features del remoto (años + "que viene" +
-"próximo X") y solo añadía "próximos días". Se descartó el commit duplicado (`reset --soft` al
-remoto + `checkout -- .`) y se reconstruyó SOLO "próximos días" sobre el HEAD remoto limpio,
-sin sobrescribir trabajo válido ni history compartido.
+2. **"antier"**: variante coloquial hispanoamericana de "anteayer" (MX/CA/parts SA). Antes no se
+   parseaba → `dueAt=null` → tarea vencida olvidada. Extensión mínima: `\bantier\b` se añadió a
+   la rama de `anteayer` (misma fecha, -2 días) y a la limpieza de título. Combina con hora
+   explícita ("antier a las 4 de la tarde" → fecha -2d a las 16:00, igual que "ayer a las 4").
+
+**STALE_RUN evitado**: al iniciar el ciclo, el remoto ya estaba en `3540808` (ciclo 31), pero
+existía un commit local no-pushado (`04a21e8`) que duplicaba los features del remoto (años +
+"que viene" + "próximo X") y solo añadía "próximos días". Se descartó el commit duplicado
+(`reset --soft` al remoto + `checkout -- .`) y se reconstruyó SOLO "próximos días" sobre el HEAD
+remoto limpio, sin sobrescribir trabajo válido ni history compartido.
 
 **VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
-**263 tests PASS** (260 base + 3 nuevos), 25 clases. Smoke 25 OK. NO VERIFICADO: gradle/lint/assemble/Android.
+**265 tests PASS** (260 base + 3 "próximos días" + 2 "antier"), 25 clases. Smoke 25 OK.
+NO VERIFICADO: gradle/lint/assemble/Android (sin Android SDK). CI remoto ejecuta `Verificar`.
 
 
 ## Último trabajo — Ciclo 31 (parser: fix "fin de semana que viene")

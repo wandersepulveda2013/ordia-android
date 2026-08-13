@@ -2225,3 +2225,50 @@ deliberadamente vaga de "dentro de poco". Decisión de producto: default honesto
 ### Siguiente
 - Continuar ciclo interminable. Candidatos parser: "antier"; "próximo trimestre".
   P1 adjuntos URI externo si hay sesión dedicada.
+
+## Ciclo 32 (cont.) — NaturalTaskParser: "antier" (variante de "anteayer") — 2026-08-13T13:5Z
+
+### Objetivo
+Resolver el hallazgo pendiente de los ciclos 31/32: "antier" (variante coloquial
+hispanoamericana de "anteayer", MX/CA/parts SA) no se parseaba → `dueAt=null` →
+tarea vencida olvidada. Es la misma fecha que "anteayer" (hace dos días). Mejora
+P1 atómica (evitar olvidos de fechas pasadas), continuación natural del soporte
+de "anteayer"/"ayer" del ciclo 29.
+
+### Sincronización
+- HEAD inicial: `d134f2a` (ciclo 32, remoto, tras push de "próximos días").
+- `git fetch origin openhands/autonomous-ordia`; remoto == HEAD local. Sin divergencia,
+  sin colisión con otra ejecución.
+- Entorno: JVM puro (sin Android SDK).
+
+### Cambio (mínimo, TDD)
+- `NaturalTaskParser.parse`: la rama `anteayer` del `when` de fecha ahora es
+  `Regex("""(?i)\banteayer\b|\bantier\b""").containsMatchIn(working)` → misma fecha
+  (`base.toLocalDate().minusDays(2)`). "antier" cae en la misma rama que "anteayer".
+- Limpieza de título: añadido `\bantier\b` al regex que elimina tokens de día relativo
+  (junto a `anteayer`/`ayer`/`hoy`/`mañana`/`pasado mañana`). No queda residuo en el título.
+- Comentario del patrón actualizado ("antier" = variante coloquial hispanoamericana).
+- Beneficios heredados (sin código nuevo): combina con hora explícita
+  ("antier a las 4 de la tarde" → fecha -2d a las 16:00), igual que "ayer a las 4".
+
+### Tests — VERIFICADO localmente (JVM)
+- TDD red→green: test `antierParsesDueAtTwoDaysAgo` falló antes del fix
+  (title=[Enviar correo antier], dueAt=null → NPE en `result.dueAt!!`); PASS tras fix.
+- Probe (now=2026-07-29): "antier" → due=2026-07-27, título "Enviar correo" (limpio). ✓
+- "antier a las 4 de la tarde" → due=2026-07-27 time=16:00 (combina con hora, no a HOY). ✓
+- Regresiones OK: "anteayer" sigue → -2d; "ayer" → -1d; "próximos días" → +3d (no afectado).
+- `bash tools/run_domain_tests.sh` = **265 tests PASS** (263 + 2 nuevos), 25 clases.
+- `bash tools/run_domain_checks.sh` = smoke 25 assertions OK.
+- NO VERIFICADO: gradle/lint/assemble/Android (sin Android SDK). CI remoto ejecuta `Verificar`.
+
+### Hallazgos para próximas ejecuciones
+- Parser: "próximo trimestre"/"el trimestre que viene" no soportado.
+- P1 OPEN: adjuntos guardan URI externo (BACKLOG) — requiere sesión dedicada.
+
+### Commits
+- `feat(parser): parse 'antier' (variante de 'anteayer')` (código + 2 tests) — pendiente push
+- docs(autonomy): registro ciclo 32 (cont.) — pendiente push
+
+### Siguiente
+- Continuar ciclo interminable. Candidato parser: "próximo trimestre".
+  P1 adjuntos URI externo si hay sesión dedicada.
