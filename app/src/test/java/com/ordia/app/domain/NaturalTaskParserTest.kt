@@ -1431,6 +1431,44 @@ class NaturalTaskParserTest {
         assertEquals(120, result.durationMinutes)
     }
 
+    // --- Propagación de meridiem del extremo final al inicio bare (ciclo 75) ---
+    // BUG: en "de 6 a 8 de la tarde" solo el EXTREMO FINAL lleva meridiem; el inicio
+    // (sin meridiem) no heredaba el contexto de tarde y se agendaba como 06:00 en vez
+    // de 18:00. La duración ya era correcta (120, diff de horas en punto), pero la
+    // fecha límite apuntaba a la mañana → el recordatorio se disparaba 12h antes.
+    @Test fun rangeWithTrailingDeLaTardePropagatesPmToStart() {
+        val result = NaturalTaskParser.parse("Reunión de 6 a 8 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun rangeWithTrailingDeLaNochePropagatesPmToStart() {
+        val result = NaturalTaskParser.parse("Reunión de 3 a 5 de la noche", now, zone)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun rangeWithTrailingDeLaMananaKeepsAmStart() {
+        // "de la mañana" es AM: la propagación no debe sumar 12 (el inicio 9 sigue 09:00).
+        val result = NaturalTaskParser.parse("Reunión de 9 a 11 de la mañana", now, zone)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun rangeWithTrailingDeLaTardeAndStartMinutesPropagatesPm() {
+        // El inicio con minutos pero sin meridiem también hereda el PM del extremo final.
+        val result = NaturalTaskParser.parse("Reunión de 6:30 a 8 de la tarde", now, zone)
+        assertEquals(90, result.durationMinutes)
+        assertEquals(LocalTime.of(18, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun rangeWithTrailingDeLaMadrugadaKeepsAmStart() {
+        val result = NaturalTaskParser.parse("Reunión de 1 a 3 de la madrugada", now, zone)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(1, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // "de" antes de una duración numérica es conector ("Reunión de 30 min") y debe
     // eliminarse junto con la duración, sin dejar residuo.
     @Test fun deConnectorBeforeDurationIsRemoved() {

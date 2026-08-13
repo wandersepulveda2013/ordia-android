@@ -1011,6 +1011,12 @@ object NaturalTaskParser {
             val hasUnit = m.groupValues[7].isNotEmpty()
             val startPm = startMer == "pm" || startMer == "delatarde" || startMer == "delanoche"
             val endPm = endMer == "pm" || endMer == "delatarde" || endMer == "delanoche"
+            // Propagación de meridiem: si SOLO el extremo final lleva un meridiem PM
+            // ("de 6 a 8 de la tarde"), el inicio (sin meridiem) comparte el contexto
+            // de tarde/noche → 18:00, no 06:00. Simétrico a "a las 6 de la tarde"→18:00.
+            // No se propaga en sentido inverso (inicio PM → fin bare) para no aceptar
+            // falsos positivos tipo "de 2pm a 4 entradas".
+            val startPmEffective = startPm || (startMer.isEmpty() && endPm)
             fun resolve(h: Int, mer: String, pm: Boolean): Int? = when {
                 h == 24 && mer.isEmpty() -> 0
                 h !in 0..24 -> null
@@ -1020,7 +1026,7 @@ object NaturalTaskParser {
                 pm && h == 12 -> 12
                 else -> if (h == 12) 0 else h   // AM / de la mañana / madrugada
             }
-            val sAbs = startH?.let { resolve(it, startMer, startPm) }
+            val sAbs = startH?.let { resolve(it, startMer, startPmEffective) }
             val eAbs = endH?.let { resolve(it, endMer, endPm) }
             if (sAbs == null || eAbs == null) return@let null
             val startHr = startH!!
@@ -1059,14 +1065,19 @@ object NaturalTaskParser {
             val h = m.groupValues[1].toIntOrNull() ?: return@let null
             val min = m.groupValues[2].toIntOrNull() ?: 0
             val mer = m.groupValues[3].lowercase().replace(".", "").replace(" ", "")
-            val pm = mer == "pm" || mer == "delatarde" || mer == "delanoche"
+            val endMer = m.groupValues[6].lowercase().replace(".", "").replace(" ", "")
+            val endPm = endMer == "pm" || endMer == "delatarde" || endMer == "delanoche"
+            // Propagación: el inicio bare hereda el PM del extremo final
+            // ("de 6 a 8 de la tarde" → 18:00). Véase rangeMatch.
+            val pm = mer == "pm" || mer == "delatarde" || mer == "delanoche" ||
+                (mer.isEmpty() && endPm)
             val abs = when {
-                h == 24 && mer.isEmpty() -> 0
+                h == 24 && mer.isEmpty() && !pm -> 0
                 h !in 0..24 -> return@let null
-                mer.isEmpty() -> h
                 pm && h < 12 -> h + 12
                 pm && h == 12 && mer == "delanoche" -> 0
                 pm && h == 12 -> 12
+                mer.isEmpty() -> h
                 else -> if (h == 12) 0 else h
             }
             if (abs in 0..23 && min in 0..59) LocalTime.of(abs, min) else null
