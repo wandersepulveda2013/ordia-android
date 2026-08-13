@@ -324,6 +324,9 @@ interface RoutineStepDao {
     @Delete
     suspend fun delete(step: RoutineStepEntity)
 
+    @Query("DELETE FROM routine_steps WHERE routineId = :routineId")
+    suspend fun deleteByRoutine(routineId: Long)
+
     @Query("DELETE FROM routine_steps")
     suspend fun deleteAll()
 }
