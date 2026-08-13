@@ -14,15 +14,54 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 58)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (reconciliación no destructiva sobre c.57 número-escrito + c.56 subtarea-autocomplete + c.55 partOfDay DAILY + c.54 intervalo+días + c.53 What Now + c.52 snooze; aterriza fix de fracción sub-hora "y media"/"y cuarto" + "en la tarde")
+- **Fecha (UTC)**: 2026-08-13 (ciclo 59)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (reconciliación no destructiva sobre c.58 fracción sub-hora/"en la tarde" + c.57 número-escrito + c.56 subtarea-autocomplete + c.55 partOfDay DAILY + c.54 intervalo+días + c.53 What Now + c.52 snooze; aterriza fix de verbo de recordatorio sin cantidad)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests); **DayPlanner conflicto startAt otro día** c.51 (415 tests); **intervalo+días "cada 2 semanas los lunes"/"cada quincena los lunes y viernes"/"cada 3 semanas de lunes a viernes"** c.54 (428 tests); **"cada mañana/tarde/noche/madrugada" + "todas las mañanas/tardes/noches" como recurrencia DIARIA** con hora canónica (c.55, 435 tests); **autocompletar padre al cerrar última subtarea desde notificación** (`ReminderActionReceiver.ACTION_COMPLETE` ↔ `SubtaskRules.shouldAutoCompleteParent`) (c.56); **intervalo con número escrito "cada dos semanas"/"cada tres meses"/"cada quince días"/"cada dos años"** (c.57, 439 tests); **fracción sub-hora "a las 9 y media"/"a las 3 y cuarto" (media→30, cuarto→15) + conector caribeño "en la tarde/noche/mañana"** (c.58, 450 tests) |
+| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests); **DayPlanner conflicto startAt otro día** c.51 (415 tests); **intervalo+días "cada 2 semanas los lunes"/"cada quincena los lunes y viernes"/"cada 3 semanas de lunes a viernes"** c.54 (428 tests); **"cada mañana/tarde/noche/madrugada" + "todas las mañanas/tardes/noches" como recurrencia DIARIA** con hora canónica (c.55, 435 tests); **autocompletar padre al cerrar última subtarea desde notificación** (`ReminderActionReceiver.ACTION_COMPLETE` ↔ `SubtaskRules.shouldAutoCompleteParent`) (c.56); **intervalo con número escrito "cada dos semanas"/"cada tres meses"/"cada quince días"/"cada dos años"** (c.57, 439 tests); **fracción sub-hora "a las 9 y media"/"a las 3 y cuarto" (media→30, cuarto→15) + conector caribeño "en la tarde/noche/mañana"** (c.58, 450 tests); **verbo de recordatorio sin cantidad "recuérdame/avísame/no dejes que olvide" con fecha límite → recordatorio 30 min antes + verbo limpiado del título** (c.59, 455 tests) |
+
+## Último trabajo — Ciclo 59: Parser — verbo de recordatorio sin cantidad ("recuérdame ... mañana a las 3")
+
+Fix P1 de captura/recordatorios (`NaturalTaskParser`). La forma cotidiana **"recuérdame llamar a
+mamá mañana a las 3 de la tarde"** expresaba una intención de recordatorio explícita PERO sin cantidad
+("2 horas antes"). El parser solo programaba `reminderOffsetMinutes` cuando un `reminderPattern`
+extraía una cantidad; sin ella `reminderOffsetMinutes=null` → **ningún recordatorio se agendaba**
+(`reminderAt = dueAt - offset` = null aunque hubiera `dueAt`) **Y** el verbo "recuérdame" quedaba como
+residuo en el título. Resultado: la cita se olvidaba justo cuando el usuario había pedido expresamente
+que se le avisara. El bug es de captura + recordatorios (P1: evita olvidos, persistencia/intención
+perdida). Simétrico al `reminderSignal` de `UniversalCaptureEngine` (que enruta "recuérdame" como
+target REMINDER), pero el parser no recogía la intención cuando la frase también contenía una fecha
+(ruta TASK con `dueAt`).
+
+**Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**: nuevo `bareReminderVerbPattern`
+(`recuérdame|avísame|notifícame|recordatorio|no dejes que olvide`) detectado **tras** extraer los
+recordatorios con cantidad (así "recuérdame 2 horas antes" usa el offset explícito y NO el respaldo).
+Si el verbo aparece pero no se extrajo offset Y hay `dueAt`, se asume **30 min antes** (convención del
+projeto, mismo valor que `CommitmentEngine.DEFAULT_REMINDER_OFFSET_MS` y `EditorDialogs`). El verbo se
+elimina del título **tras** consumir fechas/horas (para no romper el parseo de "recuérdame mañana a
+las 3", donde "mañana" es fecha). Sin `dueAt` no se falsifica el offset (no se puede programar
+`reminderAt`). Heurística honesta, riesgo de falso positivo bajo (el verbo es señal inequívoca de
+intención de aviso). Compone bien con el c.58 (fracción sub-hora): "recuérdame llamar mañana a las 3
+y media de la tarde" → due=mañana 15:30, offset=30min, verbo limpiado.
+
+**Tests**: +5 en `NaturalTaskParserTest.kt` (`verboRecordatorioSinCantidadConDueAplicaOffset30`,
+`verboAvisameSinCantidadConDueAplicaOffset30`, `verboNoDejesQueOlvideConDueAplicaOffset30`,
+`verboRecordatorioSinCantidadSinDueNoFalsificaOffset`, `verboRecordatorioConCantidadExplicitaUsaOffsetExplicito`).
+**455 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 450 c.58 + 5 nuevos), smoke 25 OK
+(`tools/run_domain_checks.sh`). Sin regresión (offsets explícitos y fracciones intactos). **NO VERIFICADO**:
+gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del parser en la app.
+
+**Reconciliación con run paralelo**: el HEAD inicial local (`053e7ff`, c.57) estaba actualizado, pero
+durante el trabajo dos commits aterrizaron en remoto (c.58 fracción sub-hora de otro run + un commit
+de CI). Al hacer stash → pull --ff-only → stash pop, los cambios de código (parser + tests) se
+auto-mergearon limpiamente (áreas ortogonales: fracción sub-hora/`timePatterns` vs. verbo de
+recordatorio/`bareReminderVerbPattern`); solo `CURRENT_STATE.md` quedó en conflicto (cabecera de
+estado) y se resolvió conservando ambos trabajos, renumerando este fix de c.58 → c.59 (el otro run
+tomó c.58). Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
 
 ## Último trabajo — Ciclo 58: parser reconoce "y media"/"y cuarto" y "en la tarde" (captura natural en español)
 
@@ -65,15 +104,8 @@ que las regresiones no se rompen (horas en punto, "a las N horas", "por la/de la
 (`tools/run_domain_tests.sh`, 26 clases — 439 base c.57 + 11 nuevos), smoke 25 OK
 (`tools/run_domain_checks.sh`).
 
-**Reconciliación con runs paralelos**: el HEAD inicial local (`5e6cea8`, c.52) estaba obsoleto: 4
-ciclos (53–57) aterrizaron en remoto mientras se trabajaba. Se hizo `git stash` → `merge --ff-only`
-al remoto `053e7ff` (c.57) → `stash pop`: los cambios de código (parser + tests) se auto-mergearon
-limpiamente sobre la base nueva; los docs en conflicto se restauraron desde HEAD remoto y se
-reescribieron como c.58. Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
-
 **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, captura real en el
 dispositivo (parser probado solo en JVM pura con stubs).
-
 
 ## Último trabajo — Ciclo 57: Parser — intervalo de recurrencia con número escrito
 

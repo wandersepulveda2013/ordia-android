@@ -211,6 +211,19 @@ object NaturalTaskParser {
         Regex("""(?i)\b(?:recuérdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
         Regex("""(?i)\b(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\s+antes\b""")
     )
+    /**
+     * Verbo de recordatorio sin cantidad explícita: "recuérdame llamar a mamá mañana",
+     * "avísame pagar la luz el viernes", "no dejes que olvide...". El usuario pide un
+     * recordatorio pero no dice cuánto antes; antes el verbo quedaba como residuo en el
+     * título y NO se programaba ningún recordatorio (la cita se olvidaba aunque el
+     * usuario lo hubiera pedido expresamente). Aquí se detecta la intención para:
+     * (a) limpiar el verbo del título y (b) aplicar un offset de respaldo (30 min)
+     * cuando hay fecha límite — sin dueAt no se puede programar reminderAt, así que no
+     * se falsifica nada. Simétrico con `UniversalCaptureEngine.reminderSignal`.
+     */
+    private val bareReminderVerbPattern =
+        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordatorio|no\s+dejes\s+que\s+olvide)\b""")
+    private const val BARE_REMINDER_DEFAULT_OFFSET_MINUTES = 30
     private val durationPatterns = listOf(
         Regex("""(?i)\((\d{1,3})\s*(minutos?|min|horas?|hora)\)"""),
         Regex("""(?i)\b(?:durante|por)\s+(\d{1,3})\s*(minutos?|min|horas?|hora)\b"""),
@@ -395,6 +408,12 @@ object NaturalTaskParser {
         reminderPatterns.forEach { pattern ->
             pattern.findAll(working).forEach { working = working.replace(it.value, " ") }
         }
+
+        // ¿El usuario pidió un recordatorio pero sin cantidad explícita? Sirve para
+        // (a) limpiar el verbo del título y (b) aplicar un offset de respaldo cuando
+        // haya fecha límite. Se detecta tras extraer los recordatorios con cantidad,
+        // así "recuérdame 2 horas antes" (offset explícito) NO cae aquí.
+        val hasBareReminderVerb = bareReminderVerbPattern.containsMatchIn(working)
 
         // Fecha relativa "en/dentro de N minutos/horas/días" (N = dígitos o palabra).
         val relativeMatch = relativePattern.find(working)
@@ -933,6 +952,11 @@ object NaturalTaskParser {
             // "el 15" suelto ya consumido como fecha; se borra el residuo del título.
             .let { value -> dayOfMonthPattern.replace(value, " ") }
             .replace(Regex("""(?i)\bantes\s+del?\b|\bpara\s+el\b|\bpara\s+mañana\b|\bhasta\s+el\b"""), " ")
+            // El verbo de recordatorio sin cantidad ("recuérdame", "avísame",
+            // "no dejes que olvide") expresa intención de aviso, no contenido; se
+            // elimina del título. Se hace aquí (tras consumir fechas/horas) para no
+            // alterar el parseo de "recuérdame mañana a las 3" (donde "mañana" es fecha).
+            .let { value -> if (hasBareReminderVerb) bareReminderVerbPattern.replace(value, " ") else value }
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
             .replace(Regex("""\s+"""), " ")
             .trim(' ', ',', '.', '-')
@@ -951,7 +975,11 @@ object NaturalTaskParser {
             dueAt = dueAt,
             priority = priority,
             durationMinutes = durationMinutes,
-            reminderOffsetMinutes = reminderOffsetMinutes,
+            // Si el usuario pidió un recordatorio ("recuérdame") sin cantidad y hay fecha
+            // límite, se asume 30 min antes (convención del proyecto, ver CommitmentEngine).
+            // Sin dueAt no se programa reminderAt, así que no se falsifica el offset.
+            reminderOffsetMinutes = reminderOffsetMinutes
+                ?: if (hasBareReminderVerb && dueAt != null) BARE_REMINDER_DEFAULT_OFFSET_MINUTES else null,
             recurrence = recurrence.frequency,
             recurrenceInterval = recurrence.interval,
             recurrenceDays = recurrence.days.joinToString(","),

@@ -509,6 +509,46 @@ class NaturalTaskParserTest {
         assertNull(result.reminderOffsetMinutes)
     }
 
+    // --- Verbo de recordatorio sin cantidad explícita (ciclo 58) ---
+    // "recuérdame llamar a mamá mañana a las 3": el usuario pide un recordatorio pero
+    // no dice cuánto antes. Antes el verbo quedaba como residuo en el título Y no se
+    // programaba ningún recordatorio (la cita se olvidaba). Ahora se asume 30 min antes
+    // (convención del proyecto) y se elimina el verbo del título.
+    @Test fun verboRecordatorioSinCantidadConDueAplicaOffset30() {
+        val result = NaturalTaskParser.parse("recuérdame llamar a mamá mañana a las 3 de la tarde", now, zone)
+        assertEquals("llamar a mamá", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun verboAvisameSinCantidadConDueAplicaOffset30() {
+        val result = NaturalTaskParser.parse("avísame pagar la luz el viernes", now, zone)
+        assertEquals("pagar la luz", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun verboNoDejesQueOlvideConDueAplicaOffset30() {
+        val result = NaturalTaskParser.parse("no dejes que olvide llamar al doctor mañana", now, zone)
+        assertEquals("llamar al doctor", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    // Sin fecha límite no se puede programar reminderAt (dueAt=null → reminderAt=null):
+    // no se falsifica el offset; el verbo igualmente se limpia del título.
+    @Test fun verboRecordatorioSinCantidadSinDueNoFalsificaOffset() {
+        val result = NaturalTaskParser.parse("recuérdame llamar a mamá", now, zone)
+        assertEquals("llamar a mamá", result.title)
+        assertNull(result.reminderOffsetMinutes)
+        assertNull(result.dueAt)
+    }
+
+    // El offset explícito tiene prioridad: "recuérdame 2 horas antes" NO cae en el
+    // respaldo de 30 min, usa los 120 min explícitos.
+    @Test fun verboRecordatorioConCantidadExplicitaUsaOffsetExplicito() {
+        val result = NaturalTaskParser.parse("Reunión recuérdame 2 horas antes", now, zone)
+        assertEquals(120, result.reminderOffsetMinutes)
+    }
+
     @Test fun parsesDurationPhrase() {
         val result = NaturalTaskParser.parse("Preparar presentación durante 45 minutos", now, zone)
         assertEquals("Preparar presentación", result.title)
