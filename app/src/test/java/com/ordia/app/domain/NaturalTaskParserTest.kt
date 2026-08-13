@@ -1673,6 +1673,49 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- Orden inverso: "el mes que viene el N" / "el mes que viene el día N" ---
+    // Misma semántica que la forma directa pero con el período ANTES del día. Antes
+    // nextPeriodPattern robaba "el mes que viene" como +30d (2026-08-28) ignorando el
+    // día explícito, y dejaba "el N" como residuo en el título. Ahora se ancla al día N.
+
+    @Test fun elMesQueVieneElNResuelveDiaNDelMesSiguiente() {
+        val result = NaturalTaskParser.parse("Llamar al banco el mes que viene el 15", now, zone)
+        assertEquals("Llamar al banco", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elMesQueVieneElDiaNResuelveDiaNDelMesSiguiente() {
+        val result = NaturalTaskParser.parse("Pago el mes que viene el día 5", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elProximoMesElNResuelveDiaNDelMesSiguiente() {
+        val result = NaturalTaskParser.parse("Cobro el próximo mes el 10", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 10), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elMesProximoElNResuelveDiaNDelMesSiguiente() {
+        val result = NaturalTaskParser.parse("Vence el mes próximo el 20", now, zone)
+        assertEquals("Vence", result.title)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elMesQueVieneElNRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Pago el mes que viene el 5 a las 9", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun elMesQueVieneElNClampDia31CuandoMesTiene30() {
+        // Desde 29/07 el mes que viene es agosto (31 días): el 31 existe y se respeta
+        // (el clamp solo actúa si el día no existe en el mes destino).
+        val result = NaturalTaskParser.parse("Vence el mes que viene el 31", now, zone)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "ayer"/"anteayer": fechas pasadas explícitas ---
     // Antes no se parseaban → dueAt=null, o combinadas con hora resolvían a HOY (fecha errónea).
     // Se mantienen en el pasado (honesto: tarea vencida, visible en What Now).

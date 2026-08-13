@@ -3489,3 +3489,34 @@ a un permiso persistente frágil y silencioso ante fallos.
 - `RecurrenceEngine.nextOccurrence` auditoría: fin de mes mensual → 31/feb, año bisiesto.
 - `SummaryService`/`SummaryEngine`: resumen del día más accionable; `PlanEngine` replanificación; búsqueda universal.
 - Auditoría progresiva: rutinas adaptables, detección de compromisos en notas, captura ultrarrápida.
+
+---
+
+## Ciclo 71 — 2026-08-13
+
+- **Run/ciclo**: 71 (rama `openhands/autonomous-ordia`). Continúa el "Siguiente" del c.69 (combinaciones periodo+día en el parser natural). Originalmente numerado c.70, pero un run paralelo legítimo reclamó c.70 (P0 crash `parseMonthNameDate` + P1 "del 2027"). Este run se renumera a c.71; ambos trabajos son ortogonales (c.70 toca `parseMonthNameDate`/`monthNamePattern`; este toca `nextMonthDayReversePattern`/`effectiveRelativeDueAt`) y se conservan.
+- **STALE_BASE detectado y reconciliado (no destructivo)**: HEAD inicial local era `9b801a8` (c.69); al hacer push, `origin/openhands/autonomous-ordia` había avanzado a `64c137a` (c.70 del run paralelo: `59c0cb6` fix P0/P1 + `64c137a` docs). Resolución: `git fetch origin openhands/autonomous-ordia` → `git rebase origin/openhands/autonomous-ordia` (rebasa mi único commit `09b1567` sobre el remoto, sin sobrescribir trabajo válido). Los cambios de **código** se auto-mergearon limpiamente (áreas ortogonales); conflictos SOLO en `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md` (ambos runs editaron las mismas cabeceras/tablas), resueltos a mano conservando AMBOS runs. Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
+- **HEAD inicial**: `9b801a8` (c.69).
+- **Problema seleccionado**: el c.68 (commit `f31388a`) corrigió la forma DIRECTA "el N del mes que viene" (día ANTES del periodo). Pero la forma INVERSA igualmente cotidiana —"el mes que viene el 5" / "el mes que viene el día 5" / "el próximo mes el 10" / "el mes próximo el 20"— seguía rota: `nextPeriodPattern` robaba "el mes que viene" como +30d genérico e **ignoraba el día explícito**, produciendo fecha errónea (p. ej. 12/09 en vez del 05/09) y, en la variante "el día N", dejando "el día 5" como residuo en el título. Para un vencimiento mensual (tarjeta, alquiler, cobro) eso significa un recordatorio que se dispara **una semana tarde** — compromiso olvidado. Área P1 (recordatorios/fechado correcto).
+- **Prioridad**: P1 (persistencia/fechado/recordatorios; causa vencimientos mal fechados = compromisos olvidados).
+- **Causa raíz**: `nextMonthDayPattern` (c.68) solo casaba `el N del mes que viene` (día + "del" + periodo). No existía un patrón para el orden inverso (periodo + día), de modo que `nextPeriodPattern` procesaba primero "el mes que viene" y sombreaba la fecha específica del día en `effectiveRelativeDueAt` (la cadena da prioridad al periodo sobre `effectiveDate`).
+- **Solución (mínima, simétrica al c.68 — "menos interfaz, más potencia")**:
+  - Nuevo `nextMonthDayReversePattern` regex: `\b(?:el\s+)?(?:mes\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\s+el\s+(?:d[ií]a\s+)?(\d{1,2})\b` — captura periodo + "el" + día (con o sin "día"), en el orden inverso. Reutiliza los mismos cualificadores de periodo que `nextMonthDayPattern` y `nextPeriodPattern`.
+  - Resolución **idéntica** a `nextMonthDayDueAt` (c.68): día N de `plusMonths(1)`, clamp al último día válido del mes destino (p. ej. "el 31" → 30 de septiembre). Sin nueva lógica de fechas.
+  - Se procesa **ANTES** que `nextPeriodPattern` (junto a `nextMonthDayMatch`) para consumir la frase completa (periodo+día) en un solo match y evitar que `nextPeriodPattern` la robe como +30d.
+  - Integrado en la cadena `effectiveRelativeDueAt` (entre `nextMonthDayDueAt` y `nextPeriodDueAt`) y en `relativeIsDays` (combinable con hora explícita: "el mes que viene el 5 a las 10" → 05/09 10:00).
+  - No-regresión: el patrón **exige** un día tras el periodo (`\s+el\s+(?:d[ií]a\s+)?(\d{1,2})`), así "el mes que viene" sin día sigue siendo +30d (test `elMesQueVieneSinDiaSigueSiendoMas30Dias` intacto).
+- **Tests**: +6 en `NaturalTaskParserTest.kt`: `elMesQueVieneElNResuelveDiaNDelMesSiguiente` (15→15/08), `elMesQueVieneElDiaNResuelveDiaNDelMesSiguiente` (5→05/08), `elProximoMesElNResuelveDiaNDelMesSiguiente` (10→10/08), `elMesProximoElNResuelveDiaNDelMesSiguiente` (20→20/08), `elMesQueVieneElNRespetaHoraExplicita` (5→05/08 09:00), `elMesQueVieneElNClampDia31CuandoMesTiene30` (31→31/08). **534 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 528 c.70 + 6 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión (528 previos intactos tras rebase sobre c.70).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). La combinación **semana+weekday** ("la semana que viene el lunes/viernes") sigue ABIERTA (ver hallazgo): necesita lógica distinta ("lunes de la semana que viene" ≠ `nextWeekday` para días ya pasados de esta semana) y se difiere por riesgo.
+- **Hallazgos adicionales (descubrimiento continuo)**:
+  - **Semana+weekday (ABIERTO)**: "la semana que viene el lunes" → +7d (20/08) en vez del lunes de la semana que viene (17/08); "la semana que viene el viernes" → +7d pero `nextWeekday` daría mañana (14/08). No basta con reusar `nextWeekday`: se necesita "start-of-next-week + weekday objetivo" (lun→dom). Más complejo y riesgoso; registrado en BACKLOG para un ciclo dedicado.
+  - Caso sin palabra-tarea ("el mes que viene el 5" a secas): el `dueAt` ahora es correcto (05/09) pero el título conserva la frase completa — comportamiento preexistente del guard de título-vacío (no regresión; una tarea sin título es irreal). No se persigue.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (ver commit tras push).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+
+### Siguiente
+- Semana+weekday: "la semana que viene el lunes/viernes" → lunes/viernes de la semana próxima (helper start-of-next-week + weekday; ciclo dedicado).
+- `RecurrenceEngine.nextOccurrence` auditoría: fin de mes mensual → 31/feb, año bisiesto.
+- `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
+- Descubrimiento continuo: búsqueda universal; rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; onboarding.

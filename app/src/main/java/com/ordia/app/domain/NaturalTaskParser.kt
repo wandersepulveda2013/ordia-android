@@ -120,6 +120,18 @@ object NaturalTaskParser {
         """(?i)\bel\s+(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b"""
     )
     /**
+     * Orden inverso del anterior: "el mes que viene el 5" / "el mes que viene el
+     * día 5" / "el próximo mes el 10" / "el mes próximo el 20". Misma semántica
+     * (día N del mes siguiente) pero con el período ANTES del día — forma tan
+     * cotidiana como la directa. Sin este patrón, nextPeriodPattern robaba
+     * "el mes que viene" como +30d genérico (fecha errónea: p. ej. 12/09 en vez
+     * del 05/09) y el día quedaba como residuo en el título o se sombreaba. Se
+     * procesa ANTES que nextPeriodPattern para consumir la frase completa.
+     */
+    private val nextMonthDayReversePattern = Regex(
+        """(?i)\b(?:el\s+)?(?:mes\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\s+el\s+(?:d[ií]a\s+)?(\d{1,2})\b"""
+    )
+    /**
      * "fin de mes" / "a finales de mes" / "fin del mes" → último día del mes actual
      * (o del siguiente si hoy ya es el último día). "mediados de mes" /
      * "a mediados de mes" → día 15 del mes actual (o del siguiente si hoy ≥ 15).
@@ -636,6 +648,21 @@ object NaturalTaskParser {
         }
         nextMonthDayMatch?.let { working = working.replace(it.value, " ") }
 
+        // Orden inverso: "el mes que viene el 5" / "el mes que viene el día 5".
+        // Misma resolución que nextMonthDayDueAt (día N del mes siguiente, clamp al
+        // último día válido). Se procesa ANTES que nextPeriodPattern para consumir
+        // período+día en una sola frase y evitar que ésta la robe como +30d.
+        val nextMonthDayReverseMatch = nextMonthDayReversePattern.find(working)
+        val nextMonthDayReverseDueAt = nextMonthDayReverseMatch?.let { m ->
+            val day = m.groupValues[1].toIntOrNull()?.takeIf { it in 1..31 } ?: return@let null
+            val today = base.toLocalDate()
+            val nextMonth = today.plusMonths(1)
+            val dim = nextMonth.lengthOfMonth()
+            val safeDay = minOf(day, dim)
+            DateRules.toEpochMillis(nextMonth.withDayOfMonth(safeDay), LocalTime.of(9, 0), zone)
+        }
+        nextMonthDayReverseMatch?.let { working = working.replace(it.value, " ") }
+
         // Período próximo ("la semana que viene", "el mes que viene", "el año que
         // viene", "próximo mes", "la próxima semana"): +1 período (semana/mes/año).
         // Se trata como días relativos (como relativePattern) para combinarse con hora
@@ -723,11 +750,11 @@ object NaturalTaskParser {
         val effectiveRelativeDueAt =
             agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: monthBoundaryDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
-            nextMonthDayDueAt ?: nextPeriodDueAt
+            nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?: nextPeriodDueAt
         val relativeIsDays = (agoMatch != null || lastPeriodMatch != null ||
             relativeMatch != null || monthBoundaryDueAt != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
-            quincenaMatch != null || nextMonthDayMatch != null || nextPeriodMatch != null) &&
+            quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null || nextPeriodMatch != null) &&
             (relativeMatch?.let { m ->
                 val unit = m.groupValues[2].lowercase()
                 !unit.startsWith("min") && !unit.startsWith("hora")
