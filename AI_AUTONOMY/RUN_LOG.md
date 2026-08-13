@@ -2867,7 +2867,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: +2 (`nextBestTask_prefersTaskHappeningNowOverUrgent`, `nextBestTask_prefersDueTodayOverUrgentDueTomorrow`). **386 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases (384 base remota + 2 nuevos). Smoke 25 OK (`tools/run_domain_checks.sh`).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del widget (sin Android SDK).
 - **Archivos modificados**: `TaskRules.kt`, `TaskRulesTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: `e2ab858` (rebasado sobre `e0850e6`; push a `origin/openhands/autonomous-ordia` pendiente).
+- **HEAD final**: `2ef4bfa` (rebasado sobre `fc1279b` del ciclo 46 concurrente: parser "sabados y domingos"; push OK a `origin/openhands/autonomous-ordia`: `fc1279b..2ef4bfa`). Re-test tras rebase: 390 domain tests PASS (388 base + 2 nuevos), smoke 25 OK.
 
 ### Siguiente
 - Descubrimiento continuo: auditar `GuardianCoach`, `SummaryService`, `PlanEngine`, deteccion de vencidas importantes.
