@@ -251,7 +251,11 @@ gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - Ciclos previos del 32: “próximos días” (+3d), “antier” (-2d), “próximo trimestre” (+90d),
   “fin de mes”/“mediados de mes”, verificados.
 - Continuar ciclo interminable. Candidatos parser: ~~"esta semana" (vs "la semana que viene")~~
-  HECHO ciclo 34; "próximo bimestre/semestre" (evaluar frecuencia), "próxima quincena" (+15d),
+  HECHO ciclo 34; "próximo bimestre/semestre" (evaluar frecuencia), ~~"próxima quincena" (+15d)~~
+  HECHO ciclo 42 (370 tests), `quincenaPattern`: "primera/segunda/1ra/2da quincena" → día 15/fin
+  de mes (con rollover a mes próximo si ya pasó); "la quincena" sin cualificar → próximo hito;
+  hora explícita respetada. Simétrico a `finDeMes`/`mediadosDeMes`. "próxima quincena" sigue
+  como +15d (procesado después de `nextPeriodMatch`), "en N quincenas" como relativo.
   ~~"principios de semana" (lunes)~~ HECHO ciclo 34 cont. (294 tests). "principios de mes" (día 1) ya hecho ciclo 33.
   ~~"mediados de semana" (miércoles)~~ HECHO ciclo 36 (312 tests). ~~"a finales de semana"~~ HECHO
   ciclo 37 (316 tests): resuelve a sábado (igual que "fin de semana"), forma plural análoga a

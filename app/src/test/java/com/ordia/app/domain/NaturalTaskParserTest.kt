@@ -1502,6 +1502,102 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "la quincena" / "primera quincena" / "segunda quincena": hito financiero ---
+    // La quincena es el hito de cobro/nómina/pago: dos por mes, el día 15 (primera) y el
+    // fin de mes (segunda). Antes "cobro de la quincena" caía a dueAt=null → vencimiento
+    // olvidado (sin recordatorio ni visibilidad), y "pago de la quincena a las 18" se
+    // fechaba en HOY 18:00 (día erróneo). Simétrico a "fin de mes"/"mediados de mes".
+    // now = 2026-07-29 (≥ 15): la quincena sin cualificar → fin de mes.
+
+    @Test fun laQuincenaSinCualificarResuelveProximoHitoDia15SiAntes() {
+        // 2026-08-13 < 15 → "la quincena" resuelve al día 15 (próximo hito).
+        val antesNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 13), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Cobro de la quincena", antesNow, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun laQuincenaSinCualificarResuelveFinDeMesSiPosteriorAl15() {
+        // hoy = 29/7 ≥ 15 → "la quincena" resuelve a fin de mes (próximo hito).
+        val result = NaturalTaskParser.parse("Cobro la quincena", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun laQuincenaSinCualificarRuedaAl15ProximoMesSiHoyEsUltimoDia() {
+        // 2026-08-31 = último día de agosto. La quincena de fin de mes cae HOY, así que
+        // el próximo hito es el 15/9 (consistente con "fin de mes" que rueda al mes próximo).
+        val ultNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 31), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Cobro de la quincena", ultNow, zone)
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun laQuincenaRespetaHoraExplicita() {
+        // 2026-08-13 < 15 → día 15; la hora explícita se aplica sobre la fecha del hito.
+        val antesNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 13), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Pago de la quincena a las 18", antesNow, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun primeraQuincenaResuelveDia15() {
+        // 2026-08-13 < 15 → primera quincena = 15/8 (mes actual).
+        val antesNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 13), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Nómina de la primera quincena", antesNow, zone)
+        assertEquals("Nómina", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun primeraQuincenaRuedaAProximoMesSiHoyPasadoEl15() {
+        // hoy = 29/7 ≥ 15 → primera quincena rueda al 15 del mes siguiente.
+        val result = NaturalTaskParser.parse("Cobro de la primera quincena", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun segundaQuincenaResuelveFinDeMes() {
+        // hoy = 29/7 < 31 → segunda quincena = fin de mes (31/7).
+        val result = NaturalTaskParser.parse("Pago de la segunda quincena", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun segundaQuincenaRuedaAProximoMesSiHoyEsUltimoDia() {
+        // 2026-08-31 = último día de agosto → segunda quincena rueda al fin de septiembre.
+        val ultNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 31), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Cobro de la segunda quincena", ultNow, zone)
+        assertEquals(LocalDate.of(2026, 9, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun primeraQuincenaAbreviada1ra() {
+        val antesNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 13), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Cobro de la 1ra quincena", antesNow, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun segundaQuincenaAbreviada2da() {
+        val result = NaturalTaskParser.parse("Pago de la 2da quincena", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximaQuincenaSigueResolviendoseComoPeriodoProximo() {
+        // "próxima quincena" la resuelve nextPeriodPattern (+15d), no el hito de quincena.
+        // Se asegura de que el nuevo patrón NO sombree ni rompa el comportamiento existente.
+        // hoy = 2026-07-29 12:00 + 15d = 2026-08-13.
+        val result = NaturalTaskParser.parse("Cobro próxima quincena", now, zone)
+        assertEquals(LocalDate.of(2026, 8, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun quincenaNoInterfiereConEnNQuincenasRelativo() {
+        // "en 2 quincenas" lo resuelve relativePattern (+2×15d = +30d), no el hito.
+        // hoy = 2026-07-29 + 30d = 2026-08-28.
+        val result = NaturalTaskParser.parse("Reunión en 2 quincenas", now, zone)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "fines de semana" (plural) como recurrencia WEEKLY sábado+domingo ---
     // "cada fines de semana" / "los findes" expresa una tarea que se repite sábado Y
     // domingo. Antes "fines de semana" no coincidía con el patrón singular "fin de

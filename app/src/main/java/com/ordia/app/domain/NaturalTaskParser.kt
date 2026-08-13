@@ -119,6 +119,20 @@ object NaturalTaskParser {
     private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)mes\b""")
     private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?principios?\s+(?:de\s+|del\s+)mes\b""")
     /**
+     * "la quincena" / "de la quincena" / "primera quincena" / "segunda quincena":
+     * hito financiero mensual (cobro, nómina, pago). La "primera quincena" es el día
+     * 15; la "segunda quincena" el fin de mes. Sin cualificar, resuelve al próximo
+     * hito (día 15 o fin de mes). NO casa "próxima quincena"/"quincena que viene":
+     * esas las resuelve nextPeriodPattern (+15d) y se procesan antes, dejándolas
+     * fuera de `working` antes de que este patrón corra. El código descarta además
+     * los matches que formen parte de recurrencias ("cada quincena",
+     * "quincenalmente", "todas las quincenas") para no robar la palabra a
+     * parseRecurrence (que las mapea a WEEKLY x2); sin esa guarda la recurrencia
+     * caería a NONE (regresión del otro run).
+     */
+    private val quincenaPattern = Regex("""(?i)\b(?:de\s+la\s+|de\s+|la\s+)?(primera|1ra|1\.?a|segunda|2da|2\.?a)?\s*quincena\b""")
+    private val quincenaRecurrencePattern = Regex("""(?i)\b(?:cada\s+quincena|quincenal(?:mente)?|todas\s+las\s+quincenas)\b""")
+    /**
      * "esta semana" / "esta semana que viene": plazo blando de "antes de que acabe la
      * semana" (plazos cotidianos de unos días, sin un día concreto). Antes quedaba sin
      * fecha (la tarea se olvidaba) o, con hora explícita, se fechaba en HOY por error
@@ -533,20 +547,72 @@ object NaturalTaskParser {
         }
         nextPeriodMatch?.let { working = working.replace(it.value, " ") }
 
+        // "quincena": hito financiero/laboreal en español (cobro/nómina/pago). La
+        // quincena son dos hitos mensuales: el día 15 (primera quincena) y el fin de
+        // mes (segunda quincena). Se procesa DESPUÉS de nextPeriodMatch para que
+        // "próxima quincena"/"quincena que viene" (+15d, ya resuelto) no se afecten y
+        // para que la subcadena "quincena" no active por error "mes que viene".
+        //   - "primera quincena" → día 15 (este mes, o el próximo si hoy ≥ 15).
+        //   - "segunda quincena" → fin de mes (este mes, o el próximo si hoy es el
+        //     último día). Coincide con "fin de mes", pero es un sinónimo cotidiano.
+        //   - "la quincena" / "de la quincena" (sin cualificar) → el próximo hito:
+        //     si hoy < 15 → día 15; si hoy ≥ 15 → fin de mes.
+        // Se trata como días relativos (epoch a medianoche) para combinarse con hora
+        // explícita ("pago de la quincena a las 18"). Antes estas tareas caían a
+        // dueAt=null → vencimiento olvidado (sin recordatorio ni visibilidad).
+        val quincenaMatch = quincenaPattern.find(working)?.let { m ->
+            // Descarta el match si es parte de una forma de recurrencia
+            // ("cada quincena", "quincenalmente", "todas las quincenas"): esas las
+            // resuelve parseRecurrence como WEEKLY x2 y no deben ser consumidas aquí.
+            if (quincenaRecurrencePattern.containsMatchIn(working)) null else m
+        }
+        val quincenaDueAt = quincenaMatch?.let { m ->
+            val today = base.toLocalDate()
+            val which = m.groupValues[1].lowercase()
+            val target = when {
+                which.startsWith("primera") || which.startsWith("1") -> {
+                    val fifteenthThis = today.withDayOfMonth(15)
+                    if (today.isBefore(fifteenthThis)) fifteenthThis
+                    else fifteenthThis.plusMonths(1)
+                }
+                which.startsWith("segunda") || which.startsWith("2") -> {
+                    val lastDayThis = today.withDayOfMonth(today.lengthOfMonth())
+                    if (today.isBefore(lastDayThis)) lastDayThis
+                    else lastDayThis.plusMonths(1).withDayOfMonth(
+                        lastDayThis.plusMonths(1).lengthOfMonth())
+                }
+                else -> {
+                    // Próximo hito: si hoy < 15 → día 15; si hoy ≥ 15 → fin de mes.
+                    // Si hoy es ya el último día (la quincena de fin de mes cae HOY), el
+                    // próximo hito es el 15 del mes siguiente (consistente con "fin de
+                    // mes", que rueda al mes próximo cuando hoy es el último día).
+                    val fifteenthThis = today.withDayOfMonth(15)
+                    if (today.isBefore(fifteenthThis)) fifteenthThis
+                    else {
+                        val lastDayThis = today.withDayOfMonth(today.lengthOfMonth())
+                        if (today.isBefore(lastDayThis)) lastDayThis
+                        else fifteenthThis.plusMonths(1)
+                    }
+                }
+            }
+            DateRules.toEpochMillis(target, LocalTime.of(9, 0), zone)
+        }
+        quincenaMatch?.let { working = working.replace(it.value, " ") }
+
         // La fecha relativa (relativePattern) tiene prioridad; luego los límites de mes
         // ("fin de mes"/"mediados de mes"); "esta semana"; "principios/mediados de semana";
-        // el período próximo es el respaldo final. Todos son días (no min/hora) para
-        // combinarse con una hora explícita.
+        // la quincena; el período próximo es el respaldo final. Todos son días (no
+        // min/hora) para combinarse con una hora explícita.
         // Fechas pasadas (ago/lastPeriod) tienen prioridad: son explícitas y no
         // deben sobrescribirse por una fecha futura ambigua. La hora explícita se
         // aplica sobre la fecha pasada (tarea vencida con hora).
         val effectiveRelativeDueAt =
             agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: monthBoundaryDueAt ?:
-            thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: nextPeriodDueAt
+            thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?: nextPeriodDueAt
         val relativeIsDays = (agoMatch != null || lastPeriodMatch != null ||
             relativeMatch != null || monthBoundaryDueAt != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
-            nextPeriodMatch != null) &&
+            quincenaMatch != null || nextPeriodMatch != null) &&
             (relativeMatch?.let { m ->
                 val unit = m.groupValues[2].lowercase()
                 !unit.startsWith("min") && !unit.startsWith("hora")

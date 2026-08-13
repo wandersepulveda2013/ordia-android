@@ -2793,6 +2793,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Descubrimiento continuo (más allá del parser): auditar What Now, captura, rutinas, recordatorios, detección de vencidas, búsqueda universal en busca de oportunidades de producto reales.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
 - Nota operativa: usar `github_token` para push si `GITHUB_TOKEN` no está disponible.
+
 ## Ciclo 43 - 2026-08-13 (UTC) - feat: "entre semana"/"días laborables"/"de lunes a viernes" = WEEKLY Lun–Vie
 
 - **Run/ciclo**: 43 (renumerado: la otra ejecución concurrente reclamó los números 41 y 42 con “listas de días sin coma + plurales sábados/domingos” y “rango horario sin horas”). Procedimiento no destructivo: `git rebase` de mi commit sobre el HEAD remoto actualizado (`727e7b8`, que incluye los ciclos 38–42 de la otra ejecución); auto-merge limpio en `NaturalTaskParser.kt` + tests (cambios ortogonales: el remoto tocó listas de días/plurales y rango horario, yo la recurrencia laboral Lun–Vie). Conflictos solo en docs (`CURRENT_STATE.md`, `RUN_LOG.md`), resueltos conservando el trabajo del otro run y renumerando el mío a 43. Sin force push, sin reset --hard.
@@ -2806,10 +2807,35 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: +7 (`entreSemanaComoRecurrenciaWeekdayLunAVie`, `diasLaborablesComoRecurrenciaWeekday`, `diasHabilesConDeterminanteComoRecurrenciaWeekday`, `deLunesAViernesComoRecurrenciaWeekdayLimpiaTitulo`, `losLunesAViernesComoRangoNoLista`, `entreSemanaRespetaHoraExplicita`, `finDeSemanaSingularNoEsRecurrenciaWeekday` — regresión). **372 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases (365 base remota + 7 nuevos de este ciclo). Smoke 25 OK (`tools/run_domain_checks.sh`).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Commits**: `feat(parser): "entre semana"/"de lunes a viernes" = recurrencia Lun–Vie` (rebaseado no destructivamente sobre `727e7b8`; auto-merge limpio en `NaturalTaskParser.kt`+tests; conflictos solo en docs `CURRENT_STATE.md`/`RUN_LOG.md`, resueltos conservando los ciclos 41/42 del otro run y renumerando el mío a 43). Push OK a `origin/openhands/autonomous-ordia`.
-- **HEAD final**: (commit feat(parser) rebaseado sobre `727e7b8`; SHA final tras push a `origin/openhands/autonomous-ordia`).
+- **HEAD final**: `a934b65` (commit feat(parser) rebaseado sobre `727e7b8`; push OK a `origin/openhands/autonomous-ordia`).
 
 ### Siguiente
 - Descubrimiento continuo más allá del parser: auditar What Now (detección de vencidas importantes), rutinas (re-disparo), captura (fricción), recordatorios.
 - Parser candidatos: rango horario sin "horas" ("clase de 9 a 11"), "la quincena" como plazo/recurrencia, múltiples marcadores temporales en una frase.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero; URIs ya inválidos).
 - Nota operativa: usar `github_token` para push.
+
+## Ciclo 44 - 2026-08-13 (UTC) - feat: "la quincena" como hito financiero (día 15 / fin de mes)
+
+- **Run/ciclo**: 44 (renumerado desde 43: al hacer `git fetch` el remoto había avanzado a `a934b65` por el run paralelo que reclamó ciclo 43 con "entre semana"/"de lunes a viernes" = WEEKLY Lun–Vie. Antes de eso el remoto ya había avanzado a `30b7df8` con la recurrencia "cada quincena"/"quincenalmente" (WEEKLY x2, `97ec260`) + 3 commits de docs. Procedimiento no destructivo: stash → `merge --ff-only origin/openhands/autonomous-ordia` → stash pop (resolvió BACKLOG.md), commit, y al detectar nuevo avance remoto `git rebase origin/openhands/autonomous-ordia` (auto-merge limpio en `NaturalTaskParser.kt`+tests; conflicto solo en `RUN_LOG.md`, resuelto conservando el ciclo 43 del otro run y renumerando el mío a 44). Sin force push, sin reset --hard, sin pérdida de trabajo).
+- **HEAD inicial**: `a934b65` (origin/openhands/autonomous-ordia tras rebase; `727e7b8` al inicio del run).
+- **Problema seleccionado**: `NaturalTaskParser` NO reconocía "la **quincena**" como plazo temporal ("cobro de la quincena", "pago de la quincena a las 18", "primera/segunda quincena"): `dueAt=null` → el vencimiento quedaba **olvidado** (sin recordatorio ni visibilidad en What Now/planificador). Peor, "pago de la quincena a las 18" se fechaba en HOY 18:00 (día erróneo) por el parsing de hora aislada. La quincena (día 15 y fin de mes) es un hito financiero/laboreal muy común en español, simétrico a `finDeMes`/`mediadosDeMes` ya implementados. (Complementario al run paralelo `97ec260` que resolvió la **recurrencia** "cada quincena"; este run resuelve la **fecha/hito** "la quincena".)
+- **Prioridad**: P2 (evita captura incompleta / recordatorio sin fecha / vencimiento olvidado en un hito muy común).
+- **Causa raíz**: no existía patrón de quincena; las frases caían a `dueAt=null` o eran malinterpretadas por patrones más generales (hora aislada → hoy).
+- **Solución (mínima, en `NaturalTaskParser.kt`)**: nuevo `quincenaPattern` que casa `(primera|segunda|1ra|2da)? quincena` con artículo prefijo opcional (`de la`/`de`/`la`). Resolución **honestamente determinística** (no IA, no random):
+  - "primera"/"1ra quincena" → día 15; rueda al 15 del mes próximo si hoy ≥ 15.
+  - "segunda"/"2da quincena" → fin de mes; rueda a fin del mes próximo si hoy es último día.
+  - "la quincena"/"de la quincena" sin cualificar → **próximo hito**: día 15 si hoy<15; fin de mes si 15≤hoy<último; 15 del mes próximo si hoy=último día (consistente con `finDeMes`).
+  - Combina con hora explícita ("a las 18" → 15/8 18:00, no hoy 18:00).
+  - Procesado **DESPUÉS** del stripping de `nextPeriodMatch`, así "próxima quincena"/"quincena que viene" siguen como +15d y "en N quincenas" como relativo — sin regresión.
+  - **Guarda anti-colisión con recurrencia**: tras integrar el run paralelo `97ec260`, el patrón robaba "quincena" de "cada quincena"/"quincenalmente"/"todas las quincenas" (rompía 2 tests de recurrencia). Se añadió `quincenaRecurrencePattern` + guarda en el match: si la frase contiene una forma de recurrencia, el patrón de hito NO consume la palabra, dejándola para `parseRecurrence` (WEEKLY x2). 384 tests PASS.
+- **Tests**: +12 (`laQuincenaSinCualificarResuelveProximoHitoDia15SiAntes`, `…FinDeMesSiPosteriorAl15`, `…RuedaAl15ProximoMesSiHoyEsUltimoDia`, `…RespetaHoraExplicita`, `primeraQuincenaResuelveDia15`, `primeraQuincenaRuedaAProximoMesSiHoyPasadoEl15`, `segundaQuincenaResuelveFinDeMes`, `segundaQuincenaRuedaAProximoMesSiHoyEsUltimoDia`, `primeraQuincenaAbreviada1ra`, `segundaQuincenaAbreviada2da`, `proximaQuincenaSigueResolviendoseComoPeriodoProximo`, `quincenaNoInterfiereConEnNQuincenasRelativo`). **384 domain tests PASS** (`bash tools/run_domain_tests.sh`, 25 clases — incluye 7 de "entre semana" y los de recurrencia del run paralelo), smoke 25 OK (`tools/run_domain_checks.sh`). Probe JVM independiente verificó edge de fin de mes (hoy=31/8 → segunda quincena rueda a 30/9, primera a 15/9, sin cualificar a 15/9).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+- **Commits**: `feat(parser): "la quincena" como hito financiero (día 15 / fin de mes)` (rebaseado sobre `a934b65`; auto-merge limpio en `NaturalTaskParser.kt`+tests; conflicto solo en `RUN_LOG.md`, resuelto conservando el ciclo 43 del otro run).
+- **HEAD final**: (tras commit+push a `openhands/autonomous-ordia`).
+
+### Siguiente
+- Continuar descubrimiento continuo más allá del parser: auditar What Now, captura, rutinas,
+  recordatorios, detección de vencidas, búsqueda universal en busca de oportunidades de producto.
+- Parser: manejo robusto de múltiples marcadores temporales en una frase.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
