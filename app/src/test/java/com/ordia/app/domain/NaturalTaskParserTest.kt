@@ -962,6 +962,29 @@ class NaturalTaskParserTest {
         assertEquals(120, result.durationMinutes)
     }
 
+    // Rango horario sin la palabra "horas" y ambas horas < 13: antes caía a
+    // dueAt=null/dur=null con el rango crudo como residuo en el título. Forma
+    // cotidiana ("clase de 9 a 11", "taller de 10 a 12"). Se acepta porque el
+    // rango va al final de la frase (sin sustantivo de cantidad después).
+    @Test fun rangeSmallHoursWithoutUnitAtEndParsesDuration() {
+        val result = NaturalTaskParser.parse("Clase de 9 a 11", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun rangeSmallHoursWithoutUnitTrailingConnectorParsesDuration() {
+        val result = NaturalTaskParser.parse("Taller de 10 a 12 con proyector", now, zone)
+        assertEquals("Taller con proyector", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun rangeSmallHoursWithoutUnitFollowedByNounIsNotDuration() {
+        // "de 2 a 5 entradas": hay un sustantivo después → cantidad, no horario.
+        val result = NaturalTaskParser.parse("Comprar de 2 a 5 entradas", now, zone)
+        assertEquals("Comprar de 2 a 5 entradas", result.title)
+        assertNull(result.durationMinutes)
+    }
+
     // "de" antes de una duración numérica es conector ("Reunión de 30 min") y debe
     // eliminarse junto con la duración, sin dejar residuo.
     @Test fun deConnectorBeforeDurationIsRemoved() {

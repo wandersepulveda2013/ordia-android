@@ -696,9 +696,19 @@ object NaturalTaskParser {
         val rangeMatch = timeRangePattern.find(working)?.let { m ->
             val start = m.groupValues[1].toIntOrNull()
             val end = m.groupValues[2].toIntOrNull()
+            // Rango horario sin unidad ("de 9 a 11") y ambas horas < 13 (formato 12h
+            // ambiguo): se acepta SOLO si al rango no le sigue un sustantivo de cantidad
+            // ("entradas", "personas"). Si va seguido de fin de cadena o de un conector/
+            // preposición/puntuación ("con Juan", "y luego…", ", luego…") se entiende
+            // como ventana horaria. Esto distingue "clase de 9 a 11" (horario) de
+            // "comprar de 2 a 5 entradas" (cantidad) sin inventar IA ni romper 24h.
+            val followedByCount = m.range.last + 1 < working.length &&
+                !Regex("""^\s*(?:,|\.|;|:|!|\?|y\b|o\b|con\b|de\b|en\b|para\b|hasta\b|luego\b|después\b|despues\b|pero\b|porque\b|$)""", RegexOption.IGNORE_CASE)
+                    .containsMatchIn(working.substring(m.range.last + 1))
             if (start != null && end != null && end > start && end <= 24 &&
                 start in 0..23 && (end - start) * 60 <= 24 * 60 &&
-                (m.groupValues[3].isNotEmpty() || start >= 13 || end >= 13)
+                (m.groupValues[3].isNotEmpty() || start >= 13 || end >= 13 ||
+                    (!followedByCount && end - start in 1..11))
             ) m else null
         }
         val rangeDurationMinutes = rangeMatch?.let { (it.groupValues[2].toInt() - it.groupValues[1].toInt()) * 60 }
