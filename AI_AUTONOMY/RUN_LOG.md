@@ -3,7 +3,27 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
-## Ciclo 37 - 2026-08-13 (UTC) - "a las N horas" (hora, no duración falsa)
+## Ciclo 38 - 2026-08-13 (UTC) - fechas pasadas + recuperación de fechas imposibles
+
+- **Run/ciclo**: 38
+- **HEAD inicial**: bdd3dc0 (base inicial del workspace). El remoto ya estaba en `9ac1a8b` (5 commits por delante de la base local: "mediados de semana", "un par de", docs, y más). Se hizo `git fetch` + rebase de mis 2 commits locales (`5a67a47`, `b0a33a7`) sobre el remoto. Durante el run el remoto avanzó una vez más (`f2d26ba`, ciclo 37 "a las N horas"): segundo rebase, sin conflictos. Procedimiento no destructivo en ambos casos; sin STALE_RUN, sin force push, sin reset --hard.
+- **Problema seleccionado (2 unidades atómicas, P1)**:
+  1. **Fechas pasadas "hace N"/"la semana/el mes pasado"** (commit `5a67a47`→`ff3a1f4`): `NaturalTaskParser` no reconocía fechas pasadas cotidianas ("pagué hace 2 días", "revisé el informe la semana pasada", "reunión el mes pasado"). Causa raíz: `agoPattern` ("hace N") no existía; `lastPeriodPattern` ("la semana/el mes/el año pasado") no existía y además `previousWeekdayPattern` ("el mes pasado") capturaba la frase, dejando grupo1="mes" (no es día → sin fecha) y **borraba** la frase del título. Resultado: `dueAt=null` (tarea sin recordatorio, invisible en What Now/planificador) **Y** frase temporal como basura en el título. También "hace poco"/"hace un rato" (coloquial = "recién") no se resolvían. Solución: nuevos `agoPattern` (resta N días/semanas/meses/años, o 3h para "poco"/"un rato") y `lastPeriodPattern` (resta 7d/30d/365d), detectados **antes** de `previousWeekdayPattern`, integrados al inicio de la cadena `effectiveRelativeDueAt` (las fechas pasadas son explícitas y tienen prioridad sobre fechas futuras ambiguas); la hora explícita se aplica sobre la fecha pasada (tarea vencida con hora).
+  2. **Recuperación de fechas imposibles** (commit `b0a33a7`→`265fc93`): `parseMonthNameDate` usaba `LocalDate.of(year, month, day)` que lanza `DateTimeException` para fechas imposibles ("el 29 de febrero" en año no bisiesto, "el 31 de abril"). El `runCatching` devolvía `null` → caía al fallback que **deja la frase temporal en el título** y `dueAt=null` (tarea sin fecha y con basura). El usuario que escribe "el 29 de febrero" claramente quiere una fecha real, no perderla. Solución: en vez de descartar, **recuperar** con `Year`/`YearMonth`: Feb 29 no bisiesto → siguiente año bisiesto (2028); día > máx del mes (31 abr) → clamp al último día válido del **siguiente año** (30 abr 2027); Feb 30 → Feb 28. Así la frase se reconoce, se borra del título y la tarea obtiene una fecha útil (no se pierde).
+- **Prioridad**: P1 (evitar olvidos: tareas sin recordatorio + títulos sucios; datos erróneos por fechas perdidas).
+- **Solución (mínima, en `NaturalTaskParser.kt`)**: nuevos patrones `agoPattern`/`lastPeriodPattern` + variables `agoDueAt`/`lastPeriodDueAt` al inicio de `effectiveRelativeDueAt`; refactor de `parseMonthNameDate` con `java.time.Year`/`YearMonth` para clamp/recuperación. Imports añadidos: `java.time.Year`, `java.time.YearMonth`.
+- **Tests**: +9 fechas pasadas (`haceNdiasResuelveFechaPasada`, `haceUnaSemanaResuelveFechaPasada`, `haceNmesesResuelveFechaPasada`, `haceNdiasConHoraAplicaHoraSobreFechaPasada`, `laSemanaPasadaResuelveFechaPasada`, `elMesPasadoResuelveFechaPasada`, `elMesPasadoConHoraAplicaHora`, `hacePocoResuelveHaceTresHoras`, `haceUnRatoLimpiaTituloSinResiduo`) + 5 fechas imposibles. **329 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **Colisión de remoto resuelta**: conflicto en `NaturalTaskParser.kt` (remote añadió `startOfWeekDueAt`/`midOfWeekDueAt`; local añadió `agoDueAt`/`lastPeriodDueAt`) resuelto combinando ambos conjuntos en la cadena `effectiveRelativeDueAt`. Conflicto en `NaturalTaskParserTest.kt` (ambos añadieron tests al final) resuelto conservando ambos conjuntos. Rebase posterior sobre `f2d26ba` sin conflictos.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Commits**: `feat(parser): fechas pasadas "hace N"/"la semana/el mes pasado" + limpieza titulo` (`ff3a1f4`); `fix(parser): recuperar fechas imposibles (29 feb, 31 abr) en vez de perderlas` (`265fc93`).
+- **HEAD final**: `265fc93` (push exitoso a openhands/autonomous-ordia tras 2 colisiones de remoto resueltas no destructivamente).
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser descubiertos (P2): rango horario sin palabra "horas" ("clase de 9 a 11"); números escritos en recordatorios relativos ("recuérdame dos horas antes" → offset null); "la quincena" como hito financiero.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+- P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
+
+## Ciclo 37 - 2026-08-13 (UTC) - "a las N horas" (hora, no duraciÃ³n falsa)
 
 - **Run/ciclo**: 37
 - **HEAD inicial**: 46efb3e (base inicial). Durante el run el remoto avanzó TRES veces por runs paralelos: 8146acf (quincena/bimestre/semestre), e4157c1 ("un par de"), y 9ac1a8b ("mediados de semana", ciclo 36). Procedimiento no destructivo en cada caso: stash+ff+pop sobre 8146acf; rebase sobre e4157c1 (conflicto solo en CURRENT_STATE.md, resuelto conservando ambas secciones, renum. 35→36); rebase sobre 9ac1a8b sin conflictos (renum. 36→37, ya que el remoto usó ciclo 36 para "mediados de semana"). Sin STALE_RUN destructivo, sin force push, sin reset --hard.
