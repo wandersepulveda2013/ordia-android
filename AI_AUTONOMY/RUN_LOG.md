@@ -31,8 +31,8 @@
   `CURRENT_STATE.md`, `BACKLOG.md`, `RUN_LOG.md`.
 - **Etiquetado ciclo 50**: dos runs paralelos ya usaron c.48 (DayPlanner) y c.49 (búsqueda);
   ciclo 50 evita colisión de numeración. Sin force push, sin reset --hard, sin tocar `main`.
-- **Commits**: (ver abajo).
-- **HEAD final**: (tras push).
+- **Commits**: `feat(parser): "de aquí a N"/"de acá a N" prefijo relativo coloquial` → `877765c` (push OK a `openhands/autonomous-ordia`; `4f7e701..877765c`).
+- **HEAD final**: `877765c`.
 - **Próxima prioridad**: seguir auditando parser (prefijos pasados coloquiales, "al rato"/
   "en un rato", "esta noche"/"anoche" relativas; recurrencias "cada otros N ..."; nominativos
   "el próximo lunes" vs "lunes que viene") y otras áreas (rutinas, recordatorios, What Now,
