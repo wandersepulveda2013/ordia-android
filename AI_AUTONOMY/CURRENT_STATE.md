@@ -14,8 +14,8 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 51)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 51)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 52)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 52)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
@@ -23,6 +23,40 @@
   docs-only) → los commits de código generan releases automáticamente.
 
 | P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests) |
+
+## Último trabajo — Ciclo 52: snooze ya no corrompe `reminderAt` en tareas recurrentes
+
+Fix P1 de **integridad de datos** en recordatorios. `ReminderActionReceiver`
+manejaba `ACTION_SNOOZE` sobrescribiendo `task.reminderAt = now + 10min`.
+Para tareas **recurrentes** eso destruye el offset
+`reminderOffset = dueAt - reminderAt` que `RecurrenceEngine.nextOccurrence`
+reutiliza en **todas** las ocurrencias futuras: un recordatorio configurado a
+"15 min antes" pasaba a ser "5 min antes" para siempre tras un solo snooze.
+Mutación silenciosa e irreversible: una acción transitoria (aplazar la
+notificación 10 min) corrompía permanentemente la preferencia de cuándo avisar
+en cada futura repetición. Solo afectaba a recurrentes, lo que lo hacía sutil:
+se manifiesta días/semanas después del snooze, cuando la siguiente ocurrencia
+recuerda "demasiado tarde".
+
+**Solución (mínima, sin nueva pantalla/botón)**: extraída la lógica de snooze
+a `ReminderRules.snooze` (dominio puro, testable). El aplazamiento es
+**transitorio**: `SnoozeResult.triggerAt` (now+10min) se pasa a
+`ReminderScheduler.scheduleAt` y persiste en WorkManager (sobrevive a
+reinicios sin tocar `reminderAt`). La preferencia original `reminderAt`
+(pero también `dueAt`/`startAt`) se preserva intacta; solo se actualiza
+`updatedAt = now`. `ReminderActionReceiver` delega a `ReminderRules.snooze`.
+Único path de snooze en la app (verificado: `grep ACTION_SNOOZE` → solo
+`TaskReminderWorker` construye el intent y `ReminderActionReceiver` lo
+consume).
+
+**Tests**: +6 en `ReminderRulesTest.kt`, incluida la invariante de integridad
+`snoozeThenComplete_preservesReminderOffsetAcrossRecurrence` que reproduce el
+bug: una tarea con `reminderAt = dueAt - 15min`, tras snooze (10 min) y
+completar, la siguiente ocurrencia mantiene `reminderOffset = 15min`
+(antes del fix el offset colapsaba a 5min). **421 domain tests PASS**
+(`bash tools/run_domain_tests.sh`), smoke 25 OK. **NO VERIFICADO**:
+gradle/lint/assemble/Android/UI/Room con DAOs reales, `ReminderScheduler`
+real/WorkManager, receptor de broadcast en dispositivo.
 
 ## Último trabajo — Ciclo 51: DayPlanner no marca conflicto de hora si `startAt` es otro día
 

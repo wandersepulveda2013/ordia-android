@@ -3,6 +3,25 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 52 - 2026-08-13 (UTC) - fix: snooze ya no corrompe reminderAt en tareas recurrentes
+- **Run/ciclo**: 52.
+- **HEAD inicial**: `d18fc32` (base `openhands/autonomous-ordia` sincronizada al iniciar; clean — cycle 51 docs follow-up del run previo).
+- **Problema seleccionado**: `ReminderActionReceiver.ACTION_SNOOZE` sobrescribía `task.reminderAt = now + 10min`. Para tareas **recurrentes** eso corrompe el offset `reminderOffset = dueAt - reminderAt` que `RecurrenceEngine.nextOccurrence` (línea 29) reutiliza en TODAS las ocurrencias futuras. Un recordatorio "15 min antes" (dueAt 10:00, reminderAt 09:45) tras un snooze a las 09:50 pasaba a `reminderAt=10:00` → offset 0min → las próximas ocurrencias no recordaban nada (o "5 min antes" si snooze 5 min antes del vencimiento). Mutación permanente de una preferencia por una acción transitoria. Sutil: solo afecta recurrentes y se manifiesta en la *siguiente* ocurrencia, días/semanas después.
+- **Prioridad**: P1 (integridad de datos — preferencia de recordatorio perdida silenciosamente; no es crash pero es dato corrupto permanente en cada recurrencia futura).
+- **Causa raíz**: el snooze mezclaba dos conceptos: "cuándo volver a notificar" (transitorio, ahora+10min) y "cuál es la preferencia de aviso de la tarea" (permanente, `reminderAt`). Sobrescribía el campo permanente con el valor transitorio.
+- **Solución (mínima, sin nueva pantalla/botón)**: extraída la lógica a `ReminderRules.snooze(task, now, minutes=10)` (dominio puro, `app/src/main/java/com/ordia/app/domain/ReminderRules.kt`). Devuelve `SnoozeResult(triggerAt = now + minutes, task = task.copy(updatedAt = now))` — **NO** toca `reminderAt`/`dueAt`/`startAt`. El aplazamiento es transitorio: `triggerAt` se agenda con `ReminderScheduler.scheduleAt(taskId, triggerAt)` y persiste en WorkManager (sobrevive a reinicios). `ReminderActionReceiver` ahora delega a `ReminderRules.snooze` en vez de mutar `reminderAt`. Verificado: único path de snooze (`grep ACTION_SNOOZE` → solo `TaskReminderWorker` construye el intent + `ReminderActionReceiver` consume).
+- **Tests**: +6 en `ReminderRulesTest.kt`: `snoozePreservesOriginalReminderAt`, `snoozeDoesNotModifyDueAtOrStartAt`, `snoozeTriggerAtIsNowPlusMinutes`, `snoozeDefaultMinutesIsTen`, `snoozeUpdatesUpdatedAt`, e invariante de integridad `snoozeThenComplete_preservesReminderOffsetAcrossRecurrence` (reproduce el bug: reminderAt=dueAt-15min, snooze 10min, completar → `RecurrenceEngine.nextOccurrence` produce offset 15min; antes del fix colapsaba a 5min). **421 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 415 base c.51 + 6 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, `ReminderScheduler` real/WorkManager, receptor de broadcast en dispositivo Android.
+- **Archivos modificados/creados**: `app/src/main/java/com/ordia/app/domain/ReminderRules.kt` (NEW), `app/src/test/java/com/ordia/app/domain/ReminderRulesTest.kt` (NEW), `app/src/main/java/com/ordia/app/reminders/ReminderActionReceiver.kt` (MODIFIED), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: `d384c2c` (fix(reminders): snooze ya no corrompe reminderAt en tareas recurrentes).
+- **HEAD final**: (ver push).
+
+### Siguiente
+- Descubrimiento continuo: auditar captura, recordatorios (scheduling real, cancelación al completar/archivar), detección de vencidas importantes, contexto, onboarding, navegación, accesibilidad, rendimiento, privacidad.
+- Posible: revisar si el `ReminderScheduler.scheduleAt` realmente persiste el snooze a través de reinicios (WorkManager vs AlarmManager); auditar cancelación de recordatorios al completar/archivar una tarea (evitar notificaciones de tareas ya hechas).
+- Parser: manejo robusto de múltiples marcadores temporales en una frase.
+
+---
 ## Ciclo 51 - 2026-08-13 (UTC) - fix: DayPlanner no marca conflicto de hora si startAt es otro día
 - **Run/ciclo**: 51.
 - **HEAD inicial**: `4f7e701` (base local al iniciar; el remoto ya había avanzado a `497010f` con el ciclo 50 del parser "de aquí a N" — STALE_BASE detectado al fetch).
