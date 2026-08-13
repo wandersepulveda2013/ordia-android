@@ -2913,7 +2913,46 @@ a un permiso persistente frágil y silencioso ante fallos.
   ("el 15 de 9 a 11") y con recurrencia mensual ("el 15 cada mes" — ya cubierto por `cada mes`).
 - Salir del parser y auditar What Now, captura, rutinas, recordatorios, detección de vencidas.
 
-## Ciclo 46 - 2026-08-13 (UTC) - fix: GuardianEngine doble conteo de subtareas (mood/XP)
+## Ciclo 48 - 2026-08-13 (UTC) - fix(ux): planificador "Vence hoy" falso en planes de otra fecha
+
+- **Run/ciclo**: 48 (base remota `52a4736` ciclo 47; `git pull --ff-only` sin divergencia).
+- **HEAD inicial**: `52a4736` (origin/openhands/autonomous-ordia).
+- **Problema seleccionado (P2, planificador/UX)**: `DayPlanner.planReason` etiquetaba como `DUE_TODAY`
+  ("Vence hoy") a **toda** tarea con `dueAt`, ignorando la `date` del plan. El planificador se
+  construye para la `selectedDate` del usuario (y `AutomationEngine.PLAN_DAY` usa hoy). Consecuencia:
+  al abrir el plan de **mañana** u otra fecha futura, una tarea que vence ese día mostraba
+  **"Vence hoy"** — urgencia falsa, confunde sobre qué vence realmente hoy. La etiqueta mentía ("hoy"
+  cuando no lo era).
+- **Prioridad**: P2 (UX/corrección de urgencia mostrada al usuario; sin pérdida de datos).
+- **Causa raíz**: `planReason(task, now)` no recibía `date`/`zone`; el `when` mapeaba `dueAt != null`
+  → `DUE_TODAY` incondicionalmente.
+- **Solución (mínima, `DayPlanner.kt`)**: `planReason(task, now, date, zone)` compara la fecha de
+  vencimiento con el día **real de hoy** (`DateRules.toLocalDate(now, zone)`): si coincide →
+  `DUE_TODAY`; si no → nuevo `DUE_ON_DATE`. Así una tarea que vence hoy sigue `DUE_TODAY` aunque se
+  vea en un plan de otra fecha (la urgencia real no cambia con la vista), y una que vence otro día
+  no finge "hoy". Añadida rama UI `PlannerScreen.plannerReasonLabel` + string
+  `planner_reason_due_on_date` = "Vence este día". Heurística honesta (no IA, no random). Sin nueva
+  pantalla ni botón — solo precisión.
+- **Tests**: +2 en `DayPlannerTest.kt`: `dueOnFuturePlanDateIsNotLabeledAsToday` (plan de mañana con
+  tarea que vence mañana → `DUE_ON_DATE`, no `DUE_TODAY`), `dueTodayIsLabeledAsTodayEvenOnFuturePlanDate`
+  (tarea que vence hoy vista en plan de mañana → `DUE_TODAY`). **399 domain tests PASS**
+  (`bash tools/run_domain_tests.sh`, 25 clases — 393 base + 2 nuevos + 4 traídos por pull de ciclos
+  45–47 ya contados en base). Smoke 25 NO ejecutado (sin `kotlinc` en PATH este run; libs presentes;
+  el smoke es subconjunto del suite de dominio ya pasado).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `DayPlanner.kt`, `PlannerScreen.kt`, `strings_screens2.xml`,
+  `DayPlannerTest.kt`, `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: ver `git log` (commit `fix(ux): ...` a continuación).
+- **HEAD final**: (tras push a `origin/openhands/autonomous-ordia`).
+- **Estado**: VERIFIED (JVM).
+
+### Siguiente
+- Auditoría de motores no-parser: What Now (`WhatNowEngine`), captura, rutinas, recordatorios
+  (reminder scheduling edge cases), detección de vencidas importantes, búsqueda universal.
+- Planificador: revisar si otras etiquetas (OVERDUE, SCHEDULED_TIME) también dependen de `date` del
+  plan vs hoy de forma inconsistente; evaluar mostrar la hora prevista real en conflictos.
+
+## Ciclo 47 - 2026-08-13 (UTC) - fix(parser): "el 15" día del mes suelto con artículo
 
 - **Run/ciclo**: 46 (base remota `2ef4bfa` ciclo 45; rama `openhands/autonomous-ordia` actualizada sin divergencia).
 - **HEAD inicial**: `2ef4bfa` (origin/openhands/autonomous-ordia).

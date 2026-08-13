@@ -216,6 +216,7 @@
     <string name="planner_reason_urgent">Urgente</string>
     <string name="planner_reason_high">Prioridad alta</string>
     <string name="planner_reason_due_today">Vence hoy</string>
+    <string name="planner_reason_due_on_date">Vence este día</string>
     <string name="planner_reason_scheduled">Con hora prevista</string>
     <string name="planner_reason_inbox">De la Bandeja</string>
     <string name="planner_conflict_moved">Cambia la hora prevista de %1$s a %2$s</string>

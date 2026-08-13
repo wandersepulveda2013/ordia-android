@@ -123,4 +123,37 @@ class DayPlannerTest {
         assertEquals(2, plan.blocks.size)
         assertEquals(setOf(5L, 6L), plan.blocks.map { it.taskId }.toSet())
     }
+
+    @Test
+    fun dueOnFuturePlanDateIsNotLabeledAsToday() {
+        // Un plan construido para mañana con una tarea que vence mañana no debe
+        // decir "Vence hoy" (urgencia falsa), sino "Vence este día".
+        val tomorrow = date.plusDays(1)
+        val futureNow = DateRules.toEpochMillis(date, LocalTime.of(8, 0), zone)
+        val due = TaskEntity(
+            id = 7, title = "Vence mañana", durationMinutes = 30,
+            dueAt = DateRules.toEpochMillis(tomorrow, LocalTime.of(18, 0), zone)
+        )
+
+        val plan = DayPlanner.build(listOf(due), tomorrow, 9 * 60, 18 * 60, breakMinutes = 0, now = futureNow, zone = zone)
+
+        assertEquals(1, plan.blocks.size)
+        assertEquals(PlanReason.DUE_ON_DATE, plan.blocks.first().reason)
+    }
+
+    @Test
+    fun dueTodayIsLabeledAsTodayEvenOnFuturePlanDate() {
+        // Una tarea que vence hoy (y aún no está atrasada) sigue siendo
+        // "Vence hoy" aunque se muestre en un plan de otra fecha: la urgencia
+        // real no cambia con la vista, y no debe degradarse a "Vence este día".
+        val tomorrow = date.plusDays(1)
+        val dueToday = TaskEntity(
+            id = 9, title = "Vence hoy", durationMinutes = 30,
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone)
+        )
+
+        val plan = DayPlanner.build(listOf(dueToday), tomorrow, 9 * 60, 18 * 60, breakMinutes = 0, now = now, zone = zone)
+
+        assertEquals(PlanReason.DUE_TODAY, plan.blocks.first().reason)
+    }
 }

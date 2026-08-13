@@ -7,7 +7,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 /** Explica por qué Ordia colocó una tarea en esa posición del plan. */
-enum class PlanReason { OVERDUE, URGENT, HIGH_PRIORITY, DUE_TODAY, SCHEDULED_TIME, INBOX }
+enum class PlanReason { OVERDUE, URGENT, HIGH_PRIORITY, DUE_TODAY, DUE_ON_DATE, SCHEDULED_TIME, INBOX }
 
 /** Advertencia del planificador sobre cambios sobre datos previos del usuario. */
 enum class PlanConflictKind { MOVED_FROM_SCHEDULED_TIME }
@@ -92,7 +92,7 @@ object DayPlanner {
                     endMinute = proposedEnd,
                     priority = task.priority,
                     overdue = TaskRules.isOverdue(task, now),
-                    reason = planReason(task, now)
+                    reason = planReason(task, now, date, zone)
                 )
                 cursor = proposedEnd
             } else {
@@ -125,12 +125,22 @@ object DayPlanner {
         )
     }
 
-    private fun planReason(task: TaskEntity, now: Long): PlanReason = when {
+    /**
+     * Razón de colocación. "Vence hoy" solo es cierto cuando la tarea vence
+     * el día real de hoy; en un plan construido para otra fecha, una tarea
+     * que vence ese día se etiqueta como "vence este día" para no fingir
+     * urgencia de hoy.
+     */
+    private fun planReason(task: TaskEntity, now: Long, date: LocalDate, zone: ZoneId): PlanReason = when {
         TaskRules.isOverdue(task, now) -> PlanReason.OVERDUE
         task.priority == TaskPriority.URGENT -> PlanReason.URGENT
         task.priority == TaskPriority.HIGH -> PlanReason.HIGH_PRIORITY
         task.startAt != null -> PlanReason.SCHEDULED_TIME
-        task.dueAt != null -> PlanReason.DUE_TODAY
+        task.dueAt != null -> {
+            val dueDate = DateRules.toLocalDate(task.dueAt, zone)
+            val today = DateRules.toLocalDate(now, zone)
+            if (dueDate == today) PlanReason.DUE_TODAY else PlanReason.DUE_ON_DATE
+        }
         else -> PlanReason.INBOX
     }
 

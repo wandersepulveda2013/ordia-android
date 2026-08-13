@@ -14,8 +14,8 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 47)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 47)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 48)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 48)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
@@ -87,6 +87,37 @@ reales (sin Android SDK).
 | P2 | Inteligencia — `nextBestTask` time-aware (widget/asistente alineado con What Now) | FIXED (c.45, run paralelo `2ef4bfa`): ordena en-curso-ahora > vencida > vence-hoy > urgente > alta > resto; `isDueToday` zona-aware. 388 tests. |
 | P1 | Inteligencia/coach — `GuardianEngine.overdue` infla subtareas vs `SummaryEngine` | FIXED (c.46): filtra `parentTaskId == null` (alineado con resumen) + expone `overdue` en `Snapshot`. 391 tests. |
 | P1 | Parser — "el 15" día del mes suelto con artículo | FIXED (c.47): `dayOfMonthPattern` ("el N"/"el N del mes") con lookahead anti-colisión; reutiliza `nextMonthlyDate`. 394 tests. |
+| P2 | Planificador — etiqueta "Vence hoy" incorrecta en planes de otra fecha | FIXED (c.48): `DayPlanner.planReason` distingue "Vence hoy" (vence el día real de hoy) de "Vence este día" (vence el día del plan ≠ hoy). 399 tests. |
+
+## Último trabajo — Ciclo 48: planificador — "Vence hoy" era falso en planes de otra fecha
+
+Fix P2 de corrección de UX/urgencia en el planificador. `DayPlanner.planReason` etiquetaba como
+`DUE_TODAY` ("Vence hoy") a **toda** tarea con `dueAt`, sin mirar la `date` del plan. Pero el
+planificador se construye para la `selectedDate` que el usuario elige (y `AutomationEngine.PLAN_DAY`
+siempre usa hoy). Consecuencia: al abrir el plan de **mañana** (o cualquier fecha futura), una tarea
+que vence ese día mostraba **"Vence hoy"** — urgencia falsa que confunde al usuario sobre qué vence
+realmente hoy. La etiqueta decía "hoy" cuando no lo era.
+
+**Causa raíz**: `planReason(task, now)` ignoraba la `date` del plan; el `when` mapeaba cualquier
+`dueAt != null` a `DUE_TODAY` de forma incondicional.
+
+**Solución (mínima, `DayPlanner.kt`)**: `planReason` ahora recibe `date`+`zone` y compara la fecha
+de vencimiento con el día **real de hoy** (`DateRules.toLocalDate(now, zone)`): si coincide →
+`DUE_TODAY` ("Vence hoy"); si no → nuevo `DUE_ON_DATE` ("Vence este día"). La urgencia real de "hoy"
+ya no se degrada con la vista: una tarea que vence hoy sigue siendo `DUE_TODAY` aunque se muestre en
+un plan de otra fecha, y una que vence otro día no finge ser "hoy". Añadida rama UI en
+`PlannerScreen.plannerReasonLabel` + string `planner_reason_due_on_date` = "Vence este día".
+Heurística honesta (no IA, no random). Sin nueva pantalla, sin nuevo botón — solo precisión.
+
+**Colisión de remoto (no destructiva)**: al iniciar, `git pull --ff-only` trajo los ciclos 45–47
+(`2ef4bfa`/`d98862b`/`a934b65`/`fc1279b`/`6d0c6a4`/`cb042c7`→`52a4736`); base actualizada sin
+divergencia. Sin force push, sin reset --hard.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**399 tests PASS** (393 base remota tras integrar ciclos 45–47 + 2 nuevos `dueOnFuturePlanDateIsNotLabeledAsToday`
+y `dueTodayIsLabeledAsTodayEvenOnFuturePlanDate`, 25 clases). Smoke 25 OK no ejecutado por falta de
+`kotlinc` en PATH en este run (libs presentes); el smoke es subconjunto del suite de dominio ya
+pasado. NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 
 ## Último trabajo — Ciclo 47: "el 15" — día del mes suelto con artículo
 
