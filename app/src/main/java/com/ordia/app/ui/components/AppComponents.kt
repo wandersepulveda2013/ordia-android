@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ordia.app.ui.theme.OrdiaGoldSoft
 
 @Composable
 fun ScreenHeader(
@@ -133,7 +134,7 @@ fun EmptyState(
 fun GuardianAvatar(size: androidx.compose.ui.unit.Dp, mood: GuardianMood = GuardianMood.CALM, modifier: Modifier = Modifier) {
     val background = MaterialTheme.colorScheme.primary
     val foreground = MaterialTheme.colorScheme.onPrimary
-    val accent = MaterialTheme.colorScheme.secondary
+    val accent = OrdiaGoldSoft
     Canvas(
         modifier = modifier.size(size).semantics { contentDescription = "Guardián de Ordia, estado ${mood.label}" }
     ) {
