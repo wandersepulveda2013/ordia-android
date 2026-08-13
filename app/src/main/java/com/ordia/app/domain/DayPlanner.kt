@@ -50,35 +50,87 @@ object DayPlanner {
                 val overdueByDate = task.dueAt?.let { DateRules.toLocalDate(it, zone).isBefore(date) } == true
                 dueOnDate || overdueByDate || (includeInbox && task.dueAt == null)
             }
-            .sortedWith(
-                compareByDescending<TaskEntity> { TaskRules.isOverdue(it, now) }
-                    .thenByDescending { priorityScore(it.priority) }
-                    .thenBy { it.dueAt ?: Long.MAX_VALUE }
-                    .thenBy { it.sortOrder }
-                    .thenBy { it.createdAt }
-            )
             .toList()
 
         val blocks = mutableListOf<Block>()
         val unscheduled = mutableListOf<Long>()
-        var cursor = dayStartMinute
 
-        candidates.forEach { task ->
+        // 1. First pass: Fixed time tasks (tasks that have a dueAt and it falls on 'date' or is overdue)
+        // Note: For now, if a task has dueAt we treat its time as fixed, unless we only care about the date.
+        // Actually, in the original model, dueAt is an epochMillis which has both date and time.
+        // If it's on this date, we extract the time.
+        val fixedTasks = candidates.filter { task ->
+            task.dueAt != null && DateRules.toLocalDate(task.dueAt, zone) == date
+        }
+
+        fixedTasks.forEach { task ->
+            val time = DateRules.toLocalTime(task.dueAt!!, zone)
+            val startMinute = time.hour * 60 + time.minute
             val duration = task.durationMinutes.coerceIn(10, 180)
-            val gap = if (blocks.isEmpty()) 0 else breakMinutes
-            val proposedStart = cursor + gap
-            val proposedEnd = proposedStart + duration
-            if (proposedEnd <= dayEndMinute) {
+            val endMinute = startMinute + duration
+            // Only add if it starts on or after dayStartMinute and ends before dayEndMinute
+            // Or just add it if it's explicitly scheduled for today and doesn't overlap completely outside the day boundaries
+            if (startMinute >= 0 && endMinute <= 24 * 60) {
                 blocks += Block(
                     taskId = task.id,
                     title = task.title,
-                    startMinute = proposedStart,
-                    endMinute = proposedEnd,
+                    startMinute = startMinute,
+                    endMinute = endMinute,
                     priority = task.priority,
                     overdue = TaskRules.isOverdue(task, now)
                 )
-                cursor = proposedEnd
-            } else {
+            }
+        }
+
+        // Sort fixed blocks so we can schedule flexible tasks around them
+        blocks.sortBy { it.startMinute }
+
+        // 2. Second pass: Flexible tasks
+        val flexibleTasks = candidates.filter { task ->
+            !fixedTasks.contains(task)
+        }.sortedWith(
+            compareByDescending<TaskEntity> { TaskRules.isOverdue(it, now) }
+                .thenByDescending { priorityScore(it.priority) }
+                .thenBy { it.dueAt ?: Long.MAX_VALUE }
+                .thenBy { it.sortOrder }
+                .thenBy { it.createdAt }
+        )
+
+        var cursor = dayStartMinute
+
+        flexibleTasks.forEach { task ->
+            val duration = task.durationMinutes.coerceIn(10, 180)
+
+            // Find next available slot
+            var slotFound = false
+            while (cursor + duration <= dayEndMinute) {
+                val proposedStart = cursor
+                val proposedEnd = proposedStart + duration
+
+                // Check for overlaps with existing blocks
+                val overlap = blocks.firstOrNull { block ->
+                    proposedStart < block.endMinute + breakMinutes && proposedEnd > block.startMinute - breakMinutes
+                }
+
+                if (overlap == null) {
+                    blocks += Block(
+                        taskId = task.id,
+                        title = task.title,
+                        startMinute = proposedStart,
+                        endMinute = proposedEnd,
+                        priority = task.priority,
+                        overdue = TaskRules.isOverdue(task, now)
+                    )
+                    cursor = proposedEnd + breakMinutes
+                    blocks.sortBy { it.startMinute } // Keep sorted
+                    slotFound = true
+                    break
+                } else {
+                    cursor = overlap.endMinute + breakMinutes
+                }
+            }
+
+            if (!slotFound) {
                 unscheduled += task.id
             }
         }

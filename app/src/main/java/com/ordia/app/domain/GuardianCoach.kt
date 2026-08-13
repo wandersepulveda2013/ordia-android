@@ -69,11 +69,16 @@ object GuardianCoach {
 
         val next = TaskRules.nextBestTask(pending, now)
         if (next != null) {
+            val plan = DayPlanner.build(tasks = pending, date = today, now = now, zone = zone)
+            val freeMinutes = plan.remainingMinutes
+
+            val reasonDate = if (TaskRules.isDueToday(next, now, zone)) "vence hoy" else "es lo principal"
+            val reasonTime = if (freeMinutes > 0) "tienes $freeMinutes min libres" else "tienes la agenda apretada"
+
             return Insight(
                 eyebrow = "SIGUIENTE PASO",
                 title = next.title,
-                message = next.details.takeIf { it.isNotBlank() }
-                    ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
+                message = "Haz esto ahora porque $reasonDate y $reasonTime.",
                 taskId = next.id,
                 tone = Tone.FOCUSED
             )
@@ -102,7 +107,7 @@ object GuardianCoach {
         }
 
         return Insight(
-            eyebrow = "TODO EN CALMA",
+            eyebrow = "TODO EN ORDEN",
             title = "No hay pendientes inmediatos",
             message = "Captura una idea, revisa un proyecto o simplemente conserva este espacio libre.",
             tone = Tone.CALM

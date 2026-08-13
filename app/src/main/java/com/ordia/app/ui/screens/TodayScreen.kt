@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Button
@@ -96,25 +96,28 @@ fun TodayScreen(
             )
         }
         item {
-            Surface(
+            Card(
                 shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     val insight = state.guardianInsight
                     GuardianAvatar(62.dp, insight.tone.toMood())
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(insight.eyebrow, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondaryContainer)
+                        Text(insight.eyebrow, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                         Text(insight.title, style = MaterialTheme.typography.titleLarge)
                         Text(
                             insight.message,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                         )
                     }
                     insight.taskId?.let { taskId ->
-                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.Outlined.ArrowForward, "Abrir recomendación") }
+                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Abrir recomendación") }
                     }
                 }
             }
