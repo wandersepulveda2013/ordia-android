@@ -4,6 +4,7 @@ import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -208,6 +209,68 @@ class NaturalTaskParserTest {
         // Antes dueAt=null: la tarea diaria nunca tenía fecha ni recordatorio y se olvidaba.
         // Ahora se ancla a hoy (la fecha de captura) para ser accionable y recordable.
         assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "cada mañana/tarde/noche/madrugada" es la forma natural más común de un hábito
+    // cotidiano en español. Antes NO se reconocía como recurrencia: "mañana" colisionaba
+    // con la fecha "mañana" (día siguiente) y el hábito nacía como tarea ÚNICA para
+    // mañana, sin recurrencia (P1: la rutina diaria se perdía; el recordatorio disparaba
+    // una sola vez y nunca más). Ahora se mapea a DAILY con hora canónica de la parte del
+    // día (mañana=09:00, tarde=15:00, noche=21:00, madrugada=04:00), anclada a hoy.
+    @Test fun cadaMananaParsesDailyWithMorningTime() {
+        val result = NaturalTaskParser.parse("Meditar cada mañana", now, zone)
+        assertEquals("Meditar", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun cadaTardeParsesDailyWithAfternoonTime() {
+        val result = NaturalTaskParser.parse("Pasear al perro cada tarde", now, zone)
+        assertEquals("Pasear al perro", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun cadaNocheParsesDailyWithNightTime() {
+        val result = NaturalTaskParser.parse("Leer cada noche", now, zone)
+        assertEquals("Leer", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun cadaMananaWithExplicitTimeKeepsExplicitTime() {
+        val result = NaturalTaskParser.parse("Regar plantas cada mañana a las 7", now, zone)
+        assertEquals("Regar plantas", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(7, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun cadaNochePmContextAppliesOffsetToHourWithoutMeridiem() {
+        // "cada noche a las 10": contexto PM de la parte del día aplica +12 → 22:00, no 10:00.
+        val result = NaturalTaskParser.parse("Tomar agua cada noche a las 10", now, zone)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(LocalTime.of(22, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun todasLasNochesParsesDailyPlural() {
+        val result = NaturalTaskParser.parse("Rezar todas las noches", now, zone)
+        assertEquals("Rezar", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun cadaMananaDoesNotBecomeTomorrowSingleTask() {
+        // Regresión: antes "cada mañana" se fechaba en MAÑANA con recurrencia NONE porque
+        // "mañana" colisionaba con la fecha "mañana". El hábito diario se perdía.
+        val result = NaturalTaskParser.parse("Meditar cada mañana", now, zone)
+        assertNotEquals(RecurrenceFrequency.NONE, result.recurrence)
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 

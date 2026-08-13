@@ -662,7 +662,8 @@ object NaturalTaskParser {
         val partOfDayPmKeys = setOf("tarde", "noche")
         val hasPartOfDayPmContext =
             partOfDayMatch?.let { it.groupValues[1].lowercase() in partOfDayPmKeys } == true ||
-            standalonePartOfDayKey in partOfDayPmKeys
+            standalonePartOfDayKey in partOfDayPmKeys ||
+            recurrence.partOfDayIsPm
         // True solo cuando la fecha proviene de un día de la semana suelto ("el viernes")
         // y ese día ES hoy: la cita puede ser hoy mismo si su hora aún no pasó.
         var weekdaySameDayCandidate = false
@@ -786,7 +787,9 @@ object NaturalTaskParser {
         val parsedTime = explicitTime?.let { t ->
             if (!hasExplicitMeridiem && hasPartOfDayPmContext && t.hour in 1..11)
                 t.plusHours(12) else t
-        } ?: partOfDayTime ?: standalonePartOfDayTime ?: primeraHoraMatch?.let { primeraHoraTime }
+        } ?: partOfDayTime ?: standalonePartOfDayTime
+            ?: recurrence.partOfDayTime
+            ?: primeraHoraMatch?.let { primeraHoraTime }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val rawDueAt = when {
             effectiveRelativeDueAt != null && relativeIsDays && parsedTime != null ->
@@ -944,12 +947,56 @@ object NaturalTaskParser {
         val days: List<Int>,
         val phraseRanges: List<IntRange>,
         /** Para recurrencia mensual anclada a un día del mes ("el 15 de cada mes"). */
-        val monthlyDayOfMonth: Int? = null
+        val monthlyDayOfMonth: Int? = null,
+        /** Hora canónica de la parte del día para "cada mañana/tarde/noche/madrugada"
+         *  (hábito diario): 09:00/15:00/21:00/04:00. Se usa como hora de respaldo de la
+         *  primera ocurrencia y como contexto PM para horas sin meridiem. */
+        val partOfDayTime: LocalTime? = null,
+        val partOfDayIsPm: Boolean = false
     )
 
     private fun parseRecurrence(working: String): RecurrenceResult {
         val base = RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), emptyList())
         val phrases = mutableListOf<IntRange>()
+
+        // "cada mañana/tarde/noche/madrugada" (y "todas las mañanas/tardes/noches") como
+        // recurrencia DIARIA con hora canónica de la parte del día. Es la forma natural
+        // más común de un hábito cotidiano en español ("meditar cada mañana", "tomar
+        // pastillas cada mañana", "pasear al perro cada tarde"). Antes NO se reconocía:
+        // "mañana" colisionaba con la fecha "mañana" (día siguiente) y el hábito quedaba
+        // como tarea ÚNICA para mañana sin recurrencia (P1: la rutina diaria se perdía,
+        // el recordatorio disparaba una sola vez y nunca más). Se procesa PRIMERO: así
+        // "mañana" deja de ser candidato a fecha y la hora canónica sustituye a la del
+        // respaldo genérico (09:00). "todos los días" / "diariamente" (sin parte del día)
+        // cae abajo en fixedPatterns y conservan su hora de respaldo 09:00.
+        val partOfDayDailyMap = mapOf(
+            "mañana" to LocalTime.of(9, 0),
+            "manana" to LocalTime.of(9, 0),
+            "tarde" to LocalTime.of(15, 0),
+            "noche" to LocalTime.of(21, 0),
+            "madrugada" to LocalTime.of(4, 0)
+        )
+        val partOfDayDailyPattern = Regex(
+            """(?i)\bcada\s+(ma[nñ]ana|manana|tarde|noche|madrugada)\b""" +
+                """|\btodas\s+las\s+(ma[nñ]anas|mananas|tardes|noches|madrugadas)\b"""
+        )
+        partOfDayDailyPattern.find(working)?.let { match ->
+            val group = match.groupValues.firstOrNull { it.isNotBlank() && it != match.value }?.lowercase()
+            val key = when {
+                group == null -> null
+                group.endsWith("s") -> group.dropLast(1)
+                else -> group
+            }
+            val time = key?.let { partOfDayDailyMap[it] }
+            if (time != null) {
+                phrases += match.range
+                val isPm = key == "tarde" || key == "noche"
+                return RecurrenceResult(
+                    RecurrenceFrequency.DAILY, 1, emptyList(), phrases,
+                    partOfDayTime = time, partOfDayIsPm = isPm
+                )
+            }
+        }
 
         // Intervalo de cadencia que puede acompañar a una lista de días ("cada 2
         // semanas los lunes", "cada quincena los lunes y viernes", "cada 3 semanas
