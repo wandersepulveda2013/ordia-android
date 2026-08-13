@@ -3455,7 +3455,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); render real del tap en la tarjeta de Today en dispositivo; `deferTaskToTomorrow` (ViewModel, requiere Android); `saveTask` reagenda recordatorios verificado solo por lectura de código (c.62).
 - **Hallazgos adicionales (descubrimiento continuo)**: `deferToNextDay` es una primitiva reutilizable — futuras superficies (widget, notificación de sobrecarga) podrían ofrecer el mismo "posponer a mañana" con un toque sin duplicar lógica. `RecurrenceEngine.nextOccurrence` (fin de mes mensual → 31/feb, año bisiesto) sigue pendiente de auditoría. Áreas a auditar: búsqueda universal; `PlanEngine` replanificación más amplia; rutinas adaptables; detección de compromisos en notas; captura ultrarrápida.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SummaryEngine.kt`, `app/src/main/java/com/ordia/app/domain/TaskRules.kt`, `app/src/main/java/com/ordia/app/ui/OrdiaViewModel.kt`, `app/src/main/java/com/ordia/app/ui/screens/TodayScreen.kt`, `app/src/main/res/values/strings_screens1.xml`, `app/src/test/java/com/ordia/app/domain/TaskRulesTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit+push a `origin/openhands/autonomous-ordia`; base reconciliada `f31388a` c.68).
+- **HEAD final**: `e0f61bb` (commit+push OK a `origin/openhands/autonomous-ordia`, fast-forward sobre base reconciliada `f31388a` c.68; remoto verificado == local).
 - **Estado**: FIXED → VERIFIED (dominio JVM); UI en app / `deferTaskToTomorrow` NO VERIFICADO (sin Android SDK).
 
 ### Siguiente
