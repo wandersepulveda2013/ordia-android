@@ -51,7 +51,7 @@
 
 ## Problemas conocidos
 
-- Warnings de deprecación no bloqueantes (ej. `Icons.Outlined.InsertDriveFile` → AutoMirrored).
+- Warnings de deprecación no bloqueantes solucionados.
 - El workflow Jules necesita `jules/autonomous-ordia` visible en la API de Sources antes de
   lanzar sesiones (verificado en cada ejecución; si no aparece, la sesión NO se lanza).
 - El auto-merge requiere que las PRs de Jules tengan checks exitosos; si `secrets.JULES_API_KEY`
