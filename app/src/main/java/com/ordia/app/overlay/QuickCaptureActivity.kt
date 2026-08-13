@@ -23,10 +23,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
@@ -57,11 +55,11 @@ class QuickCaptureActivity : ComponentActivity() {
         val initialText = intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
         setContent {
             OrdiaTheme {
-                var mode by remember { mutableStateOf(initialMode) }
-                var text by remember { mutableStateOf(initialText) }
+                val (mode, setMode) = remember { mutableStateOf(initialMode) }
+                val (text, setText) = remember { mutableStateOf(initialText) }
                 val voice = dictatedText.value
                 LaunchedEffect(voice) {
-                    if (voice.isNotBlank() && voice != text) text = voice
+                    if (voice.isNotBlank() && voice != text) setText(voice)
                 }
                 Surface(
                     modifier = Modifier.padding(16.dp),
@@ -75,12 +73,12 @@ class QuickCaptureActivity : ComponentActivity() {
                             color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(selected = mode == MODE_TASK, onClick = { mode = MODE_TASK }, label = { Text("Tarea") })
-                            FilterChip(selected = mode == MODE_NOTE, onClick = { mode = MODE_NOTE }, label = { Text("Nota") })
+                            FilterChip(selected = mode == MODE_TASK, onClick = { setMode(MODE_TASK) }, label = { Text("Tarea") })
+                            FilterChip(selected = mode == MODE_NOTE, onClick = { setMode(MODE_NOTE) }, label = { Text("Nota") })
                         }
                         OutlinedTextField(
                             value = text,
-                            onValueChange = { text = it },
+                            onValueChange = { setText(it) },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 3,
                             label = { Text(if (mode == MODE_TASK) "¿Qué necesitas hacer?" else "¿Qué quieres guardar?") }
