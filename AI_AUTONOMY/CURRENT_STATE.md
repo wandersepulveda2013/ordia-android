@@ -14,13 +14,31 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 34)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 34)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 35)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 35)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
+
+## Último trabajo — Ciclo 35: parser "un par de" (coloquial = 2)
+
+Unidad atómica del ciclo de parser natural (P1 — evitar olvidos, menos fricción de captura).
+"un par de" es la forma coloquial más común de decir "2" de viva voz: "en un par de
+días/semanas/meses". El `relativePattern` no reconocía esta construcción multi-palabra, así
+que caía a `dueAt=null` → tarea **olvidada** (sin recordatorio, invisible en planificador/What
+Now). Ahora `relativePattern` captura `un par de` como cantidad y `parseWrittenNumber` lo
+resuelve a `2L`. Funciona con cualquier unidad y con hora explícita ("en un par de días a las 10").
+
+Nota de colisión: al iniciar, otro run había commiteado en paralelo quincena/bimestre/semestre
+(commit 8146acf) como períodos relativos y próximos. Mi base local estaba obsoleta. Descarté mi
+trabajo no commiteado (incluida mi versión de "quincena", ahora redundante), hice fast-forward
+limpio a 8146acf y reapliqué SOLO "un par de" (que el remoto no tenía). Sin colisión destructiva.
+
+VERIFICADO localmente (JVM puro, sin Android SDK): `bash tools/run_domain_tests.sh` =
+**308 tests PASS** (300 + 4 nuevos), 25 clases. Smoke 25 OK. NO VERIFICADO: gradle/lint/
+assemble/Android/UI (sin Android SDK).
 
 ## Último trabajo — Ciclo 34: parser "esta semana" (plazo blando de fin de semana)
 
@@ -169,7 +187,7 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 | Pri | Área | Estado |
 |-----|------|--------|
 | P1 | Persistencia — adjuntos URI externo | FIXED (NO VERIFICADO Android) ciclo 32 cont.4 |
-| P1 | Parser — "esta semana" plazo blando | FIXED → VERIFIED ciclo 34 (290 tests); "principios de semana" VERIFIED ciclo 34 cont. (294 tests) |
+| P1 | Parser — "esta semana" plazo blando | FIXED → VERIFIED ciclo 34 (290 tests); "principios de semana" VERIFIED ciclo 34 cont. (294 tests); quincena/bimestre/semestre VERIFIED (300 tests, 8146acf); "un par de" VERIFIED ciclo 35 (308 tests) |
 | P2 | QA — compilar 6 variantes tras cambios | OPEN (requiere env Android) |
 | P2 | Self-Update — prueba end-to-end N→N+1 | BLOCKED-external (sin dispositivo Android) |
 | P3 | UX — pulido visual pantallas workspace renovadas | OPEN |

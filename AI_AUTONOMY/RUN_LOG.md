@@ -2538,3 +2538,25 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Continuar ciclo interminable. Candidatos parser: "próximo bimestre/semestre" (evaluar frecuencia), "próxima quincena" (+15d), "mediados de semana" (miércoles), "a finales de semana" (viernes/dom).
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
+
+## Ciclo 35 - 2026-08-13 (UTC)
+
+- **Run/ciclo**: 35
+- **HEAD inicial**: 8146acf (origin/openhands/autonomous-ordia; tras detectar colisión con base local obsoleta 46efb3e y descartar trabajo no commiteado).
+- **Problema seleccionado**: `NaturalTaskParser` no reconocía la construcción coloquial multi-palabra **"un par de"** (= 2): "en un par de días/semanas/meses". `relativePattern` sólo aceptaba números o palabras-sueltas, así que caía a `dueAt=null` → tarea **olvidada** (sin recordatorio, invisible en planificador/What Now).
+- **Prioridad**: P1 (evitar olvidos, menos fricción de captura, inteligencia honesta del parser).
+- **Causa raíz**: la regex de cantidad del `relativePattern` enumeraba palabras-sueltas pero no la frase "un par de" (3 tokens). Al no coincidir, el match relativo fallaba y `dueAt` quedaba null.
+- **Colisión con otro run**: al iniciar, mi base local (46efb3e) estaba obsoleta; otro run había commiteado quincena/bimestre/semestre (8146acf). Yo tenía cambios locales no commiteados que incluían mi propia versión de "quincena" (redundante) + "un par de" + docs. Decisión: descartar TODO el trabajo no commiteado (`git stash`), fast-forward limpio a 8146acf, y reaplicar SOLO "un par de" (que el remoto no tenía). Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
+- **Solución (mínima, en `NaturalTaskParser.kt`)**:
+  - `relativePattern`: añadido `un\s+par\s+de` como primera alternativa del grupo de cantidad.
+  - `parseWrittenNumber`: añadido `"un par de" -> 2L`.
+  - Funciona con cualquier unidad relativa y con hora explícita ("en un par de días a las 10").
+- **Tests**: +4 (`unParDeDiasResuelveMasDosDias`, `unParDeSemanasResuelveMasCatorceDias`, `unParDeMesesResuelveMasSesentaDias`, `unParDeDiasConHoraExplicita`). **308 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+- **Commits**: feat(parser): "un par de" (= 2) en relativePattern/parseWrittenNumber. docs(autonomy): este registro.
+- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+
+### Siguiente
+- Continuar ciclo de parser: "mediados de semana" (miércoles), "a finales de semana" (viernes/dom), "un par de horas" ya cubierto.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+- Descubrimiento continuo: auditar otras áreas (captura, What Now, rutinas) en busca de oportunidades de producto, no solo parser.
