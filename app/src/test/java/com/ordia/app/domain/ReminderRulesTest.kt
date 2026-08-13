@@ -114,4 +114,106 @@ class ReminderRulesTest {
         // Sanity: tras el bug, el offset hubiera quedado en 5 min (15-10), no 15.
         assertNotEquals(5 * 60_000L, next.dueAt!! - next.reminderAt!!)
     }
+
+    // ---- resolveReminderAt (preservación de offset en el editor) ----
+
+    @Test
+    fun resolveReminderAt_disabledReturnsNull() {
+        val due = 1_700_000_000_000L
+        assertEquals(null, ReminderRules.resolveReminderAt(null, reminderEnabled = false, dueAt = due))
+    }
+
+    @Test
+    fun resolveReminderAt_nullDueReturnsNull() {
+        assertEquals(null, ReminderRules.resolveReminderAt(null, reminderEnabled = true, dueAt = null))
+    }
+
+    @Test
+    fun resolveReminderAt_newTaskUsesDefaultOffset() {
+        val due = 1_700_000_000_000L
+        assertEquals(
+            due - ReminderRules.DEFAULT_REMINDER_OFFSET_MS,
+            ReminderRules.resolveReminderAt(null, reminderEnabled = true, dueAt = due),
+        )
+    }
+
+    @Test
+    fun resolveReminderAt_existingWithoutDueTimeUsesDefaultOffset() {
+        val due = 1_700_000_000_000L
+        // Recordatorio recién activado: existing sin reminderAt previo.
+        val existing = TaskEntity(id = 1, title = "X", dueAt = due, reminderAt = null)
+        assertEquals(
+            due - ReminderRules.DEFAULT_REMINDER_OFFSET_MS,
+            ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = due),
+        )
+    }
+
+    /**
+     * Invariante central: editar un campo NO relacionado (p. ej. prioridad)
+     * NO debe alterar el offset de recordatorio explícito del usuario.
+     * Antes, el editor forzaba siempre due-30min y destruía un offset de 2h.
+     */
+    @Test
+    fun resolveReminderAt_editingUnrelatedField_preservesCustomOffset() {
+        val due = 1_700_000_000_000L
+        val customOffset = 2 * 60 * 60_000L // "2 horas antes"
+        val existing = TaskEntity(id = 1, title = "X", dueAt = due, reminderAt = due - customOffset)
+
+        // El usuario abre el editor, cambia la prioridad, y guarda con el mismo dueAt.
+        val result = ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = due)
+        assertEquals(due - customOffset, result)
+        assertEquals(customOffset, due - result!!) // offset intacto, no 30 min
+    }
+
+    /**
+     * Al mover el vencimiento, el offset se traslada (no se resetea a 30 min):
+     * "15 min antes" sigue siendo 15 min antes en la nueva hora.
+     */
+    @Test
+    fun resolveReminderAt_changingDue_translatesOffset() {
+        val offset = 15 * 60_000L
+        val oldDue = 1_700_000_000_000L
+        val newDue = oldDue + 3 * 60 * 60_000L // 3h después
+        val existing = TaskEntity(id = 1, title = "X", dueAt = oldDue, reminderAt = oldDue - offset)
+
+        val result = ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = newDue)
+        assertEquals(newDue - offset, result)
+    }
+
+    /**
+     * Para tareas recurrentes, preservar el offset en el editor evita que una
+     * edición inocua corrompa el recordatorio de TODAS las ocurrencias futuras.
+     */
+    @Test
+    fun resolveReminderAt_recurrenceEditKeepsOffsetForNextOccurrence() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val dueDate = LocalDate.of(2026, 8, 13)
+        val due = DateRules.toEpochMillis(dueDate, LocalTime.of(10, 0), zone)
+        val offset = 15 * 60_000L
+        val existing = TaskEntity(
+            id = 1, title = "Diaria", dueAt = due, reminderAt = due - offset,
+            recurrence = RecurrenceFrequency.DAILY,
+        )
+
+        // El usuario edita la prioridad (mismo dueAt) y guarda.
+        val preserved = existing.copy(
+            reminderAt = ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = due),
+        )
+
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(preserved, completedAt = due, zone = zone))
+        assertEquals(offset, next.dueAt!! - next.reminderAt!!)
+    }
+
+    @Test
+    fun resolveReminderAt_togglingOffReturnsNull() {
+        val due = 1_700_000_000_000L
+        val existing = TaskEntity(id = 1, title = "X", dueAt = due, reminderAt = due - 30 * 60_000L)
+        assertEquals(null, ReminderRules.resolveReminderAt(existing, reminderEnabled = false, dueAt = due))
+    }
+
+    @Test
+    fun resolveReminderAt_clearingDueReturnsNull() {
+        val existing = TaskEntity(id = 1, title = "X", dueAt = 1_700_000_000_000L, reminderAt = 1_699_998_200_000L)
+        assertEquals(null, ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = null))
+    }
 }

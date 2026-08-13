@@ -49,6 +49,7 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.domain.DateRules
+import com.ordia.app.domain.ReminderRules
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -210,7 +211,7 @@ fun TaskEditorDialog(
                         title = title,
                         details = details,
                         dueAt = normalizedDue,
-                        reminderAt = if (reminderEnabled && normalizedDue != null) normalizedDue - 30 * 60_000L else null,
+                        reminderAt = ReminderRules.resolveReminderAt(existing, reminderEnabled, normalizedDue),
                         durationMinutes = duration.toIntOrNull()?.coerceIn(1, 480) ?: 25,
                         priority = priority,
                         projectId = projectId,
