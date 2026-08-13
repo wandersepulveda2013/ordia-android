@@ -2832,7 +2832,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: +12 (`laQuincenaSinCualificarResuelveProximoHitoDia15SiAntes`, `…FinDeMesSiPosteriorAl15`, `…RuedaAl15ProximoMesSiHoyEsUltimoDia`, `…RespetaHoraExplicita`, `primeraQuincenaResuelveDia15`, `primeraQuincenaRuedaAProximoMesSiHoyPasadoEl15`, `segundaQuincenaResuelveFinDeMes`, `segundaQuincenaRuedaAProximoMesSiHoyEsUltimoDia`, `primeraQuincenaAbreviada1ra`, `segundaQuincenaAbreviada2da`, `proximaQuincenaSigueResolviendoseComoPeriodoProximo`, `quincenaNoInterfiereConEnNQuincenasRelativo`). **384 domain tests PASS** (`bash tools/run_domain_tests.sh`, 25 clases — incluye 7 de "entre semana" y los de recurrencia del run paralelo), smoke 25 OK (`tools/run_domain_checks.sh`). Probe JVM independiente verificó edge de fin de mes (hoy=31/8 → segunda quincena rueda a 30/9, primera a 15/9, sin cualificar a 15/9).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
 - **Commits**: `feat(parser): "la quincena" como hito financiero (día 15 / fin de mes)` (rebaseado sobre `a934b65`; auto-merge limpio en `NaturalTaskParser.kt`+tests; conflicto solo en `RUN_LOG.md`, resuelto conservando el ciclo 43 del otro run).
-- **HEAD final**: (tras commit+push a `openhands/autonomous-ordia`).
+- **HEAD final**: `d98862b` (push OK a `origin/openhands/autonomous-ordia`).
 
 ### Siguiente
 - Continuar descubrimiento continuo más allá del parser: auditar What Now, captura, rutinas,
