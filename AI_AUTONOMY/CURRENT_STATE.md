@@ -94,9 +94,9 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 
 ## Próximo trabajo
 
-- Continuar ciclo interminable. áreas de oportunidad (parser): "en un año"/"el año que viene"
-  (años no soportados en relativePattern); "la semana que viene"/"el mes que viene"; "próximos
-  días"; quarter/"próximo trimestre". Verificar necesidad antes de implementar.
+- Continuar ciclo interminable. áreas de oportunidad (parser): "próximos días"
+  (forma vaga, decidir si merece un default); "próximo trimestre"; años/período próximo
+  resueltos ciclo 30. Verificar necesidad antes de implementar.
 - P1 OPEN: adjuntos guardan URI externo (BACKLOG) — requiere sesión dedicada para copiar bytes a filesDir.
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler en pantallas anidadas;
   contraste onSurfaceVariant. No detenerse.

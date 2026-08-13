@@ -38,13 +38,25 @@ object NaturalTaskParser {
     /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado. */
     private val weekendPattern = Regex("""(?i)\b(?:este\s+|el\s+|pr[oó]ximo\s+)?fin\s+de\s+semana\b""")
     /**
-     * Fecha relativa: "en N minutos/horas/días/semanas/meses" o "dentro de N ...".
+     * Fecha relativa: "en N minutos/horas/días/semanas/meses/años" o "dentro de N ...".
      * Acepta dígitos o números escritos (una/un, dos, ..., veinte, treinta). "una"/"un" → 1.
-     * Las semanas (×7 días) y meses (×30 días) son formas muy comunes ("en una semana",
-     * "en un mes") que antes quedaban sin fecha → la tarea se olvidaba (sin recordatorio).
+     * Las semanas (×7 días), meses (×30 días) y años (×365 días) son formas muy
+     * comunes ("en una semana", "en un mes", "en un año", "en 2 años") que antes quedaban
+     * sin fecha → la tarea se olvidaba (sin recordatorio, invisible en planificador/What Now).
      */
     private val relativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de)\s+(\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|mes(?:es)?)\b"""
+        """(?i)\b(?:en|dentro\s+de)\s+(\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|mes(?:es)?|a[nñ]os?)\b"""
+    )
+    /**
+     * Período próximo: "el/la (semana|mes|año) que viene", "próximo/próxima
+     * (semana|mes|año)", "(semana|mes|año) próximo/próxima". Equivale a +1 período
+     * (semana=+7d, mes=+30d, año=+365d). Es la forma cotidianísima de posponer a la
+     * siguiente unidad de tiempo; antes ("la semana que viene", "el mes que viene",
+     * "el año que viene") quedaban sin fecha y con la frase «que viene» como residuo
+     * en el título → tarea olvidada (sin recordatorio ni visibilidad).
+     */
+    private val nextPeriodPattern = Regex(
+        """(?i)\b(?:el|la)?\s*(?:semana|mes|a[nñ]o)\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)\b|(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o)\b"""
     )
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
     private val timePatterns = listOf(
@@ -229,10 +241,6 @@ object NaturalTaskParser {
 
         // Fecha relativa "en/dentro de N minutos/horas/días" (N = dígitos o palabra).
         val relativeMatch = relativePattern.find(working)
-        val relativeIsDays = relativeMatch?.let { m ->
-            val unit = m.groupValues[2].lowercase()
-            !unit.startsWith("min") && !unit.startsWith("hora")
-        } ?: false
         val relativeDueAt = relativeMatch?.let { match ->
             val amount = parseWrittenNumber(match.groupValues[1]) ?: 0L
             val unit = match.groupValues[2].lowercase()
@@ -241,11 +249,38 @@ object NaturalTaskParser {
                 unit.startsWith("hora") -> amount * 60 * 60_000L
                 unit.startsWith("semana") -> amount * 7 * 24 * 60 * 60_000L
                 unit.startsWith("mes") -> amount * 30 * 24 * 60 * 60_000L
+                unit.startsWith("a") || unit.contains("añ") -> amount * 365 * 24 * 60 * 60_000L
                 else -> amount * 24 * 60 * 60_000L
             }
             now + millis
         }
         relativeMatch?.let { working = working.replace(it.value, " ") }
+
+        // Período próximo ("la semana que viene", "el mes que viene", "el año que
+        // viene", "próximo mes", "la próxima semana"): +1 período (semana/mes/año).
+        // Se trata como días relativos (como relativePattern) para combinarse con hora
+        // explícita ("el mes que viene a las 10" → fecha +30d a las 10:00).
+        val nextPeriodMatch = nextPeriodPattern.find(working)
+        val nextPeriodDueAt = nextPeriodMatch?.let { m ->
+            val text = m.value.lowercase()
+            val days = when {
+                "semana" in text -> 7L
+                "mes" in text -> 30L
+                else -> 365L
+            }
+            now + days * 24 * 60 * 60_000L
+        }
+        nextPeriodMatch?.let { working = working.replace(it.value, " ") }
+
+        // La fecha relativa (relativePattern) tiene prioridad; el período próximo es
+        // el respaldo cuando no hubo "en N ...". Ambos son días (no min/hora) para que
+        // se combinen con una hora explícita en lugar de descartarla.
+        val effectiveRelativeDueAt = relativeDueAt ?: nextPeriodDueAt
+        val relativeIsDays = (relativeMatch != null || nextPeriodMatch != null) &&
+            (relativeMatch?.let { m ->
+                val unit = m.groupValues[2].lowercase()
+                !unit.startsWith("min") && !unit.startsWith("hora")
+            } ?: true)
 
         // Repetición: se procesa antes que la fecha para que "cada viernes" no se lea como fecha suelta.
         val recurrence = parseRecurrence(working)
@@ -365,9 +400,9 @@ object NaturalTaskParser {
         } ?: partOfDayTime ?: standalonePartOfDayTime ?: primeraHoraMatch?.let { primeraHoraTime }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val dueAt = when {
-            relativeDueAt != null && relativeIsDays && parsedTime != null ->
-                DateRules.toEpochMillis(DateRules.toLocalDate(relativeDueAt, zone), parsedTime, zone)
-            else -> relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
+            effectiveRelativeDueAt != null && relativeIsDays && parsedTime != null ->
+                DateRules.toEpochMillis(DateRules.toLocalDate(effectiveRelativeDueAt, zone), parsedTime, zone)
+            else -> effectiveRelativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
         }
 
         // Duración: no se aplica a "en N minutos" (esa es fecha relativa, ya eliminada).
@@ -451,7 +486,7 @@ object NaturalTaskParser {
             .trim(' ', ',', '.', '-')
 
         val confidence = when {
-            relativeDueAt != null -> 1.0f
+            effectiveRelativeDueAt != null -> 1.0f
             dueAt != null && parsedTime != null -> 1.0f
             dueAt != null -> 0.9f
             priority != TaskPriority.NORMAL || durationMinutes != null || reminderOffsetMinutes != null ||

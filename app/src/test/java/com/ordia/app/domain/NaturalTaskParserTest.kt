@@ -865,6 +865,78 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "en N años": años como unidad relativa (antes: dueAt=null) ---
+    // "en un año"/"en 2 años"/"dentro de un año" son formas comunes para plazos largos
+    // (renovar licencia, presentar impuestos). Antes no se parseaban → tarea sin
+    // recordatorio, olvidada durante meses/años.
+
+    @Test fun enUnAnioParsesDueAt() {
+        val result = NaturalTaskParser.parse("Renovar licencia en un año", now, zone)
+        assertEquals("Renovar licencia", result.title)
+        assertEquals(LocalDate.of(2027, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enDosAniosParsesDueAt() {
+        val result = NaturalTaskParser.parse("Vacaciones en 2 años", now, zone)
+        assertEquals("Vacaciones", result.title)
+        assertEquals(LocalDate.of(2028, 7, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dentroDeUnAnioParsesDueAt() {
+        val result = NaturalTaskParser.parse("Renovar pasaporte dentro de un año", now, zone)
+        assertEquals("Renovar pasaporte", result.title)
+        assertEquals(LocalDate.of(2027, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enUnAnioRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Cita en un año a las 10", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2027, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // --- "el/la (semana|mes|año) que viene" / "próximo X": período siguiente ---
+    // "la semana que viene", "el mes que viene", "el año que viene" son las formas
+    // cotidianísimas de posponer a la siguiente unidad. Antes: dueAt=null y la frase
+    // "que viene" quedaba como residuo en el título → tarea olvidada.
+
+    @Test fun semanaQueVieneParsesDueAt() {
+        val result = NaturalTaskParser.parse("Enviar informe la semana que viene", now, zone)
+        assertEquals("Enviar informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mesQueVieneParsesDueAt() {
+        val result = NaturalTaskParser.parse("Pagar renta el mes que viene", now, zone)
+        assertEquals("Pagar renta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun anioQueVieneParsesDueAt() {
+        val result = NaturalTaskParser.parse("Presentar impuestos el año que viene", now, zone)
+        assertEquals("Presentar impuestos", result.title)
+        assertEquals(LocalDate.of(2027, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximoMesParsesDueAt() {
+        val result = NaturalTaskParser.parse("Enviar el próximo mes", now, zone)
+        assertEquals("Enviar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximaSemanaParsesDueAt() {
+        val result = NaturalTaskParser.parse("Revisión la próxima semana", now, zone)
+        assertEquals("Revisión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mesQueVieneRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Pagar el mes que viene a las 10", now, zone)
+        assertEquals("Pagar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- "ayer"/"anteayer": fechas pasadas explícitas ---
     // Antes no se parseaban → dueAt=null, o combinadas con hora resolvían a HOY (fecha errónea).
     // Se mantienen en el pasado (honesto: tarea vencida, visible en What Now).

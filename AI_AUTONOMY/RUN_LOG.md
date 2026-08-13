@@ -2081,3 +2081,53 @@ parseaban → tareas olvidadas (sin recordatorio, invisibles en planificador).
 ### Siguiente
 - Continuar ciclo interminable. Candidatos parser: años, "semana/mes que viene", "próximos días".
 - O P1 adjuntos URI externo si hay capacidad para sesión dedicada.
+
+---
+
+## Ciclo 30 — NaturalTaskParser: años + período próximo ("que viene"/"próximo X") — 2026-08-13T13:2Z
+
+### Objetivo
+Continuidad del ciclo 29: las formas más comunes de plazos largos y períodos siguientes
+no se parseaban → tareas olvidadas. Probe JVM (ciclo 29 ya señaló): "en un año", "el año
+que viene", "la semana que viene", "el mes que viene", "el próximo mes" → `dueAt=null`
+y la frase quedaba como residuo en el título (sin recordatorio, invisible en
+planificador/What Now).
+
+### Sincronización
+- `git fetch origin openhands/autonomous-ordia`; HEAD local == remoto (`acef2f7`). Sin divergencia.
+- Entorno: JVM puro (sin Android SDK). `bash tools/run_domain_tests.sh` = 249 tests (ciclo 29).
+
+### Cambio (1 commit)
+- `feat(parser): parse 'en N años' + 'semana/mes/año que viene' + 'próximo X'`
+  - `relativePattern` añade unidad `años`; `relativeDueAt` añade multiplicador 365 días.
+  - Nuevo `nextPeriodPattern`: "el/la (semana|mes|año) que viene", "próximo/próxima
+    (semana|mes|año)", "(semana|mes|año) próximo/próxima" → +1 período (semana=+7d,
+    mes=+30d, año=+365d), con prioridad relativePattern > nextPeriod.
+  - `effectiveRelativeDueAt` = relativeDueAt ?: nextPeriodDueAt; ambos son "días" (no
+    min/hora) para combinarse con hora explícita ("el mes que viene a las 10").
+  - Limpieza de título elimina la frase de período (no queda residuo "que viene").
+  - +14 tests (años: 4; período próximo: 7; hora explícita: 3 incluidas en esos).
+
+### Tests — VERIFICADO localmente (JVM)
+- `bash tools/run_domain_tests.sh` = **259 tests PASS** (249 base + 10 nuevos efectivos
+  de parser; +tests de título/hora), 25 clases. `tools/run_domain_checks.sh` = 25 assertions OK.
+- Probe JVM (ahora): "en un año"→+365d, "en 2 años"→+730d, "dentro de un año"→+365d,
+  "el año que viene"→+365d, "la semana que viene"→+7d, "el mes que viene"→+30d,
+  "el próximo mes"→+30d, "la próxima semana"→+7d. Todos con título limpio.
+- Probe anti-falsos-positivos: "la semana pasada", "el mes pasado", "el año pasado",
+  "próximo a la puerta", "viene a visitarme" → todos `dueAt=null` (sin colisión).
+- NO VERIFICADO: gradle/lint/assemble/Android (sin Android SDK). CI remoto ejecuta `Verificar`.
+
+### Hallazgos para próximas ejecuciones
+- Parser: "próximos días"/"en los próximos días" (vago, sin semana/mes/año) sigue sin
+  parsearse — forma intencionalmente ambigua; decidir si merece un default (¿+3d?).
+- Parser: "próximo trimestre"/"el trimestre que viene" no soportado.
+- P1 OPEN: adjuntos guardan URI externo (BACKLOG) — requiere sesión dedicada.
+
+### Commits
+- `feat(parser): parse 'en N años' + 'semana/mes/año que viene' + 'próximo X'` (código + tests)
+- docs(autonomy) pendiente: actualización de AI_AUTONOMY (este commit).
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser: "próximos días" (decidir default),
+  "próximo trimestre"; P1 adjuntos URI externo si hay sesión dedicada.
