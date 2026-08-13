@@ -3,6 +3,31 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 58 - 2026-08-13 (UTC) - fix(parser): fracción sub-hora "y media"/"y cuarto" + conector "en la tarde"
+
+- **Run/ciclo**: 58 (rama `openhands/autonomous-ordia`). **STALE_BASE detectado y reconciliado**: el HEAD inicial local era `5e6cea8` (c.52) pero el remoto ya estaba en `053e7ff` (c.57) — 4 ciclos paralelos (53–57: What-Now prioridad, intervalo+días, partOfDay DAILY, subtarea-autocomplete desde notificación, número escrito) aterrizaron mientras se trabajaba. Reconciliación no destructiva: `git stash` del trabajo local → `merge --ff-only origin/openhands/autonomous-ordia` (a `053e7ff`) → `stash pop`. Los cambios de **código** (parser + tests) se auto-mergearon limpiamente sobre la base nueva (áreas ortogonales: mi fix toca `timePatterns`/`standalonePartOfDayPattern`/`mananaAsDate`; los c.55–57 tocaron `parseRecurrence`/`RecurrenceResult`/`ReminderActionReceiver`); los **docs** en conflicto (`CURRENT_STATE`, `RUN_LOG`) se restauraron desde HEAD remoto y se reescribieron como c.58. Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
+- **HEAD inicial**: `5e6cea8` (local, obsoleto). Remoto real al iniciar: `053e7ff` (c.57).
+- **Problema seleccionado**: auditoría del motor de parsing natural descubrió dos fallos reales de captura (la superficie más frecuente de Ordía), ambos honestos y sin IA.
+  - **Fix A (P1) — "a las 9 y media"/"a las 3 y cuarto"**: el parser NO reconocía la fracción sub-hora cotidiana en español. "Cita a las 9 y media" → `due=09:00` (debería 09:30) y `title='Cita y media'` (la frase se filtraba al título). Cita/reunión programada 30 min mal (15 min con "y cuarto") y título sucio. **Causa raíz**: `timePattern[0]` (`\ba\s+las\s+([01]?\d|2[0-4])(?::([0-5]\d))?...`) no tenía grupo para la fracción; "y media" caía fuera del match → se pegaba al título, y la hora quedaba en punto. P0/P1 de producto: hora mal programada = reunión perdida o recordatorio en el momento erróneo.
+  - **Fix B (P2) — "en la tarde/noche/mañana"**: forma caribeña/hispanoamericana (zona de la app `America/Santo_Domingo`) del conector de parte del día. Antes solo se reconocían "a la"/"de la"/"por la"; "en la" no casaba: "hoy en la tarde" → `due=09:00` (debería 15:00) y residuo "en la tarde" en el título, **inconsistente** con "hoy a la tarde" que SÍ funcionaba. **Causa raíz**: `standalonePartOfDayPattern` no incluía `en\s+la`; y `mananaAsDate` no excluía "en" en su `timeMarker`, así que "en la mañana" podía contar "mañana" como fecha (mismo defecto que c.39 corrigió para "de/por/a la mañana").
+- **Prioridad**: P1 (Fix A: hora mal programada = reunión/recordatorio en momento erróneo, título sucio) + P2 (Fix B: hora/residuo inconsistentes según preposición).
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**:
+  - `timePatterns[0]` gana grupo 3 opcional `(?:\s+y\s+(media|cuarto))?` tras la hora/minutos; el meridiem pasa a grupo 4 (leído con `getOrNull(4)` para no romper los otros patrones que no tienen el grupo). `minute = explicitMinute ?: (media→30, cuarto→15, else→0)`. Respeta meridiem/contexto PM: "a las 9 y media de la tarde" → 21:30, "y media pm" → 21:30, "y media de la madrugada" → 04:30. Los minutos explícitos (`9:30`) siguen teniendo prioridad.
+  - `standalonePartOfDayPattern` añade `en\s+la` a los conectores; `mananaAsDate` añade `en` a su `timeMarker` para que "en la mañana" no se cuente como fecha "mañana".
+  - Lógica local honesta, sin IA falsa. Retrocompatible (sin cambios de firma pública).
+- **Tests**: +12 en `NaturalTaskParserTest.kt` (7 de Fix A: `y media`/`y cuarto` con y sin meridiem/tarde/noche/madrugada/pm/am; 5 de Fix B: "hoy en la tarde", "mañana en la noche", "en la mañana" sin fecha, "en la tarde a las 4" con contexto PM). **450 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 439 base c.57 + 11 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Probe JVM verificó además **interacción** con la recurrencia DIARIA "cada mañana" del c.55 ("Meditar cada mañana a las 8 y media" → `DAILY 08:30`) y que las regresiones no se rompen (horas en punto, "a las N horas", "por la/de la/a la" preexistentes, "media hora"/"un cuarto de hora" como duración siguen OK).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, captura real en el dispositivo (parser probado solo en JVM pura con stubs).
+- **Hallazgos adicionales (descubrimiento continuo)**: probe reveló que el **rango horario CON minutos** ("clase de 9:30 a 11") o con meridiem en ambos extremos ("de 9am a 11am") NO parsea la duración correctamente (`title='Clase de a 11'`, pierde "9:30"; `dur=null`). El `timeRangePattern` captura horas en punto y deja residuo cuando hay minutos/meridiem. Documentado en BACKLOG como P2 ABIERTO (futuro run).
+- **Archivos modificados**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras push a `origin/openhands/autonomous-ordia`).
+- **Estado**: VERIFIED (JVM). 450 domain tests PASS (reconciliación limpia sobre c.57 número-escrito).
+
+### Siguiente
+- P2 ABIERTO: rango horario con minutos/meridiem en ambos extremos ("clase de 9:30 a 11", "de 9am a 11am") — `timeRangePattern` deja residuo y no calcula duración.
+- Descubrimiento continuo: auditar `RecurrenceEngine.nextOccurrence` edge cases (fin de mes mensual → día 31/febrero, año bisiesto), `GuardianCoach` detección de vencidas importantes, `SummaryService`, captura ultrarrápida.
+- Parser: múltiples marcadores temporales en una frase.
+
+
 
 ## Ciclo 57 - 2026-08-13 (UTC) - fix(parser): intervalo de recurrencia con número escrito ("cada dos semanas")
 

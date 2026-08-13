@@ -1048,6 +1048,89 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- "y media" / "y cuarto": fracción sub-hora cotidiana en español ---
+    // "a las 9 y media" antes dejaba "y media" en el título y la hora en 09:00
+    // (reunión/cita 30 minutos mal programados). Ahora → 09:30 con título limpio.
+
+    @Test fun aLas9YMediaEs9_30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las 9 y media", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas3YCuartoEs3_15YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las 3 y cuarto", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(3, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun yMediaConDeLaTardeAplicaPm() {
+        val result = NaturalTaskParser.parse("Cita a las 9 y media de la tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun yMediaConDeLaNocheAplicaPm() {
+        val result = NaturalTaskParser.parse("Cita a las 7 y media de la noche", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(19, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun yMediaConDeLaMadrugadaEsAm() {
+        val result = NaturalTaskParser.parse("Cita a las 4 y media de la madrugada", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(4, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun yMediaConPmExplicitoAplicaPm() {
+        val result = NaturalTaskParser.parse("Cita a las 9 y media pm", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun yMediaConAmExplicitoEsAm() {
+        val result = NaturalTaskParser.parse("Cita a las 9 y media am", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // --- "en la tarde/noche/mañana": forma caribeña/hispanoamericana ---
+    // "en la tarde" no era conector reconocido de parte del día (solo "a la"/"de la"/"por la"),
+    // así "hoy en la tarde" caía a 09:00 y "en la tarde" quedaba como residuo en el título.
+    // Forma propia de la zona de la app (America/Santo_Domingo).
+
+    @Test fun hoyEnLaTardeEs15hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión hoy en la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mananaEnLaNocheEsManana21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Llamar mañana en la noche", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun enLaMananaEs9hYLimpiaTituloSinFecha() {
+        // "en la mañana" sin otro marcador de fecha → hoy 09:00 (mañana no se cuenta como
+        // fecha porque va precedida del conector "en la").
+        val result = NaturalTaskParser.parse("Reunión en la mañana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun enLaTardeConHoraSinMeridiemAplicaPm() {
+        // "en la tarde" aporta contexto PM: "a las 4" → 16:00.
+        val result = NaturalTaskParser.parse("Reunión en la tarde a las 4", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(16, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- Limpieza de prefijos/sufijos de día de la semana (ciclo 8) ---
     // "del jueves", "el viernes que viene", "el miércoles próximo" dejaban
     // residuos ("del", "que viene", "próximo") en el título.

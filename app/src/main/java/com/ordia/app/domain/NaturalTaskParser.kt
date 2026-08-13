@@ -178,7 +178,10 @@ object NaturalTaskParser {
         // "a las 9 horas" completo: antes "horas" quedaba como residuo en el titulo y,
         // peor, "9 horas" era robado como duracion (540 min falsos). Como grupo propio
         // (no meridiem), no altera la logica AM/PM ni marca meridiem explicito.
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?(?:\s*(horas?|hs))?\b"""),
+        // Grupo 3 opcional "y media"/"y cuarto": fracción sub-hora cotidiana en español
+        // ("a las 9 y media" → 09:30, "a las 3 y cuarto" → 03:15). Antes "y media" caía
+        // como residuo en el título y la hora quedaba en punto (reunión/cita 30 min mal).
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4])(?::([0-5]\d))?(?:\s+y\s+(media|cuarto))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?(?:\s*(horas?|hs))?\b"""),
         Regex("""(?i)\b([01]?\d|2[0-4]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b"""),
         Regex("""(?i)\b(?:al\s+|a\s+la\s+)?mediod[ií]a\b"""),
@@ -272,8 +275,13 @@ object NaturalTaskParser {
      * más común de combinar día relativo + parte del día en español; antes el conector
      * "por la" no se reconocía y la frase quedaba como residuo en el título, con hora
      * 09:00 en vez de la canónica de la parte del día.
+     *
+     * "en la" se incluye (forma caribeña/hispanoamericana: "hoy en la tarde",
+     * "mañana en la noche") propia de la zona de la app (America/Santo_Domingo). Antes
+     * "en la tarde" no se reconocía: la hora caía a 09:00 y "en la tarde" quedaba como
+     * residuo en el título.
      */
-    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:a\s+la|de\s+la|por\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)\b""")
+    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:a\s+la|de\s+la|por\s+la|en\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)\b""")
     private val standalonePartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),
@@ -758,14 +766,25 @@ object NaturalTaskParser {
                 mv.contains("medianoche") -> LocalTime.MIDNIGHT to true
                 else -> {
                     var hour = match.groupValues[1].toInt()
-                    val minute = match.groupValues[2].toIntOrNull() ?: 0
+                    val explicitMinute = match.groupValues[2].toIntOrNull()
+                    // Grupo 3 opcional "y media"/"y cuarto" solo existe en timePattern[0]
+                    // ("a las N"); en otros patrones (N:MM, Nam/Pm) no hay grupo 3 → getOrNull.
+                    val fraction = match.groupValues.getOrNull(3)?.lowercase().orEmpty()
+                    // "y media" = +30 min, "y cuarto" = +15 min sobre la hora en punto
+                    // (sin minutos explícitos). "a las 9 y media" → 09:30, no 09:00.
+                    val minute = explicitMinute ?: when (fraction) {
+                        "media" -> 30
+                        "cuarto" -> 15
+                        else -> 0
+                    }
                     // "a las 24" / "24:00" = medianoche (00:00), forma común en horarios.
                     // Se marca como meridiem explícito para evitar que el contexto PM de
                     // parte del día aplique un offset (24 ya es absoluto).
                     if (hour == 24) {
                         LocalTime.MIDNIGHT to true
                     } else {
-                        val meridiem = match.groupValues[3].lowercase().replace(".", "").replace(" ", "")
+                        val meridiem = match.groupValues.getOrNull(4)?.lowercase().orEmpty()
+                            .replace(".", "").replace(" ", "")
                         // "de la tarde"/"de la noche" → 12h posterior; "de la mañana/madrugada" → am.
                         val isPm = meridiem == "pm" || meridiem == "delatarde" || meridiem == "delanoche"
                         val isAm = meridiem == "am" || meridiem == "delamañana" || meridiem == "delamanaana" || meridiem == "delamadrugada"
@@ -1263,7 +1282,7 @@ object NaturalTaskParser {
      * "a las 9 de la mañana" (única aparición precedida de "la ") no se fecha.
      */
     private fun mananaAsDate(working: String): Boolean {
-        val timeMarker = Regex("""(?i)(?:de|por|a)\s+la\s+$|\besta\s+$""")
+        val timeMarker = Regex("""(?i)(?:de|por|a|en)\s+la\s+$|\besta\s+$""")
         var idx = 0
         while (true) {
             val m = Regex("""(?i)\bmañana\b""").find(working, idx) ?: return false

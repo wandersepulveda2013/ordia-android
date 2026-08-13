@@ -14,15 +14,66 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 57)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (rebase no destructivo sobre c.56 subtarea-autocomplete + c.55 partOfDay DAILY + c.54 intervalo+días + c.53 What Now + c.52 snooze)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 58)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (reconciliación no destructiva sobre c.57 número-escrito + c.56 subtarea-autocomplete + c.55 partOfDay DAILY + c.54 intervalo+días + c.53 What Now + c.52 snooze; aterriza fix de fracción sub-hora "y media"/"y cuarto" + "en la tarde")
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests); **DayPlanner conflicto startAt otro día** c.51 (415 tests); **intervalo+días "cada 2 semanas los lunes"/"cada quincena los lunes y viernes"/"cada 3 semanas de lunes a viernes"** c.54 (428 tests); **"cada mañana/tarde/noche/madrugada" + "todas las mañanas/tardes/noches" como recurrencia DIARIA** con hora canónica (c.55, 435 tests); **autocompletar padre al cerrar última subtarea desde notificación** (`ReminderActionReceiver.ACTION_COMPLETE` ↔ `SubtaskRules.shouldAutoCompleteParent`) (c.56); **intervalo con número escrito "cada dos semanas"/"cada tres meses"/"cada quince días"/"cada dos años"** (c.57, 439 tests) |
+| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests); **DayPlanner conflicto startAt otro día** c.51 (415 tests); **intervalo+días "cada 2 semanas los lunes"/"cada quincena los lunes y viernes"/"cada 3 semanas de lunes a viernes"** c.54 (428 tests); **"cada mañana/tarde/noche/madrugada" + "todas las mañanas/tardes/noches" como recurrencia DIARIA** con hora canónica (c.55, 435 tests); **autocompletar padre al cerrar última subtarea desde notificación** (`ReminderActionReceiver.ACTION_COMPLETE` ↔ `SubtaskRules.shouldAutoCompleteParent`) (c.56); **intervalo con número escrito "cada dos semanas"/"cada tres meses"/"cada quince días"/"cada dos años"** (c.57, 439 tests); **fracción sub-hora "a las 9 y media"/"a las 3 y cuarto" (media→30, cuarto→15) + conector caribeño "en la tarde/noche/mañana"** (c.58, 450 tests) |
+
+## Último trabajo — Ciclo 58: parser reconoce "y media"/"y cuarto" y "en la tarde" (captura natural en español)
+
+Auditoría del motor de parsing natural descubrió dos fallos reales de captura (la superficie más
+frecuente de Ordía), ambos honestos y sin IA. Aterriza tras reconciliación no destructiva con los
+ciclos 55–57 (que tocaron `parseRecurrence` y el bloque de tiempo del mismo archivo): el fix se
+integró limpiamente sobre esa base nueva y compone bien con "cada mañana a las 8 y media" (DAILY +
+08:30).
+
+**Fix A (P1) — "a las 9 y media" / "a las 3 y cuarto"**: fracción sub-hora cotidiana en español.
+Antes el parser NO reconocía "y media"/"y cuarto" como modificador de la hora: "Cita a las 9 y
+media" → `due=09:00` (debería 09:30) y `title='Cita y media'` (la frase se filtraba al título). Una
+cita/reunión programada 30 min mal (15 min con "y cuarto") y con título sucio. P0 de producto: hora
+mal programada = reunión perdida o recordatorio en el momento erróneo.
+
+**Fix B (P2) — "en la tarde/noche/mañana"**: forma caribeña/hispanoamericana (zona de la app,
+`America/Santo_Domingo`) del conector de parte del día. Antes solo se reconocían "a la"/"de la"/
+"por la"; "en la" no casaba: "hoy en la tarde" → `due=09:00` (debería 15:00) y `title='hoy en la
+tarde'` (residuo). Comparar con "hoy a la tarde" que SÍ funcionaba → inconsistencia según la
+preposición que usara el usuario.
+
+**Solución (mínima, sin nueva pantalla/botón)**:
+- `timePatterns[0]` gana grupo 3 opcional `(\s+y\s+(media|cuarto))?` tras la hora/minutos, y el
+  meridiem pasa a grupo 4 (leído con `getOrNull` para no romper los otros patrones que no tienen
+  el grupo). `minute = explicitMinute ?: (media→30, cuarto→15, else→0)`. Respeta meridiem/contexto
+  PM ("a las 9 y media de la tarde" → 21:30, "y media pm" → 21:30, "y media de la madrugada" →
+  04:30). Los minutos explícitos (`9:30`) siguen teniendo prioridad.
+- `standalonePartOfDayPattern` añade `en\s+la` a los conectores, y `mananaAsDate` añade `en` a su
+  `timeMarker` para que "en la mañana" no se cuente como fecha "mañana" (misma técnica usada en
+  c.39 para "de/por/a la mañana").
+
+Lógica local honesta, sin IA falsa. Retrocompatible (sin cambios de firma pública).
+
+**Tests**: +12 en `NaturalTaskParserTest.kt` (7 de Fix A: `y media`/`y cuarto` con y sin meridiem/
+tarde/noche/madrugada/pm/am; 5 de Fix B: "hoy en la tarde", "mañana en la noche", "en la mañana"
+sin fecha, "en la tarde a las 4" con contexto PM). Probe JVM verificó además interacción con la
+recurrencia DIARIA "cada mañana" del c.55 ("Meditar cada mañana a las 8 y media" → DAILY 08:30) y
+que las regresiones no se rompen (horas en punto, "a las N horas", "por la/de la/a la" preexistentes,
+"media hora"/"un cuarto de hora" como duración siguen OK). **450 domain tests PASS**
+(`tools/run_domain_tests.sh`, 26 clases — 439 base c.57 + 11 nuevos), smoke 25 OK
+(`tools/run_domain_checks.sh`).
+
+**Reconciliación con runs paralelos**: el HEAD inicial local (`5e6cea8`, c.52) estaba obsoleto: 4
+ciclos (53–57) aterrizaron en remoto mientras se trabajaba. Se hizo `git stash` → `merge --ff-only`
+al remoto `053e7ff` (c.57) → `stash pop`: los cambios de código (parser + tests) se auto-mergearon
+limpiamente sobre la base nueva; los docs en conflicto se restauraron desde HEAD remoto y se
+reescribieron como c.58. Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
+
+**NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, captura real en el
+dispositivo (parser probado solo en JVM pura con stubs).
+
 
 ## Último trabajo — Ciclo 57: Parser — intervalo de recurrencia con número escrito
 
