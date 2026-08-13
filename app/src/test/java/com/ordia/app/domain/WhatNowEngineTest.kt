@@ -120,4 +120,64 @@ class WhatNowEngineTest {
         assertEquals(2L, suggestion!!.task.id)
         assertEquals(WhatNowReason.NEXT_INBOX, suggestion.reason)
     }
+
+    @Test
+    fun imminentStartSurfacesAboveInbox() {
+        // Reunión/cita que empieza en 5 min: ahora = 10:00, start = 10:05.
+        val imminent = task(1, "Reunión inminente").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 5), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(10, 30), zone)
+        )
+        val inbox = task(2, "De la bandeja")
+
+        val suggestion = WhatNowEngine.suggest(listOf(imminent, inbox), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.IMMINENT_START, suggestion.reason)
+    }
+
+    @Test
+    fun startOutsideImminentWindowStillDeprioritized() {
+        // Empieza en 30 min (> ventana de 15): sigue como último recurso frente a la Bandeja.
+        val soonButNotImminent = task(1, "En 30 min").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 30), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(11, 0), zone)
+        )
+        val inbox = task(2, "De la bandeja")
+
+        val suggestion = WhatNowEngine.suggest(listOf(soonButNotImminent, inbox), now = now, zone = zone)
+
+        assertEquals(2L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.NEXT_INBOX, suggestion.reason)
+    }
+
+    @Test
+    fun overdueStillBeatsImminentStart() {
+        // Una tarea atrasada (ya pasó su hora) tiene prioridad sobre un compromiso que aún no empieza.
+        val overdue = task(1, "Atrasada").copy(dueAt = DateRules.toEpochMillis(date.minusDays(1), LocalTime.of(18, 0), zone))
+        val imminent = task(2, "Reunión inminente").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 5), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(10, 30), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(imminent, overdue), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.OVERDUE, suggestion.reason)
+    }
+
+    @Test
+    fun imminentStartBeatsDueTodayWithoutStart() {
+        val imminent = task(1, "Reunión inminente").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 5), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(10, 30), zone)
+        )
+        val dueToday = task(2, "Vence hoy").copy(dueAt = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone))
+
+        val suggestion = WhatNowEngine.suggest(listOf(dueToday, imminent), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.IMMINENT_START, suggestion.reason)
+    }
+
 }

@@ -11,6 +11,7 @@ import java.time.ZoneId
 enum class WhatNowReason {
     IN_PROGRESS_NOW,
     OVERDUE,
+    IMMINENT_START,
     DUE_TODAY,
     URGENT,
     HIGH_PRIORITY,
@@ -65,6 +66,7 @@ object WhatNowEngine {
         task.status == TaskStatus.IN_PROGRESS -> 6
         isInProgressNow(task, now) -> 5
         TaskRules.isOverdue(task, now) -> 4
+        isImminentStart(task, now) -> 4
         isScheduledLater(task, now) -> -1
         isDueToday(task, today, zone) -> 3
         task.priority == TaskPriority.URGENT -> 2
@@ -76,6 +78,7 @@ object WhatNowEngine {
         task.status == TaskStatus.IN_PROGRESS -> WhatNowReason.IN_PROGRESS_NOW
         isInProgressNow(task, now) -> WhatNowReason.IN_PROGRESS_NOW
         TaskRules.isOverdue(task, now) -> WhatNowReason.OVERDUE
+        isImminentStart(task, now) -> WhatNowReason.IMMINENT_START
         isScheduledLater(task, now) -> WhatNowReason.SCHEDULED_LATER
         isDueToday(task, today, zone) -> WhatNowReason.DUE_TODAY
         task.priority == TaskPriority.URGENT -> WhatNowReason.URGENT
@@ -90,6 +93,17 @@ object WhatNowEngine {
         return now <= start + duration
     }
 
+    /**
+     * Compromiso a punto de empezar: startAt futuro pero dentro de [IMMINENT_WINDOW_MINUTES].
+     * Una reunion/llamada/cita que comienza en pocos minutos es exactamente "que hago ahora",
+     * aunque aun no haya arrancado: la elevamos por encima de la Bandeja para no olvidarla.
+     * Las que empiezan mas tarde siguen como ultimo recurso (isScheduledLater).
+     */
+    private fun isImminentStart(task: TaskEntity, now: Long): Boolean {
+        val start = task.startAt ?: return false
+        return start > now && (start - now) <= IMMINENT_WINDOW_MINUTES * 60_000L
+    }
+
     private fun isScheduledLater(task: TaskEntity, now: Long): Boolean =
         task.startAt != null && task.startAt > now
 
@@ -97,4 +111,7 @@ object WhatNowEngine {
         val due = task.dueAt ?: return false
         return Instant.ofEpochMilli(due).atZone(zone).toLocalDate() == today
     }
+
+    /** Ventana en la que un compromiso programado futuro se considera "ahora mismo". */
+    private const val IMMINENT_WINDOW_MINUTES = 15
 }

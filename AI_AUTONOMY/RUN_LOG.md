@@ -17,6 +17,21 @@
 - **HEAD final**: `6d0c6a4`.
 - **Próxima prioridad**: seguir fuera del parser. Candidatos: auditar `SubtaskRules`/`RoutineRules`/`HabitRules` para invariantes de conteo análogos; revisar `WhatNowEngine` vs `nextBestTask` time-aware para coherencia total; oportunidades de captura ultrarrápida.
 
+## Ciclo 46 (run paralelo) - 2026-08-13 (UTC) - What Now detecta compromisos a punto de empezar (IMMINENT_START)
+
+- **Run/ciclo**: 46 (inteligencia del "¿Qué hago ahora?" — evitar olvidos de compromisos inminentes). Renumerado desde 44 tras colisión de remoto (los ciclos 44–45 fueron reclamados por un run paralelo: "la quincena" + `nextBestTask` time-aware).
+- **HEAD inicial**: `e0850e6` (mi base de captura); al hacer push el remoto había avanzado a `966b799`. `git fetch` + `git rebase origin/openhands/autonomous-ordia` (no destructivo, sin force): auto-merge limpio en `WhatNowEngine.kt`/`TodayScreen.kt`/strings/test; conflicto solo en `CURRENT_STATE.md` resuelto conservando el trabajo del otro run.
+- **Problema seleccionado (P1, What Now)**: un compromiso programado con `startAt` futuro (reunión/llamada/cita) que empieza en pocos minutos **no aparecía** en "¿Qué hago ahora?": el ranking lo trataba como `SCHEDULED_LATER` (rank -1, último recurso) siempre que `startAt > now`, sin distinguir 5 min de 5 h. Una reunión a las 10:05 escrita a las 10:00 quedaba enterrada bajo una tarea cualquiera de la Bandeja — olvido de compromiso inminente.
+- **Prioridad**: P1 (recuperación de compromiso importante a punto de empezar; evita olvidos sin nueva interfaz).
+- **Causa raíz**: `WhatNowEngine.rank()`/`reason()` solo distinguían `startAt > now` → SCHEDULED_LATER; no existía gradación por proximidad temporal.
+- **Solución (mínima, `WhatNowEngine.kt`)**: nuevo `WhatNowReason.IMMINENT_START` (rank 4, entre OVERDUE y DUE_TODAY) + `isImminentStart(task, now)` (`startAt` futuro y dentro de `IMMINENT_WINDOW_MINUTES = 15`). Las que empiezan más allá siguen como SCHEDULED_LATER. Orden honesto: atrasada > inminente > vence hoy. UI: etiqueta `what_now_reason_imminent`="Empieza enseguida" en `TodayScreen.kt` (rama `when` exhaustiva). Sin nueva pantalla/botón.
+- **Tests**: +4 (`imminentStartSurfacesAboveInbox`, `startOutsideImminentWindowStillDeprioritized`, `overdueStillBeatsImminentStart`, `imminentStartBeatsDueTodayWithoutStart`). **392 domain tests PASS** (388 base remota c.45 + 4 nuevos), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `WhatNowEngine.kt`, `TodayScreen.kt`, `strings_screens1.xml`, `WhatNowEngineTest.kt`, `CURRENT_STATE.md`, `RUN_LOG.md`.
+- **Commits**: (pendiente de push).
+- **HEAD final**: (pendiente).
+
+
 ---
 ## Ciclo 42 (cont. 2) - 2026-08-13 (UTC) - día de semana suelto hoy con hora futura vence hoy
 

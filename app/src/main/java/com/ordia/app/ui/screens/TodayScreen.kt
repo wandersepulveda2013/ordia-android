@@ -398,6 +398,7 @@ private fun TaskItem(state: OrdiaUiState, vm: OrdiaViewModel, task: TaskEntity, 
 private fun whatNowReasonLabel(reason: WhatNowReason): String = when (reason) {
     WhatNowReason.IN_PROGRESS_NOW -> stringResource(R.string.what_now_reason_in_progress)
     WhatNowReason.OVERDUE -> stringResource(R.string.what_now_reason_overdue)
+    WhatNowReason.IMMINENT_START -> stringResource(R.string.what_now_reason_imminent)
     WhatNowReason.DUE_TODAY -> stringResource(R.string.what_now_reason_due_today)
     WhatNowReason.URGENT -> stringResource(R.string.what_now_reason_urgent)
     WhatNowReason.HIGH_PRIORITY -> stringResource(R.string.what_now_reason_high)

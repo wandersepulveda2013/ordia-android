@@ -24,6 +24,38 @@
 
 | P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests) |
 
+## Último trabajo — Ciclo 46 (run paralelo): What Now detecta compromisos a punto de empezar (IMMINENT_START)
+
+Unidad atómica de inteligencia del "¿Qué hago ahora?" (P1 — evitar olvidos de compromisos inminentes).
+**Problema**: un compromiso programado con `startAt` futuro (reunión/llamada/cita) que empieza en
+pocos minutos **no aparecía** en "¿Qué hago ahora?" aunque sea lo más urgente del momento: el ranking
+lo trataba como `SCHEDULED_LATER` (rank -1, último recurso) siempre que `startAt > now`, sin importar
+si faltaban 5 min o 5 horas. Así una reunión a las 10:05 escrita a las 10:00 quedaba enterrada bajo
+una tarea cualquiera de la Bandeja — justo el tipo de olvido que Ordía debe evitar.
+
+**Solución (mínima, en `WhatNowEngine.kt`)**:
+- Nuevo `WhatNowReason.IMMINENT_START` (entre OVERDUE y DUE_TODAY en el ranking, rank 4).
+- `isImminentStart(task, now)`: `startAt` futuro y dentro de `IMMINENT_WINDOW_MINUTES = 15`.
+  Las que empiezan más allá de 15 min siguen como `SCHEDULED_LATER` (sin cambio).
+- Orden de prioridad honesto: EN_CURSO > EN_PROGRESO > ATRASADA > INMINENTE > VENCE_HOY >
+  URGENTE > ALTA > BANDEJA. Una tarea atrasada sigue ganando a un compromiso que aún no empieza
+  (no regresas lo pasado por lo inminente).
+- UI: nueva etiqueta `what_now_reason_imminent` = "Empieza enseguida" en `TodayScreen.kt`
+  (rama `when` exhaustiva añadida). Sin nueva pantalla, sin nuevo botón: misma sugerencia,
+  mejor priorización. Menos interfaz, más potencia.
+
+**Colisión de remoto resuelta (no destructiva)**: el remoto había avanzado a `966b799` (ciclos 44–45
+del otro run: "la quincena" como hito + `nextBestTask` time-aware). `git fetch` + `git rebase
+origin/openhands/autonomous-ordia` (no destructivo, sin force): auto-merge limpio en
+`WhatNowEngine.kt`/`TodayScreen.kt`/strings/test (cambios ortogonales); conflicto solo en
+`CURRENT_STATE.md` resuelto conservando el trabajo del otro run y renumerando el mío a **ciclo 46**.
+Sin force push, sin reset --hard.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**392 tests PASS** (388 base remota c.45 + 4 nuevos), 25 clases. Smoke 25 OK
+(`tools/run_domain_checks.sh`). NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs
+reales (sin Android SDK).
+
 | P2 | Inteligencia — `nextBestTask` time-aware (widget/asistente alineado con What Now) | FIXED (c.45, run paralelo `2ef4bfa`): ordena en-curso-ahora > vencida > vence-hoy > urgente > alta > resto; `isDueToday` zona-aware. 388 tests. |
 | P1 | Inteligencia/coach — `GuardianEngine.overdue` infla subtareas vs `SummaryEngine` | FIXED (c.46): filtra `parentTaskId == null` (alineado con resumen) + expone `overdue` en `Snapshot`. 391 tests. |
 | P1 | Parser — "el 15" día del mes suelto con artículo | FIXED (c.47): `dayOfMonthPattern` ("el N"/"el N del mes") con lookahead anti-colisión; reutiliza `nextMonthlyDate`. 394 tests. |
