@@ -13,8 +13,8 @@
 - **Solución (mínima, `GuardianEngine.kt`)**: filtrar `it.parentTaskId == null` en el conteo de `overdue` (alineado con `SummaryEngine`). Además, exponer `overdue` en `Snapshot` (campo `overdue: Int` añadido al final de la data class, retrocompatible: nadie construye `Snapshot` posicionalmente; la UI lee por nombre) para que el invariant sea verificable y la superficie pueda mostrar el mismo número que el resumen. `completedToday`/XP siguen contando subtareas a propósito (progreso granular deliberado) — solo el conteo de atrasados se alinea con la definición global.
 - **Tests**: +1 (`overdueCountsOnlyRootTasksNotNestedSubtasks`: padre + 2 subtareas atrasadas → `overdue==1`, ánimo `CURIOUS` no `CONCERNED` (umbral 5), `suggestedAction` reacciona al atrasado). **391 domain tests PASS** (`bash tools/run_domain_tests.sh`; 388 base remota c.45 + 3 del run paralelo `nextBestTask` + 1 nuevo), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Render real del guardián/overlay.
-- **Commits**: `fix(intel): guardián cuenta atrasados solo como tareas raíz (consistencia con resumen)`.
-- **HEAD final**: (ver commit tras push).
+- **Commits**: `fix(guardian): overdue cuenta solo tareas raíz (consistencia con resumen)` → `6d0c6a4` (push OK a `openhands/autonomous-ordia`).
+- **HEAD final**: `6d0c6a4`.
 - **Próxima prioridad**: seguir fuera del parser. Candidatos: auditar `SubtaskRules`/`RoutineRules`/`HabitRules` para invariantes de conteo análogos; revisar `WhatNowEngine` vs `nextBestTask` time-aware para coherencia total; oportunidades de captura ultrarrápida.
 
 ---
