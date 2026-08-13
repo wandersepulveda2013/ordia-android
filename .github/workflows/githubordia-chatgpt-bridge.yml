@@ -1,9 +1,28 @@
 name: Ordia ChatGPT Bridge
 
 on:
+  # Respaldo solamente; la autonomía ya no dependerá del cron.
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "7-59/5 * * * *"
+
   workflow_dispatch:
+
+  # ChatGPT abrirá un issue efímero al crear cada misión.
+  # Abrir el issue despierta inmediatamente el bridge.
+  issues:
+    types: [opened]
+
+  # Cuando Jules cree o actualice su PR.
+  pull_request_target:
+    branches:
+      - jules/autonomous-ordia
+    types: [opened, synchronize, reopened, ready_for_review]
+
+  # Cuando termine el CI, el bridge vuelve a revisar la cola.
+  workflow_run:
+    workflows:
+      - "Ordia 3.0 CI"
+    types: [completed]
 
 concurrency:
   group: ordia-chatgpt-bridge
