@@ -15,12 +15,12 @@
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del parser en la app (sin Android SDK).
 - **Hallazgos adicionales (descubrimiento continuo)**: probe reveló **adjetivos de cadencia desnudos** no reconocidos ("pago mensual", "reunión semanal", "suscripción anual", "repaso diario" → `NONE due=null`). Documentado en BACKLOG como P2 ABIERTO con advertencia: riesgo de falso positivo ("diario"=sustantivo, "informe mensual" puede ser puntual) — forzar recurrencia crearía tareas recurrentes NO deseadas (otro problema de integridad). No implementado sin señal desambiguadora. Las formas con `-mente` ("mensualmente") SÍ funcionan.
 - **Archivos modificados**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: pendiente de push.
-- **Estado**: VERIFIED (JVM). 439 domain tests PASS.
+- **HEAD final**: `94752f8` (tras push a `origin/openhands/autonomous-ordia`).
+- **Estado**: VERIFIED (JVM). 439 domain tests PASS (rebase limpio sobre c.56 subtarea-autocomplete).
 
 ### Siguiente
-- P2 ABIERTO: adjetivos de cadencia desnudos ("pago mensual") — decidir umbral de falso positivo.
-- Descubrimiento continuo: auditar `RecurrenceEngine.nextOccurrence` edge cases (fin de mes mensual, año bisiesto), `WhatNowEngine`, `GuardianCoach`, detección de vencidas.
+- P2 ABIERTO: adjetivos de cadencia desnudos ("pago mensual") — decidir umbral de falso positivo (requiere señal desambiguadora: "cada"/"todos los" o sustantivo fuerte "pago"/"factura"/"suscripción").
+- Descubrimiento continuo: auditar `RecurrenceEngine.nextOccurrence` edge cases (fin de mes mensual → día 31/febrero, año bisiesto), `WhatNowEngine` ranking, `GuardianCoach` detección de vencidas, captura ultrarrápida.
 - P1 adjuntos: migración lazy de URIs externos legacy (seguridad).
 
 ## Ciclo 55 - 2026-08-13 (UTC) - fix(parser): "cada mañana/tarde/noche/madrugada" como recurrencia DIARIA
