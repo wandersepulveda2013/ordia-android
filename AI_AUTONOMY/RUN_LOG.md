@@ -167,3 +167,13 @@
 - (pendiente) docs(autonomy): memoria de la sesión 002 (este commit)
 
 ---
+## SESIÓN 003 — PRUEBA CONTROLADA DEL PUENTE CHATGPT→AIRTABLE→GITHUB ACTIONS→JULES
+
+- **Fecha (UTC)**: 2026-08-13
+- **Trigger**: Misión ORDIA-AGENT-0001
+- **Resultado**: ÉXITO
+
+### Qué se hizo
+
+1. Se ejecutó la misión ORDIA-AGENT-0001 a través del puente del supervisor ChatGPT.
+2. No se modificó funcionalidad de Ordía, secretos, ni flujos de trabajo, de acuerdo con el contrato de seguridad.
