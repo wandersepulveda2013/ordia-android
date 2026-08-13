@@ -4,6 +4,7 @@ import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -52,5 +53,31 @@ class SearchEngineTest {
         assertEquals(1, results.size)
         assertEquals(SearchKind.NOTE, results.first().kind)
         assertEquals(11L, results.first().id)
+    }
+
+    @Test fun urgencyRanksOverdueAheadOfAlphabeticalMatches() {
+        // Dos tareas con el mismo título; la atrasada y urgente debe aparecer antes.
+        val now = System.currentTimeMillis()
+        val overdue = TaskEntity(id = 21, title = "Reunión equipo", priority = TaskPriority.URGENT, dueAt = now - 3_600_000L)
+        val fresh = TaskEntity(id = 22, title = "Reunión equipo", priority = TaskPriority.NORMAL)
+        val results = SearchEngine.search("reunion", listOf(overdue, fresh), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(2, results.size)
+        assertEquals(21L, results.first().id)
+    }
+
+    @Test fun textPrefixStillBeatsUrgencyForDifferentTitles() {
+        // "Toolisto" como prefijo del proyecto sigue ganando sobre una tarea que
+        // solo contiene la palabra (no la prefija), incluso si la tarea es urgente.
+        val now = System.currentTimeMillis()
+        val urgent = TaskEntity(id = 31, title = "Revisar Toolisto", priority = TaskPriority.URGENT, dueAt = now - 60_000L)
+        val results = SearchEngine.search(
+            "toolisto",
+            listOf(urgent),
+            listOf(ProjectEntity(id = 32, name = "Toolisto")),
+            emptyList(),
+            emptyList(),
+            now = now
+        )
+        assertEquals(SearchKind.PROJECT, results.first().kind)
     }
 }

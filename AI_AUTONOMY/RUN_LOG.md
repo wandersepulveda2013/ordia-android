@@ -3,6 +3,22 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 49 - 2026-08-13 (UTC) - search ranking accionable (urgencia sobre orden alfabético)
+
+- **Run/ciclo**: 49 (búsqueda/inteligencia — fuera del parser). Continúa la línea "potencia sin más interfaz".
+- **HEAD inicial**: `8950d07` (base de captura). Durante el run el remoto avanzó a `4cb5f0f` (ciclo 48: fix "Vence hoy" falso en planificador). Colisión no destructiva: `git stash` → `git pull --ff-only` → `git stash pop`, auto-merge limpio (cambios ortogonales: remoto tocó `DayPlanner.kt`/`PlannerScreen.kt`/strings/test, este run toca `SearchEngine.kt`). Sin force push, sin reset --hard.
+- **Problema seleccionado (P2, producto/UX — búsqueda)**: `SearchEngine.search` ordenaba los resultados por **prefijo del título y luego alfabético**, sin considerar urgencia. Al buscar "reunión" con dos tareas "Reunión equipo" —una **atrasada y urgente**, otra normal sin fecha— el orden dependía solo del alfabeto, así que la crítica podía quedar debajo. La búsqueda devolvía "matches" sin priorizar lo accionable, contrario al principio de Ordía ("qué hacer ahora" eleva lo atrasado/urgente en todas las superficies).
+- **Causa raíz**: el `sortWith(compareBy { prefix }.thenBy { title })` final operaba solo sobre `SearchResult` (kind/id/title/subtitle), que **no transporta** prioridad/fecha/estado; el filtrado ya descartaba atrasadas, pero el ordenado ignoraba la urgencia disponible en el `TaskEntity` origen.
+- **Prioridad**: P2 (mejora funcional potente de una superficie existente; no pérdida de datos ni crash).
+- **Solución (mínima, `SearchEngine.kt`, sin nueva pantalla/botón)**: wrapper interno `Ranked(result, urgency, dueAt)` calculado al construir cada resultado. `urgencyRank(task, now)` reutiliza `TaskRules.isOverdue`/`isDueToday` (fuente única de verdad) en orden honesto idéntico a `nextBestTask`: atrasada+urgente > atrasada > urgente+vence-hoy > urgente > alta > vence-hoy > resto. Orden final: **prefijo de título** (relevancia textual primero) → **urgencia** → **dueAt** → **alfabeto**. No-tareas tienen urgencia neutral (6), así que un proyecto/nota que **prefija** el query sigue ganando (la relevancia textual domina); una tarea atrasada que también prefija sube por encima. Heurística local honesta (no IA simulada).
+- **Tests**: +2 (`urgencyRanksOverdueAheadOfAlphabeticalMatches`: dos tareas mismo título, la atrasada+urgente primera; `textPrefixStillBeatsUrgencyForDifferentTitles`: proyecto "Toolisto" prefija y sigue ganando sobre tarea "Revisar Toolisto" urgente — preserva el invariant del test `search_coversAllCoreContent`). **408 domain tests PASS** (`bash tools/run_domain_tests.sh`; 406 base remota c.48 + 2 nuevos), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Render real de `SearchScreen`.
+- **Archivos modificados**: `SearchEngine.kt`, `SearchEngineTest.kt`, `CURRENT_STATE.md`, `RUN_LOG.md`.
+- **Commits**: `feat(search): ranking por urgencia ante orden alfabético` (push a `openhands/autonomous-ordia`).
+- **HEAD final**: (pendiente de push).
+- **Próxima prioridad**: fuera del parser. Candidatos: `SearchEngine` could surface a "vencidas" quick-filter chip; auditar `SummaryEngine`/`DayPlanner` para oportunidades de simplificación; detección de vencidas importantes; acciones rápidas de captura.
+
+---
 ## Ciclo 46 - 2026-08-13 (UTC) - guardián: atrasados cuenta solo tareas raíz (consistencia con resumen)
 
 - **Run/ciclo**: 46 (inteligencia/consistencia, no parser).

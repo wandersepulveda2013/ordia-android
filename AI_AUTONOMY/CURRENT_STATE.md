@@ -14,8 +14,8 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 48)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 48)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 49)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 49)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
@@ -23,6 +23,27 @@
   docs-only) → los commits de código generan releases automáticamente.
 
 | P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests) |
+
+## Último trabajo — Ciclo 49: búsqueda ordena por urgencia (no solo alfabético)
+
+Unidad atómica de producto/inteligencia de la **búsqueda universal** (P2 — potencia sin más interfaz).
+**Problema**: `SearchEngine.search` ordenaba resultados por prefijo de título y luego alfabético, sin
+considerar urgencia. Al buscar "reunión" con dos tareas "Reunión equipo" —una atrasada+urgente, otra
+normal sin fecha— la crítica podía quedar debajo por azar alfabético. La búsqueda devolvía matches sin
+priorizar lo accionable, contrario al principio de Ordía de elevar lo atrasado/urgente en todas las
+superficies (What Now, widget, guardián ya lo hacen; la búsqueda no).
+
+**Solución (mínima, `SearchEngine.kt`, sin nueva pantalla/botón)**: wrapper interno `Ranked(result,
+urgency, dueAt)` calculado al construir cada resultado. `urgencyRank(task, now)` reutiliza
+`TaskRules.isOverdue`/`isDueToday` (fuente única de verdad) en orden honesto idéntico a `nextBestTask`:
+atrasada+urgente > atrasada > urgente+vence-hoy > urgente > alta > vence-hoy > resto. Orden final:
+**prefijo de título** (relevancia textual primero) → **urgencia** → **dueAt** → **alfabeto**. No-tareas
+tienen urgencia neutral, así que un proyecto/nota que **prefija** el query sigue ganando (la relevancia
+textual domina); una tarea atrasada que también prefija sube por encima. Heurística local honesta.
+
+**VERIFICADO localmente (JVM puro)**: `bash tools/run_domain_tests.sh` = **408 tests PASS** (406 base
+c.48 + 2 nuevos), 25 clases. Smoke 25 OK. NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs
+reales, render real de `SearchScreen`.
 
 ## Último trabajo — Ciclo 47 (run paralelo): `nextBestTask` alineado con IMMINENT_START (widget/asistente)
 
