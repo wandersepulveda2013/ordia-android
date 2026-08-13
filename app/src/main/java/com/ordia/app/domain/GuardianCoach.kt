@@ -19,6 +19,22 @@ object GuardianCoach {
         val completedToday = roots.count { it.completed && it.completedAt?.let { time -> java.time.Instant.ofEpochMilli(time).atZone(zone).toLocalDate() == today } == true }
         if (overdue.isNotEmpty()) {
             val next = TaskRules.nextBestTask(overdue, now)
+            // "Olvidada": la más atrasada lleva tanto tiempo esperando que el
+            // problema no es priorizarla, sino decidir qué hacer con ella. El
+            // coach deja de repetir "empieza por esta" y plantea la decisión
+            // real: hacerla hoy, moverla a propósito o quitarla de la lista.
+            // Heurística honesta: aritmética temporal sobre dueAt real (no IA).
+            val mostOverdueDays = overdue.maxOf { task ->
+                task.dueAt?.let { ((now - it) / MILLIS_PER_DAY).toInt() } ?: 0
+            }
+            if (mostOverdueDays >= FORGOTTEN_DAYS_THRESHOLD) {
+                val ageLabel = forgottenAgeLabel(mostOverdueDays)
+                val message = if (overdue.size == 1)
+                    "Esta tarea lleva $ageLabel atrasada. Hazla hoy o muévela con intención, no la dejes pasar otra vez."
+                else
+                    "Tienes ${overdue.size} tareas atrasadas y la más antigua lleva $ageLabel. Elige una: hacerla hoy, reprogramarla o quitarla."
+                return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", message, next?.id, Tone.FOCUSED)
+            }
             return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", if (overdue.size == 1) "Esta tarea está atrasada. Empieza con un bloque corto." else "Tienes ${overdue.size} tareas atrasadas. Comienza por esta.", next?.id, Tone.GENTLE)
         }
         val urgent = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
@@ -33,4 +49,21 @@ object GuardianCoach {
         if (completedToday > 0) return Insight("BIEN HECHO", "Tu día está en orden", "Completaste $completedToday ${if (completedToday == 1) "tarea" else "tareas"} hoy.", tone = Tone.CELEBRATING)
         return Insight("TODO EN CALMA", "No hay pendientes inmediatos", "Captura una idea, revisa un proyecto o conserva este espacio libre.", tone = Tone.CALM)
     }
+
+    /**
+     * Etiqueta legible de la antigüedad de una tarea olvidada: "1 día", "2 días",
+     * "1 semana" (7 días), "2 semanas" (14)… Acota a días/semanas para evitar
+     * "30 días" cuando "4 semanas" comunica mejor cuánto se pospuso.
+     */
+    private fun forgottenAgeLabel(daysOverdue: Int): String {
+        val days = daysOverdue.coerceAtLeast(1)
+        if (days < 7) return "$days ${if (days == 1) "día" else "días"}"
+        val weeks = days / 7
+        if (weeks < 5) return "$weeks ${if (weeks == 1) "semana" else "semanas"}"
+        val months = days / 30
+        return "$months ${if (months == 1) "mes" else "meses"}"
+    }
+
+    private const val MILLIS_PER_DAY = 24L * 60 * 60 * 1000
+    private const val FORGOTTEN_DAYS_THRESHOLD = 2
 }

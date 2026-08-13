@@ -3293,3 +3293,20 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Auditoría: `GuardianCoach` detección de vencidas importantes; `SummaryService`; `PlanEngine` replanificación automática; búsqueda universal.
 - Revisar otros entry points que recalculen `reminderAt` sin preservar offset (widget quick-edit, asistente, captura rápida).
 - Parser: múltiples marcadores temporales en una frase.
+
+## Ciclo 63 - 2026-08-13 (UTC) - feat(coach): Guardián detecta vencidas importantes y recupera tareas olvidadas
+- **Run/ciclo**: 63.
+- **HEAD inicial**: `3a50988` (c.62, synced con `origin/openhands/autonomous-ordia`).
+- **Problema seleccionado**: la rama de vencidas de `GuardianCoach.insight` daba tratamiento **idéntico** a toda tarea atrasada: `Tone.GENTLE` + mensaje genérico ("Esta tarea está atrasada. Empieza con un bloque corto." / "Tienes N tareas atrasadas. Comienza por esta.") sin distinguir 10 minutos de retraso de 10 días. El coach no ayudaba a **recuperar** compromisos olvidados: solo repetía "empieza por esta". Una tarea que lleva 3 semanas atrasada es un compromiso que se está dejando pasar; el coach debería surface esa gravedad y plantear la decisión real (hacer/reprogramar/quitar), no un nudge genérico. (P2: inteligencia honesta, "detección de vencidas importantes", "recuperación de tareas olvidadas" — área de dirección explícita.)
+- **Prioridad**: P2 (inteligencia/producto; no pérdida de datos).
+- **Causa raíz**: ausencia de heurística de severidad: el único matiz era `overdue.size == 1` vs `>1`; no existía noción de *antigüedad* de lo vencido.
+- **Solución (mínima, sin nueva pantalla/botón — "menos interfaz, más potencia")**: nueva heurística honesta de aritmética temporal en `GuardianCoach.insight`: calcula `mostOverdueDays = max((now - dueAt) / MILLIS_PER_DAY)` entre las vencidas. Si la más atrasada lleva **≥ 2 días** (`FORGOTTEN_DAYS_THRESHOLD`) se considera **olvidada**: sube a `Tone.FOCUSED` y el mensaje surface cuánto lleva (`forgottenAgeLabel`: "1 día"/"3 días"/"2 semanas"/"1 mes") y plantea la decisión real ("Hazla hoy o muévela con intención, no la dejes pasar otra vez" / "Elige una: hacerla hoy, reprogramarla o quitarla"). Si es leve (< 2 días) mantiene `GENTLE` + mensaje actual. Heurística honesta (tiempo real sobre `dueAt`, no random ni "IA" fingida).
+- **Tests**: +4 en `GuardianCoachTest.kt` (`mildlyOverdueSameDayStaysGentle`, `forgottenOverdueTaskBecomesFocusedAndSurfacesAge`, `forgottenOverdueUsesWeeksLabelPastSevenDays`, `forgottenOverdueGroupSurfacesOldestAge`). El test previo `overdueWorkWinsOverEverythingElse` (27h → GENTLE) sigue verde: 27h < 2 días. **485 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión. **NO VERIFICADO**: gradle/lint/assemble/Android/UI; `GuardianCoach` se consume en Compose (sin Android SDK). La lógica vive en el dominio probado.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/GuardianCoach.kt`, `app/src/test/java/com/ordia/app/domain/GuardianCoachTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (pendiente de commit).
+- **Estado**: FIXED → VERIFIED (dominio JVM); coach en UI NO VERIFICADO (sin Android SDK).
+
+### Siguiente
+- `SummaryService`/`SummaryEngine`: resumen del día más accionable.
+- `PlanEngine` replanificación automática; búsqueda universal.
+- Parser: múltiples marcadores temporales en una frase.
