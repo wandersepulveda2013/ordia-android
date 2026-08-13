@@ -1330,6 +1330,39 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "mediados de semana" (= miércoles más cercano en hoy/futuro) ---
+
+    @Test fun mediadosDeSemanaSiHoyEsMiercolesEsHoy() {
+        // hoy = miércoles 2026-07-29 -> "mediados de semana" vence hoy.
+        val result = NaturalTaskParser.parse("Llamar al banco mediados de semana", now, zone)
+        assertEquals("Llamar al banco", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mediadosDeSemanaDesdeLunesEsMiercolesMismaSemana() {
+        // hoy = lunes 2026-08-03 -> "mediados de semana" = miércoles 2026-08-05 (misma semana).
+        val lunesNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 3), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Revisar correo a mediados de semana", lunesNow, zone)
+        assertEquals("Revisar correo", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mediadosDeSemanaRespetaHoraExplicita() {
+        // hoy = miércoles 2026-07-29 -> "mediados de semana a las 9" = hoy 09:00.
+        val result = NaturalTaskParser.parse("Cita mediados de semana a las 9", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mediadosDeSemanaNoColisionaConMediadosDeMes() {
+        // "mediados de mes" sigue siendo día 15 (2026-07-15 ya pasó -> 2026-08-15),
+        // no se confunde con "mediados de semana".
+        val result = NaturalTaskParser.parse("Pagar factura a mediados de mes", now, zone)
+        assertEquals("Pagar factura", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "un par de" (coloquial = 2): "en un par de días/semanas/meses" ---
 
     @Test fun unParDeDiasResuelveMasDosDias() {
