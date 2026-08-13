@@ -59,6 +59,79 @@
   - Test de caracterización añadido: `RecurrenceEngineTest.daily_reminderWithoutDue_dropsReminderOnNextOccurrence` (documenta edge case reminder sin dueAt).
 - Próximo: seguir con P5 (tests Room instrumentación — requieren emulador) o auditar más módulos; PR #32 ya contiene todos los fixes (B1-B10) + test nuevo.
 
+## Pack de mejoras visuales y funcionales (BLOQUE 4 — EN CURSO)
+Usuario solicitó "inmensa pack de mejoras, tanto visuales como funcionales". Trabajando sobre branch `autonomous/delete-subtree-concurrency`.
+
+### Mejoras COMPLETADAS (compilan, 28 tests pasan, pusheadas)
+- **V1** (commit f79f287): Color de acento seleccionable — 6 paletas (Oro, Salvia, Rosa, Lavanda, Océano, Terracota) en Settings; `AccentPalette` enum en `PreferencesRepository`, `OrdiaTheme(accentPalette)` overload, selector con swatches en `SettingsScreen`.
+- **V2** (commit f79f287): Barra de prioridad lateral coloreada en `TaskRow` (URGENT=error, HIGH=ámbar, NORMAL=secondary, LOW=outline) vía `priorityAccent()`.
+- **V3** (commit f79f287): Animación `animateContentSize` al completar/tachar título de tarea en `TaskComponents.kt`.
+- **V6** (commit f79f287): Anillo de progreso del día (Canvas circular) en `TodayScreen` reemplazando stat card plana.
+- **F5** (commit d737c54): Estadísticas ampliadas en `StatisticsScreen` — gráfico de barras de 30 días + distribución de pendientes por prioridad con barras coloreadas.
+- **F3** (commit d737c54): Filtros por proyecto y etiqueta (chips) en `TasksScreen` además de los filtros de estado.
+- **F2** (commit 27c2757): Reordenar subtareas — `TaskDao.updateSortOrder`, `TaskRepository.reorderSubtasks` (transaccional), `OrdiaViewModel.moveSubtask`, botones subir/bajar en `TaskDetailScreen`.
+- **F7** (commit 27c2757): Recordatorios diarios de hábitos — `HabitReminderScheduler` (PeriodicWorkRequest diario), `HabitReminderWorker` (notificación, skip si meta cumplida), toggle + TimePicker en `HabitEditorDialog`, cableado en save/delete/restore/importBackup.
+- **V4** (commit 2d4a712): Punto de color de proyecto + conteo de tareas en `ProjectsScreen`.
+- **F9** (commit 2d4a712): Barra de progreso de subtareas (completadas/total) en `TaskDetailScreen`.
+- **F10** (commit 2d4a712): Fecha relativa ("hace X") en preview de notas en `NotesScreen`.
+- **V7** (commit 2d4a712): Badge de racha 🔥 (≥3 días) + indicador de recordatorio en `HabitsScreen`.
+- **F8** (commit 258c8e7): Chips de fecha rápida (Hoy/Mañana/Semana/Bandeja) en quick-add de `TodayScreen`.
+- **V5** (commit 258c8e7): Mini-calendario mensual en `PlannerScreen` con dots de carga de tareas, highlight de hoy y día seleccionado.
+
+### Mejoras PENDIENTES (plan)
+- **F11**: Widget de lista de hoy en pantalla de inicio.
+- **V8**: Empty states más visuales con iconos grandes.
+- **F12**: Búsqueda con highlight del término coincidente.
+- **V9**: Animación de transición entre pantallas.
+- **F13**: Exportar/compartir nota como texto.
+- **V14**: Tema dinámico (Material You / Android 12+).
+
+### Archivos modificados (BLOQUE 4)
+- `app/src/main/java/com/ordia/app/data/preferences/PreferencesRepository.kt` (AccentPalette)
+- `app/src/main/java/com/ordia/app/ui/theme/Theme.kt` (accentSwatches, OrdiaTheme overload)
+- `app/src/main/java/com/ordia/app/ui/OrdiaRoot.kt` (pasar accentPalette + habitReminderScheduler)
+- `app/src/main/java/com/ordia/app/ui/OrdiaViewModel.kt` (setAccentPalette, moveSubtask, habitReminderScheduler)
+- `app/src/main/java/com/ordia/app/ui/screens/SettingsScreen.kt` (selector de acento)
+- `app/src/main/java/com/ordia/app/ui/screens/TodayScreen.kt` (DayProgressRing, quick-add chips)
+- `app/src/main/java/com/ordia/app/ui/screens/StatisticsScreen.kt` (30-day chart, priority breakdown)
+- `app/src/main/java/com/ordia/app/ui/screens/TasksScreen.kt` (project/tag filters)
+- `app/src/main/java/com/ordia/app/ui/screens/TaskDetailScreen.kt` (subtask reorder, progress bar)
+- `app/src/main/java/com/ordia/app/ui/screens/ProjectsScreen.kt` (color dot, task count)
+- `app/src/main/java/com/ordia/app/ui/screens/NotesScreen.kt` (relative time)
+- `app/src/main/java/com/ordia/app/ui/screens/HabitsScreen.kt` (streak badge, reminder indicator)
+- `app/src/main/java/com/ordia/app/ui/screens/PlannerScreen.kt` (month calendar)
+- `app/src/main/java/com/ordia/app/ui/components/TaskComponents.kt` (priority rail, animateContentSize)
+- `app/src/main/java/com/ordia/app/ui/components/EditorDialogs.kt` (habit reminder TimePicker)
+- `app/src/main/java/com/ordia/app/data/local/Daos.kt` (TaskDao.updateSortOrder)
+- `app/src/main/java/com/ordia/app/data/repository/Repositories.kt` (reorderSubtasks)
+- `app/src/main/java/com/ordia/app/di/AppContainer.kt` (habitReminderScheduler)
+- `app/src/main/java/com/ordia/app/reminders/HabitReminderScheduler.kt` (NUEVO)
+- `app/src/main/java/com/ordia/app/reminders/HabitReminderWorker.kt` (NUEVO)
+
+### Pruebas (BLOQUE 4)
+- 28 tests unitarios pasan (sin regresiones).
+- Compilación `:app:compileDebugKotlin` BUILD SUCCESSFUL tras cada bloque.
+- No se añadieron tests para mejoras visuales (UI pura); `reorderSubtasks`/`moveSubtask` son candidatos a test instrumentado.
+
+### Bugs encontrados (BLOQUE 4)
+- Ninguno nuevo. Cambios aditivos, no tocan lógica de dominio existente.
+
+### Decisiones arquitectónicas (BLOQUE 4)
+- `AccentPalette` persistido en DataStore, aplicado solo al `secondary` del ColorScheme.
+- `HabitReminderScheduler` usa `PeriodicWorkRequest` (24h) con delay inicial al próximo `reminderMinutes`.
+- `reorderSubtasks` reescribe TODOS los `sortOrder` en una transacción (más robusto que swap).
+- Color de proyecto vía `runCatching { Color.parseColor(colorHex) }` con fallback a secondary.
+
+### Riesgos pendientes (BLOQUE 4)
+- Recordatorios de hábitos no probados en emulador (WorkManager + notificaciones).
+- `moveSubtask` lee de `uiState.value.subtasks()` que puede estar ligeramente desactualizado; aceptable para reorder manual.
+- Schema Room sin bump: `updateSortOrder` es `@Query` UPDATE, no cambia schema.
+
+### Próximo paso exacto
+- Continuar con F11 (widget de hoy) o V8 (empty states visuales).
+- Antes de cada commit: `./gradlew :app:compileDebugKotlin` + `:app:testDebugUnitTest`.
+- Push a `autonomous/delete-subtree-concurrency` tras cada bloque estable.
+
 ## PR
 - #32 — Fix task deletion: subtree cascade, concurrency, attachment/reminder cleanup
   https://github.com/wandersepulveda2013/ordia-android/pull/32
