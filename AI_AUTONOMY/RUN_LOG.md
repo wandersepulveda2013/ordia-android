@@ -21,7 +21,7 @@
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real del parser en la app (sin Android SDK). Marcar NO VERIFICADO.
 - **AI_AUTONOMY actualizado**: `CURRENT_STATE.md` (fecha c.80 + nueva sección "Último trabajo — Ciclo 80"), `BACKLOG.md` (fila c.80 FIXED→VERIFIED), `RUN_LOG.md` (esta entrada).
 - **Commits**: 1 (`fix(parser): rango nocturno cruce de medianoche calcula duración con +24h`).
-- **HEAD final**: (tras push) ver `git log --oneline -1`.
+- **HEAD final**: `970d919` (push OK `0f9ff9c..970d919` → `openhands/autonomous-ordia`).
 - **Próxima prioridad**: auditar más formas de captura/tiempo (p.ej. rango overnight con minutos "de 10:30 de la noche a 1:15 de la madrugada", o "de X a Y horas" con unidad explícita en overnight); revisar que `rangeStartTime` (dueAt) sea consistente con overnight (¿debería el dueAt ser el inicio nocturno?). Continuar descubrimiento de oportunidades de producto.
 
 ---
