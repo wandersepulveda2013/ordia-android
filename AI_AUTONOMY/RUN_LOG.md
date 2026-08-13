@@ -22,6 +22,25 @@
 - Parser: manejo robusto de múltiples marcadores temporales en una frase.
 
 ---
+## Ciclo 54 - 2026-08-13 (UTC) - fix: restaurar tarea archivada re-programa su recordatorio
+- **Run/ciclo**: 54.
+- **HEAD inicial**: `5e6cea8` (remoto sincronizado tras push del ciclo 53 `8f290c0`).
+- **Problema seleccionado**: al archivar una tarea (`deleteTask`) se cancela su recordatorio (`reminderScheduler.cancel(task.id)` → WorkManager `cancelUniqueWork`). Al **restaurar** la tarea desde el archivo (`restoreArchived("task", id)`), la fila vuelve a estar activa con sus campos `reminderAt`/`dueAt` intactos, PERO **nunca se re-encola el trabajo de WorkManager**: el `cancel` del archivo destruyó el `ordia_task_reminder_<id>`. No hay resync en arranque de app (solo `ReminderResyncReceiver` ante cambio de hora/zona/fecha) ni `BOOT_COMPLETED`. Resultado: una tarea restaurada con una fecha futura **"olvida" avisar** hasta que el usuario la edite o cambie la zona horaria — un recordatorio silenciosamente perdido. Esto es P1 (recuperación de información importante / evitar olvidos).
+- **Prioridad**: P1 (recordatorio perdido en restaurar; no es corrupción de datos pero sí pérdida de la capacidad de avisar).
+- **Causa raíz**: `restoreArchived` solo llamaba `taskRepository.restore(id)` sin reflejar el efecto lateral simétrico del archivo (que SÍ cancela el recordatorio). Falta de simetría entre archivar (cancel) y restaurar (re-schedule).
+- **Solución (mínima, sin nueva pantalla/botón)**: en `restoreArchived`, tras `taskRepository.restore(id)` para tareas, se re-lee la entidad restaurada y, si sigue activa (`!completed`, `status != CANCELLED`) y tiene disparo (`reminderAt != null || dueAt != null`), se llama `reminderScheduler.schedule(restored)`. Misma regla de disparo que `upsert` y `ReminderSync`. Solo "task" (projects/notes/habits/routines no tienen recordatorios). Reutiliza `ReminderScheduler.schedule` (que ya usa `reminderAt ?: dueAt` y `coerceAtLeast(0)`).
+- **Tests**: la lógica vive en `OrdiaViewModel` (Android/Room/WorkManager) → **NO VERIFICADO** en JVM pura. `bash tools/run_domain_tests.sh` = **422 tests PASS** (sin regresión en dominio); smoke 25 OK (`tools/run_domain_checks.sh`). No se añadieron tests JVM porque el flujo requiere DAO/WorkManager reales (marcado NO VERIFICADO).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, WorkManager real, `taskRepository.get`/`restore` reales, render real de la papelera en `TodayScreen`.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/ui/OrdiaViewModel.kt` (rama `"task"` de `restoreArchived` re-programa el recordatorio), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Auditoría relacionada (sin acción requerida)**: confirmado que completar (`toggleTask` l.496), auto-completar padre (`completeParentAutomatically` l.541), archivar (`deleteTask` l.564) y borrado permanente (`deleteArchivedPermanently` l.803) SÍ cancelan el recordatorio correctamente. El snooze tras reinicio (recordatorio de WorkManager `ExistingWorkPolicy.REPLACE`) persiste por diseño de WorkManager (ciclo 52). Único gap era restaurar — cerrado aquí.
+- **HEAD final**: (pendiente de push a openhands/autonomous-ordia).
+
+### Siguiente
+- Descubrimiento continuo: auditar `ReminderActionReceiver` (acciones de notificación: completar/snooze desde la notificación, consistencia con `toggleTask`), detección de vencidas importantes, contexto, onboarding, navegación, accesibilidad, rendimiento, privacidad.
+- Posible P1: verificar que completar una tarea DESDE LA NOTIFICACIÓN cancela el recordatorio y genera la próxima ocurrencia recurrente (mismo flujo que `toggleTask`).
+
+---
+
 ## Ciclo 52 - 2026-08-13 (UTC) - fix: snooze ya no corrompe reminderAt en tareas recurrentes
 - **Run/ciclo**: 52.
 - **HEAD inicial**: `d18fc32` (base `openhands/autonomous-ordia` sincronizada al iniciar; clean — cycle 51 docs follow-up del run previo).

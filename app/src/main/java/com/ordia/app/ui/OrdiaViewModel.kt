@@ -775,7 +775,20 @@ class OrdiaViewModel(
 
     fun restoreArchived(kind: String, id: Long) = viewModelScope.launch {
         when (kind) {
-            "task" -> taskRepository.restore(id)
+            "task" -> {
+                taskRepository.restore(id)
+                // Al archivar se canceló el recordatorio (WorkManager). Al restaurar,
+                // re-encolarlo si la tarea sigue activa con un disparo futuro: sin
+                // esto, una tarea restaurada "olvida" avisar aunque conserve su fecha.
+                val restored = taskRepository.get(id)
+                if (restored != null &&
+                    !restored.completed &&
+                    restored.status != TaskStatus.CANCELLED &&
+                    (restored.reminderAt != null || restored.dueAt != null)
+                ) {
+                    reminderScheduler.schedule(restored)
+                }
+            }
             "project" -> projectRepository.restore(id)
             "note" -> noteRepository.restore(id)
             "habit" -> habitRepository.restore(id)
