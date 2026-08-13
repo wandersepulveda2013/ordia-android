@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -134,18 +135,26 @@ fun TodayScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
-                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        quickText,
-                        { quickText = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("Ej.: Llamar mañana a las 9 !alta") },
-                        singleLine = true
-                    )
-                    IconButton(
-                        onClick = { vm.addSmartTask(quickText); quickText = "" },
-                        enabled = quickText.isNotBlank()
-                    ) { Icon(Icons.Outlined.Add, "Añadir a la bandeja") }
+                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            quickText,
+                            { quickText = it },
+                            modifier = Modifier.weight(1f),
+                            placeholder = { Text("Ej.: Llamar mañana a las 9 !alta") },
+                            singleLine = true
+                        )
+                        IconButton(
+                            onClick = { vm.addSmartTask(quickText); quickText = "" },
+                            enabled = quickText.isNotBlank()
+                        ) { Icon(Icons.Outlined.Add, "Añadir a la bandeja") }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        QuickDateChip("Hoy") { vm.addSmartTask("$quickText hoy"); quickText = "" }
+                        QuickDateChip("Mañana") { vm.addSmartTask("$quickText mañana"); quickText = "" }
+                        QuickDateChip("Semana") { vm.addSmartTask("$quickText este finde"); quickText = "" }
+                        QuickDateChip("Bandeja") { vm.addSmartTask(quickText); quickText = "" }
+                    }
                 }
             }
         }
@@ -252,4 +261,13 @@ private fun DayProgressRing(progress: Float, modifier: Modifier = Modifier) {
         }
         Text(label, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.secondary)
     }
+}
+
+@Composable
+private fun QuickDateChip(label: String, onClick: () -> Unit) {
+    androidx.compose.material3.AssistChip(
+        onClick = onClick,
+        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+        leadingIcon = { Icon(Icons.Outlined.Schedule, null, Modifier.size(14.dp)) }
+    )
 }

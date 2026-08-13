@@ -1,13 +1,17 @@
 package com.ordia.app.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -102,6 +106,81 @@ fun PlannerScreen(
                 IconButton(onClick = { month = month.minusMonths(1); selectedDate = month.atDay(1) }) { Icon(Icons.Outlined.ChevronLeft, "Mes anterior") }
                 Text(month.month.getDisplayName(TextStyle.FULL, locale).replaceFirstChar { it.uppercase() } + " ${month.year}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 IconButton(onClick = { month = month.plusMonths(1); selectedDate = month.atDay(1) }) { Icon(Icons.Outlined.ChevronRight, "Mes siguiente") }
+            }
+        }
+        item {
+            Card {
+                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    val firstDay = month.atDay(1)
+                    val daysInMonth = month.lengthOfMonth()
+                    val leadingBlanks = ((firstDay.dayOfWeek.value - weekStartDay.value + 7) % 7)
+                    val today = LocalDate.now()
+                    Row(Modifier.fillMaxWidth()) {
+                        (0 until 7).forEach { i ->
+                            val dow = weekStartDay.plus(i.toLong())
+                            Text(
+                                dow.getDisplayName(TextStyle.NARROW, locale).uppercase(),
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.labelSmall,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    val totalSlots = leadingBlanks + daysInMonth
+                    val rows = (totalSlots + 6) / 7
+                    (0 until rows).forEach { rowIdx ->
+                        Row(Modifier.fillMaxWidth()) {
+                            (0 until 7).forEach { col ->
+                                val dayNumber = rowIdx * 7 + col - leadingBlanks + 1
+                                if (dayNumber in 1..daysInMonth) {
+                                    val date = month.atDay(dayNumber)
+                                    val count = state.pendingTasks.count { TaskRules.isDueOn(it, date) }
+                                    val isSelected = date == selectedDate
+                                    val isToday = date == today
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { selectedDate = date }
+                                            .padding(vertical = 4.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Surface(
+                                            shape = androidx.compose.foundation.shape.CircleShape,
+                                            color = when {
+                                                isSelected -> MaterialTheme.colorScheme.primary
+                                                isToday -> MaterialTheme.colorScheme.secondaryContainer
+                                                else -> androidx.compose.ui.graphics.Color.Transparent
+                                            },
+                                            contentColor = when {
+                                                isSelected -> MaterialTheme.colorScheme.onPrimary
+                                                isToday -> MaterialTheme.colorScheme.onSecondaryContainer
+                                                else -> MaterialTheme.colorScheme.onSurface
+                                            }
+                                        ) {
+                                            Text(
+                                                date.dayOfMonth.toString(),
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        }
+                                        if (count > 0) {
+                                            Box(
+                                                Modifier
+                                                    .padding(top = 2.dp)
+                                                    .size(4.dp)
+                                                    .background(MaterialTheme.colorScheme.secondary, androidx.compose.foundation.shape.CircleShape)
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    Spacer(Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         item {
