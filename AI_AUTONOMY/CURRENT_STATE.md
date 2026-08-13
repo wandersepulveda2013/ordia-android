@@ -235,7 +235,7 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 | Pri | Área | Estado |
 |-----|------|--------|
 | P1 | Persistencia — adjuntos URI externo | FIXED (NO VERIFICADO Android) ciclo 32 cont.4 |
-| P1 | Parser — "esta semana" plazo blando | FIXED → VERIFIED ciclo 34 (290 tests); "principios de semana" VERIFIED ciclo 34 cont. (294 tests); quincena/bimestre/semestre VERIFIED (300 tests, 8146acf); "un par de" VERIFIED ciclo 35 (308 tests); "mediados de semana" VERIFIED ciclo 36 (312 tests) |
+| P1 | Parser — "esta semana" plazo blando | FIXED → VERIFIED ciclo 34 (290 tests); "principios de semana" VERIFIED ciclo 34 cont. (294 tests); quincena/bimestre/semestre VERIFIED (300 tests, 8146acf); "un par de" VERIFIED ciclo 35 (308 tests); "mediados de semana" VERIFIED ciclo 36 (312 tests); "a las N horas" como hora VERIFIED ciclo 36 cont. (316 tests, 7fa4056); "a finales de semana" VERIFIED ciclo 37 (319 tests) |
 | P2 | QA — compilar 6 variantes tras cambios | OPEN (requiere env Android) |
 | P2 | Self-Update — prueba end-to-end N→N+1 | BLOCKED-external (sin dispositivo Android) |
 | P3 | UX — pulido visual pantallas workspace renovadas | OPEN |
@@ -251,7 +251,9 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 - Continuar ciclo interminable. Candidatos parser: ~~"esta semana" (vs "la semana que viene")~~
   HECHO ciclo 34; "próximo bimestre/semestre" (evaluar frecuencia), "próxima quincena" (+15d),
   ~~"principios de semana" (lunes)~~ HECHO ciclo 34 cont. (294 tests). "principios de mes" (día 1) ya hecho ciclo 33.
-  ~~"mediados de semana" (miércoles)~~ HECHO ciclo 36 (312 tests). "a finales de semana" (viernes/dom) pendiente — evaluar ambigüedad viernes vs sábado vs domingo antes de implementar.
+  ~~"mediados de semana" (miércoles)~~ HECHO ciclo 36 (312 tests). ~~"a finales de semana"~~ HECHO
+  ciclo 37 (316 tests): resuelve a sábado (igual que "fin de semana"), forma plural análoga a
+  "finales de mes"; ambigüedad viernes/sáb/dom resuelta por consistencia con "fin de semana" ya existente.
 - P1 adjuntos: NEXT paso sería **migración de adjuntos legacy** (URIs externos antiguos ya
   guardados) — copiar contenido al abrir por primera vez si todavía accesible. Evaluar antes
   de implementar (riesgo: URIs ya inválidos). De momento `resolveAttachmentUri` no rompe legacy.

@@ -2607,3 +2607,25 @@ a un permiso persistente frágil y silencioso ante fallos.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
 - Descubrimiento continuo: auditar captura, What Now, rutinas en busca de oportunidades de producto reales, no solo parser.
 - Nota operativa: `GITHUB_TOKEN` ausente en este entorno; usar `github_token` para push.
+
+## Ciclo 37 - 2026-08-13 (UTC)
+
+- **Run/ciclo**: 37
+- **HEAD inicial**: 9ac1a8b → detectada base obsoleta: otro run commiteó `7fa4056` ("a las N horas" como hora, no duración falsa). Stash de mi trabajo no commiteado, fast-forward limpio a `7fa4056`, reaplicación (`git stash pop`) sin conflictos (auto-merge en parser y test). Sin force push, sin reset --hard, sin sobrescribir trabajo válido del otro run.
+- **Problema seleccionado**: `NaturalTaskParser` no reconocía **"a finales de semana"** / "finales de semana" (forma plural cotidiana análoga a "finales de mes": "lo termino a finales de semana"). `weekendPattern` solo casaba `fin de semana` (singular); "finales" no casaba y la frase quedaba como residuo en el título con `dueAt=null` → tarea **olvidada** (sin recordatorio, invisible en planificador/What Now).
+- **Prioridad**: P1 (evitar olvidos, menos fricción de captura, inteligencia honesta del parser; brecha simétrica frente a `endOfMonthPattern` que sí acepta "finales de mes").
+- **Causa raíz**: `weekendPattern = \b(?:este\s+|el\s+|próximo\s+)?fin\s+de\s+semana\b` exigía `fin` exacto (singular). La palabra "finales" no casaba y, al no coincidir ningún patrón, `dueAt` quedaba null. Distinción crítica: "fines de semana" (f-i-n-e-s) ya es recurrencia WEEKLY sáb+dom en `parseRecurrence`; "finales de semana" es fecha única y no debía confundirse con ella.
+- **Solución (mínima, en `NaturalTaskParser.kt`)**:
+  - Ampliación de `weekendPattern`: `(?:a\s+)?(?:este\s+|el\s+|próximo\s+)?(?:fin|finales)\s+de\s+semana\b`. Acepta `finales` como variante y el prefijo opcional `a ` (igual que `endOfMonthPattern`/`midOfMonthPattern`).
+  - Reutiliza TODO el flujo existente: detección temprana (`weekendEarlyMatch`), borrado antes del período próximo, resolución a **próximo sábado** (igual que "fin de semana"), hora canónica 9:00, combinable con hora explícita.
+  - **No** acepta `fines` (f-i-n-e-s): como `fin` va seguido de `\s+de` y en "fines" va "es" (sin espacio), no casa → la frase llega intacta a `parseRecurrence` que sigue generando WEEKLY sáb+dom. Decisión de ambigüedad viernes/sáb/dom: resolver a sábado por **consistencia** con "fin de semana" ya existente (no introducir un tercer comportamiento).
+- **Tests**: +4 (`aFinalesDeSemanaProgramaProximoSabadoYLimpiaTitulo`, `finalesDeSemanaSueltoProgramaProximoSabadoYLimpiaTitulo`, `finalesDeSemanaRespetaHoraExplicita`, `finalesDeSemanaNoColisionaConRecurrenciaFinesDeSemana`). Verificación TDD: los 3 primeros fallaron antes del fix (residuo en título + dueAt null), pasaron tras ampliar el patrón. **319 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`). Coexisten con el fix del otro run ("a las N horas").
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+- **Commits**: feat(parser): "a finales de semana" = próximo sábado. docs(autonomy): este registro.
+- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+
+### Siguiente
+- Continuar ciclo de parser: "próxima quincena" (+15d), "próximo bimestre/semestre" (evaluar frecuencia). Buscar oportunidades de producto en otras áreas (captura, What Now, rutinas, recordatorios), no solo parser.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero; URIs ya inválidos).
+- Descubrimiento continuo: auditar recuperación de tareas olvidadas, detección de vencidas importantes, replanificación automática.
+- Nota operativa: `GITHUB_TOKEN` ausente en este entorno; usar `github_token` para push.

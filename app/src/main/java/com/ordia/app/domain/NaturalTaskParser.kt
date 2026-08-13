@@ -38,8 +38,11 @@ data class ParsedTaskInput(
 object NaturalTaskParser {
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
     private val weekdayPattern = Regex("""(?i)\b(?:el\s+|del\s+|de\s+)?(?:pr[oó]ximo\s+|pr[oó]xima\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+que\s+viene|\s+pr[oó]ximos?|\s+pr[oó]ximas?)?\b""")
-    /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado. */
-    private val weekendPattern = Regex("""(?i)\b(?:este\s+|el\s+|pr[oó]ximo\s+)?fin\s+de\s+semana\b""")
+    /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado.
+     *  Acepta también "finales de semana" (plural análogo a "finales de mes"): señala un
+     *  fin de semana concreto, no un hábito. OJO: "fines de semana" (f-i-n-e-s) es
+     *  recurrencia semanal y se resuelve aparte en parseRecurrence, no aquí. */
+    private val weekendPattern = Regex("""(?i)\b(?:a\s+)?(?:este\s+|el\s+|pr[oó]ximo\s+)?(?:fin|finales)\s+de\s+semana\b""")
     /**
      * "el jueves pasado" / "el último lunes" / "el martes anterior": última ocurrencia
      * PASADA de ese día de la semana. El usuario reconoce que la tarea está vencida

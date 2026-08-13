@@ -1502,6 +1502,41 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "a finales de semana" / "finales de semana" (= próximo sábado, fecha única) ---
+    // Forma plural análoga a "finales de mes": señala un fin de semana concreto, no un
+    // hábito ("lo termino a finales de semana"). Antes NO casaba "fin de semana" (singular)
+    // y caía a dueAt=null -> tarea olvidada. Ahora resuelve como "fin de semana" = sábado.
+    // OJO: "fines de semana" (f-i-n-e-s) sigue siendo recurrencia semanal, no se toca.
+
+    @Test fun aFinalesDeSemanaProgramaProximoSabadoYLimpiaTitulo() {
+        // hoy = miércoles 2026-07-29 -> sábado 2026-08-01, hora canónica 09:00.
+        val result = NaturalTaskParser.parse("Enviar el informe a finales de semana", now, zone)
+        assertEquals("Enviar el informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun finalesDeSemanaSueltoProgramaProximoSabadoYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Revisar código finales de semana", now, zone)
+        assertEquals("Revisar código", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finalesDeSemanaRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Fiesta a finales de semana a las 20:00", now, zone)
+        assertEquals("Fiesta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun finalesDeSemanaNoColisionaConRecurrenciaFinesDeSemana() {
+        // "fines de semana" (f-i-n-e-s) sigue siendo recurrencia WEEKLY sáb+dom, no fecha única.
+        val result = NaturalTaskParser.parse("Limpieza cada fines de semana", now, zone)
+        assertEquals("Limpieza", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
     // --- "un par de" (coloquial = 2): "en un par de días/semanas/meses" ---
 
     @Test fun unParDeDiasResuelveMasDosDias() {
