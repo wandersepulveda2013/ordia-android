@@ -3,6 +3,21 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 46 - 2026-08-13 (UTC) - guardián: atrasados cuenta solo tareas raíz (consistencia con resumen)
+
+- **Run/ciclo**: 46 (inteligencia/consistencia, no parser).
+- **HEAD inicial**: `e0850e6` (base `openhands/autonomous-ordia` sincronizada al iniciar; clean). Durante el run el remoto avanzó a `966b799` (ciclo 45 del otro run: `nextBestTask` time-aware + parser listas bare). Colisión no destructiva: `git stash` → `git pull --ff-only` → `git stash pop`, auto-merge limpio (cambios ortogonales: remoto tocó `NaturalTaskParser.kt`/`TaskRules.kt`, este run toca `GuardianEngine.kt`). Sin force push, sin reset --hard.
+- **Problema seleccionado (P1, consistencia/inteligencia)**: `GuardianEngine.snapshot` contaba los atrasados (`overdue`) incluyendo subtareas: un padre atrasado con 2 subtareas también atrasadas → el guardián veía **3** atrasados, mientras la tarjeta de resumen (`SummaryEngine`, que filtra `parentTaskId == null`) mostraba **1**. Dos superficies daban números contradictorios al usuario. El invariant "las subtareas son anidadas, no se cuentan además del padre" ya estaba fijado en `SummaryEngine` (test `overdueCountsRootTaskNotNestedSubtasks`, ciclo previo) pero **no** en el guardián.
+- **Causa raíz**: `val overdue = tasks.count { !it.completed && !it.archived && TaskRules.isOverdue(it, nowMillis) }` no filtraba `parentTaskId == null`, a diferencia del conteo equivalente en `SummaryEngine.summarize`. El `overdue` del guardián alimenta el ánimo (`CONCERNED` si `>= 5`), el mensaje ("Hay N pendientes atrasados") y la acción sugerida → la inflación era visible y afectaba el "coach".
+- **Prioridad**: P1 (inteligencia/coach con datos inconsistentes respecto al resumen; no pérdida de datos, pero información errónea al usuario en una superficie de acompañamiento).
+- **Solución (mínima, `GuardianEngine.kt`)**: filtrar `it.parentTaskId == null` en el conteo de `overdue` (alineado con `SummaryEngine`). Además, exponer `overdue` en `Snapshot` (campo `overdue: Int` añadido al final de la data class, retrocompatible: nadie construye `Snapshot` posicionalmente; la UI lee por nombre) para que el invariant sea verificable y la superficie pueda mostrar el mismo número que el resumen. `completedToday`/XP siguen contando subtareas a propósito (progreso granular deliberado) — solo el conteo de atrasados se alinea con la definición global.
+- **Tests**: +1 (`overdueCountsOnlyRootTasksNotNestedSubtasks`: padre + 2 subtareas atrasadas → `overdue==1`, ánimo `CURIOUS` no `CONCERNED` (umbral 5), `suggestedAction` reacciona al atrasado). **391 domain tests PASS** (`bash tools/run_domain_tests.sh`; 388 base remota c.45 + 3 del run paralelo `nextBestTask` + 1 nuevo), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Render real del guardián/overlay.
+- **Commits**: `fix(intel): guardián cuenta atrasados solo como tareas raíz (consistencia con resumen)`.
+- **HEAD final**: (ver commit tras push).
+- **Próxima prioridad**: seguir fuera del parser. Candidatos: auditar `SubtaskRules`/`RoutineRules`/`HabitRules` para invariantes de conteo análogos; revisar `WhatNowEngine` vs `nextBestTask` time-aware para coherencia total; oportunidades de captura ultrarrápida.
+
+---
 ## Ciclo 42 (cont. 2) - 2026-08-13 (UTC) - día de semana suelto hoy con hora futura vence hoy
 
 - **Run/ciclo**: 42 (continuación 2 — fix P1 de captura de citas de hoy).

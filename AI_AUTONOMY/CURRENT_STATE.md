@@ -14,8 +14,8 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 45)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 45)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 46)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 46)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
@@ -23,6 +23,39 @@
   docs-only) → los commits de código generan releases automáticamente.
 
 | P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests) |
+
+| P2 | Inteligencia — `nextBestTask` time-aware (widget/asistente alineado con What Now) | FIXED (c.45, run paralelo `2ef4bfa`): ordena en-curso-ahora > vencida > vence-hoy > urgente > alta > resto; `isDueToday` zona-aware. 388 tests. |
+| P1 | Inteligencia/coach — `GuardianEngine.overdue` infla subtareas vs `SummaryEngine` | FIXED (c.46): filtra `parentTaskId == null` (alineado con resumen) + expone `overdue` en `Snapshot`. 391 tests. |
+
+## Último trabajo — Ciclo 46: guardián cuenta atrasados solo como tareas raíz (consistencia con resumen)
+
+Fix P1 de consistencia/inteligencia (no parser, no pérdida de datos). `GuardianEngine.snapshot`
+contaba los atrasados (`overdue`) **incluyendo subtareas**: un padre atrasado con 2 subtareas
+también atrasadas → el guardián veía **3** atrasados, mientras la tarjeta de resumen
+(`SummaryEngine`, que filtra `parentTaskId == null`) mostraba **1**. Dos superficies daban
+números contradictorios al usuario. El invariant "las subtareas son anidadas, no se cuentan
+además del padre" ya estaba fijado en `SummaryEngine` (test `overdueCountsRootTaskNotNestedSubtasks`)
+pero **no** en el guardián. El `overdue` del guardián alimenta el ánimo (`CONCERNED` si `>= 5`),
+el mensaje ("Hay N pendientes atrasados") y la acción sugerida → la inflación era visible y
+afectaba al "coach".
+
+**Solución (mínima, `GuardianEngine.kt`)**: filtrar `it.parentTaskId == null` en el conteo de
+`overdue` (alineado con `SummaryEngine`). Además, exponer `overdue: Int` en `Snapshot` (campo
+añadido al final de la data class, retrocompatible: nadie construye `Snapshot` posicionalmente;
+la UI lee por nombre) para que el invariant sea verificable y la superficie pueda mostrar el mismo
+número que el resumen. `completedToday`/XP siguen contando subtareas a propósito (progreso granular
+deliberado) — solo el conteo de atrasados se alinea con la definición global.
+
+**Colisión de remoto (no destructiva)**: durante el run el remoto avanzó de `e0850e6` a `966b799`
+(ciclo 45 del otro run: `nextBestTask` time-aware + parser listas bare). `git stash` →
+`git pull --ff-only` → `git stash pop`, auto-merge limpio (cambios ortogonales: remoto tocó
+`NaturalTaskParser.kt`/`TaskRules.kt`, este run toca `GuardianEngine.kt`). Sin force push, sin
+reset --hard.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**391 tests PASS** (388 base remota c.45 + 3 del run paralelo `nextBestTask` + 1 nuevo), 25 clases.
+Smoke 25 OK (`tools/run_domain_checks.sh`). NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con
+DAOs reales (sin Android SDK). Render real del guardián/overlay.
 
 ## Último trabajo — Ciclo 44: `nextBestTask` time-aware (inteligencia widget/asistente)
 

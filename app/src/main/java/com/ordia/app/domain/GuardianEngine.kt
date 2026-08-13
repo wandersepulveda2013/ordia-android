@@ -78,6 +78,7 @@ object GuardianEngine {
         val habitsDoneToday: Int,
         val dailyGoalsCompleted: Int,
         val dailyGoalsTotal: Int,
+        val overdue: Int,
         val suggestedAction: String
     )
 
@@ -140,7 +141,9 @@ object GuardianEngine {
             ((experience - stage.minimumXp).toFloat() / span).coerceIn(0f, 1f)
         }
         val level = (1 + experience / 100).coerceAtMost(999)
-        val overdue = tasks.count { !it.completed && !it.archived && TaskRules.isOverdue(it, nowMillis) }
+        // Solo tareas raíz: las subtareas son anidadas, contarlas además del padre
+        // inflaría los atrasados frente a la tarjeta de resumen (mismo invariant en SummaryEngine).
+        val overdue = tasks.count { it.parentTaskId == null && TaskRules.isOverdue(it, nowMillis) }
         val recentInteraction = preferences.guardianLastInteraction > 0L &&
             nowMillis - preferences.guardianLastInteraction in 0 until RECENT_INTERACTION_MILLIS
         val mood = when {
@@ -214,6 +217,7 @@ object GuardianEngine {
             habitsDoneToday = habitsDoneToday,
             dailyGoalsCompleted = dailyGoalsCompleted,
             dailyGoalsTotal = 3,
+            overdue = overdue,
             suggestedAction = suggestedAction(tasks, habits, completedToday, focusMinutesToday, habitsDoneToday, overdue)
         )
     }

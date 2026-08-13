@@ -116,6 +116,31 @@ class GuardianEngineTest {
     }
 
     @Test
+    fun overdueCountsOnlyRootTasksNotNestedSubtasks() {
+        // Un padre atrasado con dos subtareas también atrasadas debe contar
+        // como 1 solo atrasado (igual que la tarjeta de resumen), no 3.
+        val yesterday = midday - 24 * 60 * 60_000L
+        val parent = TaskEntity(id = 1, title = "Padre", dueAt = yesterday)
+        val subA = TaskEntity(id = 2, title = "Sub A", dueAt = yesterday, parentTaskId = 1)
+        val subB = TaskEntity(id = 3, title = "Sub B", dueAt = yesterday, parentTaskId = 1)
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(parent, subA, subB),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(),
+            nowMillis = midday, zoneId = zone
+        )
+
+        assertEquals(1, result.overdue)
+        // Con un solo atrasado el guardián no entra en ánimo preocupado (umbral 5):
+        // sin interacción ni avance hoy, el ánimo es CURIOUS, no CONCERNED.
+        assertEquals(GuardianEngine.Mood.CURIOUS, result.mood)
+        // Pero la acción sugerida sí reacciona al atrasado (overdue > 0).
+        assertTrue(result.suggestedAction.contains("atrasada"))
+    }
+
+    @Test
     fun dailyCareGoalsAreDeterministicAtFixedTime() {
         val result = GuardianEngine.snapshot(
             tasks = listOf(TaskEntity(title = "Hecha", completed = true, completedAt = midday)),
