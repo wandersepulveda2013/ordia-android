@@ -1992,6 +1992,83 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- límites mensuales con modificador "mes que viene"/"próximo" ---
+    // Antes el patrón terminaba en "mes" e ignoraba el calificador → un vencimiento
+    // fijado para "fin del mes que viene" caía un mes ANTES (fin de este mes). P1:
+    // pago/renta/card olvidados o adelantados. El modificador se consume (título limpio)
+    // y ancla al mes SIGUIENTE. now = 2026-07-29 → "mes que viene" = agosto.
+
+    @Test fun finDelMesQueVieneAnclaFinMesSiguiente() {
+        val result = NaturalTaskParser.parse("Pagar tarjeta fin del mes que viene", now, zone)
+        assertEquals("Pagar tarjeta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDelMesProximoAnclaFinMesSiguiente() {
+        val result = NaturalTaskParser.parse("Cierre fin del mes próximo", now, zone)
+        assertEquals("Cierre", result.title)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDeMesQueVieneSinDelAnclaFinMesSiguiente() {
+        val result = NaturalTaskParser.parse("Pago fin de mes que viene", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDelMesQueVieneRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Reunión fin del mes que viene a las 18", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aFinalesDelMesQueVieneAnclaFinMesSiguiente() {
+        val result = NaturalTaskParser.parse("Vencer a finales del mes que viene", now, zone)
+        assertEquals("Vencer", result.title)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mediadosDelMesQueVieneAnclaDia15MesSiguiente() {
+        val result = NaturalTaskParser.parse("Reporte mediados del mes que viene", now, zone)
+        assertEquals("Reporte", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun principiosDelMesQueVieneAnclaDia1MesSiguiente() {
+        // "principios del mes que viene" = 1 del mes siguiente, NO 1 del subsiguiente
+        // (regresión de doble-desplazamiento que se evita anclando a today+1 mes).
+        val result = NaturalTaskParser.parse("Cobro principios del mes que viene", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDelMesProximoRespetaUltimoDiaMesDestino() {
+        // 2026-11-30 (último día de nov) → "fin del mes que viene" = fin dic = 31/12.
+        val novNow = DateRules.toEpochMillis(LocalDate.of(2026, 11, 30), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Cierre fin del mes que viene", novNow, zone)
+        assertEquals(LocalDate.of(2026, 12, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // --- "antepasado mañana" = dentro de 3 días ---
+    // Antes la palabra "mañana" casaba con el token de fecha suelto → +1 (fecha
+    // errónea) y "antepasado" quedaba como residuo en el título. P1: cita 2 días
+    // antes de lo pedido y título corrupto. now = 2026-07-29 → +3 = 2026-08-01.
+
+    @Test fun antepasadoMananaResuelveTresDiasYConservaTitulo() {
+        val result = NaturalTaskParser.parse("Cita antepasado mañana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun antepasadoMananaRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Cita antepasado mañana a las 10", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+
 
     // --- "principios de mes": vencimientos a inicios del mes (día 1) ---
     // Complemento natural de "fin de mes"/"mediados de mes": pagos, cierres, rentas que

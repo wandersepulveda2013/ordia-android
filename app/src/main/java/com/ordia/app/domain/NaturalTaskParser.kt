@@ -167,10 +167,18 @@ object NaturalTaskParser {
      * recordatorio ni visibilidad). Se detecta y borra ANTES del período próximo para
      * que "fin de mes" (que contiene la subcadena "mes") no deje residuo ni active por
      * error "mes que viene".
+     *
+     * Calificador de MES QUE VIENE: "fin del mes que viene" / "fin del próximo mes" /
+     * "fin del mes próximo" (y análogos para mediados/principios) anclan al mes
+     * SIGUIENTE, no al actual. Antes el patrón terminaba en "mes" e ignoraba el
+     * modificador → un vencimiento explícitamente fijado para fin del mes próximo caía
+     * un mes antes (P1: fecha de vencimiento errónea, pago/renta olvidados o
+     * adelantados). El modificador se consume en el match (limpieza de título) y se
+     * detecta en la resolución para desplazar un mes.
      */
-    private val endOfMonthPattern = Regex("""(?i)\b(?:a\s+)?fin(?:ales|es)?\s+(?:de\s+|del\s+)mes\b""")
-    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)mes\b""")
-    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?principios?\s+(?:de\s+|del\s+)mes\b""")
+    private val endOfMonthPattern = Regex("""(?i)\b(?:a\s+)?fin(?:ales|es)?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
+    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
+    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?principios?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
     /**
      * "la quincena" / "de la quincena" / "primera quincena" / "segunda quincena":
      * hito financiero mensual (cobro, nómina, pago). La "primera quincena" es el día
@@ -600,26 +608,17 @@ object NaturalTaskParser {
         val startOfMonthEarlyMatch = startOfMonthPattern.find(working)
         val monthBoundaryDueAt = when {
             endOfMonthEarlyMatch != null -> {
-                val today = base.toLocalDate()
-                val lastDayThis = today.withDayOfMonth(today.lengthOfMonth())
-                val target = if (today.isBefore(lastDayThis)) lastDayThis
-                    else lastDayThis.plusMonths(1).withDayOfMonth(
-                        lastDayThis.plusMonths(1).lengthOfMonth())
-                DateRules.toEpochMillis(target, LocalTime.of(9, 0), zone)
+                val baseMonth = monthBaseForBoundary(base.toLocalDate(), endOfMonthEarlyMatch.value)
+                val lastDay = baseMonth.withDayOfMonth(baseMonth.lengthOfMonth())
+                DateRules.toEpochMillis(lastDay, LocalTime.of(9, 0), zone)
             }
             midOfMonthEarlyMatch != null -> {
-                val today = base.toLocalDate()
-                val fifteenthThis = today.withDayOfMonth(15)
-                val target = if (today.isBefore(fifteenthThis)) fifteenthThis
-                    else fifteenthThis.plusMonths(1)
-                DateRules.toEpochMillis(target, LocalTime.of(9, 0), zone)
+                val baseMonth = monthBaseForBoundary(base.toLocalDate(), midOfMonthEarlyMatch.value)
+                DateRules.toEpochMillis(baseMonth.withDayOfMonth(15), LocalTime.of(9, 0), zone)
             }
             startOfMonthEarlyMatch != null -> {
-                val today = base.toLocalDate()
-                val firstThis = today.withDayOfMonth(1)
-                // Si hoy es 1 (o ya pasó el 1 este mes), rueda al 1 del mes siguiente.
-                val target = if (today.isAfter(firstThis)) firstThis.plusMonths(1) else firstThis
-                DateRules.toEpochMillis(target, LocalTime.of(9, 0), zone)
+                val baseMonth = monthBaseForBoundary(base.toLocalDate(), startOfMonthEarlyMatch.value)
+                DateRules.toEpochMillis(baseMonth.withDayOfMonth(1), LocalTime.of(9, 0), zone)
             }
             else -> null
         }
@@ -863,6 +862,11 @@ object NaturalTaskParser {
             // "antier" = variante coloquial hispanoamericana de "anteayer".
             Regex("""(?i)\banteayer\b|\bantier\b""").containsMatchIn(working) -> base.toLocalDate().minusDays(2)
             Regex("""(?i)\bayer\b""").containsMatchIn(working) -> base.toLocalDate().minusDays(1)
+            // "antepasado mañana" = dentro de 3 días (mañana+2). Debe ir ANTES que
+            // "pasado mañana" y que "mañana" suelto: la palabra "mañana" dentro de la
+            // frase casaba con mananaAsDate → +1 (fecha errónea) y "antepasado" quedaba
+            // como residuo en el título (P1: cita 2 días antes y título corrupto).
+            Regex("""(?i)\bantepasad[oa]\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(3)
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             // "mañana" como fecha (el día de mañana) sólo si NO forma parte de un
             // marcador de parte del día ("de la mañana", "por la mañana", "a la
@@ -1171,7 +1175,7 @@ object NaturalTaskParser {
             .let { value -> timePatterns.fold(value) { acc, pattern -> pattern.replace(acc, " ") } }
             .let { value -> standalonePartOfDayPattern.replace(value, " ") }
             .let { value -> primeraHoraPattern.replace(value, " ") }
-            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b"""), " ")
+            .replace(Regex("""(?i)\bantepasad[oa]\s+mañana\b|\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b"""), " ")
             .let { value -> weekdayPattern.replace(value, " ") }
             .let { value -> weekendPattern.replace(value, " ") }
             // "que viene" queda como residuo cuando la fecha asociada (fin de
@@ -1492,6 +1496,44 @@ object NaturalTaskParser {
     private fun nextWeekday(from: LocalDate, target: DayOfWeek): LocalDate {
         val delta = (target.value - from.dayOfWeek.value + 7) % 7
         return from.plusDays(if (delta == 0) 7 else delta.toLong())
+    }
+
+    /**
+     * Mes de referencia para un límite mensual ("fin de mes", "mediados de mes",
+     * "principios de mes"). Sin modificador, replica el avance original: "fin de mes"
+     * cae en el último día de este mes salvo que hoy YA sea el último (→ siguiente mes);
+     * "mediados de mes" en el 15 salvo que hoy ≥ 15 (→ siguiente mes); "principios de
+     * mes" rueda al 1 del mes siguiente (hoy ≥ 1 salvo hoy=1). Con modificador de MES
+     * QUE VIENE / PRÓXIMO, la fecha se ancla al mes SIGUIENTE al actual (today+1 mes),
+     * sin roll adicional — "principios del mes que viene" dicho a medidados de agosto es
+     * 1 de septiembre, no 1 de octubre (antes el modificador se ignoraba y la fecha
+     * adelantaba un mes, P1; un doble-desplazamiento sería el error simétrico).
+     */
+    private fun monthBaseForBoundary(today: LocalDate, matched: String): LocalDate {
+        val t = matched.lowercase()
+        val isNext = t.contains("que viene") || t.contains("próxim") || t.contains("proxim")
+        if (isNext) return today.plusMonths(1)
+        val kind = when {
+            t.contains("fin") || t.contains("finales") -> "end"
+            t.contains("mediados") || t.contains("mediado") -> "mid"
+            else -> "start"
+        }
+        return when (kind) {
+            "end" -> {
+                val lastDayThis = today.withDayOfMonth(today.lengthOfMonth())
+                if (today.isBefore(lastDayThis)) today else lastDayThis.plusMonths(1)
+            }
+            "mid" -> {
+                val fifteenthThis = today.withDayOfMonth(15)
+                if (today.isBefore(fifteenthThis)) today else fifteenthThis.plusMonths(1)
+            }
+            else -> {
+                // "principios de mes": si hoy es 1, se mantiene hoy; si no, rueda al 1
+                // del mes siguiente.
+                val firstThis = today.withDayOfMonth(1)
+                if (today.isAfter(firstThis)) firstThis.plusMonths(1) else firstThis
+            }
+        }
     }
 
     /**
