@@ -38,11 +38,13 @@ object NaturalTaskParser {
     /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado. */
     private val weekendPattern = Regex("""(?i)\b(?:este\s+|el\s+|pr[oó]ximo\s+)?fin\s+de\s+semana\b""")
     /**
-     * Fecha relativa: "en N minutos/horas/días" o "dentro de N ...". Acepta dígitos
-     * o números escritos (una/un, dos, ..., doce). "una"/"un" → 1.
+     * Fecha relativa: "en N minutos/horas/días/semanas/meses" o "dentro de N ...".
+     * Acepta dígitos o números escritos (una/un, dos, ..., veinte, treinta). "una"/"un" → 1.
+     * Las semanas (×7 días) y meses (×30 días) son formas muy comunes ("en una semana",
+     * "en un mes") que antes quedaban sin fecha → la tarea se olvidaba (sin recordatorio).
      */
     private val relativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de)\s+(\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\s*(minutos?|mins?|horas?|d[ií]as?)\b"""
+        """(?i)\b(?:en|dentro\s+de)\s+(\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|mes(?:es)?)\b"""
     )
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
     private val timePatterns = listOf(
@@ -237,6 +239,8 @@ object NaturalTaskParser {
             val millis = when {
                 unit.startsWith("min") -> amount * 60_000L
                 unit.startsWith("hora") -> amount * 60 * 60_000L
+                unit.startsWith("semana") -> amount * 7 * 24 * 60 * 60_000L
+                unit.startsWith("mes") -> amount * 30 * 24 * 60 * 60_000L
                 else -> amount * 24 * 60 * 60_000L
             }
             now + millis
@@ -273,6 +277,12 @@ object NaturalTaskParser {
             // Debe ir antes que el "mañana" genérico: "esta mañana" contiene "mañana"
             // y no debe interpretarse como "el día de mañana".
             partOfDayMatch != null -> base.toLocalDate()
+            // "anteayer"/"ayer" son fechas PASADAS explícitas: el usuario reconoce que
+            // la tarea está vencida ("Hacer X ayer"). Antes quedaban sin fecha (dueAt=null)
+            // o, combinadas con hora ("ayer a las 4"), resolvían a HOY — fecha errónea.
+            // Se mantiene en el pasado (honesto: la tarea es vencida, aparece en What Now).
+            Regex("""(?i)\banteayer\b""").containsMatchIn(working) -> base.toLocalDate().minusDays(2)
+            Regex("""(?i)\bayer\b""").containsMatchIn(working) -> base.toLocalDate().minusDays(1)
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
@@ -424,7 +434,7 @@ object NaturalTaskParser {
             .let { value -> timePatterns.fold(value) { acc, pattern -> pattern.replace(acc, " ") } }
             .let { value -> standalonePartOfDayPattern.replace(value, " ") }
             .let { value -> primeraHoraPattern.replace(value, " ") }
-            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
+            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\banteayer\b|\bayer\b"""), " ")
             .let { value -> weekdayPattern.replace(value, " ") }
             .let { value -> weekendPattern.replace(value, " ") }
             // Solo se elimina la fecha "5 de marzo" si el mes es válido: así "9 de la"
@@ -601,6 +611,17 @@ object NaturalTaskParser {
             "diez" -> 10L
             "once" -> 11L
             "doce" -> 12L
+            "trece" -> 13L
+            "catorce" -> 14L
+            "quince" -> 15L
+            "dieciséis" -> 16L
+            "dieciseis" -> 16L
+            "diecisiete" -> 17L
+            "dieciocho" -> 18L
+            "diecinueve" -> 19L
+            "veinte" -> 20L
+            "veintiuno" -> 21L
+            "treinta" -> 30L
             else -> null
         }
     }

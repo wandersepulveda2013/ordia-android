@@ -815,4 +815,83 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
+
+    // --- Fechas relativas en semanas/meses ---
+    // "en una semana"/"en un mes" son de las formas más comunes en español y antes
+    // quedaban SIN fecha (dueAt=null) → la tarea se olvidaba (sin recordatorio). now=2026-07-29.
+
+    @Test fun enUnaSemanaParsesDueAt() {
+        val result = NaturalTaskParser.parse("Enviar propuesta en una semana", now, zone)
+        assertEquals("Enviar propuesta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enUnMesParsesDueAt() {
+        val result = NaturalTaskParser.parse("Renovar licencia en un mes", now, zone)
+        assertEquals("Renovar licencia", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enDigitSemanasParsesDueAt() {
+        val result = NaturalTaskParser.parse("Revisión en 3 semanas", now, zone)
+        assertEquals("Revisión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 19), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enDigitMesesParsesDueAt() {
+        val result = NaturalTaskParser.parse("Auditoría en 2 meses", now, zone)
+        assertEquals("Auditoría", result.title)
+        // 2 meses = 60 días a partir de 2026-07-29 → 2026-09-27.
+        assertEquals(LocalDate.of(2026, 9, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dentroDeUnMesParsesDueAt() {
+        val result = NaturalTaskParser.parse("Cita dentro de un mes", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enQuinceDiasParsesDueAt() {
+        // "quince" antes no estaba en el diccionario de números escritos → dueAt=null.
+        val result = NaturalTaskParser.parse("Entregar en quince días", now, zone)
+        assertEquals("Entregar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun semanaRelativaRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Enviar en una semana a las 9", now, zone)
+        assertEquals("Enviar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // --- "ayer"/"anteayer": fechas pasadas explícitas ---
+    // Antes no se parseaban → dueAt=null, o combinadas con hora resolvían a HOY (fecha errónea).
+    // Se mantienen en el pasado (honesto: tarea vencida, visible en What Now).
+
+    @Test fun ayerParsesDueAtYesterday() {
+        val result = NaturalTaskParser.parse("Llamar a Ana ayer", now, zone)
+        assertEquals("Llamar a Ana", result.title)
+        assertEquals(LocalDate.of(2026, 7, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun anteayerParsesDueAtTwoDaysAgo() {
+        val result = NaturalTaskParser.parse("Enviar correo anteayer", now, zone)
+        assertEquals("Enviar correo", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ayerConHoraResuelveAyerNoHoy() {
+        // Regresión crítica: antes "ayer a las 4 de la tarde" resolvía a HOY a las 16:00.
+        val result = NaturalTaskParser.parse("Reunión ayer a las 4 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(16, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun anteayerConPartoDeDiaResuelvePasado() {
+        val result = NaturalTaskParser.parse("Visita anteayer a la tarde", now, zone)
+        assertEquals("Visita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }
