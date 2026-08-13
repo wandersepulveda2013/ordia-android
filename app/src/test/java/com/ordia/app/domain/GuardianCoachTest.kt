@@ -37,6 +37,26 @@ class GuardianCoachTest {
     }
 
     @Test
+    fun nextTaskWithWhatNowReasoningIsSuggested() {
+        val task = TaskEntity(
+            id = 1,
+            title = "Limpiar escritorio",
+            dueAt = DateRules.toEpochMillis(today, LocalTime.of(15, 0), zone),
+            durationMinutes = 25,
+            priority = TaskPriority.NORMAL
+        )
+
+        val insight = GuardianCoach.insight(listOf(task), emptyList(), emptyList(), now, zone)
+
+        assertEquals(1L, insight.taskId)
+        assertEquals(GuardianCoach.Tone.FOCUSED, insight.tone)
+        assert(insight.message.contains("Haz esto ahora porque..."))
+        assert(insight.message.contains("25 min"))
+        assert(insight.message.contains("vence hoy"))
+        assert(insight.message.contains("libres"))
+    }
+
+    @Test
     fun pendingHabitIsSuggestedWhenTasksAreClear() {
         val habit = HabitEntity(id = 7, title = "Leer diez minutos")
         val insight = GuardianCoach.insight(emptyList(), listOf(habit), emptyList(), now, zone)

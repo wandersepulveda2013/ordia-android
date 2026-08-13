@@ -67,14 +67,22 @@ object GuardianCoach {
             )
         }
 
-        val next = TaskRules.nextBestTask(pending, now)
-        if (next != null) {
+        val plan = DayPlanner.build(tasks = pending, date = today, now = now, zone = zone)
+        val nextInPlan = plan.blocks.firstOrNull { it.startMinute >= (java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalTime().toSecondOfDay() / 60) }
+            ?: plan.blocks.firstOrNull()
+
+        val nextTask = nextInPlan?.let { block -> tasks.firstOrNull { it.id == block.taskId } } ?: TaskRules.nextBestTask(pending, now)
+
+        if (nextTask != null) {
+            val dueInfo = if (TaskRules.isDueToday(nextTask, now, zone)) "vence hoy" else "sin límite inmediato"
+            val durationInfo = "${nextTask.durationMinutes} min"
+            val freeTimeInfo = "tienes ${plan.remainingMinutes} min libres"
+
             return Insight(
                 eyebrow = "SIGUIENTE PASO",
-                title = next.title,
-                message = next.details.takeIf { it.isNotBlank() }
-                    ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
-                taskId = next.id,
+                title = nextTask.title,
+                message = "Haz esto ahora porque... ($durationInfo · $dueInfo · $freeTimeInfo)",
+                taskId = nextTask.id,
                 tone = Tone.FOCUSED
             )
         }
