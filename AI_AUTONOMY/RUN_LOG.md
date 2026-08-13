@@ -14,7 +14,7 @@
 - **Tests**: +1 `picksUrgentOverNormalAmongOverdue` en `WhatNowEngineTest.kt` (reproduce el bug: dos atrasadas normal 9:00 vs urgente 10:00 mismo día → antes del fix What Now elegía la normal por `dueAt`; tras fix elige la urgente Y `assertEquals(suggestion.task.id, widget?.id)` confirma que coincide con `nextBestTask`). **422 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 421 base c.52 + 1 nuevo), smoke 25 OK (`tools/run_domain_checks.sh`).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real de la tarjeta What Now en `TodayScreen`, widget real en pantalla de inicio.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/TaskRules.kt` (`priorityScore` private→public + KDoc), `app/src/main/java/com/ordia/app/domain/WhatNowEngine.kt` (+tiebreaker +KDoc), `app/src/main/java/com/ordia/app/domain/DayPlanner.kt` (reutiliza TaskRules.priorityScore, elimina copia privada), `app/src/test/java/com/ordia/app/domain/WhatNowEngineTest.kt` (+1 test), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (pendiente de push a openhands/autonomous-ordia).
+- **HEAD final**: `8f290c0` (push a openhands/autonomous-ordia OK; `8275185..8f290c0`, fast-forward sin colisión).
 
 ### Siguiente
 - Descubrimiento continuo: auditar captura, recordatorios (cancelación al completar/archivar, persistencia real del snooze vía WorkManager), detección de vencidas importantes, contexto, onboarding, navegación, accesibilidad, rendimiento, privacidad.
