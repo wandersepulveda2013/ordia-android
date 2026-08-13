@@ -2040,3 +2040,44 @@ Cerrar el candidato P3 listado en CURRENT_STATE ("este fin de semana" no soporta
 ### Siguiente
 - Continuar ciclo interminable P2/P3. Candidatos: derivedStateOf/keys en LazyColumns grandes,
   BackHandler en pantallas anidadas, contraste onSurfaceVariant.
+
+---
+
+## Ciclo 29 — NaturalTaskParser: semanas/meses + ayer/anteayer + números escritos — 2026-08-13T13:0Z
+
+### Objetivo
+Candidato P1 del parser: "en un mes"/"en una semana" y fechas pasadas ayer/anteayer no se
+parseaban → tareas olvidadas (sin recordatorio, invisibles en planificador).
+
+### Sincronización
+- `git fetch origin openhands/autonomous-ordia`; HEAD local == remoto (`e1014d5`). Sin divergencia.
+- Entorno: JVM puro (sin Android SDK). `bash tools/run_domain_tests.sh` = 249 tests.
+
+### Cambio (1 commit)
+- `17f058d` — `fix(parser): parse 'en un mes/semana' + ayer/anteayer + written numbers 13-30`
+  - `relativePattern` añade unidades `semanas`/`meses`; bug `meses?`→`mes(?:es)?` (singular).
+  - `parseWrittenNumber` extendido: trece–veinte, veintiuno, treinta.
+  - `relativeDueAt`: semanas ×7 días, meses ×30 días.
+  - `date` when: añade ayer (-1) / anteayer (-2) como fechas pasadas explícitas.
+  - Limpieza de título elimina tokens ayer/anteayer.
+  - +11 tests.
+
+### Tests — VERIFICADO localmente (JVM)
+- `bash tools/run_domain_tests.sh` = **249 tests PASS** (238 base + 11 nuevos), 25 clases.
+- Probe manual JVM: "en un mes"→2026-08-28, "en 1 mes"→2026-08-28, "dentro de un mes"→2026-08-28,
+  "en una semana"→2026-08-05, "en 2 meses"→2026-09-27, "ayer a las 4 de la tarde"→ayer 16:00.
+- NO VERIFICADO: gradle/lint/assemble/Android (sin Android SDK en este entorno). CI remoto
+  ejecutará `Verificar` (tests+lint+assemble) en el push.
+
+### Hallazgos para próximas ejecuciones
+- Parser: "en un año"/"el año que viene" no se parsean (relativePattern sin unidad años).
+- Parser: "la semana que viene"/"el mes que viene" no se parsean. "próximos días" tampoco.
+- P1 OPEN: adjuntos guardan URI externo (BACKLOG) — requiere sesión dedicada.
+
+### Commits
+- `17f058d` (código + tests)
+- docs(autonomy) pendiente: actualización de AI_AUTONOMY (este commit).
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser: años, "semana/mes que viene", "próximos días".
+- O P1 adjuntos URI externo si hay capacidad para sesión dedicada.

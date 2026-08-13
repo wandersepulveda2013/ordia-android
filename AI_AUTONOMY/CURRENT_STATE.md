@@ -14,13 +14,34 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-11 (fin ciclo 28)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD `5b6f714`)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 29)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD `17f058d`)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
+
+## Último trabajo — Ciclo 29 (parser: semanas/meses + ayer/anteayer + números escritos)
+
+`17f058d` — `NaturalTaskParser` ahora parsea fechas relativas en **semanas** y **meses** y las
+fechas pasadas **ayer/anteayer**. Antes estas formas extremadamente comunes en español ("en una
+semana", "en un mes", "en 3 semanas", "en 2 meses", "dentro de un mes") quedaban con
+`dueAt=null` → sin recordatorio, sin aparecer en planificador/What Now → **la tarea se olvidaba**.
+Causa raíz doble: (1) el `relativePattern` no incluía las unidades `semanas`/`meses`; (2) al
+añadirlas, un bug de regex `meses?` coincidía con `mese`/`meses` pero **NO** con el singular `mes`
+(corregido a `mes(?:es)?`). También `parseWrittenNumber` solo llegaba hasta `doce` (ahora hasta `treinta`).
+
+Además (P1, evitar olvidos de fechas pasadas):
+- **ayer/anteayer** se parsean como fechas explícitas (día anterior / dos antes). Antes quedaban
+  sin fecha o, combinadas con hora ("ayer a las 4 de la tarde"), resolvían a **HOY** (fecha
+  errónea). Se mantienen en pasado (honesto: tarea vencida, visible en What Now).
+- Números escritos extendidos: trece..veinte, veintiuno, treinta ("en quince días" funciona).
+- Limpieza de título elimina tokens ayer/anteayer.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**249 tests PASS** (238 base + 11 nuevos). Smoke 25 OK. NO VERIFICADO: gradle/lint/assemble/Android.
+
 
 ## Último trabajo — Ciclo 28 (a11y, strings, UX adjuntos, parser fin de semana)
 
@@ -73,6 +94,9 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 
 ## Próximo trabajo
 
-- Continuar ciclo interminable P2/P3 (UX, a11y, deuda técnica). No detenerse.
-- Candidatos: revisar `derivedStateOf`/keys en LazyColumns grandes; auditar `BackHandler` en
-  pantallas anidadas; revisar contraste de `onSurfaceVariant` en tokens secundarios.
+- Continuar ciclo interminable. áreas de oportunidad (parser): "en un año"/"el año que viene"
+  (años no soportados en relativePattern); "la semana que viene"/"el mes que viene"; "próximos
+  días"; quarter/"próximo trimestre". Verificar necesidad antes de implementar.
+- P1 OPEN: adjuntos guardan URI externo (BACKLOG) — requiere sesión dedicada para copiar bytes a filesDir.
+- P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler en pantallas anidadas;
+  contraste onSurfaceVariant. No detenerse.
