@@ -14,13 +14,25 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 37)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 37)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 38)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 38)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
+
+## Último trabajo — Ciclo 38: parser recordatorios con números escritos y fracciones
+
+Unidad atómica del ciclo de parser natural (P2 — evitar olvidos por recordatorio perdido). **"recuérdame una/dos horas antes"**, **"treinta minutos antes"**, **"media hora antes"**, **"un cuarto de hora antes"**: formas cotidiansimas de pedir un recordatorio. El parser **NO las reconocía** como recordatorio: `reminderPatterns` solo capturaba `(\d{1,3})` (dígitos), así que `reminderOffsetMinutes=null` y la frase quedaba como **residuo en el título** (la cita se olvidaba). Asimetría total con la duración relativa: "en dos horas" sí funcionaba. Además **"media hora antes"** era **robado por el patrón de duración fraccionaria** (30 min falsos como duración) y el recordatorio quedaba en null: doble fallo (duración errada + recordatorio perdido).
+
+**Solución (mínima, en `NaturalTaskParser.kt`)**:
+- Nuevo `writtenAmountPattern` (dígitos o números escritos en español, simétrico al de fecha relativa) usado en los 2 patrones de recordatorio existentes, sustituyendo `(\d{1,3})`.
+- 2 patrones nuevos de **fracción** ("media hora", "(un) cuarto de hora") con **contexto obligatorio** ("antes"/"de anticipación"/verbo) para que NO roben una duración real ("reunión media hora" sin "antes" sigue siendo duración de 30 min).
+- Cálculo del offset vía `parseWrittenNumber` (ya existente); `media hora`=30 / `cuarto de hora`=15.
+- `match.groupValues.getOrNull(2)` en vez de `[2]`: los patrones de fracción solo exponen grupo 1, los de cantidad+unidad exponen hasta el 2; acceso seguro evita `IndexOutOfBoundsException`.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` = **323 tests PASS** (315 base + 8 nuevos), 25 clases. Smoke 25 OK. NO VERIFICADO: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
 
 ## Último trabajo — Ciclo 37: parser "a las N horas" (hora, no duración falsa)
 
@@ -235,7 +247,7 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 | Pri | Área | Estado |
 |-----|------|--------|
 | P1 | Persistencia — adjuntos URI externo | FIXED (NO VERIFICADO Android) ciclo 32 cont.4 |
-| P1 | Parser — "esta semana" plazo blando | FIXED → VERIFIED ciclo 34 (290 tests); "principios de semana" VERIFIED ciclo 34 cont. (294 tests); quincena/bimestre/semestre VERIFIED (300 tests, 8146acf); "un par de" VERIFIED ciclo 35 (308 tests); "mediados de semana" VERIFIED ciclo 36 (312 tests) |
+| P1 | Parser — "esta semana" plazo blando | FIXED → VERIFIED ciclo 34 (290 tests); "principios de semana" VERIFIED ciclo 34 cont. (294 tests); quincena/bimestre/semestre VERIFIED (300 tests, 8146acf); "un par de" VERIFIED ciclo 35 (308 tests); "mediados de semana" VERIFIED ciclo 36 (312 tests); "a las N horas" VERIFIED ciclo 37 (315 tests); recordatorios escritos/fracciones VERIFIED ciclo 38 (323 tests) |
 | P2 | QA — compilar 6 variantes tras cambios | OPEN (requiere env Android) |
 | P2 | Self-Update — prueba end-to-end N→N+1 | BLOCKED-external (sin dispositivo Android) |
 | P3 | UX — pulido visual pantallas workspace renovadas | OPEN |

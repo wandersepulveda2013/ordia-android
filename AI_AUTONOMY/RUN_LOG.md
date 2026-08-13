@@ -2607,3 +2607,25 @@ a un permiso persistente frágil y silencioso ante fallos.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
 - Descubrimiento continuo: auditar captura, What Now, rutinas en busca de oportunidades de producto reales, no solo parser.
 - Nota operativa: `GITHUB_TOKEN` ausente en este entorno; usar `github_token` para push.
+
+## Ciclo 38 - 2026-08-13 (UTC)
+
+- **Run/ciclo**: 38
+- **HEAD inicial**: f2d26ba (origin/openhands/autonomous-ordia sincronizado; ciclo 37 ya en remoto).
+- **Problema seleccionado**: `NaturalTaskParser` NO reconocía **números escritos** en recordatorios relativos ("recuérdame una/dos horas antes", "una hora antes", "treinta minutos antes") ni **fracciones** ("media hora antes", "un cuarto de hora antes"): `reminderOffsetMinutes=null` y la frase quedaba como residuo en el título. Además "media hora antes" era **robado por el patrón de duración fraccionaria** (30 min falsos como duración) y el recordatorio quedaba en null. La cita se olvidaba (sin recordatorio programado).
+- **Prioridad**: P2 (evitar olvidos por recordatorio perdido; asimetría con la duración relativa "en dos horas" que sí funcionaba).
+- **Causa raíz**: `reminderPatterns` solo capturaba `(\d{1,3})` (dígitos); `parseWrittenNumber` existía pero no se usaba en recordatorios. Las fracciones ("media hora") no tenían patrón propio de recordatorio, así que caían al de duración. Además el código accedía a `groupValues[2]` asumiendo 2 grupos, lo que rompía con patrones de 1 grupo (`IndexOutOfBoundsException`).
+- **Solución (mínima, en `NaturalTaskParser.kt`)**:
+  - `writtenAmountPattern` (dígitos o números escritos en español, simétrico a la fecha relativa) en los 2 patrones de recordatorio existentes.
+  - 2 patrones nuevos de fracción con **contexto obligatorio** ("antes"/"de anticipación"/verbo) para no robar una duración real.
+  - Offset vía `parseWrittenNumber`; `media hora`=30 / `cuarto de hora`=15; acceso `getOrNull(2)` seguro.
+- **Tests**: +8 (`parsesWrittenAmountReminderWithVerb`, `parsesWrittenAmountReminderTwoHours`, `parsesWrittenAmountReminderThirtyMinutes`, `parsesWrittenAmountReminderWithoutVerb`, `mediaHoraAntesEsRecordatorio`, `cuartoDeHoraAntesEsRecordatorio`, `recuerdameMediaHoraDeAnticipacion`, `mediaHoraSinAntesSigueSiendoDuracion` — regresión). **323 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+- **Commits**: feat(parser): recordatorios con números escritos y fracciones; docs(autonomy): este registro.
+- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+
+### Siguiente
+- Continuar ciclo de parser: rango horario sin "horas" ("clase de 9 a 11"), "la quincena" como plazo/recurrencia.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+- Descubrimiento continuo: auditar captura, What Now, rutinas en busca de oportunidades de producto reales, no solo parser.
+- Nota operativa: usar `github_token` (en este entorno `GITHUB_TOKEN` puede estar ausente).
