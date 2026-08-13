@@ -14,43 +14,35 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 32)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 32)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 32 cont.2)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 32 cont.2)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-## Último trabajo — Ciclo 32 (parser: "próximos días" +3d y "antier")
+## Último trabajo — Ciclo 32 (cont.2): parser “próximo trimestre” (+90d)
 
-Dos unidades atómicas de parser natural, ambas P1 (evitar olvidos de fechas):
+Tercera unidad atómica del ciclo 32 (parser natural, P1 — evitar olvidos de fechas):
 
-1. **"próximos días" (+3d)**: `NaturalTaskParser` ahora parsea **"próximos días"** (con o sin
-   prefijo "en los/el/las") como +3 días. Es la forma cotidiana y deliberadamente vaga de
-   "dentro de poco"; antes quedaba con `dueAt=null` → la tarea se olvidaba (sin recordatorio,
-   sin aparecer en planificador/What Now). La heurística +3d es honesta (ni IA ni azar) y se
-   reutiliza toda la infraestructura de período próximo existente: combina con hora explícita
-   ("en los próximos días a las 10" → fecha +3d a las 10:00) y se elimina del título sin residuo.
-   Causa raíz: el `nextPeriodPattern` (añadido en ciclo 30 para "semana/mes/año que viene" y
-   "próximo X") solo cubría períodos nombrados; "próximos días" no contenía semana/mes/año, así
-   que no matcheaba y la fecha quedaba vacía. Extensión mínima: una alternativa al final del regex
-   `(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b` y rama `else -> 3L` en el cálculo de días.
+**“próximo trimestre” / “el trimestre que viene” (+90d)**: `NaturalTaskParser` ahora parsea
+estas formas de plazo largo cotidiano (impuestos trimestrales, revisiones, informes). Antes no
+se parseaban → `dueAt=null` → la tarea se olvidaba (sin recordatorio, invisible en
+planificador/What Now). Extensión mínima: `trimestre` como unidad en ambas ramas del
+`nextPeriodPattern` y rama `trimestre -> 90L` (+90d = 3 meses × 30d, consistente con
+“mes que viene” = +30d). **Detalle clave**: la rama `trimestre` se comprueba ANTES que `mes`
+porque la cadena “trimestre” contiene la subcadena “mes” (“tri**mes**tre”); si `mes` fuera
+primero ganaría erróneamente (+30d en vez de +90d). Reutiliza toda la infraestructura de
+período próximo: combina con hora explícita y se elimina del título sin residuo.
 
-2. **"antier"**: variante coloquial hispanoamericana de "anteayer" (MX/CA/parts SA). Antes no se
-   parseaba → `dueAt=null` → tarea vencida olvidada. Extensión mínima: `\bantier\b` se añadió a
-   la rama de `anteayer` (misma fecha, -2 días) y a la limpieza de título. Combina con hora
-   explícita ("antier a las 4 de la tarde" → fecha -2d a las 16:00, igual que "ayer a las 4").
-
-**STALE_RUN evitado**: al iniciar el ciclo, el remoto ya estaba en `3540808` (ciclo 31), pero
-existía un commit local no-pushado (`04a21e8`) que duplicaba los features del remoto (años +
-"que viene" + "próximo X") y solo añadía "próximos días". Se descartó el commit duplicado
-(`reset --soft` al remoto + `checkout -- .`) y se reconstruyó SOLO "próximos días" sobre el HEAD
-remoto limpio, sin sobrescribir trabajo válido ni history compartido.
+Ciclos previos del 32: “próximos días” (+3d) y “antier” (variante de “anteayer”, -2d),
+ambos pushados y verificados (ver historial en RUN_LOG.md).
 
 **VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
-**265 tests PASS** (260 base + 3 "próximos días" + 2 "antier"), 25 clases. Smoke 25 OK.
-NO VERIFICADO: gradle/lint/assemble/Android (sin Android SDK). CI remoto ejecuta `Verificar`.
+**268 tests PASS** (260 base + 3 “próximos días” + 2 “antier” + 3 “trimestre”), 25 clases.
+Smoke 25 OK. NO VERIFICADO: gradle/lint/assemble/Android (sin Android SDK). CI remoto ejecuta
+`Verificar`.
 
 
 ## Último trabajo — Ciclo 31 (parser: fix "fin de semana que viene")
@@ -125,13 +117,13 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 
 ## Próximo trabajo
 
-- Ciclo 31 (DONE): fix de regresión "fin de semana que viene" — `nextPeriodPattern`
-  coincidía con la subcadena "semana que viene" y dejaba residuo "fin de" + fecha +7d en
-  lugar del próximo sábado. Resuelto: weekend detectado temprano, antes del período
-  próximo; +borrado de residuo "que viene"; +test de regresión (260 domain tests PASS).
-- Continuar ciclo interminable. áreas de oportunidad (parser): "antier" (variante de
-  anteayer); "próximos días" (forma vaga, decidir si merece un default); "próximo
-  trimestre"; años/período próximo resueltos ciclo 30.
+- Ciclo 32 (cont.2) (DONE): parser “próximo trimestre” / “trimestre que viene” (+90d).
+  Antes dueAt=null → tarea olvidada. Extensión de `nextPeriodPattern` + rama `trimestre`
+  (antes que `mes` por la subcadena “mes” dentro de “trimestre”). 268 domain tests PASS.
+- Ciclos previos del 32: “próximos días” (+3d) y “antier” (-2d), ambos verificados.
+- Continuar ciclo interminable. áreas de oportunidad (parser): “a finales/mediados de mes”,
+  “esta semana” (vs “la semana que viene”), “fin de mes”, “próximo bimestre/semestre”
+  (evaluar frecuencia). Años/semana/mes/trimestre/período próximo ya resueltos.
 - P1 OPEN: adjuntos guardan URI externo (BACKLOG) — requiere sesión dedicada para copiar bytes a filesDir.
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler en pantallas anidadas;
   contraste onSurfaceVariant. No detenerse.

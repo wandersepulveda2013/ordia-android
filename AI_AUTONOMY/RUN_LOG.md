@@ -2272,3 +2272,58 @@ de "anteayer"/"ayer" del ciclo 29.
 ### Siguiente
 - Continuar ciclo interminable. Candidato parser: "próximo trimestre".
   P1 adjuntos URI externo si hay sesión dedicada.
+
+## Ciclo 32 (cont.2) — NaturalTaskParser: “próximo trimestre” / “trimestre que viene” (+90d) — 2026-08-13T13:31Z
+
+### Objetivo
+Resolver el hallazgo pendiente desde ciclos 30/31/32: “próximo trimestre” /
+“el trimestre que viene” / “el próximo trimestre” no se parseaban → `dueAt=null` →
+tarea olvidada (sin recordatorio ni visibilidad en planificador/What Now). Plazo
+largo cotidiano (impuestos trimestrales, revisiones, informes).
+
+### Estado del repo
+- HEAD inicial: `b8b3761` (ciclo 32 cont., remoto, tras push de “antier”).
+- `git fetch origin openhands/autonomous-ordia` → local == remoto (sin divergencia).
+- Remote con token `https://x-access-token:${github_token}@...`.
+
+### Cambios
+- `NaturalTaskParser.nextPeriodPattern`: añadida `trimestre` como unidad en ambas
+  ramas del patrón (“trimestre que viene” / “próximo trimestre”).
+- `NaturalTaskParser.nextPeriodDueAt`: añadida rama `trimestre` → `90L` (3 meses ×
+  30d, consistente con `mes que viene` = +30d). **Se comprueba ANTES que `mes`**
+  porque la cadena “trimestre” contiene la subcadena “mes” (“tri**mes**tre”); si
+  `mes` fuera primero ganaría erróneamente (+30d en vez de +90d).
+- Comentario del patrón consolidado/limpiado (eliminado bloque duplicado huérfano).
+
+### TDD
+- 3 tests nuevos (`proximoTrimestreParsesDueAt`,
+  `trimestreQueVieneParsesDueAt`, `proximoTrimestreRespetaHoraExplicita`).
+- RED confirmado antes del fix: los 3 fallaron — dueAt=null → el título retenía el
+  residuo (“Auditoría [próximo trimestre]”, “Cerrar informe [ el trimestre que viene]”).
+- GREEN tras fix.
+
+### Evidencia
+- TDD red→green: 3 tests fallaron antes del fix (ComparisonFailure: título con
+  residuo “próximo trimestre”/“el trimestre que viene”); PASS tras fix.
+- now=2026-07-29T12:00 (America/Santo_Domingo). +90d = 2026-10-27. ✓
+- “próximo trimestre a las 10” → fecha +90d time=10:00 (combina con hora). ✓
+- Regresiones OK: “semana/mes/año que viene” y “próximos días” no afectados
+  (cubiertos por suite existente).
+- `bash tools/run_domain_tests.sh` = **268 tests PASS** (265 + 3 nuevos), 25 clases.
+- `bash tools/run_domain_checks.sh` = smoke 25 assertions OK.
+- NO VERIFICADO: gradle/lint/assemble/Android (sin Android SDK). CI remoto ejecuta `Verificar`.
+
+### Hallazgos para próximas ejecuciones
+- Parser: candidatos restantes — “próximo bimestre/semestre” (poco frecuente;
+  evaluar si merece la pena), “a finales de mes”, “a mediados de mes”,
+  “esta semana” (vs “la semana que viene”), “fin de mes”.
+- P1 OPEN: adjuntos guardan URI externo (BACKLOG) — requiere sesión dedicada.
+
+### Commits
+- `feat(parser): parse 'próximo trimestre' / 'trimestre que viene' (+90d)` (código + 3 tests)
+  → `44f2e9b` (pushado a remoto, fast-forward `b8b3761..44f2e9b`).
+- docs(autonomy): registro ciclo 32 (cont.2) — este commit.
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser: “a finales/mediados de mes”,
+  “esta semana”, “fin de mes”. P1 adjuntos URI externo si hay sesión dedicada.
