@@ -1559,6 +1559,33 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // --- Cruce de medianoche: el rango termina al día siguiente. Antes el bloque se
+    // rechazaba (endMin <= startMin) y se perdía la duración del evento (c.80, P1). ---
+    @Test fun overnightRangeDe10DeLaNocheA1DeLaMadrugada() {
+        val result = NaturalTaskParser.parse("Cena de 10 de la noche a 1 de la madrugada", now, zone)
+        assertEquals(LocalTime.of(22, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(180, result.durationMinutes)
+    }
+
+    @Test fun overnightRangeDe11DeLaNocheA6DeLaManana() {
+        val result = NaturalTaskParser.parse("Trabajo de 11 de la noche a 6 de la mañana", now, zone)
+        assertEquals(LocalTime.of(23, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(420, result.durationMinutes)
+    }
+
+    @Test fun overnightRangeDe9DeLaNocheA2DeLaMadrugada() {
+        val result = NaturalTaskParser.parse("Fiesta de 9 de la noche a 2 de la madrugada", now, zone)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(300, result.durationMinutes)
+    }
+
+    @Test fun overnightRangeAmbiguousNotReinterpretedAsOvernight() {
+        // "de 10 a 1" sin meridiem: NO se reinterpreta como overnight (15 h); se rechaza.
+        val result = NaturalTaskParser.parse("Reunión de 10 a 1", now, zone)
+        assertNull(result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
     // "de" antes de una duración numérica es conector ("Reunión de 30 min") y debe
     // eliminarse junto con la duración, sin dejar residuo.
     @Test fun deConnectorBeforeDurationIsRemoved() {

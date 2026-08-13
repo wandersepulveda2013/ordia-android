@@ -3,6 +3,28 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 80 - 2026-08-13 (UTC) - fix(parser): cruce de medianoche en rango nocturno "de 10 de la noche a 1 de la madrugada" (duración perdida)
+
+- **Run/ciclo**: 80 (rama `openhands/autonomous-ordia`). Base limpia: HEAD inicial local `0f9ff9c` (c.79). `git pull --ff-only` OK sin divergencia. Continúa la nota "Siguiente" del c.79 que dejaba documentado: *falta el simétrico cruce de medianoche (overnight)*. Continuación segura del supervisor.
+- **HEAD inicial**: `0f9ff9c` (c.79; local == remoto, sin STALE).
+- **Problema seleccionado**: P1 (integridad de captura). El c.79 cerró la familia de **cruces del mediodía**, pero la familia de **cruces de medianoche** (overnight) seguía rota: "Cena de 10 de la noche a 1 de la madrugada" resolvía `dueAt=22:00` (por suerte, vía el canónico de parte del día) pero `durationMinutes=null` — **la longitud real del evento (3h) se perdía**. Lo mismo "Trabajo de 11 de la noche a 6 de la mañana" (7h) y "Fiesta de 9 de la noche a 2 de la madrugada" (5h). Un turno/guardia/velada nocturna quedaba sin duración.
+- **Prioridad**: P1 (duración del evento perdida en rangos overnight; forma de expresión común para turnos, cenas, fiestas, guardias nocturnas).
+- **Causa raíz**: `rangeMatch` exigía `endMin > startMin` (estrictamente mismo día) como condición de validez. Un rango overnight (22:00→01:00, `endMin=60 < startMin=1320`) violaba esa guarda → el bloque se rechazaba y la duración no se asignaba. El `dueAt` sobrevivía solo porque caía al canónico de la parte del día ("de la noche"=21:00/22:00), pero la longitud del evento se perdía en silencio.
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón — "menos interfaz, más potencia")**:
+  - `sameDay = endMin > startMin`; `rawDuration = if (sameDay) end−start else end+24*60−start`. La validez pasa a requerir `rawDuration in 5..(24*60)` (rango plausible), no `endMin>startMin`.
+  - El cruce de medianoche **solo se acepta con señal clara** (meridiem/unidad/PM, `clearSignal = hasUnit || hasMinutesOrMeridiem || sAbs>=13 || eAbs>=13`). Un rango ambiguo sin meridiem ("de 10 a 1") **no** se reinterpreta como overnight de 15h (demasiado arriesgado) — se rechaza como antes.
+  - `acceptAmbiguous` se restringe a `sameDay` (el heurístico de horas en punto ambas <13 solo aplica a mismo día; overnight siempre necesita meridiem explícito).
+  - Lógica local honesta (aritmética de minutos + ajuste de 24h, sin random ni modelo simulado). Retrocompatible (sin cambios de firma pública).
+- **Tests**: probe JVM `/tmp/probe_midnight.kt` (4 casos overnight) → antes 3/3 FAIL (dur=null), tras fix 4/4 PASS (180/420/300/480). +4 tests en `NaturalTaskParserTest.kt` (`overnightRangeDe10DeLaNocheA1DeLaMadrugada`=22:00/180, `…De11DeLaNocheA6DeLaManana`=23:00/420, `…De9DeLaNocheA2DeLaMadrugada`=21:00/300, `…AmbiguousNotReinterpretedAsOvernight`="de 10 a 1" sin meridiem→null). `bash tools/run_domain_tests.sh` → **588 PASS** (584 c.79 + 4), 26 clases. `bash tools/run_domain_checks.sh` → smoke 25 OK. Sin regresión: mismo-día c.76/c.78/c.79 intacto ("de 6 a 8 de la tarde"=18:00/120, "de 12 a 2 de la tarde"=12:00/120, "de 11 a 1 de la tarde"=11:00/120, "de 6 a 8 pm"=18:00/120).
+- **Bugs**: 1 (P1, overnight range duration null → FIXED).
+- **Features**: 0.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real del parser en la app (sin Android SDK). Marcar NO VERIFICADO.
+- **AI_AUTONOMY actualizado**: `CURRENT_STATE.md` (fecha c.80 + nueva sección "Último trabajo — Ciclo 80"), `BACKLOG.md` (fila c.80 FIXED→VERIFIED), `RUN_LOG.md` (esta entrada).
+- **Commits**: 1 (`fix(parser): rango nocturno cruce de medianoche calcula duración con +24h`).
+- **HEAD final**: (tras push) ver `git log --oneline -1`.
+- **Próxima prioridad**: auditar más formas de captura/tiempo (p.ej. rango overnight con minutos "de 10:30 de la noche a 1:15 de la madrugada", o "de X a Y horas" con unidad explícita en overnight); revisar que `rangeStartTime` (dueAt) sea consistente con overnight (¿debería el dueAt ser el inicio nocturno?). Continuar descubrimiento de oportunidades de producto.
+
+---
 ## Ciclo 79 - 2026-08-13 (UTC) - fix(parser): cruce del mediodía en rango "de 12 a 2 de la tarde" (duración + dueAt erróneos)
 
 - **Run/ciclo**: 79 (rama `openhands/autonomous-ordia`). Base limpia: HEAD inicial local `0a21431` (c.78). `git pull --ff-only` OK sin divergencia. Continúa la nota "Siguiente" del c.78 que dejaba documentado: *"de 12 a 2 de la tarde" duración por horas absolutas resueltas (no raw) — cruces de mediodía*. Continuación segura del supervisor.

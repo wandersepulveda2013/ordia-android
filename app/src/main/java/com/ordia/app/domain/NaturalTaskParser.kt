@@ -1038,7 +1038,11 @@ object NaturalTaskParser {
             if (sAbs == null || eAbs == null) return@let null
             val startMin = sAbs * 60 + startM
             val endMin = eAbs * 60 + endM
-            // Duración solo si fin > inicio (mismo día) y rango plausible (<= 24h).
+            // Duración solo si el rango es plausible (5 min..24 h). Soporta cruce de medianoche:
+            // "de 10 de la noche a 1 de la madrugada" (22:00→01:00) → fin < inicio, se
+            // suma 24 h. El cruce solo se acepta con señal clara (meridiem/unidad/PM);
+            // un rango ambiguo sin meridiem ("de 10 a 1") NO se reinterpreta como
+            // overnight (demasiado arriesgado), se rechaza como antes.
             val hasMinutesOrMeridiem = startM != 0 || endM != 0 ||
                 startMer.isNotEmpty() || endMer.isNotEmpty()
             // Rango en punto y ambiguo (sin unidad/minutos/meridiem, ambas < 13): solo se
@@ -1048,17 +1052,20 @@ object NaturalTaskParser {
                     .containsMatchIn(working.substring(m.range.last + 1))
             val ambiguousOnTheHour = !hasUnit && !hasMinutesOrMeridiem &&
                 startH < 13 && endH < 13
+            val sameDay = endMin > startMin
+            val rawDuration = if (sameDay) endMin - startMin else endMin + 24 * 60 - startMin
             val acceptAmbiguous = !ambiguousOnTheHour ||
-                (!followedByCount && (endMin - startMin) in 60..(11 * 60))
-            val valid = endMin > startMin && (endMin - startMin) <= 24 * 60 &&
+                (!followedByCount && sameDay && rawDuration in 60..(11 * 60))
+            val clearSignal = hasUnit || hasMinutesOrMeridiem || sAbs >= 13 || eAbs >= 13
+            val valid = rawDuration in 5..(24 * 60) &&
                 sAbs in 0..23 && eAbs in 0..23 && startM in 0..59 && endM in 0..59 &&
-                (hasUnit || hasMinutesOrMeridiem || sAbs >= 13 || eAbs >= 13 || acceptAmbiguous)
+                (clearSignal || (acceptAmbiguous && sameDay))
             // La duración se calcula con las horas ABSOLUTAS resueltas (sAbs/eAbs), no con
             // las horas crudas del texto. Sin esto, un rango que cruza el mediodía
             // ("de 12 a 2 de la tarde": start=12, end=14) computaba end−start con horas
             // crudas (2−12=−600) → coerceIn(5,…) dejaba 5 min en vez de 120.
             if (valid) {
-                rangeDurationMinutes = (endMin - startMin).coerceIn(5, 24 * 60)
+                rangeDurationMinutes = rawDuration.coerceIn(5, 24 * 60)
                 m
             } else {
                 null
