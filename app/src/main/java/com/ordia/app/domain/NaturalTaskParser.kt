@@ -826,14 +826,18 @@ object NaturalTaskParser {
         val phrases = mutableListOf<IntRange>()
 
         // "todos los viernes" / "cada lunes y jueves" / "los lunes y jueves".
-        // Un único patrón captura una lista de días separados por ",", "y" o solo
+// Un único patrón captura una lista de días separados por ",", "y" o solo
         // espacio ("lunes miércoles viernes" / "lunes miércoles y viernes"), forma
-        // habitual en español. Antes el separador entre pares debía ser "," o "y",
-        // así que "lunes miércoles viernes" casaba solo "lunes" y el resto caía
-        // como fecha suelta (borrado del título pero NO de la recurrencia), creando
-        // una rutina que solo repetía el primer día → pérdida de datos.
+        // habitual en español. El separador es opcional: en español informal
+        // "los lunes miércoles y viernes" (sin coma entre los dos primeros) es
+        // tan común como la forma con coma; con conector obligatorio el parser
+        // capturaba solo el primer día y perdía el resto → rutina silenciosamente
+        // mutilada. Como los nombres de día son palabras cerradas y específicas,
+        // admitir separador vacío solo casa cuando la palabra siguiente es otro
+        // día, sin riesgo de robar texto ajeno ("los lunes con el equipo" para en
+        // "lunes" porque "con" no es un día). Plural `s?` para sábado/domingo.
         val dayListPattern =
-            Regex("""(?i)\b(?:todos\s+los|cada|los)\s+((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s*(?:,|y)?\s*(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))*)\b""")
+            Regex("""(?i)\b(?:todos\s+los|cada|los)\s+((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y)?\s*(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
         val dayNameRegex = Regex("""(?i)lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo""")
         val weeklyMatch = dayListPattern.find(working)
         if (weeklyMatch != null) {
@@ -912,11 +916,11 @@ object NaturalTaskParser {
             rawYear < 100 -> 2000 + rawYear
             else -> rawYear
         }
-        // "el 29 de febrero" (sin aÃ±o) en aÃ±o no bisiesto: el usuario se refiere al
-        // PRÃXIMO 29 de febrero real (aÃ±o bisiesto), no a un 28/2 cualquiera. Recuperar
-        // la intenciÃ³n evita dueAt=null y que la frase quede como tÃ­tulo basura.
+        // "el 29 de febrero" (sin año) en año no bisiesto: el usuario se refiere al
+        // PRÓXIMO 29 de febrero real (año bisiesto), no a un 28/2 cualquiera. Recuperar
+        // la intención evita dueAt=null y que la frase quede como título basura.
         // Antes: LocalDate.of lanzaba -> null -> tarea sin fecha y con "el 29 de
-        // febrero" como tÃ­tulo (pÃ©rdida de la seÃ±al temporal).
+        // febrero" como título (pérdida de la señal temporal).
         if (rawYear == null && month == 2 && day == 29) {
             var y = today.year
             if (!Year.isLeap(y.toLong()) || LocalDate.of(y, 2, 29).isBefore(today)) {
@@ -924,10 +928,10 @@ object NaturalTaskParser {
             }
             return LocalDate.of(y, 2, 29)
         }
-        // DÃ­a imposible para el mes/aÃ±o (p. ej. "el 31 de abril", "el 30 de febrero"):
-        // se ajusta al Ãºltimo dÃ­a vÃ¡lido del mes (abril 30, febrero 28/29). Honesto:
-        // el mes nombrado se respeta; el dÃ­a se normaliza. Con aÃ±o explÃ­cito y 29 de
-        // feb no bisiesto, tambiÃ©n cae aquÃ­ (-> 28 de feb de ese aÃ±o).
+        // Día imposible para el mes/año (p. ej. "el 31 de abril", "el 30 de febrero"):
+        // se ajusta al último día válido del mes (abril 30, febrero 28/29). Honesto:
+        // el mes nombrado se respeta; el día se normaliza. Con año explícito y 29 de
+        // feb no bisiesto, también cae aquí (-> 28 de feb de ese año).
         var date = runCatching { LocalDate.of(year, month, day) }.getOrNull()
             ?: LocalDate.of(year, month, minOf(day, YearMonth.of(year, month).lengthOfMonth()))
         if (rawYear == null && date.isBefore(today)) date = date.plusYears(1)

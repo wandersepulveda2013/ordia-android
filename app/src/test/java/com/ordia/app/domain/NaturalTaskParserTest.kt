@@ -120,6 +120,41 @@ class NaturalTaskParserTest {
         assertEquals("1,3,5,6", result.recurrenceDays)
     }
 
+    // "los lunes miércoles y viernes" (sin coma entre los dos primeros días) es la
+    // forma informal más común en español escrito/voz. Antes el parser exigía
+    // conector ","/"y" entre cada par, así que solo capturaba el primer día y
+    // perdía el resto → rutina que se repetía un solo día en silencio (pérdida de
+    // datos). El separador ahora es opcional: casa cuando la palabra siguiente
+    // es otro día, sin robar texto ajeno ("los lunes con el equipo" para en "lunes").
+    @Test fun parsesDayListWithoutCommaSeparator() {
+        val result = NaturalTaskParser.parse("Regar plantas los lunes miércoles y viernes", now, zone)
+        assertEquals("Regar plantas", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3,5", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Plural de sábado/domingo ("los martes jueves y sábados"): antes el patrón
+    // usaba forma singular con \b, así que "sábados"/"domingos" se rechazaba y
+    // quedaba como residuo en el título, perdiendo ese día de la recurrencia.
+    @Test fun parsesDayListWithPluralSabadoDomingo() {
+        val result = NaturalTaskParser.parse("Clases los martes jueves y sábados", now, zone)
+        assertEquals("Clases", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("2,4,6", result.recurrenceDays)
+        // Desde miércoles 29-jul: el jueves 30-jul es la primera ocurrencia.
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // El separador opcional NO debe robar texto que no es un día: "los lunes con el
+    // comité" captura solo "lunes" y conserva "con el comité" en el título.
+    @Test fun dayListStopsAtNonDayWord() {
+        val result = NaturalTaskParser.parse("Reunión de equipo los lunes con el comité", now, zone)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1", result.recurrenceDays)
+        assertEquals("Reunión de equipo con el comité", result.title)
+    }
+
     @Test fun parsesDailyRecurrence() {
         val result = NaturalTaskParser.parse("Tomar vitaminas cada día", now, zone)
         assertEquals("Tomar vitaminas", result.title)

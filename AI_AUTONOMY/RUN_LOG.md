@@ -23,7 +23,7 @@
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
 
-## Ciclo 37 - 2026-08-13 (UTC) - "a las N horas" (hora, no duraciÃ³n falsa)
+## Ciclo 37 - 2026-08-13 (UTC) - "a las N horas" (hora, no duración falsa)
 
 - **Run/ciclo**: 37
 - **HEAD inicial**: 46efb3e (base inicial). Durante el run el remoto avanzó TRES veces por runs paralelos: 8146acf (quincena/bimestre/semestre), e4157c1 ("un par de"), y 9ac1a8b ("mediados de semana", ciclo 36). Procedimiento no destructivo en cada caso: stash+ff+pop sobre 8146acf; rebase sobre e4157c1 (conflicto solo en CURRENT_STATE.md, resuelto conservando ambas secciones, renum. 35→36); rebase sobre 9ac1a8b sin conflictos (renum. 36→37, ya que el remoto usó ciclo 36 para "mediados de semana"). Sin STALE_RUN destructivo, sin force push, sin reset --hard.
@@ -1368,27 +1368,27 @@ Peor: la rutina resultante solo contenía el primer día.
 - Rama: `openhands/autonomous-ordia`
 
 ### Problema seleccionado
-P2 (consistencia/correctitud de mÃ©trica de headline): la badge "Xm" de la
+P2 (consistencia/correctitud de métrica de headline): la badge "Xm" de la
 pantalla Today (`SummaryEngine.remainingMinutesToday`) sumaba
-`task.durationMinutes` en bruto, mientras `DayPlanner` (el plan del dÃ­a que el
+`task.durationMinutes` en bruto, mientras `DayPlanner` (el plan del día que el
 usuario ve justo debajo) coerciona cada tarea a `coerceIn(10, 180)`. El
 headline y el plan discrepaban: una tarea de 600m mostraba "600m" pendientes
-pero el plan solo agenda 180m; una tarea con duraciÃ³n por defecto 5m contaba
+pero el plan solo agenda 180m; una tarea con duración por defecto 5m contaba
 5m cuando el plan la trataba como 10m.
 
-### Causa raÃ­z
-Tres motores trataban la duraciÃ³n de forma distinta: `DayPlanner`
+### Causa raíz
+Tres motores trataban la duración de forma distinta: `DayPlanner`
 `coerceIn(10,180)`, `WhatNowEngine.isInProgressNow` `coerceAtLeast(10)`, y
-`SummaryEngine` suma cruda. NÃºmeros mÃ¡gicos `10`/`180` duplicados.
+`SummaryEngine` suma cruda. Números mágicos `10`/`180` duplicados.
 
-### SoluciÃ³n
-Fuente Ãºnica de verdad `TaskRules.plannedDuration(task): Int` =
+### Solución
+Fuente única de verdad `TaskRules.plannedDuration(task): Int` =
 `task.durationMinutes.coerceIn(MIN_PLAN_MINUTES, MAX_PLAN_MINUTES)` con
 constantes `MIN_PLAN_MINUTES=10`, `MAX_PLAN_MINUTES=180`. Usada por
 `DayPlanner.build` (sustituye `coerceIn(10,180)`) y `SummaryEngine.summarize`
 (sustituye `sumOf { it.durationMinutes }`). `WhatNowEngine` se deja intacto
-(su `coerceAtLeast(10)` detecta "Â¿sigue en curso?", interÃ©s distinto; capar a
-180 cambiarÃ­a comportamiento). Menos duplicaciÃ³n, mÃ¡s coherencia.
+(su `coerceAtLeast(10)` detecta "¿sigue en curso?", interés distinto; capar a
+180 cambiaría comportamiento). Menos duplicación, más coherencia.
 
 ### Archivos
 - `app/src/main/java/com/ordia/app/domain/TaskRules.kt` (+`plannedDuration`, constantes)
@@ -1403,7 +1403,7 @@ constantes `MIN_PLAN_MINUTES=10`, `MAX_PLAN_MINUTES=180`. Usada por
 - NO VERIFICADO: gradle/lint/Android/Room (sin Android SDK).
 
 ### Hallazgos adicionales
-- AuditorÃ­a rÃ¡pida de `WhatNowEngine`: lÃ³gica de ranking correcta
+- Auditoría rápida de `WhatNowEngine`: lógica de ranking correcta
   (IN_PROGRESS > en-curso-ahora > atrasada > vence-hoy > urgente > alta > inbox;
   scheduled-later se respeta con rank -1). Sin bug P1 encontrado.
 - `TaskRules.nextBestTask` usa `thenByDescending { priorityScore }` mientras
@@ -1413,7 +1413,7 @@ constantes `MIN_PLAN_MINUTES=10`, `MAX_PLAN_MINUTES=180`. Usada por
 - perf(ux): coherencia de minutos plan vs resumen (`TaskRules.plannedDuration`) â push al cierre.
 
 ### Siguiente prioridad
-- Continuar auditorÃ­a funcional no-parser: UniversalCaptureEngine, FocusClock/FocusTimerRules,
+- Continuar auditoría funcional no-parser: UniversalCaptureEngine, FocusClock/FocusTimerRules,
   GuardianCoach, OnboardingCompleter, PlannerCalendar, CommandPaletteCatalog,
   TaskMutationGate, QuietHours. Buscar oportunidades de producto reales (P1 datos > P2).
 
@@ -2676,7 +2676,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero; URIs ya inválidos).
 - Nota operativa: `GITHUB_TOKEN` ausente en este entorno; usar `github_token` para push.
 
-
 ## Ciclo 40 - 2026-08-13 (UTC) - feat: recordatorios con números escritos y fracciones
 
 - **Run/ciclo**: 40 (renumerado desde 38: base f2d26ba obsoleta; merge no destructivo del remoto que avanzó con ciclos 37/38/39; auto-merge limpio en parser+test, conflictos solo en docs resueltos conservando el trabajo del otro run. Sin force push, sin reset --hard).
@@ -2698,3 +2697,23 @@ a un permiso persistente frágil y silencioso ante fallos.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
 - Descubrimiento continuo: auditar captura, What Now, rutinas en busca de oportunidades de producto reales, no solo parser.
 - Nota operativa: usar `github_token` (en este entorno `GITHUB_TOKEN` puede estar ausente).
+
+## Ciclo 41 - 2026-08-13 (UTC) - "los lunes miércoles y viernes" (sin coma) + plurales sábados/domingos
+
+- **Run/ciclo**: 41 (renumerado desde 40: base `4f803a9` obsoleta; otro run commiteó ciclo 40 "recordatorios con números escritos y fracciones" + merge `91c8b9f`. Rebase no destructivo sobre `91c8b9f`; auto-merge limpio en parser+test (cambios ortogonales); conflictos solo en docs (RUN_LOG), resueltos conservando su ciclo 40 y renumerando el mío a 41. Sin force push, sin reset --hard).
+- **HEAD inicial**: `91c8b9f` (origin/openhands/autonomous-ordia tras ciclo 40 del otro run). Base obsoleta en varios puntos a lo largo de la sesión: otros runs commitearon ciclos 36–40 ("a las N horas", fechas pasadas, recuperación de fechas imposibles, "a finales de semana", "de/por/a la mañana" vs fecha "mañana", recordatorios con números escritos y fracciones). Rebases sucesivos no destructivos; cada vez renumeré mi ciclo para no colisionar.
+- **Problema seleccionado**: **Pérdida de datos silenciosa en rutinas semanales** con listas de días sin coma (forma informal natural del español). "regar plantas los lunes miércoles y viernes" → el parser solo capturaba "lunes" y perdía "miércoles" y "viernes" → la rutina se repetía UN solo día en vez de tres. El usuario creaba una rutina creyendo que cubría varios días y nunca se le recordaba en los demás. Adicionalmente, los plurales "sábados"/"domingos" no casaban (patrón usaba forma singular con `\b`) y se perdían también.
+- **Prioridad**: P1 (pérdida de datos: rutinas con menos días de los que el usuario escribió; recordatorios no disparan en los días perdidos → olvidos).
+- **Causa raíz**: `dayListPattern` exigía separador "," o "y" entre cada par de días. La forma informal "los lunes miércoles y viernes" (sin coma entre los dos primeros) rompía el patrón tras el primer día, capturaba solo "lunes" y dejaba "miércoles y viernes" como residuo en el título. Independientemente, "sábados"/"domingos" (plural) no casaban porque el patrón usaba `s[aá]bado|domingo` (singular) con límite `\b`.
+- **Solución (mínima, en `NaturalTaskParser.kt`)**:
+  - Hacer el separador entre días **opcional** en `dayListPattern`: `(?:\s*(?:,|y)?\s*(?:...))`. Como los nombres de día son palabras cerradas y específicas, admitir separador vacío solo casa cuando la palabra siguiente es otro día, sin riesgo de robar texto ajeno ("los lunes con el equipo" para en "lunes" porque "con" no es un día).
+  - Aceptar **plural** de sábado/domingo: `s[aá]bados?|domingos?`.
+- **Tests**: +3 de regresión (`parsesDayListWithoutCommaSeparator` → 1,3,5; `parsesDayListWithPluralSabadoDomingo` → 2,4,6; `dayListStopsAtNonDayWord` → no roba "con el comité"). Tras rebase sobre `91c8b9f` (ciclo 40 del otro run) mis 3 tests coexisten con los suyos: **347 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases (344 base remota + 3 nuevos). Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+- **Commits**: `fix(parser): listas de días sin coma + plurales sábados/domingos (ciclo 41)` rebaseado sobre `91c8b9f`; rebase no destructivo de 1 commit. Auto-merge limpio en `NaturalTaskParser.kt` + test (cambios ortogonales al del otro run); conflictos solo en docs (RUN_LOG), resueltos conservando su ciclo 40 y renumerando el mío a 41.
+- **HEAD final**: (tras push a `openhands/autonomous-ordia`).
+
+### Siguiente
+- Continuar ciclo de parser: "próxima quincena" (+15d), manejo robusto de múltiples marcadores temporales en una frase.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+- P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.

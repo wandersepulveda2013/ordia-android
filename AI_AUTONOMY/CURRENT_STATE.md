@@ -14,15 +14,15 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 40)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 40)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 41)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 41)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1 | Parser — fechas relativas/pasadas/imposibles | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperaciÃ³n fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la maÃ±ana" (hora) vs fecha "maÃ±ana" c.39 (336 tests); recordatorios con nÃºmeros escritos y fracciones c.40 (344 tests) |
+| P1 | Parser — fechas relativas/pasadas/imposibles | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (347 tests) |
 
 Bug de captura P1 (tarea en día erróneo → reunión/recordatorio perdido el mismo día). La palabra
 "mañana" es ambigua: token de **fecha** (el día de mañana) vs. marcador de **hora** ("de la
@@ -40,6 +40,30 @@ VERIFICADO: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
 ## Último trabajo — Ciclo 38: fechas pasadas + recuperación de fechas imposibles
 
 Dos unidades atómicas del ciclo de parser natural (P1 — evitar olvidos + datos erróneos).
+
+## Último trabajo — Ciclo 41: parser listas de días sin coma + plurales sábados/domingos
+
+Unidad atómica del ciclo de parser natural (P1 — pérdida de datos silenciosa en rutinas). **"los lunes miércoles y viernes"** (forma informal en español, sin coma entre los dos primeros días) era tan común como la forma con coma, pero el parser exigía conector ","/"y" entre cada par: capturaba solo "lunes" y dejaba "miércoles y viernes" como residuo en el título → la rutina se repetía **un solo día** en silencio y los recordatorios no disparaban en los días perdidos. Adicionalmente, los plurales **"sábados"/"domingos"** no casaban (patrón singular con `\b`) y se perdían también. Complementario al ciclo 20 (que añadió el conector ","/"y").
+
+**Solución (mínima, `NaturalTaskParser.kt`)**: separador **opcional** en `dayListPattern` (`(?:,|y)?`): como los nombres de día son palabras cerradas y específicas, admitir separador vacío solo casa cuando la palabra siguiente es otro día, sin riesgo de robar texto ajeno ("los lunes con el equipo" para en "lunes" porque "con" no es un día). Plural `s[aá]bados?|domingos?`.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` = **347 tests PASS** (incluye 3 nuevos de este ciclo: `parsesDayListWithoutCommaSeparator`, `parsesDayListWithPluralSabadoDomingo`, `dayListStopsAtNonDayWord`; coexisten con tests de los ciclos 36-40), 25 clases. Smoke 25 OK. NO VERIFICADO: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+
+**Nota de integración**: rebase no destructivo sobre `origin/openhands/autonomous-ordia` (otras runs avanzaron a ciclos 36–40: "a las N horas", fechas pasadas, recuperación de fechas imposibles, "a finales de semana", "de/por/a la mañana" vs fecha "mañana", recordatorios con números escritos y fracciones); este trabajo se renumera a ciclo 41 para evitar colisión. Conflictos de docs resueltos tomando base remota y reinsertando esta sección. Auto-merge limpio en `NaturalTaskParser.kt` + test (cambios ortogonales).
+
+## Último trabajo — Ciclo 37: parser "a las N horas" (hora, no duración falsa)
+
+Unidad atómica del ciclo de parser natural (P1 — corrección de bug que generaba datos
+erróneos). **"a las N horas"** es la forma más natural de dar una hora en reloj de 24h
+con sufijo "horas" ("reunión a las 9 horas", "clase a las 10 horas"). El parser **NO la
+reconocía como hora**: el `timePattern` no consumía el sufijo "horas", así que "9 horas"
+era **robado por `durationMatch`** como una duración falsa de **540 minutos** (9x60), y "a las"
+quedaba como residuo en el título. Consecuencia: la tarea recibía una duración absurda y
+**ninguna hora real** → recordatorio y planificación incorrectos. Bug doble porque, al añadir
+la guardia para descartar "N horas" como duración, el filtro se aplicaba al ganador global tras
+`minByOrNull`, descartando **TODOS** los matches de duración (incluido "durante 1h" válido)
+cuando había algún "N horas" inválido presente. Además los conectores "durante"/"por" no
+se limpiaban del título tras extraer la duración.
 
 **1. Fechas pasadas "hace N"/"la semana/el mes pasado"** (commit `ff3a1f4`).
 El usuario registra una tarea ya vencida ("pagué hace 2 días", "revisé el informe la
@@ -78,7 +102,9 @@ force push, sin reset --hard.
 gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 
 ### Ciclos parser recientes (resumen)
-- Ciclo 37: "a las N horas" como hora, no duración falsa (3 tests, 315 → ahora incluidos en 329).
+- Ciclo 41: listas de días sin coma + plurales sábados/domingos (3 tests).
+- Ciclo 40: recordatorios con números escritos y fracciones (8 tests).
+- Ciclo 37: "a las N horas" como hora, no duración falsa (3 tests, incluidos en 336).
 - Ciclo 36: "mediados de semana" = miércoles (4 tests).
 - Ciclo 35: "un par de" coloquial = 2 (4 tests).
 - Ciclo 34: "esta semana" (próximo domingo) + "principios de semana" (lunes).
@@ -100,7 +126,7 @@ gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
   guard. (NOTA: las releases v3.0.12–v3.0.23 SÍ están firmadas — el keystore ya está cargado en
   este entorno; el bloqueo aplica a entornos nuevos.)
 - **Sin emulador Android** en el agente: la prueba N→N+1 end-to-end de self-update real y la
-  verificación de variantes 6× (Safe/Full/Advanced × debug/release) NO se ejecutan; cubiertas
+  verificación de variantes 6x (Safe/Full/Advanced x debug/release) NO se ejecutan; cubiertas
   solo por tests unitarios contract + verificación estática de APK firmada.
 
 ## Pendientes principales (ver BACKLOG.md)
@@ -108,7 +134,7 @@ gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 | Pri | Área | Estado |
 |-----|------|--------|
 | P1 | Persistencia — adjuntos URI externo | FIXED (NO VERIFICADO Android) ciclo 32 cont.4 |
-| P1 | Parser — fechas relativas/pasadas/imposibles | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperaciÃ³n fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la maÃ±ana" (hora) vs fecha "maÃ±ana" c.39 (336 tests); recordatorios con nÃºmeros escritos y fracciones c.40 (344 tests) |
+| P1 | Parser — fechas relativas/pasadas/imposibles | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (347 tests) |
 | P2 | QA — compilar 6 variantes tras cambios | OPEN (requiere env Android) |
 | P2 | Self-Update — prueba end-to-end N→N+1 | BLOCKED-external (sin dispositivo Android) |
 | P3 | UX — pulido visual pantallas workspace renovadas | OPEN |
