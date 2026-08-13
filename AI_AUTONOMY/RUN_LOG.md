@@ -3363,7 +3363,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Solución (mínima)**: `monthNameMatch` pasa de `find(working)` a `findAll(working).firstOrNull { m -> months.any { (name,_) -> m.groupValues[2].equals(name, ignoreCase = true) } }` — descarta matches de mes inválido y selecciona el primero con mes real. `parseMonthNameDate` (que ya validaba) opera ahora sobre un match garantizado válido, sin cambio. No añade pantalla/botón: misma potencia, menos pérdida de datos.
 - **Tests**: +2 en `NaturalTaskParserTest.kt` (`nueveDeLaTardeConFechaMesResuelveAmbos` → 2026-08-15 21:00; `nueveDeLaMananaConFechaMesResuelveAmbos` → 2026-09-20 09:00). **502 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 500 c.65 + 2 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión en los 500 previos. **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: `94c9902` (tras commit+push al remoto `openhands/autonomous-ordia`); push confirmado más abajo.
+- **HEAD final**: `ed4ead9` (commit + push exitoso al remoto `openhands/autonomous-ordia`; HEAD local == remoto, sin divergencia residual).
 - **Estado**: FIXED → VERIFIED (dominio JVM); parser en app NO VERIFICADO (sin Android SDK).
 
 ### Siguiente
