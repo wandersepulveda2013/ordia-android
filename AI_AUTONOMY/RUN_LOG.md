@@ -4,6 +4,27 @@
 
 ---
 
+## Ciclo 55 - 2026-08-13 (UTC) - fix(parser): "cada mañana/tarde/noche/madrugada" como recurrencia DIARIA
+
+- **Run/ciclo**: 55 (base remota `b5c96d5` ciclo 54; rama `openhands/autonomous-ordia`).
+- **HEAD inicial**: `b5c96d5` (origin/openhands/autonomous-ordia, sincronizado).
+- **Problema seleccionado**: `NaturalTaskParser.parseRecurrence` NO reconocía **"cada mañana/tarde/noche/madrugada"** (ni "todas las mañanas/tardes/noches") como recurrencia DIARIA de un hábito cotidiano. La forma más natural de expresar un hábito diario en español ("meditar cada mañana", "tomar pastillas cada mañana", "pasear al perro cada tarde") caía sin recurrencia. **Causa raíz P1**: la palabra "mañana" colisionaba con el token de **fecha** "mañana" (día siguiente) — el parser la consumía como fecha y la rutina quedaba como tarea **ÚNICA para mañana** sin recurrencia. La rutina diaria se perdía: el recordatorio disparaba una sola vez y nunca más, y la intención de repetición desaparecía silenciosamente.
+- **Prioridad**: P1 (pérdida de datos silenciosa de rutinas: la repetición diaria se pierde y solo se manifiesta cuando el recordatorio "no vuelve").
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**: nueva rama al **inicio** de `parseRecurrence` que detecta `cada <parte-del-día>` y `todas las <partes-del-día>` vía regex `\bcada\s+(ma[nñ]ana|manana|tarde|noche|madrugada)\b` | `\btodas\s+las\s+(ma[nñ]anas|...)\b`. Devuelve `RecurrenceResult(DAILY, interval=1, days=[], partOfDayTime, partOfDayIsPm)` con la **hora canónica** de cada parte del día (mañana 09:00, tarde 15:00, noche 21:00, madrugada 04:00) y contexto PM para tarde/noche. Al procesarse **PRIMERO**, "mañana" deja de ser candidato a fecha (se consume como parte de la recurrencia) y la hora canónica sustituye al respaldo genérico 09:00. `partOfDayTime`/`partOfDayIsPm` ya existían en `RecurrenceResult` (añadidos para "esta tarde a las 4" PM offset); se reutilizan. Una hora explícita ("cada mañana a las 7") sigue teniendo prioridad sobre la canónica; el contexto PM aplica offset +12 a horas sin meridiem ("cada noche a las 10" → 22:00). "todos los días"/"diariamente" (sin parte del día) siguen cayendo abajo en `fixedPatterns` con su respaldo 09:00 — sin regresión.
+- **Colisión de remoto (no destructiva)**: al rebasear sobre `b5c96d5` (ciclo 54 "intervalo+días"), conflicto en `NaturalTaskParser.kt` — ambos commits añadían código al inicio de `parseRecurrence`: el remoto el helper `detectWeekInterval()`, el local el bloque `partOfDayDaily`. Resolución combinando ambos: `partOfDayDaily` PRIMERO (early-return DAILY con hora canónica) y `detectWeekInterval()` DESPUÉS (helper para las ramas de días). Áreas ortogonales, ambos preservados. Sin force push.
+- **Tests**: +7 en `NaturalTaskParserTest.kt` (`cadaMananaIsDailyRecurrenceWithCanonicalTime`, `cadaTardeIsDailyWithPmContext`, `cadaNocheIsDailyWithPmContext`, `cadaMadrugadaIsDaily`, `todasLasNochesIsDaily`, `cadaMananaWithExplicitTimeKeepsTime`, `cadaNocheConHoraSinMeridiemAplicaPm`). **435 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases), smoke 25 OK (`tools/run_domain_checks.sh`). Las 6 pruebas del ciclo 54 (intervalo+días) siguen en verde → sin regresión.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del parser en la app (sin Android SDK).
+- **Archivos modificados**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: `69b8ef8` (tras push a `origin/openhands/autonomous-ordia`).
+- **Estado**: VERIFIED (JVM). 435 domain tests PASS (428 c.54 + 7 nuevos; rebase limpio sobre b5c96d5).
+
+### Siguiente
+- Descubrimiento continuo: auditar captura, rutinas, recordatorios (scheduling edge cases),
+  detección de vencidas importantes, búsqueda universal, `WhatNowEngine`, `GuardianCoach`.
+- Parser: "cada N días/semanas/meses" con intervalo numérico (cubierto parcial); formas con
+  "semana"/"mes" suelto como hito vs recurrencia (ambigüedad léxica).
+- P1 adjuntos: migración lazy de adjuntos legacy (URIs externos antiguos) — evaluar seguridad.
+
 ## Ciclo 53 - 2026-08-13 (UTC) - fix: What Now desempata por prioridad (consistencia con el widget)
 - **Run/ciclo**: 53.
 - **HEAD inicial**: `d18fc32` (base local al iniciar; el remoto ya estaba en `8275185` con ciclos 52 snooze + docs — STALE_BASE detectado al fetch).

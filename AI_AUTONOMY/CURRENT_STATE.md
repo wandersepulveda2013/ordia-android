@@ -14,15 +14,51 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 54)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 54; rebase no destructivo sobre ciclo 53 What Now + ciclo 52 snooze del run paralelo)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 55)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 55; rebase no destructivo sobre ciclo 54 intervalo+días + ciclo 53 What Now + ciclo 52 snooze)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests); **DayPlanner conflicto startAt otro día** c.51 (415 tests); **intervalo+días "cada 2 semanas los lunes"/"cada quincena los lunes y viernes"/"cada 3 semanas de lunes a viernes"** c.54 (428 tests) |
+| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests); **DayPlanner conflicto startAt otro día** c.51 (415 tests); **intervalo+días "cada 2 semanas los lunes"/"cada quincena los lunes y viernes"/"cada 3 semanas de lunes a viernes"** c.54 (428 tests); **"cada mañana/tarde/noche/madrugada" + "todas las mañanas/tardes/noches" como recurrencia DIARIA** con hora canónica (c.55, 435 tests) |
+
+## Último trabajo — Ciclo 55: Parser "cada mañana/tarde/noche/madrugada" como recurrencia DIARIA
+
+Fix P1 de captura/recurrencia (`NaturalTaskParser.parseRecurrence`). Las formas más naturales de
+expresar un hábito cotidiano en español — **"meditar cada mañana"**, **"tomar pastillas cada mañana"**,
+**"pasear al perro cada tarde"**, **"leer cada noche"**, **"regar las plantas cada madrugada"**, y sus
+plurales **"todas las mañanas/tardes/noches"** — NO se reconocían como recurrencia DIARIA. La rutina
+quedaba como **tarea única** (sin repetición). **Causa raíz P1**: la palabra "mañana" colisionaba con el
+token de **fecha** "mañana" (día siguiente); el parser la consumía como fecha y la intención de
+repetición desaparecía. La rutina diaria se perdía silenciosamente: el recordatorio disparaba una sola
+vez y nunca más. Sutil porque solo se manifiesta cuando el recordatorio "no vuelve".
+
+**Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**: nueva rama al **inicio** de
+`parseRecurrence` (se procesa PRIMERO) que detecta `cada <parte-del-día>` y `todas las <partes-del-día>`
+y devuelve `RecurrenceResult(DAILY, interval=1, days=[], partOfDayTime, partOfDayIsPm)` con la **hora
+canónica** de cada parte del día (mañana 09:00, tarde 15:00, noche 21:00, madrugada 04:00) y contexto
+PM para tarde/noche. Al procesarse primero, "mañana" deja de ser candidato a fecha y la hora canónica
+sustituye al respaldo genérico 09:00. `partOfDayTime`/`partOfDayIsPm` ya existían en `RecurrenceResult`
+(añadidos para "esta tarde a las 4" PM offset); se reutilizan. Hora explícita ("cada mañana a las 7")
+tiene prioridad sobre la canónica; contexto PM aplica offset +12 a horas sin meridiem ("cada noche a
+las 10" → 22:00). "todos los días"/"diariamente" (sin parte del día) siguen en `fixedPatterns` con su
+respaldo 09:00 — sin regresión. Lógica local honesta, sin random ni modelo simulado.
+
+**Colisión de remoto (no destructiva)**: al rebasear sobre `b5c96d5` (ciclo 54 "intervalo+días"),
+conflicto en `NaturalTaskParser.kt` — ambos añadían código al inicio de `parseRecurrence`: el remoto el
+helper `detectWeekInterval()`, el local el bloque `partOfDayDaily`. Resolución combinando ambos:
+`partOfDayDaily` PRIMERO (early-return DAILY con hora canónica) y `detectWeekInterval()` DESPUÉS
+(helper para las ramas de días). Áreas ortogonales, ambos preservados. Sin force push.
+
+**Tests**: +7 en `NaturalTaskParserTest.kt` (`cadaMananaIsDailyRecurrenceWithCanonicalTime`,
+`cadaTardeIsDailyWithPmContext`, `cadaNocheIsDailyWithPmContext`, `cadaMadrugadaIsDaily`,
+`todasLasNochesIsDaily`, `cadaMananaWithExplicitTimeKeepsTime`,
+`cadaNocheConHoraSinMeridiemAplicaPm`). **435 domain tests PASS** (`bash tools/run_domain_tests.sh`,
+26 clases — 428 c.54 + 7 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Las 6 pruebas del ciclo
+54 (intervalo+días) siguen en verde → sin regresión. **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room
+con DAOs reales, render real del parser en la app.
 
 ## Último trabajo — Ciclo 54: Parser combina intervalo de cadencia + lista de días
 
