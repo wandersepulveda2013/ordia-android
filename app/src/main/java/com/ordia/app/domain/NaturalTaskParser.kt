@@ -132,6 +132,31 @@ object NaturalTaskParser {
         """(?i)\b(?:el\s+)?(?:mes\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\s+el\s+(?:d[ií]a\s+)?(\d{1,2})\b"""
     )
     /**
+     * "la semana que viene el lunes" / "la próxima semana el viernes" /
+     * "semana que viene el sábado": día de la semana objetivo de la SEMANA PRÓXIMA
+     * (no +7d genérico desde hoy, que es lo que daba nextPeriodPattern). Sin este
+     * patrón, nextPeriodPattern robaba "la semana que viene" como +7d e ignoraba
+     * el día explícito → "la semana que viene el viernes" dicho un miércoles daba
+     * el próximo miércoles (mañana+7) en vez del viernes de la semana que viene
+     * (cita/reunión en día equivocado). Se procesa ANTES que nextPeriodPattern
+     * para consumir la frase completa (período + día) y evitar que éste la robe.
+     */
+    private val nextWeekWeekdayReversePattern = Regex(
+        """(?i)\b(?:la\s+)?(?:semana\s+(?:que\s+viene|pr[oó]xima)|pr[oó]xima\s+semana)\s+el\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""
+    )
+    /**
+     * Orden inverso del anterior: "el lunes de la semana que viene" /
+     * "el viernes de la próxima semana". Misma semántica (día objetivo de la
+     * semana próxima) pero con el día ANTES del período — forma tan cotidiana
+     * como la directa. Sin este patrón, weekdayPattern capturaba "el lunes" como
+     * fecha suelta (nextWeekdayOrSame) y nextPeriodPattern robaba "la semana que
+     * viene" como +7d; al combinarse, el +7d ganaba → día equivocado. Se procesa
+     * ANTES que nextPeriodPattern y weekdayPattern para consumir la frase completa.
+     */
+    private val nextWeekWeekdayForwardPattern = Regex(
+        """(?i)\bel\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+de\s+(?:la\s+)?(?:semana\s+(?:que\s+viene|pr[oó]xima)|pr[oó]xima\s+semana)\b"""
+    )
+    /**
      * "fin de mes" / "a finales de mes" / "fin del mes" → último día del mes actual
      * (o del siguiente si hoy ya es el último día). "mediados de mes" /
      * "a mediados de mes" → día 15 del mes actual (o del siguiente si hoy ≥ 15).
@@ -663,6 +688,27 @@ object NaturalTaskParser {
         }
         nextMonthDayReverseMatch?.let { working = working.replace(it.value, " ") }
 
+        // "la semana que viene el lunes" / "la próxima semana el viernes":
+        // día de la semana objetivo de la SEMANA PRÓXIMA. start-of-next-week (próximo
+        // lunes estricto) + offset del weekday objetivo. Se procesa ANTES que
+        // nextPeriodPattern para consumir período+día y evitar el +7d genérico.
+        val nextWeekWeekdayReverseMatch = nextWeekWeekdayReversePattern.find(working)
+        val nextWeekWeekdayReverseDueAt = nextWeekWeekdayReverseMatch?.let { m ->
+            m.groupValues[1].toDayOfWeekOrNull()?.let { target ->
+                nextWeekWeekdayDate(base.toLocalDate(), target, zone)
+            }
+        }
+        nextWeekWeekdayReverseMatch?.let { working = working.replace(it.value, " ") }
+
+        // Orden inverso: "el lunes de la semana que viene". Misma resolución.
+        val nextWeekWeekdayForwardMatch = nextWeekWeekdayForwardPattern.find(working)
+        val nextWeekWeekdayForwardDueAt = nextWeekWeekdayForwardMatch?.let { m ->
+            m.groupValues[1].toDayOfWeekOrNull()?.let { target ->
+                nextWeekWeekdayDate(base.toLocalDate(), target, zone)
+            }
+        }
+        nextWeekWeekdayForwardMatch?.let { working = working.replace(it.value, " ") }
+
         // Período próximo ("la semana que viene", "el mes que viene", "el año que
         // viene", "próximo mes", "la próxima semana"): +1 período (semana/mes/año).
         // Se trata como días relativos (como relativePattern) para combinarse con hora
@@ -750,11 +796,13 @@ object NaturalTaskParser {
         val effectiveRelativeDueAt =
             agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: monthBoundaryDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
-            nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?: nextPeriodDueAt
+            nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?:
+            nextWeekWeekdayReverseDueAt ?: nextWeekWeekdayForwardDueAt ?: nextPeriodDueAt
         val relativeIsDays = (agoMatch != null || lastPeriodMatch != null ||
             relativeMatch != null || monthBoundaryDueAt != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
-            quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null || nextPeriodMatch != null) &&
+            quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null ||
+            nextWeekWeekdayReverseMatch != null || nextWeekWeekdayForwardMatch != null || nextPeriodMatch != null) &&
             (relativeMatch?.let { m ->
                 val unit = m.groupValues[2].lowercase()
                 !unit.startsWith("min") && !unit.startsWith("hora")
@@ -1456,6 +1504,20 @@ object NaturalTaskParser {
     private fun nextWeekdayOrSame(from: LocalDate, target: DayOfWeek): LocalDate {
         val delta = (target.value - from.dayOfWeek.value + 7) % 7
         return from.plusDays(delta.toLong())
+    }
+
+    /**
+     * Día [target] de la SEMANA PRÓXIMA (lunes→domingo). "la semana que viene el viernes"
+     * no es +7d ni el próximo viernes relativo a hoy: es el viernes de la semana que
+     * empieza el próximo lunes. Se ancla al próximo lunes estricto
+     * (TemporalAdjusters.next(MONDAY), excluye la semana actual) y se suma el offset del
+     * weekday objetivo. "la semana que viene el lunes" dicho un lunes → lunes de la
+     * semana siguiente (no hoy), consistente con "semana que viene" = semana no actual.
+     */
+    private fun nextWeekWeekdayDate(today: LocalDate, target: DayOfWeek, zone: ZoneId): Long {
+        val startOfNextWeek = today.with(TemporalAdjusters.next(DayOfWeek.MONDAY))
+        val date = startOfNextWeek.plusDays((target.value - DayOfWeek.MONDAY.value).toLong())
+        return DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
     }
 
     /**

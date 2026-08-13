@@ -1716,6 +1716,62 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "la semana que viene el <día>" / "el <día> de la semana que viene" ---
+    // Antes nextPeriodPattern robaba "la semana que viene" como +7d (2026-08-05) ignorando
+    // el día explícito → cita/reunión en día equivocado. Ahora se ancla al día objetivo de
+    // la semana próxima (próximo lunes + offset). Base: 2026-07-29 (miércoles); próximo
+    // lunes = 2026-08-03.
+
+    @Test fun laSemanaQueVieneElLunesResuelveLunesDeLaSemanaProxima() {
+        val result = NaturalTaskParser.parse("Reunión la semana que viene el lunes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun laSemanaQueVieneElViernesResuelveViernesDeLaSemanaProxima() {
+        // Antes daba 2026-08-05 (+7d desde miércoles): fecha errónea (no es viernes).
+        val result = NaturalTaskParser.parse("Cita la semana que viene el viernes", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 7), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun laSemanaQueVieneElDomingoResuelveDomingoDeLaSemanaProxima() {
+        val result = NaturalTaskParser.parse("Cena la semana que viene el domingo", now, zone)
+        assertEquals("Cena", result.title)
+        assertEquals(LocalDate.of(2026, 8, 9), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun laProximaSemanaElMiercolesResuelveMiercolesDeLaSemanaProxima() {
+        val result = NaturalTaskParser.parse("Pago la próxima semana el miércoles", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elLunesDeLaSemanaQueVieneResuelveLunesDeLaSemanaProxima() {
+        // Orden inverso (día ANTES del período). Misma resolución.
+        val result = NaturalTaskParser.parse("Reunión el lunes de la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elViernesDeLaProximaSemanaResuelveViernesDeLaSemanaProxima() {
+        val result = NaturalTaskParser.parse("Cita el viernes de la próxima semana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 7), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun laSemanaQueVieneElViernesRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Cita la semana que viene el viernes a las 18", now, zone)
+        assertEquals(LocalDate.of(2026, 8, 7), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun laSemanaQueVieneSinDiaSigueSiendoMasSieteDias() {
+        // No-regresión: sin día explícito, "la semana que viene" sigue siendo +7d.
+        val result = NaturalTaskParser.parse("Entrega la semana que viene", now, zone)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "ayer"/"anteayer": fechas pasadas explícitas ---
     // Antes no se parseaban → dueAt=null, o combinadas con hora resolvían a HOY (fecha errónea).
     // Se mantienen en el pasado (honesto: tarea vencida, visible en What Now).

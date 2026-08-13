@@ -3512,6 +3512,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
 - Descubrimiento continuo: búsqueda universal; rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; onboarding.
 
+
 ## Ciclo 72 - 2026-08-13 (UTC) - fix(parser): "jueves que viene" dicho en jueves → próxima semana (no HOY)
 
 - **Run/ciclo**: 72 (renumerado desde c.70 tras colision con run paralelo `59c0cb6` que tomo c.70). Fix P1 integridad de agenda (día objetivo futuro agendado en el día equivocado). El bug fue identificado en el run anterior (probe JVM 28 casos); este run lo aterriza con tests unitarios + memoria + commit.
@@ -3533,3 +3534,32 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Auditoría progresiva: rutinas adaptables, detección de compromisos en notas, captura ultrarrápida.
 
 ---
+
+## Ciclo 73 — Parser — "la semana que viene el lunes/viernes" → día objetivo de la semana próxima
+
+- **Fecha (UTC)**: 2026-08-13.
+- **Run/ciclo**: 73 (rama `openhands/autonomous-ordia`). Continúa el "Siguiente" del c.71: combinación semana+weekday en el parser natural (abierto desde el hallazgo c.70). Base reconciliada con `origin/openhands/autonomous-ordia` (HEAD `a62cf1f`, c.72 paralelo ya en remoto); rebase no destructivo, código auto-mezclado (áreas ortogonales: c.72 toca rama `weekdayMatch`/`nextExplicit`; este run añade patrones `nextWeekWeekday*`), conflictos solo en memoria resueltos conservando ambos runs.
+- **HEAD inicial**: `aa0407f` (c.71 docs runlog); remoto avanzó a `a62cf1f` (c.72 paralelo) durante el run.
+- **Problema seleccionado**: "la semana que viene el lunes" / "la semana que viene el viernes" / "el lunes de la semana que viene" agendaban **+7d genérico** (lo que da `nextPeriodPattern` para "la semana que viene") e **ignoraban el día de la semana explícito** → una cita/reunión quedaba en el día equivocado (p. ej. "la semana que viene el viernes" dicho un miércoles caía en el próximo miércoles, no en el viernes de la semana que viene). Para un evento con fecha inequívoca en lenguaje natural eso es un compromiso mal agendado (recordatorio en día erróneo = fallo de cita). Área P2 de parser/integridad de agenda.
+- **Prioridad**: P2 (parser; agendado en día equivocado). Corregido por ser una mejora funcional real de producto (el usuario dice un día concreto y Ordía lo respeta) sin añadir interfaz.
+- **Causa raíz**: `nextPeriodPattern` casaba "la semana que viene" (+7d) y `weekdayPattern` casaba "lunes"/"viernes" por separado; en la cadena `effectiveRelativeDueAt` el `nextPeriodDueAt` (+7d) tenía prioridad sobre la fecha suelta del `weekdayMatch` (`date` solo aplica cuando `effectiveRelativeDueAt == null`), de modo que el día explícito quedaba sombreado. El helper `nextWeekday` no servía para resolver el caso porque para "la semana que viene el viernes" daría el próximo viernes relativo a hoy (que puede ser **esta** semana), no el viernes de la **semana próxima**.
+- **Solución (mínima, simétrica al c.68/c.71 — "menos interfaz, más potencia")**:
+  - Nuevo `nextWeekWeekdayReversePattern` regex: `\b(?:la\s+)?(?:semana\s+(?:que\s+viene|pr[oó]xima)|pr[oó]xima\s+semana)\s+el\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b` — periodo "semana próxima" + "el" + weekday, orden periodo→día.
+  - Nuevo `nextWeekWeekdayForwardPattern` regex (orden inverso, día→periodo): `\bel\s+(weekday)\s+de\s+(?:la\s+)?(?:semana\s+(?:que\s+viene|pr[oó]xima)|pr[oó]xima\s+semana)\b` — "el lunes de la semana que viene".
+  - Helper `nextWeekWeekdayDate(today, target, zone)`: ancla al **próximo lunes estricto** (`TemporalAdjusters.next(DayOfWeek.MONDAY)`, excluye la semana actual) y suma el offset del weekday objetivo (`target.value - MONDAY.value`, lun=0 … dom=6). Resultado: el día objetivo de la semana próxima (lun→dom). "la semana que viene el lunes" dicho un lunes → lunes de la semana siguiente (no hoy), consistente con "semana que viene" = semana no actual.
+  - Ambos patrones se procesan **ANTES** que `nextPeriodPattern` (junto a `nextMonthDayReverseMatch`) para consumir la frase completa (periodo+día) en un solo match y evitar que `nextPeriodPattern` robe "la semana que viene" como +7d.
+  - Integrados en la cadena `effectiveRelativeDueAt` (antes de `nextPeriodDueAt`) y en `relativeIsDays` (combinables con hora explícita: "la semana que viene el viernes a las 18" → viernes de la semana próxima 18:00).
+  - No-regresión: el patrón **exige** un weekday tras el periodo, así "la semana que viene" sin día sigue siendo +7d (test `laSemanaQueVieneSinDiaSigueSiendoMasSieteDias` intacto).
+- **Tests**: +8 en `NaturalTaskParserTest.kt` (base 2026-07-29 miércoles; próximo lunes = 2026-08-03): `laSemanaQueVieneElLunesResuelveLunesDeLaSemanaProxima` (→03/08), `laSemanaQueVieneElViernesResuelveViernesDeLaSemanaProxima` (→07/08), `laSemanaQueVieneElDomingoResuelveDomingoDeLaSemanaProxima` (→09/08), `laProximaSemanaElMiercolesResuelveMiercolesDeLaSemanaProxima` (→05/08), `elLunesDeLaSemanaQueVieneResuelveLunesDeLaSemanaProxima` (orden inverso →03/08), `elViernesDeLaProximaSemanaResuelveViernesDeLaSemanaProxima` (→07/08), `laSemanaQueVieneElViernesRespetaHoraExplicita` (→07/08 18:00), `laSemanaQueVieneSinDiaSigueSiendoMasSieteDias` (no-regresión →05/08). **549 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 541 c.72 + 8 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión (541 previos intactos).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Render real del parser en la app no probado en dispositivo.
+- **Hallazgos adicionales (descubrimiento continuo)**:
+  - La misma familia periodo+weekday podría extenderse a "el mes que viene el tercer lunes" (ordinal + weekday del mes) pero es una forma mucho menos frecuente y de complejidad mayor; se deja fuera de alcance por "menos es más".
+  - "fin de semana que viene" (c.31) sigue intacto: `weekendEarlyMatch` consume "fin de semana que viene" antes que cualquier patrón de semana+weekday, sin colisión.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras commit + push).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+
+### Siguiente
+- `RecurrenceEngine.nextOccurrence` auditoría: fin de mes mensual → 31/feb, año bisiesto.
+- `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
+- Descubrimiento continuo: búsqueda universal; rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; onboarding.
