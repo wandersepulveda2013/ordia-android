@@ -240,6 +240,7 @@ class RoutineRepository(
     suspend fun addStep(step: RoutineStepEntity): Long = stepDao.insert(step)
     suspend fun updateStep(step: RoutineStepEntity) = stepDao.update(step)
     suspend fun deleteStep(step: RoutineStepEntity) = stepDao.delete(step)
+    suspend fun deleteStepsForRoutine(routineId: Long) = stepDao.deleteByRoutineId(routineId)
     suspend fun stepsFor(routineId: Long): List<RoutineStepEntity> = stepDao.getByRoutine(routineId)
 }
 
