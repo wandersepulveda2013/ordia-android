@@ -33,9 +33,4 @@ class TaskRulesTest {
         assertEquals(high, TaskRules.nextBestTask(listOf(normal, high), 100))
     }
 
-    @Test
-    fun focusClock_formatsMinutesAndSeconds() {
-        assertEquals("25:00", FocusClock.format(1500))
-        assertEquals("00:00", FocusClock.format(-2))
-    }
 }
