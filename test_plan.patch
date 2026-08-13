@@ -1,0 +1,58 @@
+--- app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt
++++ app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt
+@@ -19,7 +19,7 @@
+     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
+     private val weekdayPattern = Regex("""(?i)\b(?:el\s+)?(?:pr[oó]ximo\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b""")
+     private val relativePattern = Regex("""(?i)\ben\s+(\d{1,3})\s*(minutos?|mins?|horas?|d[ií]as?)\b""")
+-    private val timePatterns = listOf(
++    private val timePatterns = mutableListOf(
+         Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
+         Regex("""(?i)\b([01]?\d|2[0-3]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
+         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b""")
+@@ -53,6 +53,7 @@
+             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
+             Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
+             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
++            Regex("""(?i)\besta\s+noche\b""").containsMatchIn(working) -> base.toLocalDate()
+             weekdayMatch != null -> nextWeekday(
+                 base.toLocalDate(),
+                 weekdayMatch.groupValues[1].toDayOfWeek()
+@@ -75,6 +76,9 @@
+         }
+
+         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
++        var extractedTimeMatch: MatchResult? = timeMatch
++        var extractedParsedTime: LocalTime? = null
++
+         val parsedTime = timeMatch?.let { match ->
+             var hour = match.groupValues[1].toInt()
+             val minute = match.groupValues[2].toIntOrNull() ?: 0
+@@ -83,16 +87,24 @@
+             LocalTime.of(hour, minute)
+         }
+-        val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
+-        val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
++
++        if (parsedTime == null) {
++            val thisNightMatch = Regex("""(?i)\besta\s+noche\b""").find(working)
++            if (thisNightMatch != null) {
++                extractedParsedTime = LocalTime.of(20, 0)
++                extractedTimeMatch = thisNightMatch
++            }
++        } else {
++            extractedParsedTime = parsedTime
++        }
++
++        val effectiveDate = date ?: if (extractedParsedTime != null) base.toLocalDate() else null
++        val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, extractedParsedTime ?: LocalTime.of(9, 0), zone) }
+
+         relativeMatch?.value?.let { working = working.replace(it, " ") }
+         weekdayMatch?.value?.let { working = working.replace(it, " ") }
+-        timeMatch?.value?.let { working = working.replace(it, " ") }
++        extractedTimeMatch?.value?.let { working = working.replace(it, " ") }
+         working = working
+-            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
++            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\besta\s+noche\b"""), " ")
+             .let { value -> numericDatePattern.replace(value, " ") }
+             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
+             .replace(Regex("""\s+"""), " ")

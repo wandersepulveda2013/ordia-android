@@ -1,0 +1,33 @@
+--- app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt
++++ app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt
+@@ -54,6 +54,8 @@
+             Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
+             Regex("""(?i)\besta\s+noche\b""").containsMatchIn(working) -> base.toLocalDate()
+             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
++            Regex("""(?i)\bmediod[ií]a\b""").containsMatchIn(working) -> base.toLocalDate()
++            Regex("""(?i)\bmedianoche\b""").containsMatchIn(working) -> base.toLocalDate()
+             weekdayMatch != null -> nextWeekday(
+                 base.toLocalDate(),
+                 weekdayMatch.groupValues[1].toDayOfWeek()
+@@ -91,6 +93,12 @@
+             if (thisNightMatch != null) {
+                 extractedParsedTime = LocalTime.of(20, 0)
+                 extractedTimeMatch = thisNightMatch
++            } else if (Regex("""(?i)\bmediod[ií]a\b""").containsMatchIn(working)) {
++                extractedParsedTime = LocalTime.of(12, 0)
++                extractedTimeMatch = Regex("""(?i)(al|el)?\s*mediod[ií]a\b""").find(working)
++            } else if (Regex("""(?i)\bmedianoche\b""").containsMatchIn(working)) {
++                extractedParsedTime = LocalTime.of(0, 0)
++                extractedTimeMatch = Regex("""(?i)(a\s+)?medianoche\b""").find(working)
+             }
+         } else {
+             extractedParsedTime = parsedTime
+@@ -104,7 +112,7 @@
+         weekdayMatch?.value?.let { working = working.replace(it, " ") }
+         extractedTimeMatch?.value?.let { working = working.replace(it, " ") }
+         working = working
+-            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\besta\s+noche\b"""), " ")
++            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\besta\s+noche\b|\bmediod[ií]a\b|\bmedianoche\b"""), " ")
+             .let { value -> numericDatePattern.replace(value, " ") }
+             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
+             .replace(Regex("""\s+"""), " ")

@@ -46,16 +46,4 @@ class NaturalTaskParserTest {
         assertNotNull(result.dueAt)
         assertEquals(LocalTime.of(20, 0), result.dueAt?.let { DateRules.toLocalTime(it, zone) })
     }
-
-    @Test fun parsesNoon() {
-        val result = NaturalTaskParser.parse("Almorzar al mediodía", now, zone)
-        assertEquals("Almorzar", result.title)
-        assertEquals(LocalTime.of(12, 0), result.dueAt?.let { DateRules.toLocalTime(it, zone) })
-    }
-
-    @Test fun parsesMidnight() {
-        val result = NaturalTaskParser.parse("Dormir a medianoche", now, zone)
-        assertEquals("Dormir", result.title)
-        assertEquals(LocalTime.of(0, 0), result.dueAt?.let { DateRules.toLocalTime(it, zone) })
-    }
 }

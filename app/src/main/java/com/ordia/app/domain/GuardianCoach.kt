@@ -102,7 +102,7 @@ object GuardianCoach {
         }
 
         return Insight(
-            eyebrow = "TODO EN CALMA",
+            eyebrow = "TIEMPO LIBRE",
             title = "No hay pendientes inmediatos",
             message = "Captura una idea, revisa un proyecto o simplemente conserva este espacio libre.",
             tone = Tone.CALM
