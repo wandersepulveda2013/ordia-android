@@ -1,0 +1,5 @@
+fix(ui): resolve Compose ImageVector and LocalClipboardManager deprecations
+
+- Replaced deprecated `Icons.Outlined.*` with `Icons.AutoMirrored.Outlined.*` across the application.
+- Replaced deprecated `LocalClipboardManager` with `LocalClipboard` in `CaptureScreen.kt` and updated the paste logic to use `clipboard.getClipEntry()` inside a coroutine scope.
+- Updated autonomous backlog and run log to reflect the completed task.

@@ -177,3 +177,13 @@
 
 1. Se ejecutó la misión ORDIA-AGENT-0001 a través del puente del supervisor ChatGPT.
 2. No se modificó funcionalidad de Ordía, secretos, ni flujos de trabajo, de acuerdo con el contrato de seguridad.
+## 2026-08-13 - Fix Compose Deprecations
+
+- **Action**: Resolved deprecation warnings in Jetpack Compose UI components.
+- **Details**:
+    - Replaced `Icons.Outlined.*` (directional icons like `ArrowForward`, `ArrowBack`, `InsertDriveFile`, `Notes`, `Send`, `OpenInNew`) with their new replacements under `Icons.AutoMirrored.Outlined.*` across the application screens and components.
+    - Updated `CaptureScreen.kt` to use `LocalClipboard` instead of the deprecated `LocalClipboardManager`, migrating the clipboard text access into a coroutine scope using `clipboard.getClipEntry()`.
+    - Removed temporary work files.
+    - Verified all fixes by successfully running `./gradlew lintPreviewSafeDebug testPreviewSafeDebugUnitTest`.
+    - Marked the associated issue as `FIXED` in `BACKLOG.md`.
+- **Status**: Completed successfully.
