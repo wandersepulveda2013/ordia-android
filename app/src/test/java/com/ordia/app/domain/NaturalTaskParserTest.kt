@@ -2636,4 +2636,44 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 9, 20), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
+
+    // --- Regresión P0: "el 0 de septiembre" (día fuera de rango en fecha con mes
+    // nombrado) lanzaba DateTimeException no capturada -> crash de la app ante input
+    // de texto libre. Ahora devuelve dueAt=null y deja la frase como título, sin caer. ---
+
+    @Test fun diaCeroDeMesNoCrashYDejaSinFecha() {
+        val result = NaturalTaskParser.parse("el 0 de septiembre", now, zone)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun diaNoventaYNueveDeMesNoCrashYDejaSinFecha() {
+        val result = NaturalTaskParser.parse("el 99 de enero", now, zone)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun diaCeroCeroDeMesNoCrashYDejaSinFecha() {
+        val result = NaturalTaskParser.parse("el 00 de marzo", now, zone)
+        assertNull(result.dueAt)
+    }
+
+    // --- Regresión P1: "el 15 de agosto del 2027" (español usa "del" antes del año,
+    // no "de") no capturaba el año -> se agendaba para 2026 en vez de 2027 y dejaba
+    // "del 2027" como residuo en el título. ---
+
+    @Test fun mesNombreConDelAnioAgendaAnioCorrecto() {
+        val result = NaturalTaskParser.parse("el 15 de agosto del 2027 a las 10", now, zone)
+        assertEquals(LocalDate.of(2027, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mesNombreConDelAnioNoDejaResiduoEnTitulo() {
+        val result = NaturalTaskParser.parse("el 10 de septiembre del 2026", now, zone)
+        assertEquals(LocalDate.of(2026, 9, 10), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("el 10 de septiembre del 2026", result.title)
+    }
+
+    @Test fun mesNombreConDelAnioDosDigitosAgendaCorrecto() {
+        val result = NaturalTaskParser.parse("el 10 de septiembre del 26", now, zone)
+        assertEquals(LocalDate.of(2026, 9, 10), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }

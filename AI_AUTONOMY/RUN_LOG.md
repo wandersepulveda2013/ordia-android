@@ -3464,3 +3464,28 @@ a un permiso persistente frágil y silencioso ante fallos.
 - `RecurrenceEngine.nextOccurrence` auditoría: fin de mes mensual → 31/feb, año bisiesto.
 - `PlanEngine`/replanificación más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
 - Descubrimiento continuo: búsqueda universal; rutinas adaptables; detección de compromisos en notas; captura ultrarrápida.
+
+## Ciclo 70 - 2026-08-13 (UTC) - fix(parser): P0 crash día fuera de rango + P1 "del 2027" no capturaba el año (fecha 2026↔2027)
+
+- **Run/ciclo**: 70 (renumerado desde c.69 tras colisión con run paralelo `e0f61bb` que tomó c.69). Fix P0 crash + fix P1 integridad de fecha/año; continuación directa del c.68 (`f31388a`, "el N del mes que viene"). Ambos bugs en la misma área (fecha con mes nombrado) hallados por sondeo proactivo del `NaturalTaskParser`.
+- **STALE_BASE detectado y reconciliado (no destructivo)**: HEAD inicial local era `f31388a` (c.68); al hacer push, `origin/openhands/autonomous-ordia` había avanzado a `9b801a8` (c.69 feat resumen accionable `e0f61bb` + docs `9b801a8` de un run paralelo). Resolución: `git fetch origin openhands/autonomous-ordia` → `git rebase origin/openhands/autonomous-ordia` (rebasa mi único commit sobre el remoto, sin sobrescribir trabajo válido). Conflictos solo en `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md` (ambos runs editaron las mismas cabeceras/tables); resueltos a mano conservando AMBOS runs, renumerando el mío c.69→c.70 y el conteo de tests 522→528. Los cambios de **código** NO chocan (áreas ortogonales: el run paralelo toca `SummaryEngine`/`TaskRules`/`ViewModel`/`TodayScreen`; este run toca `NaturalTaskParser.kt`/`NaturalTaskParserTest.kt`). Sin force push, sin reset --hard.
+- **HEAD inicial**: `f31388a` (c.68, sincronizado antes de la divergencia).
+- **Problema seleccionado (dos, misma área)**:
+  1. **P0 — crash**: `parseMonthNameDate` lanzaba `DateTimeException` no capturada ante día fuera de rango en fecha con mes nombrado ("el 0 de septiembre", "el 99 de enero", "el 00 de marzo", "el 32 de septiembre") → **crash de la app** ante texto libre. El `dayOfMonthPattern` suelto ya validaba `day in 1..31` (c.47), pero la rama de mes nombrado no.
+  2. **P1 — año no capturado**: `monthNamePattern` solo aceptaba `\s+de\s+(\d{2,4})` antes del año; el español estándar usa **"del"** ("el 15 de agosto del 2027"). El año no se capturaba → (1) **fecha errónea**: "el 15 de agosto del 2027 a las 10" se agendaba para **2026** en vez de **2027** (caía al año por defecto); (2) **título corrompido**: "del 2027" huérfano.
+- **Prioridad**: P0 (crash ante input de texto libre) + P1 (compromiso anual en año erróneo + título basura).
+- **Causa raíz**: (P0) ausencia de validación de rango en `parseMonthNameDate` antes de `LocalDate.of`; (P1) regex del año no contemplaba la contracción "del".
+- **Solución (mínima, dos cambios de 1 línea en `NaturalTaskParser.kt`, sin nueva pantalla/botón)**:
+  - P0: `val day = match.groupValues[1].toIntOrNull()?.takeIf { it in 1..31 } ?: return null` — día inválido → `dueAt=null` y la frase queda como título, sin caer.
+  - P1: `monthNamePattern` año `(?:\s+de\s+(\d{2,4}))?` → `(?:\s+del?\s+(\d{2,4}))?` (acepta "de" Y "del"; el mismo patrón se usa en el cleanup del título → consume "del 2027" completo sin residuo; cubre 2 dígitos "del 26").
+- **Tests**: +6 en `NaturalTaskParserTest.kt` (P0: `diaCeroDeMesNoCrashYDejaSinFecha`, `diaNoventaYNueveDeMesNoCrashYDejaSinFecha`, `diaCeroCeroDeMesNoCrashYDejaSinFecha`; P1: `mesNombreConDelAnioAgendaAnioCorrecto` → 2027-08-15 10:00, `mesNombreConDelAnioNoDejaResiduoEnTitulo`, `mesNombreConDelAnioDosDigitosAgendaCorrecto`). **528 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 522 c.69 + 6 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Probe JVM confirmó antes/después en todos los casos sin regresión (incl. "de 2027" original, "recordarme… del 2027", "renovar suscripción el 1 de enero del 2027", "el 31 de abril"→30 abr clamp, "el 29 de febrero de 2028"→bisiesto). **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real del parser en la app (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras commit+push).
+- **Estado**: FIXED → VERIFIED (dominio JVM); parser en app NO VERIFICADO (sin Android SDK).
+
+### Siguiente
+- Parser: múltiples marcadores temporales en una frase (auditar interacciones acumuladas tras c.58–c.70).
+- "la semana que viene el lunes" / "el mes que viene el día 5" (combinaciones periodo+día).
+- `RecurrenceEngine.nextOccurrence` auditoría: fin de mes mensual → 31/feb, año bisiesto.
+- `SummaryService`/`SummaryEngine`: resumen del día más accionable; `PlanEngine` replanificación; búsqueda universal.
+- Auditoría progresiva: rutinas adaptables, detección de compromisos en notas, captura ultrarrápida.
