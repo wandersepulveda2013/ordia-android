@@ -13,8 +13,8 @@
 - **Tests**: +6 en `ReminderRulesTest.kt`: `snoozePreservesOriginalReminderAt`, `snoozeDoesNotModifyDueAtOrStartAt`, `snoozeTriggerAtIsNowPlusMinutes`, `snoozeDefaultMinutesIsTen`, `snoozeUpdatesUpdatedAt`, e invariante de integridad `snoozeThenComplete_preservesReminderOffsetAcrossRecurrence` (reproduce el bug: reminderAt=dueAt-15min, snooze 10min, completar → `RecurrenceEngine.nextOccurrence` produce offset 15min; antes del fix colapsaba a 5min). **421 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 415 base c.51 + 6 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, `ReminderScheduler` real/WorkManager, receptor de broadcast en dispositivo Android.
 - **Archivos modificados/creados**: `app/src/main/java/com/ordia/app/domain/ReminderRules.kt` (NEW), `app/src/test/java/com/ordia/app/domain/ReminderRulesTest.kt` (NEW), `app/src/main/java/com/ordia/app/reminders/ReminderActionReceiver.kt` (MODIFIED), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **Commits**: `d384c2c` (fix(reminders): snooze ya no corrompe reminderAt en tareas recurrentes).
-- **HEAD final**: (ver push).
+- **Commits**: `d384c2c` (fix(reminders): snooze ya no corrompe reminderAt en tareas recurrentes), `de571d6` (docs).
+- **HEAD final**: `de571d6` (push a openhands/autonomous-ordia OK; `d18fc32..de571d6`, fast-forward sin colisión).
 
 ### Siguiente
 - Descubrimiento continuo: auditar captura, recordatorios (scheduling real, cancelación al completar/archivar), detección de vencidas importantes, contexto, onboarding, navegación, accesibilidad, rendimiento, privacidad.
