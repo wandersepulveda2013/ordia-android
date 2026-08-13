@@ -167,7 +167,15 @@ private fun OrdiaNavHost(
     vm: OrdiaViewModel,
     padding: androidx.compose.foundation.layout.PaddingValues
 ) {
-    NavHost(navController, startDestination = Destination.Today.route, modifier = Modifier.fillMaxSize()) {
+    NavHost(
+        navController,
+        startDestination = Destination.Today.route,
+        modifier = Modifier.fillMaxSize(),
+        enterTransition = { androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(220)) },
+        exitTransition = { androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(180)) },
+        popEnterTransition = { androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(220)) },
+        popExitTransition = { androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(180)) }
+    ) {
         composable(Destination.Today.route) {
             TodayScreen(state, vm, padding, onTask = { navController.navigate(Destination.task(it)) }, onOpenFocus = { navController.navigateSingle(Destination.Focus.route) }, onOpenInbox = { navController.navigateSingle(Destination.Inbox.route) })
         }

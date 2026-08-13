@@ -119,8 +119,8 @@ fun EmptyState(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            GuardianAvatar(58.dp)
-            Text(title, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+            GuardianAvatar(72.dp)
+            Text(title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
             Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             if (actionLabel != null && onAction != null) {
                 Spacer(Modifier.height(2.dp))
