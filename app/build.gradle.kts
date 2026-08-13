@@ -13,8 +13,8 @@ android {
         applicationId = "com.ordia.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 11
-        versionName = "3.0.0"
+        versionCode = 12
+        versionName = "3.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -93,6 +93,7 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+    testImplementation("org.json:json:20240303")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:core-ktx:1.6.1")
     androidTestImplementation("androidx.room:room-testing:2.8.4")

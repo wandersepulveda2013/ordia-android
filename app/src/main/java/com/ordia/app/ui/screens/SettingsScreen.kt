@@ -251,7 +251,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             }
         }
         item {
-            Text("Ordia 3.0 · Local primero · Sin cuenta obligatoria", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Ordia 3.0.1 · Local primero · Sin cuenta obligatoria", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
