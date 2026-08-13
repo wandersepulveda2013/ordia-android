@@ -60,7 +60,7 @@ android {
 }
 
 ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.schemaLocation", layout.projectDirectory.dir("schemas").asFile.absolutePath)
 }
 
 dependencies {
