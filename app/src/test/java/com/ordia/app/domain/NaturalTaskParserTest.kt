@@ -1774,4 +1774,36 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
+
+    // "el viernes a las 18" escrito el PROPIO viernes ANTES de esa hora: la cita es HOY.
+    // Antes nextWeekday siempre saltaba +7 y la reunión de hoy se perdía una semana.
+    private val fridayNow = DateRules.toEpochMillis(LocalDate.of(2026, 2, 13), LocalTime.of(10, 30), zone)
+
+    @Test fun weekdayHoyConHoraFuturaQuedaHoy() {
+        val result = NaturalTaskParser.parse("Reunión el viernes a las 18", fridayNow, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 2, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun weekdayHoyConHoraPasadaRuedaProximaSemana() {
+        // 10:00 < ahora (10:30) → próximo viernes.
+        val result = NaturalTaskParser.parse("Reunión el viernes a las 10", fridayNow, zone)
+        assertEquals(LocalDate.of(2026, 2, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun weekdayHoySinHoraYMediodiaPasadoRuedaProximaSemana() {
+        // Sin hora → default 09:00, ya pasó a las 10:00 → próximo viernes (sin regresión).
+        val result = NaturalTaskParser.parse("Cita el viernes", fridayNow, zone)
+        assertEquals(LocalDate.of(2026, 2, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun weekdayHoyTardeConHoraFuturaQuedaHoy() {
+        // viernes 18:00 dicho a las 10:00 → hoy; prueba también "de la tarde".
+        val result = NaturalTaskParser.parse("Cena el viernes a las 8 de la tarde", fridayNow, zone)
+        assertEquals(LocalDate.of(2026, 2, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
 }

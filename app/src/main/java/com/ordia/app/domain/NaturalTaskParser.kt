@@ -578,6 +578,9 @@ object NaturalTaskParser {
         val hasPartOfDayPmContext =
             partOfDayMatch?.let { it.groupValues[1].lowercase() in partOfDayPmKeys } == true ||
             standalonePartOfDayKey in partOfDayPmKeys
+        // True solo cuando la fecha proviene de un día de la semana suelto ("el viernes")
+        // y ese día ES hoy: la cita puede ser hoy mismo si su hora aún no pasó.
+        var weekdaySameDayCandidate = false
         val date = when {
             // Debe ir antes que el "mañana" genérico: "esta mañana" contiene "mañana"
             // y no debe interpretarse como "el día de mañana".
@@ -607,7 +610,18 @@ object NaturalTaskParser {
             previousWeekdayReversedMatch != null && previousWeekdayReversedMatch.groupValues[1].toDayOfWeekOrNull() != null ->
                 previousWeekday(base.toLocalDate(), previousWeekdayReversedMatch.groupValues[1].toDayOfWeek())
             weekendMatch != null -> nextWeekday(base.toLocalDate(), DayOfWeek.SATURDAY)
-            weekdayMatch != null -> nextWeekday(base.toLocalDate(), weekdayMatch.groupValues[1].toDayOfWeek())
+            // "el viernes a las 18" escrito el propio viernes ANTES de esa hora debe
+            // vencer HOY (la reunión es hoy), no la semana siguiente. nextWeekday
+            // siempre salta +7 cuando hoy es el día objetivo (lo reutilizan las
+            // recurrencias, que necesitan ese "próximo" estricto). Para la fecha
+            // suelta usamos nextWeekdayOrSame (incluye hoy) y diferimos al final del
+            // parseo el descarte de "hoy si la hora ya pasó" → ahí se rueda +7 días.
+            // Sin esto, una cita de hoy con hora futura se perdía una semana entera.
+            weekdayMatch != null -> {
+                val target = weekdayMatch.groupValues[1].toDayOfWeek()
+                weekdaySameDayCandidate = base.toLocalDate().dayOfWeek == target
+                nextWeekdayOrSame(base.toLocalDate(), target)
+            }
             monthNameDate != null -> monthNameDate
             numericDateMatch != null -> {
                 val day = numericDateMatch.groupValues[1].toIntOrNull()
@@ -684,11 +698,18 @@ object NaturalTaskParser {
                 t.plusHours(12) else t
         } ?: partOfDayTime ?: standalonePartOfDayTime ?: primeraHoraMatch?.let { primeraHoraTime }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
-        val dueAt = when {
+        val rawDueAt = when {
             effectiveRelativeDueAt != null && relativeIsDays && parsedTime != null ->
                 DateRules.toEpochMillis(DateRules.toLocalDate(effectiveRelativeDueAt, zone), parsedTime, zone)
             else -> effectiveRelativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
         }
+        // "el viernes a las 18" escrito el viernes a las 10:00 → hoy 18:00 (se conserva).
+        // Pero si la hora ya pasó ("el viernes a las 6" a las 10:00) o no había hora y el
+        // mediodía canónico (09:00) ya pasó, se rueda a la semana siguiente, igual que
+        // antes. Así no se agenda nada en el pasado y no se pierde una cita de hoy.
+        val dueAt = if (weekdaySameDayCandidate && rawDueAt != null && rawDueAt < now) {
+            DateRules.toEpochMillis(date!!.plusDays(7), parsedTime ?: LocalTime.of(9, 0), zone)
+        } else rawDueAt
 
         // Duración: no se aplica a "en N minutos" (esa es fecha relativa, ya eliminada).
         // Rango horario "de H1 a H2 [horas]": se procesa primero para que el segundo
@@ -954,6 +975,18 @@ object NaturalTaskParser {
     private fun nextWeekday(from: LocalDate, target: DayOfWeek): LocalDate {
         val delta = (target.value - from.dayOfWeek.value + 7) % 7
         return from.plusDays(if (delta == 0) 7 else delta.toLong())
+    }
+
+    /**
+     * Próxima ocurrencia de [target] desde [from] INCLUDING hoy si hoy es ese día.
+     * A diferencia de [nextWeekday] (que las recurrencias usan para exigir "próximo"
+     * estricto), ésta sirve para la fecha suelta "el viernes" dicho el propio viernes:
+     * la cita puede ser hoy. El descarte de "hoy si la hora ya pasó" se resuelve al
+     * combinar fecha+hora, no aquí.
+     */
+    private fun nextWeekdayOrSame(from: LocalDate, target: DayOfWeek): LocalDate {
+        val delta = (target.value - from.dayOfWeek.value + 7) % 7
+        return from.plusDays(delta.toLong())
     }
 
     /**
