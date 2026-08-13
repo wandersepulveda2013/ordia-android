@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Schedule
@@ -96,25 +97,21 @@ fun TodayScreen(
             )
         }
         item {
-            Surface(
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    val insight = state.guardianInsight
-                    GuardianAvatar(62.dp, insight.tone.toMood())
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(insight.eyebrow, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondaryContainer)
-                        Text(insight.title, style = MaterialTheme.typography.titleLarge)
-                        Text(
-                            insight.message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
-                        )
-                    }
-                    insight.taskId?.let { taskId ->
-                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.Outlined.ArrowForward, "Abrir recomendación") }
+            val insight = state.guardianInsight
+            Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                GuardianAvatar(72.dp, insight.tone.toMood())
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(insight.eyebrow, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+                    Text(insight.title, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onBackground)
+                    Text(
+                        insight.message,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                insight.taskId?.let { taskId ->
+                    IconButton(onClick = { onTask(taskId) }, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Abrir recomendación", tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -174,7 +171,11 @@ fun TodayScreen(
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(state.habits, key = { it.id }) { habit ->
                         val count = state.habitCount(habit.id)
-                        Card(onClick = { vm.toggleHabit(habit) }) {
+                        Surface(
+                            onClick = { vm.toggleHabit(habit) },
+                            shape = MaterialTheme.shapes.medium,
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ) {
                             Column(Modifier.padding(16.dp).width(220.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(habit.title, style = MaterialTheme.typography.titleMedium)
                                 Text("$count de ${habit.targetPerPeriod}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -190,7 +191,11 @@ fun TodayScreen(
             item { SectionHeader("Proyectos activos") }
             items(state.projects.take(3), key = { "project-${it.id}" }) { project ->
                 val progress = state.projectProgress(project.id)
-                Card {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                         Row(Modifier.fillMaxWidth()) {
                             Text(project.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
