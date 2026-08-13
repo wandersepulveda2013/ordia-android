@@ -215,3 +215,92 @@ V1, V2, V3, V4, V5, V6, V7, V8, V9, V14 (10 visuales) + F2, F3, F5, F7, F8, F9, 
 3. (Opcional, con confirmación del usuario) Abrir PR `autonomous/delete-subtree-concurrency` → `main`.
 4. Continuar con P5 (tests Room de instrumentación) si se dispone de emulador; en caso contrario, auditar otros módulos (p. ej. `Habit` reminders sin implementar, `Routine`).
 
+---
+
+# SESIÓN 2 — CI Fix + In-App Update Checker (2026-08-12)
+
+## Estado del repositorio (sesión 2)
+- **Branch**: `main` (todos los cambios de CI y update checker están en main)
+- **Repo**: `https://github.com/wandersepulveda2013/ordia-android.git`
+- **Workspace**: `/workspace/project/ordia-android`
+- **PR #32**: MERGED (deletion bug block B1-B10 + 20 mejoras visuales/funcionales)
+
+## Último trabajo completado (sesión 2)
+
+### CI_FIX — COMPLETADO
+- **Root cause**: KSP2 (kapt→KSP migration for Room 2.8.4) reads cached
+  schema JSON as empty in GitHub Actions, causing
+  `JsonDecodingException: Expected start of the object '{', but had 'EOF'`.
+  Local builds always succeeded.
+- **Fix**: `--no-build-cache` on the CI verification step. KSP tasks now
+  pass in CI. Also pinned `kotlinx-serialization-json:1.8.1` on the KSP
+  classpath and switched schemaLocation to an absolute path.
+- **APK path fixes**: CI workflow referenced a non-existent `previewAdvanced`
+  buildType. Corrected to standard `app/build/outputs/apk/release/` and
+  `app/build/outputs/apk/debug/` paths.
+- **Release tagging**: Changed from `v3.0.0-build.{run_id}` to
+  `v{versionName}-{versionCode}` (extracted via aapt2) so the in-app
+  update checker can compare versions.
+- **Result**: CI #62 — Verify ✓, Sign ✓, Publish ✓. Release created with signed APK.
+
+### UPDATES_SECTION — COMPLETADO (pending CI #63 verification)
+- **Problem**: User reported "en la app, en el apartado de actualizaciones no
+  aparece" — the updates section was empty because no update mechanism existed.
+- **Implementation**:
+  - `UpdateChecker.kt`: queries GitHub Releases API `/releases/latest`,
+    parses tag `v{versionName}-{versionCode}`, compares versionCode.
+  - `UpdateInstaller.kt`: downloads APK to cacheDir with progress,
+    launches system installer via FileProvider.
+  - `SettingsScreen.kt`: new "Actualizaciones" section with status
+    (checking / up-to-date / available / error), download button, progress.
+  - `AndroidManifest.xml`: added INTERNET + REQUEST_INSTALL_PACKAGES
+    permissions, registered FileProvider.
+  - `file_paths.xml`: cache-path for APK sharing.
+  - Version bumped: versionCode 10→11, versionName 1.0.0→3.0.0.
+- **CI #63**: In progress (verify → sign → publish).
+
+## Commits (sesión 2, main branch)
+1. `fc51fc4` — build: pin kotlinx-serialization-json 1.8.1 on KSP classpath
+2. `e645381` — ci: disable build cache + use absolute schema path for KSP
+3. `b9db764` — ci: fix release APK path (was referencing non-existent buildType)
+4. `a1fb1d8` — ci: fix debug APK glob path (no flavors, direct debug/ dir)
+5. `418df93` — feat: implement in-app update checker and APK installer
+
+## Pruebas ejecutadas (sesión 2)
+- Local clean + kspDebugKotlin + kspReleaseKotlin — BUILD SUCCESSFUL
+- Local clean + test + lint + assembleDebug + assembleRelease — BUILD SUCCESSFUL
+- Local assembleDebug + test + assembleRelease (with update feature) — BUILD SUCCESSFUL
+- CI #62 (verify→sign→publish) — ALL PASSED
+- CI #63 (verify→sign→publish) — IN PROGRESS
+
+## Bugs encontrados y corregidos (sesión 2)
+1. **KSP2 empty JSON in CI**: Fixed with `--no-build-cache`.
+2. **previewAdvanced buildType reference**: Fixed paths to standard release/debug dirs.
+3. **Debug APK glob path**: Fixed `*/debug/*.apk` → `debug/*.apk`.
+4. **No update mechanism in app**: Implemented full UpdateChecker + UpdateInstaller + UI.
+
+## Próximo paso exacto (sesión 2)
+1. **Verify CI #63 passes** — confirm release `v3.0.0-11` is published.
+2. **Test update flow on device** — install signed APK, verify "Actualizaciones" section.
+3. **Continue deep audit** from session 1: TaskRepository/TaskMutationGate deletion
+   concurrency (already fixed in PR #32, but verify no regressions).
+4. **P5**: Tests de instrumentación Room para `collectSubtreeIds`/`deleteSubtreeAndSelf`
+   (requieren emulador).
+
+## Decisiones arquitectónicas (sesión 2)
+- **KSP2 over KSP1**: KSP1 fails with `AbstractMethodError` on `FieldBundle$$serializer`.
+  KSP2 (2.1.20-2.0.1) works but needs `--no-build-cache` in CI.
+- **GitHub Releases for updates**: No Play Store. App self-checks via GitHub API
+  and self-installs APKs via FileProvider.
+- **Tag format `v{versionName}-{versionCode}`**: Allows app to extract and compare
+  versionCode without parsing APK metadata remotely.
+- **No AutoMigration**: Schema export only needed for AutoMigration (not used).
+  Only manual MIGRATION_1_2 exists.
+
+## Riesgos pendientes (sesión 2)
+- **`--no-build-cache` slows CI**: ~2min → ~5min. Acceptable for reliability.
+- **GitHub API rate limits**: 60/hour per IP unauthenticated. App checks only
+  when SettingsScreen opens, so fine for normal usage.
+- **REQUEST_INSTALL_PACKAGES**: Users may need to grant "Install unknown apps"
+  manually. The installer intent will prompt for this.
+
