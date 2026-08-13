@@ -39,4 +39,11 @@ class NaturalTaskParserTest {
         assertEquals("Revisar el horno", result.title)
         assertEquals(now + 45 * 60_000L, result.dueAt)
     }
+
+    @Test fun parsesEstaNoche() {
+        val result = NaturalTaskParser.parse("Preparar la mochila esta noche", now, zone)
+        assertEquals("Preparar la mochila", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
 }
