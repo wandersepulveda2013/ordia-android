@@ -35,9 +35,20 @@ object OrdiaWidgetUpdater {
             val tasks = app.container.database.taskDao().getAllNow()
             val next = TaskRules.nextBestTask(tasks)
             val pending = tasks.count { !it.completed && !it.archived && it.parentTaskId == null }
+            val today = java.time.LocalDate.now()
+            val dueToday = tasks.count { !it.completed && !it.archived && it.parentTaskId == null && TaskRules.isDueOn(it, today) }
+            val overdue = tasks.count { !it.completed && !it.archived && it.parentTaskId == null && TaskRules.isOverdue(it) }
+            val todayLabel = buildString {
+                if (dueToday > 0) append("$dueToday hoy")
+                if (overdue > 0) {
+                    if (isNotEmpty()) append(" · ")
+                    append("$overdue atrasad${if (overdue == 1) "a" else "as"}")
+                }
+            }
             val views = RemoteViews(context.packageName, R.layout.ordia_widget).apply {
                 setTextViewText(R.id.widget_title, next?.title ?: "Todo está en orden")
                 setTextViewText(R.id.widget_count, "$pending ${if (pending == 1) "pendiente" else "pendientes"}")
+                setTextViewText(R.id.widget_today, todayLabel)
                 setOnClickPendingIntent(R.id.widget_root, openAppIntent(context))
                 setOnClickPendingIntent(R.id.widget_capture, quickCaptureIntent(context))
             }
