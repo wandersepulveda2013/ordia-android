@@ -9,7 +9,6 @@
 
 | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|----------|--------|
-| P2 | UI | `Icons.Outlined.InsertDriveFile` deprecado; usar `Icons.AutoMirrored.Outlined.InsertDriveFile` | warning de compilación en `TaskDetailScreen` | OPEN |
 | P2 | i18n | Revisar coherencia de cadenas nuevas (command_palette, feedback, floating_capture, android_access) | inspección manual pendiente | OPEN |
 | P2 | QA | Verificar que las 6 variantes (Safe/Full/Advanced × debug/release) compilan tras cambios | `./gradlew test` | OPEN |
 | P2 | Backup | Comprobar restauración con manifiesto corrupto (escenario adverso) | revisión de `RestoreData` | OPEN |
@@ -19,6 +18,7 @@
 
 | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|----------|--------|
+| P2 | UI | `Icons.Outlined.*` deprecado; usar `Icons.AutoMirrored.Outlined.*` y LocalClipboardManager deprecado | warnings de compilación | FIXED |
 | P1 | Privacy | Fragmentos de paquete sin punto (banca genérica) no se filtraban | `ContextPrivacyFilterTest` | FIXED |
 | P1 | Capture | `StartActivityAndCollapseDeprecated` en tile de Quick Settings | lint | FIXED |
 | P1 | UI | `stringResource` fuera del ámbito composable en `TaskDetailScreen` | lint | FIXED |
