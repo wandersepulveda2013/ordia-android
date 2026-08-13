@@ -37,10 +37,21 @@ trabajo no commiteado (incluida mi versión de "quincena", ahora redundante), hi
 limpio a 8146acf y reapliqué SOLO "un par de" (que el remoto no tenía). Sin colisión destructiva.
 
 VERIFICADO localmente (JVM puro, sin Android SDK): `bash tools/run_domain_tests.sh` =
-**308 tests PASS** (300 + 4 nuevos), 25 clases. Smoke 25 OK. NO VERIFICADO: gradle/lint/
+**312 tests PASS** (308 + 4 nuevos), 25 clases. Smoke 25 OK. NO VERIFICADO: gradle/lint/
 assemble/Android/UI (sin Android SDK).
 
-## Último trabajo — Ciclo 34: parser "esta semana" (plazo blando de fin de semana)
+## Último trabajo — Ciclo 36: parser "mediados de semana" (= miércoles)
+
+`NaturalTaskParser` no reconocía **"mediados de semana"** / "a mediados de semana"
+(frase cotidiana: "lo termino a mediados de semana"). Caía a `dueAt=null` → tarea
+olvidada (sin recordatorio, invisible en planificador/What Now). Añadido
+`midOfWeekPattern` análogo a `startOfWeekPattern` (lunes) y `midOfMonthPattern`
+(día 15): resuelve al **miércoles más cercano en HOY o futuro** (nextOrSame
+WEDNESDAY), hora por defecto 9:00, combinable con hora explícita. Detectado y
+borrado antes del período próximo para no colisionar con "semana que viene".
++4 tests. Sin colisión con "mediados de mes" (sigue siendo día 15).
+
+## Último trabajo — Ciclo 35: parser "un par de" (= 2)
 
 Unidad atómica del ciclo de parser natural (P1 — evitar olvidos, menos fricción de captura).
 **"esta semana"** es un plazo blando cotidiano ("háblalo esta semana", "lo termino esta semana",
@@ -187,7 +198,7 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 | Pri | Área | Estado |
 |-----|------|--------|
 | P1 | Persistencia — adjuntos URI externo | FIXED (NO VERIFICADO Android) ciclo 32 cont.4 |
-| P1 | Parser — "esta semana" plazo blando | FIXED → VERIFIED ciclo 34 (290 tests); "principios de semana" VERIFIED ciclo 34 cont. (294 tests); quincena/bimestre/semestre VERIFIED (300 tests, 8146acf); "un par de" VERIFIED ciclo 35 (308 tests) |
+| P1 | Parser — "esta semana" plazo blando | FIXED → VERIFIED ciclo 34 (290 tests); "principios de semana" VERIFIED ciclo 34 cont. (294 tests); quincena/bimestre/semestre VERIFIED (300 tests, 8146acf); "un par de" VERIFIED ciclo 35 (308 tests); "mediados de semana" VERIFIED ciclo 36 (312 tests) |
 | P2 | QA — compilar 6 variantes tras cambios | OPEN (requiere env Android) |
 | P2 | Self-Update — prueba end-to-end N→N+1 | BLOCKED-external (sin dispositivo Android) |
 | P3 | UX — pulido visual pantallas workspace renovadas | OPEN |
@@ -203,6 +214,7 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 - Continuar ciclo interminable. Candidatos parser: ~~"esta semana" (vs "la semana que viene")~~
   HECHO ciclo 34; "próximo bimestre/semestre" (evaluar frecuencia), "próxima quincena" (+15d),
   ~~"principios de semana" (lunes)~~ HECHO ciclo 34 cont. (294 tests). "principios de mes" (día 1) ya hecho ciclo 33.
+  ~~"mediados de semana" (miércoles)~~ HECHO ciclo 36 (312 tests). "a finales de semana" (viernes/dom) pendiente — evaluar ambigüedad viernes vs sábado vs domingo antes de implementar.
 - P1 adjuntos: NEXT paso sería **migración de adjuntos legacy** (URIs externos antiguos ya
   guardados) — copiar contenido al abrir por primera vez si todavía accesible. Evaluar antes
   de implementar (riesgo: URIs ya inválidos). De momento `resolveAttachmentUri` no rompe legacy.

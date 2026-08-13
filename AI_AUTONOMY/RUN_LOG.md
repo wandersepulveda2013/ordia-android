@@ -2560,3 +2560,27 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Continuar ciclo de parser: "mediados de semana" (miércoles), "a finales de semana" (viernes/dom), "un par de horas" ya cubierto.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
 - Descubrimiento continuo: auditar otras áreas (captura, What Now, rutinas) en busca de oportunidades de producto, no solo parser.
+
+## Ciclo 36 - 2026-08-13 (UTC)
+
+- **Run/ciclo**: 36
+- **HEAD inicial**: e4157c1 (origin/openhands/autonomous-ordia sincronizado tras push del ciclo 35 — resuelto bloqueo de auth usando `github_token` en vez de `GITHUB_TOKEN` que estaba ausente).
+- **Problema seleccionado**: `NaturalTaskParser` no reconocía **"mediados de semana"** / "a mediados de semana" (frase cotidiana: "lo termino a mediados de semana"). Caía a `dueAt=null` → tarea **olvidada** (sin recordatorio, invisible en planificador/What Now).
+- **Prioridad**: P1 (evitar olvidos, menos fricción de captura, inteligencia honesta del parser).
+- **Causa raíz**: existían `startOfWeekPattern` ("principios de semana" = lunes) y `midOfMonthPattern` ("mediados de mes" = día 15), pero ninguna familia cubría el caso "mediados de semana". La palabra "semana" solo la capturaba `nextPeriodPattern` ("semana que viene" = +7d) o `thisWeekPattern` ("esta semana"). Sin hora explícita no había respaldo → null.
+- **Solución (mínima, en `NaturalTaskParser.kt`)**:
+  - Nuevo `midOfWeekPattern` (`mediados`/`mediado` + `de`/`del` + `semana`, con opcional `a `).
+  - Resuelve al **miércoles más cercano en HOY o futuro** (`nextOrSame(WEDNESDAY)`): si hoy es miércoles, hoy; si no, el miércoles de esta semana o el de la siguiente. Como plazo blando nunca se fecha en pasado. Hora por defecto 9:00.
+  - Detectado y borrado **antes** del período próximo: así "semana" no activa "semana que viene" (sigue siendo +7d).
+  - Integrado en `effectiveRelativeDueAt` como días (junto a startOfWeek/monthBoundary/thisWeek/nextPeriod) para combinarse con una hora explícita. También en `relativeIsDays`.
+  - No colisiona con "mediados de mes" (uno termina en "semana", otro en "mes").
+- **Tests**: +4 (`mediadosDeSemanaSiHoyEsMiercolesEsHoy`, `mediadosDeSemanaDesdeLunesEsMiercolesMismaSemana`, `mediadosDeSemanaRespetaHoraExplicita`, `mediadosDeSemanaNoColisionaConMediadosDeMes`). **312 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+- **Commits**: feat(parser): "mediados de semana" (= miércoles). docs(autonomy): este registro.
+- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+
+### Siguiente
+- Continuar ciclo de parser: "a finales de semana" (evaluar ambigüedad viernes vs sábado vs domingo antes de implementar — "fin de semana" ya cubre sábado), "próxima quincena" (+15d).
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+- Descubrimiento continuo: auditar captura, What Now, rutinas en busca de oportunidades de producto reales, no solo parser.
+- Nota operativa: `GITHUB_TOKEN` ausente en este entorno; usar `github_token` para push.
