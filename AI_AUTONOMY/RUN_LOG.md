@@ -5,8 +5,8 @@
 ---
 ## Ciclo 77 - 2026-08-13 (UTC) - feat(resumen): el veredicto del día usa la ventana de jornada APRENDIDA, no la fija 9–18
 
-- **Run/ciclo**: 77 (rama `openhands/autonomous-ordia`). Base limpia: HEAD local `268b635` (c.76 tras rebase) == remoto; `git pull --ff-only` OK sin divergencia. Continuación segura del supervisor.
-- **HEAD inicial**: `268b635` (local == remoto, sin STALE).
+- **Run/ciclo**: 77 (rama `openhands/autonomous-ordia`). Base limpia: HEAD local `22af5b4` (c.76) == remoto; `git pull --ff-only` OK sin divergencia. Continuación segura del supervisor.
+- **HEAD inicial**: `22af5b4` (local == remoto, sin STALE).
 - **Problema seleccionado**: auditoría de la cadena de inteligencia del resumen de Today (`SummaryEngine` c.65/c.66/c.67/c.69 ↔ `TodayScreen` ↔ `LearningEngine` ↔ `DayPlanner`) reveló que el veredicto del día (`DayLoad`: LIGHT/ON_TRACK/FULL/OVERLOADED) usaba una **ventana de jornada hardcoded 9–18**, mientras que `LearningEngine` ya perfila los horarios reales del usuario y `DayPlanner` ya los usa para agendar. **Plan y veredicto discrepaban**: un usuario nocturno (jornada real 9–23) veía "OVERLOADED" a las 17:00 cuando le quedaban 6 h de capacidad real; uno madrugador (6–14) veía "ON_TRACK" a las 13:00 cuando su día casi se acababa. La tarjeta de hoy **mentía** para cualquier horario no estándar. Área de dirección explícita "inteligencia/contexto"/"mejores resúmenes del día"/"rutinas adaptables". P1 de inteligencia honesta (no era un bug de datos, pero el veredicto era sistemáticamente erróneo para horarios no canónicos).
 - **Prioridad**: P1 (inteligencia/contexto; el veredicto guía la decisión del usuario —"no cabe, pospone X"— y era falso para perfiles no estándar).
 - **Causa raíz**: `SummaryEngine.summarize`/`assessDayLoad` tenían `dayStartMinute=9*60`/`dayEndMinute=18*60` **literales dentro del método**, sin recibir el perfil aprendido. El caller (`TodayScreen.kt:117`) llamaba `summarize(state.tasks, clockNow)` sin perfil, aunque `PlannerScreen` ya computaba `LearningEngine.learn(...)` para `DayPlanner`. Dos fuentes de verdad de la jornada (fija 9–18 vs aprendida) coexistían sin reconciliar.
@@ -21,7 +21,7 @@
   - La sugerencia de posposición (`mostDeferrableTask`, c.66/c.67) y el cálculo de "inminente/en-curso" (`TaskRules.isImminentStart`) NO dependen de la ventana de jornada, así que el fix del veredicto no los afecta. OK.
   - `DayPlanner` ya usa `LearningProfile` (verificado por su existencia y uso en `PlannerScreen`); el resumen ahora se alinea con él. Posible oportunidad futura: que el `DayPlanner` y el resumen compartan UNA instancia de perfil computada una sola vez por render (micro-optimización, P3) — hoy cada uno llama `LearningEngine.learn` por separado; el costo es bajo (percentil sobre ≤28 días de tareas completadas) y no justifica una abstracción nueva todavía.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SummaryEngine.kt`, `app/src/main/java/com/ordia/app/ui/screens/TodayScreen.kt`, `app/src/test/java/com/ordia/app/domain/SummaryEngineTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit + push a `origin/openhands/autonomous-ordia`).
+- **HEAD final**: `9fb6298` (commit + push a `origin/openhands/autonomous-ordia` verificado: `22af5b4..9fb6298`).
 - **Estado**: VERIFIED (JVM). 572 domain tests PASS.
 
 ### Siguiente
