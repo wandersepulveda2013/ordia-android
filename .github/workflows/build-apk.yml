@@ -21,7 +21,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - name: Instalar Gradle 8.13
         uses: gradle/actions/setup-gradle@v4
