@@ -3310,3 +3310,22 @@ a un permiso persistente frágil y silencioso ante fallos.
 - `SummaryService`/`SummaryEngine`: resumen del día más accionable.
 - `PlanEngine` replanificación automática; búsqueda universal.
 - Parser: múltiples marcadores temporales en una frase.
+
+## Ciclo 64 - 2026-08-13 (UTC) - fix(parser): forma standalone "N de la tarde/noche" sin "a las" ni rango
+
+- **Run/ciclo**: 64 (renumerado: el remoto tomó c.62 = recordatorios del editor, c.63 = Guardián vencidas; este run paralelo aterriza como c.64).
+- **HEAD inicial**: `6e43206` (c.63, synced tras stash/pull/pop; base original del run `dfff470` c.61).
+- **Problema seleccionado**: la forma cotidiana **"Taller 9 de la tarde"** (hora + parte del día, SIN "a las" y SIN segundo extremo de rango) se agendaba a la hora **canónica** de la parte del día (tarde→15:00) en vez de la hora **explícita** (9→21:00), y el número quedaba como residuo en el título ("Taller 9"). Igual para "Cita 10 de la mañana"→09:00 (debería 10:00), "Evento 9 de la madrugada"→04:00 (debería 09:00). El usuario escribía una hora concreta y Ordía la ignoraba → cita agendada a hora equivocada (P2: captura/agenda/integridad de intención). Era el siguiente item documentado en el "Siguiente" del ciclo 61 (BACKLOG P2 "ABIERTO").
+- **Prioridad**: P2 (captura/agenda; mejorada funcional del parser, no pérdida de datos).
+- **Causa raíz**: sin segundo extremo de rango, `rangeMatch` no casaba y no había `rangeStartTime`; la hora caía al respaldo `standalonePartOfDayTime` (canónica "de la tarde"→15:00), que gana sobre cualquier número suelto. El ciclo 61 ya arregló la variante **con rango**; esta es la forma **standalone**.
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**: nuevo `standaloneHourPartOfDayPattern` + `resolveStandaloneHourPartOfDay` (tarde/noche→+12 si N<12; 12 de la noche→0 medianoche; 12 de la tarde→12 mediodía; madrugada/mañana→AM tal cual). Insertado en la cadena de respaldo de `parsedTime` **antes** de `standalonePartOfDayTime` (canónica) para que la hora explícita gane.
+- **Guard anti-regresión (crítico)**: solo se aplica cuando `explicitTime == null` (no hubo "a las …"). Sin este guard, el patrón robaba "9 de la tarde" de "a las 9 de la tarde" y dejaba el residuo "a las" en el título. El lookahead negativo evita colisión con fechas ("9 de marzo" → mes, no parte del día).
+- **Tests**: +9 en `NaturalTaskParserTest.kt`. **494 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 485 c.63 + 9 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Probe JVM confirmó antes/después en 21 casos. Sin regresión. **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del parser en la app.
+- **Colisión de remoto (no destructiva)**: durante el trabajo aterrizaron en remoto c.62 (recordatorios del editor) y c.63 (Guardián vencidas) de runs paralelos. `git stash` → `pull --ff-only` → `stash pop`: los cambios de **código** (parser + tests) se auto-mergearon limpiamente (áreas ortogonales); solo los 3 archivos `AI_AUTONOMY/*` quedaron en conflicto (ambos editaban cabeceras/tablas) y se resolvieron conservando AMBOS trabajos, renumerando este fix c.62 → c.64. Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras commit+push).
+- **Estado**: FIXED → VERIFIED (dominio JVM); parser en app NO VERIFICADO (sin Android SDK).
+
+### Siguiente
+- Caso límite ambiguo: "12 de la mañana" → 00:00 (¿medianoche o mediodía?); documentar decisión.
+- Descubrimiento continuo: `SummaryService`/`SummaryEngine` resumen del día más accionable; `PlanEngine` replanificación; búsqueda universal; múltiples marcadores temporales en una frase.

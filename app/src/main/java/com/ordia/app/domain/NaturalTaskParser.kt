@@ -320,6 +320,37 @@ object NaturalTaskParser {
         Regex("""(?i)\b(?:a\s+)?primera\s+horas?(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|madrugada))?\b""")
     private val primeraHoraTime = LocalTime.of(9, 0)
 
+    /**
+     * Hora suelta con parte del día, sin "a las" ni rango: "Taller 9 de la tarde",
+     * "Cena 9 de la noche", "Cita 10 de la mañana", "Evento 9 de la madrugada". Antes la
+     * hora caía a la canónica de la parte del día (15:00/21:00/09:00/04:00) ignorando el
+     * número, y éste quedaba como residuo en el título ("Taller 9"). Aquí se resuelve la
+     * hora absoluta con su meridiem (tarde/noche → +12 si N<12; mañana/madrugada → AM, 12→0).
+     * El patrón exige el conector "de la" para no colisionar con "9 de marzo" (fecha con mes
+     * —lo resuelve monthNameDate) ni "el 9" aislado (dayOfMonthPattern); el lookahead negativo
+     * descarta "9 de la mañana" seguido de un nombre de mes ("9 de la mañana de marzo" no es
+     * una forma real, pero protege de ambigüedades). Admite minutos opcionales ("9:30 de la
+     * tarde"), aunque esa forma ya la cubre timePatterns[1] + contexto PM; se deja por simetría.
+     */
+    private val standaloneHourPartOfDayPattern =
+        Regex("""(?i)(?<![:\d])(\d{1,2})(?::([0-5]\d))?\s+de\s+la\s+(tarde|noche|madrugada|ma[nñ]ana|manana)(?!\s+de\s+[a-záéíóúüñ])""")
+
+    private fun resolveStandaloneHourPartOfDay(match: MatchResult): LocalTime? {
+        val h = match.groupValues[1].toIntOrNull() ?: return null
+        val min = match.groupValues[2].toIntOrNull() ?: 0
+        if (h !in 0..24 || min !in 0..59) return null
+        val part = match.groupValues[3].lowercase()
+        val hour = when {
+            h == 24 -> 0
+            part == "noche" && h == 12 -> 0    // "12 de la noche" = medianoche
+            part == "tarde" && h == 12 -> 12   // "12 de la tarde" = mediodía
+            (part == "tarde" || part == "noche") && h < 12 -> h + 12
+            h == 12 -> 0                       // "12 de la mañana/madrugada" = 12am → 00:00
+            else -> h
+        }
+        return if (hour in 0..23) LocalTime.of(hour, min) else null
+    }
+
     private val weekdays = mapOf(
         "lunes" to DayOfWeek.MONDAY,
         "martes" to DayOfWeek.TUESDAY,
@@ -920,6 +951,16 @@ object NaturalTaskParser {
         }
         val explicitTime = explicitTimeData?.first
         val hasExplicitMeridiem = explicitTimeData?.second == true
+        // Hora suelta con parte del día ("Taller 9 de la tarde"): resuelve la hora absoluta
+        // con su meridiem. Se procesa ANTES de borrar el título y ANTES de la canónica de
+        // parte del día, así "9 de la tarde" → 21:00 y no 15:00. El patrón exige "de la
+        // <parte>" para no colisionar con fechas ("9 de marzo") y no roba lo que ya capturó
+        // timePatterns/timeRangePattern (que se corren primero y dejan "9:30 de la tarde"
+        // resuelto); aquí se captura solo lo que sobrevive: la hora simple.
+        val standaloneHourPartOfDayMatch =
+            if (explicitTime == null) standaloneHourPartOfDayPattern.find(working) else null
+        val standaloneHourPartOfDayTime = standaloneHourPartOfDayMatch?.let { resolveStandaloneHourPartOfDay(it) }
+        standaloneHourPartOfDayMatch?.let { working = working.replace(it.value, " ") }
         // Un tiempo explícito tiene prioridad sobre la hora canónica de la parte del día.
         // Si la hora explícita vino sin meridiem (p.ej. "a las 4") y hay contexto PM de
         // parte del día ("esta tarde"/"a la noche"), se aplica el offset +12 ("esta tarde
@@ -928,7 +969,9 @@ object NaturalTaskParser {
             if (!hasExplicitMeridiem && hasPartOfDayPmContext && t.hour in 1..11)
                 t.plusHours(12) else t
         } ?: rangeStartTime
-            ?: partOfDayTime ?: standalonePartOfDayTime
+            ?: partOfDayTime
+            ?: standaloneHourPartOfDayTime
+            ?: standalonePartOfDayTime
             ?: recurrence.partOfDayTime
             ?: primeraHoraMatch?.let { primeraHoraTime }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null

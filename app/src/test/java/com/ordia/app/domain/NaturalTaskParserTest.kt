@@ -2511,4 +2511,66 @@ class NaturalTaskParserTest {
         assertEquals(2, result.recurrenceInterval)
         assertNotNull(result.dueAt)
     }
+
+    // --- Hora suelta con parte del día, SIN "a las" (ciclo 62) ---
+    // "Taller 9 de la tarde" debe resolver la HORA EXPLÍCITA (21:00), no la canónica de la
+    // tarde (15:00). Antes el número se ignoraba y caía a 15:00/21:00/09:00/04:00, dejando
+    // además el número como residuo en el título ("Taller 9"). Solo aplica a la forma simple
+    // sin "a las"; con "a las" ya lo resuelve timePatterns y no debe haber residuo.
+
+    @Test fun standaloneNueveDeLaTardeResuelve21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Taller 9 de la tarde", now, zone)
+        assertEquals("Taller", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun standaloneOchoDeLaNocheResuelve20h() {
+        val result = NaturalTaskParser.parse("Clase 8 de la noche", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun standaloneDiezDeLaMananaResuelve10h() {
+        val result = NaturalTaskParser.parse("Cita 10 de la mañana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun standaloneNueveDeLaMadrugadaResuelve9h() {
+        val result = NaturalTaskParser.parse("Evento 9 de la madrugada", now, zone)
+        assertEquals("Evento", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun standaloneDosDeLaTardeResuelve14h() {
+        val result = NaturalTaskParser.parse("Reunión 2 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun standaloneDoceDeLaNocheEsMedianoche() {
+        val result = NaturalTaskParser.parse("Cita 12 de la noche", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun standaloneDoceDeLaTardeEsMediodia() {
+        val result = NaturalTaskParser.parse("Cita 12 de la tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Con "a las" no debe dejar residuo ("a las") ni duplicar resolución.
+    @Test fun conALasNueveDeLaTardeNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Reunión el viernes a las 9 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // "Jugar tenis de la tarde" (sin número) sigue dando la canónica 15:00.
+    @Test fun sinNumeroDeLaTardeMantieneCanonica15h() {
+        val result = NaturalTaskParser.parse("Jugar tenis de la tarde", now, zone)
+        assertEquals("Jugar tenis", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
 }

@@ -14,8 +14,8 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 63)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (sobre c.62 integridad de recordatorios en el editor + c.61 meridiem sin "a las" + c.60 rango-minutos/meridiem + c.59 verbo-recordatorio + c.58 fracción sub-hora/"en la tarde" + c.57 número-escrito + c.56 subtarea-autocomplete + c.55 partOfDay DAILY + c.54 intervalo+días + c.53 What Now + c.52 snooze; aterriza detección de vencidas importantes en el Guardián)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 64)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (sobre c.63 detección de vencidas importantes en el Guardián + c.62 integridad de recordatorios en el editor + c.61 meridiem sin "a las" + c.60 rango-minutos/meridiem + c.59 verbo-recordatorio + c.58 fracción sub-hora/"en la tarde" + c.57 número-escrito + c.56 subtarea-autocomplete + c.55 partOfDay DAILY + c.54 intervalo+días + c.53 What Now + c.52 snooze; aterriza fix de forma standalone "N de la tarde/noche" sin "a las" ni rango)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
@@ -96,6 +96,34 @@ regla pura ya probada.
 `app/src/main/java/com/ordia/app/ui/components/EditorDialogs.kt`,
 `app/src/test/java/com/ordia/app/domain/ReminderRulesTest.kt`,
 `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+
+## Último trabajo — Ciclo 64: Parser — forma standalone "N de la tarde/noche" sin "a las" ni rango
+
+Fix P2 de captura/agenda (`NaturalTaskParser`). La forma cotidiana **"Taller 9 de la tarde"** (hora
++ parte del día, SIN "a las" y SIN segundo extremo de rango) se agendaba a la hora **canónica** de la
+parte del día (tarde→15:00) en vez de la hora **explícita** (9→21:00), y el número quedaba como residuo
+en el título ("Taller 9"). Igual para "Cita 10 de la mañana"→09:00 (debería 10:00), "Evento 9 de la
+madrugada"→04:00 (debería 09:00). El usuario escribía una hora concreta y Ordía la ignoraba.
+
+- **Causa raíz**: sin segundo extremo de rango, `rangeMatch` no casaba y no había `rangeStartTime`;
+  la hora caía al respaldo `standalonePartOfDayTime` (canónica "de la tarde"→15:00), que gana sobre
+  cualquier número suelto. El ciclo 61 ya arregló la variante con rango ("de 9 de la tarde a 11 de la
+  noche"); esta es la forma **standalone** sin rango.
+- **Fix mínimo**: nuevo `standaloneHourPartOfDayPattern`
+  `(?i)(?<![:\d])(\d{1,2})(?::([0-5]\d))?\s+de\s+la\s+(tarde|noche|madrugada|mañana|manana)(?!\s+de\s+[a-záéíóúüñ])`
+  + `resolveStandaloneHourPartOfDay` (tarde/noche→+12 si N<12; 12 de la noche→0 medianoche;
+  12 de la tarde→12 mediodía; madrugada/mañana→AM tal cual). Insertado en la cadena de respaldo de
+  `parsedTime` **antes** de `standalonePartOfDayTime` (canónica) para que la hora explícita gane.
+- **Guard anti-regresión**: solo se aplica cuando `explicitTime == null` (no hubo "a las …"), porque
+  "a las 9 de la tarde" ya lo resuelve `timePatterns` y aún NO se ha borrado de `working` en ese punto;
+  sin el guard, el patrón robaba "9 de la tarde" y dejaba el residuo "a las" en el título. El lookahead
+  negativo `(?!\s+de\s+[a-z…])` evita colisión con fechas ("9 de marzo" → mes, no parte del día).
+- **Tests**: +9 (`standaloneNueveDeLaTardeResuelve21hYLimpiaTitulo`, `…OchoDeLaNoche…20h`,
+  `…DiezDeLaManana…10h`, `…NueveDeLaMadrugada…9h`, `…DosDeLaTarde…14h`, `standaloneDoceDeLaNocheEsMedianoche`,
+  `standaloneDoceDeLaTardeEsMediodia`, `conALasNueveDeLaTardeNoDejaResiduo`, `sinNumeroDeLaTardeMantieneCanonica15h`).
+  Probe JVM confirmó antes/después en 21 casos (incl. "9 de marzo", "el 15 de agosto", rango, "mañana 9 de la tarde").
+  **494 domain tests PASS** (`tools/run_domain_tests.sh`, 26 clases — 485 c.63 + 9 nuevos), smoke 25 OK.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 
 ## Último trabajo — Ciclo 61: Parser — meridiem sin "a las" + hora de inicio del rango como dueAt
 
