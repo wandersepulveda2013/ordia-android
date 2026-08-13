@@ -792,6 +792,34 @@ class NaturalTaskParserTest {
         assertEquals(120, result.durationMinutes)
     }
 
+    // "a las N horas" es una hora (N en reloj de 24h con sufijo "horas"), NO una duración.
+    // Antes el sufijo "horas" no se consumía: "9 horas" era robado como duración (540 min
+    // falsos) y "a las" quedaba como residuo en el título. El timePattern ahora consume el
+    // sufijo opcional y el durationMatch ignora horas precedidas por frase temporal.
+    @Test fun aLasNHorasEsHoraNoDuracion() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 horas", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun aLasNHorasConFechaNoEsDuracion() {
+        val result = NaturalTaskParser.parse("Clase mañana a las 10 horas", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+        assertNull(result.durationMinutes)
+    }
+
+    // "durante Nh" compacto: el conector "durante" debe borrarse junto con la duración
+    // para no dejar residuo en el título.
+    @Test fun duranteConnectorBeforeCompactDurationIsRemoved() {
+        val result = NaturalTaskParser.parse("Reunión de equipo el viernes a las 15 horas durante 1h", now, zone)
+        assertEquals("Reunión de equipo", result.title)
+        assertEquals(60, result.durationMinutes)
+    }
+
     // "este/el/próximo fin de semana" y "fin de semana" suelto → próximo sábado.
     // Es una de las frases de fecha más comunes en español y antes quedaba sin fecha
     // (INBOX) con "fin de semana" como residuo en el título. now=miércoles 2026-07-29 →

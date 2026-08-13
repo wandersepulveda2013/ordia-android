@@ -3,6 +3,29 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 37 - 2026-08-13 (UTC) - "a las N horas" (hora, no duración falsa)
+
+- **Run/ciclo**: 37
+- **HEAD inicial**: 46efb3e (base inicial). Durante el run el remoto avanzó TRES veces por runs paralelos: 8146acf (quincena/bimestre/semestre), e4157c1 ("un par de"), y 9ac1a8b ("mediados de semana", ciclo 36). Procedimiento no destructivo en cada caso: stash+ff+pop sobre 8146acf; rebase sobre e4157c1 (conflicto solo en CURRENT_STATE.md, resuelto conservando ambas secciones, renum. 35→36); rebase sobre 9ac1a8b sin conflictos (renum. 36→37, ya que el remoto usó ciclo 36 para "mediados de semana"). Sin STALE_RUN destructivo, sin force push, sin reset --hard.
+- **Problema seleccionado**: `NaturalTaskParser` interpretaba **"a las N horas"** como duración falsa. El `timePattern` no consumía el sufijo "horas", así que "9 horas" era robado por `durationMatch` (540 min falsos) y "a las" quedaba como residuo en el título. La tarea recibía una duración absurda y **ninguna hora real** → recordatorio/planificación incorrectos. Bug doble: la guardia añadida para descartar "N horas" como duración filtraba el ganador global tras `minByOrNull`, descartando TODOS los matches de duración (incluido "durante 1h" válido) cuando había un "N horas" inválido presente; además los conectores "durante"/"por" no se limpiaban del título.
+- **Prioridad**: P1 (datos erróneos, recordatorio/planificación incorrectos, fricción de captura).
+- **Causa raíz**: `timePatterns[0]` carecía de grupo opcional para el sufijo "horas"/"hs"; la guardia anti-"N horas" operaba sobre el resultado de `minByOrNull` (global) en vez de filtrar por-match antes; la limpieza de conector post-duración solo cubría "de".
+- **Solución (mínima, en `NaturalTaskParser.kt`)**:
+  - `timePatterns[0]` añade grupo opcional `(?:\s*(horas?|hs))?` tras la hora (con o sin meridiem): consume el sufijo "horas"/"hs" sin alterar la lógica AM/PM. Así "a las 9 horas" se reconoce y borra completo como frase temporal.
+  - Guardia de duración refactorizada: filtro **por-match** ANTES de `minByOrNull`, descartando solo los matches "N horas" precedidos por frase temporal (`timePhrasePreceding`) y conservando válidos como "1h"/"2h".
+  - Limpieza de conector extendida: tras extraer la duración se borra también "durante"/"por" (además de "de").
+- **Tests**: +3 formales (`aLasNHorasEsHoraNoDuracion`, `aLasNHorasConFechaNoEsDuracion`, `duranteConnectorBeforeCompactDurationIsRemoved`) en `NaturalTaskParserTest.kt`. **315 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Commits**: fix(parser): "a las N horas" como hora, no duración falsa (b959764 → 3c773b2 tras rebase sobre e4157c1 → b842e00 tras rebase sobre 9ac1a8b). Renumerado 35→36→37 al detectar colisión de numeración con runs paralelos ("un par de"=35, "mediados de semana"=36).
+- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser descubiertos en el probe (P2): rango horario sin palabra "horas" ("clase de 9 a 11" → sin duración); números escritos en recordatorios relativos ("recuérdame dos horas antes" → offset null).
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+- P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
+
+---
+
 
 ## SESIÓN 000 — Bootstrap del sistema autónomo
 

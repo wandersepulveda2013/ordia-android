@@ -14,13 +14,46 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 35)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 35)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 37)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 37)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
+
+## Último trabajo — Ciclo 37: parser "a las N horas" (hora, no duración falsa)
+
+Unidad atómica del ciclo de parser natural (P1 — corrección de bug que generaba datos
+erróneos). **"a las N horas"** es la forma más natural de dar una hora en reloj de 24h
+con sufijo "horas" ("reunión a las 9 horas", "clase a las 10 horas"). El parser **NO la
+reconocía como hora**: el `timePattern` no consumía el sufijo "horas", así que "9 horas"
+era **robado por `durationMatch`** como una duración falsa de **540 minutos** (9×60), y "a las"
+quedaba como residuo en el título. Consecuencia: la tarea recibía una duración absurda y
+**ninguna hora real** → recordatorio y planificación incorrectos. Bug doble porque, al añadir
+la guardia para descartar "N horas" como duración, el filtro se aplicaba al ganador global tras
+`minByOrNull`, descartando **TODOS** los matches de duración (incluido "durante 1h" válido)
+cuando había algún "N horas" inválido presente. Además los conectores "durante"/"por" no
+se limpiaban del título tras extraer la duración.
+
+**Solución (mínima, en `NaturalTaskParser.kt`)**:
+- `timePatterns[0]` añade grupo opcional `(?:\s*(horas?|hs))?` tras la hora (con o sin
+  meridiem): consume el sufijo "horas"/"hs" sin alterar la lógica AM/PM (grupo propio, no
+  meridiem). Así "a las 9 horas" se reconoce y borra completo como frase temporal.
+- Guardia de duración refactorizada: en vez de filtrar el ganador global, se filtra
+  **por-match** ANTES de `minByOrNull`, descartando solo los matches "N horas" precedidos por
+  una frase temporal (`timePhrasePreceding`) y conservando válidos como "1h"/"2h".
+- Limpieza de conector extendida: tras extraer la duración se borra también "durante"/"por"
+  (además de "de") para no dejar residuo en el título.
+
+Nota de colisión: al hacer push, el remoto había avanzado (otro run: ciclo 35 "un par de",
+commit e4157c1). Mi commit local se rebaseó (no destructivo, rama propia) sobre e4157c1;
+conflicto solo en CURRENT_STATE.md, resuelto conservando ambas secciones y renumerando mi
+trabajo a ciclo 37 (el remoto ya usó ciclo 36 para "mediados de semana"). Mi entrada de RUN_LOG también se renumeró a ciclo 37.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**315 tests PASS** (304 base remota + 4 "un par de" + 4 "mediados de semana" + 3 nuevos míos = 315), 25 clases.
+Smoke 25 OK. NO VERIFICADO: gradle/lint/assemble/Android/UI (sin Android SDK).
 
 ## Último trabajo — Ciclo 35: parser "un par de" (coloquial = 2)
 
@@ -30,11 +63,6 @@ días/semanas/meses". El `relativePattern` no reconocía esta construcción mult
 que caía a `dueAt=null` → tarea **olvidada** (sin recordatorio, invisible en planificador/What
 Now). Ahora `relativePattern` captura `un par de` como cantidad y `parseWrittenNumber` lo
 resuelve a `2L`. Funciona con cualquier unidad y con hora explícita ("en un par de días a las 10").
-
-Nota de colisión: al iniciar, otro run había commiteado en paralelo quincena/bimestre/semestre
-(commit 8146acf) como períodos relativos y próximos. Mi base local estaba obsoleta. Descarté mi
-trabajo no commiteado (incluida mi versión de "quincena", ahora redundante), hice fast-forward
-limpio a 8146acf y reapliqué SOLO "un par de" (que el remoto no tenía). Sin colisión destructiva.
 
 VERIFICADO localmente (JVM puro, sin Android SDK): `bash tools/run_domain_tests.sh` =
 **312 tests PASS** (308 + 4 nuevos), 25 clases. Smoke 25 OK. NO VERIFICADO: gradle/lint/
@@ -53,22 +81,31 @@ borrado antes del período próximo para no colisionar con "semana que viene".
 
 ## Último trabajo — Ciclo 35: parser "un par de" (= 2)
 
-Unidad atómica del ciclo de parser natural (P1 — evitar olvidos, menos fricción de captura).
-**"esta semana"** es un plazo blando cotidiano ("háblalo esta semana", "lo termino esta semana",
-"cita esta semana") que el parser **no reconocía**: caía a `dueAt=null` → tarea **olvidada**
-(sin recordatorio, invisible en planificador/What Now). Peor, con hora explícita se fechaba en
-**HOY** por error ("esta semana a las 18" → hoy 18:00, no "fin de esta semana a las 18").
+Unidad atómica del ciclo de parser natural (P1 â corrección de bug que generaba datos
+erróneos). **"a las N horas"** es la forma más natural de dar una hora en reloj de 24h
+con sufijo "horas" ("reunión a las 9 horas", "clase a las 10 horas"). El parser **NO la
+reconocía como hora**: el `timePattern` no consumía el sufijo "horas", así que "9 horas"
+era **robado por `durationMatch`** como una duración falsa de **540 minutos** (9hÃ60), y "a las"
+quedaba como residuo en el título. Consecuencia: la tarea recibía una duración absurda y
+**ninguna hora real** → recordatorio y planificación incorrectos. Bug doble porque, al añadir
+la guardia para descartar "N horas" como duración, el filtro se aplicaba al ganador global tras
+`minByOrNull`, descartando **TODOS** los matches de duración (incluido "durante 1h" válido)
+cuando había algún "N horas" inválido presente. Además los conectores "durante"/"por" no
+se limpiaban del título tras extraer la duración.
 
-**Solución**: nuevo `thisWeekPattern` (`esta semana` + opcional `que viene`) que resuelve al
-**próximo domingo** (fin de semana ISO lun→dom) a las 9:00 por defecto, o **hoy** si hoy es
-domingo. Detectado y borrado **antes** del período próximo: así "semana" no activa "semana que
-viene" (sigue siendo +7d) y "esta semana que viene" se limpia del título. Integrado en
-`effectiveRelativeDueAt` como días para combinarse con una hora explícita.
+**Solución (mínima, en `NaturalTaskParser.kt`)**:
+- `timePatterns[0]` añade grupo opcional `(?:\s*(horas?|hs))?` tras la hora (con o sin
+  meridiem): consume el sufijo "horas"/"hs" sin alterar la lógica AM/PM (grupo propio, no
+  meridiem). Así "a las 9 horas" se reconoce y borra completo como frase temporal.
+- Guardia de duración refactorizada: en vez de filtrar el ganador global, se filtra
+  **por-match** ANTES de `minByOrNull`, descartando solo los matches "N horas" precedidos por
+  una frase temporal (`timePhrasePreceding`) y conservando válidos como "1h"/"2h".
+- Limpieza de conector extendida: tras extraer la duración se borra también "durante"/"por"
+  (además de "de") para no dejar residuo en el título.
 
 **VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
-**290 tests PASS** (286 + 4 nuevos), 25 clases. Smoke 25 OK. NO VERIFICADO: gradle/lint/
+**297 tests PASS** (304 base remota + 3 nuevos + 4 "un par de" = 311), 25 clases. Smoke 25 OK. NO VERIFICADO: gradle/lint/
 assemble/Android/UI (sin Android SDK).
-
 
 ## Último trabajo — Ciclo 33: parser "principios de mes", "fines de semana" recurrentes, días pasados
 

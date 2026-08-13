@@ -123,7 +123,11 @@ object NaturalTaskParser {
     private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)semana\b""")
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{2,4}))?\b""")
     private val timePatterns = listOf(
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?\b"""),
+        // Sufijo opcional "(horas?|hs)" tras la hora (con o sin meridiem) para consumir
+        // "a las 9 horas" completo: antes "horas" quedaba como residuo en el titulo y,
+        // peor, "9 horas" era robado como duracion (540 min falsos). Como grupo propio
+        // (no meridiem), no altera la logica AM/PM ni marca meridiem explicito.
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?(?:\s*(horas?|hs))?\b"""),
         Regex("""(?i)\b([01]?\d|2[0-4]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b"""),
         Regex("""(?i)\b(?:al\s+|a\s+la\s+)?mediod[ií]a\b"""),
@@ -590,10 +594,21 @@ object NaturalTaskParser {
             ?.coerceIn(5, 24 * 60)
         rangeMatch?.let { working = working.replace(it.value, " ") }
 
+        // Duración numérica: se descarta si el número está precedido por una frase
+        // horaria ("a las 9 horas", "a la 1 horas", "de la tarde 2 horas"), porque ahí
+        // "N horas" es la HORA de un evento, no su duración. Sin este guard, "reunión a
+        // las 9 horas" robaba "9 horas" como 540 min falsos y dejaba el residuo "a las".
+        // El "en N" final (fecha relativa) ya se filtra con la regex existente.
+        val timePhrasePreceding = Regex(
+            """(?i)(?:a\s+las|a\s+la(?:\s+ma[ñn]ana)?|de\s+la\s+(?:ma[ñn]ana|tarde|noche|madrugada))\s*$"""
+        )
         val durationMatch = durationPatterns.asSequence()
             .mapNotNull { it.find(working) }
+            .filter { match ->
+                !Regex("""(?i)\ben\s*$""").containsMatchIn(working.substring(0, match.range.first)) &&
+                !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first))
+            }
             .minByOrNull { it.range.first }
-            ?.takeIf { match -> !Regex("""(?i)\ben\s*$""").containsMatchIn(working.substring(0, match.range.first)) }
         // Duración fraccionaria sin dígitos ("media hora"/"cuarto de hora"): se computa
         // aparte y se elige la ocurrencia más a la izquierda respecto a la duración numérica.
         val fractionalMatch = fractionalDurationPattern.find(working)
@@ -613,7 +628,11 @@ object NaturalTaskParser {
         }
         durationMatch?.let { match ->
             // "Reunión de 30 min": el "de" antes de la duración es conector, se elimina junto.
-            val withConnector = Regex("(?i)\\bde\\s+" + Regex.escape(match.value))
+            // "durante"/"por" (de los patrones "durante/por N ...") también son conectores
+            // y deben borrarse junto con la duración para no dejar residuo en el título.
+            val withConnector = Regex(
+                "(?i)\\b(?:de|durante|por)\\s+" + Regex.escape(match.value)
+            )
             working = if (withConnector.containsMatchIn(working)) withConnector.replace(working, " ")
                 else working.replace(match.value, " ")
         }
