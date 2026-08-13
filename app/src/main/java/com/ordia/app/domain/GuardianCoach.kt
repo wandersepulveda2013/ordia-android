@@ -42,38 +42,38 @@ object GuardianCoach {
 
         if (overdue.isNotEmpty()) {
             val next = TaskRules.nextBestTask(overdue, now)
-            return Insight(
-                eyebrow = "RECUPERA EL CONTROL",
-                title = next?.title ?: "Hay algo pendiente",
-                message = if (overdue.size == 1) {
-                    "Esta tarea está atrasada. Empieza con un bloque corto y vuelve a poner el día en movimiento."
-                } else {
-                    "Tienes ${overdue.size} tareas atrasadas. No intentes resolverlas todas: comienza por esta."
-                },
-                taskId = next?.id,
-                tone = Tone.GENTLE
-            )
+            if (next != null) {
+                return Insight(
+                    eyebrow = "RECUPERA EL CONTROL",
+                    title = next.title,
+                    message = buildReason(next, "Atrasada", overdue.size),
+                    taskId = next.id,
+                    tone = Tone.GENTLE
+                )
+            }
         }
 
         val urgentToday = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
         if (urgentToday.isNotEmpty()) {
             val next = TaskRules.nextBestTask(urgentToday, now)
-            return Insight(
-                eyebrow = "PROTEGE TU DÍA",
-                title = next?.title ?: "Prioridad de hoy",
-                message = "Es lo más importante para hoy. Reserva tiempo antes de llenar el resto de la agenda.",
-                taskId = next?.id,
-                tone = Tone.FOCUSED
-            )
+            if (next != null) {
+                return Insight(
+                    eyebrow = "PROTEGE TU DÍA",
+                    title = next.title,
+                    message = buildReason(next, "Prioridad alta para hoy"),
+                    taskId = next.id,
+                    tone = Tone.FOCUSED
+                )
+            }
         }
 
         val next = TaskRules.nextBestTask(pending, now)
         if (next != null) {
+            val context = if (TaskRules.isDueToday(next, now, zone)) "Vence hoy" else "Siguiente paso"
             return Insight(
                 eyebrow = "SIGUIENTE PASO",
                 title = next.title,
-                message = next.details.takeIf { it.isNotBlank() }
-                    ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
+                message = buildReason(next, context),
                 taskId = next.id,
                 tone = Tone.FOCUSED
             )
@@ -107,5 +107,31 @@ object GuardianCoach {
             message = "Captura una idea, revisa un proyecto o simplemente conserva este espacio libre.",
             tone = Tone.CALM
         )
+    }
+
+    private fun buildReason(task: TaskEntity, context: String, overdueCount: Int = 0): String {
+        val parts = mutableListOf<String>()
+        val duration = task.durationMinutes
+        if (duration > 0) {
+            parts.add("$duration min")
+        }
+        parts.add(context.lowercase())
+
+        val urgency = when (task.priority.name) {
+            "URGENT" -> "urgente"
+            "HIGH" -> "importante"
+            else -> ""
+        }
+        if (urgency.isNotEmpty()) {
+            parts.add(urgency)
+        }
+
+        val baseMessage = parts.joinToString(" · ").replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
+
+        return if (overdueCount > 1) {
+            "$baseMessage. Tienes $overdueCount tareas atrasadas, comienza por esta."
+        } else {
+            "$baseMessage. Empieza ahora para mantener el ritmo."
+        }
     }
 }

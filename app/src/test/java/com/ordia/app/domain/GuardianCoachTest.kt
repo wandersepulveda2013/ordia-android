@@ -44,4 +44,62 @@ class GuardianCoachTest {
         assertEquals("Leer diez minutos", insight.title)
         assertNotNull(insight.message)
     }
+
+    @Test
+    fun `insight recommends overdue task with multiple overdue message`() {
+        val overdue1 = TaskEntity(id = 1, title = "T1", dueAt = now - 10000, durationMinutes = 15, status = com.ordia.app.data.local.TaskStatus.PLANNED)
+        val overdue2 = TaskEntity(id = 2, title = "T2", dueAt = now - 5000, durationMinutes = 30, status = com.ordia.app.data.local.TaskStatus.PLANNED)
+
+        val insight = GuardianCoach.insight(
+            tasks = listOf(overdue1, overdue2),
+            habits = emptyList(),
+            habitLogs = emptyList(),
+            now = now,
+            zone = zone
+        )
+
+        assertEquals("RECUPERA EL CONTROL", insight.eyebrow)
+        assertEquals(1L, insight.taskId) // T1 is older, so it should be prioritized based on TaskRules
+        org.junit.Assert.assertTrue(insight.message.contains("15 min"))
+        org.junit.Assert.assertTrue(insight.message.lowercase().contains("atrasada"))
+        org.junit.Assert.assertTrue(insight.message.contains("2 tareas atrasadas"))
+    }
+
+    @Test
+    fun `insight recommends urgent task due today`() {
+        val urgent = TaskEntity(id = 3, title = "Urgent T", dueAt = now + 10000, durationMinutes = 45, priority = TaskPriority.URGENT, status = com.ordia.app.data.local.TaskStatus.PLANNED)
+        val normal = TaskEntity(id = 4, title = "Normal T", dueAt = now + 5000, durationMinutes = 20, priority = TaskPriority.NORMAL, status = com.ordia.app.data.local.TaskStatus.PLANNED)
+
+        val insight = GuardianCoach.insight(
+            tasks = listOf(urgent, normal),
+            habits = emptyList(),
+            habitLogs = emptyList(),
+            now = now,
+            zone = zone
+        )
+
+        assertEquals("PROTEGE TU DÍA", insight.eyebrow)
+        assertEquals(3L, insight.taskId)
+        org.junit.Assert.assertTrue(insight.message.contains("45 min"))
+        org.junit.Assert.assertTrue(insight.message.lowercase().contains("prioridad alta para hoy"))
+        org.junit.Assert.assertTrue(insight.message.lowercase().contains("urgente"))
+    }
+
+    @Test
+    fun `insight recommends next best task due today`() {
+        val todayTask = TaskEntity(id = 5, title = "Today T", dueAt = now + 10000, durationMinutes = 10, status = com.ordia.app.data.local.TaskStatus.PLANNED)
+
+        val insight = GuardianCoach.insight(
+            tasks = listOf(todayTask),
+            habits = emptyList(),
+            habitLogs = emptyList(),
+            now = now,
+            zone = zone
+        )
+
+        assertEquals("SIGUIENTE PASO", insight.eyebrow)
+        assertEquals(5L, insight.taskId)
+        org.junit.Assert.assertTrue(insight.message.contains("10 min"))
+        org.junit.Assert.assertTrue(insight.message.lowercase().contains("vence hoy"))
+    }
 }

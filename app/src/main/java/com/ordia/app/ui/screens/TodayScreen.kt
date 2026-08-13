@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Button
@@ -99,22 +99,34 @@ fun TodayScreen(
             Surface(
                 shape = MaterialTheme.shapes.large,
                 color = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                onClick = { state.guardianInsight.taskId?.let(onTask) }
             ) {
                 Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     val insight = state.guardianInsight
                     GuardianAvatar(62.dp, insight.tone.toMood())
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(insight.eyebrow, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondaryContainer)
-                        Text(insight.title, style = MaterialTheme.typography.titleLarge)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            insight.eyebrow,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                        Text(
+                            insight.title,
+                            style = MaterialTheme.typography.titleLarge
+                        )
                         Text(
                             insight.message,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
                         )
                     }
-                    insight.taskId?.let { taskId ->
-                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.Outlined.ArrowForward, "Abrir recomendación") }
+                    insight.taskId?.let {
+                        Icon(
+                            androidx.compose.material.icons.Icons.AutoMirrored.Outlined.ArrowForward,
+                            contentDescription = "Abrir recomendación",
+                            tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                        )
                     }
                 }
             }
