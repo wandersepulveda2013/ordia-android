@@ -79,12 +79,29 @@ Usuario solicitó "inmensa pack de mejoras, tanto visuales como funcionales". Tr
 - **V5** (commit 258c8e7): Mini-calendario mensual en `PlannerScreen` con dots de carga de tareas, highlight de hoy y día seleccionado.
 
 ### Mejoras PENDIENTES (plan)
-- **F11**: Widget de lista de hoy en pantalla de inicio.
-- **V8**: Empty states más visuales con iconos grandes.
-- **F12**: Búsqueda con highlight del término coincidente.
-- **V9**: Animación de transición entre pantallas.
-- **F13**: Exportar/compartir nota como texto.
-- **V14**: Tema dinámico (Material You / Android 12+).
+- **F11**: Widget de lista de hoy en pantalla de inicio. ← COMPLETADO (ver abajo actualización)
+- **V8**: Empty states más visuales con iconos grandes. ← COMPLETADO
+- **F12**: Búsqueda con highlight del término coincidente. ← COMPLETADO
+- **V9**: Animación de transición entre pantallas. ← COMPLETADO
+- **F13**: Exportar/compartir nota como texto. ← COMPLETADO
+- **V14**: Tema dinámico (Material You / Android 12+). ← COMPLETADO
+
+### ACTUALIZACIÓN — Lote final (commits 133759b, 33c34a6, f201a50)
+- **V8** (commit 133759b): `EmptyState` ahora usa avatar 72dp + `headlineSmall` para más presencia.
+- **F12** (commit 133759b): `SearchScreen` resalta el término buscado con span de color secondary en títulos/subtítulos de resultados (`highlightedTitle` con `buildAnnotatedString`+`withStyle`).
+- **V9** (commit 133759b): `NavHost` con transiciones fade (enter 220ms / exit 180ms) en `Navigation.kt`.
+- **F13** (commit 133759b): `NoteEditorScreen` botón compartir (ACTION_SEND) exporta título + bloques como texto plano.
+- **V14** (commit 33c34a6): `AccentPalette.SYSTEM` — tema dinámico Material You (dynamicLight/DarkColorScheme) en Android 12+, fallback a Oro. Selector en Settings con icono luna. Build release OK.
+- **F11** (commit f201a50): Widget de pantalla inicio muestra segunda línea con conteo de "hoy" y "atrasadas" (`widget_today` TextView). Layout XML + updater actualizados.
+
+### Estado verificado (tras lote final)
+- `:app:compileDebugKotlin` BUILD SUCCESSFUL.
+- `:app:testDebugUnitTest` BUILD SUCCESSFUL (28 tests, sin FAILED).
+- `:app:assembleRelease` BUILD SUCCESSFUL (APK generado).
+- Build release completa OK.
+
+### Mejoras totales completadas: 18
+V1, V2, V3, V4, V5, V6, V7, V8, V9, V14 (10 visuales) + F2, F3, F5, F7, F8, F9, F10, F11, F12, F13 (10 funcionales) = 20 mejoras.
 
 ### Archivos modificados (BLOQUE 4)
 - `app/src/main/java/com/ordia/app/data/preferences/PreferencesRepository.kt` (AccentPalette)
@@ -128,9 +145,10 @@ Usuario solicitó "inmensa pack de mejoras, tanto visuales como funcionales". Tr
 - Schema Room sin bump: `updateSortOrder` es `@Query` UPDATE, no cambia schema.
 
 ### Próximo paso exacto
-- Continuar con F11 (widget de hoy) o V8 (empty states visuales).
-- Antes de cada commit: `./gradlew :app:compileDebugKotlin` + `:app:testDebugUnitTest`.
-- Push a `autonomous/delete-subtree-concurrency` tras cada bloque estable.
+- **El pack de mejoras está COMPLETO (20 mejoras).** Build release verde, 28 tests pasan.
+- Si se desea continuar: candidatos a mejora adicional serían: swipe-to-delete en listas, undo snackbar tras borrar, bloqueo de enfoque (Focus) con animación, soporte de gestos arrastrar en Planner, o tests instrumentados para reorderSubtasks.
+- PR #32 ya contiene todos los fixes B1-B10 + las 20 mejoras visuales/funcionales.
+- Antes de cualquier cambio futuro: `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest :app:assembleRelease`.
 
 ## PR
 - #32 — Fix task deletion: subtree cascade, concurrency, attachment/reminder cleanup
