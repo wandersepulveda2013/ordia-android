@@ -167,3 +167,20 @@
 - (pendiente) docs(autonomy): memoria de la sesión 002 (este commit)
 
 ---
+
+## SESIÓN 003 — Fix deprecation warnings for UI icons and Clipboard API
+
+- **Fecha (UTC)**: $(date -u +"%Y-%m-%d")
+- **Trigger**: autonomous execution
+- **Resultado**: FIXED
+
+### Qué se hizo
+
+1. Resolved deprecation warnings across multiple Compose screens by updating Material Icons to their `AutoMirrored` counterparts where appropriate (e.g., `Icons.Outlined.InsertDriveFile`, `Icons.Outlined.ArrowBack`, `Icons.Outlined.ArrowForward`, `Icons.Outlined.FormatListBulleted`, `Icons.Outlined.Notes`, `Icons.Outlined.OpenInNew`, `Icons.Outlined.Send`).
+2. Resolved deprecation warning in `CaptureScreen.kt` by replacing `LocalClipboardManager` with the newer `LocalClipboard` API. Refactored clipboard interaction to read text asynchronously using a coroutine scope and `getClipEntry()`.
+3. Verified the codebase using `./gradlew compilePreviewSafeDebugKotlin` and ran test suite via `./gradlew test` with 0 failures to ensure no regressions.
+4. Updated AI_AUTONOMY/BACKLOG.md to mark P2 UI issue as FIXED.
+
+### Problemas encontrados
+
+- None; smooth migration process.

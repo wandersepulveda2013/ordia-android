@@ -4,13 +4,15 @@
 
 ## Estado
 
-- **Fecha/hora (UTC)**: 2026-08-10 (corrección de infraestructura del sistema autónomo)
+- **Fecha/hora (UTC)**: 2026-08-12 (Fix UI deprecation warnings)
 - **Branch de trabajo**: `jules/autonomous-ordia` (HEAD `cc1a1e3`)
 - **main**: `d5b3b60` — contiene SOLO infraestructura de orquestación (workflows), no el rebuild
 - **Workflow autónomo (scheduler)**: `.github/workflows/ordia-autonomous-jules.yml` en `main` (cron `17 */2 * * *` + dispatch)
 - **Auto-merge**: `.github/workflows/ordia-autonomous-merge.yml` en `main` (pull_request_target + cron `*/15 * * * *` + dispatch)
 
 ## Último trabajo realizado
+
+- Fix deprecation warnings for UI icons (AutoMirrored migration) and Clipboard API in Compose screens.
 
 - Corrección de infraestructura (ver RUN_LOG sesión 002):
   - `origin/main` actualizado a `d5b3b60` con la versión definitiva de los 3 workflows:

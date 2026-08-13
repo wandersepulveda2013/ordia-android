@@ -14,12 +14,12 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Send
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -163,7 +163,7 @@ fun TodayScreen(
                         leadingIcon = { Icon(Icons.Outlined.Add, null) },
                         trailingIcon = {
                             FilledIconButton(onClick = capture, enabled = quickText.isNotBlank()) {
-                                Icon(Icons.Outlined.Send, stringResource(R.string.today_capture_keyboard_action))
+                                Icon(Icons.AutoMirrored.Outlined.Send, stringResource(R.string.today_capture_keyboard_action))
                             }
                         },
                         singleLine = true,
@@ -205,7 +205,7 @@ fun TodayScreen(
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f)
                     )
                 }
-                Icon(Icons.Outlined.ArrowForward, null)
+                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
             }
         }
 
@@ -213,7 +213,7 @@ fun TodayScreen(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CompactAction(
                     label = stringResource(R.string.today_what_now_action),
-                    icon = Icons.Outlined.ArrowForward,
+                    icon = Icons.AutoMirrored.Outlined.ArrowForward,
                     onClick = { whatNow?.let { onTask(it.task.id) } ?: onOpenInbox() },
                     modifier = Modifier.weight(1f)
                 )
@@ -255,7 +255,7 @@ fun TodayScreen(
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
-                        IconButton(onClick = onOpenPlanner) { Icon(Icons.Outlined.ArrowForward, null) }
+                        IconButton(onClick = onOpenPlanner) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, null) }
                     }
                 }
             }
@@ -284,7 +284,7 @@ fun TodayScreen(
                             )
                         }
                     }
-                    if (whatNow != null) Icon(Icons.Outlined.ArrowForward, stringResource(R.string.what_now_open))
+                    if (whatNow != null) Icon(Icons.AutoMirrored.Outlined.ArrowForward, stringResource(R.string.what_now_open))
                 }
             }
         }
@@ -350,7 +350,7 @@ fun TodayScreen(
                 ) {
                     Icon(Icons.Outlined.Timer, null)
                     Text(stringResource(R.string.today_focus_mode), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-                    Icon(Icons.Outlined.ArrowForward, null)
+                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
                 }
             }
         }
