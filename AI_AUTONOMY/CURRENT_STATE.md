@@ -169,7 +169,7 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 | Pri | Área | Estado |
 |-----|------|--------|
 | P1 | Persistencia — adjuntos URI externo | FIXED (NO VERIFICADO Android) ciclo 32 cont.4 |
-| P1 | Parser — "esta semana" plazo blando | FIXED → VERIFIED ciclo 34 (290 tests) |
+| P1 | Parser — "esta semana" plazo blando | FIXED → VERIFIED ciclo 34 (290 tests); "principios de semana" VERIFIED ciclo 34 cont. (294 tests) |
 | P2 | QA — compilar 6 variantes tras cambios | OPEN (requiere env Android) |
 | P2 | Self-Update — prueba end-to-end N→N+1 | BLOCKED-external (sin dispositivo Android) |
 | P3 | UX — pulido visual pantallas workspace renovadas | OPEN |
@@ -184,7 +184,7 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
   “fin de mes”/“mediados de mes”, verificados.
 - Continuar ciclo interminable. Candidatos parser: ~~"esta semana" (vs "la semana que viene")~~
   HECHO ciclo 34; "próximo bimestre/semestre" (evaluar frecuencia), "próxima quincena" (+15d),
-  "principios de semana" (lunes). "principios de mes" (día 1) ya hecho ciclo 33.
+  ~~"principios de semana" (lunes)~~ HECHO ciclo 34 cont. (294 tests). "principios de mes" (día 1) ya hecho ciclo 33.
 - P1 adjuntos: NEXT paso sería **migración de adjuntos legacy** (URIs externos antiguos ya
   guardados) — copiar contenido al abrir por primera vez si todavía accesible. Evaluar antes
   de implementar (riesgo: URIs ya inválidos). De momento `resolveAttachmentUri` no rompe legacy.

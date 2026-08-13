@@ -2516,3 +2516,25 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Continuar ciclo interminable. Candidatos parser: "proximo bimestre/semestre" (evaluar frecuencia), "proxima quincena" (+15d), "principios de semana" (lunes).
 - P1 adjuntos: migracion lazy de adjuntos legacy (evaluar seguridad primero).
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
+
+## Ciclo 34 (cont.) - 2026-08-13 (UTC) - "principios de semana" (lunes)
+
+- **Run/ciclo**: 34 (cont.)
+- **HEAD inicial**: 769ef38 (origin/openhands/autonomous-ordia sincronizado; sin divergencia)
+- **Problema seleccionado**: `NaturalTaskParser` no parseaba **"principios de semana"** / "a principios de semana" (frase cotidiana: "lo termino a principios de semana"). Caía a `dueAt=null` (tarea olvidada: sin recordatorio, invisible en planificador/What Now) o, con hora explícita, se fechaba en HOY por error.
+- **Prioridad**: P1 (evitar olvidos, menos fricción de captura, inteligencia del parser).
+- **Causa raíz**: no existía patrón para "principios de semana"; la palabra "semana" solo la capturaba `nextPeriodPattern` ("semana que viene"/"próxima semana" = +7d) o `thisWeekPattern` ("esta semana"). Sin hora explícita no había respaldo -> null. Con hora, el período próximo activaba el combo hoy+hora (fecha futura errónea).
+- **Solución (mínima, en `NaturalTaskParser.kt`)**:
+  - Nuevo `startOfWeekPattern` (`principios`/`principio` + `de`/`del` + `semana`, con opcional `a `).
+  - Resuelve al **lunes más cercano en HOY o futuro** (ISO, semana lunes→domingo): si hoy es lunes, hoy; si es martes-domingo, el lunes de la semana siguiente. Como plazo blando nunca se fecha en pasado. Hora por defecto 9:00.
+  - Detectado y borrado **antes** del período próximo: así "semana" no activa "semana que viene" (sigue siendo +7d).
+  - Integrado en `effectiveRelativeDueAt` como días (junto a monthBoundary/thisWeek/nextPeriod) para combinarse con una hora explícita. También en `relativeIsDays`.
+- **Tests**: +4 (`principiosDeSemanaParsesDueAtProximoLunes`, `principiosDeSemanaNoColisionaConSemanaQueViene`, `principiosDeSemanaRespetaHoraExplicita`, `principiosDeSemanaSiHoyEsLunesEsHoy`). **294 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+- **Commits**: feat(parser): "principios de semana" como plazo blando (lunes) — 01e28fc. docs(autonomy): este registro.
+- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser: "próximo bimestre/semestre" (evaluar frecuencia), "próxima quincena" (+15d), "mediados de semana" (miércoles), "a finales de semana" (viernes/dom).
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+- P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
