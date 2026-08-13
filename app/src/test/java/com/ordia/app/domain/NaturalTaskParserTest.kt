@@ -2074,4 +2074,41 @@ class NaturalTaskParserTest {
         assertEquals("Viaje", result.title)
         assertEquals(LocalDate.of(2027, 3, 15), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    // --- "de aquí a N ..." / "de acá a N ...": formas coloquiales de "en/dentro de N".
+    // Antes no se parseaban → dueAt=null y la frase quedaba como residuo en el título
+    // (tarea sin recordatorio, invisible en planificador/What Now → olvidada).
+
+    @Test fun deAquiATresDiasParsesDueAt() {
+        val result = NaturalTaskParser.parse("Llamar al dentista de aquí a tres días", now, zone)
+        assertEquals("Llamar al dentista", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAquiAUnaSemanaParsesDueAt() {
+        val result = NaturalTaskParser.parse("Reunión de aquí a una semana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAquiAUnMesParsesDueAt() {
+        val result = NaturalTaskParser.parse("Viaje de aquí a un mes", now, zone)
+        assertEquals("Viaje", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAquiANDiasRespetaHoraExplicita() {
+        // La fecha relativa debe combinar con la hora explícita (+2 días a las 9:00).
+        val result = NaturalTaskParser.parse("Entrega de aquí a dos días a las 9", now, zone)
+        assertEquals("Entrega", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun deAcaAUnaSemanaParsesDueAt() {
+        // Variante "de acá a" (coloquial, sin tilde en 'a').
+        val result = NaturalTaskParser.parse("Control de acá a una semana", now, zone)
+        assertEquals("Control", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }

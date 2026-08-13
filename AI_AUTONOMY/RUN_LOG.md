@@ -3,6 +3,43 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 50 - 2026-08-13 (UTC) - parser: "de aquí a N"/"de acá a N" prefijo relativo coloquial
+
+- **HEAD inicial**: `8950d07` (synced tras primer pull; remoto `bf3579d`→`8950d07`).
+- **Remoto avanzó 3x durante el run** (rutina segura stash/pop, sin colisión, ver abajo):
+  (1) `bf3579d`→`8950d07`: guardián doble conteo, WhatNow IMMINENT_START, nextBestTask compromisos.
+  (2) `8950d07`→`4cb5f0f`: DayPlanner "Vence hoy" c.48 (otro run) + docs follow-up.
+  (3) `4cb5f0f`→`4f7e701`: SearchEngine ranking urgencia c.49 (otro run) + docs follow-up.
+  En todos los casos el remoto **no tocó** `NaturalTaskParser.kt` ni su test → stash pop limpio.
+  En la 3ra colisión mi commit previo (`ccf7f36`, etiquetado c.49) ya no fast-forwardeaba: hice
+  `git reset --soft HEAD~1`, descarté docs, re-sync, stash pop, rehice docs como c.50.
+- **Problema seleccionado**: P1 parser/captura. `relativePattern` solo admitía `en`/`dentro de`;
+  las formas coloquiales **"de aquí a N ..."** / **"de acá a N ..."** no casaban → `dueAt=null`,
+  residuo en el título, tarea sin recordatorio, invisible en planificador/What Now → olvidada.
+- **Causa raíz**: grupo de prefijos del regex demasiado estrecho; faltaba el prefijo coloquial
+  futuro más común del español.
+- **Solución (mínima)**: extendido el grupo de prefijos de `relativePattern`
+  `(?:en|dentro\s+de)` → `(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)`
+  (variantes con/sin tilde). Resto del patrón y lógica de cálculo reutilizados sin cambios.
+- **Heurística honesta**: regex determinista, no IA/random, no llama "IA" a una regla.
+- **Tests**: `bash tools/run_domain_tests.sh` = **413 PASS** (408 base remota c.49 incl. SearchEngine
+  + 5 nuevos), 25 clases. `bash tools/run_domain_checks.sh` smoke 25 OK. Nuevos:
+  `deAquiATresDiasParsesDueAt`, `deAquiAUnaSemanaParsesDueAt`, `deAquiAUnMesParsesDueAt`,
+  `deAquiANDiasRespetaHoraExplicita`, `deAcaAUnaSemanaParsesDueAt`. Probe ad-hoc pre-test OK.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt`,
+  `CURRENT_STATE.md`, `BACKLOG.md`, `RUN_LOG.md`.
+- **Etiquetado ciclo 50**: dos runs paralelos ya usaron c.48 (DayPlanner) y c.49 (búsqueda);
+  ciclo 50 evita colisión de numeración. Sin force push, sin reset --hard, sin tocar `main`.
+- **Commits**: (ver abajo).
+- **HEAD final**: (tras push).
+- **Próxima prioridad**: seguir auditando parser (prefijos pasados coloquiales, "al rato"/
+  "en un rato", "esta noche"/"anoche" relativas; recurrencias "cada otros N ..."; nominativos
+  "el próximo lunes" vs "lunes que viene") y otras áreas (rutinas, recordatorios, What Now,
+  backup/restore, concurrencia workers).
+
+
+---
 ## Ciclo 49 - 2026-08-13 (UTC) - search ranking accionable (urgencia sobre orden alfabético)
 
 - **Run/ciclo**: 49 (búsqueda/inteligencia — fuera del parser). Continúa la línea "potencia sin más interfaz".

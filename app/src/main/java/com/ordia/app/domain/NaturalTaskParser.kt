@@ -61,9 +61,11 @@ object NaturalTaskParser {
      * Las semanas (×7 días), meses (×30 días) y años (×365 días) son formas muy
      * comunes ("en una semana", "en un mes", "en un año", "en 2 años") que antes quedaban
      * sin fecha → la tarea se olvidaba (sin recordatorio, invisible en planificador/What Now).
+     * Admite también las formas coloquiales "de aquí a N ..." y "de acá a N ..."
+     * (equivalentes a "en/dentro de N ..."), simétricas al prefijo estándar.
      */
     private val relativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de)\s+(un\s+par\s+de|\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)\b"""
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un\s+par\s+de|\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)\b"""
     )
     /**
      * Fecha relativa PASADA: "hace N días/semanas/meses/años" o "hace una semana".

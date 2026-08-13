@@ -14,15 +14,53 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 49)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 49)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 50)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 50)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests) |
+| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests) |
+
+## Último trabajo — Ciclo 50: "de aquí a N"/"de acá a N" — prefijo relativo coloquial
+
+Fix P1 de captura de plazos futuros (parser natural). Frases cotidianas como
+**"llamar al dentista de aquí a tres días"**, **"reunión de aquí a una semana"**,
+**"viaje de aquí a un mes"** NO se parseaban: `relativePattern` solo admitía los prefijos
+`en`/`dentro de`, así que `dueAt` quedaba `null` y la frase **"de aquí a tres días"** permanecía
+como residuo en el título. Tarea sin fecha → sin recordatorio, invisible en planificador/What Now,
+**olvidada** (la forma coloquial más común de "en N" en español). La brecha era ortogonal a
+`dayOfMonthPattern` (c.47) y a las fechas pasadas "hace N" (c.38); faltaba el prefijo coloquial
+futuro. "para dentro de N" ya funcionaba ("para" se limpia, "dentro de" casaba).
+
+**Solución (mínima, `NaturalTaskParser.kt`)**: extendido el grupo de prefijos de `relativePattern`
+de `(?:en|dentro\s+de)` a
+`(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)`, añadiendo las variantes coloquiales
+**"de aquí a"** / **"de acá a"** (con/sin tilde, `í`/`i` y `á`/`a`). El resto del patrón
+(cantidad + unidad) y la lógica de cálculo (`relativeDueAt`, `now + millis`) se reutilizan sin
+cambios; la limpieza del título (`working.replace(it.value, " ")`) ya elimina todo el match,
+incluido el prefijo. Riesgo de falso positivo bajo: requiere `de aquí a`/`de acá a` + cantidad +
+unidad temporal. Heurística honesta (no IA, no random).
+
+**Colisiones de remoto (no destructivas, tres veces)**: el remoto avanzó tres veces durante el run,
+todas ortogonales (ninguna tocó `NaturalTaskParser.kt` ni su test):
+(1) `bf3579d`→`8950d07` (guardián doble conteo, WhatNow IMMINENT_START, nextBestTask compromisos).
+(2) `8950d07`→`4cb5f0f` (DayPlanner "Vence hoy" c.48 de otro run + docs follow-up).
+(3) `4cb5f0f`→`4f7e701` (búsqueda ranking por urgencia c.49 de otro run + docs follow-up).
+Rutina segura repetida (`git stash push` solo del código → descartar docs → `git pull --ff-only`
+→ `git stash pop` limpio; en la 3ra colisión además `git reset --soft` de mi commit previo y
+rebase sobre la nueva base). Etiquetado ciclo 50 para no colisionar con el ciclo 49 del run
+paralelo (búsqueda). Sin force push, sin reset --hard, sin tocar `main`.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**413 tests PASS** (408 base remota c.49 incl. SearchEngine + 5 nuevos: `deAquiATresDiasParsesDueAt`,
+`deAquiAUnaSemanaParsesDueAt`, `deAquiAUnMesParsesDueAt`, `deAquiANDiasRespetaHoraExplicita`,
+`deAcaAUnaSemanaParsesDueAt`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`). Probe ad-hoc
+confirmó los 5 casos reales antes de los tests. NO VERIFICADO: gradle/lint/assemble/Android/UI/Room
+con DAOs reales (sin Android SDK).
+
 
 ## Último trabajo — Ciclo 49: búsqueda ordena por urgencia (no solo alfabético)
 
