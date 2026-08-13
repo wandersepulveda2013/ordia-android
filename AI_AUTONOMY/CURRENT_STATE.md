@@ -14,35 +14,46 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 32 cont.2)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 32 cont.2)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 32 cont.4)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 32 cont.4)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-## Último trabajo — Ciclo 32 (cont.2): parser “próximo trimestre” (+90d)
+## Último trabajo — Ciclo 32 (cont.4): adjuntos copiados a almacenamiento interno (P1 persistencia)
 
-Tercera unidad atómica del ciclo 32 (parser natural, P1 — evitar olvidos de fechas):
+Cuarta unidad atómica del ciclo 32 (persistencia, P1 — datos sagrados / evitar pérdida de adjuntos):
 
-**“próximo trimestre” / “el trimestre que viene” (+90d)**: `NaturalTaskParser` ahora parsea
-estas formas de plazo largo cotidiano (impuestos trimestrales, revisiones, informes). Antes no
-se parseaban → `dueAt=null` → la tarea se olvidaba (sin recordatorio, invisible en
-planificador/What Now). Extensión mínima: `trimestre` como unidad en ambas ramas del
-`nextPeriodPattern` y rama `trimestre -> 90L` (+90d = 3 meses × 30d, consistente con
-“mes que viene” = +30d). **Detalle clave**: la rama `trimestre` se comprueba ANTES que `mes`
-porque la cadena “trimestre” contiene la subcadena “mes” (“tri**mes**tre”); si `mes` fuera
-primero ganaría erróneamente (+30d en vez de +90d). Reutiliza toda la infraestructura de
-período próximo: combina con hora explícita y se elimina del título sin residuo.
+**Causa raíz**: los adjuntos (captura, note editor, task detail) guardaban el **URI externo** en
+`AttachmentEntity.uri` sin copiar el contenido. El acceso dependía de `takePersistableUriPermission`
+(en `runCatching` silencioso). Si el permiso falla/caduca/revoca (limpieza del sistema, app reinstalada,
+URI de `MediaStore` que cambia tras reboot), el adjunto queda **inaccesible** tras reinicio y
+`startActivity(ACTION_VIEW)` falla con un toast misleading ("Ninguna app pudo abrir…"). Riesgo real
+de pérdida percibida de datos.
 
-Ciclos previos del 32: “próximos días” (+3d) y “antier” (variante de “anteayer”, -2d),
-ambos pushados y verificados (ver historial en RUN_LOG.md).
+**Solución (mínima, robusta)**: nuevo `AttachmentStorage` copia los bytes del URI fuente a
+`filesDir/attachments/<uuid><ext>` y devuelve un URI `FileProvider` (`content://${applicationId}.attachments/...`).
+- `addAttachment(ownerType, ownerId, sourceUri, displayName, mimeType, sizeBytes)` en `OrdiaViewModel`
+  usa `attachmentStorage.import()` para copiar de inmediato; si la copia falla, conserva el URI original
+  (no pierde el adjunto).
+- `attachCaptureIfPresent` ahora importa el contenido en vez de guardar el URI crudo.
+- `resolveAttachmentUri(uri)` resuelve el URI al abrir (los internos ya son válidos; los legacy externos
+  pasan tal cual para no romper adjuntos antiguos).
+- `deleteAttachment` borra también el archivo interno (sin dejar basura).
+- `NoteEditorScreen`/`TaskDetailScreen` usan el nuevo `addAttachment` y `resolveAttachmentUri`; ya NO
+  llaman `takePersistableUriPermission` (innecesario: el contenido vive en almacenamiento interno).
+- Manifest: `FileProvider` con authority `${applicationId}.attachments` + `ordia_attachment_paths.xml`
+  (`files-path name="attachments" path="attachments/"`).
 
 **VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
-**268 tests PASS** (260 base + 3 “próximos días” + 2 “antier” + 3 “trimestre”), 25 clases.
-Smoke 25 OK. NO VERIFICADO: gradle/lint/assemble/Android (sin Android SDK). CI remoto ejecuta
-`Verificar`.
+**275 tests PASS** (25 clases). Smoke 25 OK. **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room
+con DAOs reales (sin Android SDK) — la copia de bytes, FileProvider y `ACTION_VIEW` requieren dispositivo.
+CI remoto ejecuta `Verificar`.
+
+Ciclos previos del 32: “próximos días” (+3d), “antier” (-2d), “próximo trimestre” (+90d),
+“fin de mes”/“mediados de mes”, verificados.
 
 
 ## Último trabajo — Ciclo 31 (parser: fix "fin de semana que viene")
@@ -110,21 +121,23 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 
 | Pri | Área | Estado |
 |-----|------|--------|
-| P1 | Persistencia — adjuntos URI externo | OPEN (mitigado, sesión dedicada pendiente) |
+| P1 | Persistencia — adjuntos URI externo | FIXED (NO VERIFICADO Android) ciclo 32 cont.4 |
 | P2 | QA — compilar 6 variantes tras cambios | OPEN (requiere env Android) |
 | P2 | Self-Update — prueba end-to-end N→N+1 | BLOCKED-external (sin dispositivo Android) |
 | P3 | UX — pulido visual pantallas workspace renovadas | OPEN |
 
 ## Próximo trabajo
 
-- Ciclo 32 (cont.3) (DONE): parser “fin de mes” / “a finales de mes” / “mediados de mes”
-  (límites mensuales: alquiler, tarjeta, servicios). Antes dueAt=null → vencimiento olvidado.
-  Patrones `endOfMonthPattern`/`midOfMonthPattern` con `LocalDate.withDayOfMonth(lengthOfMonth())`/15,
-  detectados ANTES del período próximo (evita colisión “mes” vs “mes que viene”). 275 domain tests PASS.
-- Ciclos previos del 32: “próximos días” (+3d), “antier” (-2d), “próximo trimestre” (+90d), verificados.
+- Ciclo 32 (cont.4) (DONE): adjuntos copiados a almacenamiento interno vía `AttachmentStorage`
+  + FileProvider. P1 persistencia resuelto. `addAttachment`/`attachCaptureIfPresent`/`resolveAttachmentUri`
+  + `deleteAttachment` en OrdiaViewModel; `NoteEditorScreen`/`TaskDetailScreen` migrados (sin
+  `takePersistableUriPermission`). 275 domain tests PASS. NO VERIFICADO Android/UI.
+- Ciclos previos del 32: “próximos días” (+3d), “antier” (-2d), “próximo trimestre” (+90d),
+  “fin de mes”/“mediados de mes”, verificados.
 - Continuar ciclo interminable. Candidatos parser: “esta semana” (vs “la semana que viene”),
   “principios de mes” (día 1), “próximo bimestre/semestre” (evaluar frecuencia).
-  Años/semana/mes/trimestre/período próximo/límites de mes ya resueltos.
-- P1 OPEN: adjuntos guardan URI externo (BACKLOG) — requiere sesión dedicada para copiar bytes a filesDir.
+- P1 adjuntos: NEXT paso sería **migración de adjuntos legacy** (URIs externos antiguos ya
+  guardados) — copiar contenido al abrir por primera vez si todavía accesible. Evaluar antes
+  de implementar (riesgo: URIs ya inválidos). De momento `resolveAttachmentUri` no rompe legacy.
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler en pantallas anidadas;
   contraste onSurfaceVariant. No detenerse.

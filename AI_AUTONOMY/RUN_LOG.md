@@ -2382,3 +2382,71 @@ planificador/What Now). La aritmética `now + millis` no calculaba “último d�
 ### Siguiente
 - Continuar ciclo interminable. Candidatos parser: “esta semana”, “principios de mes”.
   P1 adjuntos URI externo si hay sesión dedicada.
+
+
+---
+
+## 2026-08-13 — Ciclo 32 (cont.4): adjuntos copiados a almacenamiento interno (P1 persistencia)
+
+**HEAD inicial**: `bdd3dc0` (docs ciclo 32 cont.3 — fin de mes / mediados de mes)
+**Branch**: `openhands/autonomous-ordia`
+
+### Problema seleccionado (P1 — datos sagrados / persistencia)
+Adjuntos (captura, note editor, task detail) guardaban el **URI externo** en `AttachmentEntity.uri`
+sin copiar el contenido. El acceso dependía de `takePersistableUriPermission` (en `runCatching`
+silencioso). Si el permiso falla/caduca/revoca (limpieza del sistema, app reinstalada, URI de
+`MediaStore` que cambia tras reboot), el adjunto queda **inaccesible** tras reinicio y
+`startActivity(ACTION_VIEW)` falla con toast misleading ("Ninguna app pudo abrir…"). Riesgo real
+de pérdida percibida de datos. Ítem P1 del BACKLOG.
+
+### Causa raíz
+`OrdiaViewModel.attachCaptureIfPresent` (y los pickers de Note/Task) guardaban `attachmentUri`
+directo en `AttachmentEntity.uri`. Sin copia de bytes, la persistencia del acceso quedaba delegada
+a un permiso persistente frágil y silencioso ante fallos.
+
+### Solución (mínima, robusta)
+- **Nuevo `AttachmentStorage`** (`data/repository/AttachmentStorage.kt`): copia los bytes del URI
+  fuente a `filesDir/attachments/<uuid><ext>` (ext deducida del displayName/mimeType) y devuelve
+  un URI `FileProvider`. `delete(uri)` borra el archivo interno. `resolveForOpening(uri)` devuelve
+  el URI tal cual (los FileProvider ya son válidos; legacy externo pasa sin tocar para no romper).
+- **`OrdiaViewModel`**:
+  - `addAttachment(ownerType, ownerId, sourceUri, displayName, mimeType, sizeBytes)`: copia con
+    `attachmentStorage.import()`; si la copia falla, conserva el URI original (no pierde el adjunto).
+  - `attachCaptureIfPresent` ahora importa el contenido (antes guardaba URI crudo).
+  - `resolveAttachmentUri(uri)` para abrir adjuntos.
+  - `deleteAttachment` borra también el archivo interno.
+- **`NoteEditorScreen.kt` / `TaskDetailScreen.kt`**: usan nuevo `addAttachment`, `resolveAttachmentUri`
+  al abrir; eliminado `takePersistableUriPermission` (innecesario: contenido en interno).
+- **Manifest**: `FileProvider` authority `${applicationId}.attachments` + `ordia_attachment_paths.xml`
+  (`files-path name="attachments" path="attachments/"`).
+- **DI**: `AttachmentStorage(context)` en `AppContainer`, cableado en `OrdiaRoot` Factory.
+
+### Archivos modificados/creados
+- Creado: `app/src/main/java/com/ordia/app/data/repository/AttachmentStorage.kt`
+- Creado: `app/src/main/res/xml/ordia_attachment_paths.xml`
+- Modificado: `app/src/main/AndroidManifest.xml` (FileProvider)
+- Modificado: `app/src/main/java/com/ordia/app/di/AppContainer.kt`
+- Modificado: `app/src/main/java/com/ordia/app/ui/OrdiaRoot.kt`
+- Modificado: `app/src/main/java/com/ordia/app/ui/OrdiaViewModel.kt`
+- Modificado: `app/src/main/java/com/ordia/app/ui/screens/NoteEditorScreen.kt`
+- Modificado: `app/src/main/java/com/ordia/app/ui/screens/TaskDetailScreen.kt`
+
+### Tests
+- `bash tools/run_domain_tests.sh` = **275 tests PASS** (25 clases).
+- `bash tools/run_domain_checks.sh` = smoke 25 assertions OK.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). La copia
+  de bytes, FileProvider y `ACTION_VIEW` requieren dispositivo. CI remoto ejecuta `Verificar`.
+
+### Hallazgos para próximas ejecuciones
+- **Migración de adjuntos legacy**: URIs externos antiguos ya guardados siguen funcionando vía
+  `resolveAttachmentUri` (pasan tal cual). NEXT paso opcional: al abrir un adjunto legacy, intentar
+  copiarlo a interno si todavía accesible (lazy migration). Riesgo: URIs ya inválidos. Evaluar.
+- Parser: candidatos restantes — "esta semana", "principios de mes", "próximo bimestre/semestre".
+
+### Commits
+- `feat(persistence): copy attachments to internal storage (P1)` (código).
+- docs(autonomy): registro ciclo 32 (cont.4) — este commit.
+
+### Siguiente
+- Continuar ciclo interminable. Migración lazy de adjuntos legacy si se evalúa segura;
+  si no, parser "esta semana"/"principios de mes". P2/P3 rendimiento/UX.
