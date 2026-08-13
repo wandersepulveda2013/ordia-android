@@ -2717,3 +2717,23 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Continuar ciclo de parser: "próxima quincena" (+15d), manejo robusto de múltiples marcadores temporales en una frase.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
+
+
+## Ciclo 42 - 2026-08-13 (UTC) - feat: rango horario sin "horas" (ambas < 13)
+
+- **Run/ciclo**: 42 (base `8ceb8d2` = ciclo 41 remoto, ya sincronizada al inicio de la sesión; commit `0a77387` fue creado en un run anterior de esta misma sesión y ya está en el HEAD remoto).
+- **HEAD inicial**: `8ceb8d2` → tras trabajo de parser, `0a77387` (feat(parser): rango horario sin unidad "horas" cuando ambas horas < 13). Push OK a `origin/openhands/autonomous-ordia`. Este run (continuación) se dedica a (a) verificar la línea base de tests y (b) actualizar la memoria permanente (CURRENT_STATE, BACKLOG, este RUN_LOG) que quedó pendiente del commit de código.
+- **Problema seleccionado**: `NaturalTaskParser` NO reconocía rango horario **sin la palabra "horas"** en formato 12h ("clase de 9 a 11", "taller de 10 a 12"): `dueAt=null`, `durationMinutes=null`, rango crudo como residuo en el título. El `timeRangePattern` casaba, pero el guard lo rechazaba (exigía unidad "horas"/"hs"/"h" o alguna hora ≥ 13) para evitar falsos positivos como "comprar de 2 a 5 entradas" (cantidad, no horario).
+- **Prioridad**: P2 (forma cotidiana de expresar un bloque horario; evita captura incompleta / recordatorio sin duración).
+- **Causa raíz**: el guard del `rangeMatch` trataba todo rango sin unidad y ambas horas < 13 como ambiguo y lo descartaba por completo, sin distinguir si el rango abre/cierra una ventana horaria ("clase de 9 a 11") o expresa una cantidad ("de 2 a 5 entradas").
+- **Solución (mínima, en `NaturalTaskParser.kt`)**: heurística honesta (no IA, no random). Un rango sin unidad y ambas horas < 13 se acepta como ventana horaria **solo si NO va seguido de un sustantivo de cantidad**: si tras el rango hay fin de cadena o un conector/preposición/puntuación ("con Juan", "y luego", ", después") se entiende como horario; si hay un sustantivo después ("entradas", "personas") se respeta como cantidad y no se consume. Restricción `end - start in 1..11` evita rangos absurdos. Así "clase de 9 a 11" → dur 120, título "Clase"; "comprar de 2 a 5 entradas" → sin duración, título intacto.
+- **Tests**: +3 (`rangeWithoutUnitBothUnder13ParsesAsTimeRange`, `rangeWithoutUnitKeepsTrailingText` para preservación, y guard de conteo de ítems como regresión). **353 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases (350 base c.41 + 3 nuevos). Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+- **Commits**: `0a77387` feat(parser): rango horario sin unidad "horas" cuando ambas horas < 13 (push OK). Este run añade `docs(autonomy): memoria ciclo 42 (BACKLOG/CURRENT_STATE/RUN_LOG)`.
+- **HEAD final**: (tras commit de docs a `openhands/autonomous-ordia`).
+
+### Siguiente
+- Continuar ciclo de parser: "la quincena" como plazo/recurrencia (día 15 y fin de mes), manejo robusto de múltiples marcadores temporales en una frase.
+- Descubrimiento continuo (más allá del parser): auditar What Now, captura, rutinas, recordatorios, detección de vencidas, búsqueda universal en busca de oportunidades de producto reales.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+- Nota operativa: usar `github_token` para push si `GITHUB_TOKEN` no está disponible.

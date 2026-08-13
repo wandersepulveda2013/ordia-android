@@ -14,15 +14,15 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 41)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 41)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 42)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 42)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1 | Parser — fechas relativas/pasadas/imposibles | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests) |
+| P1 | Parser — fechas relativas/pasadas/imposibles | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 (353 tests) |
 
 Bug de captura P1 (tarea en día erróneo → reunión/recordatorio perdido el mismo día). La palabra
 "mañana" es ambigua: token de **fecha** (el día de mañana) vs. marcador de **hora** ("de la
@@ -34,12 +34,33 @@ marcador de parte del día. Así "de/por/a la mañana" → se queda en HOY; "ma�
 → mañana (primera aparición suelta). `pasado mañana` se resuelve antes, sin regresión.
 
 VERIFICADO localmente (JVM puro, sin Android SDK): `bash tools/run_domain_tests.sh` =
-**336 tests PASS** (319 base remota + 3 nuevos de regresión), 25 clases. Smoke 25 OK. NO
+**353 tests PASS** (350 base c.41 + 3 nuevos de este ciclo), 25 clases. Smoke 25 OK. NO
 VERIFICADO: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
 
 ## Último trabajo — Ciclo 38: fechas pasadas + recuperación de fechas imposibles
 
 Dos unidades atómicas del ciclo de parser natural (P1 — evitar olvidos + datos erróneos).
+
+
+## Último trabajo — Ciclo 42: parser rango horario sin "horas" (ambas < 13)
+
+Unidad atómica del parser natural (P2 — forma cotidiana no reconocida). **"clase de 9 a 11"**,
+**"taller de 10 a 12"** (formato 12h sin la palabra "horas") caían a `dueAt=null`,
+`durationMinutes=null` con el rango crudo ("9 a 11") como residuo en el título. El `timeRangePattern`
+casa, pero el guard lo rechazaba: exigía unidad final ("horas"/"hs"/"h") o alguna hora ≥ 13
+(24h inequívoco) para evitar falsos positivos como **"comprar de 2 a 5 entradas"** (cantidad, no horario).
+
+**Solución (mínima, `NaturalTaskParser.kt`)**: heurística honesta (no IA): un rango sin unidad y
+ambas horas < 13 se acepta como ventana horaria **solo si NO va seguido de un sustantivo de
+cantidad**. Si tras el rango hay fin de cadena o un conector/preposición/puntuación
+("con Juan", "y luego", ", después") se entiende como horario; si hay un sustantivo después
+("entradas", "personas") se respeta como cantidad. Así "clase de 9 a 11" → dur 120,
+título "Clase"; "comprar de 2 a 5 entradas" → sin duración, título intacto. Restricción
+`end - start in 1..11` evita rangos absurdos.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**353 tests PASS** (350 base c.41 + 3 nuevos), 25 clases. Smoke 25 OK. NO VERIFICADO:
+gradle/lint/assemble/Android/UI/Room (sin Android SDK).
 
 ## Último trabajo — Ciclo 41: parser listas de días sin coma + plurales sábados/domingos
 
@@ -134,7 +155,7 @@ gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 | Pri | Área | Estado |
 |-----|------|--------|
 | P1 | Persistencia — adjuntos URI externo | FIXED (NO VERIFICADO Android) ciclo 32 cont.4 |
-| P1 | Parser — fechas relativas/pasadas/imposibles | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests) |
+| P1 | Parser — fechas relativas/pasadas/imposibles | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 (353 tests) |
 | P2 | QA — compilar 6 variantes tras cambios | OPEN (requiere env Android) |
 | P2 | Self-Update — prueba end-to-end N→N+1 | BLOCKED-external (sin dispositivo Android) |
 | P3 | UX — pulido visual pantallas workspace renovadas | OPEN |
