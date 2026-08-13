@@ -218,4 +218,88 @@ class SummaryEngineTest {
         assertEquals(1, s.completedToday)
         assertEquals(1, s.completedThisWeek)
     }
+
+    @Test
+    fun dayLoad_isLightWhenNothingRemaining() {
+        val tasks = listOf(
+            task(1, dueAt = at(today, 9), completed = true, completedAt = at(today, 11))
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone) // now=12:00
+
+        assertEquals(DayLoad.LIGHT, s.dayLoad)
+    }
+
+    @Test
+    fun dayLoad_isOnTrackWhenRemainingFitsWithinHalfTheFreeDay() {
+        // now=12:00 → jornada 9:00-18:00 → quedan 6h=360 min libres.
+        // remainingMinutes 120 ≤ 180 (mitad) → ON_TRACK.
+        val tasks = listOf(
+            task(1, dueAt = at(today, 14), durationMinutes = 60),
+            task(2, dueAt = at(today, 16), durationMinutes = 60)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(120, s.remainingMinutesToday)
+        assertEquals(DayLoad.ON_TRACK, s.dayLoad)
+    }
+
+    @Test
+    fun dayLoad_isFullWhenRemainingFitsButExceedsHalfTheFreeDay() {
+        // quedan 360 min libres; remainingMinutes 240 > 180 (mitad) y ≤ 360 → FULL.
+        val tasks = listOf(
+            task(1, dueAt = at(today, 14), durationMinutes = 120),
+            task(2, dueAt = at(today, 16), durationMinutes = 120)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(240, s.remainingMinutesToday)
+        assertEquals(DayLoad.FULL, s.dayLoad)
+    }
+
+    @Test
+    fun dayLoad_isOverloadedWhenRemainingExceedsFreeDay() {
+        // quedan 360 min libres; remainingMinutes 480 > 360 → OVERLOADED.
+        val tasks = listOf(
+            task(1, dueAt = at(today, 14), durationMinutes = 180),
+            task(2, dueAt = at(today, 16), durationMinutes = 180),
+            task(3, dueAt = at(today, 17), durationMinutes = 120)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(480, s.remainingMinutesToday)
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+    }
+
+    @Test
+    fun dayLoad_isOverloadedPastWorkingHoursEvenIfLittleWorkRemains() {
+        // A las 19:00 (pasado el fin de jornada 18:00) cualquier trabajo restante
+        // no cabe en el día → OVERLOADED, sin importar lo pequeña que sea.
+        val lateNow = today.atTime(19, 0).atZone(zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            task(1, dueAt = at(today, 9), durationMinutes = 10)
+        )
+
+        val s = SummaryEngine.summarize(tasks, lateNow, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+    }
+
+    @Test
+    fun dayLoad_isOnTrackAtStartOfDayWithModestWork() {
+        // 9:00 → jornada entera libre (540 min); remainingMinutes 90 ≤ 270 → ON_TRACK.
+        val morningNow = today.atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            task(1, dueAt = at(today, 11), durationMinutes = 45),
+            task(2, dueAt = at(today, 15), durationMinutes = 45)
+        )
+
+        val s = SummaryEngine.summarize(tasks, morningNow, zone)
+
+        assertEquals(90, s.remainingMinutesToday)
+        assertEquals(DayLoad.ON_TRACK, s.dayLoad)
+    }
 }

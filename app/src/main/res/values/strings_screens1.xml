@@ -22,6 +22,9 @@
 
     <!-- Resumen de hoy (SummaryEngine, BLOQUE 8) -->
     <string name="summary_completed_pending">%1$d completadas · %2$d para hoy</string>
+    <string name="summary_load_on_track">El día va a tiempo. Sigue con la siguiente tarea.</string>
+    <string name="summary_load_full">El día está lleno pero cabe. Empieza ya la próxima tarea.</string>
+    <string name="summary_load_overloaded">No cabe todo hoy. Elige qué dejar para mañana.</string>
     <string name="today_inbox_badge">Bandeja (%1$d)</string>
     <string name="today_empty_title">Tu día tiene espacio</string>
     <string name="today_greeting_morning">Buenos días</string>

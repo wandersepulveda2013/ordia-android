@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.domain.DateRules
+import com.ordia.app.domain.DayLoad
 import com.ordia.app.domain.SummaryEngine
 import com.ordia.app.domain.WhatNowEngine
 import com.ordia.app.domain.WhatNowReason
@@ -307,25 +308,36 @@ fun TodayScreen(
         }
 
         item {
+            val verdict = dayLoadVerdict(summary.dayLoad)
             Surface(
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        stringResource(R.string.summary_completed_pending, summary.completedToday, summary.remainingToday),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        stringResource(R.string.today_badge_minutes, summary.remainingMinutesToday),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            stringResource(R.string.summary_completed_pending, summary.completedToday, summary.remainingToday),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            stringResource(R.string.today_badge_minutes, summary.remainingMinutesToday),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (verdict != null) {
+                        Text(
+                            stringResource(verdict),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                    }
                 }
             }
         }
@@ -411,4 +423,16 @@ private fun greeting(): String = when (java.time.LocalTime.now().hour) {
     in 5..11 -> stringResource(R.string.today_greeting_morning)
     in 12..18 -> stringResource(R.string.today_greeting_afternoon)
     else -> stringResource(R.string.today_greeting_evening)
+}
+
+/**
+ * Veredicto honesto del día como recurso de string, o null si no aporta
+ * información (LIGHT: la tarjeta de conteo ya dice "0 para hoy").
+ */
+@Composable
+private fun dayLoadVerdict(load: DayLoad): Int? = when (load) {
+    DayLoad.LIGHT -> null
+    DayLoad.ON_TRACK -> R.string.summary_load_on_track
+    DayLoad.FULL -> R.string.summary_load_full
+    DayLoad.OVERLOADED -> R.string.summary_load_overloaded
 }

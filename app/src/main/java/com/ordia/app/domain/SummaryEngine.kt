@@ -21,8 +21,22 @@ data class DaySummary(
     val overdue: Int,
     val inboxPending: Int,
     val completedThisWeek: Int,
-    val weekDailyAverage: Float
+    val weekDailyAverage: Float,
+    /** Veredicto honesto sobre si el trabajo restante de hoy cabe en el día. */
+    val dayLoad: DayLoad = DayLoad.LIGHT
 )
+
+/**
+ * Veredicto del día: convierte varios conteos (minutos restantes vs minutos
+ * que quedan de jornada) en UNA decisión accionable, en vez de obligar al
+ * usuario a hacer la aritmética mental. Heurística honesta, sin random.
+ *
+ * - LIGHT: nada pendiente o el día está despejado.
+ * - ON_TRACK: el trabajo restante cabe con holgura (≤ media jornada libre).
+ * - FULL: cabe pero justo (≤ toda la jornada libre restante).
+ * - OVERLOADED: no cabe en el tiempo que queda → hay que soltar/replanear.
+ */
+enum class DayLoad { LIGHT, ON_TRACK, FULL, OVERLOADED }
 
 object SummaryEngine {
 
@@ -78,6 +92,8 @@ object SummaryEngine {
         }
         val weekDailyAverage = completedThisWeek / 7f
 
+        val dayLoad = assessDayLoad(remainingToday, remainingMinutesToday, now, zone)
+
         return DaySummary(
             completedToday = completedToday,
             remainingToday = remainingToday,
@@ -85,9 +101,46 @@ object SummaryEngine {
             overdue = overdue,
             inboxPending = inboxPending,
             completedThisWeek = completedThisWeek,
-            weekDailyAverage = weekDailyAverage
+            weekDailyAverage = weekDailyAverage,
+            dayLoad = dayLoad
         )
     }
+
+    /**
+     * Veredicto honesto: ¿cabe el trabajo restante de hoy en el tiempo que
+     * queda de la jornada? Usa la misma ventana de jornada que DayPlanner
+     * (9:00–18:00 por defecto), de forma que "minutos restantes" y "minutos
+     * libres" hablan el mismo idioma. Si ya pasó el fin de jornada no hay
+     * capacidad libre (0 min): cualquier trabajo restante queda OVERLOADED.
+     *
+     * Sin tareas restantes → LIGHT. Si no, compara los minutos planificados
+     * restantes con los minutos libres hasta el fin de jornada:
+     *   ≤ mitad de la jornada libre → ON_TRACK (margen holgado);
+     *   ≤ jornada libre entera      → FULL (cabe pero justo);
+     *   >  → OVERLOADED (no cabe; hay que soltar/replanear).
+     */
+    private fun assessDayLoad(
+        remainingToday: Int,
+        remainingMinutesToday: Int,
+        now: Long,
+        zone: ZoneId
+    ): DayLoad {
+        if (remainingToday <= 0) return DayLoad.LIGHT
+
+        val zonedNow = Instant.ofEpochMilli(now).atZone(zone)
+        val nowMinute = zonedNow.hour * 60 + zonedNow.minute
+        val dayStartMinute = 9 * 60
+        val dayEndMinute = 18 * 60
+        val freeMinutes = (dayEndMinute - maxOf(nowMinute, dayStartMinute)).coerceAtLeast(0)
+        if (freeMinutes <= 0) return DayLoad.OVERLOADED
+
+        return when {
+            remainingMinutesToday <= freeMinutes / 2 -> DayLoad.ON_TRACK
+            remainingMinutesToday <= freeMinutes -> DayLoad.FULL
+            else -> DayLoad.OVERLOADED
+        }
+    }
+
 
     private fun onDate(epochMillis: Long?, date: LocalDate, zone: ZoneId): Boolean =
         epochMillis?.let { DateRules.toLocalDate(it, zone) == date } ?: false

@@ -3311,6 +3311,28 @@ a un permiso persistente frágil y silencioso ante fallos.
 - `PlanEngine` replanificación automática; búsqueda universal.
 - Parser: múltiples marcadores temporales en una frase.
 
+## Ciclo 65 - 2026-08-13 (UTC) - feat(summary): veredicto honesto del día (DayLoad) en la tarjeta de Today
+
+- **Run/ciclo**: 65 (continúa sobre c.64).
+- **HEAD inicial**: `890e8b4` (c.64, parser standalone "N de la tarde/noche").
+- **Problema seleccionado**: la tarjeta de resumen de Today mostraba "X completadas · Y para hoy" + badge de minutos ("120m") pero NO convertía ese dato en una decisión accionable. El usuario tenía que hacer la aritmética mental ("120m a las 12:00, ¿caben?"). Área de dirección explícita ("priorización inteligente", "mejores resúmenes del día", "What Now más útil"). Era el "Siguiente" documentado al final del ciclo 64 ("SummaryEngine resumen del día más accionable").
+- **Prioridad**: P2 (mejora funcional/inteligencia honesta; no pérdida de datos).
+- **Causa raíz**: `DaySummary` no tenía noción de "capacidad restante del día". `remainingMinutesToday` medía el trabajo pendiente pero no se comparaba con el tiempo libre hasta el fin de jornada → no había veredicto.
+- **Solución (mínima, sin nueva pantalla/botón — "menos interfaz, más potencia")**:
+  - Nueva enum `DayLoad { LIGHT, ON_TRACK, FULL, OVERLOADED }` + campo `dayLoad` en `DaySummary`.
+  - `SummaryEngine.assessDayLoad` (privado, dominio puro): `freeMinutes = (18:00 - max(now, 9:00))`; si `remainingToday<=0`→LIGHT; si `freeMinutes<=0`→OVERLOADED; si `remainingMinutes <= free/2`→ON_TRACK; si `<= free`→FULL; si no→OVERLOADED. Misma ventana 9–18 que `DayPlanner` (misma fuente de verdad).
+  - `TodayScreen.kt`: UNA línea `bodySmall` dentro de la tarjeta de resumen existente (reutiliza el `Surface`/`Column` existente; sin nueva tarjeta/botón). 3 strings accionables en `strings_screens1.xml`.
+  - Heurística honesta, determinista, sin random ni "IA".
+- **Tests**: +6 en `SummaryEngineTest.kt` (LIGHT, ON_TRACK, FULL, OVERLOADED, post-fin-de-jornada, inicio de día con trabajo modesto). **500 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 494 c.64 + 6 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real de la línea en la tarjeta de Today en dispositivo.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SummaryEngine.kt`, `app/src/main/java/com/ordia/app/ui/screens/TodayScreen.kt`, `app/src/main/res/values/strings_screens1.xml`, `app/src/test/java/com/ordia/app/domain/SummaryEngineTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras commit+push).
+- **Estado**: FIXED → VERIFIED (dominio JVM); UI en app NO VERIFICADO (sin Android SDK).
+
+### Siguiente
+- `PlanEngine`/replanificación: si OVERLOADED, sugerir automáticamente qué tarea mover a mañana (la menos prioritaria / más posponible) en vez de solo decir "elige qué dejar".
+- Descubrimiento continuo: búsqueda universal; `DayPlanner` respetar pausas/existente; detección de compromisos en notas.
+
 ## Ciclo 64 - 2026-08-13 (UTC) - fix(parser): forma standalone "N de la tarde/noche" sin "a las" ni rango
 
 - **Run/ciclo**: 64 (renumerado: el remoto tomó c.62 = recordatorios del editor, c.63 = Guardián vencidas; este run paralelo aterriza como c.64).
