@@ -96,7 +96,8 @@ object GuardianEngine {
         val today = now.toLocalDate()
         val completedSessions = focusSessions.filter { it.completed }
         val completedToday = tasks.count { task ->
-            !task.archived && task.completedAt?.let { DateRules.toLocalDate(it, zoneId) == today } == true
+            task.parentTaskId == null && !task.archived &&
+                task.completedAt?.let { DateRules.toLocalDate(it, zoneId) == today } == true
         }
         val focusMinutesToday = completedSessions
             .filter { DateRules.toLocalDate(it.startedAt, zoneId) == today }
@@ -105,7 +106,7 @@ object GuardianEngine {
             HabitRules.countFor(habitLogs, habit.id, today) >= habit.targetPerPeriod.coerceAtLeast(1)
         }
         val activeNotes = notes.count { !it.archived }
-        val completedAll = tasks.count { it.completed && !it.archived }
+        val completedAll = tasks.count { it.parentTaskId == null && it.completed && !it.archived }
         val streakPower = habits.sumOf { HabitRules.currentStreak(it, habitLogs).coerceIn(0, MAX_STREAK_DAYS_PER_HABIT) }
         val completedFocusMinutes = completedSessions.sumOf {
             it.actualMinutes.coerceIn(0, MAX_FOCUS_MINUTES_PER_SESSION)
@@ -141,9 +142,9 @@ object GuardianEngine {
             ((experience - stage.minimumXp).toFloat() / span).coerceIn(0f, 1f)
         }
         val level = (1 + experience / 100).coerceAtMost(999)
-        // Solo tareas raíz: las subtareas son anidadas, contarlas además del padre
-        // inflaría los atrasados frente a la tarjeta de resumen (mismo invariant en SummaryEngine).
-        val overdue = tasks.count { it.parentTaskId == null && TaskRules.isOverdue(it, nowMillis) }
+        val overdue = tasks.count {
+            it.parentTaskId == null && !it.completed && !it.archived && TaskRules.isOverdue(it, nowMillis)
+        }
         val recentInteraction = preferences.guardianLastInteraction > 0L &&
             nowMillis - preferences.guardianLastInteraction in 0 until RECENT_INTERACTION_MILLIS
         val mood = when {
@@ -239,7 +240,7 @@ object GuardianEngine {
         focusSessions: List<FocusSessionEntity>,
         notes: List<NoteEntity>
     ): Int {
-        val completedTasks = tasks.count { it.completed && !it.archived }
+        val completedTasks = tasks.count { it.parentTaskId == null && it.completed && !it.archived }
         val completedFocusMinutes = focusSessions
             .asSequence()
             .filter { it.completed }

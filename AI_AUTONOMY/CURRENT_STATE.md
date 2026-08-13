@@ -370,3 +370,20 @@ gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
   de implementar (riesgo: URIs ya inválidos). De momento `resolveAttachmentUri` no rompe legacy.
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler en pantallas anidadas;
   contraste onSurfaceVariant. No detenerse.
+
+## Último trabajo — Ciclo 46: GuardianEngine doble conteo de subtareas (mood/XP inflados)
+
+- **Bug P1 (fiabilidad/datos)**: `GuardianEngine` contaba subtareas como tareas lógicas en sus
+  agregados, inflando el ánimo (mood) y la experiencia (XP) del guardia — simétrico al doble
+  conteo de `SummaryEngine` FIXED en ciclo 20. `completedAll`, `completedToday`, `overdue` y
+  `derivedExperience(completedTasks)` no filtraban `parentTaskId == null`. Consecuencias reales:
+  1 padre + 4 subtareas vencidas → guardia CONCERNED + mensaje "Hay 5 pendientes atrasados"
+  (realidad: 1 tarea lógica); 1 padre + 3 subtareas completadas → XP 48 en vez de 12. El guardia
+  mentía al usuario sobre su progreso.
+- **Fix mínimo**: filtro `parentTaskId == null` en los 4 conteos, consistente con
+  `SummaryEngine`/`GuardianCoach`/`WhatNow`/`DayPlanner` (todos cuentan solo raíces).
+- **Tests**: +2 (`overdueCountIgnoresSubtasksToAvoidInflatedConcern`,
+  `derivedExperienceCountsLogicalTasksNotSubtasks`). Probe JVM confirmó antes/después.
+  **392 domain tests PASS** (`tools/run_domain_tests.sh`), smoke 25 OK.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+

@@ -2897,4 +2897,18 @@ a un permiso persistente frágil y silencioso ante fallos.
   cotidianas aún no cubiertas); revisar interacción de `dayOfMonthPattern` con rango horario
   ("el 15 de 9 a 11") y con recurrencia mensual ("el 15 cada mes" — ya cubierto por `cada mes`).
 - Salir del parser y auditar What Now, captura, rutinas, recordatorios, detección de vencidas.
-- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+
+## Ciclo 46 - 2026-08-13 (UTC) - fix: GuardianEngine doble conteo de subtareas (mood/XP)
+
+- **Run/ciclo**: 46 (base remota `2ef4bfa` ciclo 45; rama `openhands/autonomous-ordia` actualizada sin divergencia).
+- **HEAD inicial**: `2ef4bfa` (origin/openhands/autonomous-ordia).
+- **Problema seleccionado**: `GuardianEngine` contaba subtareas como tareas lógicas en sus agregados de progreso — el mismo doble conteo que `SummaryEngine` tuvo y se fijó en ciclo 20. `completedAll`, `completedToday`, `overdue` y `derivedExperience(completedTasks)` no filtraban `parentTaskId == null`. Consecuencia: un padre con 4 subtareas vencidas disparaba mood CONCERNED + mensaje "Hay 5 pendientes atrasados" (realidad: 1 tarea lógica); un padre con 3 subtareas completadas daba XP 48 en vez de 12. El guardia mentía al usuario sobre su propio progreso y ánimo.
+- **Prioridad**: P1 (fiabilidad/datos: el guardia presenta información incorrecta sobre el estado del usuario).
+- **Causa raíz**: los conteos agregados del guardia no replicaron el filtro `parentTaskId == null` que ya usan `SummaryEngine`, `GuardianCoach`, `WhatNowEngine` y `DayPlanner` para representar "tareas lógicas".
+- **Solución (mínima, en `GuardianEngine.kt`)**: filtro `it.parentTaskId == null` en los 4 conteos (`completedAll`, `completedToday`, `overdue`, `derivedExperience.completedTasks`). Sin nueva pantalla, sin nueva interfaz — solo precisión.
+- **Tests**: +2 en `GuardianEngineTest.kt`: `overdueCountIgnoresSubtasksToAvoidInflatedConcern` (1 padre vencido+4 subtareas → mood≠CONCERNED, mensaje sin "5"), `derivedExperienceCountsLogicalTasksNotSubtasks` (1 padre+3 subtareas completadas → 12 XP, no 48). Probe JVM independiente confirmó antes (mood=CONCERNED, XP=48) y después (mood=CURIOUS, XP=12). **392 domain tests PASS** (`bash tools/run_domain_tests.sh`, 25 clases — 390 base + 2 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `GuardianEngine.kt`, `GuardianEngineTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+
+### Siguiente
+- Descubrimiento continuo: auditar `WhatNowEngine`, captura, recordatorios, detección de vencidas importantes, búsqueda universal.- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).

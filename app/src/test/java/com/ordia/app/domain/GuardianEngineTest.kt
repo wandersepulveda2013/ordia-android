@@ -7,6 +7,8 @@ import com.ordia.app.data.preferences.UserPreferences
 import java.time.Instant
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -149,5 +151,44 @@ class GuardianEngineTest {
         )
         assertEquals(2, result.dailyGoalsCompleted)
         assertEquals(3, result.dailyGoalsTotal)
+    }
+
+    @Test
+    fun overdueCountIgnoresSubtasksToAvoidInflatedConcern() {
+        val past = midday - 86_400_000L
+        val parent = TaskEntity(id = 1, title = "Padre", dueAt = past)
+        val subs = listOf(
+            TaskEntity(id = 2, title = "s1", parentTaskId = 1, dueAt = past),
+            TaskEntity(id = 3, title = "s2", parentTaskId = 1, dueAt = past),
+            TaskEntity(id = 4, title = "s3", parentTaskId = 1, dueAt = past),
+            TaskEntity(id = 5, title = "s4", parentTaskId = 1, dueAt = past)
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(parent) + subs,
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(),
+            nowMillis = midday, zoneId = zone
+        )
+        // 1 tarea logica vencida (<5) no debe disparar CONCERNED ni inflar el conteo.
+        assertNotEquals(GuardianEngine.Mood.CONCERNED, result.mood)
+        assertFalse(result.message.contains("5"))
+    }
+
+    @Test
+    fun derivedExperienceCountsLogicalTasksNotSubtasks() {
+        val doneParent = TaskEntity(id = 10, title = "Hecho", completed = true, completedAt = midday)
+        val doneSubs = listOf(
+            TaskEntity(id = 11, title = "ds1", parentTaskId = 10, completed = true, completedAt = midday),
+            TaskEntity(id = 12, title = "ds2", parentTaskId = 10, completed = true, completedAt = midday),
+            TaskEntity(id = 13, title = "ds3", parentTaskId = 10, completed = true, completedAt = midday)
+        )
+        val value = GuardianEngine.derivedExperience(
+            tasks = listOf(doneParent) + doneSubs,
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList()
+        )
+        // 1 tarea logica completada = 12 XP, no 48 por las subtareas.
+        assertEquals(12, value)
     }
 }
