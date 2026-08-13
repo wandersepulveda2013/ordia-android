@@ -3480,8 +3480,8 @@ a un permiso persistente frágil y silencioso ante fallos.
   - P1: `monthNamePattern` año `(?:\s+de\s+(\d{2,4}))?` → `(?:\s+del?\s+(\d{2,4}))?` (acepta "de" Y "del"; el mismo patrón se usa en el cleanup del título → consume "del 2027" completo sin residuo; cubre 2 dígitos "del 26").
 - **Tests**: +6 en `NaturalTaskParserTest.kt` (P0: `diaCeroDeMesNoCrashYDejaSinFecha`, `diaNoventaYNueveDeMesNoCrashYDejaSinFecha`, `diaCeroCeroDeMesNoCrashYDejaSinFecha`; P1: `mesNombreConDelAnioAgendaAnioCorrecto` → 2027-08-15 10:00, `mesNombreConDelAnioNoDejaResiduoEnTitulo`, `mesNombreConDelAnioDosDigitosAgendaCorrecto`). **528 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 522 c.69 + 6 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Probe JVM confirmó antes/después en todos los casos sin regresión (incl. "de 2027" original, "recordarme… del 2027", "renovar suscripción el 1 de enero del 2027", "el 31 de abril"→30 abr clamp, "el 29 de febrero de 2028"→bisiesto). **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real del parser en la app (sin Android SDK).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit+push).
-- **Estado**: FIXED → VERIFIED (dominio JVM); parser en app NO VERIFICADO (sin Android SDK).
+- **HEAD final**: `59c0cb6` (rebase sobre `9b801a8` + commit+push OK a `origin/openhands/autonomous-ordia`, fast-forward; remoto verificado == local).
+- **Estado**: FIXED → VERIFIED (dominio JVM, 528 tests); parser en app NO VERIFICADO (sin Android SDK).
 
 ### Siguiente
 - Parser: múltiples marcadores temporales en una frase (auditar interacciones acumuladas tras c.58–c.70).
