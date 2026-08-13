@@ -17,7 +17,7 @@
 - **Tests**: +3 formales (`aLasNHorasEsHoraNoDuracion`, `aLasNHorasConFechaNoEsDuracion`, `duranteConnectorBeforeCompactDurationIsRemoved`) en `NaturalTaskParserTest.kt`. **315 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Commits**: fix(parser): "a las N horas" como hora, no duración falsa (b959764 → 3c773b2 tras rebase sobre e4157c1 → b842e00 tras rebase sobre 9ac1a8b). Renumerado 35→36→37 al detectar colisión de numeración con runs paralelos ("un par de"=35, "mediados de semana"=36).
-- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+- **HEAD final**: 7fa4056 (push exitoso a openhands/autonomous-ordia tras 3 colisiones de remoto resueltas no destructivamente).
 
 ### Siguiente
 - Continuar ciclo interminable. Candidatos parser descubiertos en el probe (P2): rango horario sin palabra "horas" ("clase de 9 a 11" → sin duración); números escritos en recordatorios relativos ("recuérdame dos horas antes" → offset null).
