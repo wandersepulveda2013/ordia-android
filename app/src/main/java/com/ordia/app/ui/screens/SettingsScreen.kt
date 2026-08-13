@@ -26,10 +26,13 @@ import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -37,6 +40,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,6 +61,7 @@ import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.InfoBanner
 import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.ui.components.SectionHeader
+import com.ordia.app.update.UpdateResult
 import java.time.LocalDate
 
 @Composable
@@ -222,6 +228,9 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             }
         }
 
+        item { SectionHeader("Actualizaciones") }
+        item { UpdateSection(vm) }
+
         item { SectionHeader("Tus datos") }
         item {
             SettingsCard(Icons.Outlined.Backup, "Copia de seguridad") {
@@ -242,7 +251,43 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             }
         }
         item {
-            Text("Ordia 1.0 · Local primero · Sin cuenta obligatoria", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Ordia 3.0 · Local primero · Sin cuenta obligatoria", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun UpdateSection(vm: OrdiaViewModel) {
+    val updateState by vm.updateState.collectAsState()
+    val downloadProgress by (vm.downloadProgress?.collectAsState() ?: remember { mutableStateOf(0) })
+    val isDownloading by (vm.isDownloading?.collectAsState() ?: remember { mutableStateOf(false) })
+
+    LaunchedEffect(Unit) { vm.checkForUpdates() }
+
+    SettingsCard(Icons.Outlined.SystemUpdate, "Versión instalada: ${com.ordia.app.BuildConfig.VERSION_NAME}") {
+        when (val result = updateState) {
+            is UpdateResult.Checking -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                Text("Buscando actualizaciones…", style = MaterialTheme.typography.bodyMedium)
+            }
+            is UpdateResult.UpToDate -> Text("Tienes la última versión.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            is UpdateResult.Available -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Nueva versión disponible: ${result.versionName}", style = MaterialTheme.typography.bodyMedium)
+                Text(result.releaseNotes.take(300), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (isDownloading) {
+                    LinearProgressIndicator(progress = { downloadProgress / 100f }, modifier = Modifier.fillMaxWidth())
+                    Text("Descargando… $downloadProgress%", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Button(onClick = { vm.downloadAndInstallUpdate(result.apkDownloadUrl) }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Outlined.SystemUpdate, null)
+                        Text("Descargar e instalar", Modifier.padding(start = 8.dp))
+                    }
+                }
+            }
+            is UpdateResult.Error -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("No se pudo verificar: ${result.message}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                OutlinedButton(onClick = { vm.checkForUpdates() }, modifier = Modifier.fillMaxWidth()) { Text("Reintentar") }
+            }
         }
     }
 }

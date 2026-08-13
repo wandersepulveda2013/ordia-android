@@ -7,3 +7,6 @@
 
 # Keep enum names serialized by Room converters and backup files.
 -keepclassmembers enum com.ordia.app.data.local.** { *; }
+
+# Keep BuildConfig for update checker version comparison.
+-keep class com.ordia.app.BuildConfig { *; }

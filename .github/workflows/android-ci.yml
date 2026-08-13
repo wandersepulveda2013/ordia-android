@@ -238,18 +238,26 @@ jobs:
           test -f "$CHECKSUM" || { echo "Missing $CHECKSUM"; exit 1; }
           sha256sum --check "$CHECKSUM"
 
-          # Derive versionCode from APK via aapt (from SDK)
+          # Derive versionCode and versionName from APK via aapt2
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
           AAPT2=$(find "$SDK_ROOT/build-tools" -name aapt2 -type f 2>/dev/null | head -1)
-          if [ -n "$AAPT2" ]; then
-            echo "APK package info:"
-            "$AAPT2" dump packagename "$APK" 2>/dev/null || true
+          if [ -z "$AAPT2" ]; then
+            echo "aapt2 not found in Android SDK"; exit 1
           fi
 
-          # Create tag from run info
-          TAG="v3.0.0-build.${{ github.run_id }}"
-          TITLE="Ordia 3.0 · signed build ${{ github.run_id }}"
-          NOTES="APK firmada verificada de Ordia 3.0. Incluye atención contextual, guardianes, actualizador automático y más."
+          VERSION_CODE=$("$AAPT2" dump badging "$APK" 2>/dev/null | grep "package: name=" | sed -n 's/.*versionCode=\([0-9]*\).*/\1/p')
+          VERSION_NAME=$("$AAPT2" dump badging "$APK" 2>/dev/null | grep "package: name=" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")
+
+          if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
+            echo "Failed to extract version from APK"; exit 1
+          fi
+
+          echo "APK versionCode=$VERSION_CODE versionName=$VERSION_NAME"
+
+          # Tag follows v{versionName}-{versionCode} so the app can compare versionCode
+          TAG="v${VERSION_NAME}-${VERSION_CODE}"
+          TITLE="Ordia ${VERSION_NAME} · build ${VERSION_CODE}"
+          NOTES="APK firmada verificada de Ordia ${VERSION_NAME}. Incluye atención contextual, guardianes, actualizador automático y más."
 
           # Prevent overwriting existing release
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then

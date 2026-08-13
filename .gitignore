@@ -15,3 +15,4 @@ __pycache__/
 
 # Room schema (generated)
 app/schemas/
+.kotlin/

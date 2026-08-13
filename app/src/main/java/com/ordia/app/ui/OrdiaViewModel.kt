@@ -44,10 +44,15 @@ import com.ordia.app.domain.RecurrenceEngine
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.reminders.HabitReminderScheduler
 import com.ordia.app.reminders.ReminderScheduler
+import com.ordia.app.update.UpdateChecker
+import com.ordia.app.update.UpdateInstaller
+import com.ordia.app.update.UpdateResult
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -156,10 +161,18 @@ class OrdiaViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val reminderScheduler: ReminderScheduler,
     private val habitReminderScheduler: HabitReminderScheduler,
-    private val backupManager: BackupManager
+    private val backupManager: BackupManager,
+    private val updateChecker: UpdateChecker = UpdateChecker("wandersepulveda2013", "ordia-android"),
+    private val updateInstaller: UpdateInstaller? = null,
 ) : ViewModel() {
     private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
     val events = _events.asSharedFlow()
+
+    private val _updateState = MutableStateFlow<UpdateResult>(UpdateResult.Checking)
+    val updateState = _updateState.asStateFlow()
+
+    val downloadProgress = updateInstaller?.progress
+    val isDownloading = updateInstaller?.downloading
 
     private val core = combine(
         taskRepository.tasks,
@@ -601,6 +614,15 @@ class OrdiaViewModel(
     fun setAccentPalette(value: com.ordia.app.data.preferences.AccentPalette) = viewModelScope.launch { preferencesRepository.setAccentPalette(value) }
     fun setDarkMode(enabled: Boolean) = viewModelScope.launch { preferencesRepository.setDarkMode(enabled) }
 
+    fun checkForUpdates() = viewModelScope.launch {
+        _updateState.value = UpdateResult.Checking
+        _updateState.value = updateChecker.check()
+    }
+
+    fun downloadAndInstallUpdate(apkUrl: String) = viewModelScope.launch {
+        updateInstaller?.downloadAndInstall(apkUrl)
+    }
+
     private fun updateWidget() = OrdiaWidgetUpdater.updateAll(appContext)
 
     class Factory(
@@ -619,20 +641,24 @@ class OrdiaViewModel(
         private val backupManager: BackupManager
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = OrdiaViewModel(
-            context.applicationContext,
-            taskRepository,
-            projectRepository,
-            noteRepository,
-            habitRepository,
-            focusRepository,
-            routineRepository,
-            tagRepository,
-            attachmentRepository,
-            preferencesRepository,
-            reminderScheduler,
-            habitReminderScheduler,
-            backupManager
-        ) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            val appContext = context.applicationContext
+            return OrdiaViewModel(
+                appContext,
+                taskRepository,
+                projectRepository,
+                noteRepository,
+                habitRepository,
+                focusRepository,
+                routineRepository,
+                tagRepository,
+                attachmentRepository,
+                preferencesRepository,
+                reminderScheduler,
+                habitReminderScheduler,
+                backupManager,
+                updateInstaller = UpdateInstaller(appContext),
+            ) as T
+        }
     }
 }
