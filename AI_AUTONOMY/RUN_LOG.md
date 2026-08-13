@@ -14,8 +14,8 @@
 - **Tests**: +2 (`urgencyRanksOverdueAheadOfAlphabeticalMatches`: dos tareas mismo título, la atrasada+urgente primera; `textPrefixStillBeatsUrgencyForDifferentTitles`: proyecto "Toolisto" prefija y sigue ganando sobre tarea "Revisar Toolisto" urgente — preserva el invariant del test `search_coversAllCoreContent`). **408 domain tests PASS** (`bash tools/run_domain_tests.sh`; 406 base remota c.48 + 2 nuevos), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Render real de `SearchScreen`.
 - **Archivos modificados**: `SearchEngine.kt`, `SearchEngineTest.kt`, `CURRENT_STATE.md`, `RUN_LOG.md`.
-- **Commits**: `feat(search): ranking por urgencia ante orden alfabético` (push a `openhands/autonomous-ordia`).
-- **HEAD final**: (pendiente de push).
+- **Commits**: `feat(search): ranking por urgencia ante orden alfabético` → `bc4f45d` (push OK a `openhands/autonomous-ordia`; `4cb5f0f..bc4f45d`).
+- **HEAD final**: `bc4f45d`.
 - **Próxima prioridad**: fuera del parser. Candidatos: `SearchEngine` could surface a "vencidas" quick-filter chip; auditar `SummaryEngine`/`DayPlanner` para oportunidades de simplificación; detección de vencidas importantes; acciones rápidas de captura.
 
 ---
