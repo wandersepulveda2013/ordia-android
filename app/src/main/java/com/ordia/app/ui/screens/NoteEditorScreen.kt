@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.FormatQuote
 import androidx.compose.material.icons.outlined.HorizontalRule
 import androidx.compose.material.icons.outlined.Save
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Title
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -147,6 +148,19 @@ fun NoteEditorScreen(
             IconButton(onClick = { saveAndBack() }) { Icon(Icons.Outlined.ArrowBack, "Guardar y volver") }
             Text(if (dirty) "Cambios sin guardar" else "Guardado local", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
             IconButton(onClick = { attachFile() }) { Icon(Icons.Outlined.AttachFile, "Adjuntar archivo") }
+            IconButton(onClick = {
+                val plainText = buildString {
+                    append(title)
+                    append("\n\n")
+                    blocks.forEach { block -> append(block.text).append("\n") }
+                }
+                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, title)
+                    putExtra(Intent.EXTRA_TEXT, plainText)
+                }
+                context.startActivity(Intent.createChooser(sendIntent, "Compartir nota"))
+            }) { Icon(Icons.Outlined.Share, "Compartir nota") }
             TextButton(onClick = { existing?.let { vm.deleteNote(it); onBack() } }, enabled = existing != null) { Text("Archivar") }
             Button(onClick = { saveAndBack() }) {
                 Icon(Icons.Outlined.Save, null)

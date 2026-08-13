@@ -11,6 +11,7 @@ import com.ordia.app.data.local.HabitLogDao
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteDao
 import com.ordia.app.data.local.NoteEntity
+import com.ordia.app.data.local.OrdiaDatabase
 import com.ordia.app.data.local.ProjectDao
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.RoutineDao
@@ -23,9 +24,42 @@ import com.ordia.app.data.local.TaskDao
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskTagCrossRef
 import com.ordia.app.data.local.TaskTagDao
+import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.ConcurrentHashMap
 
-class TaskRepository(private val dao: TaskDao) {
+/**
+ * Serializa las mutaciones de una misma tarea para evitar carreras de
+ * borrado/actualización concurrentes dentro de corrutinas. Usa [Mutex] de
+ * kotlinx.coroutines (seguro para suspensiones).
+ *
+ * El bloqueo es por [taskId]: operaciones sobre tareas distintas pueden
+ * ejecutarse concurrentemente. El id `0L` agrupa todas las tareas nuevas
+ * (aún sin id) para evitar duplicados de creación en conflicto.
+ */
+object TaskMutationGate {
+    private val mutexes = ConcurrentHashMap<Long, Mutex>()
+    private val newTaskMutex = Mutex()
+
+    private fun mutexFor(taskId: Long): Mutex =
+        if (taskId <= 0L) newTaskMutex
+        else mutexes.getOrPut(taskId) { Mutex() }
+
+    suspend fun <T> withLock(taskId: Long, block: suspend () -> T): T =
+        mutexFor(taskId).withLock { block() }
+
+    /** Bloqueo global (p. ej. para borrado de subárbol, que toca varias tareas). */
+    private val globalMutex = Mutex()
+    suspend fun <T> withLock(block: suspend () -> T): T = globalMutex.withLock { block() }
+}
+
+class TaskRepository(
+    private val dao: TaskDao,
+    private val database: OrdiaDatabase,
+    private val attachmentDao: AttachmentDao
+) {
     val tasks: Flow<List<TaskEntity>> = dao.observeAll()
     val archived: Flow<List<TaskEntity>> = dao.observeArchived()
     suspend fun get(id: Long): TaskEntity? = dao.getById(id)
@@ -36,11 +70,94 @@ class TaskRepository(private val dao: TaskDao) {
     suspend fun delete(task: TaskEntity) = dao.delete(task)
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun restore(id: Long) = dao.restore(id)
-    suspend fun deletePermanently(id: Long) = dao.deleteById(id)
     suspend fun search(query: String): List<TaskEntity> = dao.search(query)
+
+    /** Reescribe el sortOrder de las subtareas de [parentId] según el orden de la lista dada. */
+    suspend fun reorderSubtasks(parentId: Long, orderedIds: List<Long>) {
+        database.withTransaction {
+            orderedIds.forEachIndexed { index, id -> dao.updateSortOrder(id, index) }
+        }
+    }
+
+    /**
+     * IDs del subárbol completo bajo [rootId] (incluye [rootId] y todos sus descendientes).
+     */
+    suspend fun subtreeIds(rootId: Long): List<Long> = dao.collectSubtreeIds(rootId)
+
+    /**
+     * Borra todo el subárbol de tareas bajo [rootId] (incluida la raíz) dentro de una transacción,
+     * limpiando también los attachments de tipo TASK asociados a esas tareas.
+     * Las referencias task_tag_cross_ref se eliminan automáticamente vía ForeignKey CASCADE.
+     * El cancelado de reminders (WorkManager) debe hacerlo el llamador, ya que el repositorio
+     * no tiene acceso al scheduler; recíbelo vía [reminderCancellation] para ejecutarlo fuera de la
+     * transacción de BD.
+     */
+    suspend fun deleteSubtreeAndSelf(
+        rootId: Long,
+        reminderCancellation: suspend (Long) -> Unit = {}
+    ): List<Long> {
+        val ids = dao.collectSubtreeIds(rootId)
+        if (ids.isEmpty()) return emptyList()
+        // Cancelar reminders fuera de la transacción de BD para no acoplar WorkManager a la Tx.
+        for (taskId in ids) reminderCancellation(taskId)
+        database.withTransaction {
+            attachmentDao.deleteForOwners(AttachmentOwnerType.TASK, ids)
+            dao.deleteByIds(ids)
+        }
+        return ids
+    }
+
+    /** Borrado permanente de una sola tarea (sin subárbol): mantiene el comportamiento legacy. */
+    suspend fun deletePermanently(id: Long) {
+        database.withTransaction {
+            attachmentDao.deleteForOwner(AttachmentOwnerType.TASK, id)
+            dao.deleteById(id)
+        }
+    }
+
+    /**
+     * Archiva todo el subárbol bajo [rootId] (incluida la raíz) dentro de una transacción.
+     * Evita dejar subtasks huérfanas (activas pero inaccesibles) y con reminders vivos.
+     * El cancelado de reminders debe hacerlo el llamador vía [reminderCancellation] (fuera de la Tx).
+     */
+    suspend fun archiveSubtreeAndSelf(
+        rootId: Long,
+        reminderCancellation: suspend (Long) -> Unit = {}
+    ): List<Long> {
+        val ids = dao.collectSubtreeIds(rootId)
+        if (ids.isEmpty()) return emptyList()
+        for (taskId in ids) reminderCancellation(taskId)
+        database.withTransaction { dao.archiveByIds(ids) }
+        return ids
+    }
+
+    /**
+     * Restaura todo el subárbol bajo [rootId] (incluida la raíz) dentro de una transacción.
+     * La (re)programación de reminders debe hacerla el llamador vía [reminderScheduler] (fuera de la Tx).
+     * Devuelve las tareas restauradas para que el llamador decida qué reminders reprogramar.
+     */
+    suspend fun restoreSubtreeAndSelf(
+        rootId: Long,
+        reminderScheduler: suspend (TaskEntity) -> Unit = {},
+        reminderCancellation: suspend (Long) -> Unit = {}
+    ): List<TaskEntity> {
+        val ids = dao.collectSubtreeIds(rootId)
+        if (ids.isEmpty()) return emptyList()
+        database.withTransaction { dao.restoreByIds(ids) }
+        val restored = dao.getAllNow().filter { it.id in ids }
+        for (task in restored) {
+            if (!task.completed && (task.reminderAt != null || task.dueAt != null)) reminderScheduler(task)
+            else reminderCancellation(task.id)
+        }
+        return restored
+    }
 }
 
-class ProjectRepository(private val dao: ProjectDao) {
+class ProjectRepository(
+    private val dao: ProjectDao,
+    private val database: OrdiaDatabase,
+    private val attachmentDao: AttachmentDao
+) {
     val projects: Flow<List<ProjectEntity>> = dao.observeActive()
     val archived: Flow<List<ProjectEntity>> = dao.observeArchived()
     suspend fun get(id: Long): ProjectEntity? = dao.getById(id)
@@ -49,11 +166,20 @@ class ProjectRepository(private val dao: ProjectDao) {
     suspend fun delete(project: ProjectEntity) = dao.delete(project)
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun restore(id: Long) = dao.restore(id)
-    suspend fun deletePermanently(id: Long) = dao.deleteById(id)
+    suspend fun deletePermanently(id: Long) {
+        database.withTransaction {
+            attachmentDao.deleteForOwner(AttachmentOwnerType.PROJECT, id)
+            dao.deleteById(id)
+        }
+    }
     suspend fun search(query: String): List<ProjectEntity> = dao.search(query)
 }
 
-class NoteRepository(private val dao: NoteDao) {
+class NoteRepository(
+    private val dao: NoteDao,
+    private val database: OrdiaDatabase,
+    private val attachmentDao: AttachmentDao
+) {
     val notes: Flow<List<NoteEntity>> = dao.observeAll()
     val archived: Flow<List<NoteEntity>> = dao.observeArchived()
     suspend fun get(id: Long): NoteEntity? = dao.getById(id)
@@ -62,7 +188,12 @@ class NoteRepository(private val dao: NoteDao) {
     suspend fun delete(note: NoteEntity) = dao.delete(note)
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun restore(id: Long) = dao.restore(id)
-    suspend fun deletePermanently(id: Long) = dao.deleteById(id)
+    suspend fun deletePermanently(id: Long) {
+        database.withTransaction {
+            attachmentDao.deleteForOwner(AttachmentOwnerType.NOTE, id)
+            dao.deleteById(id)
+        }
+    }
     suspend fun search(query: String): List<NoteEntity> = dao.search(query)
 }
 

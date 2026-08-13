@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.ordia.app.OrdiaApplication
+import com.ordia.app.data.repository.TaskMutationGate
 import com.ordia.app.domain.RecurrenceEngine
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import kotlinx.coroutines.CoroutineScope
@@ -24,10 +25,14 @@ class ReminderActionReceiver : BroadcastReceiver() {
                 val repo = app.container.taskRepository
                 val task = repo.get(taskId) ?: return@launch
                 when (intent.action) {
-                    ACTION_COMPLETE -> {
+                    ACTION_COMPLETE -> TaskMutationGate.withLock(task.id) {
+                        // Re-read inside the lock to avoid lost updates vs concurrent UI toggles.
+                        val current = repo.get(taskId) ?: return@withLock
+                        if (current.completed) return@withLock
                         val now = System.currentTimeMillis()
-                        repo.update(task.copy(completed = true, status = com.ordia.app.data.local.TaskStatus.COMPLETED, completedAt = now, updatedAt = now))
-                        RecurrenceEngine.nextOccurrence(task, now)?.let { next ->
+                        repo.update(current.copy(completed = true, status = com.ordia.app.data.local.TaskStatus.COMPLETED, completedAt = now, updatedAt = now))
+                        app.container.reminderScheduler.cancel(current.id)
+                        RecurrenceEngine.nextOccurrence(current, now)?.let { next ->
                             val newId = repo.add(next)
                             app.container.reminderScheduler.schedule(next.copy(id = newId))
                         }

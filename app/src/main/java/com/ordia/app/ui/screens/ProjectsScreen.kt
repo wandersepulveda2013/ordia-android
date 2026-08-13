@@ -1,12 +1,16 @@
 package com.ordia.app.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -51,9 +55,17 @@ fun ProjectsScreen(
         } else {
             items(state.projects, key = { it.id }) { project ->
                 val progress = state.projectProgress(project.id)
+                val taskCount = state.rootTasks.count { it.projectId == project.id && !it.archived }
                 Card(onClick = { onProject(project.id) }) {
                     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                Modifier.size(14.dp).background(
+                                    runCatching { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(project.colorHex)) }.getOrDefault(MaterialTheme.colorScheme.secondary),
+                                    androidx.compose.foundation.shape.CircleShape
+                                )
+                            )
+                            Spacer(Modifier.size(10.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(project.name, style = MaterialTheme.typography.titleLarge)
                                 Text(project.description.ifBlank { project.status.name.lowercase().replaceFirstChar { it.uppercase() } }, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -61,7 +73,10 @@ fun ProjectsScreen(
                             IconButton(onClick = { onProject(project.id) }) { Icon(Icons.Outlined.ArrowForward, "Abrir proyecto") }
                         }
                         LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
-                        Text("${(progress * 100).toInt()}% completado", style = MaterialTheme.typography.labelMedium)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("${(progress * 100).toInt()}% completado", style = MaterialTheme.typography.labelMedium)
+                            Text("$taskCount tareas", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }

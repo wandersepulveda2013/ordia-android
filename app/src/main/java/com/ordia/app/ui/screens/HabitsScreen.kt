@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -74,8 +76,28 @@ fun HabitsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Paddin
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text(habit.title, style = MaterialTheme.typography.titleLarge)
-                                Text(habit.details.ifBlank { "Meta: ${habit.targetPerPeriod}" }, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(habit.title, style = MaterialTheme.typography.titleLarge)
+                                    val streak = state.habitStreak(habit)
+                                    if (streak >= 3) {
+                                        androidx.compose.material3.AssistChip(
+                                            onClick = {},
+                                            label = { Text("🔥 $streak", style = MaterialTheme.typography.labelSmall) },
+                                            colors = androidx.compose.material3.AssistChipDefaults.assistChipColors(
+                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                                labelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                        )
+                                    }
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(habit.details.ifBlank { "Meta: ${habit.targetPerPeriod}" }, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    if (habit.reminderMinutes != null) {
+                                        Text("·", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Icon(Icons.Outlined.Notifications, "Recordatorio", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("%02d:%02d".format(habit.reminderMinutes / 60, habit.reminderMinutes % 60), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
                             }
                             IconButton(onClick = { editingHabit = habit; showHabitDialog = true }) { Icon(Icons.Outlined.Edit, "Editar hábito") }
                             IconButton(onClick = { vm.deleteHabit(habit) }) { Icon(Icons.Outlined.DeleteOutline, "Eliminar hábito") }

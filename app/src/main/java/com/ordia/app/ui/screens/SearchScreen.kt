@@ -26,6 +26,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.ordia.app.domain.SearchEngine
 import com.ordia.app.domain.SearchKind
@@ -76,8 +80,8 @@ fun SearchScreen(
                             contentDescription = null
                         )
                         Column(Modifier.weight(1f)) {
-                            Text(result.title, style = MaterialTheme.typography.titleMedium)
-                            if (result.subtitle.isNotBlank()) Text(result.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(highlightedTitle(result.title, query), style = MaterialTheme.typography.titleMedium)
+                            if (result.subtitle.isNotBlank()) Text(highlightedTitle(result.subtitle, query), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Text(result.kind.label(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
                     }
@@ -92,4 +96,26 @@ private fun SearchKind.label() = when (this) {
     SearchKind.PROJECT -> "PROYECTO"
     SearchKind.NOTE -> "NOTA"
     SearchKind.HABIT -> "HÁBITO"
+}
+
+@Composable
+private fun highlightedTitle(text: String, query: String): AnnotatedString {
+    if (query.isBlank()) return AnnotatedString(text)
+    val highlightColor = MaterialTheme.colorScheme.secondary
+    val onHighlightColor = MaterialTheme.colorScheme.onSecondary
+    return buildAnnotatedString {
+        var startIndex = 0
+        while (true) {
+            val match = text.indexOf(query, startIndex, ignoreCase = true)
+            if (match < 0) {
+                append(text.substring(startIndex))
+                break
+            }
+            append(text.substring(startIndex, match))
+            withStyle(SpanStyle(background = highlightColor, color = onHighlightColor)) {
+                append(text.substring(match, match + query.length))
+            }
+            startIndex = match + query.length
+        }
+    }
 }

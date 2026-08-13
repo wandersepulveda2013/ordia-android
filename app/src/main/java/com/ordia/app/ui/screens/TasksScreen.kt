@@ -38,6 +38,8 @@ fun TasksScreen(
 ) {
     var filter by remember { mutableStateOf(TaskFilter.PENDING) }
     var query by remember { mutableStateOf("") }
+    var selectedProject by remember { mutableStateOf<Long?>(null) }
+    var selectedTag by remember { mutableStateOf<Long?>(null) }
     var adding by remember { mutableStateOf(false) }
     if (adding) TaskEditorDialog(
         projects = state.projects,
@@ -48,14 +50,18 @@ fun TasksScreen(
     )
     val now = System.currentTimeMillis()
     val shown = state.rootTasks.filter { task ->
-        !task.archived && task.title.contains(query, ignoreCase = true) && when (filter) {
-            TaskFilter.PENDING -> !task.completed
-            TaskFilter.TODAY -> TaskRules.isDueToday(task)
-            TaskFilter.UPCOMING -> !task.completed && task.dueAt?.let { it > now && !TaskRules.isDueToday(task) } == true
-            TaskFilter.FLAGGED -> !task.completed && task.flagged
-            TaskFilter.COMPLETED -> task.completed
-            TaskFilter.ALL -> true
-        }
+        !task.archived &&
+            task.title.contains(query, ignoreCase = true) &&
+            (selectedProject == null || task.projectId == selectedProject) &&
+            (selectedTag == null || state.tagsForTask(task.id).any { it.id == selectedTag }) &&
+            when (filter) {
+                TaskFilter.PENDING -> !task.completed
+                TaskFilter.TODAY -> TaskRules.isDueToday(task)
+                TaskFilter.UPCOMING -> !task.completed && task.dueAt?.let { it > now && !TaskRules.isDueToday(task) } == true
+                TaskFilter.FLAGGED -> !task.completed && task.flagged
+                TaskFilter.COMPLETED -> task.completed
+                TaskFilter.ALL -> true
+            }
     }
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -67,6 +73,34 @@ fun TasksScreen(
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(TaskFilter.entries) { value -> FilterChip(selected = filter == value, onClick = { filter = value }, label = { Text(value.label) }) }
+            }
+        }
+        if (state.projects.isNotEmpty()) {
+            item {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item { FilterChip(selected = selectedProject == null, onClick = { selectedProject = null }, label = { Text("Todos los proyectos") }) }
+                    items(state.projects, key = { it.id }) { project ->
+                        FilterChip(
+                            selected = selectedProject == project.id,
+                            onClick = { selectedProject = if (selectedProject == project.id) null else project.id },
+                            label = { Text(project.name) }
+                        )
+                    }
+                }
+            }
+        }
+        if (state.tags.isNotEmpty()) {
+            item {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item { FilterChip(selected = selectedTag == null, onClick = { selectedTag = null }, label = { Text("Sin etiqueta") }) }
+                    items(state.tags, key = { it.id }) { tag ->
+                        FilterChip(
+                            selected = selectedTag == tag.id,
+                            onClick = { selectedTag = if (selectedTag == tag.id) null else tag.id },
+                            label = { Text(tag.name) }
+                        )
+                    }
+                }
             }
         }
         if (shown.isEmpty()) {

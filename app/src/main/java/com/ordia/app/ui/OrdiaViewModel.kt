@@ -32,6 +32,7 @@ import com.ordia.app.data.repository.ProjectRepository
 import com.ordia.app.data.repository.RoutineRepository
 import com.ordia.app.data.repository.TagRepository
 import com.ordia.app.data.repository.TaskRepository
+import com.ordia.app.data.repository.TaskMutationGate
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayPlanner
 import com.ordia.app.domain.GuardianCoach
@@ -41,6 +42,7 @@ import com.ordia.app.domain.NoteBlockCodec
 import com.ordia.app.domain.NaturalTaskParser
 import com.ordia.app.domain.RecurrenceEngine
 import com.ordia.app.domain.TaskRules
+import com.ordia.app.reminders.HabitReminderScheduler
 import com.ordia.app.reminders.ReminderScheduler
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -153,6 +155,7 @@ class OrdiaViewModel(
     private val attachmentRepository: AttachmentRepository,
     private val preferencesRepository: PreferencesRepository,
     private val reminderScheduler: ReminderScheduler,
+    private val habitReminderScheduler: HabitReminderScheduler,
     private val backupManager: BackupManager
 ) : ViewModel() {
     private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
@@ -217,31 +220,33 @@ class OrdiaViewModel(
         val clean = task.title.trim()
         if (clean.isBlank()) return
         viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            val normalized = task.copy(
-                title = clean,
-                details = task.details.trim(),
-                status = when {
-                    task.completed -> TaskStatus.COMPLETED
-                    task.status == TaskStatus.INBOX && task.dueAt != null -> TaskStatus.PLANNED
-                    else -> task.status
-                },
-                updatedAt = now
-            )
-            val id = if (normalized.id == 0L) taskRepository.add(normalized.copy(createdAt = now)) else {
-                taskRepository.update(normalized)
-                normalized.id
-            }
-            if (normalized.reminderAt != null || normalized.dueAt != null) reminderScheduler.schedule(normalized.copy(id = id)) else reminderScheduler.cancel(id)
-            uiState.value.tags.forEach { tag ->
-                val currentlyLinked = uiState.value.taskTags.any { it.taskId == id && it.tagId == tag.id }
-                when {
-                    tag.id in tagIds && !currentlyLinked -> tagRepository.link(id, tag.id)
-                    tag.id !in tagIds && currentlyLinked -> tagRepository.unlink(id, tag.id)
+            TaskMutationGate.withLock(task.id) {
+                val now = System.currentTimeMillis()
+                val normalized = task.copy(
+                    title = clean,
+                    details = task.details.trim(),
+                    status = when {
+                        task.completed -> TaskStatus.COMPLETED
+                        task.status == TaskStatus.INBOX && task.dueAt != null -> TaskStatus.PLANNED
+                        else -> task.status
+                    },
+                    updatedAt = now
+                )
+                val id = if (normalized.id == 0L) taskRepository.add(normalized.copy(createdAt = now)) else {
+                    taskRepository.update(normalized)
+                    normalized.id
                 }
+                if (normalized.reminderAt != null || normalized.dueAt != null) reminderScheduler.schedule(normalized.copy(id = id)) else reminderScheduler.cancel(id)
+                uiState.value.tags.forEach { tag ->
+                    val currentlyLinked = uiState.value.taskTags.any { it.taskId == id && it.tagId == tag.id }
+                    when {
+                        tag.id in tagIds && !currentlyLinked -> tagRepository.link(id, tag.id)
+                        tag.id !in tagIds && currentlyLinked -> tagRepository.unlink(id, tag.id)
+                    }
+                }
+                updateWidget()
+                _events.emit(UiEvent.TaskSaved(id))
             }
-            updateWidget()
-            _events.emit(UiEvent.TaskSaved(id))
         }
     }
 
@@ -271,33 +276,36 @@ class OrdiaViewModel(
 
     fun toggleTask(task: TaskEntity) {
         viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            val completing = !task.completed
-            taskRepository.update(
-                task.copy(
-                    completed = completing,
-                    status = if (completing) TaskStatus.COMPLETED else if (task.dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED,
-                    completedAt = if (completing) now else null,
-                    updatedAt = now
+            TaskMutationGate.withLock(task.id) {
+                val now = System.currentTimeMillis()
+                val completing = !task.completed
+                taskRepository.update(
+                    task.copy(
+                        completed = completing,
+                        status = if (completing) TaskStatus.COMPLETED else if (task.dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED,
+                        completedAt = if (completing) now else null,
+                        updatedAt = now
+                    )
                 )
-            )
-            if (completing) {
-                reminderScheduler.cancel(task.id)
-                RecurrenceEngine.nextOccurrence(task, now)?.let { next ->
-                    val nextId = taskRepository.add(next)
-                    reminderScheduler.schedule(next.copy(id = nextId))
+                if (completing) {
+                    reminderScheduler.cancel(task.id)
+                    RecurrenceEngine.nextOccurrence(task, now)?.let { next ->
+                        val nextId = taskRepository.add(next)
+                        reminderScheduler.schedule(next.copy(id = nextId))
+                    }
+                } else {
+                    reminderScheduler.schedule(task)
                 }
-            } else {
-                reminderScheduler.schedule(task)
+                updateWidget()
             }
-            updateWidget()
         }
     }
 
     fun deleteTask(task: TaskEntity) {
         viewModelScope.launch {
-            reminderScheduler.cancel(task.id)
-            taskRepository.archive(task.id)
+            TaskMutationGate.withLock {
+                taskRepository.archiveSubtreeAndSelf(task.id) { taskId -> reminderScheduler.cancel(taskId) }
+            }
             updateWidget()
             _events.emit(UiEvent.Message("Tarea movida al archivo."))
         }
@@ -319,6 +327,17 @@ class OrdiaViewModel(
             uiState.value.tagsForTask(task.id).forEach { tagRepository.link(id, it.id) }
             if (copy.reminderAt != null || copy.dueAt != null) reminderScheduler.schedule(copy.copy(id = id))
             updateWidget()
+        }
+    }
+
+    fun moveSubtask(parentId: Long, fromIndex: Int, toIndex: Int) {
+        if (fromIndex == toIndex) return
+        viewModelScope.launch {
+            val ordered = uiState.value.subtasks(parentId).toMutableList()
+            if (fromIndex !in ordered.indices || toIndex !in ordered.indices) return@launch
+            val moved = ordered.removeAt(fromIndex)
+            ordered.add(toIndex, moved)
+            taskRepository.reorderSubtasks(parentId, ordered.map { it.id })
         }
     }
 
@@ -385,8 +404,14 @@ class OrdiaViewModel(
         if (clean.isBlank()) return
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            if (habit.id == 0L) habitRepository.add(habit.copy(title = clean, createdAt = now, updatedAt = now))
-            else habitRepository.update(habit.copy(title = clean, updatedAt = now))
+            if (habit.id == 0L) {
+                val id = habitRepository.add(habit.copy(title = clean, createdAt = now, updatedAt = now))
+                if (habit.reminderMinutes != null) habitReminderScheduler.schedule(habit.copy(id = id))
+            } else {
+                habitRepository.update(habit.copy(title = clean, updatedAt = now))
+                if (habit.reminderMinutes != null && !habit.archived) habitReminderScheduler.schedule(habit)
+                else habitReminderScheduler.cancel(habit.id)
+            }
         }
     }
 
@@ -399,6 +424,7 @@ class OrdiaViewModel(
     }
 
     fun deleteHabit(habit: HabitEntity) = viewModelScope.launch {
+        habitReminderScheduler.cancel(habit.id)
         habitRepository.archive(habit.id)
         _events.emit(UiEvent.Message("Hábito movido al archivo."))
     }
@@ -449,10 +475,21 @@ class OrdiaViewModel(
 
     fun restoreArchived(kind: String, id: Long) = viewModelScope.launch {
         when (kind) {
-            "task" -> taskRepository.restore(id)
+            "task" -> TaskMutationGate.withLock {
+                taskRepository.restoreSubtreeAndSelf(
+                    id,
+                    reminderScheduler = { task -> reminderScheduler.schedule(task) },
+                    reminderCancellation = { taskId -> reminderScheduler.cancel(taskId) }
+                )
+            }
             "project" -> projectRepository.restore(id)
             "note" -> noteRepository.restore(id)
-            "habit" -> habitRepository.restore(id)
+            "habit" -> {
+                habitRepository.restore(id)
+                habitRepository.get(id)?.let { habit ->
+                    if (habit.reminderMinutes != null) habitReminderScheduler.schedule(habit)
+                }
+            }
             "routine" -> routineRepository.restore(id)
         }
         updateWidget()
@@ -461,10 +498,17 @@ class OrdiaViewModel(
 
     fun deleteArchivedPermanently(kind: String, id: Long) = viewModelScope.launch {
         when (kind) {
-            "task" -> { reminderScheduler.cancel(id); taskRepository.deletePermanently(id) }
+            "task" -> {
+                TaskMutationGate.withLock {
+                    taskRepository.deleteSubtreeAndSelf(id) { taskId -> reminderScheduler.cancel(taskId) }
+                }
+            }
             "project" -> projectRepository.deletePermanently(id)
             "note" -> noteRepository.deletePermanently(id)
-            "habit" -> habitRepository.deletePermanently(id)
+            "habit" -> {
+                habitReminderScheduler.cancel(id)
+                habitRepository.deletePermanently(id)
+            }
             "routine" -> routineRepository.deletePermanently(id)
         }
         updateWidget()
@@ -524,7 +568,22 @@ class OrdiaViewModel(
     }
 
     fun importBackup(raw: String) = viewModelScope.launch {
-        val result = backupManager.importJson(raw)
+        // Limpiar reminders previos (orphan work de tareas y hábitos que el backup va a reemplazar/borrar).
+        reminderScheduler.cancelAll()
+        habitReminderScheduler.cancelAll()
+        val result = backupManager.importJson(raw) { tasks ->
+            tasks.forEach { task ->
+                if (!task.completed && (task.reminderAt != null || task.dueAt != null)) {
+                    reminderScheduler.schedule(task)
+                } else {
+                    reminderScheduler.cancel(task.id)
+                }
+            }
+        }
+        // Reprogramar recordatorios de hábitos restaurados.
+        uiState.value.habits.forEach { habit ->
+            if (!habit.archived && habit.reminderMinutes != null) habitReminderScheduler.schedule(habit)
+        }
         _events.emit(UiEvent.Message(result.message))
         updateWidget()
     }
@@ -539,6 +598,7 @@ class OrdiaViewModel(
     fun setDefaultFocusMinutes(value: Int) = viewModelScope.launch { preferencesRepository.setDefaultFocusMinutes(value) }
     fun setReduceMotion(value: Boolean) = viewModelScope.launch { preferencesRepository.setReduceMotion(value) }
     fun setCompactNavigation(value: Boolean) = viewModelScope.launch { preferencesRepository.setCompactNavigation(value) }
+    fun setAccentPalette(value: com.ordia.app.data.preferences.AccentPalette) = viewModelScope.launch { preferencesRepository.setAccentPalette(value) }
     fun setDarkMode(enabled: Boolean) = viewModelScope.launch { preferencesRepository.setDarkMode(enabled) }
 
     private fun updateWidget() = OrdiaWidgetUpdater.updateAll(appContext)
@@ -555,6 +615,7 @@ class OrdiaViewModel(
         private val attachmentRepository: AttachmentRepository,
         private val preferencesRepository: PreferencesRepository,
         private val reminderScheduler: ReminderScheduler,
+        private val habitReminderScheduler: HabitReminderScheduler,
         private val backupManager: BackupManager
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
@@ -570,6 +631,7 @@ class OrdiaViewModel(
             attachmentRepository,
             preferencesRepository,
             reminderScheduler,
+            habitReminderScheduler,
             backupManager
         ) as T
     }

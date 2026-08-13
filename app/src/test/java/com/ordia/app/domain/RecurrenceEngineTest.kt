@@ -33,4 +33,20 @@ class RecurrenceEngineTest {
         val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(next.dueAt!!, zone))
     }
+
+    // Characterization test: a recurring task with a reminder but no due date currently
+    // drops the reminder on the next occurrence (reminderOffset is null when dueAt is null).
+    @Test fun daily_reminderWithoutDue_dropsReminderOnNextOccurrence() {
+        val reminderAt = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Recordatorio diario",
+            dueAt = null,
+            reminderAt = reminderAt,
+            recurrence = RecurrenceFrequency.DAILY
+        )
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = reminderAt, zone = zone))
+        // The next occurrence gains a dueAt (derived from completedAt), but loses the reminder.
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertNull("reminderAt is dropped when the original task had no dueAt", next.reminderAt)
+    }
 }

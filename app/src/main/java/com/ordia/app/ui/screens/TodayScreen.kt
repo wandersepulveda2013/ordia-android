@@ -1,6 +1,8 @@
 package com.ordia.app.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -8,12 +10,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -32,6 +36,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.preferences.InterfaceMode
@@ -113,10 +120,14 @@ fun TodayScreen(
             }
         }
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatCard("Hoy", state.todayTasks.size.toString(), "programadas", Modifier.weight(1f))
-                StatCard("Atrasadas", state.overdueTasks.size.toString(), "requieren atención", Modifier.weight(1f))
-                StatCard("Enfoque", "${state.focusMinutesThisWeek}m", "esta semana", Modifier.weight(1f))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                val doneToday = state.todayTasks.count { it.completed }
+                val totalToday = state.todayTasks.size
+                DayProgressRing(progress = if (totalToday == 0) 0f else doneToday.toFloat() / totalToday, modifier = Modifier.size(92.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatCard("Atrasadas", state.overdueTasks.size.toString(), "requieren atención", Modifier.fillMaxWidth())
+                    StatCard("Enfoque", "${state.focusMinutesThisWeek}m", "esta semana", Modifier.fillMaxWidth())
+                }
             }
         }
         item {
@@ -124,18 +135,26 @@ fun TodayScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
-                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        quickText,
-                        { quickText = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("Ej.: Llamar mañana a las 9 !alta") },
-                        singleLine = true
-                    )
-                    IconButton(
-                        onClick = { vm.addSmartTask(quickText); quickText = "" },
-                        enabled = quickText.isNotBlank()
-                    ) { Icon(Icons.Outlined.Add, "Añadir a la bandeja") }
+                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            quickText,
+                            { quickText = it },
+                            modifier = Modifier.weight(1f),
+                            placeholder = { Text("Ej.: Llamar mañana a las 9 !alta") },
+                            singleLine = true
+                        )
+                        IconButton(
+                            onClick = { vm.addSmartTask(quickText); quickText = "" },
+                            enabled = quickText.isNotBlank()
+                        ) { Icon(Icons.Outlined.Add, "Añadir a la bandeja") }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        QuickDateChip("Hoy") { vm.addSmartTask("$quickText hoy"); quickText = "" }
+                        QuickDateChip("Mañana") { vm.addSmartTask("$quickText mañana"); quickText = "" }
+                        QuickDateChip("Semana") { vm.addSmartTask("$quickText este finde"); quickText = "" }
+                        QuickDateChip("Bandeja") { vm.addSmartTask(quickText); quickText = "" }
+                    }
                 }
             }
         }
@@ -216,4 +235,39 @@ private fun greeting(): String = when (java.time.LocalTime.now().hour) {
     in 5..11 -> "Buenos días"
     in 12..18 -> "Buenas tardes"
     else -> "Buenas noches"
+}
+
+@Composable
+private fun DayProgressRing(progress: Float, modifier: Modifier = Modifier) {
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    val progressColor = MaterialTheme.colorScheme.secondary
+    val label = "${(progress * 100).toInt()}%"
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val stroke = this.size.minDimension * 0.12f
+            val diameter = this.size.minDimension - stroke
+            val topLeft = Offset((this.size.width - diameter) / 2f, (this.size.height - diameter) / 2f)
+            val arcSize = Size(diameter, diameter)
+            drawArc(trackColor, 0f, 360f, false, topLeft, arcSize, style = Stroke(stroke))
+            drawArc(
+                progressColor,
+                -90f,
+                360f * progress.coerceIn(0f, 1f),
+                false,
+                topLeft,
+                arcSize,
+                style = Stroke(stroke)
+            )
+        }
+        Text(label, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.secondary)
+    }
+}
+
+@Composable
+private fun QuickDateChip(label: String, onClick: () -> Unit) {
+    androidx.compose.material3.AssistChip(
+        onClick = onClick,
+        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+        leadingIcon = { Icon(Icons.Outlined.Schedule, null, Modifier.size(14.dp)) }
+    )
 }

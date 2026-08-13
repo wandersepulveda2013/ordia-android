@@ -12,20 +12,22 @@ import com.ordia.app.data.repository.ProjectRepository
 import com.ordia.app.data.repository.RoutineRepository
 import com.ordia.app.data.repository.TagRepository
 import com.ordia.app.data.repository.TaskRepository
+import com.ordia.app.reminders.HabitReminderScheduler
 import com.ordia.app.reminders.ReminderScheduler
 
 class AppContainer(context: Context) {
     val database: OrdiaDatabase = OrdiaDatabase.getInstance(context)
 
     val preferencesRepository = PreferencesRepository(context)
-    val taskRepository = TaskRepository(database.taskDao())
-    val projectRepository = ProjectRepository(database.projectDao())
-    val noteRepository = NoteRepository(database.noteDao())
+    val taskRepository = TaskRepository(database.taskDao(), database, database.attachmentDao())
+    val projectRepository = ProjectRepository(database.projectDao(), database, database.attachmentDao())
+    val noteRepository = NoteRepository(database.noteDao(), database, database.attachmentDao())
     val habitRepository = HabitRepository(database.habitDao(), database.habitLogDao())
     val focusRepository = FocusRepository(database.focusSessionDao())
     val routineRepository = RoutineRepository(database.routineDao(), database.routineStepDao())
     val tagRepository = TagRepository(database.tagDao(), database.taskTagDao())
     val attachmentRepository = AttachmentRepository(database.attachmentDao())
     val reminderScheduler = ReminderScheduler(context)
+    val habitReminderScheduler = HabitReminderScheduler(context)
     val backupManager = BackupManager(database)
 }
