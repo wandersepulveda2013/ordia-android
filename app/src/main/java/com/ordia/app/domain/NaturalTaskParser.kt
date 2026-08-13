@@ -559,7 +559,14 @@ object NaturalTaskParser {
             Regex("""(?i)\banteayer\b|\bantier\b""").containsMatchIn(working) -> base.toLocalDate().minusDays(2)
             Regex("""(?i)\bayer\b""").containsMatchIn(working) -> base.toLocalDate().minusDays(1)
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
-            Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
+            // "mañana" como fecha (el día de mañana) sólo si NO forma parte de un
+            // marcador de parte del día ("de la mañana", "por la mañana", "a la
+            // mañana"). Antes, "Reunión a las 9 de la mañana" se fechaba en MAÑANA
+            // por la mera coincidencia de la palabra "mañana", programando para
+            // mañana una reunión de hoy (P1: tarea en día erróneo, reunión perdida
+            // el mismo día). Se buscan todas las apariciones y basta con que una
+            // sea un token de fecha suelto.
+            mananaAsDate(working) -> base.toLocalDate().plusDays(1)
             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
             // "el jueves pasado" / "el último lunes" / "el martes anterior": última
             // ocurrencia pasada de ese día. Tarea vencida honesta (What Now la muestra
@@ -933,6 +940,24 @@ object NaturalTaskParser {
     private fun String.toDayOfWeek(): DayOfWeek = weekdays[this.lowercase()] ?: DayOfWeek.MONDAY
 
     private fun String.toDayOfWeekOrNull(): DayOfWeek? = weekdays[this.lowercase()]
+
+    /**
+     * ¿Aparece "mañana" como token de FECHA (el día de mañana) y no sólo como parte
+     * de un marcador de parte del día ("de/por/a la mañana")? Recorre todas las
+     * apariciones: basta con una suelta para contar como fecha. Así "mañana por la
+     * mañana" (primer "mañana" = fecha) sigue siendo mañana, mientras que
+     * "a las 9 de la mañana" (única aparición precedida de "la ") no se fecha.
+     */
+    private fun mananaAsDate(working: String): Boolean {
+        val timeMarker = Regex("""(?i)(?:de|por|a)\s+la\s+$|\besta\s+$""")
+        var idx = 0
+        while (true) {
+            val m = Regex("""(?i)\bmañana\b""").find(working, idx) ?: return false
+            val prefix = working.substring(0, m.range.first)
+            if (!timeMarker.containsMatchIn(prefix)) return true
+            idx = m.range.last + 1
+        }
+    }
 
     private fun Int.toDayOfWeekOrNull(): DayOfWeek? =
         if (this in 1..7) DayOfWeek.of(this) else null

@@ -2649,3 +2649,30 @@ a un permiso persistente frágil y silencioso ante fallos.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero; URIs ya inválidos).
 - Descubrimiento continuo: auditar recuperación de tareas olvidadas, detección de vencidas importantes, replanificación automática.
 - Nota operativa: `GITHUB_TOKEN` ausente en este entorno; usar `github_token` para push.
+
+## Ciclo 39 - 2026-08-13 (UTC) - fix: "de la mañana"/"por la mañana" NO es fecha "mañana"
+
+- **Run/ciclo**: 39
+- **HEAD inicial**: e4157c1 (ciclo 35). Base obsoleta tras dos rebases sucesivos: otro run commiteó ciclos 36/37 + 3 commits ("a las N horas", fechas imposibles, "hace N"/"la semana/el mes pasado", "a finales de semana") y luego el ciclo 38 ("fechas pasadas" + recuperación fechas imposibles). Rebase no destructivo sobre `8451597` (HEAD remoto). Auto-merge limpio en `NaturalTaskParser.kt` + test; conflictos solo en docs (CURRENT_STATE/RUN_LOG), resueltos conservando el trabajo del otro run y renumerando el mío a ciclo 39. Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
+- **Problema seleccionado**: `NaturalTaskParser` fechaba en MAÑANA tareas que usaban "de la mañana"/"por la mañana" como marcador de **hora** (parte del día), porque la palabra "mañana" colisionaba con el token de **fecha** "mañana". Ejemplos reales afectados:
+  - "Reunión a las 9 de la mañana" → se programaba para MAÑANA 09:00 (reunión perdida HOY).
+  - "Llamar a mamá por la mañana" → MAÑANA 09:00 en vez de HOY 09:00.
+  - "Desayuno a las 8 de la mañana" → MAÑANA 08:00.
+  La ambigüedad léxica "mañana" (fecha) vs "mañana" (parte del día) no se resolvía: el branch de fecha hacía match con la mera presencia de la palabra.
+- **Prioridad**: P1 (tarea en día erróneo → reunión/recordatorio perdido el mismo día; corrige captura, evita olvidos).
+- **Causa raíz**: en la rama de fecha, `Regex("""(?i)\bmañana\b""").containsMatchIn(working)` matcheaba cualquier aparición de "mañana", incluida la que forma parte de "de la mañana"/"por la mañana"/"a la mañana"/"esta mañana". Estos marcadores de hora se procesaban luego (hora canónica 09:00), pero la fecha ya había saltado a +1d.
+- **Solución (mínima, en `NaturalTaskParser.kt`)**:
+  - Reemplazada la rama `\bmañana\b` por `mananaAsDate(working)`: recorre todas las apariciones de "mañana" y devuelve `true` (fecha = mañana) sólo si **al menos una** NO está precedida por un marcador de parte del día (`de la ` / `por la ` / `a la ` / `esta `).
+  - Así "Reunión a las 9 de la mañana" (única aparición, precedida por "de la ") → NO es fecha → se queda en HOY. "Hacer X mañana por la mañana" (primera aparición suelta) → Sí fecha → mañana. "mañana a las 9" → mañana.
+  - `pasado mañana` se sigue resolviendo ANTES (rama previa, sin cambios), así que no hay regresión.
+- **Tests**: +3 regresión (`deLaMananaWithoutDateStaysToday`, `porLaMananaWithoutDateStaysToday`, `mananaPorLaMananaStillResolvesTomorrow`). **336 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases (319 base remota + 3 nuevos). Smoke 25 OK.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+- **Commits**: fix(parser): "de/por/a la mañana" (hora) no colisiona con fecha "mañana". docs(autonomy): este registro.
+- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+
+### Siguiente
+- Continuar descubrimiento continuo (no solo parser): auditar What Now, rutinas, captura, recordatorios, detección de vencidas.
+- Parser candidatos: "próxima quincena" (+15d), manejo robusto de múltiples marcadores temporales en una frase.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero; URIs ya inválidos).
+- Nota operativa: `GITHUB_TOKEN` ausente en este entorno; usar `github_token` para push.
+

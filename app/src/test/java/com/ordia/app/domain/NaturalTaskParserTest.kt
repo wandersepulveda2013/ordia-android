@@ -603,6 +603,28 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- Regresión BUG: "de la mañana"/"por la mañana" como marcador de hora NO
+    //     debe interpretarse como la fecha "mañana" (antes "Reunión a las 9 de la
+    //     mañana" se programaba para MAÑANA en vez de HOY → reunión perdida el mismo día). ---
+
+    @Test fun deLaMananaWithoutDateStaysToday() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 de la mañana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun porLaMananaWithoutDateStaysToday() {
+        val result = NaturalTaskParser.parse("Llamar a mamá por la mañana", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mananaPorLaMananaStillResolvesTomorrow() {
+        val result = NaturalTaskParser.parse("Hacer X mañana por la mañana", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "esta mañana" no debe dejar "esta" huérfano en el título ---
 
     @Test fun estaMananaCleanedFullyFromTitle() {

@@ -14,13 +14,28 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 38)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 38)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 39)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 39)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
+
+## Último trabajo — Ciclo 39: fix parser "de/por/a la mañana" no es fecha "mañana"
+
+Bug de captura P1 (tarea en día erróneo → reunión/recordatorio perdido el mismo día). La palabra
+"mañana" es ambigua: token de **fecha** (el día de mañana) vs. marcador de **hora** ("de la
+mañana", "por la mañana", "a la mañana", "esta mañana"). El parser fechaba en MAÑANA cualquier
+tarea que contenía la palabra, así "Reunión a las 9 de la mañana" se programaba para MAÑANA
+09:00 (reunión perdida HOY). Solución: nuevo `mananaAsDate(working)` que recorre todas las
+apariciones de "mañana" y sólo cuenta como fecha si al menos una NO está precedida por un
+marcador de parte del día. Así "de/por/a la mañana" → se queda en HOY; "mañana por la mañana"
+→ mañana (primera aparición suelta). `pasado mañana` se resuelve antes, sin regresión.
+
+VERIFICADO localmente (JVM puro, sin Android SDK): `bash tools/run_domain_tests.sh` =
+**336 tests PASS** (319 base remota + 3 nuevos de regresión), 25 clases. Smoke 25 OK. NO
+VERIFICADO: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
 
 ## Último trabajo — Ciclo 38: fechas pasadas + recuperación de fechas imposibles
 
@@ -93,7 +108,7 @@ gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 | Pri | Área | Estado |
 |-----|------|--------|
 | P1 | Persistencia — adjuntos URI externo | FIXED (NO VERIFICADO Android) ciclo 32 cont.4 |
-| P1 | Parser — fechas relativas/pasadas/imposibles | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests) |
+| P1 | Parser — fechas relativas/pasadas/imposibles | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests) |
 | P2 | QA — compilar 6 variantes tras cambios | OPEN (requiere env Android) |
 | P2 | Self-Update — prueba end-to-end N→N+1 | BLOCKED-external (sin dispositivo Android) |
 | P3 | UX — pulido visual pantallas workspace renovadas | OPEN |
