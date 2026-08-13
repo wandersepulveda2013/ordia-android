@@ -3239,6 +3239,31 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Búsqueda universal: relaciones notas/tareas/proyectos.
 - Revisar consistencia de autocompletado/reapertura del padre en otros entry points (widget quick-complete, asistente).
 
+## Ciclo 61 - 2026-08-13 (UTC) - fix(parser): meridiem sin "a las" + hora de inicio del rango como dueAt
+
+- **Run/ciclo**: 61.
+- **HEAD inicial**: `5e6cea8` (c.60, synced con `origin/openhands/autonomous-ordia`).
+- **Problema seleccionado**: dos bugs P1 de captura/agenda en `NaturalTaskParser`:
+  - **BUG A**: una hora con meridiem pero SIN "a las" ("Reunión 2pm", "Cita 9am", "Vuelo 8:30pm") se agendaba como **AM** (02:00 en vez de 14:00). Los `timePatterns`[1] (N:MM) y [2] (Nam/Pm) llevan el meridiem en el **grupo 3**, pero `explicitTimeData` leía el meridiem del **grupo 4** (que solo existe en el patrón[0] "a las N", donde el grupo 3 es la fracción "y media"/"y cuarto"). Así, en los patrones sin "a las" el meridiem se perdía → la hora se interpretaba en AM. Una reunión de tarde ("2pm") aparecía a las 02:00 de la madrugada.
+  - **BUG B**: en un rango "de H1 [meridiem] a H2 [meridiem]" sin "a las" ("Clase de 9 de la tarde a 11 de la noche", "Reunión de 2pm a 4pm"), la `dueAt` caía a la **hora canónica de la parte del día** ("de la tarde" → 15:00) en vez de la **hora de inicio del rango** (21:00). El rango se procesaba para la duración (120 min, correcto) y se eliminaba del título, pero como no había tiempo explícito, la hora para `dueAt` venía del respaldo `standalonePartOfDayTime`. El inicio real del evento se ignoraba → la cita se agendaba a la hora canónica genérica, no a la hora real del evento.
+- **Prioridad**: P1 (agenda/captura correcta, evita citas a la hora equivocada = no olvidos/falsos horarios; integridad de intención temporal).
+- **Causa raíz**:
+  - BUG A: `explicitTimeData` leía `meridiem = groupValues[4]` (asumiendo el layout del patrón[0]); los patrones[1]/[2] no tienen grupo 4 de meridiem.
+  - BUG B: `rangeMatch` (que resuelve cada extremo a hora absoluta con su meridiem) se computaba **después** de `dueAt`; la hora para `dueAt` venía del respaldo `partOfDay`/`standalonePartOfDay`, no del inicio validado del rango.
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**:
+  - BUG A: `explicitTimeData` ahora lee el meridiem del grupo 4 si existe, si no del grupo 3 (disambiguando fracción vs meridiem según el patrón que casó). `hasExplicitMeridiem` se marca correctamente para cualquier patrón.
+  - BUG B: se mueve el bloque `rangeMatch` (cálculo del rango validado) a **antes** de la resolución de `parsedTime`/`dueAt`, y se extrae `rangeStartTime: LocalTime?` del inicio del rango (resolución absoluta con meridiem, solo si el rango fue validado — no filtra horas de rangos rechazados como "de 2 a 5 entradas"). `rangeStartTime` entra en la cadena de respaldo de `parsedTime` **después** del tiempo explícito ("a las") y **antes** de los respaldos canónicos de parte del día. Así un tiempo explícito sigue ganando, pero sin él la hora de inicio del rango reemplaza a la canónica genérica.
+- **Tests**: +6 en `NaturalTaskParserTest.kt` (`barePmTimeWithoutAParsesAsPm` "2pm"→14:00, `bareAmTimeWithoutAParsesAsAm` "9am"→09:00, `barePmTimeWithMinutesWithoutAParsesAsPm` "8:30pm"→20:30, `rangeWithDeLaTardeSetsDueAtToStart` "de 9 de la tarde a 11 de la noche"→due 21:00 + dur 120, `rangeWithPmMeridiemSetsDueAtToStart` "de 2pm a 4pm"→due 14:00, `rangeWithAmMeridiemSetsDueAtToStart` "de 9am a 11am"→due 09:00). **472 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 463 c.60 + 6 nuevos c.61 + 3 c.62 "pasado mañana" de run paralelo reconciliado), smoke 25 OK (`tools/run_domain_checks.sh`). Probe JVM `Probe4.kt` confirmó ambos bugs antes/después (descartado tras verificación). Sin regresión (rangos 24h, "de 2 a 5 entradas" rechazado, "curso de 8:30 a 10:30 horas" intactos). **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del parser en la app.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Colisión de remoto (no destructiva)**: al intentar el commit, el remoto había avanzado 1 commit (`ee4807d`, c.62 "pasado mañana" de un run paralelo) sobre la base `4d2ca71` (c.60). `git stash` → `pull --ff-only origin openhands/autonomous-ordia` → `stash pop`: los cambios de **código** se auto-mergearon limpiamente (áreas ortogonales: mi fix toca `explicitTimeData`/`rangeMatch`/`rangeStartTime`; el c.62 toca el consumo de título de "pasado día-semana"); único conflicto en `BACKLOG.md` (cola de la tabla, ambos editábamos) resuelto conservando la entrada c.59 corregida del remoto + mis entradas c.61/c.61-P2. Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
+- **HEAD final**: (pendiente de push — ver informe final).
+- **Estado**: FIXED → VERIFIED (dominio JVM); parser en app NO VERIFICADO (sin Android SDK).
+
+### Siguiente
+- Forma standalone "N de la tarde" sin rango ("Taller 9 de la tarde" → 15:00, debería 21:00): documentado en BACKLOG (P2, adición de feature, no bug de rango).
+- Descubrimiento continuo: `GuardianCoach` detección de vencidas importantes; `SummaryService`; `PlanEngine` replanificación; búsqueda universal.
+- Parser: múltiples marcadores temporales en una frase.
+
 ## Ciclo 59 - 2026-08-13 (UTC) - fix(parser): verbo de recordatorio sin cantidad programa recordatorio y limpia título
 - **Run/ciclo**: 59.
 - **HEAD inicial**: `053e7ff` (c.57, synced con `origin/openhands/autonomous-ordia`).

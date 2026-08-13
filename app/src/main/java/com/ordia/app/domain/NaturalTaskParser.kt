@@ -803,9 +803,14 @@ object NaturalTaskParser {
                 else -> {
                     var hour = match.groupValues[1].toInt()
                     val explicitMinute = match.groupValues[2].toIntOrNull()
-                    // Grupo 3 opcional "y media"/"y cuarto" solo existe en timePattern[0]
-                    // ("a las N"); en otros patrones (N:MM, Nam/Pm) no hay grupo 3 → getOrNull.
-                    val fraction = match.groupValues.getOrNull(3)?.lowercase().orEmpty()
+                    // Los patrones tienen layout de grupos DISTINTO: timePattern[0]
+                    // ("a las N") pone la fracción "y media/cuarto" en el grupo 3 y el
+                    // meridiem en el 4; timePattern[1]/[2] (N:MM y Nam/Pm) ponen el
+                    // meridiem en el grupo 3 (no hay fracción). El grupo 3 es, pues, O
+                    // fracción O meridiem según el patrón: se disambigua por contenido.
+                    val raw3 = match.groupValues.getOrNull(3)?.lowercase().orEmpty()
+                    val raw4 = match.groupValues.getOrNull(4)?.lowercase().orEmpty()
+                    val fraction = if (raw3 == "media" || raw3 == "cuarto") raw3 else ""
                     // "y media" = +30 min, "y cuarto" = +15 min sobre la hora en punto
                     // (sin minutos explícitos). "a las 9 y media" → 09:30, no 09:00.
                     val minute = explicitMinute ?: when (fraction) {
@@ -819,7 +824,12 @@ object NaturalTaskParser {
                     if (hour == 24) {
                         LocalTime.MIDNIGHT to true
                     } else {
-                        val meridiem = match.groupValues.getOrNull(4)?.lowercase().orEmpty()
+                        // Meridiem: grupo 4 si existe (patrón 0); si no, grupo 3 cuando
+                        // no es fracción (patrones 1/2). Antes se leía solo el grupo 4,
+                        // así que "2pm"/"8:30pm" sin "a las" ignoraban el meridiem y se
+                        // agendaban como AM ("reunión 3pm" → 03:00, 3am). Ahora se aplica
+                        // el offset PM/AM correcto para todas las formas.
+                        val meridiem = (if (raw4.isNotEmpty()) raw4 else raw3)
                             .replace(".", "").replace(" ", "")
                         // "de la tarde"/"de la noche" → 12h posterior; "de la mañana/madrugada" → am.
                         val isPm = meridiem == "pm" || meridiem == "delatarde" || meridiem == "delanoche"
@@ -833,32 +843,6 @@ object NaturalTaskParser {
                 }
             }
         }
-        val explicitTime = explicitTimeData?.first
-        val hasExplicitMeridiem = explicitTimeData?.second == true
-        // Un tiempo explícito tiene prioridad sobre la hora canónica de la parte del día.
-        // Si la hora explícita vino sin meridiem (p.ej. "a las 4") y hay contexto PM de
-        // parte del día ("esta tarde"/"a la noche"), se aplica el offset +12 ("esta tarde
-        // a las 4" → 16:00, no 04:00).
-        val parsedTime = explicitTime?.let { t ->
-            if (!hasExplicitMeridiem && hasPartOfDayPmContext && t.hour in 1..11)
-                t.plusHours(12) else t
-        } ?: partOfDayTime ?: standalonePartOfDayTime
-            ?: recurrence.partOfDayTime
-            ?: primeraHoraMatch?.let { primeraHoraTime }
-        val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
-        val rawDueAt = when {
-            effectiveRelativeDueAt != null && relativeIsDays && parsedTime != null ->
-                DateRules.toEpochMillis(DateRules.toLocalDate(effectiveRelativeDueAt, zone), parsedTime, zone)
-            else -> effectiveRelativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
-        }
-        // "el viernes a las 18" escrito el viernes a las 10:00 → hoy 18:00 (se conserva).
-        // Pero si la hora ya pasó ("el viernes a las 6" a las 10:00) o no había hora y el
-        // mediodía canónico (09:00) ya pasó, se rueda a la semana siguiente, igual que
-        // antes. Así no se agenda nada en el pasado y no se pierde una cita de hoy.
-        val dueAt = if (weekdaySameDayCandidate && rawDueAt != null && rawDueAt < now) {
-            DateRules.toEpochMillis(date!!.plusDays(7), parsedTime ?: LocalTime.of(9, 0), zone)
-        } else rawDueAt
-
         // Duración: no se aplica a "en N minutos" (esa es fecha relativa, ya eliminada).
         // Rango horario "de H1[MM] [meridiem] a H2[MM] [meridiem] [horas]": se procesa
         // primero para que el segundo número no sea robado como duración numérica
@@ -913,6 +897,54 @@ object NaturalTaskParser {
             (it.groupValues[4].toInt() * 60 + eM) - (it.groupValues[1].toInt() * 60 + sM)
         }?.coerceIn(5, 24 * 60)
         rangeMatch?.let { working = working.replace(it.value, " ") }
+        // Hora de inicio del rango resuelta a absoluta (con su meridiem). Sin tiempo
+        // explícito ("a las"), la hora de inicio del rango es la mejor estimación de la
+        // fecha límite del evento; antes caía a la canónica de la parte del día
+        // ("de 9 de la tarde a 11 de la noche" → 15:00 por "de la tarde"), ignorando la
+        // hora real de inicio (21:00). Solo se usa si el rango fue validado (rangeMatch).
+        val rangeStartTime: LocalTime? = rangeMatch?.let { m ->
+            val h = m.groupValues[1].toIntOrNull() ?: return@let null
+            val min = m.groupValues[2].toIntOrNull() ?: 0
+            val mer = m.groupValues[3].lowercase().replace(".", "").replace(" ", "")
+            val pm = mer == "pm" || mer == "delatarde" || mer == "delanoche"
+            val abs = when {
+                h == 24 && mer.isEmpty() -> 0
+                h !in 0..24 -> return@let null
+                mer.isEmpty() -> h
+                pm && h < 12 -> h + 12
+                pm && h == 12 && mer == "delanoche" -> 0
+                pm && h == 12 -> 12
+                else -> if (h == 12) 0 else h
+            }
+            if (abs in 0..23 && min in 0..59) LocalTime.of(abs, min) else null
+        }
+        val explicitTime = explicitTimeData?.first
+        val hasExplicitMeridiem = explicitTimeData?.second == true
+        // Un tiempo explícito tiene prioridad sobre la hora canónica de la parte del día.
+        // Si la hora explícita vino sin meridiem (p.ej. "a las 4") y hay contexto PM de
+        // parte del día ("esta tarde"/"a la noche"), se aplica el offset +12 ("esta tarde
+        // a las 4" → 16:00, no 04:00).
+        val parsedTime = explicitTime?.let { t ->
+            if (!hasExplicitMeridiem && hasPartOfDayPmContext && t.hour in 1..11)
+                t.plusHours(12) else t
+        } ?: rangeStartTime
+            ?: partOfDayTime ?: standalonePartOfDayTime
+            ?: recurrence.partOfDayTime
+            ?: primeraHoraMatch?.let { primeraHoraTime }
+        val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
+        val rawDueAt = when {
+            effectiveRelativeDueAt != null && relativeIsDays && parsedTime != null ->
+                DateRules.toEpochMillis(DateRules.toLocalDate(effectiveRelativeDueAt, zone), parsedTime, zone)
+            else -> effectiveRelativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
+        }
+        // "el viernes a las 18" escrito el viernes a las 10:00 → hoy 18:00 (se conserva).
+        // Pero si la hora ya pasó ("el viernes a las 6" a las 10:00) o no había hora y el
+        // mediodía canónico (09:00) ya pasó, se rueda a la semana siguiente, igual que
+        // antes. Así no se agenda nada en el pasado y no se pierde una cita de hoy.
+        val dueAt = if (weekdaySameDayCandidate && rawDueAt != null && rawDueAt < now) {
+            DateRules.toEpochMillis(date!!.plusDays(7), parsedTime ?: LocalTime.of(9, 0), zone)
+        } else rawDueAt
+
 
         // Duración numérica: se descarta si el número está precedido por una frase
         // horaria ("a las 9 horas", "a la 1 horas", "de la tarde 2 horas"), porque ahí

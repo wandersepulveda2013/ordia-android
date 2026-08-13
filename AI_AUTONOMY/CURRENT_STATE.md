@@ -14,56 +14,62 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 60)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (reconciliación no destructiva sobre c.59 verbo-recordatorio + c.58 fracción sub-hora/"en la tarde" + c.57 número-escrito + c.56 subtarea-autocomplete + c.55 partOfDay DAILY + c.54 intervalo+días + c.53 What Now + c.52 snooze; aterriza fix de rango horario con minutos/meridiem)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 61)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (reconciliación no destructiva sobre c.60 rango-minutos/meridiem + c.59 verbo-recordatorio + c.58 fracción sub-hora/"en la tarde" + c.57 número-escrito + c.56 subtarea-autocomplete + c.55 partOfDay DAILY + c.54 intervalo+días + c.53 What Now + c.52 snooze; aterriza fix de meridiem sin "a las" + hora de inicio del rango como dueAt)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests); **DayPlanner conflicto startAt otro día** c.51 (415 tests); **intervalo+días "cada 2 semanas los lunes"/"cada quincena los lunes y viernes"/"cada 3 semanas de lunes a viernes"** c.54 (428 tests); **"cada mañana/tarde/noche/madrugada" + "todas las mañanas/tardes/noches" como recurrencia DIARIA** con hora canónica (c.55, 435 tests); **autocompletar padre al cerrar última subtarea desde notificación** (`ReminderActionReceiver.ACTION_COMPLETE` ↔ `SubtaskRules.shouldAutoCompleteParent`) (c.56); **intervalo con número escrito "cada dos semanas"/"cada tres meses"/"cada quince días"/"cada dos años"** (c.57, 439 tests); **fracción sub-hora "a las 9 y media"/"a las 3 y cuarto" (media→30, cuarto→15) + conector caribeño "en la tarde/noche/mañana"** (c.58, 450 tests); **verbo de recordatorio sin cantidad "recuérdame/avísame/no dejes que olvide" con fecha límite → recordatorio 30 min antes + verbo limpiado del título** (c.59, 455 tests); **rango horario con minutos/meridiem en ambos extremos "clase de 9:30 a 11"/"de 9am a 11am"/"de 2pm a 4pm" → duración real (fin−inicio) en minutos + título limpio** (c.60, 463 tests) |
+| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests); **DayPlanner conflicto startAt otro día** c.51 (415 tests); **intervalo+días "cada 2 semanas los lunes"/"cada quincena los lunes y viernes"/"cada 3 semanas de lunes a viernes"** c.54 (428 tests); **"cada mañana/tarde/noche/madrugada" + "todas las mañanas/tardes/noches" como recurrencia DIARIA** con hora canónica (c.55, 435 tests); **autocompletar padre al cerrar última subtarea desde notificación** (`ReminderActionReceiver.ACTION_COMPLETE` ↔ `SubtaskRules.shouldAutoCompleteParent`) (c.56); **intervalo con número escrito "cada dos semanas"/"cada tres meses"/"cada quince días"/"cada dos años"** (c.57, 439 tests); **fracción sub-hora "a las 9 y media"/"a las 3 y cuarto" (media→30, cuarto→15) + conector caribeño "en la tarde/noche/mañana"** (c.58, 450 tests); **verbo de recordatorio sin cantidad "recuérdame/avísame/no dejes que olvide" con fecha límite → recordatorio 30 min antes + verbo limpiado del título** (c.59, 455 tests); **rango horario con minutos/meridiem en ambos extremos "clase de 9:30 a 11"/"de 9am a 11am"/"de 2pm a 4pm" → duración real (fin−inicio) en minutos + título limpio** (c.60, 463 tests); **meridiem sin "a las" "Reunión 2pm"→14:00 (era 02:00) + hora de inicio del rango como dueAt "de 9 de la tarde a 11 de la noche"→21:00 (era 15:00)** (c.61, 469 tests) |
 
-## Último trabajo — Ciclo 60: Parser — rango horario con minutos/meridiem ("clase de 9:30 a 11", "de 9am a 11am")
+## Último trabajo — Ciclo 61: Parser — meridiem sin "a las" + hora de inicio del rango como dueAt
 
-Fix P2 de captura/duración (`NaturalTaskParser`). La forma cotidiana de expresar un **bloque
-horario con minutos o meridiem** — **"clase de 9:30 a 11"**, **"de 9am a 11am"**, **"reunión de 2pm a
-4pm"**, **"curso de 8:30 a 10:30 horas"** — NO parseaba la duración: el `timeRangePattern` solo
-capturaba horas en punto (`(\d{1,2})\s*(?:a|-)\s*(\d{1,2})`), así que "9:30 a 11" casaba "30 a 11"
-con números equivocados → `durationMinutes=null` **Y** el título quedaba sucio con residuo
-(`title='Clase de a 11'`, perdiendo "9:30"). La duración de un evento real (90 min, 120 min) se
-perdía y el título quedaba corrupto. Simétrico al fix c.42 (rango sin "horas") pero para el caso con
-minutos/meridiem, que es la forma de escribir reuniones/clases con horario preciso.
+Fix P1 de captura/agenda (`NaturalTaskParser`). Dos bugs de horario real que agendaban citas a la
+hora equivocada:
 
-**Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**: `timeRangePattern` ahora
-tiene 7 grupos — cada extremo captura hora `(\d{1,2})`, minutos opcionales `(?::([0-5]\d))?` y
-meridiem opcional (`am`/`pm`/`de la tarde`/`de la noche`/`de la mañana`/`de la madrugada`), más el
-grupo "horas" final. El `rangeMatch` resuelve cada extremo a **hora absoluta** (offset PM aplicado
-por separado: 9pm→21, 12pm→12, 12am→0) y la duración es `(fin − inicio)` en **minutos reales**, no
-solo horas en punto. Mantiene intacto el guard anti-falsos positivos del c.42 ("de 2 a 5 entradas"
-sigue rechazado como cantidad, no horario) y el clamp `5..24h`. El rango se elimina del título
-(tras consumir fechas/horas) → título limpio. Compone con c.58 ("y media"): un bloque con fracción
-en un extremo y hora en el otro ya funciona vía minutos explícitos. Lógica local honesta, sin IA.
+- **BUG A — meridiem sin "a las"**: una hora con `am`/`pm` pero SIN el prefijo "a las" — **"Reunión 2pm"**,
+  **"Cita 9am"**, **"Vuelo 8:30pm"** — se agendaba como **AM** ("2pm" → 02:00 en vez de 14:00). Los
+  `timePatterns`[1] (N:MM) y [2] (Nam/Pm) llevan el meridiem en el **grupo 3**, pero `explicitTimeData`
+  leía el meridiem del **grupo 4** (que solo existe en el patrón[0] "a las N", donde el grupo 3 es la
+  fracción "y media"/"y cuarto"). En los patrones sin "a las" el meridiem se perdía y la hora caía a AM.
+  Una reunión de tarde aparecía a las 02:00 de la madrugada.
+- **BUG B — hora de inicio del rango ignorada**: en un rango "de H1 [meridiem] a H2 [meridiem]" sin
+  "a las" — **"Clase de 9 de la tarde a 11 de la noche"**, **"Reunión de 2pm a 4pm"** — la `dueAt` caía a la
+  **hora canónica de la parte del día** ("de la tarde" → 15:00) en vez de la **hora de inicio del rango**
+  (21:00). El rango daba la duración (120 min, correcto) y se eliminaba del título, pero como no había
+  tiempo explícito, la hora para `dueAt` venía del respaldo `standalonePartOfDayTime`. El inicio real del
+  evento se ignoraba → la cita se agendaba a la hora canónica genérica, no a la hora real del evento.
 
-**Tests**: +8 en `NaturalTaskParserTest.kt` — `rangeWithStartMinutesParsesRealDuration` ("9:30 a 11"→90),
-`rangeWithBothEndpointsMinutesParsesRealDuration` ("9:30 a 11:30"→120),
-`rangeWithMinutesAndHoursUnitParsesRealDuration` ("9:30 a 11 horas"→90),
-`rangeWithMeridiemAmParsesDuration` ("9am a 11am"→120), `rangeWithMeridiemPmParsesDuration`
-("2pm a 4pm"→120), `rangeWithMinutesAndMeridiemParsesDuration` ("8:30am a 10:30am"→120),
-`rangeWithDeLaTardeMeridiemParsesDuration` ("9 de la tarde a 11 de la noche"→120),
-`rangeWithMinutesDoesNotClampToDayMax` ("8:30 a 10:30 horas"→120, no 1440). **463 domain tests PASS**
-(`bash tools/run_domain_tests.sh`, 26 clases — 455 c.59 + 8 nuevos), smoke 25 OK
-(`tools/run_domain_checks.sh`), sin warnings. Sin regresión (caso en punto "9 a 11"→120, guard
-anti-cantidades, rangos 24h, "de la tarde" soltero siguen OK verificados por tests previos).
-**NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del parser en
-la app (sin Android SDK).
+**Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**:
+- BUG A: `explicitTimeData` ahora lee el meridiem del grupo 4 si existe, si no del grupo 3
+  (disambiguando fracción vs meridiem según el patrón que casó). `hasExplicitMeridiem` correcto en todos.
+- BUG B: el bloque `rangeMatch` (rango validado) se mueve a **antes** de la resolución de
+  `parsedTime`/`dueAt`, y se extrae `rangeStartTime: LocalTime?` del inicio del rango (resolución
+  absoluta con meridiem, **solo si el rango fue validado** — no filtra horas de rangos rechazados como
+  "de 2 a 5 entradas"). `rangeStartTime` entra en la cadena de respaldo de `parsedTime` **después** del
+  tiempo explícito ("a las") y **antes** de los respaldos canónicos de parte del día: un tiempo explícito
+  sigue ganando, pero sin él la hora de inicio del rango reemplaza a la canónica genérica. Lógica local
+  honesta, sin IA.
 
-**Reconciliación con run paralelo**: el HEAD inicial local (`21f024d`, c.58 docs) estaba 2 commits
-detrás del remoto (c.59 verbo-recordatorio + c.59 docs delivery de otro run). Al hacer stash →
-pull --ff-only → stash pop, los cambios de código (parser + tests) se auto-mergearon limpiamente
-(áreas ortogonales: mi fix toca `timeRangePattern`/`rangeMatch`; el c.59 toca
-`bareReminderVerbPattern`/recordatorios); sin conflicto. Sin force push, sin reset --hard, sin
-sobrescribir trabajo válido.
+**Tests**: +6 en `NaturalTaskParserTest.kt` — `barePmTimeWithoutAParsesAsPm` ("2pm"→14:00),
+`bareAmTimeWithoutAParsesAsAm` ("9am"→09:00), `barePmTimeWithMinutesWithoutAParsesAsPm`
+("8:30pm"→20:30), `rangeWithDeLaTardeSetsDueAtToStart` ("9 de la tarde a 11 de la noche"→due 21:00
++ dur 120), `rangeWithPmMeridiemSetsDueAtToStart` ("2pm a 4pm"→due 14:00),
+`rangeWithAmMeridiemSetsDueAtToStart` ("9am a 11am"→due 09:00). **472 domain tests PASS**
+(`bash tools/run_domain_tests.sh`, 26 clases — 463 c.60 + 6 nuevos c.61 + 3 c.62 "pasado mañana"
+de run paralelo reconciliado), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión (rangos
+24h, "de 2 a 5 entradas" rechazado, "curso de 8:30 a 10:30 horas" intactos). **NO VERIFICADO**:
+gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del parser en la app (sin
+Android SDK).
+
+**Reconciliación con run paralelo**: el HEAD inicial local (`4d2ca71`, c.60) estaba 1 commit
+detrás del remoto (`ee4807d`, c.62 "pasado mañana" de otro run). Al hacer stash → pull --ff-only
+→ stash pop, los cambios se auto-mergearon: mi fix toca `explicitTimeData`/`rangeMatch`/`rangeStartTime`;
+el c.62 toca el consumo de título de "pasado día-semana". Único conflicto fue en `BACKLOG.md`
+(ambos editamos la cola de la tabla) — resuelto conservando la entrada c.59 corregida del remoto
++ mis entradas c.61/c.61-P2. Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
 
 ## Último trabajo — Ciclo 59: Parser — verbo de recordatorio sin cantidad ("recuérdame ... mañana a las 3")
 

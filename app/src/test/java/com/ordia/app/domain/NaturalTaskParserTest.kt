@@ -1382,6 +1382,47 @@ class NaturalTaskParserTest {
         assertEquals(120, result.durationMinutes)
     }
 
+    // --- Meridiem sin "a las" y hora de inicio del rango como dueAt (ciclo 61) ---
+    // BUG A: una hora con meridiem "pm"/"am" pero SIN "a las" ("Reunión 2pm") se
+    // agendaba como AM (02:00) porque el meridiem se leía del grupo 4, que solo existe
+    // en el patrón "a las N"; los patrones N:MM y Nam/Pm lo llevan en el grupo 3.
+    @Test fun barePmTimeWithoutAParsesAsPm() {
+        val result = NaturalTaskParser.parse("Reunión 2pm", now, zone)
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun bareAmTimeWithoutAParsesAsAm() {
+        val result = NaturalTaskParser.parse("Cita 9am", now, zone)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun barePmTimeWithMinutesWithoutAParsesAsPm() {
+        val result = NaturalTaskParser.parse("Vuelo 8:30pm", now, zone)
+        assertEquals(LocalTime.of(20, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // BUG B: en un rango "de H1 [meridiem] a H2 [meridiem]" la fecha límite debe ser la
+    // hora de INICIO del rango (resuelta con su meridiem), no la canónica de la parte
+    // del día. Antes "de 9 de la tarde a 11 de la noche" daba due=15:00 (por "de la
+    // tarde") en vez de 21:00 (inicio real).
+    @Test fun rangeWithDeLaTardeSetsDueAtToStart() {
+        val result = NaturalTaskParser.parse("Clase de 9 de la tarde a 11 de la noche", now, zone)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun rangeWithPmMeridiemSetsDueAtToStart() {
+        val result = NaturalTaskParser.parse("Reunión de 2pm a 4pm", now, zone)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun rangeWithAmMeridiemSetsDueAtToStart() {
+        val result = NaturalTaskParser.parse("Clase de 9am a 11am", now, zone)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     @Test fun rangeWithMinutesDoesNotClampToDayMax() {
         // "de 8:30 a 10:30 horas": antes (solo horas en punto) capturaba fin=10 → 120,
         // pero un caso previo con residuo devolvía 1440 (clamp 24h). Ahora 120 reales.
