@@ -267,7 +267,13 @@ jobs:
 
           # ---- 2) PRs abiertas hacia la rama autónoma ----
           import re
+          # Jules crea ramas con el formato real:
+          #   jules/autonomous-ordia-{timestamp}   (timestamp de 10-20 dígitos)
+          #   jules/autonomous-ordia              (rama base autónoma, sin sufijo)
+          # Se acepta también el patrón convencional histórico por compatibilidad.
           JULES_BRANCH_RE = re.compile(
+              r"^jules/autonomous-ordia(-\d{10,20})?$"
+              r"|"
               r"^(fix|feat|perf|refactor|test|optimize|security|add|remove|code-health|chore|docs)"
               r"(/|-)[a-z0-9-]+(-\d{10,20})?$"
           )

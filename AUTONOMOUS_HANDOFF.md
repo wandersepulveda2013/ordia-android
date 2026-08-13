@@ -316,3 +316,50 @@ V1, V2, V3, V4, V5, V6, V7, V8, V9, V14 (10 visuales) + F2, F3, F5, F7, F8, F9, 
 - **REQUEST_INSTALL_PACKAGES**: Users may need to grant "Install unknown apps"
   manually. The installer intent will prompt for this.
 
+
+---
+
+# SESIÓN 3 — Fix del bucle autónomo atascado (2026-08-13)
+
+## Estado del repositorio (sesión 3)
+- **Branch**: `main`
+- **Repo**: `https://github.com/wandersepulveda2013/ordia-android.git`
+
+## Diagnóstico
+El sistema autónomo 24/7 estaba corriendo pero atascado sin converger:
+- 36 PRs abiertas, solo 4 mergedadas.
+- Último run de auto-merge: PRs evaluadas: 8 / Merged: False, todas saltadas con
+  "head ref 'jules/autonomous-ordia-...' no coincide con patrón Jules → SKIP".
+- Muchas PRs duplicadas (7+ sobre deprecationes de iconos Compose) porque el workflow
+  de Jules no veía las PRs abiertas y lanzaba sesiones nuevas cada 15 min.
+
+## Causa raíz
+El regex JULES_BRANCH_RE (idéntico en ambos workflows) esperaba ramas con prefijo
+convencional (fix|feat|...) pero Jules crea ramas jules/autonomous-ordia-{timestamp}.
+Ninguna rama real coincidía → el merge saltaba todo y el lanzador pensaba que no había
+PRs abiertas → bucle de duplicación.
+
+## Fix aplicado
+Actualizado JULES_BRANCH_RE en ambos workflows para reconocer el formato real de Jules:
+- jules/autonomous-ordia-{timestamp} (timestamp 10-20 dígitos)
+- jules/autonomous-ordia (rama base)
+- Mantiene compatibilidad con el patrón convencional histórico.
+
+Archivos:
+- .github/workflows/ordia-autonomous-merge.yml
+- .github/workflows/ordia-autonomous-jules.yml
+
+Test del regex: 10/10 casos correctos (ramas reales match, ramas ajenas no match).
+
+## Efecto esperado tras el push
+1. El merge workflow empezará a mergear PRs limpias (#37, #39 están CLEAN con CI verde).
+2. El Jules workflow detectará las PRs abiertas y dejará de lanzar sesiones duplicadas
+   cuando haya trabajo en curso (skip_ready_for_merge / skip_ci_running).
+3. El sistema convergerá: las PRs limpias se integrarán y las DIRTY se quedan para que
+   la próxima sesión de Jules las corrija o cierre.
+
+## Próximo paso exacto
+1. Tras pushear este fix a main, los workflows usarán el regex nuevo en su próxima ejecución.
+2. Monitorear el próximo run de "Ordia Autonomous Merge" — debería mergear #37 o #39.
+3. Si las PRs DIRTY no se resuelven solas tras unos ciclos, cerrar las duplicadas
+   (especialmente las de deprecationes Compose, que se solapan).
