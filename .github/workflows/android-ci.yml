@@ -245,11 +245,15 @@ jobs:
             echo "aapt2 not found in Android SDK"; exit 1
           fi
 
-          VERSION_CODE=$("$AAPT2" dump badging "$APK" 2>/dev/null | grep "package: name=" | sed -n 's/.*versionCode=\([0-9]*\).*/\1/p')
-          VERSION_NAME=$("$AAPT2" dump badging "$APK" 2>/dev/null | grep "package: name=" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")
+          VERSION_CODE=$("$AAPT2" dump badging "$APK" 2>/dev/null | grep "package: name=" | grep -oP "versionCode='\K[0-9]+" || true)
+          VERSION_NAME=$("$AAPT2" dump badging "$APK" 2>/dev/null | grep "package: name=" | grep -oP "versionName='\K[^']+" || true)
 
           if [ -z "$VERSION_CODE" ] || [ -z "$VERSION_NAME" ]; then
-            echo "Failed to extract version from APK"; exit 1
+            # Fallback: aapt2 sometimes uses unquoted values
+            BADGING=$("$AAPT2" dump badging "$APK" 2>/dev/null | grep "package: name=" || true)
+            echo "aapt2 badging line: $BADGING"
+            echo "Failed to extract version from APK (code=$VERSION_CODE name=$VERSION_NAME)"
+            exit 1
           fi
 
           echo "APK versionCode=$VERSION_CODE versionName=$VERSION_NAME"
