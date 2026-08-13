@@ -34,6 +34,25 @@ class GuardianCoachTest {
 
         assertEquals(1L, insight.taskId)
         assertEquals(GuardianCoach.Tone.GENTLE, insight.tone)
+        assertNotNull(insight.message)
+        assert(insight.message.contains("Haz esto ahora porque está atrasada y es tu mayor prioridad para recuperar el control del día."))
+        assert(insight.message.contains("min libres"))
+    }
+
+    @Test
+    fun standardTaskHasReasoningFormat() {
+        val standardTask = TaskEntity(
+            id = 3,
+            title = "Leer articulo",
+            dueAt = DateRules.toEpochMillis(today, LocalTime.of(15, 0), zone),
+            priority = TaskPriority.NORMAL,
+            durationMinutes = 20
+        )
+        val insight = GuardianCoach.insight(listOf(standardTask), emptyList(), emptyList(), now, zone)
+
+        assertEquals(3L, insight.taskId)
+        assert(insight.message.startsWith("Haz esto ahora porque es tu mejor opción según su fecha e importancia."))
+        assert(insight.message.contains("20 min · vence hoy · tienes"))
     }
 
     @Test

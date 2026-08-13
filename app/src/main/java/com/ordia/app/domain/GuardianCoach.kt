@@ -40,15 +40,29 @@ object GuardianCoach {
             } == true
         }
 
+        // Calculate available time
+        val plan = DayPlanner.build(tasks, today, now = now, zone = zone)
+        val freeMinutes = plan.remainingMinutes
+        val freeText = "tienes $freeMinutes min libres"
+
+        fun formatInsight(task: TaskEntity, reason: String): String {
+            val dueText = if (TaskRules.isOverdue(task, now)) "vencida" else if (TaskRules.isDueToday(task, now, zone)) "vence hoy" else "sin fecha"
+            return "Haz esto ahora porque $reason. ${task.durationMinutes} min · $dueText · $freeText."
+        }
+
         if (overdue.isNotEmpty()) {
             val next = TaskRules.nextBestTask(overdue, now)
             return Insight(
                 eyebrow = "RECUPERA EL CONTROL",
                 title = next?.title ?: "Hay algo pendiente",
-                message = if (overdue.size == 1) {
-                    "Esta tarea está atrasada. Empieza con un bloque corto y vuelve a poner el día en movimiento."
+                message = if (next != null) {
+                    formatInsight(next, "está atrasada y es tu mayor prioridad para recuperar el control del día")
                 } else {
-                    "Tienes ${overdue.size} tareas atrasadas. No intentes resolverlas todas: comienza por esta."
+                    if (overdue.size == 1) {
+                        "Esta tarea está atrasada. Empieza con un bloque corto y vuelve a poner el día en movimiento."
+                    } else {
+                        "Tienes ${overdue.size} tareas atrasadas. No intentes resolverlas todas: comienza por esta."
+                    }
                 },
                 taskId = next?.id,
                 tone = Tone.GENTLE
@@ -61,7 +75,11 @@ object GuardianCoach {
             return Insight(
                 eyebrow = "PROTEGE TU DÍA",
                 title = next?.title ?: "Prioridad de hoy",
-                message = "Es lo más importante para hoy. Reserva tiempo antes de llenar el resto de la agenda.",
+                message = if (next != null) {
+                    formatInsight(next, "es lo más importante para hoy")
+                } else {
+                    "Es lo más importante para hoy. Reserva tiempo antes de llenar el resto de la agenda."
+                },
                 taskId = next?.id,
                 tone = Tone.FOCUSED
             )
@@ -72,8 +90,7 @@ object GuardianCoach {
             return Insight(
                 eyebrow = "SIGUIENTE PASO",
                 title = next.title,
-                message = next.details.takeIf { it.isNotBlank() }
-                    ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
+                message = formatInsight(next, "es tu mejor opción según su fecha e importancia"),
                 taskId = next.id,
                 tone = Tone.FOCUSED
             )

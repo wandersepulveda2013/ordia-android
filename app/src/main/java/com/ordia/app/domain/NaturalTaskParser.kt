@@ -24,6 +24,16 @@ object NaturalTaskParser {
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b""")
     )
 
+    private val timeExpressions = listOf(
+        Regex("""(?i)\b(?:al|al\s+)mediod[ií]a\b""") to LocalTime.of(12, 0),
+        Regex("""(?i)\ba\s+primera\s+hora\b""") to LocalTime.of(9, 0),
+        Regex("""(?i)\ba\s+última\s+hora\b""") to LocalTime.of(18, 0),
+        Regex("""(?i)\besta\s+noche\b|\bnoche\b""") to LocalTime.of(20, 0),
+        // Solamente mapeamos "por la mañana" o "esta mañana" como tiempo para no interceptar el "mañana" suelto que es fecha
+        Regex("""(?i)\b(?:por\s+la|esta)\s+mañana\b""") to LocalTime.of(9, 0),
+        Regex("""(?i)\b(?:por\s+la|esta)\s+tarde\b""") to LocalTime.of(15, 0)
+    )
+
     fun parse(text: String, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): ParsedTaskInput {
         val base = Instant.ofEpochMilli(now).atZone(zone)
         var working = text.trim()
@@ -51,8 +61,23 @@ object NaturalTaskParser {
         val numericDateMatch = numericDatePattern.find(working)
         val date = when {
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
-            Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
-            Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
+            Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> {
+                // If the phrase contains "mañana" but not as a stand-alone word indicating tomorrow,
+                // e.g. "esta mañana" or "por la mañana" WITHOUT also containing a separate "mañana" for tomorrow
+                // like "mañana por la mañana", handle appropriately.
+                val match = Regex("""(?i)\b(esta|por\s+la)\s+mañana\b""").find(working)
+                if (match != null) {
+                    val remaining = working.removeRange(match.range)
+                    if (Regex("""(?i)\bmañana\b""").containsMatchIn(remaining)) {
+                        base.toLocalDate().plusDays(1) // "mañana por la mañana"
+                    } else {
+                        base.toLocalDate() // "esta mañana"
+                    }
+                } else {
+                    base.toLocalDate().plusDays(1)
+                }
+            }
+            Regex("""(?i)\bhoy\b|\besta\s+noche\b""").containsMatchIn(working) -> base.toLocalDate()
             weekdayMatch != null -> nextWeekday(
                 base.toLocalDate(),
                 weekdayMatch.groupValues[1].toDayOfWeek()
@@ -72,20 +97,37 @@ object NaturalTaskParser {
         }
 
         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
-        val parsedTime = timeMatch?.let { match ->
-            var hour = match.groupValues[1].toInt()
-            val minute = match.groupValues[2].toIntOrNull() ?: 0
-            val meridiem = match.groupValues[3].lowercase().replace(".", "").replace(" ", "")
+
+        var parsedTime: LocalTime? = null
+        var matchedExpr: String? = null
+        if (timeMatch != null) {
+            var hour = timeMatch.groupValues[1].toInt()
+            val minute = timeMatch.groupValues[2].toIntOrNull() ?: 0
+            val meridiem = timeMatch.groupValues[3].lowercase().replace(".", "").replace(" ", "")
             if (meridiem == "pm" && hour < 12) hour += 12
             if (meridiem == "am" && hour == 12) hour = 0
-            LocalTime.of(hour, minute)
+            parsedTime = LocalTime.of(hour, minute)
+        } else {
+            for ((regex, time) in timeExpressions) {
+                val match = regex.find(working)
+                if (match != null) {
+                    parsedTime = time
+                    matchedExpr = match.value
+                    break
+                }
+            }
         }
+
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
 
         relativeMatch?.value?.let { working = working.replace(it, " ") }
         weekdayMatch?.value?.let { working = working.replace(it, " ") }
         timeMatch?.value?.let { working = working.replace(it, " ") }
+
+        // Solo limpiamos de matchedExpr si NO era un "mañana" que capturó la fecha
+        matchedExpr?.let { if (!Regex("(?i)\\bmañana\\b").matches(it)) working = working.replace(it, " ") }
+
         working = working
             .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
             .let { value -> numericDatePattern.replace(value, " ") }
