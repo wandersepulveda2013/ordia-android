@@ -2485,7 +2485,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Commits (previstos)**:
   - feat(parser): “principios de mes”, “fines de semana” recurrentes, días pasados — este commit.
   - docs(autonomy): registro ciclo 33 — este commit.
-- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+- **HEAD final**: f09aee0 (feat 567193e + docs f09aee0; push a openhands/autonomous-ordia OK).
 
 ### Siguiente
 - Continuar ciclo interminable. Candidatos parser: “esta semana” (vs “la semana que viene”),
