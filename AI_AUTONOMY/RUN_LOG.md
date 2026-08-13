@@ -3512,7 +3512,7 @@ a un permiso persistente frágil y silencioso ante fallos.
   - **Semana+weekday (ABIERTO)**: "la semana que viene el lunes" → +7d (20/08) en vez del lunes de la semana que viene (17/08); "la semana que viene el viernes" → +7d pero `nextWeekday` daría mañana (14/08). No basta con reusar `nextWeekday`: se necesita "start-of-next-week + weekday objetivo" (lun→dom). Más complejo y riesgoso; registrado en BACKLOG para un ciclo dedicado.
   - Caso sin palabra-tarea ("el mes que viene el 5" a secas): el `dueAt` ahora es correcto (05/09) pero el título conserva la frase completa — comportamiento preexistente del guard de título-vacío (no regresión; una tarea sin título es irreal). No se persigue.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (ver commit tras push).
+- **HEAD final**: `5e27222` (rebase sobre `64c137a` c.70 del run paralelo + amend mensaje a c.71; push fast-forward OK a `origin/openhands/autonomous-ordia`).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 
 ### Siguiente
