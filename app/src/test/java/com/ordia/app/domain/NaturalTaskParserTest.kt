@@ -177,6 +177,36 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // Recurrencia quincenal con palabra (no dígito): "cada quincena", "quincenalmente".
+    // Antes `intervalPattern` (que solo admite dígitos) no casaba, la recurrencia caía
+    // a NONE y la tarea nacía SIN fecha (invisible en What Now/planificador, recordatorio
+    // jamás disparaba). Ahora se mapea a WEEKLY interval=2 (cada 2 semanas ≈ quincena).
+    @Test fun cadaQuincenaParsesBiweeklyRecurrence() {
+        val result = NaturalTaskParser.parse("Nómina cada quincena", now, zone)
+        assertEquals("Nómina", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun quincenalmenteParsesBiweeklyRecurrence() {
+        val result = NaturalTaskParser.parse("Reporte quincenalmente a las 9", now, zone)
+        assertEquals("Reporte", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun cadaQuincenaRespetaFechaExplicita() {
+        val result = NaturalTaskParser.parse("Cobro cada quincena el 15/8", now, zone)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        // La fecha explícita tiene prioridad sobre el anclaje a la fecha de captura.
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // Recurrencias de intervalo (diaria/quincenal/anual) sin fecha explícita se anclan a
     // la fecha de captura para no ser invisibles (P1: antes dueAt=null → sin recordatorio,
     // sin aparición en What Now/planificador → tarea olvidada). Simétrico al anclaje

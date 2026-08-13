@@ -21,6 +21,26 @@
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
 
 ---
+## Ciclo 42 - 2026-08-13 (UTC) - recurrencia quincenal con palabra ("cada quincena")
+
+- **Run/ciclo**: 42
+- **HEAD inicial**: 4446852 (docs ciclo 41). Colisión de remoto: durante el stash+ff el remoto avanzó a `edea354` (run concurrente que resolvió el rango horario sin "horas", ambos < 13, en el mismo ciclo 42). Resolución no destructiva: se hizo `git stash` + `pull --ff-only` + `git stash pop`; conflictos en BACKLOG.md y CURRENT_STATE.md resueltos combinando ambos logros (rango horario remoto + recurrencia quincenal mía). Sin STALE_RUN, sin force push, sin reset --hard.
+- **Problema seleccionado (P1)**: `NaturalTaskParser` no reconocía la **recurrencia quincenal con palabra** ("nómina cada quincena", "reporte quincenalmente", "todas las quincenas"). Causa raíz: `intervalPattern` (`cada\s+(\d{1,3})\s*(días|semanas|meses|años)`) **solo admite dígitos**; la forma con la palabra "quincena" no casaba con ningún patrón → `recurrence=NONE` y, por el anclaje del ciclo 19 (que solo aplica si `frequency != NONE`), `dueAt=null`. Resultado: la tarea recurrente nacía **invisible** — sin fecha, sin recordatorio (`reminderAt ?: dueAt` ambos null), ausente de What Now/planificador → nóminas/pagos quincenales se olvidaban. La quincena (cada ~15 días / día 15 y fin de mes) es una cadencia financiera/laboreal muy común en español.
+- **Prioridad**: P1 (evitar olvidos de tareas recurrentes cotidianas; datos invisibles).
+- **Solución (mínima, en `NaturalTaskParser.kt`)**: nuevo patrón dedicado `cada quincena|quincenalmente|todas las quincenas` → `RecurrenceResult(WEEKLY, interval=2, …)` (cada 2 semanas ≈ quincena), colocado **antes** de `fixedPatterns`. Se procesa en `parseRecurrence` (que ya corre antes que las fechas), así que la frase se borra del título y reutiliza el anclaje a fecha de captura del ciclo 19. **Sin añadir enum ni migración**: WEEKLY+interval=2 es representación honesta y reutiliza el avance semanal existente. Sin riesgo de falsos positivos (palabra específica, no ambigua).
+- **Tests**: +3 (`cadaQuincenaParsesBiweeklyRecurrence`, `quincenalmenteParsesBiweeklyRecurrence` con hora, `cadaQuincenaRespetaFechaExplicita` con `el 15/8`). **361 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases (358 remoto tras segundo rebase sobre `727e7b8` + 3 quincenal míos). Smoke 25 OK (`tools/run_domain_checks.sh`). No se redujeron ni eliminaron tests.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Hallazgos adicionales**: "la quincena"/"próxima quincena" como **fecha absoluta** (día 15 / fin de mes) sigue OPEN (P2): `nextPeriodPattern` cubre "próxima quincena" como +15d relativo, pero no como hito anclado al 15. Rango horario sin "horas" ("clase de 9 a 11") fue **resuelto por el run concurrente** en este mismo ciclo 42 (ambas horas < 13, heurística honesta de fin de cadena/conector vs sustantivo de cantidad) — consolidado en CURRENT_STATE/BACKLOG.
+- **AI_AUTONOMY actualizado**: CURRENT_STATE (ciclo 42, 361 tests, ambos logros combinados), BACKLOG (entrada P1 FIXED + marcado parcial en item P2 quincena), RUN_LOG (esta entrada).
+- **Commits**: `feat(parser): recurrencia quincenal "cada quincena"/"quincenalmente" (WEEKLY x2)`.
+- **HEAD final**: (tras push a openhands/autonomous-ordia).
+
+### Siguiente
+- Parser P2: "la quincena"/"próxima quincena" como fecha anclada al 15 (evaluar si aporta vs +15d actual).
+- Continuar descubrimiento: auditar What Now, rutinas, recordatorios en busca de P1 reales.
+- Rango horario sin "horas": solo si se encuentra señal honesta fuerte (no lista de sustantivos frágil).
+
+---
 ## Ciclo 38 - 2026-08-13 (UTC) - fechas pasadas + recuperación de fechas imposibles
 
 - **Run/ciclo**: 38

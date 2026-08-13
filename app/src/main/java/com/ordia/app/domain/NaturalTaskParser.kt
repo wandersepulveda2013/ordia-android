@@ -925,6 +925,18 @@ object NaturalTaskParser {
             return RecurrenceResult(frequency, interval, emptyList(), phrases)
         }
 
+        // "cada quincena" / "quincenalmente" / "todas las quincenas": cadencia
+        // quincenal cotidiana en español (nóminas, pagos, reportes cada 15 días).
+        // `intervalPattern` solo admite dígitos ("cada 2 semanas"), así que la forma
+        // con palabra "quincena" caía a NONE y la tarea recurrente nacía sin fecha
+        // (invisible en What Now/planificador, recordatorio jamás disparaba). Se mapea
+        // a WEEKLY interval=2 (cada 2 semanas ≈ quincena) sin añadir enum ni migración:
+        // representación honesta y reutiliza el avance semanal existente.
+        Regex("""(?i)\b(?:cada\s+quincena|quincenalmente|todas\s+las\s+quincenas)\b""").find(working)?.let { match ->
+            phrases += match.range
+            return RecurrenceResult(RecurrenceFrequency.WEEKLY, 2, emptyList(), phrases)
+        }
+
         val fixedPatterns = listOf(
             Regex("""(?i)\btodos\s+los\s+d[ií]as\b|\bcada\s+d[ií]a\b|\bdiariamente\b""") to RecurrenceFrequency.DAILY,
             Regex("""(?i)\btodas\s+las\s+[sS]emanas\b|\bcada\s+[sS]emana\b|\bsemanalmente\b""") to RecurrenceFrequency.WEEKLY,
