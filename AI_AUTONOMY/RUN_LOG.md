@@ -3417,3 +3417,22 @@ a un permiso persistente frágil y silencioso ante fallos.
 - `SummaryService`/`SummaryEngine`: resumen del día más accionable.
 - `PlanEngine` replanificación automática; búsqueda universal.
 - Auditoría `EditorDialogs` otros entry points que recalculen `reminderAt` (c.62 cubrió el principal).
+
+## Ciclo 68 - 2026-08-13 (UTC) - fix(parser): "el N del mes que viene" → día N del mes siguiente (fecha errónea + título corrompido)
+
+- **Run/ciclo**: 68 — fix P1 integridad de agenda/dato; continuado desde c.67 (`f7c6137`, refina sugerencia de posposición). El fix fue identificado y prototipado en el run anterior (probe JVM 28 casos); este run lo aterriza con tests unitarios + memoria + commit.
+- **HEAD inicial**: `f7c6137` (c.67, HEAD remoto sincronizado tras `git fetch`/`stash`/`merge --ff-only`/`stash pop`). Durante el pop, el código del parser y RUN_LOG/BACKLOG auto-mergearon limpiamente (áreas ortogonales); solo `CURRENT_STATE.md` quedó en conflicto (ambos runs editaban cabecera/tabla) → resuelto conservando AMBOS trabajos y renumerando este fix a c.68 (c.66 y c.67 ya reclamados por runs paralelos de SummaryEngine). Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
+- **Problema seleccionado**: la forma cotidiana **"Llamar al banco el 15 del mes que viene"** se agendaba al día **equivocado** (hoy+30d en vez del día N del mes siguiente) Y el título quedaba corrompido (**"Llamar al banco del"** — "el 15" consumido por `dayOfMonthPattern`, "del" huérfano). Un compromiso mensual anclado a un día (vencimiento, cobro, factura, cita) caía en fecha genérica y perdía el día explícito. P1: cita/factura agendada en día erróneo + título basura.
+- **Prioridad**: P1 (integridad de agenda/dato — fecha incorrecta de un compromiso mensual).
+- **Causa raíz**: `nextPeriodPattern` casaba "mes que viene" y lo reemplazaba por espacio, dejando "el 15 del " en `working`. `nextPeriodDueAt` (+30d) entraba en la cadena `effectiveRelativeDueAt` y ganaba sobre `dayOfMonthDate` (día 15, calculado pero sombreado). En el cleanup del título, `dayOfMonthPattern.replace` borraba "el 15" pero no "del", dejándolo huérfano.
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**: nuevo `nextMonthDayPattern` (`\bel\s+(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b`) procesado **ANTES** de `nextPeriodPattern` para consumir día + cualificador de "mes siguiente" en UNA frase (evita que `nextPeriodPattern` robe "mes que viene" y deje residuo). `nextMonthDayDueAt` = día N de `base.toLocalDate().plusMonths(1)` con clamp al último día válido si el día no existe en el mes destino (p. ej. 31 de febrero → 28/29); resuelto como día (epoch medianoche) para combinarse con hora explícita ("el 15 del mes que viene a las 10" → 15 del mes siguiente 10:00). Añadido a la cadena `effectiveRelativeDueAt` **antes** de `nextPeriodDueAt` y a `relativeIsDays`.
+- **Tests**: +6 en `NaturalTaskParserTest.kt`: `elNDelMesQueVieneResuelveDiaNDelMesSiguiente` (15/08), `elNDelProximoMesResuelveDiaNDelMesSiguiente` (10/08), `elNDelMesProximoResuelveDiaNDelMesSiguiente` (10/08), `elNDelMesQueVieneRespetaHoraExplicita` (05/08 09:00), `elNDelMesQueVieneRespetaDia31CuandoMesTiene31` (31/08), `elMesQueVieneSinDiaSigueSiendoMas30Dias` (no-regresión +30d). **516 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 513 c.67 + 6 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Probe JVM confirmó antes/después en 28 casos sin regresión. **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real del parser en la app (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras commit+push).
+- **Estado**: FIXED → VERIFIED (dominio JVM); parser en app NO VERIFICADO (sin Android SDK).
+
+### Siguiente
+- Parser: múltiples marcadores temporales en una frase (auditar interacciones acumuladas tras c.58–c.68).
+- "la semana que viene el lunes" / "el mes que viene el día 5" (combinaciones periodo+día).
+- `SummaryService`/`SummaryEngine`: resumen del día más accionable; `PlanEngine` replanificación; búsqueda universal.
+- Auditoría progresiva: rutinas adaptables, detección de compromisos en notas, captura ultrarrápida.
