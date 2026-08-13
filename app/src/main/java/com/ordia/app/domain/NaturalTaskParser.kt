@@ -6,6 +6,8 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.Year
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
 
@@ -869,7 +871,24 @@ object NaturalTaskParser {
             rawYear < 100 -> 2000 + rawYear
             else -> rawYear
         }
-        var date = runCatching { LocalDate.of(year, month, day) }.getOrNull() ?: return null
+        // "el 29 de febrero" (sin aÃ±o) en aÃ±o no bisiesto: el usuario se refiere al
+        // PRÃXIMO 29 de febrero real (aÃ±o bisiesto), no a un 28/2 cualquiera. Recuperar
+        // la intenciÃ³n evita dueAt=null y que la frase quede como tÃ­tulo basura.
+        // Antes: LocalDate.of lanzaba -> null -> tarea sin fecha y con "el 29 de
+        // febrero" como tÃ­tulo (pÃ©rdida de la seÃ±al temporal).
+        if (rawYear == null && month == 2 && day == 29) {
+            var y = today.year
+            if (!Year.isLeap(y.toLong()) || LocalDate.of(y, 2, 29).isBefore(today)) {
+                do { y++ } while (!Year.isLeap(y.toLong()))
+            }
+            return LocalDate.of(y, 2, 29)
+        }
+        // DÃ­a imposible para el mes/aÃ±o (p. ej. "el 31 de abril", "el 30 de febrero"):
+        // se ajusta al Ãºltimo dÃ­a vÃ¡lido del mes (abril 30, febrero 28/29). Honesto:
+        // el mes nombrado se respeta; el dÃ­a se normaliza. Con aÃ±o explÃ­cito y 29 de
+        // feb no bisiesto, tambiÃ©n cae aquÃ­ (-> 28 de feb de ese aÃ±o).
+        var date = runCatching { LocalDate.of(year, month, day) }.getOrNull()
+            ?: LocalDate.of(year, month, minOf(day, YearMonth.of(year, month).lengthOfMonth()))
         if (rawYear == null && date.isBefore(today)) date = date.plusYears(1)
         return date
     }

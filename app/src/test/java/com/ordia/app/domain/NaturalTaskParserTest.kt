@@ -371,6 +371,42 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2024, 1, 10), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // ── Fechas imposibles: recuperación honesta en vez de pérdida ──
+    // "el 29 de febrero" (sin año, año no bisiesto) → próximo 29 de feb real.
+    // "el 31 de abril" / "el 30 de febrero" → último día válido del mes nombrado.
+    // Antes: LocalDate.of lanzaba → dueAt=null y la frase quedaba como título basura.
+
+    @Test fun feb29SinAnioRuedaAProximoBisiesto() {
+        // hoy = 29-jul-2026 (no bisiesto). "el 29 de febrero" → 29-feb-2028.
+        val result = NaturalTaskParser.parse("Renovación el 29 de febrero", now, zone)
+        assertEquals("Renovación", result.title)
+        assertEquals(LocalDate.of(2028, 2, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun feb29SinAnioSoloFechaRuedaAProximoBisiesto() {
+        val result = NaturalTaskParser.parse("el 29 de febrero", now, zone)
+        assertEquals(LocalDate.of(2028, 2, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun feb29ConAnioExplicitoNoBisiestoClampaA28() {
+        // Año explícito 2027 (no bisiesto): se respeta el año, día 29→28.
+        val result = NaturalTaskParser.parse("Cita el 29 de febrero de 2027", now, zone)
+        assertEquals(LocalDate.of(2027, 2, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dia31DeAbrilClampaA30() {
+        // Abril tiene 30 días: "el 31 de abril" → 30-abr. 30-abr-2026 ya pasó → 2027.
+        val result = NaturalTaskParser.parse("Entrega el 31 de abril", now, zone)
+        assertEquals("Entrega", result.title)
+        assertEquals(LocalDate.of(2027, 4, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dia30DeFebreroClampaA28() {
+        val result = NaturalTaskParser.parse("Pago el 30 de febrero", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2027, 2, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // ── Regresión BUG2: "esta mañana/tarde/noche" ──
 
     @Test fun estaNocheSetsTonightCanonicalTime() {
