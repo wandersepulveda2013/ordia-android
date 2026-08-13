@@ -58,21 +58,23 @@ object NaturalTaskParser {
      * sin fecha → la tarea se olvidaba (sin recordatorio, invisible en planificador/What Now).
      */
     private val relativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de)\s+(\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|mes(?:es)?|a[nñ]os?)\b"""
+        """(?i)\b(?:en|dentro\s+de)\s+(\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)\b"""
     )
     /**
      * Período próximo ("la semana que viene", "el mes que viene", "el año que
      * viene", "próximo mes", "la próxima semana"): +1 período (semana/mes/año).
      * "trimestre que viene" / "próximo trimestre" = +3 meses = +90 días
      * (plazo largo cotidiano: impuestos trimestrales, revisiones, informes).
-     * Antes estas formas quedaban sin fecha y con la frase «que viene» como residuo
-     * en el título → tarea olvidada (sin recordatorio ni visibilidad).
-     * "próximos días" (con o sin "en los/el/las") es la forma vaga de "dentro de
-     * poco": +3 días (heurística honesta, ni IA ni azar). Antes quedaba sin fecha
-     * → la tarea se olvidaba.
+     * "quincena" (+15d), "bimestre" (+60d) y "semestre" (+180d) son períodos
+     * cotidianos en español (pagos quincenales, reportes bimestrales, cierres
+     * semestrales). Antes estas formas quedaban sin fecha y con la frase «que
+     * viene» como residuo en el título → tarea olvidada (sin recordatorio ni
+     * visibilidad). "próximos días" (con o sin "en los/el/las") es la forma vaga
+     * de "dentro de poco": +3 días (heurística honesta, ni IA ni azar). Antes
+     * quedaba sin fecha → la tarea se olvidaba.
      */
     private val nextPeriodPattern = Regex(
-        """(?i)\b(?:el|la)?\s*(?:semana|mes|a[nñ]o|trimestre)\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)\b|(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o|trimestre)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
+        """(?i)\b(?:el|la)?\s*(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)\b|(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
     )
     /**
      * "fin de mes" / "a finales de mes" / "fin del mes" → último día del mes actual
@@ -301,7 +303,12 @@ object NaturalTaskParser {
             val millis = when {
                 unit.startsWith("min") -> amount * 60_000L
                 unit.startsWith("hora") -> amount * 60 * 60_000L
+                unit.startsWith("quincena") -> amount * 15 * 24 * 60 * 60_000L
                 unit.startsWith("semana") -> amount * 7 * 24 * 60 * 60_000L
+                // "bimestre"/"semestre"/"trimestre" contienen "mes": van antes que "mes".
+                unit.startsWith("bimestre") -> amount * 60 * 24 * 60 * 60_000L
+                unit.startsWith("trimestre") -> amount * 90 * 24 * 60 * 60_000L
+                unit.startsWith("semestre") -> amount * 180 * 24 * 60 * 60_000L
                 unit.startsWith("mes") -> amount * 30 * 24 * 60 * 60_000L
                 unit.startsWith("a") || unit.contains("añ") -> amount * 365 * 24 * 60 * 60_000L
                 else -> amount * 24 * 60 * 60_000L
@@ -389,9 +396,13 @@ object NaturalTaskParser {
         val nextPeriodDueAt = nextPeriodMatch?.let { m ->
             val text = m.value.lowercase()
             val days = when {
-                // "trimestre" se comprueba antes que "mes": "trimes**tre**" contiene
-                // la subcadena "mes", así que si "mes" fuera primero ganaría (+30d).
+                // "trimestre"/"bimestre"/"semestre" se comprueban antes que "mes":
+                // "trimes**tre**"/"bi**mes**tre"/"se**mes**tre" contienen la subcadena
+                // "mes", así que si "mes" fuera primero ganaría (+30d).
                 "trimestre" in text -> 90L
+                "bimestre" in text -> 60L
+                "semestre" in text -> 180L
+                "quincena" in text -> 15L
                 "semana" in text -> 7L
                 "mes" in text -> 30L
                 "año" in text -> 365L

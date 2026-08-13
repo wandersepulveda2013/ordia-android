@@ -1043,6 +1043,76 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "quincena" (+15d) / "bimestre" (+60d) / "semestre" (+180d): períodos ---
+    // Formas relativas ("en una quincena") y de período próximo ("próxima quincena",
+    // "el bimestre que viene", "próximo semestre"). Plazos cotidianos en español
+    // (pagos quincenales, reportes bimestrales, cierres semestrales). Antes no se
+    // parseaban → dueAt=null → tarea olvidada. "bimestre"/"semestre" contienen "mes",
+    // por lo que se comprueban antes que "mes" para no colisionar (+30d).
+
+    @Test fun enUnaQuincenaParsesDueAt() {
+        val result = NaturalTaskParser.parse("Pago en una quincena", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximaQuincenaParsesDueAt() {
+        val result = NaturalTaskParser.parse("Revisión próxima quincena", now, zone)
+        assertEquals("Revisión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun quincenaQueVieneParsesDueAt() {
+        val result = NaturalTaskParser.parse("Reporte la quincena que viene", now, zone)
+        assertEquals("Reporte", result.title)
+        assertEquals(LocalDate.of(2026, 8, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enUnBimestreParsesDueAt() {
+        val result = NaturalTaskParser.parse("Cierre en un bimestre", now, zone)
+        assertEquals("Cierre", result.title)
+        // +60 días a partir de 2026-07-29 → 2026-09-27.
+        assertEquals(LocalDate.of(2026, 9, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximoBimestreParsesDueAt() {
+        val result = NaturalTaskParser.parse("Impuestos próximo bimestre", now, zone)
+        assertEquals("Impuestos", result.title)
+        assertEquals(LocalDate.of(2026, 9, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun bimestreQueVieneParsesDueAt() {
+        val result = NaturalTaskParser.parse("Informe el bimestre que viene", now, zone)
+        assertEquals("Informe", result.title)
+        assertEquals(LocalDate.of(2026, 9, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enUnSemestreParsesDueAt() {
+        val result = NaturalTaskParser.parse("Auditoría en un semestre", now, zone)
+        assertEquals("Auditoría", result.title)
+        // +180 días a partir de 2026-07-29 → 2027-01-25.
+        assertEquals(LocalDate.of(2027, 1, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximoSemestreParsesDueAt() {
+        val result = NaturalTaskParser.parse("Renovación próximo semestre", now, zone)
+        assertEquals("Renovación", result.title)
+        assertEquals(LocalDate.of(2027, 1, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun semestreQueVieneParsesDueAt() {
+        val result = NaturalTaskParser.parse("Cierre el semestre que viene", now, zone)
+        assertEquals("Cierre", result.title)
+        assertEquals(LocalDate.of(2027, 1, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun semestreRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Reunión el próximo semestre a las 11", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2027, 1, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(11, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- "fin de mes" / "finales de mes" / "mediados de mes": vencimientos mensuales ---
     // Plazos cotidianos de pagos (alquiler, tarjeta, servicios, facturas). Antes no se
     // parseaban → dueAt=null → vencimiento olvidado (sin recordatorio ni visibilidad).
