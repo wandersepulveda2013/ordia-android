@@ -2227,4 +2227,42 @@ class NaturalTaskParserTest {
         assertEquals("Control", result.title)
         assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    // Recurrencia con intervalo escrito (no dígito): "cada dos semanas",
+    // "cada tres meses", "cada quince días". Antes `intervalPattern` sólo admitía
+    // `\d{1,3}`, así que estas formas caían a NONE y la tarea nacía SIN fecha
+    // (invisible en What Now/planificador, recordatorio jamás disparaba). Ahora el
+    // grupo admite números escritos y se resuelven vía `parseWrittenNumber`.
+    @Test fun cadaDosSemanasParsesWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Visitar a mi madre cada dos semanas", now, zone)
+        assertEquals("Visitar a mi madre", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun cadaTresMesesParsesMonthlyInterval3() {
+        val result = NaturalTaskParser.parse("Dentista cada tres meses", now, zone)
+        assertEquals("Dentista", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun cadaQuinceDiasParsesDailyInterval15() {
+        val result = NaturalTaskParser.parse("Reunión cada quince días", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(15, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun cadaDosAnosParsesYearlyInterval2() {
+        val result = NaturalTaskParser.parse("Renovar pasaporte cada dos años", now, zone)
+        assertEquals("Renovar pasaporte", result.title)
+        assertEquals(RecurrenceFrequency.YEARLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
 }

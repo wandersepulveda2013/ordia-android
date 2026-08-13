@@ -1118,10 +1118,22 @@ object NaturalTaskParser {
             return RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), phrases, day)
         }
 
-        // "cada N días/semanas/meses/años"
-        val intervalPattern = Regex("""(?i)\bcada\s+(\d{1,3})\s*(d[ií]as?|semanas?|meses?|a[nñ]os?)\b""")
+        // "cada N días/semanas/meses/años" — N puede ser dígito O número escrito
+        // ("cada dos semanas", "cada tres meses", "cada quince días"). Antes el grupo
+        // sólo admitía `\d{1,3}`, así que las formas con palabra caían a NONE y la
+        // tarea recurrente nacía sin fecha (recordatorio jamás disparaba). Se reutiliza
+        // `parseWrittenNumber` para resolver la palabra; la alternación está acotada a
+        // los números conocidos para no colisionar con la unidad (días/semanas/...).
+        val writtenNumberGroup =
+            "un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|" +
+            "catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|veintiuno|treinta"
+        val intervalPattern =
+            Regex("""(?i)\bcada\s+(\d{1,3}|$writtenNumberGroup)\s*(d[ií]as?|semanas?|meses?|a[nñ]os?)\b""")
         intervalPattern.find(working)?.let { match ->
-            val interval = match.groupValues[1].toIntOrNull()?.coerceIn(1, 366) ?: return@let
+            val rawN = match.groupValues[1]
+            val interval = rawN.toLongOrNull()?.toInt()?.coerceIn(1, 366)
+                ?: parseWrittenNumber(rawN)?.toInt()?.coerceIn(1, 366)
+                ?: return@let
             val unit = match.groupValues[2].lowercase()
             val frequency = when {
                 unit.startsWith("d") -> RecurrenceFrequency.DAILY

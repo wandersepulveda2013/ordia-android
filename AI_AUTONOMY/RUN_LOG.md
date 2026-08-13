@@ -4,6 +4,25 @@
 
 ---
 
+## Ciclo 57 - 2026-08-13 (UTC) - fix(parser): intervalo de recurrencia con número escrito ("cada dos semanas")
+
+- **Run/ciclo**: 57 (base remota `4059f78` ciclo 56 subtarea-autocomplete; rama `openhands/autonomous-ordia`).
+- **HEAD inicial**: `34437db` (base local al iniciar; el remoto ya estaba en `4059f78` con el ciclo 56 subtarea-autocomplete — STALE_BASE detectado al fetch; rebase no destructivo, conflicto solo en `CURRENT_STATE.md` resuelto conservando ambos trabajos, áreas ortogonales `ReminderActionReceiver` vs `NaturalTaskParser`; sin force push).
+- **Problema seleccionado**: `NaturalTaskParser.parseRecurrence` NO reconocía el **intervalo de cadencia con número escrito** — **"cada dos semanas"**, **"cada tres meses"**, **"cada quince días"**, **"cada dos años"**. La rutina quedaba como **tarea única sin fecha** (`recurrence=NONE`, `dueAt=null`): invisible en What Now/planificador, recordatorio jamás disparaba → tarea recurrente **olvidada**. **Causa raíz P1**: `intervalPattern` (`\bcada\s+(\d{1,3})\s*(días|semanas|meses|años)\b`) **sólo admitía dígitos**; al escribir el número con palabra la regex no casaba y la rama caía a NONE. Sutil porque solo se manifiesta cuando el recordatorio "no vuelve". Descubierto por probe JVM (`tools/domain-smoke/Probe3.kt`, desechable, eliminado tras verificación).
+- **Prioridad**: P1 (pérdida de datos silenciosa de rutinas con cadencia no-unitaria).
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**: el grupo de captura del número pasa de `\d{1,3}` a `(\d{1,3}|<números-escritos>)`, donde la alternancia está **acotada a los números conocidos** en `parseWrittenNumber` (un–treinta, sin sobrescribir la unidad días/semanas/...). Resolución: `toLongOrNull()` (dígito) primero, luego `parseWrittenNumber(rawN)` (palabra), `coerceIn(1,366)`. Reutiliza el helper existente (ya usado en recordatorios c.40 y "un par de" c.35) — sin enum ni migración. Lógica local honesta, sin random ni modelo simulado.
+- **Tests**: +4 en `NaturalTaskParserTest.kt` (`cadaDosSemanasParsesWeeklyInterval2`, `cadaTresMesesParsesMonthlyInterval3`, `cadaQuinceDiasParsesDailyInterval15`, `cadaDosAnosParsesYearlyInterval2`). **439 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 435 c.55 + 4 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Pruebas del ciclo 55 (partOfDay DAILY) y 54 (intervalo+días) siguen en verde → sin regresión.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del parser en la app (sin Android SDK).
+- **Hallazgos adicionales (descubrimiento continuo)**: probe reveló **adjetivos de cadencia desnudos** no reconocidos ("pago mensual", "reunión semanal", "suscripción anual", "repaso diario" → `NONE due=null`). Documentado en BACKLOG como P2 ABIERTO con advertencia: riesgo de falso positivo ("diario"=sustantivo, "informe mensual" puede ser puntual) — forzar recurrencia crearía tareas recurrentes NO deseadas (otro problema de integridad). No implementado sin señal desambiguadora. Las formas con `-mente` ("mensualmente") SÍ funcionan.
+- **Archivos modificados**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: pendiente de push.
+- **Estado**: VERIFIED (JVM). 439 domain tests PASS.
+
+### Siguiente
+- P2 ABIERTO: adjetivos de cadencia desnudos ("pago mensual") — decidir umbral de falso positivo.
+- Descubrimiento continuo: auditar `RecurrenceEngine.nextOccurrence` edge cases (fin de mes mensual, año bisiesto), `WhatNowEngine`, `GuardianCoach`, detección de vencidas.
+- P1 adjuntos: migración lazy de URIs externos legacy (seguridad).
+
 ## Ciclo 55 - 2026-08-13 (UTC) - fix(parser): "cada mañana/tarde/noche/madrugada" como recurrencia DIARIA
 
 - **Run/ciclo**: 55 (base remota `b5c96d5` ciclo 54; rama `openhands/autonomous-ordia`).
