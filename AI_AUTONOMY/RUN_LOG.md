@@ -2667,8 +2667,8 @@ a un permiso persistente frágil y silencioso ante fallos.
   - `pasado mañana` se sigue resolviendo ANTES (rama previa, sin cambios), así que no hay regresión.
 - **Tests**: +3 regresión (`deLaMananaWithoutDateStaysToday`, `porLaMananaWithoutDateStaysToday`, `mananaPorLaMananaStillResolvesTomorrow`). **336 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases (319 base remota + 3 nuevos). Smoke 25 OK.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
-- **Commits**: fix(parser): "de/por/a la mañana" (hora) no colisiona con fecha "mañana". docs(autonomy): este registro.
-- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+- **Commits**: `cfa29cd` fix(parser): "de/por/a la mañana" (hora) no colisiona con fecha "mañana". docs(autonomy): este registro (mismo commit).
+- **HEAD final**: `cfa29cd` (push a `openhands/autonomous-ordia`, fast-forward sobre `8451597`).
 
 ### Siguiente
 - Continuar descubrimiento continuo (no solo parser): auditar What Now, rutinas, captura, recordatorios, detección de vencidas.
