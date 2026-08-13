@@ -133,11 +133,29 @@ object NaturalTaskParser {
         Regex("""(?i)\b(?:al\s+|a\s+la\s+)?mediod[ií]a\b"""),
         Regex("""(?i)\b(?:al\s+|a\s+la\s+)?medianoche\b""")
     )
+    /**
+     * Cantidad del recordatorio: dígitos o número escrito en español (simétrico con
+     * la fecha relativa "en dos horas"). Antes solo se aceptaban dígitos, así que
+     * "recuérdame una hora antes" / "dos horas antes" / "treinta minutos antes"
+     * caían a `reminderOffsetMinutes=null` y la frase quedaba como residuo en el
+     * título → el recordatorio nunca se programaba (el usuario olvidaba la cita).
+     */
+    private val writtenAmountPattern =
+        """\d{1,3}|un\s+par\s+de|un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|veintiuno|treinta"""
+
     private val reminderPatterns = listOf(
-        Regex("""(?i)\b(?:recuérdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?(\d{1,3})\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
+        Regex("""(?i)\b(?:recuérdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?($writtenAmountPattern)\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
         // "N min/hora antes": debe aceptar las mismas abreviaturas que la duración
         // (min, hora) para que "30 min antes" sea recordatorio y no caiga como duración.
-        Regex("""(?i)\b(\d{1,3})\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s+antes\b""")
+        Regex("""(?i)\b($writtenAmountPattern)\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s+antes\b"""),
+        // Fracciones sin dígitos como recordatorio: "media hora antes",
+        // "(un) cuarto de hora antes", "recuérdame media hora de anticipación".
+        // Requiere contexto de recordatorio ("antes"/"anticipación"/verbo) para no
+        // robar una duración real ("reunión media hora" sin "antes" sigue siendo
+        // duración). Antes "media hora antes" era robado por la duración (30 min
+        // falsos) y el recordatorio quedaba en null → la cita se olvidaba.
+        Regex("""(?i)\b(?:recuérdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
+        Regex("""(?i)\b(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\s+antes\b""")
     )
     private val durationPatterns = listOf(
         Regex("""(?i)\((\d{1,3})\s*(minutos?|min|horas?|hora)\)"""),
@@ -289,13 +307,26 @@ object NaturalTaskParser {
         }
 
         // Recordatorio "N antes" (se extrae antes que la duración para no confundir unidades).
+        // Acepta dígitos o números escritos ("dos horas antes") y fracciones
+        // comunes ("media hora antes", "un cuarto de hora antes"). Antes solo
+        // funcionaba con dígitos, así que las formas escritas quedaban en null.
         val reminderOffsetMinutes = reminderPatterns.asSequence()
             .mapNotNull { it.find(working) }
             .minByOrNull { it.range.first }
             ?.let { match ->
-                val amount = match.groupValues[1].toLongOrNull() ?: return@let null
-                val unit = match.groupValues[2].lowercase()
+                val amountStr = match.groupValues[1].trim().lowercase()
+                // Los patrones de cantidad+unidad exponen la unidad como grupo 2;
+                // los de fracción ("media hora") solo tienen grupo 1.
+                val unit = match.groupValues.getOrNull(2)?.lowercase().orEmpty()
+                val isFraction = amountStr == "media hora" || amountStr.contains("cuarto")
+                // Fracciones: media hora = 30 min, cuarto de hora = 15 min.
+                val amount = when {
+                    amountStr == "media hora" -> 30L
+                    amountStr.contains("cuarto") -> 15L
+                    else -> parseWrittenNumber(amountStr) ?: return@let null
+                }
                 val minutes = when {
+                    isFraction -> amount
                     unit.startsWith("min") -> amount
                     unit.startsWith("hora") -> amount * 60
                     else -> amount * 24 * 60

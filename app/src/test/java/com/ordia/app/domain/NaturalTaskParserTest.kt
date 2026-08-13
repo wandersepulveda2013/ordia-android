@@ -192,6 +192,69 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // --- Recordatorio con números escritos (ciclo 38) ---
+    // "recuérdame una hora antes" / "dos horas antes" / "treinta minutos antes":
+    // antes solo se aceptaban dígitos, así que la frase no se reconocía como
+    // recordatorio, quedaba como residuo en el título y el recordatorio nunca se
+    // programaba (la cita se olvidaba).
+    @Test fun parsesWrittenAmountReminderWithVerb() {
+        val result = NaturalTaskParser.parse("Reunión recuérdame una hora antes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(60, result.reminderOffsetMinutes)
+    }
+
+    @Test fun parsesWrittenAmountReminderTwoHours() {
+        val result = NaturalTaskParser.parse("Reunión recuérdame dos horas antes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.reminderOffsetMinutes)
+    }
+
+    @Test fun parsesWrittenAmountReminderThirtyMinutes() {
+        val result = NaturalTaskParser.parse("Vuelo recuérdame treinta minutos antes", now, zone)
+        assertEquals("Vuelo", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun parsesWrittenAmountReminderWithoutVerb() {
+        val result = NaturalTaskParser.parse("Cita una hora antes", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(60, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    // "media hora antes" es recordatorio (30 min), NO duración. Antes era robado
+    // por el patrón de duración fraccionaria (30 min falsos como duración) y el
+    // recordatorio quedaba en null.
+    @Test fun mediaHoraAntesEsRecordatorio() {
+        val result = NaturalTaskParser.parse("Reunión media hora antes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun cuartoDeHoraAntesEsRecordatorio() {
+        val result = NaturalTaskParser.parse("Cita un cuarto de hora antes", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(15, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun recuerdameMediaHoraDeAnticipacion() {
+        val result = NaturalTaskParser.parse("Cita recuérdame media hora de anticipación", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    // Regresión: "media hora" SIN "antes"/verbo sigue siendo DURACIÓN (30 min),
+    // no recordatorio. El contexto de recordatorio es obligatorio para las
+    // fracciones.
+    @Test fun mediaHoraSinAntesSigueSiendoDuracion() {
+        val result = NaturalTaskParser.parse("Reunión media hora", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(30, result.durationMinutes)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
     @Test fun parsesDurationPhrase() {
         val result = NaturalTaskParser.parse("Preparar presentación durante 45 minutos", now, zone)
         assertEquals("Preparar presentación", result.title)
