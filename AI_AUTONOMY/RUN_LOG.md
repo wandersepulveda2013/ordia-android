@@ -3326,7 +3326,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: +4 en `SummaryEngineTest.kt` (`deferralSuggestion_suggestsLowestPriorityNonOverdue`, `deferralSuggestion_excludesOverdueTasks`, `deferralSuggestion_atSamePriorityPicksLatestDueToMaximizeMargin`, `deferralSuggestion_whenAllRemainingTasksAreOverdue_returnsNull`). **507 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 502 c.65+c.67 paralelo + 5 netos c.66), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real de la línea en la tarjeta de Today en dispositivo.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SummaryEngine.kt`, `app/src/main/java/com/ordia/app/ui/screens/TodayScreen.kt`, `app/src/main/res/values/strings_screens1.xml`, `app/src/test/java/com/ordia/app/domain/SummaryEngineTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: `a1fa5e3` (commit c.66; push pendiente; base rebaseada sobre c.67 `aa65608` sin conflictos residuales; 507 tests PASS).
+- **HEAD final**: `996ec8a` (commit c.66; push pendiente; base rebaseada sobre c.67 `aa65608` sin conflictos residuales; 507 tests PASS).
 - **Estado**: FIXED → VERIFIED (dominio JVM); UI en app NO VERIFICADO (sin Android SDK).
 
 ### Siguiente
