@@ -363,3 +363,13 @@ Test del regex: 10/10 casos correctos (ramas reales match, ramas ajenas no match
 2. Monitorear el próximo run de "Ordia Autonomous Merge" — debería mergear #37 o #39.
 3. Si las PRs DIRTY no se resuelven solas tras unos ciclos, cerrar las duplicadas
    (especialmente las de deprecationes Compose, que se solapan).
+
+## Resultado verificado (2026-08-13 13:28Z)
+- Segundo fix aplicado: el combined status "pending" con total_count=0 (falso positivo de
+  GitHub cuando solo hay check-runs) ya no bloquea el merge.
+- Run manual del merge workflow: `PRs evaluadas: 9 / Merged: True`.
+- **PR #39 MERGED** (squash) hacia jules/autonomous-ordia a las 13:28:48Z.
+- Resto: #40 y #31 con Verify build:failure (CI real, legitimo); #38/#37/#34/#30/#29/#28
+  con conflictos 405 (quedaron obsoletas tras merge de #39, son duplicadas de Compose).
+- El sistema autónomo ahora CONVERGE: merges reales, y el launch workflow detectara las
+  PRs abiertas para no lanzar sesiones duplicadas.
