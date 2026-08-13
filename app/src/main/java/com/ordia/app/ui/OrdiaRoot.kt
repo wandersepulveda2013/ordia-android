@@ -68,7 +68,7 @@ fun OrdiaRoot(
         }
     }
 
-    OrdiaTheme(state.preferences.themeMode) {
+    OrdiaTheme(state.preferences.themeMode, state.preferences.accentPalette) {
         if (!state.preferences.onboardingComplete) {
             OnboardingScreen(
                 selectedMode = state.preferences.interfaceMode,

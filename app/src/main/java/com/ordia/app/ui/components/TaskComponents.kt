@@ -1,13 +1,18 @@
 package com.ordia.app.ui.components
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -34,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -56,19 +62,31 @@ fun TaskRow(
     modifier: Modifier = Modifier
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val priorityColor = priorityAccent(task.priority)
     Card(
         modifier = modifier.fillMaxWidth().combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true }),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Colored accent rail — encodes priority for quick scanning.
+            Box(
+                Modifier
+                    .width(5.dp)
+                    .height(46.dp)
+                    .background(priorityColor, RoundedCornerShape(topEnd = 3.dp, bottomEnd = 3.dp))
+            )
+            Row(Modifier.fillMaxWidth().padding(end = 10.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = task.completed, onCheckedChange = { onToggle() })
             Column(Modifier.weight(1f).padding(start = 2.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         task.title,
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier = Modifier.weight(1f, fill = false).animateContentSize(),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = if (task.completed) FontWeight.Normal else FontWeight.Medium,
                         textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None
@@ -100,6 +118,7 @@ fun TaskRow(
                     DropdownMenuItem(text = { Text("Archivar") }, leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) }, onClick = { menuOpen = false; onDelete() })
                 }
             }
+            }
         }
     }
 }
@@ -109,4 +128,12 @@ fun PriorityPill(text: String) {
     Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
         Text(text, Modifier.padding(horizontal = 7.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
     }
+}
+
+@Composable
+private fun priorityAccent(priority: TaskPriority): androidx.compose.ui.graphics.Color = when (priority) {
+    TaskPriority.URGENT -> MaterialTheme.colorScheme.error
+    TaskPriority.HIGH -> Color(0xFFC98A2B)
+    TaskPriority.NORMAL -> MaterialTheme.colorScheme.outlineVariant
+    TaskPriority.LOW -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
 }

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.map
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 enum class InterfaceMode { SIMPLE, ORGANIZED, ADVANCED }
 enum class GuardianMode { DORMANT, DISCREET, COMPANION }
+enum class AccentPalette { GOLD, SAGE, ROSE, LAVENDER, OCEAN, TERRACOTTA }
 
 data class UserPreferences(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -24,7 +25,8 @@ data class UserPreferences(
     val weekStartsMonday: Boolean = true,
     val defaultFocusMinutes: Int = 25,
     val reduceMotion: Boolean = false,
-    val compactNavigation: Boolean = false
+    val compactNavigation: Boolean = false,
+    val accentPalette: AccentPalette = AccentPalette.GOLD
 ) {
     val darkMode: Boolean get() = themeMode == ThemeMode.DARK
 }
@@ -45,6 +47,7 @@ class PreferencesRepository(private val context: Context) {
         val defaultFocusMinutes = intPreferencesKey("default_focus_minutes")
         val reduceMotion = booleanPreferencesKey("reduce_motion")
         val compactNavigation = booleanPreferencesKey("compact_navigation")
+        val accentPalette = stringPreferencesKey("accent_palette")
     }
 
     val preferences: Flow<UserPreferences> = context.ordiaDataStore.data.map { values ->
@@ -62,7 +65,8 @@ class PreferencesRepository(private val context: Context) {
             weekStartsMonday = values[Keys.weekStartsMonday] ?: true,
             defaultFocusMinutes = (values[Keys.defaultFocusMinutes] ?: 25).coerceIn(5, 180),
             reduceMotion = values[Keys.reduceMotion] ?: false,
-            compactNavigation = values[Keys.compactNavigation] ?: false
+            compactNavigation = values[Keys.compactNavigation] ?: false,
+            accentPalette = values[Keys.accentPalette]?.toEnumOrNull<AccentPalette>() ?: AccentPalette.GOLD
         )
     }
 
@@ -79,6 +83,7 @@ class PreferencesRepository(private val context: Context) {
     suspend fun setDefaultFocusMinutes(value: Int) = edit { it[Keys.defaultFocusMinutes] = value.coerceIn(5, 180) }
     suspend fun setReduceMotion(value: Boolean) = edit { it[Keys.reduceMotion] = value }
     suspend fun setCompactNavigation(value: Boolean) = edit { it[Keys.compactNavigation] = value }
+    suspend fun setAccentPalette(value: AccentPalette) = edit { it[Keys.accentPalette] = value.name }
 
     /** Compatibility with the 0.1 API. */
     suspend fun setDarkMode(enabled: Boolean) = setThemeMode(if (enabled) ThemeMode.DARK else ThemeMode.LIGHT)

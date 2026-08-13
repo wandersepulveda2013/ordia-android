@@ -565,6 +565,7 @@ class OrdiaViewModel(
     fun setDefaultFocusMinutes(value: Int) = viewModelScope.launch { preferencesRepository.setDefaultFocusMinutes(value) }
     fun setReduceMotion(value: Boolean) = viewModelScope.launch { preferencesRepository.setReduceMotion(value) }
     fun setCompactNavigation(value: Boolean) = viewModelScope.launch { preferencesRepository.setCompactNavigation(value) }
+    fun setAccentPalette(value: com.ordia.app.data.preferences.AccentPalette) = viewModelScope.launch { preferencesRepository.setAccentPalette(value) }
     fun setDarkMode(enabled: Boolean) = viewModelScope.launch { preferencesRepository.setDarkMode(enabled) }
 
     private fun updateWidget() = OrdiaWidgetUpdater.updateAll(appContext)
