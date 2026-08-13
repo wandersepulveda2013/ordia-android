@@ -290,12 +290,13 @@ V1, V2, V3, V4, V5, V6, V7, V8, V9, V14 (10 visuales) + F2, F3, F5, F7, F8, F9, 
 
 ## Próximo paso exacto (sesión 2)
 1. ✅ **CI #66 passes** — release `v3.0.0-11` published.
-2. **Test update flow on device** — install signed APK, verify "Actualizaciones" section
-   shows update status. When a newer version is released (versionCode > 11), the app
-   will show "Nueva versión disponible" with download button.
-3. **Continue deep audit** from session 1: TaskRepository/TaskMutationGate deletion
+2. ✅ **CI #71 passes** — release `v3.0.1-12` published with robust tag parser.
+3. **Test update flow on device** — install signed APK v3.0.1-12, verify "Actualizaciones"
+   section works. When a newer version is released (versionCode > 12), the app will show
+   "Nueva versión disponible" with download button.
+4. **Continue deep audit** from session 1: TaskRepository/TaskMutationGate deletion
    concurrency (already fixed in PR #32, verify no regressions).
-4. **P5**: Tests de instrumentación Room para `collectSubtreeIds`/`deleteSubtreeAndSelf`
+5. **P5**: Tests de instrumentación Room para `collectSubtreeIds`/`deleteSubtreeAndSelf`
    (requieren emulador).
 
 ## Decisiones arquitectónicas (sesión 2)
