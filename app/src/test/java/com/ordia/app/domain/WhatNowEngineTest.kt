@@ -78,6 +78,27 @@ class WhatNowEngineTest {
     }
 
     @Test
+    fun picksUrgentOverNormalAmongOverdue() {
+        // Dos tareas atrasadas: la NORMAL vence ANTES que la URGENTE.
+        // Antes del fix, What Now sugería la normal por su fecha más próxima,
+        // mientras el widget (nextBestTask) sugería la urgente. Ahora coinciden:
+        // la prioridad desempata antes que la fecha, igual que nextBestTask.
+        val normalEarlier = task(1, "Atrasada normal").copy(
+            dueAt = DateRules.toEpochMillis(date.minusDays(1), LocalTime.of(9, 0), zone)
+        )
+        val urgentLater = task(2, "Atrasada urgente", TaskPriority.URGENT).copy(
+            dueAt = DateRules.toEpochMillis(date.minusDays(1), LocalTime.of(10, 0), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(normalEarlier, urgentLater), now = now, zone = zone)
+        val widget = TaskRules.nextBestTask(listOf(normalEarlier, urgentLater), now = now, zone = zone)
+
+        assertEquals(2L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.OVERDUE, suggestion.reason)
+        assertEquals(suggestion.task.id, widget?.id)
+    }
+
+    @Test
     fun urgentReasonWhenOnlyUrgentPending() {
         val urgent = task(1, "Urgente", TaskPriority.URGENT)
 

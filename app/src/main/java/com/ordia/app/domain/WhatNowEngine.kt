@@ -37,7 +37,9 @@ data class WhatNowSuggestion(
  * 6. Primera de la Bandeja.
  * Las tareas ya programadas para más tarde (startAt futuro) se respetan y se
  * sugieren solo si no hay otra cosa pendiente.
- * Desempates: fecha límite más próxima, hora prevista, orden y creación.
+ * Desempates: prioridad, fecha límite más próxima, hora prevista, orden y creación
+ * (mismo criterio que [TaskRules.nextBestTask], para que What Now y el widget
+ * sugieran exactamente la misma tarea).
  */
 object WhatNowEngine {
 
@@ -51,6 +53,7 @@ object WhatNowEngine {
         if (candidates.isEmpty()) return null
         val chosen = candidates.sortedWith(
             compareByDescending<TaskEntity> { rank(it, now, today, zone) }
+                .thenByDescending { TaskRules.priorityScore(it.priority) }
                 .thenBy { it.dueAt ?: Long.MAX_VALUE }
                 .thenBy { it.startAt ?: Long.MAX_VALUE }
                 .thenBy { it.sortOrder }

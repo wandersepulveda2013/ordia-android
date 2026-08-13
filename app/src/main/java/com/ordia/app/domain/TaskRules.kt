@@ -104,7 +104,12 @@ object TaskRules {
         return ((relevant.count { it.completed } * 100.0) / relevant.size).toInt()
     }
 
-    private fun priorityScore(priority: TaskPriority): Int = when (priority) {
+    /**
+     * Puntaje de prioridad compartido por todas las superficies de decisión
+     * (What Now, widget/asistente, planificador). Fuente única de verdad para
+     * que el desempate por prioridad sea idéntico en todos lados.
+     */
+    fun priorityScore(priority: TaskPriority): Int = when (priority) {
         TaskPriority.LOW -> 0; TaskPriority.NORMAL -> 1; TaskPriority.HIGH -> 2; TaskPriority.URGENT -> 3
     }
 }

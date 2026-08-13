@@ -14,8 +14,8 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 52)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 52)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 53)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 53)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
@@ -23,6 +23,39 @@
   docs-only) → los commits de código generan releases automáticamente.
 
 | P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests) |
+
+## Último trabajo — Ciclo 53: What Now desempata por prioridad (consistencia con el widget)
+
+Fix P2 de consistencia de inteligencia entre `WhatNowEngine` (tarjeta "¿Qué hago ahora?" de
+`TodayScreen`) y `TaskRules.nextBestTask` (widget de inicio + asistente + fallback del ViewModel).
+Ambos ordenaban tareas por rango temporal, pero **solo `nextBestTask` desempataba por prioridad**
+(`thenByDescending { priorityScore }`). `WhatNowEngine.suggest` saltaba directamente al `dueAt` más
+próximo. Consecuencia real: con dos tareas atrasadas donde la NORMAL vencía ANTES que la URGENTE
+(p.ej. normal ayer 9:00, urgente ayer 10:00), What Now sugería la normal mientras el widget
+sugería la urgente — **dos respuestas distintas para el mismo conjunto de tareas**. Además
+`priorityScore` existía duplicado como `private` en `TaskRules` y en `DayPlanner`, violando la
+fuente única de verdad declarada para otras helpers (`isImminentStart`, `isDueToday`).
+
+**Solución (mínima, sin nueva pantalla/botón)**:
+- `TaskRules.priorityScore` ahora es **público** (fuente única de verdad del puntaje de prioridad).
+- `WhatNowEngine` añade `thenByDescending { TaskRules.priorityScore(it.priority) }` ANTES del
+  `dueAt`, replicando exactamente el orden de `nextBestTask` → ambas superficies sugieren la misma
+  tarea.
+- `DayPlanner` reutiliza `TaskRules.priorityScore` y se elimina su copia `private` duplicada (DRY).
+
+Lógica local honesta, sin IA falsa ni random. Retrocompatible (sin cambios de firma pública).
+
+**Colisión de remoto (no destructiva)**: al iniciar, el remoto ya estaba en `8275185` (ciclos 52
+snooze + docs). Mi base local `d18fc32` era obsoleta (STALE_BASE). NO se forzó push: stash del
+trabajo → fast-forward a `8275185` → re-aplicar SOLO mis 4 archivos que el remoto NO tocó
+(verificado `git diff` vacío en `TaskRules/WhatNowEngine/DayPlanner/WhatNowEngineTest`). Sin
+conflicto de código. Trabajo del ciclo 52 (ReminderRules) preservado íntegro.
+
+**Tests**: +1 `picksUrgentOverNormalAmongOverdue` (reproduce el bug: dos atrasadas normal 9:00 vs
+urgente 10:00 → antes del fix What Now elegía la normal; tras fix elige la urgente Y coincide con
+`nextBestTask`). **422 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 421 base
+c.52 + 1 nuevo), smoke 25 OK (`tools/run_domain_checks.sh`). **NO VERIFICADO**: gradle/lint/assemble/
+Android/UI/Room con DAOs reales, render real de What Now en `TodayScreen`.
 
 ## Último trabajo — Ciclo 52: snooze ya no corrompe `reminderAt` en tareas recurrentes
 

@@ -67,7 +67,7 @@ object DayPlanner {
             }
             .sortedWith(
                 compareByDescending<TaskEntity> { TaskRules.isOverdue(it, now) }
-                    .thenByDescending { priorityScore(it.priority) }
+                    .thenByDescending { TaskRules.priorityScore(it.priority) }
                     .thenBy { it.dueAt ?: Long.MAX_VALUE }
                     .thenBy { it.sortOrder }
                     .thenBy { it.createdAt }
@@ -147,12 +147,5 @@ object DayPlanner {
             if (dueDate == today) PlanReason.DUE_TODAY else PlanReason.DUE_ON_DATE
         }
         else -> PlanReason.INBOX
-    }
-
-    private fun priorityScore(priority: TaskPriority): Int = when (priority) {
-        TaskPriority.LOW -> 0
-        TaskPriority.NORMAL -> 1
-        TaskPriority.HIGH -> 2
-        TaskPriority.URGENT -> 3
     }
 }

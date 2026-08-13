@@ -3,6 +3,25 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 53 - 2026-08-13 (UTC) - fix: What Now desempata por prioridad (consistencia con el widget)
+- **Run/ciclo**: 53.
+- **HEAD inicial**: `d18fc32` (base local al iniciar; el remoto ya estaba en `8275185` con ciclos 52 snooze + docs — STALE_BASE detectado al fetch).
+- **Colisión evitada (no destructiva)**: al `git fetch` el remoto estaba en `8275185` (ciclo 52 = snooze `ReminderRules`, otro run, + docs). Mi base `d18fc32` era obsoleta. NO se forzó push. Verificado `git diff d18fc32..8275185` en mis 4 archivos (`TaskRules/WhatNowEngine/DayPlanner/WhatNowEngineTest`) → vacío: el remoto NO los tocó. Stash del trabajo → `git merge --ff-only` a `8275185` → `git stash pop` sin conflicto. Trabajo del ciclo 52 (ReminderRules/ReminderActionReceiver) preservado íntegro.
+- **Problema seleccionado**: `WhatNowEngine.suggest` (tarjeta What Now de `TodayScreen`) NO desempataba por prioridad entre tareas del mismo rango temporal, mientras que `TaskRules.nextBestTask` (widget de inicio + asistente + fallback `nextTask` del ViewModel) SÍ lo hacía (`thenByDescending { priorityScore }`). Inconsistencia real: dos tareas atrasadas donde la NORMAL vencía ANTES que la URGENTE → What Now sugería la normal (por `dueAt` más próximo) y el widget sugería la urgente (por prioridad). What Now y el widget daban **respuestas distintas** para el mismo conjunto de tareas. Además `priorityScore` estaba duplicado como `private` en `TaskRules` y `DayPlanner`, violando la fuente única de verdad ya declarada para otros helpers (`isImminentStart`, `isDueToday`).
+- **Prioridad**: P2 (consistencia de inteligencia entre superficies; no es pérdida de datos, pero degrada la confianza en "¿Qué hago ahora?" al contradecir al widget).
+- **Causa raíz**: el comparator de `WhatNowEngine.suggest` se construyó antes de que `nextBestTask` (ciclo 45) estandarizara el orden con desempate por prioridad, y nunca se sincronizó. La duplicación de `priorityScore` vino de copiar la lógica en `DayPlanner` en lugar de reutilizar.
+- **Solución (mínima, sin nueva pantalla/botón)**: `TaskRules.priorityScore` ahora **público** (fuente única de verdad del puntaje de prioridad, compartido por What Now, widget/asistente y planificador). `WhatNowEngine` añade `thenByDescending { TaskRules.priorityScore(it.priority) }` ANTES del `dueAt`, replicando el orden exacto de `nextBestTask` → ambas superficies sugieren la misma tarea. `DayPlanner` reutiliza `TaskRules.priorityScore` y se elimina su copia `private` duplicada (DRY). Lógica local honesta, sin IA falsa ni random. Retrocompatible (sin cambios de firma pública).
+- **Tests**: +1 `picksUrgentOverNormalAmongOverdue` en `WhatNowEngineTest.kt` (reproduce el bug: dos atrasadas normal 9:00 vs urgente 10:00 mismo día → antes del fix What Now elegía la normal por `dueAt`; tras fix elige la urgente Y `assertEquals(suggestion.task.id, widget?.id)` confirma que coincide con `nextBestTask`). **422 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 421 base c.52 + 1 nuevo), smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real de la tarjeta What Now en `TodayScreen`, widget real en pantalla de inicio.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/TaskRules.kt` (`priorityScore` private→public + KDoc), `app/src/main/java/com/ordia/app/domain/WhatNowEngine.kt` (+tiebreaker +KDoc), `app/src/main/java/com/ordia/app/domain/DayPlanner.kt` (reutiliza TaskRules.priorityScore, elimina copia privada), `app/src/test/java/com/ordia/app/domain/WhatNowEngineTest.kt` (+1 test), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (pendiente de push a openhands/autonomous-ordia).
+
+### Siguiente
+- Descubrimiento continuo: auditar captura, recordatorios (cancelación al completar/archivar, persistencia real del snooze vía WorkManager), detección de vencidas importantes, contexto, onboarding, navegación, accesibilidad, rendimiento, privacidad.
+- Posible P1: verificar que `ReminderScheduler.scheduleAt` persiste el snooze tras reinicios (WorkManager vs AlarmManager); auditar cancelación de recordatorios al completar/archivar (evitar notificaciones de tareas ya hechas).
+- Parser: manejo robusto de múltiples marcadores temporales en una frase.
+
+---
 ## Ciclo 52 - 2026-08-13 (UTC) - fix: snooze ya no corrompe reminderAt en tareas recurrentes
 - **Run/ciclo**: 52.
 - **HEAD inicial**: `d18fc32` (base `openhands/autonomous-ordia` sincronizada al iniciar; clean — cycle 51 docs follow-up del run previo).
