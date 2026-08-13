@@ -58,7 +58,7 @@ object NaturalTaskParser {
      * sin fecha → la tarea se olvidaba (sin recordatorio, invisible en planificador/What Now).
      */
     private val relativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de)\s+(\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)\b"""
+        """(?i)\b(?:en|dentro\s+de)\s+(un\s+par\s+de|\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)\b"""
     )
     /**
      * Período próximo ("la semana que viene", "el mes que viene", "el año que
@@ -811,6 +811,7 @@ object NaturalTaskParser {
     private fun parseWrittenNumber(raw: String): Long? {
         raw.toLongOrNull()?.let { return it }
         return when (raw.lowercase().trim()) {
+            "un par de" -> 2L
             "un", "una", "uno" -> 1L
             "dos" -> 2L
             "tres" -> 3L

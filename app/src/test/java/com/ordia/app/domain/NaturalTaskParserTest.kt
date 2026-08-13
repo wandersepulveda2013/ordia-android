@@ -1329,4 +1329,35 @@ class NaturalTaskParserTest {
         assertEquals("Entrega", result.title)
         assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    // --- "un par de" (coloquial = 2): "en un par de días/semanas/meses" ---
+
+    @Test fun unParDeDiasResuelveMasDosDias() {
+        // now 2026-07-29 + 2 días = 2026-07-31.
+        val result = NaturalTaskParser.parse("Revisar propuesta en un par de días", now, zone)
+        assertEquals("Revisar propuesta", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun unParDeSemanasResuelveMasCatorceDias() {
+        // now 2026-07-29 + 14 días = 2026-08-12.
+        val result = NaturalTaskParser.parse("Enviar borrador en un par de semanas", now, zone)
+        assertEquals("Enviar borrador", result.title)
+        assertEquals(LocalDate.of(2026, 8, 12), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun unParDeMesesResuelveMasSesentaDias() {
+        // now 2026-07-29 + 60 días = 2026-09-27.
+        val result = NaturalTaskParser.parse("Renovar suscripción en un par de meses", now, zone)
+        assertEquals("Renovar suscripción", result.title)
+        assertEquals(LocalDate.of(2026, 9, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun unParDeDiasConHoraExplicita() {
+        // La fecha relativa se combina con hora explícita: +2d a las 10:00.
+        val result = NaturalTaskParser.parse("Llamar al cliente en un par de días a las 10", now, zone)
+        assertEquals("Llamar al cliente", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
 }
