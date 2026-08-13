@@ -702,8 +702,11 @@ object NaturalTaskParser {
             // preposición/puntuación ("con Juan", "y luego…", ", luego…") se entiende
             // como ventana horaria. Esto distingue "clase de 9 a 11" (horario) de
             // "comprar de 2 a 5 entradas" (cantidad) sin inventar IA ni romper 24h.
+            // Followers seguros ampliados: días de la semana y sus artículos
+            // ("el viernes"), días relativos ("mañana") y marcadores de parte del día
+            // ("a la tarde", "por la noche") que antes dejaban residuo.
             val followedByCount = m.range.last + 1 < working.length &&
-                !Regex("""^\s*(?:,|\.|;|:|!|\?|y\b|o\b|con\b|de\b|en\b|para\b|hasta\b|luego\b|después\b|despues\b|pero\b|porque\b|$)""", RegexOption.IGNORE_CASE)
+                !Regex("""^\s*(?:,|\.|;|:|!|\?|y\b|o\b|con\b|de\b|del\b|en\b|para\b|hasta\b|desde\b|luego\b|después\b|despues\b|pero\b|porque\b|por\b|sin\b|sobre\b|a\b|al\b|el\b|la\b|los\b|las\b|un\b|una\b|mañana\b|manana\b|hoy\b|ayer\b|anteayer\b|lunes\b|martes\b|miércoles\b|miercoles\b|jueves\b|viernes\b|sábado\b|sabado\b|domingo\b|$)""", RegexOption.IGNORE_CASE)
                     .containsMatchIn(working.substring(m.range.last + 1))
             if (start != null && end != null && end > start && end <= 24 &&
                 start in 0..23 && (end - start) * 60 <= 24 * 60 &&

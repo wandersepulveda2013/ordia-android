@@ -956,6 +956,42 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // Rango sin "horas" (ambas < 13) seguido de un DÍA de la semana o de un marcador
+    // temporal ("mañana", "a la tarde"): el primer envío del fix sólo aceptaba
+    // conectores básicos (con/y/para...) y dejaba residuo cuando el rango iba seguido de
+    // "el lunes", "mañana" o "a la tarde". Estas formas se añaden como followers seguros.
+    @Test fun bareRangeSmallHoursFollowedByWeekdayParsesDuration() {
+        val result = NaturalTaskParser.parse("Clase de 9 a 11 el viernes", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun bareRangeSmallHoursFollowedByRelativeDayParsesDuration() {
+        val result = NaturalTaskParser.parse("Taller de 10 a 12 mañana", now, zone)
+        assertEquals("Taller", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun bareRangeSmallHoursFollowedByATardeParsesDuration() {
+        // "a la tarde" empieza por "a" (no estaba en el set original). Antes dejaba residuo.
+        val result = NaturalTaskParser.parse("Curso de 4 a 6 a la tarde", now, zone)
+        assertEquals("Curso", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun bareRangeSmallHoursFollowedByPorLaNocheParsesDuration() {
+        val result = NaturalTaskParser.parse("Turno de 9 a 11 por la noche", now, zone)
+        assertEquals("Turno", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun bareRangeSmallHoursFollowedByCountableNounStillRejected() {
+        // Extender el set de followers NO debe romper el rechazo de "de 2 a 5 personas".
+        val result = NaturalTaskParser.parse("Reunión de 2 a 5 personas", now, zone)
+        assertEquals("Reunión de 2 a 5 personas", result.title)
+        assertNull(result.durationMinutes)
+    }
+
     @Test fun rangeRemovesWindowButKeepsTrailingText() {
         val result = NaturalTaskParser.parse("Reunión de 18 a 20 con Juan", now, zone)
         assertEquals("Reunión con Juan", result.title)

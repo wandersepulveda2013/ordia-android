@@ -22,20 +22,43 @@
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1 | Parser — fechas relativas/pasadas/imposibles | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 (353 tests) |
+| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers (día semana/parte del día) c.42 cont. (358 tests) |
 
-Bug de captura P1 (tarea en día erróneo → reunión/recordatorio perdido el mismo día). La palabra
-"mañana" es ambigua: token de **fecha** (el día de mañana) vs. marcador de **hora** ("de la
-mañana", "por la mañana", "a la mañana", "esta mañana"). El parser fechaba en MAÑANA cualquier
-tarea que contenía la palabra, así "Reunión a las 9 de la mañana" se programaba para MAÑANA
-09:00 (reunión perdida HOY). Solución: nuevo `mananaAsDate(working)` que recorre todas las
-apariciones de "mañana" y sólo cuenta como fecha si al menos una NO está precedida por un
-marcador de parte del día. Así "de/por/a la mañana" → se queda en HOY; "mañana por la mañana"
-→ mañana (primera aparición suelta). `pasado mañana` se resuelve antes, sin regresión.
+Bug de captura P2 (ciclo 42): el rango horario **sin la palabra "horas"** y con ambas horas < 13
+("clase de 9 a 11") no se reconocía: `durationMinutes=null` y "de 9 a 11" quedaba como residuo.
+Un run paralelo (`0a77387`) envió el fix base (aceptar el rango si no le sigue sustantivo de
+cantidad, con set de followers básicos). **Este run** detectó que ese set dejaba residuo cuando
+el rango iba seguido de un día de la semana ("el viernes"), un día relativo ("mañana") o un
+marcador de parte del día ("a la tarde", "por la noche"), y lo amplió. Sigue rechazando
+"comprar de 2 a 5 entradas". Heurística honesta, conservadora.
 
 VERIFICADO localmente (JVM puro, sin Android SDK): `bash tools/run_domain_tests.sh` =
-**353 tests PASS** (350 base c.41 + 3 nuevos de este ciclo), 25 clases. Smoke 25 OK. NO
-VERIFICADO: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+**358 tests PASS** (353 base c.42 + 5 nuevos), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+
+## Último trabajo — Ciclo 42 (cont.): rango horario sin "horas" + ampliación de followers seguros
+
+Mejora aditiva sobre el fix base del rango horario (P2 — captura de bloque horario cotidiano).
+
+**Colisión con run paralelo (no destructiva)**: mi base local (`91c8b9f`) estaba por detrás del
+remoto: `0a77387` (run paralelo) ya había resuelto el mismo backlog item con un enfoque
+equivalente (rango sin unidad y horas < 13 aceptado si no le sigue sustantivo de cantidad).
+Descarté mi implementación competidora vía `git stash` + `git pull --ff-only` (sin force push,
+sin reset --hard) y reconstruí sobre `0a77387`. Sin STALE_RUN destructivo. Aporté una mejora
+aditiva no duplicativa sobre el fix base.
+
+**Mejora aditiva**: el set de followers seguros del fix base dejaba residuo en tres clases de
+frases cotidianas — rango + día de la semana ("clase de 9 a 11 el viernes"), rango + día
+relativo ("taller de 10 a 12 mañana") y rango + parte del día con conector no listado ("curso
+de 4 a 6 a la tarde", "turno de 9 a 11 por la noche"). Causa raíz: el regex `followedByCount`
+sólo incluía conectores básicos (con/y/o/para/hasta/luego/después/pero/porque + puntuación).
+Solución: ampliar el regex con artículos (el/la/los/las/un/una), a/al, por, sin, sobre, desde,
+del, días de la semana y días relativos (mañana/hoy/ayer). El rechazo de "comprar de 2 a 5
+entradas"/"de 2 a 5 personas" se preserva (sustantivo contable sigue fuera del set).
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**358 tests PASS** (353 base remota + 5 nuevos), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 
 ## Último trabajo — Ciclo 38: fechas pasadas + recuperación de fechas imposibles
 

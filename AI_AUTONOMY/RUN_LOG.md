@@ -3,6 +3,24 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 42 (cont.) - 2026-08-13 (UTC) - rango horario sin "horas": ampliación de followers seguros
+
+- **Run/ciclo**: 42 (continuación — colisión con run paralelo resuelta, mejora aditiva sobre el fix base del ciclo 42).
+- **HEAD inicial**: `91c8b9f` (base del workspace al iniciar). Al hacer `git fetch` el remoto había avanzado a `0a77387` ("feat(parser): rango horario sin unidad 'horas' cuando ambas horas < 13"): un run paralelo resolvió el **mismo** backlog item con un enfoque equivalente (3 tests, set de followers básicos). Descarté mi implementación competidora vía `git stash` (luego `git stash drop`) + `git pull --ff-only` (sin force push, sin reset --hard, sin STALE_RUN destructivo) y reconstruí sobre `0a77387` aportando una **mejora aditiva no duplicativa**.
+- **Problema seleccionado (P2, parser)**: el fix base del rango horario sin "horas" dejaba residuo ("de 9 a 11" en el título, `durationMinutes=null`) en tres clases de frases cotidianas: rango + día de la semana ("clase de 9 a 11 el viernes"), rango + día relativo ("taller de 10 a 12 mañana") y rango + parte del día con conector no listado ("curso de 4 a 6 a la tarde", "turno de 9 a 11 por la noche"). Causa raíz: el regex `followedByCount` del fix base sólo incluía conectores básicos (con/y/o/para/hasta/luego/después/pero/porque + puntuación), así que esos tokens iniciaban "sustantivo de cantidad" falso → el rango se rechazaba.
+- **Prioridad**: P2 (captura incorrecta + título sucio; no pérdida de datos, pero fricción).
+- **Solución (mínima, en `NaturalTaskParser.kt`)**: ampliar el regex de followers seguros con artículos (el/la/los/las/un/una), a/al, por, sin, sobre, desde, del, días de la semana (lunes…domingo, con y sin acento) y días relativos (mañana/manana, hoy, ayer, anteayer). El rechazo de "comprar de 2 a 5 entradas"/"reunión de 2 a 5 personas" se preserva (sustantivo contable sigue fuera del set). Heurística honesta, conservadora.
+- **Tests**: +5 TDD (`bareRangeSmallHoursFollowedByWeekdayParsesDuration`, `…FollowedByRelativeDayParsesDuration`, `…FollowedByATardeParsesDuration`, `…FollowedByPorLaNocheParsesDuration`, `…FollowedByCountableNounStillRejected`). Confirmado FAIL previo (4 fallos) contra la base remota, luego PASS. **358 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases (353 base remota + 5 nuevos). Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Commits**: `feat(parser): rango horario sin "horas" — ampliar followers seguros (día semana/parte del día)`.
+- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser (P2): "la quincena" como hito financiero (día 15/fin de mes); "próximo bimestre/semestre"; "mediados de semana" ya hecho.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+- P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
+
+---
 ## Ciclo 38 - 2026-08-13 (UTC) - fechas pasadas + recuperación de fechas imposibles
 
 - **Run/ciclo**: 38
