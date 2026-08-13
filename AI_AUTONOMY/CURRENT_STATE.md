@@ -14,8 +14,8 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 65)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (sobre c.64 fix parser standalone "N de la tarde/noche" + c.63 detección de vencidas importantes en el Guardián + c.62 integridad de recordatorios en el editor + c.61 meridiem sin "a las" + c.60 rango-minutos/meridiem + c.59 verbo-recordatorio + c.58 fracción sub-hora/"en la tarde" + c.57 número-escrito + c.56 subtarea-autocomplete + c.55 partOfDay DAILY + c.54 intervalo+días + c.53 What Now + c.52 snooze; aterriza feat: veredicto honesto del día en el resumen de Today)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 65; cont. — fix P1 colisión `monthNameMatch.find()`)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (sobre c.64 fix parser standalone "N de la tarde/noche" + c.63 detección de vencidas importantes en el Guardián + c.62 integridad de recordatorios en el editor + c.61 meridiem sin "a las" + c.60 rango-minutos/meridiem + c.59 verbo-recordatorio + c.58 fracción sub-hora/"en la tarde" + c.57 número-escrito + c.56 subtarea-autocomplete + c.55 partOfDay DAILY + c.54 intervalo+días + c.53 What Now + c.52 snooze; aterriza feat: veredicto honesto del día en el resumen de Today; cont. aterriza fix P1 `monthNameMatch` casaba mes inválido y ocultaba fecha real)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
@@ -152,6 +152,36 @@ madrugada"→04:00 (debería 09:00). El usuario escribía una hora concreta y Or
   `standaloneDoceDeLaTardeEsMediodia`, `conALasNueveDeLaTardeNoDejaResiduo`, `sinNumeroDeLaTardeMantieneCanonica15h`).
   Probe JVM confirmó antes/después en 21 casos (incl. "9 de marzo", "el 15 de agosto", rango, "mañana 9 de la tarde").
   **494 domain tests PASS** (`tools/run_domain_tests.sh`, 26 clases — 485 c.63 + 9 nuevos), smoke 25 OK.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+
+### Ciclo 64 (cont.) — Parser — fix P1 `monthNameMatch.find()` casaba mes inválido y ocultaba fecha real
+
+Fix **P1** de integridad de agenda (`NaturalTaskParser`), descubierto al auditar el fix c.64 de
+"standalone N de la tarde". En `"Taller 9 de la tarde el 15 de agosto"`, `monthNamePattern.find()`
+casaba el **primer** match `"9 de la"` (grupo-mes `"la"`, inválido); `parseMonthNameDate` retornaba
+`null` pero `monthNameMatch` ya no avanzaba a examinar el match posterior `"15 de agosto"` (mes
+válido) → `monthNameDate` quedaba `null` → la cita se agendaba para **HOY** en lugar del **15 de
+agosto**. Una cita futura explícita se perdía como evento de hoy (mismo patrón de dato-agenda
+perdido que otros fixes P1 de fechas). No dependía del fix c.64: afectaba a cualquier frase donde
+un "N de la parte del día" precediera a una fecha de mes válida.
+
+- **Colisión con run paralelo**: al iniciar este run, `git fetch` reveló que `origin/openhands/autonomous-ordia`
+  había avanzado `6e43206..890e8b4` (otro run implementó el MISMO feature P2-1 "standalone N de la
+  tarde" en el ciclo 64). Resolución **no destructiva**: `stash` del trabajo local →
+  `merge --ff-only` al remoto (avanza a `890e8b4`, sin force/reset/rebase) → se descartó el P2-1
+  propio (redundante, ya presente en el remoto) → se reaplicó **únicamente** este fix P1 único sobre
+  la nueva base. Sin sobrescribir trabajo válido del otro agente. (El P2-1 local redundante se
+  descartó limpiamente; el bug P1 no estaba cubierto por el remoto.)
+- **Fix mínimo**: `monthNameMatch` pasa de `monthNamePattern.find(working)` a
+  `monthNamePattern.findAll(working).firstOrNull { m -> months.any { (name,_) -> m.groupValues[2].equals(name, ignoreCase = true) } }`,
+  descartando matches de mes inválido y encontrando la fecha real posterior. El `parseMonthNameDate`
+  posterior (que ya validaba el mes) opera ahora sobre un match garantizado válido, sin cambio.
+- **Tests**: +2 (`nueveDeLaTardeConFechaMesResuelveAmbos` → 2026-08-15 21:00; `nueveDeLaMananaConFechaMesResuelveAmbos`
+  → 2026-09-20 09:00). **496 domain tests PASS** (`tools/run_domain_tests.sh`, 26 clases — 494 c.64 + 2 nuevos),
+  smoke 25 OK. Sin regresión en los 494 previos.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md`.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 
 ## Último trabajo — Ciclo 61: Parser — meridiem sin "a las" + hora de inicio del rango como dueAt

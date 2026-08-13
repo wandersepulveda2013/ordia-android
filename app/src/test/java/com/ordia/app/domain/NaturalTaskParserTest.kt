@@ -2573,4 +2573,22 @@ class NaturalTaskParserTest {
         assertEquals("Jugar tenis", result.title)
         assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
+
+    // --- Regresión monthName: find() casaba "9 de la" (mes "la" inválido) primero y
+    // ocultaba "el 15 de agosto" posterior → la cita se agendaba para HOY en lugar del
+    // 15/8 (cita futura perdida como evento de hoy). ---
+
+    @Test fun nueveDeLaTardeConFechaMesResuelveAmbos() {
+        val result = NaturalTaskParser.parse("Taller 9 de la tarde el 15 de agosto", now, zone)
+        assertEquals("Taller", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun nueveDeLaMananaConFechaMesResuelveAmbos() {
+        val result = NaturalTaskParser.parse("Reunión 9 de la mañana el 20 de septiembre", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 9, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
 }

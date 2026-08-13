@@ -3351,3 +3351,23 @@ a un permiso persistente frágil y silencioso ante fallos.
 ### Siguiente
 - Caso límite ambiguo: "12 de la mañana" → 00:00 (¿medianoche o mediodía?); documentar decisión.
 - Descubrimiento continuo: `SummaryService`/`SummaryEngine` resumen del día más accionable; `PlanEngine` replanificación; búsqueda universal; múltiples marcadores temporales en una frase.
+
+## Ciclo 64 (cont.) - 2026-08-13 (UTC) - fix(parser): `monthNameMatch.find()` casaba mes inválido y ocultaba fecha real (citas futuras → hoy)
+
+- **Run/ciclo**: 64 (cont.) — fix P1 añadido sobre el c.64 aterrizado por el run paralelo; base avanzada a c.65 antes de commit.
+- **HEAD inicial**: `6e43206` (c.63); tras reconciliación con c.64 remoto → `890e8b4`; tras nueva reconciliación con c.65 remoto → `970b6c8`.
+- **Colisión de remoto (STALE_RUN manejado sin daño, DOS veces)**: (1) al iniciar, `git fetch` mostró `origin/openhands/autonomous-ordia` avanzado `6e43206..890e8b4` (otro run implementó el MISMO feature P2-1 "standalone N de la tarde" en c.64). Mi trabajo local incluía ese P2-1 (redundante) MÁS un fix **P1** único. Resolución: `stash` → `merge --ff-only` al remoto → descarté el P2-1 propio (ya presente) → reapliqué **únicamente** el fix P1. (2) Al preparar el commit, nueva `git fetch` reveló avance `890e8b4..970b6c8` (c.65 "veredicto honesto del día"). Resolución: `stash` → `merge --ff-only` → `stash pop`: código del parser y RUN_LOG auto-mergearon limpiamente (áreas ortogonales); solo `CURRENT_STATE.md` quedó en conflicto (ambos editaban cabecera) → resuelto conservando AMBOS trabajos (cabecera c.65 + nota cont. P1). **Sin force push, sin reset --hard, sin rebase destructivo, sin sobrescribir trabajo válido.**
+- **Problema seleccionado**: en `"Taller 9 de la tarde el 15 de agosto"`, `monthNamePattern.find(working)` casaba el **primer** match `"9 de la"` cuyo grupo-mes es `"la"` (inválido); `parseMonthNameDate` retornaba `null` pero `monthNameMatch` **no avanzaba** a examinar el match posterior `"15 de agosto"` (mes válido) → `monthNameDate=null` → la cita se agendaba para **HOY** en lugar del **15 de agosto**. Cita futura explícita perdida como evento de hoy. P1: integridad de agenda/dato perdido (no estética).
+- **Prioridad**: P1 (fecha de cita perdida).
+- **Causa raíz**: `Regex.find()` devuelve solo el primer match; la validación del mes vivía en `parseMonthNameDate`, que retornaba `null` para un mes inválido, pero el `monthNameMatch` ya fijado no se reevaluaba sobre el siguiente match válido.
+- **Solución (mínima)**: `monthNameMatch` pasa de `find(working)` a `findAll(working).firstOrNull { m -> months.any { (name,_) -> m.groupValues[2].equals(name, ignoreCase = true) } }` — descarta matches de mes inválido y selecciona el primero con mes real. `parseMonthNameDate` (que ya validaba) opera ahora sobre un match garantizado válido, sin cambio. No añade pantalla/botón: misma potencia, menos pérdida de datos.
+- **Tests**: +2 en `NaturalTaskParserTest.kt` (`nueveDeLaTardeConFechaMesResuelveAmbos` → 2026-08-15 21:00; `nueveDeLaMananaConFechaMesResuelveAmbos` → 2026-09-20 09:00). **502 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 500 c.65 + 2 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión en los 500 previos. **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: `94c9902` (tras commit+push al remoto `openhands/autonomous-ordia`); push confirmado más abajo.
+- **Estado**: FIXED → VERIFIED (dominio JVM); parser en app NO VERIFICADO (sin Android SDK).
+
+### Siguiente
+- Parser: múltiples marcadores temporales en una frase (auditar interacciones tras c.64 + este fix).
+- `SummaryService`/`SummaryEngine`: resumen del día más accionable.
+- `PlanEngine` replanificación automática; búsqueda universal.
+- Auditoría `EditorDialogs` otros entry points que recalculen `reminderAt` (c.62 cubrió el principal).

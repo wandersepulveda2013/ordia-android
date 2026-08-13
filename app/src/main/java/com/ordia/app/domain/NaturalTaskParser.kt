@@ -712,7 +712,12 @@ object NaturalTaskParser {
         val weekdayMatch = weekdayPattern.find(working)
         val weekendMatch = weekendEarlyMatch
         val numericDateMatch = numericDatePattern.find(working)
-        val monthNameMatch = monthNamePattern.find(working)
+        // find() devolvía solo el PRIMER match; si su mes era inválido ("9 de la" → "la"),
+        // parseMonthNameDate retornaba null y nunca se examinaba un match posterior con mes
+        // válido ("el 15 de agosto") → "9 de la tarde el 15 de agosto" agendaba para HOY en
+        // lugar del 15/8 (cita futura perdida). findAll + firstOrNull con mes válido lo corrige.
+        val monthNameMatch = monthNamePattern.findAll(working)
+            .firstOrNull { m -> months.any { (name, _) -> m.groupValues[2].equals(name, ignoreCase = true) } }
         // Solo cuenta como fecha si el mes es válido: así "8 de la manana" (sufijo de
         // hora, mes "la" inexistente) no sombra y anula la resolución de fecha de
         // repeticiones mensuales/semanales con hora.
