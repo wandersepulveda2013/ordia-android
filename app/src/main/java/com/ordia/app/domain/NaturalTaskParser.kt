@@ -1084,6 +1084,15 @@ object NaturalTaskParser {
         }
         val explicitTime = explicitTimeData?.first
         val hasExplicitMeridiem = explicitTimeData?.second == true
+        // Un tiempo explícito (timePatterns) que cae DENTRO del span de un rango validado
+        // es, en realidad, el extremo final del rango ("de 6 a 8 pm": "8 pm" no es una
+        // hora suelta, es el FIN). En ese caso la hora de inicio (rangeStartTime) es la
+        // fecha límite correcta del evento, no la de fin. Sin este guard, "8 pm"→20:00
+        // sombreaba rangeStartTime 18:00 y agendaba 2h tarde. La forma "de la tarde"
+        // (c.76) no se ve afectada: timePatterns no captura "8 de la tarde".
+        val explicitTimeIsRangeEnd = rangeMatch != null && timeMatch != null &&
+            timeMatch!!.range.first >= rangeMatch!!.range.first &&
+            timeMatch.range.last <= rangeMatch.range.last
         // Hora suelta con parte del día ("Taller 9 de la tarde"): resuelve la hora absoluta
         // con su meridiem. Se procesa ANTES de borrar el título y ANTES de la canónica de
         // parte del día, así "9 de la tarde" → 21:00 y no 15:00. El patrón exige "de la
@@ -1098,8 +1107,13 @@ object NaturalTaskParser {
         // Si la hora explícita vino sin meridiem (p.ej. "a las 4") y hay contexto PM de
         // parte del día ("esta tarde"/"a la noche"), se aplica el offset +12 ("esta tarde
         // a las 4" → 16:00, no 04:00).
-        val parsedTime = explicitTime?.let { t ->
-            if (!hasExplicitMeridiem && hasPartOfDayPmContext && t.hour in 1..11)
+        // Excepción: si el tiempo explícito es el extremo final de un rango
+        // (explicitTimeIsRangeEnd), gana rangeStartTime (hora de inicio del evento).
+        val explicitTimeForParsing = if (explicitTimeIsRangeEnd) null else explicitTime
+        val hasExplicitMeridiemForParsing =
+            if (explicitTimeIsRangeEnd) false else hasExplicitMeridiem
+        val parsedTime = explicitTimeForParsing?.let { t ->
+            if (!hasExplicitMeridiemForParsing && hasPartOfDayPmContext && t.hour in 1..11)
                 t.plusHours(12) else t
         } ?: rangeStartTime
             ?: partOfDayTime

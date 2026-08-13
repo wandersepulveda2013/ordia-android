@@ -14,7 +14,7 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 77; feat P1 resumen: el veredicto del día `DayLoad` ahora usa la ventana de jornada APRENDIDA (`LearningProfile`) en vez de la fija 9–18 → la tarjeta de hoy deja de mentir para horarios no estándar (jornada 9–23 a las 17:00 = ON_TRACK no OVERLOADED; jornada 6–14 a las 13:00 = OVERLOADED no ON_TRACK); `SummaryEngine.summarize`/`assessDayLoad` reciben `dayStartMinute`/`dayEndMinute` (defaults 9–18) + sobrecarga con `LearningProfile?`; `TodayScreen` computa el perfil igual que `PlannerScreen` y lo pasa; +4 tests, 572 PASS; ciclo 76 fix P1 parser rango horario "de 6 a 8 de la tarde": el meridiem PM del extremo final no se propagaba al inicio sin meridiem → agendaba 06:00 en vez de 18:00 (recordatorio 12h antes de la cita real); ahora el inicio bare hereda el PM del extremo final "de la tarde/noche" → 18:00, duración correcta 120; + c.75 fix parser "fin/mediados/principios del mes que viene/próximo" ancla al mes siguiente (no al actual) + fix "antepasado mañana" → +3 días y título limpio; + c.74 fix P1 RecurrenceEngine anual anclado a 29 de febrero: `plusYears(1)` clampaba a 28/2 y derivaba el ancla para siempre (cumpleaños/aniversario bisiesto perdido) → ahora `nextYearly` salta años no bisiestos, simétrico al `nextMonthly` 31 de c.18; + c.73 fix parser "la semana que viene el lunes/viernes" → día objetivo de la semana próxima, no +7d genérico; + c.72 fix parser "jueves que viene" dicho en jueves -> proxima semana (no HOY); + c.71 fix parser orden inverso "el mes que viene el N" agenda día N del mes siguiente; + c.70 fix P0 crash parser día fuera de rango "el 0/99 de mes" + fix P1 "el 15 de agosto del 2027" no capturaba año "del" → fecha errónea 2026↔2027 y título "del 2027" huérfano; + c.69 feat resumen accionable: un toque pospone la tarea sugerida a mañana)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 78; fix P1 parser rango horario con meridiem compacto solo en el extremo final "de 6 a 8 pm"/"de 9 a 11 am": el `explicitTime` capturaba el extremo final "8 pm"→20:00 y sombreaba `rangeStartTime` (18:00) → dueAt caía a la hora de FIN (20:00), no de inicio (18:00); recordatorio 2h tarde; ahora detección posicional `explicitTimeIsRangeEnd` deja ganar a `rangeStartTime` (inicio, con propagación PM del c.76) → 18:00, duración correcta 120; horas sueltas "Llamada 8pm"→20:00 sin regresión; + c.77 feat P1 resumen: el veredicto del día `DayLoad` ahora usa la ventana de jornada APRENDIDA (`LearningProfile`) en vez de la fija 9–18 → la tarjeta de hoy deja de mentir para horarios no estándar (jornada 9–23 a las 17:00 = ON_TRACK no OVERLOADED; jornada 6–14 a las 13:00 = OVERLOADED no ON_TRACK); `SummaryEngine.summarize`/`assessDayLoad` reciben `dayStartMinute`/`dayEndMinute` (defaults 9–18) + sobrecarga con `LearningProfile?`; `TodayScreen` computa el perfil igual que `PlannerScreen` y lo pasa; +4 tests; + c.76 fix P1 parser rango horario "de 6 a 8 de la tarde": el meridiem PM del extremo final no se propagaba al inicio sin meridiem → agendaba 06:00 en vez de 18:00 (recordatorio 12h antes de la cita real); ahora el inicio bare hereda el PM del extremo final "de la tarde/noche" → 18:00, duración correcta 120; + c.75 fix parser "fin/mediados/principios del mes que viene/próximo" ancla al mes siguiente (no al actual) + fix "antepasado mañana" → +3 días y título limpio; + c.74 fix P1 RecurrenceEngine anual anclado a 29 de febrero: `plusYears(1)` clampaba a 28/2 y derivaba el ancla para siempre (cumpleaños/aniversario bisiesto perdido) → ahora `nextYearly` salta años no bisiestos, simétrico al `nextMonthly` 31 de c.18; + c.73 fix parser "la semana que viene el lunes/viernes" → día objetivo de la semana próxima, no +7d genérico; + c.72 fix parser "jueves que viene" dicho en jueves -> proxima semana (no HOY); + c.71 fix parser orden inverso "el mes que viene el N" agenda día N del mes siguiente; + c.70 fix P0 crash parser día fuera de rango "el 0/99 de mes" + fix P1 "el 15 de agosto del 2027" no capturaba año "del" → fecha errónea 2026↔2027 y título "del 2027" huérfano; + c.69 feat resumen accionable: un toque pospone la tarea sugerida a mañana)
 - **Branch de trabajo**: `openhands/autonomous-ordia` (sobre c.70 fix parser P0/P1 + c.69 feat resumen accionable un-toque + c.68 fix parser "el N del mes que viene" día N del mes siguiente + c.67 refina sugerencia de posposición: nunca nombra tareas en curso ni inminentes + c.66 sugerencia concreta de tarea a posponer cuando el día está saturado + c.65 veredicto honesto del día + c.64 fix parser standalone "N de la tarde/noche" + fix P1 `monthNameMatch.find()` casaba mes inválido + c.63 detección de vencidas importantes en el Guardián + c.62 integridad de recordatorios en el editor + c.61 meridiem sin "a las" + c.60 rango-minutos/meridiem + c.59 verbo-recordatorio + c.58 fracción sub-hora/"en la tarde" + c.57 número-escrito + c.56 subtarea-autocomplete + c.55 partOfDay DAILY + c.54 intervalo+días + c.53 What Now + c.52 snooze)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
@@ -89,12 +89,46 @@ no-op AM; `rangeWithTrailingDeLaTardeAndStartMinutesPropagatesPm` "de 6:30 a 8 d
 tests PASS** (26 clases — 563 c.75 + 5), smoke 25 OK. **NO VERIFICADO**: gradle/lint/assemble/
 Android/UI/Room con DAOs reales; render real del parser en la app (sin SDK).
 
-**Hallazgo adicional (no corregido, fuera de alcance)**: en el rango con meridiem compacto "am/pm"
-("de 6 a 8 pm") el `explicitTime` (`timePatterns`) captura el extremo final "8 pm" → 20:00 y
-**sombrea** `rangeStartTime` (18:00), de modo que el dueAt cae a la hora de FIN (20:00), no de inicio.
-Es preexistente (no introducido por este fix; antes y después del fix "de 6 a 8 pm" da 20:00) y
-concierne a la interacción `explicitTime` vs rango — riesgo de regresión mayor, se deja como
-hallazgo para un ciclo dedicado. La forma española mayoritaria "de la tarde/noche" sí queda corregida.
+---
+
+## Último trabajo — Ciclo 78: Parser — rango con meridiem compacto (am/pm) solo en el extremo final: dueAt resuelve INICIO, no FIN
+
+Fix P1 de integridad de agenda (`NaturalTaskParser`), continuación directa del hallazgo que el c.76
+dejó documentado como "fuera de alcance". En un rango horario donde **solo el extremo final lleva
+un meridiem compacto** ("reunión **de 6 a 8 pm**", "taller **de 9 a 11 am**", "clase de 6 a 8 p.m.",
+"evento de 3 a 5 p m"), `timePatterns` (que se ejecuta ANTES que `timeRangePattern`) capturaba el
+extremo final ("8 pm"→20:00) como `explicitTime`. Luego, en `parsedTime`, `explicitTime` **tenía
+prioridad** sobre `rangeStartTime` (18:00, la hora de inicio), de modo que `dueAt` caía a la hora
+de **FIN** (20:00), no de inicio (18:00). El recordatorio se disparaba **2 horas tarde** (a las
+20:00 de una cita que empezaba a las 18:00). La forma "de la tarde" (c.76) no tenía este fallo
+porque `timePatterns` no captura "8 de la tarde". Era un bug P1 previo, solo documentado.
+
+**Causa raíz**: orden de procesamiento + prioridad sin contexto. `timeMatch`/`explicitTime` se
+calcula sobre `working` antes de validar el rango, y un token que es de hecho el extremo final de
+un rango ("8 pm") se trataba como hora suelta. Al dar prioridad absoluta a `explicitTime` en
+`parsedTime`, el rango (y su hora de inicio correcta) quedaba sombreado.
+
+**Solución (mínima, `NaturalTaskParser.kt`)**: detección posicional. Tras validar `rangeMatch` y
+calcular `timeMatch`, se introduce `explicitTimeIsRangeEnd = rangeMatch != null && timeMatch != null
+&& timeMatch.range dentro del span de rangeMatch.range`. Cuando es true, el tiempo explícito NO es
+suelto sino el extremo final del rango, así que `parsedTime` ignora `explicitTime` y deja ganar a
+`rangeStartTime` (hora de inicio, ya con propagación de PM del c.76 → 18:00). Si el tiempo explícito
+cae FUERA del span del rango (hora suelta genuina antes/después, p. ej. "a las 3 reunión de 6 a 8
+pm"), el guard no actúa y `explicitTime` sigue ganando: sin regresión para horas sueltas ("Llamada
+8pm"→20:00, "Cita 9am"→09:00) ni para "de 2pm a 4pm"/"de 9am a 11am" (ambos extremos con meridiem:
+el timeMatch captura el PRIMER extremo = inicio, que cae dentro del span → rangeStartTime gana con
+el mismo valor → idéntico). Sin nueva pantalla/botón.
+
+**Tests**: +6 en `NaturalTaskParserTest.kt`
+(`rangeWithTrailingCompactPmResolvesStartNotEnd` "de 6 a 8 pm"→18:00/120;
+`rangeWithTrailingCompactAmResolvesStartNotEnd` "de 9 a 11 am"→09:00/120;
+`rangeWithPmDotsResolvesStartNotEnd` "de 6 a 8 p.m."→18:00/120;
+`rangeWithTrailingPmSpacedResolvesStartNotEnd` "de 3 a 5 p m"→15:00/120;
+`rangeWithTrailingCompactPmAndStartMinutesResolvesStart` "de 2:30 a 4:30 pm"→14:30/120;
+`standaloneHourWithMeridiemNotAffectedByRangeGuard` "Llamada 8pm"→20:00 + "Cita 9am"→09:00 sin
+rango). **578 domain tests PASS** (26 clases — 568 c.76 + 4 `SummaryEngineTest` del c.77 paralelo
++ 6 c.78), smoke 25 OK. **NO VERIFICADO**:
+gradle/lint/assemble/Android/UI/Room con DAOs reales; render real del parser en la app (sin SDK).
 
 ---
 

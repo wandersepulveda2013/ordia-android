@@ -1469,6 +1469,49 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(1, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- Meridiem compacto (am/pm) solo en el extremo final: el explicitTime capturaba
+    // el FIN y sombreaba rangeStartTime (c.77, P1). Ahora gana la hora de INICIO. ---
+    // "reunión de 6 a 8 pm": antes dueAt=20:00 (FIN), ahora 18:00 (INICIO). El meridiem
+    // "pm" del extremo final se propaga al inicio bare (igual que "de la tarde" en c.76).
+    @Test fun rangeWithTrailingCompactPmResolvesStartNotEnd() {
+        val result = NaturalTaskParser.parse("Reunión de 6 a 8 pm", now, zone)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun rangeWithTrailingCompactAmResolvesStartNotEnd() {
+        val result = NaturalTaskParser.parse("Taller de 9 a 11 am", now, zone)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun rangeWithTrailingPmDotsResolvesStartNotEnd() {
+        val result = NaturalTaskParser.parse("Clase de 6 a 8 p.m.", now, zone)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun rangeWithTrailingPmSpacedResolvesStartNotEnd() {
+        val result = NaturalTaskParser.parse("Evento de 3 a 5 p m", now, zone)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun rangeWithTrailingCompactPmAndStartMinutesResolvesStart() {
+        val result = NaturalTaskParser.parse("Curso de 2:30 a 4:30 pm", now, zone)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(14, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Hora suelta con meridiem (NO rango): sigue resolviéndose correctamente. El guard
+    // solo actúa cuando el tiempo explícito cae DENTRO del span de un rango validado.
+    @Test fun standaloneHourWithMeridiemNotAffectedByRangeGuard() {
+        val r1 = NaturalTaskParser.parse("Llamada 8pm", now, zone)
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(r1.dueAt!!, zone))
+        val r2 = NaturalTaskParser.parse("Cita 9am", now, zone)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r2.dueAt!!, zone))
+    }
+
     // "de" antes de una duración numérica es conector ("Reunión de 30 min") y debe
     // eliminarse junto con la duración, sin dejar residuo.
     @Test fun deConnectorBeforeDurationIsRemoved() {

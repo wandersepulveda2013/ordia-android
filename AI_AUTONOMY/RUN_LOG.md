@@ -25,10 +25,25 @@
 - **Estado**: VERIFIED (JVM). 572 domain tests PASS.
 
 ### Siguiente
-- P2 ABIERTO (c.76): `explicitTime` sombrea `rangeStartTime` en rango "de 6 a 8 pm" → dueAt=20:00 (fin) en vez de 18:00 (inicio). Rework de precedencia con cuidado de regresión.
+- ~~P2 (c.76): `explicitTime` sombrea `rangeStartTime` en rango "de 6 a 8 pm" → dueAt=20:00 (fin) en vez de 18:00 (inicio).~~ **RESUELTO en c.78 (paralelo, mismo run-window)**: detección posicional `explicitTimeIsRangeEnd`.
 - "de 12 a 2 de la tarde" duración por horas absolutas resueltas (no raw) — cruces de mediodía.
 - Descubrimiento continuo: captura ultrarrápida, búsqueda universal, rutinas adaptables, detección de compromisos en notas.
 - Micro-optimización (P3, opcional): compartir instancia de `LearningProfile` entre `DayPlanner` y `SummaryEngine` en el mismo render.
+
+---
+## Ciclo 78 - 2026-08-13 (UTC) - fix(parser): rango "de 6 a 8 pm" (meridiem compacto solo en extremo final) resuelve INICIO, no FIN
+
+- **Run/ciclo**: 78 (rama `openhands/autonomous-ordia`; renumerado desde 77 por colisión con el c.77 paralelo del `SummaryEngine`, enviado primero al remoto — ambos partieron de `22af5b4`). Continuación directa del hallazgo que el c.76 dejó documentado como "fuera de alcance / ABIERTO" (BACKLOG fila 139). Base limpia: HEAD inicial `22af5b4`, `git pull --ff-only` OK; tras implementar, el remoto avanzó con el c.77 paralelo → `git rebase origin/openhands/autonomous-ordia`, conflicto solo en docs `AI_AUTONOMY` (reconciliado conservando ambos runs; el código parser+tests auto-mezcló limpio — área ortogonal al `SummaryEngine`). Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
+- **HEAD inicial**: `22af5b4`
+- **Problema seleccionado**: P2 (descubierto c.76, ABIERTO) → rebaixado a P1 de hecho por impacto en agenda. Rango horario con meridiem **compacto** "am/pm" solo en el extremo final: "reunión de 6 a 8 pm" → `dueAt=20:00` (hora de FIN), debería 18:00 (hora de INICIO). El recordatorio se disparaba **2h tarde** (20:00 de una cita que empezaba a las 18:00). Mismo defecto en "de 9 a 11 am"→11:00, "de 6 a 8 p.m."→20:00, "de 3 a 5 p m"→17:00, "de 2 a 4 pm"→16:00.
+- **Causa raíz**: `timePatterns` (línea ~950) se ejecuta ANTES que `timeRangePattern` y captura el extremo final "8 pm"→20:00 como `explicitTime`. Luego en `parsedTime`, `explicitTime` tenía prioridad absoluta sobre `rangeStartTime` (18:00), sombreándolo. La forma "de la tarde" (c.76) no fallaba porque `timePatterns` no captura "8 de la tarde". Era un bug P1 previo, solo documentado.
+- **Solución**: detección posicional en `NaturalTaskParser.kt`. Tras validar `rangeMatch` y calcular `timeMatch`, se introduce `explicitTimeIsRangeEnd = rangeMatch != null && timeMatch != null && timeMatch.range dentro del span de rangeMatch.range`. Cuando true, el tiempo explícito NO es suelto sino el extremo final del rango → `parsedTime` ignora `explicitTime` y deja ganar a `rangeStartTime` (inicio, con propagación PM del c.76). Si el token cae FUERA del span (hora suelta genuina: "Llamada 8pm", "Cita 9am", "a las 3 reunión de 6 a 8 pm"), el guard no actúa → `explicitTime` sigue ganando. Sin nueva pantalla/botón. Cambio mínimo.
+- **Tests**: +6 en `NaturalTaskParserTest.kt`. Probe JVM (16 casos) sin regresión. `bash tools/run_domain_tests.sh` → **574 domain tests PASS** (26 clases — 568 c.76 + 6; tras rebase sobre c.77 paralelo con +4 `SummaryEngineTest` = 578 domain tests PASS). `bash tools/run_domain_checks.sh` → smoke **25 OK**. **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales; render real del parser en la app (sin SDK).
+- **Hallazgos adicionales**: ninguno nuevo P0/P1 en esta auditoría del parser de rangos horarios. El subdominio "meridiem compacto" queda cubierto.
+- **AI_AUTONOMY actualizado**: `CURRENT_STATE.md` (sección "Último trabajo — Ciclo 78", marcador de fecha/ciclo), `BACKLOG.md` (fila 139: ABIERTO → FIXED→VERIFIED c.78), `RUN_LOG.md` (esta entrada; nota "Siguiente" del c.77 marcada resuelta).
+- **Commits**: `fix(parser): rango "de 6 a 8 pm" resuelve INICIO (18:00) no FIN (20:00)` (+NaturalTaskParser.kt fix + 6 tests + AI_AUTONOMY).
+- **HEAD final**: (tras push) — ver `git log -1`.
+- **Próxima prioridad**: auditoría de otra área funcional (recuperación de tareas olvidadas / What Now / replanificación automática), o continuar minería de bugs del parser en otros subdominios (cruces de mediodía "de 12 a 2 de la tarde" en duración por horas absolutas, fechas relativas compuestas, duraciones con unidades raras).
 
 ---
 ## Ciclo 76 - 2026-08-13 (UTC) - fix(parser): rango "de 6 a 8 de la tarde" propagaba mal el meridiem PM al inicio bare
