@@ -88,6 +88,18 @@ Observabilidad: `tools/ordia-status.py`. La rama de trabajo es **`openhands/auto
   publica nada). La primera instalación en el teléfono puede requerir UNA última
   instalación manual limpia si la firma actual difiere.
 
+## 5d. Build local con Android SDK (entorno completo)
+
+Este entorno SÍ permite gradle completo (verificado 2026-08-13):
+
+- Instalado: OpenJDK 21 (`/opt/java` → `/usr/lib/jvm/java-21-openjdk-amd64`), Android SDK en
+  `/opt/android-sdk` (cmdline-tools 12.0 + `platforms;android-36` + `build-tools;36.0.0` +
+  `platform-tools`). `local.properties` con `sdk.dir=/opt/android-sdk` (gitignored).
+- Comando equivalente al gate de CI:
+  `JAVA_HOME=/opt/java ANDROID_HOME=/opt/android-sdk ./gradlew clean test lint assemblePreviewAdvancedRelease --no-daemon`
+- Verificado: 3768 tests, 0 failures; manifest merge verde para las 3 variantes
+  (previewSafe/previewFull/previewAdvanced) en debug y release.
+
 ## 6. Verificación sin Android SDK (entorno JVM puro)
 
 Cuando el entorno NO tenga Android SDK (gradle inutilizable), la verificación del dominio
