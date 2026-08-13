@@ -1001,6 +1001,7 @@ object NaturalTaskParser {
         // primero para que el segundo número no sea robado como duración numérica
         // ("de 18 a 20 horas" → 20h falsas). Cada extremo se resuelve a hora absoluta
         // (offset PM) y la duración es (fin − inicio) en minutos reales.
+        var rangeDurationMinutes: Int? = null
         val rangeMatch = timeRangePattern.find(working)?.let { m ->
             val startH = m.groupValues[1].toIntOrNull()
             val startM = m.groupValues[2].toIntOrNull() ?: 0
@@ -1016,21 +1017,25 @@ object NaturalTaskParser {
             // de tarde/noche → 18:00, no 06:00. Simétrico a "a las 6 de la tarde"→18:00.
             // No se propaga en sentido inverso (inicio PM → fin bare) para no aceptar
             // falsos positivos tipo "de 2pm a 4 entradas".
-            val startPmEffective = startPm || (startMer.isEmpty() && endPm)
+            // CRUCE DEL MEDIODÍA: solo se propaga PM al inicio bare si startHr <= endHr
+            // (mismo lado del mediodía). En un cruce como "de 11 a 1 de la tarde" el
+            // inicio es AM (11:00) y el fin PM (13:00); propagar PM convertiría 11→23 y
+            // la duración/dueAt serían absurdos. Sin este guard, "11 a 1 de la tarde"
+            // daba dueAt=23:00 y duración 5 (clamp de -600).
+            if (startH == null || endH == null) return@let null
+            val startPmEffective = startPm || (startMer.isEmpty() && endPm && startH <= endH)
             fun resolve(h: Int, mer: String, pm: Boolean): Int? = when {
                 h == 24 && mer.isEmpty() -> 0
                 h !in 0..24 -> null
-                mer.isEmpty() -> h
                 pm && h < 12 -> h + 12
                 pm && h == 12 && mer == "delanoche" -> 0
                 pm && h == 12 -> 12
+                mer.isEmpty() -> h
                 else -> if (h == 12) 0 else h   // AM / de la mañana / madrugada
             }
-            val sAbs = startH?.let { resolve(it, startMer, startPmEffective) }
-            val eAbs = endH?.let { resolve(it, endMer, endPm) }
+            val sAbs = resolve(startH, startMer, startPmEffective)
+            val eAbs = resolve(endH, endMer, endPm)
             if (sAbs == null || eAbs == null) return@let null
-            val startHr = startH!!
-            val endHr = endH!!
             val startMin = sAbs * 60 + startM
             val endMin = eAbs * 60 + endM
             // Duración solo si fin > inicio (mismo día) y rango plausible (<= 24h).
@@ -1042,19 +1047,23 @@ object NaturalTaskParser {
                 !Regex("""^\s*(?:,|\.|;|:|!|\?|y\b|o\b|con\b|de\b|del\b|en\b|para\b|hasta\b|desde\b|luego\b|después\b|despues\b|pero\b|porque\b|por\b|sin\b|sobre\b|a\b|al\b|el\b|la\b|los\b|las\b|un\b|una\b|mañana\b|manana\b|hoy\b|ayer\b|anteayer\b|lunes\b|martes\b|miércoles\b|miercoles\b|jueves\b|viernes\b|sábado\b|sabado\b|domingo\b|$)""", RegexOption.IGNORE_CASE)
                     .containsMatchIn(working.substring(m.range.last + 1))
             val ambiguousOnTheHour = !hasUnit && !hasMinutesOrMeridiem &&
-                startHr < 13 && endHr < 13
+                startH < 13 && endH < 13
             val acceptAmbiguous = !ambiguousOnTheHour ||
                 (!followedByCount && (endMin - startMin) in 60..(11 * 60))
             val valid = endMin > startMin && (endMin - startMin) <= 24 * 60 &&
                 sAbs in 0..23 && eAbs in 0..23 && startM in 0..59 && endM in 0..59 &&
                 (hasUnit || hasMinutesOrMeridiem || sAbs >= 13 || eAbs >= 13 || acceptAmbiguous)
-            if (valid) m else null
+            // La duración se calcula con las horas ABSOLUTAS resueltas (sAbs/eAbs), no con
+            // las horas crudas del texto. Sin esto, un rango que cruza el mediodía
+            // ("de 12 a 2 de la tarde": start=12, end=14) computaba end−start con horas
+            // crudas (2−12=−600) → coerceIn(5,…) dejaba 5 min en vez de 120.
+            if (valid) {
+                rangeDurationMinutes = (endMin - startMin).coerceIn(5, 24 * 60)
+                m
+            } else {
+                null
+            }
         }
-        val rangeDurationMinutes = rangeMatch?.let {
-            val sM = it.groupValues[2].toIntOrNull() ?: 0
-            val eM = it.groupValues[5].toIntOrNull() ?: 0
-            (it.groupValues[4].toInt() * 60 + eM) - (it.groupValues[1].toInt() * 60 + sM)
-        }?.coerceIn(5, 24 * 60)
         rangeMatch?.let { working = working.replace(it.value, " ") }
         // Hora de inicio del rango resuelta a absoluta (con su meridiem). Sin tiempo
         // explícito ("a las"), la hora de inicio del rango es la mejor estimación de la
@@ -1065,18 +1074,21 @@ object NaturalTaskParser {
             val h = m.groupValues[1].toIntOrNull() ?: return@let null
             val min = m.groupValues[2].toIntOrNull() ?: 0
             val mer = m.groupValues[3].lowercase().replace(".", "").replace(" ", "")
+            val endH = m.groupValues[4].toIntOrNull() ?: return@let null
             val endMer = m.groupValues[6].lowercase().replace(".", "").replace(" ", "")
+            val startPmOwn = mer == "pm" || mer == "delatarde" || mer == "delanoche"
             val endPm = endMer == "pm" || endMer == "delatarde" || endMer == "delanoche"
             // Propagación: el inicio bare hereda el PM del extremo final
             // ("de 6 a 8 de la tarde" → 18:00). Véase rangeMatch.
-            val pm = mer == "pm" || mer == "delatarde" || mer == "delanoche" ||
-                (mer.isEmpty() && endPm)
+            // CRUCE DEL MEDIODÍA: solo si startHr <= endHr (mismo lado del mediodía);
+            // en "de 11 a 1 de la tarde" el inicio es AM (11:00) y el fin PM (13:00).
+            val startPmEff = startPmOwn || (mer.isEmpty() && endPm && h <= endH)
             val abs = when {
-                h == 24 && mer.isEmpty() && !pm -> 0
+                h == 24 && mer.isEmpty() && !startPmEff -> 0
                 h !in 0..24 -> return@let null
-                pm && h < 12 -> h + 12
-                pm && h == 12 && mer == "delanoche" -> 0
-                pm && h == 12 -> 12
+                startPmEff && h < 12 -> h + 12
+                startPmEff && h == 12 && mer == "delanoche" -> 0
+                startPmEff && h == 12 -> 12
                 mer.isEmpty() -> h
                 else -> if (h == 12) 0 else h
             }

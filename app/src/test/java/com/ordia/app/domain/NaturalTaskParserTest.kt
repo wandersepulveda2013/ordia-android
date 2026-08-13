@@ -1512,6 +1512,53 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r2.dueAt!!, zone))
     }
 
+    // --- Cruce del mediodía en rangos con meridiem solo al final (ciclo 79) ---
+    // BUG: "de 12 a 2 de la tarde" computaba la duración con horas crudas del texto
+    // (2−12=−600) y coerceIn(5,…) dejaba 5 min en vez de 120. Además la propagación de
+    // PM al inicio bare era incondicional: "de 11 a 1 de la tarde" convertía el inicio
+    // 11→23 (PM propagado) dando dueAt=23:00 y duración absurda. Ahora la propagación
+    // solo aplica cuando startHr <= endHr (mismo lado del mediodía); en un cruce real
+    // (start>end) el inicio se queda en AM y el fin en PM, que es lo correcto.
+    @Test fun noonCrossingRangeDe12A2DeLaTarde() {
+        val result = NaturalTaskParser.parse("Almuerzo de 12 a 2 de la tarde", now, zone)
+        assertEquals("Almuerzo", result.title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun noonCrossingRangeDe12A2pm() {
+        val result = NaturalTaskParser.parse("Almuerzo de 12 a 2pm", now, zone)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun noonCrossingRangeDe11A1DeLaTarde() {
+        // 11 (AM) → 1 (PM, +12=13): cruce del mediodía. El inicio NO hereda PM.
+        val result = NaturalTaskParser.parse("Clase de 11 a 1 de la tarde", now, zone)
+        assertEquals(LocalTime.of(11, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun noonCrossingRangeDe12A1pm() {
+        val result = NaturalTaskParser.parse("Curso de 12 a 1pm", now, zone)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(60, result.durationMinutes)
+    }
+
+    @Test fun noonCrossingRangeDe1A2DeLaTarde() {
+        // Mismo lado del mediodía (1<=2): el inicio SÍ hereda PM → 13:00.
+        val result = NaturalTaskParser.parse("Siesta de 1 a 2 de la tarde", now, zone)
+        assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(60, result.durationMinutes)
+    }
+
+    @Test fun noonCrossingRangeAmbiguousRejected() {
+        // "de 12 a 2" sin meridiem ni unidad es ambiguo (¿horas? ¿cantidad?): se rechaza.
+        val result = NaturalTaskParser.parse("Reunión de 12 a 2", now, zone)
+        assertNull(result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
     // "de" antes de una duración numérica es conector ("Reunión de 30 min") y debe
     // eliminarse junto con la duración, sin dejar residuo.
     @Test fun deConnectorBeforeDurationIsRemoved() {

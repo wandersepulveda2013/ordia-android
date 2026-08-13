@@ -3,6 +3,42 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 79 - 2026-08-13 (UTC) - fix(parser): cruce del mediodía en rango "de 12 a 2 de la tarde" (duración + dueAt erróneos)
+
+- **Run/ciclo**: 79 (rama `openhands/autonomous-ordia`). Base limpia: HEAD inicial local `0a21431` (c.78). `git pull --ff-only` OK sin divergencia. Continúa la nota "Siguiente" del c.78 que dejaba documentado: *"de 12 a 2 de la tarde" duración por horas absolutas resueltas (no raw) — cruces de mediodía*. Continuación segura del supervisor.
+- **HEAD inicial**: `0a21431` (c.78; local == remoto, sin STALE).
+- **Problema seleccionado**: P1 (integridad de agenda/captura). La familia de rangos horarios con meridiem solo en el extremo final (c.76 "de la tarde", c.78 "pm" compacto) fallaba en el **cruce del mediodía** — la forma cotidiana de un almuerzo o clase que empieza antes de las 12 y termina después. Probe JVM (12 casos) reveló DOS defectos entrelazados:
+  1. **Duración por horas crudas**: "Almuerzo de 12 a 2 de la tarde" computaba `end−start` con horas crudas del texto (2−12=−600); `coerceIn(5, 24*60)` dejaba **5 min** en vez de 120. Un almuerzo de 2h se agendaba como 5 min.
+  2. **Propagación PM ciega al inicio bare**: el fix del c.76 propagaba `endPm` al inicio sin meridiem **incondicionalmente**. En "Clase de 11 a 1 de la tarde" el inicio 11 se convertía en 23 (11+12) → `dueAt=23:00` y duración absurda, cuando lo correcto es inicio AM 11:00 + fin PM 13:00 = 2h.
+  Ambos producían recordatorio/agenda en momento erróneo o duración imposible en la forma más frecuente de expresar un bloque que cruza el mediodía.
+- **Prioridad**: P1 (duración 5 min en vez de 120, o dueAt 12h desplazado → recordatorio/cita en momento erróneo; forma de expresión muy frecuente en español).
+- **Causa raíz**: (1) `rangeDurationMinutes` (en `rangeMatch`) usaba las horas **crudas** del regex (`groupValues[1]`/`[4]`) en vez de las horas absolutas ya resueltas (`sAbs`/`eAbs`); la coincidencia "6 a 8 de la tarde" (cruda 8−6=120) hacía pasar el bug inadvertido hasta un cruce del mediodía (12→2, 11→1). (2) `startPmEffective = startPm || (startMer.isEmpty() && endPm)` no distinguía "mismo lado del mediodía" (6→8) de "cruce" (11→1): en el primero el inicio debe heredar PM, en el segundo el inicio es AM y solo el fin es PM. (3) En `rangeMatch` el `when` de `resolve` tenía `mer.isEmpty() -> h` **antes** que `pm && h<12 -> h+12` (c.76 lo corrigió en `rangeStartTime` pero no en `rangeMatch` → código muerto).
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón — "menos interfaz, más potencia")**:
+  - La duración se calcula con horas **absolutas resueltas**: `startMin = sAbs*60 + sMin` y `endMin = eAbs*60 + eMin` (derivados de `resolve(...)`), no con horas crudas. Si `endMin <= startMin` se suma 24h (cruce de medianoche, p.ej. "de 10 de la noche a 1 de la madrugada"); clamp `coerceIn(5, 24*60)`.
+  - La propagación PM al inicio bare es **condicional**: `startPmEffective = startPm || (startMer.isEmpty() && endPm && startHr <= endHr)`. Solo se propaga cuando `startHr <= endHr` (mismo lado del mediodía); en un cruce (`startHr > endHr`, p.ej. 11→1) el inicio queda AM (11:00) y el fin PM (13:00). Aplicado **simétricamente** a `rangeMatch` (duración/validez) y `rangeStartTime` (dueAt).
+  - Reorden del `when` en `rangeMatch` (`resolve`): `pm && h<12 -> h+12` ahora se evalúa **antes** que `mer.isEmpty() -> h` (corrige el código muerto del c.76 en este bloque).
+  - Lógica local honesta (aritmética de horas absolutas + comparación de lado del mediodía, sin random ni modelo simulado). Retrocompatible (sin cambios de firma pública).
+- **Tests**: +6 en `NaturalTaskParserTest.kt`:
+  - `noonCrossingRangeDe12A2DeLaTarde` ("Almuerzo de 12 a 2 de la tarde"→12:00/120; antes dur=5).
+  - `noonCrossingRangeDe12A2pm` ("Almuerzo de 12 a 2pm"→12:00/120).
+  - `noonCrossingRangeDe11A1DeLaTarde` ("Clase de 11 a 1 de la tarde"→11:00/120; antes dueAt=23:00).
+  - `noonCrossingRangeDe12A1pm` ("Curso de 12 a 1pm"→12:00/60).
+  - `noonCrossingRangeDe1A2DeLaTarde` ("Siesta de 1 a 2 de la tarde"→13:00/60; mismo lado del mediodía, inicio SÍ hereda PM).
+  - `noonCrossingRangeAmbiguousRejected` ("Reunión de 12 a 2" sin meridiem→null/null; ambiguo).
+  - Probe JVM (24 assertions) sin regresión: mismo-meridiano c.76/c.78 intacto ("de 6 a 8 de la tarde"=18:00/120, "de 6 a 8 pm"=18:00/120, "de 9 a 11 de la mañana"=09:00/120, "de 2:30 a 4:30 pm"=14:30/120, "de 3 a 5 de la noche"=15:00/120), 24h "de 12 a 14"=12:00/120, "12pm a 2pm"=12:00/120.
+  - **584 domain tests PASS** (`bash tools/run_domain_tests.sh`, 26 clases — 578 c.78 + 6), smoke 25 OK (`bash tools/run_domain_checks.sh`). Sin regresión.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Render real del parser en la app no probado en dispositivo.
+- **Hallazgos adicionales (descubrimiento continuo)**: el subdominio "rango horario con meridiem solo al final" queda ahora cubierto tanto para mismo-meridiano (c.76/c.78) como cruce-del-mediodía (c.79). Caso residual NO cubierto: cruce de medianoche con duración multi-día real ("cena de 10 de la noche a 2 de la madrugada" = 4h pero cruce día+1 en la fecha); hoy se resuelve como duración 4h correcta pero `dueAt` apunta a hoy 22:00 (no a mañana 02:00) — aceptable porque el recordatorio es del inicio; fuera de alcance por complejidad de fecha-vs-hora.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras push a `origin/openhands/autonomous-ordia`; base `9fb6298` c.78).
+- **Estado**: FIXED → VERIFIED (dominio JVM). 584 domain tests PASS.
+
+### Siguiente
+- ~~"de 12 a 2 de la tarde" duración por horas absolutas resueltas (no raw) — cruces de mediodía.~~ **RESUELTO c.79**.
+- Descubrimiento continuo: captura ultrarrápida, búsqueda universal, rutinas adaptables, detección de compromisos en notas, onboarding.
+- Auditoría de otra área funcional: `PlanEngine`/replanización (OVERLOADED recurrente → redistribuir semana), What Now, recuperación de tareas olvidadas.
+
+---
 ## Ciclo 77 - 2026-08-13 (UTC) - feat(resumen): el veredicto del día usa la ventana de jornada APRENDIDA, no la fija 9–18
 
 - **Run/ciclo**: 77 (rama `openhands/autonomous-ordia`). Base limpia: HEAD local `22af5b4` (c.76) == remoto; `git pull --ff-only` OK sin divergencia. Continuación segura del supervisor.
