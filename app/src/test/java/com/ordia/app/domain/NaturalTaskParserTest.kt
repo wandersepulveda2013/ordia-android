@@ -39,4 +39,36 @@ class NaturalTaskParserTest {
         assertEquals("Revisar el horno", result.title)
         assertEquals(now + 45 * 60_000L, result.dueAt)
     }
+
+    @Test fun parsesNewTimeExpressions() {
+        var result = NaturalTaskParser.parse("Llamar al médico al mediodía", now, zone)
+        assertEquals("Llamar al médico", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt, zone))
+
+        result = NaturalTaskParser.parse("Comprar leche esta noche", now, zone)
+        assertEquals("Comprar leche", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
+
+        result = NaturalTaskParser.parse("Enviar el correo a primera hora", now, zone)
+        assertEquals("Enviar el correo", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+
+        result = NaturalTaskParser.parse("Preparar mochila por la mañana", now, zone)
+        assertEquals("Preparar mochila", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+
+        result = NaturalTaskParser.parse("Reunión con el equipo pasado mañana", now, zone)
+        assertEquals("Reunión con el equipo", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone)) // Default time
+
+        result = NaturalTaskParser.parse("Correr mañana por la mañana", now, zone)
+        assertEquals("Correr", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
 }
