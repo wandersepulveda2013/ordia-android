@@ -101,20 +101,45 @@ fun TodayScreen(
                 color = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     val insight = state.guardianInsight
-                    GuardianAvatar(62.dp, insight.tone.toMood())
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(insight.eyebrow, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondaryContainer)
-                        Text(insight.title, style = MaterialTheme.typography.titleLarge)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        GuardianAvatar(62.dp, insight.tone.toMood())
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(insight.eyebrow, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondaryContainer)
+                            Text(insight.title, style = MaterialTheme.typography.titleLarge)
+                            Text(
+                                insight.message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
+                            )
+                        }
+                    }
+                    if (insight.reason != null) {
                         Text(
-                            insight.message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
+                            insight.reason,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondaryContainer
                         )
                     }
                     insight.taskId?.let { taskId ->
-                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.Outlined.ArrowForward, "Abrir recomendación") }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                            androidx.compose.material3.TextButton(
+                                onClick = { onTask(taskId) },
+                                colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onPrimary)
+                            ) {
+                                Text("Ver tarea")
+                            }
+                            androidx.compose.material3.Button(
+                                onClick = onOpenFocus,
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            ) {
+                                Text("Empezar")
+                            }
+                        }
                     }
                 }
             }

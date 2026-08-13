@@ -17,7 +17,7 @@ data class ParsedTaskInput(
 object NaturalTaskParser {
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
     private val weekdayPattern = Regex("""(?i)\b(?:el\s+)?(?:pr[oó]ximo\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b""")
-    private val relativePattern = Regex("""(?i)\ben\s+(\d{1,3})\s*(minutos?|mins?|horas?|d[ií]as?)\b""")
+    private val relativePattern = Regex("""(?i)\b(?:en|dentro\s+de)\s+(\d{1,3}|un|una|dos|tres|cuatro|cinco)\s*(minutos?|mins?|horas?|d[ií]as?)\b""")
     private val timePatterns = listOf(
         Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b([01]?\d|2[0-3]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
@@ -38,7 +38,15 @@ object NaturalTaskParser {
 
         val relativeMatch = relativePattern.find(working)
         val relativeDueAt = relativeMatch?.let { match ->
-            val amount = match.groupValues[1].toLongOrNull() ?: 0L
+            val numStr = match.groupValues[1].lowercase()
+            val amount = numStr.toLongOrNull() ?: when (numStr) {
+                "un", "una" -> 1L
+                "dos" -> 2L
+                "tres" -> 3L
+                "cuatro" -> 4L
+                "cinco" -> 5L
+                else -> 0L
+            }
             val unit = match.groupValues[2].lowercase()
             val millis = when {
                 unit.startsWith("min") -> amount * 60_000L
@@ -72,6 +80,12 @@ object NaturalTaskParser {
         }
 
         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
+        val semanticTime = when {
+            Regex("""(?i)\besta\s+noche\b""").containsMatchIn(working) -> LocalTime.of(20, 0)
+            Regex("""(?i)\bdespu[eé]s\s+del\s+trabajo\b""").containsMatchIn(working) -> LocalTime.of(18, 0)
+            Regex("""(?i)\ba\s+primera\s+hora\b""").containsMatchIn(working) -> LocalTime.of(8, 0)
+            else -> null
+        }
         val parsedTime = timeMatch?.let { match ->
             var hour = match.groupValues[1].toInt()
             val minute = match.groupValues[2].toIntOrNull() ?: 0
@@ -79,7 +93,7 @@ object NaturalTaskParser {
             if (meridiem == "pm" && hour < 12) hour += 12
             if (meridiem == "am" && hour == 12) hour = 0
             LocalTime.of(hour, minute)
-        }
+        } ?: semanticTime
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
 
@@ -88,6 +102,7 @@ object NaturalTaskParser {
         timeMatch?.value?.let { working = working.replace(it, " ") }
         working = working
             .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
+            .replace(Regex("""(?i)\besta\s+noche\b|\bdespu[eé]s\s+del\s+trabajo\b|\ba\s+primera\s+hora\b"""), " ")
             .let { value -> numericDatePattern.replace(value, " ") }
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
             .replace(Regex("""\s+"""), " ")

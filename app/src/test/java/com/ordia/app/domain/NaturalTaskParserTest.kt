@@ -39,4 +39,24 @@ class NaturalTaskParserTest {
         assertEquals("Revisar el horno", result.title)
         assertEquals(now + 45 * 60_000L, result.dueAt)
     }
+
+    @Test fun parsesSemanticTimes() {
+        var result = NaturalTaskParser.parse("Estudiar esta noche", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+
+        result = NaturalTaskParser.parse("Comprar pan después del trabajo", now, zone)
+        assertEquals("Comprar pan", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+
+        result = NaturalTaskParser.parse("Correr a primera hora", now, zone)
+        assertEquals("Correr", result.title)
+        assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesRelativeWordDuration() {
+        val result = NaturalTaskParser.parse("Llamar dentro de tres horas", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 3 * 60 * 60_000L, result.dueAt)
+    }
 }

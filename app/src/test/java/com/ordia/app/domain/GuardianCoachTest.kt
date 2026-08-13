@@ -44,4 +44,21 @@ class GuardianCoachTest {
         assertEquals("Leer diez minutos", insight.title)
         assertNotNull(insight.message)
     }
+
+    @Test
+    fun whatNowProvidesReasoningForStandardTask() {
+        val task = TaskEntity(
+            id = 3,
+            title = "Leer libro",
+            dueAt = DateRules.toEpochMillis(today, LocalTime.of(18, 0), zone),
+            priority = TaskPriority.NORMAL,
+            durationMinutes = 30
+        )
+        val insight = GuardianCoach.insight(listOf(task), emptyList(), emptyList(), now, zone)
+
+        assertEquals("WHAT NOW", insight.eyebrow)
+        assertEquals("Leer libro", insight.title)
+        assertEquals(3L, insight.taskId)
+        assertEquals("Haz esto ahora porque vence hoy y 30 min.", insight.reason)
+    }
 }
