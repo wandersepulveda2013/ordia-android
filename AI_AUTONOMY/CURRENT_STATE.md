@@ -14,8 +14,8 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 50)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 50)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 51)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 51)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
@@ -23,6 +23,33 @@
   docs-only) → los commits de código generan releases automáticamente.
 
 | P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal/bare + día de mes suelto | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); listas de días sin prefijo ("gym sábados y domingos") c.42 (369 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (376 tests); fecha/hito "la quincena" (1ra/2da/sin cualificar) c.44 (388 tests); `nextBestTask` time-aware (widget/asistente) c.45 (394 tests); **"el 15" día de mes suelto con artículo** c.47 (394+4 tests); **"de aquí a N"/"de acá a N" prefijo relativo coloquial** c.50 (413 tests) |
+
+## Último trabajo — Ciclo 51: DayPlanner no marca conflicto de hora si `startAt` es otro día
+
+Fix P2 de fiabilidad del planificador diario (`DayPlanner.build`). El conflicto
+`MOVED_FROM_SCHEDULED_TIME` (tarea con hora prevista que el plan reubica en otra hora) se computaba
+comparando solo `hour*60+minute` del `startAt` original contra el `startMinute` del bloque planificado,
+**sin verificar que el `startAt` cayera en el día del plan**. El comentario ya decía "tareas que ya
+tenían hora prevista **ese día**", pero la implementación lo aplicaba a cualquier tarea con `startAt`.
+Patrón real afectado: una tarea **iniciada ayer** (`startAt` ayer 15:00) que **vence hoy** era
+reubicada por el plan de hoy y marcada falsamente como "hora movida", aunque nunca tuvo hora
+asignada *hoy*. Ruido de conflictos espurios en el planificador.
+
+**Solución (mínima, `DayPlanner.kt`, sin nueva pantalla/botón)**: antes de comparar la hora se verifica
+`original.toLocalDate() == date`. Si el `startAt` es de otro día, no hay hora prevista "ese día" y no se
+añade el conflicto. Si cae en el mismo día, el comportamiento previo se conserva (hora distinta →
+conflicto real). Lógica local honesta, alineada con la intención documentada en el comentario.
+
+**Colisión de remoto (no destructiva)**: al hacer `git fetch` el remoto ya estaba en `497010f`
+(ciclo 50 = parser "de aquí a N" de otro run). Mi base local `4f7e701` era obsoleta (STALE_BASE).
+NO se forzó push: stash del trabajo → fast-forward a `497010f` → re-aplicar SOLO los cambios de
+código (`DayPlanner.kt`/`DayPlannerTest.kt`) que el remoto NO tocó (sin conflicto de código) → docs
+reescritos sobre la base remota y reetiquetados ciclo 51. Trabajo del ciclo 50 del otro run preservado.
+Sin force push, sin reset --hard, sin tocar `main`.
+
+**Tests**: +2 (`noConflictWhenStartAtIsOnADifferentDay`, `conflictStillReportedWhenStartAtIsOnSameDay`).
+**415 domain tests PASS** (`bash tools/run_domain_tests.sh`), smoke 25 OK. **NO VERIFICADO**:
+gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del planner.
 
 ## Último trabajo — Ciclo 50: "de aquí a N"/"de acá a N" — prefijo relativo coloquial
 

@@ -93,6 +93,38 @@ class DayPlannerTest {
     }
 
     @Test
+    fun noConflictWhenStartAtIsOnADifferentDay() {
+        // Empezada ayer (startAt ayer 15:00), vence hoy: el plan de hoy la reubica,
+        // pero no tenía hora prevista "hoy" → no es un conflicto de hora movida.
+        val startedYesterdayDueToday = TaskEntity(
+            id = 9, title = "Ayer→hoy", durationMinutes = 30,
+            startAt = DateRules.toEpochMillis(date.minusDays(1), LocalTime.of(15, 0), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone)
+        )
+
+        val plan = DayPlanner.build(listOf(startedYesterdayDueToday), date, 9 * 60, 18 * 60, breakMinutes = 0, now = now, zone = zone)
+
+        assertEquals(1, plan.blocks.size)
+        assertEquals(0, plan.conflicts.size)
+    }
+
+    @Test
+    fun conflictStillReportedWhenStartAtIsOnSameDay() {
+        // startAt hoy 15:00, el plan la ubica a las 9:00 → conflicto real de hora movida.
+        val scheduledToday = TaskEntity(
+            id = 10, title = "Hoy con hora", durationMinutes = 30,
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(15, 0), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(16, 0), zone)
+        )
+
+        val plan = DayPlanner.build(listOf(scheduledToday), date, 9 * 60, 18 * 60, breakMinutes = 0, now = now, zone = zone)
+
+        assertEquals(9 * 60, plan.blocks.first().startMinute)
+        assertEquals(1, plan.conflicts.size)
+        assertEquals(PlanConflictKind.MOVED_FROM_SCHEDULED_TIME, plan.conflicts.first().kind)
+    }
+
+    @Test
     fun taskScheduledOnDateOnlyIncludedWhenReplanFlagIsSet() {
         // Programada hoy 15:00 pero vence mañana: no es "due" hoy.
         val scheduled = TaskEntity(

@@ -101,14 +101,19 @@ object DayPlanner {
         }
 
         // Conflictos: el plan mueve tareas que ya tenían hora prevista ese día.
+        // Solo se compara la hora cuando `startAt` cae realmente en el día del plan:
+        // una tarea cuyo `startAt` es otro día (p. ej. empezada ayer, vence hoy) no
+        // tiene hora prevista "ese día" y no debe marcarse como movida.
         val conflicts = buildList {
             blocks.forEach { block ->
                 val task = tasksById[block.taskId]
                 if (task?.startAt != null) {
                     val original = Instant.ofEpochMilli(task.startAt).atZone(zone)
-                    val originalMinute = original.hour * 60 + original.minute
-                    if (originalMinute != block.startMinute) {
-                        add(PlanConflict(block.taskId, PlanConflictKind.MOVED_FROM_SCHEDULED_TIME))
+                    if (original.toLocalDate() == date) {
+                        val originalMinute = original.hour * 60 + original.minute
+                        if (originalMinute != block.startMinute) {
+                            add(PlanConflict(block.taskId, PlanConflictKind.MOVED_FROM_SCHEDULED_TIME))
+                        }
                     }
                 }
             }

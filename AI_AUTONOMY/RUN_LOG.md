@@ -3,6 +3,25 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 51 - 2026-08-13 (UTC) - fix: DayPlanner no marca conflicto de hora si startAt es otro día
+- **Run/ciclo**: 51.
+- **HEAD inicial**: `4f7e701` (base local al iniciar; el remoto ya había avanzado a `497010f` con el ciclo 50 del parser "de aquí a N" — STALE_BASE detectado al fetch).
+- **Colisión evitada**: al hacer `git fetch` el remoto estaba en `497010f` (ciclo 50 = parser, otro run). Mi base local `4f7e701` era obsoleta. NO se forzó push. Se hizo stash del trabajo, fast-forward a `497010f`, y se re-aplicaron SOLO los cambios de código (`DayPlanner.kt`/`DayPlannerTest.kt`) que el remoto NO tocó (sin conflicto de código). Los docs se reescribieron sobre la base remota. Trabajo del ciclo 50 del otro run preservado íntegro.
+- **Problema seleccionado**: `DayPlanner.build` marcaba conflicto `MOVED_FROM_SCHEDULED_TIME` comparando solo `hour*60+minute` del `startAt` original contra el `startMinute` del bloque planificado, **sin verificar que el `startAt` cayera en el día del plan**. El comentario decía "tareas que ya tenían hora prevista **ese día**" pero la implementación lo aplicaba a cualquier tarea con `startAt`. Una tarea **empezada ayer** (startAt ayer 15:00) que **vence hoy** era reubicada por el plan de hoy y marcada falsamente como "hora movida", aunque nunca tuvo hora asignada *hoy*. Patrón real: una tarea iniciada el día previo arrastra su vencimiento al día siguiente.
+- **Prioridad**: P2 (fiabilidad de detección de conflictos; evitar conflicto espurio en planificador).
+- **Causa raíz**: la comparación omitía la componente de fecha; `original.toLocalDate() != date` no se comprobaba.
+- **Solución (mínima, `DayPlanner.kt`, sin nueva pantalla/botón)**: antes de comparar la hora se verifica `original.toLocalDate() == date`. Si el `startAt` es de otro día, no hay hora prevista "ese día" y no se añade el conflicto. Si cae en el mismo día, el comportamiento previo se conserva (hora distinta → conflicto real). Lógica local honesta, alineada con la intención documentada en el comentario.
+- **Tests**: +2 en `DayPlannerTest.kt`: `noConflictWhenStartAtIsOnADifferentDay` (startAt ayer → 0 conflictos) + `conflictStillReportedWhenStartAtIsOnSameDay` (startAt hoy 15:00, plan lo ubica 9:00 → conflicto real). **415 domain tests PASS** (`bash tools/run_domain_tests.sh`, 25 clases — 413 base remota c.50 + 2 nuevos), smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales, render real del planner en pantalla (sin Android SDK).
+- **Archivos modificados**: `DayPlanner.kt`, `DayPlannerTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras commit/push de este ciclo).
+
+### Siguiente
+- Descubrimiento continuo: auditar captura, recordatorios, detección de vencidas importantes, contexto, onboarding, navegación, accesibilidad, rendimiento, privacidad.
+- Parser: manejo robusto de múltiples marcadores temporales en una frase.
+- P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
+
+
 ## Ciclo 50 - 2026-08-13 (UTC) - parser: "de aquí a N"/"de acá a N" prefijo relativo coloquial
 
 - **HEAD inicial**: `8950d07` (synced tras primer pull; remoto `bf3579d`→`8950d07`).
