@@ -3556,7 +3556,7 @@ a un permiso persistente frágil y silencioso ante fallos.
   - La misma familia periodo+weekday podría extenderse a "el mes que viene el tercer lunes" (ordinal + weekday del mes) pero es una forma mucho menos frecuente y de complejidad mayor; se deja fuera de alcance por "menos es más".
   - "fin de semana que viene" (c.31) sigue intacto: `weekendEarlyMatch` consume "fin de semana que viene" antes que cualquier patrón de semana+weekday, sin colisión.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit + push).
+- **HEAD final**: `c81f6c8` (rebase no destructivo sobre `a62cf1f` remoto c.72; código auto-mezclado ortogonal; conflictos de memoria resueltos conservando ambos runs; push fast-forward verificado a `origin/openhands/autonomous-ordia`: `a62cf1f..c81f6c8`).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 
 ### Siguiente
