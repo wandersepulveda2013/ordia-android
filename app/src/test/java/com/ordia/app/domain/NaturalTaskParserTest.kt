@@ -1524,6 +1524,68 @@ class NaturalTaskParserTest {
         assertEquals("6,7", result.recurrenceDays)
     }
 
+    // --- "entre semana" / "días laborables/hábiles/de semana" / "de lunes a viernes" ---
+    // Antes estas frases cotidianas (gimnasio, trabajo, estudio) quedaban sin recurrencia
+    // (freq=NONE, tarea única) y "de lunes a viernes" dejaba "lunes" como residuo en el
+    // título. Ahora -> WEEKLY days=[1..5]. Se evalúa ANTES que dayListPattern para que
+    // "los lunes a viernes" sea un rango (no la lista ["lunes"]). now=2026-07-29
+    // (miércoles) al mediodía: el miércoles (hoy) ya pasó su slot -> jueves 30-07.
+
+    @Test fun entreSemanaComoRecurrenciaWeekdayLunAVie() {
+        val result = NaturalTaskParser.parse("Gimnasio entre semana", now, zone)
+        assertEquals("Gimnasio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,2,3,4,5", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun diasLaborablesComoRecurrenciaWeekday() {
+        val result = NaturalTaskParser.parse("Estudiar días laborables", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,2,3,4,5", result.recurrenceDays)
+    }
+
+    @Test fun diasHabilesConDeterminanteComoRecurrenciaWeekday() {
+        val result = NaturalTaskParser.parse("Reunión los días hábiles", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,2,3,4,5", result.recurrenceDays)
+    }
+
+    @Test fun deLunesAViernesComoRecurrenciaWeekdayLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Trabajo de lunes a viernes", now, zone)
+        assertEquals("Trabajo", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,2,3,4,5", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun losLunesAViernesComoRangoNoLista() {
+        // Sin el orden de patrones, dayListPattern capturaría solo "lunes" (days=[1]).
+        val result = NaturalTaskParser.parse("los lunes a viernes entrenar", now, zone)
+        assertEquals("entrenar", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,2,3,4,5", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun entreSemanaRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Clase entre semana a las 7", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,2,3,4,5", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(7, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun finDeSemanaSingularNoEsRecurrenciaWeekday() {
+        // "fin de semana" (singular) = fecha única (próximo sábado), NO recurrencia.
+        val result = NaturalTaskParser.parse("Fin de semana viajar", now, zone)
+        assertEquals("viajar", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+    }
+
     // --- "el jueves pasado" / "el último lunes" / "el martes anterior": fecha pasada ---
     // El usuario reconoce que la tarea quedó vencida ("pagué la factura el viernes
     // pasado"). Antes "el jueves pasado" se leía como "jueves" (próximo) por

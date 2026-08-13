@@ -14,15 +14,45 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 42 cont.2)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 42 cont.2)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 43)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 43)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencia quincenal | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers (día semana/parte del día) c.42 cont. (358 tests) + recurrencia quincenal con palabra "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy (no próxima semana) c.42 cont.2 (362 tests) |
+| P1/P2 | Parser — fechas relativas/pasadas/imposibles + rango horario + recurrencias laborables/quincenal | FIXED → VERIFIED: "esta semana" c.34; "un par de" c.35; "mediados de semana" c.36; "a las N horas" c.37 cont. (316 tests); "a finales de semana" c.37 (319 tests); fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (29 feb, 31 abr) c.38 (329 tests); fix "de/por/a la mañana" (hora) vs fecha "mañana" c.39 (336 tests); recordatorios con números escritos y fracciones c.40 (344 tests); listas de días sin coma + plurales sábados/domingos c.41 (350 tests); rango horario sin "horas" ambas < 13 c.42 base (353 tests) + ampliación followers c.42 cont. (358 tests); recurrencia quincenal "cada quincena"/"quincenalmente" c.42 (365 tests); día de semana suelto hoy con hora futura → hoy c.42 cont.2 (362 tests); "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY [1-5] c.43 (372 tests) |
+
+## Último trabajo — Ciclo 43: parser "entre semana"/"días laborables"/"de lunes a viernes" = recurrencia semanal Lun–Vie
+
+Unidad atómica del ciclo de parser natural (P1 — evitar olvidos + fricción de captura). Frases
+cotidianas para hábitos laborables ("Gimnasio entre semana", "Trabajo de lunes a viernes",
+"Estudiar días laborables", "Reunión los días hábiles") **no generaban recurrencia**: el parser
+las trataba como texto suelto → tarea única (freq=NONE) que aparece una sola vez y se olvida
+el resto de la semana. Peor, "de lunes a viernes" dejaba "lunes" como residuo en el título
+(`dayListPattern` capturaba solo "lunes", days=[1]) y el viernes se perdía. Brecha simétrica
+frente a `weekendRecurrencePattern` (fines de semana → WEEKLY sáb+dom, c.33).
+
+**Solución (mínima, en `NaturalTaskParser.kt`)**:
+- `weekdayRangePattern`: nuevo patrón `(los |de )?(lunes|martes|miércoles|jueves|viernes)\s+a\s+(martes|…|domingo)` (rango Lun–Vie, admite prefijo `los `/`de `). Si el rango termina en viernes (o incluye viernes), → `RecurrenceFrequency.WEEKLY`, `days=[1,2,3,4,5]` (hábito laboral). Resuelve a la **próxima ocurrencia** del primer día (jue 30-07 dado now=mié 29-07 12:00, slot ya pasado hoy).
+- `weekdaySetPattern`: variantes léxicas equivalentes → mismo WEEKLY [1-5]: `entre semana`, `días laborables`, `días hábiles`, `días de semana`, `de semana` (con prefijo opcional `los `/`de `). Consumen la frase completa (título limpio).
+- **Orden de patrones crítico**: ambos se evalúan **ANTES** que `dayListPattern` para que "los lunes a viernes" sea rango (days=[1..5]) y no la lista ["lunes"] (days=[1]). El singular "fin de semana" sigue siendo fecha única (próximo sábado), sin colisión.
+
+**Colisión de remoto resuelta (no destructiva)**: durante el run el remoto avanzó varios commits
+(ciclos 38–42: "de/por/a la mañana", recordatorios con números escritos/fracciones, listas de
+días sin coma + plurales sábados/domingos, rango horario sin "horas", recurrencia quincenal).
+Procedimiento no destructivo: `git rebase` de mi commit sobre el HEAD remoto; auto-merge limpio en
+`NaturalTaskParser.kt` + tests (cambios ortogonales); conflictos solo en docs
+(`CURRENT_STATE.md`, `RUN_LOG.md`) resueltos conservando el trabajo del otro run y
+renumerando el mío a **ciclo 43** (la otra ejecución ya había reclamado los números 41 y 42). Sin
+force push, sin reset --hard.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**372 tests PASS** (365 base remota + 7 nuevos de este ciclo, 25 clases). Smoke 25 OK
+(`tools/run_domain_checks.sh`). NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs
+reales (sin Android SDK).
+
 
 Bug de captura P2 (ciclo 42): el rango horario **sin la palabra "horas"** y con ambas horas < 13
 ("clase de 9 a 11") no se reconocía: `durationMinutes=null` y "de 9 a 11" quedaba como residuo.
@@ -172,8 +202,11 @@ force push, sin reset --hard.
 gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 
 ### Ciclos parser recientes (resumen)
-- Ciclo 41: listas de días sin coma + plurales sábados/domingos (3 tests).
-- Ciclo 40: recordatorios con números escritos y fracciones (8 tests).
+- Ciclo 43: "entre semana"/"días laborables/hábiles"/"de lunes a viernes" = WEEKLY Lun–Vie (7 tests, 372 total)).
+- Ciclo 41: listas de días sin coma + plurales sábados/domingos (3 tests, 350 total).
+- Ciclo 40: recordatorios con números escritos y fracciones (8 tests, 344 total).
+- Ciclo 39: "de/por/a la mañana" (hora) vs fecha "mañana" (336 tests).
+- Ciclo 38: fechas pasadas "hace N"/"la semana/el mes pasado" + recuperación fechas imposibles (329 tests).
 - Ciclo 37: "a las N horas" como hora, no duración falsa (3 tests, incluidos en 336).
 - Ciclo 36: "mediados de semana" = miércoles (4 tests).
 - Ciclo 35: "un par de" coloquial = 2 (4 tests).

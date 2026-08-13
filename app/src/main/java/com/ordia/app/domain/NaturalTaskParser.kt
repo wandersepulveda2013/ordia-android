@@ -859,6 +859,23 @@ object NaturalTaskParser {
         val base = RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), emptyList())
         val phrases = mutableListOf<IntRange>()
 
+        // "entre semana" / "días laborables/hábiles/de semana" / "de lunes a viernes"
+        // como recurrencia semanal de lunes a viernes (hábito cotidiano: gimnasio,
+        // trabajo, estudio). Se evalúa ANTES que dayListPattern: "lunes a viernes" es
+        // un rango (Lun-Vie), no la lista ["lunes"]; si dayListPattern ganara en
+        // "los lunes a viernes" capturaría solo "lunes" y el viernes se perdería.
+        // Antes quedaba sin recurrencia (tarea única: la intención de repetir se
+        // perdía) y, peor, "de lunes a viernes" dejaba "lunes" como fecha suelta y
+        // residuo en el título. La primera ocurrencia la resuelve la rama WEEKLY+days
+        // (próximo día hábil).
+        val weekdayRangePattern =
+            Regex("""(?i)\b(?:los\s+|de\s+)?lunes\s+a\s+viernes\b""")
+        val weekdayRangeMatch = weekdayRangePattern.find(working)
+        if (weekdayRangeMatch != null) {
+            phrases += weekdayRangeMatch.range
+            return RecurrenceResult(RecurrenceFrequency.WEEKLY, 1, listOf(1, 2, 3, 4, 5), phrases)
+        }
+
         // "todos los viernes" / "cada lunes y jueves" / "los lunes y jueves".
 // Un único patrón captura una lista de días separados por ",", "y" o solo
         // espacio ("lunes miércoles viernes" / "lunes miércoles y viernes"), forma
@@ -882,6 +899,18 @@ object NaturalTaskParser {
                 phrases += weeklyMatch.range
                 return RecurrenceResult(RecurrenceFrequency.WEEKLY, 1, days, phrases)
             }
+        }
+
+        // "entre semana" / "días laborables/hábiles/de semana" como recurrencia
+        // semanal de lunes a viernes (hábito cotidiano). El rango explícito "de lunes
+        // a viernes" ya se resolvió arriba. Antes estas frases quedaban sin recurrencia
+        // (tarea única: la intención de repetir se perdía). La primera ocurrencia la
+        // resuelve la rama WEEKLY+days (próximo día hábil).
+        val weekdaySetPattern =
+            Regex("""(?i)\b(?:todos\s+los\s+|cada\s+|los\s+)?d[ií]as\s+(?:laborables|h[aá]biles|de\s+semana)\b|\bentre\s+semana\b""")
+        weekdaySetPattern.find(working)?.let { match ->
+            phrases += match.range
+            return RecurrenceResult(RecurrenceFrequency.WEEKLY, 1, listOf(1, 2, 3, 4, 5), phrases)
         }
 
         // "fines de semana" / "los findes" / "este finde" como recurrencia semanal de
