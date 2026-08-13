@@ -324,11 +324,12 @@ object NaturalTaskParser {
             // Debe ir antes que el "mañana" genérico: "esta mañana" contiene "mañana"
             // y no debe interpretarse como "el día de mañana".
             partOfDayMatch != null -> base.toLocalDate()
-            // "anteayer"/"ayer" son fechas PASADAS explícitas: el usuario reconoce que
+            // "anteayer"/"antier"/"ayer" son fechas PASADAS explícitas: el usuario reconoce que
             // la tarea está vencida ("Hacer X ayer"). Antes quedaban sin fecha (dueAt=null)
             // o, combinadas con hora ("ayer a las 4"), resolvían a HOY — fecha errónea.
             // Se mantiene en el pasado (honesto: la tarea es vencida, aparece en What Now).
-            Regex("""(?i)\banteayer\b""").containsMatchIn(working) -> base.toLocalDate().minusDays(2)
+            // "antier" = variante coloquial hispanoamericana de "anteayer".
+            Regex("""(?i)\banteayer\b|\bantier\b""").containsMatchIn(working) -> base.toLocalDate().minusDays(2)
             Regex("""(?i)\bayer\b""").containsMatchIn(working) -> base.toLocalDate().minusDays(1)
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
@@ -481,7 +482,7 @@ object NaturalTaskParser {
             .let { value -> timePatterns.fold(value) { acc, pattern -> pattern.replace(acc, " ") } }
             .let { value -> standalonePartOfDayPattern.replace(value, " ") }
             .let { value -> primeraHoraPattern.replace(value, " ") }
-            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\banteayer\b|\bayer\b"""), " ")
+            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b"""), " ")
             .let { value -> weekdayPattern.replace(value, " ") }
             .let { value -> weekendPattern.replace(value, " ") }
             // "que viene" queda como residuo cuando la fecha asociada (fin de

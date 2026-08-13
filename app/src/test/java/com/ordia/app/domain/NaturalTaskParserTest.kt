@@ -977,6 +977,23 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    @Test fun antierParsesDueAtTwoDaysAgo() {
+        // "antier" = variante coloquial hispanoamericana de "anteayer" (MX/CA/parts SA).
+        // Antes no se parseaba → dueAt=null → tarea vencida olvidada.
+        val result = NaturalTaskParser.parse("Enviar correo antier", now, zone)
+        assertEquals("Enviar correo", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun antierConHoraResuelvePasadoNoHoy() {
+        // Regresión: "antier a las 4 de la tarde" debe resolver a antier (no a HOY),
+        // igual que "ayer a las 4". Antes la combinación con hora rompía la fecha.
+        val result = NaturalTaskParser.parse("Reunión antier a las 4 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(16, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     @Test fun proximosDiasParsesDueAt() {
         // "próximos días" = forma vaga de "dentro de poco": +3 días (heurística honesta).
         // Antes quedaba sin fecha → tarea olvidada (sin recordatorio ni visibilidad).
