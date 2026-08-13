@@ -59,7 +59,11 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 sealed interface UiEvent {
-    data class Message(val text: String) : UiEvent
+    data class Message(
+        val text: String,
+        val actionLabel: String? = null,
+        val onAction: (() -> Unit)? = null
+    ) : UiEvent
     data class TaskSaved(val id: Long) : UiEvent
     data class NoteSaved(val id: Long) : UiEvent
 }
@@ -320,7 +324,11 @@ class OrdiaViewModel(
                 taskRepository.archiveSubtreeAndSelf(task.id) { taskId -> reminderScheduler.cancel(taskId) }
             }
             updateWidget()
-            _events.emit(UiEvent.Message("Tarea movida al archivo."))
+            _events.emit(UiEvent.Message(
+                text = "Tarea movida al archivo.",
+                actionLabel = "Deshacer",
+                onAction = { restoreArchived("task", task.id) }
+            ))
         }
     }
 
@@ -366,7 +374,11 @@ class OrdiaViewModel(
 
     fun deleteProject(project: ProjectEntity) = viewModelScope.launch {
         projectRepository.archive(project.id)
-        _events.emit(UiEvent.Message("Proyecto archivado."))
+        _events.emit(UiEvent.Message(
+            text = "Proyecto archivado.",
+            actionLabel = "Deshacer",
+            onAction = { restoreArchived("project", project.id) }
+        ))
     }
 
     fun saveNote(note: NoteEntity, blocks: List<NoteBlock>? = null, onSaved: (Long) -> Unit = {}) {
@@ -395,7 +407,11 @@ class OrdiaViewModel(
 
     fun deleteNote(note: NoteEntity) = viewModelScope.launch {
         noteRepository.archive(note.id)
-        _events.emit(UiEvent.Message("Nota archivada."))
+        _events.emit(UiEvent.Message(
+            text = "Nota archivada.",
+            actionLabel = "Deshacer",
+            onAction = { restoreArchived("note", note.id) }
+        ))
     }
 
     fun togglePin(note: NoteEntity) = viewModelScope.launch {
@@ -439,7 +455,11 @@ class OrdiaViewModel(
     fun deleteHabit(habit: HabitEntity) = viewModelScope.launch {
         habitReminderScheduler.cancel(habit.id)
         habitRepository.archive(habit.id)
-        _events.emit(UiEvent.Message("Hábito movido al archivo."))
+        _events.emit(UiEvent.Message(
+            text = "Hábito movido al archivo.",
+            actionLabel = "Deshacer",
+            onAction = { restoreArchived("habit", habit.id) }
+        ))
     }
 
     fun saveRoutine(routine: RoutineEntity, stepTitles: List<String>) {
@@ -483,7 +503,11 @@ class OrdiaViewModel(
 
     fun archiveRoutine(routine: RoutineEntity) = viewModelScope.launch {
         routineRepository.archive(routine.id)
-        _events.emit(UiEvent.Message("Rutina movida al archivo."))
+        _events.emit(UiEvent.Message(
+            text = "Rutina movida al archivo.",
+            actionLabel = "Deshacer",
+            onAction = { restoreArchived("routine", routine.id) }
+        ))
     }
 
     fun restoreArchived(kind: String, id: Long) = viewModelScope.launch {

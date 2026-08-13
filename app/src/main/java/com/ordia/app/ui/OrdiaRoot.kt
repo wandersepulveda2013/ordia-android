@@ -1,6 +1,7 @@
 package com.ordia.app.ui
 
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,7 +64,15 @@ fun OrdiaRoot(
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is UiEvent.Message -> snackbarHostState.showSnackbar(event.text)
+                is UiEvent.Message -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = event.text,
+                        actionLabel = event.actionLabel
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        event.onAction?.invoke()
+                    }
+                }
                 else -> Unit
             }
         }
