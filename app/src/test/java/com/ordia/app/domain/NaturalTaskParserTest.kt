@@ -92,6 +92,34 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // Forma natural en español para varios días: espacio entre los primeros, "y"
+    // solo antes del último ("lunes miércoles y viernes"). Antes el separador
+    // entre pares solo admitía ","/"y", así esta forma casaba únicamente el primer
+    // día y la rutina semanal perdía los demás (pérdida de datos silenciosa).
+    @Test fun parsesSpaceSeparatedWeekdayListWithY() {
+        val result = NaturalTaskParser.parse("Gimnasio cada lunes miércoles y viernes a las 6", now, zone)
+        assertEquals("Gimnasio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3,5", result.recurrenceDays)
+        // Desde miércoles 29-jul: el miércoles (hoy) ya pasó su slot de 6:00,
+        // la siguiente ocurrencia es el viernes 31-jul.
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesSpaceSeparatedWeekdayListAllSpaces() {
+        val result = NaturalTaskParser.parse("Clase los lunes miércoles viernes", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3,5", result.recurrenceDays)
+    }
+
+    @Test fun parsesFourDaySpaceSeparatedList() {
+        val result = NaturalTaskParser.parse("Estudiar cada lunes miércoles viernes y sábado", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3,5,6", result.recurrenceDays)
+    }
+
     @Test fun parsesDailyRecurrence() {
         val result = NaturalTaskParser.parse("Tomar vitaminas cada día", now, zone)
         assertEquals("Tomar vitaminas", result.title)
