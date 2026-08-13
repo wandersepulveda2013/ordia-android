@@ -14,15 +14,34 @@
 
 ## Estado
 
-- **Fecha (UTC)**: 2026-08-13 (ciclo 33)
-- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 33)
+- **Fecha (UTC)**: 2026-08-13 (ciclo 34)
+- **Branch de trabajo**: `openhands/autonomous-ordia` (HEAD tras ciclo 34)
 - **main**: contiene SOLO infraestructura de orquestación (workflows); no el rebuild de la app.
 - **Workflows autónomos (en `main`)**: `ordia-autonomous-jules.yml` (cron `17 */2 * * *` + dispatch)
   y `ordia-autonomous-merge.yml` (pull_request_target + cron `*/15 * * * *` + dispatch).
 - **Release workflow**: publica APK firmada en cada push a `openhands/autonomous-ordia` (incluso
   docs-only) → los commits de código generan releases automáticamente.
 
-## Último trabajo — Ciclo 33: parser “principios de mes”, “fines de semana” recurrentes, días pasados
+## Último trabajo — Ciclo 34: parser "esta semana" (plazo blando de fin de semana)
+
+Unidad atómica del ciclo de parser natural (P1 — evitar olvidos, menos fricción de captura).
+**"esta semana"** es un plazo blando cotidiano ("háblalo esta semana", "lo termino esta semana",
+"cita esta semana") que el parser **no reconocía**: caía a `dueAt=null` → tarea **olvidada**
+(sin recordatorio, invisible en planificador/What Now). Peor, con hora explícita se fechaba en
+**HOY** por error ("esta semana a las 18" → hoy 18:00, no "fin de esta semana a las 18").
+
+**Solución**: nuevo `thisWeekPattern` (`esta semana` + opcional `que viene`) que resuelve al
+**próximo domingo** (fin de semana ISO lun→dom) a las 9:00 por defecto, o **hoy** si hoy es
+domingo. Detectado y borrado **antes** del período próximo: así "semana" no activa "semana que
+viene" (sigue siendo +7d) y "esta semana que viene" se limpia del título. Integrado en
+`effectiveRelativeDueAt` como días para combinarse con una hora explícita.
+
+**VERIFICADO localmente (JVM puro, sin Android SDK)**: `bash tools/run_domain_tests.sh` =
+**290 tests PASS** (286 + 4 nuevos), 25 clases. Smoke 25 OK. NO VERIFICADO: gradle/lint/
+assemble/Android/UI (sin Android SDK).
+
+
+## Último trabajo — Ciclo 33: parser "principios de mes", "fines de semana" recurrentes, días pasados
 
 Unidad atómica del ciclo de parser natural (P1 — evitar olvidos de fechas, menos fricción de
 captura). Tres capacidades nuevas del `NaturalTaskParser`, todas formas cotidianas en español que
@@ -150,6 +169,7 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
 | Pri | Área | Estado |
 |-----|------|--------|
 | P1 | Persistencia — adjuntos URI externo | FIXED (NO VERIFICADO Android) ciclo 32 cont.4 |
+| P1 | Parser — "esta semana" plazo blando | FIXED → VERIFIED ciclo 34 (290 tests) |
 | P2 | QA — compilar 6 variantes tras cambios | OPEN (requiere env Android) |
 | P2 | Self-Update — prueba end-to-end N→N+1 | BLOCKED-external (sin dispositivo Android) |
 | P3 | UX — pulido visual pantallas workspace renovadas | OPEN |
@@ -162,9 +182,9 @@ CI: los 4 commits pushados pasaron `Verificar` (tests+lint+assemble) success. Fi
   `takePersistableUriPermission`). 275 domain tests PASS. NO VERIFICADO Android/UI.
 - Ciclos previos del 32: “próximos días” (+3d), “antier” (-2d), “próximo trimestre” (+90d),
   “fin de mes”/“mediados de mes”, verificados.
-- Continuar ciclo interminable. Candidatos parser: “esta semana” (vs “la semana que viene”),
-  “próximo bimestre/semestre” (evaluar frecuencia), “próxima quincena” (+15d), “principios de
-  semana” (lunes). “principios de mes” (día 1) ya hecho ciclo 33.
+- Continuar ciclo interminable. Candidatos parser: ~~"esta semana" (vs "la semana que viene")~~
+  HECHO ciclo 34; "próximo bimestre/semestre" (evaluar frecuencia), "próxima quincena" (+15d),
+  "principios de semana" (lunes). "principios de mes" (día 1) ya hecho ciclo 33.
 - P1 adjuntos: NEXT paso sería **migración de adjuntos legacy** (URIs externos antiguos ya
   guardados) — copiar contenido al abrir por primera vez si todavía accesible. Evaluar antes
   de implementar (riesgo: URIs ya inválidos). De momento `resolveAttachmentUri` no rompe legacy.

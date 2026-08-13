@@ -2492,3 +2492,27 @@ a un permiso persistente frágil y silencioso ante fallos.
   “próximo bimestre/semestre”, “próxima quincena” (+15d), “principios de semana” (lunes).
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
+
+---
+
+## Ciclo 34 - 2026-08-13 (UTC)
+
+- **Run/ciclo**: 34
+- **HEAD inicial**: cdc3135 (origin/openhands/autonomous-ordia sincronizado; sin divergencia)
+- **Problema seleccionado**: `NaturalTaskParser` no parseaba **"esta semana"** (plazo blando cotidiano). `dueAt=null` -> tarea olvidada (sin recordatorio, invisible en planificador/What Now); con hora explicita se fechaba en HOY por error ("esta semana a las 18" -> hoy 18:00).
+- **Prioridad**: P1 (evitar olvidos, menos friccion de captura, inteligencia del parser).
+- **Causa raiz**: no existia patron para "esta semana"; la palabra "semana" solo la capturaba `nextPeriodPattern` ("semana que viene"/"proxima semana" = +7d). Sin hora explicita no habia respaldo -> null. Con hora, el periodo proximo activaba el combo hoy+hora (fecha futura erronea).
+- **Solucion (minima, en `NaturalTaskParser.kt`)**:
+  - Nuevo `thisWeekPattern` (`esta semana` + opcional `que viene`).
+  - Resuelve al **proximo domingo** (fin de semana ISO lun-dom) a las 9:00 por defecto; **hoy** si hoy es domingo (`TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY)`).
+  - Detectado y borrado **antes** del periodo proximo: asi "semana" no activa "semana que viene" (sigue siendo +7d) y "esta semana que viene" se limpia del titulo.
+  - Integrado en `effectiveRelativeDueAt` como dias (junto a monthBoundary/nextPeriod) para combinarse con una hora explicita.
+- **Tests**: +4 (`estaSemanaParsesDueAtProximoDomingo`, `estaSemanaRespetaHoraExplicita`, `estaSemanaSiHoyEsDomingoEsHoy`, `estaSemanaNoColisionaConSemanaQueViene`). **290 domain tests PASS** (`bash tools/run_domain_tests.sh`), 25 clases. Smoke 25 OK (`tools/run_domain_checks.sh`).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+- **Commits (previstos)**: feat(parser): "esta semana" como plazo blando (proximo domingo); docs(autonomy): registro ciclo 34.
+- **HEAD final**: (tras commit/push a openhands/autonomous-ordia).
+
+### Siguiente
+- Continuar ciclo interminable. Candidatos parser: "proximo bimestre/semestre" (evaluar frecuencia), "proxima quincena" (+15d), "principios de semana" (lunes).
+- P1 adjuntos: migracion lazy de adjuntos legacy (evaluar seguridad primero).
+- P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
