@@ -3,6 +3,7 @@ package com.ordia.app.domain
 import java.text.Normalizer
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.NoteEntity
@@ -28,7 +29,7 @@ enum class SearchKind { TASK, PROJECT, NOTE, HABIT, CONVERSATION, COMMITMENT, AU
  * parte del día por su colisión con el scope TOMORROW, igual que hace el
  * parser en su variante compacta de parte del día.
  */
-private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, OVERDUE, UNDATED, TARDE, NOCHE, MADRUGADA }
+private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, THIS_MONTH, NEXT_MONTH, LAST_MONTH, OVERDUE, UNDATED, TARDE, NOCHE, MADRUGADA }
 
 data class SearchResult(val kind: SearchKind, val id: Long, val title: String, val subtitle: String)
 
@@ -192,6 +193,15 @@ object SearchEngine {
     // deben exigirse en el contenido de la tarea.
     private val DATE_MODIFIERS = setOf("esta", "este", "la", "el", "las", "los", "mis")
 
+    // --- Búsqueda por mes ("este mes"/"próximo mes"/"mes que viene"/"mes pasado") ---
+    // Simétrico al scope de semana: recuperar lo que vence en un mes natural sin
+    // recorrer la lista. "mes" SUELTA no activa scope (es ambigua: ¿este mes? ¿el
+    // concepto "mes"?); se exige un calificador (este/próximo/pasado/viene) para
+    // que "resumen del mes" siga siendo búsqueda por contenido.
+    private val MONTH_TOKENS = setOf("mes")
+    private val NEXT_MONTH_TOKENS = setOf("proximo", "proximos", "proxima", "proximas", "viene")
+    private val LAST_MONTH_TOKENS = setOf("pasada", "pasadas", "pasado", "pasados", "ultima", "ultimas", "ultimo", "ultimos")
+
     // Tareas sin vencimiento ("sin fecha"/"sin vencimiento"/"sin día"/"sin plazo"):
     // el objetivo es recuperar lo capturado pero nunca agendado, justo lo que
     // tiende a olvidarse. Se exige "sin" acompañado de uno de estos sustantivos
@@ -220,6 +230,14 @@ object SearchEngine {
         LATE_AFTERNOON_TOKENS.any { it in words } -> DateScope.TARDE
         NIGHT_TOKENS.any { it in words } -> DateScope.NOCHE
         EARLY_MORNING_TOKENS.any { it in words } -> DateScope.MADRUGADA
+        // Mes: "este mes"/"próximo mes"/"mes que viene"/"mes pasado". Requiere
+        // "mes" + un calificador para no activarse con "mes" sola (ambigua) ni
+        // con "resumen del mes" (búsqueda de contenido). "viene" señala próximo
+        // ("mes que viene"); "pasado"/"última" señalan el mes anterior. El
+        // modificador "este"/"esta" señala el mes en curso.
+        MONTH_TOKENS.any { it in words } && NEXT_MONTH_TOKENS.any { it in words } -> DateScope.NEXT_MONTH
+        MONTH_TOKENS.any { it in words } && LAST_MONTH_TOKENS.any { it in words } -> DateScope.LAST_MONTH
+        MONTH_TOKENS.any { it in words } && ("este" in words || "esta" in words) -> DateScope.THIS_MONTH
         WEEK_TOKENS.any { it in words } && NEXT_WEEK_TOKENS.any { it in words } -> DateScope.NEXT_WEEK
         WEEK_TOKENS.any { it in words } && LAST_WEEK_TOKENS.any { it in words } -> DateScope.LAST_WEEK
         WEEK_TOKENS.any { it in words } -> DateScope.THIS_WEEK
@@ -227,7 +245,7 @@ object SearchEngine {
     }
 
     private fun dateScopeTokens(words: List<String>): Set<String> =
-        words.filter { it in OVERDUE_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS }.toSet()
+        words.filter { it in OVERDUE_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in MONTH_TOKENS || it in NEXT_MONTH_TOKENS || it in LAST_MONTH_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS }.toSet()
 
     private fun taskMatchesDateScope(task: TaskEntity, scope: DateScope, now: Long, zone: ZoneId): Boolean {
         if (scope == DateScope.OVERDUE) return TaskRules.isOverdue(task, now)
@@ -235,11 +253,11 @@ object SearchEngine {
         // que nunca se agendó. Se excluyen completadas (ya resueltas) y canceladas,
         // igual que los scopes presentes/futuros; las archivadas ya se filtraron.
         if (scope == DateScope.UNDATED) return !task.completed && task.status != TaskStatus.CANCELLED && task.dueAt == null
-        // Los scopes pasados ("ayer", "semana pasada") recuperan tareas ya
-        // completadas: su propósito es revisar qué había en ese período. Para
-        // los scopes presentes/futuros se excluyen completadas. Las canceladas
+        // Los scopes pasados ("ayer", "semana pasada", "mes pasado") recuperan
+        // tareas ya completadas: su propósito es revisar qué había en ese período.
+        // Para los scopes presentes/futuros se excluyen completadas. Las canceladas
         // se excluyen siempre (no son información útil de un período pasado).
-        val pastScope = scope == DateScope.YESTERDAY || scope == DateScope.LAST_WEEK
+        val pastScope = scope == DateScope.YESTERDAY || scope == DateScope.LAST_WEEK || scope == DateScope.LAST_MONTH
         if (task.status == TaskStatus.CANCELLED) return false
         if (!pastScope && task.completed) return false
         val due = task.dueAt ?: return false
@@ -282,6 +300,22 @@ object SearchEngine {
                 val endLastWeek = today.plusDays((daysToSunday - 7).toLong())
                 val startLastWeek = endLastWeek.minusDays(6)
                 !dueDate.isBefore(startLastWeek) && !dueDate.isAfter(endLastWeek)
+            }
+            DateScope.THIS_MONTH -> {
+                // Mes natural en curso (del 1 al último día del mes de hoy).
+                // Recupera todo lo del mes, incluso lo ya pasado a principios de mes.
+                val thisMonth = YearMonth.from(today)
+                !dueDate.isBefore(thisMonth.atDay(1)) && !dueDate.isAfter(thisMonth.atEndOfMonth())
+            }
+            DateScope.NEXT_MONTH -> {
+                // Mes natural siguiente al de hoy.
+                val nextMonth = YearMonth.from(today).plusMonths(1)
+                !dueDate.isBefore(nextMonth.atDay(1)) && !dueDate.isAfter(nextMonth.atEndOfMonth())
+            }
+            DateScope.LAST_MONTH -> {
+                // Mes natural anterior al de hoy (recuperación, incluye completadas).
+                val lastMonth = YearMonth.from(today).minusMonths(1)
+                !dueDate.isBefore(lastMonth.atDay(1)) && !dueDate.isAfter(lastMonth.atEndOfMonth())
             }
             DateScope.OVERDUE -> TaskRules.isOverdue(task, now)
             // UNDATED se resuelve antes (return temprano); aquí es inalcanzable.

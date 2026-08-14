@@ -419,4 +419,116 @@ class SearchEngineDateScopeTest {
         val ids = SearchEngine.search("tarde", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 10)).map { it.id }.toSet()
         assertEquals(setOf(2L), ids)
     }
+
+    // --- Búsqueda por mes ("este mes"/"próximo mes"/"mes que viene"/"mes pasado") ---
+    // Simétrico al scope de semana: permite recuperar lo que vence en un mes
+    // sin recorrer la lista, aunque el título no contenga "mes".
+
+    private fun monthTask(id: Long, title: String, localDate: java.time.LocalDate): TaskEntity =
+        TaskEntity(id = id, title = title, dueAt = java.time.ZonedDateTime.of(localDate.atTime(9, 0), zone).toInstant().toEpochMilli())
+
+    @Test fun esteMes_returnsOnlyTasksDueThisMonth() {
+        // "este mes" recupera las tareas que vencen en el mes en curso, aunque
+        // su título no contenga la palabra "mes". Simétrico a "esta semana".
+        val today = java.time.LocalDate.of(2026, 8, 13) // agosto
+        val t0 = java.time.ZonedDateTime.of(today.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val pod = listOf(
+            monthTask(1, "Renta", today.plusDays(5)),            // 08-18 este mes
+            monthTask(2, "Auditoría", today.plusDays(40)),        // ~09-22 mes que viene
+            monthTask(3, "Julio", today.minusDays(20))            // ~07-24 mes pasado
+        )
+        val ids = SearchEngine.search("este mes", pod, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun esteMes_coversFullCalendarMonth() {
+        // El scope "este mes" abarca todo el mes natural (del 1 al último día),
+        // no solo desde hoy: una tarea del día 1 del mismo mes entra aunque ya
+        // sea pasado (es recuperación, no planificación).
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val t0 = java.time.ZonedDateTime.of(today.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val pod = listOf(
+            monthTask(1, "Principios de mes", java.time.LocalDate.of(2026, 8, 2)),  // este mes, ya pasado
+            monthTask(2, "Fin de mes", java.time.LocalDate.of(2026, 8, 31)),        // este mes, futuro
+            monthTask(3, "Otro mes", java.time.LocalDate.of(2026, 9, 1))            // mes que viene
+        )
+        val ids = SearchEngine.search("este mes", pod, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L), ids)
+    }
+
+    @Test fun proximoMes_returnsOnlyNextMonthTasks() {
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val t0 = java.time.ZonedDateTime.of(today.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val pod = listOf(
+            monthTask(1, "Renta", today.plusDays(5)),            // este mes
+            monthTask(2, "Auditoría", today.plusDays(40)),        // septiembre
+            monthTask(3, "Julio", today.minusDays(20))            // julio
+        )
+        val ids = SearchEngine.search("proximo mes", pod, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(2L), ids)
+    }
+
+    @Test fun mesQueViene_isEquivalentToProximoMes() {
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val t0 = java.time.ZonedDateTime.of(today.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val pod = listOf(
+            monthTask(1, "Renta", today.plusDays(5)),
+            monthTask(2, "Auditoría", today.plusDays(40))
+        )
+        val ids = SearchEngine.search("mes que viene", pod, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(2L), ids)
+    }
+
+    @Test fun mesPasado_returnsOnlyLastMonthTasks() {
+        // "mes pasado" recupera tareas del mes anterior (recuperación, incluye
+        // completadas como los scopes pasados de semana).
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val t0 = java.time.ZonedDateTime.of(today.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val pod = listOf(
+            monthTask(1, "Renta", today.plusDays(5)),            // agosto
+            monthTask(2, "Auditoría", today.plusDays(40)),        // septiembre
+            monthTask(3, "Julio", java.time.LocalDate.of(2026, 7, 25)),  // julio
+            monthTask(4, "Junio", java.time.LocalDate.of(2026, 6, 30))   // junio (más allá)
+        )
+        val ids = SearchEngine.search("mes pasado", pod, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(3L), ids)
+    }
+
+    @Test fun mesPasada_conTilde_activaLastMonth() {
+        // "mes pasada" (variante con tilde informal) también activa LAST_MONTH.
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val t0 = java.time.ZonedDateTime.of(today.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val pod = listOf(
+            monthTask(1, "Julio", java.time.LocalDate.of(2026, 7, 25)),
+            monthTask(2, "Agosto", today.plusDays(5))
+        )
+        val ids = SearchEngine.search("el mes pasado", pod, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun mesSola_noActivaScopeSiNoHayCalificador() {
+        // "mes" sola NO debe activar un scope de fecha (ambigua: ¿este mes? ¿el
+        // concepto "mes"?); cae a búsqueda de contenido. Evita activar month scope
+        // por accidente en frases como "resumen del mes".
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val t0 = java.time.ZonedDateTime.of(today.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val pod = listOf(
+            monthTask(1, "Resumen del mes", today.plusDays(5)),
+            monthTask(2, "Otra tarea", today.plusDays(40))
+        )
+        val ids = SearchEngine.search("mes", pod, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun esteMesConTexto_filtraDentroDelMes() {
+        // "este mes renta" combina el scope de mes con texto de contenido.
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val t0 = java.time.ZonedDateTime.of(today.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val pod = listOf(
+            monthTask(1, "Pagar renta", today.plusDays(5)),
+            monthTask(2, "Luz", java.time.LocalDate.of(2026, 8, 20))
+        )
+        val ids = SearchEngine.search("este mes renta", pod, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
 }
