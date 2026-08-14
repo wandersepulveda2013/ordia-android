@@ -873,6 +873,62 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // --- Keyword "duración" (ciclo 141) ---
+    // "duración 30 minutos": la palabra "duración" no se reconocía como señal de
+    // duración, así que aunque el número+unidad casaba y durationMinutes=30, la
+    // palabra "duración" quedaba como residuo en el título. Además, "duración 45"
+    // (sin unidad) no casaba con nada → durationMinutes=null y todo el título
+    // se conservaba. "duración" es la forma más natural de declarar la duración
+    // de una reunión/cita en español.
+    @Test fun duracionKeywordConUnidadSeCapturaYLimpia() {
+        val result = NaturalTaskParser.parse("Reunión duración 30 minutos", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(30, result.durationMinutes)
+    }
+
+    @Test fun duracionKeywordSinUnidadDefaultMinutos() {
+        val result = NaturalTaskParser.parse("Reunión duración 45", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(45, result.durationMinutes)
+    }
+
+    @Test fun duracionKeywordConHoraSeResuelve() {
+        val result = NaturalTaskParser.parse("Reunión duración 1 hora", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(60, result.durationMinutes)
+    }
+
+    @Test fun duracionKeywordConDosPuntos() {
+        val result = NaturalTaskParser.parse("Reunión duración: 30", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(30, result.durationMinutes)
+    }
+
+    // "no olvides" es la perífrasis de recordatorio más común en español, pero
+    // no estaba en [bareReminderVerbPattern] (solo "no dejes que olvide"). Así
+    // "no olvides llamar mañana" dejaba "no olvides" en el título Y no aplicaba
+    // el offset de respaldo de 30 min pese a tener fecha.
+    @Test fun noOlvidesConDueAplicaOffset30() {
+        val result = NaturalTaskParser.parse("no olvides llamar al doctor mañana", now, zone)
+        assertEquals("llamar al doctor", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun noOlvidesQueConDueAplicaOffset30() {
+        val result = NaturalTaskParser.parse("no olvides que pago el 10", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun noOlvidesSinDueNoFalsificaOffset() {
+        val result = NaturalTaskParser.parse("no olvides llamar a mamá", now, zone)
+        assertEquals("llamar a mamá", result.title)
+        assertNull(result.reminderOffsetMinutes)
+        assertNull(result.dueAt)
+    }
+
     @Test fun parsesMonthNameDate() {
         val result = NaturalTaskParser.parse("Entregar reporte antes del 5 de agosto", now, zone)
         assertEquals("Entregar reporte", result.title)

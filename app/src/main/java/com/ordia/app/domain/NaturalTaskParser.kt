@@ -560,11 +560,21 @@ object NaturalTaskParser {
      * se falsifica nada. Simétrico con `UniversalCaptureEngine.reminderSignal`.
      */
     private val bareReminderVerbPattern =
-        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordatorio|no\s+dejes\s+que\s+olvide)\b""")
+        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordatorio|no\s+dejes\s+que\s+olvide|no\s+olvides(?:\s+que)?)\b""")
     private const val BARE_REMINDER_DEFAULT_OFFSET_MINUTES = 30
     private val durationPatterns = listOf(
         Regex("""(?i)\((\d{1,3})\s*(minutos?|min|horas?|hora)\)"""),
         Regex("""(?i)\b(?:durante|por)\s+(\d{1,3})\s*(minutos?|min|horas?|hora)\b"""),
+        // Keyword "duración (de/:) N [unidad]": la forma más natural de declarar la
+        // duración de una reunión/cita en español. Antes la palabra "duración" NO se
+        // reconocía como señal de duración: con unidad ("duración 30 minutos") el
+        // patrón "N minutos" casaba y daba durationMinutes=30, pero "duración" quedaba
+        // como residuo en el título; sin unidad ("duración 45") no casaba nada →
+        // durationMinutes=null y la frase entera se conservaba. La unidad es opcional:
+        // si falta se asume minutos (convención del proyecto). Va antes que los
+        // patrones "N unidad" para que, al quedar más a la izquierda, [durationMatch]
+        // la elija y consuma la frase completa ("duración" incluida).
+        Regex("""(?i)\bduraci[oó]n\s*(?::|de)?\s*(\d{1,3})\s*(minutos?|min|horas?|hora)?\b"""),
         Regex("""(?i)\b(\d{1,3})\s*(minutos?|min)\b"""),
         Regex("""(?i)\b(\d{1,3})\s*(horas?)\b"""),
         // Compacto "Nh" (p. ej. "Trabajar 2h", "Estudiar 1h"). El \b final evita
@@ -1890,8 +1900,23 @@ object NaturalTaskParser {
             writtenMatch?.let { match -> add(connectorRange(working, match.range, match.range.first)) }
             fractionalMatch?.let { match -> add(connectorRange(working, match.range, match.range.first)) }
         }
+        // Varias coincidencias pueden anidarse: con el keyword "duración 30 minutos",
+        // [durationMatch] casa toda la frase ("duración 30 minutos") Y el patrón
+        // "N minutos" casa solo "30 minutos" (rango interior). Procesar el rango
+        // interior primero (orden descendente) y luego saltar el exterior por
+        // solapamiento dejaría "duración" como residuo en el título. Se descartan
+        // los rangos estrictamente contenidos en otro: así el exterior (el keyword,
+        // que abarca "duración"+cantidad+unidad) sobrevive y se blanquea entero.
+        // Para rangos idénticos (p. ej. "30 min" casado por durationMatch y
+        // writtenMatch a la vez) se conserva uno solo, evitando el doble borrado.
+        val dedupedRanges = durationBlankRanges.filter { a ->
+            durationBlankRanges.none { b ->
+                b !== a && b.first <= a.first && b.last >= a.last &&
+                    (b.first < a.first || b.last > a.last)
+            }
+        }
         var lastEnd = Int.MAX_VALUE
-        for (r in durationBlankRanges.sortedByDescending { it.first }) {
+        for (r in dedupedRanges.sortedByDescending { it.first }) {
             if (r.last >= lastEnd) continue // solapa con uno ya borrado → saltar
             working = working.replaceRange(r, " ")
             lastEnd = r.first
