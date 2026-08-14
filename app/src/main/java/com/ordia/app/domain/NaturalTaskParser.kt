@@ -353,8 +353,8 @@ object NaturalTaskParser {
         Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s+y\s+(media|cuarto))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(horas?|hs))?\b"""),
         Regex("""(?i)\b([01]?\d|2[0-4]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b"""),
-        Regex("""(?i)\b(?:al\s+|a\s+la\s+)?mediod[ií]a\b"""),
-        Regex("""(?i)\b(?:al\s+|a\s+la\s+)?medianoche\b""")
+        Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+)?mediod[ií]a\b"""),
+        Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+)?medianoche\b""")
     )
     /**
      * Cantidad del recordatorio: dígitos o número escrito en español (simétrico con
@@ -504,6 +504,18 @@ object NaturalTaskParser {
     private val primeraHoraPattern =
         Regex("""(?i)\b(?:a\s+)?primera\s+horas?(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|madrugada))?\b""")
     private val primeraHoraTime = LocalTime.of(9, 0)
+
+    /**
+     * "a última hora" (opcionalmente "de la mañana/tarde/noche/madrugada"): fin de
+     * jornada ~18:00. Simétrica de "a primera hora". Antes no se interpretaba como hora
+     * canónica: caía al default 09:00 (agenda errónea) y "a última hora" quedaba como
+     * residuo en el título. Como es hora de respaldo, no fuerza contexto PM; si hay una
+     * parte del día explícita ("de la tarde"), ésta tiene prioridad en la resolución y el
+     * patrón solo limpia "a última hora" (la parte del día la limpia su propio patrón).
+     */
+    private val ultimaHoraPattern =
+        Regex("""(?i)(?<![a-záéíóúñ])(?:a\s+)?[uú]ltima\s+horas?(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?\b""")
+    private val ultimaHoraTime = LocalTime.of(18, 0)
 
     /**
      * Hora suelta con parte del día, sin "a las" ni rango: "Taller 9 de la tarde",
@@ -1016,6 +1028,7 @@ object NaturalTaskParser {
         val standalonePartOfDayKey = standalonePartOfDayMatch?.groupValues?.get(1)?.lowercase()
         val standalonePartOfDayTime = standalonePartOfDayKey?.let { standalonePartOfDayTimes[it] }
         val primeraHoraMatch = primeraHoraPattern.find(working)
+        val ultimaHoraMatch = ultimaHoraPattern.find(working)
         // Contexto PM: una parte del día de tarde/noche (explícita "esta tarde" o suelta "a la noche")
         // aplica offset +12 a una hora sin meridiem ("esta tarde a las 4" → 16:00).
         val partOfDayPmKeys = setOf("tarde", "noche")
@@ -1336,6 +1349,7 @@ object NaturalTaskParser {
             ?: standalonePartOfDayTime
             ?: recurrence.partOfDayTime
             ?: primeraHoraMatch?.let { primeraHoraTime }
+            ?: ultimaHoraMatch?.let { ultimaHoraTime }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val rawDueAt = when {
             effectiveRelativeDueAt != null && relativeIsDays && parsedTime != null ->
@@ -1438,6 +1452,7 @@ object NaturalTaskParser {
             .let { value -> timePatterns.fold(value) { acc, pattern -> pattern.replace(acc, " ") } }
             .let { value -> standalonePartOfDayPattern.replace(value, " ") }
             .let { value -> primeraHoraPattern.replace(value, " ") }
+            .let { value -> ultimaHoraPattern.replace(value, " ") }
             .replace(Regex("""(?i)\bantepasad[oa]\s+mañana\b|\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b"""), " ")
             .let { value -> weekdayPattern.replace(value, " ") }
             .let { value -> weekendPattern.replace(value, " ") }

@@ -3778,4 +3778,66 @@ class NaturalTaskParserTest {
         assertEquals("Reunión", result.title)
         assertEquals(LocalDate.of(2027, 1, 1), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    // --- "a última hora" (hora canónica de fin de jornada, simétrica a "a primera hora") ---
+
+    @Test fun ultimaHoraInterpretaFinJornadaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión el viernes a última hora", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun ultimaHoraSinFechaUsaHoy() {
+        val result = NaturalTaskParser.parse("Terminar a última hora", now, zone)
+        assertEquals("Terminar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun ultimaHoraConParteDelDiaEspecificaRespetaEsaHora() {
+        // "a última hora de la tarde": la parte del día explícita (tarde) tiene prioridad
+        // sobre la canónica genérica de fin de jornada. No debe quedar residuo.
+        val result = NaturalTaskParser.parse("Reunión a última hora de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimaHoraDeLaNocheRespetaCanonicaNoche() {
+        val result = NaturalTaskParser.parse("Cena a última hora de la noche", now, zone)
+        assertEquals("Cena", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimaHoraConFechaRelativaCombinaBien() {
+        val result = NaturalTaskParser.parse("Llamar mañana a última hora", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun ultimaHoraSinConectorATambienFunciona() {
+        // "última hora" sin el conector "a" (con tilde en la ú) también debe
+        // interpretarse como fin de jornada y limpiar el título. El boundary \b
+        // ASCII no funciona antes de "ú", por eso se usa un lookbehind Unicode.
+        val result = NaturalTaskParser.parse("Terminar el viernes última hora", now, zone)
+        assertEquals("Terminar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // --- "a mediodía" / "a medianoche" sin contracción "al" limpian el conector del título ---
+
+    @Test fun aMediodiaSinContraccionLimpiaTitulo() {
+        // Antes "a mediodía" (sin "al") dejaba residuo "a" en el título.
+        val result = NaturalTaskParser.parse("Reunión a mediodía", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.NOON, DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aMedianocheSinContraccionLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión a medianoche", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
+    }
 }
