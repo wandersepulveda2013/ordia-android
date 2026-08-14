@@ -5044,4 +5044,89 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Balance a mitad del año", mayoNow, zone)
         assertEquals(LocalDate.of(2026, 6, 30), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    // ── Calificador "de/del/desde + día relativo": no debe dejar residuo de conector ──
+    // "llamar de mañana"/"tarea de hoy"/"cita de ayer"/"trabajo desde hoy": la preposición
+    // antes de un día relativo es siempre un calificador temporal. Antes el borrado del día
+    // como palabra suelta dejaba el conector "de"/"desde" como residuo en el título
+    // ("llamar de", "reunión desde") — contenido capturado degradado (P1: integridad de datos).
+
+    @Test fun deMananaNoDejaResiduoDeEnTitulo() {
+        val result = NaturalTaskParser.parse("llamar de mañana", now, zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deHoyNoDejaResiduoDeEnTitulo() {
+        val result = NaturalTaskParser.parse("tarea de hoy", now, zone)
+        assertEquals("tarea", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAyerNoDejaResiduoDeEnTitulo() {
+        val result = NaturalTaskParser.parse("cita de ayer", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dePasadoMananaNoDejaResiduoDeEnTitulo() {
+        val result = NaturalTaskParser.parse("llamada de pasado mañana", now, zone)
+        assertEquals("llamada", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun desdeHoyNoDejaResiduoDesdeEnTitulo() {
+        val result = NaturalTaskParser.parse("reunión desde hoy", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dePreposicionDeContenidoNoSeBorra() {
+        // "de" sin día relativo tras él es preposición de contenido: debe conservarse.
+        val result = NaturalTaskParser.parse("cambio de aceite", now, zone)
+        assertEquals("cambio de aceite", result.title)
+        assertEquals(null, result.dueAt)
+    }
+
+    // ── "N de la noche/mañana/tarde de mañana/hoy": hora + calificador de fecha relativa ──
+    // El lookahead de standaloneHourPartOfDayPattern rechazaba cualquier "de <letra>" tras la
+    // parte del día, así que "9 de la noche de mañana" no casaba: el número "9" quedaba como
+    // residuo en el título ("reunión 9") aunque la hora se resolviera vía contexto PM.
+    // Ahora el lookahead admite el calificador de fecha relativa pero sigue rechazando un
+    // nombre de mes ("9 de la mañana de marzo" no es forma real, se protege por ambigüedad).
+
+    @Test fun nueveDeLaNocheDeMananaResuelve21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión 9 de la noche de mañana", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun nueveDeLaNocheDeHoyResuelve21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("llamar 9 de la noche de hoy", now, zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun nueveDeLaNocheDePasadoMananaResuelve21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión 9 de la noche de pasado mañana", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun nueveDeLaMananaDeMananaResuelve9hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("llamar a las 9 de la mañana de mañana", now, zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun nueveDeLaTardeDeMananaResuelve21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión 9 de la tarde de mañana", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
 }

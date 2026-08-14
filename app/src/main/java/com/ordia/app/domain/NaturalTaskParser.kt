@@ -718,11 +718,15 @@ object NaturalTaskParser {
      * El patrón exige el conector "de la" para no colisionar con "9 de marzo" (fecha con mes
      * —lo resuelve monthNameDate) ni "el 9" aislado (dayOfMonthPattern); el lookahead negativo
      * descarta "9 de la mañana" seguido de un nombre de mes ("9 de la mañana de marzo" no es
-     * una forma real, pero protege de ambigüedades). Admite minutos opcionales ("9:30 de la
+     * una forma real, pero protege de ambigüedades), PERO admite el calificador de fecha
+     * relativa ("9 de la noche de mañana"/"9 de la tarde de hoy") — antes el lookahead rechazaba
+     * cualquier "de <letra>", así que "9 de la noche de mañana" no casaba: el número quedaba
+     * como residuo en el título ("reunión 9") aunque la hora se resolviera vía contexto PM.
+     * Admite minutos opcionales ("9:30 de la
      * tarde"), aunque esa forma ya la cubre timePatterns[1] + contexto PM; se deja por simetría.
      */
     private val standaloneHourPartOfDayPattern =
-        Regex("""(?i)(?<![:\d])(\d{1,2}|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?\s+de\s+la\s+(tarde|noche|madrugada|ma[nñ]ana|manana)(?!\s+de\s+[a-záéíóúüñ])""")
+        Regex("""(?i)(?<![:\d])(\d{1,2}|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?\s+de\s+la\s+(tarde|noche|madrugada|ma[nñ]ana|manana)(?!\s+de\s+(?!hoy\b|ma[nñ]ana\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b)[a-záéíóúüñ])""")
 
     private fun resolveStandaloneHourPartOfDay(match: MatchResult): LocalTime? {
         val h = parseHour(match.groupValues[1]) ?: return null
@@ -1798,7 +1802,16 @@ object NaturalTaskParser {
             // frase completa primero; el resto del regex sigue borrando los tokens
             // sueltos ("hoy"/"ayer"/"anteayer"/"pasado mañana"/"antepasado mañana").
             .replace(Regex("""(?i)\b(?:para\s+)?(?:el|del)\s+d[ií]a\s+de\s+(?:ma[nñ]ana|hoy)\b"""), " ")
-            .replace(Regex("""(?i)\bantepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b"""), " ")
+            // Calificador "de/del/desde + día relativo" ("reunión de mañana", "tarea de hoy",
+            // "cita de ayer", "llamada de pasado mañana", "trabajo desde hoy", "estudio desde
+            // mañana"): la preposición "de"/"del"/"desde" antes de un marcador de día relativo
+            // es siempre un calificador temporal (genitivo de posesión temporal / punto de
+            // partida temporal en español). Antes el borrado de "mañana"/"hoy"/etc. como palabra
+            // suelta dejaba el conector como residuo en el título ("llamar de", "reunión desde"
+            // en vez de "llamar"/"reunión") — contenido capturado degradado (P1). Se consume el
+            // conector junto con el día relativo. "para" ya lo limpia el paso posterior (para
+            // mañana/para el). El \b impide coincidir dentro de palabras como "desde"→ no aplica.
+            .replace(Regex("""(?i)(?:\b(?:de|del|desde)\s+)?(?:antepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b)"""), " ")
             .let { value -> weekdayPattern.replace(value, " ") }
             .let { value -> weekendPattern.replace(value, " ") }
             // "que viene" queda como residuo cuando la fecha asociada (fin de
