@@ -83,4 +83,38 @@ class TaskSnapshotCodecTest {
         assertTrue(TaskSnapshotCodec.decodeIds("").isEmpty())
         assertTrue(TaskSnapshotCodec.decodeIds("[]").isEmpty())
     }
+
+    /**
+     * Protege la ruta de deshacer/restaurar: un snapshot que omite un campo de
+     * fecha opcional (backup de versión anterior, JSON truncado o campo añadido
+     * después) debe decodificar a `null`, NUNCA a `0` (época 1970). Antes,
+     * `optLong` devolvía 0 para claves ausentes y restaurar la tarea escribía
+     * timestamps de 1970 (vencimiento/recordatorio/inicio fantasma).
+     */
+    @Test
+    fun decodeMapAbsentNullableFieldsResolveToNullNotEpochZero() {
+        // Snapshot mínimo: faltan startAt/dueAt/reminderAt/completedAt/projectId/parentTaskId
+        // (p.ej. backup de una versión anterior o JSON truncado restaurado).
+        val minimal = """{"1":{"id":1,"title":"x","createdAt":1700000000000,"updatedAt":1700000000000}}"""
+
+        val decoded = TaskSnapshotCodec.decodeMap(minimal)[1L]!!
+
+        assertNull(decoded.startAt)
+        assertNull(decoded.dueAt)
+        assertNull(decoded.reminderAt)
+        assertNull(decoded.completedAt)
+        assertNull(decoded.projectId)
+        assertNull(decoded.parentTaskId)
+    }
+
+    @Test
+    fun decodeMapPresentNullStillResolvesToNull() {
+        // Clave presente con valor null explícito (round-trip normal): también null.
+        val plain = sampleTask(1).copy(startAt = null, dueAt = null, reminderAt = null, completedAt = null)
+        val decoded = TaskSnapshotCodec.decodeMap(TaskSnapshotCodec.encodeMap(mapOf(1L to plain)))[1L]!!
+        assertNull(decoded.startAt)
+        assertNull(decoded.dueAt)
+        assertNull(decoded.reminderAt)
+        assertNull(decoded.completedAt)
+    }
 }
