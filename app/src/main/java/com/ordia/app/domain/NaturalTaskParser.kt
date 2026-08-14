@@ -232,6 +232,22 @@ object NaturalTaskParser {
     // resuelve monthNameDate) y "el 15 de cada mes" (recurrencia mensual): no se admite
     // "de <palabra>" tras el número salvo la fórmula "del mes".
     private val dayOfMonthPattern = Regex("""(?i)\bel\s+(\d{1,2})(?:\s+del?\s+mes)?\b(?!\s*de\s+[a-záéíóúüñ])""")
+    /**
+     * Nombres de hora escritos en español (dos..veintiuno), ordenados de mayor a menor
+     * longitud para que la alternación regex no se quede con un prefijo ("tres" dentro de
+     * "trece"). Se excluye "un/una/uno" (la hora 1 se dice "a la una", con otro conector).
+     * Reutilizado por [timePatterns] (a las N) y [standaloneHourPartOfDayPattern] (N de la
+     * tarde) para que las horas escritas —cotidianas en español— se resuelvan en vez de
+     * caer como residuo del título o agendarse a la hora canónica de la parte del día.
+     */
+    private const val WRITTEN_HOUR_ALT =
+        "veintiuno|veinte|diecinueve|dieciocho|diecisiete|diecis[eé]is|quince|catorce|trece|doce|once|diez|nueve|ocho|siete|seis|cinco|cuatro|tres|dos"
+
+    private fun parseHour(raw: String): Int? {
+        raw.toIntOrNull()?.let { return it }
+        return parseWrittenNumber(raw)?.toInt()
+    }
+
     private val timePatterns = listOf(
         // Sufijo opcional "(horas?|hs)" tras la hora (con o sin meridiem) para consumir
         // "a las 9 horas" completo: antes "horas" quedaba como residuo en el titulo y,
@@ -240,7 +256,10 @@ object NaturalTaskParser {
         // Grupo 3 opcional "y media"/"y cuarto": fracción sub-hora cotidiana en español
         // ("a las 9 y media" → 09:30, "a las 3 y cuarto" → 03:15). Antes "y media" caía
         // como residuo en el título y la hora quedaba en punto (reunión/cita 30 min mal).
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4])(?::([0-5]\d))?(?:\s+y\s+(media|cuarto))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?(?:\s*(horas?|hs))?\b"""),
+        // Admite horas escritas ("a las nueve", "a las doce y media") vía [WRITTEN_HOUR_ALT];
+        // antes esas formas dejaban la hora como residuo y se agendaban a la canónica de
+        // la parte del día o sin hora ("reunión a las nueve" → sin dueAt).
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s+y\s+(media|cuarto))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?(?:\s*(horas?|hs))?\b"""),
         Regex("""(?i)\b([01]?\d|2[0-4]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b"""),
         Regex("""(?i)\b(?:al\s+|a\s+la\s+)?mediod[ií]a\b"""),
@@ -408,10 +427,10 @@ object NaturalTaskParser {
      * tarde"), aunque esa forma ya la cubre timePatterns[1] + contexto PM; se deja por simetría.
      */
     private val standaloneHourPartOfDayPattern =
-        Regex("""(?i)(?<![:\d])(\d{1,2})(?::([0-5]\d))?\s+de\s+la\s+(tarde|noche|madrugada|ma[nñ]ana|manana)(?!\s+de\s+[a-záéíóúüñ])""")
+        Regex("""(?i)(?<![:\d])(\d{1,2}|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?\s+de\s+la\s+(tarde|noche|madrugada|ma[nñ]ana|manana)(?!\s+de\s+[a-záéíóúüñ])""")
 
     private fun resolveStandaloneHourPartOfDay(match: MatchResult): LocalTime? {
-        val h = match.groupValues[1].toIntOrNull() ?: return null
+        val h = parseHour(match.groupValues[1]) ?: return null
         val min = match.groupValues[2].toIntOrNull() ?: 0
         if (h !in 0..24 || min !in 0..59) return null
         val part = match.groupValues[3].lowercase()
@@ -974,7 +993,7 @@ object NaturalTaskParser {
                 mv.contains("mediodía") || mv.contains("mediodia") -> LocalTime.NOON to true
                 mv.contains("medianoche") -> LocalTime.MIDNIGHT to true
                 else -> {
-                    var hour = match.groupValues[1].toInt()
+                    var hour = parseHour(match.groupValues[1]) ?: return@let null
                     val explicitMinute = match.groupValues[2].toIntOrNull()
                     // Los patrones tienen layout de grupos DISTINTO: timePattern[0]
                     // ("a las N") pone la fracción "y media/cuarto" en el grupo 3 y el

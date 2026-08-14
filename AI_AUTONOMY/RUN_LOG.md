@@ -3996,10 +3996,51 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: `a98b9be` (tras push a `origin/openhands/autonomous-ordia`; base `7a3f636` c.86).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 
+## Ciclo 88 — 2026-08-14 (fix P1 parser: horas escritas)
+
+- **HEAD inicial**: `61bc0e9` (origin/openhands/autonomous-ordia, c.87).
+- **Problema seleccionado**: `NaturalTaskParser` no resolvía horas **escritas** en
+  español — las frases más cotidianas para agendar ("Cita a las diez de la noche",
+  "Cena nueve de la noche", "Reunión a las nueve", "doce de la noche",
+  "ocho y media"). Solo reconocía dígitos (0-12). Antes la hora escrita quedaba
+  en el título Y/O se agendaba a la canónica de la parte del día ("doce de la
+  noche" → 21:00 en vez de medianoche 00:00). P1: integridad de agenda/captura.
+- **Prioridad**: P1.
+- **Causa raíz**: `timePatterns` y el patrón standalone de parte-del-día solo
+  casaban `\d+` para la hora; no existía mapeo token-escrito→número para el
+  componente de hora (sí existía `parseWrittenNumber` para duraciones c.85).
+- **Solución (mínima)**: helper `parseHour(token)` que mapea escrito→1-12 (uno-doce,
+  cero); `WRITTEN_HOUR_ALT` integrado en `timePatterns` y en el patrón standalone
+  "de la tarde/noche/mañana/madrugada"; `explicitTimeData` y el resolvedor de
+  standalone usan `parseHour`, con la misma lógica AM/PM de los dígitos
+  (madrugada/mañana AM; tarde/noche PM; 12 de la noche=00:00; 12 del mediodía=12:00;
+  0→12). Sin nueva pantalla/botón (reuso el parser existente — captura natural).
+- **No-regresión**: "a las nueve horas" sigue siendo hora no duración (test ampliado
+  `aLasDiezHorasEscritaSigueSiendoHoraNoDuracion` ahora verifica 10:00 + null dur);
+  horas con dígito intactas; "doce de la noche" (dígito) sigue siendo medianoche.
+- **Tests**: +11 en `NaturalTaskParserTest.kt` (`aLasNueveEscritaResuelveHoraYLimpiaTitulo`,
+  `aLasDiezDeLaNocheEscritaEs22h`, `aLasDosDeLaTardeEscritaEs14h`,
+  `aLasOchoYMediaEscritaEs830`, `aLasNueveYCuartoEscritaEs915`,
+  `doceDeLaNocheEscritoEsMedianoche`, `nueveDeLaNocheEscritoEs21h`,
+  `ochoDeLaMananaEscritoEs8h`, `dosDeLaTardeEscritoEs14h`,
+  `aLasDiezHorasEscritaSigueSiendoHoraNoDuracion`).
+  **627 domain tests PASS** (`bash tools/run_domain_tests.sh`); **smoke 25 OK**
+  (`bash tools/run_domain_checks.sh`). Sin regresión.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Hallazgos adicionales (descubrimiento continuo)**: "diez y media" sin conector
+  "a las" no se resuelve (forma indirecta menos común; no se añade patrón para
+  evitar ambigüedad con números sueltos en el título) — OPEN, baja prioridad.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: (pendiente de push).
+- **HEAD final**: (pendiente de push).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+
 ### Siguiente
-- `SearchEngine` date-scope: "parte del día" ("esta tarde"/"esta noche") / "este mes"
-  (P3 — evaluar necesidad real antes de implementar, anti-feature-bloat).
-- Auditar helpers duplicados restantes entre `WhatNowEngine` y `TaskRules`.
+- Parser: "diez y media" sin "a las" (P3, evaluar ambigüedad).
+- `SearchEngine` date-scope: "esta tarde"/"esta noche" (parte del día) / "este mes"
+  (rango mensual) — evaluar necesidad real (anti-feature-bloat).
 - Descubrimiento continuo: rutinas adaptables; detección de compromisos en notas;
   captura ultrarrápida; `PlanEngine`/replanización si OVERLOADED recurrente.
 
@@ -4064,3 +4105,23 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: `6afcb0b` (push OK a `openhands/autonomous-ordia` por confirmar).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: Auditoría de acentos del parser COMPLETADA. Descubrimiento funcional: rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; `SearchEngine` date-scope "parte del día"/"este mes" (P3 anti-feature-bloat); `PlanEngine`/replanización si OVERLOADED recurrente.
+
+
+## Ciclo 90 — 2026-08-14
+
+- **Rama**: `openhands/autonomous-ordia`
+- **HEAD inicial**: `61bc0e9` (c.87 docs commit; base obsoleta — el remoto ya tenía c.88+c.89; se hizo `git fetch` + `git rebase` no destructivo sobre `fe13527`).
+- **Problema seleccionado**: **P1** — `NaturalTaskParser` solo reconocía **dígitos** (0-12) como componente de hora; las formas escritas cotidianísimas ("a las nueve", "diez de la noche", "doce de la noche", "ocho y media", "nueve y cuarto", "dos de la tarde") no casaban patrón de hora → la hora quedaba en el título Y/O se agendaba a la canónica de la parte del día ("doce de la noche"→21:00 en vez de medianoche 00:00). El helper `parseWrittenNumber` ya existía para duraciones (c.85) pero no estaba conectado al componente de hora.
+- **Causa raíz**: los `timePatterns` y `standaloneHourPartOfDayPattern` solo admitían `[01]?\d|2[0-4]` como grupo de hora; las palabras escritas caían fuera del match y el texto no se consumía.
+- **Solución mínima**: helper `parseHour(token)` mapea escrito→1-12 (reusa `parseWrittenNumber`); `WRITTEN_HOUR_ALT` integrado en `timePatterns` y en `standaloneHourPartOfDayPattern`; `explicitTimeData` y `resolveStandaloneHourPartOfDay` usan `parseHour` con la misma lógica AM/PM de los dígitos (madrugada/mañana AM; tarde/noche PM; 12 de la noche=00:00; 12 del mediodía=12:00; 0→12). Sin nueva pantalla/botón (recuperación de información horaria).
+- **Bugs**: P1 hora escrita perdida/mal agendada (doce de la noche→21:00 en vez de 00:00).
+- **Features**: ninguna (fix de captura horaria).
+- **Tests (TDD)**: +11 (`doceDeLaNocheEsMedianoche`, `deLaMadrugadaEsAmYLimpiaTitulo`, `aLasNueveResuelveHora`, `diezDeLaNocheResuelve22`, `onceDeLaNocheResuelve23`, `dosDeLaTardeResuelve14`, `ochoYMediaResuelve0830`, `nueveYCuartoResuelve0915`, `nueveDeLaMadrugadaResuelve09`, `escritoConPmCompacto`, `aLasDiezHorasSigueSiendoHora`). Comando: `bash tools/run_domain_tests.sh` → **632 tests PASS** (27 clases — 622 c.89 + 11; la base c.89 contaba 622 por los fixes paralelos de acentos). Smoke: `bash tools/run_domain_checks.sh` → **25 assertions OK**. Sin regresión (dígito intacto, "a las diez horas" sigue siendo hora no duración).
+- **Decisión de diseño**: NO se añadió patrón para "diez y media"/"nueve y cuarto" **sin conector "a las"** — forma indirecta menos común; sin señal desambiguadora chocaría con números sueltos en el título ("comprar 2 entradas"). Registrado en BACKLOG como P3 ABIERTO.
+- **STALE_RUN**: base `61bc0e9` obsoleta al hacer push (el remoto ya tenía c.88/89 de otra ejecución). Resolución no destructiva: `git fetch` + `git rebase origin/openhands/autonomous-ordia`; conflictos solo en archivos de memoria (CURRENT_STATE/RUN_LOG), resueltos renumerando a ciclo 90 y conservando el trabajo del otro agente. Código y tests auto-mergearon limpio.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: `66b867a` (original, reescrito al rebasear; hash final tras push).
+- **HEAD final**: (tras push, ver `git log`).
+- **Estado**: FIXED → VERIFIED (dominio JVM); STALE_RUN resuelto no destructivamente.
+- **Próxima prioridad**: "diez y media" sin conector (P3, requiere decisión de diseño); `SearchEngine` date-scope "parte del día"/"este mes" (P3 anti-feature-bloat); descubrimiento funcional: rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; `PlanEngine`/replanización si OVERLOADED recurrente.

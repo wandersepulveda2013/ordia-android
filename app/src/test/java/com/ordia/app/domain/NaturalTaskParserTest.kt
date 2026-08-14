@@ -1120,6 +1120,71 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- horas escritas ("a las nueve", "doce de la noche") (ciclo 88) ---
+    // "nueve"/"diez"/"doce" no se resolvían como hora: quedaban en el título y/o se
+    // agendaban a la canónica de la parte del día (doce de la noche → 21:00, no 00:00).
+
+    @Test fun aLasNueveEscritaResuelveHoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión a las nueve", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasDiezDeLaNocheEscritaEs22h() {
+        val result = NaturalTaskParser.parse("Cita a las diez de la noche", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(22, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasDosDeLaTardeEscritaEs14h() {
+        val result = NaturalTaskParser.parse("Reunión a las dos de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasOchoYMediaEscritaEs830() {
+        val result = NaturalTaskParser.parse("Cita a las ocho y media", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(8, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNueveYCuartoEscritaEs915() {
+        val result = NaturalTaskParser.parse("Reunión a las nueve y cuarto", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun doceDeLaNocheEscritoEsMedianoche() {
+        val result = NaturalTaskParser.parse("Compra doce de la noche", now, zone)
+        assertEquals("Compra", result.title)
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun nueveDeLaNocheEscritoEs21h() {
+        val result = NaturalTaskParser.parse("Cena nueve de la noche", now, zone)
+        assertEquals("Cena", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun ochoDeLaMananaEscritoEs8h() {
+        val result = NaturalTaskParser.parse("Cita ocho de la mañana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun dosDeLaTardeEscritoEs14h() {
+        val result = NaturalTaskParser.parse("Llamada dos de la tarde", now, zone)
+        assertEquals("Llamada", result.title)
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasDiezHorasEscritaSigueSiendoHoraNoDuracion() {
+        val result = NaturalTaskParser.parse("Vuelo a las diez horas", now, zone)
+        assertNull(result.durationMinutes)
+        assertEquals("Vuelo", result.title)
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // --- "mañana por la tarde/noche/mañana" (ciclo 21) ---
     // "por la" no era conector reconocido de parte del día (solo "a la"/"de la"), así
     // "mañana por la tarde" dejaba "por la tarde" en el título Y usaba 09:00 en vez de
