@@ -442,6 +442,17 @@ object NaturalTaskParser {
     // mes en curso perdido + título sucio). Véase el lookahead negativo allá que rechaza
     // esos mismos calificadores para que no caigan a recurrencia.
     private val dayOfMonthPattern = Regex("""(?i)\b(?:el\s+(?:d[ií]a\s+)?|d[ií]a\s+)(\d{1,2})(?![/-])(?:\s+del?\s+(?:mes\s+actual|presente\s+mes|este\s+(?:mismo\s+)?mes|mes))?\b(?!\s*del?\s+[a-záéíóúüñ])""")
+    // "antes del 30"/"antes de 15": plazo (deadline) expresado como día del mes suelto,
+    // SIN nombre de mes. Antes el día suelto "30" no casaba dayOfMonthPattern (éste exige
+    // "el"/"día") ni monthNamePattern (éste exige "de <mes>"), así que el conector "antes
+    // del" se borraba (ver limpieza) pero el "30" sobrevivía como residuo del título Y la
+    // fecha se perdía → dueAt=null → vencimiento olvidado (P1: la tarea nace sin fecha,
+    // recordatorio jamás dispara, invisible en What Now/planificador). El lookahead negativo
+    // (?!\s*del?\s+[a-záéíóúüñ]) impide capturar "antes del 30 de agosto" (lo resuelve
+    // monthNameDate) y "antes del 15 del mes" (lo resuelve dayOfMonthPattern); sólo se
+    // queda con el día suelto, que es justo el gap. "antes del 30" → plazo el día 30
+    // (canónica 09:00, igual que "el 15" suelto).
+    private val beforeDeadlineDayPattern = Regex("""(?i)\bantes\s+del?\s+(\d{1,2})\b(?!\s*del?\s+[a-záéíóúüñ])""")
     // Lookahead (?![/-]) tras el dígito: rechaza "el 25/12" para que NO se ancle al
     // día-suelto del mes (25 de agosto) y caiga a numericDatePattern (25/12 → diciembre).
     // Sin esto, dayOfMonthPattern ("el 25") casaba ANTES que numericDatePattern → la
@@ -1448,6 +1459,14 @@ object NaturalTaskParser {
                 nextMonthlyDate(base.toLocalDate(), day)
             }
         }
+        // "antes del 30": día del mes suelto como plazo. Se resuelve ANTES que
+        // dayOfMonthDate (que exige "el"/"día") para que el día suelto no caiga al vacío.
+        val beforeDeadlineDayMatch = beforeDeadlineDayPattern.find(working)
+        val beforeDeadlineDayDate = beforeDeadlineDayMatch?.let { m ->
+            m.groupValues[1].toIntOrNull()?.takeIf { it in 1..31 }?.let { day ->
+                nextMonthlyDate(base.toLocalDate(), day)
+            }
+        }
         val partOfDayMatch = partOfDayPattern.find(working)
         val partOfDayTime = partOfDayMatch?.let { partOfDayTimes[it.groupValues[1].lowercase()] }
         val standalonePartOfDayMatch = standalonePartOfDayPattern.find(working)
@@ -1536,6 +1555,10 @@ object NaturalTaskParser {
                 else nextWeekdayOrSame(base.toLocalDate(), target)
             }
             monthNameDate != null -> monthNameDate
+            // "antes del 30": plazo como día del mes suelto (sin nombre de mes, que ya
+            // se resolvió arriba como monthNameDate). Debe ir ANTES de dayOfMonthDate
+            // ("el 15"), que exige el artículo "el"/"día" y no casa "antes del 30".
+            beforeDeadlineDayDate != null -> beforeDeadlineDayDate
             // "reunión el 15 a las 10": día del mes suelto. Ancla al día N de este mes, o
             // del siguiente si ese día ya pasó (hoy > N). La hora se combina luego; si
             // cae en pasado (mismo día, hora ya transcurrida) la cita queda como vencida
@@ -2005,6 +2028,11 @@ object NaturalTaskParser {
             .let { value -> numericDatePattern.replace(value, " ") }
             // "el 15" suelto ya consumido como fecha; se borra el residuo del título.
             .let { value -> dayOfMonthPattern.replace(value, " ") }
+            // "antes del 30": se consume la frase COMPLETA (conector + día) para que
+            // no quede el "30" como residuo en el título. La fecha ya se resolvió arriba.
+            // Los casos con mes ("antes del 30 de agosto") no casan aquí (lookahead) y
+            // su conector "antes del" lo borra el paso siguiente.
+            .let { value -> beforeDeadlineDayPattern.replace(value, " ") }
             .replace(Regex("""(?i)\bantes\s+del?\b|\bpara\s+el\b|\bpara\s+ma[nñ]ana\b|\bhasta\s+el\b"""), " ")
             // El verbo de recordatorio sin cantidad ("recuérdame", "avísame",
             // "no dejes que olvide") expresa intención de aviso, no contenido; se

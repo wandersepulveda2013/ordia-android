@@ -5138,6 +5138,52 @@ class NaturalTaskParserTest {
         assertEquals(now, result.dueAt)
     }
 
+    // --- "antes del N": plazo como día del mes suelto (P1, ciclo 147) ---
+    // "entregar tesis antes del 30" expresaba un vencimiento (deadline) usando el día
+    // del mes suelto, SIN nombre de mes. Antes el "30" no casaba dayOfMonthPattern (que
+    // exige "el"/"día") ni monthNamePattern (que exige "de <mes>"): el conector "antes
+    // del" se borraba pero el "30" sobrevivía como residuo del título Y la fecha se
+    // perdía -> dueAt=null -> vencimiento olvidado (sin recordatorio, invisible en What
+    // Now/planificador). Ahora "antes del N" se ancla al día N (canónica 09:00).
+    @Test fun antesDelNDiaSueltoResuelvePlazoYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("entregar tesis antes del 30", now, zone)
+        assertEquals("entregar tesis", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // Día ya pasado en el mes en curso -> rueda al próximo mes (como "el 15" suelto).
+    @Test fun antesDelNDiaSueltoRuedaAlProximoMesSiYaPaso() {
+        val result = NaturalTaskParser.parse("pagar antes del 15", now, zone)
+        assertEquals("pagar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // Variante sin "l": "antes de 15" (coloidal, articulo elidido). Mismo plazo.
+    @Test fun antesDeNSinLResuelvePlazoYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("pagar antes de 15", now, zone)
+        assertEquals("pagar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Regresión: "antes del 30 de agosto" (con mes) NO debe interceptarlo
+    // beforeDeadlineDayPattern (lo resuelve monthNameDate) y el título queda limpio.
+    @Test fun antesDelNDeMesPrevaleceMonthNameDate() {
+        val result = NaturalTaskParser.parse("entregar antes del 30 de agosto", now, zone)
+        assertEquals("entregar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Guard anti-falso-positivo: "antes del proyecto 5" -> el "5" NO es inmediatamente
+    // posterior a "antes del" (hay "proyecto" entre medias), así que NO se inventa una
+    // fecha; "antes del" se limpia del título (comportamiento preexistente) y el "5"
+    // queda como contenido (no es plazo).
+    @Test fun antesDelPalabraNNoEsFalsoPlazo() {
+        val result = NaturalTaskParser.parse("reunion antes del proyecto 5", now, zone)
+        assertNull(result.dueAt)
+    }
+
     // --- "ya" / "ya mismo" como "ahora" inmediato (P1, ciclo 112) ---
     // "ya" es la forma cotidiana por excelencia de "hazlo ahora"; antes no casaba
     // ningún patrón → dueAt=null → tarea SIN vencimiento, invisible en "What Now"/
