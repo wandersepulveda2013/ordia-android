@@ -21,16 +21,13 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -63,11 +60,8 @@ fun TaskRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val priorityColor = priorityAccent(task.priority)
-    Card(
-        modifier = modifier.fillMaxWidth().combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true }),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    OrdiaCard(
+        modifier = modifier.fillMaxWidth().combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true })
     ) {
         Row(
             Modifier.fillMaxWidth(),
@@ -76,48 +70,48 @@ fun TaskRow(
             // Colored accent rail — encodes priority for quick scanning.
             Box(
                 Modifier
-                    .width(5.dp)
-                    .height(46.dp)
-                    .background(priorityColor, RoundedCornerShape(topEnd = 3.dp, bottomEnd = 3.dp))
+                    .width(4.dp)
+                    .height(36.dp)
+                    .background(priorityColor, RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
             )
-            Row(Modifier.fillMaxWidth().padding(end = 10.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = task.completed, onCheckedChange = { onToggle() })
-            Column(Modifier.weight(1f).padding(start = 2.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        task.title,
-                        modifier = Modifier.weight(1f, fill = false).animateContentSize(),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (task.completed) FontWeight.Normal else FontWeight.Medium,
-                        textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None
-                    )
-                    if (task.flagged) Icon(Icons.Outlined.Flag, "Marcada", Modifier.size(16.dp), tint = MaterialTheme.colorScheme.secondary)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (task.dueAt != null) {
-                        Icon(Icons.Outlined.Schedule, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth().padding(end = 8.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = task.completed, onCheckedChange = { onToggle() })
+                Column(Modifier.weight(1f).padding(start = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            "${DateRules.formatDate(task.dueAt)} ${DateRules.formatTime(task.dueAt)}".trim(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (TaskRules.isOverdue(task)) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                            task.title,
+                            modifier = Modifier.weight(1f, fill = false).animateContentSize(),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (task.completed) FontWeight.Normal else FontWeight.Medium,
+                            textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None
                         )
-                    } else {
-                        Text("Bandeja", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (task.flagged) Icon(Icons.Outlined.Flag, "Marcada", Modifier.size(16.dp), tint = MaterialTheme.colorScheme.secondary)
                     }
-                    project?.let { Text("· ${it.name}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    if (task.priority >= TaskPriority.HIGH) PriorityPill(if (task.priority == TaskPriority.URGENT) "Urgente" else "Alta")
-                    subtaskProgress?.let { (done, total) -> if (total > 0) Text("$done/$total pasos", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (task.dueAt != null) {
+                            Icon(Icons.Outlined.Schedule, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "${DateRules.formatDate(task.dueAt)} ${DateRules.formatTime(task.dueAt)}".trim(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (TaskRules.isOverdue(task)) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Text("Bandeja", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        project?.let { Text("· ${it.name}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        if (task.priority >= TaskPriority.HIGH) PriorityPill(if (task.priority == TaskPriority.URGENT) "Urgente" else "Alta")
+                        subtaskProgress?.let { (done, total) -> if (total > 0) Text("$done/$total pasos", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    }
                 }
-            }
-            IconButton(onClick = { menuOpen = true }) { Icon(Icons.Outlined.MoreVert, "Más opciones") }
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(text = { Text("Editar") }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = { menuOpen = false; onEdit() })
-                if (onDuplicate != null) DropdownMenuItem(text = { Text("Duplicar") }, leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) }, onClick = { menuOpen = false; onDuplicate() })
-                if (onDelete != null) {
-                    Divider()
-                    DropdownMenuItem(text = { Text("Archivar") }, leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) }, onClick = { menuOpen = false; onDelete() })
+                IconButton(onClick = { menuOpen = true }) { Icon(Icons.Outlined.MoreVert, "Más opciones") }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(text = { Text("Editar") }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = { menuOpen = false; onEdit() })
+                    if (onDuplicate != null) DropdownMenuItem(text = { Text("Duplicar") }, leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) }, onClick = { menuOpen = false; onDuplicate() })
+                    if (onDelete != null) {
+                        HorizontalDivider()
+                        DropdownMenuItem(text = { Text("Archivar") }, leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) }, onClick = { menuOpen = false; onDelete() })
+                    }
                 }
-            }
             }
         }
     }
@@ -125,7 +119,7 @@ fun TaskRow(
 
 @Composable
 fun PriorityPill(text: String) {
-    Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+    OrdiaSurface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
         Text(text, Modifier.padding(horizontal = 7.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
     }
 }
