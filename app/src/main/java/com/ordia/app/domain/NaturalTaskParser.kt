@@ -346,6 +346,20 @@ object NaturalTaskParser {
     private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     /**
+     * "mediados de septiembre" / "a finales de octubre" / "principios de enero":
+     * calificador de límite mensual aplicado a un mes NOMBRE (no al "mes" en curso).
+     * Vencimientos/plazos dichos sin día exacto ("pago a mediados de septiembre",
+     * "renta a finales de octubre", "entregar a principios de enero"): antes caían a
+     * dueAt=null y la frase quedaba como título → vencimiento olvidado (sin
+     * recordatorio, invisible en What Now/planificador). Resuelve principios→día 1,
+     * mediados→día 15, finales/fin/cierre→último día del mes nombrado. El mes se
+     * valida contra el mapa `months` (acepta nombre completo y abreviatura, c.135);
+     * el año es implícito con roll al siguiente si la fecha ya pasó (como
+     * parseMonthNameDate). Se consume ANTES que monthNamePattern para no dejar
+     * residuo ni doble-match.
+     */
+    private val monthBoundaryNamePattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(mediados?|mitad|principios?|comienzos?|primeros?|finales?|fin|cierre|corte)\s+(?:de\s+|del\s+)([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
+    /**
      * "fin de año" / "a fin de año" / "finales de año" / "fin del año" / "cierre de año"
      * → 31 de diciembre del año actual (o del siguiente si hoy ya es 31/12).
      * "principios de año" / "a principios de año" → 1 de enero del año siguiente.
@@ -1157,6 +1171,23 @@ object NaturalTaskParser {
         midOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
         startOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
 
+        // "mediados/finales/principios de [mes nombre]": límite mensual con mes
+        // explícito (sin día). Se procesa aquí (tras monthBoundary, antes que
+        // monthNamePattern) para consumir la frase completa y evitar residuo/doble.
+        val monthBoundaryNameEarlyMatch = monthBoundaryNamePattern.find(working)
+        val monthBoundaryNameMonthNum = monthBoundaryNameEarlyMatch?.let { months[it.groupValues[2].lowercase()] }
+        val monthBoundaryNameDueAt = monthBoundaryNameEarlyMatch?.let { m ->
+            val monthNum = monthBoundaryNameMonthNum ?: return@let null
+            parseMonthBoundaryName(base.toLocalDate(), m.groupValues[1], monthNum, m.groupValues[3])
+                ?.let { DateRules.toEpochMillis(it, LocalTime.of(9, 0), zone) }
+        }
+        // Solo se consume la frase si el mes nombrado es realmente un mes válido:
+        // "mediados de semana"/"fin de año" no son límites mensuales y deben caer a
+        // su handler original.
+        if (monthBoundaryNameMonthNum != null) {
+            monthBoundaryNameEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+        }
+
         // "fin de año" / "mediados de año" / "principios de año": vencimientos anuales
         // (cierre fiscal, renovaciones). Se borran ANTES del período próximo para que
         // la subcadena "año" no active "año que viene" como +365d genérico. Días
@@ -1354,7 +1385,7 @@ object NaturalTaskParser {
             agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: vagueRelativeDueAt ?: nowDueAt ?:
             laterRelativeDueAt ?: fractionalAndQuarterRelativeDueAt ?: fractionalRelativeDueAt ?:
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
-            yearBoundaryDueAt ?:
+            monthBoundaryNameDueAt ?: yearBoundaryDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?:
             nextWeekWeekdayReverseDueAt ?: nextWeekWeekdayForwardDueAt ?: nextPeriodDueAt
@@ -1362,7 +1393,7 @@ object NaturalTaskParser {
             relativeMatch != null || fractionalRelativeMatch != null ||
             fractionalAndQuarterRelativeMatch != null ||
             compoundFractionalRelativeMatch != null || multiQuarterRelativeMatch != null ||
-            monthBoundaryDueAt != null || yearBoundaryDueAt != null ||
+            monthBoundaryDueAt != null || monthBoundaryNameDueAt != null || yearBoundaryDueAt != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
             quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null ||
             nextWeekWeekdayReverseMatch != null || nextWeekWeekdayForwardMatch != null || nextPeriodMatch != null) &&
@@ -2273,6 +2304,37 @@ object NaturalTaskParser {
         var date = runCatching { LocalDate.of(year, month, day) }.getOrNull()
             ?: LocalDate.of(year, month, minOf(day, YearMonth.of(year, month).lengthOfMonth()))
         if (rawYear == null && date.isBefore(today)) date = date.plusYears(1)
+        return date
+    }
+
+    /**
+     * "mediados/finales/principios de [mes nombre]": resuelve la fecha canónica del
+     * límite mensual en el mes nombrado. principios/comienzos/primeros→día 1,
+     * mediados/mitad→día 15, finales/fin/cierre/corte→último día del mes. El año es
+     * implícito (hoy) salvo que venga explícito (2 o 4 cifras); sin año explícito,
+     * si la fecha resultante ya pasó se rueda al año siguiente (mismo criterio que
+     * parseMonthNameDate, para no agendar vencimientos en el pasado).
+     */
+    private fun parseMonthBoundaryName(
+        today: LocalDate,
+        qualifier: String,
+        month: Int,
+        rawYear: String?
+    ): LocalDate? {
+        val yearStr = rawYear?.takeIf { it.isNotBlank() }
+        val year = when {
+            yearStr == null -> today.year
+            yearStr.toIntOrNull()?.let { it < 100 } == true -> 2000 + yearStr.toInt()
+            else -> yearStr.toIntOrNull() ?: return null
+        }
+        val q = qualifier.lowercase()
+        val day = when {
+            q.contains("princip") || q.contains("comienz") || q.contains("primer") -> 1
+            q.contains("mediad") || q.contains("mitad") -> 15
+            else -> YearMonth.of(year, month).lengthOfMonth()
+        }
+        var date = LocalDate.of(year, month, day)
+        if (yearStr == null && date.isBefore(today)) date = date.plusYears(1)
         return date
     }
 

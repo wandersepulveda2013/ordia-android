@@ -3540,6 +3540,84 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 12, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "mediados/finales/principios de [mes nombre]": límite mensual con mes explícito ---
+    // Plazos como "pago a mediados de septiembre", "cierre a finales de octubre",
+    // "renta a principios de enero" son cotidianísimos al agendar vencimientos futuros.
+    // Antes caían a dueAt=null: el vencimiento quedaba sin fecha (olvido, P1: pago/renta
+    // sin recordatorio) y la frase entera sobrevivía como título basura. principios→día 1,
+    // mediados/mitad→día 15, finales/fin/cierre→último día del mes. Sin año explícito, si
+    // la fecha ya pasó se rueda al año siguiente (mismo criterio que "25 de enero").
+    // now = 2026-07-29.
+
+    @Test fun mediadosDeMesNombreAnclaDia15() {
+        val result = NaturalTaskParser.parse("Pago a mediados de septiembre", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finalesDeMesNombreAnclaUltimoDia() {
+        val result = NaturalTaskParser.parse("Envío a finales de octubre", now, zone)
+        assertEquals("Envío", result.title)
+        assertEquals(LocalDate.of(2026, 10, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun principiosDeMesNombreAnclaDia1() {
+        val result = NaturalTaskParser.parse("Entregar a principios de enero", now, zone)
+        assertEquals("Entregar", result.title)
+        assertEquals(LocalDate.of(2027, 1, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun principiosDeMesNombreFuturoNoRuedaAnioSiAunNoPasa() {
+        // "principios de diciembre" desde julio 2026 → 1/12/2026 (aún no pasa).
+        val result = NaturalTaskParser.parse("Cobro a principios de diciembre", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 12, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDeMesNombreAnclaUltimoDia() {
+        val result = NaturalTaskParser.parse("Reunión fin de septiembre", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 9, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mitadDeMesNombreAnclaDia15() {
+        val result = NaturalTaskParser.parse("pago mitad de enero", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2027, 1, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mediadosDeMesAbreviaturaAnclaDia15() {
+        // Abreviatura de mes ("dic") se acepta igual que el nombre completo.
+        val result = NaturalTaskParser.parse("Pago a mediados de dic", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 12, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mesNombreLimiteRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Pago a finales de octubre a las 18", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 10, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mesNombreLimiteConAnioExplicitoNoRueda() {
+        // "principios de febrero del 2028" → 1/2/2028, sin rolado de año.
+        val result = NaturalTaskParser.parse("cierre a principios de febrero del 2028", now, zone)
+        assertEquals("cierre", result.title)
+        assertEquals(LocalDate.of(2028, 2, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mesNombreLimiteNoColisionaConSemanaAno() {
+        // "mediados de semana"/"fin de año"/"mitad de año" NO son límites mensuales:
+        // el handler original debe seguir resolviéndolos (sin robarlos ni romper título).
+        val sem = NaturalTaskParser.parse("Reunión mediados de semana", now, zone)
+        assertEquals("Reunión", sem.title)
+        assertNotNull(sem.dueAt)
+        val ano = NaturalTaskParser.parse("Cierre fin de año", now, zone)
+        assertEquals("Cierre", ano.title)
+        assertEquals(LocalDate.of(2026, 12, 31), DateRules.toLocalDate(ano.dueAt!!, zone))
+    }
+
     // --- "antepasado mañana" = dentro de 3 días ---
     // Antes la palabra "mañana" casaba con el token de fecha suelto → +1 (fecha
     // errónea) y "antepasado" quedaba como residuo en el título. P1: cita 2 días
