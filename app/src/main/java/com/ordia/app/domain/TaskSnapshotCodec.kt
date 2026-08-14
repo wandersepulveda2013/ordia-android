@@ -53,7 +53,12 @@ object TaskSnapshotCodec {
             val key = keys.next()
             val id = key.toLongOrNull() ?: continue
             val obj = root.optJSONObject(key) ?: continue
-            val task = decodeTask(obj) ?: continue
+            // La clave es el id autoritativo (es el que usa esta función para
+            // result[id] y el que undoLastAutomation pasa al repositorio). Si el
+            // "id" embebido falta o diverge (snapshot antiguo/truncado/migrado),
+            // optLong caería a 0 o a un valor distinto y la restauración apuntaría
+            // a la fila equivocada. Se impone la clave.
+            val task = decodeTask(obj)?.copy(id = id) ?: continue
             result[id] = task
         }
         return result

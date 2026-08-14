@@ -66,7 +66,7 @@ class TaskSnapshotCodecTest {
             priority = TaskPriority.NORMAL
         )
 
-        val decoded = TaskSnapshotCodec.decodeMap(TaskSnapshotCodec.encodeMap(mapOf(1L to plain)))[1L]
+        val decoded = TaskSnapshotCodec.decodeMap(TaskSnapshotCodec.encodeMap(mapOf(7L to plain)))[7L]
 
         assertEquals(plain, decoded)
         assertNull(decoded?.startAt)
@@ -116,5 +116,37 @@ class TaskSnapshotCodecTest {
         assertNull(decoded.dueAt)
         assertNull(decoded.reminderAt)
         assertNull(decoded.completedAt)
+    }
+
+    /**
+     * Protege la identidad en la ruta de deshacer: la CLAVE del mapa es el id
+     * autoritativo (es el que `decodeMap` usa para `result[id]` y el que
+     * `undoLastAutomation` pasa a `taskRepository.get(id)` y a
+     * `taskRepository.update(snapshot...)`). Si el objeto embebido OMITE "id"
+     * (snapshot de versión antigua, JSON truncado, campo añadido después),
+     * `optLong("id")` cae a 0; sin alineación, la entidad restaurada tendría
+     * id=0 y `update` apuntaría a la fila equivocada (o a ninguna). El id de la
+     * entidad debe seguir siempre la clave.
+     */
+    @Test
+    fun decodeMapEntityIdFollowsKeyWhenEmbeddedIdAbsent() {
+        val missingId = """{"7":{"title":"x","createdAt":1700000000000,"updatedAt":1700000000000}}"""
+
+        val decoded = TaskSnapshotCodec.decodeMap(missingId)[7L]!!
+
+        assertEquals(7L, decoded.id)
+    }
+
+    @Test
+    fun decodeMapEntityIdFollowsKeyWhenEmbeddedIdDiverges() {
+        // Defensa en profundidad: aunque hoy el lado de codificación siempre usa
+        // task.id como clave, un snapshot cuyo "id" embebido difiera de la clave
+        // (edición externa, migración, bug futuro) no debe desalinear la entidad
+        // respecto de la clave bajo la que se almacenó.
+        val divergent = """{"7":{"id":99,"title":"x","createdAt":1700000000000,"updatedAt":1700000000000}}"""
+
+        val decoded = TaskSnapshotCodec.decodeMap(divergent)[7L]!!
+
+        assertEquals(7L, decoded.id)
     }
 }
