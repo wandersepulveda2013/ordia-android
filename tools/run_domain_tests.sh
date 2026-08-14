@@ -34,8 +34,10 @@ SOURCES=(
   "$DATA_LOCAL/Entities.kt"
   "$DOMAIN_MAIN"/*.kt
   "${AUTOMATION_PURE_SOURCES[@]}"
+  "$ROOT/app/src/main/java/com/ordia/app/assistant"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/domain"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/automation"/*.kt
+  "$ROOT/app/src/test/java/com/ordia/app/assistant"/*.kt
 )
 
 echo ">> Compilando ${#SOURCES[@]} fuentes (main+stubs+tests)..."

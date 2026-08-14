@@ -47,8 +47,9 @@ object AssistantEngine {
                     val tail = if (overdue.isNotEmpty()) {
                         " Además, tienes ${overdue.size} vencid${if (overdue.size == 1) "a" else "as"}."
                     } else ""
+                    val minutes = TaskRules.plannedDuration(suggestion.task)
                     AssistantAnswer(
-                        "Empieza por “${suggestion.task.title}”: $why. Estimo ${suggestion.task.durationMinutes} minutos.$tail",
+                        "Empieza por “${suggestion.task.title}”: $why. Estimo $minutes minutos.$tail",
                         relatedTaskIds = listOf(suggestion.task.id)
                     )
                 }

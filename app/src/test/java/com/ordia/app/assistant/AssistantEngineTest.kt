@@ -56,6 +56,26 @@ class AssistantEngineTest {
         assertEquals(listOf(2L, 1L), answer.relatedTaskIds)
     }
 
+    @Test fun whatNow_estimatesClampedDurationForZeroDurationTask() {
+        val answer = AssistantEngine.answer(
+            "¿Qué hago ahora?",
+            listOf(TaskEntity(id = 1, title = "Sin duración", durationMinutes = 0)),
+            emptyList(), emptyList()
+        )
+        assertTrue("usa el mínimo planificado, no 0: ${answer.text}", answer.text.contains("10 minutos"))
+        assertTrue("no dice ' 0 minutos': ${answer.text}", !answer.text.contains(" 0 minutos"))
+    }
+
+    @Test fun whatNow_estimatesClampedDurationForOversizedTask() {
+        val answer = AssistantEngine.answer(
+            "¿Qué hago ahora?",
+            listOf(TaskEntity(id = 1, title = "Maratón", durationMinutes = 600)),
+            emptyList(), emptyList()
+        )
+        assertTrue("acota al máximo planificado: ${answer.text}", answer.text.contains("180 minutos"))
+        assertTrue("no dice 600 minutos: ${answer.text}", !answer.text.contains("600 minutos"))
+    }
+
     @Test fun createNote_requiresContentAndThenOffersAction() {
         assertEquals(AssistantAction.NONE, AssistantEngine.answer("Guardar como nota", emptyList(), emptyList(), emptyList()).action)
         assertEquals(AssistantAction.CREATE_NOTE, AssistantEngine.answer("Guardar como nota: idea privada", emptyList(), emptyList(), emptyList()).action)
