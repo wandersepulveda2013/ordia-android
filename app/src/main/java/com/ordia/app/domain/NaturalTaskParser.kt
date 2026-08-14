@@ -10,6 +10,7 @@ import java.time.Year
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
+import kotlin.math.roundToInt
 
 /**
  * Resultado del analizador de lenguaje natural en español.
@@ -644,8 +645,8 @@ object NaturalTaskParser {
         Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordatorio|no\s+dejes\s+que\s+olvide|no\s+(?:se\s+te\s+|te\s+|me\s+|le\s+)?olvides?(?:\s+de\b)?(?:\s+que\b)?|acu[eé]rdate(?:\s+de\b)?|recuerda)\b""")
     private const val BARE_REMINDER_DEFAULT_OFFSET_MINUTES = 30
     private val durationPatterns = listOf(
-        Regex("""(?i)\((\d{1,3})\s*(minutos?|min|horas?|hora)\)"""),
-        Regex("""(?i)\b(?:durante|por)\s+(\d{1,3})\s*(minutos?|min|horas?|hora)\b"""),
+        Regex("""(?i)\((\d{1,3}(?:[.,]\d+)?)\s*(minutos?|min|horas?|hora)\)"""),
+        Regex("""(?i)\b(?:durante|por)\s+(\d{1,3}(?:[.,]\d+)?)\s*(minutos?|min|horas?|hora)\b"""),
         // Keyword "duración (de/:) N [unidad]": la forma más natural de declarar la
         // duración de una reunión/cita en español. Antes la palabra "duración" NO se
         // reconocía como señal de duración: con unidad ("duración 30 minutos") el
@@ -655,13 +656,13 @@ object NaturalTaskParser {
         // si falta se asume minutos (convención del proyecto). Va antes que los
         // patrones "N unidad" para que, al quedar más a la izquierda, [durationMatch]
         // la elija y consuma la frase completa ("duración" incluida).
-        Regex("""(?i)\bduraci[oó]n\s*(?::|de)?\s*(\d{1,3})\s*(minutos?|min|horas?|hora)?\b"""),
-        Regex("""(?i)\b(\d{1,3})\s*(minutos?|min)\b"""),
-        Regex("""(?i)\b(\d{1,3})\s*(horas?)\b"""),
+        Regex("""(?i)\bduraci[oó]n\s*(?::|de)?\s*(\d{1,3}(?:[.,]\d+)?)\s*(minutos?|min|horas?|hora)?\b"""),
+        Regex("""(?i)\b(\d{1,3}(?:[.,]\d+)?)\s*(minutos?|min)\b"""),
+        Regex("""(?i)\b(\d{1,3}(?:[.,]\d+)?)\s*(horas?)\b"""),
         // Compacto "Nh" (p. ej. "Trabajar 2h", "Estudiar 1h"). El \b final evita
         // casar "2horas" (h seguida de 'o' no es límite de palabra), así no roba
         // ni deja residuo frente al patrón completo "horas?".
-        Regex("""(?i)\b(\d{1,3})\s*(h)\b""")
+        Regex("""(?i)\b(\d{1,3}(?:[.,]\d+)?)\s*(h)\b""")
     )
 
     /**
@@ -2143,9 +2144,21 @@ object NaturalTaskParser {
             durationMatch != null && (fractionalMatch == null ||
                 durationMatch.range.first <= fractionalMatch.range.first) &&
                 (writtenMatch == null || durationMatch.range.first <= writtenMatch.range.first) -> {
-                val amount = durationMatch.groupValues[1].toIntOrNull()
+                // La cantidad admite parte decimal ("1.5 horas"/"2,5 horas"): antes el
+                // patrón solo capturaba (\d{1,3}) y en "1.5 horas" casaba "5" → 5 h=300
+                // con residuo "1." en el título. Ahora se captura el decimal entero y se
+                // computa cantidad×60 (horas) o cantidad (minutos) redondeando al minuto.
+                val rawAmount = durationMatch.groupValues[1]
                 val unit = durationMatch.groupValues[2].lowercase()
-                amount?.let { (if (unit.startsWith("hora") || unit == "h") it * 60 else it).coerceIn(5, 24 * 60) }
+                val amount = if (rawAmount.contains('.') || rawAmount.contains(',')) {
+                    rawAmount.replace(',', '.').toDoubleOrNull()
+                } else {
+                    rawAmount.toIntOrNull()?.toDouble()
+                }
+                amount?.let {
+                    (if (unit.startsWith("hora") || unit == "h") it * 60.0 else it)
+                        .roundToInt().coerceIn(5, 24 * 60)
+                }
             }
             writtenMatch != null && (fractionalMatch == null ||
                 writtenMatch.range.first <= fractionalMatch.range.first) -> {

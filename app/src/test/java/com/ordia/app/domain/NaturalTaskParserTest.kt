@@ -1058,6 +1058,62 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // --- Cantidad decimal como duración ("1.5 horas"/"2,5 horas") (ciclo 179) ---
+    // Antes el patrón "N horas" usaba (\d{1,3}) para la cantidad: en "1.5 horas"
+    // casaba SOLO "5" (el dígito tras el punto) → 5 horas = 300 min, y "1." quedaba
+    // como residuo en el título ("Estudiar 1"). Mismo fallo con coma decimal ("2,5
+    // horas" → 300) y con la forma compacta ("1.5h" → 300). Duración absurda +
+    // título sucio. Ahora la cantidad admite parte decimal y se computa como
+    // cantidad×60 (horas) redondeada al minuto. Simétrico de que la fecha relativa
+    // "en 1.5 horas" ya se resolvía; la duración libre no.
+    @Test fun unPuntoCincoHorasEsDuracion90() {
+        val result = NaturalTaskParser.parse("Estudiar 1.5 horas", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(90, result.durationMinutes)
+    }
+
+    @Test fun dosComaCincoHorasEsDuracion150() {
+        val result = NaturalTaskParser.parse("Estudiar 2,5 horas", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(150, result.durationMinutes)
+    }
+
+    @Test fun unComaCincoHorasConDeEsDuracion90() {
+        val result = NaturalTaskParser.parse("Reunión de 1,5 horas", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(90, result.durationMinutes)
+    }
+
+    @Test fun ceroPuntoCincoHorasEsDuracion30() {
+        val result = NaturalTaskParser.parse("Trabajo 0.5 horas", now, zone)
+        assertEquals("Trabajo", result.title)
+        assertEquals(30, result.durationMinutes)
+    }
+
+    @Test fun decimalHorasSingularHora() {
+        val result = NaturalTaskParser.parse("Estudiar 1.5 hora", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(90, result.durationMinutes)
+    }
+
+    @Test fun decimalHorasCompacto1punto5h() {
+        val result = NaturalTaskParser.parse("Trabajar 1.5h", now, zone)
+        assertEquals("Trabajar", result.title)
+        assertEquals(90, result.durationMinutes)
+    }
+
+    @Test fun decimalHorasLimpiaResiduoYConservaResto() {
+        val result = NaturalTaskParser.parse("Estudiar 1.5 horas para el examen", now, zone)
+        assertEquals("Estudiar examen", result.title)
+        assertEquals(90, result.durationMinutes)
+    }
+
+    @Test fun decimalMinutosSeRedondeaAlMinuto() {
+        val result = NaturalTaskParser.parse("Pausa 10.25 minutos", now, zone)
+        assertEquals("Pausa", result.title)
+        assertEquals(10, result.durationMinutes)
+    }
+
     // "a las nueve horas" es HORA de un evento, NO duración: el guard
     // timePhrasePreceding ("a las" antes) debe impedir robar "nueve horas" como
     // duración. (El parser de horas no lee "nueve" como 9, así que la frase se
