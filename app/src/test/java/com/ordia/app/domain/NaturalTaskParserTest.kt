@@ -5755,6 +5755,49 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 4, 30), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "el 15 del 9" = día 15 del mes 9 (septiembre). Forma numérica LATAM cotidiana para
+    // agendar ("pago el 15 del 9", "cita el 3 del 1"). Antes dayOfMonthPattern casaba con
+    // "el 15" → 15 de agosto (mes en curso, equivocado) y "del 9" sobrevivía como residuo
+    // del título → vencimiento en mes equivocado + título sucio (P1). El usuario escribe
+    // un vencimiento explícito y la fecha cae en el mes incorrecto → recordatorio dispara
+    // en la fecha equivocada, tarea invisible en la fecha real.
+    @Test fun dayOfMonthNumericMonth_Del9_ParsesAsSeptember() {
+        val result = NaturalTaskParser.parse("entregar el 15 del 9", now, zone)
+        assertEquals("entregar", result.title)
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dayOfMonthNumericMonth_Del12_ParsesAsDecember() {
+        val result = NaturalTaskParser.parse("pago el 15 del 12", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 12, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "el 3 del 1" (3 de enero) en julio 2026 → enero ya pasó → roll al próximo año
+    // (2027-01-03), consistente con numericDatePattern y parseMonthNameDate.
+    @Test fun dayOfMonthNumericMonth_PastMonth_RollsToNextYear() {
+        val result = NaturalTaskParser.parse("cita el 3 del 1", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalDate.of(2027, 1, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "el 15 del 9 de 2026" = año explícito: no hay roll (la fecha es futura).
+    @Test fun dayOfMonthNumericMonth_WithExplicitYear() {
+        val result = NaturalTaskParser.parse("pago el 15 del 9 de 2026", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "el 31 del 4" = 31 de abril (día imposible) → clamp a 30/4, y como 2026-04-30 ya
+    // pasó (now=2026-07-29) → roll al próximo año (2027-04-30). Verifica que la
+    // normalización reutiliza la paridad numérica/nominal de c.146 (clamp) Y el roll de
+    // fecha pasada de numericDatePattern.
+    @Test fun dayOfMonthNumericMonth_ImpossibleDay_ClampsAndRollsToNextYear() {
+        val result = NaturalTaskParser.parse("cita el 31 del 4", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalDate.of(2027, 4, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun dayOfMonthDeEsteMes() {
         val result = NaturalTaskParser.parse("reunión el 15 de este mes", now, zone)
         assertEquals("reunión", result.title)

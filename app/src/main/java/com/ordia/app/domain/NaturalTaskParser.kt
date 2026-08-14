@@ -473,6 +473,16 @@ object NaturalTaskParser {
      * son contenido, no fecha.
      */
     private val ordinalSuffixPattern = Regex("""(?i)\b(\d{1,2})(?:ero|ro|do|er|to|mo|vo|no|º|ª)(\s+del?\s+)""")
+
+    // "el 15 del 9" = día 15 del mes 9 (septiembre). Forma numérica LATAM cotidiana para
+    // agendar vencimientos. Antes dayOfMonthPattern casaba con "el 15" → 15 del mes en
+    // curso (equivocado) y "del 9" sobrevivía como residuo del título → vencimiento en mes
+    // equivocado + título sucio (P1). Se normaliza a "N/M" para reutilizar TODO el flujo
+    // numericDatePattern existente (roll de año, clamp de día imposible c.146, año
+    // explícito opcional). Exige artículo "el"/"día" previo para reducir falsos positivos.
+    private val dayOfMonthNumericMonthPattern =
+        Regex("""(?i)\b(?:el\s+(?:d[ií]a\s+)?|d[ií]a\s+)([0-3]?\d)\s+del?\s+([01]?\d)(?![/-])(?:\s+del?\s+(\d{2,4}))?\b(?!\s+de\s+cada)""")
+
     /**
      * Nombres de hora escritos en español (dos..veintiuno), ordenados de mayor a menor
      * longitud para que la alternación regex no se quede con un prefijo ("tres" dentro de
@@ -904,6 +914,15 @@ object NaturalTaskParser {
         // su dígito base para que los patrones de fecha (que exigen \d seguido de espacio)
         // los reconozcan. Solo en contexto de fecha (" de ") para no tocar contenido.
         working = ordinalSuffixPattern.replace(working) { m -> m.groupValues[1] + m.groupValues[2] }
+
+        // "el 15 del 9" → "15/9" (día/mes numérico): reutiliza TODO el flujo
+        // numericDatePattern (parseo + limpieza del título + roll + clamp c.146).
+        working = dayOfMonthNumericMonthPattern.replace(working) { m ->
+            val day = m.groupValues[1]
+            val month = m.groupValues[2]
+            val year = m.groupValues[3].ifBlank { null }
+            if (year != null) "$day/$month/$year" else "$day/$month"
+        }
 
         // Hora aproximada: el usuario capta una hora sin precisión exacta ("llamar a eso
         // de las 5", "reunión sobre las 3 de la tarde", "pasa hacia las 4", "llego cerca
