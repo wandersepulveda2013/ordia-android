@@ -1200,6 +1200,56 @@ class NaturalTaskParserTest {
         assertEquals(now + 12 * 60 * 60_000L, result.dueAt)
     }
 
+    // Números escritos > 30 y compuestos: antes "cuarenta y cinco"/"cincuenta"/
+    // "sesenta"/"veinticinco" no se reconocían → dueAt=null (tarea olvidada, P1).
+    @Test fun writtenCompoundNumberRelativeParsesDueAt() {
+        val result = NaturalTaskParser.parse("Llamar en cuarenta y cinco minutos", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 45 * 60_000L, result.dueAt)
+    }
+
+    @Test fun writtenTensRelativeParsesDueAt() {
+        val result = NaturalTaskParser.parse("Reunión en cincuenta minutos", now, zone)
+        assertEquals(now + 50 * 60_000L, result.dueAt)
+        val sesenta = NaturalTaskParser.parse("Llamar en sesenta minutos", now, zone)
+        assertEquals(now + 60 * 60_000L, sesenta.dueAt)
+        val noventa = NaturalTaskParser.parse("Llamar en noventa minutos", now, zone)
+        assertEquals(now + 90 * 60_000L, noventa.dueAt)
+    }
+
+    @Test fun writtenCompoundNoLeakLowUnitAsDuration() {
+        // "cuarenta y cinco" NO debe dejar "cinco" como duración residual.
+        val result = NaturalTaskParser.parse("Llamar en cuarenta y cinco minutos con Juan", now, zone)
+        assertEquals("Llamar con Juan", result.title)
+        assertEquals(now + 45 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun writtenTwentiesSingleWordParsesDueAt() {
+        val result = NaturalTaskParser.parse("Llamar en veinticinco minutos", now, zone)
+        assertEquals(now + 25 * 60_000L, result.dueAt)
+    }
+
+    @Test fun writtenCompoundTensParsesDueAt() {
+        val result = NaturalTaskParser.parse("Llamar en treinta y cinco minutos", now, zone)
+        assertEquals(now + 35 * 60_000L, result.dueAt)
+        val setentaYCinco = NaturalTaskParser.parse("Llamar en setenta y cinco minutos", now, zone)
+        assertEquals(now + 75 * 60_000L, setentaYCinco.dueAt)
+    }
+
+    @Test fun writtenCompoundDurationParsesMinutes() {
+        val result = NaturalTaskParser.parse("Trabajar cuarenta y cinco minutos", now, zone)
+        assertEquals("Trabajar", result.title)
+        assertEquals(45, result.durationMinutes)
+    }
+
+    @Test fun writtenTensReminderParsesOffset() {
+        val result = NaturalTaskParser.parse("Vuelo recuérdame treinta minutos antes", now, zone)
+        assertEquals(30, result.reminderOffsetMinutes)
+        val comp = NaturalTaskParser.parse("Vuelo recuérdame cuarenta y cinco minutos antes", now, zone)
+        assertEquals(45, comp.reminderOffsetMinutes)
+    }
+
     @Test fun digitRelativeStillParsesAfterWrittenNumberSupport() {
         // Regresión: el soporte de números escritos no debe romper los dígitos.
         val result = NaturalTaskParser.parse("Revisar el horno en 45 minutos", now, zone)

@@ -36,6 +36,31 @@ data class ParsedTaskInput(
 )
 
 object NaturalTaskParser {
+    /**
+     * Números escritos en español admitidos como cantidad (1-99), fragmento de regex
+     * reutilizado por todas las patrones que admiten dígitos o palabras: fechas
+     * relativas, "hace N", recordatorios, duraciones y cadencias de recurrencia.
+     *
+     * Antes cada patrón repetía su propia lista de palabras, acotada a 1-30, así que
+     * "cuarenta y cinco minutos" no casaba: `parseWrittenNumber` devolvía null y la
+     * tarea quedaba SIN vencimiento (P1: tarea olvidada, invisible en What Now).
+     * Ahora se centraliza en un único fragmento y se amplía a:
+     * - 21-29 en una palabra (veintidós…veintinueve) y compuesta ("veinte y dos").
+     * - 31-99 compuesta ("treinta y cinco", "cuarenta y cinco"…): forma estándar
+     *   del español coloquial ("en cuarenta y cinco minutos").
+     * - decenas sueltas (treinta…noventa).
+     * El orden pone las formas compuestas (con "y") ANTES que las decenas sueltas
+     * para que "cuarenta y cinco" case entero y no solo "cuarenta".
+     */
+    private val writtenNumberGroup: String = run {
+        val units = "un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve"
+        val tens = "treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa"
+        "(?:$tens) y (?:$units)|veinte y (?:$units)|" +
+            "diez|once|doce|trece|catorce|quince|diecis[eé]is|dieciseis|diecisiete|dieciocho|diecinueve|" +
+            "veinte|veintiuno|veintid[oó]s|veintitr[eé]s|veinticuatro|veinticinco|veintis[eé]is|veintiseis|veintisiete|veintiocho|veintinueve|" +
+            tens + "|" + units
+    }
+
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
     private val weekdayPattern = Regex("""(?i)\b(?:el\s+|del\s+|de\s+)?(?:pr[oó]ximo\s+|pr[oó]xima\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+que\s+viene|\s+pr[oó]ximos?|\s+pr[oó]ximas?)?\b""")
     /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado.
@@ -71,7 +96,7 @@ object NaturalTaskParser {
      * (equivalentes a "en/dentro de N ..."), simétricas al prefijo estándar.
      */
     private val relativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un\s+par\s+de|\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)\b"""
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un\s+par\s+de|\d{1,3}|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)\b"""
     )
     /**
      * Fecha relativa fraccionaria sin dígitos: "en media hora", "dentro de media hora",
@@ -101,7 +126,7 @@ object NaturalTaskParser {
      * + (30 si "media" | 15 si "cuarto"). Simétrica de [fractionalRelativePattern].
      */
     private val compoundFractionalRelativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta|\d{1,3})\s*horas?\s+y\s+(media|un\s+cuarto|cuarto)\b"""
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+($writtenNumberGroup|\d{1,3})\s*horas?\s+y\s+(media|un\s+cuarto|cuarto)\b"""
     )
     /**
      * Fecha relativa multi-cuarto: "en tres cuartos de hora" (45 min), "en dos cuartos"
@@ -110,7 +135,7 @@ object NaturalTaskParser {
      * frase completa (prefijo incluido) y dejar título limpio.
      */
     private val multiQuarterRelativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|\d{1,3})\s+cuartos(?:\s+de\s+hora)?\b"""
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+($writtenNumberGroup|\d{1,3})\s+cuartos(?:\s+de\s+hora)?\b"""
     )
     /**
      * Fecha relativa PASADA: "hace N días/semanas/meses/años" o "hace una semana".
@@ -122,7 +147,7 @@ object NaturalTaskParser {
      * rato"/"hace poco" → −3 h (heurística honesta de "acaba de pasar").
      */
     private val agoPattern = Regex(
-        """(?i)\bhace\s+(\d{1,3}|un\s+rato|poco|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[e\u00e9]is|diecisiete|dieciocho|diecinueve|veinte|treinta)\s*(minutos?|mins?|horas?|d[i\u00ed]as?|semanas?|mes(?:es)?|a[n\u00f1]os?)?\b"""
+        """(?i)\bhace\s+(\d{1,3}|un\s+rato|poco|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|mes(?:es)?|a[nñ]os?)?\b"""
     )
     /**
      * "la semana pasada" / "el mes pasado" / "el año pasado": período completo
@@ -327,7 +352,7 @@ object NaturalTaskParser {
      * título → el recordatorio nunca se programaba (el usuario olvidaba la cita).
      */
     private val writtenAmountPattern =
-        """\d{1,3}|un\s+par\s+de|un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|veintiuno|treinta"""
+        """\d{1,3}|un\s+par\s+de|$writtenNumberGroup"""
 
     private val reminderPatterns = listOf(
         Regex("""(?i)\b(?:recuérdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?($writtenAmountPattern)\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
@@ -1460,13 +1485,11 @@ object NaturalTaskParser {
         val base = RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), emptyList())
         val phrases = mutableListOf<IntRange>()
 
-        // Números escritos admitidos como intervalo de cadencia. Compartido por
-        // `detectWeekInterval()` (rama de lista de días) e `intervalPattern`
-        // (intervalo sin días), para que "cada dos semanas los lunes" se comporte
-        // igual que "cada 2 semanas los lunes".
-        val writtenNumberGroup =
-            "un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|" +
-            "catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|veintiuno|treinta"
+        // Números escritos admitidos como intervalo de cadencia: se reutiliza el
+        // fragmento compartido [writtenNumberGroup] (1-99, incluida la forma
+        // compuesta "treinta y cinco"), de modo que "cada dos semanas los lunes"
+        // se comporte igual que "cada 2 semanas los lunes" y la rama de días
+        // comparta el mismo universo de cantidades que el resto del parser.
 
         // "cada mañana/tarde/noche/madrugada" (y "todas las mañanas/tardes/noches") como
         // recurrencia DIARIA con hora canónica de la parte del día. Es la forma natural
@@ -1872,35 +1895,50 @@ object NaturalTaskParser {
     private fun Int.toDayOfWeekOrNull(): DayOfWeek? =
         if (this in 1..7) DayOfWeek.of(this) else null
 
-    /** Convierte un grupo capturado (dígitos o número escrito en español) a Long. */
+    /**
+     * Convierte un grupo capturado (dígitos o número escrito en español, 1-99) a Long.
+     *
+     * Admite la forma compuesta estándar del español "decena y unidad"
+     * ("treinta y cinco" = 35, "cuarenta y cinco" = 45) y "veinte y unidad"
+     * ("veinte y dos" = 22), además de las palabras únicas (veintidós…noventa).
+     * Antes solo se mapeaban 1-21 y 30, así que "cuarenta y cinco minutos" no se
+     * resolvía y la tarea quedaba SIN vencimiento.
+     */
     private fun parseWrittenNumber(raw: String): Long? {
         raw.toLongOrNull()?.let { return it }
-        return when (raw.lowercase().trim()) {
-            "un par de" -> 2L
-            "un", "una", "uno" -> 1L
-            "dos" -> 2L
-            "tres" -> 3L
-            "cuatro" -> 4L
-            "cinco" -> 5L
-            "seis" -> 6L
-            "siete" -> 7L
-            "ocho" -> 8L
-            "nueve" -> 9L
-            "diez" -> 10L
-            "once" -> 11L
-            "doce" -> 12L
-            "trece" -> 13L
-            "catorce" -> 14L
-            "quince" -> 15L
-            "dieciséis" -> 16L
-            "dieciseis" -> 16L
-            "diecisiete" -> 17L
-            "dieciocho" -> 18L
-            "diecinueve" -> 19L
-            "veinte" -> 20L
-            "veintiuno" -> 21L
-            "treinta" -> 30L
-            else -> null
+        val s = raw.lowercase().trim()
+        if (s == "un par de") return 2L
+        wordToNumber[s]?.let { return it }
+        // Forma compuesta "X y Y" (31-99, o 21-29 como "veinte y dos").
+        val yIdx = s.indexOf(" y ")
+        if (yIdx > 0) {
+            val left = s.substring(0, yIdx).trim()
+            val right = s.substring(yIdx + 3).trim()
+            val l = wordToNumber[left]
+            val r = wordToNumber[right]
+            // left debe ser una decena redonda (20,30,…,90) y right una unidad (1-9).
+            if (l != null && r != null && l in ROUND_TENS && r in 1L..9L) return l + r
         }
+        return null
     }
+
+    private val ROUND_TENS = setOf(20L, 30L, 40L, 50L, 60L, 70L, 80L, 90L)
+
+    private val wordToNumber = mapOf(
+        "un" to 1L, "una" to 1L, "uno" to 1L,
+        "dos" to 2L, "tres" to 3L, "cuatro" to 4L, "cinco" to 5L,
+        "seis" to 6L, "siete" to 7L, "ocho" to 8L, "nueve" to 9L,
+        "diez" to 10L, "once" to 11L, "doce" to 12L, "trece" to 13L,
+        "catorce" to 14L, "quince" to 15L,
+        "dieciséis" to 16L, "dieciseis" to 16L, "diecisiete" to 17L,
+        "dieciocho" to 18L, "diecinueve" to 19L,
+        "veinte" to 20L, "veintiuno" to 21L,
+        "veintidós" to 22L, "veintidos" to 22L,
+        "veintitrés" to 23L, "veintitres" to 23L,
+        "veinticuatro" to 24L, "veinticinco" to 25L,
+        "veintiséis" to 26L, "veintiseis" to 26L, "veintisiete" to 27L,
+        "veintiocho" to 28L, "veintinueve" to 29L,
+        "treinta" to 30L, "cuarenta" to 40L, "cincuenta" to 50L,
+        "sesenta" to 60L, "setenta" to 70L, "ochenta" to 80L, "noventa" to 90L
+    )
 }
