@@ -3,8 +3,6 @@ package com.ordia.app.domain
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
-import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 
 /** Explica por qué Ordia sugiere hacer ahora esa tarea. */
@@ -48,9 +46,8 @@ object WhatNowEngine {
         now: Long = System.currentTimeMillis(),
         zone: ZoneId = ZoneId.systemDefault()
     ): WhatNowSuggestion? {
-        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         val chosen = ordered(tasks, now, zone).firstOrNull() ?: return null
-        return WhatNowSuggestion(chosen, reason(chosen, now, today, zone))
+        return WhatNowSuggestion(chosen, reason(chosen, now, zone))
     }
 
     /**
@@ -87,13 +84,13 @@ object WhatNowEngine {
     private fun isCandidate(task: TaskEntity): Boolean =
         !task.completed && !task.archived && task.status != TaskStatus.CANCELLED && task.parentTaskId == null
 
-    private fun reason(task: TaskEntity, now: Long, today: LocalDate, zone: ZoneId): WhatNowReason = when {
+    private fun reason(task: TaskEntity, now: Long, zone: ZoneId): WhatNowReason = when {
         task.status == TaskStatus.IN_PROGRESS -> WhatNowReason.IN_PROGRESS_NOW
         isInProgressNow(task, now) -> WhatNowReason.IN_PROGRESS_NOW
         TaskRules.isOverdue(task, now) -> WhatNowReason.OVERDUE
         isImminentStart(task, now) -> WhatNowReason.IMMINENT_START
         isScheduledLater(task, now) -> WhatNowReason.SCHEDULED_LATER
-        isDueToday(task, today, zone) -> WhatNowReason.DUE_TODAY
+        TaskRules.isDueToday(task, now, zone) -> WhatNowReason.DUE_TODAY
         task.priority == TaskPriority.URGENT -> WhatNowReason.URGENT
         task.priority == TaskPriority.HIGH -> WhatNowReason.HIGH_PRIORITY
         else -> WhatNowReason.NEXT_INBOX
@@ -108,9 +105,4 @@ object WhatNowEngine {
 
     private fun isScheduledLater(task: TaskEntity, now: Long): Boolean =
         task.startAt != null && task.startAt > now
-
-    private fun isDueToday(task: TaskEntity, today: LocalDate, zone: ZoneId): Boolean {
-        val due = task.dueAt ?: return false
-        return Instant.ofEpochMilli(due).atZone(zone).toLocalDate() == today
-    }
 }
