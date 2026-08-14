@@ -58,9 +58,9 @@ import com.ordia.app.domain.DateRules
 import com.ordia.app.overlay.GuardianOverlayService
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.InfoBanner
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.SectionHeader
+import com.ordia.app.ui.components.OrdiaInfoBanner
+import com.ordia.app.ui.components.OrdiaScreenHeader
+import com.ordia.app.ui.components.OrdiaSectionHeader
 import com.ordia.app.update.UpdateResult
 import java.time.LocalDate
 
@@ -100,8 +100,8 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 32.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        item { ScreenHeader("A TU MANERA", "Ajustes", "Cambia la profundidad de Ordia sin perder tus datos.") }
-        item { SectionHeader("Apariencia") }
+        item { OrdiaScreenHeader("A TU MANERA", "Ajustes", "Cambia la profundidad de Ordia sin perder tus datos.") }
+        item { OrdiaSectionHeader("Apariencia") }
         item {
             SettingsCard(Icons.Outlined.DarkMode, "Tema") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -161,9 +161,9 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         item { SettingSwitch("Navegación compacta", "Usa la barra inferior incluso en tabletas.", state.preferences.compactNavigation, vm::setCompactNavigation) }
         item { SettingSwitch("Reducir movimiento", "Evita animaciones no esenciales.", state.preferences.reduceMotion, vm::setReduceMotion) }
 
-        item { SectionHeader("Guardián flotante") }
+        item { OrdiaSectionHeader("Guardián flotante") }
         item {
-            InfoBanner(
+            OrdiaInfoBanner(
                 "Controlado por ti",
                 "El guardián no lee otras aplicaciones. Solo muestra sus propios controles y guarda lo que tú escribes o dictas."
             )
@@ -199,7 +199,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             }
         }
 
-        item { SectionHeader("Planificación") }
+        item { OrdiaSectionHeader("Planificación") }
         item {
             SettingsCard(Icons.Outlined.Notifications, "Notificaciones y recordatorios") {
                 Text(
@@ -228,10 +228,10 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             }
         }
 
-        item { SectionHeader("Actualizaciones") }
+        item { OrdiaSectionHeader("Actualizaciones") }
         item { UpdateSection(vm) }
 
-        item { SectionHeader("Tus datos") }
+        item { OrdiaSectionHeader("Tus datos") }
         item {
             SettingsCard(Icons.Outlined.Backup, "Copia de seguridad") {
                 Text("Exporta tareas, proyectos, notas, hábitos, rutinas y sesiones en un archivo local.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

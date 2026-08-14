@@ -28,9 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.SectionHeader
+import com.ordia.app.ui.components.OrdiaEmptyState
+import com.ordia.app.ui.components.OrdiaScreenHeader
+import com.ordia.app.ui.components.OrdiaSectionHeader
 
 data class ArchivedItem(val kind: String, val id: Long, val title: String, val description: String)
 
@@ -70,11 +70,11 @@ fun ArchiveScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Paddi
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item { ScreenHeader("RECUPERA LO QUE NECESITES", "Archivo", "Los elementos archivados permanecen locales hasta que los elimines definitivamente.") }
+        item { OrdiaScreenHeader("RECUPERA LO QUE NECESITES", "Archivo", "Los elementos archivados permanecen locales hasta que los elimines definitivamente.") }
         if (items.isEmpty()) {
-            item { EmptyState("El archivo está vacío", "Las tareas, notas, proyectos, hábitos y rutinas archivadas aparecerán aquí.") }
+            item { OrdiaEmptyState("El archivo está vacío", "Las tareas, notas, proyectos, hábitos y rutinas archivadas aparecerán aquí.") }
         } else {
-            item { SectionHeader("Elementos archivados", "${items.size} en total") }
+            item { OrdiaSectionHeader("Elementos archivados", "${items.size} en total") }
             items.forEach { archived ->
                 item(key = "${archived.kind}-${archived.id}") {
                     Card {

@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.ui.theme.OrdiaGoldSoft
 
 @Composable
-fun ScreenHeader(
+fun OrdiaScreenHeader(
     eyebrow: String? = null,
     title: String,
     subtitle: String? = null,
@@ -68,7 +68,7 @@ fun ScreenHeader(
 }
 
 @Composable
-fun SectionHeader(title: String, supporting: String? = null, action: String? = null, onAction: (() -> Unit)? = null) {
+fun OrdiaSectionHeader(title: String, supporting: String? = null, action: String? = null, onAction: (() -> Unit)? = null) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleLarge)
@@ -86,7 +86,7 @@ fun SectionHeader(title: String, supporting: String? = null, action: String? = n
 }
 
 @Composable
-fun StatCard(label: String, value: String, supporting: String? = null, modifier: Modifier = Modifier) {
+fun OrdiaStatCard(label: String, value: String, supporting: String? = null, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -101,7 +101,7 @@ fun StatCard(label: String, value: String, supporting: String? = null, modifier:
 }
 
 @Composable
-fun EmptyState(
+fun OrdiaEmptyState(
     title: String,
     description: String,
     actionLabel: String? = null,
@@ -119,7 +119,7 @@ fun EmptyState(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            GuardianAvatar(72.dp)
+            OrdiaGuardianAvatar(72.dp)
             Text(title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
             Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             if (actionLabel != null && onAction != null) {
@@ -131,7 +131,7 @@ fun EmptyState(
 }
 
 @Composable
-fun GuardianAvatar(size: androidx.compose.ui.unit.Dp, mood: GuardianMood = GuardianMood.CALM, modifier: Modifier = Modifier) {
+fun OrdiaGuardianAvatar(size: androidx.compose.ui.unit.Dp, mood: OrdiaGuardianMood = OrdiaGuardianMood.CALM, modifier: Modifier = Modifier) {
     val background = MaterialTheme.colorScheme.primary
     val foreground = MaterialTheme.colorScheme.onPrimary
     val accent = OrdiaGoldSoft
@@ -146,24 +146,24 @@ fun GuardianAvatar(size: androidx.compose.ui.unit.Dp, mood: GuardianMood = Guard
         drawCircle(foreground, eyeRadius, Offset(this.size.width * 0.62f, eyeY))
         val mouthY = this.size.height * 0.62f
         when (mood) {
-            GuardianMood.CALM, GuardianMood.HAPPY -> {
+            OrdiaGuardianMood.CALM, OrdiaGuardianMood.HAPPY -> {
                 drawArc(
                     color = foreground,
-                    startAngle = if (mood == GuardianMood.HAPPY) 10f else 20f,
-                    sweepAngle = if (mood == GuardianMood.HAPPY) 160f else 140f,
+                    startAngle = if (mood == OrdiaGuardianMood.HAPPY) 10f else 20f,
+                    sweepAngle = if (mood == OrdiaGuardianMood.HAPPY) 160f else 140f,
                     useCenter = false,
                     topLeft = Offset(this.size.width * 0.36f, mouthY - this.size.height * 0.09f),
                     size = androidx.compose.ui.geometry.Size(this.size.width * 0.28f, this.size.height * 0.15f),
                     style = Stroke(width = this.size.minDimension * 0.035f)
                 )
             }
-            GuardianMood.FOCUSED -> drawLine(foreground, Offset(this.size.width * 0.39f, mouthY), Offset(this.size.width * 0.61f, mouthY), strokeWidth = this.size.minDimension * 0.035f)
+            OrdiaGuardianMood.FOCUSED -> drawLine(foreground, Offset(this.size.width * 0.39f, mouthY), Offset(this.size.width * 0.61f, mouthY), strokeWidth = this.size.minDimension * 0.035f)
         }
         drawCircle(accent, radius = this.size.minDimension * 0.055f, center = Offset(this.size.width * 0.5f, this.size.height * 0.18f))
     }
 }
 
-enum class GuardianMood(val label: String) { CALM("tranquilo"), HAPPY("feliz"), FOCUSED("concentrado") }
+enum class OrdiaGuardianMood(val label: String) { CALM("tranquilo"), HAPPY("feliz"), FOCUSED("concentrado") }
 
 @Composable
 fun Modifier.ordiaWorkSurface(): Modifier {
@@ -184,7 +184,7 @@ fun Modifier.ordiaWorkSurface(): Modifier {
 }
 
 @Composable
-fun PrimaryAction(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun OrdiaPrimaryAction(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Button(
         onClick = onClick,
         modifier = modifier,
@@ -193,7 +193,7 @@ fun PrimaryAction(label: String, onClick: () -> Unit, modifier: Modifier = Modif
 }
 
 @Composable
-fun InfoBanner(title: String, text: String, modifier: Modifier = Modifier) {
+fun OrdiaInfoBanner(title: String, text: String, modifier: Modifier = Modifier) {
     Surface(modifier, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)

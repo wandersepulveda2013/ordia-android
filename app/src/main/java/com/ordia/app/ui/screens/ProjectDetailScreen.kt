@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
@@ -35,9 +39,9 @@ import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
+import com.ordia.app.ui.components.OrdiaEmptyState
 import com.ordia.app.ui.components.ProjectEditorDialog
-import com.ordia.app.ui.components.SectionHeader
+import com.ordia.app.ui.components.OrdiaSectionHeader
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
 
@@ -53,7 +57,7 @@ fun ProjectDetailScreen(
 ) {
     val project = state.project(projectId)
     if (project == null) {
-        Column(Modifier.fillMaxSize().padding(contentPadding).padding(20.dp)) { EmptyState("Proyecto no disponible", "Puede estar archivado.", "Volver", onBack) }
+        Column(Modifier.fillMaxSize().padding(contentPadding).padding(20.dp)) { OrdiaEmptyState("Proyecto no disponible", "Puede estar archivado.", "Volver", onBack) }
         return
     }
     var editing by remember { mutableStateOf(false) }
@@ -82,7 +86,7 @@ fun ProjectDetailScreen(
     ) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Volver") }
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Volver") }
                 Text(project.name, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
                 IconButton(onClick = { editing = true }) { Icon(Icons.Outlined.Edit, "Editar proyecto") }
                 IconButton(onClick = { vm.deleteProject(project); onBack() }) { Icon(Icons.Outlined.DeleteOutline, "Archivar proyecto") }
@@ -95,13 +99,13 @@ fun ProjectDetailScreen(
                 Text("${tasks.count { it.completed }} de ${tasks.size} tareas completadas", style = MaterialTheme.typography.labelMedium)
             }
         }
-        item { SectionHeader("Tareas", action = "Añadir", onAction = { addingTask = true }) }
+        item { OrdiaSectionHeader("Tareas", action = "Añadir", onAction = { addingTask = true }) }
         if (tasks.isEmpty()) item { Text("Este proyecto todavía no tiene tareas.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         items(tasks, key = { it.id }) { task ->
             val subtasks = state.subtasks(task.id)
             TaskRow(task, project, subtasks.count { it.completed } to subtasks.size, { vm.toggleTask(task) }, { onTask(task.id) }, { vm.duplicateTask(task) }, { vm.deleteTask(task) })
         }
-        item { SectionHeader("Notas", action = "Añadir", onAction = { addingNote = true }) }
+        item { OrdiaSectionHeader("Notas", action = "Añadir", onAction = { addingNote = true }) }
         if (notes.isEmpty()) item { Text("Guarda decisiones, enlaces o contexto del proyecto.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         items(notes, key = { it.id }) { note ->
             OutlinedButton(onClick = { onNote(note.id) }, modifier = Modifier.fillMaxWidth()) {

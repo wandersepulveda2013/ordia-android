@@ -35,11 +35,11 @@ import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.RoutineEntity
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
+import com.ordia.app.ui.components.OrdiaEmptyState
 import com.ordia.app.ui.components.HabitEditorDialog
 import com.ordia.app.ui.components.RoutineEditorDialog
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.SectionHeader
+import com.ordia.app.ui.components.OrdiaScreenHeader
+import com.ordia.app.ui.components.OrdiaSectionHeader
 
 @Composable
 fun HabitsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: PaddingValues) {
@@ -65,10 +65,10 @@ fun HabitsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Paddin
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item { ScreenHeader("CONSTANCIA SIN CULPA", "Hábitos y rutinas", "Registra el avance; no conviertas un día difícil en una deuda.", "Nuevo hábito") { showHabitDialog = true } }
-        item { SectionHeader("Hábitos") }
+        item { OrdiaScreenHeader("CONSTANCIA SIN CULPA", "Hábitos y rutinas", "Registra el avance; no conviertas un día difícil en una deuda.", "Nuevo hábito") { showHabitDialog = true } }
+        item { OrdiaSectionHeader("Hábitos") }
         if (state.habits.isEmpty()) {
-            item { EmptyState("Sin hábitos todavía", "Empieza con algo pequeño que puedas repetir.", "Crear hábito", onAction = { showHabitDialog = true }) }
+            item { OrdiaEmptyState("Sin hábitos todavía", "Empieza con algo pequeño que puedas repetir.", "Crear hábito", onAction = { showHabitDialog = true }) }
         } else {
             items(state.habits, key = { it.id }) { habit ->
                 val count = state.habitCount(habit.id)
@@ -111,7 +111,7 @@ fun HabitsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Paddin
                 }
             }
         }
-        item { SectionHeader("Rutinas", "Convierte una secuencia en tareas de la bandeja", "Nueva") { showRoutineDialog = true } }
+        item { OrdiaSectionHeader("Rutinas", "Convierte una secuencia en tareas de la bandeja", "Nueva") { showRoutineDialog = true } }
         if (state.routines.isEmpty()) {
             item { Text("Una rutina puede ser “Preparar el día”, “Cerrar trabajo” o cualquier secuencia repetible.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         } else {
