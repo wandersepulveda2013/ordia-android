@@ -227,9 +227,17 @@ object NaturalTaskParser {
      * ("revisé el informe la semana pasada"). Se resuelve a hoy−1 período (semana/mes/
      * año) y se borra del título. No debe confundirse con "el jueves pasado" (día de
      * semana): aquí la unidad es el período, no el día.
+     *
+     * "anterior" es sinónimo pleno de "pasado" para períodos (no para días de semana):
+     * "la semana anterior", "el mes anterior", "el año anterior". Antes estas formas
+     * caían a `dueAt=null` y dejaban "anterior" como residuo en el título (P1:
+     * vencimiento olvidado, asimetría frente a "...pasado" que sí se fechaba). Como
+     * este patrón se procesa ANTES que previousWeekdayPattern, "el mes anterior" se
+     * captura aquí (período) en vez de caer a "el <mes> anterior" (mes no es día →
+     * null). "anterior" es siempre pasado, sin ambigüedad futura como "próximo".
      */
     private val lastPeriodPattern = Regex(
-        """(?i)\b(?:la\s+semana|el\s+mes|el\s+a[n\u00f1]o)\s+pasad[oa]\b|\bsemana\s+pasada\b|\bmes\s+pasado\b|\ba[n\u00f1]o\s+pasado\b"""
+        """(?i)\b(?:la\s+semana|el\s+mes|el\s+a[n\u00f1]o)\s+(?:pasad[oa]|anterior)\b|\bsemana\s+(?:pasada|anterior)\b|\bmes\s+(?:pasado|anterior)\b|\ba[n\u00f1]o\s+(?:pasado|anterior)\b"""
     )
     /**
      * Período próximo ("la semana que viene", "el mes que viene", "el año que
@@ -250,9 +258,16 @@ object NaturalTaskParser {
      * `dueAt=null` + residuo "entrante" en el título → vencimiento olvidado
      * (invisible en What Now/planificador, sin recordatorio). Se reusa la misma
      * resolución +1 período que "que viene".
+     *
+     * "que entra" es la variante regional mexicana/centroamericana de "que viene":
+     * "el mes que entra", "la semana que entra", "el año que entra". Sinónimo
+     * exacto de "que viene"/"entrante" (mismo sentido: el período que está por
+     * comenzar). Antes estas formas caían a `dueAt=null` + residuo "que entra"
+     * en el título (P1: vencimiento olvidado, tarea sin recordatorio ni
+     * visibilidad). Se reusa la misma resolución +1 período.
      */
     private val nextPeriodPattern = Regex(
-        """(?i)\b(?:el|la)?\s*(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima|entrante)\b|(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
+        """(?i)\b(?:el|la)?\s*(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)\b|(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
     )
     /**
      * "el 15 del mes que viene" / "el 15 del próximo mes" / "el 15 del mes próximo":
@@ -266,7 +281,7 @@ object NaturalTaskParser {
      * se ajusta al último día válido del mes objetivo.
      */
     private val nextMonthDayPattern = Regex(
-        """(?i)\bel\s+(?:d[ií]a\s+)?(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b"""
+        """(?i)\bel\s+(?:d[ií]a\s+)?(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b"""
     )
     /**
      * Orden inverso del anterior: "el mes que viene el 5" / "el mes que viene el
@@ -279,7 +294,7 @@ object NaturalTaskParser {
      * la frase completa.
      */
     private val nextMonthDayReversePattern = Regex(
-        """(?i)\b(?:el\s+)?(?:mes\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\s+el\s+(?:d[ií]a\s+)?(\d{1,2})\b"""
+        """(?i)\b(?:el\s+)?(?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\s+el\s+(?:d[ií]a\s+)?(\d{1,2})\b"""
     )
     /**
      * "la semana que viene el lunes" / "la próxima semana el viernes" / "la
@@ -292,7 +307,7 @@ object NaturalTaskParser {
      * para consumir la frase completa (período + día) y evitar que ésta la robe.
      */
     private val nextWeekWeekdayReversePattern = Regex(
-        """(?i)\b(?:la\s+)?(?:semana\s+(?:que\s+viene|pr[oó]xima|entrante)|pr[oó]xima\s+semana)\s+el\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""
+        """(?i)\b(?:la\s+)?(?:semana\s+(?:que\s+viene|que\s+entra|pr[oó]xima|entrante)|pr[oó]xima\s+semana)\s+el\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""
     )
     /**
      * Orden inverso del anterior: "el lunes de la semana que viene" / "el viernes
@@ -305,7 +320,7 @@ object NaturalTaskParser {
      * weekdayPattern para consumir la frase completa.
      */
     private val nextWeekWeekdayForwardPattern = Regex(
-        """(?i)\bel\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+de\s+(?:la\s+)?(?:semana\s+(?:que\s+viene|pr[oó]xima|entrante)|pr[oó]xima\s+semana)\b"""
+        """(?i)\bel\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+de\s+(?:la\s+)?(?:semana\s+(?:que\s+viene|que\s+entra|pr[oó]xima|entrante)|pr[oó]xima\s+semana)\b"""
     )
     /**
      * "fin de mes" / "a finales de mes" / "fin del mes" / "cierre de mes" / "cierre del mes"
@@ -327,9 +342,9 @@ object NaturalTaskParser {
      * adelantados). El modificador se consume en el match (limpieza de título) y se
      * detecta en la resolución para desplazar un mes.
      */
-    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
-    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
-    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|primeros?)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     /**
      * "la quincena" / "de la quincena" / "primera quincena" / "segunda quincena":
      * hito financiero mensual (cobro, nómina, pago). La "primera quincena" es el día
@@ -366,7 +381,7 @@ object NaturalTaskParser {
      * blando nunca se fecha en pasado. Se detecta y borra ANTES del período próximo para
      * que "semana" no active "semana que viene".
      */
-    private val startOfWeekPattern = Regex("""(?i)\b(?:a\s+)?principios?\s+(?:de\s+|del\s+)semana\b""")
+    private val startOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?)\s+(?:de\s+|del\s+)semana\b""")
     /**
      * "mediados de semana" / "a mediados de semana" → miércoles más cercano en HOY o
      * futuro. Análogo a "principios de semana" (lunes) y "mediados de mes" (día 15).
@@ -2054,7 +2069,7 @@ object NaturalTaskParser {
      */
     private fun monthBaseForBoundary(today: LocalDate, matched: String): LocalDate {
         val t = matched.lowercase()
-        val isNext = t.contains("que viene") || t.contains("próxim") || t.contains("proxim") || t.contains("entrante")
+        val isNext = t.contains("que viene") || t.contains("que entra") || t.contains("próxim") || t.contains("proxim") || t.contains("entrante")
         if (isNext) return today.plusMonths(1)
         val kind = when {
             t.contains("fin") || t.contains("finales") || t.contains("cierre") || t.contains("corte") || t.contains("últim") || t.contains("ultim") -> "end"

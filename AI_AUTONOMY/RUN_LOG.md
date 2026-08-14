@@ -5300,3 +5300,24 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: (tras commit + push de este run).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 833 tests, 0 failures).
 - **Próxima prioridad**: descubrimiento continuo en el parser (más variantes regionales/formas compactas sin reconocimiento), y áreas de dirección no parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría de workers/backup/restore con DAOs reales queda NO VERIFICADA (sin Android SDK).
+
+## Ciclo 126 — 2026-08-14 — Parser: "que entra"/"anterior"/"comienzos" no se reconocían → vencimientos olvidados (P1 captura regional)
+
+- **Run/ciclo**: 126 (rama `openhands/autonomous-ordia`). Base sincronizada: `git fetch origin openhands/autonomous-ordia` OK, HEAD local = HEAD remoto = `908764d` (c.125 "entrante"). Sin divergencia, sin push concurrente al iniciar. Working tree limpio.
+- **HEAD inicial**: `908764d4b9614bc44e20943fc0e54650eaf03a0e` (c.125).
+- **Problema seleccionado (P1 → integridad de captura regional)**: tres sinónimos de períodos NO se reconocían, causando **vencimientos olvidados** (tareas con `dueAt=null` + residuo en el título → invisibles en What Now/planificador, sin recordatorio). Todos eran **asimetrías** frente a formas canónicas que SÍ funcionaban:
+  1. **"que entra"** — variante regional MX/CA de "que viene"/"entrante" (la app usa `America/Santo_Domingo`): "el mes que entra", "la semana que entra", "el año que entra", "el 15 del mes que entra", "la semana que entra el lunes", "el lunes de la semana que entra".
+  2. **"anterior"** — sinónimo pleno de "pasado" para períodos: "la semana anterior", "el mes anterior", "el año anterior" (asimetría: "...pasado" SÍ se fechaba, c.32 family).
+  3. **"comienzos de mes/semana"** — sinónimo de "principios": "pago a comienzos de mes", "comienzos de semana" (asimetría: "principios de mes/semana" SÍ funcionaba, c.32/c.84).
+- **Prioridad**: P1 (captura/persistencia de fechas; área de dirección "captura ultrarrápida" + "recuperación de información").
+- **Causa raíz**: (1) los 7 patrones de período próximo (`nextPeriodPattern` + 6 compuestos) listaban `que viene`/`próximo`/`entrante` pero NO `que entra`; el helper `monthBaseForBoundary` tampoco lo detectaba. (2) `lastPeriodPattern` sólo reconocía `pasado/pasada`, no `anterior`. (3) `startOfMonthPattern`/`startOfWeekPattern` sólo reconocían `principios`/`primeros`, no `comienzos`.
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón, sin lógica nueva)**:
+  - (1) `que entra` como **alternativa léxica simétrica** en los 7 patrones (`nextPeriodPattern`, `nextMonthDayPattern`, `nextMonthDayReversePattern`, `nextWeekWeekdayReversePattern`, `nextWeekWeekdayForwardPattern`, `endOfMonthPattern`, `midOfMonthPattern`, `startOfMonthPattern`) + en la condición `isNext` del helper `monthBaseForBoundary`. Reusa la **misma** resolución +1 período que "que viene".
+  - (2) `lastPeriodPattern` añade `anterior` como alternativa de `pasado/pasada` para semana/mes/año. Se procesa ANTES que `previousWeekdayPattern`, así "el mes anterior" se captura como período (no como día). "anterior" es siempre pasado, sin ambigüedad futura como "próximo".
+  - (3) `startOfMonthPattern` + `startOfWeekPattern` añaden `comienzos?` junto a `principios?` (misma resolución día 1 / lunes).
+- **Tests**: +11 tests de regresión en `NaturalTaskParserTest.kt`: 5 "que entra" (`laSemanaQueEntraResuelveProximaSemana`→2026-08-05, `elMesQueEntraResuelveProximoMes`→2026-08-28, `elAnioQueEntraResuelveProximoAnio`→2027-07-29, `elMesQueEntraConHoraAplicaHora`→10:00, `elNDelMesQueEntraResuelveDiaNDelMesSiguiente`→08-15), 4 "anterior" (`laSemanaAnteriorResuelveFechaPasada`→2026-07-22, `elMesAnteriorResuelveFechaPasada`→2026-06-29, `elAnioAnteriorResuelveFechaPasada`→2025-07-29, `elMesAnteriorConHoraAplicaHora`→15:00), 2 "comienzos" (`comienzosDeMesVarianteDePrincipios`→2026-08-01, `comienzosDeSemanaVarianteDePrincipios`→2026-08-03). `bash tools/run_domain_tests.sh` → **844 PASS** (833 c.125 + 11). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Auditoría de workers/backup/restore con DAOs reales queda pendiente.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras commit + push de este run).
+- **Estado**: FIXED → VERIFIED (dominio JVM: 844 tests, 0 failures).
+- **Próxima prioridad**: descubrimiento continuo — más gaps léxicos del parser (variantes regionales, formas compactas sin reconocimiento), y áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría de workers/backup/restore con DAOs reales queda NO VERIFICADA (sin Android SDK).

@@ -2862,11 +2862,51 @@ class NaturalTaskParserTest {
     }
 
     @Test fun entranteNoEsFalsoPositivoEnSustantivoAjeno() {
-        // "documento/llamada/factura entrante": "entrante" modifica a un sustantivo
+        // "documento/llamada/factura entrante": "entrante" modifica un sustantivo
         // que NO es un período → no debe casar (dueAt=null, título intacto).
         val r = NaturalTaskParser.parse("Revisar el documento entrante", now, zone)
         assertEquals("Revisar el documento entrante", r.title)
         assertNull(r.dueAt)
+    }
+
+    // --- "que entra": variante regional (MX/CA) de "que viene"/"entrante" ---
+    // "el mes que entra", "la semana que entra", "el año que entra" son sinónimos
+    // plenos de "...que viene". Antes caían a dueAt=null + residuo "que entra" en
+    // el título → vencimiento olvidado (asimetría frente a "que viene"). now=2026-07-29.
+
+    @Test fun laSemanaQueEntraResuelveProximaSemana() {
+        // 2026-07-29 + 7 días = 2026-08-05.
+        val result = NaturalTaskParser.parse("Enviar informe la semana que entra", now, zone)
+        assertEquals("Enviar informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elMesQueEntraResuelveProximoMes() {
+        // 2026-07-29 + 30 días = 2026-08-28.
+        val result = NaturalTaskParser.parse("Pagar renta el mes que entra", now, zone)
+        assertEquals("Pagar renta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elAnioQueEntraResuelveProximoAnio() {
+        // 2026-07-29 + 365 días = 2027-07-29.
+        val result = NaturalTaskParser.parse("Presentar impuestos el año que entra", now, zone)
+        assertEquals("Presentar impuestos", result.title)
+        assertEquals(LocalDate.of(2027, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elMesQueEntraConHoraAplicaHora() {
+        val result = NaturalTaskParser.parse("Pagar el mes que entra a las 10", now, zone)
+        assertEquals("Pagar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun elNDelMesQueEntraResuelveDiaNDelMesSiguiente() {
+        // "el 15 del mes que entra": compromiso mensual con calificador regional.
+        val result = NaturalTaskParser.parse("Cobro el 15 del mes que entra", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
     // --- "el N del mes que viene": día concreto del mes siguiente ---
@@ -3449,6 +3489,15 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "comienzos de mes": sinónimo pleno de "principios de mes". Antes caía a
+    // dueAt=null → vencimiento olvidado. Se resuelve igual (día 1 del mes siguiente).
+
+    @Test fun comienzosDeMesVarianteDePrincipios() {
+        val result = NaturalTaskParser.parse("pago a comienzos de mes", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "la quincena" / "primera quincena" / "segunda quincena": hito financiero ---
     // La quincena es el hito de cobro/nómina/pago: dos por mes, el día 15 (primera) y el
     // fin de mes (segunda). Antes "cobro de la quincena" caía a dueAt=null → vencimiento
@@ -3765,6 +3814,16 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "comienzos de semana": sinónimo pleno de "principios de semana". Antes caía a
+    // dueAt=null (olvido). Se resuelve igual (lunes más cercano en hoy/futuro).
+
+    @Test fun comienzosDeSemanaVarianteDePrincipios() {
+        // hoy = miércoles 2026-07-29 -> lunes siguiente 2026-08-03.
+        val result = NaturalTaskParser.parse("Revisar informe comienzos de semana", now, zone)
+        assertEquals("Revisar informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun principiosDeSemanaNoColisionaConSemanaQueViene() {
         // "la semana que viene" debe seguir siendo +7d (2026-08-05), no "principios de semana".
         val result = NaturalTaskParser.parse("Entrega la semana que viene", now, zone)
@@ -3859,6 +3918,39 @@ class NaturalTaskParserTest {
 
     @Test fun elMesPasadoConHoraAplicaHora() {
         val result = NaturalTaskParser.parse("Reunión el mes pasado a las 15", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 6, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // --- "anterior": sinónimo de "pasado" para períodos (semana/mes/año) ---
+    // "la semana anterior", "el mes anterior", "el año anterior" son sinónimos
+    // plenos de "...pasado/a". Antes caían a dueAt=null + residuo "anterior" en el
+    // título (asimetría: "...pasado" sí se fechaba). now=2026-07-29 (miércoles).
+
+    @Test fun laSemanaAnteriorResuelveFechaPasada() {
+        // 2026-07-29 - 7 días = 2026-07-22.
+        val result = NaturalTaskParser.parse("Revisar informe la semana anterior", now, zone)
+        assertEquals("Revisar informe", result.title)
+        assertEquals(LocalDate.of(2026, 7, 22), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elMesAnteriorResuelveFechaPasada() {
+        // 2026-07-29 - 30 días = 2026-06-29.
+        val result = NaturalTaskParser.parse("Reunión el mes anterior", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 6, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elAnioAnteriorResuelveFechaPasada() {
+        // 2026-07-29 - 365 días = 2025-07-29.
+        val result = NaturalTaskParser.parse("Auditoría el año anterior", now, zone)
+        assertEquals("Auditoría", result.title)
+        assertEquals(LocalDate.of(2025, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elMesAnteriorConHoraAplicaHora() {
+        val result = NaturalTaskParser.parse("Reunión el mes anterior a las 15", now, zone)
         assertEquals("Reunión", result.title)
         assertEquals(LocalDate.of(2026, 6, 29), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
