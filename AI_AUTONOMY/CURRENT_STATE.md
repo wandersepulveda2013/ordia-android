@@ -15,6 +15,7 @@
 ## Estado
 
 
+- **Fecha (UTC)**: 2026-08-14 (ciclo 111; fix P1 parser REGRESIÓN de integración c.109+c.110: `compactDayPartOfDayPattern` (introducido en c.109 remoto "hoy tarde") aún usaba `mañana` literal — la unificación de acentos de c.110 (`mañana`→`ma[nñ]ana`) omitió este patrón. Así "comprar pan manana noche" (sin tilde, norma móvil) → `due=mañana 09:00` + residuo "noche" en el título, en vez de `mañana 21:00` + título limpio (agenda errónea + título sucio = P1 captura/datos). Fix mínima: `compactDayPartOfDayPattern` ahora `ma[nñ]ana` en sus tres ramas (antepasado/pasado/mañana suelto). Verificado paridad total con/sin tilde via probe JVM ("mañana noche"/"manana noche"=21:00, "pasado manana noche"=+2 21:00, "antepasado manana madrugada"=+3 04:00, todos título limpio). +4 tests de paridad sin tilde. **754 domain tests PASS** (750 c.110 + 4); smoke 25 OK. NO VERIFICADO gradle/Android/UI/Room. Próxima prioridad: parser "ya" como token final → now (P1); tolerancia a acentos en SearchEngine ("última"/"próxima"); salir del parser hacia recuperación de tareas olvidadas / contexto / onboarding.)
 - **Fecha (UTC)**: 2026-08-14 (ciclo 109; fix P1 parser parte del día COMPACTA sin conector: "hoy tarde"/"hoy noche"/"mañana tarde"/"mañana noche"/"pasado mañana tarde" —abreviatura coloquial de "hoy en la tarde", común en captura móvil— no se reconocía: el marcador de día fijaba la fecha, pero "tarde"/"noche" no casaba `standalonePartOfDayPattern` (exige conector a la/de la/por la/en la) → hora 09:00 (default) Y residuo en el título ("comprar pan hoy noche" → título sucio + vencimiento a las 9 am en vez de 21:00). Asimetría: "hoy en la tarde" (c.58) SÍ funcionaba. Fix: nuevo `compactDayPartOfDayPattern = (?i)\b(?:antepasad[oa]\s+mañana|pasado\s+mañana|mañana|hoy)\s+(tarde|noche|madrugada)\b` + `compactDayPartOfDayTimes` (15:00/21:00/04:00); cableado en `parsedTime`, `hasPartOfDayPmContext` (tarde/noche → "hoy tarde a las 4"→16:00) y limpieza del título antes del borrado genérico. Excluye "mañana" como parte del día compacta (ambigua día vs parte; la forma con conector ya funciona). +7 tests; **740 domain tests PASS** (733 c.108 + 7); smoke 25 OK; probe 9 casos verde sin falsos positivos; NO VERIFICADO gradle/Android/UI/Room. Áreas de descubrimiento pendientes: parser "ya" como token final → now (P1), recuperación de tareas olvidadas (What Now/Guardián), contexto, onboarding.)
 
 - **Fecha (UTC)**: 2026-08-14 (ciclo 107; fix P1 parser "ahora" inmediato: las frases cotidianísimas "ahora mismo"/"ahorita"/"ahora"/"lo antes posible"/"cuanto antes"/"a la brevedad"/"lo más pronto/temprano posible" no casaban ningún patrón → `dueAt=null` → tarea SIN vencimiento, invisible en "What Now"/planificador, sin recordatorio programable → olvidada. Diferencia semántica con la familia vaga (c.104/105/106 = +1h): estas significan literalmente "ya", no "en ~1h", así que se resuelven a `now` (no +1h) para sacar la tarea a la superficie de inmediato. Nuevo `nowPattern` (declarado junto a `vagueRelativePattern`); `nowDueAt=now`, frase consumida → título limpio; incluido en `effectiveRelativeDueAt` (después de las vagas +1h: solo gana el "ahora" puro); excluido de `relativeIsDays` (sub-hora). NO duplica "enseguida"/"en seguida" (ya +1h en c.106, processed before) para no sobrescribir trabajo válido. STALE_RUN seguro: base b5e195a obsoleta (remoto avanzó a 30b62d5 c.106 enseguida) → stash + fast-forward + pop + reconciliación (quité enseguida de nowPattern y sus 2 tests). +7 tests (`ahoraMismo`/`ahorita`/`ahoraSolo`/`loAntesPosible`/`cuantoAntes`/`aLaBrevedad`/`loMasProntoPosible` = now, título limpio). **727 domain tests PASS** (720 base 30b62d5 + 7); smoke 25 OK; sin regresión "enseguida"=+1h, "en un rato"=+1h, "en media hora"=+30min, "mañana a las 9" intactos; NO VERIFICADO gradle/Android/UI/Room. + c.106 (otra ejecución, remoto 30b62d5): `enseguida`/`en seguida` → +1h en `vagueRelativePattern`. + c.105/104: "un momento"/"al rato"/"pasado un rato"/"un rato" → +1h (`vagueRelativePattern`). Anterior: c.105 GuardianCoach edad "olvidada" por días de calendario (DST-safe); auditoría `\b`+acento completa. Parser de fecha/hora/recurrencias/duración muy maduro; familias vaga+ahora cubiertas. Áreas de descubrimiento pendientes: "más tarde"/"más rato" (vago futuro sin hora), recuperación de tareas olvidadas (What Now/Guardián), contexto, onboarding.
@@ -72,6 +73,40 @@ tarde"=15:00, "esta tarde"=15:00, "esta noche"=21:00, "hoy en la mañana"=09:00 
   Render real del parser en la app no probado en dispositivo.
 - **Próxima prioridad**: parser "ya" como token final → now (P1); luego salir del parser hacia
   recuperación de tareas olvidadas / contexto / onboarding.
+
+## Último trabajo — Ciclo 111: Parser — REGRESIÓN de integración c.109+c.110: `compactDayPartOfDayPattern` aún `mañana` literal → "manana noche" agenda 09:00 + título sucio (P1 captura/datos)
+
+Bug **P1 (regresión de integración, captura/agenda errónea + título sucio)**: el patrón
+`compactDayPartOfDayPattern` —introducido en c.109 (remoto, "hoy tarde" compacta)— seguía usando
+`mañana` **literal** (con tilde). La unificación de acentos de c.110 (`mañana`→`ma[nñ]ana`) recorrió
+la rama `when` de fecha relativa, limpieza del título, "pasado/antepasado mañana", `hasStandaloneManana`
+y "para mañana", pero **omitrió** `compactDayPartOfDayPattern`. Así **"comprar pan manana noche"**
+(sin tilde, norma en escritura móvil rápida) → `due=mañana 09:00` (default) + residuo **"noche" en
+el título**, en vez de `mañana 21:00` + título limpio. Agenda errónea (21:00→09:00, 12 h de
+diferencia) Y título sucio = P1 de datos/captura. Asimetría flagrante: **"comprar pan mañana noche"**
+(con tilde) SÍ funcionaba (21:00, título limpio); la sin tilde no.
+
+**Causa raíz**: c.109 y c.110 se hicieron en ejecuciones separadas y la auditoría de c.110
+no cubrió el patrón que c.109 acababa de añadir. El `compactDayPartOfDayPattern` contiene
+`mañana` en tres de sus cuatro ramas (`antepasad[oa]\s+mañana`, `pasado\s+mañana`, `mañana` suelto)
+y todas quedaron con tilde.
+
+**Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**: las tres ramas pasan a
+`ma[nñ]ana`, idéntico al resto de la unificación de c.110. Sin cableado nuevo (el group capturado
+es `tarde|noche|madrugada`, sin tilde, ya maneado por `compactDayPartOfDayTimes`/`hasPartOfDayPmContext`).
+
+**Tests**: +4 en `NaturalTaskParserTest.kt` (paridad sin tilde): `mananaSinTildeTardeEsManana15hYLimpiaTitulo`,
+`mananaSinTildeNocheEsManana21hYLimpiaTitulo`, `pasadoMananaSinTildeNocheEsPasadoManana21hYLimpiaTitulo`,
+`antepasadoMananaSinTildeMadrugadaEsDosDias4hYLimpiaTitulo`. Verificado con probe JVM paridad total
+con/sin tilde ("mañana noche"/"manana noche"=21:00, "pasado manana noche"=+2 21:00,
+"antepasado manana madrugada"=+3 04:00, todos título limpio). `bash tools/run_domain_tests.sh` →
+**754 tests PASS** (750 c.110 + 4); smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Sin
+regresión: formas con tilde intactas.
+
+**NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+
+**Próxima prioridad**: parser "ya" como token final → now (P1); tolerancia a acentos en SearchEngine
+("última"/"próxima"); salir del parser hacia recuperación de tareas olvidadas / contexto / onboarding.
 
 ## Último trabajo — Ciclo 110: Parser — "manana" (sin tilde) NO se reconocía como fecha relativa "mañana" → cita olvidada / agenda adelantada / asimetría medianoche (P1 datos móvil)
 

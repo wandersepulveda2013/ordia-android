@@ -575,7 +575,7 @@ object NaturalTaskParser {
      * la resuelve el `when` de fecha existente ("hoy"→hoy, "mañana"→+1, etc.).
      */
     private val compactDayPartOfDayPattern =
-        Regex("""(?i)\b(?:antepasad[oa]\s+mañana|pasado\s+mañana|mañana|hoy)\s+(tarde|noche|madrugada)\b""")
+        Regex("""(?i)\b(?:antepasad[oa]\s+ma[nñ]ana|pasado\s+ma[nñ]ana|ma[nñ]ana|hoy)\s+(tarde|noche|madrugada)\b""")
     private val compactDayPartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),

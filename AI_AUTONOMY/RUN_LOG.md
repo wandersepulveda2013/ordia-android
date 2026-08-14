@@ -4991,3 +4991,18 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: (tras push, ver abajo).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: descubrimiento continuo de frases cotidianas del parser ("ahora mismo"/"en cualquier momento" semántica "ahora"; "más rato"/"más tarde" vagos; tolerancia a acentos en otras palabras comunes — auditar "última"→"ultima" en "última hora", "próxima"→"proxima" en "próxima semana" en SearchEngine) y otras áreas (recuperación de tareas olvidadas, What Now, contexto, inbox inteligente).
+
+## Ciclo 111 — 2026-08-14 — Parser: REGRESIÓN de integración c.109+c.110 — `compactDayPartOfDayPattern` aún `mañana` literal → "manana noche" agenda 09:00 + título sucio
+
+- **HEAD inicial**: `0d807c8` (c.110 "manana" sin tilde, ya pushed).
+- **Problema (P1, regresión de integración, captura/agenda errónea + título sucio)**: el patrón `compactDayPartOfDayPattern` —introducido en c.109 (remoto, "hoy tarde" compacta)— seguía usando `mañana` **literal** (con tilde). La unificación de acentos de c.110 (`mañana`→`ma[nñ]ana`) recorrió la rama `when` de fecha relativa, limpieza del título, "pasado/antepasado mañana", `hasStandaloneManana` y "para mañana", pero **omitrió** `compactDayPartOfDayPattern`. Así **"comprar pan manana noche"** (sin tilde, norma en escritura móvil rápida) → `due=mañana 09:00` (default) + residuo **"noche" en el título**, en vez de `mañana 21:00` + título limpio. Agenda errónea (21:00→09:00, 12 h de diferencia) Y título sucio = P1 de datos/captura. Asimetría flagrante: **"comprar pan mañana noche"** (con tilde) SÍ funcionaba (21:00, título limpio); la sin tilde no.
+- **Causa raíz**: c.109 y c.110 se hicieron en ejecuciones separadas; la auditoría de acentos de c.110 no cubrió el patrón recién añadido por c.109. El `compactDayPartOfDayPattern` contiene `mañana` en tres de sus cuatro ramas y todas quedaron con tilde.
+- **Descubrimiento**: probe JVM ad-hoc (19 frases cotidianas) detectó el bug. La auditoría sistemática de `mañana` literal restante en el parser (`grep -n "mañana"`) reveló que los `mapOf` ya tenían ambas formas (con/sin tilde), pero el PATRÓN regex `compactDayPartOfDayPattern` no.
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**: las tres ramas `mañana` de `compactDayPartOfDayPattern` pasan a `ma[nñ]ana`, idéntico al resto de la unificación de c.110. Sin cableado nuevo (el group capturado es `tarde|noche|madrugada`, sin tilde, ya maneado por `compactDayPartOfDayTimes`/`hasPartOfDayPmContext`).
+- **Tests**: `bash tools/run_domain_tests.sh` → **754 PASS** (750 c.110 + 4 nuevos de paridad sin tilde: `mananaSinTildeTardeEsManana15hYLimpiaTitulo`, `mananaSinTildeNocheEsManana21hYLimpiaTitulo`, `pasadoMananaSinTildeNocheEsPasadoManana21hYLimpiaTitulo`, `antepasadoMananaSinTildeMadrugadaEsDosDias4hYLimpiaTitulo`). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Probe JVM paridad total con/sin tilde ("mañana noche"/"manana noche"=21:00, "pasado manana noche"=+2 21:00, "antepasado manana madrugada"=+3 04:00, todos título limpio). Sin regresión: formas con tilde intactas.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: (ver abajo tras push).
+- **HEAD final**: (tras push, ver abajo).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: parser "ya" como token final → now (P1); tolerancia a acentos en SearchEngine ("última"/"próxima"); salir del parser hacia recuperación de tareas olvidadas / contexto / onboarding.

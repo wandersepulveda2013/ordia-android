@@ -1901,6 +1901,38 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- Paridad sin tilde del compacto "día + parte del día" (c.111) ---
+    // "manana" (sin tilde) debe comportarse igual que "mañana" en las formas
+    // compactas, incluyendo fecha correcta, hora canónica y título limpio.
+
+    @Test fun mananaSinTildeTardeEsManana15hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión manana tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mananaSinTildeNocheEsManana21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pagar factura manana noche", now, zone)
+        assertEquals("Pagar factura", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun pasadoMananaSinTildeNocheEsPasadoManana21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita pasado manana noche", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun antepasadoMananaSinTildeMadrugadaEsDosDias4hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Vuelo antepasado manana madrugada", now, zone)
+        assertEquals("Vuelo", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     @Test fun compactTardeConHoraSinMeridiemAplicaPm() {
         // "hoy tarde" aporta contexto PM: "a las 4" → 16:00.
         val result = NaturalTaskParser.parse("Reunión hoy tarde a las 4", now, zone)
