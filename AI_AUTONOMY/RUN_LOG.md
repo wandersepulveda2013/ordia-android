@@ -12,7 +12,8 @@
 - **Features**: +1 mejora funcional de recuperación (el nudge diario del guardián recupera una tarea vencida concreta — más potencia sin nueva interfaz, sin fingir IA).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK); integración `GuardianEngine.snapshot`↔UI del guardián en runtime Android.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/GuardianEngine.kt` (+`smallestOverdueAction`, `suggestedAction` recibe `nowMillis`, llamada actualizada), `app/src/test/java/com/ordia/app/domain/GuardianEngineTest.kt` (+4 tests), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD inicial**: `56fae25`. **HEAD final**: (tras commit + push a `openhands/autonomous-ordia`).
+- **HEAD inicial**: `56fae25`. **HEAD final**: `b4c273a` (push OK a `openhands/autonomous-ordia`; verificado `origin/openhands/autonomous-ordia == b4c273a`).
+- **Próxima prioridad**: descubrimiento continuo — áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento); gaps léxicos del parser restantes ("a las 3.5" P3; "diez y media" sin "a las" P3; "pago mensual" requiere desambiguador P2); auditoría workers/backup con DAOs reales (`backup/` ya verificado en JVM c.147-B).
 
 ## Ciclo 159 — 2026-08-14 (UTC) — feat(search): búsqueda universal recupera tareas/notas por membresía de proyecto (P2 recuperación de información importante)
 
