@@ -17,7 +17,7 @@
 - **NO VERIFICADO**: N/A (sin cambio de código este sub-run).
 - **AI_AUTONOMY actualizado**: DECISIONS (nueva fila: no-clampar captura `reminderAt` — corrompería `reminderOffset` de recurrencia); BACKLOG (nueva fila P3 tradeoff DECIDIDO); CURRENT_STATE (decisión (iii) → DECIDIDO + auditorías limpias); RUN_LOG (esta entrada).
 - **Archivos modificados**: `AI_AUTONOMY/{DECISIONS,BACKLOG,CURRENT_STATE,RUN_LOG}.md` (sólo memoria; c.190 `HEAD final` completado a `fad8c25`).
-- **HEAD inicial**: `fad8c25`. **HEAD final**: (tras commit + push).
+- **HEAD inicial**: `fad8c25`. **HEAD final**: `cf330e6` (tras commit + push OK a `origin/openhands/autonomous-ordia`; `fad8c25..cf330e6`).
 - **Estado**: VERIFIED (auditoría sin regresión; sin cambio de código; decisión documentada previene regresión P0 futura).
 - **Próxima prioridad**: descubrimiento continuo — (i) decisión de producto sobre `TaskStatus.CANCELLED` inalcanzable desde la UI (BACKLOG P2 — requiere Android/UI); (ii) áreas no-parser sin auditar esta sesión: contexto, onboarding, navegación, accesibilidad, rendimiento, backup/restore (datos sagrados); (iii) gaps léxicos del parser restantes (P3). Re-fetch antes de implementar para evitar colisión con runs paralelos.
 
