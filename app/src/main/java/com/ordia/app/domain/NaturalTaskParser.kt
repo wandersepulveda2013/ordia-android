@@ -51,6 +51,7 @@ object NaturalTaskParser {
         val numericDateMatch = numericDatePattern.find(working)
         val date = when {
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
+            Regex("""(?i)\besta\s+noche\b""").containsMatchIn(working) -> base.toLocalDate()
             Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
             weekdayMatch != null -> nextWeekday(
@@ -72,6 +73,7 @@ object NaturalTaskParser {
         }
 
         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
+        val estaNocheMatch = Regex("""(?i)\besta\s+noche\b""").find(working)
         val parsedTime = timeMatch?.let { match ->
             var hour = match.groupValues[1].toInt()
             val minute = match.groupValues[2].toIntOrNull() ?: 0
@@ -81,13 +83,13 @@ object NaturalTaskParser {
             LocalTime.of(hour, minute)
         }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
-        val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
+        val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: if (estaNocheMatch != null) LocalTime.of(20, 0) else LocalTime.of(9, 0), zone) }
 
         relativeMatch?.value?.let { working = working.replace(it, " ") }
         weekdayMatch?.value?.let { working = working.replace(it, " ") }
         timeMatch?.value?.let { working = working.replace(it, " ") }
         working = working
-            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
+            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\besta\s+noche\b"""), " ")
             .let { value -> numericDatePattern.replace(value, " ") }
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
             .replace(Regex("""\s+"""), " ")
