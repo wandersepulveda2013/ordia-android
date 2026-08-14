@@ -3,6 +3,7 @@ package com.ordia.app.domain
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
+import com.ordia.app.data.local.TaskStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
@@ -254,5 +255,68 @@ class GuardianCoachTest {
 
         assertEquals(GuardianCoach.Tone.FOCUSED, insight.tone)
         assertTrue(insight.message.contains("3 días"))
+    }
+
+    // c.164: una tarea atrasada que el usuario YA está ejecutando ahora mismo no
+    // debe aparecer como "comienza por esta" en la tarjeta de insight del coach.
+    // Mismo bug que GuardianEngine (c.163), en otra superficie. El coach debe
+    // nombrar otra atrasada recuperable; si todas están en curso, cae al insight
+    // siguiente en vez de pedir "empezar" lo que ya se hace.
+    private fun inProgressOverdueTask(id: Long, title: String, dueAt: Long, startAt: Long): TaskEntity =
+        TaskEntity(
+            id = id,
+            title = title,
+            dueAt = dueAt,
+            startAt = startAt,
+            durationMinutes = 120,
+            priority = TaskPriority.URGENT,
+            status = TaskStatus.IN_PROGRESS
+        )
+
+    @Test
+    fun inProgressOverdueTaskIsNotNamedAsRecoverable() {
+        // now = mediodía; la atrasada-en-curso empezó a las 11:00 (ventana 11–13).
+        val inProgress = inProgressOverdueTask(
+            id = 10,
+            title = "Reunión que se alargó",
+            dueAt = DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(9, 0), zone),
+            startAt = DateRules.toEpochMillis(today, LocalTime.of(11, 0), zone)
+        )
+        val pendingOverdue = TaskEntity(
+            id = 20,
+            title = "Pagar luz",
+            dueAt = DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(10, 0), zone),
+            durationMinutes = 30,
+            priority = TaskPriority.NORMAL
+        )
+
+        val insight = GuardianCoach.insight(listOf(inProgress, pendingOverdue), emptyList(), emptyList(), now, zone)
+
+        assertEquals(20L, insight.taskId)
+        assertEquals("Pagar luz", insight.title)
+    }
+
+    @Test
+    fun allOverdueInProgressFallsThroughToNextInsight() {
+        // Solo hay tareas atrasadas y TODAS están en curso: el coach no debe
+        // insistir con "RECUPERA EL CONTROL / comienza por esta". Cae al insight
+        // de prioridad de hoy (una tarea para hoy, no atrasada, no en curso).
+        val onlyInProgressOverdue = inProgressOverdueTask(
+            id = 10,
+            title = "Reunión que se alargó",
+            dueAt = DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(9, 0), zone),
+            startAt = DateRules.toEpochMillis(today, LocalTime.of(11, 0), zone)
+        )
+        val urgentToday = TaskEntity(
+            id = 2,
+            title = "Llamar proveedor",
+            dueAt = DateRules.toEpochMillis(today, LocalTime.of(15, 0), zone),
+            priority = TaskPriority.URGENT
+        )
+
+        val insight = GuardianCoach.insight(listOf(onlyInProgressOverdue, urgentToday), emptyList(), emptyList(), now, zone)
+
+        assertNotEquals("RECUPERA EL CONTROL", insight.eyebrow)
+        assertEquals(2L, insight.taskId)
     }
 }

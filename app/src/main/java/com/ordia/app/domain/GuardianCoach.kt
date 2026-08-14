@@ -16,10 +16,19 @@ object GuardianCoach {
         val roots = tasks.filter { it.parentTaskId == null && !it.archived && it.status != TaskStatus.CANCELLED }
         val pending = roots.filterNot { it.completed }
         val overdue = pending.filter { TaskRules.isOverdue(it, now) }
+        // Tareas atrasadas que el usuario NO está ejecutando ahora mismo: las
+        // únicas sobre las que tiene sentido un nudge de "recuperar/comenzar".
+        // Una atrasada pero en curso (startAt dentro de su ventana de duración)
+        // ya está atendida; nombrarla como "comienza por esta" es incoherente y
+        // distrae (mismo criterio que GuardianEngine.smallestOverdueAction,
+        // c.163). Si TODAS las atrasadas están en curso, no se nudgea a
+        // "recuperar el control": el usuario ya lo hace, así se deja caer al
+        // siguiente insight en vez de repetir "empieza por esta".
+        val recoverable = overdue.filter { !TaskRules.isInProgressNow(it, now) }
         val dueToday = pending.filter { TaskRules.isDueToday(it, now, zone) && !TaskRules.isOverdue(it, now) }
         val completedToday = roots.count { it.completed && it.completedAt?.let { time -> java.time.Instant.ofEpochMilli(time).atZone(zone).toLocalDate() == today } == true }
-        if (overdue.isNotEmpty()) {
-            val next = TaskRules.nextBestTask(overdue, now)
+        if (recoverable.isNotEmpty()) {
+            val next = TaskRules.nextBestTask(recoverable, now)
             // "Olvidada": la más atrasada lleva tanto tiempo esperando que el
             // problema no es priorizarla, sino decidir qué hacer con ella. El
             // coach deja de repetir "empieza por esta" y plantea la decisión
@@ -30,16 +39,16 @@ object GuardianCoach {
             // consulta sea anterior a la hora del vencimiento (p. ej. una tarea
             // vencida hace 2 días vista a las 7 a.m. sigue contando como 2, no
             // como 1) y son robustos frente a los cambios de horario (DST).
-            val mostOverdueDays = overdue.maxOf { task -> overdueDays(task.dueAt, today, zone) }
+            val mostOverdueDays = recoverable.maxOf { task -> overdueDays(task.dueAt, today, zone) }
             if (mostOverdueDays >= FORGOTTEN_DAYS_THRESHOLD) {
                 val ageLabel = forgottenAgeLabel(mostOverdueDays)
-                val message = if (overdue.size == 1)
+                val message = if (recoverable.size == 1)
                     "Esta tarea lleva $ageLabel atrasada. Hazla hoy o muévela con intención, no la dejes pasar otra vez."
                 else
-                    "Tienes ${overdue.size} tareas atrasadas y la más antigua lleva $ageLabel. Elige una: hacerla hoy, reprogramarla o quitarla."
+                    "Tienes ${recoverable.size} tareas atrasadas y la más antigua lleva $ageLabel. Elige una: hacerla hoy, reprogramarla o quitarla."
                 return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", message, next?.id, Tone.FOCUSED)
             }
-            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", if (overdue.size == 1) "Esta tarea está atrasada. Empieza con un bloque corto." else "Tienes ${overdue.size} tareas atrasadas. Comienza por esta.", next?.id, Tone.GENTLE)
+            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", if (recoverable.size == 1) "Esta tarea está atrasada. Empieza con un bloque corto." else "Tienes ${recoverable.size} tareas atrasadas. Comienza por esta.", next?.id, Tone.GENTLE)
         }
         val urgent = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
         if (urgent.isNotEmpty()) {
