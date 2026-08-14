@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.Button
+import com.ordia.app.ui.components.core.OrdiaButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -107,7 +108,7 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { reset() }) { Icon(Icons.Outlined.Refresh, "Reiniciar") }
-            Button(onClick = {
+            OrdiaButton(onClick = {
                 if (!running && startedAt == 0L) startedAt = System.currentTimeMillis()
                 running = !running
             }) {
