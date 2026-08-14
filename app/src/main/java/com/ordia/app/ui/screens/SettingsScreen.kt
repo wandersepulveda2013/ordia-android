@@ -58,9 +58,9 @@ import com.ordia.app.domain.DateRules
 import com.ordia.app.overlay.GuardianOverlayService
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.InfoBanner
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.SectionHeader
+import com.ordia.app.ui.components.core.InfoBanner
+import com.ordia.app.ui.components.core.ScreenHeader
+import com.ordia.app.ui.components.core.SectionHeader
 import com.ordia.app.update.UpdateResult
 import java.time.LocalDate
 

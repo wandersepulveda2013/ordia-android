@@ -35,11 +35,11 @@ import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.RoutineEntity
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.HabitEditorDialog
-import com.ordia.app.ui.components.RoutineEditorDialog
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.SectionHeader
+import com.ordia.app.ui.components.core.EmptyState
+import com.ordia.app.ui.components.core.HabitEditorDialog
+import com.ordia.app.ui.components.core.RoutineEditorDialog
+import com.ordia.app.ui.components.core.ScreenHeader
+import com.ordia.app.ui.components.core.SectionHeader
 
 @Composable
 fun HabitsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: PaddingValues) {

@@ -1,4 +1,4 @@
-package com.ordia.app.ui.components
+package com.ordia.app.ui.components.core
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog

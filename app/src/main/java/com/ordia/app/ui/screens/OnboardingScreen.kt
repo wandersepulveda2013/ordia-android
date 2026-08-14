@@ -25,9 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.preferences.InterfaceMode
-import com.ordia.app.ui.components.GuardianAvatar
-import com.ordia.app.ui.components.GuardianMood
-import com.ordia.app.ui.components.ordiaWorkSurface
+import com.ordia.app.ui.components.core.GuardianAvatar
+import com.ordia.app.ui.components.core.GuardianMood
+import com.ordia.app.ui.components.core.ordiaWorkSurface
 
 @Composable
 fun OnboardingScreen(

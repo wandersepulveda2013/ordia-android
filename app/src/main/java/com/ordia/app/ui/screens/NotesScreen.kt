@@ -31,8 +31,8 @@ import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockType
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.ScreenHeader
+import com.ordia.app.ui.components.core.EmptyState
+import com.ordia.app.ui.components.core.ScreenHeader
 
 @Composable
 fun NotesScreen(

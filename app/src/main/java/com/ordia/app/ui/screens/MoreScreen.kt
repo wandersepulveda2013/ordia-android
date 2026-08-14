@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.ui.OrdiaUiState
-import com.ordia.app.ui.components.ScreenHeader
+import com.ordia.app.ui.components.core.ScreenHeader
 import com.ordia.app.ui.navigation.Destination
 
 @Composable

@@ -22,10 +22,10 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.TaskEditorDialog
-import com.ordia.app.ui.components.TaskRow
+import com.ordia.app.ui.components.core.EmptyState
+import com.ordia.app.ui.components.core.ScreenHeader
+import com.ordia.app.ui.components.core.TaskEditorDialog
+import com.ordia.app.ui.components.core.TaskRow
 
 enum class TaskFilter(val label: String) { PENDING("Pendientes"), TODAY("Hoy"), UPCOMING("Próximas"), FLAGGED("Importantes"), COMPLETED("Completadas"), ALL("Todas") }
 

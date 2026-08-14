@@ -41,9 +41,9 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.domain.FocusClock
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.GuardianAvatar
-import com.ordia.app.ui.components.GuardianMood
-import com.ordia.app.ui.components.ScreenHeader
+import com.ordia.app.ui.components.core.GuardianAvatar
+import com.ordia.app.ui.components.core.GuardianMood
+import com.ordia.app.ui.components.core.ScreenHeader
 import kotlinx.coroutines.delay
 
 @Composable

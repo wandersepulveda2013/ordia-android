@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Schedule
@@ -45,14 +46,14 @@ import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.domain.GuardianCoach
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.GuardianAvatar
-import com.ordia.app.ui.components.GuardianMood
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.SectionHeader
-import com.ordia.app.ui.components.StatCard
-import com.ordia.app.ui.components.TaskEditorDialog
-import com.ordia.app.ui.components.TaskRow
+import com.ordia.app.ui.components.core.EmptyState
+import com.ordia.app.ui.components.core.GuardianAvatar
+import com.ordia.app.ui.components.core.GuardianMood
+import com.ordia.app.ui.components.core.ScreenHeader
+import com.ordia.app.ui.components.core.SectionHeader
+import com.ordia.app.ui.components.core.StatCard
+import com.ordia.app.ui.components.core.TaskEditorDialog
+import com.ordia.app.ui.components.core.TaskRow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -114,7 +115,7 @@ fun TodayScreen(
                         )
                     }
                     insight.taskId?.let { taskId ->
-                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.Outlined.ArrowForward, "Abrir recomendación") }
+                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Abrir recomendación") }
                     }
                 }
             }
