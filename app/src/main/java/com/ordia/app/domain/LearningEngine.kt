@@ -34,6 +34,17 @@ object LearningEngine {
      * - dayEndMinute: percentil 90 de la hora de finalización, recortado a
      *   [16h, 23h] y redondeado a 15 min.
      * Sin datos suficientes devuelve los valores predeterminados.
+     *
+     * Solo se consideran tareas raíz (`parentTaskId == null`), igual que
+     * SummaryEngine, GuardianEngine, What Now y el planificador al medir
+     * productividad del usuario. Las subtareas se completan a menudo en ráfagas
+     * (desmarcar/marcar varias seguidas) y su `completedAt` duplica el del padre
+     * cuando este se autocompleta ([SubtaskRules.shouldAutoCompleteParent]):
+     * contarlas infla y sesga los percentiles. Una ráfaga nocturna de 10
+     * subtareas empujaba el p90 a las 23:00 aunque la jornada real terminó
+     * antes, lo que a su vez estiraba la ventana de [DayPlanner] y relajaba el
+     * veredicto de carga de [SummaryEngine] hasta la madrugada. Filtrar a raíces
+     * mide los horarios REALES de cierre de trabajo.
      */
     fun learn(
         tasks: List<TaskEntity>,
@@ -43,7 +54,7 @@ object LearningEngine {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         val firstOfWindow = today.minusDays(WINDOW_DAYS)
         val minutes = tasks.asSequence()
-            .filter { it.completed && it.completedAt != null }
+            .filter { it.completed && it.completedAt != null && it.parentTaskId == null }
             .mapNotNull { task ->
                 val completedAt = task.completedAt ?: return@mapNotNull null
                 val date = DateRules.toLocalDate(completedAt, zone)

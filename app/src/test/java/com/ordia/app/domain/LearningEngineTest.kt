@@ -110,4 +110,34 @@ class LearningEngineTest {
         assertEquals(0, p.dayStartMinute % 15)
         assertEquals(0, p.dayEndMinute % 15)
     }
+
+    @Test
+    fun ignoresSubtasksSoLateBurstDoesNotStretchWindow() {
+        // Tareas raíz completadas en una jornada real 9:00–18:00 → ventana sana.
+        val roots = listOf(
+            completed(1, at(today, 9, 0)),
+            completed(2, at(today.minusDays(1), 9, 30)),
+            completed(3, at(today.minusDays(2), 10, 0)),
+            completed(4, at(today.minusDays(3), 12, 0)),
+            completed(5, at(today.minusDays(4), 17, 0)),
+            completed(6, at(today.minusDays(5), 18, 0)),
+            completed(7, at(today.minusDays(6), 9, 15))
+        )
+        // Ráfaga nocturna de 12 subtareas marcadas a las 23:30: antes inflaban el
+        // p90 hasta la madrugada y estiraban la ventana aprendida pese a que la
+        // jornada real terminó a las 18:00. Ahora deben ignorarse (raíz only).
+        val lateSubtasks = (100L..111L).map { id ->
+            TaskEntity(
+                id = id, title = "sub$id", completed = true,
+                completedAt = at(today, 23, 30), parentTaskId = 1L
+            )
+        }
+
+        val p = LearningEngine.learn(roots + lateSubtasks, now, zone)
+
+        // Con la jornada real 9–18, el p90 (≈18:00) se recorta a 17:00 (clamp a
+        // 23h y start+60). Lo crítico: NO llega a 23:00 por culpa de la ráfaga.
+        assertTrue("El fin de jornada no debe estirarse con la ráfaga de subtareas",
+            p.dayEndMinute <= 19 * 60)
+    }
 }
