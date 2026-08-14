@@ -176,7 +176,7 @@ object NaturalTaskParser {
      * adelantados). El modificador se consume en el match (limpieza de título) y se
      * detecta en la resolución para desplazar un mes.
      */
-    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
+    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
     private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
     private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?principios?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
     /**
@@ -1588,7 +1588,7 @@ object NaturalTaskParser {
         }
 
         val fixedPatterns = listOf(
-            Regex("""(?i)\btodos\s+los\s+d[ií]as\b|\bcada\s+d[ií]a\b|\bdiariamente\b""") to RecurrenceFrequency.DAILY,
+            Regex("""(?i)\btodos\s+los\s+d[ií]as\b|\bcada\s+d[ií]a\b|\bdiariamente\b|\ba\s+diario\b""") to RecurrenceFrequency.DAILY,
             Regex("""(?i)\btodas\s+las\s+[sS]emanas\b|\bcada\s+[sS]emana\b|\bsemanalmente\b|\bsemanal\b""") to RecurrenceFrequency.WEEKLY,
             Regex("""(?i)\btodos\s+los\s+meses\b|\bcada\s+mes\b|\bmensualmente\b|\bmensual\b""") to RecurrenceFrequency.MONTHLY,
             Regex("""(?i)\btodos\s+los\s+a[nñ]os\b|\bcada\s+a[nñ]o\b|\banualmente\b|\banual\b""") to RecurrenceFrequency.YEARLY
@@ -1655,7 +1655,7 @@ object NaturalTaskParser {
         val isNext = t.contains("que viene") || t.contains("próxim") || t.contains("proxim")
         if (isNext) return today.plusMonths(1)
         val kind = when {
-            t.contains("fin") || t.contains("finales") || t.contains("cierre") || t.contains("últim") || t.contains("ultim") -> "end"
+            t.contains("fin") || t.contains("finales") || t.contains("cierre") || t.contains("corte") || t.contains("últim") || t.contains("ultim") -> "end"
             t.contains("mediados") || t.contains("mediado") -> "mid"
             else -> "start"
         }

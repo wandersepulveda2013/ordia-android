@@ -4281,3 +4281,58 @@ a un permiso persistente frágil y silencioso ante fallos.
   `RecurrenceEngine` edge cases; detección de compromisos en notas; replanificación si
   OVERLOADED recurrente.
 
+## Ciclo 94 — 2026-08-14
+
+- **Rama**: `openhands/autonomous-ordia`
+- **HEAD inicial**: `bbb2e16` (c.93 docs push OK). Remoto sin avance concurrente (fetch OK,
+  HEAD sincronizado). STALE_RUN descartado.
+- **Problema seleccionado**: **P1 (compromiso diario olvidado + vencimiento mensual
+  olvidado)** en `NaturalTaskParser`. DOS brechas simétricas a fixes previos:
+  1. **"a diario"** (la frase adverbial cotidiana más común para un hábito diario en
+     español: "llevar al niño al colegio a diario", "revisar correos a diario") caía a
+     `rec=NONE`: el compromiso diario nacía como tarea ÚNICA sin recurrencia ni
+     recordatorio periódico → rutina silenciosamente perdida. "todos los días"/"cada día"/
+     "diariamente" SÍ funcionaban (c.33), pero "a diario" no estaba en el patrón.
+  2. **"corte de mes"/"corte del mes"** (sinónimo latinoamericano de "fin de mes"/"cierre
+     de mes": corte de caja, corte de nómina, pago de renta al corte del mes) caía a
+     `dueAt=null`: el vencimiento se olvidaba (sin recordatorio ni visibilidad en
+     planificador/What Now). "fin de mes"/"cierre de mes" SÍ funcionaban (c.92 añadió
+     "cierre"); "corte" era la brecha residual documentada como próxima prioridad en c.93.
+- **Causa raíz**:
+  1. `fixedPatterns` DAILY (línea ~1591) listaba `\btodos los días\b`/`\bcada día\b`/
+     `\bdiariamente\b` pero NO `\ba\s+diario\b`.
+  2. `endOfMonthPattern` (línea ~179) y `monthBaseForBoundary` (línea ~1658) aceptaban
+     `fin`/`finales`/`cierre`/`últim` pero NO `corte`.
+- **Solución mínima (sin nueva pantalla/botón, sin enum/migración)**:
+  1. Patrón DAILY: +`|\ba\s+diario\b` a la regex existente. Límites `\b` evitan colisión
+     con "diario" sustantivo (cuaderno diario): solo la frase "a diario" (adverbio) activa
+     DAILY.
+  2. `endOfMonthPattern`: +`corte` a la alternación
+     `(?:fin(?:ales|es)?|cierre|corte|últim…)`; `monthBaseForBoundary`: +`|| t.contains("corte")`
+     en la rama "end". Reutiliza todo el flujo de fin de mes (detección temprana, borrado,
+     resolución al último día del mes, combinable con hora explícita).
+- **No-regresión**: "todos los días"/"cada día"/"diariamente" OK (testdedicated);
+  "fin de mes"/"cierre de mes"/"finales de mes"/"último día del mes" OK; "mediados"/
+  "principios" intactos; "corte" no colisiona con otras palabras (límites `\b`).
+- **Bugs**: P1 compromiso diario olvidado ("a diario" → NONE); P1 vencimiento mensual
+  olvidado ("corte de mes" → dueAt=null).
+- **Features**: ninguna (fix de integridad de datos / recurrencia).
+- **Tests (TDD)**: sonda JVM inicial (3 tests RED) confirmó ambas brechas; convertidos en 3
+  tests permanentes en `NaturalTaskParserTest.kt`:
+  `parsesADiarioRecurrence` (DAILY+1, dueAt anclado a hoy),
+  `corteDeMesParsesDueAtFinDeMes` (dueAt=31/7), `corteDelMesParsesDueAtFinDeMes`
+  (dueAt=31/7, forma "del"). Comando: `bash tools/run_domain_tests.sh` → **652 tests PASS**
+  (28 clases — subida desde 649). Smoke: `bash tools/run_domain_checks.sh` → **25 OK**.
+  Sin regresión.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (ver commit).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: descubrimiento continuo — "cada rato"/"de vez en cuando" (recurrencia
+  vaga, requiere decisión de falso positivo); detección de compromisos en notas;
+  `RecurrenceEngine` edge cases; replanificación si OVERLOADED recurrente; auditoría de
+  captura/búsqueda/What Now para nuevas oportunidades de producto.
+
+
