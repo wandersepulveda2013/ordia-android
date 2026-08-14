@@ -15,7 +15,7 @@
 - **Features**: 0 (corrección de integridad de captura existente — más potencia sin nueva interfaz).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK en este entorno). Integración del parser con `AddTaskScreen`/IME queda fuera del harness JVM.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (+`monthBoundaryNamePattern`, +`parseMonthBoundaryName`, +bloque de detección temprana con guard anti-colisión, +rama en `effectiveRelativeDueAt`/`relativeIsDays`), `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+10 tests), `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG,BACKLOG}.md`.
-- **HEAD final**: (pendiente de commit).
+- **HEAD final**: `dec0cab` (pushed a `origin/openhands/autonomous-ordia`).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 978 tests, 0 failures). Integración Android NO VERIFICADA.
 - **Próxima prioridad**: descubrimiento continuo — gap "límite mensual con mes nombre" CERRADO; el probe dejó hallazgos menores para evaluar (anti-feature-bloat: "finales del 27"→null límite anual con año de 2 cifras, "la semana del 24"→null, "último día hábil del mes"→null — menos frecuentes); revisar áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento, búsqueda); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA.
 
