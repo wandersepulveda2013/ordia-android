@@ -42,11 +42,11 @@ fun OnboardingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            GuardianAvatar(92.dp, if (page == 2) GuardianMood.HAPPY else GuardianMood.CALM)
+            GuardianAvatar(64.dp, if (page == 2) GuardianMood.HAPPY else GuardianMood.CALM)
             Text(
                 when (page) {
-                    0 -> "Tu mundo, en orden"
-                    1 -> "Ordia se adapta a ti"
+                    0 -> "Menos recordar. Más hacer."
+                    1 -> "Interfaz que se adapta a tu momento."
                     else -> "Un compañero, no una molestia"
                 },
                 style = MaterialTheme.typography.displayMedium,

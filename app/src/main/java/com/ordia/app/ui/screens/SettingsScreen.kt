@@ -333,9 +333,5 @@ private fun GuardianMode.label() = when (this) { GuardianMode.DORMANT -> "Dormid
 private fun com.ordia.app.data.preferences.AccentPalette.label() = when (this) {
     com.ordia.app.data.preferences.AccentPalette.GOLD -> "Oro"
     com.ordia.app.data.preferences.AccentPalette.SAGE -> "Salvia"
-    com.ordia.app.data.preferences.AccentPalette.ROSE -> "Rosa"
-    com.ordia.app.data.preferences.AccentPalette.LAVENDER -> "Lavanda"
-    com.ordia.app.data.preferences.AccentPalette.OCEAN -> "Océano"
-    com.ordia.app.data.preferences.AccentPalette.TERRACOTTA -> "Terracota"
     com.ordia.app.data.preferences.AccentPalette.SYSTEM -> "Sistema (Material You)"
 }

@@ -48,7 +48,7 @@ fun ScreenHeader(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null
 ) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (eyebrow != null) {
             Text(eyebrow.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
         }
@@ -89,8 +89,7 @@ fun SectionHeader(title: String, supporting: String? = null, action: String? = n
 fun StatCard(label: String, value: String, supporting: String? = null, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -167,20 +166,7 @@ enum class GuardianMood(val label: String) { CALM("tranquilo"), HAPPY("feliz"), 
 
 @Composable
 fun Modifier.ordiaWorkSurface(): Modifier {
-    val dot = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f)
-    return this.drawBehind {
-        val gap = 18.dp.toPx()
-        val radius = 0.9.dp.toPx()
-        var x = gap / 2
-        while (x < size.width) {
-            var y = gap / 2
-            while (y < size.height) {
-                drawCircle(dot, radius, Offset(x, y))
-                y += gap
-            }
-            x += gap
-        }
-    }
+    return this.background(MaterialTheme.colorScheme.background)
 }
 
 @Composable
