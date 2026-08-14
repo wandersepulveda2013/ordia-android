@@ -172,6 +172,56 @@ class SearchEngineTest {
         assertEquals(setOf(1L), ids)
     }
 
+    @Test fun completadas_surfacesOnlyCompletedTasksRegardlessOfTitle() {
+        // Buscar "completadas" debe recuperar las tareas terminadas aunque su
+        // título no contenga esa palabra, simétrico a "urgente"/"importante"/
+        // "pendiente". Antes de este fix "completadas" solo hallaba tareas con
+        // esa palabra literal en el título, así que una tarea "Pagar luz" ya
+        // terminada jamás aparecía: el usuario no podía recuperar lo que hizo.
+        val now = System.currentTimeMillis()
+        val done = TaskEntity(id = 1, title = "Pagar luz", completed = true)
+        val pending = TaskEntity(id = 2, title = "Comprar pan", completed = false)
+        val ids = SearchEngine.search("completadas", listOf(done, pending), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun hechas_surfacesOnlyCompletedTasks() {
+        // "hechas" es sinónimo coloquial de "completadas": misma intención.
+        val now = System.currentTimeMillis()
+        val done = TaskEntity(id = 1, title = "Enviar informe", completed = true)
+        val pending = TaskEntity(id = 2, title = "Llamar a mamá", completed = false)
+        val ids = SearchEngine.search("hechas", listOf(done, pending), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun completadasWithContent_combinesStatusAndText() {
+        // "completadas reunion" combina el filtro de estado con texto: de las
+        // terminadas, solo las que tratan de "reunión" (igual que "urgente
+        // reunion").
+        val now = System.currentTimeMillis()
+        val doneReunion = TaskEntity(id = 1, title = "Reunión de equipo", completed = true)
+        val doneOtra = TaskEntity(id = 2, title = "Pago servidor", completed = true)
+        val ids = SearchEngine.search("completadas reunion", listOf(doneReunion, doneOtra), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun completar_doesNotTriggerCompletedFilter() {
+        // "completar" es el infinitivo ("to complete"), no "completado": no debe
+        // activar el filtro de estado. Una tarea titulada "Completar formulario"
+        // que aún NO está terminada no debe aparecer en una búsqueda de
+        // "completar" como si ya estuviera hecha.
+        val now = System.currentTimeMillis()
+        val toComplete = TaskEntity(id = 1, title = "Completar formulario", completed = false)
+        val ids = SearchEngine.search("completar", listOf(toComplete), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }.toSet()
+        // "completar" coincide por contenido con su propio título → aparece, pero
+        // NO por el filtro de estado (la tarea NO está completed).
+        assertEquals(setOf(1L), ids)
+    }
+
     @Test fun substringAltaInsideAnotherWord_isNotPriorityFilter() {
         // "exaltar" contiene la subcadena "alta", pero NO es intención de
         // prioridad: la detección es por PALABRA, no por subcadena. Una query

@@ -67,6 +67,15 @@ object SearchEngine {
         val hasPriorityWord = "prioridad" in words || "prioridades" in words
         val hasHighPriorityIntent = hasPriorityWord && ("alta" in words || "altas" in words)
         val hasLowPriorityIntent = hasPriorityWord && ("baja" in words || "bajas" in words)
+        // "completadas"/"hechas"/"terminadas" recuperan las tareas ya terminadas
+        // aunque su título no contenga esa palabra, simétrico a "pendiente" (no
+        // terminadas), "urgente" e "importante". Es la recuperación de "¿qué
+        // terminé?": sin este filtro solo aparecían si "completad..." estaba en el
+        // título. Detección por PALABRA (no subcadena) para excluir el infinitivo
+        // "completar"/"terminar" (acción por hacer, no hecha) y evitar colisiones
+        // como "hechizo". Heurística local honesta: sin botón ni pantalla nueva.
+        val wantsCompleted = COMPLETED_TOKENS.any { it in words }
+        val completedTerms = if (wantsCompleted) COMPLETED_TOKENS.filter { it in words }.toSet() else emptySet()
         val dateScope = detectDateScope(words)
         // Cuando la búsqueda expresa un rango de fecha ("hoy", "mañana", ...),
         // las palabras de fecha no se exigen en el contenido: se filtra por fecha.
@@ -115,8 +124,9 @@ object SearchEngine {
                     (!hasHighPriorityIntent || task.priority == TaskPriority.HIGH) &&
                     (!hasLowPriorityIntent || task.priority == TaskPriority.LOW) &&
                     (!normalized.contains("pendiente") || !task.completed) &&
+                    (!wantsCompleted || task.completed) &&
                     (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone)) &&
-                    (matches(task.title, task.details) || semanticMatches(TASK_TERMS + priorityTerms, task.title, task.details))
+                    (matches(task.title, task.details) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms, task.title, task.details))
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE))
             }
@@ -179,6 +189,15 @@ object SearchEngine {
     // --- Búsqueda por fecha (intención semántica) ---
 
     private val OVERDUE_TOKENS = setOf("atrasada", "atrasadas", "atrasado", "atrasados", "vencida", "vencidas", "vencido", "vencidos")
+    // Formas del participio "completado/hecho/terminado/finalizado/acabado" (no el
+    // infinitivo "completar"/"terminar"). Detectadas por palabra exacta.
+    private val COMPLETED_TOKENS = setOf(
+        "completada", "completadas", "completado", "completados",
+        "hecha", "hechas", "hecho", "hechos",
+        "terminada", "terminadas", "terminado", "terminados",
+        "finalizada", "finalizadas", "finalizado", "finalizados",
+        "acabada", "acabadas", "acabado", "acabados"
+    )
     private val TODAY_TOKENS = setOf("hoy")
     private val TOMORROW_TOKENS = setOf("manana")
     private val YESTERDAY_TOKENS = setOf("ayer")
