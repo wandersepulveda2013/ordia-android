@@ -40,6 +40,7 @@ import com.ordia.app.ui.components.EmptyState
 import com.ordia.app.ui.components.PriorityPill
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 
 @Composable
 fun TaskDetailScreen(
@@ -77,7 +78,7 @@ fun TaskDetailScreen(
     ) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Volver") }
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Volver") }
                 Text("Detalle de tarea", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 IconButton(onClick = { editing = true }) { Icon(Icons.Outlined.Edit, "Editar") }
                 IconButton(onClick = { vm.deleteTask(task); onBack() }) { Icon(Icons.Outlined.DeleteOutline, "Archivar") }

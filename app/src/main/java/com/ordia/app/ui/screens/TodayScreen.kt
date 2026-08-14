@@ -56,6 +56,7 @@ import com.ordia.app.ui.components.TaskRow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 
 @Composable
 fun TodayScreen(
@@ -114,7 +115,7 @@ fun TodayScreen(
                         )
                     }
                     insight.taskId?.let { taskId ->
-                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.Outlined.ArrowForward, "Abrir recomendación") }
+                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Abrir recomendación") }
                     }
                 }
             }
