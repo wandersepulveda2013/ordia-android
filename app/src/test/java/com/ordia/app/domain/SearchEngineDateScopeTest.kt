@@ -1,6 +1,9 @@
 package com.ordia.app.domain
 
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.HabitEntity
+import com.ordia.app.data.local.NoteEntity
+import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import java.time.ZoneOffset
@@ -288,5 +291,58 @@ class SearchEngineDateScopeTest {
         val sweet = tasks + TaskEntity(id = 22, title = "Café sin azúcar")
         val ids = SearchEngine.search("sin azucar", sweet, emptyList(), emptyList(), emptyList(), now = now).map { it.id }
         assertEquals(listOf(22L), ids)
+    }
+
+    // --- Scope de fecha puro: el ruido no fecha-able se suprime ---
+
+    @Test fun pureDateScope_excludesDatelessEntities() {
+        // Buscar solo "hoy" (scope de fecha sin palabras de contenido) NO debe
+        // devolver notas, proyectos, hábitos, conversaciones, compromisos ni
+        // automatizaciones: nada de eso tiene fecha que filtrar, así que
+        // incluirlos inunda la búsqueda de ruido sin señal. Antes del fix
+        // "hoy" devolvía cada nota y cada proyecto aunque no tuvieran relación.
+        val ids = SearchEngine.search(
+            "hoy",
+            tasks = listOf(TaskEntity(id = 1, title = "Reunión de equipo", dueAt = now)),
+            projects = listOf(ProjectEntity(id = 2, name = "Proyecto sin fecha")),
+            notes = listOf(NoteEntity(id = 3, title = "Idea suelta", body = "Nota sin fecha")),
+            habits = listOf(HabitEntity(id = 4, title = "Hábito sin fecha", details = "")),
+            now = now
+        ).map { it.id }
+        assertEquals(listOf(1L), ids)
+    }
+
+    @Test fun pureDateScope_overdueExcludesDatelessEntities() {
+        // Igual para "vencidas": solo tareas atrasadas, nada de notas/proyectos.
+        val overdue = TaskEntity(id = 41, title = "Factura atrasada", dueAt = now - 3 * day)
+        val ids = SearchEngine.search(
+            "vencidas",
+            tasks = listOf(overdue),
+            projects = listOf(ProjectEntity(id = 2, name = "Proyecto")),
+            notes = listOf(NoteEntity(id = 3, title = "Nota", body = "")),
+            habits = emptyList(),
+            now = now
+        ).map { it.id }
+        assertEquals(listOf(41L), ids)
+    }
+
+    @Test fun dateScopeWithContent_returnsMatchingDatelessEntities() {
+        // "hoy reunion" SÍ puede traer una nota sobre "reunión": hay palabra de
+        // contenido real además del scope de fecha, así que el contenido fecha-
+        // menos sigue siendo relevante (no se suprime, solo se filtra por texto).
+        val taskToday = TaskEntity(id = 1, title = "Reunión de equipo", dueAt = now)
+        val noteReunion = NoteEntity(id = 2, title = "Reunión", body = "Temas de la reunión")
+        val noteAjena = NoteEntity(id = 3, title = "Compras", body = "Lista del super")
+        val ids = SearchEngine.search(
+            "hoy reunion",
+            tasks = listOf(taskToday),
+            notes = listOf(noteReunion, noteAjena),
+            habits = emptyList(),
+            projects = emptyList(),
+            now = now
+        ).map { it.id }.toSet()
+        assertTrue("La tarea de hoy debe aparecer", 1L in ids)
+        assertTrue("La nota sobre reunión es relevante", 2L in ids)
+        assertTrue("La nota ajena no debe aparecer", 3L !in ids)
     }
 }

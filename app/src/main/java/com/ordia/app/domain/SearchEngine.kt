@@ -52,6 +52,15 @@ object SearchEngine {
         // las palabras de fecha no se exigen en el contenido: se filtra por fecha.
         val dateWords = if (dateScope != null) dateScopeTokens(words) else emptySet()
         val textWords = words.filterNot { it in dateWords }
+        // Un scope de fecha PURO ("hoy", "esta semana", "vencidas", "ayer"...)
+        // solo aplica a entidades con fecha (tareas). Proyectos, notas,
+        // hábitos, conversaciones, compromisos y automatizaciones no tienen
+        // fecha que filtrar: cuando la búsqueda es solo de fecha devolverlos
+        // todos (como ocurría vía matches()/semanticMatches() con textWords
+        // vacío) inunda los resultados de ruido sin señal —buscar "hoy"
+        // devolvía cada nota y cada proyecto aunque nada tuviera que ver con
+        // hoy. Se suprimen salvo que haya palabras de contenido reales.
+        val pureDateScope = dateScope != null && textWords.isEmpty()
         fun matches(vararg values: String): Boolean {
             if (dateScope != null) {
                 if (textWords.isEmpty()) return true
@@ -80,23 +89,23 @@ object SearchEngine {
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE))
             }
-            projects.filter { !typed && !it.archived && matches(it.name, it.description) }.forEach {
+            projects.filter { !typed && !it.archived && !pureDateScope && matches(it.name, it.description) }.forEach {
                 add(Ranked(SearchResult(SearchKind.PROJECT, it.id, it.name, it.description.take(90))))
             }
-            notes.filter { (!typed || wantsNotes) && !it.archived && (matches(it.title, it.body) || semanticMatches(NOTE_TERMS, it.title, it.body)) }.forEach {
+            notes.filter { (!typed || wantsNotes) && !it.archived && !pureDateScope && (matches(it.title, it.body) || semanticMatches(NOTE_TERMS, it.title, it.body)) }.forEach {
                 add(Ranked(SearchResult(SearchKind.NOTE, it.id, it.title, it.body.take(90))))
             }
-            habits.filter { !typed && !it.archived && matches(it.title, it.details) }.forEach {
+            habits.filter { !typed && !it.archived && !pureDateScope && matches(it.title, it.details) }.forEach {
                 add(Ranked(SearchResult(SearchKind.HABIT, it.id, it.title, it.details.take(90))))
             }
-            conversations.filter { (!typed || wantsMessages) && (matches(it.title, it.summary, it.participants) || semanticMatches(MESSAGE_TERMS, it.title, it.summary, it.participants)) }
+            conversations.filter { (!typed || wantsMessages) && !pureDateScope && (matches(it.title, it.summary, it.participants) || semanticMatches(MESSAGE_TERMS, it.title, it.summary, it.participants)) }
                 .forEach { add(Ranked(SearchResult(SearchKind.CONVERSATION, it.id, it.title, it.summary.take(90)))) }
             commitments.filter {
-                (!typed || wantsCommitments || wantsMessages) &&
+                (!typed || wantsCommitments || wantsMessages) && !pureDateScope &&
                     (!normalized.contains("pendiente") || it.reviewStatus == CommitmentReviewStatus.PENDING) &&
                     (matches(it.action, it.actor, it.location) || semanticMatches(COMMITMENT_TERMS, it.action, it.actor, it.location))
             }.forEach { add(Ranked(SearchResult(SearchKind.COMMITMENT, it.id, it.action, it.actor.take(90)))) }
-            automations.filter { (!typed || wantsAutomations) && matches(it.name, it.instruction, it.explanation) }
+            automations.filter { (!typed || wantsAutomations) && !pureDateScope && matches(it.name, it.instruction, it.explanation) }
                 .forEach { add(Ranked(SearchResult(SearchKind.AUTOMATION, it.id, it.name, it.explanation.take(90)))) }
         }.sortedWith(
             compareBy<Ranked> { if (it.result.title.foldForSearch().startsWith(normalized)) 0 else 1 }
