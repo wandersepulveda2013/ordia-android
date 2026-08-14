@@ -1,5 +1,6 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -38,5 +39,28 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Revisar el horno en 45 minutos", now, zone)
         assertEquals("Revisar el horno", result.title)
         assertEquals(now + 45 * 60_000L, result.dueAt)
+    }
+
+    @Test fun parsesRecurrenceDaily() {
+        val result = NaturalTaskParser.parse("Correr 5km todos los días a las 6 am", now, zone)
+        assertEquals("Correr 5km", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(LocalTime.of(6, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesRecurrenceWeeklyAndNextWeek() {
+        val result = NaturalTaskParser.parse("Reunión de equipo próxima semana a las 10 am cada semana", now, zone)
+        assertEquals("Reunión de equipo", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        val expectedDate = LocalDate.of(2026, 7, 29).plusDays(7)
+        assertEquals(expectedDate, DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(expectedDate.dayOfWeek.value.toString(), result.recurrenceDays)
+    }
+
+    @Test fun parsesTonightRelativeTime() {
+        val result = NaturalTaskParser.parse("Leer un libro esta noche", now, zone)
+        assertEquals("Leer un libro", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 }

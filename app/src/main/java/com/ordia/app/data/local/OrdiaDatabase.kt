@@ -22,7 +22,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TaskTagCrossRef::class,
         AttachmentEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -41,6 +41,64 @@ abstract class OrdiaDatabase : RoomDatabase() {
 
     companion object {
         @Volatile private var instance: OrdiaDatabase? = null
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // SQLite does not support adding a foreign key constraint via ALTER TABLE.
+                // We must recreate the table, copy the data, drop the old table, and rename the new one.
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `tasks_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `details` TEXT NOT NULL,
+                        `projectId` INTEGER,
+                        `parentTaskId` INTEGER,
+                        `blockedBy` INTEGER,
+                        `startAt` INTEGER,
+                        `dueAt` INTEGER,
+                        `reminderAt` INTEGER,
+                        `durationMinutes` INTEGER NOT NULL,
+                        `priority` TEXT NOT NULL,
+                        `status` TEXT NOT NULL DEFAULT 'INBOX',
+                        `completed` INTEGER NOT NULL,
+                        `completedAt` INTEGER,
+                        `recurrence` TEXT NOT NULL DEFAULT 'NONE',
+                        `recurrenceInterval` INTEGER NOT NULL DEFAULT 1,
+                        `recurrenceDays` TEXT NOT NULL DEFAULT '',
+                        `sortOrder` INTEGER NOT NULL DEFAULT 0,
+                        `flagged` INTEGER NOT NULL DEFAULT 0,
+                        `archived` INTEGER NOT NULL DEFAULT 0,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
+                        FOREIGN KEY(`blockedBy`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                """.trimIndent())
+
+                db.execSQL("""
+                    INSERT INTO `tasks_new` (
+                        `id`, `title`, `details`, `projectId`, `parentTaskId`, `startAt`, `dueAt`, `reminderAt`,
+                        `durationMinutes`, `priority`, `status`, `completed`, `completedAt`, `recurrence`,
+                        `recurrenceInterval`, `recurrenceDays`, `sortOrder`, `flagged`, `archived`, `createdAt`, `updatedAt`
+                    ) SELECT
+                        `id`, `title`, `details`, `projectId`, `parentTaskId`, `startAt`, `dueAt`, `reminderAt`,
+                        `durationMinutes`, `priority`, `status`, `completed`, `completedAt`, `recurrence`,
+                        `recurrenceInterval`, `recurrenceDays`, `sortOrder`, `flagged`, `archived`, `createdAt`, `updatedAt`
+                    FROM `tasks`
+                """.trimIndent())
+
+                db.execSQL("DROP TABLE `tasks`")
+                db.execSQL("ALTER TABLE `tasks_new` RENAME TO `tasks`")
+
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_projectId` ON `tasks` (`projectId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_parentTaskId` ON `tasks` (`parentTaskId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_blockedBy` ON `tasks` (`blockedBy`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_dueAt` ON `tasks` (`dueAt`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_completed` ON `tasks` (`completed`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_status` ON `tasks` (`status`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_archived` ON `tasks` (`archived`)")
+            }
+        }
 
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -174,7 +232,7 @@ abstract class OrdiaDatabase : RoomDatabase() {
                     OrdiaDatabase::class.java,
                     "ordia.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { instance = it }
             }

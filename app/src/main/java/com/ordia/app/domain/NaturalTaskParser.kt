@@ -1,5 +1,6 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskPriority
 import java.time.DayOfWeek
 import java.time.Instant
@@ -11,7 +12,9 @@ import java.time.ZoneId
 data class ParsedTaskInput(
     val title: String,
     val dueAt: Long?,
-    val priority: TaskPriority
+    val priority: TaskPriority,
+    val recurrence: RecurrenceFrequency = RecurrenceFrequency.NONE,
+    val recurrenceDays: String = ""
 )
 
 object NaturalTaskParser {
@@ -23,6 +26,8 @@ object NaturalTaskParser {
         Regex("""(?i)\b([01]?\d|2[0-3]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b""")
     )
+    private val recurrenceDailyPattern = Regex("""(?i)\b(todos\s+los\s+d[ií]as|cada\s+d[ií]a|diariamente)\b""")
+    private val recurrenceWeeklyPattern = Regex("""(?i)\b(cada\s+semana|todas\s+las\s+semanas|semanalmente)\b""")
 
     fun parse(text: String, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): ParsedTaskInput {
         val base = Instant.ofEpochMilli(now).atZone(zone)
@@ -47,12 +52,28 @@ object NaturalTaskParser {
             }
             now + millis
         }
+
+        var recurrence = RecurrenceFrequency.NONE
+        val dailyMatch = recurrenceDailyPattern.find(working)
+        if (dailyMatch != null) {
+            recurrence = RecurrenceFrequency.DAILY
+            working = working.replace(dailyMatch.value, " ")
+        } else {
+            val weeklyMatch = recurrenceWeeklyPattern.find(working)
+            if (weeklyMatch != null) {
+                recurrence = RecurrenceFrequency.WEEKLY
+                working = working.replace(weeklyMatch.value, " ")
+            }
+        }
+
         val weekdayMatch = weekdayPattern.find(working)
         val numericDateMatch = numericDatePattern.find(working)
         val date = when {
+            Regex("""(?i)\bpr[oó]xima\s+semana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(7)
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
+            Regex("""(?i)\besta\s+noche\b""").containsMatchIn(working) -> base.toLocalDate()
             weekdayMatch != null -> nextWeekday(
                 base.toLocalDate(),
                 weekdayMatch.groupValues[1].toDayOfWeek()
@@ -72,7 +93,7 @@ object NaturalTaskParser {
         }
 
         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
-        val parsedTime = timeMatch?.let { match ->
+        var parsedTime = timeMatch?.let { match ->
             var hour = match.groupValues[1].toInt()
             val minute = match.groupValues[2].toIntOrNull() ?: 0
             val meridiem = match.groupValues[3].lowercase().replace(".", "").replace(" ", "")
@@ -80,6 +101,11 @@ object NaturalTaskParser {
             if (meridiem == "am" && hour == 12) hour = 0
             LocalTime.of(hour, minute)
         }
+
+        if (parsedTime == null && Regex("""(?i)\besta\s+noche\b""").containsMatchIn(working)) {
+            parsedTime = LocalTime.of(20, 0)
+        }
+
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
 
@@ -87,7 +113,7 @@ object NaturalTaskParser {
         weekdayMatch?.value?.let { working = working.replace(it, " ") }
         timeMatch?.value?.let { working = working.replace(it, " ") }
         working = working
-            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
+            .replace(Regex("""(?i)\bpr[oó]xima\s+semana\b|\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\besta\s+noche\b"""), " ")
             .let { value -> numericDatePattern.replace(value, " ") }
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
             .replace(Regex("""\s+"""), " ")
@@ -96,7 +122,9 @@ object NaturalTaskParser {
         return ParsedTaskInput(
             title = working.ifBlank { text.trim() }.take(240),
             dueAt = dueAt,
-            priority = priority
+            priority = priority,
+            recurrence = recurrence,
+            recurrenceDays = if (recurrence == RecurrenceFrequency.WEEKLY && effectiveDate != null) effectiveDate.dayOfWeek.value.toString() else ""
         )
     }
 

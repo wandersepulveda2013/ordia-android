@@ -27,11 +27,18 @@ enum class AttachmentOwnerType { TASK, NOTE, PROJECT }
             parentColumns = ["id"],
             childColumns = ["projectId"],
             onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = TaskEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["blockedBy"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
     indices = [
         Index("projectId"),
         Index("parentTaskId"),
+        Index("blockedBy"),
         Index("dueAt"),
         Index("completed"),
         Index("status"),
@@ -44,6 +51,7 @@ data class TaskEntity(
     val details: String = "",
     val projectId: Long? = null,
     val parentTaskId: Long? = null,
+    val blockedBy: Long? = null,
     val startAt: Long? = null,
     val dueAt: Long? = null,
     val reminderAt: Long? = null,
