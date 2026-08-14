@@ -1559,30 +1559,71 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
-    // --- Cruce de medianoche: el rango termina al día siguiente. Antes el bloque se
-    // rechazaba (endMin <= startMin) y se perdía la duración del evento (c.80, P1). ---
-    @Test fun overnightRangeDe10DeLaNocheA1DeLaMadrugada() {
-        val result = NaturalTaskParser.parse("Cena de 10 de la noche a 1 de la madrugada", now, zone)
-        assertEquals(LocalTime.of(22, 0), DateRules.toLocalTime(result.dueAt!!, zone))
-        assertEquals(180, result.durationMinutes)
+    // --- Meridiem solo en el INICIO (PM): el fin bare hereda PM (ciclo 79, BUG-001) ---
+    // BUG: "de 6pm a 8" dejaba el fin (8) sin resolver → 08:00 < 18:00 → rango inválido,
+    // duración null y título sucio ("Reunión de a 8"). El inicio con PM explícito
+    // propaga su contexto al fin bare (mismo lado del mediodía) → 18:00→20:00, dur 120.
+    @Test fun rangeWithLeadingCompactPmPropagatesToEnd() {
+        val result = NaturalTaskParser.parse("Reunión de 6pm a 8", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(120, result.durationMinutes)
     }
 
-    @Test fun overnightRangeDe11DeLaNocheA6DeLaManana() {
-        val result = NaturalTaskParser.parse("Trabajo de 11 de la noche a 6 de la mañana", now, zone)
+    @Test fun rangeWithLeadingCompactPmAndTrailingTextPropagatesToEnd() {
+        // El fin bare hereda PM aunque vaya seguido de texto conector ("con el cliente").
+        val result = NaturalTaskParser.parse("Reunión de 6pm a 8 con el cliente", now, zone)
+        assertEquals("Reunión con el cliente", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun rangeWithLeadingCompactPmAndMinutesPropagatesToEnd() {
+        val result = NaturalTaskParser.parse("Curso de 2:30pm a 4:30", now, zone)
+        assertEquals(LocalTime.of(14, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun rangeWithLeadingDeLaTardePropagatesToEnd() {
+        // "de la tarde" en el inicio también propaga al fin bare.
+        val result = NaturalTaskParser.parse("Clase de 6 de la tarde a 8", now, zone)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(120, result.durationMinutes)
+    }
+
+    // ANTI FALSO POSITIVO: el fin bare NO hereda PM si le sigue un sustantivo de
+    // cantidad ("de 2pm a 4 entradas" es una compra, no un rango horario).
+    @Test fun rangeWithLeadingPmAndCountNounIsRejected() {
+        val result = NaturalTaskParser.parse("Comprar de 2pm a 4 entradas", now, zone)
+        assertEquals("Comprar de a 4 entradas", result.title)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun rangeWithLeadingAmPropagatesToEnd() {
+        // AM explícito en el inicio: el fin bare hereda AM (no suma 12). "8am a 12" → 12:00.
+        val result = NaturalTaskParser.parse("Turno de 8am a 12", now, zone)
+        assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(240, result.durationMinutes)
+    }
+
+    // CRUCE inverso de medianoche: "de 11pm a 1" (inicio PM, fin bare con endHr <
+    // startHr). El fin NO hereda PM (sería 13:00); se queda en 01:00 y el rango envuelve
+    // al día siguiente → 23:00→01:00, dur 120.
+    @Test fun rangeWithLeadingPmCrossingMidnightWraps() {
+        val result = NaturalTaskParser.parse("de 11pm a 1", now, zone)
         assertEquals(LocalTime.of(23, 0), DateRules.toLocalTime(result.dueAt!!, zone))
-        assertEquals(420, result.durationMinutes)
+        assertEquals(120, result.durationMinutes)
     }
 
-    @Test fun overnightRangeDe9DeLaNocheA2DeLaMadrugada() {
-        val result = NaturalTaskParser.parse("Fiesta de 9 de la noche a 2 de la madrugada", now, zone)
-        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
-        assertEquals(300, result.durationMinutes)
+    @Test fun rangeWithLeadingPmCrossingMidnightWithDeLaMadrugadaWraps() {
+        val result = NaturalTaskParser.parse("Turno de 11pm a 1 de la madrugada", now, zone)
+        assertEquals(LocalTime.of(23, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(120, result.durationMinutes)
     }
 
-    @Test fun overnightRangeAmbiguousNotReinterpretedAsOvernight() {
-        // "de 10 a 1" sin meridiem: NO se reinterpreta como overnight (15 h); se rechaza.
-        val result = NaturalTaskParser.parse("Reunión de 10 a 1", now, zone)
-        assertNull(result.dueAt)
+    // "de 8pm a 3pm" (ambos PM, descendente) NO envuelve: se rechaza como antes.
+    @Test fun rangeWithBothPmDescendingNotWrapped() {
+        val result = NaturalTaskParser.parse("Reunión de 8pm a 3pm", now, zone)
         assertNull(result.durationMinutes)
     }
 

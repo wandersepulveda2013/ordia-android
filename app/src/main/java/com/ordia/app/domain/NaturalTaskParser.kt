@@ -1012,18 +1012,29 @@ object NaturalTaskParser {
             val hasUnit = m.groupValues[7].isNotEmpty()
             val startPm = startMer == "pm" || startMer == "delatarde" || startMer == "delanoche"
             val endPm = endMer == "pm" || endMer == "delatarde" || endMer == "delanoche"
-            // Propagación de meridiem: si SOLO el extremo final lleva un meridiem PM
-            // ("de 6 a 8 de la tarde"), el inicio (sin meridiem) comparte el contexto
-            // de tarde/noche → 18:00, no 06:00. Simétrico a "a las 6 de la tarde"→18:00.
-            // No se propaga en sentido inverso (inicio PM → fin bare) para no aceptar
-            // falsos positivos tipo "de 2pm a 4 entradas".
-            // CRUCE DEL MEDIODÍA: solo se propaga PM al inicio bare si startHr <= endHr
-            // (mismo lado del mediodía). En un cruce como "de 11 a 1 de la tarde" el
-            // inicio es AM (11:00) y el fin PM (13:00); propagar PM convertiría 11→23 y
-            // la duración/dueAt serían absurdos. Sin este guard, "11 a 1 de la tarde"
-            // daba dueAt=23:00 y duración 5 (clamp de -600).
+            // Propagación de meridiem: si SOLO un extremo lleva un meridiem PM, el otro
+            // (sin meridiem) comparte el contexto de tarde/noche.
+            //  - FIN con PM ("de 6 a 8 de la tarde") → inicio bare hereda PM → 18:00.
+            //  - INICIO con PM ("de 6pm a 8") → fin bare hereda PM → 20:00. Sin esto el
+            //    fin (8) caía antes que el inicio (18) → rango inválido, duración null y
+            //    título sucio ("Reunión de a 8").
+            // CRUCE DEL MEDIODÍA: la propagación solo aplica cuando startHr <= endHr
+            // (mismo lado del mediodía). En un cruce ("de 11 a 1 de la tarde") el inicio
+            // es AM (11:00) y el fin PM (13:00); propagar PM convertiría 11→23 y la
+            // duración/dueAt serían absurdos. Sin este guard, "11 a 1 de la tarde" daba
+            // dueAt=23:00 y duración 5 (clamp de -600).
+            // ANTI FALSO POSITIVO: la propagación inversa (inicio PM → fin bare) se
+            // suprime si al fin le sigue un sustantivo de cantidad ("de 2pm a 4
+            // entradas"), que es una cuenta, no un rango horario. La propagación hacia
+            // adelante no lo necesita porque el fin ya lleva meridiem explícito.
             if (startH == null || endH == null) return@let null
+            // followedByCount no depende del meridiem; se calcula antes para gatear la
+            // propagación inversa.
+            val followedByCount = m.range.last + 1 < working.length &&
+                !Regex("""^\s*(?:,|\.|;|:|!|\?|y\b|o\b|con\b|de\b|del\b|en\b|para\b|hasta\b|desde\b|luego\b|después\b|despues\b|pero\b|porque\b|por\b|sin\b|sobre\b|a\b|al\b|el\b|la\b|los\b|las\b|un\b|una\b|mañana\b|manana\b|hoy\b|ayer\b|anteayer\b|lunes\b|martes\b|miércoles\b|miercoles\b|jueves\b|viernes\b|sábado\b|sabado\b|domingo\b|$)""", RegexOption.IGNORE_CASE)
+                    .containsMatchIn(working.substring(m.range.last + 1))
             val startPmEffective = startPm || (startMer.isEmpty() && endPm && startH <= endH)
+            val endPmEffective = endPm || (endMer.isEmpty() && startPm && startH <= endH && !followedByCount)
             fun resolve(h: Int, mer: String, pm: Boolean): Int? = when {
                 h == 24 && mer.isEmpty() -> 0
                 h !in 0..24 -> null
@@ -1034,38 +1045,38 @@ object NaturalTaskParser {
                 else -> if (h == 12) 0 else h   // AM / de la mañana / madrugada
             }
             val sAbs = resolve(startH, startMer, startPmEffective)
-            val eAbs = resolve(endH, endMer, endPm)
+            val eAbs = resolve(endH, endMer, endPmEffective)
             if (sAbs == null || eAbs == null) return@let null
             val startMin = sAbs * 60 + startM
             val endMin = eAbs * 60 + endM
-            // Duración solo si el rango es plausible (5 min..24 h). Soporta cruce de medianoche:
-            // "de 10 de la noche a 1 de la madrugada" (22:00→01:00) → fin < inicio, se
-            // suma 24 h. El cruce solo se acepta con señal clara (meridiem/unidad/PM);
-            // un rango ambiguo sin meridiem ("de 10 a 1") NO se reinterpreta como
-            // overnight (demasiado arriesgado), se rechaza como antes.
+            // CRUCE DE MEDIANOCHE INVERSO: inicio PM con fin bare/AM que cae ANTES en el
+            // reloj ("de 11pm a 1" → 23:00→01:00). El fin NO hereda PM (sería 13:00); se
+            // queda en su hora (01:00) y el rango envuelve al día siguiente (+24h). Solo
+            // cuando el inicio es PM-efectivo y el fin no lo es (distinto lado del
+            // mediodía), y sin sustantivo de cantidad tras el fin. Así "de 8pm a 3pm"
+            // (ambos PM, descendente) NO envuelve: se rechaza como antes.
+            val midnightWrap = endMin <= startMin &&
+                startPmEffective && !endPmEffective && !followedByCount
+            val endMinEffective = if (midnightWrap) endMin + 24 * 60 else endMin
+            // Duración solo si fin > inicio (mismo día o envuelto) y rango plausible (<= 24h).
             val hasMinutesOrMeridiem = startM != 0 || endM != 0 ||
                 startMer.isNotEmpty() || endMer.isNotEmpty()
             // Rango en punto y ambiguo (sin unidad/minutos/meridiem, ambas < 13): solo se
             // acepta si no le sigue un sustantivo de cantidad ("entradas", "personas").
-            val followedByCount = m.range.last + 1 < working.length &&
-                !Regex("""^\s*(?:,|\.|;|:|!|\?|y\b|o\b|con\b|de\b|del\b|en\b|para\b|hasta\b|desde\b|luego\b|después\b|despues\b|pero\b|porque\b|por\b|sin\b|sobre\b|a\b|al\b|el\b|la\b|los\b|las\b|un\b|una\b|mañana\b|manana\b|hoy\b|ayer\b|anteayer\b|lunes\b|martes\b|miércoles\b|miercoles\b|jueves\b|viernes\b|sábado\b|sabado\b|domingo\b|$)""", RegexOption.IGNORE_CASE)
-                    .containsMatchIn(working.substring(m.range.last + 1))
             val ambiguousOnTheHour = !hasUnit && !hasMinutesOrMeridiem &&
                 startH < 13 && endH < 13
-            val sameDay = endMin > startMin
-            val rawDuration = if (sameDay) endMin - startMin else endMin + 24 * 60 - startMin
             val acceptAmbiguous = !ambiguousOnTheHour ||
-                (!followedByCount && sameDay && rawDuration in 60..(11 * 60))
-            val clearSignal = hasUnit || hasMinutesOrMeridiem || sAbs >= 13 || eAbs >= 13
-            val valid = rawDuration in 5..(24 * 60) &&
+                (!followedByCount && (endMin - startMin) in 60..(11 * 60))
+            val valid = endMinEffective > startMin &&
+                (endMinEffective - startMin) <= 24 * 60 &&
                 sAbs in 0..23 && eAbs in 0..23 && startM in 0..59 && endM in 0..59 &&
-                (clearSignal || (acceptAmbiguous && sameDay))
+                (hasUnit || hasMinutesOrMeridiem || sAbs >= 13 || eAbs >= 13 || acceptAmbiguous)
             // La duración se calcula con las horas ABSOLUTAS resueltas (sAbs/eAbs), no con
             // las horas crudas del texto. Sin esto, un rango que cruza el mediodía
             // ("de 12 a 2 de la tarde": start=12, end=14) computaba end−start con horas
             // crudas (2−12=−600) → coerceIn(5,…) dejaba 5 min en vez de 120.
             if (valid) {
-                rangeDurationMinutes = rawDuration.coerceIn(5, 24 * 60)
+                rangeDurationMinutes = (endMinEffective - startMin).coerceIn(5, 24 * 60)
                 m
             } else {
                 null
