@@ -2541,6 +2541,25 @@ object NaturalTaskParser {
             return RecurrenceResult(frequency, interval, emptyList(), phrases)
         }
 
+        // "cada otro día" / "un día sí y otro no" = cada dos días (DAILY interval=2).
+        // Son los equivalentes idiomáticos de "cada dos días" (que sí casa arriba en
+        // intervalPattern): "cada otro día" (calque de "every other day", muy usado en
+        // LATAM para medicación) y "un día sí y otro no" (forma nativa) significan
+        // exactamente lo mismo. Antes caían a NONE → la tarea recurrente nacía sin fecha
+        // ni cadencia (rutina/medicación silenciosamente olvidada: recordatorio jamás
+        // disparaba, nunca aparecía en What Now). Se mapea a DAILY+2, idéntico a
+        // "cada dos días", reutilizando todo el flujo de intervalo existente. Se evalúa
+        // tras intervalPattern (éstas no casan ahí: "otro"/"sí…otro no" no son números)
+        // y antes de fixedPatterns ("cada día"→DAILY+1 no colisiona: exige "día" justo
+        // tras "cada ", y aquí media "otro"). Se admite "sí"/"si" (acento opcional) y
+        // plural "días"/"otros" por si el usuario lo escribe así.
+        val everyOtherDayPattern =
+            Regex("""(?i)\bcada\s+otros?\s+d[ií]as?\b|\bun\s+d[ií]a\s+s[ií]\s+y\s+otro\s+no\b""")
+        everyOtherDayPattern.find(working)?.let { match ->
+            phrases += match.range
+            return RecurrenceResult(RecurrenceFrequency.DAILY, 2, emptyList(), phrases)
+        }
+
         // "cada quincena" / "quincenalmente" / "quincenal" (adjetivo) / "todas las
         // quincenas": cadencia quincenal cotidiana en español (nóminas, pagos,
         // reportes cada 15 días). `intervalPattern` solo admite dígitos ("cada 2

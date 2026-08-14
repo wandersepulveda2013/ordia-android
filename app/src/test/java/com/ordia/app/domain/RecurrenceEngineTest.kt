@@ -27,6 +27,17 @@ class RecurrenceEngineTest {
         assertFalse(next.completed)
     }
 
+    // "cada otro día" / "un día sí y otro no" (DAILY interval=2): al completar avanza
+    // exactamente 2 días, no 1. Valida que el intervalo desde el parser se respeta en
+    // el motor (medicación cada-dos-días no se vuelve diaria al completar).
+    @Test fun dailyInterval2_advancesTwoDays() {
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.of(9, 30), zone)
+        val task = TaskEntity(title = "Pastilla cada otro día", dueAt = due, recurrence = RecurrenceFrequency.DAILY, recurrenceInterval = 2)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(next.dueAt, zone))
+    }
+
     @Test fun weekly_usesSelectedWeekdays() {
         val due = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.NOON, zone) // miércoles
         val task = TaskEntity(title = "Lunes y viernes", dueAt = due, recurrence = RecurrenceFrequency.WEEKLY, recurrenceDays = "1,5")

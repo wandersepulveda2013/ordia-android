@@ -4931,6 +4931,61 @@ class NaturalTaskParserTest {
         assertNotNull(result.dueAt)
     }
 
+    // --- "cada otro día" / "un día sí y otro no" = cada dos días (DAILY interval=2) ---
+    // Equivalentes idiomáticos de "cada dos días" (que casa en `intervalPattern`).
+    // "cada otro día" (calque de "every other day", muy usado en LATAM para medicación) y
+    // "un día sí y otro no" (forma nativa) significan cada dos días. Antes caían a NONE
+    // → la tarea recurrente nacía SIN fecha ni cadencia (rutina/medicación olvidada:
+    // recordatorio jamás disparaba). Ahora se mapean a DAILY interval=2, idéntico a
+    // "cada dos días", con título limpio y primera ocurrencia anclada a la captura.
+    @Test fun cadaOtroDiaParsesDailyInterval2() {
+        val result = NaturalTaskParser.parse("Tomar pastilla cada otro día", now, zone)
+        assertEquals("Tomar pastilla", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun cadaOtrosDiasPluralParsesDailyInterval2() {
+        val result = NaturalTaskParser.parse("Tomar pastilla cada otros días", now, zone)
+        assertEquals("Tomar pastilla", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun unDiaSiYOtroNoParsesDailyInterval2() {
+        val result = NaturalTaskParser.parse("Medicamento un día sí y otro no", now, zone)
+        assertEquals("Medicamento", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun unDiaSiYOtroNoSinAcentosParsesDailyInterval2() {
+        val result = NaturalTaskParser.parse("Medicamento un dia si y otro no", now, zone)
+        assertEquals("Medicamento", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // Falsos positivos: "otro día" sin "cada" es fecha (pasada/relativa), NO recurrencia.
+    // La guarda `\bcada\s+otros?` evita que "el otro día" o "otro día hablo con juan"
+    // se malinterpreten como cadencia cada-dos-días.
+    @Test fun elOtroDiaNoEsRecurrencia() {
+        val result = NaturalTaskParser.parse("Revisar el otro día el informe", now, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+    }
+
+    @Test fun otroDiaSinCadaNoEsRecurrencia() {
+        val result = NaturalTaskParser.parse("Otro día hablo con Juan", now, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+    }
+
     // --- Hora suelta con parte del día, SIN "a las" (ciclo 62) ---
     // "Taller 9 de la tarde" debe resolver la HORA EXPLÍCITA (21:00), no la canónica de la
     // tarde (15:00). Antes el número se ignoraba y caía a 15:00/21:00/09:00/04:00, dejando
