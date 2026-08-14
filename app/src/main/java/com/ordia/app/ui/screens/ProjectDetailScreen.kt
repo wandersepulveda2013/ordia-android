@@ -40,6 +40,7 @@ import com.ordia.app.ui.components.ProjectEditorDialog
 import com.ordia.app.ui.components.SectionHeader
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 
 @Composable
 fun ProjectDetailScreen(
@@ -82,7 +83,7 @@ fun ProjectDetailScreen(
     ) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Volver") }
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Volver") }
                 Text(project.name, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
                 IconButton(onClick = { editing = true }) { Icon(Icons.Outlined.Edit, "Editar proyecto") }
                 IconButton(onClick = { vm.deleteProject(project); onBack() }) { Icon(Icons.Outlined.DeleteOutline, "Archivar proyecto") }

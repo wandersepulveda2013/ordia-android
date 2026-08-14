@@ -34,6 +34,7 @@ import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.EmptyState
 import com.ordia.app.ui.components.ProjectEditorDialog
 import com.ordia.app.ui.components.ScreenHeader
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 
 @Composable
 fun ProjectsScreen(
@@ -70,7 +71,7 @@ fun ProjectsScreen(
                                 Text(project.name, style = MaterialTheme.typography.titleLarge)
                                 Text(project.description.ifBlank { project.status.name.lowercase().replaceFirstChar { it.uppercase() } }, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            IconButton(onClick = { onProject(project.id) }) { Icon(Icons.Outlined.ArrowForward, "Abrir proyecto") }
+                            IconButton(onClick = { onProject(project.id) }) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Abrir proyecto") }
                         }
                         LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
