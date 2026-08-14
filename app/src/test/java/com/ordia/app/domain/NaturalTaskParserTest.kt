@@ -1235,6 +1235,48 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- "a la una" (hora 1, femenino singular) (ciclo 94b/c) ---
+    // La hora 1 se dice "a la una" (no "a las 1"). Antes no había patrón para esa
+    // forma, así que "reunión a la una" caía sin dueAt y con "a la una" como residuo
+    // del título → cita olvidada. Además "a la una del mediodía" caía a la canónica
+    // NOON (12:00) en vez de 13:00.
+
+    @Test fun aLaUnaParsesOneOclockAndCleanTitle() {
+        val result = NaturalTaskParser.parse("Reunión a la una", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(1, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLaUnaYMediaParsesHalfPastOne() {
+        val result = NaturalTaskParser.parse("Cita a la una y media", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(1, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLaUnaYCuartoParsesQuarterPastOne() {
+        val result = NaturalTaskParser.parse("Cita a la una y cuarto", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(1, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLaUnaDeLaTardeParsesOnePm() {
+        val result = NaturalTaskParser.parse("Reunión a la una de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLaUnaDelMediodiaParsesOnePmNotNoon() {
+        val result = NaturalTaskParser.parse("Almuerzo a la una del mediodía", now, zone)
+        assertEquals("Almuerzo", result.title)
+        assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLaUnaColonMinutesParsesCorrectly() {
+        val result = NaturalTaskParser.parse("Cita a la una:30", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(1, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // --- Regresión BUG: "de la mañana"/"por la mañana" como marcador de hora NO
     //     debe interpretarse como la fecha "mañana" (antes "Reunión a las 9 de la
     //     mañana" se programaba para MAÑANA en vez de HOY → reunión perdida el mismo día). ---

@@ -288,6 +288,15 @@ object NaturalTaskParser {
     }
 
     private val timePatterns = listOf(
+        // "a la una": la hora 1 se dice en femenino singular ("a la una", no "a las 1"),
+        // con conector "a la" en vez de "a las". Quedaba sin resolver por el
+        // patrón "a las N" (que excluye "un/una/uno" de WRITTEN_HOUR_ALT justo por esto),
+        // así que "reunión a la una" caía sin dueAt y con "a la una" como residuo en el
+        // título → el usuario olvidaba la cita. Mismo layout de grupos que el patrón
+        // "a las N" (1=hora, 2=:MM, 3=y media/cuarto, 4=meridiem, 5=horas) para que
+        // [explicitTimeData] lo procese sin ramificación. Admite "del mediodía" como
+        // meridiem (PM, → 13:00): "a la una del mediodía" es la forma cotidiana de 1pm.
+        Regex("""(?i)\ba\s+la\s+(una)(?::([0-5]\d))?(?:\s+y\s+(media|cuarto))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(horas?|hs))?\b"""),
         // Sufijo opcional "(horas?|hs)" tras la hora (con o sin meridiem) para consumir
         // "a las 9 horas" completo: antes "horas" quedaba como residuo en el titulo y,
         // peor, "9 horas" era robado como duracion (540 min falsos). Como grupo propio
@@ -298,7 +307,7 @@ object NaturalTaskParser {
         // Admite horas escritas ("a las nueve", "a las doce y media") vía [WRITTEN_HOUR_ALT];
         // antes esas formas dejaban la hora como residuo y se agendaban a la canónica de
         // la parte del día o sin hora ("reunión a las nueve" → sin dueAt).
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s+y\s+(media|cuarto))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada)?(?:\s*(horas?|hs))?\b"""),
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s+y\s+(media|cuarto))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(horas?|hs))?\b"""),
         Regex("""(?i)\b([01]?\d|2[0-4]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b"""),
         Regex("""(?i)\b(?:al\s+|a\s+la\s+)?mediod[ií]a\b"""),
@@ -1065,8 +1074,13 @@ object NaturalTaskParser {
         val explicitTimeData = timeMatch?.let { match ->
             val mv = match.value.lowercase()
             when {
-                mv.contains("mediodía") || mv.contains("mediodia") -> LocalTime.NOON to true
-                mv.contains("medianoche") -> LocalTime.MIDNIGHT to true
+                // "a la una del mediodía" captura hora (grupo 1 = "una") + meridiem "del
+                // mediodía": NO debe caer a NOON, sino resolver 1pm (13:00) en la rama
+                // genérica. Esta rama solo aplica a las frases puras "al mediodía"/
+                // "a la medianoche" (patrón sin grupo de hora). Se distingue por ausencia
+                // de hora capturada (grupo 1) y de minutos (grupo 2).
+                (mv.contains("mediodía") || mv.contains("mediodia")) && match.groupValues.getOrNull(1).isNullOrBlank() && match.groupValues.getOrNull(2).isNullOrBlank() -> LocalTime.NOON to true
+                mv.contains("medianoche") && match.groupValues.getOrNull(1).isNullOrBlank() && match.groupValues.getOrNull(2).isNullOrBlank() -> LocalTime.MIDNIGHT to true
                 else -> {
                     var hour = parseHour(match.groupValues[1]) ?: return@let null
                     val explicitMinute = match.groupValues[2].toIntOrNull()
@@ -1099,7 +1113,8 @@ object NaturalTaskParser {
                         val meridiem = (if (raw4.isNotEmpty()) raw4 else raw3)
                             .replace(".", "").replace(" ", "")
                         // "de la tarde"/"de la noche" → 12h posterior; "de la mañana/madrugada" → am.
-                        val isPm = meridiem == "pm" || meridiem == "delatarde" || meridiem == "delanoche"
+                        // "del mediodía" → PM: "a la una del mediodía" = 13:00 (forma cotidiana de 1pm).
+                        val isPm = meridiem == "pm" || meridiem == "delatarde" || meridiem == "delanoche" || meridiem == "delmediodía" || meridiem == "delmediodia"
                         val isAm = meridiem == "am" || meridiem == "delamañana" || meridiem == "delamanaana" || meridiem == "delamadrugada"
                         if (isPm && hour < 12) hour += 12
                         if (isAm && hour == 12) hour = 0
