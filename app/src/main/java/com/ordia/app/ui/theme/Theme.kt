@@ -9,14 +9,50 @@ import androidx.compose.ui.graphics.Color
 import com.ordia.app.data.preferences.AccentPalette
 import com.ordia.app.data.preferences.ThemeMode
 
-val OrdiaInk = Color(0xFF1D1B17)
-val OrdiaCream = Color(0xFFF7F3EB)
-val OrdiaPaper = Color(0xFFFFFCF7)
-val OrdiaGold = Color(0xFF8A682D)
-val OrdiaGoldSoft = Color(0xFFD9BC7A)
-val OrdiaSage = Color(0xFF76845F)
-val OrdiaRose = Color(0xFFA87373)
-val OrdiaLavender = Color(0xFF88759C)
+// Base Palette (Clean B&W foundation)
+val OrdiaWhite = Color(0xFFFFFFFF)
+val OrdiaBlack = Color(0xFF000000)
+
+val OrdiaGray50 = Color(0xFFF9FAFB)
+val OrdiaGray100 = Color(0xFFF3F4F6)
+val OrdiaGray200 = Color(0xFFE5E7EB)
+val OrdiaGray300 = Color(0xFFD1D5DB)
+val OrdiaGray400 = Color(0xFF9CA3AF)
+val OrdiaGray500 = Color(0xFF6B7280)
+val OrdiaGray600 = Color(0xFF4B5563)
+val OrdiaGray700 = Color(0xFF374151)
+val OrdiaGray800 = Color(0xFF1F2937)
+val OrdiaGray900 = Color(0xFF111827)
+val OrdiaGray950 = Color(0xFF030712)
+
+// Semantic Accents
+val OrdiaPriority = Color(0xFFE53935)
+val OrdiaPrioritySoft = Color(0xFFFFCDD2)
+val OrdiaPriorityDark = Color(0xFFB71C1C)
+
+val OrdiaAlert = Color(0xFFFFB300)
+val OrdiaAlertSoft = Color(0xFFFFECB3)
+val OrdiaAlertDark = Color(0xFFFF8F00)
+
+val OrdiaSuccess = Color(0xFF43A047)
+val OrdiaSuccessSoft = Color(0xFFC8E6C9)
+val OrdiaSuccessDark = Color(0xFF1B5E20)
+
+val OrdiaFocus = Color(0xFF1E88E5)
+val OrdiaFocusSoft = Color(0xFFBBDEFB)
+val OrdiaFocusDark = Color(0xFF0D47A1)
+
+val OrdiaCalendar = Color(0xFF8E24AA)
+val OrdiaCalendarSoft = Color(0xFFE1BEE7)
+val OrdiaCalendarDark = Color(0xFF4A148C)
+
+val OrdiaAutomations = Color(0xFF00ACC1)
+val OrdiaAutomationsSoft = Color(0xFFB2EBF2)
+val OrdiaAutomationsDark = Color(0xFF006064)
+
+val OrdiaGuardians = Color(0xFF3949AB)
+val OrdiaGuardiansSoft = Color(0xFFC5CAE9)
+val OrdiaGuardiansDark = Color(0xFF1A237E)
 
 /** Palette of accent colors chosen by the user. Each entry holds (secondary, secondaryContainer, onSecondaryContainer) for light and dark. */
 data class AccentSwatch(
@@ -28,81 +64,82 @@ data class AccentSwatch(
     val darkOnSecondaryContainer: Color
 )
 
+// Maintained for backward compatibility but remapped to semantic colors or updated tones
 val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
     AccentPalette.GOLD to AccentSwatch(
-        OrdiaGold, Color(0xFFF2E5C9), Color(0xFF34270F),
-        OrdiaGoldSoft, Color(0xFF4C3C1C), Color(0xFFFFE8AF)
+        OrdiaAlert, OrdiaAlertSoft, OrdiaAlertDark,
+        OrdiaAlertSoft, OrdiaAlertDark, OrdiaAlertSoft
     ),
     AccentPalette.SAGE to AccentSwatch(
-        OrdiaSage, Color(0xFFE0E8D6), Color(0xFF1F2A14),
-        Color(0xFFB9C99F), Color(0xFF37431F), Color(0xFFDDEBC8)
+        OrdiaSuccess, OrdiaSuccessSoft, OrdiaSuccessDark,
+        OrdiaSuccessSoft, OrdiaSuccessDark, OrdiaSuccessSoft
     ),
     AccentPalette.ROSE to AccentSwatch(
-        OrdiaRose, Color(0xFFF2DADA), Color(0xFF3A1717),
-        Color(0xFFD9A3A3), Color(0xFF4A1F1F), Color(0xFFFFDADA)
+        OrdiaPriority, OrdiaPrioritySoft, OrdiaPriorityDark,
+        OrdiaPrioritySoft, OrdiaPriorityDark, OrdiaPrioritySoft
     ),
     AccentPalette.LAVENDER to AccentSwatch(
-        OrdiaLavender, Color(0xFFE4DCEE), Color(0xFF241B33),
-        Color(0xFFB5A5CC), Color(0xFF332745), Color(0xFFE6DCF6)
+        OrdiaCalendar, OrdiaCalendarSoft, OrdiaCalendarDark,
+        OrdiaCalendarSoft, OrdiaCalendarDark, OrdiaCalendarSoft
     ),
     AccentPalette.OCEAN to AccentSwatch(
-        Color(0xFF3E6680), Color(0xFFD2E0EA), Color(0xFF0F2533),
-        Color(0xFF8FB4CC), Color(0xFF1F3A4C), Color(0xFFCFE2F0)
+        OrdiaFocus, OrdiaFocusSoft, OrdiaFocusDark,
+        OrdiaFocusSoft, OrdiaFocusDark, OrdiaFocusSoft
     ),
     AccentPalette.TERRACOTTA to AccentSwatch(
-        Color(0xFFB5603E), Color(0xFFF2DDD0), Color(0xFF33180C),
-        Color(0xFFD89A78), Color(0xFF4A2417), Color(0xFFF6D9C8)
+        Color(0xFFE64A19), Color(0xFFFFCCBC), Color(0xFFBF360C),
+        Color(0xFFFFAB91), Color(0xFFBF360C), Color(0xFFFFCCBC)
     ),
     AccentPalette.SYSTEM to AccentSwatch(
-        OrdiaGold, Color(0xFFF2E5C9), Color(0xFF34270F),
-        OrdiaGoldSoft, Color(0xFF4C3C1C), Color(0xFFFFE8AF)
+        OrdiaFocus, OrdiaFocusSoft, OrdiaFocusDark,
+        OrdiaFocusSoft, OrdiaFocusDark, OrdiaFocusSoft
     )
 )
 
 private val LightColors = lightColorScheme(
-    primary = OrdiaInk,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFEAE2D4),
-    onPrimaryContainer = OrdiaInk,
-    secondary = OrdiaGold,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFF2E5C9),
-    onSecondaryContainer = Color(0xFF34270F),
-    tertiary = OrdiaSage,
-    onTertiary = Color.White,
-    background = OrdiaCream,
-    onBackground = OrdiaInk,
-    surface = OrdiaPaper,
-    onSurface = OrdiaInk,
-    surfaceVariant = Color(0xFFEDE7DC),
-    onSurfaceVariant = Color(0xFF625D55),
-    outline = Color(0xFF8C8579),
-    outlineVariant = Color(0xFFDAD1C2),
-    error = Color(0xFF9A3E3E),
-    onError = Color.White
+    primary = OrdiaGray900,
+    onPrimary = OrdiaWhite,
+    primaryContainer = OrdiaGray200,
+    onPrimaryContainer = OrdiaGray900,
+    secondary = OrdiaFocus,
+    onSecondary = OrdiaWhite,
+    secondaryContainer = OrdiaFocusSoft,
+    onSecondaryContainer = OrdiaFocusDark,
+    tertiary = OrdiaSuccess,
+    onTertiary = OrdiaWhite,
+    background = OrdiaWhite,
+    onBackground = OrdiaGray900,
+    surface = OrdiaGray50,
+    onSurface = OrdiaGray900,
+    surfaceVariant = OrdiaGray100,
+    onSurfaceVariant = OrdiaGray600,
+    outline = OrdiaGray300,
+    outlineVariant = OrdiaGray200,
+    error = OrdiaPriority,
+    onError = OrdiaWhite
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFF3EDE2),
-    onPrimary = Color(0xFF1A1916),
-    primaryContainer = Color(0xFF34312B),
-    onPrimaryContainer = Color(0xFFF5EFE4),
-    secondary = OrdiaGoldSoft,
-    onSecondary = Color(0xFF33270E),
-    secondaryContainer = Color(0xFF4C3C1C),
-    onSecondaryContainer = Color(0xFFFFE8AF),
-    tertiary = Color(0xFFB9C99F),
-    onTertiary = Color(0xFF263017),
-    background = Color(0xFF141310),
-    onBackground = Color(0xFFEDE8DF),
-    surface = Color(0xFF1C1B18),
-    onSurface = Color(0xFFEDE8DF),
-    surfaceVariant = Color(0xFF2B2924),
-    onSurfaceVariant = Color(0xFFC9C2B8),
-    outline = Color(0xFF938C81),
-    outlineVariant = Color(0xFF47433D),
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005)
+    primary = OrdiaGray50,
+    onPrimary = OrdiaGray900,
+    primaryContainer = OrdiaGray800,
+    onPrimaryContainer = OrdiaGray50,
+    secondary = OrdiaFocusSoft,
+    onSecondary = OrdiaGray900,
+    secondaryContainer = OrdiaFocusDark,
+    onSecondaryContainer = OrdiaFocusSoft,
+    tertiary = OrdiaSuccessSoft,
+    onTertiary = OrdiaGray900,
+    background = OrdiaBlack,
+    onBackground = OrdiaGray50,
+    surface = OrdiaGray950,
+    onSurface = OrdiaGray50,
+    surfaceVariant = OrdiaGray900,
+    onSurfaceVariant = OrdiaGray400,
+    outline = OrdiaGray700,
+    outlineVariant = OrdiaGray800,
+    error = OrdiaPrioritySoft,
+    onError = OrdiaPriorityDark
 )
 
 @Composable
@@ -126,14 +163,14 @@ fun OrdiaTheme(
         if (dark) {
             base.copy(
                 secondary = swatch.darkSecondary,
-                onSecondary = Color(0xFF1A1916),
+                onSecondary = OrdiaGray900,
                 secondaryContainer = swatch.darkSecondaryContainer,
                 onSecondaryContainer = swatch.darkOnSecondaryContainer
             )
         } else {
             base.copy(
                 secondary = swatch.lightSecondary,
-                onSecondary = Color.White,
+                onSecondary = OrdiaWhite,
                 secondaryContainer = swatch.lightSecondaryContainer,
                 onSecondaryContainer = swatch.lightOnSecondaryContainer
             )
