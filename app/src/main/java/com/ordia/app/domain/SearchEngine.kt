@@ -21,8 +21,14 @@ enum class SearchKind { TASK, PROJECT, NOTE, HABIT, CONVERSATION, COMMITMENT, AU
  * Intención de búsqueda por fecha. Permite escribir "hoy", "mañana",
  * "esta semana" o "atrasadas"/"vencidas" y obtener las tareas de ese rango
  * aunque su título no contenga esa palabra. Es una heurística local honesta.
+ *
+ * [TARDE]/[NOCHE]/[MADRUGADA] añaden búsqueda por parte del día de HOY
+ * ("tarde", "esta tarde", "noche", "madrugada"): recupera lo que vence hoy
+ * en esa franja sin nueva pantalla ni botón. Se excluye "mañana" (mañana) como
+ * parte del día por su colisión con el scope TOMORROW, igual que hace el
+ * parser en su variante compacta de parte del día.
  */
-private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, OVERDUE, UNDATED }
+private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, OVERDUE, UNDATED, TARDE, NOCHE, MADRUGADA }
 
 data class SearchResult(val kind: SearchKind, val id: Long, val title: String, val subtitle: String)
 
@@ -168,12 +174,28 @@ object SearchEngine {
     // para no activarse con "sin leche" u otras negaciones ajenas a la fecha.
     private val UNDATED_HINTS = setOf("fecha", "vencimiento", "dia", "plazo")
 
+    // Partes del día para buscar lo que vence HOY en esa franja. "tarde",
+    // "noche" y "madrugada" son inequívocas (no colisionan con otros scopes).
+    // "mañana" se excluye: también significa "tomorrow" y ya activa TOMORROW.
+    // Las franjas son por hora local (mismo día que TODAY), coherentes con el
+    // anclaje canónico del parser (tarde≈15, noche≈21, madrugada≈04).
+    private val LATE_AFTERNOON_TOKENS = setOf("tarde")
+    private val NIGHT_TOKENS = setOf("noche")
+    private val EARLY_MORNING_TOKENS = setOf("madrugada")
+
     private fun detectDateScope(words: List<String>): DateScope? = when {
         "sin" in words && UNDATED_HINTS.any { it in words } -> DateScope.UNDATED
         OVERDUE_TOKENS.any { it in words } -> DateScope.OVERDUE
         TODAY_TOKENS.any { it in words } -> DateScope.TODAY
         TOMORROW_TOKENS.any { it in words } -> DateScope.TOMORROW
         YESTERDAY_TOKENS.any { it in words } -> DateScope.YESTERDAY
+        // La parte del día se evalúa DESPUÉS de hoy/mañana/ayer: así "hoy tarde"
+        // o "mañana tarde" resuelven al día explícito (más amplio) en vez de
+        // quedarse solo con la franja de hoy. Sin palabra de día, "tarde"/"noche"/
+        // "madrugada" solas sí activan la franja de hoy.
+        LATE_AFTERNOON_TOKENS.any { it in words } -> DateScope.TARDE
+        NIGHT_TOKENS.any { it in words } -> DateScope.NOCHE
+        EARLY_MORNING_TOKENS.any { it in words } -> DateScope.MADRUGADA
         WEEK_TOKENS.any { it in words } && NEXT_WEEK_TOKENS.any { it in words } -> DateScope.NEXT_WEEK
         WEEK_TOKENS.any { it in words } && LAST_WEEK_TOKENS.any { it in words } -> DateScope.LAST_WEEK
         WEEK_TOKENS.any { it in words } -> DateScope.THIS_WEEK
@@ -181,7 +203,7 @@ object SearchEngine {
     }
 
     private fun dateScopeTokens(words: List<String>): Set<String> =
-        words.filter { it in OVERDUE_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS }.toSet()
+        words.filter { it in OVERDUE_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS }.toSet()
 
     private fun taskMatchesDateScope(task: TaskEntity, scope: DateScope, now: Long, zone: ZoneId): Boolean {
         if (scope == DateScope.OVERDUE) return TaskRules.isOverdue(task, now)
@@ -197,8 +219,16 @@ object SearchEngine {
         if (task.status == TaskStatus.CANCELLED) return false
         if (!pastScope && task.completed) return false
         val due = task.dueAt ?: return false
+        val zonedDue = Instant.ofEpochMilli(due).atZone(zone)
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-        val dueDate = Instant.ofEpochMilli(due).atZone(zone).toLocalDate()
+        // Partes del día: franja horaria de HOY (presente → excluye completadas,
+        // igual que TODAY). Recupera "lo que me espera esta tarde/noche" sin
+        // requerir la palabra en el título. Coherente con TODAY (mismo día).
+        val partOfDay = scopeBand(scope)
+        if (partOfDay != null) {
+            return zonedDue.toLocalDate() == today && zonedDue.hour in partOfDay
+        }
+        val dueDate = zonedDue.toLocalDate()
         return when (scope) {
             DateScope.YESTERDAY -> dueDate == today.minusDays(1)
             DateScope.TODAY -> dueDate == today
@@ -232,7 +262,20 @@ object SearchEngine {
             DateScope.OVERDUE -> TaskRules.isOverdue(task, now)
             // UNDATED se resuelve antes (return temprano); aquí es inalcanzable.
             DateScope.UNDATED -> false
+            // Partes del día resueltas vía scopeBand() antes de llegar aquí.
+            DateScope.TARDE -> false
+            DateScope.NOCHE -> false
+            DateScope.MADRUGADA -> false
         }
+    }
+
+    // Franja horaria (en horas 0-23) de cada parte del día, o null si el scope
+    // no es una parte del día. Bandas por hora local del día de vencimiento.
+    private fun scopeBand(scope: DateScope): IntRange? = when (scope) {
+        DateScope.MADRUGADA -> 0..5
+        DateScope.TARDE -> 12..17
+        DateScope.NOCHE -> 18..23
+        else -> null
     }
 }
 

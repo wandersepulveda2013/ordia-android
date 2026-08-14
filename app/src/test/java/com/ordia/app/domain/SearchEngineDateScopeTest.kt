@@ -345,4 +345,78 @@ class SearchEngineDateScopeTest {
         assertTrue("La nota sobre reunión es relevante", 2L in ids)
         assertTrue("La nota ajena no debe aparecer", 3L !in ids)
     }
+
+    // --- Búsqueda por parte del día (tarde/noche/madrugada), solo HOY ---
+
+    private val zone = java.time.ZoneId.systemDefault()
+
+    private fun atHour(localDate: java.time.LocalDate, hour: Int): Long =
+        java.time.ZonedDateTime.of(localDate.atTime(hour, 0), zone).toInstant().toEpochMilli()
+
+    @Test fun tarde_returnsOnlyTasksDueTodayAfternoon() {
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Cita médica", dueAt = atHour(today, 15)),   // tarde de hoy
+            TaskEntity(id = 2, title = "Desayuno", dueAt = atHour(today, 8)),       // mañana de hoy
+            TaskEntity(id = 3, title = "Cena", dueAt = atHour(today, 20)),           // noche de hoy
+            TaskEntity(id = 4, title = "Tarde de ayer", dueAt = atHour(today.minusDays(1), 15)), // ayer tarde
+            TaskEntity(id = 5, title = "Tarde de mañana", dueAt = atHour(today.plusDays(1), 15)) // mañana tarde
+        )
+        val ids = SearchEngine.search("tarde", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 12)).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun estaTarde_matchesAfternoonOnly() {
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Reunión", dueAt = atHour(today, 17)),
+            TaskEntity(id = 2, title = "Compra", dueAt = atHour(today, 7)),
+            TaskEntity(id = 3, title = "Trámite", dueAt = atHour(today, 12)) // 12:00 entra en tarde (12-17)
+        )
+        val ids = SearchEngine.search("esta tarde", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 6)).map { it.id }.toSet()
+        assertEquals(setOf(1L, 3L), ids)
+    }
+
+    @Test fun noche_returnsOnlyTasksDueTonight() {
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Llamada", dueAt = atHour(today, 21)),        // noche
+            TaskEntity(id = 2, title = "Café", dueAt = atHour(today, 16)),          // tarde
+            TaskEntity(id = 3, title = "Última hora", dueAt = atHour(today, 23))     // noche (límite)
+        )
+        val ids = SearchEngine.search("noche", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 10)).map { it.id }.toSet()
+        assertEquals(setOf(1L, 3L), ids)
+    }
+
+    @Test fun madrugada_returnsOnlyEarlyMorningToday() {
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Vuelo", dueAt = atHour(today, 4)),           // madrugada
+            TaskEntity(id = 2, title = "Almuerzo", dueAt = atHour(today, 13)),       // tarde
+            TaskEntity(id = 3, title = "Madrugón anterior", dueAt = atHour(today.minusDays(1), 3)) // ayer
+        )
+        val ids = SearchEngine.search("madrugada", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 1)).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun tardeConTexto_filtraDentroDeLaFranja() {
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Cita médica", dueAt = atHour(today, 15)),
+            TaskEntity(id = 2, title = "Cita peluquería", dueAt = atHour(today, 16)),
+            TaskEntity(id = 3, title = "Cita médica temprano", dueAt = atHour(today, 8))
+        )
+        val ids = SearchEngine.search("tarde cita medica", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 11)).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun parteDelDia_excluyeCompletadas() {
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Hecha", dueAt = atHour(today, 15), completed = true),
+            TaskEntity(id = 2, title = "Pendiente", dueAt = atHour(today, 16))
+        )
+        val ids = SearchEngine.search("tarde", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 10)).map { it.id }.toSet()
+        assertEquals(setOf(2L), ids)
+    }
 }
