@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Schedule
@@ -109,12 +110,11 @@ fun TodayScreen(
                         Text(insight.title, style = MaterialTheme.typography.titleLarge)
                         Text(
                             insight.message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
                     insight.taskId?.let { taskId ->
-                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.Outlined.ArrowForward, "Abrir recomendación") }
+                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Abrir recomendación") }
                     }
                 }
             }
