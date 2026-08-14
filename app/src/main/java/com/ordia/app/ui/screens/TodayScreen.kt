@@ -345,14 +345,23 @@ fun TodayScreen(
                     }
                     if (verdict != null) {
                         val suggestion = summary.deferralSuggestion
-                        val verdictText = if (verdict == R.string.summary_load_overloaded && suggestion != null) {
-                            if (suggestion.canDefer) {
-                                stringResource(R.string.summary_load_overloaded_actionable, suggestion.title)
-                            } else {
-                                stringResource(R.string.summary_load_overloaded_suggestion, suggestion.title)
+                        // Cuando el día está saturado y NO hay nada de hoy que
+                        // posponer, la saturación viene de las vencidas (o de lo
+                        // de hoy ya en marcha). En ese caso "dejar para mañana"
+                        // es un consejo dañino para trabajo vencido: se sustituye
+                        // por un mensaje honesto que replantea la decisión real.
+                        val verdictText = when {
+                            verdict == R.string.summary_load_overloaded && suggestion != null -> {
+                                if (suggestion.canDefer) {
+                                    stringResource(R.string.summary_load_overloaded_actionable, suggestion.title)
+                                } else {
+                                    stringResource(R.string.summary_load_overloaded_suggestion, suggestion.title)
+                                }
                             }
-                        } else {
-                            stringResource(verdict)
+                            verdict == R.string.summary_load_overloaded && summary.overdue > 0 -> {
+                                stringResource(R.string.summary_load_overloaded_overdue, summary.overdue)
+                            }
+                            else -> stringResource(verdict)
                         }
                         Text(
                             verdictText,

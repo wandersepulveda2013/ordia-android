@@ -27,6 +27,14 @@
     <string name="summary_load_overloaded">No cabe todo hoy. Elige qué dejar para mañana.</string>
     <string name="summary_load_overloaded_suggestion">No cabe todo hoy. Una opción es dejar para mañana «%1$s».</string>
     <string name="summary_load_overloaded_actionable">No cabe todo hoy. Toca para mover «%1$s» a mañana.</string>
+    <!--
+    Cuando el día está saturado PERO no hay nada de hoy que posponer (la
+    saturación viene de tareas vencidas sin hacer, o de lo de hoy ya en marcha):
+    no se aconseja "dejar para mañana" porque posponer trabajo vencido lo empeora
+    (justo lo que el motor de sugerencias evita nombrando vencidas). El mensaje
+    replantea la decisión real: hacer hoy o reprogramar con intención.
+    -->
+    <string name="summary_load_overloaded_overdue">No cabe todo hoy y hay %1$d vencida(s). Hazlas hoy o reprograma con intención, no las pospongas.</string>
     <string name="today_inbox_badge">Bandeja (%1$d)</string>
     <string name="today_empty_title">Tu día tiene espacio</string>
     <string name="today_greeting_morning">Buenos días</string>
