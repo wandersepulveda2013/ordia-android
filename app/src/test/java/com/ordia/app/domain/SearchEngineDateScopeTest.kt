@@ -111,4 +111,76 @@ class SearchEngineDateScopeTest {
         val ids = SearchEngine.search("atrasadas", listOf(urgent, normal), emptyList(), emptyList(), emptyList(), now = now).map { it.id }
         assertEquals(listOf(41L, 42L), ids)
     }
+
+    @Test fun semanaQueViene_returnsOnlyNextWeekTasks() {
+        // Jueves 2026-08-13: esta semana va a dom 08-16; la próxima semana es
+        // lun 08-17 .. dom 08-23.
+        val zone = java.time.ZoneId.systemDefault()
+        val todayLocal = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = java.time.ZonedDateTime.of(todayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy", dueAt = t0),
+            TaskEntity(id = 2, title = "Lunes próximo", dueAt = java.time.ZonedDateTime.of(todayLocal.plusDays(4).atTime(9, 0), zone).toInstant().toEpochMilli()), // 08-17
+            TaskEntity(id = 3, title = "Domingo próximo", dueAt = java.time.ZonedDateTime.of(todayLocal.plusDays(10).atTime(9, 0), zone).toInstant().toEpochMilli()), // 08-23
+            TaskEntity(id = 4, title = "Fuera de rango", dueAt = java.time.ZonedDateTime.of(todayLocal.plusDays(11).atTime(9, 0), zone).toInstant().toEpochMilli()) // 08-24 (siguiente)
+        )
+        val ids = SearchEngine.search("semana que viene", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(2L, 3L), ids)
+    }
+
+    @Test fun proximaSemana_returnsOnlyNextWeekTasks() {
+        // Sinónimo "próxima semana" debe activar el mismo scope NEXT_WEEK.
+        val zone = java.time.ZoneId.systemDefault()
+        val todayLocal = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = java.time.ZonedDateTime.of(todayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy", dueAt = t0),
+            TaskEntity(id = 2, title = "Lunes próximo", dueAt = java.time.ZonedDateTime.of(todayLocal.plusDays(4).atTime(9, 0), zone).toInstant().toEpochMilli()),
+            TaskEntity(id = 3, title = "Domingo próximo", dueAt = java.time.ZonedDateTime.of(todayLocal.plusDays(10).atTime(9, 0), zone).toInstant().toEpochMilli())
+        )
+        val ids = SearchEngine.search("próxima semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(2L, 3L), ids)
+    }
+
+    @Test fun semanaQueViene_excludesThisWeekTasks() {
+        // "semana que viene" NO debe incluir tareas de esta semana (la distinción
+        // clave frente a "esta semana").
+        val zone = java.time.ZoneId.systemDefault()
+        val todayLocal = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = java.time.ZonedDateTime.of(todayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy", dueAt = t0), // esta semana
+            TaskEntity(id = 2, title = "Domingo de esta semana", dueAt = java.time.ZonedDateTime.of(todayLocal.plusDays(3).atTime(9, 0), zone).toInstant().toEpochMilli()), // 08-16 (esta semana)
+            TaskEntity(id = 3, title = "Lunes próximo", dueAt = java.time.ZonedDateTime.of(todayLocal.plusDays(4).atTime(9, 0), zone).toInstant().toEpochMilli()) // 08-17 (próxima)
+        )
+        val ids = SearchEngine.search("la semana que viene", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(3L), ids)
+    }
+
+    @Test fun semanaSolaSigueSiendoEstaSemana() {
+        // No-regresión: "semana" sin modificador de próxima sigue siendo THIS_WEEK.
+        val zone = java.time.ZoneId.systemDefault()
+        val todayLocal = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = java.time.ZonedDateTime.of(todayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy", dueAt = t0), // esta semana
+            TaskEntity(id = 2, title = "Lunes próximo", dueAt = java.time.ZonedDateTime.of(todayLocal.plusDays(4).atTime(9, 0), zone).toInstant().toEpochMilli()) // próxima semana
+        )
+        val ids = SearchEngine.search("semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun semanaQueViene_onSundayStartsNextMonday() {
+        // Domingo 2026-08-16: "semana que viene" = lun 08-17 .. dom 08-23.
+        val zone = java.time.ZoneId.systemDefault()
+        val sundayLocal = java.time.LocalDate.of(2026, 8, 16) // domingo
+        val t0 = java.time.ZonedDateTime.of(sundayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy domingo", dueAt = t0), // esta semana (hoy)
+            TaskEntity(id = 2, title = "Lunes que viene", dueAt = java.time.ZonedDateTime.of(sundayLocal.plusDays(1).atTime(9, 0), zone).toInstant().toEpochMilli()), // 08-17
+            TaskEntity(id = 3, title = "Domingo que viene", dueAt = java.time.ZonedDateTime.of(sundayLocal.plusDays(7).atTime(9, 0), zone).toInstant().toEpochMilli()) // 08-23
+        )
+        val ids = SearchEngine.search("próxima semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(2L, 3L), ids)
+    }
 }

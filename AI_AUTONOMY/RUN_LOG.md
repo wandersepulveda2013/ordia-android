@@ -3953,7 +3953,52 @@ a un permiso persistente frágil y silencioso ante fallos.
 ### Siguiente
 - Auditar si quedan más helpers duplicados entre `WhatNowEngine` y `TaskRules`
   (`isDueToday`, `isInProgressNow`, etc.) — cerrar la familia DRY.
-- `SearchEngine` date-scope: "parte del día" / "la semana que viene" / "este mes" (P3 — evaluar
-  necesidad real antes de implementar, anti-feature-bloat).
-- Descubrimiento continuo: rutinas adaptables; detección de compromisos en notas; captura
-  ultrarrápida; `PlanEngine`/replanización si OVERLOADED recurrente.
+- `SearchEngine` date-scope: "parte del día" / "este mes" (P3 — evaluar
+  necesidad real antes de implementar, anti-feature-bloat). "semana que viene"/
+  "próxima semana" ya cubierto (NEXT_WEEK, c.87).
+- Descubrimiento continuo: rutinas adaptables; detección de compromisos en
+  notas; captura ultrarrápida; `PlanEngine`/replanización si OVERLOADED
+  recurrente.
+
+---
+
+## Ciclo 87 — 2026-08-14 (feat P2 búsqueda: NEXT_WEEK)
+
+- **HEAD inicial**: `623e2bc` (origin/openhands/autonomous-ordia, c.86).
+- **Problema seleccionado**: `SearchEngine` date-scope no distinguía "esta
+  semana" de "semana que viene"/"próxima semana" → el usuario que busca qué vence
+  la semana próxima veía la semana actual (P2, recuperación de información).
+- **Prioridad**: P2.
+- **Causa raíz**: `detectDateScope` no diferenciaba "semana" con/sin modificador de
+  proximidad; `WEEK_TOKENS = {semana}` sin distinguir "que viene"/"próxima".
+- **Solución (mínima)**: nuevo `DateScope.NEXT_WEEK`; `NEXT_WEEK_TOKENS =
+  {proxima, proximas, viene}`; rama `hasWeek && hasNext → NEXT_WEEK` antes de
+  `hasWeek → THIS_WEEK`. Rango `startNextWeek = today + daysToSunday + 1` (lunes
+  próximo), `endNextWeek = startNextWeek + 6` (domingo próximo), reusando la
+  fórmula `(7 - dayOfWeek) % 7` del fix de domingo del c.86. `dateScopeTokens`
+  incluye `NEXT_WEEK_TOKENS` para no exigir "viene"/"proxima" en el contenido.
+  Sin nueva pantalla/botón (reuso el `SearchEngine` existente).
+- **No-regresión**: "esta semana" y "semana" sola siguen siendo `THIS_WEEK`
+  (test `semanaSolaSigueSiendoEstaSemana`).
+- **Tests**: +5 en `SearchEngineDateScopeTest.kt` (`semanaQueViene_returnsOnlyNextWeekTasks`,
+  `proximaSemana_returnsOnlyNextWeekTasks`, `semanaQueViene_excludesThisWeekTasks`,
+  `semanaSolaSigueSiendoEstaSemana`, `semanaQueViene_onSundayStartsNextMonday`).
+  **617 domain tests PASS** (`bash tools/run_domain_tests.sh`); **smoke 25 OK**
+  (`bash tools/run_domain_checks.sh`). Sin regresión.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Hallazgos adicionales (descubrimiento continuo)**: pendiente "esta tarde"/"esta
+  noche" (parte del día) y "este mes" (rango mensual) en `SearchEngine` — OPEN
+  (anti-feature-bloat: evaluar necesidad real antes de implementar).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt`,
+  `app/src/test/java/com/ordia/app/domain/SearchEngineDateScopeTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: ver abajo.
+- **HEAD final**: (tras push a `origin/openhands/autonomous-ordia`).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+
+### Siguiente
+- `SearchEngine` date-scope: "parte del día" ("esta tarde"/"esta noche") / "este mes"
+  (P3 — evaluar necesidad real antes de implementar, anti-feature-bloat).
+- Auditar helpers duplicados restantes entre `WhatNowEngine` y `TaskRules`.
+- Descubrimiento continuo: rutinas adaptables; detección de compromisos en notas;
+  captura ultrarrápida; `PlanEngine`/replanización si OVERLOADED recurrente.
