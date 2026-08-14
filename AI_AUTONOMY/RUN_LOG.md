@@ -4803,3 +4803,61 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: continuar descubrimiento de frases cotidianas del parser; auditar
   recuperación de tareas olvidadas y "un rato" en otros contextos (recordatorios).
 
+---
+
+## Ciclo 105 — 2026-08-14 — GuardianCoach: edad de "olvidada" por días de calendario (DST-safe) + auditoría `\b`-acento del parser completada (P1 recuperación)
+
+- **Branch**: `openhands/autonomous-ordia`.
+- **HEAD inicial**: `eda7fdd` (c.103, fracciones compuestas plurales).
+- **Problema (P1, recuperación de tareas olvidadas)**: `GuardianCoach.insight` calculaba la
+  antigüedad de la tarea más atrasada con `((now - dueAt) / MILLIS_PER_DAY).toInt()` —
+  milisegundos crudos / 24 h. Esto NO cuenta días de calendario: una tarea vencida hace N días
+  consultada ANTES de la hora de su vencimiento (p. ej. hace 2 días vista a las 7:00, cuando
+  vencía a las 9:00) da `now - dueAt = 2·24h - 2h = 46h` → `/24 = 1` → `coerceAtLeast(1)=1` < 2
+  → `Tone.GENTLE` en vez de `FOCUSED`. El nudge de recuperación ("RECUPERA EL CONTROL",
+  decisión hacer/reprogramar/quitar) NO aparecía para una tarea realmente olvidada de 2 días.
+  Además era frágil al horario de verano (DST): un "día natural" no siempre son 24 h, así que
+  cruzando un cambio de horario la edad podía desajustarse ~1 día y el umbral FOCUSED (≥2)
+  clasificar mal.
+- **Causa raíz**: la heurística usaba aritmética de milisegundos en vez de días de calendario
+  en la zona del usuario, mezclando "cuánto tiempo exacto" con "cuántos días lleva", que es como
+  la persona y el `forgottenAgeLabel` ("días"/"semanas"/"meses") cuentan el atraso.
+- **Solución (mínima, `GuardianCoach.kt`, sin nueva pantalla/botón)**: nueva
+  `private fun overdueDays(dueAt, today, zone) = ChronoUnit.DAYS.between(localDate(dueAt), today)`
+  (días de calendario entre la fecha local de vencimiento y hoy, en la zona del usuario).
+  Sustituye el `((now - it) / MILLIS_PER_DAY).toInt()` del `mostOverdueDays`. Elimina
+  `MILLIS_PER_DAY` (ya sin usos). Reutiliza TODO el flujo existente: `forgottenAgeLabel`,
+  `FORGOTTEN_DAYS_THRESHOLD`, `Tone.FOCUSED` vs `GENTLE`. Es correcta aunque se consulte antes
+  de la hora del vencimiento y es DST-robusta (`ChronoUnit.DAYS` opera sobre `LocalDate`, ignora
+  los 23/25 h del DST). No-regresión: vencidas el mismo día o el anterior siguen contando 1;
+  los tests de 4 y 14 días (Santo Domingo, al mediodía) siguen dando "4 días"/"2 semanas".
+- **Auditoría `\b`-acento del parser (familia recurrente c.91/c.102)**: escaneados los 76
+  patrones regex de `NaturalTaskParser.kt`. Resultado: NINGÚN `\b` queda inmediatamente antes de
+  una letra acentuada ni tras un grupo cuya última rama termine en acento. Los casos conocidos ya
+  estaban resueltos con lookbehind Unicode-safe: c.91 "último día del mes" → `(?<!\p{L})`;
+  c.102 "última hora" → `(?<![a-záéíóúñ])`. La familia NO reaparece a nivel de patrón; se
+  descarta seguir cazando `\b` fantasmas (sería actividad fabricada). Regla para futuros
+  patrones: si un `\b` va delante de una palabra con acento inicial, usar `(?<![a-záéíóúñ])` o
+  `(?<!\p{L})`.
+- **Tests**: +2 en `GuardianCoachTest.kt`: `twoDaysOverdueBeforeDueTimeIsStillFocused` (vencida
+  hace 2 días consultada a las 7 a.m. → FOCUSED + "2 días"; antes GENTLE por el bug),
+  `overdueAgeIsCalendarDayCountAcrossDstBoundary` (zona `America/New_York`, tramo cruza el
+  forward DST del 8-mar-2026, hace 3 días → "3 días"). Comando: `bash tools/run_domain_tests.sh`
+  → **711 tests PASS** (709 base c.103 + 2). Smoke
+  (`PATH=/tmp/kotlinc-home/kotlinc/bin:$PATH bash tools/run_domain_checks.sh`) → **25 OK**.
+  Sin regresión: los 6 tests previos de `GuardianCoachTest` siguen verdes.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+  Render real del coach en la app no probado en dispositivo.
+- **Hallazgos adicionales (descubrimiento continuo)**: la misma trampa `(now - dueAt)/24h` para
+  "días" podría existir en otras heurísticas; `SearchEngine.taskMatchesDateScope` ya usa
+  `LocalDate` correctamente (no afecta). Próxima revisión: `RecurrenceEngine` clamps/DST y
+  detección de compromisos en notas; producto: captura ultrarrápida, inbox inteligente.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/GuardianCoach.kt`,
+  `app/src/test/java/com/ordia/app/domain/GuardianCoachTest.kt`,
+  `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md`.
+- **Commits**: (pendiente de push).
+- **HEAD final**: (tras push).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: auditar `RecurrenceEngine` (clamps/DST) y detección de compromisos en
+  notas; explorar producto (captura ultrarrápida, What Now, inbox inteligente).
+

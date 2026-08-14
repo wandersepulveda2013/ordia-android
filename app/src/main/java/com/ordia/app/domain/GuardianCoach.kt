@@ -5,6 +5,7 @@ import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskStatus
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 object GuardianCoach {
     enum class Tone { CALM, FOCUSED, CELEBRATING, GENTLE }
@@ -23,10 +24,13 @@ object GuardianCoach {
             // problema no es priorizarla, sino decidir qué hacer con ella. El
             // coach deja de repetir "empieza por esta" y plantea la decisión
             // real: hacerla hoy, moverla a propósito o quitarla de la lista.
-            // Heurística honesta: aritmética temporal sobre dueAt real (no IA).
-            val mostOverdueDays = overdue.maxOf { task ->
-                task.dueAt?.let { ((now - it) / MILLIS_PER_DAY).toInt() } ?: 0
-            }
+            // Heurística honesta: cuenta días de CALENDARIO entre la fecha de
+            // vencimiento (en la zona del usuario) y hoy, no millis/24h. Así la
+            // edad y el umbral de "olvidada" son correctos aunque el momento de
+            // consulta sea anterior a la hora del vencimiento (p. ej. una tarea
+            // vencida hace 2 días vista a las 7 a.m. sigue contando como 2, no
+            // como 1) y son robustos frente a los cambios de horario (DST).
+            val mostOverdueDays = overdue.maxOf { task -> overdueDays(task.dueAt, today, zone) }
             if (mostOverdueDays >= FORGOTTEN_DAYS_THRESHOLD) {
                 val ageLabel = forgottenAgeLabel(mostOverdueDays)
                 val message = if (overdue.size == 1)
@@ -64,6 +68,16 @@ object GuardianCoach {
         return "$months ${if (months == 1) "mes" else "meses"}"
     }
 
-    private const val MILLIS_PER_DAY = 24L * 60 * 60 * 1000
     private const val FORGOTTEN_DAYS_THRESHOLD = 2
+
+    /**
+     * Días de vencimiento transcurridos en términos de calendario (no de
+     * milisegundos): cuenta los días completos entre la fecha local de
+     * [dueAt] y [today], ambas en la zona del usuario. Devuelve 0 si no hay
+     * fecha. Esto evita el error de 1 día que produce `(now - dueAt)/24h`
+     * cuando se consulta antes de la hora del vencimiento, y es correcto en
+     * zonas con horario de verano (DST), donde un "día" no siempre son 24 h.
+     */
+    private fun overdueDays(dueAt: Long?, today: java.time.LocalDate, zone: ZoneId): Int =
+        dueAt?.let { ChronoUnit.DAYS.between(DateRules.toLocalDate(it, zone), today).toInt() } ?: 0
 }

@@ -112,4 +112,45 @@ class GuardianCoachTest {
         assertEquals("Leer diez minutos", insight.title)
         assertNotNull(insight.message)
     }
+
+    // Una tarea vencida hace 2 días consultada ANTES de la hora de su
+    // vencimiento: el recuento de calendario debe dar 2 (FOCUSED, olvidada),
+    // no 1 por la antigua aritmética (now - dueAt)/24h que bajaba a GENTLE.
+    @Test
+    fun twoDaysOverdueBeforeDueTimeIsStillFocused() {
+        val overdue = TaskEntity(
+            id = 1,
+            title = "Pagar factura",
+            dueAt = DateRules.toEpochMillis(today.minusDays(2), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        // Consulta a las 7 a.m.: 2 días de calendario pero <2·24h en milisegundos.
+        val earlyNow = DateRules.toEpochMillis(today, LocalTime.of(7, 0), zone)
+        val insight = GuardianCoach.insight(listOf(overdue), emptyList(), emptyList(), earlyNow, zone)
+
+        assertEquals(GuardianCoach.Tone.FOCUSED, insight.tone)
+        assertTrue(insight.message.contains("2 días"))
+    }
+
+    // La edad se cuenta en días de calendario por la zona del usuario: una
+    // zona con horario de verano (DST) donde un "día" no son 24 h no debe
+    // desajustar la etiqueta. La tarea vence hace 3 días → "3 días".
+    @Test
+    fun overdueAgeIsCalendarDayCountAcrossDstBoundary() {
+        val dstZone = ZoneId.of("America/New_York")
+        // 9 de marzo de 2026: al día siguiente (10) entra el horario de verano
+        // (forward 1 h), por lo que el tramo cruza un día de 23 h.
+        val dstToday = LocalDate.of(2026, 3, 12)
+        val overdue = TaskEntity(
+            id = 1,
+            title = "Renovar suscripción",
+            dueAt = DateRules.toEpochMillis(dstToday.minusDays(3), LocalTime.of(9, 0), dstZone),
+            priority = TaskPriority.NORMAL
+        )
+        val dstNow = DateRules.toEpochMillis(dstToday, LocalTime.of(8, 0), dstZone)
+        val insight = GuardianCoach.insight(listOf(overdue), emptyList(), emptyList(), dstNow, dstZone)
+
+        assertEquals(GuardianCoach.Tone.FOCUSED, insight.tone)
+        assertTrue(insight.message.contains("3 días"))
+    }
 }
