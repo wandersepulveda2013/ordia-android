@@ -3891,3 +3891,69 @@ a un permiso persistente frágil y silencioso ante fallos.
   → 9:00); hoy no lo hace y deja la frase en el título. Verificar necesidad antes de implementar.
 - Descubrimiento continuo: rutinas adaptables; detección de compromisos en notas; captura ultrarrápida.
 - `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
+
+
+## Ciclo 86 — Búsqueda + Inteligencia — fix "esta semana" en domingo + consolidar `timeRank` DRY
+
+- **Fecha (UTC)**: 2026-08-14.
+- **Run/ciclo**: 86 (rama `openhands/autonomous-ordia`). Base inicial `0120249` (c.84, ya en
+  remoto). `git fetch` reveló divergencia: el remoto avanzó a `48426ba` (c.85 parser duración
+  escrita). Rebase limpio (sin colisión de archivos: c.85 tocó `NaturalTaskParser*`+AI_AUTONOMY;
+  yo `SearchEngine*`/`TaskRules`/`WhatNowEngine*`). Re-ejecuté tests tras rebase: 612 PASS.
+- **HEAD inicial**: `0120249` (c.84).
+- **Problema seleccionado (1, P1)**: `SearchEngine.taskMatchesDateScope(ThisWeek)` calculaba
+  `daysToSunday = 7 - (today.dayOfWeek.value % 7)`. En domingo (`value=7`), `7 % 7 = 0` →
+  `daysToSunday = 7` → `endOfWeek = hoy + 7 = domingo siguiente`: "esta semana" mostraba tareas
+  de toda la semana ENTRANTE que no pertenecen a la actual. Bug introducido en c.81; los tests
+  solo cubrían jueves (donde la fórmula acierta), por eso pasó inadvertido. Un usuario que busca
+  "esta semana" en domingo veía su lista inflada con la semana próxima.
+- **Problema seleccionado (2, P2)**: `WhatNowEngine` tenía una **copia privada de `timeRank`
+  idéntica** a la de `TaskRules`, el mismo patrón de duplicación que causó divergencia silenciosa
+  con `priorityScore` (fix c.53). Riesgo latente de bug P1 si una copia se editaba y la otra no.
+- **Prioridad**: P1 (búsqueda — integridad de resultado: la búsqueda devolvía tareas que no
+  correspondían al filtro temporal pedido) + P2 (DRY/deuda de diseño — sin bug activo, probe
+  divergencia MATCH en 5 instantes).
+- **Causa raíz (1)**: el operador `%` se aplicaba a `today.dayOfWeek.value` ANTES de la resta, en
+  vez de a la resta completa. `7 % 7 = 0` eclipsa el caso domingo.
+- **Causa raíz (2)**: ausencia de fuente única para `timeRank` (misma clase de deuda que
+  `priorityScore` antes de c.53). `WhatNowEngine.timeRank` private == `TaskRules.timeRank` private.
+- **Solución (1, mínima)**: `(7 - today.dayOfWeek.value) % 7`. Domingo da 0 (la semana termina
+  hoy); lunes da 6 (domingo, sin cambio para el resto de días). La atrasada sigue excluida del
+  rango semanal (tiene su propio filtro OVERDUE). Sin nueva pantalla/botón.
+- **Solución (2, mínima, DRY)**: `TaskRules.timeRank` pasa de private a public (fuente única de
+  verdad); `WhatNowEngine.ordered` delega en `TaskRules.timeRank` y elimina su copia privada +
+  el `val today` muerto. Retrocompatible (mismo orden — probe divergencia MATCH).
+- **Tests**: +1 en `SearchEngineDateScopeTest.kt` (`estaSemana_onSundayEndsTodayNotNextWeek`:
+  en domingo 2026-08-16, el lunes siguiente id 2 ya no aparece en "esta semana"; la atrasada id 3
+  sigue fuera; confirmado FAIL antes del fix, PASS después). +1 en `WhatNowEngineTest.kt`
+  (`whatNowAndWidgetAgreeOnBestTaskAcrossTime`: conjunto diverso —vencida, en curso, urgente,
+  inbox, programada— en 5 instantes distintos; What Now (`WhatNowEngine.suggest`) y widget
+  (`TaskRules.nextBestTask`) devuelven la misma tarea; falla si vuelven a divergir).
+  **612 domain tests PASS** (`bash tools/run_domain_tests.sh`); **smoke 25 OK**
+  (`bash tools/run_domain_checks.sh`); **612 PASS tras rebase** sobre c.85. Sin regresión.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Hallazgos adicionales (descubrimiento continuo)**: `SearchEngine` date-scope aún no cubre
+  "parte del día" ("esta tarde"/"esta noche") ni "la semana que viene"/"este mes" (BACKLOG P3,
+  OPEN — evaluar necesidad real antes de implementar, anti-feature-bloat). La consolidación de
+  `timeRank` cierra la segunda familia de duplicación entre `WhatNowEngine` y `TaskRules`
+  (`priorityScore` en c.53, `isImminentStart`/`IMMINENT_WINDOW_MINUTES` en c.47); queda revisar
+  si `isDueToday`/otros helpers siguen duplicados (futuro).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt`,
+  `app/src/test/java/com/ordia/app/domain/SearchEngineDateScopeTest.kt`,
+  `app/src/main/java/com/ordia/app/domain/TaskRules.kt`,
+  `app/src/main/java/com/ordia/app/domain/WhatNowEngine.kt`,
+  `app/src/test/java/com/ordia/app/domain/WhatNowEngineTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: `4f0da4f` (refactor: consolidar timeRank en TaskRules como fuente única),
+  `66e3d3` (fix: 'esta semana' en domingo arrastraba la semana siguiente) → rebase → `26cd1d3`
+  push a `origin/openhands/autonomous-ordia`.
+- **HEAD final**: `26cd1d3` (tras push a `origin/openhands/autonomous-ordia`; base `48426ba` c.85).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+
+### Siguiente
+- Auditar si quedan más helpers duplicados entre `WhatNowEngine` y `TaskRules`
+  (`isDueToday`, `isInProgressNow`, etc.) — cerrar la familia DRY.
+- `SearchEngine` date-scope: "parte del día" / "la semana que viene" / "este mes" (P3 — evaluar
+  necesidad real antes de implementar, anti-feature-bloat).
+- Descubrimiento continuo: rutinas adaptables; detección de compromisos en notas; captura
+  ultrarrápida; `PlanEngine`/replanización si OVERLOADED recurrente.
