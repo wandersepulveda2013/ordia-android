@@ -23,6 +23,7 @@ object NaturalTaskParser {
         Regex("""(?i)\b([01]?\d|2[0-3]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b""")
     )
+    private val relativeTimePhrasesPattern = Regex("""(?i)\b(al\s+mediod[ií]a|a\s+primera\s+hora|esta\s+noche)\b""")
 
     fun parse(text: String, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): ParsedTaskInput {
         val base = Instant.ofEpochMilli(now).atZone(zone)
@@ -49,10 +50,12 @@ object NaturalTaskParser {
         }
         val weekdayMatch = weekdayPattern.find(working)
         val numericDateMatch = numericDatePattern.find(working)
+        val relativeTimeMatch = relativeTimePhrasesPattern.find(working)
         val date = when {
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
+            relativeTimeMatch != null && relativeTimeMatch.groupValues[1].lowercase().contains("esta noche") -> base.toLocalDate()
             weekdayMatch != null -> nextWeekday(
                 base.toLocalDate(),
                 weekdayMatch.groupValues[1].toDayOfWeek()
@@ -79,6 +82,14 @@ object NaturalTaskParser {
             if (meridiem == "pm" && hour < 12) hour += 12
             if (meridiem == "am" && hour == 12) hour = 0
             LocalTime.of(hour, minute)
+        } ?: relativeTimeMatch?.let { match ->
+            val phrase = match.groupValues[1].lowercase()
+            when {
+                phrase.contains("mediod") -> LocalTime.of(12, 0)
+                phrase.contains("primera hora") -> LocalTime.of(8, 0)
+                phrase.contains("esta noche") -> LocalTime.of(20, 0)
+                else -> null
+            }
         }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
@@ -86,6 +97,7 @@ object NaturalTaskParser {
         relativeMatch?.value?.let { working = working.replace(it, " ") }
         weekdayMatch?.value?.let { working = working.replace(it, " ") }
         timeMatch?.value?.let { working = working.replace(it, " ") }
+        relativeTimeMatch?.value?.let { working = working.replace(it, " ") }
         working = working
             .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
             .let { value -> numericDatePattern.replace(value, " ") }

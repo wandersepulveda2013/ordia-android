@@ -92,7 +92,7 @@ fun NotesScreen(
         }
         item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Buscar en notas") }, singleLine = true) }
         if (notes.isEmpty()) {
-            item { EmptyState("No hay notas", "Crea una página para guardar ideas, decisiones o información.", "Crear nota", onAction = { onNote(0) }) }
+            item { EmptyState("Espacio en blanco", "Crea una página para guardar ideas, decisiones o información estructurada.", "Crear nota", onAction = { templateMenu = true }) }
         } else {
             items(notes, key = { it.id }) { note ->
                 Card(onClick = { onNote(note.id) }) {

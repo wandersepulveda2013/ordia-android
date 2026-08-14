@@ -104,7 +104,7 @@ fun TasksScreen(
             }
         }
         if (shown.isEmpty()) {
-            item { EmptyState("Nada por aquí", "Cambia el filtro o crea una tarea nueva.", "Crear tarea", onAction = { adding = true }) }
+            item { EmptyState("Tu lista está despejada", "Añade una tarea pendiente o utiliza el filtro superior para ver las demás.", "Crear tarea", onAction = { adding = true }) }
         } else {
             items(shown, key = { it.id }) { task -> TaskListItem(state, vm, task, onTask) }
         }
