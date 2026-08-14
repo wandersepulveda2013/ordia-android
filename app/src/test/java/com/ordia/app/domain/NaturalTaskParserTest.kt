@@ -4204,6 +4204,27 @@ class NaturalTaskParserTest {
         assertEquals(now, result2.dueAt)
     }
 
+    // P0 integridad de datos (generalización del fix "ya"): el borrado de un token
+    // temporal del título debe afectar SOLO la ocurrencia matched, no todas las
+    // apariciones literales del token. Si el usuario repite el mismo texto del
+    // token como contenido (p. ej. "revisar quincena y otra quincena pasada"), el
+    // parser no debe borrar la segunda ocurrencia. Antes usaba
+    // working.replace(it.value, " ") (global, literal) y la eliminaba.
+    @Test fun tokenRepetidoComoContenidoNoSeBorraGlobalmente_quincena() {
+        val result = NaturalTaskParser.parse("Revisar quincena y otra quincena pasada", now, zone)
+        assertEquals("Revisar y otra quincena pasada", result.title)
+    }
+
+    @Test fun tokenRepetidoComoContenidoNoSeBorraGlobalmente_semanaPasada() {
+        val result = NaturalTaskParser.parse("Resumen semana pasada y otra semana pasada", now, zone)
+        assertEquals("Resumen y otra semana pasada", result.title)
+    }
+
+    @Test fun tokenRepetidoComoContenidoNoSeBorraGlobalmente_proximosDias() {
+        val result = NaturalTaskParser.parse("Viaje próximos días y más próximos días", now, zone)
+        assertEquals("Viaje y más próximos días", result.title)
+    }
+
     @Test fun loMasProntoPosibleVenceAhoraYLimpiaTitulo() {
         val result = NaturalTaskParser.parse("Empezar lo más pronto posible", now, zone)
         assertEquals("Empezar", result.title)

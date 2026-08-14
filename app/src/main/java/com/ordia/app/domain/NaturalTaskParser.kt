@@ -733,8 +733,17 @@ object NaturalTaskParser {
                 }
                 minutes.toInt().coerceIn(1, 60 * 24 * 30)
             }
+        // Se materializan los rangos ANTES de mutar `working` (findAll es perezoso y
+        // reasignar `working` dejaría los rangos siguientes obsoletos) y se blanquean
+        // en orden descendente para no desplazar los índices anteriores. Sustituye
+        // SOLO el rango del match (no `replace(it.value, ...)` global), que corrompería
+        // el título si el token aparece como subcadena de una palabra de contenido
+        // (p. ej. token "quincena" dentro de "quincenal", "semana" en "semanal").
         reminderPatterns.forEach { pattern ->
-            pattern.findAll(working).forEach { working = working.replace(it.value, " ") }
+            val ranges = pattern.findAll(working).map { it.range }.toList()
+            for (r in ranges.sortedByDescending { it.first }) {
+                working = working.replaceRange(r, " ")
+            }
         }
 
         // ¿El usuario pidió un recordatorio pero sin cantidad explícita? Sirve para
@@ -759,7 +768,7 @@ object NaturalTaskParser {
             }
             now + (amount * 60 + extra) * 60_000L
         }
-        compoundFractionalRelativeMatch?.let { working = working.replace(it.value, " ") }
+        compoundFractionalRelativeMatch?.let { working = working.replaceRange(it.range, " ") }
         // Fecha relativa multi-cuarto ("en tres cuartos de hora" → 45 min): procesada
         // antes que la duración para que no quede sin vencimiento ni residuo en el título.
         val multiQuarterRelativeMatch = multiQuarterRelativePattern.find(working)
@@ -768,14 +777,14 @@ object NaturalTaskParser {
             val extraQuarter = if (match.value.contains(Regex("""(?i)\sy\scuarto\b"""))) 1L else 0L
             now + (amount + extraQuarter) * 15 * 60_000L
         }
-        multiQuarterRelativeMatch?.let { working = working.replace(it.value, " ") }
+        multiQuarterRelativeMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // Fecha relativa VAGA "en un rato"/"dentro de un rato"/"de aquí a un rato"
         // → +1 h. Se procesa ANTES que [relativePattern] para robar la frase completa
         // (si no, "en un rato" no casa y queda en el título sin agendar recordatorio).
         val vagueRelativeMatch = vagueRelativePattern.find(working)
         val vagueRelativeDueAt = vagueRelativeMatch?.let { now + 60 * 60_000L }
-        vagueRelativeMatch?.let { working = working.replace(it.value, " ") }
+        vagueRelativeMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // "Ahora" inmediato ("ahora mismo"/"ahorita"/"lo antes posible"/...)
         // → vence ahora: la tarea sale a la superficie en "What Now" y puede recordar.
@@ -790,7 +799,7 @@ object NaturalTaskParser {
         // robarles sus frases y consume la frase para dejar el título limpio.
         val laterRelativeMatch = laterRelativePattern.find(working)
         val laterRelativeDueAt = laterRelativeMatch?.let { now + 3 * 60 * 60_000L }
-        laterRelativeMatch?.let { working = working.replace(it.value, " ") }
+        laterRelativeMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // Fecha relativa "en/dentro de N minutos/horas/días" (N = dígitos o palabra).
         val relativeMatch = relativePattern.find(working)
@@ -812,7 +821,7 @@ object NaturalTaskParser {
             }
             now + millis
         }
-        relativeMatch?.let { working = working.replace(it.value, " ") }
+        relativeMatch?.let { working = working.replaceRange(it.range, " ") }
         // Fecha relativa fraccionaria + cuarto ("en media hora y cuarto" → 45 min,
         // "en un cuarto de hora y cuarto" → 30): se procesa ANTES que
         // [fractionalRelativePattern] para que este no robe solo "en media hora" (+30)
@@ -822,7 +831,7 @@ object NaturalTaskParser {
             val base = if (match.groupValues[1].lowercase().contains("media")) 30L else 15L
             now + (base + 15L) * 60_000L
         }
-        fractionalAndQuarterRelativeMatch?.let { working = working.replace(it.value, " ") }
+        fractionalAndQuarterRelativeMatch?.let { working = working.replaceRange(it.range, " ") }
         // Fecha relativa fraccionaria ("en media hora"/"dentro de un cuarto de hora"):
         // se procesa ANTES que la duración para que [fractionalDurationPattern] no robe
         // "media hora" como duración y deje el prefijo "en" como residuo en el título.
@@ -831,14 +840,14 @@ object NaturalTaskParser {
             val minutes = if (match.groupValues[1].lowercase().contains("media")) 30L else 15L
             now + minutes * 60_000L
         }
-        fractionalRelativeMatch?.let { working = working.replace(it.value, " ") }
+        fractionalRelativeMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // El "fin de semana" se detecta y se borra ANTES del período próximo para que
         // "fin de semana que viene" no active por error el patrón "semana que viene"
         // (que dejaría el residuo «fin de» en el título). El match se conserva para la
         // resolución de fecha posterior (weekendMatch != null).
         val weekendEarlyMatch = weekendPattern.find(working)
-        weekendEarlyMatch?.let { working = working.replace(it.value, " ") }
+        weekendEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
         // "la semana/el mes/el año pasado": período anterior. Se detecta y borra ANTES
         // que previousWeekdayPattern, que de otro modo capturaría "mes"/"semana" como
         // si fuera un día de semana ("el mes pasado" -> grupo1="mes", no es día ->
@@ -855,7 +864,7 @@ object NaturalTaskParser {
             }
             now - days * 24 * 60 * 60_000L
         }
-        lastPeriodMatch?.let { working = working.replace(it.value, " ") }
+        lastPeriodMatch?.let { working = working.replaceRange(it.range, " ") }
         // "el jueves pasado" / "el último lunes": fecha pasada. Se borra ANTES que
         // weekdayPattern para que el día no se capture como próximo y "pasado" no
         // quede como residuo en el título.
@@ -870,8 +879,8 @@ object NaturalTaskParser {
             ?.takeIf { it.groupValues[1].toDayOfWeekOrNull() != null }
         val previousWeekdayReversedMatch = previousWeekdayReversedPattern.find(working)
             ?.takeIf { it.groupValues[1].toDayOfWeekOrNull() != null }
-        previousWeekdayMatch?.let { working = working.replace(it.value, " ") }
-        previousWeekdayReversedMatch?.let { working = working.replace(it.value, " ") }
+        previousWeekdayMatch?.let { working = working.replaceRange(it.range, " ") }
+        previousWeekdayReversedMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // "hace N días/semanas/...": fecha relativa PASADA. Se trata como días
         // relativos (epoch a medianoche) para combinarse con hora explícita
@@ -895,7 +904,7 @@ object NaturalTaskParser {
             }
             now - millis
         }
-        agoMatch?.let { working = working.replace(it.value, " ") }
+        agoMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // "fin de mes" / "finales de mes" / "mediados de mes": vencimientos mensuales
         // (alquiler, tarjeta, servicios). Se borran ANTES del período próximo para que
@@ -920,9 +929,9 @@ object NaturalTaskParser {
             }
             else -> null
         }
-        endOfMonthEarlyMatch?.let { working = working.replace(it.value, " ") }
-        midOfMonthEarlyMatch?.let { working = working.replace(it.value, " ") }
-        startOfMonthEarlyMatch?.let { working = working.replace(it.value, " ") }
+        endOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+        midOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+        startOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // "esta semana" / "esta semana que viene": fin de la semana actual (próximo
         // domingo, ISO lunes→domingo). Se borra ANTES del período próximo para que
@@ -933,7 +942,7 @@ object NaturalTaskParser {
                 .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
             DateRules.toEpochMillis(sunday, LocalTime.of(9, 0), zone)
         }
-        thisWeekEarlyMatch?.let { working = working.replace(it.value, " ") }
+        thisWeekEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // "principios de semana": el lunes más cercano en hoy/futuro. Se borra ANTES
         // del período próximo para que "semana" no active "semana que viene".
@@ -943,7 +952,7 @@ object NaturalTaskParser {
                 .with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY))
             DateRules.toEpochMillis(monday, LocalTime.of(9, 0), zone)
         }
-        startOfWeekEarlyMatch?.let { working = working.replace(it.value, " ") }
+        startOfWeekEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // "mediados de semana": el miércoles más cercano en hoy/futuro. Se borra ANTES
         // del período próximo para que "semana" no active "semana que viene".
@@ -953,7 +962,7 @@ object NaturalTaskParser {
                 .with(TemporalAdjusters.nextOrSame(DayOfWeek.WEDNESDAY))
             DateRules.toEpochMillis(wednesday, LocalTime.of(9, 0), zone)
         }
-        midOfWeekEarlyMatch?.let { working = working.replace(it.value, " ") }
+        midOfWeekEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // "el 15 del mes que viene": día N del mes siguiente. Se procesa ANTES que
         // nextPeriodPattern para consumir la frase completa (día + "mes que viene")
@@ -968,7 +977,7 @@ object NaturalTaskParser {
             val safeDay = minOf(day, dim)
             DateRules.toEpochMillis(nextMonth.withDayOfMonth(safeDay), LocalTime.of(9, 0), zone)
         }
-        nextMonthDayMatch?.let { working = working.replace(it.value, " ") }
+        nextMonthDayMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // Orden inverso: "el mes que viene el 5" / "el mes que viene el día 5".
         // Misma resolución que nextMonthDayDueAt (día N del mes siguiente, clamp al
@@ -983,7 +992,7 @@ object NaturalTaskParser {
             val safeDay = minOf(day, dim)
             DateRules.toEpochMillis(nextMonth.withDayOfMonth(safeDay), LocalTime.of(9, 0), zone)
         }
-        nextMonthDayReverseMatch?.let { working = working.replace(it.value, " ") }
+        nextMonthDayReverseMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // "la semana que viene el lunes" / "la próxima semana el viernes":
         // día de la semana objetivo de la SEMANA PRÓXIMA. start-of-next-week (próximo
@@ -995,7 +1004,7 @@ object NaturalTaskParser {
                 nextWeekWeekdayDate(base.toLocalDate(), target, zone)
             }
         }
-        nextWeekWeekdayReverseMatch?.let { working = working.replace(it.value, " ") }
+        nextWeekWeekdayReverseMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // Orden inverso: "el lunes de la semana que viene". Misma resolución.
         val nextWeekWeekdayForwardMatch = nextWeekWeekdayForwardPattern.find(working)
@@ -1004,7 +1013,7 @@ object NaturalTaskParser {
                 nextWeekWeekdayDate(base.toLocalDate(), target, zone)
             }
         }
-        nextWeekWeekdayForwardMatch?.let { working = working.replace(it.value, " ") }
+        nextWeekWeekdayForwardMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // Período próximo ("la semana que viene", "el mes que viene", "el año que
         // viene", "próximo mes", "la próxima semana"): +1 período (semana/mes/año).
@@ -1029,7 +1038,7 @@ object NaturalTaskParser {
             }
             now + days * 24 * 60 * 60_000L
         }
-        nextPeriodMatch?.let { working = working.replace(it.value, " ") }
+        nextPeriodMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // "quincena": hito financiero/laboreal en español (cobro/nómina/pago). La
         // quincena son dos hitos mensuales: el día 15 (primera quincena) y el fin de
@@ -1081,7 +1090,7 @@ object NaturalTaskParser {
             }
             DateRules.toEpochMillis(target, LocalTime.of(9, 0), zone)
         }
-        quincenaMatch?.let { working = working.replace(it.value, " ") }
+        quincenaMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // La fecha relativa (relativePattern) tiene prioridad; luego los límites de mes
         // ("fin de mes"/"mediados de mes"); "esta semana"; "principios/mediados de semana";
@@ -1411,7 +1420,7 @@ object NaturalTaskParser {
                 null
             }
         }
-        rangeMatch?.let { working = working.replace(it.value, " ") }
+        rangeMatch?.let { working = working.replaceRange(it.range, " ") }
         // Hora de inicio del rango resuelta a absoluta (con su meridiem). Sin tiempo
         // explícito ("a las"), la hora de inicio del rango es la mejor estimación de la
         // fecha límite del evento; antes caía a la canónica de la parte del día
@@ -1461,7 +1470,7 @@ object NaturalTaskParser {
         val standaloneHourPartOfDayMatch =
             if (explicitTime == null) standaloneHourPartOfDayPattern.find(working) else null
         val standaloneHourPartOfDayTime = standaloneHourPartOfDayMatch?.let { resolveStandaloneHourPartOfDay(it) }
-        standaloneHourPartOfDayMatch?.let { working = working.replace(it.value, " ") }
+        standaloneHourPartOfDayMatch?.let { working = working.replaceRange(it.range, " ") }
         // Un tiempo explícito tiene prioridad sobre la hora canónica de la parte del día.
         // Si la hora explícita vino sin meridiem (p.ej. "a las 4") y hay contexto PM de
         // parte del día ("esta tarde"/"a la noche"), se aplica el offset +12 ("esta tarde
@@ -1562,7 +1571,7 @@ object NaturalTaskParser {
             working = if (withConnector.containsMatchIn(working)) withConnector.replace(working, " ")
                 else working.replace(match.value, " ")
         }
-        fractionalMatch?.let { working = working.replace(it.value, " ") }
+        fractionalMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // Categoría: la etiqueta explícita "#cat"/"@cat" del usuario tiene prioridad
         // sobre la inferencia por keywords. Se extrae y se elimina del título.
