@@ -1551,7 +1551,27 @@ object NaturalTaskParser {
                     else -> rawYear
                 }
                 if (day == null || month == null) null else {
-                    runCatching { LocalDate.of(year, month, day) }.getOrNull()?.let { date ->
+                    // "29/2" sin año en año no bisiesto: el usuario se refiere al PRÓXIMO
+                    // 29 de febrero real (año bisiesto), no a un 28/2 cualquiera. Sin
+                    // esto LocalDate.of lanzaba -> dueAt=null -> fecha descartada
+                    // silenciosamente, vencimiento olvidado. Paridad con parseMonthNameDate
+                    // ("el 29 de febrero"), que SÍ rollaba; la forma numérica se descartaba
+                    // (asimetría flagrante: "29/2"→null, "29 de febrero"→2028-02-29).
+                    if (rawYear == null && month == 2 && day == 29) {
+                        var y = base.year
+                        if (!Year.isLeap(y.toLong()) || LocalDate.of(y, 2, 29).isBefore(base.toLocalDate())) {
+                            do { y++ } while (!Year.isLeap(y.toLong()))
+                        }
+                        LocalDate.of(y, 2, 29)
+                    } else {
+                        runCatching { LocalDate.of(year, month, day) }.getOrNull()
+                            // Día imposible para el mes/año ("31/4", "30/2", "29/2/2026"):
+                            // se ajusta al último día válido, consistente con
+                            // parseMonthNameDate ("31 de abril" -> 30/4). Honesto: el mes
+                            // se respeta, el día se normaliza. Antes lanzaba -> null
+                            // (fecha explícitamente escrita, descartada).
+                            ?: LocalDate.of(year, month, minOf(day, YearMonth.of(year, month).lengthOfMonth()))
+                    }.let { date ->
                         // Sin año explícito, una fecha pasada se entiende como del próximo año
                         // (consistente con parseMonthNameDate). Evita programar tareas en el
                         // pasado, donde los recordatorios nunca dispararían.

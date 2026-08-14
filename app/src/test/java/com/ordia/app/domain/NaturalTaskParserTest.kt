@@ -5689,8 +5689,26 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "el 29/2" en año no bisiesto (2026): el usuario se refiere al PRÓXIMO 29 de febrero
+    // real (2028, año bisiesto). Antes LocalDate.of lanzaba -> dueAt=null -> tarea sin
+    // recordatorio (vencimiento olvidado). Paridad con parseMonthNameDate ("el 29 de
+    // febrero" sin año), que SÍ rollaba al próximo bisiesto. Asimetría: la forma
+    // numérica "29/2" se descartaba, la nominal "29 de febrero" no.
+    @Test fun numericLeapDayNoYear_rollsToNextLeapYear() {
+        val result = NaturalTaskParser.parse("pago el 29/2", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2028, 2, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 
-    // "el 15 de este mes": ancla al día 15 del mes actual (julio→agosto, 15 ya pasó el 29/7).
+    // "29/2/2026" con año explícito NO bisiesto: día imposible -> se ajusta al último
+    // día válido del mes (28/2/2026), consistente con parseMonthNameDate ("31 de abril"
+    // -> 30/4). Antes lanzaba -> dueAt=null (fecha escrita explícitamente, descartada).
+    @Test fun numericImpossibleDayWithYear_clampsToLastValidDay() {
+        val result = NaturalTaskParser.parse("cita el 31/4/2026", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalDate.of(2026, 4, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun dayOfMonthDeEsteMes() {
         val result = NaturalTaskParser.parse("reunión el 15 de este mes", now, zone)
         assertEquals("reunión", result.title)
