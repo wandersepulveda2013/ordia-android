@@ -342,9 +342,25 @@ object NaturalTaskParser {
      * adelantados). El modificador se consume en el match (limpieza de título) y se
      * detecta en la resolución para desplazar un mes.
      */
-    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
-    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
-    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    /**
+     * "fin de año" / "a fin de año" / "finales de año" / "fin del año" / "cierre de año"
+     * → 31 de diciembre del año actual (o del siguiente si hoy ya es 31/12).
+     * "principios de año" / "a principios de año" → 1 de enero del año siguiente.
+     * "mediados de año" / "a mediados de año" → 30 de junio (mitad del año).
+     * Vencimientos y plazos anuales cotidianos (cierre fiscal, renovaciones,
+     * seguros, propósitos de año nuevo): antes caían a dueAt=null (la frase entera
+     * se quedaba en el título) porque ningún patrón las reconocía → vencimiento
+     * olvidado (P1). Se detectan y borran ANTES del período próximo para que la
+     * subcadena "año" no active "año que viene" como +365d genérico (que adelantaría
+     * "fin de año" a un año desde hoy en vez de al 31/12 real). El calificador de
+     * año que viene/entrante desplaza al año siguiente.
+     */
+    private val endOfYearPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|corte)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?a[nñ]o(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val midOfYearPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?a[nñ]o(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val startOfYearPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?a[nñ]o(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     /**
      * "la quincena" / "de la quincena" / "primera quincena" / "segunda quincena":
      * hito financiero mensual (cobro, nómina, pago). La "primera quincena" es el día
@@ -388,7 +404,7 @@ object NaturalTaskParser {
      * Se detecta y borra ANTES del período próximo para que "semana" no active
      * "semana que viene".
      */
-    private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)semana\b""")
+    private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)semana\b""")
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(?:d[ií]a\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
     // Día del mes suelto con artículo: "reunión el 15", "cita el 20 a las 18",
     // "entregar el 5 del mes". Antes "el 15" no casa con numericDatePattern (que exige
@@ -1022,6 +1038,33 @@ object NaturalTaskParser {
         midOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
         startOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
 
+        // "fin de año" / "mediados de año" / "principios de año": vencimientos anuales
+        // (cierre fiscal, renovaciones). Se borran ANTES del período próximo para que
+        // la subcadena "año" no active "año que viene" como +365d genérico. Días
+        // relativos (epoch a medianoche) para combinarse con hora explícita.
+        val endOfYearEarlyMatch = endOfYearPattern.find(working)
+        val midOfYearEarlyMatch = midOfYearPattern.find(working)
+        val startOfYearEarlyMatch = startOfYearPattern.find(working)
+        val yearBoundaryDueAt = when {
+            endOfYearEarlyMatch != null -> {
+                val baseYear = yearBaseForBoundary(base.toLocalDate(), endOfYearEarlyMatch.value)
+                val lastDay = baseYear.withMonth(12).withDayOfMonth(31)
+                DateRules.toEpochMillis(lastDay, LocalTime.of(9, 0), zone)
+            }
+            midOfYearEarlyMatch != null -> {
+                val baseYear = yearBaseForBoundary(base.toLocalDate(), midOfYearEarlyMatch.value)
+                DateRules.toEpochMillis(baseYear.withMonth(6).withDayOfMonth(30), LocalTime.of(9, 0), zone)
+            }
+            startOfYearEarlyMatch != null -> {
+                val baseYear = yearBaseForBoundary(base.toLocalDate(), startOfYearEarlyMatch.value)
+                DateRules.toEpochMillis(baseYear.withMonth(1).withDayOfMonth(1), LocalTime.of(9, 0), zone)
+            }
+            else -> null
+        }
+        endOfYearEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+        midOfYearEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+        startOfYearEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+
         // "esta semana" / "esta semana que viene": fin de la semana actual (próximo
         // domingo, ISO lunes→domingo). Se borra ANTES del período próximo para que
         // "semana" no active "semana que viene" y para limpiar "esta semana que viene".
@@ -1192,6 +1235,7 @@ object NaturalTaskParser {
             agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: vagueRelativeDueAt ?: nowDueAt ?:
             laterRelativeDueAt ?: fractionalAndQuarterRelativeDueAt ?: fractionalRelativeDueAt ?:
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
+            yearBoundaryDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?:
             nextWeekWeekdayReverseDueAt ?: nextWeekWeekdayForwardDueAt ?: nextPeriodDueAt
@@ -1199,7 +1243,7 @@ object NaturalTaskParser {
             relativeMatch != null || fractionalRelativeMatch != null ||
             fractionalAndQuarterRelativeMatch != null ||
             compoundFractionalRelativeMatch != null || multiQuarterRelativeMatch != null ||
-            monthBoundaryDueAt != null ||
+            monthBoundaryDueAt != null || yearBoundaryDueAt != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
             quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null ||
             nextWeekWeekdayReverseMatch != null || nextWeekWeekdayForwardMatch != null || nextPeriodMatch != null) &&
@@ -2111,7 +2155,7 @@ object NaturalTaskParser {
         if (isNext) return today.plusMonths(1)
         val kind = when {
             t.contains("fin") || t.contains("finales") || t.contains("cierre") || t.contains("corte") || t.contains("últim") || t.contains("ultim") -> "end"
-            t.contains("mediados") || t.contains("mediado") -> "mid"
+            t.contains("mediados") || t.contains("mediado") || t.contains("mitad") -> "mid"
             else -> "start"
         }
         return when (kind) {
@@ -2128,6 +2172,40 @@ object NaturalTaskParser {
                 // del mes siguiente.
                 val firstThis = today.withDayOfMonth(1)
                 if (today.isAfter(firstThis)) firstThis.plusMonths(1) else firstThis
+            }
+        }
+    }
+
+    /**
+     * Año de referencia para un límite anual ("fin de año", "mediados de año",
+     * "principios de año"). Sin modificador, replica la lógica de
+     * [monthBaseForBoundary]: "fin de año" cae en 31/12 de este año salvo que hoy
+     * YA sea 31/12 (→ año siguiente); "mediados de año" en 30/6 salvo que hoy ≥ 30/6
+     * (→ año siguiente); "principios de año" rueda al 1/1 del año siguiente (hoy ≥ 1/1
+     * salvo hoy=1/1). Con modificador de AÑO QUE VIENE / ENTRANTE, ancla al año
+     * siguiente sin roll adicional, consistente con el calificador mensual.
+     */
+    private fun yearBaseForBoundary(today: LocalDate, matched: String): LocalDate {
+        val t = matched.lowercase()
+        val isNext = t.contains("que viene") || t.contains("que entra") || t.contains("próxim") || t.contains("proxim") || t.contains("entrante")
+        if (isNext) return today.plusYears(1)
+        val kind = when {
+            t.contains("fin") || t.contains("finales") || t.contains("cierre") || t.contains("corte") -> "end"
+            t.contains("mediados") || t.contains("mediado") || t.contains("mitad") -> "mid"
+            else -> "start"
+        }
+        return when (kind) {
+            "end" -> {
+                val lastDayThis = today.withMonth(12).withDayOfMonth(31)
+                if (today.isBefore(lastDayThis)) today else lastDayThis.plusYears(1)
+            }
+            "mid" -> {
+                val midThis = today.withMonth(6).withDayOfMonth(30)
+                if (today.isBefore(midThis)) today else midThis.plusYears(1)
+            }
+            else -> {
+                val firstThis = today.withMonth(1).withDayOfMonth(1)
+                if (today.isAfter(firstThis)) firstThis.plusYears(1) else firstThis
             }
         }
     }

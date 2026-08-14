@@ -4941,4 +4941,58 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
         assertEquals("Avisar luego de la reunión", result.title)
     }
+
+    // --- Límites anuales y sinónimos regionales (P1, ciclo 124) ---
+    // "fin de año"/"a fin de año" → 31/12 de este año; "finales de este mes" →
+    // fin de mes actual (antes "este" no casaba → +30d genérico y residuo en título);
+    // "mitad del mes/semana/año" = sinónimo de "mediados" en América Latina.
+
+    @Test fun aFinDeAnoAncla31Diciembre() {
+        val result = NaturalTaskParser.parse("Reunión a fin de año", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 12, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDeAnoSinPreposicionAncla31Diciembre() {
+        val result = NaturalTaskParser.parse("Cerrar libros fin de año", now, zone)
+        assertEquals("Cerrar libros", result.title)
+        assertEquals(LocalDate.of(2026, 12, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finalesDeEsteMesAnclaFinMesActual() {
+        // "este mes" antes no casaba → la tarea quedaba sin fecha (residuo en título).
+        // ahora = 29/7 → fin de julio = 31/7.
+        val result = NaturalTaskParser.parse("Pagar a finales de este mes", now, zone)
+        assertEquals("Pagar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mitadDelMesEsSinonimoDeMediados() {
+        // 2026-08-05 < 15 → mitad del mes = 15/8 (mes actual).
+        val tempranoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 5), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Reunión a mitad del mes", tempranoNow, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mitadDeSemanaEsSinonimoDeMediados() {
+        // ahora = 2026-07-29 (miércoles) → midOfWeek = nextOrSame(WED) = hoy.
+        val result = NaturalTaskParser.parse("Reunión a mitad de semana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mitadDelAnoAncla30Junio() {
+        // ahora = 29/7/2026, ya pasó 30/6 → mitad del año = 30/6/2027.
+        val result = NaturalTaskParser.parse("Balance a mitad del año", now, zone)
+        assertEquals("Balance", result.title)
+        assertEquals(LocalDate.of(2027, 6, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mitadDelAnoAntesDeMediadosAnclaAnoActual() {
+        // 2026-05-01 < 30/6 → mitad del año = 30/6/2026.
+        val mayoNow = DateRules.toEpochMillis(LocalDate.of(2026, 5, 1), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Balance a mitad del año", mayoNow, zone)
+        assertEquals(LocalDate.of(2026, 6, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }
