@@ -545,6 +545,38 @@ object NaturalTaskParser {
     )
 
     /**
+     * Parte del día COMPACTA (coloquial, sin conector): un marcador de día
+     * ("hoy"/"mañana"/"pasado mañana"/"antepasado mañana") seguido DIRECTAMENTE de
+     * "tarde"/"noche"/"madrugada" — p.ej. "hoy tarde", "mañana noche",
+     * "pasado mañana tarde". Es la forma abreviada de "hoy en la tarde"/"mañana por la
+     * noche", muy común al escribir rápido en móvil.
+     *
+     * Antes NO se reconocía: el marcador de día fijaba la fecha, pero la parte del día
+     * quedaba como residuo en el título y la hora caía al default 09:00 — agenda errónea
+     * (una tarea "hoy noche" se vencía a las 09:00 de hoy, no a las 21:00) y título
+     * corrupto ("hoy noche" se mostraba tal cual). P1.
+     *
+     * Se EXCLUYE "mañana" como parte del día aquí (sólo tarde/noche/madrugada): la
+     * palabra "mañana" es ambigua (día vs. parte del día) y la forma compacta "hoy
+     * mañana"/"mañana mañana" es rara y propensa a fechar mal (choca con el marcador
+     * "mañana" como día). La forma con conector ("hoy en la mañana") ya funciona vía
+     * [standalonePartOfDayPattern]; la compacta de "mañana" no aporta suficiente valor
+     * para justificar el riesgo de ambigüedad. "madrugada" se incluye: es inequívoca
+     * (sólo parte del día, no hay marcador "madrugada") y se resuelve a 04:00.
+     *
+     * El marcador de día se captura sólo para anclar la parte del día a una referencia
+     * temporal (evitar robar "tarde"/"noche" sueltas de otras construcciones); la fecha
+     * la resuelve el `when` de fecha existente ("hoy"→hoy, "mañana"→+1, etc.).
+     */
+    private val compactDayPartOfDayPattern =
+        Regex("""(?i)\b(?:antepasad[oa]\s+mañana|pasado\s+mañana|mañana|hoy)\s+(tarde|noche|madrugada)\b""")
+    private val compactDayPartOfDayTimes = mapOf(
+        "tarde" to LocalTime.of(15, 0),
+        "noche" to LocalTime.of(21, 0),
+        "madrugada" to LocalTime.of(4, 0)
+    )
+
+    /**
      * "a primera hora" (opcionalmente "de la mañana/madrugada"): inicio de jornada ~09:00.
      * Frase natural muy común; antes dejaba residuo en el título y no se interpretaba.
      * Como es una hora canónica de respaldo (no un reloj explícito), no fuerza contexto PM.
@@ -1103,6 +1135,9 @@ object NaturalTaskParser {
         val standalonePartOfDayMatch = standalonePartOfDayPattern.find(working)
         val standalonePartOfDayKey = standalonePartOfDayMatch?.groupValues?.get(1)?.lowercase()
         val standalonePartOfDayTime = standalonePartOfDayKey?.let { standalonePartOfDayTimes[it] }
+        val compactDayPartOfDayMatch = compactDayPartOfDayPattern.find(working)
+        val compactDayPartOfDayKey = compactDayPartOfDayMatch?.groupValues?.get(1)?.lowercase()
+        val compactDayPartOfDayTime = compactDayPartOfDayKey?.let { compactDayPartOfDayTimes[it] }
         val primeraHoraMatch = primeraHoraPattern.find(working)
         val ultimaHoraMatch = ultimaHoraPattern.find(working)
         // Contexto PM: una parte del día de tarde/noche (explícita "esta tarde" o suelta "a la noche")
@@ -1111,6 +1146,7 @@ object NaturalTaskParser {
         val hasPartOfDayPmContext =
             partOfDayMatch?.let { it.groupValues[1].lowercase() in partOfDayPmKeys } == true ||
             standalonePartOfDayKey in partOfDayPmKeys ||
+            compactDayPartOfDayKey in partOfDayPmKeys ||
             recurrence.partOfDayIsPm
         // True solo cuando la fecha proviene de un día de la semana suelto ("el viernes")
         // y ese día ES hoy: la cita puede ser hoy mismo si su hora aún no pasó.
@@ -1423,6 +1459,7 @@ object NaturalTaskParser {
             ?: partOfDayTime
             ?: standaloneHourPartOfDayTime
             ?: standalonePartOfDayTime
+            ?: compactDayPartOfDayTime
             ?: recurrence.partOfDayTime
             ?: primeraHoraMatch?.let { primeraHoraTime }
             ?: ultimaHoraMatch?.let { ultimaHoraTime }
@@ -1527,6 +1564,7 @@ object NaturalTaskParser {
             .let { value -> partOfDayPattern.replace(value, " ") }
             .let { value -> timePatterns.fold(value) { acc, pattern -> pattern.replace(acc, " ") } }
             .let { value -> standalonePartOfDayPattern.replace(value, " ") }
+            .let { value -> compactDayPartOfDayPattern.replace(value, " ") }
             .let { value -> primeraHoraPattern.replace(value, " ") }
             .let { value -> ultimaHoraPattern.replace(value, " ") }
             .replace(Regex("""(?i)\bantepasad[oa]\s+mañana\b|\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b"""), " ")

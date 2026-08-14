@@ -1784,6 +1784,60 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(16, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- Parte del día COMPACTA (coloquial, sin conector) — ciclo 109 ---
+    // "hoy tarde"/"hoy noche"/"mañana tarde"/"mañana noche"/"pasado mañana tarde":
+    // forma abreviada de "hoy en la tarde". Antes: hora 09:00 (errónea) + residuo en título.
+
+    @Test fun hoyTardeEs15hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Comprar pan hoy tarde", now, zone)
+        assertEquals("Comprar pan", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun hoyNocheEs21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Llamar a mamá hoy noche", now, zone)
+        assertEquals("Llamar a mamá", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mananaTardeEsManana15hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión mañana tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mananaNocheEsManana21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pagar factura mañana noche", now, zone)
+        assertEquals("Pagar factura", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun pasadoMananaTardeEsPasadoManana15hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita pasado mañana tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun compactTardeConHoraSinMeridiemAplicaPm() {
+        // "hoy tarde" aporta contexto PM: "a las 4" → 16:00.
+        val result = NaturalTaskParser.parse("Reunión hoy tarde a las 4", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(16, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun hoyMadrugadaEs4hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Vuelo hoy madrugada", now, zone)
+        assertEquals("Vuelo", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- Limpieza de prefijos/sufijos de día de la semana (ciclo 8) ---
     // "del jueves", "el viernes que viene", "el miércoles próximo" dejaban
     // residuos ("del", "que viene", "próximo") en el título.
