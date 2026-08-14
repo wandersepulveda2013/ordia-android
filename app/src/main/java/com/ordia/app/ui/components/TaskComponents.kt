@@ -24,7 +24,7 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -51,7 +51,7 @@ import com.ordia.app.domain.TaskRules
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TaskRow(
+fun OrdiaTask(
     task: TaskEntity,
     project: ProjectEntity? = null,
     subtaskProgress: Pair<Int, Int>? = null,
@@ -63,11 +63,8 @@ fun TaskRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val priorityColor = priorityAccent(task.priority)
-    Card(
-        modifier = modifier.fillMaxWidth().combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true }),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    OrdiaCard(
+        modifier = modifier.fillMaxWidth().combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true })
     ) {
         Row(
             Modifier.fillMaxWidth(),
@@ -114,13 +111,36 @@ fun TaskRow(
                 DropdownMenuItem(text = { Text("Editar") }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = { menuOpen = false; onEdit() })
                 if (onDuplicate != null) DropdownMenuItem(text = { Text("Duplicar") }, leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) }, onClick = { menuOpen = false; onDuplicate() })
                 if (onDelete != null) {
-                    Divider()
+                    HorizontalDivider()
                     DropdownMenuItem(text = { Text("Archivar") }, leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) }, onClick = { menuOpen = false; onDelete() })
                 }
             }
             }
         }
     }
+}
+
+@Composable
+fun TaskRow(
+    task: TaskEntity,
+    project: ProjectEntity? = null,
+    subtaskProgress: Pair<Int, Int>? = null,
+    onToggle: () -> Unit,
+    onEdit: () -> Unit,
+    onDuplicate: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    OrdiaTask(
+        task = task,
+        project = project,
+        subtaskProgress = subtaskProgress,
+        onToggle = onToggle,
+        onEdit = onEdit,
+        onDuplicate = onDuplicate,
+        onDelete = onDelete,
+        modifier = modifier
+    )
 }
 
 @Composable
