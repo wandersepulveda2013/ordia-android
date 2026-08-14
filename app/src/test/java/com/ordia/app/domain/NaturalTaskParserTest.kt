@@ -1945,6 +1945,40 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- Hora suelta con parte del día + fracción "y media"/"y cuarto" (ciclo 153) ---
+    // "9 y media de la noche" → 21:30 (no la canónica 21:00) y título limpio. Antes el
+    // sufijo fraccionario NO se reconocía en la forma SIN "a las": la hora caía a la
+    // canónica de la parte del día y el número quedaba como residuo en el título
+    // ("Cena 9 y media") → cita agendada 30 min antes y contenido degradado. Simétrica
+    // del "a las N y media" ya soportado por [timePatterns]. El conector "de la <parte>"
+    // es la señal de desambiguación que evita robar cantidades ("diez y media botellas"
+    // no lleva "de la tarde").
+
+    @Test fun nueveYMediaDeLaNocheEs21y30() {
+        val result = NaturalTaskParser.parse("Cena 9 y media de la noche", now, zone)
+        assertEquals("Cena", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun ochoYCuartoDeLaMananaEscritoEs8y15() {
+        val result = NaturalTaskParser.parse("Cita ocho y cuarto de la mañana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(8, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun dosYMediaDeLaTardeEscritoEs14y30() {
+        val result = NaturalTaskParser.parse("Llamada dos y media de la tarde", now, zone)
+        assertEquals("Llamada", result.title)
+        assertEquals(LocalTime.of(14, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Una cantidad NO debe casar como hora aunque contenga "y media": no hay "de la <parte>".
+    @Test fun cantidadConYMediaNoSeRobaComoHora() {
+        val result = NaturalTaskParser.parse("diez y media botellas", now, zone)
+        assertEquals("diez y media botellas", result.title)
+        assertEquals(null, result.dueAt)
+    }
+
     @Test fun aLasDiezHorasEscritaSigueSiendoHoraNoDuracion() {
         val result = NaturalTaskParser.parse("Vuelo a las diez horas", now, zone)
         assertNull(result.durationMinutes)

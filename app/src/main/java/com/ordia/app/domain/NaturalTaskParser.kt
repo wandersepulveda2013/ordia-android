@@ -877,15 +877,32 @@ object NaturalTaskParser {
      * como residuo en el título ("reunión 9") aunque la hora se resolviera vía contexto PM.
      * Admite minutos opcionales ("9:30 de la
      * tarde"), aunque esa forma ya la cubre timePatterns[1] + contexto PM; se deja por simetría.
+     *
+     * Admite además el sufijo fraccionario cotidiano "y media"/"y cuarto" entre la hora y
+     * "de la" (grupo 3): "Cena 9 y media de la noche" → 21:30, "Cita 8 y cuarto de la
+     * mañana" → 08:15. Es la forma simétrica del "a las N y media" de [timePatterns] (grupo
+     * 3 de ese patrón), que YA se resolvía; pero la forma SIN "a las" (esta) NO lo aceptaba,
+     * así que "9 y media de la tarde" caía a la canónica de la parte (15:00, no 21:30) y
+     * dejaba "9 y media" como residuo en el título ("Cita 9 y media") → cita mal agendada
+     * (30 min antes) y contenido capturado degradado. El conector "de la <parte>" sigue
+     * siendo la señal de desambiguación que evita robar cantidades ("diez y media botellas"
+     * no lleva "de la tarde"), igual que ya ocurre con la hora en punto.
      */
     private val standaloneHourPartOfDayPattern =
-        Regex("""(?i)(?<![:\d])(\d{1,2}|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?\s+de\s+la\s+(tarde|noche|madrugada|ma[nñ]ana|manana)(?!\s+de\s+(?!hoy\b|ma[nñ]ana\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b)[a-záéíóúüñ])""")
+        Regex("""(?i)(?<![:\d])(\d{1,2}|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s+y\s+(media|cuarto))?\s+de\s+la\s+(tarde|noche|madrugada|ma[nñ]ana|manana)(?!\s+de\s+(?!hoy\b|ma[nñ]ana\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b)[a-záéíóúüñ])""")
 
     private fun resolveStandaloneHourPartOfDay(match: MatchResult): LocalTime? {
         val h = parseHour(match.groupValues[1]) ?: return null
-        val min = match.groupValues[2].toIntOrNull() ?: 0
+        // Minutos explícitos ":MM" (grupo 2) con prioridad; si no, la fracción
+        // "y media"/"y cuarto" (grupo 3) aporta 30/15; si tampoco, 0.
+        val min = match.groupValues[2].toIntOrNull()
+            ?: when (match.groupValues[3].lowercase()) {
+                "media" -> 30
+                "cuarto" -> 15
+                else -> 0
+            }
         if (h !in 0..24 || min !in 0..59) return null
-        val part = match.groupValues[3].lowercase()
+        val part = match.groupValues[4].lowercase()
         val hour = when {
             h == 24 -> 0
             part == "noche" && h == 12 -> 0    // "12 de la noche" = medianoche
