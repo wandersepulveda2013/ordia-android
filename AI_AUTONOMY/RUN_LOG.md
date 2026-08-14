@@ -11,7 +11,7 @@
 - **Features**: 0 (corrección de integridad de captura existente — más potencia sin nueva interfaz).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK en este entorno). Integración del parser con `AddTaskScreen`/IME queda fuera del harness JVM. Probe temporal de descubrimiento borrado tras validación.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (+12 entradas en `months`), `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+1 test), `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG,BACKLOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `7f7771b` (fix abreviaturas de meses; pushed a `origin/openhands/autonomous-ordia`).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 968 tests, 0 failures). Integración Android NO VERIFICADA.
 - **Próxima prioridad**: descubrimiento continuo — gap "abreviaturas de mes" CERRADO; el probe de 54 frases dejó otros hallazgos menores para evaluar (anti-feature-bloat: "mediados de septiembre"→null, "la semana del 24"→null, "último día hábil del mes"→null, "entre las 4 y las 5"→null — rangos/relativos menos frecuentes); revisar áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento, búsqueda); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA.
 
