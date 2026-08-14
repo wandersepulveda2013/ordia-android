@@ -87,6 +87,18 @@ object NaturalTaskParser {
     private val previousWeekdayReversedPattern = Regex("""(?i)\b(?:el|del|de)\s+(?:último|ultimo|pasado|anterior)\s+([a-záéíóúüñ]+)\b""")
 
     /**
+     * Fecha relativa VAGA futura: "en un rato", "dentro de un rato", "de aquí a un
+     * rato", "de acá a un rato". Forma coloquial de uso frecuente que antes no casaba
+     * ningún patrón → dueAt=null y la tarea quedaba sin recordatorio (olvidada, P1).
+     * Simétrica futura de "hace un rato" (pasado, −3 h). "un rato" es intencionalmente
+     * impreciso; se resuelve a +1 h (heurística honesta de "pronto, dentro de un rato"):
+     * agenda el recordatorio para que la tarea no desaparezca. Se procesa ANTES que
+     * [relativePattern] para robar la frase completa y dejar el título limpio.
+     */
+    private val vagueRelativePattern = Regex(
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+un\s+rato\b"""
+    )
+    /**
      * Fecha relativa: "en N minutos/horas/días/semanas/meses/años" o "dentro de N ...".
      * Acepta dígitos o números escritos (una/un, dos, ..., veinte, treinta). "una"/"un" → 1.
      * Las semanas (×7 días), meses (×30 días) y años (×365 días) son formas muy
@@ -686,6 +698,13 @@ object NaturalTaskParser {
         }
         multiQuarterRelativeMatch?.let { working = working.replace(it.value, " ") }
 
+        // Fecha relativa VAGA "en un rato"/"dentro de un rato"/"de aquí a un rato"
+        // → +1 h. Se procesa ANTES que [relativePattern] para robar la frase completa
+        // (si no, "en un rato" no casa y queda en el título sin agendar recordatorio).
+        val vagueRelativeMatch = vagueRelativePattern.find(working)
+        val vagueRelativeDueAt = vagueRelativeMatch?.let { now + 60 * 60_000L }
+        vagueRelativeMatch?.let { working = working.replace(it.value, " ") }
+
         // Fecha relativa "en/dentro de N minutos/horas/días" (N = dígitos o palabra).
         val relativeMatch = relativePattern.find(working)
         val relativeDueAt = relativeMatch?.let { match ->
@@ -985,8 +1004,8 @@ object NaturalTaskParser {
         // deben sobrescribirse por una fecha futura ambigua. La hora explícita se
         // aplica sobre la fecha pasada (tarea vencida con hora).
         val effectiveRelativeDueAt =
-            agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: fractionalAndQuarterRelativeDueAt ?:
-            fractionalRelativeDueAt ?:
+            agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: vagueRelativeDueAt ?:
+            fractionalAndQuarterRelativeDueAt ?: fractionalRelativeDueAt ?:
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?:

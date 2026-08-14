@@ -4755,9 +4755,51 @@ a un permiso persistente frágil y silencioso ante fallos.
   `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
   `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
 - **BACKLOG**: dos entradas nuevas (c.103) marcadas FIXED → VERIFIED.
-- **Commits**: (pendiente de push).
-- **HEAD final**: (tras push).
+- **Commits**: `eda7fdd` (push a `openhands/autonomous-ordia`).
+- **HEAD final**: `eda7fdd`.
 - **Estado**: FIXED → VERIFIED (dominio JVM); STALE_RUN reconstruido de forma segura.
 - **Próxima prioridad**: continuar descubrimiento de frases cotidianas del parser y auditar
   producto (captura ultrarrápida, What Now, recuperación de vencidas, inbox inteligente).
+
+## Ciclo 104 — 2026-08-14 — Parser: "en/dentro de/de aquí a un rato" ahora +1h (P1)
+
+- **HEAD inicial**: `eda7fdd` (c.103, local == origin al iniciar).
+- **Problema seleccionado**: bug P1 parser — las frases cotidianas vagas de futuro `"en un rato"`,
+  `"dentro de un rato"`, `"de aquí a un rato"`, `"de acá a un rato"` producían `dueAt=null`
+  (tarea olvidada, sin recordatorio). El usuario capturaba "llamar en un rato" y Ordía no agendaba
+  nada. Asimetría: el pasado `"hace un rato"` (−3h) SÍ se parseaba (`agoPattern`), pero la
+  contraparte futura no. "un rato" no es número entero ni fracción canónica → no casa en
+  `relativePattern`/`fractionalRelativePattern` → cae sin fecha.
+- **Causa raíz**: ausencia de un patrón para la expresión relativa vaga futura. "Un rato" es
+  impreciso por naturaleza, pero ignorarlo = olvidar la tarea; la heurística honesta +1h
+  (mismo orden que "hace un rato"→−3h en magnitud cotidiana, pero hacia el futuro) la recupera
+  sin fingir precisión. Heurística descrita honestamente en comentario (no es IA).
+- **Solución** (`NaturalTaskParser.kt`, cambio mínimo, reutiliza el flujo existente):
+  (1) nuevo `vagueRelativePattern = prefijo (en|dentro de|de aquí a|de acá a) + "un rato"`
+  declarado ANTES que `relativePattern` (roba la frase completa, sin residuo en el título);
+  (2) bloque de procesamiento: `vagueRelativeDueAt = now + 60*60_000L` (+1h) y se elimina el
+  match del `working` (igual que los demás relativos); (3) incluido en `effectiveRelativeDueAt`
+  (prioridad tras `relativeDueAt`, antes de `fractionalAndQuarterRelativeDueAt`); (4)
+  deliberadamente EXCLUIDO de `relativeIsDays` (es horas, no días — preserva el comportamiento
+  de hora explícita). Reusa TODO el flujo (explicitTime, reminder, recurrence, duration).
+- **Bug encontrado durante verificación (probe)**: la constante inicial era `60L*60*60_000L`
+  = 216,000,000 ms = **60 horas** (no 1 hora). El test pasaba por usar la misma constante
+  errónea. Corregido a `60*60_000L` = 3,600,000 ms = 1 h. Re-ejecutado probe JVM end-to-end:
+  "llamar en un rato"→+1h título "llamar", "pausa dentro de un rato"→+1h título "pausa",
+  "cita de aquí a un rato"→+1h título "cita". Confirmado delta_h=1.0 (no 60.0).
+- **Tests**: +3 tests en `NaturalTaskParserTest.kt`
+  (`enUnRatoEsFechaRelativaDe1Hora`, `dentroDeUnRatoEsFechaRelativaDe1Hora`,
+  `deAquiAUnRatoEsFechaRelativaDe1Hora`). Comando: `bash tools/run_domain_tests.sh`
+  → **712 tests PASS** (709 base c.103 + 3 c.104). Smoke
+  (`PATH=/tmp/kotlinc-home/kotlinc/bin:$PATH bash tools/run_domain_checks.sh`) → **25 OK**.
+  Sin regresión: "en una hora"=+60min, "en media hora"=+30, "hace un rato"=−3h intactos.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: (pendiente de push).
+- **HEAD final**: (tras push).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: continuar descubrimiento de frases cotidianas del parser; auditar
+  recuperación de tareas olvidadas y "un rato" en otros contextos (recordatorios).
 

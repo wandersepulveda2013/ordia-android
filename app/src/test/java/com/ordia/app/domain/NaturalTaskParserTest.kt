@@ -1232,6 +1232,30 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // --- Fecha relativa VAGA "en un rato" (ciclo 104) ---
+    // "en un rato" no casaba ningún patrón → dueAt=null y la tarea quedaba sin
+    // recordatorio (olvidada). Heurística honesta: +1 h.
+    @Test fun enUnRatoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Llamar a mamá en un rato", now, zone)
+        assertEquals("Llamar a mamá", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun dentroDeUnRatoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Pausa dentro de un rato", now, zone)
+        assertEquals("Pausa", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun deAquiAUnRatoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Cita de aquí a un rato", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
     // --- Fecha relativa fraccionaria + cuarto (ciclo 101) ---
     // "en media hora y cuarto" = 30 + 15 = 45 min. Antes [fractionalRelativePattern]
     // robaba solo "en media hora" (+30) y dejaba "y cuarto" como residuo en el título
