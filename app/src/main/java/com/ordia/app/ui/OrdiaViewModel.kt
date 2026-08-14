@@ -722,7 +722,19 @@ class OrdiaViewModel(
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             val id = if (routine.id == 0L) routineRepository.add(routine.copy(name = clean, createdAt = now, updatedAt = now)) else {
+                val old = routineRepository.get(routine.id)
                 routineRepository.update(routine.copy(name = clean, updatedAt = now))
+                // Tras renombrar la rutina, las tareas que generó hoy todavía
+                // llevan el nombre viejo en `details`; si no se reetiquetan,
+                // wasRunToday deja de verlas y un re-disparo duplica los pasos.
+                val oldName = old?.name?.trim().orEmpty()
+                if (oldName.isNotBlank() && oldName != clean) {
+                    RoutineRules.relinkAfterRename(uiState.value.tasks, oldName, clean, java.time.LocalDate.now())
+                        .forEach { relink ->
+                            uiState.value.tasks.firstOrNull { it.id == relink.taskId }
+                                ?.let { taskRepository.update(it.copy(details = relink.newDetails)) }
+                        }
+                }
                 routine.id
             }
             val steps = stepTitles.map { it.trim() }.filter { it.isNotBlank() }

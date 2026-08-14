@@ -45,4 +45,42 @@ object RoutineRules {
         !task.archived && task.status != TaskStatus.CANCELLED &&
             Instant.ofEpochMilli(task.createdAt).atZone(zone).toLocalDate() == today
     }
+
+    /**
+     * Tarea de hoy generada por una rutina que, tras renombrarla, hay que
+     * reetiquetar con el nuevo nombre para que [wasRunToday] siga reconociéndola.
+     */
+    data class RoutineTaskRelink(val taskId: Long, val newDetails: String)
+
+    /**
+     * Tras renombrar una rutina, las tareas que generó hoy todavía llevan el
+     * nombre anterior en `details` ("Rutina: <viejo>"), así que [wasRunToday] no
+     * las reconocería y la rutina se dispararía de nuevo al reabrir la app o
+     * volver a ejecutarla: **tareas duplicadas en la bandeja** justo cuando el
+     * usuario ya avanzó esa tanda.
+     *
+     * Devuelve las tareas de hoy (activas, no archivadas ni canceladas) que
+     * llevan `details == "Rutina: <oldName>"` para reetiquetarlas con
+     * `newName`. No muta: el llamador aplica los cambios. El ámbito es el mismo
+     * de [wasRunToday] (solo hoy, y solo las tareas que esta considera): reescribir
+     * histórico no aporta nada al dedup y puede sorprender al usuario. Si el
+     * nombre no cambió ([oldName] == [newName]) no hay nada que reetiquetar.
+     */
+    fun relinkAfterRename(
+        tasks: List<TaskEntity>,
+        oldName: String,
+        newName: String,
+        today: LocalDate,
+        zone: ZoneId = ZoneId.systemDefault()
+    ): List<RoutineTaskRelink> {
+        if (oldName == newName) return emptyList()
+        val oldDetail = routineDetail(oldName)
+        return tasks
+            .filter { task ->
+                task.details == oldDetail &&
+                    !task.archived && task.status != TaskStatus.CANCELLED &&
+                    Instant.ofEpochMilli(task.createdAt).atZone(zone).toLocalDate() == today
+            }
+            .map { task -> RoutineTaskRelink(task.id, routineDetail(newName)) }
+    }
 }

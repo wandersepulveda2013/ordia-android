@@ -117,6 +117,7 @@ class RoutineRepository(
     val steps: Flow<List<RoutineStepEntity>> = stepDao.observeAll()
     suspend fun add(routine: RoutineEntity): Long = routineDao.insert(routine)
     suspend fun update(routine: RoutineEntity) = routineDao.update(routine)
+    suspend fun get(id: Long): RoutineEntity? = routineDao.getById(id)
     suspend fun delete(routine: RoutineEntity) = routineDao.delete(routine)
     suspend fun archive(id: Long) = routineDao.archive(id)
     suspend fun restore(id: Long) = routineDao.restore(id)
