@@ -4061,6 +4061,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
 - **Commits**: (ver abajo, tras `git commit`).
-- **HEAD final**: (tras commit + push).
+- **HEAD final**: `6afcb0b` (push OK a `openhands/autonomous-ordia` por confirmar).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: Auditoría de acentos del parser COMPLETADA. Descubrimiento funcional: rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; `SearchEngine` date-scope "parte del día"/"este mes" (P3 anti-feature-bloat); `PlanEngine`/replanización si OVERLOADED recurrente.
