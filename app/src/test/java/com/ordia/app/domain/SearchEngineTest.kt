@@ -282,4 +282,37 @@ class SearchEngineTest {
             .map { it.id }.toSet()
         assertEquals(emptySet<Long>(), ids)
     }
+
+    // --- Recuperación de tareas marcadas ("marcadas"/"destacadas") ---
+
+    @Test fun marcadas_recoversFlaggedTasksWithoutTheWordInTitle() {
+        // Buscar "marcadas" recupera las tareas que el usuario marcó (flagged)
+        // aunque su título no contenga esa palabra, igual que "completadas" o
+        // "urgente". Es recuperar lo que el usuario señaló como importante.
+        val flagged = TaskEntity(id = 1, title = "Presupuesto Q3", flagged = true)
+        val plain = TaskEntity(id = 2, title = "Ordenar escritorio", flagged = false)
+        val ids = SearchEngine.search("marcadas", listOf(flagged, plain), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun destacadas_recoversFlaggedTasks() {
+        // Sinónimo "destacadas" también recupera tareas marcadas.
+        val flagged = TaskEntity(id = 1, title = "Llamar al banco", flagged = true)
+        val ids = SearchEngine.search("destacadas", listOf(flagged), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun marcadas_withContent_recoversFlaggedMatchingContent() {
+        // "marcadas presupuesto" recupera la tarea marcada cuyo título contiene
+        // "presupuesto", pero no una marcada ajena ni una no marcada que sí
+        // contiene la palabra.
+        val match = TaskEntity(id = 1, title = "Revisar presupuesto", flagged = true)
+        val otherFlagged = TaskEntity(id = 2, title = "Otra cosa", flagged = true)
+        val unflaggedMatch = TaskEntity(id = 3, title = "Presupuesto viejo", flagged = false)
+        val ids = SearchEngine.search("marcadas presupuesto", listOf(match, otherFlagged, unflaggedMatch), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
 }

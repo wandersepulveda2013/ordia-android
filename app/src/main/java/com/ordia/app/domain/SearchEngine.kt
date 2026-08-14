@@ -76,6 +76,15 @@ object SearchEngine {
         // como "hechizo". Heurística local honesta: sin botón ni pantalla nueva.
         val wantsCompleted = COMPLETED_TOKENS.any { it in words }
         val completedTerms = if (wantsCompleted) COMPLETED_TOKENS.filter { it in words }.toSet() else emptySet()
+        // "marcadas"/"destacadas" (y masculino) recuperan las tareas que el usuario
+        // marcó como importantes (flagged), aunque su título no contenga esa palabra,
+        // simétrico a "completadas"/"urgente"/"importante". La marca es la señal que
+        // el usuario dejó para encontrar algo después; sin este filtro, una tarea
+        // marcada cuyo título no dice "marcada" era irrecuperable por búsqueda.
+        // Detección por PALABRA (no subcadena) para excluir el verbo "marcar"
+        // (acción por hacer) y evitar colisiones como "remarcable"/"desmarcar".
+        val wantsFlagged = FLAGGED_TOKENS.any { it in words }
+        val flaggedTerms = if (wantsFlagged) FLAGGED_TOKENS.filter { it in words }.toSet() else emptySet()
         val dateScope = detectDateScope(words)
         // Cuando la búsqueda expresa un rango de fecha ("hoy", "mañana", ...),
         // las palabras de fecha no se exigen en el contenido: se filtra por fecha.
@@ -137,8 +146,9 @@ object SearchEngine {
                     (!hasLowPriorityIntent || task.priority == TaskPriority.LOW) &&
                     (!normalized.contains("pendiente") || !task.completed) &&
                     (!wantsCompleted || task.completed) &&
+                    (!wantsFlagged || task.flagged) &&
                     (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted)) &&
-                    (matches(task.title, task.details, *ph) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms, task.title, task.details, *ph))
+                    (matches(task.title, task.details, *ph) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms + flaggedTerms, task.title, task.details, *ph))
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE))
             }
@@ -212,6 +222,13 @@ object SearchEngine {
         "terminada", "terminadas", "terminado", "terminados",
         "finalizada", "finalizadas", "finalizado", "finalizados",
         "acabada", "acabadas", "acabado", "acabados"
+    )
+    // "marcadas"/"destacadas" recupera las tareas que el usuario marcó (flagged).
+    // Formas del participio (no el infinitivo "marcar"/"destacar"). Coincide con la
+    // etiqueta de la UI ("Marcada") y el filtro "Importantes" que ya existe.
+    private val FLAGGED_TOKENS = setOf(
+        "marcada", "marcadas", "marcado", "marcados",
+        "destacada", "destacadas", "destacado", "destacados"
     )
     private val TODAY_TOKENS = setOf("hoy")
     private val TOMORROW_TOKENS = setOf("manana")
