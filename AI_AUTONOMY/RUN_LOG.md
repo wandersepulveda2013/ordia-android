@@ -5017,7 +5017,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: `bash tools/run_domain_tests.sh` → **758 PASS** (754 c.111 + 4 netos; el 5º test `yaNoCasadentroDeOtraPalabra` es anti-falso-positivo "playa"). Nuevos: `yaFinalVenceAhoraYLimpiaTitulo`, `yaMismoVenceAhoraYLimpiaTitulo`, `paraYaVenceAhoraYLimpiaTitulo`, `yaNoCasadentroDeOtraPalabra`. Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Probe JVM 10 casos verde (incluido anti-falso "playa"). Sin regresión: "ahora"/"ahora mismo" intactos a `now`.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **Commits**: (ver abajo tras push).
-- **HEAD final**: (tras push, ver abajo).
+- **Commits**: `1cd9f65` (push exitoso a openhands/autonomous-ordia, 907af99..1cd9f65).
+- **HEAD final**: `1cd9f65` (push verificado, HEAD==origin).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: salir del parser hacia recuperación de tareas olvidadas (What Now/Guardián), contexto, onboarding; tolerancia a acentos en SearchEngine ("última"/"próxima").
