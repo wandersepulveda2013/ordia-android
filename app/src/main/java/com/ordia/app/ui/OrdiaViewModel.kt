@@ -84,7 +84,7 @@ data class OrdiaUiState(
     val preferences: UserPreferences = UserPreferences()
 ) {
     val guardianInsight: GuardianCoach.Insight get() = GuardianCoach.insight(tasks, habits, habitLogs)
-    val nextTask: TaskEntity? get() = guardianInsight.taskId?.let(::task) ?: TaskRules.nextBestTask(tasks)
+    val nextTask: TaskEntity? get() = guardianInsight.taskId?.let(::task) ?: TaskRules.nextBestTask(tasks)?.task
     val rootTasks: List<TaskEntity> get() = tasks.filter { it.parentTaskId == null }
     val pendingTasks: List<TaskEntity> get() = rootTasks.filter { !it.completed && !it.archived }
     val inboxTasks: List<TaskEntity> get() = pendingTasks.filter { it.status == TaskStatus.INBOX && it.dueAt == null }
@@ -265,7 +265,7 @@ class OrdiaViewModel(
 
     fun addSmartTask(input: String) {
         val parsed = NaturalTaskParser.parse(input)
-        addTask(parsed.title, dueAt = parsed.dueAt, priority = parsed.priority)
+        addTask(parsed.title, dueAt = parsed.dueAt, priority = parsed.priority, recurrence = parsed.recurrence, recurrenceDays = parsed.recurrenceDays)
     }
 
     fun addTask(
@@ -274,7 +274,9 @@ class OrdiaViewModel(
         dueAt: Long? = null,
         priority: TaskPriority = TaskPriority.NORMAL,
         projectId: Long? = null,
-        parentTaskId: Long? = null
+        parentTaskId: Long? = null,
+        recurrence: com.ordia.app.data.local.RecurrenceFrequency = com.ordia.app.data.local.RecurrenceFrequency.NONE,
+        recurrenceDays: String = ""
     ) = saveTask(
         TaskEntity(
             title = title,
@@ -283,6 +285,8 @@ class OrdiaViewModel(
             priority = priority,
             projectId = projectId,
             parentTaskId = parentTaskId,
+            recurrence = recurrence,
+            recurrenceDays = recurrenceDays,
             status = if (dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED
         )
     )

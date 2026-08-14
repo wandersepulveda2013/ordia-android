@@ -1,0 +1,3 @@
+sed -i 's/addTask(parsed.title, dueAt = parsed.dueAt, priority = parsed.priority)/addTask(parsed.title, dueAt = parsed.dueAt, priority = parsed.priority, recurrence = parsed.recurrence, recurrenceDays = parsed.recurrenceDays)/g' app/src/main/java/com/ordia/app/ui/OrdiaViewModel.kt
+sed -i 's/parentTaskId: Long? = null/parentTaskId: Long? = null,\n        recurrence: com.ordia.app.data.local.RecurrenceFrequency = com.ordia.app.data.local.RecurrenceFrequency.NONE,\n        recurrenceDays: String = ""/g' app/src/main/java/com/ordia/app/ui/OrdiaViewModel.kt
+sed -i 's/parentTaskId = parentTaskId/parentTaskId = parentTaskId,\n            recurrence = recurrence,\n            recurrenceDays = recurrenceDays/g' app/src/main/java/com/ordia/app/ui/OrdiaViewModel.kt

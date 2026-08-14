@@ -7,8 +7,15 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 object TaskRules {
-    fun nextBestTask(tasks: List<TaskEntity>, now: Long = System.currentTimeMillis()): TaskEntity? =
-        tasks.asSequence()
+    data class BestTask(val task: TaskEntity, val reason: String)
+
+    fun nextBestTask(
+        tasks: List<TaskEntity>,
+        now: Long = System.currentTimeMillis(),
+        availableMinutes: Int? = null,
+        zone: ZoneId = ZoneId.systemDefault()
+    ): BestTask? {
+        val candidate = tasks.asSequence()
             .filter { !it.completed && !it.archived && it.parentTaskId == null }
             .sortedWith(
                 compareByDescending<TaskEntity> { isOverdue(it, now) }
@@ -16,7 +23,35 @@ object TaskRules {
                     .thenBy { it.dueAt ?: Long.MAX_VALUE }
                     .thenBy { it.createdAt }
             )
-            .firstOrNull()
+            .firstOrNull() ?: return null
+
+        val overdue = isOverdue(candidate, now)
+        val dueToday = isDueToday(candidate, now, zone)
+        val duration = candidate.durationMinutes.coerceAtLeast(0)
+
+        val reasonParts = mutableListOf<String>()
+        if (duration > 0) {
+            reasonParts.add("$duration min")
+        }
+
+        if (overdue) {
+            reasonParts.add("atrasada")
+        } else if (dueToday) {
+            reasonParts.add("vence hoy")
+        }
+
+        if (availableMinutes != null) {
+            reasonParts.add("tienes $availableMinutes min libres")
+        }
+
+        val reason = if (reasonParts.isNotEmpty()) {
+            reasonParts.joinToString(" · ")
+        } else {
+            "Siguiente en prioridad"
+        }
+
+        return BestTask(candidate, reason)
+    }
 
     fun isOverdue(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean =
         !task.completed && task.dueAt?.let { it < now } == true
