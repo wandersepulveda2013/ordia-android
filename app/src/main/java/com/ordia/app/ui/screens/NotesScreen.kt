@@ -31,8 +31,8 @@ import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockType
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.ScreenHeader
+import com.ordia.app.ui.components.OrdiaEmptyState
+import com.ordia.app.ui.components.OrdiaScreenHeader
 
 @Composable
 fun NotesScreen(
@@ -51,7 +51,7 @@ fun NotesScreen(
     ) {
         item {
             Column {
-                ScreenHeader("PENSAR SIN PERDERSE", "Notas", "Páginas por bloques conectadas con tus proyectos.", "Nueva") { templateMenu = true }
+                OrdiaScreenHeader("PENSAR SIN PERDERSE", "Notas", "Páginas por bloques conectadas con tus proyectos.", "Nueva") { templateMenu = true }
                 DropdownMenu(templateMenu, { templateMenu = false }) {
                     DropdownMenuItem(text = { Text("Nota en blanco") }, onClick = { templateMenu = false; onNote(0) })
                     DropdownMenuItem(text = { Text("Reunión") }, onClick = {
@@ -92,7 +92,7 @@ fun NotesScreen(
         }
         item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Buscar en notas") }, singleLine = true) }
         if (notes.isEmpty()) {
-            item { EmptyState("No hay notas", "Crea una página para guardar ideas, decisiones o información.", "Crear nota", onAction = { onNote(0) }) }
+            item { OrdiaEmptyState("No hay notas", "Crea una página para guardar ideas, decisiones o información.", "Crear nota", onAction = { onNote(0) }) }
         } else {
             items(notes, key = { it.id }) { note ->
                 Card(onClick = { onNote(note.id) }) {

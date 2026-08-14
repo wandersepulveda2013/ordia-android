@@ -42,9 +42,9 @@ import com.ordia.app.domain.DayPlanner
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.SectionHeader
+import com.ordia.app.ui.components.OrdiaEmptyState
+import com.ordia.app.ui.components.OrdiaScreenHeader
+import com.ordia.app.ui.components.OrdiaSectionHeader
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
 import androidx.compose.ui.platform.LocalConfiguration
@@ -100,7 +100,7 @@ fun PlannerScreen(
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { ScreenHeader("MIRA EL TIEMPO", "Planificador", "Coloca cada tarea donde realmente cabe.", "Planificar") { adding = true } }
+        item { OrdiaScreenHeader("MIRA EL TIEMPO", "Planificador", "Coloca cada tarea donde realmente cabe.", "Planificar") { adding = true } }
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { month = month.minusMonths(1); selectedDate = month.atDay(1) }) { Icon(Icons.Outlined.ChevronLeft, "Mes anterior") }
@@ -249,9 +249,9 @@ fun PlannerScreen(
                 }
             }
         }
-        item { SectionHeader(selectedDate.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", locale)).replaceFirstChar { it.uppercase() }, "${tasksOnDate.size} tareas") }
+        item { OrdiaSectionHeader(selectedDate.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", locale)).replaceFirstChar { it.uppercase() }, "${tasksOnDate.size} tareas") }
         if (tasksOnDate.isEmpty()) {
-            item { EmptyState("Día disponible", "No hay tareas planificadas para esta fecha.", "Añadir tarea", onAction = { adding = true }) }
+            item { OrdiaEmptyState("Día disponible", "No hay tareas planificadas para esta fecha.", "Añadir tarea", onAction = { adding = true }) }
         } else {
             items(tasksOnDate, key = { it.id }) { task ->
                 val subtasks = state.subtasks(task.id)
@@ -267,7 +267,7 @@ fun PlannerScreen(
             }
         }
         if (state.inboxTasks.isNotEmpty()) {
-            item { SectionHeader("Sin fecha", "Arrastra mentalmente menos: decide solo una fecha") }
+            item { OrdiaSectionHeader("Sin fecha", "Arrastra mentalmente menos: decide solo una fecha") }
             items(state.inboxTasks.take(5), key = { "backlog-${it.id}" }) { task ->
                 Card(onClick = { onTask(task.id) }) {
                     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {

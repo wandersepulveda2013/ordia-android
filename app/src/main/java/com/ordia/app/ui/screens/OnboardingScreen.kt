@@ -25,8 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.preferences.InterfaceMode
-import com.ordia.app.ui.components.GuardianAvatar
-import com.ordia.app.ui.components.GuardianMood
+import com.ordia.app.ui.components.OrdiaGuardianAvatar
+import com.ordia.app.ui.components.OrdiaGuardianMood
 import com.ordia.app.ui.components.ordiaWorkSurface
 
 @Composable
@@ -42,7 +42,7 @@ fun OnboardingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            GuardianAvatar(92.dp, if (page == 2) GuardianMood.HAPPY else GuardianMood.CALM)
+            OrdiaGuardianAvatar(92.dp, if (page == 2) OrdiaGuardianMood.HAPPY else OrdiaGuardianMood.CALM)
             Text(
                 when (page) {
                     0 -> "Tu mundo, en orden"

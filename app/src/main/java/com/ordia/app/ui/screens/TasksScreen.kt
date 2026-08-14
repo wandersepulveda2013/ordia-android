@@ -22,8 +22,8 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.ScreenHeader
+import com.ordia.app.ui.components.OrdiaEmptyState
+import com.ordia.app.ui.components.OrdiaScreenHeader
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
 
@@ -68,7 +68,7 @@ fun TasksScreen(
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item { ScreenHeader("TODO EN UN LUGAR", "Tareas", "Organiza lo necesario sin llenar la pantalla de campos.", "Nueva") { adding = true } }
+        item { OrdiaScreenHeader("TODO EN UN LUGAR", "Tareas", "Organiza lo necesario sin llenar la pantalla de campos.", "Nueva") { adding = true } }
         item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Buscar tareas") }, singleLine = true) }
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -104,7 +104,7 @@ fun TasksScreen(
             }
         }
         if (shown.isEmpty()) {
-            item { EmptyState("Nada por aquí", "Cambia el filtro o crea una tarea nueva.", "Crear tarea", onAction = { adding = true }) }
+            item { OrdiaEmptyState("Nada por aquí", "Cambia el filtro o crea una tarea nueva.", "Crear tarea", onAction = { adding = true }) }
         } else {
             items(shown, key = { it.id }) { task -> TaskListItem(state, vm, task, onTask) }
         }

@@ -15,8 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.ScreenHeader
+import com.ordia.app.ui.components.OrdiaEmptyState
+import com.ordia.app.ui.components.OrdiaScreenHeader
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
 
@@ -40,9 +40,9 @@ fun InboxScreen(
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item { ScreenHeader("CAPTURA SIN FRICCIÓN", "Bandeja", "Todo lo que todavía no tiene fecha o proyecto.", "Añadir") { adding = true } }
+        item { OrdiaScreenHeader("CAPTURA SIN FRICCIÓN", "Bandeja", "Todo lo que todavía no tiene fecha o proyecto.", "Añadir") { adding = true } }
         if (state.inboxTasks.isEmpty()) {
-            item { EmptyState("Bandeja vacía", "Las ideas rápidas y tareas sin fecha aparecerán aquí.", "Capturar algo", onAction = { adding = true }) }
+            item { OrdiaEmptyState("Bandeja vacía", "Las ideas rápidas y tareas sin fecha aparecerán aquí.", "Capturar algo", onAction = { adding = true }) }
         } else {
             items(state.inboxTasks, key = { it.id }) { task ->
                 val subtasks = state.subtasks(task.id)

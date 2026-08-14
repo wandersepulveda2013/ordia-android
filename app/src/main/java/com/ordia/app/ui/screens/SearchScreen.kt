@@ -34,8 +34,8 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.domain.SearchEngine
 import com.ordia.app.domain.SearchKind
 import com.ordia.app.ui.OrdiaUiState
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.ScreenHeader
+import com.ordia.app.ui.components.OrdiaEmptyState
+import com.ordia.app.ui.components.OrdiaScreenHeader
 
 @Composable
 fun SearchScreen(
@@ -55,11 +55,11 @@ fun SearchScreen(
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item { ScreenHeader("ENCUENTRA SIN NAVEGAR", "Búsqueda", "Busca tareas, proyectos, notas y hábitos al mismo tiempo.") }
+        item { OrdiaScreenHeader("ENCUENTRA SIN NAVEGAR", "Búsqueda", "Busca tareas, proyectos, notas y hábitos al mismo tiempo.") }
         item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text("¿Qué estás buscando?") }, singleLine = true) }
         when {
-            query.isBlank() -> item { EmptyState("Escribe para buscar", "Ordia busca localmente; tu información no sale del dispositivo.") }
-            results.isEmpty() -> item { EmptyState("Sin resultados", "Prueba con otra palabra o una parte del título.") }
+            query.isBlank() -> item { OrdiaEmptyState("Escribe para buscar", "Ordia busca localmente; tu información no sale del dispositivo.") }
+            results.isEmpty() -> item { OrdiaEmptyState("Sin resultados", "Prueba con otra palabra o una parte del título.") }
             else -> items(results, key = { "${it.kind}-${it.id}" }) { result ->
                 Card(onClick = {
                     when (result.kind) {

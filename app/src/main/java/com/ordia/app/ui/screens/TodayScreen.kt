@@ -15,6 +15,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Schedule
@@ -45,12 +49,12 @@ import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.domain.GuardianCoach
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.GuardianAvatar
-import com.ordia.app.ui.components.GuardianMood
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.SectionHeader
-import com.ordia.app.ui.components.StatCard
+import com.ordia.app.ui.components.OrdiaEmptyState
+import com.ordia.app.ui.components.OrdiaGuardianAvatar
+import com.ordia.app.ui.components.OrdiaGuardianMood
+import com.ordia.app.ui.components.OrdiaScreenHeader
+import com.ordia.app.ui.components.OrdiaSectionHeader
+import com.ordia.app.ui.components.OrdiaStatCard
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
 import java.time.LocalDate
@@ -89,7 +93,7 @@ fun TodayScreen(
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {
-            ScreenHeader(
+            OrdiaScreenHeader(
                 eyebrow = LocalDate.now().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
                 title = greeting(),
                 subtitle = if (state.pendingCount == 0) "No tienes pendientes. Puedes respirar." else "Tienes ${state.pendingCount} tareas pendientes."
@@ -103,7 +107,7 @@ fun TodayScreen(
             ) {
                 Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     val insight = state.guardianInsight
-                    GuardianAvatar(62.dp, insight.tone.toMood())
+                    OrdiaGuardianAvatar(62.dp, insight.tone.toMood())
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(insight.eyebrow, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondaryContainer)
                         Text(insight.title, style = MaterialTheme.typography.titleLarge)
@@ -114,7 +118,7 @@ fun TodayScreen(
                         )
                     }
                     insight.taskId?.let { taskId ->
-                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.Outlined.ArrowForward, "Abrir recomendación") }
+                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Abrir recomendación") }
                     }
                 }
             }
@@ -125,8 +129,8 @@ fun TodayScreen(
                 val totalToday = state.todayTasks.size
                 DayProgressRing(progress = if (totalToday == 0) 0f else doneToday.toFloat() / totalToday, modifier = Modifier.size(92.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatCard("Atrasadas", state.overdueTasks.size.toString(), "requieren atención", Modifier.fillMaxWidth())
-                    StatCard("Enfoque", "${state.focusMinutesThisWeek}m", "esta semana", Modifier.fillMaxWidth())
+                    OrdiaStatCard("Atrasadas", state.overdueTasks.size.toString(), "requieren atención", Modifier.fillMaxWidth())
+                    OrdiaStatCard("Enfoque", "${state.focusMinutesThisWeek}m", "esta semana", Modifier.fillMaxWidth())
                 }
             }
         }
@@ -159,17 +163,17 @@ fun TodayScreen(
             }
         }
         if (state.overdueTasks.isNotEmpty()) {
-            item { SectionHeader("Atrasado", "Empieza por una sola cosa") }
+            item { OrdiaSectionHeader("Atrasado", "Empieza por una sola cosa") }
             items(state.overdueTasks.take(4), key = { "overdue-${it.id}" }) { task -> TaskItem(state, vm, task, onTask) }
         }
-        item { SectionHeader("Para hoy", action = if (state.inboxTasks.isNotEmpty()) "Ver bandeja (${state.inboxTasks.size})" else null, onAction = if (state.inboxTasks.isNotEmpty()) onOpenInbox else null) }
+        item { OrdiaSectionHeader("Para hoy", action = if (state.inboxTasks.isNotEmpty()) "Ver bandeja (${state.inboxTasks.size})" else null, onAction = if (state.inboxTasks.isNotEmpty()) onOpenInbox else null) }
         if (state.todayTasks.isEmpty()) {
-            item { EmptyState("Tu día tiene espacio", "Añade una tarea con fecha para verla aquí.", "Planificar tarea", onAction = { showTaskDialog = true }) }
+            item { OrdiaEmptyState("Tu día tiene espacio", "Añade una tarea con fecha para verla aquí.", "Planificar tarea", onAction = { showTaskDialog = true }) }
         } else {
             items(state.todayTasks, key = { "today-${it.id}" }) { task -> TaskItem(state, vm, task, onTask) }
         }
         if (state.preferences.interfaceMode != InterfaceMode.SIMPLE && state.habits.isNotEmpty()) {
-            item { SectionHeader("Hábitos de hoy", "Un toque registra el avance") }
+            item { OrdiaSectionHeader("Hábitos de hoy", "Un toque registra el avance") }
             item {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(state.habits, key = { it.id }) { habit ->
@@ -187,7 +191,7 @@ fun TodayScreen(
             }
         }
         if (state.preferences.interfaceMode != InterfaceMode.SIMPLE && state.projects.isNotEmpty()) {
-            item { SectionHeader("Proyectos activos") }
+            item { OrdiaSectionHeader("Proyectos activos") }
             items(state.projects.take(3), key = { "project-${it.id}" }) { project ->
                 val progress = state.projectProgress(project.id)
                 Card {
@@ -224,11 +228,11 @@ private fun TaskItem(state: OrdiaUiState, vm: OrdiaViewModel, task: TaskEntity, 
     )
 }
 
-private fun GuardianCoach.Tone.toMood(): GuardianMood = when (this) {
-    GuardianCoach.Tone.CALM -> GuardianMood.CALM
-    GuardianCoach.Tone.FOCUSED -> GuardianMood.FOCUSED
-    GuardianCoach.Tone.CELEBRATING -> GuardianMood.HAPPY
-    GuardianCoach.Tone.GENTLE -> GuardianMood.CALM
+private fun GuardianCoach.Tone.toMood(): OrdiaGuardianMood = when (this) {
+    GuardianCoach.Tone.CALM -> OrdiaGuardianMood.CALM
+    GuardianCoach.Tone.FOCUSED -> OrdiaGuardianMood.FOCUSED
+    GuardianCoach.Tone.CELEBRATING -> OrdiaGuardianMood.HAPPY
+    GuardianCoach.Tone.GENTLE -> OrdiaGuardianMood.CALM
 }
 
 private fun greeting(): String = when (java.time.LocalTime.now().hour) {

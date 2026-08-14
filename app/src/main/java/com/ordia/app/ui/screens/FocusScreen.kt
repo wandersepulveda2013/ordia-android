@@ -41,9 +41,9 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.domain.FocusClock
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.GuardianAvatar
-import com.ordia.app.ui.components.GuardianMood
-import com.ordia.app.ui.components.ScreenHeader
+import com.ordia.app.ui.components.OrdiaGuardianAvatar
+import com.ordia.app.ui.components.OrdiaGuardianMood
+import com.ordia.app.ui.components.OrdiaScreenHeader
 import kotlinx.coroutines.delay
 
 @Composable
@@ -78,7 +78,7 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        ScreenHeader("UNA COSA A LA VEZ", "Enfoque", "Ordia aparta lo demás mientras trabajas.")
+        OrdiaScreenHeader("UNA COSA A LA VEZ", "Enfoque", "Ordia aparta lo demás mientras trabajas.")
         Surface(
             modifier = Modifier.size(270.dp),
             shape = CircleShape,
@@ -87,7 +87,7 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GuardianAvatar(64.dp, if (running) GuardianMood.FOCUSED else GuardianMood.CALM)
+                    OrdiaGuardianAvatar(64.dp, if (running) OrdiaGuardianMood.FOCUSED else OrdiaGuardianMood.CALM)
                     Text(FocusClock.format(remainingSeconds), style = MaterialTheme.typography.displayLarge)
                     Text(if (running) "En curso" else "Listo para empezar", style = MaterialTheme.typography.labelLarge)
                 }

@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.ui.OrdiaUiState
-import com.ordia.app.ui.components.ScreenHeader
+import com.ordia.app.ui.components.OrdiaScreenHeader
 import com.ordia.app.ui.navigation.Destination
 
 @Composable
@@ -53,7 +53,7 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
         contentPadding = PaddingValues(20.dp, padding.calculateTopPadding() + 20.dp, 20.dp, padding.calculateBottomPadding() + 28.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item { ScreenHeader("TODAS TUS HERRAMIENTAS", "Más", "Ordia muestra primero lo cotidiano y deja lo demás a un toque.") }
+        item { OrdiaScreenHeader("TODAS TUS HERRAMIENTAS", "Más", "Ordia muestra primero lo cotidiano y deja lo demás a un toque.") }
         items.forEach { (destination, description, count) ->
             item {
                 Card(onClick = { open(destination.route) }) {

@@ -20,8 +20,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ordia.app.ui.OrdiaUiState
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.StatCard
+import com.ordia.app.ui.components.OrdiaScreenHeader
+import com.ordia.app.ui.components.OrdiaStatCard
 import java.time.LocalDate
 
 @Composable
@@ -42,12 +42,12 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { ScreenHeader("PROGRESO SIN PRESIÓN", "Tu semana", "Mira patrones útiles, no una puntuación de tu valor.") }
+        item { OrdiaScreenHeader("PROGRESO SIN PRESIÓN", "Tu semana", "Mira patrones útiles, no una puntuación de tu valor.") }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatCard("Completado", "${state.completionRate}%", "tareas registradas", Modifier.weight(1f))
-                StatCard("Enfoque", "${state.focusMinutesThisWeek}m", "últimos 7 días", Modifier.weight(1f))
-                StatCard("Hábitos", state.habits.count { state.habitCount(it.id) >= it.targetPerPeriod }.toString(), "cumplidos hoy", Modifier.weight(1f))
+                OrdiaStatCard("Completado", "${state.completionRate}%", "tareas registradas", Modifier.weight(1f))
+                OrdiaStatCard("Enfoque", "${state.focusMinutesThisWeek}m", "últimos 7 días", Modifier.weight(1f))
+                OrdiaStatCard("Hábitos", state.habits.count { state.habitCount(it.id) >= it.targetPerPeriod }.toString(), "cumplidos hoy", Modifier.weight(1f))
             }
         }
         item {
