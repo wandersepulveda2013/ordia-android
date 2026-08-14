@@ -86,15 +86,17 @@ object NaturalTaskParser {
     private val previousWeekdayPattern = Regex("""(?i)\b(?:el|del|de)\s+([a-záéíóúüñ]+)\s+(?:pasado|anterior|último|ultimo)\b""")
     // Orden inverso: "el último lunes"/"el pasado martes" (modificador antes del día).
     private val previousWeekdayReversedPattern = Regex("""(?i)\b(?:el|del|de)\s+(?:último|ultimo|pasado|anterior)\s+([a-záéíóúüñ]+)\b""")
-    // "el último viernes del mes" / "el último lunes de agosto": ÚLTIMA ocurrencia de ese
-    // weekday en el mes (no la semana pasada, que es lo que resuelve previousWeekdayReversed
-    // al casar "el último viernes"). Más específico: exige el calificador "del mes"/"de <mes>"
-    // tras el día. Se procesa ANTES que previousWeekdayReversed para consumir la frase entera
-    // (así "del mes"/"de agosto" no queda como residuo en el título y el día no se captura dos
-    // veces). Sin este patrón, "el último viernes del mes" caía en previousWeekdayReversed →
-    // viernes ANTERIOR (fecha equivocada) + "del mes" como basura en el título.
+    // "el último viernes del mes" / "el primer lunes de agosto" / "el tercer viernes del mes que
+    // viene": ocurrencia ORDINAL de ese weekday en un mes (no la semana pasada, que es lo que
+    // resuelve previousWeekdayReversed al casar "el último viernes"). Más específico: exige el
+    // calificador "del mes"/"del mes que viene/próximo/entrante"/"de <mes>" tras el día. Se
+    // procesa ANTES que previousWeekdayReversed para consumir la frase entera (así el calificador
+    // no queda como residuo en el título y el día no se captura dos veces). Sin este patrón,
+    // "el último viernes del mes" caía en previousWeekdayReversed → viernes ANTERIOR (fecha
+    // equivocada) + "del mes" como basura en el título. Ordinales: último = última ocurrencia;
+    // primer/segundo/tercer/cuarto = N-ésima desde el inicio (todo mes tiene ≥4 de cada weekday).
     private val lastWeekdayOfMonthPattern = Regex(
-        """(?i)\b(?:el\s+)?(?:último|ultimo)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+del?\s+(mes|(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre))\b"""
+        """(?i)\b(?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+del?\s+(mes(?:\s+(?:que\s+viene|pr[oó]ximo|entrante))?|(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre))\b"""
     )
 
     /**
@@ -1291,10 +1293,10 @@ object NaturalTaskParser {
             now - days * 24 * 60 * 60_000L
         }
         lastPeriodMatch?.let { working = working.replaceRange(it.range, " ") }
-        // "el último viernes del mes" / "el último lunes de agosto": último weekday del
-        // mes. Se detecta y borra ANTES que previousWeekdayReversedPattern para que el
-        // weekday no se capture como "último viernes" (viernes anterior) y el calificador
-        // "del mes"/"de agosto" no quede como residuo en el título.
+        // "el último viernes del mes" / "el primer lunes de agosto" / "el tercer viernes del mes
+        // que viene": weekday ORDINAL del mes. Se detecta y borra ANTES que
+        // previousWeekdayReversedPattern para que el weekday no se capture como "último viernes"
+        // (viernes anterior) y el calificador "del mes"/"de agosto" no quede como residuo.
         val lastWeekdayOfMonthMatch = lastWeekdayOfMonthPattern.find(working)
         lastWeekdayOfMonthMatch?.let { working = working.replaceRange(it.range, " ") }
         // "el jueves pasado" / "el último lunes": fecha pasada. Se borra ANTES que
@@ -1724,10 +1726,11 @@ object NaturalTaskParser {
             // sea un token de fecha suelto.
             mananaAsDate(working) -> base.toLocalDate().plusDays(1)
             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
-            // "el último viernes del mes" / "el último lunes de agosto": última ocurrencia
-            // de ese weekday en el mes (del mes = mes actual; de <mes> = ese mes, con
-            // avance de año si ya pasó, igual que parseMonthNameDate). Debe ir ANTES de
-            // previousWeekday para no caer en "último viernes" = viernes anterior.
+            // "el último viernes del mes" / "el primer lunes de agosto" / "el tercer viernes
+            // del mes que viene": ocurrencia ORDINAL de ese weekday en el mes (del mes = mes
+            // actual, sin roll; del mes que viene/próximo/entrante = mes siguiente; de <mes> =
+            // ese mes, con avance de año si ya pasó, igual que parseMonthNameDate). Debe ir
+            // ANTES de previousWeekday para no caer en "último viernes" = viernes anterior.
             lastWeekdayOfMonthMatch != null ->
                 lastWeekdayOfMonth(base.toLocalDate(), lastWeekdayOfMonthMatch)
             // "el jueves pasado" / "el último lunes" / "el martes anterior": última
@@ -2855,27 +2858,68 @@ object NaturalTaskParser {
     }
 
     /**
-     * Última ocurrencia de [weekday] en un mes: "el último viernes del mes" (mes
-     * actual) o "el último viernes de septiembre" (mes nombrado). Se ancla al último
-     * día del mes y retrocede al weekday objetivo (TemporalAdjusters.previousOrSame).
-     * Para mes nombrado sin año, si la fecha ya pasó se rueda al año siguiente (mismo
-     * criterio que parseMonthNameDate, para no agendar vencimientos en el pasado). Para
-     * "del mes" (mes actual) NO se rueda: el usuario fija explícitamente este mes.
+     * Ocurrencia ORDINAL de [weekday] en un mes: "el último viernes del mes" (última),
+     * "el primer lunes de agosto" (primera), "el tercer viernes del mes que viene".
+     *
+     * - Ordinal: último/ultimo → última del mes (`lastDayOfMonth`+`previousOrSame`).
+     *   primer/primero/segundo/tercer/tercero/cuarto → N-ésima desde el inicio
+     *   (`firstInMonth`+`plusWeeks(n-1)`); todo mes tiene ≥4 de cada weekday, así que
+     *   siempre existe.
+     * - Calificador de mes: "del mes" = mes actual, sin roll (vencida honesta si el
+     *   último weekday ya pasó, como previousWeekday); "del mes que viene/próximo/entrante"
+     *   = mes siguiente; "de <mes>" = ese mes este año, con recálculo en el año siguiente
+     *   si ya pasó (mismo fin que parseMonthNameDate, pero recalculando el weekday objetivo
+     *   en vez de `plusYears`, que desplazaría el día de la semana).
      */
     private fun lastWeekdayOfMonth(today: LocalDate, match: MatchResult): LocalDate {
-        val weekday = match.groupValues[1].toDayOfWeek()
-        val monthToken = match.groupValues[2].lowercase()
-        var year = today.year
-        val month = if (monthToken == "mes") today.monthValue
-            else months[monthToken] ?: today.monthValue
-        var date = LocalDate.of(year, month, 1)
-            .with(TemporalAdjusters.lastDayOfMonth())
-            .with(TemporalAdjusters.previousOrSame(weekday))
-        if (monthToken != "mes" && date.isBefore(today)) {
-            date = date.plusYears(1)
+        val ordinalWord = match.groupValues[1].lowercase()
+        val weekday = match.groupValues[2].toDayOfWeek()
+        val monthToken = match.groupValues[3].lowercase()
+        val ordinal = when (ordinalWord) {
+            "último", "ultimo" -> -1
+            "primer", "primero" -> 1
+            "segundo" -> 2
+            "tercer", "tercero" -> 3
+            "cuarto" -> 4
+            else -> -1
+        }
+        val nextMonth = monthToken.startsWith("mes ") // "mes que viene"/"mes próximo"/"mes entrante"
+        val (year, month) = when {
+            monthToken == "mes" -> today.year to today.monthValue
+            nextMonth -> {
+                val ym = YearMonth.from(today).plusMonths(1)
+                ym.year to ym.monthValue
+            }
+            else -> today.year to (months[monthToken] ?: today.monthValue)
+        }
+        // "del mes" (mes actual) NO se rueda: el usuario fija este mes (vencida honesta).
+        // Mes nombrado ya en el pasado: si es un mes DISTINTO al actual (p. ej. "de enero"
+        // dicho en agosto), se recalcula en el año siguiente (no agendar en pasado). Si es
+        // el mes ACTUAL ("primer lunes de agosto" dicho el 14, cuando el lunes 3 ya pasó),
+        // se mantiene vencido honesto (igual que "del mes"): el usuario se refiere a este
+        // agosto, no al del año que viene. Se RECALCULA el weekday en el nuevo año (no
+        // `plusYears(1)`, que desplaza el día de la semana: "primer lunes de enero" rodado
+        // a 2027 caería en martes).
+        var y = year
+        var date = nthWeekdayInMonth(y, month, ordinal, weekday)
+        if (monthToken != "mes" && month != today.monthValue && date.isBefore(today)) {
+            y += 1
+            date = nthWeekdayInMonth(y, month, ordinal, weekday)
         }
         return date
     }
+
+    /** N-ésima (ordinal<0 = última) ocurrencia de [weekday] en (year, month). */
+    private fun nthWeekdayInMonth(year: Int, month: Int, ordinal: Int, weekday: DayOfWeek): LocalDate =
+        if (ordinal < 0) {
+            LocalDate.of(year, month, 1)
+                .with(TemporalAdjusters.lastDayOfMonth())
+                .with(TemporalAdjusters.previousOrSame(weekday))
+        } else {
+            LocalDate.of(year, month, 1)
+                .with(TemporalAdjusters.firstInMonth(weekday))
+                .plusWeeks((ordinal - 1).toLong())
+        }
 
     /**
      * Próxima fecha con el día del mes [day], desde [from] (inclusive: si hoy es el día N,
