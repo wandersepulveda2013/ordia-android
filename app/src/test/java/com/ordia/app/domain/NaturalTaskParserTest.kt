@@ -2153,6 +2153,38 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "finde" (apócope coloquial) en SINGULAR es una fecha única (próximo sábado),
+    // NO un hábito. Antes "este finde" caía por error a la recurrencia semanal
+    // (WEEKLY sábado+domingo para siempre) cuando el usuario pedía una sola fecha.
+    // now=miércoles 2026-07-29 → sábado 2026-08-01.
+    @Test fun esteFindeProgramaProximoSabadoSinRecurrencia() {
+        val result = NaturalTaskParser.parse("Viaje este finde", now, zone)
+        assertEquals("Viaje", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+    }
+
+    @Test fun findeSueltoProgramaProximoSabadoSinRecurrencia() {
+        val result = NaturalTaskParser.parse("Cine finde", now, zone)
+        assertEquals("Cine", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+    }
+
+    @Test fun cadaFindeSigueSiendoHabitoSemanalFinDeSemana() {
+        val result = NaturalTaskParser.parse("Estudiar cada finde", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
+    @Test fun losFindesSigueSiendoHabitoSemanalFinDeSemana() {
+        val result = NaturalTaskParser.parse("Limpiar los findes", now, zone)
+        assertEquals("Limpiar", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
     // --- Fechas relativas en semanas/meses ---
     // "en una semana"/"en un mes" son de las formas más comunes en español y antes
     // quedaban SIN fecha (dueAt=null) → la tarea se olvidaba (sin recordatorio). now=2026-07-29.

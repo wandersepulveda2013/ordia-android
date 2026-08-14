@@ -2221,19 +2221,28 @@ gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler en pantallas anidadas;
   contraste onSurfaceVariant. No detenerse.
 
-## Último trabajo — Ciclo 46: GuardianEngine doble conteo de subtareas (mood/XP inflados)
+## Último trabajo — Ciclo 99: "este finde" (singular) era falso hábito WEEKLY
 
-- **Bug P1 (fiabilidad/datos)**: `GuardianEngine` contaba subtareas como tareas lógicas en sus
-  agregados, inflando el ánimo (mood) y la experiencia (XP) del guardia — simétrico al doble
-  conteo de `SummaryEngine` FIXED en ciclo 20. `completedAll`, `completedToday`, `overdue` y
-  `derivedExperience(completedTasks)` no filtraban `parentTaskId == null`. Consecuencias reales:
-  1 padre + 4 subtareas vencidas → guardia CONCERNED + mensaje "Hay 5 pendientes atrasados"
-  (realidad: 1 tarea lógica); 1 padre + 3 subtareas completadas → XP 48 en vez de 12. El guardia
-  mentía al usuario sobre su progreso.
-- **Fix mínimo**: filtro `parentTaskId == null` en los 4 conteos, consistente con
-  `SummaryEngine`/`GuardianCoach`/`WhatNow`/`DayPlanner` (todos cuentan solo raíces).
-- **Tests**: +2 (`overdueCountIgnoresSubtasksToAvoidInflatedConcern`,
-  `derivedExperienceCountsLogicalTasksNotSubtasks`). Probe JVM confirmó antes/después.
-  **392 domain tests PASS** (`tools/run_domain_tests.sh`), smoke 25 OK.
+- **Bug P1 (fiabilidad/datos)**: el apócope coloquial **"finde"** en SINGULAR
+  ("viaje este finde", "cine el finde", "próximo finde", "finde" suelto) se capturaba como
+  **recurrencia semanal** (WEEKLY sábado+domingo para siempre) en `weekendRecurrencePattern`,
+  cuando el usuario pedía una sola fecha. El determinante singular "este/el/próximo" señala
+  UN fin de semana concreto (fecha), no un hábito; el plural/determinante de cadencia
+  ("los findes"/"cada finde"/"fines de semana") sí es hábito. Antes "este finde" generaba una
+  tarea recurrente que producía ocurrencias cada sábado+domingo indefinidamente —
+  over-recurrence silenciosa (la tarea nunca dejaba de reaparecer). Asimétrico frente a
+  "fin de semana" (fecha) que sí estaba bien: la brecha era el apócope "finde" sin "de semana".
+- **Fix mínimo** (`NaturalTaskParser.kt`):
+  1. `weekendPattern` (fecha única → próximo sábado) ahora acepta también el apócope "finde"
+     singular, con lookbehind negativo `(?<!cada\s)(?<!los\s)` para no robar el hábito, y
+     `(?<!...)` deja fuera el plural "findes".
+  2. `weekendRecurrencePattern` (hábito) pierde la alternancia `este\s+` que causaba el falso
+     positivo: ahora solo casa `cada`/`los`/`fines` (hábito claro), nunca el singular con "este".
+- **Tests**: +4 (`esteFindeProgramaProximoSabadoSinRecurrencia`,
+  `findeSueltoProgramaProximoSabadoSinRecurrencia`, `cadaFindeSigueSiendoHabitoSemanalFinDeSemana`,
+  `losFindesSigueSiendoHabitoSemanalFinDeSemana`). Probe JVM confirmó antes/después y
+  no-regresión de "fin de semana"/"este fin de semana"/"fines de semana". **685 domain tests
+  PASS** (`tools/run_domain_tests.sh`), smoke 25 OK.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+
 

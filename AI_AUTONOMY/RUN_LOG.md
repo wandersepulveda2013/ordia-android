@@ -4532,3 +4532,50 @@ a un permiso persistente frágil y silencioso ante fallos.
   `RecurrenceEngine` edge cases; replanificación si OVERLOADED recurrente; auditoría de
   captura/búsqueda/What Now para nuevas oportunidades de producto.
 
+
+---
+
+## Ciclo 99 — 2026-08-14
+
+- **HEAD inicial**: `5043282` (fix(parser): "el día N" → día de mes resuelto + título limpio, c.98).
+- **Problema seleccionado**: P1 Parser — "este finde" (apócope coloquial singular) se capturaba
+  como recurrencia semanal WEEKLY (sáb+dom para siempre) en vez de fecha única.
+- **Causa raíz**: `weekendRecurrencePattern` (hábito) incluía la alternancia `este\s+` en su
+  grupo opcional `(?:cada\s+)?(?:los\s+|este\s+)?findes?`. Así "este finde" casaba el patrón
+  de hábito (WEEKLY), aunque el determinante singular "este" señala UN fin de semana concreto
+  (fecha). Asimetría: "fin de semana" (fecha, vía `weekendPattern`) sí estaba bien, pero el
+  apócope "finde" sin "de semana" solo existía en el patrón de hábito → todo "finde" era
+  recurrencia, incluso el singular con "este/el/próximo".
+- **Solución** (`NaturalTaskParser.kt`, cambio mínimo):
+  1. `weekendPattern` (fecha → próximo sábado) ahora acepta también el apócope "finde"
+     singular con prefijo opcional este/el/próximo, con lookbehind negativo `(?<!cada\s)`
+     y `(?<!los\s)` para no robar el hábito, y lookahead negativo que excluye el plural
+     "findes" (hábito). Reutiliza todo el flujo existente (detección temprana `weekendEarlyMatch`,
+     borrado de la frase, resolución `nextWeekday(base, SATURDAY)`, hora canónica 9:00,
+     combinable con hora explícita).
+  2. `weekendRecurrencePattern` (hábito) pierde la alternancia `este\s+`: ahora solo casa
+     `cada`/`los`/`fines` (señal de hábito clara), nunca el singular con "este".
+- **Heurística honesta**: el determinante singular "este/el/próximo" es señal desambiguadora
+  real de fecha única (no IA, no random); el plural "findes" o el determinante de cadencia
+  "cada"/"los" es señal de hábito.
+- **Tests**: probe JVM inicial descubrió el falso positivo (`viaje este finde`→WEEKLY) y
+  confirmó el fix sin regresión ("fin de semana"/"este fin de semana"/"fines de semana" intactos;
+  "cada finde"/"los findes" siguen WEEKLY 6,7). +4 tests permanentes en `NaturalTaskParserTest.kt`:
+  `esteFindeProgramaProximoSabadoSinRecurrencia`, `findeSueltoProgramaProximoSabadoSinRecurrencia`,
+  `cadaFindeSigueSiendoHabitoSemanalFinDeSemana`, `losFindesSigueSiendoHabitoSemanalFinDeSemana`.
+  Comando: `bash tools/run_domain_tests.sh` → **685 tests PASS** (681 + 4). Smoke:
+  `bash tools/run_domain_checks.sh` → **25 OK**. Sin regresión.
+- **Hallazgo adicional (ABIERTO, P2)**: "cada fin de semana" (forma larga + "cada") sigue
+  dando `rec=NONE` (debería WEEKLY 6,7). Preexistente (verificado con git stash: idéntico en
+  `5043282` sin mis cambios). "cada finde" (apócope) SÍ es hábito; la forma larga no casa
+  `weekendRecurrencePattern`. Añadido al BACKLOG como P2 abierto.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras commit/push, ver commit).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: BACKLOG-NEW "cada fin de semana" → WEEKLY (P2, extensión de
+  `weekendRecurrencePattern`); continuar descubrimiento de frases cotidianas del parser
+  ("cita en media hora y cuarto" BACKLOG-16; adjetivos de cadencia desnudos P2);
+  auditoría de captura/búsqueda/What Now para oportunidades de producto.
