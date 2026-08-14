@@ -1256,6 +1256,33 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // --- Fecha relativa VAGA familia "un momento"/"al rato"/"pasado un rato" (ciclo 105) ---
+    // Extensiones cotidianas de la familia vaga de futuro (c.104): mismas frases imprecisas
+    // que antes dejaban dueAt=null (tarea olvidada). Heurística honesta: +1 h.
+    @Test fun enUnMomentoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Llamar en un momento", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun dentroDeUnMomentoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Pausa dentro de un momento", now, zone)
+        assertEquals("Pausa", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun alRatoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Cita al rato", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun pasadoUnRatoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Llamar pasado un rato", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
     // --- Fecha relativa fraccionaria + cuarto (ciclo 101) ---
     // "en media hora y cuarto" = 30 + 15 = 45 min. Antes [fractionalRelativePattern]
     // robaba solo "en media hora" (+30) y dejaba "y cuarto" como residuo en el título

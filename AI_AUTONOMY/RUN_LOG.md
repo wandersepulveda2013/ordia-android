@@ -4805,6 +4805,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 
 ---
 
+
 ## Ciclo 105 — 2026-08-14 — GuardianCoach: edad de "olvidada" por días de calendario (DST-safe) + auditoría `\b`-acento del parser completada (P1 recuperación)
 
 - **Branch**: `openhands/autonomous-ordia`.
@@ -4861,3 +4862,37 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: auditar `RecurrenceEngine` (clamps/DST) y detección de compromisos en
   notas; explorar producto (captura ultrarrápida, What Now, inbox inteligente).
 
+---
+
+
+## Ciclo 105 (run B) — 2026-08-14 — Parser: familia vaga "un momento"/"al rato"/"pasado un rato"
+
+- **HEAD inicial**: `07a1f31` (tras docs c.104).
+- **Problema (P1)**: extensión natural del c.104. Probe de descubrimiento continuo reveló que
+  `"en un momento"`, `"dentro de un momento"`, `"al rato"`, `"pasado un rato"` producían
+  `dueAt=null` (tarea olvidada, sin recordatorio). Misma asimetría que c.104: el pasado
+  `"hace un rato"` (−3h) SÍ se parseaba, pero `"un momento"`/`"al rato"` (futuro) no casaban
+  ningún patrón (`relativePattern` requiere número+unidad, `fractionalRelativePattern`
+  requiere fracción canónica). "un momento"/"al rato" son imprecisos por naturaleza.
+- **Causa raíz**: `vagueRelativePattern` (c.104) solo cubría la forma literal "un rato" con
+  prefijo; dejaba fuera sinónimos cotidianos de la misma familia semántica.
+- **Solución**: ampliar `vagueRelativePattern` a `(?:un rato|un momento)` tras el prefijo
+  `en|dentro de|de aquí a|de acá a` + dos ramas sin prefijo: `al rato` y `pasado un rato`.
+  Reutiliza TODO el flujo existente (`vagueRelativeDueAt = now + 60*60_000L`, +1h, heurística
+  honesta descrita en el docstring, no IA; incluido en `effectiveRelativeDueAt`; excluido de
+  `relativeIsDays`). Sin nueva pantalla/botón. TDD: probe RED → implementación → tests GREEN.
+- **Tests**: `bash tools/run_domain_tests.sh` → **716 OK** (712 base c.104 + 4 nuevos:
+  `enUnMomento`/`dentroDeUnMomento`/`alRato`/`pasadoUnRato` = +1h). Smoke
+  (`PATH=/tmp/kotlinc-home/kotlinc/bin:$PATH bash tools/run_domain_checks.sh`) → **25 OK**.
+  Sin regresión: "en una hora"=+1h, "en media hora"=+0.5h, "en 2 horas"=+2h, "en un mes"=+720h,
+  "hace un rato"=−3h intactos (probe verde).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: (ver hash tras push).
+- **HEAD final**: (tras push).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: descubrimiento continuo de frases cotidianas del parser
+  ("enseguida"/"ahora mismo" semántica "ahora"; "más rato"/"más tarde" vagos) y otras áreas
+  (recuperación de tareas olvidadas, What Now, contexto).
