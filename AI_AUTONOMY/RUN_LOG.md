@@ -5038,7 +5038,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: `bash tools/run_domain_tests.sh` → **763 PASS** (758 c.112 + 5 netos: `ayer_recoversTaskDueYesterday`, `ayer_recoversEvenCompletedTask`, `semanaPasada_recoversTasksFromPreviousWeek`, `ultimaSemana_recoversTasksWithAccent`, `semanaPasada_excludesThisWeekTasks`). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Probe JVM aparte: 9 casos verde ("ayer"→[1], "última/semana pasada"→[2] con/sin tilde, "esta semana"→[], "ayer cita"→[1], "próxima/semana que viene"→[3] intactos). Sin regresión.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt`, `app/src/test/java/com/ordia/app/domain/SearchEngineDateScopeTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **Commits**: (ver abajo tras push).
-- **HEAD final**: (tras push, ver abajo).
+- **Commits**: `5efd685` (push exitoso a openhands/autonomous-ordia, a12f322..5efd685).
+- **HEAD final**: `5efd685` (push verificado, HEAD==origin).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: auditar WhatNowEngine/GuardianEngine (recuperación de vencidas, detección de compromisos); descubrimiento continuo en contexto/onboarding/captura ultrarrápida; no volver a tocar acentos del SearchEngine (ya verificado OK).
