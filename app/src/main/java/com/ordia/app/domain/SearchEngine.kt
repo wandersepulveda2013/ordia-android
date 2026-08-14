@@ -89,6 +89,7 @@ object SearchEngine {
                 !task.archived && (!typed || wantsTasks) &&
                     (!normalized.contains("vencid") || TaskRules.isOverdue(task, now)) &&
                     (!normalized.contains("importante") || task.priority in setOf(TaskPriority.HIGH, TaskPriority.URGENT)) &&
+                    (!normalized.contains("urgente") || task.priority == TaskPriority.URGENT) &&
                     (!normalized.contains("pendiente") || !task.completed) &&
                     (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone)) &&
                     (matches(task.title, task.details) || semanticMatches(TASK_TERMS, task.title, task.details))
@@ -146,7 +147,7 @@ object SearchEngine {
     private val STOP_WORDS = setOf(
         "de", "del", "la", "las", "el", "los", "con", "que", "mis", "mi", "cosas", "mostrar", "muestra"
     )
-    private val TASK_TERMS = setOf("tarea", "pendient", "vencid", "important")
+    private val TASK_TERMS = setOf("tarea", "pendient", "vencid", "important", "urgente")
     private val NOTE_TERMS = setOf("nota")
     private val MESSAGE_TERMS = setOf("mensaje", "conversacion", "chat")
     private val COMMITMENT_TERMS = setOf("compromiso", "pendient", "sin", "fecha")

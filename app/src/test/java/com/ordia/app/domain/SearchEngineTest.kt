@@ -80,4 +80,41 @@ class SearchEngineTest {
         )
         assertEquals(SearchKind.PROJECT, results.first().kind)
     }
+
+    // --- Filtro por prioridad: "urgente" simétrico a "importante" ---
+
+    @Test fun urgente_surfacesOnlyUrgentPriorityRegardlessOfTitle() {
+        // Buscar "urgente" debe recuperar la tarea marcada como URGENT aunque su
+        // título no contenga la palabra "urgente", igual que "importante" recupera
+        // las de prioridad alta. Antes de este fix "urgente" solo hallaba tareas
+        // que tuvieran "urgente" literal en el título (asimetría con "importante").
+        val now = System.currentTimeMillis()
+        val urgentTask = TaskEntity(id = 1, title = "Pagar factura de luz", priority = TaskPriority.URGENT)
+        val normalTask = TaskEntity(id = 2, title = "Comprar pan", priority = TaskPriority.NORMAL)
+        val ids = SearchEngine.search("urgente", listOf(urgentTask, normalTask), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun urgente_excludesHighPriorityTasks() {
+        // "urgente" mapea al nivel URGENT (el más alto), no al rango amplio
+        // HIGH+URGENT que cubre "importante": una tarea HIGH no es urgente.
+        val now = System.currentTimeMillis()
+        val high = TaskEntity(id = 1, title = "Revisar contrato", priority = TaskPriority.HIGH)
+        val urgent = TaskEntity(id = 2, title = "Vencimiento impuestos", priority = TaskPriority.URGENT)
+        val ids = SearchEngine.search("urgente", listOf(high, urgent), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }.toSet()
+        assertEquals(setOf(2L), ids)
+    }
+
+    @Test fun urgenteWithContent_findsUrgentTasksMatchingText() {
+        // "urgente reunion" combina el filtro de prioridad con texto: de las
+        // urgentes, solo las que tratan de "reunión".
+        val now = System.currentTimeMillis()
+        val urgentReunion = TaskEntity(id = 1, title = "Reunión de crisis", priority = TaskPriority.URGENT)
+        val urgentOtra = TaskEntity(id = 2, title = "Pago servidor", priority = TaskPriority.URGENT)
+        val ids = SearchEngine.search("urgente reunion", listOf(urgentReunion, urgentOtra), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
 }
