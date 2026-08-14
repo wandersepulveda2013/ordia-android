@@ -37,8 +37,8 @@ fun InboxScreen(
     )
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        contentPadding = PaddingValues(24.dp, contentPadding.calculateTopPadding() + 24.dp, 24.dp, contentPadding.calculateBottomPadding() + 28.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { ScreenHeader("CAPTURA SIN FRICCIÓN", "Bandeja", "Todo lo que todavía no tiene fecha o proyecto.", "Añadir") { adding = true } }
         if (state.inboxTasks.isEmpty()) {

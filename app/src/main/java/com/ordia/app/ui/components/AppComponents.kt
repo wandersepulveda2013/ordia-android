@@ -41,6 +41,53 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.ui.theme.OrdiaGoldSoft
 
 @Composable
+fun OrdiaCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    if (onClick != null) {
+        Card(
+            modifier = modifier,
+            onClick = onClick,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(16.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) { content() }
+    } else {
+        Card(
+            modifier = modifier,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(16.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) { content() }
+    }
+}
+
+@Composable
+fun OrdiaButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    primary: Boolean = true
+) {
+    if (primary) {
+        Button(
+            onClick = onClick,
+            modifier = modifier,
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            shape = RoundedCornerShape(12.dp)
+        ) { Text(label, style = MaterialTheme.typography.labelLarge) }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier,
+            shape = RoundedCornerShape(12.dp)
+        ) { Text(label, style = MaterialTheme.typography.labelLarge) }
+    }
+}
+
+@Composable
 fun ScreenHeader(
     eyebrow: String? = null,
     title: String,
@@ -58,10 +105,7 @@ fun ScreenHeader(
                 if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (actionLabel != null && onAction != null) {
-                OutlinedButton(onClick = onAction) {
-                    Icon(Icons.Outlined.Add, null)
-                    Text(actionLabel, Modifier.padding(start = 6.dp))
-                }
+                OrdiaButton(label = actionLabel, onClick = onAction, primary = false)
             }
         }
     }
@@ -87,11 +131,7 @@ fun SectionHeader(title: String, supporting: String? = null, action: String? = n
 
 @Composable
 fun StatCard(label: String, value: String, supporting: String? = null, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
+    OrdiaCard(modifier = modifier) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.headlineMedium)
@@ -109,22 +149,21 @@ fun EmptyState(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth().ordiaWorkSurface(),
-        shape = RoundedCornerShape(26.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = Color.Transparent
     ) {
         Column(
-            Modifier.padding(horizontal = 26.dp, vertical = 30.dp),
+            Modifier.padding(horizontal = 20.dp, vertical = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             GuardianAvatar(72.dp)
-            Text(title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+            Text(title, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
             Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             if (actionLabel != null && onAction != null) {
-                Spacer(Modifier.height(2.dp))
-                Button(onClick = onAction) { Text(actionLabel) }
+                Spacer(Modifier.height(8.dp))
+                OrdiaButton(label = actionLabel, onClick = onAction)
             }
         }
     }
@@ -185,18 +224,14 @@ fun Modifier.ordiaWorkSurface(): Modifier {
 
 @Composable
 fun PrimaryAction(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Button(
-        onClick = onClick,
-        modifier = modifier,
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-    ) { Text(label) }
+    OrdiaButton(label = label, onClick = onClick, modifier = modifier)
 }
 
 @Composable
 fun InfoBanner(title: String, text: String, modifier: Modifier = Modifier) {
-    Surface(modifier, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+    Surface(modifier, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
             Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
         }
     }

@@ -1,0 +1,1 @@
+Wave 1: Foundation and Design System Completado. Se eliminaron redundancias y colores complejos. Se reemplazó el uso clásico de Material con componentes customizados OrdiaButton, OrdiaCard. Próximo foco: Wave 2 (Home + Navigation).

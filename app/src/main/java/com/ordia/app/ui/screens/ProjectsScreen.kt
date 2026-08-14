@@ -15,7 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowForward
-import androidx.compose.material3.Card
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.EmptyState
+import com.ordia.app.ui.components.OrdiaCard
 import com.ordia.app.ui.components.ProjectEditorDialog
 import com.ordia.app.ui.components.ScreenHeader
 
@@ -46,8 +47,8 @@ fun ProjectsScreen(
     if (adding) ProjectEditorDialog(onDismiss = { adding = false }, onSave = { vm.saveProject(it); adding = false })
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(24.dp, contentPadding.calculateTopPadding() + 24.dp, 24.dp, contentPadding.calculateBottomPadding() + 28.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item { ScreenHeader("RESULTADOS CONCRETOS", "Proyectos", "Reúne tareas y notas alrededor de un objetivo.", "Nuevo") { adding = true } }
         if (state.projects.isEmpty()) {
@@ -56,21 +57,21 @@ fun ProjectsScreen(
             items(state.projects, key = { it.id }) { project ->
                 val progress = state.projectProgress(project.id)
                 val taskCount = state.rootTasks.count { it.projectId == project.id && !it.archived }
-                Card(onClick = { onProject(project.id) }) {
-                    Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                OrdiaCard(onClick = { onProject(project.id) }) {
+                    Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
-                                Modifier.size(14.dp).background(
+                                Modifier.size(12.dp).background(
                                     runCatching { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(project.colorHex)) }.getOrDefault(MaterialTheme.colorScheme.secondary),
                                     androidx.compose.foundation.shape.CircleShape
                                 )
                             )
                             Spacer(Modifier.size(10.dp))
                             Column(Modifier.weight(1f)) {
-                                Text(project.name, style = MaterialTheme.typography.titleLarge)
+                                Text(project.name, style = MaterialTheme.typography.titleMedium)
                                 Text(project.description.ifBlank { project.status.name.lowercase().replaceFirstChar { it.uppercase() } }, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            IconButton(onClick = { onProject(project.id) }) { Icon(Icons.Outlined.ArrowForward, "Abrir proyecto") }
+                            IconButton(onClick = { onProject(project.id) }) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Abrir proyecto") }
                         }
                         LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

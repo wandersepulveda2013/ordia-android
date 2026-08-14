@@ -1,0 +1,1 @@
+# Ordia Mission: Autonomy 2026-08-14\n\nEl usuario solicita una MEGA EVOLUCIÓN AUTÓNOMA DE ORDÍA. El trabajo se debe realizar en waves (ciclos) enfocándose en UX/UI minimalista, motor universal de captura, inteligencia, rendimiento y privacidad. \n\nPrioridad: Iniciar la WAVE 1 (Foundation + Design System).
