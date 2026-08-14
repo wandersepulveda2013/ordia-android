@@ -81,9 +81,18 @@ object AutomationActionPlanner {
                     //   (siempre futuro): una tarea vencida reprogramada no debe quedar al olvido.
                     //   Coherente con PLAN_DAY/BATCH_QUICK_TASKS (c.129), que añaden un recordatorio
                     //   por defecto en el inicio cuando no existía.
+                    // - Si el offset trasladado cae en el PASADO (offset grande, p. ej. "recuérdame
+                    //   2 días antes" sobre una vencida de ayer → reminder ~27 h atrás), cae al
+                    //   mismo default de 1 h antes (futuro). Un reminder pasado lo descarta
+                    //   [ReminderSync] (trigger <= now → null), así sin este respaldo la tarea
+                    //   reprogramada volvería a quedar SIN aviso → el usuario la olvidaba otra
+                    //   vez, justo lo que esta acción debe evitar. Simétrico con
+                    //   [ReminderRules.resolveReminderAt] (c.183), que también recae a un default
+                    //   past-safe cuando la traslación del offset no cabe en el futuro.
                     val reminder = if (task.reminderAt != null && task.dueAt != null) {
                         val offset = task.dueAt - task.reminderAt
-                        due - offset
+                        val translated = due - offset
+                        if (translated > now) translated else due - 60 * 60_000L
                     } else {
                         due - 60 * 60_000L
                     }

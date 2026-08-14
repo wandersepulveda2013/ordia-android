@@ -130,6 +130,35 @@ class AutomationActionPlannerTest {
     }
 
     @Test
+    fun `reschedule_overdue no deja el reminder en el pasado cuando el offset es grande`() {
+        // Offset grande (alcanzable vía parser: "recuérdame 2 días antes" → 2*24*60 min).
+        // Vencida 1 día con reminder 2 días antes del dueAt original: trasladar ese offset
+        // al nuevo vencimiento (mañana 18:00) deja el reminder ~27 h en el PASADO. Un
+        // reminder pasado lo descarta ReminderSync (trigger <= now → null), así la tarea
+        // reprogramada volvía a quedar SIN aviso → el usuario la olvidaba otra vez, justo
+        // lo que RESCHEDULE_OVERDUE debe evitar. Debe caer a un default futuro (1 h antes).
+        val offsetMs = 2L * 86_400_000L // 2 días
+        val oldDue = now - 86_400_000L // vencida hace 1 día
+        val overdue = task(1, dueAt = oldDue, status = TaskStatus.PLANNED, reminderAt = oldDue - offsetMs)
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.RESCHEDULE_OVERDUE, AutomationCondition.HAS_OVERDUE_TASKS),
+            listOf(overdue), 0, now, zone
+        )
+        assertTrue(plan.matched)
+        val u = plan.updates.first()
+        assertNotNull("La vencida reprogramada debe conservar un reminder", u.reminderAt)
+        assertTrue(
+            "El reminder no debe caer en el pasado (offset grande trasladado): got ${u.reminderAt}",
+            u.reminderAt!! > now
+        )
+        // Y no debe ser descartado por la re-sincronización (evita olvidos).
+        assertTrue(
+            "El reminder futuro debe ser re-encolado por ReminderSync",
+            com.ordia.app.domain.ReminderSync.triggers(listOf(u), now).isNotEmpty()
+        )
+    }
+
+    @Test
     fun `reschedule_overdue deriva la fecha del now inyectado, no del reloj del sistema`() {
         // Determinismo: la fecha base de reprogramación debe calcularse desde el `now`
         // inyectado. Antes se usaba LocalDate.now(zone) (reloj real), de modo que la
