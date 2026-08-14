@@ -23,6 +23,8 @@ class AssistantEngineTest {
     }
 
     @Test fun whatNow_explainsWhyAndMentionsOverdue() {
+        // La sugerida es la vencida → "está vencida" ya lo dice; el "además"
+        // no debe contarla (evita "además tienes 1 vencida" = la misma).
         val overdue = TaskEntity(id = 1, title = "Atrasada", dueAt = 1L)
         val answer = AssistantEngine.answer(
             "¿Qué hago ahora?",
@@ -31,7 +33,20 @@ class AssistantEngineTest {
         )
         assertEquals(listOf(1L), answer.relatedTaskIds)
         assertTrue("explica la razón: ${answer.text}", answer.text.contains("vencida"))
-        assertTrue("menciona 1 vencida: ${answer.text}", answer.text.contains("1 vencida"))
+        assertTrue("no repite la vencida como 'además': ${answer.text}", !answer.text.contains("Además"))
+    }
+
+    @Test fun whatNow_mentionsOtherOverdueWhenSuggestedIsAlsoOverdue() {
+        // Sugerida vencida + otra vencida distinta → "además tienes 1 vencida".
+        val suggested = TaskEntity(id = 1, title = "Atrasada", dueAt = 1L, priority = TaskPriority.URGENT)
+        val other = TaskEntity(id = 2, title = "Otra atrasada", dueAt = 2L)
+        val answer = AssistantEngine.answer(
+            "¿Qué hago ahora?",
+            listOf(suggested, other),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("menciona la otra vencida: ${answer.text}", answer.text.contains("1 vencida"))
     }
 
     @Test fun planMinimo_ranksOverdueFirst() {

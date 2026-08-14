@@ -44,8 +44,13 @@ object AssistantEngine {
                     AssistantAnswer("No encuentro tareas pendientes. Puedes capturar algo nuevo o descansar.")
                 } else {
                     val why = WhatNowEngine.reasonLabel(suggestion.reason)
-                    val tail = if (overdue.isNotEmpty()) {
-                        " Además, tienes ${overdue.size} vencid${if (overdue.size == 1) "a" else "as"}."
+                    // "Además, tienes N vencidas" se refiere a las vencidas DISTINTAS a la
+                    // sugerida: si la propia tarea sugerida está vencida, ya lo dijimos en
+                    // "está vencida" — repetir "además tienes 1 vencida" cuando es esa misma
+                    // tarea confunde al usuario (¿otra? ¿cuál?).
+                    val otherOverdue = overdue.count { it.id != suggestion.task.id }
+                    val tail = if (otherOverdue > 0) {
+                        " Además, tienes $otherOverdue vencid${if (otherOverdue == 1) "a" else "as"}."
                     } else ""
                     val minutes = TaskRules.plannedDuration(suggestion.task)
                     AssistantAnswer(
