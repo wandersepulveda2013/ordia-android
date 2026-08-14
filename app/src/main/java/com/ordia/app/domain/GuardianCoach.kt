@@ -41,7 +41,8 @@ object GuardianCoach {
         }
 
         if (overdue.isNotEmpty()) {
-            val next = TaskRules.nextBestTask(overdue, now)
+            val nextBest = TaskRules.nextBestTask(overdue, now)
+            val next = nextBest?.task
             return Insight(
                 eyebrow = "RECUPERA EL CONTROL",
                 title = next?.title ?: "Hay algo pendiente",
@@ -57,7 +58,8 @@ object GuardianCoach {
 
         val urgentToday = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
         if (urgentToday.isNotEmpty()) {
-            val next = TaskRules.nextBestTask(urgentToday, now)
+            val nextBest = TaskRules.nextBestTask(urgentToday, now)
+            val next = nextBest?.task
             return Insight(
                 eyebrow = "PROTEGE TU DÍA",
                 title = next?.title ?: "Prioridad de hoy",
@@ -67,13 +69,14 @@ object GuardianCoach {
             )
         }
 
-        val next = TaskRules.nextBestTask(pending, now)
+        val nextBest = TaskRules.nextBestTask(pending, now)
+        val next = nextBest?.task
         if (next != null) {
             return Insight(
                 eyebrow = "SIGUIENTE PASO",
                 title = next.title,
-                message = next.details.takeIf { it.isNotBlank() }
-                    ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
+                message = "Haz esto ahora porque ${nextBest?.reason ?: "es lo siguiente"}.",
+
                 taskId = next.id,
                 tone = Tone.FOCUSED
             )

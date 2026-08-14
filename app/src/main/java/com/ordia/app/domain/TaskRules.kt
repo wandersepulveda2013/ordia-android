@@ -6,9 +6,11 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
+data class BestTask(val task: TaskEntity, val reason: String)
+
 object TaskRules {
-    fun nextBestTask(tasks: List<TaskEntity>, now: Long = System.currentTimeMillis()): TaskEntity? =
-        tasks.asSequence()
+    fun nextBestTask(tasks: List<TaskEntity>, now: Long = System.currentTimeMillis()): BestTask? {
+        val task = tasks.asSequence()
             .filter { !it.completed && !it.archived && it.parentTaskId == null }
             .sortedWith(
                 compareByDescending<TaskEntity> { isOverdue(it, now) }
@@ -16,7 +18,18 @@ object TaskRules {
                     .thenBy { it.dueAt ?: Long.MAX_VALUE }
                     .thenBy { it.createdAt }
             )
-            .firstOrNull()
+            .firstOrNull() ?: return null
+
+        val overdue = isOverdue(task, now)
+        val reason = when {
+            overdue -> "está atrasada y requiere atención"
+            task.priority == TaskPriority.URGENT -> "es de urgencia máxima"
+            task.priority == TaskPriority.HIGH -> "es de prioridad alta"
+            isDueToday(task, now) -> "vence hoy"
+            else -> "es el siguiente paso lógico"
+        }
+        return BestTask(task, reason)
+    }
 
     fun isOverdue(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean =
         !task.completed && task.dueAt?.let { it < now } == true
