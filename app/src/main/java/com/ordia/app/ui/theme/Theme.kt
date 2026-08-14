@@ -60,7 +60,7 @@ val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
 )
 
 private val LightColors = lightColorScheme(
-    primary = OrdiaInk,
+    primary = Color.Black,
     onPrimary = Color.White,
     primaryContainer = Color(0xFFEAE2D4),
     onPrimaryContainer = OrdiaInk,
@@ -70,9 +70,9 @@ private val LightColors = lightColorScheme(
     onSecondaryContainer = Color(0xFF34270F),
     tertiary = OrdiaSage,
     onTertiary = Color.White,
-    background = OrdiaCream,
+    background = Color.White,
     onBackground = OrdiaInk,
-    surface = OrdiaPaper,
+    surface = Color.White,
     onSurface = OrdiaInk,
     surfaceVariant = Color(0xFFEDE7DC),
     onSurfaceVariant = Color(0xFF625D55),
@@ -83,8 +83,8 @@ private val LightColors = lightColorScheme(
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFF3EDE2),
-    onPrimary = Color(0xFF1A1916),
+    primary = Color.White,
+    onPrimary = Color.Black,
     primaryContainer = Color(0xFF34312B),
     onPrimaryContainer = Color(0xFFF5EFE4),
     secondary = OrdiaGoldSoft,
@@ -93,9 +93,9 @@ private val DarkColors = darkColorScheme(
     onSecondaryContainer = Color(0xFFFFE8AF),
     tertiary = Color(0xFFB9C99F),
     onTertiary = Color(0xFF263017),
-    background = Color(0xFF141310),
+    background = Color.Black,
     onBackground = Color(0xFFEDE8DF),
-    surface = Color(0xFF1C1B18),
+    surface = Color.Black,
     onSurface = Color(0xFFEDE8DF),
     surfaceVariant = Color(0xFF2B2924),
     onSurfaceVariant = Color(0xFFC9C2B8),
