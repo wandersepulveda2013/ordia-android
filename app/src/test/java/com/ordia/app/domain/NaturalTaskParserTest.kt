@@ -994,6 +994,70 @@ class NaturalTaskParserTest {
         assertNull("La fecha relativa no debe leerse como duración", result.durationMinutes)
     }
 
+    // --- Cuartos en plural como fracción de duración (ciclo 175) ---
+    // "2 horas y tres cuartos" = 120+45=165, "una hora y dos cuartos" = 60+30=90. Antes
+    // [compoundFractionalDurationPattern] solo aceptaba "media|cuarto" (no "tres
+    // cuartos"/"dos cuartos"), así que el patrón "N horas" robaba la parte entera (→ 120)
+    // y dejaba "y tres cuartos" como residuo en el título, con duración subestimada.
+    // Simétrico de [compoundFractionalRelativePattern] ("en una hora y tres cuartos").
+    @Test fun dosHorasYTresCuartosEsDuracion165() {
+        val result = NaturalTaskParser.parse("Estudiar 2 horas y tres cuartos", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(165, result.durationMinutes)
+    }
+
+    @Test fun unaHoraYDosCuartosEsDuracion90() {
+        val result = NaturalTaskParser.parse("Estudiar una hora y dos cuartos", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(90, result.durationMinutes)
+    }
+
+    @Test fun dosHorasYDosCuartosEsDuracion150() {
+        val result = NaturalTaskParser.parse("Estudiar dos horas y dos cuartos", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(150, result.durationMinutes)
+    }
+
+    // --- Multi-cuarto como duración (sin número de horas) (ciclo 175) ---
+    // "tres cuartos de hora" = 45, "dos cuartos de hora" = 30. Antes no casaban ningún
+    // patrón de duración (la cantidad escrita no es "horas"/"minutos" y
+    // [fractionalDurationPattern] solo admite "media hora"/"(un) cuarto de hora" en
+    // singular), así que durationMinutes era null y la frase entera quedaba como residuo
+    // en el título. Simétrico de [multiQuarterRelativePattern] ("en tres cuartos de hora").
+    @Test fun tresCuartosDeHoraEsDuracion45() {
+        val result = NaturalTaskParser.parse("Reunión de tres cuartos de hora", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(45, result.durationMinutes)
+    }
+
+    @Test fun dosCuartosDeHoraEsDuracion30() {
+        val result = NaturalTaskParser.parse("Reunión dos cuartos de hora", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(30, result.durationMinutes)
+    }
+
+    @Test fun tresCuartosDeHoraYCuartoEsDuracion60() {
+        val result = NaturalTaskParser.parse("Reunión tres cuartos de hora y cuarto", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(60, result.durationMinutes)
+    }
+
+    @Test fun multiCuartoDuracionConFechaNoInterfiere() {
+        val result = NaturalTaskParser.parse("Pagar tres cuartos de hora y luego salir", now, zone)
+        assertEquals("Pagar y salir", result.title)
+        assertEquals(45, result.durationMinutes)
+    }
+
+    // "tres cuartos" SIN "de hora" NO es duración: "cuartos" = habitaciones
+    // ("los tres cuartos de la casa"). El patrón exige "de hora" para desambiguar
+    // (mismo criterio que [fractionalDurationPattern], que también exige "hora"), así
+    // que NO se roba duración falsa ni se corrompe el título.
+    @Test fun tresCuartosSinDeHoraNoEsDuracion() {
+        val result = NaturalTaskParser.parse("Los tres cuartos de la casa", now, zone)
+        assertEquals("Los tres cuartos de la casa", result.title)
+        assertNull(result.durationMinutes)
+    }
+
     // "a las nueve horas" es HORA de un evento, NO duración: el guard
     // timePhrasePreceding ("a las" antes) debe impedir robar "nueve horas" como
     // duración. (El parser de horas no lee "nueve" como 9, así que la frase se

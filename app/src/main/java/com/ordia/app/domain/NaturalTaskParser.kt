@@ -700,9 +700,41 @@ object NaturalTaskParser {
      * escrito (vía [writtenAmountPattern]); se procesa con los mismos guards que la
      * duración numérica para no robar "a las 2 ... horas" (hora de un evento) ni "en 2
      * horas y media" (fecha relativa, ya consumida antes en el flujo).
+     *
+     * Admite también cuartos en plural como fracción, simétrico de
+     * [compoundFractionalRelativePattern]: "dos horas y tres cuartos" (120+45=165),
+     * "una hora y dos cuartos" (60+30=90). Antes el plural "tres cuartos" no casaba aquí
+     * (el grupo solo aceptaba "media|cuarto") y caía al patrón "N horas", que robaba
+     * solo la parte entera (→ 120) y dejaba "y tres cuartos" como residuo en el título
+     * ("Estudiar y tres cuartos"), con duración subestimada. amount×60 + (45 si "tres
+     * cuartos" | 30 si "dos cuartos" o "media" | 15 si "cuarto").
      */
     private val compoundFractionalDurationPattern =
-        Regex("""(?i)\b($writtenAmountPattern)\s*horas?\s+y\s+(media|cuarto)\b""")
+        Regex("""(?i)\b($writtenAmountPattern)\s*horas?\s+y\s+(tres\s+cuartos|dos\s+cuartos|media|un\s+cuarto|cuarto)\b""")
+
+    /**
+     * Duración multi-cuarto SIN número de horas, simétrica de
+     * [multiQuarterRelativePattern] ("en tres cuartos de hora"): "tres cuartos de hora"
+     * (45 min), "dos cuartos de hora" (30). Cada cuarto = 15 min. Antes estas formas no
+     * casaban ningún patrón de duración (la cantidad escrita no es "horas"/"minutos" y
+     * [fractionalDurationPattern] solo admite "media hora"/"(un) cuarto de hora" en
+     * singular), así que `durationMinutes` era null y la frase entera ("tres cuartos de
+     * hora") quedaba como residuo en el título — captura degradada y planificador/What
+     * Now sin la duración real.
+     *
+     * EXIGE "de hora" (no opcional) para desambiguar de "cuartos" = habitaciones: a
+     * diferencia de [multiQuarterRelativePattern], que se protege con el prefijo
+     * "en/dentro de" (un punto en el tiempo no puede ser "en tres habitaciones"), la
+     * duración NO lleva prefijo, así que el único desambiguador fiable es "de hora"
+     * (mismo criterio que [fractionalDurationPattern], que también exige "hora" para no
+     * casar "cuarto" = habitación). Sin "de hora" ("los tres cuartos de la casa") NO es
+     * duración y se deja intacta. La forma con prefijo "en/dentro de ..." ya la consume
+     * [multiQuarterRelativePattern] antes en el flujo. Admite el sufijo "+ y cuarto"
+     * (un cuarto extra): "tres cuartos de hora y cuarto" = 4 cuartos = 60. amount×15 +
+     * (15 si "y cuarto").
+     */
+    private val multiQuarterDurationPattern =
+        Regex("""(?i)\b($writtenAmountPattern|\d{1,3})\s+cuartos\s+de\s+hora(?:\s+y\s+cuarto)?\b""")
 
     /**
      * Rango horario "de H1[MM] [meridiem] a H2[MM] [meridiem] [horas]" (citas, clases,
@@ -2073,17 +2105,40 @@ object NaturalTaskParser {
             !Regex("""(?i)\ben\s*$""").containsMatchIn(working.substring(0, match.range.first)) &&
             !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first))
         }
+        // Duración multi-cuarto ("tres cuartos de hora"/"dos cuartos"): mismos guards que
+        // la duración numérica/escrita. La forma con prefijo "en/dentro de ..." ya la
+        // consume [multiQuarterRelativePattern] antes en el flujo (fecha relativa), así
+        // que aquí solo llega la de cantidad (sin prefijo) y se procesa como duración.
+        val multiQuarterDurationMatch = multiQuarterDurationPattern.find(working)?.takeIf { match ->
+            !Regex("""(?i)\ben\s*$""").containsMatchIn(working.substring(0, match.range.first)) &&
+            !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first))
+        }
         val durationMinutes = when {
             rangeDurationMinutes != null -> rangeDurationMinutes
             compoundFractionalDurationMatch != null &&
                 (durationMatch == null || compoundFractionalDurationMatch.range.first <= durationMatch.range.first) &&
                 (writtenMatch == null || compoundFractionalDurationMatch.range.first <= writtenMatch.range.first) &&
-                (fractionalMatch == null || compoundFractionalDurationMatch.range.first <= fractionalMatch.range.first) -> {
+                (fractionalMatch == null || compoundFractionalDurationMatch.range.first <= fractionalMatch.range.first) &&
+                (multiQuarterDurationMatch == null || compoundFractionalDurationMatch.range.first <= multiQuarterDurationMatch.range.first) -> {
                 val amount = compoundFractionalDurationMatch.groupValues[1].let {
                     it.toIntOrNull() ?: parseWrittenNumber(it)?.toInt()
                 }
                 val fraction = compoundFractionalDurationMatch.groupValues[2].lowercase()
-                amount?.let { (it * 60 + if (fraction.startsWith("media")) 30 else 15).coerceIn(5, 24 * 60) }
+                amount?.let { (it * 60 + when {
+                    fraction.contains("tres") -> 45
+                    fraction.contains("dos") || fraction.startsWith("media") -> 30
+                    else -> 15
+                }).coerceIn(5, 24 * 60) }
+            }
+            multiQuarterDurationMatch != null &&
+                (durationMatch == null || multiQuarterDurationMatch.range.first <= durationMatch.range.first) &&
+                (writtenMatch == null || multiQuarterDurationMatch.range.first <= writtenMatch.range.first) &&
+                (fractionalMatch == null || multiQuarterDurationMatch.range.first <= fractionalMatch.range.first) -> {
+                val amount = multiQuarterDurationMatch.groupValues[1].let {
+                    it.toIntOrNull() ?: parseWrittenNumber(it)?.toInt()
+                }
+                val hasExtraQuarter = multiQuarterDurationMatch.value.contains(Regex("""(?i)\by\s+cuarto\b"""))
+                amount?.let { (it * 15 + if (hasExtraQuarter) 15 else 0).coerceIn(5, 24 * 60) }
             }
             durationMatch != null && (fractionalMatch == null ||
                 durationMatch.range.first <= fractionalMatch.range.first) &&
@@ -2122,6 +2177,9 @@ object NaturalTaskParser {
             // writtenMatch (mismo inicio, mayor extensión), así que la deduplicación por
             // solapamiento conservará solo este (el exterior) en la práctica.
             compoundFractionalDurationMatch?.let { match -> add(connectorRange(working, match.range, match.range.first)) }
+            // Multi-cuarto ("tres cuartos de hora"): se blanquea entero (incluido "de
+            // hora" y el sufijo "y cuarto") para no dejar residuo en el título.
+            multiQuarterDurationMatch?.let { match -> add(connectorRange(working, match.range, match.range.first)) }
         }
         // Varias coincidencias pueden anidarse: con el keyword "duración 30 minutos",
         // [durationMatch] casa toda la frase ("duración 30 minutos") Y el patrón
