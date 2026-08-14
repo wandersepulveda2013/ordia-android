@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,7 +51,7 @@ fun ProjectsScreen(
     ) {
         item { ScreenHeader("RESULTADOS CONCRETOS", "Proyectos", "Reúne tareas y notas alrededor de un objetivo.", "Nuevo") { adding = true } }
         if (state.projects.isEmpty()) {
-            item { EmptyState("Todavía no hay proyectos", "Crea uno cuando varias tareas persigan el mismo resultado.", "Crear proyecto", onAction = { adding = true }) }
+            item { EmptyState("Todavía no hay proyectos", "Un proyecto agrupa tareas orientadas a un objetivo común. Crea uno cuando tengas un conjunto de tareas relacionadas.", "Crear proyecto", onAction = { adding = true }) }
         } else {
             items(state.projects, key = { it.id }) { project ->
                 val progress = state.projectProgress(project.id)
@@ -70,7 +70,7 @@ fun ProjectsScreen(
                                 Text(project.name, style = MaterialTheme.typography.titleLarge)
                                 Text(project.description.ifBlank { project.status.name.lowercase().replaceFirstChar { it.uppercase() } }, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            IconButton(onClick = { onProject(project.id) }) { Icon(Icons.Outlined.ArrowForward, "Abrir proyecto") }
+                            IconButton(onClick = { onProject(project.id) }) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Abrir proyecto") }
                         }
                         LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
