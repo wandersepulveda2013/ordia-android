@@ -522,8 +522,15 @@ object NaturalTaskParser {
     // "antes del 15 del 9": mismo defecto (beforeDeadlineDayPattern robaba "antes del 15"
     // → 15 de agosto + residuo "del 9"); el prefijo "antes del/de" se normaliza igual a
     // "N/M" y el plazo se ancla al día N (consistente con c.147 "antes del N").
+    // "de aquí al 15 del 9"/"de acá al 15 del 9": mismo defecto (el reescritor de conector
+    // "de aquí al"→"el" se ejecuta DESPUÉS de esta normalización, así que "al 15" caía a
+    // dayOfMonthPattern→mes en curso + residuo "del 9"). El prefijo direccional-temporal
+    // se admite aquí directamente → "N/M" y reutiliza TODO el flujo numericDatePattern;
+    // el plazo se ancla al día N (consistente con c.134 "de aquí al N" suelto). El
+    // reescritor de c.134 sigue limpiando el conector huérfano para las demás fechas
+    // (viernes, mañana, N de <mes nombre>).
     private val dayOfMonthNumericMonthPattern =
-        Regex("""(?i)\b(?:antes\s+del?\s+|el\s+(?:d[ií]a\s+)?|d[ií]a\s+)([0-3]?\d)\s+del?\s+([01]?\d)(?![/-])(?:\s+del?\s+(\d{2,4}))?\b(?!\s+de\s+cada)""")
+        Regex("""(?i)\b(?:antes\s+del?\s+|de\s+aqu[íi]\s+al\s+|de\s+ac[aá]\s+al\s+|el\s+(?:d[ií]a\s+)?|d[ií]a\s+)([0-3]?\d)\s+del?\s+([01]?\d)(?![/-])(?:\s+del?\s+(\d{2,4}))?\b(?!\s+de\s+cada)""")
 
     /**
      * Nombres de hora escritos en español (dos..veintiuno), ordenados de mayor a menor

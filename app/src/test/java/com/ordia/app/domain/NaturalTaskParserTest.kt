@@ -5822,6 +5822,43 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2027, 1, 3), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "de aquí al 15 del 9"/"de acá al 15 del 9" = día 15 del mes 9 (septiembre). El conector
+    // direccional-temporal "de aquí al"/"de acá al" se reconocía para cantidades ("de aquí a
+    // 3 días", c.50) y fechas con artículo ("de aquí al 15" suelto, c.134), pero NO con mes
+    // numérico: el reescritor de c.134 ("de aquí al"→"el") corre DESPUÉS de la normalización
+    // "el N del M"→"N/M" (c.148), así que "al 15" caía a dayOfMonthPattern→mes en curso
+    // (agosto, equivocado) y "del 9" sobrevivía como residuo → vencimiento en mes
+    // equivocado + título sucio (P1). El prefijo se admite directamente en
+    // dayOfMonthNumericMonthPattern → "N/M" reutilizando TODO el flujo numericDatePattern.
+    @Test fun dayOfMonthNumericMonth_DeAquiAl_ParsesAsSeptember() {
+        val result = NaturalTaskParser.parse("pago de aquí al 15 del 9", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dayOfMonthNumericMonth_DeAcaAl_ParsesAsSeptember() {
+        val result = NaturalTaskParser.parse("envío de acá al 15 del 9", now, zone)
+        assertEquals("envío", result.title)
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "de acá al 3 del 1" (3 de enero) en julio 2026 → enero pasado → roll 2027-01-03.
+    // Verifica que el prefijo direccional también hereda el roll de año de numericDatePattern.
+    @Test fun dayOfMonthNumericMonth_DeAcaAl_PastMonth_RollsToNextYear() {
+        val result = NaturalTaskParser.parse("cita de acá al 3 del 1", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalDate.of(2027, 1, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "de aquí al 31 del 4" = 31 de abril (imposible) → clamp 30/4, y como 2026-04-30 ya
+    // pasó → roll 2027-04-30. Verifica paridad con c.146 (clamp) y c.148 (roll) bajo el
+    // prefijo direccional.
+    @Test fun dayOfMonthNumericMonth_DeAquiAl_ImpossibleDay_ClampsAndRolls() {
+        val result = NaturalTaskParser.parse("renta de aquí al 31 del 4", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(LocalDate.of(2027, 4, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun dayOfMonthDeEsteMes() {
         val result = NaturalTaskParser.parse("reunión el 15 de este mes", now, zone)
         assertEquals("reunión", result.title)
