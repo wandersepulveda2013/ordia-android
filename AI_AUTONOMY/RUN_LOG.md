@@ -37,9 +37,9 @@
 - **Hallazgos adicionales (descubrimiento continuo)**: confirmado con probe JVM que `WhatNowEngine` YA ordenaba la captura más antigua primero (por `createdAt`) cuando no hay nada time-sensitive — así que el rescate no cambia QUÉ se sugiere, solo CÓMO se enmarca (de "siguiente paso" a "recupera el control" con edad), que es exactamente el valor: llamar la atención sobre el abandono. La asimetría resuelta (olvidadas-con-fecha sí rescataban, olvidadas-sin-fecha no) era un hueco conceptual en la "recuperación de tareas olvidadas" del área de dirección. Próxima prioridad: seguir en WhatNow/Guardián — auditar si `WhatNowEngine.reason()` y `TaskRules.timeRank()` pueden divergir en el etiquetado cuando una tarea es simultáneamente scheduled-later y due-today (razón vs ranking); descubrimiento continuo en contexto/onboarding.
 - **AI_AUTONOMY actualizado**: `CURRENT_STATE.md` (sección "Estado" con ciclo 121 + contador 806 tests), `BACKLOG.md` (nuevo ítem P1 resuelto), `RUN_LOG.md` (esta entrada).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/GuardianCoach.kt`, `app/src/test/java/com/ordia/app/domain/GuardianCoachTest.kt`, `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md`.
-- **Commits**: feature commit (re-creado por cherry-pick sobre base `6ab0445` del c.120 del otro agente) + este docs commit. Hash se registra tras push.
-- **HEAD final**: tras push a `origin/openhands/autonomous-ordia` (con `$GITHUB_TOKEN`).
-- **Estado**: FIXED → VERIFIED (dominio JVM). 806 domain tests PASS (800 c.119 + 6), smoke 25 OK.
+- **Commits**: `4d080a4` (feat(guardián): rescate de tareas olvidadas SIN fecha en la bandeja (P1)) — cherry-pick sobre base `6ab0445` del c.120 del otro agente (preserva su `b137099` fix(search)).
+- **HEAD final**: `4d080a4` → push a `origin/openhands/autonomous-ordia` (con `$GITHUB_TOKEN`).
+- **Estado**: FIXED → VERIFIED (dominio JVM). **809 domain tests PASS** tras merge (800 c.119 + 3 search c.120 + 6 guardián c.121; ambas features coexisten sin conflicto), smoke 25 OK.
 - **Próxima prioridad**: auditar `WhatNowEngine.reason()` vs `TaskRules.timeRank()` (consistencia etiquetado/ranking); descubrimiento continuo en contexto/onboarding/accesibilidad.
 
 ---
