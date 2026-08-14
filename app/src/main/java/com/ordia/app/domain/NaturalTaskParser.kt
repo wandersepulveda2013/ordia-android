@@ -393,7 +393,7 @@ object NaturalTaskParser {
         // "a las N" (1=hora, 2=:MM, 3=y media/cuarto, 4=meridiem, 5=horas) para que
         // [explicitTimeData] lo procese sin ramificación. Admite "del mediodía" como
         // meridiem (PM, → 13:00): "a la una del mediodía" es la forma cotidiana de 1pm.
-        Regex("""(?i)\ba\s+la\s+(una)(?::([0-5]\d))?(?:\s+y\s+(media|cuarto))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(horas?|hs))?\b"""),
+        Regex("""(?i)\ba\s+la\s+(una)(?::([0-5]\d))?(?:\s+(y\s+(?:media|cuarto)|menos\s+(?:cuarto|cinco|diez|veinte|veinticinco|\d{1,2})))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(horas?|hs))?\b"""),
         // Sufijo opcional "(horas?|hs)" tras la hora (con o sin meridiem) para consumir
         // "a las 9 horas" completo: antes "horas" quedaba como residuo en el titulo y,
         // peor, "9 horas" era robado como duracion (540 min falsos). Como grupo propio
@@ -404,7 +404,7 @@ object NaturalTaskParser {
         // Admite horas escritas ("a las nueve", "a las doce y media") vía [WRITTEN_HOUR_ALT];
         // antes esas formas dejaban la hora como residuo y se agendaban a la canónica de
         // la parte del día o sin hora ("reunión a las nueve" → sin dueAt).
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s+y\s+(media|cuarto))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(horas?|hs))?\b"""),
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s+(y\s+(?:media|cuarto)|menos\s+(?:cuarto|cinco|diez|veinte|veinticinco|\d{1,2})))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(horas?|hs))?\b"""),
         Regex("""(?i)\b([01]?\d|2[0-4]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b"""),
         Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+)?mediod[ií]a\b"""),
@@ -1295,12 +1295,21 @@ object NaturalTaskParser {
                     // fracción O meridiem según el patrón: se disambigua por contenido.
                     val raw3 = match.groupValues.getOrNull(3)?.lowercase().orEmpty()
                     val raw4 = match.groupValues.getOrNull(4)?.lowercase().orEmpty()
-                    val fraction = if (raw3 == "media" || raw3 == "cuarto") raw3 else ""
-                    // "y media" = +30 min, "y cuarto" = +15 min sobre la hora en punto
-                    // (sin minutos explícitos). "a las 9 y media" → 09:30, no 09:00.
-                    val minute = explicitMinute ?: when (fraction) {
-                        "media" -> 30
-                        "cuarto" -> 15
+                    // Fracción positiva "y media"/"y cuarto": +30/+15 min sobre la hora
+                    // en punto (sin minutos explícitos). "a las 9 y media" → 09:30. La
+                    // fracción negativa "menos cuarto/cinco/diez/veinte/veinticinco" se
+                    // resuelve más abajo (resta minutos con wrap de 24h); antes no se
+                    // interpretaba: caía como residuo del título y la cita quedaba en
+                    // punto (reunión/cita 15-25 min mal). El grupo 3 llega como frase
+                    // completa ("y media", "menos cuarto").
+                    val addFraction = when {
+                        raw3.endsWith("y media") || raw3.endsWith("y cuarto") -> raw3
+                        else -> ""
+                    }
+                    val subFraction = if (raw3.startsWith("menos ")) raw3 else ""
+                    val minute = explicitMinute ?: when {
+                        addFraction.endsWith("media") -> 30
+                        addFraction.endsWith("cuarto") -> 15
                         else -> 0
                     }
                     // "a las 24" / "24:00" = medianoche (00:00), forma común en horarios.
@@ -1329,7 +1338,29 @@ object NaturalTaskParser {
                         if (isAm && hour == 12) hour = 0
                         // "12 de la noche" = medianoche (00:00), no 12:00 del mediodía.
                         if (isPm && hour == 12 && mer == "delanoche") hour = 0
-                        LocalTime.of(hour, minute) to meridiem.isNotEmpty()
+                        // "menos cuarto/cinco/diez/veinte/veinticinco" resta minutos a la
+                        // hora ya resuelta (con meridiem aplicado) envolviendo 24h. Así
+                        // "a las 3 menos cuarto de la tarde" → 14:45 y "a las 12 menos
+                        // cuarto" → 11:45. Se aplica al final para que el wrap respete el
+                        // offset PM/AM (no descuadra el meridiem).
+                        if (subFraction.isNotEmpty() && explicitMinute == null) {
+                            val sub = when {
+                                subFraction.endsWith("veinticinco") -> 25
+                                subFraction.endsWith("veinte") -> 20
+                                subFraction.endsWith("cuarto") -> 15
+                                subFraction.endsWith("diez") -> 10
+                                subFraction.endsWith("cinco") -> 5
+                                else -> Regex("""\d{1,2}""").find(subFraction)?.value?.toIntOrNull() ?: 0
+                            }
+                            if (sub in 1..59) {
+                                val total = (hour * 60 + minute - sub + 1440) % 1440
+                                LocalTime.of(total / 60, total % 60) to meridiem.isNotEmpty()
+                            } else {
+                                LocalTime.of(hour, minute) to meridiem.isNotEmpty()
+                            }
+                        } else {
+                            LocalTime.of(hour, minute) to meridiem.isNotEmpty()
+                        }
                     }
                 }
             }

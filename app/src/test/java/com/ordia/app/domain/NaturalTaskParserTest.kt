@@ -1808,6 +1808,62 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(19, 30), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- "a las N menos cuarto/cinco/diez/veinte/veinticinco" (ciclo 114) ---
+    // Expresiones analógicas de reloj: "a las 3 menos cuarto" = 02:45. Antes la
+    // fracción negativa no se reconocía: la hora quedaba como 03:00 y "menos cuarto"
+    // como residuo en el título. Ahora se resta la fracción a la hora con wrap 24 h.
+    @Test fun aLas3MenosCuartoEs2_45YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las 3 menos cuarto", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(2, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas9MenosCuartoEs8_45YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Llamar a las 9 menos cuarto", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalTime.of(8, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas12MenosCuartoWrapA11_45() {
+        // 12:00 menos cuarto hace wrap a 11:45 (no 11:45 negativo).
+        val result = NaturalTaskParser.parse("Cita a las 12 menos cuarto", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(11, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas3MenosCuartoDeLaTardeAplicaPm() {
+        val result = NaturalTaskParser.parse("Cita a las 3 menos cuarto de la tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(14, 45), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aLas10Menos5DigitosEs9_55YLimpiaTitulo() {
+        // Forma numérica de la fracción negativa: "a las 10 menos 5" = 09:55.
+        val result = NaturalTaskParser.parse("Cita a las 10 menos 5", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(9, 55), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas10MenosDiezEs9_50YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las 10 menos diez", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(9, 50), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas10MenosVeinticincoEs9_35YLimpiaTitulo() {
+        // "veinticinco" contiene "cinco": el orden del when debe priorizarlo.
+        val result = NaturalTaskParser.parse("Cita a las 10 menos veinticinco", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(9, 35), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasUnaMenosCuartoDelMediodiaEs12_45YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a la una menos cuarto del mediodia", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(12, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     @Test fun yMediaConDeLaMadrugadaEsAm() {
         val result = NaturalTaskParser.parse("Cita a las 4 y media de la madrugada", now, zone)
         assertEquals("Cita", result.title)
