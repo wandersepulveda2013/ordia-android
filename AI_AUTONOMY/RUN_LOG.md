@@ -4274,7 +4274,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
   `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
   `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (pendiente de push tras `git rebase --continue`).
+- **HEAD final**: `3bc1bfa` (rebase limpio sobre `1f2014c` c.91+c.92; push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: descubrimiento continuo — más formas de recurrencia coloquiales
   ("cada rato"/"de vez en cuando"/"a diario"); "corte de mes" (sinónimo LA de cierre);
