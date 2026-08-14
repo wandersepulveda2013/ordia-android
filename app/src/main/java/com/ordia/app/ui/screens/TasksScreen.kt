@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.core.OrdiaTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -69,7 +70,7 @@ fun TasksScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item { ScreenHeader("TODO EN UN LUGAR", "Tareas", "Organiza lo necesario sin llenar la pantalla de campos.", "Nueva") { adding = true } }
-        item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Buscar tareas") }, singleLine = true) }
+        item { OrdiaTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Buscar tareas") }, singleLine = true) }
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(TaskFilter.entries) { value -> FilterChip(selected = filter == value, onClick = { filter = value }, label = { Text(value.label) }) }

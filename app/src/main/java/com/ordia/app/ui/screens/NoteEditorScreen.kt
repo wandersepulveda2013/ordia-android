@@ -16,21 +16,25 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowBack
+
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.InsertDriveFile
-import androidx.compose.material.icons.outlined.FormatListBulleted
+
+
 import androidx.compose.material.icons.outlined.FormatQuote
 import androidx.compose.material.icons.outlined.HorizontalRule
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Title
 import androidx.compose.material3.Button
+import com.ordia.app.ui.components.core.OrdiaButton
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -38,6 +42,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.core.OrdiaTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -145,7 +150,7 @@ fun NoteEditorScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { saveAndBack() }) { Icon(Icons.Outlined.ArrowBack, "Guardar y volver") }
+            IconButton(onClick = { saveAndBack() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Guardar y volver") }
             Text(if (dirty) "Cambios sin guardar" else "Guardado local", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
             IconButton(onClick = { attachFile() }) { Icon(Icons.Outlined.AttachFile, "Adjuntar archivo") }
             IconButton(onClick = {
@@ -162,7 +167,7 @@ fun NoteEditorScreen(
                 context.startActivity(Intent.createChooser(sendIntent, "Compartir nota"))
             }) { Icon(Icons.Outlined.Share, "Compartir nota") }
             TextButton(onClick = { existing?.let { vm.deleteNote(it); onBack() } }, enabled = existing != null) { Text("Archivar") }
-            Button(onClick = { saveAndBack() }) {
+            OrdiaButton(onClick = { saveAndBack() }) {
                 Icon(Icons.Outlined.Save, null)
                 Text("Guardar", Modifier.padding(start = 6.dp))
             }
@@ -173,7 +178,7 @@ fun NoteEditorScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item {
-                OutlinedTextField(
+                OrdiaTextField(
                     value = title,
                     onValueChange = { title = it; dirty = true },
                     modifier = Modifier.fillMaxWidth(),
@@ -203,7 +208,7 @@ fun NoteEditorScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Outlined.InsertDriveFile, null, modifier = Modifier.size(22.dp))
+                        Icon(Icons.AutoMirrored.Outlined.InsertDriveFile, null, modifier = Modifier.size(22.dp))
                         TextButton(
                             onClick = {
                                 val uri = android.net.Uri.parse(attachment.uri)
@@ -226,7 +231,7 @@ fun NoteEditorScreen(
             }
             item {
                 Column {
-                    Button(onClick = { addMenu = true }) {
+                    OrdiaButton(onClick = { addMenu = true }) {
                         Icon(Icons.Outlined.Add, null)
                         Text("Añadir bloque", Modifier.padding(start = 6.dp))
                     }
@@ -270,7 +275,7 @@ private fun NoteBlockEditor(
                 Text("Separador", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            OutlinedTextField(
+            OrdiaTextField(
                 value = block.text,
                 onValueChange = { onChange(block.copy(text = it)) },
                 modifier = Modifier.weight(1f),
@@ -308,6 +313,6 @@ private fun NoteBlockType.icon() = when (this) {
     NoteBlockType.HEADING -> Icons.Outlined.Title
     NoteBlockType.CHECKLIST -> Icons.Outlined.CheckBox
     NoteBlockType.QUOTE -> Icons.Outlined.FormatQuote
-    NoteBlockType.BULLET, NoteBlockType.NUMBERED -> Icons.Outlined.FormatListBulleted
+    NoteBlockType.BULLET, NoteBlockType.NUMBERED -> Icons.AutoMirrored.Outlined.FormatListBulleted
     NoteBlockType.DIVIDER -> Icons.Outlined.HorizontalRule
 }

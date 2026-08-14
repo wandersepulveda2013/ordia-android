@@ -40,16 +40,16 @@ object GuardianCoach {
             } == true
         }
 
+        val dayPlan = DayPlanner.build(tasks = roots, date = today, now = now, zone = zone)
+        val freeMinutes = dayPlan.remainingMinutes
+
         if (overdue.isNotEmpty()) {
             val next = TaskRules.nextBestTask(overdue, now)
+            val durationText = next?.durationMinutes?.let { "$it min" } ?: "tiempo flexible"
             return Insight(
                 eyebrow = "RECUPERA EL CONTROL",
                 title = next?.title ?: "Hay algo pendiente",
-                message = if (overdue.size == 1) {
-                    "Esta tarea está atrasada. Empieza con un bloque corto y vuelve a poner el día en movimiento."
-                } else {
-                    "Tienes ${overdue.size} tareas atrasadas. No intentes resolverlas todas: comienza por esta."
-                },
+                message = "Haz esto ahora porque está atrasado. Toma $durationText y tienes $freeMinutes min libres hoy.",
                 taskId = next?.id,
                 tone = Tone.GENTLE
             )
@@ -58,10 +58,11 @@ object GuardianCoach {
         val urgentToday = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
         if (urgentToday.isNotEmpty()) {
             val next = TaskRules.nextBestTask(urgentToday, now)
+            val durationText = next?.durationMinutes?.let { "$it min" } ?: "tiempo flexible"
             return Insight(
                 eyebrow = "PROTEGE TU DÍA",
                 title = next?.title ?: "Prioridad de hoy",
-                message = "Es lo más importante para hoy. Reserva tiempo antes de llenar el resto de la agenda.",
+                message = "Haz esto ahora porque es lo más urgente para hoy ($durationText). Te quedan $freeMinutes min libres.",
                 taskId = next?.id,
                 tone = Tone.FOCUSED
             )
@@ -69,11 +70,12 @@ object GuardianCoach {
 
         val next = TaskRules.nextBestTask(pending, now)
         if (next != null) {
+            val durationText = next.durationMinutes?.let { "$it min" } ?: "tiempo flexible"
+            val dueText = if (TaskRules.isDueToday(next, now, zone)) "vence hoy" else "es el siguiente paso"
             return Insight(
                 eyebrow = "SIGUIENTE PASO",
                 title = next.title,
-                message = next.details.takeIf { it.isNotBlank() }
-                    ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
+                message = "Haz esto ahora porque $dueText ($durationText). Tienes $freeMinutes min libres.",
                 taskId = next.id,
                 tone = Tone.FOCUSED
             )
@@ -87,7 +89,7 @@ object GuardianCoach {
             return Insight(
                 eyebrow = "UN PEQUEÑO RITUAL",
                 title = pendingHabit.title,
-                message = "Tu lista está despejada. Este hábito es una buena forma de cerrar el día con intención.",
+                message = "Tu lista está despejada. Haz esto ahora para mantener tu racha.",
                 tone = Tone.CALM
             )
         }

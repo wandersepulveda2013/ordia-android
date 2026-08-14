@@ -15,18 +15,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowForward
+
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Button
+import com.ordia.app.ui.components.core.OrdiaButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import com.ordia.app.ui.components.core.OrdiaCard
+
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.core.OrdiaTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -114,7 +119,7 @@ fun TodayScreen(
                         )
                     }
                     insight.taskId?.let { taskId ->
-                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.Outlined.ArrowForward, "Abrir recomendación") }
+                        IconButton(onClick = { onTask(taskId) }) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Abrir recomendación") }
                     }
                 }
             }
@@ -131,13 +136,13 @@ fun TodayScreen(
             }
         }
         item {
-            Card(
+            OrdiaCard(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
+                        OrdiaTextField(
                             quickText,
                             { quickText = it },
                             modifier = Modifier.weight(1f),
@@ -174,7 +179,7 @@ fun TodayScreen(
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(state.habits, key = { it.id }) { habit ->
                         val count = state.habitCount(habit.id)
-                        Card(onClick = { vm.toggleHabit(habit) }) {
+                        OrdiaCard(onClick = { vm.toggleHabit(habit) }) {
                             Column(Modifier.padding(16.dp).width(220.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(habit.title, style = MaterialTheme.typography.titleMedium)
                                 Text("$count de ${habit.targetPerPeriod}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -202,7 +207,7 @@ fun TodayScreen(
             }
         }
         item {
-            Button(onClick = onOpenFocus, modifier = Modifier.fillMaxWidth()) {
+            OrdiaButton(onClick = onOpenFocus, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Outlined.Timer, null)
                 Text("Iniciar una sesión de enfoque", Modifier.padding(start = 8.dp))
             }

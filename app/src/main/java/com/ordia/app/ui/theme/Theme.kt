@@ -146,3 +146,8 @@ fun OrdiaTheme(
         content = content
     )
 }
+
+val SemanticAlert = Color(0xFFC04747)
+val SemanticSuccess = Color(0xFF4A8C55)
+val SemanticFocus = Color(0xFF2E6F8E)
+val SemanticAutomation = Color(0xFF8C5599)

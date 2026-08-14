@@ -6,6 +6,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 /** Analizador pequeño y determinista para capturas rápidas en español. No usa red. */
 data class ParsedTaskInput(
@@ -17,7 +18,8 @@ data class ParsedTaskInput(
 object NaturalTaskParser {
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
     private val weekdayPattern = Regex("""(?i)\b(?:el\s+)?(?:pr[oó]ximo\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b""")
-    private val relativePattern = Regex("""(?i)\ben\s+(\d{1,3})\s*(minutos?|mins?|horas?|d[ií]as?)\b""")
+    private val relativePattern = Regex("""(?i)\b(?:en|dentro\s+de)\s+(\d{1,3})\s*(minutos?|mins?|horas?|d[ií]as?)\b""")
+    private val conceptualTimePattern = Regex("""(?i)\b(esta\s+noche|despu[eé]s\s+de\s+comer)\b""")
     private val timePatterns = listOf(
         Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
         Regex("""(?i)\b([01]?\d|2[0-3]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
@@ -47,12 +49,24 @@ object NaturalTaskParser {
             }
             now + millis
         }
+
+        val conceptualMatch = conceptualTimePattern.find(working)
+        val conceptualParsedTime = conceptualMatch?.let { match ->
+            val phrase = match.groupValues[1].lowercase()
+            when {
+                phrase.startsWith("esta noche") -> LocalTime.of(20, 0)
+                phrase.startsWith("después de comer") || phrase.startsWith("despues de comer") -> LocalTime.of(15, 0)
+                else -> null
+            }
+        }
+
         val weekdayMatch = weekdayPattern.find(working)
         val numericDateMatch = numericDatePattern.find(working)
         val date = when {
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
+            conceptualParsedTime != null -> base.toLocalDate()
             weekdayMatch != null -> nextWeekday(
                 base.toLocalDate(),
                 weekdayMatch.groupValues[1].toDayOfWeek()
@@ -79,11 +93,21 @@ object NaturalTaskParser {
             if (meridiem == "pm" && hour < 12) hour += 12
             if (meridiem == "am" && hour == 12) hour = 0
             LocalTime.of(hour, minute)
-        }
+        } ?: conceptualParsedTime
+
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
-        val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
+
+        // Ensure conceptual times in the past for 'today' are moved to tomorrow (e.g. asking for "after lunch" at 4pm)
+        val adjustedEffectiveDate = if (effectiveDate == base.toLocalDate() && parsedTime != null && parsedTime.isBefore(base.toLocalTime()) && relativeDueAt == null) {
+            effectiveDate.plusDays(1)
+        } else {
+            effectiveDate
+        }
+
+        val dueAt = relativeDueAt ?: adjustedEffectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
 
         relativeMatch?.value?.let { working = working.replace(it, " ") }
+        conceptualMatch?.value?.let { working = working.replace(it, " ") }
         weekdayMatch?.value?.let { working = working.replace(it, " ") }
         timeMatch?.value?.let { working = working.replace(it, " ") }
         working = working
