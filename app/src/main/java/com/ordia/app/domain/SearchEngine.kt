@@ -53,6 +53,19 @@ object SearchEngine {
         val wantsCommitments = "compromiso" in normalized
         val wantsAutomations = "automatiz" in normalized || "regla" in normalized
         val typed = wantsTasks || wantsNotes || wantsMessages || wantsCommitments || wantsAutomations
+        // "alta prioridad"/"prioridad alta" → exactamente HIGH; "baja
+        // prioridad"/"prioridad baja" → exactamente LOW. Simétrico a
+        // "importante" (HIGH+URGENT) y "urgente" (URGENT): permite recuperar por
+        // nivel de prioridad sin recorrer la lista. Se exige la palabra
+        // "prioridad" como desambiguador: así "alta" sola no dispara (alta
+        // médica, alta en el sistema) ni "baja" sola (baja del auto). La
+        // detección es por PALABRA (no subcadena) para evitar falsos positivos
+        // como "saltar prioridad" o "exaltar prioridad" (la subcadena "alta"
+        // vive dentro de "saltar"/"exaltar"). Es una heurística local honesta,
+        // no un botón ni una pantalla nueva.
+        val hasPriorityWord = "prioridad" in words || "prioridades" in words
+        val hasHighPriorityIntent = hasPriorityWord && ("alta" in words || "altas" in words)
+        val hasLowPriorityIntent = hasPriorityWord && ("baja" in words || "bajas" in words)
         val dateScope = detectDateScope(words)
         // Cuando la búsqueda expresa un rango de fecha ("hoy", "mañana", ...),
         // las palabras de fecha no se exigen en el contenido: se filtra por fecha.
@@ -76,6 +89,14 @@ object SearchEngine {
             val haystack = values.joinToString(" ").foldForSearch()
             return haystack.contains(normalized) || words.isNotEmpty() && words.all(haystack::contains)
         }
+        // Palabras que describen la intención de prioridad ("prioridad",
+        // "alta"/"baja") no deben exigirse en el contenido de la tarea: son
+        // filtros léxicos, igual que "urgente"/"importante". Se descartan solo
+        // cuando hay intención de prioridad para no romper búsquedas de
+        // contenido como "baja del auto" (sin "prioridad").
+        val priorityTerms = if (hasHighPriorityIntent || hasLowPriorityIntent) {
+            setOf("prioridad", "alta", "baja")
+        } else emptySet()
         fun semanticMatches(ignored: Set<String>, vararg values: String): Boolean {
             val source = if (dateScope != null) textWords else words
             val meaningful = source.filterNot { word -> ignored.any(word::startsWith) }
@@ -90,9 +111,11 @@ object SearchEngine {
                     (!normalized.contains("vencid") || TaskRules.isOverdue(task, now)) &&
                     (!normalized.contains("importante") || task.priority in setOf(TaskPriority.HIGH, TaskPriority.URGENT)) &&
                     (!normalized.contains("urgente") || task.priority == TaskPriority.URGENT) &&
+                    (!hasHighPriorityIntent || task.priority == TaskPriority.HIGH) &&
+                    (!hasLowPriorityIntent || task.priority == TaskPriority.LOW) &&
                     (!normalized.contains("pendiente") || !task.completed) &&
                     (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone)) &&
-                    (matches(task.title, task.details) || semanticMatches(TASK_TERMS, task.title, task.details))
+                    (matches(task.title, task.details) || semanticMatches(TASK_TERMS + priorityTerms, task.title, task.details))
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE))
             }

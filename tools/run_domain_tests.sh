@@ -9,7 +9,20 @@ OUT="${TMPDIR:-/tmp}/ordia-domain-tests"
 rm -rf "$OUT"
 mkdir -p "$OUT"
 
-KOTLINC="$(command -v kotlinc || echo /tmp/kotlinc-home/kotlinc/bin/kotlinc)"
+# Resuelve el compilador: prefiere $KOTLINC, luego la instalación 2.1.20 de
+# /tmp/kotlinc-home (permanente entre runs del supervisor) y solo al final
+# `kotlinc` del PATH. Es vital porque algunas imágenes traen un kotlinc 1.3
+# vía apt que no compila la stdlib 2.1.20: si `command -v` lo encontraba
+# primero, el fallback nunca se activaba y la compilación fallaba. La
+# instalación 2.1.20 es la versión reproducible que exige este script.
+KOTLINC="${KOTLINC:-}"
+if [ -z "$KOTLINC" ]; then
+  if [ -x /tmp/kotlinc-home/kotlinc/bin/kotlinc ]; then
+    KOTLINC=/tmp/kotlinc-home/kotlinc/bin/kotlinc
+  else
+    KOTLINC="$(command -v kotlinc)" || KOTLINC=/tmp/kotlinc-home/kotlinc/bin/kotlinc
+  fi
+fi
 LIBS="${DOMAIN_TEST_LIBS:-/tmp/libs}"
 CP="$LIBS/json-20231013.jar:$LIBS/junit-4.13.2.jar:$LIBS/hamcrest-core-1.3.jar:$LIBS/kotlin-stdlib-2.1.20.jar:$LIBS/kotlinx-coroutines-core-1.10.2.jar:$LIBS/kotlinx-coroutines-core-jvm-1.10.2.jar:$LIBS/kotlinx-coroutines-test-1.10.2.jar:$LIBS/kotlinx-coroutines-test-jvm-1.10.2.jar"
 

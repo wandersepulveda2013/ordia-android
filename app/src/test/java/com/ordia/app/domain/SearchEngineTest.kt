@@ -117,4 +117,72 @@ class SearchEngineTest {
             .map { it.id }.toSet()
         assertEquals(setOf(1L), ids)
     }
+
+    @Test fun altaPrioridad_surfacesOnlyHighPriorityRegardlessOfTitle() {
+        // "alta prioridad" mapea a HIGH exacto: ni URGENT ni NORMAL se incluyen.
+        val now = System.currentTimeMillis()
+        val high = TaskEntity(id = 1, title = "Revisar contrato", priority = TaskPriority.HIGH)
+        val urgent = TaskEntity(id = 2, title = "Vencimiento impuestos", priority = TaskPriority.URGENT)
+        val normal = TaskEntity(id = 3, title = "Comprar pan", priority = TaskPriority.NORMAL)
+        val ids = SearchEngine.search("alta prioridad", listOf(high, urgent, normal), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun prioridadAla_isEquivalentToAltaPrioridad() {
+        // El orden de las palabras no debe importar: "prioridad alta" == "alta prioridad".
+        val now = System.currentTimeMillis()
+        val high = TaskEntity(id = 1, title = "Llamar al banco", priority = TaskPriority.HIGH)
+        val normal = TaskEntity(id = 2, title = "Regar plantas", priority = TaskPriority.NORMAL)
+        val ids = SearchEngine.search("prioridad alta", listOf(high, normal), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun bajaPrioridad_surfacesOnlyLowPriority() {
+        val now = System.currentTimeMillis()
+        val low = TaskEntity(id = 1, title = "Archivar correos", priority = TaskPriority.LOW)
+        val normal = TaskEntity(id = 2, title = "Hacer la compra", priority = TaskPriority.NORMAL)
+        val ids = SearchEngine.search("baja prioridad", listOf(low, normal), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun altaSola_noPriorityFilter_keepsContentSearch() {
+        // "alta" sin "prioridad" NO es filtro de prioridad: debe buscar por
+        // contenido (alta médica, alta en el sistema). Aquí una tarea que
+        // contiene "alta" se recupera por contenido aunque sea NORMAL.
+        val now = System.currentTimeMillis()
+        val altaMedica = TaskEntity(id = 1, title = "Trámite de alta médica", priority = TaskPriority.NORMAL)
+        val highSinAlta = TaskEntity(id = 2, title = "Revisar contrato", priority = TaskPriority.HIGH)
+        val ids = SearchEngine.search("alta", listOf(altaMedica, highSinAlta), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun altaPrioridadWithContent_combinesPriorityAndText() {
+        // "alta prioridad reunion": HIGH que trate de "reunión". La palabra
+        // "reunión" se exige en el contenido; "alta"/"prioridad" no.
+        val now = System.currentTimeMillis()
+        val highReunion = TaskEntity(id = 1, title = "Reunión de equipo", priority = TaskPriority.HIGH)
+        val highOtra = TaskEntity(id = 2, title = "Revisar contrato", priority = TaskPriority.HIGH)
+        val urgentReunion = TaskEntity(id = 3, title = "Reunión de crisis", priority = TaskPriority.URGENT)
+        val ids = SearchEngine.search("alta prioridad reunion", listOf(highReunion, highOtra, urgentReunion), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun substringAltaInsideAnotherWord_isNotPriorityFilter() {
+        // "exaltar" contiene la subcadena "alta", pero NO es intención de
+        // prioridad: la detección es por PALABRA, no por subcadena. Una query
+        // como "exaltar prioridad" (título de una nota/poema) no debe filtrar
+        // tareas HIGH; cae a búsqueda por contenido. Aquí no hay tarea con
+        // "exaltar" ni "prioridad" en el título → vacío (no se inventa filtro).
+        val now = System.currentTimeMillis()
+        val high = TaskEntity(id = 1, title = "Revisar contrato", priority = TaskPriority.HIGH)
+        val normal = TaskEntity(id = 2, title = "Comprar pan", priority = TaskPriority.NORMAL)
+        val ids = SearchEngine.search("exaltar prioridad", listOf(high, normal), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }.toSet()
+        assertEquals(emptySet<Long>(), ids)
+    }
 }
