@@ -127,6 +127,16 @@ object TaskRules {
     }
 
     /**
+     * Tareas raíz completadas que siguen visibles (no archivadas ni descartadas).
+     * Fuente única de verdad para el guardián (XP por tareas completadas) y para
+     * la tarjeta "Completadas" de la pantalla Tareas: antes la tarjeta contaba
+     * también las archivadas y se desincronizaba del filtro "Completadas" (que sí
+     * las excluye). Compartir el predicado evita que vuelvan a divergir.
+     */
+    fun completedRootCount(tasks: List<TaskEntity>): Int =
+        tasks.count { it.parentTaskId == null && it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
+
+    /**
      * Puntaje de prioridad compartido por todas las superficies de decisión
      * (What Now, widget/asistente, planificador). Fuente única de verdad para
      * que el desempate por prioridad sea idéntico en todos lados.

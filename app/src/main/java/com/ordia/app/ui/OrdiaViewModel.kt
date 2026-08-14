@@ -166,7 +166,7 @@ data class OrdiaUiState(
     val inboxTasks: List<TaskEntity> get() = pendingTasks.filter { it.status == TaskStatus.INBOX }
     val overdueTasks: List<TaskEntity> get() = pendingTasks.filter { TaskRules.isOverdue(it) }
     val todayTasks: List<TaskEntity> get() = pendingTasks.filter { TaskRules.isDueToday(it) && !TaskRules.isOverdue(it) }
-    val completedCount: Int get() = rootTasks.count { it.completed }
+    val completedCount: Int get() = TaskRules.completedRootCount(tasks)
     val pendingCount: Int get() = pendingTasks.size
     val completionRate: Int get() = TaskRules.completionRate(rootTasks)
     val archivedCount: Int get() = archivedTasks.size + archivedProjects.size + archivedNotes.size + archivedHabits.size + archivedRoutines.size

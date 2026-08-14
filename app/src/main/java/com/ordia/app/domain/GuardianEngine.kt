@@ -108,7 +108,7 @@ object GuardianEngine {
             HabitRules.countFor(habitLogs, habit.id, today) >= habit.targetPerPeriod.coerceAtLeast(1)
         }
         val activeNotes = notes.count { !it.archived }
-        val completedAll = tasks.count { it.parentTaskId == null && it.completed && !it.archived }
+        val completedAll = TaskRules.completedRootCount(tasks)
         val streakPower = habits.sumOf { HabitRules.currentStreak(it, habitLogs).coerceIn(0, MAX_STREAK_DAYS_PER_HABIT) }
         val completedFocusMinutes = completedSessions.sumOf {
             it.actualMinutes.coerceIn(0, MAX_FOCUS_MINUTES_PER_SESSION)
@@ -242,7 +242,7 @@ object GuardianEngine {
         focusSessions: List<FocusSessionEntity>,
         notes: List<NoteEntity>
     ): Int {
-        val completedTasks = tasks.count { it.parentTaskId == null && it.completed && !it.archived }
+        val completedTasks = TaskRules.completedRootCount(tasks)
         val completedFocusMinutes = focusSessions
             .asSequence()
             .filter { it.completed }

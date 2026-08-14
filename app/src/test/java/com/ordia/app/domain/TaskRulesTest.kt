@@ -2,6 +2,7 @@ package com.ordia.app.domain
 
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
+import com.ordia.app.data.local.TaskStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -169,5 +170,34 @@ class TaskRulesTest {
 
         assertNull(deferred.startAt)
         assertNull(deferred.reminderAt)
+    }
+
+    @Test
+    fun completedRootCount_countsCompletedRootsAndExcludesSubtasks() {
+        val root = TaskEntity(id = 1, title = "Raíz", completed = true)
+        val subtask = TaskEntity(id = 2, title = "Sub", completed = true, parentTaskId = 1)
+        val pending = TaskEntity(id = 3, title = "Pendiente")
+
+        assertEquals(1, TaskRules.completedRootCount(listOf(root, subtask, pending)))
+    }
+
+    @Test
+    fun completedRootCount_excludesArchivedCompleted() {
+        val visible = TaskEntity(id = 1, title = "Visible", completed = true)
+        val archived = TaskEntity(id = 2, title = "Archivada", completed = true, archived = true)
+
+        assertEquals(1, TaskRules.completedRootCount(listOf(visible, archived)))
+    }
+
+    @Test
+    fun completedRootCount_excludesCancelledCompleted() {
+        // Defensa en profundidad: aunque hoy nada produce CANCELLED+completed, una
+        // tarea descartada nunca debe contar como logro completado visible.
+        val done = TaskEntity(id = 1, title = "Hecha", completed = true)
+        val cancelled = TaskEntity(
+            id = 2, title = "Descartada", completed = true, status = TaskStatus.CANCELLED
+        )
+
+        assertEquals(1, TaskRules.completedRootCount(listOf(done, cancelled)))
     }
 }
