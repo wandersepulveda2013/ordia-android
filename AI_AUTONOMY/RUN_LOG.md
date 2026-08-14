@@ -4944,7 +4944,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: `bash tools/run_domain_tests.sh` → **733 PASS** (727 c.107 + 6 nuevos: `masTardeVenceMasTardeYLimpiaTitulo`, `masRatoVenceMasTardeYLimpiaTitulo`, `despuesSueltoVenceMasTardeYLimpiaTitulo`, `despuesSinTildeVenceMasTardeYLimpiaTitulo`, `masTardeSinTildeVenceMasTardeYLimpiaTitulo`, `despuesDelAlmuerzoNoEsAdverbioSuelto`). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Probe amplio (9 casos) verde: "más tarde"/"más rato"/"después"/"despues"/"mas tarde" → +3h (15:00) título limpio; "después del almuerzo" → null título intacto. Sin regresión: "ahora"=now, "enseguida"=+1h, "en media hora"=+30min, "mañana a las 9" intactos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **Commits**: (pendiente de registrar el hash tras commit + push de esta run).
-- **HEAD final**: (pendiente).
+- **Commits**: `4ffe760` (feat(parser): "más tarde"/"más rato"/"después" ahora +3h (P1)). Push OK `bad2dda..4ffe760`.
+- **HEAD final**: `4ffe760`.
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: descubrimiento continuo — "en cualquier momento"/"cuando puedas"/"sin prisa" (vago sin hora, ¿hoy?¿sin vencimiento explícito con flag?), "tan pronto como sea posible"; otras áreas: recuperación de tareas olvidadas (What Now/Guardián), inbox inteligente, contexto, onboarding.
