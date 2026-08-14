@@ -3946,4 +3946,54 @@ class NaturalTaskParserTest {
         assertEquals("Reunión", result.title)
         assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
     }
+
+    // --- "Ahora" inmediato ("ahora mismo"/"ahorita"/"ahora"/"lo antes posible") ---
+    // Antes estas frases cotidianas no casaban ningún patrón → dueAt=null → tarea SIN
+    // vencimiento, invisible en "What Now"/planificador, sin recordatorio → olvidada
+    // (P1). Ahora se resuelven a `now` y consumen la frase para dejar el título limpio.
+    // NOTA: "enseguida"/"en seguida" quedan cubiertas a +1h por [vagueRelativePattern]
+    // (ciclo 106, commit 30b62d5 de otra ejecución); aquí NO se duplican para no
+    // sobrescribir trabajo válido ni diverger en semántica.
+    @Test fun ahoraMismoVenceAhoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Llamar a Ana ahora mismo", now, zone)
+        assertEquals("Llamar a Ana", result.title)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun ahoritaVenceAhoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Avisar ahorita", now, zone)
+        assertEquals("Avisar", result.title)
+        assertEquals(now, result.dueAt)
+    }
+
+    @Test fun ahoraSoloVenceAhoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión ahora", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(now, result.dueAt)
+    }
+
+    @Test fun loAntesPosibleVenceAhoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Revisar bug lo antes posible", now, zone)
+        assertEquals("Revisar bug", result.title)
+        assertEquals(now, result.dueAt)
+    }
+
+    @Test fun cuantoAntesVenceAhoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Responder cuanto antes", now, zone)
+        assertEquals("Responder", result.title)
+        assertEquals(now, result.dueAt)
+    }
+
+    @Test fun aLaBrevedadVenceAhoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Confirmar a la brevedad", now, zone)
+        assertEquals("Confirmar", result.title)
+        assertEquals(now, result.dueAt)
+    }
+
+    @Test fun loMasProntoPosibleVenceAhoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Empezar lo más pronto posible", now, zone)
+        assertEquals("Empezar", result.title)
+        assertEquals(now, result.dueAt)
+    }
 }
