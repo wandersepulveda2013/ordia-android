@@ -1,11 +1,11 @@
 # Ordía Mega Evolution - Backlog
 
 ## WAVE 1: Foundation + Design System
-- [ ] Audit current typography, colors, and shapes.
-- [ ] Define and implement the core `OrdiaDesignSystem.kt` and update `Theme.kt`, `Type.kt`.
-- [ ] Create base custom components (`OrdiaButton`, `OrdiaCard`, `OrdiaInput`, etc.) in `AppComponents.kt`.
-- [ ] Ensure dark/light modes and accessibility contrast requirements are met.
-- [ ] Add base animations/transitions language.
+- [x] Audit current typography, colors, and shapes.
+- [x] Define and implement the core `OrdiaDesignSystem.kt` and update `Theme.kt`, `Type.kt`.
+- [x] Create base custom components (`OrdiaButton`, `OrdiaCard`, `OrdiaInput`, etc.) in `AppComponents.kt`.
+- [x] Ensure dark/light modes and accessibility contrast requirements are met.
+- [x] Add base animations/transitions language.
 
 ## WAVE 2: Home + Navigation + Onboarding
 - [ ] Redesign Home Screen (focus on NOW, LATER, TODAY).
