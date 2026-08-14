@@ -49,17 +49,41 @@ object WhatNowEngine {
         zone: ZoneId = ZoneId.systemDefault()
     ): WhatNowSuggestion? {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-        val candidates = tasks.filter { isCandidate(it) }
-        if (candidates.isEmpty()) return null
-        val chosen = candidates.sortedWith(
+        val chosen = ordered(tasks, now, zone).firstOrNull() ?: return null
+        return WhatNowSuggestion(chosen, reason(chosen, now, today, zone))
+    }
+
+    /**
+     * Ranking determinista y local de todas las tareas candidatas (la misma
+     * ordenación que usa [suggest], sin elegir una sola). Punto único para que
+     * el asistente, el plan mínimo y el widget muestren el mismo orden.
+     */
+    fun ordered(
+        tasks: List<TaskEntity>,
+        now: Long = System.currentTimeMillis(),
+        zone: ZoneId = ZoneId.systemDefault()
+    ): List<TaskEntity> {
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        return tasks.filter { isCandidate(it) }.sortedWith(
             compareByDescending<TaskEntity> { rank(it, now, today, zone) }
                 .thenByDescending { TaskRules.priorityScore(it.priority) }
                 .thenBy { it.dueAt ?: Long.MAX_VALUE }
                 .thenBy { it.startAt ?: Long.MAX_VALUE }
                 .thenBy { it.sortOrder }
                 .thenBy { it.createdAt }
-        ).first()
-        return WhatNowSuggestion(chosen, reason(chosen, now, today, zone))
+        )
+    }
+
+    /** Frase corta y honesta que explica por qué esta tarea va primero. */
+    fun reasonLabel(r: WhatNowReason): String = when (r) {
+        WhatNowReason.IN_PROGRESS_NOW -> "ya está en curso"
+        WhatNowReason.OVERDUE -> "está vencida"
+        WhatNowReason.IMMINENT_START -> "empieza enseguida"
+        WhatNowReason.DUE_TODAY -> "vence hoy"
+        WhatNowReason.URGENT -> "es urgente"
+        WhatNowReason.HIGH_PRIORITY -> "es prioritaria"
+        WhatNowReason.SCHEDULED_LATER -> "está programada para más tarde"
+        WhatNowReason.NEXT_INBOX -> "es lo siguiente de la bandeja"
     }
 
     private fun isCandidate(task: TaskEntity): Boolean =

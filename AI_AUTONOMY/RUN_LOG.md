@@ -3791,3 +3791,29 @@ a un permiso persistente frágil y silencioso ante fallos.
 ### Siguiente
 - `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
 - Descubrimiento continuo: búsqueda universal; rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; onboarding; múltiples marcadores temporales en una frase.
+
+## Ciclo 83 — Inteligencia — asistente "¿Qué hago ahora?" explica la razón + plan mínimo con ranking único de What Now
+
+- **Fecha (UTC)**: 2026-08-13.
+- **Run/ciclo**: 83 (rama `openhands/autonomous-ordia`). Mejora de inteligencia/coherencia, no de parser. Base inicial `106022e` (c.82, ya en remoto). `git fetch` confirmó local==remoto (`106022e`), sin divergencia.
+- **HEAD inicial**: `106022e` (c.82).
+- **Problema seleccionado**: el asistente respondía "¿Qué hago ahora?" / "siguiente acción" con `TaskRules.nextBestTask` (time-aware desde c.45) pero **(1) no explicaba por qué** esa tarea y no otra (respuesta plana "Empieza por «…». Estimo N minutos."), **(2) no mencionaba cuántas vencidas** había (el usuario debe ir a mirar la lista), y **(3) el "plan mínimo" usaba un comparador propio** (`priority` desc → `dueAt` asc) que **divergía** del ranking de `WhatNowEngine` (rango temporal → prioridad → dueAt). Inconsistencia real entre las tres superficies que deberían dar la misma respuesta: What Now (TodayScreen) vs asistente vs widget. Con una vencida-normal y una urgente-no-vencida: What Now = vencida (por rango), plan mínimo viejo = urgente (por prioridad). El asistente menos útil que la tarjeta principal de What Now.
+- **Prioridad**: P1 (inteligencia/What Now — el asistente es una superficie de decisión clave; dar la razón + contar vencidas ayuda a decidir y a no olvidar).
+- **Causa raíz**: ausencia de un punto único de ranking reutilizable. `WhatNowEngine.suggest` tenía el comparador inline; el asistente reimplementaba otro orden para el plan mínimo en vez de delegar.
+- **Solución (mínima, sin nueva pantalla/botón — "menos interfaz, más potencia")**:
+  - `WhatNowEngine.ordered(tasks, now, zone)`: ranking determinista y **público** de todas las candidatas (mismo comparador que tenía `suggest` inline). `suggest` ahora delega en `ordered(...).firstOrNull()` — fuente única de verdad, DRY (se elimina la duplicación del comparador).
+  - `WhatNowEngine.reasonLabel(WhatNowReason)`: etiqueta humana y honesta de por qué esa tarea va primero ("ya está en curso"/"está vencida"/"empieza enseguida"/"vence hoy"/"es urgente"/"es prioritaria"/"está programada para más tarde"/"es lo siguiente de la bandeja"). No es IA ni random: es la razón real del ranking local.
+  - `AssistantEngine` "¿qué hago ahora?"/"siguiente acción" → delega en `WhatNowEngine.suggest` y responde "Empieza por «…»: <razón>. Estimo N minutos." +, si hay vencidas, "Además, tienes N vencid(a/as)." (concuerda número).
+  - `AssistantEngine` "plan mínimo" → `WhatNowEngine.ordered(...).take(3)` (mismo orden que What Now/widget). Reemplaza el comparador divergente `priority`→`dueAt`.
+  - Retrocompatible (sin cambios de firma pública; `suggest` sigue devolviendo `WhatNowSuggestion?`).
+- **Tests**: +2 en `AssistantEngineTest.kt` (`whatNow_explainsWhyAndMentionsOverdue`: vencida dueAt=1 → relatedTaskIds=[1], respuesta contiene "vencida" y "1 vencida"; `planMinimo_ranksOverdueFirst`: vencida + normal-alta → orden [2,1]). La existente `whatNow_usesRealPriority` sigue verde. **602 domain tests PASS** (`bash tools/run_domain_tests.sh`, 27 clases); **5 AssistantEngineTest PASS** (compiladas/ejecutadas con `kotlinc` aparte — el script de dominio no incluye `assistant/` —, classpath con las jars de `/tmp/libs`); **smoke 25 OK** (`bash tools/run_domain_checks.sh`). Sin regresión: el refactor de `suggest` (delegar en `ordered`) preserva el orden exacto (mismo comparador).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); render real del asistente en la app no probado en dispositivo.
+- **Hallazgos adicionales (descubrimiento continuo)**: `WhatNowEngine.reasonLabel` queda disponible para reusar desde la UI de What Now (`TodayScreen`) si se quiere mostrar la razón junto a la tarjeta (futuro: evaluar antes de añadir superficie — anti-feature-bloat). El asistente aún no tiene un path para "tareas rápidas" ranking-coherente (`quick` usa `durationMinutes <= 15` sin ranking) — candidata a próxima unidad.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/WhatNowEngine.kt`, `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt`, `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras push a `origin/openhands/autonomous-ordia`; base `106022e` c.82).
+- **Estado**: FIXED → VERIFIED (dominio JVM + assistant JVM).
+
+### Siguiente
+- Asistente "tareas rápidas" alineado al ranking de What Now (`WhatNowEngine.ordered` filtrando `durationMinutes <= 15`) en vez de orden de lista.
+- `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
+- Descubrimiento continuo: rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; onboarding.

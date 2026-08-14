@@ -5,6 +5,7 @@ import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.domain.TaskRules
+import com.ordia.app.domain.WhatNowEngine
 import com.ordia.app.domain.foldForSearch
 
 enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, OPEN_SEARCH }
@@ -38,9 +39,19 @@ object AssistantEngine {
                     AssistantAction.OPEN_PLANNER
                 )
             "que hago ahora" in query || "siguiente accion" in query -> {
-                val next = TaskRules.nextBestTask(active)
-                if (next == null) AssistantAnswer("No encuentro tareas pendientes. Puedes capturar algo nuevo o descansar.")
-                else AssistantAnswer("Empieza por “${next.title}”. Estimo ${next.durationMinutes} minutos.", relatedTaskIds = listOf(next.id))
+                val suggestion = WhatNowEngine.suggest(active, now)
+                if (suggestion == null) {
+                    AssistantAnswer("No encuentro tareas pendientes. Puedes capturar algo nuevo o descansar.")
+                } else {
+                    val why = WhatNowEngine.reasonLabel(suggestion.reason)
+                    val tail = if (overdue.isNotEmpty()) {
+                        " Además, tienes ${overdue.size} vencid${if (overdue.size == 1) "a" else "as"}."
+                    } else ""
+                    AssistantAnswer(
+                        "Empieza por “${suggestion.task.title}”: $why. Estimo ${suggestion.task.durationMinutes} minutos.$tail",
+                        relatedTaskIds = listOf(suggestion.task.id)
+                    )
+                }
             }
             "que olvide" in query || "olvidado" in query || "vencid" in query ->
                 if (overdue.isEmpty()) AssistantAnswer("No tienes tareas vencidas.")
@@ -62,7 +73,7 @@ object AssistantEngine {
                 )
             }
             "plan minimo" in query || "minimo para hoy" in query -> {
-                val minimal = active.sortedWith(compareByDescending<TaskEntity> { it.priority }.thenBy { it.dueAt ?: Long.MAX_VALUE }).take(3)
+                val minimal = WhatNowEngine.ordered(active, now).take(3)
                 AssistantAnswer(
                     if (minimal.isEmpty()) "Tu plan mínimo está vacío." else "Plan mínimo: " + minimal.joinToString(" · ") { it.title },
                     relatedTaskIds = minimal.map { it.id }
