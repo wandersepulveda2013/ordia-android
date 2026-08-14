@@ -4896,3 +4896,22 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: descubrimiento continuo de frases cotidianas del parser
   ("enseguida"/"ahora mismo" semántica "ahora"; "más rato"/"más tarde" vagos) y otras áreas
   (recuperación de tareas olvidadas, What Now, contexto).
+
+
+---
+
+## Ciclo 106 — 2026-08-14 — Parser: "enseguida"/"en seguida" (adverbio de inmediatez) + resolución de colisión con ejecución paralela
+
+- **HEAD inicial**: `f55c056` (obsoleto; remoto ya avanzó a `b5e195a` = ciclo 105 "un momento"/"al rato"/"pasado un rato" de otra ejecución).
+- **STALE_RUN / colisión**: mi trabajo local inicial (patrón separado `imminentColloquialPattern` para "enseguida"/"al rato"/"en seguida") se solapaba con el remoto b5e195a, que resolvió el mismo problema de "al rato" expandiendo el `vagueRelativePattern` existente. Mi implementación duplicaba "al rato" en un patrón aparte (redundante, más código). Resolución segura: descarte del trabajo local obsoleto (`git reset HEAD` + `git checkout --` sin `reset --hard`) + fast-forward a `b5e195a` + re-implementación de SOLO "enseguida"/"en seguida" (el valor único no cubierto por el remoto), añadiéndolo al MISMO `vagueRelativePattern` para evitar duplicación.
+- **Problema (P1)**: los adverbios cotidianos de inmediatez **"enseguida"** (una palabra) y **"en seguida"** (dos palabras) NO casaban ningún patrón → `dueAt=null` + residuo en el título → tarea olvidada (sin recordatorio, invisible en What Now/planificador). Asimetría: "al rato"/"un momento"/"pasado un rato" SÍ eran +1h desde c.105, pero "enseguida"/"en seguida" son adverbios puros sin sustantivo de cantidad → la rama del patrón no los cubría. El propio RUN_LOG del c.105 los listaba como próxima prioridad de descubrimiento.
+- **Causa raíz**: `vagueRelativePattern` (c.104/105) agrupaba (a) prefijo `en|dentro de|de aquí a|de acá a` + `un rato|un momento` y (b) `al rato|pasado un rato`. "enseguida"/"en seguida" no encajan en ninguna rama (no llevan "un rato"/"un momento" ni son "al rato"/"pasado un rato").
+- **Solución (mínima)**: extender el `vagueRelativePattern` existente con la alternancia `|en\s*seguida|enseguida`, reutilizando TODO el flujo de c.104/105 (match → `vagueRelativeDueAt = now + 1h`, frase consumida → título limpio). `en\s*seguida` cubre "en seguida" (con espacio); `enseguida` la forma compacta; el `\b` final ya existente asegura el límite. Sin nueva pantalla/botón, sin patrón separado (evita duplicación con el remoto).
+- **Tests**: `bash tools/run_domain_tests.sh` → **720 PASS** (718 b5e195a + 2 nuevos: `enseguidaEsFechaRelativaDe1Hora`, `enSeguidaSeparadoEsFechaRelativaDe1Hora`). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Sin regresión: "al rato"/"un momento"/"pasado un rato" (c.105) intactos, "en media hora"=+30, "en una hora"=+60 intactos.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: (ver hash tras push).
+- **HEAD final**: (tras push).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: descubrimiento continuo de frases cotidianas del parser ("ahora mismo"/"en cualquier momento" semántica "ahora"; "más rato"/"más tarde" vagos) y otras áreas (recuperación de tareas olvidadas, What Now, contexto, inbox inteligente).
+

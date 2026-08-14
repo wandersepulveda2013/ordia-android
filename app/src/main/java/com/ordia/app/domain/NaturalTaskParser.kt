@@ -88,7 +88,7 @@ object NaturalTaskParser {
 
     /**
      * Fecha relativa VAGA de futuro cotidiano: "en/dentro de/de aquí a/de acá a un rato",
-     * "en/dentro de un momento", "al rato", "pasado un rato". Forma coloquial frecuente que
+     * "en/dentro de un momento", "al rato", "pasado un rato", "enseguida"/"en seguida" (adverbio de inmediatez, sin "un rato"). Forma coloquial frecuente que
      * antes no casaba ningún patrón → dueAt=null y la tarea quedaba sin recordatorio (olvidada,
      * P1). Simétrica futura de "hace un rato" (pasado, −3 h). "un rato"/"un momento" son
      * intencionalmente imprecisos; se resuelve a +1 h (heurística honesta, no IA): agenda el
@@ -96,7 +96,7 @@ object NaturalTaskParser {
      * para robar la frase completa y dejar el título limpio.
      */
     private val vagueRelativePattern = Regex(
-        """(?i)\b(?:(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(?:un\s+rato|un\s+momento)|al\s+rato|pasado\s+un\s+rato)\b"""
+        """(?i)\b(?:(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(?:un\s+rato|un\s+momento)|al\s+rato|pasado\s+un\s+rato|en\s*seguida|enseguida)\b"""
     )
     /**
      * Fecha relativa: "en N minutos/horas/días/semanas/meses/años" o "dentro de N ...".

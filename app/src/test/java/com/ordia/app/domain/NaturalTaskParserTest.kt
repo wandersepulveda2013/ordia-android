@@ -1283,6 +1283,23 @@ class NaturalTaskParserTest {
         assertEquals(now + 60 * 60_000L, result.dueAt)
     }
 
+    // --- "enseguida"/"en seguida" (adverbio puro de inmediatez, sin "un rato") (ciclo 106) ---
+    // No casa ningún otro patrón (vagueRelative exige "un rato"/"un momento"; relative exige
+    // unidad) → antes dueAt=null + residuo en el título. +1 h (misma heurística honesta).
+    @Test fun enseguidaEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Avisar enseguida", now, zone)
+        assertEquals("Avisar", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun enSeguidaSeparadoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Llamar en seguida", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
     // --- Fecha relativa fraccionaria + cuarto (ciclo 101) ---
     // "en media hora y cuarto" = 30 + 15 = 45 min. Antes [fractionalRelativePattern]
     // robaba solo "en media hora" (+30) y dejaba "y cuarto" como residuo en el título
