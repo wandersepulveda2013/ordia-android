@@ -3992,8 +3992,8 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt`,
   `app/src/test/java/com/ordia/app/domain/SearchEngineDateScopeTest.kt`,
   `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **Commits**: ver abajo.
-- **HEAD final**: (tras push a `origin/openhands/autonomous-ordia`).
+- **Commits**: `a98b9be` (feat(search): 'semana que viene'/'próxima semana' NEXT_WEEK).
+- **HEAD final**: `a98b9be` (tras push a `origin/openhands/autonomous-ordia`; base `7a3f636` c.86).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 
 ### Siguiente
