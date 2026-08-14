@@ -4637,8 +4637,60 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
   `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
   `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit/push, ver commit).
+- **HEAD final**: `571d64f` (rebase sobre `c359003` del run paralelo c.99a "números
+  escritos >30" — el push inicial sobre `b20a9e6` fue rechazado por divergencia; resolví con
+  `git rebase origin/openhands/autonomous-ordia` (NO destructivo), conflicto solo en
+  `CURRENT_STATE.md` resuelto combinando c.100 + c.99b (este finde, mío) + c.99a (números
+  escritos, run paralelo); código `NaturalTaskParser.kt`/test auto-mergió limpio porque tocan
+  patrones distintos. Re-probado: **693 tests PASS** (688 del remoto + mi 1 + ajuste), smoke 25
+  OK. Push FF `c359003..571d64f`).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: BACKLOG-16 "cita en media hora y cuarto" (nota de precisión, baja prio);
   continuar descubrimiento de frases cotidianas del parser y auditoría de producto
   (captura/What Now/recuperación de tareas vencidas).
+
+---
+
+## Ciclo 101 — 2026-08-14
+
+- **Run/ciclo**: 101 (continuación autónoma, rama `openhands/autonomous-ordia`).
+- **HEAD inicial**: `571d64f` (push c.100; local == origin, sin divergencia).
+- **Problema seleccionado**: BACKLOG-16 (P2 parser) — `"cita en media hora y cuarto"` dejaba
+  "y cuarto" como residuo en el título y agendaba 30 min (debería 45 min). Bug confirmado por
+  probe del c.100.
+- **Prioridad**: P2 (precisión de captura + integridad de título). No había P0/P1 conocido.
+- **Causa raíz**: `fractionalRelativePattern` (c.94) casa solo "en media hora" (+30) y no
+  contempla el sufijo "+ cuarto" sobre una fracción sin número entero. El
+  `compoundFractionalRelativePattern` (c.94b) exige número+"horas" antes del "y", así no casa
+  con "media hora y cuarto". Resultado: frase rota, residuo "y cuarto" en el título,
+  vencimiento 15 min antes de lo pedido.
+- **Solución** (`NaturalTaskParser.kt`, cambio mínimo, reutiliza el flujo existente): nuevo
+  `fractionalAndQuarterRelativePattern = (en|dentro de|de aquí a|de acá a) +
+  (media hora|(un )?cuarto (de )?hora) + "y cuarto"` → `now + base + 15` min (base=30 si
+  "media", 15 si "cuarto"). Se procesa ANTES que `fractionalRelativePattern` (roba la frase
+  completa, sin residuo) y antes de la duración. Incluido en `effectiveRelativeDueAt`
+  (prioridad sobre `fractionalRelativeDueAt`) y en la condición de exclusión de
+  `relativeIsDays` (sub-hora). Prefijo obligatorio: "reunión media hora" (duración real)
+  sigue siendo `durationMinutes=30` (no-regresión c.94); "media hora antes" (recordatorio)
+  lo captura `reminderPatterns` (no choca).
+- **Tests**: +4 tests en `NaturalTaskParserTest.kt`
+  (`enMediaHoraYCuartoEsFechaRelativaDe45Min`, `enUnCuartoDeHoraYCuartoEsFechaRelativaDe30Min`,
+  `dentroDeMediaHoraYCuartoEsFechaRelativaDe45Min`, `deAquiAMediaHoraYCuartoEsFechaRelativaDe45Min`).
+  Comando: `bash tools/run_domain_tests.sh` → **697 tests PASS** (693 + 4). Smoke
+  (`bash tools/run_domain_checks.sh` con PATH de kotlinc) → **25 OK**. Sin regresión:
+  "en media hora"=+30, "en un cuarto de hora"=+15, "en una hora y cuarto"=+75,
+  "en una hora y media"=+90, "en tres cuartos de hora"=+45 todos intactos.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **CURRENT_STATE**: reescrito (reescribir, no acumular) — se eliminaron las ~12 secciones
+  "Último trabajo" duplicadas históricas (c.99-c.91...) que violaban la guía; el historial
+  vive en RUN_LOG.md. Queda: Estado (resumen conciso c.101+c.100+c.99...) + una sección
+  "Último trabajo — Ciclo 101".
+- **BACKLOG**: BACKLOG-16 marcado FIXED → VERIFIED (ciclo 101).
+- **Commits**: (pendiente de push).
+- **HEAD final**: (tras push).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: continuar descubrimiento de frases cotidianas del parser y auditar
+  producto (captura ultrarrápida, What Now, recuperación de vencidas, inbox inteligente).

@@ -117,6 +117,18 @@ object NaturalTaskParser {
         """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\b"""
     )
     /**
+     * Fecha relativa fraccionaria + cuarto: "en media hora y cuarto" (45 min),
+     * "dentro de un cuarto de hora y cuarto" (30). Antes [fractionalRelativePattern]
+     * robaba solo "en media hora" (+30) y dejaba "y cuarto" como residuo en el título
+     * ("cita en media hora y cuarto" → título "cita y cuarto", vencimiento 30 min en
+     * vez de 45). Se procesa ANTES que [fractionalRelativePattern] para robar la frase
+     * completa: base (30 si "media" | 15 si "cuarto") + 15. Simétrica del compuesto
+     * [compoundFractionalRelativePattern] para fracciones sin número.
+     */
+    private val fractionalAndQuarterRelativePattern = Regex(
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\s+y\s+cuarto\b"""
+    )
+    /**
      * Fecha relativa fraccionaria COMPUESTA: "en una hora y media" (90 min),
      * "en dos horas y media" (150), "en una hora y cuarto" (75), "en 3 horas y cuarto".
      * Antes [relativePattern] robaba solo "en una hora" (60 min) y dejaba "y media"
@@ -669,6 +681,16 @@ object NaturalTaskParser {
             now + millis
         }
         relativeMatch?.let { working = working.replace(it.value, " ") }
+        // Fecha relativa fraccionaria + cuarto ("en media hora y cuarto" → 45 min,
+        // "en un cuarto de hora y cuarto" → 30): se procesa ANTES que
+        // [fractionalRelativePattern] para que este no robe solo "en media hora" (+30)
+        // y deje "y cuarto" como residuo en el título. base + 15 min.
+        val fractionalAndQuarterRelativeMatch = fractionalAndQuarterRelativePattern.find(working)
+        val fractionalAndQuarterRelativeDueAt = fractionalAndQuarterRelativeMatch?.let { match ->
+            val base = if (match.groupValues[1].lowercase().contains("media")) 30L else 15L
+            now + (base + 15L) * 60_000L
+        }
+        fractionalAndQuarterRelativeMatch?.let { working = working.replace(it.value, " ") }
         // Fecha relativa fraccionaria ("en media hora"/"dentro de un cuarto de hora"):
         // se procesa ANTES que la duración para que [fractionalDurationPattern] no robe
         // "media hora" como duración y deje el prefijo "en" como residuo en el título.
@@ -937,19 +959,22 @@ object NaturalTaskParser {
         // deben sobrescribirse por una fecha futura ambigua. La hora explícita se
         // aplica sobre la fecha pasada (tarea vencida con hora).
         val effectiveRelativeDueAt =
-            agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: fractionalRelativeDueAt ?:
+            agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: fractionalAndQuarterRelativeDueAt ?:
+            fractionalRelativeDueAt ?:
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?:
             nextWeekWeekdayReverseDueAt ?: nextWeekWeekdayForwardDueAt ?: nextPeriodDueAt
         val relativeIsDays = (agoMatch != null || lastPeriodMatch != null ||
             relativeMatch != null || fractionalRelativeMatch != null ||
+            fractionalAndQuarterRelativeMatch != null ||
             compoundFractionalRelativeMatch != null || multiQuarterRelativeMatch != null ||
             monthBoundaryDueAt != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
             quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null ||
             nextWeekWeekdayReverseMatch != null || nextWeekWeekdayForwardMatch != null || nextPeriodMatch != null) &&
             (fractionalRelativeMatch == null) &&
+            (fractionalAndQuarterRelativeMatch == null) &&
             (compoundFractionalRelativeMatch == null) &&
             (multiQuarterRelativeMatch == null) &&
             (relativeMatch?.let { m ->

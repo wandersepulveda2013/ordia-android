@@ -1194,6 +1194,39 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // --- Fecha relativa fraccionaria + cuarto (ciclo 101) ---
+    // "en media hora y cuarto" = 30 + 15 = 45 min. Antes [fractionalRelativePattern]
+    // robaba solo "en media hora" (+30) y dejaba "y cuarto" como residuo en el título
+    // ("cita en media hora y cuarto" → título "cita y cuarto", vencimiento 12:30 en vez
+    // de 12:45), agendando 15 min antes de lo pedido y ensuciando el título.
+    @Test fun enMediaHoraYCuartoEsFechaRelativaDe45Min() {
+        val result = NaturalTaskParser.parse("Cita en media hora y cuarto", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(now + 45 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun enUnCuartoDeHoraYCuartoEsFechaRelativaDe30Min() {
+        val result = NaturalTaskParser.parse("Cita en un cuarto de hora y cuarto", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(now + 30 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun dentroDeMediaHoraYCuartoEsFechaRelativaDe45Min() {
+        val result = NaturalTaskParser.parse("Llamar dentro de media hora y cuarto", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 45 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun deAquiAMediaHoraYCuartoEsFechaRelativaDe45Min() {
+        val result = NaturalTaskParser.parse("Nos vemos de aquí a media hora y cuarto", now, zone)
+        assertEquals("Nos vemos", result.title)
+        assertEquals(now + 45 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
     @Test fun writtenNumberUpToTwelveParsesDueAt() {
         val result = NaturalTaskParser.parse("Entregar en doce horas", now, zone)
         assertEquals("Entregar", result.title)
