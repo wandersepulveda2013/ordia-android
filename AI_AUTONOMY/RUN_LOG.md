@@ -19,6 +19,15 @@
 - **Estado**: FIXED → VERIFIED (dominio JVM: 1181 tests en base fusionada con c.172 paralelo, 0 failures; smoke 25 OK). Las 2 investigaciones: CERRADAS como NO-BUG (honestas).
 - **Próxima prioridad**: descubrimiento continuo — áreas no-CANCELLED (contexto, onboarding, navegación, accesibilidad, rendimiento); auditores de datos con DAOs reales quedan NO VERIFICADOS (sin Android SDK). Re-fetch antes de implementar para evitar colisión con runs paralelos.
 
+### Actualización (post-fusión del c.173-codec paralelo — segunda rebase no destructiva)
+
+- Al finalizar el primer rebase (sobre `40c5103`/c.172), `git fetch` reveló que **un segundo run paralelo c.173** (codec, commit `3f3a2b8`, "`TaskSnapshotCodec.decodeMap`: la clave del snapshot es el id autoritativo en la ruta de deshacer") había pusheado sobre la rama. Se integró vía **segunda rebase no destructiva** de mi commit (`896d7ed`→rehecho `5acefe4`) sobre `3f3a2b8` — sin force push, sin reset destructivo, sin reescribir historial compartido.
+- **Código ortogonal**: el codec (rutas de serialización/`undo`) y `isActive` (predicado de superficies activas) no se solapan; todos los `.kt` se fusionaron limpios (auto-merge). Conflictos SÓLO en docs (`AI_AUTONOMY/BACKLOG.md`, `AI_AUTONOMY/CURRENT_STATE.md`), resueltos preservando AMBAS entradas c.173 complementarias.
+- **Cuenta final corregida**: `bash tools/run_domain_tests.sh` → **1183 PASS** (1170 base c.171 + 3 c.172 `completedRootCount` + 2 c.173-codec + 8 c.173-isActive), 0 failures; smoke 25 OK. (La cifra "1181" citada arriba en este mismo bloque reflejaba el estado ANTES de integrar el codec paralelo; queda superseda por esta.)
+- **Corrección honesta de la investigación (b)**: aquí arriba se cerró `TaskSnapshotCodec.decodeTask` como "NO-BUG-vivo; hardening P3 opcional NO implementado". Ese hardening **fue implementado por el run c.173-codec paralelo** (`3f3a2b8`: `decodeMap` impone la clave como id autoritativo, +2 tests TDD). Mi investigación (b) acertó en el diagnóstico (gap latente de defensa en profundidad, no bug de happy-path) pero la parte "NO implementado" quedó **superseda**: el ítem ahora está FIXED→VERIFIED por el run paralelo, no pendiente. Consignado para no dejar una afirmación falsa en el registro.
+- **HEAD inicial**: `4f89435`. **HEAD final**: `5acefe4` (sobre `3f3a2b8`).
+- **Estado final**: FIXED → VERIFIED (1183 tests, 0 failures; smoke 25 OK) tras fusión de ambos c.173 paralelos.
+
 ## Ciclo 171 — 2026-08-14 (UTC) — fix(what-now): la etiqueta "¿qué hago ahora?" ya prioriza "vence hoy/urgente" sobre "programada para más tarde" (P1 inteligencia honesta / consistencia entre superficies)
 
 - **Run/ciclo**: 171 (rama `openhands/autonomous-ordia`). Base sincronizada sin divergencia: `git fetch origin openhands/autonomous-ordia` → `2911df5` (c.170, excluye CANCELLED de la búsqueda universal). Sin colisión; sin STALE_RUN. HEAD inicial == HEAD remoto.
