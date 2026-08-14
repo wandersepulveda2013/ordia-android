@@ -4331,3 +4331,72 @@ a un permiso persistente frágil y silencioso ante fallos.
   "a la una" (hora 1 escrita, standalone) no resuelve (BUG C pendiente);
   `RecurrenceEngine` edge cases; detección de compromisos en notas; `PlanEngine`/
   replanización si OVERLOADED recurrente. (fix(parser): "en media hora"/"en un cuarto de hora" ya son fecha relativa (P1))
+
+---
+
+## Ciclo 94b — 2026-08-14 — Parser: fracciones relativas COMPUESTAS ("en una hora y media"=90, "en tres cuartos de hora"=45)
+
+- **HEAD inicial**: 18795ccd3ff85f3cc76ecb3e7e6725dfe92368c2 (c.94 "en media hora" fecha relativa)
+- **Ciclo**: 94b (continuación directa del c.94 — la "próxima prioridad" del c.94 nombraba
+  exactamente estas formas).
+- **Problema seleccionado**: P1 captura/recuperación — fracciones relativas COMPUESTAS no se
+  parseaban. Tres sub-bugs:
+  1. `"en una hora y media"` (90 min): `relativePattern` robaba solo "en una hora" (+60) y
+     dejaba "y media" como residuo en el título → la cita se agendaba **30 min antes** de lo
+     pedido (recordatorio disparaba temprano). El usuario decía "llámame en una hora y
+     media" y recibía el aviso a los 60 min.
+  2. `"en tres cuartos de hora"` (45 min): ningún patrón casaba → `dueAt=null`, tarea **sin
+     vencimiento** (recordatorio imposible de programar, invisible en What Now/planificador).
+  3. `"en una hora y cuarto"` (75 min) idem a (1): robaba "en una hora" (+60), "y cuarto"
+     huérfano en el título, agendado 15 min antes.
+  Asimetría con "en una hora" (+60, entero escrito) que sí funcionaba (c.57/c.94).
+- **Prioridad**: P1 (integridad de datos del parser: vencimiento perdido o desplazado en
+  captura rápida cotidiana).
+- **Causa raíz**: `relativePattern` (y `fractionalRelativePattern` del c.94) solo cubren
+  formas SIMPLES (entero + unidad, o fracción sola). Las compuestas "N horas y (media|
+  cuarto)" y "N cuartos" no tienen rama propia → `relativePattern` gana parcial y deja
+  residuo, o nada casa.
+- **Solución mínima**: dos nuevos patrones procesados ANTES que `relativePattern`:
+  - `compoundFractionalRelativePattern` = prefijo (`en|dentro de|de aquí a|de acá a`) +
+    (número escrito un…doce | dígitos) + "horas" + "y" + (media | un cuarto | cuarto) →
+    `now + amount×60 + (30|15) min`. Cubre "en una hora y media"(90), "en dos horas y
+    cuarto"(135), "en 3 horas y media"(210).
+  - `multiQuarterRelativePattern` = prefijo + (número escrito | dígitos) + "cuartos"
+    + ("de hora")? → `now + amount×15 min`. Cubre "en tres cuartos de hora"(45),
+    "en dos cuartos"(30), "en 2 cuartos de hora"(30).
+  Ambos consumen la frase completa → título limpio. Incluidos en `effectiveRelativeDueAt`
+  (misma prioridad, sub-hora → `relativeIsDays=false` para que la hora explícita no la
+  sobreescriba). `parseWrittenNumber` reutilizado para el coeficiente (simetría con c.57).
+  El prefijo es obligatorio → "reunión una hora y media" (sin prefijo) sigue siendo
+  `dueAt=null` (igual que "reunión una hora" sin prefijo); no choca con recordatorios
+  ("media hora antes" lo captura `reminderPatterns` antes).
+- **Bugs**: P1 captura perdida/desplazada (3 formas compuestas/multi-cuarto).
+- **Features**: ninguna (fix de integridad de datos).
+- **Tests (TDD)**: +7 tests en `NaturalTaskParserTest.kt` para las formas compuestas
+  (`enUnaHoraYMediaEsFechaRelativa90`, `enUnaHoraYCuartoEsFechaRelativa75`,
+  `enDosHorasYMediaEsFechaRelativa150`, `enTresCuartosDeHoraEsFechaRelativa45`,
+  `enTresCuartosSinDeHoraEsFechaRelativa45`, `dentroDeUnaHoraYMediaEsFechaRelativa90`,
+  no-regresión `enUnaHoraSigueSiendoFechaRelativa60`). Probe JVM confirmó RED antes del fix
+  (`due=+60 title='llamar y media'` / `due=null`) y GREEN tras (`due=+90` / `due=+45`,
+  títulos limpios). Comando: `bash tools/run_domain_tests.sh` → **662 tests PASS**
+  (28 clases — 655 base c.94 + 7 nuevos). Smoke: `bash tools/run_domain_checks.sh` → **25
+  assertions OK**. Sin regresión (`en una hora` +60, `en media hora` +30, `media hora`
+  duración 30, `media hora antes` recordatorio, `en treinta minutos` +30 siguen OK).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Hallazgos adicionales**: probe descubrió `"cita en media hora y cuarto"` (45 min, dos
+  fracciones sumadas sin entero) → `due=+30 title='cita y cuarto'` (BUG residual, P2
+  baja — forma poco común; "tres cuartos de hora" ya cubierto por `multiQuarterRelative-
+  Pattern`). Registrado en BACKLOG como PENDIENTE. `"en hora y media"` (sin "una") →
+  `due=null` (raro, aceptable — la gente dice "una hora y media"). `"en cuarenta y cinco
+  minutos"` → `due=null dur=5` (BUG preexistente del parser de duración escrita, no
+  abordado — `parseWrittenNumber` no maneja números compuestos >30; registro para futuro).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: (ver `git log` tras push).
+- **HEAD final**: (tras push).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: "a la una" (hora 1 escrita standalone, BUG C pendiente del c.69);
+  `"en cuarenta y cinco minutos"` (número escrito compuesto >30 en duración); fuera del
+  parser — detección de compromisos en notas; `PlanEngine`/replanización si OVERLOADED
+  recurrente; rutinas adaptables. (fix(parser): "en una hora y media"/"en tres cuartos de hora" ya son fecha relativa compuesta (P1))

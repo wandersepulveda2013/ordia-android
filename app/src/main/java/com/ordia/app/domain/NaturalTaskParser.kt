@@ -86,6 +86,27 @@ object NaturalTaskParser {
         """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\b"""
     )
     /**
+     * Fecha relativa fraccionaria COMPUESTA: "en una hora y media" (90 min),
+     * "en dos horas y media" (150), "en una hora y cuarto" (75), "en 3 horas y cuarto".
+     * Antes [relativePattern] robaba solo "en una hora" (60 min) y dejaba "y media"
+     * como residuo en el título ("llamar en una hora y media" → "llamar y media"),
+     * agendando 30 min antes de lo pedido (el recordatorio disparaba temprano). Se
+     * procesa ANTES que [relativePattern] para robar la frase completa: amount×60
+     * + (30 si "media" | 15 si "cuarto"). Simétrica de [fractionalRelativePattern].
+     */
+    private val compoundFractionalRelativePattern = Regex(
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta|\d{1,3})\s*horas?\s+y\s+(media|un\s+cuarto|cuarto)\b"""
+    )
+    /**
+     * Fecha relativa multi-cuarto: "en tres cuartos de hora" (45 min), "en dos cuartos"
+     * (30). Cada "cuarto" = 15 min. Antes no casaba ningún patrón → dueAt=null, tarea
+     * sin vencimiento. Se procesa ANTES que [fractionalDurationPattern] para robar la
+     * frase completa (prefijo incluido) y dejar título limpio.
+     */
+    private val multiQuarterRelativePattern = Regex(
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|\d{1,3})\s+cuartos(?:\s+de\s+hora)?\b"""
+    )
+    /**
      * Fecha relativa PASADA: "hace N días/semanas/meses/años" o "hace una semana".
      * Simétrico de "en/dentro de N": el usuario reconoce que la tarea quedó vencida
      * ("pagué la factura hace 2 días", "envié el correo hace una semana"). Antes no se
@@ -566,6 +587,27 @@ object NaturalTaskParser {
         // así "recuérdame 2 horas antes" (offset explícito) NO cae aquí.
         val hasBareReminderVerb = bareReminderVerbPattern.containsMatchIn(working)
 
+        // Fecha relativa COMPUESTA fraccionaria ("en una hora y media"/"en 2 horas y
+        // cuarto"): se procesa ANTES que [relativePattern] para que este no robe solo
+        // "en una hora" (+60) y deje "y media" como residuo en el título. Resuelve
+        // now + amount×60 + (30 | 15) min y consume la frase completa.
+        val compoundFractionalRelativeMatch = compoundFractionalRelativePattern.find(working)
+        val compoundFractionalRelativeDueAt = compoundFractionalRelativeMatch?.let { match ->
+            val amount = parseWrittenNumber(match.groupValues[1]) ?: 0L
+            val frac = match.groupValues[2].lowercase()
+            val extra = if (frac.startsWith("media")) 30L else 15L
+            now + (amount * 60 + extra) * 60_000L
+        }
+        compoundFractionalRelativeMatch?.let { working = working.replace(it.value, " ") }
+        // Fecha relativa multi-cuarto ("en tres cuartos de hora" → 45 min): procesada
+        // antes que la duración para que no quede sin vencimiento ni residuo en el título.
+        val multiQuarterRelativeMatch = multiQuarterRelativePattern.find(working)
+        val multiQuarterRelativeDueAt = multiQuarterRelativeMatch?.let { match ->
+            val amount = parseWrittenNumber(match.groupValues[1]) ?: 0L
+            now + amount * 15 * 60_000L
+        }
+        multiQuarterRelativeMatch?.let { working = working.replace(it.value, " ") }
+
         // Fecha relativa "en/dentro de N minutos/horas/días" (N = dígitos o palabra).
         val relativeMatch = relativePattern.find(working)
         val relativeDueAt = relativeMatch?.let { match ->
@@ -855,16 +897,21 @@ object NaturalTaskParser {
         // deben sobrescribirse por una fecha futura ambigua. La hora explícita se
         // aplica sobre la fecha pasada (tarea vencida con hora).
         val effectiveRelativeDueAt =
-            agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: fractionalRelativeDueAt ?: monthBoundaryDueAt ?:
+            agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: fractionalRelativeDueAt ?:
+            compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?:
             nextWeekWeekdayReverseDueAt ?: nextWeekWeekdayForwardDueAt ?: nextPeriodDueAt
         val relativeIsDays = (agoMatch != null || lastPeriodMatch != null ||
-            relativeMatch != null || fractionalRelativeMatch != null || monthBoundaryDueAt != null ||
+            relativeMatch != null || fractionalRelativeMatch != null ||
+            compoundFractionalRelativeMatch != null || multiQuarterRelativeMatch != null ||
+            monthBoundaryDueAt != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
             quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null ||
             nextWeekWeekdayReverseMatch != null || nextWeekWeekdayForwardMatch != null || nextPeriodMatch != null) &&
             (fractionalRelativeMatch == null) &&
+            (compoundFractionalRelativeMatch == null) &&
+            (multiQuarterRelativeMatch == null) &&
             (relativeMatch?.let { m ->
                 val unit = m.groupValues[2].lowercase()
                 !unit.startsWith("min") && !unit.startsWith("hora")
