@@ -19,6 +19,9 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
+import com.ordia.app.ui.components.OrdiaButtonVariant
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -91,8 +94,8 @@ fun TaskEditorDialog(
                 Modifier.fillMaxWidth().heightIn(max = 620.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Título") }, singleLine = true)
-                OutlinedTextField(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Detalles") }, minLines = 2, maxLines = 4)
+                OrdiaInput(value = title, onValueChange = { title = it }, modifier = Modifier.fillMaxWidth(), label = "Título", singleLine = true)
+                OrdiaInput(value = details, onValueChange = { details = it }, modifier = Modifier.fillMaxWidth(), label = "Detalles", minLines = 2, maxLines = 4)
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
@@ -121,7 +124,7 @@ fun TaskEditorDialog(
                         modifier = Modifier.weight(1f)
                     ) { Text(dueAt?.let { DateRules.formatTime(it) } ?: "Hora") }
                 }
-                if (dueAt != null) TextButton(onClick = { dueAt = null; reminderEnabled = false }) { Text("Quitar fecha") }
+                if (dueAt != null) OrdiaButton(text = "Quitar fecha", onClick = { dueAt = null; reminderEnabled = false }, variant = OrdiaButtonVariant.TEXT)
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(Modifier.weight(1f)) {
@@ -192,10 +195,7 @@ fun TaskEditorDialog(
                         label = { Text("Nueva etiqueta") },
                         singleLine = true
                     )
-                    TextButton(
-                        onClick = { onAddTag(newTag); newTag = "" },
-                        enabled = newTag.isNotBlank() && tags.none { it.name.equals(newTag.trim(), true) }
-                    ) { Text("Añadir") }
+                    OrdiaButton(text = "Añadir", onClick = { onAddTag(newTag); newTag = "" }, enabled = newTag.isNotBlank() && tags.none { it.name.equals(newTag.trim(), true) })
                 }
             }
         },
@@ -225,7 +225,7 @@ fun TaskEditorDialog(
                 enabled = title.isNotBlank()
             ) { Text("Guardar") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        dismissButton = { OrdiaButton(text = "Cancelar", onClick = onDismiss, variant = OrdiaButtonVariant.TEXT) }
     )
 }
 
@@ -246,8 +246,8 @@ fun ProjectEditorDialog(existing: ProjectEntity? = null, onDismiss: () -> Unit, 
                 }
             }
         },
-        confirmButton = { Button(onClick = { onSave((existing ?: ProjectEntity(name = name)).copy(name = name, description = description, status = status)) }, enabled = name.isNotBlank()) { Text("Guardar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        confirmButton = { OrdiaButton(text = "Guardar", onClick = { onSave((existing ?: ProjectEntity(name = name)).copy(name = name, description = description, status = status)) }, enabled = name.isNotBlank()) },
+        dismissButton = { OrdiaButton(text = "Cancelar", onClick = onDismiss, variant = OrdiaButtonVariant.TEXT) }
     )
 }
 
@@ -270,7 +270,7 @@ fun HabitEditorDialog(existing: HabitEntity? = null, onDismiss: () -> Unit, onSa
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     HabitFrequency.entries.forEach { value -> FilterChip(selected = frequency == value, onClick = { frequency = value }, label = { Text(value.label()) }) }
                 }
-                OutlinedTextField(target, { target = it.filter(Char::isDigit).take(2) }, modifier = Modifier.fillMaxWidth(), label = { Text("Meta por período") }, singleLine = true)
+                OrdiaInput(value = target, onValueChange = { target = it.filter(Char::isDigit).take(2) }, modifier = Modifier.fillMaxWidth(), label = "Meta por período", singleLine = true)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("Recordatorio diario", Modifier.weight(1f))
                     Switch(reminderEnabled, { reminderEnabled = it })
@@ -292,8 +292,8 @@ fun HabitEditorDialog(existing: HabitEntity? = null, onDismiss: () -> Unit, onSa
                 }
             }
         },
-        confirmButton = { Button(onClick = { onSave((existing ?: HabitEntity(title = title)).copy(title = title, details = details, frequency = frequency, targetPerPeriod = target.toIntOrNull()?.coerceIn(1, 20) ?: 1, reminderMinutes = if (reminderEnabled) reminderMinutes else null)) }, enabled = title.isNotBlank()) { Text("Guardar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        confirmButton = { OrdiaButton(text = "Guardar", onClick = { onSave((existing ?: HabitEntity(title = title)).copy(title = title, details = details, frequency = frequency, targetPerPeriod = target.toIntOrNull()?.coerceIn(1, 20) ?: 1, reminderMinutes = if (reminderEnabled) reminderMinutes else null)) }, enabled = title.isNotBlank()) },
+        dismissButton = { OrdiaButton(text = "Cancelar", onClick = onDismiss, variant = OrdiaButtonVariant.TEXT) }
     )
 }
 
@@ -312,8 +312,8 @@ fun RoutineEditorDialog(existing: RoutineEntity? = null, existingSteps: List<Str
                 OutlinedTextField(steps, { steps = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Pasos, uno por línea") }, minLines = 5)
             }
         },
-        confirmButton = { Button(onClick = { onSave((existing ?: RoutineEntity(name = name)).copy(name = name, description = description), steps.lines()) }, enabled = name.isNotBlank()) { Text("Guardar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        confirmButton = { OrdiaButton(text = "Guardar", onClick = { onSave((existing ?: RoutineEntity(name = name)).copy(name = name, description = description), steps.lines()) }, enabled = name.isNotBlank()) },
+        dismissButton = { OrdiaButton(text = "Cancelar", onClick = onDismiss, variant = OrdiaButtonVariant.TEXT) }
     )
 }
 
