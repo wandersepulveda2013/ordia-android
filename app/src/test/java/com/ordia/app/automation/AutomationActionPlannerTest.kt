@@ -94,8 +94,11 @@ class AutomationActionPlannerTest {
     }
 
     @Test
-    fun `reschedule_overdue reprograma vencidas a partir de manana`() {
-        val overdue = task(1, dueAt = now - 86_400_000L, status = TaskStatus.PLANNED, reminderAt = now - 1000L)
+    fun `reschedule_overdue conserva el offset de reminder del usuario`() {
+        // Vencida con reminder 2 h antes del dueAt original: el offset debe conservarse
+        // (no forzar a 1 h), o se corrompería la cadencia de ocurrencias recurrentes.
+        val oldDue = now - 86_400_000L
+        val overdue = task(1, dueAt = oldDue, status = TaskStatus.PLANNED, reminderAt = oldDue - 2 * 3_600_000L)
         val plan = AutomationActionPlanner.build(
             rule(AutomationAction.RESCHEDULE_OVERDUE, AutomationCondition.HAS_OVERDUE_TASKS),
             listOf(overdue), 0, now, zone
@@ -103,10 +106,27 @@ class AutomationActionPlannerTest {
         assertTrue(plan.matched)
         val u = plan.updates.first()
         assertNull(u.startAt)
-        assertTrue("La nueva fecha debe ser futura", u.dueAt!! > now)
+        val newDue = u.dueAt!!
+        assertTrue("La nueva fecha debe ser futura", newDue > now)
         assertEquals(TaskStatus.PLANNED, u.status)
-        // El reminder se reubica a 1h antes del nuevo dueAt.
-        assertEquals(u.dueAt - 3_600_000L, u.reminderAt)
+        // Offset 2 h conservado (no 1 h): reminder = nuevoDue - 2 h.
+        assertEquals(newDue - 2 * 3_600_000L, u.reminderAt)
+    }
+
+    @Test
+    fun `reschedule_overdue anade reminder cuando no existia`() {
+        // Una vencida SIN reminder no debe quedar al olvido: se añade 1 h antes del
+        // nuevo vencimiento (siempre futuro). Antes el recordatorio se descartaba.
+        val overdue = task(1, dueAt = now - 86_400_000L, status = TaskStatus.PLANNED, reminderAt = null)
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.RESCHEDULE_OVERDUE, AutomationCondition.HAS_OVERDUE_TASKS),
+            listOf(overdue), 0, now, zone
+        )
+        val u = plan.updates.first()
+        assertNotNull("Una vencida reprogramada sin reminder previo obtiene uno", u.reminderAt)
+        val due = u.dueAt!!
+        assertEquals(due - 3_600_000L, u.reminderAt)
+        assertTrue("El recordatorio debe ser futuro", u.reminderAt!! > now)
     }
 
     @Test

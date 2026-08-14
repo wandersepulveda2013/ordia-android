@@ -333,7 +333,41 @@ antes del "y", así que no casaba. Resultado:
 
 ---
 
-## Ciclo 131 - 2026-08-14 (UTC) - feat(parser): ordinales de fecha "1ro/2do/3er/1º" + "día N de este mes" (P2 captura olvidada + integridad de título)
+## Ciclo 131 — 2026-08-14 (UTC) — fix(automation): `RESCHEDULE_OVERDUE` no descarta recordatorios (P1 evitar olvidos)
+
+- **Problema**: `AutomationActionPlanner.RESCHEDULE_OVERDUE` reprogramaba tareas vencidas pero
+  calculaba el recordatorio como `task.reminderAt?.let { due - 1h }`. Dos defectos:
+  (1) una vencida **sin** `reminderAt` quedaba **sin recordatorio** tras la reprogramación →
+  podía olvidarse de nuevo (contradice la misión "evitar olvidos"); (2) si tenía un offset
+  distinto (p.ej. 2 h), se sobrescribía a 1 h, **corrompiendo la cadencia de ocurrencias
+  recurrentes** que `RecurrenceEngine` reutiliza como offset para futuras ocurrencias.
+- **Prioridad**: P1 (persistencia/recordatorios/recuperación de vencidas; misión "evitar olvidos").
+- **Causa raíz**: el `?.let` descartaba el caso null (sin reminder) y siempre forzaba offset 1 h.
+- **Solución (mínima, `AutomationActionPlanner.kt`, sin nueva pantalla/botón)**:
+  - Si la tarea tenía reminder Y dueAt: **conserva el offset original del usuario**
+    (`dueAt - reminderAt`) aplicado al nuevo vencimiento — protege la cadencia recurrente.
+  - Si no tenía reminder: **añade uno 1 h antes del nuevo vencimiento** (siempre futuro),
+    coherente con `PLAN_DAY`/`BATCH_QUICK_TASKS` (que añaden recordatorio por defecto cuando
+    no existía).
+- **Tests**: +2 tests en `AutomationActionPlannerTest.kt`
+  (`reschedule_overdue conserva el offset de reminder del usuario`=offset 2 h preservado,
+  `reschedule_overdue anade reminder cuando no existia`=reminder futuro añadido). Se reemplazó
+  el test antiguo que asumía el offset forzado a 1 h.
+  `bash tools/run_domain_tests.sh` → **932 PASS** (931 base c.130 del otro run + 2 nuevos - 1 reemplazado = +1 neto). `bash tools/run_domain_checks.sh` →
+  smoke 25 OK.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK);
+  integración `AutomationEngine.runRule`/`AutomationWorker` con DAOs/WorkManager reales.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/automation/AutomationActionPlanner.kt`,
+  `app/src/test/java/com/ordia/app/automation/AutomationActionPlannerTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Estado**: FIXED → VERIFIED (dominio JVM: 932 tests, 0 failures).
+- **Próxima prioridad**: continuar auditoría de motores no-parser (SummaryEngine,
+  GuardianCoach, UniversalCaptureEngine, ReminderRules, LearningEngine, RoutineRules,
+  HabitRules) y descubrimiento continuo en producto (What Now, Guardián, contexto,
+  onboarding, navegación, accesibilidad, rendimiento).
+
+
+## Ciclo 131 (run 2) - 2026-08-14 (UTC) - feat(parser): ordinales de fecha "1ro/2do/3er/1º" + "día N de este mes" (P2 captura olvidada + integridad de título)
 
 - **Run/ciclo**: 131 (rama `openhands/autonomous-ordia`). Base sincronizada: `git fetch` + `git pull --ff-only` limpio. HEAD inicial = `26f4be6` (c.130 "hora aproximada"). Sin divergencia.
 - **Problema seleccionado (P2 → captura olvidada + integridad de título)**: dos gaps léxicos del parser confirmados ABIERTOS en BACKLOG (c.129 probe):
