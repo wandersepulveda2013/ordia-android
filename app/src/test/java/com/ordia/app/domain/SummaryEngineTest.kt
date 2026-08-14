@@ -306,6 +306,91 @@ class SummaryEngineTest {
         assertEquals(DayLoad.ON_TRACK, s.dayLoad)
     }
 
+    // ---- El veredicto del día cuenta el trabajo vencido como carga real ----
+    //
+    // El tiempo que queda de jornada es un recurso finito compartido por el
+    // trabajo de hoy Y por las tareas vencidas que aún no se han hecho. Antes,
+    // assessDayLoad solo comparaba "minutos de hoy" contra minutos libres: un día
+    // con una tarea fácil de hoy y varias vencidas decía "ON_TRACK", ocultando
+    // que el usuario está realmente saturado. El veredicto ahora es honesto.
+
+    @Test
+    fun dayLoad_countsOverdueWorkAsLoad_soOverloadedEvenWhenTodayFits() {
+        // now=12:00 → 360 min libres. Una tarea de hoy (60 min) cabría holgada
+        // (ON_TRACK), pero hay 5 tareas vencidas de 120 min (600 min): el trabajo
+        // real de hoy (hoy + vencidas) = 660 > 360 → OVERLOADED. Antes el veredicto
+        // ignoraba las vencidas y mentía "ON_TRACK".
+        val tasks = listOf(
+            task(1, dueAt = at(today, 17), durationMinutes = 60),
+            task(2, dueAt = at(today.minusDays(1), 9), durationMinutes = 120),
+            task(3, dueAt = at(today.minusDays(2), 9), durationMinutes = 120),
+            task(4, dueAt = at(today.minusDays(3), 9), durationMinutes = 120),
+            task(5, dueAt = at(today.minusDays(4), 9), durationMinutes = 120),
+            task(6, dueAt = at(today.minusDays(5), 9), durationMinutes = 120)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(5, s.overdue)
+        // La badge de minutos de hoy sigue siendo solo la de hoy (60), sin inflar.
+        assertEquals(60, s.remainingMinutesToday)
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+    }
+
+    @Test
+    fun dayLoad_overduePushesOnTrackToFullWhenTodayAloneWouldFit() {
+        // now=12:00 → 360 min libres. Hoy: 60 min (≤ mitad 180 → ON_TRACK solo).
+        // Vencidas: 240 min. Carga real = 300; 180 < 300 ≤ 360 → FULL.
+        val tasks = listOf(
+            task(1, dueAt = at(today, 17), durationMinutes = 60),
+            task(2, dueAt = at(today.minusDays(1), 9), durationMinutes = 120),
+            task(3, dueAt = at(today.minusDays(2), 9), durationMinutes = 120)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(2, s.overdue)
+        assertEquals(DayLoad.FULL, s.dayLoad)
+    }
+
+    @Test
+    fun dayLoad_overdueOnlyDayIsNotLight() {
+        // Solo hay tareas vencidas (ninguna "de hoy"): antes el veredicto era
+        // LIGHT (ignoraba las vencidas), ocultando que sí hay trabajo. Ahora
+        // 25 min de vencidas + 360 libres cabe holgado → ON_TRACK (no LIGHT).
+        val tasks = listOf(
+            task(1, dueAt = at(today.minusDays(1), 9), durationMinutes = 25)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(1, s.overdue)
+        assertEquals(0, s.remainingToday)
+        assertEquals(DayLoad.ON_TRACK, s.dayLoad)
+    }
+
+    @Test
+    fun deferralSuggestion_firesWhenOverdueFillsDayEvenIfTodayFits() {
+        // now=12:00 → 360 min libres. Hoy: 1 tarea LOW de 60 min (caber, cabe).
+        // Pero 5 vencidas de 120 min saturan el día → OVERLOADED por las vencidas,
+        // y la sugerencia nombra la tarea de hoy (no vencida) para reprogramar.
+        val tasks = listOf(
+            task(1, dueAt = at(today, 17), durationMinutes = 60, priority = TaskPriority.LOW, title = "Posponerme"),
+            task(2, dueAt = at(today.minusDays(1), 9), durationMinutes = 120),
+            task(3, dueAt = at(today.minusDays(2), 9), durationMinutes = 120),
+            task(4, dueAt = at(today.minusDays(3), 9), durationMinutes = 120),
+            task(5, dueAt = at(today.minusDays(4), 9), durationMinutes = 120),
+            task(6, dueAt = at(today.minusDays(5), 9), durationMinutes = 120)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+        val sug = s.deferralSuggestion
+        assertEquals(1L, sug?.taskId)
+        assertEquals("Posponerme", sug?.title)
+    }
+
     @Test
     fun deferralSuggestion_nullWhenNotOverloaded() {
         val tasks = listOf(

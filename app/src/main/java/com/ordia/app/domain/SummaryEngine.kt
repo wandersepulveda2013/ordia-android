@@ -127,9 +127,10 @@ object SummaryEngine {
         }
         val remainingToday = remainingTodayTasks.size
         val remainingMinutesToday = remainingTodayTasks.sumOf { TaskRules.plannedDuration(it) }
-        val overdue = tasks.count { task ->
-            task.parentTaskId == null && TaskRules.isOverdue(task, now)
+        val overdueTasks = tasks.filter { task ->
+            task.parentTaskId == null && active(task) && TaskRules.isOverdue(task, now)
         }
+        val overdue = overdueTasks.size
         val inboxPending = tasks.count { task ->
             task.parentTaskId == null && task.status == TaskStatus.INBOX && !task.archived
         }
@@ -142,7 +143,15 @@ object SummaryEngine {
         }
         val weekDailyAverage = completedThisWeek / 7f
 
-        val dayLoad = assessDayLoad(remainingToday, remainingMinutesToday, now, zone, dayStartMinute, dayEndMinute)
+        // El veredicto de carga compara el trabajo REAL que compite por el tiempo
+        // que queda de jornada: el de hoy MÁS las vencidas (una tarea vencida
+        // sigue sin hacerse y consume la misma jornada finita). Se toma la unión
+        // de hoy + vencidas (por id) para no contar dos veces una tarea que es a
+        // la vez "de hoy" (dueAt hoy pero ya pasada la hora) y "vencida".
+        val loadMinutes = (remainingTodayTasks + overdueTasks)
+            .distinctBy { it.id }
+            .sumOf { TaskRules.plannedDuration(it) }
+        val dayLoad = assessDayLoad(loadMinutes, now, zone, dayStartMinute, dayEndMinute)
         val deferralSuggestion = if (dayLoad == DayLoad.OVERLOADED) {
             mostDeferrableTask(remainingTodayTasks, now)
         } else null
@@ -168,21 +177,26 @@ object SummaryEngine {
      * idioma. Si ya pasó el fin de jornada no hay capacidad libre (0 min):
      * cualquier trabajo restante queda OVERLOADED.
      *
-     * Sin tareas restantes → LIGHT. Si no, compara los minutos planificados
-     * restantes con los minutos libres hasta el fin de jornada:
+     * Sin trabajo que cargar → LIGHT. Si no, compara los minutos planificados
+     * a cargar con los minutos libres hasta el fin de jornada:
      *   ≤ mitad de la jornada libre → ON_TRACK (margen holgado);
      *   ≤ jornada libre entera      → FULL (cabe pero justo);
      *   >  → OVERLOADED (no cabe; hay que soltar/replanear).
+     *
+     * [loadMinutes] suma el trabajo de hoy MÁS las vencidas (unión por id en
+     * [summarize]): el tiempo libre de la jornada es finito y compartido, así
+     * que el trabajo vencido sin hacer compite con el de hoy por esos minutos.
+     * Antes solo se comparaba "minutos de hoy", lo que ocultaba la saturación
+     * real cuando había vencidas pendientes.
      */
     private fun assessDayLoad(
-        remainingToday: Int,
-        remainingMinutesToday: Int,
+        loadMinutes: Int,
         now: Long,
         zone: ZoneId,
         dayStartMinute: Int,
         dayEndMinute: Int
     ): DayLoad {
-        if (remainingToday <= 0) return DayLoad.LIGHT
+        if (loadMinutes <= 0) return DayLoad.LIGHT
 
         val zonedNow = Instant.ofEpochMilli(now).atZone(zone)
         val nowMinute = zonedNow.hour * 60 + zonedNow.minute
@@ -190,8 +204,8 @@ object SummaryEngine {
         if (freeMinutes <= 0) return DayLoad.OVERLOADED
 
         return when {
-            remainingMinutesToday <= freeMinutes / 2 -> DayLoad.ON_TRACK
-            remainingMinutesToday <= freeMinutes -> DayLoad.FULL
+            loadMinutes <= freeMinutes / 2 -> DayLoad.ON_TRACK
+            loadMinutes <= freeMinutes -> DayLoad.FULL
             else -> DayLoad.OVERLOADED
         }
     }
