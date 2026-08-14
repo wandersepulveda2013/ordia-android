@@ -17,8 +17,8 @@
 - **Hallazgos adicionales (descubrimiento continuo)**: el USER_CONTEXT pedía salir del parser hacia WhatNowEngine/GuardianEngine y recuperación de tareas olvidadas. Esta mejora cae directamente en "búsqueda universal / recuperación de información" (un eje de dirección explícito). Próximo paso: auditar `WhatNowEngine.kt`/`GuardianEngine.kt` en busca de bugs reales (scoring, exclusión de tareas, contexto) y la recuperación de tareas olvidadas (detección de vencidas importantes, "What Now" más útil).
 - **AI_AUTONOMY actualizado**: `CURRENT_STATE.md` (sección "Estado" con ciclo 120 + contador 803 tests), `BACKLOG.md` (fila c.120), `RUN_LOG.md` (esta entrada).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt`, `app/src/test/java/com/ordia/app/domain/SearchEngineDateScopeTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **Commits**: (a rellenar tras push).
-- **HEAD final**: (a rellenar tras push).
+- **Commits**: `b137099` (fix(search): scope de fecha puro ("hoy"/"vencidas") ya no inunda resultados con entidades sin fecha (P1 recuperación/búsqueda universal)).
+- **HEAD final**: `b137099` (== `origin/openhands/autonomous-ordia`; push con `$github_token`).
 - **Estado**: FIXED → VERIFIED (dominio JVM). 803 domain tests PASS (800 base c.119 remoto + 3), smoke 25 OK.
 - **Próxima prioridad**: auditar `WhatNowEngine.kt`/`GuardianEngine.kt` (bugs reales de scoring/exclusión/contexto) y recuperación de tareas olvidadas (vencidas importantes, "What Now" más útil).
 
