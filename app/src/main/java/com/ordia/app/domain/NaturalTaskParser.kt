@@ -1551,23 +1551,47 @@ object NaturalTaskParser {
             return RecurrenceResult(frequency, interval, emptyList(), phrases)
         }
 
-        // "cada quincena" / "quincenalmente" / "todas las quincenas": cadencia
-        // quincenal cotidiana en español (nóminas, pagos, reportes cada 15 días).
-        // `intervalPattern` solo admite dígitos ("cada 2 semanas"), así que la forma
-        // con palabra "quincena" caía a NONE y la tarea recurrente nacía sin fecha
-        // (invisible en What Now/planificador, recordatorio jamás disparaba). Se mapea
-        // a WEEKLY interval=2 (cada 2 semanas ≈ quincena) sin añadir enum ni migración:
-        // representación honesta y reutiliza el avance semanal existente.
-        Regex("""(?i)\b(?:cada\s+quincena|quincenalmente|todas\s+las\s+quincenas)\b""").find(working)?.let { match ->
+        // "cada quincena" / "quincenalmente" / "quincenal" (adjetivo) / "todas las
+        // quincenas": cadencia quincenal cotidiana en español (nóminas, pagos,
+        // reportes cada 15 días). `intervalPattern` solo admite dígitos ("cada 2
+        // semanas"), así que la forma con palabra "quincena" caía a NONE y la tarea
+        // recurrente nacía sin fecha (invisible en What Now/planificador, recordatorio
+        // jamás disparaba). La forma ADJETIVA ("pago quincenal", "reunión
+        // quincenal") tampoco casaba: solo se reconocía el adverbio "quincenalmente".
+        // Ahora el adjetivo "quincenal" (sin "-mente") también genera la cadencia.
+        // Se mapea a WEEKLY interval=2 (cada 2 semanas ≈ quincena) sin añadir enum ni
+        // migración: representación honesta y reutiliza el avance semanal existente.
+        Regex("""(?i)\b(?:cada\s+quincena|quincenal(?:mente)?|todas\s+las\s+quincenas)\b""").find(working)?.let { match ->
             phrases += match.range
             return RecurrenceResult(RecurrenceFrequency.WEEKLY, 2, emptyList(), phrases)
         }
 
+        // Adjetivos plurimensuales cotidianos en español: "pago bimestral",
+        // "impuesto trimestral", "cierre semestral". Son hitos financieros de plazo
+        // largo tan comunes como el propio "mensual". Antes estas formas adjetivas
+        // caían a NONE (la única vía era el numeral "cada 2/3/6 meses"): la tarea
+        // recurrente nacía sin cadencia → vencimiento invisible, recordatorio jamás
+        // disparaba (P1: compromiso periódico olvidado). Se reutilizan MONTHLY +
+        // intervalo (2=bimestral, 3=trimestral, 6=semestral): RecurrenceEngine ya
+        // avanza `plusMonths(interval)`, sin añadir enum ni migración. Se procesa
+        // ANTES que fixedPatterns porque aquél solo admite interval=1.
+        val multiMonthAdjective = listOf(
+            Regex("""(?i)\bbimestral(?:mente)?\b""") to 2,
+            Regex("""(?i)\btrimestral(?:mente)?\b""") to 3,
+            Regex("""(?i)\bsemestral(?:mente)?\b""") to 6
+        )
+        multiMonthAdjective.forEach { (pattern, months) ->
+            pattern.find(working)?.let { match ->
+                phrases += match.range
+                return RecurrenceResult(RecurrenceFrequency.MONTHLY, months, emptyList(), phrases)
+            }
+        }
+
         val fixedPatterns = listOf(
             Regex("""(?i)\btodos\s+los\s+d[ií]as\b|\bcada\s+d[ií]a\b|\bdiariamente\b""") to RecurrenceFrequency.DAILY,
-            Regex("""(?i)\btodas\s+las\s+[sS]emanas\b|\bcada\s+[sS]emana\b|\bsemanalmente\b""") to RecurrenceFrequency.WEEKLY,
-            Regex("""(?i)\btodos\s+los\s+meses\b|\bcada\s+mes\b|\bmensualmente\b""") to RecurrenceFrequency.MONTHLY,
-            Regex("""(?i)\btodos\s+los\s+a[nñ]os\b|\bcada\s+a[nñ]o\b|\banualmente\b""") to RecurrenceFrequency.YEARLY
+            Regex("""(?i)\btodas\s+las\s+[sS]emanas\b|\bcada\s+[sS]emana\b|\bsemanalmente\b|\bsemanal\b""") to RecurrenceFrequency.WEEKLY,
+            Regex("""(?i)\btodos\s+los\s+meses\b|\bcada\s+mes\b|\bmensualmente\b|\bmensual\b""") to RecurrenceFrequency.MONTHLY,
+            Regex("""(?i)\btodos\s+los\s+a[nñ]os\b|\bcada\s+a[nñ]o\b|\banualmente\b|\banual\b""") to RecurrenceFrequency.YEARLY
         )
         fixedPatterns.forEach { (pattern, frequency) ->
             pattern.find(working)?.let { match ->

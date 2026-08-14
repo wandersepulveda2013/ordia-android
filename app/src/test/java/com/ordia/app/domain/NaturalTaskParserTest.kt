@@ -340,6 +340,81 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // Formas ADJETIVAS de recurrencia cotidiana en español: "pago mensual",
+    // "reunión semanal", "renta anual". Tan comunes como el adverbio "-mente"
+    // ("mensualmente"), pero antes solo se reconocía el adverbio: el adjetivo caía
+    // a NONE y la tarea recurrente nacía SIN cadencia (vencimiento olvidado, P1).
+    // Ahora el adjetivo genera la misma cadencia que el adverbio y se limpia del título.
+    @Test fun adjetivoMensualParsesMonthlyRecurrence() {
+        val result = NaturalTaskParser.parse("Pago mensual", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun adjetivoSemanalParsesWeeklyRecurrence() {
+        val result = NaturalTaskParser.parse("Reunión semanal", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun adjetivoAnualParsesYearlyRecurrence() {
+        val result = NaturalTaskParser.parse("Renta anual", now, zone)
+        assertEquals("Renta", result.title)
+        assertEquals(RecurrenceFrequency.YEARLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun adjetivoQuincenalParsesBiweeklyRecurrence() {
+        val result = NaturalTaskParser.parse("Reporte quincenal", now, zone)
+        assertEquals("Reporte", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // Adjetivos plurimensuales de plazo largo (bimestral/trimestral/semestral): hitos
+    // financieros tan comunes como "mensual". Antes solo se reconocían vía numeral
+    // ("cada 2/3/6 meses"); el adjetivo caía a NONE (compromiso periódico olvidado).
+    // Se reutilizan MONTHLY + intervalo: RecurrenceEngine avanza plusMonths(interval).
+    @Test fun adjetivoBimestralParsesMonthlyInterval2() {
+        val result = NaturalTaskParser.parse("Factura bimestral", now, zone)
+        assertEquals("Factura", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun adjetivoTrimestralParsesMonthlyInterval3() {
+        val result = NaturalTaskParser.parse("Impuesto trimestral", now, zone)
+        assertEquals("Impuesto", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun adjetivoSemestralParsesMonthlyInterval6() {
+        val result = NaturalTaskParser.parse("Cierre semestral", now, zone)
+        assertEquals("Cierre", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(6, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // El adjetivo respeta una fecha explícita (prioridad sobre el anclaje a la captura),
+    // simétrico a "cada quincena el 15/8": la cadencia se conserva y la fecha manda.
+    @Test fun adjetivoMensualRespetaFechaExplicita() {
+        val result = NaturalTaskParser.parse("Pago mensual el 10", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertEquals(LocalDate.of(2026, 8, 10), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // Recurrencias de intervalo (diaria/quincenal/anual) sin fecha explícita se anclan a
     // la fecha de captura para no ser invisibles (P1: antes dueAt=null → sin recordatorio,
     // sin aparición en What Now/planificador → tarea olvidada). Simétrico al anclaje

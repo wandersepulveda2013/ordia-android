@@ -4226,3 +4226,58 @@ a un permiso persistente frágil y silencioso ante fallos.
   compromisos en notas; `PlanEngine`/replanización si OVERLOADED recurrente; revisar si
   "corte de mes" (sinónimo latinoamericano de cierre) merece cubrirse.
 
+## Ciclo 93 — 2026-08-14
+
+- **Rama**: `openhands/autonomous-ordia`
+- **HEAD inicial**: `d3734ed` (c.90 fix "horas escritas"). **Nota de concurrencia**: el
+  remoto avanzó mientras tanto con c.91 (`3c42171` "último día del mes") y c.92
+  (`61c1daa` "cierre de mes") → `1f2014c`. Mi trabajo partió de una base obsoleta (c.90).
+- **Problema seleccionado**: **P1 (compromiso periódico olvidado / pérdida silenciosa de
+  recurrencia)** en `NaturalTaskParser.parseRecurrence`. Las formas ADJETIVAS cotidianas
+  (`mensual`, `semanal`, `anual`, `quincenal`, `bimestral`, `trimestral`, `semestral`) NO se
+  reconocían: solo el adverbio `-mente` (`mensualmente`, `semanalmente`, …) y, para quincenal,
+  las frases `cada quincena`/`quincenalmente`/`todas las quincenas`. Probe JVM confirmó RED
+  antes (`rec=NONE interval=1 due=null` para los 7 adjetivos) y GREEN tras.
+- **Causa raíz**: `fixedPatterns` (línea ~1590) solo listaba adverbios
+  `\bsemanalmente\b`/`\bmensualmente\b`/`\banualmente\b`; el bloque quincenal autónomo
+  (línea ~1564) solo casaba `quincenalmente` (no el adjetivo); `bimestral`/`trimestral`/
+  `semestral` no tenían rama (solo el numeral `cada N meses`). El adjetivo caía a
+  `base = RecurrenceResult(NONE, …)`. Sutil: la fecha explícita sí se conservaba
+  ("pago mensual el 10" → dueAt=día 10, rec=NONE) así la persona creía la recurrencia puesta.
+- **Solución mínima (sin nueva pantalla/botón, sin enum/migración)**:
+  1. Bloque quincenal: `quincenalmente` → `quincenal(?:mente)?` (captura el adjetivo) →
+     `WEEKLY interval=2`.
+  2. Nuevo bloque plurimensual (antes de `fixedPatterns`, que solo admite interval=1):
+     `bimestral(?:mente)?`→`MONTHLY+2`, `trimestral(?:mente)?`→`MONTHLY+3`,
+     `semestral(?:mente)?`→`MONTHLY+6`. Reutiliza `RecurrenceEngine.plusMonths`.
+  3. `fixedPatterns` añade `|\bsemanal\b`(WEEKLY), `|\bmensual\b`(MONTHLY), `|\banual\b`
+     (YEARLY) — adjetivos de intervalo 1. Límites `\b` evitan colisión con "mensualmente"
+     y "manual".
+- **No-regresión**: adverbios `-mente` OK; "reunión semanal los lunes" sigue cayendo en la
+  rama de lista de días (WEEKLY+días antes de `fixedPatterns`); "cada 2/3/6 meses" inalterado;
+  fecha explícita tiene prioridad ("pago mensual el 10" → MONTHLY+1 anclado al 10).
+- **Bugs**: P1 compromiso periódico olvidado (adjetivos de recurrencia → rec=NONE).
+- **Features**: ninguna (fix de integridad de datos).
+- **Tests (TDD)**: +8 (`adjetivoMensualParsesMonthlyRecurrence`,
+  `adjetivoSemanalParsesWeeklyRecurrence`, `adjetivoAnualParsesYearlyRecurrence`,
+  `adjetivoQuincenalParsesBiweeklyRecurrence`, `adjetivoBimestralParsesMonthlyInterval2`,
+  `adjetivoTrimestralParsesMonthlyInterval3`, `adjetivoSemestralParsesMonthlyInterval6`,
+  `adjetivoMensualRespetaFechaExplicita`) en `NaturalTaskParserTest.kt`. Comando:
+  `bash tools/run_domain_tests.sh` → **649 tests PASS** (27 clases — subida desde 641).
+  Smoke: `bash tools/run_domain_checks.sh` → **25 assertions OK**. Sin regresión.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Rebase/concurrencia**: commit original `1f8cce9` (basado en c.90) rebaseado sobre
+  `1f2014c` (c.91+c.92). El código (.kt) auto-mergeó limpio (áreas distintas del parser:
+  adjetivos vs límites mensuales). Solo `AI_AUTONOMY/CURRENT_STATE.md` y `RUN_LOG.md`
+  tuvieron conflictos → reconciliados manualmente preservando el trabajo de ambos runs.
+  Renumerado de "c.91" (etiqueta original colisionante) a **c.93**.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (pendiente de push tras `git rebase --continue`).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: descubrimiento continuo — más formas de recurrencia coloquiales
+  ("cada rato"/"de vez en cuando"/"a diario"); "corte de mes" (sinónimo LA de cierre);
+  `RecurrenceEngine` edge cases; detección de compromisos en notas; replanificación si
+  OVERLOADED recurrente.
+
