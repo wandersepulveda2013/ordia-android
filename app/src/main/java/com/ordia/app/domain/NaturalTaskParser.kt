@@ -68,6 +68,24 @@ object NaturalTaskParser {
         """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un\s+par\s+de|\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|treinta)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)\b"""
     )
     /**
+     * Fecha relativa fraccionaria sin dígitos: "en media hora", "dentro de media hora",
+     * "de aquí a un cuarto de hora". Simétrica de [relativePattern] para las fracciones
+     * cotidianas "media hora" (30 min) y "(un) cuarto de hora" (15 min). Antes estas
+     * formas NO casaban aquí (solo aceptan números enteros), caían a [fractionalDurationPattern]
+     * → `dueAt=null`, `durationMinutes=30` y el prefijo "en"/"dentro de" quedaba como residuo
+     * en el título ("llamar en media hora" → título "llamar en", sin fecha). El usuario
+     * pedía un punto en el tiempo (+30 min) y obtenía una duración sin fecha → tarea SIN
+     * vencimiento, invisible en "What Now"/planificador, recordatorio imposible de programar.
+     * Con este patrón se resuelve como ahora + (30|15) min y se consume la frase completa
+     * (prefijo incluido) para que el título quede limpio y no la robe [fractionalDurationPattern].
+     * Exige el prefijo relativo para no colisionar con la duración real ("reunión media hora"
+     * sin prefijo sigue siendo duración 30 min) ni con el recordatorio ("media hora antes"
+     * lo captura [reminderPatterns]).
+     */
+    private val fractionalRelativePattern = Regex(
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\b"""
+    )
+    /**
      * Fecha relativa PASADA: "hace N días/semanas/meses/años" o "hace una semana".
      * Simétrico de "en/dentro de N": el usuario reconoce que la tarea quedó vencida
      * ("pagué la factura hace 2 días", "envié el correo hace una semana"). Antes no se
@@ -569,6 +587,15 @@ object NaturalTaskParser {
             now + millis
         }
         relativeMatch?.let { working = working.replace(it.value, " ") }
+        // Fecha relativa fraccionaria ("en media hora"/"dentro de un cuarto de hora"):
+        // se procesa ANTES que la duración para que [fractionalDurationPattern] no robe
+        // "media hora" como duración y deje el prefijo "en" como residuo en el título.
+        val fractionalRelativeMatch = fractionalRelativePattern.find(working)
+        val fractionalRelativeDueAt = fractionalRelativeMatch?.let { match ->
+            val minutes = if (match.groupValues[1].lowercase().contains("media")) 30L else 15L
+            now + minutes * 60_000L
+        }
+        fractionalRelativeMatch?.let { working = working.replace(it.value, " ") }
 
         // El "fin de semana" se detecta y se borra ANTES del período próximo para que
         // "fin de semana que viene" no active por error el patrón "semana que viene"
@@ -828,15 +855,16 @@ object NaturalTaskParser {
         // deben sobrescribirse por una fecha futura ambigua. La hora explícita se
         // aplica sobre la fecha pasada (tarea vencida con hora).
         val effectiveRelativeDueAt =
-            agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: monthBoundaryDueAt ?:
+            agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: fractionalRelativeDueAt ?: monthBoundaryDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?:
             nextWeekWeekdayReverseDueAt ?: nextWeekWeekdayForwardDueAt ?: nextPeriodDueAt
         val relativeIsDays = (agoMatch != null || lastPeriodMatch != null ||
-            relativeMatch != null || monthBoundaryDueAt != null ||
+            relativeMatch != null || fractionalRelativeMatch != null || monthBoundaryDueAt != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
             quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null ||
             nextWeekWeekdayReverseMatch != null || nextWeekWeekdayForwardMatch != null || nextPeriodMatch != null) &&
+            (fractionalRelativeMatch == null) &&
             (relativeMatch?.let { m ->
                 val unit = m.groupValues[2].lowercase()
                 !unit.startsWith("min") && !unit.startsWith("hora")

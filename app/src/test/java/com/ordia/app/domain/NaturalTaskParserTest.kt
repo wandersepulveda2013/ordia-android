@@ -1049,6 +1049,54 @@ class NaturalTaskParserTest {
         assertEquals(now + 30 * 60_000L, result.dueAt)
     }
 
+    // --- Fecha relativa fraccionaria (ciclo 90) ---
+    // "en media hora" es un punto en el tiempo (ahora + 30 min), NO una duración.
+    // Antes "media hora" caía a fractionalDurationPattern → dueAt=null,
+    // durationMinutes=30 y el prefijo "en" quedaba como residuo ("llamar en").
+    @Test fun enMediaHoraEsFechaRelativa() {
+        val result = NaturalTaskParser.parse("Llamar a Ana en media hora", now, zone)
+        assertEquals("Llamar a Ana", result.title)
+        assertEquals(now + 30 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun enUnCuartoDeHoraEsFechaRelativa() {
+        val result = NaturalTaskParser.parse("Llamar a Ana en un cuarto de hora", now, zone)
+        assertEquals("Llamar a Ana", result.title)
+        assertEquals(now + 15 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun enCuartoDeHoraSinUnEsFechaRelativa() {
+        val result = NaturalTaskParser.parse("Cita en cuarto de hora", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(now + 15 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun dentroDeMediaHoraEsFechaRelativa() {
+        val result = NaturalTaskParser.parse("Reunión dentro de media hora", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(now + 30 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun deAquiAMediaHoraEsFechaRelativa() {
+        val result = NaturalTaskParser.parse("Cita de aquí a media hora", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(now + 30 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    // Regresión: "media hora" SIN prefijo relativo sigue siendo DURACIÓN (30 min).
+    // El prefijo "en/dentro de/de aquí a" es obligatorio para la fecha relativa.
+    @Test fun mediaHoraSinPrefijoSigueSiendoDuracion() {
+        val result = NaturalTaskParser.parse("Reunión media hora", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(30, result.durationMinutes)
+        assertNull(result.dueAt)
+    }
+
     @Test fun writtenNumberUpToTwelveParsesDueAt() {
         val result = NaturalTaskParser.parse("Entregar en doce horas", now, zone)
         assertEquals("Entregar", result.title)
