@@ -28,6 +28,7 @@ fi
   "$ROOT/app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt" \
   "$ROOT/app/src/main/java/com/ordia/app/domain/QuietHours.kt" \
   "$ROOT/app/src/main/java/com/ordia/app/domain/RecurrenceEngine.kt" \
+  "$ROOT/app/src/main/java/com/ordia/app/domain/ReminderRules.kt" \
   "$ROOT/app/src/main/java/com/ordia/app/domain/SearchEngine.kt" \
   "$ROOT/app/src/main/java/com/ordia/app/domain/TaskRules.kt" \
   "$ROOT/tools/domain-smoke/DomainSmoke.kt" \

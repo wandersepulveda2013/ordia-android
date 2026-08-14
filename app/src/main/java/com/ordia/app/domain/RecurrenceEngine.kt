@@ -23,11 +23,25 @@ object RecurrenceEngine {
         val nextDue = next.toInstant().toEpochMilli()
         val reminderOffset = if (task.dueAt != null && task.reminderAt != null) task.dueAt - task.reminderAt else null
         val startOffset = if (task.dueAt != null && task.startAt != null) task.dueAt - task.startAt else null
+        // El offset de recordatorio se traslada a la próxima ocurrencia como
+        // `nextDue - offset` ("25 días antes" sigue siendo 25 días antes). Pero si
+        // ese instante cae en el pasado (offset grande + ocurrencia próxima por
+        // haber completado tarde), ReminderSync lo descarta (trigger <= now) y la
+        // nueva ocurrencia nacía SIN aviso -> olvido de la próxima cita. Cae al
+        // default adaptativo past-safe (nunca en el pasado) cuando el trasladado
+        // ya venció. Simétrico con ReminderRules.resolveReminderAt (c.183) y con
+        // AutomationActionPlanner (c.187/c.188).
+        val translatedReminder = reminderOffset?.let { nextDue - it }
+        val resolvedReminder = when {
+            translatedReminder == null -> null
+            translatedReminder > completedAt -> translatedReminder
+            else -> ReminderRules.defaultReminderAt(nextDue, completedAt)
+        }
         return task.copy(
             id = 0,
             startAt = startOffset?.let { nextDue - it },
             dueAt = nextDue,
-            reminderAt = reminderOffset?.let { nextDue - it },
+            reminderAt = resolvedReminder,
             status = TaskStatus.PLANNED,
             completed = false,
             completedAt = null,

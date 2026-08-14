@@ -4,7 +4,9 @@ import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
@@ -113,5 +115,54 @@ class RecurrenceEngineTest {
         val task = TaskEntity(title = "Olimpiadas", dueAt = due, recurrence = RecurrenceFrequency.YEARLY, recurrenceInterval = 4)
         val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
         assertEquals(LocalDate.of(2028, 2, 29), DateRules.toLocalDate(next.dueAt!!, zone))
+    }
+
+    // Past-safe del reminder trasladado al completar una recurrente (c.189).
+    // El offset de recordatorio se traslada a la próxima ocurrencia como
+    // `nextDue - offset`. Si ese instante cae en el pasado (offset grande +
+    // ocurrencia próxima), ReminderSync lo descarta (trigger <= now) y la nueva
+    // ocurrencia nacía SIN aviso -> olvido de la próxima cita. Simétrico con
+    // ReminderRules.resolveReminderAt (c.183) y AutomationActionPlanner (c.187/c.188).
+    @Test fun monthly_largeReminderOffsetCompletedLate_neverPastReminder() {
+        // Vence el 15 de cada mes a las 09:00, recordatorio 25 días antes (offset
+        // alcanzable: el parser admite "recuérdame N días antes", clamp hasta 30).
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 8, 15), LocalTime.of(9, 0), zone)
+        val offsetDays = 25L
+        val dayMs = 24L * 60 * 60_000L
+        val task = TaskEntity(
+            title = "Pagar tarjeta",
+            dueAt = due,
+            reminderAt = due - offsetDays * dayMs,
+            recurrence = RecurrenceFrequency.MONTHLY
+        )
+        // Completada TARDE el 22 (una semana de retraso): la próxima ocurrencia es
+        // el 15 de septiembre. Trasladar 25 días -> 21 de agosto, que YA pasó
+        // (completada el 22). Sin past-safe el reminder queda en el PASADO.
+        val completedAt = DateRules.toEpochMillis(LocalDate.of(2026, 8, 22), LocalTime.of(12, 0), zone)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = completedAt, zone = zone))
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertNotNull("La próxima ocurrencia debe conservar un recordatorio", next.reminderAt)
+        assertTrue("El recordatorio no debe quedar en el pasado", next.reminderAt!! > completedAt)
+        assertTrue("El recordatorio debe preceder al vencimiento", next.reminderAt!! < next.dueAt)
+    }
+
+    @Test fun monthly_largeReminderOffsetKeepsOffsetWhenTranslatedIsFuture() {
+        // No-regresión: si el instante trasladado SÍ es futuro, se conserva el
+        // offset explícito del usuario (no se reemplaza por el default).
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 8, 15), LocalTime.of(9, 0), zone)
+        val offsetDays = 5L
+        val dayMs = 24L * 60 * 60_000L
+        val task = TaskEntity(
+            title = "Pagar tarjeta",
+            dueAt = due,
+            reminderAt = due - offsetDays * dayMs,
+            recurrence = RecurrenceFrequency.MONTHLY
+        )
+        // Completada a tiempo el 15: próxima ocurrencia 15 de septiembre, offset 5
+        // días -> 10 de septiembre (futuro). Se conserva el offset exacto.
+        val completedAt = DateRules.toEpochMillis(LocalDate.of(2026, 8, 15), LocalTime.of(9, 0), zone)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = completedAt, zone = zone))
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals(offsetDays * dayMs, next.dueAt - next.reminderAt!!)
     }
 }
