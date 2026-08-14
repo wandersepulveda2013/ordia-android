@@ -1010,6 +1010,84 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // ── Regresión: "manana" (sin tilde) debe reconocerse como fecha = mañana ──
+    // Antes solo "mañana" (con tilde) se reconocía como fecha; "manana" caía a
+    // dueAt=null (tarea olvidada) o se agendaba HOY (día equivocado). La escritura
+    // sin tilde es muy común al escribir rápido en el móvil.
+
+    @Test fun mananaWithoutTildeIsTomorrow() {
+        val result = NaturalTaskParser.parse("llamar a Ana manana", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mananaWithoutTildeWithTime() {
+        val result = NaturalTaskParser.parse("reunion manana a las 9", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun pasadoMananaWithoutTilde() {
+        val result = NaturalTaskParser.parse("entrega pasado manana", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // ── Regresión: meridiem sin tilde ("12 de la manana" = 00:00, no 12:00) ──
+    // Antes "12 de la manana" se agendaba a 12:00 (mediodía) mientras "12 de la
+    // mañana" caía a 00:00 (madrugada) por una asimetría en la comparación del
+    // meridiem (el literal "delamanaana" con doble 'a' nunca casaba).
+
+    @Test fun twelveDeLaMananaIsMidnight() {
+        val result = NaturalTaskParser.parse("cita a las 12 de la manana", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(0, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mananaPartOfDayWithoutTildeMatchesWithTilde() {
+        val sinTilde = NaturalTaskParser.parse("cita a las 9 de la manana", now, zone)
+        val conTilde = NaturalTaskParser.parse("cita a las 9 de la mañana", now, zone)
+        assertEquals(DateRules.toLocalTime(conTilde.dueAt!!, zone), DateRules.toLocalTime(sinTilde.dueAt!!, zone))
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(sinTilde.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(sinTilde.dueAt, zone))
+    }
+
+    @Test fun unaDelMediodiaWithoutTildeIs13h() {
+        val result = NaturalTaskParser.parse("rendir examen a la una del mediodia", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // ── Regresión: "de madrugada"/"de noche"/"de tarde" (sin "la") ──
+    // Adverbios temporales muy comunes ("salir de madrugada", "trabajar de noche").
+    // Antes no casaban con el conector "de" suelto: la tarea quedaba sin hora
+    // (dueAt=null) y la frase quedaba como residuo en el título.
+
+    @Test fun deMadrugadaSetsCanonicalHour() {
+        val result = NaturalTaskParser.parse("salir de madrugada", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt, zone))
+        assertEquals("salir", result.title)
+    }
+
+    @Test fun deNocheSetsCanonicalHour() {
+        val result = NaturalTaskParser.parse("trabajar de noche", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+        assertEquals("trabajar", result.title)
+    }
+
+    @Test fun deTardeSetsCanonicalHour() {
+        val result = NaturalTaskParser.parse("jugar tenis de tarde", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun deMadrugadaWithDateKeepsDate() {
+        val result = NaturalTaskParser.parse("salir de madrugada mañana", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // ── Regresión BUG4: "urgente" como palabra inicial (sin prefijo !/#) ──
 
     @Test fun leadingUrgenteSetsUrgentPriority() {

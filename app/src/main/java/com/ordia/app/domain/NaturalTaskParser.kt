@@ -534,8 +534,14 @@ object NaturalTaskParser {
      * "mañana en la noche") propia de la zona de la app (America/Santo_Domingo). Antes
      * "en la tarde" no se reconocía: la hora caía a 09:00 y "en la tarde" quedaba como
      * residuo en el título.
+     *
+     * "de madrugada"/"de noche"/"de tarde" (sin "la") son adverbios temporales muy
+     * comunes en español ("salir de madrugada", "trabajo de noche"). Antes no casaban:
+     * la tarea quedaba sin hora (dueAt=null) y la frase quedaba como residuo en el
+     * título. Se añade el conector "de" suelto para estas partes; no aplica a
+     * "mañana" porque "de mañana" colisionaría con la fecha relativa ("mañana").
      */
-    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:a\s+la|de\s+la|por\s+la|en\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)\b""")
+    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:(?:a\s+la|de\s+la|por\s+la|en\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada))\b""")
     private val standalonePartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),
@@ -1133,7 +1139,9 @@ object NaturalTaskParser {
         val partOfDayMatch = partOfDayPattern.find(working)
         val partOfDayTime = partOfDayMatch?.let { partOfDayTimes[it.groupValues[1].lowercase()] }
         val standalonePartOfDayMatch = standalonePartOfDayPattern.find(working)
-        val standalonePartOfDayKey = standalonePartOfDayMatch?.groupValues?.get(1)?.lowercase()
+        val standalonePartOfDayKey = standalonePartOfDayMatch?.let {
+            (it.groupValues[1].ifBlank { it.groupValues[2] }).lowercase().ifEmpty { null }
+        }
         val standalonePartOfDayTime = standalonePartOfDayKey?.let { standalonePartOfDayTimes[it] }
         val compactDayPartOfDayMatch = compactDayPartOfDayPattern.find(working)
         val compactDayPartOfDayKey = compactDayPartOfDayMatch?.groupValues?.get(1)?.lowercase()
@@ -1166,8 +1174,8 @@ object NaturalTaskParser {
             // "pasado mañana" y que "mañana" suelto: la palabra "mañana" dentro de la
             // frase casaba con mananaAsDate → +1 (fecha errónea) y "antepasado" quedaba
             // como residuo en el título (P1: cita 2 días antes y título corrupto).
-            Regex("""(?i)\bantepasad[oa]\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(3)
-            Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
+            Regex("""(?i)\bantepasad[oa]\s+ma[nñ]ana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(3)
+            Regex("""(?i)\bpasado\s+ma[nñ]ana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             // "mañana" como fecha (el día de mañana) sólo si NO forma parte de un
             // marcador de parte del día ("de la mañana", "por la mañana", "a la
             // mañana"). Antes, "Reunión a las 9 de la mañana" se fechaba en MAÑANA
@@ -1293,14 +1301,19 @@ object NaturalTaskParser {
                         // el offset PM/AM correcto para todas las formas.
                         val meridiem = (if (raw4.isNotEmpty()) raw4 else raw3)
                             .replace(".", "").replace(" ", "")
+                        // Normaliza ñ→n para que "de la manana" (escritura sin tilde, habitual
+                        // en móvil) se reconozca igual que "de la mañana". Antes la comparación
+                        // literal "delamanaana" (doble a) no casaba nunca y "12 de la manana"
+                        // se agendaba 12:00 mientras "12 de la mañana" caía a 00:00 (asimetría).
+                        val mer = meridiem.lowercase().replace("ñ", "n").replace("í", "i")
                         // "de la tarde"/"de la noche" → 12h posterior; "de la mañana/madrugada" → am.
                         // "del mediodía" → PM: "a la una del mediodía" = 13:00 (forma cotidiana de 1pm).
-                        val isPm = meridiem == "pm" || meridiem == "delatarde" || meridiem == "delanoche" || meridiem == "delmediodía" || meridiem == "delmediodia"
-                        val isAm = meridiem == "am" || meridiem == "delamañana" || meridiem == "delamanaana" || meridiem == "delamadrugada"
+                        val isPm = mer == "pm" || mer == "delatarde" || mer == "delanoche" || mer == "delmediodia"
+                        val isAm = mer == "am" || mer == "delamanana" || mer == "delamadrugada"
                         if (isPm && hour < 12) hour += 12
                         if (isAm && hour == 12) hour = 0
                         // "12 de la noche" = medianoche (00:00), no 12:00 del mediodía.
-                        if (isPm && hour == 12 && meridiem == "delanoche") hour = 0
+                        if (isPm && hour == 12 && mer == "delanoche") hour = 0
                         LocalTime.of(hour, minute) to meridiem.isNotEmpty()
                     }
                 }
@@ -1567,7 +1580,7 @@ object NaturalTaskParser {
             .let { value -> compactDayPartOfDayPattern.replace(value, " ") }
             .let { value -> primeraHoraPattern.replace(value, " ") }
             .let { value -> ultimaHoraPattern.replace(value, " ") }
-            .replace(Regex("""(?i)\bantepasad[oa]\s+mañana\b|\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b"""), " ")
+            .replace(Regex("""(?i)\bantepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b"""), " ")
             .let { value -> weekdayPattern.replace(value, " ") }
             .let { value -> weekendPattern.replace(value, " ") }
             // "que viene" queda como residuo cuando la fecha asociada (fin de
@@ -1584,7 +1597,7 @@ object NaturalTaskParser {
             .let { value -> numericDatePattern.replace(value, " ") }
             // "el 15" suelto ya consumido como fecha; se borra el residuo del título.
             .let { value -> dayOfMonthPattern.replace(value, " ") }
-            .replace(Regex("""(?i)\bantes\s+del?\b|\bpara\s+el\b|\bpara\s+mañana\b|\bhasta\s+el\b"""), " ")
+            .replace(Regex("""(?i)\bantes\s+del?\b|\bpara\s+el\b|\bpara\s+ma[nñ]ana\b|\bhasta\s+el\b"""), " ")
             // El verbo de recordatorio sin cantidad ("recuérdame", "avísame",
             // "no dejes que olvide") expresa intención de aviso, no contenido; se
             // elimina del título. Se hace aquí (tras consumir fechas/horas) para no
@@ -2039,7 +2052,7 @@ object NaturalTaskParser {
         val timeMarker = Regex("""(?i)(?:de|por|a|en)\s+la\s+$|\besta\s+$""")
         var idx = 0
         while (true) {
-            val m = Regex("""(?i)\bmañana\b""").find(working, idx) ?: return false
+            val m = Regex("""(?i)\bma[nñ]ana\b""").find(working, idx) ?: return false
             val prefix = working.substring(0, m.range.first)
             if (!timeMarker.containsMatchIn(prefix)) return true
             idx = m.range.last + 1
