@@ -1,3 +1,4 @@
+cat << 'INNER_EOF' > app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt
 package com.ordia.app.domain
 
 import com.ordia.app.data.local.RecurrenceFrequency
@@ -159,3 +160,4 @@ object NaturalTaskParser {
         else -> DayOfWeek.SUNDAY
     }
 }
+INNER_EOF
