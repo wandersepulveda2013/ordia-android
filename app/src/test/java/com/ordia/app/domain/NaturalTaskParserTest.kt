@@ -4651,6 +4651,55 @@ class NaturalTaskParserTest {
         assertEquals(null, result.dueAt)
     }
 
+    // --- "al atardecer" / "al anochecer" / "al ocaso": contraparte vespertina del amanecer ---
+
+    @Test fun alAtardecerInterpretaOcasoYLimpiaTitulo() {
+        // Antes "caminar al atardecer" → due=null + residuo "al atardecer" → tarea olvidada.
+        val result = NaturalTaskParser.parse("Caminar al atardecer", now, zone)
+        assertEquals("Caminar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun alAnochecerEsSinonimoDeAtardecer() {
+        val result = NaturalTaskParser.parse("Reunión al anochecer", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alOcasoEsSinonimoDeAtardecer() {
+        val result = NaturalTaskParser.parse("Pasear al ocaso", now, zone)
+        assertEquals("Pasear", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alPonerseElSolEsSinonimoDeAtardecer() {
+        val result = NaturalTaskParser.parse("Caminar al ponerse el sol", now, zone)
+        assertEquals("Caminar", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alAtardecerCombinaConFechaRelativa() {
+        val result = NaturalTaskParser.parse("Caminar mañana al atardecer", now, zone)
+        assertEquals("Caminar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun alAtardecerHoraExplicitaTienePrioridad() {
+        // "al atardecer a las 7": la hora explícita gana sobre la canónica de respaldo.
+        val result = NaturalTaskParser.parse("Caminar al atardecer a las 7", now, zone)
+        assertEquals("Caminar", result.title)
+        assertEquals(LocalTime.of(19, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun atardecerSinConectorAlNoEsFalsoPositivo() {
+        // "ver el atardecer" (sustantivo sin "al") no debe agendarse.
+        val result = NaturalTaskParser.parse("Ver el atardecer", now, zone)
+        assertEquals("Ver el atardecer", result.title)
+        assertEquals(null, result.dueAt)
+    }
+
     // --- "a mediodía" / "a medianoche" sin contracción "al" limpian el conector del título ---
 
     @Test fun aMediodiaSinContraccionLimpiaTitulo() {

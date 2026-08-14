@@ -692,6 +692,24 @@ object NaturalTaskParser {
     private val amanecerTime = LocalTime.of(6, 0)
 
     /**
+     * "al atardecer"/"al anochecer"/"al ocaso"/"al ponerse el sol": puesta/entrada de la noche,
+     * contraparte vespertina del amanecer (primera luz). Forma cotidiana de "al final del día"
+     * ("caminar al atardecer", "reunión al anochecer"). Antes no se interpretaba como hora
+     * canónica: la tarea quedaba SIN `dueAt` (olvidada, invisible en What Now/planificador, sin
+     * recordatorio) y la frase quedaba como residuo en el título. Asimetría flagrante con
+     * [amanecerPattern] (06:00) que SÍ funcionaba: el amanecer se agendaba y el atardecer se
+     * perdía. Hora de respaldo 18:00 (tarde tardía / ocaso, canónica ya usada por "a última
+     * hora"/"al final del día"): en el trópico la puesta de sol ronda las ~18:30-19:00, y 18:00
+     * es la canónica vespertina establecida, sin falsa precisión. Exige el conector "al " para
+     * no colisionar con el verbo ("atardece lloviendo") ni con el sustantivo suelto ("un
+     * atardecer hermoso"). Como las demás horas canónicas, es hora de respaldo: si hay una hora
+     * explícita, ésta gana y el patrón solo limpia "al atardecer".
+     */
+    private val atardecerPattern =
+        Regex("""(?i)al\s+(?:atardecer|anochecer|ocaso|ponerse\s+(?:el\s+sol|del\s+sol))\b""")
+    private val atardecerTime = LocalTime.of(18, 0)
+
+    /**
      * Hora suelta con parte del día, sin "a las" ni rango: "Taller 9 de la tarde",
      * "Cena 9 de la noche", "Cita 10 de la mañana", "Evento 9 de la madrugada". Antes la
      * hora caía a la canónica de la parte del día (15:00/21:00/09:00/04:00) ignorando el
@@ -1298,14 +1316,18 @@ object NaturalTaskParser {
         val ultimaHoraMatch = ultimaHoraPattern.find(working)
         val alFinalDelDiaMatch = alFinalDelDiaPattern.find(working)
         val amanecerMatch = amanecerPattern.find(working)
+        val atardecerMatch = atardecerPattern.find(working)
         // Contexto PM: una parte del día de tarde/noche (explícita "esta tarde" o suelta "a la noche")
-        // aplica offset +12 a una hora sin meridiem ("esta tarde a las 4" → 16:00).
+        // aplica offset +12 a una hora sin meridiem ("esta tarde a las 4" → 16:00). Las horas
+        // canónicas vespertinas "al atardecer"/"al anochecer"/"al ocaso" también aportan contexto
+        // PM: "al atardecer a las 7" → 19:00 (la puesta del sol es vespertina, 7 es 7pm).
         val partOfDayPmKeys = setOf("tarde", "noche")
         val hasPartOfDayPmContext =
             partOfDayMatch?.let { it.groupValues[1].lowercase() in partOfDayPmKeys } == true ||
             standalonePartOfDayKey in partOfDayPmKeys ||
             compactDayPartOfDayKey in partOfDayPmKeys ||
-            recurrence.partOfDayIsPm
+            recurrence.partOfDayIsPm ||
+            atardecerMatch != null
         // True solo cuando la fecha proviene de un día de la semana suelto ("el viernes")
         // y ese día ES hoy: la cita puede ser hoy mismo si su hora aún no pasó.
         var weekdaySameDayCandidate = false
@@ -1659,6 +1681,7 @@ object NaturalTaskParser {
             ?: ultimaHoraMatch?.let { ultimaHoraTime }
             ?: alFinalDelDiaMatch?.let { alFinalDelDiaTime }
             ?: amanecerMatch?.let { amanecerTime }
+            ?: atardecerMatch?.let { atardecerTime }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val rawDueAt = when {
             effectiveRelativeDueAt != null && relativeIsDays && parsedTime != null ->
@@ -1766,6 +1789,7 @@ object NaturalTaskParser {
             .let { value -> ultimaHoraPattern.replace(value, " ") }
             .let { value -> alFinalDelDiaPattern.replace(value, " ") }
             .let { value -> amanecerPattern.replace(value, " ") }
+            .let { value -> atardecerPattern.replace(value, " ") }
             // "el día de mañana"/"el día de hoy"/"para el día de mañana": forma
             // pleonástica coloquial de "mañana"/"hoy". El borrado genérico de abajo
             // consume sólo la palabra "mañana"/"hoy" y deja el residuo "el día de"
