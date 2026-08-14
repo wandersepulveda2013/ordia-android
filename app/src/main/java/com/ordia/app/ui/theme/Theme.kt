@@ -9,9 +9,21 @@ import androidx.compose.ui.graphics.Color
 import com.ordia.app.data.preferences.AccentPalette
 import com.ordia.app.data.preferences.ThemeMode
 
-val OrdiaInk = Color(0xFF1D1B17)
-val OrdiaCream = Color(0xFFF7F3EB)
-val OrdiaPaper = Color(0xFFFFFCF7)
+// Base palette strictly grayscale per instructions
+val OrdiaWhite = Color(0xFFFFFFFF)
+val OrdiaBlack = Color(0xFF000000)
+val OrdiaGray50 = Color(0xFFFAFAFA)
+val OrdiaGray100 = Color(0xFFF5F5F5)
+val OrdiaGray200 = Color(0xFFEEEEEE)
+val OrdiaGray300 = Color(0xFFE0E0E0)
+val OrdiaGray400 = Color(0xFFBDBDBD)
+val OrdiaGray500 = Color(0xFF9E9E9E)
+val OrdiaGray600 = Color(0xFF757575)
+val OrdiaGray700 = Color(0xFF616161)
+val OrdiaGray800 = Color(0xFF424242)
+val OrdiaGray900 = Color(0xFF212121)
+
+// Accents (preserved)
 val OrdiaGold = Color(0xFF8A682D)
 val OrdiaGoldSoft = Color(0xFFD9BC7A)
 val OrdiaSage = Color(0xFF76845F)
@@ -60,47 +72,47 @@ val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
 )
 
 private val LightColors = lightColorScheme(
-    primary = OrdiaInk,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFEAE2D4),
-    onPrimaryContainer = OrdiaInk,
+    primary = OrdiaBlack,
+    onPrimary = OrdiaWhite,
+    primaryContainer = OrdiaGray200,
+    onPrimaryContainer = OrdiaBlack,
     secondary = OrdiaGold,
-    onSecondary = Color.White,
+    onSecondary = OrdiaWhite,
     secondaryContainer = Color(0xFFF2E5C9),
     onSecondaryContainer = Color(0xFF34270F),
     tertiary = OrdiaSage,
-    onTertiary = Color.White,
-    background = OrdiaCream,
-    onBackground = OrdiaInk,
-    surface = OrdiaPaper,
-    onSurface = OrdiaInk,
-    surfaceVariant = Color(0xFFEDE7DC),
-    onSurfaceVariant = Color(0xFF625D55),
-    outline = Color(0xFF8C8579),
-    outlineVariant = Color(0xFFDAD1C2),
+    onTertiary = OrdiaWhite,
+    background = OrdiaGray50,
+    onBackground = OrdiaBlack,
+    surface = OrdiaWhite,
+    onSurface = OrdiaBlack,
+    surfaceVariant = OrdiaGray100,
+    onSurfaceVariant = OrdiaGray700,
+    outline = OrdiaGray400,
+    outlineVariant = OrdiaGray300,
     error = Color(0xFF9A3E3E),
-    onError = Color.White
+    onError = OrdiaWhite
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFF3EDE2),
-    onPrimary = Color(0xFF1A1916),
-    primaryContainer = Color(0xFF34312B),
-    onPrimaryContainer = Color(0xFFF5EFE4),
+    primary = OrdiaWhite,
+    onPrimary = OrdiaBlack,
+    primaryContainer = OrdiaGray800,
+    onPrimaryContainer = OrdiaWhite,
     secondary = OrdiaGoldSoft,
     onSecondary = Color(0xFF33270E),
     secondaryContainer = Color(0xFF4C3C1C),
     onSecondaryContainer = Color(0xFFFFE8AF),
     tertiary = Color(0xFFB9C99F),
     onTertiary = Color(0xFF263017),
-    background = Color(0xFF141310),
-    onBackground = Color(0xFFEDE8DF),
-    surface = Color(0xFF1C1B18),
-    onSurface = Color(0xFFEDE8DF),
-    surfaceVariant = Color(0xFF2B2924),
-    onSurfaceVariant = Color(0xFFC9C2B8),
-    outline = Color(0xFF938C81),
-    outlineVariant = Color(0xFF47433D),
+    background = OrdiaBlack,
+    onBackground = OrdiaWhite,
+    surface = OrdiaGray900,
+    onSurface = OrdiaWhite,
+    surfaceVariant = OrdiaGray800,
+    onSurfaceVariant = OrdiaGray400,
+    outline = OrdiaGray600,
+    outlineVariant = OrdiaGray700,
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005)
 )
@@ -126,14 +138,14 @@ fun OrdiaTheme(
         if (dark) {
             base.copy(
                 secondary = swatch.darkSecondary,
-                onSecondary = Color(0xFF1A1916),
+                onSecondary = OrdiaBlack,
                 secondaryContainer = swatch.darkSecondaryContainer,
                 onSecondaryContainer = swatch.darkOnSecondaryContainer
             )
         } else {
             base.copy(
                 secondary = swatch.lightSecondary,
-                onSecondary = Color.White,
+                onSecondary = OrdiaWhite,
                 secondaryContainer = swatch.lightSecondaryContainer,
                 onSecondaryContainer = swatch.lightOnSecondaryContainer
             )

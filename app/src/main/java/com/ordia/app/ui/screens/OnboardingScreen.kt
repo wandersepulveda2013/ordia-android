@@ -28,6 +28,7 @@ import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.ui.components.GuardianAvatar
 import com.ordia.app.ui.components.GuardianMood
 import com.ordia.app.ui.components.ordiaWorkSurface
+import com.ordia.app.ui.components.OrdiaButton
 
 @Composable
 fun OnboardingScreen(
@@ -54,46 +55,41 @@ fun OnboardingScreen(
             )
             Text(
                 when (page) {
-                    0 -> "Tareas, notas, planes, hábitos y enfoque en un lugar tranquilo. Empieza sin construir un sistema complicado."
-                    1 -> "Elige cuánta estructura quieres ver. Puedes cambiarlo después en Ajustes."
-                    else -> "El guardián flotante te permitirá capturar una tarea o una idea desde cualquier aplicación. Solo aparece cuando tú lo activas."
+                    0 -> "Ordia es tu sistema personal para organizar tareas, notas y rutinas sin distracciones. Todo funciona en tu dispositivo."
+                    1 -> "Elige la interfaz que mejor encaje con tu momento actual. Puedes cambiarla cuando quieras."
+                    else -> "El Guardián te avisará si estás aplazando demasiado o si estás a punto de perder el control. ¿Empezamos?"
                 },
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
             if (page == 1) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Spacer(Modifier.size(12.dp))
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     InterfaceMode.entries.forEach { mode ->
                         FilterChip(
                             selected = selectedMode == mode,
                             onClick = { onModeSelected(mode) },
-                            label = { Text(mode.label()) },
+                            label = { Text(mode.name) },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                repeat(3) { index ->
-                    Text(
-                        if (index == page) "●" else "○",
-                        modifier = Modifier.padding(4.dp),
-                        color = if (index == page) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline
-                    )
+
+            Spacer(Modifier.size(24.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                if (page > 0) {
+                    OrdiaButton(onClick = { page-- }, label = "Atrás", primary = false)
+                } else {
+                    Spacer(Modifier.width(1.dp))
                 }
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                if (page > 0) OutlinedButton(onClick = { page-- }) { Text("Atrás") }
-                Spacer(Modifier.width(10.dp))
-                Button(onClick = { if (page < 2) page++ else onFinish() }) { Text(if (page < 2) "Continuar" else "Entrar a Ordia") }
+                OrdiaButton(
+                    onClick = { if (page < 2) page++ else onFinish() },
+                    label = if (page < 2) "Siguiente" else "Comenzar"
+                )
             }
         }
     }
-}
-
-private fun InterfaceMode.label() = when (this) {
-    InterfaceMode.SIMPLE -> "Simple · Tareas, notas y calendario"
-    InterfaceMode.ORGANIZED -> "Organizado · Proyectos, hábitos y planificación"
-    InterfaceMode.ADVANCED -> "Avanzado · Etiquetas, vistas y controles adicionales"
 }
