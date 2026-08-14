@@ -15,13 +15,27 @@ CP="$LIBS/json-20231013.jar:$LIBS/junit-4.13.2.jar:$LIBS/hamcrest-core-1.3.jar:$
 
 DOMAIN_MAIN="$ROOT/app/src/main/java/com/ordia/app/domain"
 DATA_LOCAL="$ROOT/app/src/main/java/com/ordia/app/data/local"
+AUTOMATION_MAIN="$ROOT/app/src/main/java/com/ordia/app/automation"
+
+# Archivos de automatización que son puros (sin dependencias Android reales):
+# AutomationRules, AutomationSchedulePolicy, AutomationUndoRules, AutomationActionPlanner.
+# AutomationEngine depende de repositorios concretos (Repositories.kt) que a su vez usan
+# DAOs de Room (Android), por lo que NO se incluye aquí. AutomationWorker usa WorkManager.
+AUTOMATION_PURE_SOURCES=(
+  "$AUTOMATION_MAIN/AutomationRules.kt"
+  "$AUTOMATION_MAIN/AutomationSchedulePolicy.kt"
+  "$AUTOMATION_MAIN/AutomationUndoRules.kt"
+  "$AUTOMATION_MAIN/AutomationActionPlanner.kt"
+)
 
 SOURCES=(
   "$ROOT/tools/domain-smoke/RoomStubs.kt"
   "$ROOT/tools/domain-smoke/PreferenceStubs.kt"
   "$DATA_LOCAL/Entities.kt"
   "$DOMAIN_MAIN"/*.kt
+  "${AUTOMATION_PURE_SOURCES[@]}"
   "$ROOT/app/src/test/java/com/ordia/app/domain"/*.kt
+  "$ROOT/app/src/test/java/com/ordia/app/automation"/*.kt
 )
 
 echo ">> Compilando ${#SOURCES[@]} fuentes (main+stubs+tests)..."

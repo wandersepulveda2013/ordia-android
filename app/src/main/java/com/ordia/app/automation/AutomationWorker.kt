@@ -14,14 +14,6 @@ import com.ordia.app.data.repository.AutomationRuleRepository
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 
-object AutomationSchedulePolicy {
-    fun triggerForHour(hour: Int): AutomationTrigger? = when (hour) {
-        in 5..11 -> AutomationTrigger.DAILY_MORNING
-        in 17..23 -> AutomationTrigger.DAILY_EVENING
-        else -> null
-    }
-}
-
 class AutomationWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val app = applicationContext as? OrdiaApplication ?: return Result.failure()
