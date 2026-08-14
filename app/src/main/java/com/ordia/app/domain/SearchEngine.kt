@@ -22,7 +22,7 @@ enum class SearchKind { TASK, PROJECT, NOTE, HABIT, CONVERSATION, COMMITMENT, AU
  * "esta semana" o "atrasadas"/"vencidas" y obtener las tareas de ese rango
  * aunque su título no contenga esa palabra. Es una heurística local honesta.
  */
-private enum class DateScope { TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, OVERDUE }
+private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, OVERDUE }
 
 data class SearchResult(val kind: SearchKind, val id: Long, val title: String, val subtitle: String)
 
@@ -141,10 +141,14 @@ object SearchEngine {
     private val OVERDUE_TOKENS = setOf("atrasada", "atrasadas", "atrasado", "atrasados", "vencida", "vencidas", "vencido", "vencidos")
     private val TODAY_TOKENS = setOf("hoy")
     private val TOMORROW_TOKENS = setOf("manana")
+    private val YESTERDAY_TOKENS = setOf("ayer")
     private val WEEK_TOKENS = setOf("semana")
     // Modificadores que señalan "semana que viene"/"próxima semana": cuando
     // acompañan a "semana" el scope pasa de THIS_WEEK a NEXT_WEEK.
     private val NEXT_WEEK_TOKENS = setOf("proxima", "proximas", "viene")
+    // Modificadores que señalan "semana pasada"/"última semana": cuando acompañan
+    // a "semana" el scope pasa de THIS_WEEK a LAST_WEEK (recuperación de tareas).
+    private val LAST_WEEK_TOKENS = setOf("pasada", "pasadas", "pasado", "pasados", "ultima", "ultimas")
     // Modificadores que acompañan a las palabras de fecha ("esta semana") y no
     // deben exigirse en el contenido de la tarea.
     private val DATE_MODIFIERS = setOf("esta", "este", "la", "el", "las", "los", "mis")
@@ -153,21 +157,30 @@ object SearchEngine {
         OVERDUE_TOKENS.any { it in words } -> DateScope.OVERDUE
         TODAY_TOKENS.any { it in words } -> DateScope.TODAY
         TOMORROW_TOKENS.any { it in words } -> DateScope.TOMORROW
+        YESTERDAY_TOKENS.any { it in words } -> DateScope.YESTERDAY
         WEEK_TOKENS.any { it in words } && NEXT_WEEK_TOKENS.any { it in words } -> DateScope.NEXT_WEEK
+        WEEK_TOKENS.any { it in words } && LAST_WEEK_TOKENS.any { it in words } -> DateScope.LAST_WEEK
         WEEK_TOKENS.any { it in words } -> DateScope.THIS_WEEK
         else -> null
     }
 
     private fun dateScopeTokens(words: List<String>): Set<String> =
-        words.filter { it in OVERDUE_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in DATE_MODIFIERS }.toSet()
+        words.filter { it in OVERDUE_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in DATE_MODIFIERS }.toSet()
 
     private fun taskMatchesDateScope(task: TaskEntity, scope: DateScope, now: Long, zone: ZoneId): Boolean {
         if (scope == DateScope.OVERDUE) return TaskRules.isOverdue(task, now)
-        if (task.completed || task.status == TaskStatus.CANCELLED) return false
+        // Los scopes pasados ("ayer", "semana pasada") recuperan tareas ya
+        // completadas: su propósito es revisar qué había en ese período. Para
+        // los scopes presentes/futuros se excluyen completadas. Las canceladas
+        // se excluyen siempre (no son información útil de un período pasado).
+        val pastScope = scope == DateScope.YESTERDAY || scope == DateScope.LAST_WEEK
+        if (task.status == TaskStatus.CANCELLED) return false
+        if (!pastScope && task.completed) return false
         val due = task.dueAt ?: return false
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         val dueDate = Instant.ofEpochMilli(due).atZone(zone).toLocalDate()
         return when (scope) {
+            DateScope.YESTERDAY -> dueDate == today.minusDays(1)
             DateScope.TODAY -> dueDate == today
             DateScope.TOMORROW -> dueDate == today.plusDays(1)
             DateScope.THIS_WEEK -> {
@@ -186,6 +199,15 @@ object SearchEngine {
                 val startNextWeek = today.plusDays((daysToSunday + 1).toLong())
                 val endNextWeek = startNextWeek.plusDays(6)
                 !dueDate.isBefore(startNextWeek) && !dueDate.isAfter(endNextWeek)
+            }
+            DateScope.LAST_WEEK -> {
+                // Semana pasada completa (lunes-domingo) inmediatamente anterior
+                // a la actual. daysToSunday ubica el domingo de esta semana; restando
+                // 7 → domingo pasado, y otros 6 → lunes pasado.
+                val daysToSunday = (7 - today.dayOfWeek.value) % 7
+                val endLastWeek = today.plusDays((daysToSunday - 7).toLong())
+                val startLastWeek = endLastWeek.minusDays(6)
+                !dueDate.isBefore(startLastWeek) && !dueDate.isAfter(endLastWeek)
             }
             DateScope.OVERDUE -> TaskRules.isOverdue(task, now)
         }

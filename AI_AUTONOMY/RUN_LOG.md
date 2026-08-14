@@ -5021,3 +5021,24 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: `1cd9f65` (push verificado, HEAD==origin).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: salir del parser hacia recuperación de tareas olvidadas (What Now/Guardián), contexto, onboarding; tolerancia a acentos en SearchEngine ("última"/"próxima").
+
+## Ciclo 113 — 2026-08-14 — SearchEngine: recuperación de tareas pasadas ("ayer" / "semana pasada" / "última semana")
+
+- **HEAD inicial**: `a12f322` (c.112 "ya"/"ya mismo"→now, ya pushed).
+- **Problema (P2, búsqueda universal / recuperación de información)**: buscar **"ayer"**, **"semana pasada"** o **"última semana"** devolvía SIEMPRE vacío. `SearchEngine.DateScope` solo tenía TODAY/TOMORROW/THIS_WEEK/NEXT_WEEK/OVERDUE; `detectDateScope` no reconocía "ayer"/"pasada"/"última" → esas palabras caían a búsqueda de contenido puro (ninguna tarea se titula "ayer") → el usuario no podía recuperar qué tenía ayer o la semana pasada. Área de dirección explícita del producto ("recuperación de tareas olvidadas", "búsqueda universal").
+- **Descubrimiento (probe JVM c.112, `/tmp/ordia-probe2/SearchProbe2.kt`, now=2026-08-14 viernes)**: "ayer"→[], "última semana"→[], "semana pasada"→[] (vacío = gap); "próxima semana"→[1] OK. Verificación crucial: los **acentos en "próxima semana" ya funcionaban** (`foldForSearch` normaliza NFD) → el "warning de acentos" heredado del contexto previo era **falso**; NO se tocó nada de acentos.
+- **Causa raíz**: ausencia total de scopes de pasado en `DateScope` + `detectDateScope`. No era un bug de acentos.
+- **Solución (mínima, `SearchEngine.kt`, sin nueva pantalla/botón)**:
+  - `DateScope` añade `YESTERDAY` + `LAST_WEEK`.
+  - Nuevos `YESTERDAY_TOKENS` = {"ayer"} y `LAST_WEEK_TOKENS` = {"pasada","pasado","última","últimas"} (accent-folded vía `foldForSearch`).
+  - `detectDateScope` los conecta; `dateScopeTokens` los excluye del contenido de texto.
+  - `taskMatchesDateScope` añade ramas: `YESTERDAY` → `dueDate == today.minusDays(1)`; `LAST_WEEK` → rango lunes-domingo de la semana pasada.
+  - **Math LAST_WEEK (corregida tras verificación)**: `daysToSunday = (7 - today.dayOfWeek.value) % 7`; `endLastWeek = today.plusDays((daysToSunday - 7).toLong())` (domingo pasado); `startLastWeek = endLastWeek.minusDays(6)` (lunes pasado). Verificado con jueves 2026-08-13 → semana pasada = lun 08-03..dom 08-09. (La 1ª fórmula usaba `daysToSunday - 6` que daba lun 08-04..dom 08-10 —incorrecto—; corregida antes de commit.)
+  - **Decisión de diseño (datos/recuperación)**: los scopes pasados incluyen tareas **completadas** (su propósito es revisar qué había en ese período), a diferencia de los presentes/futuros que las excluyen (`!it.completed`); las canceladas se excluyen siempre. El test existente `completedTasksAreExcludedFromDateScopes` (que espera exclusión en "hoy") se preserva intacto.
+- **Tests**: `bash tools/run_domain_tests.sh` → **763 PASS** (758 c.112 + 5 netos: `ayer_recoversTaskDueYesterday`, `ayer_recoversEvenCompletedTask`, `semanaPasada_recoversTasksFromPreviousWeek`, `ultimaSemana_recoversTasksWithAccent`, `semanaPasada_excludesThisWeekTasks`). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Probe JVM aparte: 9 casos verde ("ayer"→[1], "última/semana pasada"→[2] con/sin tilde, "esta semana"→[], "ayer cita"→[1], "próxima/semana que viene"→[3] intactos). Sin regresión.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt`, `app/src/test/java/com/ordia/app/domain/SearchEngineDateScopeTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: (ver abajo tras push).
+- **HEAD final**: (tras push, ver abajo).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: auditar WhatNowEngine/GuardianEngine (recuperación de vencidas, detección de compromisos); descubrimiento continuo en contexto/onboarding/captura ultrarrápida; no volver a tocar acentos del SearchEngine (ya verificado OK).

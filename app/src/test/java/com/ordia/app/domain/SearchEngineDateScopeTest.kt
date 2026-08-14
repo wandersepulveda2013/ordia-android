@@ -183,4 +183,72 @@ class SearchEngineDateScopeTest {
         val ids = SearchEngine.search("próxima semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
         assertEquals(setOf(2L, 3L), ids)
     }
+
+    // --- Recuperación de tareas pasadas ("ayer", "semana pasada") ---
+
+    @Test fun ayer_recoversTaskDueYesterday() {
+        // Jueves 2026-08-13: ayer = mié 08-12.
+        val zone = java.time.ZoneId.systemDefault()
+        val todayLocal = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = java.time.ZonedDateTime.of(todayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy", dueAt = t0),
+            TaskEntity(id = 2, title = "Ayer", dueAt = java.time.ZonedDateTime.of(todayLocal.minusDays(1).atTime(9, 0), zone).toInstant().toEpochMilli()), // 08-12
+            TaskEntity(id = 3, title = "Anteayer", dueAt = java.time.ZonedDateTime.of(todayLocal.minusDays(2).atTime(9, 0), zone).toInstant().toEpochMilli()) // 08-11
+        )
+        val ids = SearchEngine.search("ayer", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }
+        assertEquals(listOf(2L), ids)
+    }
+
+    @Test fun ayer_recoversEvenCompletedTask() {
+        // "ayer" recupera información: incluye tareas ya completadas.
+        val zone = java.time.ZoneId.systemDefault()
+        val todayLocal = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = java.time.ZonedDateTime.of(todayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hecha ayer", dueAt = java.time.ZonedDateTime.of(todayLocal.minusDays(1).atTime(9, 0), zone).toInstant().toEpochMilli(), completed = true)
+        )
+        val ids = SearchEngine.search("ayer", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }
+        assertEquals(listOf(1L), ids)
+    }
+
+    @Test fun semanaPasada_recoversTasksFromPreviousWeek() {
+        // Jueves 2026-08-13: esta semana = lun 08-10..dom 08-16; pasada = lun 08-03..dom 08-09.
+        val zone = java.time.ZoneId.systemDefault()
+        val todayLocal = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = java.time.ZonedDateTime.of(todayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy", dueAt = t0), // esta semana
+            TaskEntity(id = 2, title = "Lunes pasado", dueAt = java.time.ZonedDateTime.of(todayLocal.minusDays(10).atTime(9, 0), zone).toInstant().toEpochMilli()), // 08-03
+            TaskEntity(id = 3, title = "Domingo pasado", dueAt = java.time.ZonedDateTime.of(todayLocal.minusDays(4).atTime(9, 0), zone).toInstant().toEpochMilli()), // 08-09
+            TaskEntity(id = 4, title = "Lunes esta semana", dueAt = java.time.ZonedDateTime.of(todayLocal.minusDays(3).atTime(9, 0), zone).toInstant().toEpochMilli()) // 08-10 (esta semana)
+        )
+        val ids = SearchEngine.search("semana pasada", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(2L, 3L), ids)
+    }
+
+    @Test fun ultimaSemana_recoversTasksWithAccent() {
+        // "última semana" (con tilde) también activa LAST_WEEK.
+        val zone = java.time.ZoneId.systemDefault()
+        val todayLocal = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = java.time.ZonedDateTime.of(todayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Mié pasado", dueAt = java.time.ZonedDateTime.of(todayLocal.minusDays(8).atTime(9, 0), zone).toInstant().toEpochMilli()) // 08-05
+        )
+        val ids = SearchEngine.search("última semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }
+        assertEquals(listOf(1L), ids)
+    }
+
+    @Test fun semanaPasada_excludesThisWeekTasks() {
+        // Regresión: "semana pasada" NO trae tareas de esta semana.
+        val zone = java.time.ZoneId.systemDefault()
+        val todayLocal = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = java.time.ZonedDateTime.of(todayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy", dueAt = t0), // 08-13 esta semana
+            TaskEntity(id = 2, title = "Lunes esta semana", dueAt = java.time.ZonedDateTime.of(todayLocal.minusDays(3).atTime(9, 0), zone).toInstant().toEpochMilli()) // 08-10 esta semana
+        )
+        val ids = SearchEngine.search("la semana pasada", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertTrue("Esta semana no debe aparecer en 'la semana pasada'", ids.isEmpty())
+    }
 }
