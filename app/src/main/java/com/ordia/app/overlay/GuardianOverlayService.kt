@@ -26,6 +26,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
+import androidx.core.content.edit
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -195,7 +196,7 @@ class GuardianOverlayService : Service() {
                         params.x = if (params.x + v.width / 2 < screenWidth / 2) dp(8) else screenWidth - v.width - dp(8)
                         params.y = params.y.coerceIn(dp(24), resources.displayMetrics.heightPixels - v.height - dp(80))
                         windowManager.updateViewLayout(v, params)
-                        getSharedPreferences(POSITIONS, MODE_PRIVATE).edit().putInt("x", params.x).putInt("y", params.y).apply()
+                        getSharedPreferences(POSITIONS, MODE_PRIVATE).edit { putInt("x", params.x); putInt("y", params.y) }
                     }
                     return true
                 }
