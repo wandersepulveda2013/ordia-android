@@ -4929,8 +4929,8 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: `bash tools/run_domain_tests.sh` → **727 PASS** (720 base `30b62d5` + 7 nuevos: `ahoraMismoVenceAhoraYLimpiaTitulo`, `ahoritaVenceAhoraYLimpiaTitulo`, `ahoraSoloVenceAhoraYLimpiaTitulo`, `loAntesPosibleVenceAhoraYLimpiaTitulo`, `cuantoAntesVenceAhoraYLimpiaTitulo`, `aLaBrevedadVenceAhoraYLimpiaTitulo`, `loMasProntoPosibleVenceAhoraYLimpiaTitulo`). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Sin regresión: "enseguida"=+1h (c.106 intacto), "en un rato"=+1h, "en media hora"=+30min, "mañana a las 9" intactos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **Commits**: (ver hash tras push).
-- **HEAD final**: (tras push).
+- **Commits**: `2f5b418` (feat(parser): "ahora mismo"/"ahorita"/"ahora"/"lo antes posible"/"cuanto antes"/"a la brevedad" ahora son dueAt=now (P1)). Push OK `30b62d5..2f5b418`.
+- **HEAD final**: `2f5b418`.
 - **Estado**: FIXED → VERIFIED (dominio JVM); STALE_RUN reconstruido de forma segura y no destructiva.
 - **Próxima prioridad**: descubrimiento continuo — "más tarde"/"más rato"/"en cualquier momento" (vago futuro sin hora, ¿+3h?¿hoy tarde?), "tan pronto como sea posible"/"cuanto antes mejor"; otras áreas: recuperación de tareas olvidadas (What Now/Guardián), inbox inteligente, contexto, onboarding.
 
