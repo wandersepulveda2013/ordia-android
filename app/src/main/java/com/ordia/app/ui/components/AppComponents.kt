@@ -41,6 +41,18 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.ui.theme.OrdiaGoldSoft
 
 @Composable
+fun OrdiaCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = MaterialTheme.shapes.large,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        content()
+    }
+}
+
+@Composable
 fun ScreenHeader(
     eyebrow: String? = null,
     title: String,
@@ -48,7 +60,7 @@ fun ScreenHeader(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null
 ) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(Modifier.fillMaxWidth().padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (eyebrow != null) {
             Text(eyebrow.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
         }
@@ -69,15 +81,15 @@ fun ScreenHeader(
 
 @Composable
 fun SectionHeader(title: String, supporting: String? = null, action: String? = null, onAction: (() -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleLarge)
-            if (supporting != null) Text(supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (supporting != null) Text(supporting, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (action != null && onAction != null) {
             Text(
                 action,
-                modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onAction).padding(horizontal = 10.dp, vertical = 7.dp),
+                modifier = Modifier.clip(MaterialTheme.shapes.small).clickable(onClick = onAction).padding(horizontal = 10.dp, vertical = 7.dp),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.secondary
             )
@@ -87,12 +99,8 @@ fun SectionHeader(title: String, supporting: String? = null, action: String? = n
 
 @Composable
 fun StatCard(label: String, value: String, supporting: String? = null, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    OrdiaCard(modifier = modifier) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.headlineMedium)
             if (supporting != null) Text(supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
