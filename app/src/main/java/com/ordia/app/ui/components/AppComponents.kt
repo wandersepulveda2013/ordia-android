@@ -38,7 +38,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ordia.app.ui.theme.OrdiaGoldSoft
 
 @Composable
 fun ScreenHeader(
@@ -134,7 +133,7 @@ fun EmptyState(
 fun GuardianAvatar(size: androidx.compose.ui.unit.Dp, mood: GuardianMood = GuardianMood.CALM, modifier: Modifier = Modifier) {
     val background = MaterialTheme.colorScheme.primary
     val foreground = MaterialTheme.colorScheme.onPrimary
-    val accent = OrdiaGoldSoft
+    val accent = MaterialTheme.colorScheme.secondary
     Canvas(
         modifier = modifier.size(size).semantics { contentDescription = "Guardián de Ordia, estado ${mood.label}" }
     ) {
@@ -200,4 +199,78 @@ fun InfoBanner(title: String, text: String, modifier: Modifier = Modifier) {
             Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
         }
     }
+}
+
+@Composable
+fun OrdiaCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    val shape = RoundedCornerShape(12.dp)
+    val color = MaterialTheme.colorScheme.surface
+    val contentColor = MaterialTheme.colorScheme.onSurface
+
+    if (onClick != null) {
+        androidx.compose.material3.Surface(
+            modifier = modifier,
+            shape = shape,
+            color = color,
+            contentColor = contentColor,
+            onClick = onClick,
+            content = content
+        )
+    } else {
+        androidx.compose.material3.Surface(
+            modifier = modifier,
+            shape = shape,
+            color = color,
+            contentColor = contentColor,
+            content = content
+        )
+    }
+}
+
+@Composable
+fun OrdiaButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    primary: Boolean = true
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(48.dp),
+        enabled = enabled,
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (primary) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = if (primary) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    ) {
+        Text(text, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+fun OrdiaInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "",
+    singleLine: Boolean = true
+) {
+    androidx.compose.material3.OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.fillMaxWidth(),
+        placeholder = { Text(placeholder) },
+        singleLine = singleLine,
+        shape = RoundedCornerShape(8.dp),
+        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+        )
+    )
 }
