@@ -62,7 +62,7 @@ object NaturalTaskParser {
     }
 
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
-    private val weekdayPattern = Regex("""(?i)\b(?:el\s+|del\s+|de\s+|este\s+)?(?:pr[oó]ximo\s+|pr[oó]xima\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+que\s+viene|\s+pr[oó]ximos?|\s+pr[oó]ximas?)?\b""")
+    private val weekdayPattern = Regex("""(?i)\b(?:el\s+|del\s+|de\s+|este\s+)?(?:pr[oó]ximo\s+|pr[oó]xima\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+que\s+viene|\s+pr[oó]ximos?|\s+pr[oó]ximas?|\s+siguientes?|\s+posterior(?:es)?)?\b""")
     /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado.
      *  Acepta también "finales de semana" (plural análogo a "finales de mes"): señala un
      *  fin de semana concreto, no un hábito. Acepta el apócope coloquial "finde"
@@ -1568,7 +1568,8 @@ object NaturalTaskParser {
                 // ocurrencia. La escritura sin tilde ("proximo viernes") es habitual en móvil;
                 // antes solo se detectaba la forma acentuada y la cita caía en HOY (P1). Se
                 // alinea con monthBaseForBoundary (que ya aceptaba ambas formas).
-                val nextExplicit = mv.contains("que viene") || mv.contains("próxim") || mv.contains("proxim")
+                val nextExplicit = mv.contains("que viene") || mv.contains("próxim") || mv.contains("proxim") ||
+                    mv.contains("siguiente") || mv.contains("posterior")
                 weekdaySameDayCandidate = !nextExplicit && base.toLocalDate().dayOfWeek == target
                 if (nextExplicit) nextWeekday(base.toLocalDate(), target)
                 else nextWeekdayOrSame(base.toLocalDate(), target)

@@ -5844,4 +5844,48 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(RecurrenceFrequency.NONE, result.recurrence)
     }
+
+    // --- "siguiente"/"posterior" como sufijo de día de la semana (ciclo 148) ---
+    // "el martes siguiente"/"el lunes posterior" son sinónimos de "que viene"/"próximo"
+    // (próxima ocurrencia estricta) pero NO se reconocían: el modificador quedaba como
+    // residuo del título ("reunión siguiente") y, peor, NO forzaba +7 (un martes dicho
+    // en martes caía en HOY en vez de la semana próxima). P2: título sucio + semántica
+    // débil. "siguiente" es ambiguo solo tras día genérico ("el día siguiente"); tras un
+    // día de la semana nombrado ("el martes siguiente") significa sin ambigüedad la
+    // próxima ocurrencia, igual que "el martes que viene".
+
+    @Test fun weekdaySiguienteLimpiaTituloYFuerzaProximaOcurrencia() {
+        // Miércoles 29-jul; "el martes siguiente" = próximo martes 04-ago (no hoy).
+        val result = NaturalTaskParser.parse("Reunión el martes siguiente", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 4), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun weekdaySiguienteConHoraLimpiaTodo() {
+        val result = NaturalTaskParser.parse("Reunión el martes siguiente a las 3", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 4), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(3, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun weekdaySiguienteHoyEsEseDiaFuerzaProximaSemana() {
+        // Martes 04-ago 8:00; "el martes siguiente" dicho en martes = próxima semana.
+        val martesNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 4), LocalTime.of(8, 0), zone)
+        val r = NaturalTaskParser.parse("Ir al dentista el martes siguiente", martesNow, zone)
+        assertEquals(LocalDate.of(2026, 8, 11), DateRules.toLocalDate(r.dueAt!!, zone))
+    }
+
+    @Test fun weekdayPosteriorLimpiaTituloYFuerzaProximaOcurrencia() {
+        // "el lunes posterior" = próximo lunes estricto (03-ago), sinónimo de "que viene".
+        val result = NaturalTaskParser.parse("Pago el lunes posterior", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun weekdaySiguienteNoInterfiereConDiaSuelto() {
+        // "el viernes" sin modificador sigue funcionando (dicho en miércoles = 31-jul).
+        val result = NaturalTaskParser.parse("Entregar el viernes", now, zone)
+        assertEquals("Entregar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }
