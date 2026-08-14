@@ -9,13 +9,13 @@ import androidx.compose.ui.graphics.Color
 import com.ordia.app.data.preferences.AccentPalette
 import com.ordia.app.data.preferences.ThemeMode
 
-val OrdiaInk = Color(0xFF1D1B17)
-val OrdiaCream = Color(0xFFF7F3EB)
-val OrdiaPaper = Color(0xFFFFFCF7)
-val OrdiaGold = Color(0xFF8A682D)
+val OrdiaInk = Color(0xFF121212)
+val OrdiaCream = Color(0xFFF5F5F5)
+val OrdiaPaper = Color(0xFFFFFFFF)
+val OrdiaGold = Color(0xFF8A682D) // Keep semantic? Actually minimal is black/white
 val OrdiaGoldSoft = Color(0xFFD9BC7A)
-val OrdiaSage = Color(0xFF76845F)
-val OrdiaRose = Color(0xFFA87373)
+val OrdiaSage = Color(0xFF76845F) // E.g. success
+val OrdiaRose = Color(0xFFA87373) // E.g. alert/error
 val OrdiaLavender = Color(0xFF88759C)
 
 /** Palette of accent colors chosen by the user. Each entry holds (secondary, secondaryContainer, onSecondaryContainer) for light and dark. */
@@ -62,47 +62,47 @@ val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
 private val LightColors = lightColorScheme(
     primary = OrdiaInk,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFEAE2D4),
+    primaryContainer = Color(0xFFE0E0E0),
     onPrimaryContainer = OrdiaInk,
-    secondary = OrdiaGold,
+    secondary = OrdiaInk,
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFF2E5C9),
-    onSecondaryContainer = Color(0xFF34270F),
+    secondaryContainer = Color(0xFFEEEEEE),
+    onSecondaryContainer = OrdiaInk,
     tertiary = OrdiaSage,
     onTertiary = Color.White,
     background = OrdiaCream,
     onBackground = OrdiaInk,
     surface = OrdiaPaper,
     onSurface = OrdiaInk,
-    surfaceVariant = Color(0xFFEDE7DC),
-    onSurfaceVariant = Color(0xFF625D55),
-    outline = Color(0xFF8C8579),
-    outlineVariant = Color(0xFFDAD1C2),
-    error = Color(0xFF9A3E3E),
+    surfaceVariant = Color(0xFFF0F0F0),
+    onSurfaceVariant = Color(0xFF555555),
+    outline = Color(0xFF999999),
+    outlineVariant = Color(0xFFDDDDDD),
+    error = Color(0xFFD32F2F),
     onError = Color.White
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFF3EDE2),
-    onPrimary = Color(0xFF1A1916),
-    primaryContainer = Color(0xFF34312B),
-    onPrimaryContainer = Color(0xFFF5EFE4),
-    secondary = OrdiaGoldSoft,
-    onSecondary = Color(0xFF33270E),
-    secondaryContainer = Color(0xFF4C3C1C),
-    onSecondaryContainer = Color(0xFFFFE8AF),
-    tertiary = Color(0xFFB9C99F),
-    onTertiary = Color(0xFF263017),
-    background = Color(0xFF141310),
-    onBackground = Color(0xFFEDE8DF),
-    surface = Color(0xFF1C1B18),
-    onSurface = Color(0xFFEDE8DF),
-    surfaceVariant = Color(0xFF2B2924),
-    onSurfaceVariant = Color(0xFFC9C2B8),
-    outline = Color(0xFF938C81),
-    outlineVariant = Color(0xFF47433D),
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005)
+    primary = Color.White,
+    onPrimary = Color.Black,
+    primaryContainer = Color(0xFF333333),
+    onPrimaryContainer = Color.White,
+    secondary = Color.White,
+    onSecondary = Color.Black,
+    secondaryContainer = Color(0xFF444444),
+    onSecondaryContainer = Color.White,
+    tertiary = Color(0xFFA5D6A7),
+    onTertiary = Color(0xFF1B5E20),
+    background = Color(0xFF121212),
+    onBackground = Color(0xFFEEEEEE),
+    surface = Color(0xFF1E1E1E),
+    onSurface = Color(0xFFEEEEEE),
+    surfaceVariant = Color(0xFF2C2C2C),
+    onSurfaceVariant = Color(0xFFB0B0B0),
+    outline = Color(0xFF888888),
+    outlineVariant = Color(0xFF444444),
+    error = Color(0xFFEF9A9A),
+    onError = Color(0xFFB71C1C)
 )
 
 @Composable
