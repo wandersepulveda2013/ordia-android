@@ -10,7 +10,7 @@
 - **Tests**: +6 tests permanentes en `NaturalTaskParserTest.kt` (4 `dayOfMonth`: `diaNWithoutArticleResolves`→08-15, `diaNWithoutArticleExplicitHour`→08-05 18:00 = caso P1, `diaNWithoutArticleNearTodayRollsForward`→08-03, `diaNOfBookIsNotDate`→null guard; 2 `nextMonthDay`: `diaNNextMonthWithoutArticleResolves`→08-15, `diaNNextMonthWithoutArticleRolled`→08-05). `bash tools/run_domain_tests.sh` → **956 PASS** (950 c.132 + 6), 0 failures; `bash tools/run_domain_checks.sh` → smoke 25 OK. Stash-compare confirmó que el residuo de título en entradas de SÓLO fecha ("día 15 del mes que viene" sin verbo) es comportamiento preexistente (no regresión); los casos de uso reales (verbo+fecha) quedan con título limpio.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK en este entorno). Integración del parser con `AddTaskScreen`/IME queda fuera del harness JVM.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (2 regex: `dayOfMonthPattern` anclaje+lookahead, `nextMonthDayPattern` anclaje), `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+6 tests), `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG,BACKLOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 956 tests, 0 failures). Integración Android NO VERIFICADA.
 - **Próxima prioridad**: descubrimiento continuo — gap BACKLOG "día N sin artículo" CERRADO; revisar otros gaps léxicos del parser y áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA.
 
@@ -57,7 +57,7 @@
 - **Tests**: +5 tests de regresión en `NaturalTaskParserTest.kt` (`mediadosDeLaSemanaAnclaMiercoles`, `mitadDeLaSemanaEsSinonimoDeMediados`, `principiosDeLaSemanaAnclaLunes`, `mediadosDeLaSemanaRespetaHoraExplicita`, `aMediadosDeLaSemanaConPrefijoAOpcional`). `bash tools/run_domain_tests.sh` → **920 PASS** (915 c.129-run4 + 5); `bash tools/run_domain_checks.sh` → smoke 25 OK.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK en este entorno).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (2 patrones), `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+5 tests), `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG,BACKLOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 920 tests, 0 failures). Integración Android NO VERIFICADA.
 - **Colisión gestionada**: run concurrente `ccbb450` resolvió items 1 y 2 del diagnóstico c.130 previo. Aporte neto de este run = item 3 únicamente. No se forzó push, no se sobrescribió trabajo válido.
 - **Próxima prioridad**: gaps P2 ABIERTOS del parser ("día N de este mes"→null; "día 15" sin artículo→null; "1ro de septiembre" ordinal→null) y descubrimiento continuo en áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA.
@@ -79,7 +79,7 @@
 - **Tests**: +9 tests en `AutomationActionPlannerTest.kt` (recordatorio previo preservado en PLAN_DAY/BATCH_QUICK_TASKS; slot futuro obtiene reminder, slot pasado no; condición HAS_OVERDUE_TASKS sin vencidas no se dispara; RESCHEDULE_OVERDUE reprograma a futuro con reminder 1h antes; BATCH_QUICK_TASKS agrupa sin slots duplicados y respeta reminder previo; REVIEW_COMMITMENTS crea tarea y evita duplicados; no se dispara sin compromisos; BATCH_QUICK_TASKS ignora tareas largas). `bash tools/run_domain_tests.sh` → **873 PASS** (856 c.128 + 17 de automatización: 5 `AutomationRulesTest` + 3 `AutomationUndoRulesTest` ya existentes + 9 nuevos). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). `AutomationEngine.runRule` (ruta de persistencia/log/deshacer con `TaskSnapshotCodec`) y `AutomationWorker` (WorkManager) quedan fuera del harness JVM — el cambio en `AutomationEngine` es una delegación directa al planner extraído (misma firma conceptual), pero su integración end-to-end no se probó en Android.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/automation/AutomationEngine.kt` (slimmed + delegación), `app/src/main/java/com/ordia/app/automation/AutomationWorker.kt` (removida `AutomationSchedulePolicy`), `tools/run_domain_tests.sh` (fuentes de automatización). **Creados**: `app/src/main/java/com/ordia/app/automation/AutomationActionPlanner.kt`, `app/src/main/java/com/ordia/app/automation/AutomationSchedulePolicy.kt`, `app/src/test/java/com/ordia/app/automation/AutomationActionPlannerTest.kt`. `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG,BACKLOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 873 tests, 0 failures). Integración Android NO VERIFICADA.
 - **Próxima prioridad**: descubrimiento continuo en áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento, backup/restore con DAOs reales); auditoría de `AutomationEngine.runRule` (persistencia/log/deshacer) queda NO VERIFICADA sin Android SDK.
 
@@ -5366,7 +5366,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests (TDD)**: 6 tests RED antes del fix (todos fallaban: "tarde" devolvía vacío o todas). `bash tools/run_domain_tests.sh` → **815 PASS** tras rebase+merge (809 c.121 guardián + 6 search c.122; ambas features coexisten en clases distintas, sin colisión). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Tests: `tarde_returnsOnlyTasksDueTodayAfternoon` (15:00 de hoy entra; 8:00 no; 20:00 no; ayer 15:00 no; mañana 15:00 no), `estaTarde_matchesAfternoonOnly` (17:00 y 12:00 límite entran; 7:00 no), `noche_returnsOnlyTasksDueTonight` (21:00 y 23:00 entran; 16:00 no), `madrugada_returnsOnlyEarlyMorningToday` (4:00 entra; 13:00 no; ayer 3:00 no), `tardeConTexto_filtraDentroDeLaFranja` ("tarde cita medica" ⇒ solo la de 15:00 con "cita médica"), `parteDelDia_excluyeCompletadas`.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Las franjas horarias (0-5/12-17/18-23) son una elección razonable; el usuario puede refinarlas en el futuro si la zona cultural difiere.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt`, `app/src/test/java/com/ordia/app/domain/SearchEngineDateScopeTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 815 tests combinados tras merge con c.121 guardián).
 - **Próxima prioridad**: por fin salir del parser/search hacia la prioridad de memoria pendiente desde c.117: auditar `WhatNowEngine.kt`/`GuardianEngine.kt` (bugs reales de scoring/exclusión/contexto, consistencia `WhatNowEngine.reason()` vs `TaskRules.timeRank()`), recuperación de tareas olvidadas (vencidas importantes, "What Now" más útil), contexto, onboarding; buscar nuevas oportunidades de producto (menos fricción, más potencia real).
 
@@ -5401,7 +5401,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: +11 tests de regresión en `NaturalTaskParserTest.kt`: `semanaEntranteParsesDueAt` (+7d→2026-08-05), `mesEntranteParsesDueAt` (+30d→2026-08-28), `anioEntranteParsesDueAt` (+1año→2027-07-29), `mesEntranteRespetaHoraExplicita` (10:00), `entranteNoEsFalsoPositivoEnSustantivoAjeno` ("documento entrante"→null, título intacto), `elNDelMesEntranteResuelveDiaNDelMesSiguiente` (10→08-10), `elMesEntranteElNResuelveDiaNDelMesSiguiente` (orden inverso, 20→08-20), `laSemanaEntranteElViernesResuelveViernesDeLaSemanaProxima` (→08-07), `elLunesDeLaSemanaEntranteResuelveLunesDeLaSemanaProxima` (orden inverso, →08-03), `finDelMesEntranteAnclaFinMesSiguiente` (→08-31), `principiosDelMesEntranteAnclaInicioMesSiguiente` (→08-01). `bash tools/run_domain_tests.sh` → **833 PASS** (822 c.124 + 11; coexistencia sin conflicto con guards del codec de c.124 — clases distintas). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 833 tests, 0 failures).
 - **Próxima prioridad**: descubrimiento continuo en el parser (más variantes regionales/formas compactas sin reconocimiento), y áreas de dirección no parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría de workers/backup/restore con DAOs reales queda NO VERIFICADA (sin Android SDK).
 
@@ -5422,7 +5422,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: +11 tests de regresión en `NaturalTaskParserTest.kt`: 5 "que entra" (`laSemanaQueEntraResuelveProximaSemana`→2026-08-05, `elMesQueEntraResuelveProximoMes`→2026-08-28, `elAnioQueEntraResuelveProximoAnio`→2027-07-29, `elMesQueEntraConHoraAplicaHora`→10:00, `elNDelMesQueEntraResuelveDiaNDelMesSiguiente`→08-15), 4 "anterior" (`laSemanaAnteriorResuelveFechaPasada`→2026-07-22, `elMesAnteriorResuelveFechaPasada`→2026-06-29, `elAnioAnteriorResuelveFechaPasada`→2025-07-29, `elMesAnteriorConHoraAplicaHora`→15:00), 2 "comienzos" (`comienzosDeMesVarianteDePrincipios`→2026-08-01, `comienzosDeSemanaVarianteDePrincipios`→2026-08-03). `bash tools/run_domain_tests.sh` → **844 PASS** (833 c.125 + 11). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Auditoría de workers/backup/restore con DAOs reales queda pendiente.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 844 tests, 0 failures).
 - **Próxima prioridad**: descubrimiento continuo — más gaps léxicos del parser (variantes regionales, formas compactas sin reconocimiento), y áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría de workers/backup/restore con DAOs reales queda NO VERIFICADA (sin Android SDK).
 
@@ -5437,7 +5437,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: +8 tests de regresión en `NaturalTaskParserTest.kt`: `ayerTardeEsAyer15hYLimpiaTitulo`→2026-07-28 15:00, `ayerNocheEsAyer21hYLimpiaTitulo`→21:00, `ayerMadrugadaEsAyer4hYLimpiaTitulo`→04:00, `anteayerTardeEsAnteayer15hYLimpiaTitulo`→2026-07-27 15:00, `anteayerNocheEsAnteayer21hYLimpiaTitulo`→21:00, `antierTardeEsAnteayer15hYLimpiaTitulo`→15:00 (variante coloquial), `antierNocheEsAnteayer21hYLimpiaTitulo`→21:00, `ayerTardeConHoraSinMeridiemAplicaPm`→16:00 (simétrico de "hoy tarde a las 4"). `bash tools/run_domain_tests.sh` → **852 PASS** (844 c.126 + 8). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Probe JVM 16 casos verde: controles futuros intactos (hoy/mañana/pasado/antepasado + parte del día), variantes "antier", "ayer tarde a las 4"=16:00, "anteayer noche a las 9"=21:00, sin residuo de título.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Auditoría de workers/backup/restore con DAOs reales queda pendiente.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 852 tests, 0 failures).
 - **Próxima prioridad**: descubrimiento continuo — más gaps del parser (variantes regionales, formas compactas) y áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría de workers/backup/restore con DAOs reales queda NO VERIFICADA (sin Android SDK).
 
@@ -5452,7 +5452,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: +4 tests de regresión en `NaturalTaskParserTest.kt`: `anocheEsAyer21hYLimpiaTitulo`→2026-07-28 21:00, `anocheConHoraAplicaPmYFechaAyer`→AYER 22:00 (no HOY 10:00), `antenocheEsAnteayer21hYLimpiaTitulo`→2026-07-27 21:00, `antenocheConHoraAplicaPmYFechaAnteayer`→ANTEAYER 21:00 (no HOY 09:00). `bash tools/run_domain_tests.sh` → **856 PASS** (852 c.127 + 4). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Probe JVM 24 casos verde: controles intactos ("esta noche"=hoy 21:00, "mañana de noche", "ayer al mediodía", "ayer tarde", "antier por la tarde"), sin residuo de título, sin falsos positivos ("anochece"/"al anochecer" siguen null — verbo/sustantivo, no adverbio, menos frecuentes y ambiguos).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Auditoría de workers/backup/restore con DAOs reales queda pendiente.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 856 tests, 0 failures).
 - **Próxima prioridad**: descubrimiento continuo — más gaps del parser (variantes regionales, formas compactas) y áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría de workers/backup/restore con DAOs reales queda NO VERIFICADA (sin Android SDK).
 
@@ -5494,7 +5494,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Auditoría de workers/backup/restore con DAOs reales queda pendiente.
 - **Hallazgos adicionales (descubrimiento continuo, probe c.129-run3)**: (a) residuo de título "de" en "llamar de mañana"→"llamar de" y "llamar a las 9 de la noche de mañana"→"llamar de" (P1 título, registrado para próximo run); (b) residuo "9" en "reunión 9 de la noche de mañana"→"reunión 9" (P1 título); (c) "pagar 1ro de septiembre"/"el 1ro de septiembre" ordinal sin artículo→null (P2 backlog ABIERTO); (d) "pagar el 31/30 de este mes"→null (P2, "de este mes" con día no casado); (e) "pago a mediados de la semana"→null (asimetría con "mediados de mes" que SÍ funciona, P2). Backlog ABIERTO P2: "día N" sin artículo, "1ro de septiembre" ordinal. Próxima prioridad: resolver residuo "de" en "de mañana"/"9 de la noche de mañana" (misma clase insidiosa de título mutilado que c.129-run2), y luego "mediados de la semana"; seguir descubrimiento continuo en áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría de workers/backup/restore con DAOs reales queda NO VERIFICADA.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 897 tests, 0 failures).
 
 ## Ciclo 129 (run 4) - 2026-08-14 (UTC) - fix(parser): residuo de título "de mañana"/"9 de la noche de mañana"/"desde hoy" (P1 integridad de título, misma clase insidiosa que c.129-run2)
@@ -5518,7 +5518,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Hallazgos adicionales**: gap "reunión desde hoy"→"reunión desde" (mismo defecto de conector, no estaba en el probe original) detectado y corregido en este mismo run (ampliación natural del fix a `desde`). Gaps P2 del parser confirmados ABIERTOS en BACKLOG: "mediados de la semana"→null (asimetría con "mediados de mes"); "el 31 de este mes"/"día N de este mes"→null; "día 15" sin artículo→null; "1ro de septiembre" ordinal→null.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 915 tests, 0 failures).
 - **Próxima prioridad**: gaps P2 ABIERTOS del parser (evaluar utilidad vs falso positivo: "mediados de la semana", "día N de este mes", "día 15" sin artículo, "1ro de septiembre" ordinal) y descubrimiento continuo en áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA.
 
@@ -5541,7 +5541,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Hallazgos adicionales**: el falso positivo "sobre las 3 cajas" detectado DURANTE el desarrollo obligó a endurecer el lookahead (evidencia de reloj requerida para sobre/hacia/cerca/alrededor). Gaps P2 del parser confirmados ABIERTOS en BACKLOG: "mediados de la semana"→null, "día N de este mes"→null, "día 15" sin artículo→null, "1ro de septiembre" ordinal→null.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 931 tests, 0 failures).
 - **Próxima prioridad**: descubrimiento continuo — gaps léxicos del parser (formas compactas, variantes regionales) y áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA.
 
@@ -5562,7 +5562,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); integración `AutomationEngine.runRule`/`AutomationWorker` con DAOs/WorkManager reales queda pendiente.
 - **Hallazgos adicionales**: la auditoría previa de motores no-parser (WhatNowEngine, GuardianEngine, DayPlanner, SubtaskRules, TaskRules, RecurrenceEngine) no reveló bugs; `AutomationActionPlanner` sí. Continuar con SummaryEngine, GuardianCoach, UniversalCaptureEngine, ReminderRules, LearningEngine, RoutineRules, HabitRules en próximos runs.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/automation/AutomationActionPlanner.kt`, `app/src/test/java/com/ordia/app/automation/AutomationActionPlannerTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 932 tests, 0 failures).
 - **Próxima prioridad**: continuar auditoría de motores no-parser restantes y descubrimiento continuo en producto (What Now, Guardián, contexto, onboarding, navegación, accesibilidad, rendimiento).
 
@@ -5586,6 +5586,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Hallazgos adicionales**: el falso positivo "ver el 3er capítulo" detectado DURANTE el desarrollo (primera versión incondicional) obligó a endurecer el patrón al contexto de fecha (" de "/" del "). Caso límite preexistente confirmado NO REGRESIÓN: "el 10 de octubre" (fecha pura sin contenido) ya dejaba residuo de título antes de este cambio (comportamiento del cleanup de título ante input de solo-fecha, fuera de alcance de este fix atómico); con contenido presente el título se limpia correctamente. Gap P2 ABIERTO restante: "día N" sin artículo ("pago día 15"→null).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit + push de este run).
+- **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 940 tests, 0 failures).
 - **Próxima prioridad**: gap P2 ABIERTO "día N" sin artículo ("pago día 15"→null, evaluar falso positivo vs utilidad); descubrimiento continuo en áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA.
