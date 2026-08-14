@@ -4185,6 +4185,25 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    // P0 integridad de datos: si el título contiene "ya" dentro de otra palabra
+    // (maya/playa/raya) Y termina con el token "ya", el parser solo debe borrar el
+    // token final, no todas las ocurrencias de "ya". Antes usaba working.replace(it.value)
+    // (global, literal) y corrompía "comprar maya ya" → "comprar ma".
+    @Test fun yaFinalNoCorrompePalabrasQueContienenYa() {
+        val result = NaturalTaskParser.parse("Comprar maya ya", now, zone)
+        assertEquals("Comprar maya", result.title)
+        assertEquals(now, result.dueAt)
+    }
+
+    @Test fun yaFinalNoCorrompePlayaNiRaya() {
+        val result1 = NaturalTaskParser.parse("Reservar en la playa para ya", now, zone)
+        assertEquals("Reservar en la playa", result1.title)
+        assertEquals(now, result1.dueAt)
+        val result2 = NaturalTaskParser.parse("Volar cometa en la raya ya", now, zone)
+        assertEquals("Volar cometa en la raya", result2.title)
+        assertEquals(now, result2.dueAt)
+    }
+
     @Test fun loMasProntoPosibleVenceAhoraYLimpiaTitulo() {
         val result = NaturalTaskParser.parse("Empezar lo más pronto posible", now, zone)
         assertEquals("Empezar", result.title)
