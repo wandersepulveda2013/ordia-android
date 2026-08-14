@@ -64,10 +64,25 @@ object AutomationActionPlanner {
                 val base = LocalDate.now(zone)
                 val updates = overdue.sortedBy { it.dueAt }.take(8).mapIndexed { index, task ->
                     val due = DateRules.toEpochMillis(base.plusDays(1L + index / 3), LocalTime.of(18, 0), zone)
+                    // Recordatorio:
+                    // - Si la tarea ya tenía uno, se conserva el OFFSET original del usuario
+                    //   (dueAt - reminderAt), aplicándolo al nuevo vencimiento. Esto evita
+                    //   corromper la cadencia de recordatorios recurrentes, que [RecurrenceEngine]
+                    //   reutiliza como offset para todas las ocurrencias futuras.
+                    // - Si no tenía recordatorio, se añade uno 1 h antes del nuevo vencimiento
+                    //   (siempre futuro): una tarea vencida reprogramada no debe quedar al olvido.
+                    //   Coherente con PLAN_DAY/BATCH_QUICK_TASKS (c.129), que añaden un recordatorio
+                    //   por defecto en el inicio cuando no existía.
+                    val reminder = if (task.reminderAt != null && task.dueAt != null) {
+                        val offset = task.dueAt - task.reminderAt
+                        due - offset
+                    } else {
+                        due - 60 * 60_000L
+                    }
                     task.copy(
                         startAt = null,
                         dueAt = due,
-                        reminderAt = task.reminderAt?.let { due - 60 * 60_000L },
+                        reminderAt = reminder,
                         status = TaskStatus.PLANNED,
                         updatedAt = now
                     )
