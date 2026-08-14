@@ -17,14 +17,14 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Repeat
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaDialog
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaOutlinedButton
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -83,7 +83,7 @@ fun TaskEditorDialog(
     var chosenTags by remember(existing?.id) { mutableStateOf(selectedTagIds) }
     var newTag by remember(existing?.id) { mutableStateOf("") }
 
-    AlertDialog(
+    OrdiaDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (existing == null) "Nueva tarea" else "Editar tarea") },
         text = {
@@ -91,11 +91,11 @@ fun TaskEditorDialog(
                 Modifier.fillMaxWidth().heightIn(max = 620.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Título") }, singleLine = true)
-                OutlinedTextField(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Detalles") }, minLines = 2, maxLines = 4)
+                OrdiaInput(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Título") }, singleLine = true)
+                OrdiaInput(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Detalles") }, minLines = 2, maxLines = 4)
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
+                    OrdiaOutlinedButton(
                         onClick = {
                             val current = dueAt?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() } ?: LocalDate.now()
                             DatePickerDialog(context, { _, year, month, day ->
@@ -109,7 +109,7 @@ fun TaskEditorDialog(
                         Icon(Icons.Outlined.CalendarMonth, null)
                         Text(dueAt?.let { DateRules.formatDate(it) } ?: "Fecha", Modifier.padding(start = 6.dp))
                     }
-                    OutlinedButton(
+                    OrdiaOutlinedButton(
                         onClick = {
                             val current = dueAt?.let { DateRules.toLocalTime(it) } ?: LocalTime.of(9, 0)
                             TimePickerDialog(context, { _, hour, minute ->
@@ -125,7 +125,7 @@ fun TaskEditorDialog(
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(Modifier.weight(1f)) {
-                        OutlinedButton(onClick = { priorityMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        OrdiaOutlinedButton(onClick = { priorityMenu = true }, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Outlined.Flag, null)
                             Text(priority.label(), Modifier.padding(start = 6.dp))
                         }
@@ -134,7 +134,7 @@ fun TaskEditorDialog(
                         }
                     }
                     Column(Modifier.weight(1f)) {
-                        OutlinedButton(onClick = { projectMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        OrdiaOutlinedButton(onClick = { projectMenu = true }, modifier = Modifier.fillMaxWidth()) {
                             Text(projects.firstOrNull { it.id == projectId }?.name ?: "Sin proyecto")
                         }
                         DropdownMenu(projectMenu, { projectMenu = false }) {
@@ -146,7 +146,7 @@ fun TaskEditorDialog(
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        OutlinedButton(onClick = { recurrenceMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                        OrdiaOutlinedButton(onClick = { recurrenceMenu = true }, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Outlined.Repeat, null)
                             Text(recurrence.label(), Modifier.padding(start = 6.dp))
                         }
@@ -154,7 +154,7 @@ fun TaskEditorDialog(
                             RecurrenceFrequency.entries.forEach { value -> DropdownMenuItem(text = { Text(value.label()) }, onClick = { recurrence = value; recurrenceMenu = false }) }
                         }
                     }
-                    OutlinedTextField(
+                    OrdiaInput(
                         value = duration,
                         onValueChange = { duration = it.filter(Char::isDigit).take(3) },
                         modifier = Modifier.weight(0.7f),
@@ -185,7 +185,7 @@ fun TaskEditorDialog(
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
+                    OrdiaInput(
                         value = newTag,
                         onValueChange = { newTag = it.take(30) },
                         modifier = Modifier.weight(1f),
@@ -200,7 +200,7 @@ fun TaskEditorDialog(
             }
         },
         confirmButton = {
-            Button(
+            OrdiaButton(
                 onClick = {
                     val normalizedDue = dueAt
                     val task = (existing ?: TaskEntity(title = title)).copy(
@@ -234,19 +234,19 @@ fun ProjectEditorDialog(existing: ProjectEntity? = null, onDismiss: () -> Unit, 
     var name by remember(existing?.id) { mutableStateOf(existing?.name.orEmpty()) }
     var description by remember(existing?.id) { mutableStateOf(existing?.description.orEmpty()) }
     var status by remember(existing?.id) { mutableStateOf(existing?.status ?: ProjectStatus.ACTIVE) }
-    AlertDialog(
+    OrdiaDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (existing == null) "Nuevo proyecto" else "Editar proyecto") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Nombre") }, singleLine = true)
-                OutlinedTextField(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Descripción") }, minLines = 3)
+                OrdiaInput(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Nombre") }, singleLine = true)
+                OrdiaInput(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Descripción") }, minLines = 3)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ProjectStatus.entries.forEach { value -> FilterChip(selected = status == value, onClick = { status = value }, label = { Text(value.label()) }) }
                 }
             }
         },
-        confirmButton = { Button(onClick = { onSave((existing ?: ProjectEntity(name = name)).copy(name = name, description = description, status = status)) }, enabled = name.isNotBlank()) { Text("Guardar") } },
+        confirmButton = { OrdiaButton(onClick = { onSave((existing ?: ProjectEntity(name = name)).copy(name = name, description = description, status = status)) }, enabled = name.isNotBlank()) { Text("Guardar") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
 }
@@ -260,23 +260,23 @@ fun HabitEditorDialog(existing: HabitEntity? = null, onDismiss: () -> Unit, onSa
     var target by remember(existing?.id) { mutableStateOf((existing?.targetPerPeriod ?: 1).toString()) }
     var reminderEnabled by remember(existing?.id) { mutableStateOf(existing?.reminderMinutes != null) }
     var reminderMinutes by remember(existing?.id) { mutableStateOf(existing?.reminderMinutes ?: 9 * 60) }
-    AlertDialog(
+    OrdiaDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (existing == null) "Nuevo hábito" else "Editar hábito") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Hábito") }, singleLine = true)
-                OutlinedTextField(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Por qué es importante") }, minLines = 2)
+                OrdiaInput(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Hábito") }, singleLine = true)
+                OrdiaInput(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Por qué es importante") }, minLines = 2)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     HabitFrequency.entries.forEach { value -> FilterChip(selected = frequency == value, onClick = { frequency = value }, label = { Text(value.label()) }) }
                 }
-                OutlinedTextField(target, { target = it.filter(Char::isDigit).take(2) }, modifier = Modifier.fillMaxWidth(), label = { Text("Meta por período") }, singleLine = true)
+                OrdiaInput(target, { target = it.filter(Char::isDigit).take(2) }, modifier = Modifier.fillMaxWidth(), label = { Text("Meta por período") }, singleLine = true)
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("Recordatorio diario", Modifier.weight(1f))
                     Switch(reminderEnabled, { reminderEnabled = it })
                 }
                 if (reminderEnabled) {
-                    OutlinedButton(
+                    OrdiaOutlinedButton(
                         onClick = {
                             val current = LocalTime.of((reminderMinutes / 60).coerceIn(0, 23), (reminderMinutes % 60).coerceIn(0, 59))
                             android.app.TimePickerDialog(context, { _, hour, minute -> reminderMinutes = hour * 60 + minute }, current.hour, current.minute, false).show()
@@ -292,7 +292,7 @@ fun HabitEditorDialog(existing: HabitEntity? = null, onDismiss: () -> Unit, onSa
                 }
             }
         },
-        confirmButton = { Button(onClick = { onSave((existing ?: HabitEntity(title = title)).copy(title = title, details = details, frequency = frequency, targetPerPeriod = target.toIntOrNull()?.coerceIn(1, 20) ?: 1, reminderMinutes = if (reminderEnabled) reminderMinutes else null)) }, enabled = title.isNotBlank()) { Text("Guardar") } },
+        confirmButton = { OrdiaButton(onClick = { onSave((existing ?: HabitEntity(title = title)).copy(title = title, details = details, frequency = frequency, targetPerPeriod = target.toIntOrNull()?.coerceIn(1, 20) ?: 1, reminderMinutes = if (reminderEnabled) reminderMinutes else null)) }, enabled = title.isNotBlank()) { Text("Guardar") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
 }
@@ -302,17 +302,17 @@ fun RoutineEditorDialog(existing: RoutineEntity? = null, existingSteps: List<Str
     var name by remember(existing?.id) { mutableStateOf(existing?.name.orEmpty()) }
     var description by remember(existing?.id) { mutableStateOf(existing?.description.orEmpty()) }
     var steps by remember(existing?.id) { mutableStateOf(existingSteps.joinToString("\n")) }
-    AlertDialog(
+    OrdiaDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (existing == null) "Nueva rutina" else "Editar rutina") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Nombre") }, singleLine = true)
-                OutlinedTextField(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Descripción") }, minLines = 2)
-                OutlinedTextField(steps, { steps = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Pasos, uno por línea") }, minLines = 5)
+                OrdiaInput(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Nombre") }, singleLine = true)
+                OrdiaInput(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Descripción") }, minLines = 2)
+                OrdiaInput(steps, { steps = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Pasos, uno por línea") }, minLines = 5)
             }
         },
-        confirmButton = { Button(onClick = { onSave((existing ?: RoutineEntity(name = name)).copy(name = name, description = description), steps.lines()) }, enabled = name.isNotBlank()) { Text("Guardar") } },
+        confirmButton = { OrdiaButton(onClick = { onSave((existing ?: RoutineEntity(name = name)).copy(name = name, description = description), steps.lines()) }, enabled = name.isNotBlank()) { Text("Guardar") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
 }
