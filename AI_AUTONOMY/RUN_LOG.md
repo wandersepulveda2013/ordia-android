@@ -4002,3 +4002,46 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Auditar helpers duplicados restantes entre `WhatNowEngine` y `TaskRules`.
 - Descubrimiento continuo: rutinas adaptables; detección de compromisos en notas;
   captura ultrarrápida; `PlanEngine`/replanización si OVERLOADED recurrente.
+
+---
+
+## Ciclo 88 — 2026-08-14
+
+- **Rama**: `openhands/autonomous-ordia`
+- **HEAD inicial**: `61bc0e9` (c.87 docs commit "registro HEAD final ciclo 87").
+- **Problema seleccionado**: **P1** — asimetría de acentos en `NaturalTaskParser`:
+  `"proximo viernes"` / `"viernes proximo"` (sin tilde) dicho en el propio día objetivo
+  se agendaba en HOY en vez de +7 (próxima semana). La forma acentuada `"próximo"` ya
+  funcionaba (fijada en c.72), pero el c.72 solo detectó `"próxim"` en `nextExplicit`
+  (línea 919), no `"proxim"`. `monthBaseForBoundary` (línea 1608) sí aceptaba ambas →
+  descuido, no decisión. La cita caía una semana antes; el recordatorio disparaba ~7d
+  temprano. Riesgo real de pérdida/duplicación de cita. Dependencia sutil de hora: el
+  bug solo se manifestaba antes de la 09:00 canónica (tras ella, el rollover anti-pasado
+  lo "arreglaba" por accidente).
+- **Causa raíz**: `nextExplicit = mv.contains("que viene") || mv.contains("próxim")` —
+  solo forma acentuada. Con `nextExplicit=false` → `nextWeekdayOrSame` (devuelve hoy).
+- **Solución mínima**: `nextExplicit = mv.contains("que viene") || mv.contains("próxim")
+  || mv.contains("proxim")` — alineado con la línea 1608. Sin tocar el regex (ya soporta
+  ambas vía `pr[oó]ximo`) ni el flujo de `weekdaySameDayCandidate`.
+- **Bugs**: P1 cita mal agendada (sin tilde + hoy=día objetivo + antes de 09:00).
+- **Features**: ninguna (fix de integridad de datos).
+- **Tests (TDD)**: +3 (`proximoSinTildeViernesHoyFuerzaProximaSemana`,
+  `proximoSinTildeSufijoFuerzaProximaSemana`, `proximoConTildeSigueForzandoProximaSemana`)
+  con `now`=viernes 2026-07-31 08:00 (antes de la 09:00 canónica). Confirmado RED antes
+  del fix (2 failures: `expected:<2026-08-07> but was:<2026-07-31>`) y GREEN tras.
+  Comando: `bash tools/run_domain_tests.sh` → **620 tests PASS** (26 clases).
+  Smoke: `bash tools/run_domain_checks.sh` → **25 assertions OK**. Sin regresión.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: pendiente (ver abajo).
+- **HEAD final**: (pendiente de commit/push).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**:
+  - Auditar otros chequeos de string acento-sensibles en el parser (p.ej. "qué viene",
+    otras variantes) por si quedan asimetrías análogas.
+  - `SearchEngine` date-scope: "parte del día" ("esta tarde"/"esta noche") / "este mes"
+    (P3 — evaluar necesidad real antes de implementar, anti-feature-bloat).
+  - Descubrimiento continuo: rutinas adaptables; detección de compromisos en notas;
+    captura ultrarrápida; `PlanEngine`/replanización si OVERLOADED recurrente.

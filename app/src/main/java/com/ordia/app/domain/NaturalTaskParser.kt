@@ -916,7 +916,11 @@ object NaturalTaskParser {
                 // P1). Con modificador "próximo"/"que viene" forzamos +7 (nextWeekday estricto);
                 // sin él, el día suelto "el jueves" dicho en jueves puede seguir siendo hoy.
                 val mv = weekdayMatch.value.lowercase()
-                val nextExplicit = mv.contains("que viene") || mv.contains("próxim")
+                // "próximo"/"proximo" (con o sin tilde) y "que viene" significan la PRÓXIMA
+                // ocurrencia. La escritura sin tilde ("proximo viernes") es habitual en móvil;
+                // antes solo se detectaba la forma acentuada y la cita caía en HOY (P1). Se
+                // alinea con monthBaseForBoundary (que ya aceptaba ambas formas).
+                val nextExplicit = mv.contains("que viene") || mv.contains("próxim") || mv.contains("proxim")
                 weekdaySameDayCandidate = !nextExplicit && base.toLocalDate().dayOfWeek == target
                 if (nextExplicit) nextWeekday(base.toLocalDate(), target)
                 else nextWeekdayOrSame(base.toLocalDate(), target)

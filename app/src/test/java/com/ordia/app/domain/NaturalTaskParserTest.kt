@@ -1260,6 +1260,32 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "próximo" sin tilde debe forzar +7 cuando hoy es ese día (ciclo N) ---
+    // El modificador "próximo"/"proximo" (con o sin tilde) significa "la PRÓXIMA
+    // ocurrencia", incluso si hoy es ese día. Dicho en viernes, "el proximo viernes"
+    // (escritura rápida sin tilde, habitual en móvil) caía en HOY en lugar de +7:
+    // la cita se agendaba una semana antes y el recordatorio disparaba 7d temprano.
+    // La rama acentuada ("próximo") ya forzaba +7; la sin tilde no (P1).
+    @Test fun proximoSinTildeViernesHoyFuerzaProximaSemana() {
+        // 8:00 (antes de la hora canónica 09:00): sin el fix, la cita caía en HOY.
+        val viernesNow = DateRules.toEpochMillis(LocalDate.of(2026, 7, 31), LocalTime.of(8, 0), zone)
+        val r = NaturalTaskParser.parse("Ir al dentista el proximo viernes", viernesNow, zone)
+        assertEquals(LocalDate.of(2026, 8, 7), DateRules.toLocalDate(r.dueAt!!, zone))
+    }
+
+    @Test fun proximoSinTildeSufijoFuerzaProximaSemana() {
+        val viernesNow = DateRules.toEpochMillis(LocalDate.of(2026, 7, 31), LocalTime.of(8, 0), zone)
+        val r = NaturalTaskParser.parse("Ir al dentista el viernes proximo", viernesNow, zone)
+        assertEquals(LocalDate.of(2026, 8, 7), DateRules.toLocalDate(r.dueAt!!, zone))
+    }
+
+    @Test fun proximoConTildeSigueForzandoProximaSemana() {
+        val viernesNow = DateRules.toEpochMillis(LocalDate.of(2026, 7, 31), LocalTime.of(8, 0), zone)
+        val r = NaturalTaskParser.parse("Ir al dentista el próximo viernes", viernesNow, zone)
+        assertEquals(LocalDate.of(2026, 8, 7), DateRules.toLocalDate(r.dueAt!!, zone))
+    }
+
+
     @Test fun delWeekdayQueVieneConHoraLimpiaTodo() {
         val result = NaturalTaskParser.parse("Clase de yoga del viernes que viene a las 8", now, zone)
         assertEquals("Clase de yoga", result.title)
