@@ -200,4 +200,60 @@ class TaskRulesTest {
 
         assertEquals(1, TaskRules.completedRootCount(listOf(done, cancelled)))
     }
+
+    // --- isActive: predicado canónico anti-fuga de CANCELLED (c.169/170) ---
+    // La causa raíz de los bugs c.169/c.170 fue repetir `!completed && !archived`
+    // olvidando `status != CANCELLED`. isActive centraliza ese trio; estos tests
+    // anclan el contrato y garantizan que isOverdue/isDueToday/isDueOn lo heredan.
+
+    @Test
+    fun isActive_trueForPlainTask() {
+        assertTrue(TaskRules.isActive(TaskEntity(title = "Activa")))
+    }
+
+    @Test
+    fun isActive_falseWhenCompleted() {
+        assertFalse(TaskRules.isActive(TaskEntity(title = "Hecha", completed = true)))
+    }
+
+    @Test
+    fun isActive_falseWhenArchived() {
+        assertFalse(TaskRules.isActive(TaskEntity(title = "Archivada", archived = true)))
+    }
+
+    @Test
+    fun isActive_falseWhenCancelled() {
+        // El caso que se colaba antes de c.169/c.170.
+        assertFalse(TaskRules.isActive(TaskEntity(title = "Cancelada", status = TaskStatus.CANCELLED)))
+    }
+
+    @Test
+    fun isOverdue_excludesCancelledEvenIfPastDue() {
+        val task = TaskEntity(title = "Vencida cancelada", dueAt = 1, status = TaskStatus.CANCELLED)
+        assertFalse(TaskRules.isOverdue(task, now = 10))
+    }
+
+    @Test
+    fun isDueToday_excludesCancelledEvenIfDueToday() {
+        val today = LocalDate.of(2026, 7, 29)
+        val now = today.atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
+        val due = today.atTime(18, 0).atZone(zone).toInstant().toEpochMilli()
+        val task = TaskEntity(title = "Hoy cancelada", dueAt = due, status = TaskStatus.CANCELLED)
+        assertFalse(TaskRules.isDueToday(task, now, zone))
+    }
+
+    @Test
+    fun isDueOn_excludesCancelledEvenIfDueOnDate() {
+        val due = date.atTime(18, 0).atZone(zone).toInstant().toEpochMilli()
+        val task = TaskEntity(title = "En fecha cancelada", dueAt = due, status = TaskStatus.CANCELLED)
+        assertFalse(TaskRules.isDueOn(task, date, zone))
+    }
+
+    @Test
+    fun nextBestTask_excludesCancelled() {
+        val cancelled = TaskEntity(id = 1, title = "Cancelada", priority = TaskPriority.URGENT, status = TaskStatus.CANCELLED)
+        val normal = TaskEntity(id = 2, title = "Normal", priority = TaskPriority.NORMAL)
+        // Si isActive fallara, la URGENT cancelada ganaría; debe quedar excluida.
+        assertEquals(normal, TaskRules.nextBestTask(listOf(cancelled, normal), now = 100))
+    }
 }

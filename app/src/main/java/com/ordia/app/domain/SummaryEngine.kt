@@ -114,9 +114,7 @@ object SummaryEngine {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         val firstOfWeek = today.minusDays(6)
 
-        val active = { task: TaskEntity ->
-            !task.completed && !task.archived && task.status != TaskStatus.CANCELLED
-        }
+        val active = { task: TaskEntity -> TaskRules.isActive(task) }
         val completedToday = tasks.count { task ->
             task.parentTaskId == null &&
                 task.completed && task.completedAt?.let { DateRules.toLocalDate(it, zone) == today } == true

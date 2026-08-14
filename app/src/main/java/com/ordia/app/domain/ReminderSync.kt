@@ -1,7 +1,6 @@
 package com.ordia.app.domain
 
 import com.ordia.app.data.local.TaskEntity
-import com.ordia.app.data.local.TaskStatus
 
 /**
  * Lógica pura de sincronización de recordatorios (misma regla de disparo que
@@ -16,7 +15,7 @@ object ReminderSync {
 
     fun triggers(tasks: List<TaskEntity>, now: Long): List<Pair<Long, Long>> =
         tasks.asSequence()
-            .filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
+            .filter { TaskRules.isActive(it) }
             .mapNotNull { task ->
                 val trigger = task.reminderAt ?: task.dueAt ?: return@mapNotNull null
                 if (trigger <= now) null else task.id to trigger

@@ -82,7 +82,7 @@ object WhatNowEngine {
     }
 
     private fun isCandidate(task: TaskEntity): Boolean =
-        !task.completed && !task.archived && task.status != TaskStatus.CANCELLED && task.parentTaskId == null
+        TaskRules.isActive(task) && task.parentTaskId == null
 
     private fun reason(task: TaskEntity, now: Long, zone: ZoneId): WhatNowReason = when {
         task.status == TaskStatus.IN_PROGRESS -> WhatNowReason.IN_PROGRESS_NOW

@@ -23,6 +23,21 @@ object TaskRules {
         task.durationMinutes.coerceIn(MIN_PLAN_MINUTES, MAX_PLAN_MINUTES)
 
     /**
+     * Predicado canónico de "tarea activa": no completada, no archivada, no
+     * cancelada. Es la fuente única de verdad para el trio que TODA superficie
+     * activa debe respetar (bandeja, What Now, planificador, resumen, guardián,
+     * recordatorios, widget, asistente, backup). Centralizarlo aquí previene la
+     * clase de bug recurrente en la que una ruta repetía `!completed &&
+     * !archived` y OLVIDABA `status != CANCELLED`, haciendo aflorar tareas que
+     * el usuario descartó (c.169: 5 rutas; c.170: búsqueda universal). Los
+     * sitios que además requieren "tarea raíz" componen con
+     * `it.parentTaskId == null` (no se incluye aquí porque algunas superficies
+     * cuentan subtareas).
+     */
+    fun isActive(task: TaskEntity): Boolean =
+        !task.completed && !task.archived && task.status != TaskStatus.CANCELLED
+
+    /**
      * Siguiente tarea más importante, con la misma prioridad temporal que
      * [WhatNowEngine.suggest] (widget, asistente y "siguiente paso" del guardián
      * comparten esta lógica): lo que ocurre ahora mismo > atrasado > compromiso a
@@ -36,7 +51,7 @@ object TaskRules {
         zone: ZoneId = ZoneId.systemDefault()
     ): TaskEntity? =
         tasks.asSequence()
-            .filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED && it.parentTaskId == null }
+            .filter { isActive(it) && it.parentTaskId == null }
             .sortedWith(
                 compareByDescending<TaskEntity> { timeRank(it, now, zone) }
                     .thenByDescending { priorityScore(it.priority) }
@@ -108,16 +123,16 @@ object TaskRules {
         task.startAt != null && task.startAt > now
 
     fun isOverdue(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean =
-        !task.completed && !task.archived && task.status != TaskStatus.CANCELLED && task.dueAt?.let { it < now } == true
+        isActive(task) && task.dueAt?.let { it < now } == true
 
     fun isDueToday(task: TaskEntity, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Boolean {
-        if (task.completed || task.archived || task.status == TaskStatus.CANCELLED) return false
+        if (!isActive(task)) return false
         val due = task.dueAt ?: return false
         return Instant.ofEpochMilli(due).atZone(zone).toLocalDate() == Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
     }
 
     fun isDueOn(task: TaskEntity, date: LocalDate, zone: ZoneId = ZoneId.systemDefault()): Boolean =
-        if (task.completed || task.archived || task.status == TaskStatus.CANCELLED) false
+        if (!isActive(task)) false
         else task.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() == date } ?: false
 
     fun completionRate(tasks: List<TaskEntity>): Int {
