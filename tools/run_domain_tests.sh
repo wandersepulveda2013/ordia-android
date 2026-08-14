@@ -41,16 +41,33 @@ AUTOMATION_PURE_SOURCES=(
   "$AUTOMATION_MAIN/AutomationActionPlanner.kt"
 )
 
+# Archivos del paquete backup que son puros (sin dependencias Android reales):
+# BackupManager, BackupSecurityRules, RestoreData, BackupStore (contrato),
+# BackupPreferences, ReminderSchedulerPort. Se excluyen RoomBackupStore.kt (usa
+# androidx.room.withTransaction + OrdiaDatabase) y BackupManager.kt NO usa Android.
+# Esto hace verificables en JVM los tests de la ruta de datos más crítica (backup/restore).
+BACKUP_MAIN="$ROOT/app/src/main/java/com/ordia/app/backup"
+BACKUP_PURE_SOURCES=(
+  "$BACKUP_MAIN/BackupManager.kt"
+  "$BACKUP_MAIN/BackupSecurityRules.kt"
+  "$BACKUP_MAIN/RestoreData.kt"
+  "$BACKUP_MAIN/BackupStore.kt"
+  "$BACKUP_MAIN/BackupPreferences.kt"
+  "$BACKUP_MAIN/ReminderSchedulerPort.kt"
+)
+
 SOURCES=(
   "$ROOT/tools/domain-smoke/RoomStubs.kt"
   "$ROOT/tools/domain-smoke/PreferenceStubs.kt"
   "$DATA_LOCAL/Entities.kt"
   "$DOMAIN_MAIN"/*.kt
   "${AUTOMATION_PURE_SOURCES[@]}"
+  "${BACKUP_PURE_SOURCES[@]}"
   "$ROOT/app/src/main/java/com/ordia/app/assistant"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/domain"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/automation"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/assistant"/*.kt
+  "$ROOT/app/src/test/java/com/ordia/app/backup"/*.kt
 )
 
 echo ">> Compilando ${#SOURCES[@]} fuentes (main+stubs+tests)..."
