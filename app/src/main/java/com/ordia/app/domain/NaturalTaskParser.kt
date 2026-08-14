@@ -281,7 +281,7 @@ object NaturalTaskParser {
      * se ajusta al último día válido del mes objetivo.
      */
     private val nextMonthDayPattern = Regex(
-        """(?i)\bel\s+(?:d[ií]a\s+)?(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b"""
+        """(?i)\b(?:el\s+(?:d[ií]a\s+)?|d[ií]a\s+)(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b"""
     )
     /**
      * Orden inverso del anterior: "el mes que viene el 5" / "el mes que viene el
@@ -413,7 +413,15 @@ object NaturalTaskParser {
     // reunión perdida). El lookahead negativo evita colisionar con "el 15 de marzo" (lo
     // resuelve monthNameDate) y "el 15 de cada mes" (recurrencia mensual): no se admite
     // "de <palabra>" tras el número salvo la fórmula "del mes"/"de este mes".
-    private val dayOfMonthPattern = Regex("""(?i)\bel\s+(?:d[ií]a\s+)?(\d{1,2})(?:\s+(?:del?\s+mes|de\s+este\s+mes))?\b(?!\s*de\s+[a-záéíóúüñ])""")
+    // Admite "el 15", "el día 15" y la forma coloquial sin artículo "día 15"
+    // ("pagar día 15", "reunión día 3"). Antes "día N" sin "el" caía a sin fecha y,
+    // si la frase traía hora, ésta se aplicaba a HOY → fecha silenciosamente errónea
+    // (P1: integridad de datos). El lookahead negativo impide colisionar con
+    // "el 15 de marzo" (lo resuelve monthNameDate), "el 15 de cada mes" (recurrencia
+    // mensual) y referencias no temporales como "día 15 del libro": no se admite
+    // "de/del <palabra>" tras el número salvo la fórmula "del mes"/"de este mes",
+    // que el grupo opcional consume antes del lookahead.
+    private val dayOfMonthPattern = Regex("""(?i)\b(?:el\s+(?:d[ií]a\s+)?|d[ií]a\s+)(\d{1,2})(?:\s+(?:del?\s+mes|de\s+este\s+mes))?\b(?!\s*del?\s+[a-záéíóúüñ])""")
 
     /**
      * Sufijos ordinales numéricos del español ("1ro", "2do", "3er", "4to", "5to", "7mo",

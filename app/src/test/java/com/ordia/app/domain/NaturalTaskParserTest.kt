@@ -4524,6 +4524,42 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "día N" sin artículo "el" (forma coloquial: "pagar día 15", "reunión día 3") ---
+    // Antes dayOfMonthPattern exigía "el"; "día N" caía a dueAt=null. Si la frase
+    // traía hora ("entregar día 5 a las 18"), ésta se aplicaba a HOY → fecha
+    // silenciosamente errónea (P1: integridad de datos). Ahora "día N" se admite.
+    @Test fun diaNWithoutArticleResolves() {
+        val result = NaturalTaskParser.parse("Pagar día 15", now, zone)
+        assertEquals("Pagar", result.title)
+        // now=29-jul; el 15 ya pasó en julio → 15-ago.
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun diaNWithoutArticleExplicitHour() {
+        // Caso P1: antes la hora se aplicaba a hoy (29-jul) en lugar del día 5.
+        val result = NaturalTaskParser.parse("Entregar día 5 a las 18", now, zone)
+        assertEquals("Entregar", result.title)
+        // now=29-jul; el 5 ya pasó en julio → 5-ago.
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun diaNWithoutArticleNearTodayRollsForward() {
+        // "día 3": el 3 ya pasó en julio (now=29-jul) → 3-ago.
+        val result = NaturalTaskParser.parse("Reunión día 3", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Falso positivo evitado: "día 15 del libro" no es fecha (referencia no temporal).
+    // El lookahead negativo "del? <palabra>" bloquea la forma sin artículo, donde
+    // "del" (de+el, sin espacio) es más propensa a no-temporales que "el día N".
+    @Test fun diaNOfBookIsNotDate() {
+        val result = NaturalTaskParser.parse("el capítulo día 15 del libro", now, zone)
+        assertEquals("el capítulo día 15 del libro", result.title)
+        assertNull(result.dueAt)
+    }
+
     @Test fun elDiaMonthlyRecurrenceCleanTitle() {
         // "el día 15 de cada mes": antes "el día" sobraba porque monthlyDayPattern
         // no consumía la palabra "día". Ahora se ancla y se limpia.
@@ -4540,6 +4576,22 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Reunión el día 1 de enero", now, zone)
         assertEquals("Reunión", result.title)
         assertEquals(LocalDate.of(2027, 1, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // --- "día N del mes que viene" sin artículo "el" (P1 integridad de fecha) ---
+    // Antes nextMonthDayPattern exigía "el"; "día N del mes que viene" caía a
+    // nextPeriodPattern (genérico +30d), fechando p. ej. al 28-ago en vez del 15-ago
+    // y dejando residuo en el título. Caso de uso real muy frecuente.
+    @Test fun diaNNextMonthWithoutArticleResolves() {
+        val result = NaturalTaskParser.parse("Pagar día 15 del mes que viene", now, zone)
+        assertEquals("Pagar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun diaNNextMonthWithoutArticleRolled() {
+        val result = NaturalTaskParser.parse("Reunión día 5 del próximo mes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
     // --- "a última hora" (hora canónica de fin de jornada, simétrica a "a primera hora") ---
