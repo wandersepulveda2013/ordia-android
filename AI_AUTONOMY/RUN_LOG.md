@@ -4281,3 +4281,53 @@ a un permiso persistente frágil y silencioso ante fallos.
   `RecurrenceEngine` edge cases; detección de compromisos en notas; replanificación si
   OVERLOADED recurrente.
 
+
+- **HEAD inicial**: `3c42171` (c.91; STALE_RUN: el remoto avanzó a c.93 durante este run — `bbb2e16` (c.92 cierre de mes + c.93 adjetivos de recurrencia). Resolución no destructiva: `git fetch` + `git rebase origin/openhands/autonomous-ordia`; el código (parser+tests) auto-mergearon limpio (distintas áreas del parser: `fractionalRelativePattern` vs `cierre de mes`/adjetivos de recurrencia), conflictos solo en memoria (CURRENT_STATE/RUN_LOG) resueltos conservando ambos trabajos y renumerando mi ciclo a 94. Base
+  remoto, sin divergencia).
+- **Problema seleccionado**: **P1 (captura perdida / recordatorio imposible)** —
+  `"en media hora"` / `"en un cuarto de hora"` / `"dentro de media hora"` /
+  `"de aquí a media hora"` se parseaban como **DURACIÓN** (sin vencimiento) en vez de
+  **punto en el tiempo** (+30/+15 min). `relativePattern` solo aceptaba números escritos
+  enteros (un…treinta) o dígitos, NO las fracciones cotidianas "media hora"/"cuarto de
+  hora". Estas caían a `fractionalDurationPattern` → `dueAt=null`, `durationMinutes=30/15`
+  y el prefijo "en"/"dentro de" quedaba como residuo en el título ("llamar en media hora"
+  → título "llamar en"). La tarea quedaba SIN vencimiento → invisible en What
+  Now/planificador, recordatorio imposible de programar. Asimetría flagrante: "en treinta
+  minutos" (dígitos) y "en una hora" (entero escrito) SÍ eran fecha relativa, pero la
+  fracción equivalente "en media hora" no. Forma ultra-común en captura rápida móvil.
+- **Causa raíz**: `relativePattern` no cubría fracciones sin dígitos; el guard de orden
+  del `when` dejaba que `fractionalDurationPattern` (que SÍ casa "media hora") ganara
+  antes → convertía un punto-en-el-tiempo en una duración y dejaba el prefijo "en"
+  huérfano en el título.
+- **Solución mínima**: nuevo `fractionalRelativePattern` (prefijo
+  `en|dentro de|de aquí a|de acá a` + `media hora`/`(un) cuarto de hora`) simétrico a
+  `relativePattern`. Se procesa ANTES que la duración (rama propia en el `when`) para que
+  `fractionalDurationPattern` no robe la fracción. Resuelve
+  `fractionalRelativeDueAt = now + (30|15)min`; consume la frase completa (prefijo
+  incluido) → título limpio. Incluido en `effectiveRelativeDueAt` (misma prioridad que
+  `relativeDueAt`) y `relativeIsDays=false` (sub-hora). El prefijo es **obligatorio** →
+  "reunión media hora" (sin prefijo) sigue siendo `durationMinutes=30` (duración real,
+  no-regresión); "media hora antes" (recordatorio) lo captura `reminderPatterns` antes
+  (no choca); "en una hora" (entero escrito) sigue funcionando sin conflicto.
+- **Bugs**: P1 captura perdida ("en media hora" → duración sin vencimiento + título sucio).
+- **Features**: ninguna (fix de integridad de datos del parser).
+- **Tests (TDD)**: +7 (`enMediaHoraEsFechaRelativa`, `enUnCuartoDeHoraEsFechaRelativa`,
+  `enCuartoDeHoraSinUnEsFechaRelativa`, `dentroDeMediaHoraEsFechaRelativa`,
+  `deAquiAMediaHoraEsFechaRelativa`, `mediaHoraSinPrefijoSigueSiendoDuracion` + no-regresión
+  de `durationMinutes`). Probe JVM confirmó RED antes del fix (`due=null`) y GREEN tras
+  (`due=now+30min`). Comando: `bash tools/run_domain_tests.sh` → **655 tests PASS**
+  (27 clases — 649 base (c.93) + 7 nuevos). Smoke: `bash tools/run_domain_checks.sh` → **25
+  assertions OK**. Sin regresión (`en una hora`, `en treinta minutos`, `media hora`
+  duración, `media hora antes` recordatorio siguen OK).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: (ver `git log` tras push).
+- **HEAD final**: (tras push).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: descubrimiento continuo — auditar otras fracciones relativas no
+  cubiertas ("en tres cuartos de hora"=45min, "en una hora y media"=90min compuesta);
+  "a la una" (hora 1 escrita, standalone) no resuelve (BUG C pendiente);
+  `RecurrenceEngine` edge cases; detección de compromisos en notas; `PlanEngine`/
+  replanización si OVERLOADED recurrente. (fix(parser): "en media hora"/"en un cuarto de hora" ya son fecha relativa (P1))
