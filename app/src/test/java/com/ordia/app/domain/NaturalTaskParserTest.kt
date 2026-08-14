@@ -39,4 +39,58 @@ class NaturalTaskParserTest {
         assertEquals("Revisar el horno", result.title)
         assertEquals(now + 45 * 60_000L, result.dueAt)
     }
+
+    @Test fun parsesEstaNoche() {
+        val result = NaturalTaskParser.parse("Comprar pan esta noche", now, zone)
+        assertEquals("Comprar pan", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesMediodia() {
+        val result = NaturalTaskParser.parse("Reunión al mediodía", now, zone)
+        assertEquals("Reunión", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesMedianoche() {
+        val result = NaturalTaskParser.parse("Lanzamiento a medianoche", now, zone)
+        assertEquals("Lanzamiento", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(0, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesDentroDe() {
+        val result = NaturalTaskParser.parse("Llamar dentro de 15 minutos", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 15 * 60_000L, result.dueAt)
+    }
+
+    @Test fun parsesTodosLosLunes() {
+        val result = NaturalTaskParser.parse("Correr todos los lunes", now, zone)
+        assertEquals("Correr", result.title)
+        assertNotNull(result.dueAt)
+        val date = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(LocalDate.of(2026, 8, 3), date)
+    }
+
+    @Test fun parsesCadaMartes() {
+        val result = NaturalTaskParser.parse("Revisión de métricas cada martes", now, zone)
+        assertEquals("Revisión de métricas", result.title)
+        assertNotNull(result.dueAt)
+        val date = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(LocalDate.of(2026, 8, 4), date)
+    }
+
+    @Test fun parsesParaElLunes() {
+        val result = NaturalTaskParser.parse("Entregar informe para el lunes", now, zone)
+        assertEquals("Entregar informe", result.title)
+        assertNotNull(result.dueAt)
+        val date = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(LocalDate.of(2026, 8, 3), date)
+    }
 }
