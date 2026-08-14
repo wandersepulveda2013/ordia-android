@@ -140,9 +140,15 @@ object NaturalTaskParser {
      * sin fecha → la tarea se olvidaba (sin recordatorio, invisible en planificador/What Now).
      * Admite también las formas coloquiales "de aquí a N ..." y "de acá a N ..."
      * (equivalentes a "en/dentro de N ..."), simétricas al prefijo estándar.
+     * Admite el sufijo fraccionario "y media"/"y medio" (media unidad más): "en una
+     * semana y media" = +7d + 3,5d, "en un mes y medio" = +45 d, "en un día y medio"
+     * = +1,5 d. Acepta ambos géneros (la unidad es femenina o masculina según el
+     * sustantivo, pero el usuario los mezcla); antes el sufijo NO casaba aquí y caía
+     * como residuo en el título, con un vencimiento prematuro (media unidad antes de
+     * lo pedido). Simétrico del "y media" sub-hora de [compoundFractionalRelativePattern].
      */
     private val relativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un\s+par\s+de|\d{1,3}|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)\b"""
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un\s+par\s+de|\d{1,3}|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)(?:\s+y\s+(media|medio))?\b"""
     )
     /**
      * Fecha relativa fraccionaria sin dígitos: "en media hora", "dentro de media hora",
@@ -820,20 +826,30 @@ object NaturalTaskParser {
         val relativeDueAt = relativeMatch?.let { match ->
             val amount = parseWrittenNumber(match.groupValues[1]) ?: 0L
             val unit = match.groupValues[2].lowercase()
-            val millis = when {
+            // "y media"/"y medio" (grupo 3): suma media unidad. Si la unidad base son
+            // `unitDays` días, media unidad = unitDays/2 días. Aplica por igual a todas
+            // las unidades: para "minutos" es medio minuto (inhabitual, inofensivo); lo
+            // idiomático es día/semana/mes/quincena/año ("en una semana y media").
+            val unitDays = when {
+                unit.startsWith("min") -> 0L
+                unit.startsWith("hora") -> 0L
+                unit.startsWith("quincena") -> 15L
+                unit.startsWith("semana") -> 7L
+                // "bimestre"/"semestre"/"trimestre" contienen "mes": van antes que "mes".
+                unit.startsWith("bimestre") -> 60L
+                unit.startsWith("trimestre") -> 90L
+                unit.startsWith("semestre") -> 180L
+                unit.startsWith("mes") -> 30L
+                unit.startsWith("a") || unit.contains("añ") -> 365L
+                else -> 1L
+            }
+            val baseMillis = when {
                 unit.startsWith("min") -> amount * 60_000L
                 unit.startsWith("hora") -> amount * 60 * 60_000L
-                unit.startsWith("quincena") -> amount * 15 * 24 * 60 * 60_000L
-                unit.startsWith("semana") -> amount * 7 * 24 * 60 * 60_000L
-                // "bimestre"/"semestre"/"trimestre" contienen "mes": van antes que "mes".
-                unit.startsWith("bimestre") -> amount * 60 * 24 * 60 * 60_000L
-                unit.startsWith("trimestre") -> amount * 90 * 24 * 60 * 60_000L
-                unit.startsWith("semestre") -> amount * 180 * 24 * 60 * 60_000L
-                unit.startsWith("mes") -> amount * 30 * 24 * 60 * 60_000L
-                unit.startsWith("a") || unit.contains("añ") -> amount * 365 * 24 * 60 * 60_000L
-                else -> amount * 24 * 60 * 60_000L
+                else -> amount * unitDays * 24 * 60 * 60_000L
             }
-            now + millis
+            val halfMillis = if (match.groupValues[3].isNotEmpty()) unitDays * 24 * 60 * 60_000L / 2 else 0L
+            now + baseMillis + halfMillis
         }
         relativeMatch?.let { working = working.replaceRange(it.range, " ") }
         // Fecha relativa fraccionaria + cuarto ("en media hora y cuarto" → 45 min,

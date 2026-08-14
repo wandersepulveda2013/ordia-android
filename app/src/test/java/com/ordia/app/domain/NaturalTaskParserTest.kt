@@ -2685,6 +2685,56 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "y media/medio" en plazos de día/semana/mes/año: media unidad más.
+    // Simétrico al "y media" sub-hora (c.94 "en una hora y media"=90 min), pero a
+    // escala de días: "en una semana y media" = +7d + 3,5d = 10,5 d, "en un mes y
+    // medio" = +45 d. Antes [relativePattern] robaba solo "en una semana" (+7d) y
+    // dejaba "y media" como residuo en el título ("enviar y media"), con lo que el
+    // plazo quedaba 3,5 días (o 15 días para un mes) ANTES de lo que el usuario pidió:
+    // un vencimiento prematuro silencioso que hace olvidar el margen real de la tarea.
+    @Test fun enUnaSemanaYMediaSumaMediaSemana() {
+        val result = NaturalTaskParser.parse("Enviar informe en una semana y media", now, zone)
+        assertEquals("Enviar informe", result.title)
+        // +10,5 d desde 2026-07-29 12:00 → 2026-08-09 00:00.
+        assertEquals(LocalDate.of(2026, 8, 9), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enUnMesYMedioSumaMedioMes() {
+        val result = NaturalTaskParser.parse("Renovar en un mes y medio", now, zone)
+        assertEquals("Renovar", result.title)
+        // +45 d desde 2026-07-29 12:00 → 2026-09-12 12:00.
+        assertEquals(LocalDate.of(2026, 9, 12), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enDosSemanasYMediaSumaMediaSemana() {
+        val result = NaturalTaskParser.parse("Terminar en dos semanas y media", now, zone)
+        assertEquals("Terminar", result.title)
+        // +17,5 d desde 2026-07-29 12:00 → 2026-08-16 00:00.
+        assertEquals(LocalDate.of(2026, 8, 16), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enUnDiaYMedioSumaMedioDia() {
+        val result = NaturalTaskParser.parse("Llamar en un día y medio", now, zone)
+        assertEquals("Llamar", result.title)
+        // +1,5 d desde 2026-07-29 12:00 → 2026-07-31 00:00.
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enUnAnioYMedioSumaMedioAnio() {
+        val result = NaturalTaskParser.parse("Revisar en un año y medio", now, zone)
+        assertEquals("Revisar", result.title)
+        // +1,5 años = 365 d + 182,5 d = 547,5 d desde 2026-07-29 12:00 → 2028-01-28 00:00.
+        assertEquals(LocalDate.of(2028, 1, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enSemanaYMedioGeneroMasculinoTambienFunciona() {
+        // El usuario mezcla género ("una semana y medio" en vez de "y media"): aceptar
+        // ambas formas evita una tarea sin fecha por un detalle gramatical.
+        val result = NaturalTaskParser.parse("Enviar en una semana y medio", now, zone)
+        assertEquals("Enviar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 9), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "en N años": años como unidad relativa (antes: dueAt=null) ---
     // "en un año"/"en 2 años"/"dentro de un año" son formas comunes para plazos largos
     // (renovar licencia, presentar impuestos). Antes no se parseaban → tarea sin
