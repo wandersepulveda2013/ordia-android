@@ -18,6 +18,11 @@ val OrdiaSage = Color(0xFF76845F)
 val OrdiaRose = Color(0xFFA87373)
 val OrdiaLavender = Color(0xFF88759C)
 
+val SemanticAlert = Color(0xFFD9534F)
+val SemanticSuccess = Color(0xFF5CB85C)
+val SemanticFocus = Color(0xFF5BC0DE)
+val SemanticAutomation = Color(0xFF9B59B6)
+
 /** Palette of accent colors chosen by the user. Each entry holds (secondary, secondaryContainer, onSecondaryContainer) for light and dark. */
 data class AccentSwatch(
     val lightSecondary: Color,
@@ -60,49 +65,49 @@ val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
 )
 
 private val LightColors = lightColorScheme(
-    primary = OrdiaInk,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFEAE2D4),
-    onPrimaryContainer = OrdiaInk,
+    primary = Color(0xFF000000), // Pure Black for minimalist base
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFF5F5F5),
+    onPrimaryContainer = Color(0xFF000000),
     secondary = OrdiaGold,
-    onSecondary = Color.White,
+    onSecondary = Color(0xFFFFFFFF),
     secondaryContainer = Color(0xFFF2E5C9),
     onSecondaryContainer = Color(0xFF34270F),
     tertiary = OrdiaSage,
-    onTertiary = Color.White,
-    background = OrdiaCream,
-    onBackground = OrdiaInk,
-    surface = OrdiaPaper,
-    onSurface = OrdiaInk,
-    surfaceVariant = Color(0xFFEDE7DC),
-    onSurfaceVariant = Color(0xFF625D55),
-    outline = Color(0xFF8C8579),
-    outlineVariant = Color(0xFFDAD1C2),
-    error = Color(0xFF9A3E3E),
-    onError = Color.White
+    onTertiary = Color(0xFFFFFFFF),
+    background = Color(0xFFFFFFFF), // Pure White background
+    onBackground = Color(0xFF1A1A1A),
+    surface = Color(0xFFFFFFFF), // Pure White surface
+    onSurface = Color(0xFF1A1A1A),
+    surfaceVariant = Color(0xFFF5F5F5), // Light Gray
+    onSurfaceVariant = Color(0xFF666666),
+    outline = Color(0xFFCCCCCC),
+    outlineVariant = Color(0xFFE5E5E5),
+    error = SemanticAlert,
+    onError = Color(0xFFFFFFFF)
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFF3EDE2),
-    onPrimary = Color(0xFF1A1916),
-    primaryContainer = Color(0xFF34312B),
-    onPrimaryContainer = Color(0xFFF5EFE4),
+    primary = Color(0xFFFFFFFF), // Pure White
+    onPrimary = Color(0xFF000000), // Pure Black
+    primaryContainer = Color(0xFF262626), // Dark Gray
+    onPrimaryContainer = Color(0xFFFFFFFF),
     secondary = OrdiaGoldSoft,
     onSecondary = Color(0xFF33270E),
     secondaryContainer = Color(0xFF4C3C1C),
     onSecondaryContainer = Color(0xFFFFE8AF),
     tertiary = Color(0xFFB9C99F),
     onTertiary = Color(0xFF263017),
-    background = Color(0xFF141310),
-    onBackground = Color(0xFFEDE8DF),
-    surface = Color(0xFF1C1B18),
-    onSurface = Color(0xFFEDE8DF),
-    surfaceVariant = Color(0xFF2B2924),
-    onSurfaceVariant = Color(0xFFC9C2B8),
-    outline = Color(0xFF938C81),
-    outlineVariant = Color(0xFF47433D),
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005)
+    background = Color(0xFF000000), // Pure Black background
+    onBackground = Color(0xFFF5F5F5),
+    surface = Color(0xFF000000), // Pure Black surface
+    onSurface = Color(0xFFF5F5F5),
+    surfaceVariant = Color(0xFF1A1A1A), // Dark Gray
+    onSurfaceVariant = Color(0xFFAAAAAA),
+    outline = Color(0xFF4D4D4D),
+    outlineVariant = Color(0xFF262626),
+    error = SemanticAlert,
+    onError = Color(0xFF000000)
 )
 
 @Composable
