@@ -2,6 +2,7 @@ package com.ordia.app.domain
 
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
+import com.ordia.app.data.local.TaskStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -187,5 +188,23 @@ class DayPlannerTest {
         val plan = DayPlanner.build(listOf(dueToday), tomorrow, 9 * 60, 18 * 60, breakMinutes = 0, now = now, zone = zone)
 
         assertEquals(PlanReason.DUE_TODAY, plan.blocks.first().reason)
+    }
+
+    @Test
+    fun cancelledTaskIsNotScheduledInTheDayPlan() {
+        // Una tarea cancelada de inbox (sin dueAt) no debe ocupar un bloque de
+        // tiempo: el usuario ya la descartó. DayPlanner filtra por dueAt hoy
+        // (isDueOn excluye CANCELLED), pero la rama inbox (includeInbox &&
+        // dueAt==null) NO excluye CANCELLED, así que una cancelada en inbox
+        // terminaba agendada. Debe ser coherente con TaskRules/ReminderSync.
+        val cancelled = TaskEntity(
+            id = 20, title = "Cancelada en inbox", durationMinutes = 30,
+            status = TaskStatus.CANCELLED
+        )
+
+        val plan = DayPlanner.build(listOf(cancelled), date, 9 * 60, 18 * 60, breakMinutes = 0, now = now, zone = zone)
+
+        assertEquals(0, plan.blocks.size)
+        assertEquals(0, plan.unscheduledTaskIds.size)
     }
 }

@@ -4,6 +4,7 @@ import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.domain.WhatNowEngine
 import com.ordia.app.domain.foldForSearch
@@ -29,7 +30,7 @@ object AssistantEngine {
         val clean = request.trim().take(2_000)
         val query = clean.foldForSearch()
         if (query.isBlank()) return AssistantAnswer("Escribe qué necesitas organizar.")
-        val active = tasks.filter { !it.completed && !it.archived }
+        val active = tasks.filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
         val overdue = active.filter { TaskRules.isOverdue(it, now) }
         val pendingCommitments = commitments.filter { it.reviewStatus == CommitmentReviewStatus.PENDING }
         return when {

@@ -73,6 +73,13 @@ class BackupManagerTest {
                 id = 11, title = "Completada", projectId = 1, dueAt = now + 86_400_000L,
                 status = com.ordia.app.data.local.TaskStatus.COMPLETED, completed = true,
                 completedAt = now - 5_000L, createdAt = now - 10_000L, updatedAt = now - 5_000L
+            ),
+            // Cancelada con recordatorio futuro: la fuente de verdad (ReminderSync)
+            // excluye CANCELLED, así que el restore NO debe re-encolarla.
+            TaskEntity(
+                id = 18, title = "Cancelada", projectId = 1, dueAt = now + 86_400_000L,
+                status = com.ordia.app.data.local.TaskStatus.CANCELLED,
+                createdAt = now - 10_000L, updatedAt = now - 5_000L
             )
         ),
         notes = listOf(NoteEntity(id = 3, title = "Nota", createdAt = 1000L, updatedAt = 1000L)),
@@ -325,7 +332,8 @@ class BackupManagerTest {
         assertEquals("Proyecto", destinationStore.current.projects.first().name)
         assertFalse(destinationStore.current.observedSources.single().enabled)
         assertFalse(destinationStore.current.automationRules.single().enabled)
-        // Solo la tarea futura abierta se reprograma (no la completada ni las pasadas).
+        // Solo la tarea futura abierta se reprograma (no la completada, la
+        // cancelada ni las pasadas). CANCELLED debe excluirse como en ReminderSync.
         assertEquals(listOf(10L), scheduler.scheduled)
         assertEquals(1, scheduler.cancelCalls)
         assertTrue(journal.exists() && journal.length() > 2L)

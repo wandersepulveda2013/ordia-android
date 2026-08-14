@@ -95,4 +95,19 @@ class AssistantEngineTest {
         assertEquals(AssistantAction.NONE, AssistantEngine.answer("Guardar como nota", emptyList(), emptyList(), emptyList()).action)
         assertEquals(AssistantAction.CREATE_NOTE, AssistantEngine.answer("Guardar como nota: idea privada", emptyList(), emptyList(), emptyList()).action)
     }
+
+    @Test fun cancelledTaskIsNotCountedAsPending() {
+        // Una tarea cancelada no debe contarse como pendiente al organizar el
+        // día ni aparecer en el plan mínimo: el usuario ya la descartó.
+        // Coherente con TaskRules/ReminderSync, que excluyen CANCELLED.
+        val cancelled = TaskEntity(
+            id = 1, title = "Cancelada",
+            status = com.ordia.app.data.local.TaskStatus.CANCELLED
+        )
+        val plan = AssistantEngine.answer("plan mínimo para hoy", listOf(cancelled), emptyList(), emptyList())
+        assertTrue("plan mínimo vacío sin contar la cancelada: ${plan.text}", plan.relatedTaskIds.isEmpty())
+
+        val organize = AssistantEngine.answer("organiza mi dia", listOf(cancelled), emptyList(), emptyList())
+        assertTrue("no cuenta la cancelada como pendiente: ${organize.text}", organize.text.contains("0 tareas pendientes"))
+    }
 }

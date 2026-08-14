@@ -10,6 +10,7 @@ import android.util.Log
 import android.widget.RemoteViews
 import com.ordia.app.MainActivity
 import com.ordia.app.OrdiaApplication
+import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.R
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.overlay.QuickCaptureActivity
@@ -64,7 +65,7 @@ object OrdiaWidgetUpdater {
         val app = context.applicationContext as? OrdiaApplication ?: return
         val tasks = app.container.database.taskDao().getAllNow()
         val next = TaskRules.nextBestTask(tasks)
-        val pending = tasks.count { !it.completed && !it.archived && it.parentTaskId == null }
+        val pending = tasks.count { !it.completed && !it.archived && it.parentTaskId == null && it.status != TaskStatus.CANCELLED }
         widgetIds.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.ordia_widget).apply {
                 setTextViewText(R.id.widget_title, next?.title ?: context.getString(R.string.widget_all_clear))

@@ -217,7 +217,7 @@ class BackupManager(
                     reminderScheduler.cancelAllAndAwait()
                     val now = System.currentTimeMillis()
                     validated.data.tasks.asSequence()
-                        .filter { !it.completed && !it.archived }
+                        .filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
                         .filter { (it.reminderAt ?: it.dueAt)?.let { trigger -> trigger > now } == true }
                         .forEach(reminderScheduler::schedule)
                 }.exceptionOrNull()

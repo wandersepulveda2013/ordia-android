@@ -2,6 +2,7 @@ package com.ordia.app.domain
 
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
+import com.ordia.app.data.local.TaskStatus
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -56,7 +57,7 @@ object DayPlanner {
         require(breakMinutes in 0..60)
 
         val candidates = tasks.asSequence()
-            .filter { !it.completed && !it.archived && it.parentTaskId == null }
+            .filter { !it.completed && !it.archived && it.parentTaskId == null && it.status != TaskStatus.CANCELLED }
             .filter { task ->
                 val dueOnDate = TaskRules.isDueOn(task, date, zone)
                 val overdueByDate = task.dueAt?.let { DateRules.toLocalDate(it, zone).isBefore(date) } == true

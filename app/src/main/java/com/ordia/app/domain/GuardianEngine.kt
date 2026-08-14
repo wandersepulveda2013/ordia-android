@@ -6,6 +6,7 @@ import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
+import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.data.preferences.PreferencesRepository
 import com.ordia.app.data.preferences.UserPreferences
@@ -281,7 +282,7 @@ object GuardianEngine {
         nowMillis: Long
     ): String = when {
         overdue > 0 -> smallestOverdueAction(tasks, nowMillis)
-        completedToday == 0 && tasks.any { !it.completed && !it.archived } -> "Completa una tarea breve para iniciar el día con impulso."
+        completedToday == 0 && tasks.any { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED } -> "Completa una tarea breve para iniciar el día con impulso."
         focusMinutesToday < 15 -> "Haz una sesión de enfoque de 15 minutos sin perseguir la perfección."
         habits.isNotEmpty() && habitsDoneToday == 0 -> "Registra un hábito sencillo para mantener la continuidad."
         else -> "Tu cuidado diario está completo. Puedes descansar o avanzar por gusto."
