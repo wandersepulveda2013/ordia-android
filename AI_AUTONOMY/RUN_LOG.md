@@ -4179,3 +4179,50 @@ a un permiso persistente frágil y silencioso ante fallos.
   `RecurrenceEngine` edge cases; detección de compromisos en notas; `PlanEngine`/replanización
   si OVERLOADED recurrente.
 
+
+## Ciclo 92 — 2026-08-14
+
+- **Rama**: `openhands/autonomous-ordia`
+- **HEAD inicial**: `3c42171` (c.91 fix "último día del mes").
+- **Problema seleccionado**: **P1 (pérdida de datos silenciosa)** — continuación del
+  descubrimiento continuo de sinónimos de "fin de mes" no cubiertos (apuntado en "próxima
+  prioridad" del c.91). Probe JVM (`ProbeSynonymsTest`, ahora `NaturalTaskParserCierreTest`)
+  confirmó: `"pago cierre de mes"` y `"renta cierre del mes"` caían en `dueAt=null` →
+  vencimiento olvidado (sin recordatorio, invisible en planificador/What Now). "cierre de
+  mes"/"cierre del mes" es sinónimo cotidiano real de "fin de mes" en contexto financiero
+  (alquileres, facturas, nómina, contabilidad). Pagos dichos así se perdían, igual que
+  `último día del mes` (c.91). "vence el mes" quedó fuera: es ambiguo ("vence el mes que
+  viene" sí casa vía "fin de mes... que viene" solo si se dice así; "vence el mes" a secas
+  no implica fin de mes).
+- **Causa raíz**: `endOfMonthPattern` solo enumeraba `fin(?:ales|es)?` y `[uú]ltim[oa] día`
+  (añadido en c.91); no incluía `cierre`. Por eso "cierre de mes" no casaba y la frase
+  quedaba como título → dueAt=null. `monthBaseForBoundary` tampoco reconocía `cierre` en su
+  rama "end" (aunque al no casar el regex nunca llegaba ahí).
+- **Solución mínima**:
+  - `endOfMonthPattern`: añadir alternativa `cierre` a la lista
+    `(?:fin(?:ales|es)?|cierre|[uú]ltim[oa]\s+d[ií]a)`. Reusa todo el flujo de `fin de mes`.
+  - `monthBaseForBoundary`: rama "end" ahora incluye `t.contains("cierre")`. El modificador
+    "que viene"/"próxim" ya se resuelve antes (línea `isNext`) → "cierre del mes que viene"
+    ancla al mes siguiente sin doble-desplazamiento.
+  - Doc comment actualizado para listar "cierre de mes" / "cierre del mes".
+- **Bugs**: P1 vencimiento olvidado ("cierre de mes"/"cierre del mes" → dueAt=null).
+- **Features**: ninguna (fix de integridad de datos).
+- **Tests (TDD)**: +4 (`cierreDeMesAnclaFinDeMesActual`,
+  `cierreDelMesAnclaFinDeMesActual`, `cierreDelMesQueVieneAnclaFinMesSiguiente`,
+  `cierreDeMesRespetaHoraExplicita`) en `NaturalTaskParserCierreTest.kt`. Probe JVM confirmó
+  RED antes del fix (`due=null` en ambos) y GREEN tras (`due=07-31` actual / `08-31` "que
+  viene"; hora explícita `a las 18` respeta fecha fin de mes). Comando:
+  `bash tools/run_domain_tests.sh` → **641 tests PASS** (base c.91=637 + 4 nuevos; ambos fixes
+  coexisten). Smoke: `bash tools/run_domain_checks.sh` → **25 assertions OK**. Sin regresión
+  (`fin de mes`, `último día del mes`, `el N del mes que viene`, horas escritas siguen OK).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserCierreTest.kt` (nuevo),
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: por confirmar tras push.
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: descubrimiento continuo — auditar sinónimos de mediados/principios
+  de mes ("a mitad de mes", "comienzos de mes"); `RecurrenceEngine` edge cases; detección de
+  compromisos en notas; `PlanEngine`/replanización si OVERLOADED recurrente; revisar si
+  "corte de mes" (sinónimo latinoamericano de cierre) merece cubrirse.
+
