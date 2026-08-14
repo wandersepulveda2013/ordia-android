@@ -25,6 +25,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -63,23 +64,25 @@ fun TaskRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val priorityColor = priorityAccent(task.priority)
-    Card(
+    Surface(
         modifier = modifier.fillMaxWidth().combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true }),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        contentColor = MaterialTheme.colorScheme.onSurface
     ) {
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Colored accent rail — encodes priority for quick scanning.
-            Box(
-                Modifier
-                    .width(5.dp)
-                    .height(46.dp)
-                    .background(priorityColor, RoundedCornerShape(topEnd = 3.dp, bottomEnd = 3.dp))
-            )
+            if (task.priority >= TaskPriority.HIGH) {
+                Box(
+                    Modifier
+                        .padding(start = 12.dp)
+                        .size(8.dp)
+                        .background(priorityColor, androidx.compose.foundation.shape.CircleShape)
+                )
+            }
             Row(Modifier.fillMaxWidth().padding(end = 10.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = task.completed, onCheckedChange = { onToggle() })
             Column(Modifier.weight(1f).padding(start = 2.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -105,7 +108,7 @@ fun TaskRow(
                         Text("Bandeja", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     project?.let { Text("· ${it.name}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    if (task.priority >= TaskPriority.HIGH) PriorityPill(if (task.priority == TaskPriority.URGENT) "Urgente" else "Alta")
+
                     subtaskProgress?.let { (done, total) -> if (total > 0) Text("$done/$total pasos", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
             }
@@ -114,7 +117,7 @@ fun TaskRow(
                 DropdownMenuItem(text = { Text("Editar") }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = { menuOpen = false; onEdit() })
                 if (onDuplicate != null) DropdownMenuItem(text = { Text("Duplicar") }, leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) }, onClick = { menuOpen = false; onDuplicate() })
                 if (onDelete != null) {
-                    Divider()
+                    HorizontalDivider()
                     DropdownMenuItem(text = { Text("Archivar") }, leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) }, onClick = { menuOpen = false; onDelete() })
                 }
             }

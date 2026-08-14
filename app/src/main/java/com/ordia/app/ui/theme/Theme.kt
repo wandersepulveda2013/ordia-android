@@ -9,9 +9,9 @@ import androidx.compose.ui.graphics.Color
 import com.ordia.app.data.preferences.AccentPalette
 import com.ordia.app.data.preferences.ThemeMode
 
-val OrdiaInk = Color(0xFF1D1B17)
-val OrdiaCream = Color(0xFFF7F3EB)
-val OrdiaPaper = Color(0xFFFFFCF7)
+val OrdiaInk = Color(0xFF141414)
+val OrdiaCream = Color(0xFFF9F9F9)
+val OrdiaPaper = Color(0xFFFFFFFF)
 val OrdiaGold = Color(0xFF8A682D)
 val OrdiaGoldSoft = Color(0xFFD9BC7A)
 val OrdiaSage = Color(0xFF76845F)
@@ -93,9 +93,9 @@ private val DarkColors = darkColorScheme(
     onSecondaryContainer = Color(0xFFFFE8AF),
     tertiary = Color(0xFFB9C99F),
     onTertiary = Color(0xFF263017),
-    background = Color(0xFF141310),
+    background = Color(0xFF0F0F0F),
     onBackground = Color(0xFFEDE8DF),
-    surface = Color(0xFF1C1B18),
+    surface = Color(0xFF141414),
     onSurface = Color(0xFFEDE8DF),
     surfaceVariant = Color(0xFF2B2924),
     onSurfaceVariant = Color(0xFFC9C2B8),

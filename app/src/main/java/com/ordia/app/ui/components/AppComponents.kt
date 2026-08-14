@@ -87,10 +87,8 @@ fun SectionHeader(title: String, supporting: String? = null, action: String? = n
 
 @Composable
 fun StatCard(label: String, value: String, supporting: String? = null, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    OrdiaCard(
+        modifier = modifier
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -199,5 +197,37 @@ fun InfoBanner(title: String, text: String, modifier: Modifier = Modifier) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
         }
+    }
+}
+
+@Composable
+fun OrdiaButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        shape = RoundedCornerShape(14.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+        content = content
+    )
+}
+
+@Composable
+fun OrdiaCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        contentColor = MaterialTheme.colorScheme.onSurface
+    ) {
+        content()
     }
 }
