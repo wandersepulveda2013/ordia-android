@@ -51,6 +51,9 @@ import com.ordia.app.ui.components.GuardianMood
 import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.ui.components.SectionHeader
 import com.ordia.app.ui.components.StatCard
+import com.ordia.app.ui.components.OrdiaCard
+import com.ordia.app.ui.components.OrdiaButton
+import com.ordia.app.ui.components.OrdiaInput
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
 import java.time.LocalDate
@@ -131,15 +134,12 @@ fun TodayScreen(
             }
         }
         item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
+            OrdiaCard {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
-                            quickText,
-                            { quickText = it },
+                        OrdiaInput(
+                            value = quickText,
+                            onValueChange = { quickText = it },
                             modifier = Modifier.weight(1f),
                             placeholder = { Text("Ej.: Llamar mañana a las 9 !alta") },
                             singleLine = true
@@ -174,7 +174,7 @@ fun TodayScreen(
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(state.habits, key = { it.id }) { habit ->
                         val count = state.habitCount(habit.id)
-                        Card(onClick = { vm.toggleHabit(habit) }) {
+                        OrdiaCard(onClick = { vm.toggleHabit(habit) }) {
                             Column(Modifier.padding(16.dp).width(220.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(habit.title, style = MaterialTheme.typography.titleMedium)
                                 Text("$count de ${habit.targetPerPeriod}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -190,7 +190,7 @@ fun TodayScreen(
             item { SectionHeader("Proyectos activos") }
             items(state.projects.take(3), key = { "project-${it.id}" }) { project ->
                 val progress = state.projectProgress(project.id)
-                Card {
+                OrdiaCard {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                         Row(Modifier.fillMaxWidth()) {
                             Text(project.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -202,10 +202,12 @@ fun TodayScreen(
             }
         }
         item {
-            Button(onClick = onOpenFocus, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Outlined.Timer, null)
-                Text("Iniciar una sesión de enfoque", Modifier.padding(start = 8.dp))
-            }
+            OrdiaButton(
+                text = "Iniciar una sesión de enfoque",
+                onClick = onOpenFocus,
+                modifier = Modifier.fillMaxWidth(),
+                icon = Icons.Outlined.Timer
+            )
         }
     }
 }
