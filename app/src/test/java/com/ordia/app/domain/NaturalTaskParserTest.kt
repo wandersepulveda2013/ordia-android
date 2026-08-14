@@ -4281,6 +4281,66 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "de aquí a/al + FECHA ESPECÍFICA" (día de semana, mañana, hoy, día N):
+    // el conector direccional-temporal "de aquí a/al" no casa ningún patrón
+    // relativo (no hay cantidad) y sobrevivía como residuo en el título
+    // ("entregar de aquí al" aunque la fecha era correcta); peor aún, "de aquí
+    // al 15" caía a dueAt=null (dayOfMonthPattern exige "el", no "al") →
+    // vencimiento olvidado (P1). Ahora el conector se consume/reescribe.
+
+    @Test fun deAquiAlViernesParsesDueAtSinResiduo() {
+        val result = NaturalTaskParser.parse("Entregar de aquí al viernes", now, zone)
+        assertEquals("Entregar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAquiAlLunesParsesDueAtSinResiduo() {
+        val result = NaturalTaskParser.parse("Reunión de aquí al lunes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAquiAl15ParsesDueAtSinResiduo() {
+        // Peor caso del defecto: vencimiento olvidado (dueAt=null antes del fix).
+        val result = NaturalTaskParser.parse("Pago de aquí al 15", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAquiAManhanaParsesDueAtSinResiduo() {
+        val result = NaturalTaskParser.parse("Envío de aquí a mañana", now, zone)
+        assertEquals("Envío", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAquiAHoyParsesDueAtSinResiduo() {
+        val result = NaturalTaskParser.parse("Llamar de aquí a hoy", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAquiAlaSemanaQueVieneParsesDueAtSinResiduo() {
+        val result = NaturalTaskParser.parse("Reunión de aquí a la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAcaAlDomingoParsesDueAtSinResiduo() {
+        // Variante "de acá al" (coloquial, sin tilde en 'a').
+        val result = NaturalTaskParser.parse("Reunión de acá al domingo", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAquiAMediaHoraNoRegression() {
+        // Regresión guard: el conector "de aquí a" con CANTIDAD fraccionaria
+        // ("media hora") ya era capturado por fractionalRelativePattern; el fix
+        // del conector huérfano NO debe romperlo (debe seguir dando +30 min).
+        val result = NaturalTaskParser.parse("Llamar de aquí a media hora", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 30 * 60_000L, result.dueAt)
+    }
+
     // Recurrencia con intervalo escrito (no dígito): "cada dos semanas",
     // "cada tres meses", "cada quince días". Antes `intervalPattern` sólo admitía
     // `\d{1,3}`, así que estas formas caían a NONE y la tarea nacía SIN fecha

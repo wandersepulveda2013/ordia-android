@@ -1037,6 +1037,22 @@ object NaturalTaskParser {
         }
         fractionalRelativeMatch?.let { working = working.replaceRange(it.range, " ") }
 
+        // Conector direccional-temporal "de aquí a/al"/"de acá a/al" huérfano: las
+        // formas con CANTIDAD ("de aquí a 3 días"/"de aquí a media hora") ya fueron
+        // consumidas arriba por [relativePattern]/[fractionalRelativePattern]/etc.
+        // Pero la forma con FECHA ESPECÍFICA ("de aquí al viernes", "de aquí a
+        // mañana", "de aquí a hoy", "de aquí a la semana que viene", "de aquí al 15")
+        // NO casa ningún patrón relativo → el conector sobrevivía como residuo en el
+        // título ("entregar de aquí al" aunque la fecha era correcta) e, peor, "de aquí
+        // al 15" caía a dueAt=null (dayOfMonthPattern exige "el"/"día", no "al") →
+        // vencimiento olvidado (P1). Se reescribe "al"→"el" (así "al 15"→"el 15" casa
+        // dayOfMonthPattern y "al viernes"→"el viernes" casa weekdayPattern) y se borra
+        // "a"→" " (así "a mañana"→"mañana", "a hoy"→"hoy", "a la semana que viene"→"la
+        // semana que viene", todos ya capturados por sus patrones). Se procesa aquí
+        // (tras TODOS los relativos, antes de las fechas específicas) para no interferir.
+        working = working
+            .replace(Regex("""(?i)\bde\s+aqu[íi]\s+al\b|\bde\s+ac[aá]\s+al\b"""), "el")
+            .replace(Regex("""(?i)\bde\s+aqu[íi]\s+a\b|\bde\s+ac[aá]\s+a\b"""), " ")
         // El "fin de semana" se detecta y se borra ANTES del período próximo para que
         // "fin de semana que viene" no active por error el patrón "semana que viene"
         // (que dejaría el residuo «fin de» en el título). El match se conserva para la
