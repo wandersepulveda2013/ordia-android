@@ -131,23 +131,31 @@ object NaturalTaskParser {
     /**
      * Fecha relativa fraccionaria COMPUESTA: "en una hora y media" (90 min),
      * "en dos horas y media" (150), "en una hora y cuarto" (75), "en 3 horas y cuarto".
-     * Antes [relativePattern] robaba solo "en una hora" (60 min) y dejaba "y media"
-     * como residuo en el título ("llamar en una hora y media" → "llamar y media"),
-     * agendando 30 min antes de lo pedido (el recordatorio disparaba temprano). Se
-     * procesa ANTES que [relativePattern] para robar la frase completa: amount×60
-     * + (30 si "media" | 15 si "cuarto"). Simétrica de [fractionalRelativePattern].
+     * Admite también cuartos en plural como fracción: "en una hora y tres cuartos"
+     * (60+45=105), "en dos horas y dos cuartos" (120+30=150). Antes el plural "tres
+     * cuartos" no casaba (el grupo solo aceptaba "media|un cuarto|cuarto") y caía a
+     * [relativePattern], que robaba solo "en una hora" (+60) dejando "y tres cuartos"
+     * como residuo en el título ("cita en una hora y tres cuartos" → "cita y tres
+     * cuartos", vencimiento 60 min en vez de 105). Se procesa ANTES que
+     * [relativePattern] para robar la frase completa: amount×60 + (45 si "tres
+     * cuartos" | 30 si "dos cuartos" o "media" | 15 si "cuarto"). Simétrica de
+     * [fractionalRelativePattern].
      */
     private val compoundFractionalRelativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+($writtenNumberGroup|\d{1,3})\s*horas?\s+y\s+(media|un\s+cuarto|cuarto)\b"""
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+($writtenNumberGroup|\d{1,3})\s*horas?\s+y\s+(tres\s+cuartos|dos\s+cuartos|media|un\s+cuarto|cuarto)\b"""
     )
     /**
      * Fecha relativa multi-cuarto: "en tres cuartos de hora" (45 min), "en dos cuartos"
-     * (30). Cada "cuarto" = 15 min. Antes no casaba ningún patrón → dueAt=null, tarea
-     * sin vencimiento. Se procesa ANTES que [fractionalDurationPattern] para robar la
-     * frase completa (prefijo incluido) y dejar título limpio.
+     * (30). Cada "cuarto" = 15 min. Admite el sufijo "+ y cuarto" (un cuarto extra):
+     * "en tres cuartos de hora y cuarto" = 3+1 = 4 cuartos = 60 min, "en dos cuartos
+     * de hora y cuarto" = 45 min. Antes el sufijo no se consumía y quedaba como
+     * residuo en el título ("llamar en tres cuartos de hora y cuarto" → "llamar y
+     * cuarto") y el vencimiento era 45 min en vez de 60. Se procesa ANTES que
+     * [fractionalDurationPattern] para robar la frase completa (prefijo incluido) y
+     * dejar título limpio.
      */
     private val multiQuarterRelativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+($writtenNumberGroup|\d{1,3})\s+cuartos(?:\s+de\s+hora)?\b"""
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+($writtenNumberGroup|\d{1,3})\s+cuartos(?:\s+de\s+hora)?(?:\s+y\s+cuarto)?\b"""
     )
     /**
      * Fecha relativa PASADA: "hace N días/semanas/meses/años" o "hace una semana".
@@ -659,7 +667,12 @@ object NaturalTaskParser {
         val compoundFractionalRelativeDueAt = compoundFractionalRelativeMatch?.let { match ->
             val amount = parseWrittenNumber(match.groupValues[1]) ?: 0L
             val frac = match.groupValues[2].lowercase()
-            val extra = if (frac.startsWith("media")) 30L else 15L
+            val extra = when {
+                frac.startsWith("tres") -> 45L
+                frac.startsWith("dos") -> 30L
+                frac.startsWith("media") -> 30L
+                else -> 15L
+            }
             now + (amount * 60 + extra) * 60_000L
         }
         compoundFractionalRelativeMatch?.let { working = working.replace(it.value, " ") }
@@ -668,7 +681,8 @@ object NaturalTaskParser {
         val multiQuarterRelativeMatch = multiQuarterRelativePattern.find(working)
         val multiQuarterRelativeDueAt = multiQuarterRelativeMatch?.let { match ->
             val amount = parseWrittenNumber(match.groupValues[1]) ?: 0L
-            now + amount * 15 * 60_000L
+            val extraQuarter = if (match.value.contains(Regex("""(?i)\sy\scuarto\b"""))) 1L else 0L
+            now + (amount + extraQuarter) * 15 * 60_000L
         }
         multiQuarterRelativeMatch?.let { working = working.replace(it.value, " ") }
 

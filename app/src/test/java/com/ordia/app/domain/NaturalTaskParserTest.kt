@@ -1194,6 +1194,44 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // --- Fecha relativa multi-cuarto + y cuarto (ciclo 103) ---
+    // "en tres cuartos de hora y cuarto" = 3 + 1 = 4 cuartos = 60 min. Antes el sufijo
+    // "y cuarto" no se consumía: [multiQuarterRelativePattern] robaba solo "en tres
+    // cuartos de hora" (+45) y dejaba "y cuarto" como residuo en el título ("llamar y
+    // cuarto"), agendando 15 min antes de lo pedido.
+    @Test fun enTresCuartosDeHoraYCuartoEsFechaRelativaDe60Min() {
+        val result = NaturalTaskParser.parse("Llamar en tres cuartos de hora y cuarto", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun enDosCuartosDeHoraYCuartoEsFechaRelativaDe45Min() {
+        val result = NaturalTaskParser.parse("Pausa en dos cuartos de hora y cuarto", now, zone)
+        assertEquals("Pausa", result.title)
+        assertEquals(now + 45 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    // --- Fecha relativa compuesta + cuartos plurales (ciclo 103) ---
+    // "en una hora y tres cuartos" = 60 + 45 = 105 min. Antes el plural "tres cuartos"
+    // no casaba en [compoundFractionalRelativePattern] (solo admitía media/cuarto) y
+    // caía a [relativePattern], que robaba "en una hora" (+60) dejando "y tres cuartos"
+    // como residuo ("cita y tres cuartos"), agendando 45 min antes de lo pedido.
+    @Test fun enUnaHoraYTresCuartosEsFechaRelativaDe105Min() {
+        val result = NaturalTaskParser.parse("Cita en una hora y tres cuartos", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(now + 105 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun enDosHorasYDosCuartosEsFechaRelativaDe150Min() {
+        val result = NaturalTaskParser.parse("Reunión en dos horas y dos cuartos", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(now + 150 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
     // --- Fecha relativa fraccionaria + cuarto (ciclo 101) ---
     // "en media hora y cuarto" = 30 + 15 = 45 min. Antes [fractionalRelativePattern]
     // robaba solo "en media hora" (+30) y dejaba "y cuarto" como residuo en el título

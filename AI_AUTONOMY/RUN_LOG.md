@@ -4715,3 +4715,49 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: continuar descubrimiento de frases cotidianas del parser y auditar
   producto (captura ultrarrápida, What Now, recuperación de vencidas, inbox inteligente).
+
+## Ciclo 103 — 2026-08-14 — Parser: fracciones compuestas plurales "+ tres cuartos" y "+ y cuarto" sobre multi-cuarto (P1)
+
+- **HEAD inicial**: `84f634c` (push c.101, local == origin al iniciar). **Base obsoleta detectada**: al hacer `git fetch` el remoto había avanzado a `0285a20` (c.102 de otra ejecución: fix parser "a última hora"). STALE_RUN reconstruido de forma segura: stash de mi trabajo → fast-forward a `0285a20` (hijo directo, sin divergencia destructiva) → stash pop → resolución del único conflicto (CURRENT_STATE.md, docs). Mi trabajo pasa a numerarse **c.103** para no colisionar con el c.102 remoto ya existente.
+- **Problema seleccionado**: dos bugs P1 parser descubiertos por probe JVM del c.101:
+  (A) `"en una hora y tres cuartos"` (60+45=105 min) dejaba "y tres cuartos" como residuo en
+  el título y agendaba +60 (45 min antes). (B) `"en tres cuartos de hora y cuarto"`
+  (3+1=4 cuartos=60 min) dejaba "y cuarto" como residuo y agendaba +45 (15 min antes).
+- **Prioridad**: P1 (precisión de captura + integridad de vencimiento + título limpio).
+  No había P0 conocido.
+- **Causa raíz (A)**: `compoundFractionalRelativePattern` (c.94b) solo admitía
+  `media|un cuarto|cuarto` como fracción final, NO los plurales "tres cuartos"/"dos
+  cuartos", así caía a `relativePattern` que robaba solo "en una hora" (+60) dejando
+  "y tres cuartos" como residuo. Asimetría: `multiQuarterRelativePattern` ("en tres
+  cuartos de hora") sí funcionaba, pero la forma con N horas + plural no.
+- **Causa raíz (B)**: `multiQuarterRelativePattern` (c.94b) robaba solo "en tres cuartos
+  de hora" (+45) y no consumía el sufijo "+ y cuarto", que quedaba como residuo. Análogo
+  al c.101 ("media hora y cuarto") pero sobre la rama multi-cuarto.
+- **Solución** (`NaturalTaskParser.kt`, cambio mínimo, reutiliza el flujo existente):
+  (A) `compoundFractionalRelativePattern` añade `tres\s+cuartos|dos\s+cuartos` al grupo
+  de fracción; el resolver suma (45 si "tres" | 30 si "dos" | 30 si "media" | 15 si
+  "cuarto") min. (B) `multiQuarterRelativePattern` añade sufijo opcional
+  `(?:\s+y\s+cuarto)?`; el resolver detecta el sufijo en `match.value` y suma +1 cuarto (15
+  min) extra. Ambos reutilizan TODO el flujo existente (`parseWrittenNumber`,
+  `effectiveRelativeDueAt`, `relativeIsDays=false`). Verificado que NO choca con el fix
+  "a última hora" del c.102 remoto (distintas funciones/ramas del parser).
+- **Tests**: +4 tests en `NaturalTaskParserTest.kt`
+  (`enUnaHoraYTresCuartosEsFechaRelativaDe105Min`,
+  `enDosHorasYDosCuartosEsFechaRelativaDe150Min`,
+  `enTresCuartosDeHoraYCuartoEsFechaRelativaDe60Min`,
+  `enDosCuartosDeHoraYCuartoEsFechaRelativaDe45Min`). Comando: `bash tools/run_domain_tests.sh`
+  → **709 tests PASS** (705 base c.102 + 4 c.103). Smoke
+  (`PATH=/tmp/kotlinc-home/kotlinc/bin:$PATH bash tools/run_domain_checks.sh`) → **25 OK**.
+  Sin regresión: "en una hora y media"=+90, "en una hora y cuarto"=+75, "en tres cuartos
+  de hora"=+45, "en dos cuartos de hora"=+30 todos intactos.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **BACKLOG**: dos entradas nuevas (c.103) marcadas FIXED → VERIFIED.
+- **Commits**: (pendiente de push).
+- **HEAD final**: (tras push).
+- **Estado**: FIXED → VERIFIED (dominio JVM); STALE_RUN reconstruido de forma segura.
+- **Próxima prioridad**: continuar descubrimiento de frases cotidianas del parser y auditar
+  producto (captura ultrarrápida, What Now, recuperación de vencidas, inbox inteligente).
+
