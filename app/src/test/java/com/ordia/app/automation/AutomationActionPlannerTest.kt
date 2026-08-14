@@ -130,6 +130,58 @@ class AutomationActionPlannerTest {
     }
 
     @Test
+    fun `reschedule_overdue deriva la fecha del now inyectado, no del reloj del sistema`() {
+        // Determinismo: la fecha base de reprogramación debe calcularse desde el `now`
+        // inyectado. Antes se usaba LocalDate.now(zone) (reloj real), de modo que la
+        // nueva fecha dependía del instante de ejecución y ningún test podía fijarla.
+        // Con now=2025-01-13, la primera vencida (índice 0) va a 2025-01-14 18:00.
+        val overdue = task(1, dueAt = now - 86_400_000L, status = TaskStatus.PLANNED, reminderAt = null)
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.RESCHEDULE_OVERDUE, AutomationCondition.HAS_OVERDUE_TASKS),
+            listOf(overdue), 0, now, zone
+        )
+        assertTrue(plan.matched)
+        assertEquals(
+            "La fecha debe ser mañana a las 18:00 del now inyectado (2025-01-14)",
+            1_736_888_400_000L,
+            plan.updates.first().dueAt
+        )
+    }
+
+    @Test
+    fun `reschedule_overdue reparte las vencidas en bloques de tres dias`() {
+        // Índice 0-2 → base+1; índice 3-5 → base+2. Las vencidas se ordenan por dueAt
+        // asc (la más vieja primero), de modo que la deuda más antigua se reprograma
+        // antes. La más vieja (t4, now-4d) → índice 0 → base+1; la más nueva (t1,
+        // now-1d) → índice 3 → base+2. Esto además fija el día base desde `now`.
+        val overdue = (1..4).map { task(it.toLong(), dueAt = now - it * 86_400_000L, status = TaskStatus.PLANNED, reminderAt = null) }
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.RESCHEDULE_OVERDUE, AutomationCondition.HAS_OVERDUE_TASKS),
+            overdue, 0, now, zone
+        )
+        assertEquals(4, plan.updates.size)
+        val byId = plan.updates.associateBy { it.id }
+        assertEquals(1_736_888_400_000L, byId[4L]!!.dueAt) // más vieja → índice 0 → base+1 = 2025-01-14 18:00
+        assertEquals(1_736_974_800_000L, byId[1L]!!.dueAt) // más nueva → índice 3 → base+2 = 2025-01-15 18:00
+    }
+
+    @Test
+    fun `plan_day deriva la fecha del now inyectado, no del reloj del sistema`() {
+        // Determinismo: los slots del plan deben fecharse con el día de `now`
+        // (2025-01-13 09:00). Antes, LocalDate.now(zone) fechaba con el reloj real y el
+        // primer slot caía en una fecha distinta según cuándo se ejecutara.
+        val t = task(1, durationMinutes = 30, status = TaskStatus.INBOX, reminderAt = null)
+        val plan = AutomationActionPlanner.build(rule(AutomationAction.PLAN_DAY), listOf(t), 0, now, zone)
+
+        assertTrue(plan.matched)
+        assertEquals(
+            "El primer slot debe ser 2025-01-13 09:00 (día del now inyectado)",
+            1_736_769_600_000L,
+            plan.updates.first().startAt
+        )
+    }
+
+    @Test
     fun `batch_quick_tasks agrupa tareas rapidas y respeta reminder previo`() {
         val existingReminder = now + 7_200_000L
         val quick = listOf(

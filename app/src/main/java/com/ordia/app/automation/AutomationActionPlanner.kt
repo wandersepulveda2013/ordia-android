@@ -10,7 +10,6 @@ import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayPlanner
 import com.ordia.app.domain.TaskRules
 import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
@@ -43,7 +42,12 @@ object AutomationActionPlanner {
 
         return when (rule.action) {
             AutomationAction.PLAN_DAY -> {
-                val date = LocalDate.now(zone)
+                // La fecha del plan se deriva del `now` inyectado (igual que
+                // BATCH_QUICK_TASKS), no del reloj del sistema: así la decisión es
+                // determinista y verificable con un `now` fijo. Usar LocalDate.now
+                // hacía que el plan dependiera del instante real y que ningún test
+                // pudiera afirmar la fecha exacta de los slots.
+                val date = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
                 val plan = DayPlanner.build(active, date, now = now, zone = zone)
                 val byId = tasks.associateBy { it.id }
                 val updates = plan.blocks.take(12).mapNotNull { block ->
@@ -61,7 +65,11 @@ object AutomationActionPlanner {
                 AutomationPlan(updates = updates, message = "${updates.size} tareas preparadas para hoy.", matched = updates.isNotEmpty())
             }
             AutomationAction.RESCHEDULE_OVERDUE -> {
-                val base = LocalDate.now(zone)
+                // El día base de reprogramación se deriva del `now` inyectado, no del
+                // reloj del sistema: coherente con PLAN_DAY/BATCH_QUICK_TASKS y
+                // determinista. Antes LocalDate.now(zone) ignoraba el `now` fijo de
+                // los tests (que solo pasaban porque "mañana real" > now inyectado).
+                val base = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
                 val updates = overdue.sortedBy { it.dueAt }.take(8).mapIndexed { index, task ->
                     val due = DateRules.toEpochMillis(base.plusDays(1L + index / 3), LocalTime.of(18, 0), zone)
                     // Recordatorio:
