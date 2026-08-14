@@ -11,7 +11,7 @@
 - **Features**: 0 (corrección de capacidad de captura existente — paridad nominal/numérica, sin nueva interfaz, sin fingir IA).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); integración parser↔UI en runtime Android.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (handler `numericDateMatch`), `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+2 tests), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: `abf27ab` (commit + push a `openhands/autonomous-ordia` c.146).
+- **HEAD final**: `3a8c5be` (commit + push a `openhands/autonomous-ordia` c.146).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 1030 tests, 0 failures; smoke 25 OK).
 - **Próxima prioridad**: descubrimiento continuo — más gaps léxicos del parser (p. ej. "el 15 del 9" = 15 del mes 9 = septiembre, forma LATAM; recurrencias numéricas); áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA (sin Android SDK).
 
