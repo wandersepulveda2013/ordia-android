@@ -238,9 +238,10 @@ class ReminderRulesTest {
         val offset = 15 * 60_000L
         val oldDue = 1_700_000_000_000L
         val newDue = oldDue + 3 * 60 * 60_000L // 3h después
+        val now = oldDue - 2 * 60 * 60_000L // 2h antes del vencimiento viejo: el offset trasladado queda en el futuro
         val existing = TaskEntity(id = 1, title = "X", dueAt = oldDue, reminderAt = oldDue - offset)
 
-        val result = ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = newDue)
+        val result = ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = newDue, now = now)
         assertEquals(newDue - offset, result)
     }
 
@@ -279,5 +280,77 @@ class ReminderRulesTest {
     fun resolveReminderAt_clearingDueReturnsNull() {
         val existing = TaskEntity(id = 1, title = "X", dueAt = 1_700_000_000_000L, reminderAt = 1_699_998_200_000L)
         assertEquals(null, ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = null))
+    }
+
+    // ---- translate-offset branch: nunca un recordatorio en el pasado ----
+
+    /**
+     * Asimetría con [ReminderRules.defaultReminderAt] (que es past-safe): la rama
+     * que "traslada el offset" al mover el vencimiento podía producir un
+     * recordatorio en el PASADO cuando el usuario acercaba el vencimiento con un
+     * offset grande ("2 h antes"). Un recordatorio pasado es inútil (se dispara
+     * con delay 0 al guardar = ruido, o lo descarta ReminderSync) → la tarea
+     * movida perdía silenciosamente su aviso previo justo cuando más falta hace
+     * para no olvidar. Debe caer al default adaptativo (nunca pasado).
+     */
+    @Test
+    fun resolveReminderAt_movingDueCloserWithLargeOffset_neverPastReminder() {
+        val now = 1_700_000_000_000L
+        val customOffset = 2 * 60 * 60_000L // "2 horas antes"
+        val oldDue = now + 25 * 60 * 60_000L // mañana ~10:00
+        val existing = TaskEntity(id = 1, title = "X", dueAt = oldDue, reminderAt = oldDue - customOffset)
+        val newDue = now + 45 * 60_000L // hoy, 45 min desde ahora
+
+        val reminder = ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = newDue, now = now)
+
+        assertNotNull(reminder)
+        assertTrue("el recordatorio no debe quedar en el pasado", reminder!! > now)
+        assertTrue("el recordatorio debe preceder al vencimiento", reminder < newDue)
+    }
+
+    @Test
+    fun resolveReminderAt_movingDueVeryCloseWithLargeOffset_fallsBackToAdaptiveDefault() {
+        val now = 1_700_000_000_000L
+        val customOffset = 2 * 60 * 60_000L
+        val oldDue = now + 25 * 60 * 60_000L
+        val existing = TaskEntity(id = 1, title = "X", dueAt = oldDue, reminderAt = oldDue - customOffset)
+        val newDue = now + 10 * 60_000L // 10 min desde ahora
+
+        val reminder = ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = newDue, now = now)
+
+        // El offset "2 h antes" trasladado cae ~110 min en el pasado: debe caer al
+        // default adaptativo (mitad del tiempo restante = 5 min antes), futuro.
+        assertNotNull(reminder)
+        assertEquals(ReminderRules.defaultReminderAt(newDue, now), reminder)
+        assertTrue(reminder!! > now)
+    }
+
+    @Test
+    fun resolveReminderAt_movingDueTooCloseForAnyLead_returnsNull() {
+        val now = 1_700_000_000_000L
+        val customOffset = 2 * 60 * 60_000L
+        val oldDue = now + 25 * 60 * 60_000L
+        val existing = TaskEntity(id = 1, title = "X", dueAt = oldDue, reminderAt = oldDue - customOffset)
+        val newDue = now + 30_000L // 30 s: ni el mínimo de antelación cabe
+
+        assertEquals(null, ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = newDue, now = now))
+    }
+
+    /**
+     * No-regresión: si el offset trasladado SÍ cabe en el futuro (vencimiento
+     * movido pero con margen suficiente), se conserva íntegro (no se resetea).
+     */
+    @Test
+    fun resolveReminderAt_movingDueKeepsOffsetWhenTranslatedReminderIsFuture() {
+        val now = 1_700_000_000_000L
+        val offset = 2 * 60 * 60_000L
+        val oldDue = now + 25 * 60 * 60_000L
+        val existing = TaskEntity(id = 1, title = "X", dueAt = oldDue, reminderAt = oldDue - offset)
+        val newDue = now + 6 * 60 * 60_000L // 6 h desde ahora: "2 h antes" = 4 h desde ahora (futuro)
+
+        val reminder = ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = newDue, now = now)
+
+        assertEquals(newDue - offset, reminder) // offset conservado, no default
+        assertTrue(reminder!! > now)
     }
 }

@@ -70,7 +70,10 @@ object ReminderRules {
      *   conserva exactamente el [TaskEntity.reminderAt] previo (offset intacto).
      * - Si [existing] tenía recordatorio y vencimiento y el vencimiento SÍ
      *   cambió, se traslada el offset: `dueAt - (oldDueAt - oldReminderAt)`.
-     *   Así "15 min antes" sigue siendo 15 min antes en la nueva hora.
+     *   Así "15 min antes" sigue siendo 15 min antes en la nueva hora. Si el
+     *   instante trasladado cae en el pasado (vencimiento acercado con un offset
+     *   grande), cae a [defaultReminderAt] para no dejar un aviso inútil/pasado
+     *   (consistencia con la rama por defecto, que es past-safe).
      * - En cualquier otro caso (nueva tarea, o recordatorio recién activado sin
      *   offset previo) se usa [defaultReminderAt]: "30 min antes" cuando hay
      *   margen, o un aviso intermedio recortado cuando el vencimiento está cerca
@@ -93,8 +96,17 @@ object ReminderRules {
         val prevReminder = existing?.reminderAt
         val prevDue = existing?.dueAt
         if (prevReminder != null && prevDue != null) {
-            return if (prevDue == dueAt) prevReminder
-            else dueAt - (prevDue - prevReminder)
+            if (prevDue == dueAt) return prevReminder
+            // Trasladar el offset ("15 min antes" sigue siendo 15 min antes en la nueva
+            // hora). Pero si el vencimiento se acercó con un offset grande, el instante
+            // trasladado puede caer en el PASADO: un recordatorio pasado es inútil (se
+            // dispara con delay 0 = ruido al guardar, o ReminderSync lo descarta) y la
+            // tarea movida perdía silenciosamente su aviso previo. Cae al default
+            // adaptativo (nunca pasado) para preservar un aviso útil. Asimétrico con
+            // [defaultReminderAt] sólo en que aquí el usuario dejó un offset explícito,
+            // así que se conserva cuando aún cabe en el futuro.
+            val translated = dueAt - (prevDue - prevReminder)
+            return if (translated > now) translated else defaultReminderAt(dueAt, now)
         }
         return defaultReminderAt(dueAt, now)
     }
