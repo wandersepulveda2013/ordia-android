@@ -1453,7 +1453,7 @@ object NaturalTaskParser {
             // así que "reunión martes" queda como fecha ambigua, no recurrencia.
             val barePluralSingle = !hasPrefix && days.size == 1 &&
                 weeklyMatch.groupValues[2].lowercase().let { g ->
-                    g.contains("sábados") || g.contains("domingos")
+                    g.contains("sábados") || g.contains("sabados") || g.contains("domingos")
                 }
             if (days.isNotEmpty() && (hasPrefix || days.size >= 2 || barePluralSingle)) {
                 phrases += weeklyMatch.range

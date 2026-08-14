@@ -190,6 +190,31 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // Variante sin tilde del bare-plural de sábado: "fútbol sabados". La regex de
+    // lista casa ambas formas (s[aá]bados?), pero el guard `barePluralSingle` solo
+    // comprobaba "sábados" con tilde → "sabados" caía sin recurrencia (NONE) y el
+    // día se quedaba como residuo en el título: la rutina se olvidaba. El usuario
+    // que escribe sin acentos no debe perder su hábito semanal más típico.
+    @Test fun parsesBarePluralSingleDayRecurrenceUnaccented() {
+        val result = NaturalTaskParser.parse("Fútbol sabados a las 18", now, zone)
+        assertEquals("Fútbol", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6", result.recurrenceDays)
+        // Desde miércoles 29-jul: la primera ocurrencia es el sábado 01-ago.
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // Lista bare de 2+ días con sábado sin tilde: la rama 2+ días ya la rescata,
+    // pero se prueba para garantizar que el fix del guard no rompió la simetría.
+    @Test fun parsesBareDayListUnaccentedSabado() {
+        val result = NaturalTaskParser.parse("Gym sabados y domingos", now, zone)
+        assertEquals("Gym", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // Un día suelto no plural ("reunión martes") es ambiguo (¿fecha?): NO debe
     // convertirse en recurrencia; se deja como fecha única para no programar una
     // rutina equivocada.

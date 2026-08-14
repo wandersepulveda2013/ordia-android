@@ -4045,3 +4045,22 @@ a un permiso persistente frágil y silencioso ante fallos.
     (P3 — evaluar necesidad real antes de implementar, anti-feature-bloat).
   - Descubrimiento continuo: rutinas adaptables; detección de compromisos en notas;
     captura ultrarrápida; `PlanEngine`/replanización si OVERLOADED recurrente.
+
+
+## Ciclo 89 — 2026-08-14
+
+- **Rama**: `openhands/autonomous-ordia`
+- **HEAD inicial**: `d030cca` (c.88 docs commit "registro HEAD final ciclo 88").
+- **Problema seleccionado**: **P1 (pérdida de datos silenciosa)** — asimetría de acentos en el parser de recurrencias: bare-plural `"sabados"` sin tilde. `"fútbol sabados"` caía en `recurrence=NONE` y "sabados" quedaba como residuo en el título → la rutina semanal se olvidaba en silencio (sin recurrencia, sin recordatorio recurrente, invisible en planificador). El día más típico de hábito semanal. Simétrico al c.88 ("próximo" sin tilde) y al c.41 (plurales en la regex).
+- **Causa raíz**: `dayListPattern` (regex) casa ambas formas `s[aá]bados?`, pero el guard `barePluralSingle` (línea ~1456) solo comprobaba `g.contains("sábados")` con tilde → "sabados" pasaba el guard como no-plural y no se reconocía como recurrencia de un solo día bare → caía fuera del `if` y la frase no se consumía. Descuido del c.41, no decisión. La lista de 2+ días (`gym sabados y domingos`) ya funcionaba por la rama `days.size>=2`.
+- **Solución mínima**: `g.contains("sábados") || g.contains("sabados") || g.contains("domingos")` — alineado con la regex `s[aá]bados?`. Sin tocar el regex ni el flujo de `weekdaySameDayCandidate`.
+- **Bugs**: P1 rutina semanal perdida ("sabados" sin tilde, día bare plural único).
+- **Features**: ninguna (fix de integridad de datos).
+- **Tests (TDD)**: +2 (`parsesBarePluralSingleDayRecurrenceUnaccented`, `parsesBareDayListUnaccentedSabado`). Probe JVM confirmó RED antes del fix (`freq=NONE days='' title='fútbol sabados'` para "fútbol sabados") y GREEN tras (`freq=WEEKLY days='6' title='fútbol'`). Comando: `bash tools/run_domain_tests.sh` → **622 tests PASS** (27 clases — subida desde 620). Smoke: `bash tools/run_domain_checks.sh` → **25 assertions OK**. Sin regresión.
+- **Auditoría de acentos (TASK-3, completada)**: los 7 `contains`/`==` acento-sensibles del parser están balanceados — `mediodía`/`mediodia` (977), `próxim`/`proxim` (925/1614), `sabados` (1457, fixed). Meridiem `delamañana`/`delamanaana` (1011) cubre la forma sin tilde habitual (probe: "9 de la manana" → parses OK con dueAt). No quedan asimetrías activas.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: (ver abajo, tras `git commit`).
+- **HEAD final**: (tras commit + push).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: Auditoría de acentos del parser COMPLETADA. Descubrimiento funcional: rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; `SearchEngine` date-scope "parte del día"/"este mes" (P3 anti-feature-bloat); `PlanEngine`/replanización si OVERLOADED recurrente.
