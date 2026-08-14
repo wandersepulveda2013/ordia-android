@@ -5042,3 +5042,28 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: `5efd685` (push verificado, HEAD==origin).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: auditar WhatNowEngine/GuardianEngine (recuperación de vencidas, detección de compromisos); descubrimiento continuo en contexto/onboarding/captura ultrarrápida; no volver a tocar acentos del SearchEngine (ya verificado OK).
+
+---
+
+## Ciclo 114 — 2026-08-14
+
+- **HEAD inicial**: `303870b` (c.113, sincronizado con origin/openhands/autonomous-ordia; `git pull --ff-only` OK sin divergencia).
+- **Rama**: `openhands/autonomous-ordia`. `git pull --ff-only` OK (sin divergencia).
+- **Área auditada**: SearchEngine (búsqueda universal) + sondeo del parser (frases coloquiales: "un par de", "anteayer", "pasado mañana", mediodía/medianoche) + backup roundtrip (Task/Note/Habit JSON) + RecurrenceEngine + WhatNowEngine. **Hallazgo**: parser, RecurrenceEngine, WhatNowEngine y backup serialización están sólidos (probes JVM verde; "un par de días"=+2d, "anteayer"=−2d, "pasado mañana"=+2d; roundtrip Task completo). Brecha real en SearchEngine: sin scope para tareas SIN vencimiento.
+- **Problema seleccionado**: SearchEngine no recuperaba tareas sin fecha ("sin fecha"/"sin vencimiento"/"sin día"/"sin plazo") — justo las capturadas pero nunca agendadas (las que se olvidan).
+- **Prioridad**: P2 (recuperación de tareas olvidadas / búsqueda universal). No había P0/P1 conocido abierto; elegí mejora de producto de alto impacto (recuperación de información) antes que un warning cosmético.
+- **Causa raíz**: `DateScope` solo tenía scopes basados en rango de fecha; `taskMatchesDateScope` hacía `task.dueAt ?: return false` para todos los scopes no-OVERDUE → una tarea sin `dueAt` nunca casaba.
+- **Solución** (`SearchEngine.kt`, cambio mínimo, reutiliza TODO el flujo existente, sin UI nueva):
+  - `DateScope` añade `UNDATED`.
+  - `UNDATED_HINTS = setOf("fecha", "vencimiento", "dia", "plazo")`.
+  - `detectDateScope`: primera rama `"sin" in words && UNDATED_HINTS.any { it in words } -> UNDATED` (antes que cualquier otro token; "sin" no casa otros scopes).
+  - `dateScopeTokens`: elimina "sin" + las hints del contenido (no se exigen en el título).
+  - `taskMatchesDateScope` UNDATED → `!task.completed && task.status != TaskStatus.CANCELLED && task.dueAt == null`.
+  - Rama `UNDATED -> false` inalcanzable añadida al `when` final para exhaustividad.
+- **Heurística honesta**: se exige "sin" + sustantivo de fecha para no activarse con "sin azúcar"/"sin leche". Excluye completadas (ya resueltas) y canceladas; archivadas ya filtradas. No IA simulada.
+- **Tests**: `bash tools/run_domain_tests.sh` → **768 PASS** (763 c.113 + 5 nuevos: `sinFecha_returnsOnlyUndatedTasks`, `sinVencimiento_returnsOnlyUndatedTasks`, `sinFecha_excludesCompletedUndatedTasks`, `sinFechaSinAcento_tambiénFunciona`, `negacionAjena_noActivaScopeUndated`). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Sin regresión: "hoy"/"mañana"/"atrasadas"/"ayer"/"semana pasada"/"próxima semana" intactos.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Commits**: `feat(search): recuperar tareas sin fecha con "sin fecha"/"sin vencimiento"` (hash abajo).
+- **HEAD final**: (ver `git log -1`).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: auditar SummaryEngine/CommitmentEngine/DayPlanner; descubrimiento continuo en contexto/captura ultrarrápida/relaciones notas-tareas.

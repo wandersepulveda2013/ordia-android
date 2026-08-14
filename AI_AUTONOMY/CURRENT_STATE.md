@@ -199,7 +199,51 @@ Tests: +2 en `NaturalTaskParserTest.kt`: `enseguidaEsFechaRelativaDe1Hora`,
 - **Próxima prioridad**: continuar descubrimiento de frases cotidianas del parser y auditar
   producto (captura ultrarrápida, What Now, recuperación de vencidas, inbox inteligente).
 
-## Último trabajo — Ciclo 101: Parser — "en media hora y cuarto" (fracción + cuarto sin número entero) dejaba residuo en el título y agendaba 15 min antes (P2 precisión de captura)
+## Último trabajo — Ciclo 114: SearchEngine — "sin fecha" no recuperaba tareas sin vencimiento (brecha de búsqueda universal / recuperación)
+
+Bug **P2 (recuperación de tareas olvidadas / búsqueda universal)**: `"sin fecha"` /
+`"sin vencimiento"` / `"sin día"` / `"sin plazo"` devolvían las tareas **sin vencimiento**
+como resultado de una búsqueda de contenido puro — "sin" + "fecha" no aparecen en ningún
+título útil — así que las tareas capturadas pero **nunca agendadas** (justo las que se
+olvidan) no se podían recuperar con la búsqueda universal. `DateScope` solo tenía scopes
+basados en rango de fecha, y `taskMatchesDateScope` hacía `task.dueAt ?: return false`, así
+una tarea sin `dueAt` nunca casaba ningún scope.
+
+| Entrada | Antes (bug) | Ahora |
+|---|---|---|
+| `sin fecha` (tareas: hoy, mañana, atrasada, undated id=5) | ruido/vacío | [id=5] ✅ |
+| `sin vencimiento` | ruido/vacío | [id=5] ✅ |
+| `sin dia` (sin tilde) | ruido/vacío | [id=5, id=21] ✅ |
+| `sin azucar` (negación ajena) | contenido "sin azúcar" | [id=22] (búsqueda normal, NO scope) ✅ |
+| tarea sin fecha pero completada | — | excluida de `sin fecha` ✅ |
+
+- **Causa raíz**: ausencia de un scope para tareas sin `dueAt`; todas las intenciones de
+  búsqueda por fecha requerían una fecha concreta que comparar.
+- **Solución** (`SearchEngine.kt`, cambio mínimo, reutiliza TODO el flujo existente):
+  nuevo `DateScope.UNDATED`; `UNDATED_HINTS = {fecha, vencimiento, dia, plazo}`;
+  `detectDateScope` activa UNDATED cuando "sin" + una pista de fecha (primera rama, antes
+  que cualquier otro token); `dateScopeTokens` elimina "sin" + la hint del contenido para
+  no exigirlos en el título; `taskMatchesDateScope` UNDATED →
+  `!completed && status != CANCELLED && dueAt == null`.
+- **Heurística honesta**: se exige "sin" acompañado de un sustantivo de fecha para no
+  activarse con "sin leche"/"sin azúcar". Se excluyen completadas (ya resueltas, no son
+  "olvidadas") y canceladas; las archivadas ya se filtraron arriba. Sin nueva pantalla ni
+  botón: aprovecha la búsqueda universal existente.
+- **Tests**: +5 tests en `SearchEngineDateScopeTest.kt`
+  (`sinFecha_returnsOnlyUndatedTasks`, `sinVencimiento_returnsOnlyUndatedTasks`,
+  `sinFecha_excludesCompletedUndatedTasks`, `sinFechaSinAcento_tambiénFunciona`,
+  `negacionAjena_noActivaScopeUndated`).
+  Verificado sin regresión: "hoy"/"mañana"/"atrasadas"/"ayer"/"semana pasada"/"próxima
+  semana" intactos. Comando: `bash tools/run_domain_tests.sh` → **768 tests PASS**
+  (763 c.113 + 5). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt`,
+  `app/src/test/java/com/ordia/app/domain/SearchEngineDateScopeTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: continuar descubrimiento de producto (captura ultrarrápida,
+  What Now, detección de vencidas, inbox inteligente, relaciones notas/tareas) y auditar
+  engines restantes (SummaryEngine, CommitmentEngine, DayPlanner).
 
 Bug **P2 (precisión de captura/título sucio)**: `"en media hora y cuarto"` (30+15 = 45 min,
 dos fracciones sumadas sin número entero) no se parseaba como punto relativo.

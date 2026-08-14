@@ -251,4 +251,42 @@ class SearchEngineDateScopeTest {
         val ids = SearchEngine.search("la semana pasada", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
         assertTrue("Esta semana no debe aparecer en 'la semana pasada'", ids.isEmpty())
     }
+
+    // --- Recuperación de tareas sin fecha ("sin fecha"/"sin vencimiento") ---
+
+    @Test fun sinFecha_returnsOnlyUndatedTasks() {
+        // "sin fecha" recupera las tareas capturadas pero nunca agendadas.
+        val ids = SearchEngine.search("sin fecha", tasks, emptyList(), emptyList(), emptyList(), now = now).map { it.id }
+        assertEquals(listOf(5L), ids)
+    }
+
+    @Test fun sinVencimiento_returnsOnlyUndatedTasks() {
+        // Sinónimo "sin vencimiento" activa el mismo scope UNDATED.
+        val ids = SearchEngine.search("sin vencimiento", tasks, emptyList(), emptyList(), emptyList(), now = now).map { it.id }
+        assertEquals(listOf(5L), ids)
+    }
+
+    @Test fun sinFecha_excludesCompletedUndatedTasks() {
+        // Una tarea sin fecha pero ya completada no es "olvidada"; se excluye.
+        val completedUndated = TaskEntity(id = 20, title = "Ya hecha sin fecha", completed = true)
+        val all = tasks + completedUndated
+        val ids = SearchEngine.search("sin fecha", all, emptyList(), emptyList(), emptyList(), now = now).map { it.id }
+        assertTrue("La tarea completada sin fecha no debe aparecer", 20L !in ids)
+        assertTrue(5L in ids)
+    }
+
+    @Test fun sinFechaSinAcento_tambiénFunciona() {
+        // "sin dia" (sin tilde) también debe activar el scope UNDATED.
+        val withDia = tasks + TaskEntity(id = 21, title = "Pendiente sin día")
+        val ids = SearchEngine.search("sin dia", withDia, emptyList(), emptyList(), emptyList(), now = now).map { it.id }.toSet()
+        assertEquals(setOf(5L, 21L), ids)
+    }
+
+    @Test fun negacionAjena_noActivaScopeUndated() {
+        // "sin" sin sustantivo de fecha no debe activar UNDATED: "sin azúcar"
+        // es una búsqueda de contenido normal, no un scope de fecha.
+        val sweet = tasks + TaskEntity(id = 22, title = "Café sin azúcar")
+        val ids = SearchEngine.search("sin azucar", sweet, emptyList(), emptyList(), emptyList(), now = now).map { it.id }
+        assertEquals(listOf(22L), ids)
+    }
 }

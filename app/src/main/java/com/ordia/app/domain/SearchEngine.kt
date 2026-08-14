@@ -22,7 +22,7 @@ enum class SearchKind { TASK, PROJECT, NOTE, HABIT, CONVERSATION, COMMITMENT, AU
  * "esta semana" o "atrasadas"/"vencidas" y obtener las tareas de ese rango
  * aunque su título no contenga esa palabra. Es una heurística local honesta.
  */
-private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, OVERDUE }
+private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, OVERDUE, UNDATED }
 
 data class SearchResult(val kind: SearchKind, val id: Long, val title: String, val subtitle: String)
 
@@ -153,7 +153,14 @@ object SearchEngine {
     // deben exigirse en el contenido de la tarea.
     private val DATE_MODIFIERS = setOf("esta", "este", "la", "el", "las", "los", "mis")
 
+    // Tareas sin vencimiento ("sin fecha"/"sin vencimiento"/"sin día"/"sin plazo"):
+    // el objetivo es recuperar lo capturado pero nunca agendado, justo lo que
+    // tiende a olvidarse. Se exige "sin" acompañado de uno de estos sustantivos
+    // para no activarse con "sin leche" u otras negaciones ajenas a la fecha.
+    private val UNDATED_HINTS = setOf("fecha", "vencimiento", "dia", "plazo")
+
     private fun detectDateScope(words: List<String>): DateScope? = when {
+        "sin" in words && UNDATED_HINTS.any { it in words } -> DateScope.UNDATED
         OVERDUE_TOKENS.any { it in words } -> DateScope.OVERDUE
         TODAY_TOKENS.any { it in words } -> DateScope.TODAY
         TOMORROW_TOKENS.any { it in words } -> DateScope.TOMORROW
@@ -165,10 +172,14 @@ object SearchEngine {
     }
 
     private fun dateScopeTokens(words: List<String>): Set<String> =
-        words.filter { it in OVERDUE_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in DATE_MODIFIERS }.toSet()
+        words.filter { it in OVERDUE_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS }.toSet()
 
     private fun taskMatchesDateScope(task: TaskEntity, scope: DateScope, now: Long, zone: ZoneId): Boolean {
         if (scope == DateScope.OVERDUE) return TaskRules.isOverdue(task, now)
+        // Tareas sin vencimiento: el motivo de este scope es recuperar lo pendiente
+        // que nunca se agendó. Se excluyen completadas (ya resueltas) y canceladas,
+        // igual que los scopes presentes/futuros; las archivadas ya se filtraron.
+        if (scope == DateScope.UNDATED) return !task.completed && task.status != TaskStatus.CANCELLED && task.dueAt == null
         // Los scopes pasados ("ayer", "semana pasada") recuperan tareas ya
         // completadas: su propósito es revisar qué había en ese período. Para
         // los scopes presentes/futuros se excluyen completadas. Las canceladas
@@ -210,6 +221,8 @@ object SearchEngine {
                 !dueDate.isBefore(startLastWeek) && !dueDate.isAfter(endLastWeek)
             }
             DateScope.OVERDUE -> TaskRules.isOverdue(task, now)
+            // UNDATED se resuelve antes (return temprano); aquí es inalcanzable.
+            DateScope.UNDATED -> false
         }
     }
 }
