@@ -40,16 +40,16 @@ object GuardianCoach {
             } == true
         }
 
+        val plan = DayPlanner.build(tasks = roots, date = today, now = now, zone = zone)
+        val freeTime = plan.remainingMinutes
+
         if (overdue.isNotEmpty()) {
             val next = TaskRules.nextBestTask(overdue, now)
+            val duration = next?.durationMinutes ?: 25
             return Insight(
                 eyebrow = "RECUPERA EL CONTROL",
                 title = next?.title ?: "Hay algo pendiente",
-                message = if (overdue.size == 1) {
-                    "Esta tarea está atrasada. Empieza con un bloque corto y vuelve a poner el día en movimiento."
-                } else {
-                    "Tienes ${overdue.size} tareas atrasadas. No intentes resolverlas todas: comienza por esta."
-                },
+                message = "Haz esto ahora porque está atrasada. Toma ~${duration} min y tienes $freeTime min libres hoy para poner el día en movimiento.",
                 taskId = next?.id,
                 tone = Tone.GENTLE
             )
@@ -58,10 +58,11 @@ object GuardianCoach {
         val urgentToday = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
         if (urgentToday.isNotEmpty()) {
             val next = TaskRules.nextBestTask(urgentToday, now)
+            val duration = next?.durationMinutes ?: 25
             return Insight(
                 eyebrow = "PROTEGE TU DÍA",
                 title = next?.title ?: "Prioridad de hoy",
-                message = "Es lo más importante para hoy. Reserva tiempo antes de llenar el resto de la agenda.",
+                message = "Haz esto ahora porque es prioritario. Toma ~${duration} min y tienes $freeTime min libres hoy.",
                 taskId = next?.id,
                 tone = Tone.FOCUSED
             )
@@ -72,8 +73,7 @@ object GuardianCoach {
             return Insight(
                 eyebrow = "SIGUIENTE PASO",
                 title = next.title,
-                message = next.details.takeIf { it.isNotBlank() }
-                    ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
+                message = "Haz esto ahora porque toma unos ${next.durationMinutes} min y tienes $freeTime min libres hoy.",
                 taskId = next.id,
                 tone = Tone.FOCUSED
             )
