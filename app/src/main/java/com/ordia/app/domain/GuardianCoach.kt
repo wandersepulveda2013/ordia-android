@@ -4,6 +4,7 @@ import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.TaskEntity
 import java.time.ZoneId
+import java.time.LocalTime
 
 /**
  * Small, deterministic coaching layer used by the guardian.
@@ -30,6 +31,9 @@ object GuardianCoach {
         zone: ZoneId = ZoneId.systemDefault()
     ): Insight {
         val today = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        val currentLocalTime = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalTime()
+        val currentMinuteOfDay = currentLocalTime.hour * 60 + currentLocalTime.minute
+
         val roots = tasks.filter { it.parentTaskId == null && !it.archived }
         val pending = roots.filterNot { it.completed }
         val overdue = pending.filter { TaskRules.isOverdue(it, now) }
@@ -40,6 +44,7 @@ object GuardianCoach {
             } == true
         }
 
+        // Always check overdue first to recover control.
         if (overdue.isNotEmpty()) {
             val next = TaskRules.nextBestTask(overdue, now)
             return Insight(
@@ -53,6 +58,46 @@ object GuardianCoach {
                 taskId = next?.id,
                 tone = Tone.GENTLE
             )
+        }
+
+        // Use DayPlanner to evaluate what makes sense now given the available time today.
+        val plan = DayPlanner.build(pending, today, now = now, zone = zone)
+
+        // Find if we are currently in a block or if there's an upcoming block
+        val currentOrNextBlock = plan.blocks.firstOrNull { it.endMinute > currentMinuteOfDay }
+
+        if (currentOrNextBlock != null) {
+            val blockTask = pending.firstOrNull { it.id == currentOrNextBlock.taskId }
+            if (blockTask != null) {
+                 if (currentOrNextBlock.startMinute <= currentMinuteOfDay) {
+                      return Insight(
+                          eyebrow = "EN ESTE MOMENTO",
+                          title = blockTask.title,
+                          message = "De acuerdo a tu plan del día, este es el momento ideal para enfocarte en esto.",
+                          taskId = blockTask.id,
+                          tone = Tone.FOCUSED
+                      )
+                 } else {
+                      val urgentToday = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
+                      if (urgentToday.isNotEmpty() && urgentToday.any { it.id == blockTask.id }) {
+                          return Insight(
+                              eyebrow = "PROTEGE TU DÍA",
+                              title = blockTask.title,
+                              message = "Es lo más importante para hoy. Tienes tiempo libre ahora, podrías adelantarlo.",
+                              taskId = blockTask.id,
+                              tone = Tone.FOCUSED
+                          )
+                      }
+
+                      return Insight(
+                          eyebrow = "SIGUIENTE EN EL PLAN",
+                          title = blockTask.title,
+                          message = "Tu próxima tarea planificada comienza a las ${DateRules.minutesToClock(currentOrNextBlock.startMinute)}.",
+                          taskId = blockTask.id,
+                          tone = Tone.FOCUSED
+                      )
+                 }
+            }
         }
 
         val urgentToday = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
