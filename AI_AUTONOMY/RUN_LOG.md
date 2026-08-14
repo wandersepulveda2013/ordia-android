@@ -18,8 +18,8 @@
 - **Hallazgos adicionales (descubrimiento continuo)**: el bug revela una asimetría latente: `writtenDurationPattern` admite dígitos, solapando con `durationPatterns`. No es un defecto (ambos resuelven la misma duración), pero cualquier futuro borrado por rango DEBE deduplicar. Lección genérica: cuando se recolectan rangos de varios `find()` para aplicar `replaceRange` secuencial sobre `working` mutable, SIEMPRE deduplicar/saltar solapados. Próxima prioridad: salir del parser hacia la prioridad de memoria (auditar WhatNowEngine/GuardianEngine y recuperación de tareas olvidadas); gap OPEN restante del c.113: "una semana y media"/"un mes y medio" (+0.5 de la unidad) — evaluar frecuencia real (anti-feature-bloat).
 - **AI_AUTONOMY actualizado**: `CURRENT_STATE.md` (sección "Estado" con ciclo 118 + contador 794 tests), `RUN_LOG.md` (esta entrada).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md`.
-- **Commits**: (a rellenar tras push).
-- **HEAD final**: (a rellenar tras push).
+- **Commits**: `7a9dfc2` (fix(parser): crash IndexOutOfBoundsException al borrar tokens de duración con match duplicado (P0)).
+- **HEAD final**: `7a9dfc2` (== `origin/openhands/autonomous-ordia`; push con `$github_token`).
 - **Estado**: FIXED → VERIFIED (dominio JVM). 794 domain tests PASS (791 base c.117 + 3), smoke 25 OK.
 - **Próxima prioridad**: salir del parser hacia WhatNowEngine/GuardianEngine y recuperación de tareas olvidadas / contexto / onboarding; gap "una semana y media"/"un mes y medio" (anti-feature-bloat).
 
