@@ -5912,4 +5912,89 @@ class NaturalTaskParserTest {
         assertEquals("Entregar", result.title)
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    // ── "el día siguiente" = mañana relativa (sin weekday) ──
+    // Forma cotidiana de agendar para mañana sin usar la palabra "mañana"
+    // ("entregar el día siguiente", "reunión el día siguiente a las 18"). Antes caía a
+    // dueAt=null + frase completa como título (vencimiento olvidado), o con hora se
+    // agendaba a HOY (fecha equivocada). Se normaliza a "mañana" reutilizando todo el flujo.
+    @Test fun elDiaSiguienteResuelveAMananaSinResiduo() {
+        val result = NaturalTaskParser.parse("Entregar el día siguiente", now, zone)
+        assertEquals("Entregar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun diaSiguienteSinArticuloResuelveAManana() {
+        val result = NaturalTaskParser.parse("Reunión día siguiente", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elDiaSiguienteConHoraExplicitaEsMananaALaHora() {
+        // P1: antes se agendaba a HOY 18:00 (fecha equivocada) + residuo "el día siguiente".
+        val result = NaturalTaskParser.parse("Reunión el día siguiente a las 18", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun elDiaSiguienteEscritoSinTildeFunciona() {
+        val result = NaturalTaskParser.parse("Pagar dia siguiente", now, zone)
+        assertEquals("Pagar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elDiaSiguienteNoAtrapalosDiasDeSemanaNombrados() {
+        // "el martes siguiente" sigue siendo el próximo martes (04-ago), NO mañana.
+        // No debe normalizarse porque "día siguiente" exige "día" genérico, no weekday.
+        val result = NaturalTaskParser.parse("Ir el martes siguiente", now, zone)
+        assertEquals("Ir", result.title)
+        assertEquals(LocalDate.of(2026, 8, 4), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // ── "el próximo N" = día N del mes que viene (forma corta sin "del mes") ──
+    // Vencimientos/cobros anclados a un día concreto ("pago el próximo 15"). Antes caía
+    // a dueAt=null: la palabra "próximo" rompía dayOfMonthPattern y nextPeriodPattern no
+    // acepta día numérico → vencimiento olvidado (P2). "próximo N" = día N del mes
+    // siguiente (consistente con "el N del mes que viene").
+    @Test fun elProximoNDiaResuelveADiaNDelMesSiguiente() {
+        val result = NaturalTaskParser.parse("Pago el próximo 15", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximoNSinArticuloResuelveAMesSiguiente() {
+        val result = NaturalTaskParser.parse("Entrega próximo 20", now, zone)
+        assertEquals("Entrega", result.title)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elProximoDiaNResuelveAMesSiguiente() {
+        val result = NaturalTaskParser.parse("Cobro el próximo día 10", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 10), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elProximoNConHoraExplicitaCombinaFechaYHora() {
+        val result = NaturalTaskParser.parse("Reunión el próximo 15 a las 10", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun elProximoNDiaImposibleClampaAUltimoDiaDelMesSiguiente() {
+        // now=2026-01-15 → mes siguiente = febrero 2026 (28 días). "próximo 31" → 28.
+        val eneNow = DateRules.toEpochMillis(LocalDate.of(2026, 1, 15), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Vence el próximo 31", eneNow, zone)
+        assertEquals("Vence", result.title)
+        assertEquals(LocalDate.of(2026, 2, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elProximoNNoInterfiereConNDelMesQueViene() {
+        // "el 15 del mes que viene" sigue usando la forma completa (también → 15-ago),
+        // sin doble-procesamiento ni residuo.
+        val result = NaturalTaskParser.parse("Pago el 15 del mes que viene", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }

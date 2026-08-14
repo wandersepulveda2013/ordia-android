@@ -297,6 +297,23 @@ object NaturalTaskParser {
         """(?i)\b(?:el\s+)?(?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\s+el\s+(?:d[ií]a\s+)?(\d{1,2})\b"""
     )
     /**
+     * "el próximo 15" / "próximo 15" / "el próximo día 15": día N del mes SIGUIENTE
+     * (próximo = mes que viene). Vencimientos/cobros anclados a un día concreto pero
+     * sin "del mes" ("pago el próximo 15", "entrega el próximo 20"). Antes caía a
+     * dueAt=null: dayOfMonthPattern exige "el <dígito>" y la palabra "próximo" rompía
+     * el match, y nextPeriodPattern requiere un período (semana/mes/año), no un día
+     * numérico → vencimiento olvidado (sin recordatorio, invisible en What Now/planificador).
+     * "próximo N" es inequívocamente temporal (no sustantivo de contenido), así que se
+     * resuelve como día N del mes siguiente y se consume ANTES que nextPeriodPattern
+     * (que robaría "próximo" sin día) y que dayOfMonthPattern. El día imposible
+     * (p. ej. 31 de feb) se ajusta al último día válido del mes objetivo (igual que
+     * nextMonthDayPattern). Se resuelve como día (epoch medianoche) para combinarse
+     * con hora explícita ("el próximo 15 a las 10").
+     */
+    private val nextMonthDayShortPattern = Regex(
+        """(?i)\b(?:el\s+)?(?:d[ií]a\s+)?pr[oó]xim[oa]\s+(?:d[ií]a\s+)?(\d{1,2})\b"""
+    )
+    /**
      * "la semana que viene el lunes" / "la próxima semana el viernes" / "la
      * semana entrante el sábado": día de la semana objetivo de la SEMANA PRÓXIMA
      * (no +7d genérico desde hoy, que es lo que daba nextPeriodPattern). Sin este
@@ -473,6 +490,17 @@ object NaturalTaskParser {
      * son contenido, no fecha.
      */
     private val ordinalSuffixPattern = Regex("""(?i)\b(\d{1,2})(?:ero|ro|do|er|to|mo|vo|no|º|ª)(\s+del?\s+)""")
+
+    // "el día siguiente"/"día siguiente" = mañana relativa (sin weekday nombrado).
+    // Forma cotidiana de agendar para mañana sin usar la palabra "mañana"
+    // ("entregar el día siguiente", "reunión el día siguiente a las 18"). Antes caía a
+    // dueAt=null + frase completa como título (vencimiento olvidado), o con hora se
+    // agendaba a HOY (fecha equivocada: P1). Se normaliza a "mañana" para reutilizar
+    // TODO el flujo existente (mananaAsDate → +1d, hora explícita, limpieza del título).
+    // Exige "día" genérico (no weekday): "el martes siguiente" no se toca (lo resuelve
+    // weekdayPattern como próxima ocurrencia estricta, c.148). "siguiente" sin "día"
+    // tampoco se toca (ambiguo: "capítulo siguiente" es contenido).
+    private val dayAfterPattern = Regex("""(?i)\b(?:el\s+)?d[ií]a\s+siguiente\b""")
 
     // "el 15 del 9" = día 15 del mes 9 (septiembre). Forma numérica LATAM cotidiana para
     // agendar vencimientos. Antes dayOfMonthPattern casaba con "el 15" → 15 del mes en
@@ -913,6 +941,11 @@ object NaturalTaskParser {
             .replace(Regex("""(?i)\bantenoche\b"""), "anteayer noche")
             .replace(Regex("""(?i)\banoche\b"""), "ayer noche")
 
+        // "el día siguiente"/"día siguiente" → "mañana": reutiliza TODO el flujo de
+        // "mañana" (fecha +1d, hora explícita, limpieza del título). Va aquí (antes de
+        // mananaAsDate y de la cascada de fecha) para que la fecha relativa se resuelva.
+        working = dayAfterPattern.replace(working, "mañana")
+
         // Ordinales numéricos: "1ro"/"2do"/"3er"/"1º"… seguidos de " de " se normalizan a
         // su dígito base para que los patrones de fecha (que exigen \d seguido de espacio)
         // los reconozcan. Solo en contexto de fecha (" de ") para no tocar contenido.
@@ -1323,6 +1356,23 @@ object NaturalTaskParser {
         }
         nextMonthDayReverseMatch?.let { working = working.replaceRange(it.range, " ") }
 
+        // "el próximo 15" / "próximo 15" / "el próximo día 15": día N del mes SIGUIENTE.
+        // Forma corta de "el 15 del mes que viene" SIN "del mes". Se procesa DESPUÉS de
+        // nextMonthDay[Reverse] (que consumen la frase completa "N del mes que viene")
+        // para no doble-procesar, y ANTES que nextPeriodPattern (que robaría "próximo"
+        // como +30d sin día) y que dayOfMonthPattern (que exige "el <dígito>"). Resolución
+        // idéntica a nextMonthDayDueAt: día N del mes siguiente con clamp de día imposible.
+        val nextMonthDayShortMatch = nextMonthDayShortPattern.find(working)
+        val nextMonthDayShortDueAt = nextMonthDayShortMatch?.let { m ->
+            val day = m.groupValues[1].toIntOrNull()?.takeIf { it in 1..31 } ?: return@let null
+            val today = base.toLocalDate()
+            val nextMonth = today.plusMonths(1)
+            val dim = nextMonth.lengthOfMonth()
+            val safeDay = minOf(day, dim)
+            DateRules.toEpochMillis(nextMonth.withDayOfMonth(safeDay), LocalTime.of(9, 0), zone)
+        }
+        nextMonthDayShortMatch?.let { working = working.replaceRange(it.range, " ") }
+
         // "la semana que viene el lunes" / "la próxima semana el viernes":
         // día de la semana objetivo de la SEMANA PRÓXIMA. start-of-next-week (próximo
         // lunes estricto) + offset del weekday objetivo. Se procesa ANTES que
@@ -1434,7 +1484,7 @@ object NaturalTaskParser {
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
             monthBoundaryNameDueAt ?: yearBoundaryDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
-            nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?:
+            nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?: nextMonthDayShortDueAt ?:
             nextWeekWeekdayReverseDueAt ?: nextWeekWeekdayForwardDueAt ?: nextPeriodDueAt
         val relativeIsDays = (agoMatch != null || lastPeriodMatch != null ||
             relativeMatch != null || fractionalRelativeMatch != null ||
@@ -1443,6 +1493,7 @@ object NaturalTaskParser {
             monthBoundaryDueAt != null || monthBoundaryNameDueAt != null || yearBoundaryDueAt != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
             quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null ||
+            nextMonthDayShortMatch != null ||
             nextWeekWeekdayReverseMatch != null || nextWeekWeekdayForwardMatch != null || nextPeriodMatch != null) &&
             (fractionalRelativeMatch == null) &&
             (fractionalAndQuarterRelativeMatch == null) &&
