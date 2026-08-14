@@ -4464,6 +4464,66 @@ class NaturalTaskParserTest {
     // Antes nextWeekday siempre saltaba +7 y la reunión de hoy se perdía una semana.
     private val fridayNow = DateRules.toEpochMillis(LocalDate.of(2026, 2, 13), LocalTime.of(10, 30), zone)
 
+    // --- "unos"/"unas" (plural indeterminado pequeño, coloquial = "un par de" = 2) ---
+    // Asimetría P1: "un par de minutos" sí agendaba, pero "unos minutos" (la forma móvil
+    // natural) no casaba → dueAt=null, título basura → tarea olvidada (sin recordatorio,
+    // invisible en What Now/planificador). Se resuelve a 2 unidades. El prefijo ("en"…)
+    // + la palabra de unidad protegen de falsos positivos.
+
+    @Test fun enUnosMinutosResuelveMasDosMin() {
+        val result = NaturalTaskParser.parse("Llamar a mamá en unos minutos", now, zone)
+        assertEquals("Llamar a mamá", result.title)
+        assertNotNull(result.dueAt)
+        // now 2026-07-29 12:00 + 2 min → mismo día, 12:02.
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(12, 2), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun enUnosDiasResuelveMasDosDias() {
+        // now 2026-07-29 + 2 días = 2026-07-31.
+        val result = NaturalTaskParser.parse("Revisar propuesta en unos días", now, zone)
+        assertEquals("Revisar propuesta", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enUnasHorasResuelveMasDosHoras() {
+        // now 2026-07-29 12:00 + 2 h = 14:00.
+        val result = NaturalTaskParser.parse("Reunión en unas horas", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun enUnasSemanasResuelveMasCatorceDias() {
+        // now 2026-07-29 + 14 días = 2026-08-12.
+        val result = NaturalTaskParser.parse("Enviar borrador en unas semanas", now, zone)
+        assertEquals("Enviar borrador", result.title)
+        assertEquals(LocalDate.of(2026, 8, 12), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enUnosMesesResuelveMasSesentaDias() {
+        // now 2026-07-29 + 60 días = 2026-09-27.
+        val result = NaturalTaskParser.parse("Renovar suscripción en unos meses", now, zone)
+        assertEquals("Renovar suscripción", result.title)
+        assertEquals(LocalDate.of(2026, 9, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enUnosDiasConHoraExplicita() {
+        // La fecha relativa se combina con hora explícita: +2d a las 10:00.
+        val result = NaturalTaskParser.parse("Llamar al cliente en unos días a las 10", now, zone)
+        assertEquals("Llamar al cliente", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun unosNoGeneraFechaCuandoNoEsUnidadDeTiempo() {
+        // Guard anti-falso-positivo: "unos" + sustantivo que no es unidad de tiempo no
+        // crea vencimiento ("comprar unos libros" no es "en unos …"). Título intacto.
+        val result = NaturalTaskParser.parse("Comprar unos libros", now, zone)
+        assertEquals("Comprar unos libros", result.title)
+        assertNull(result.dueAt)
+    }
+
     @Test fun weekdayHoyConHoraFuturaQuedaHoy() {
         val result = NaturalTaskParser.parse("Reunión el viernes a las 18", fridayNow, zone)
         assertEquals("Reunión", result.title)

@@ -146,9 +146,16 @@ object NaturalTaskParser {
      * sustantivo, pero el usuario los mezcla); antes el sufijo NO casaba aquí y caía
      * como residuo en el título, con un vencimiento prematuro (media unidad antes de
      * lo pedido). Simétrico del "y media" sub-hora de [compoundFractionalRelativePattern].
+     * Admite los cuantificadores vagos "unos"/"unas" (plural indeterminado pequeño,
+     * sinónimo coloquial de "un par de"): "llamar en unos minutos", "reunión en unos
+     * días", "en unas horas". Antes estas formas no casaban → `dueAt=null` y título
+     * basura → tarea olvidada (P1, captura rápida fallida). Se resuelven a 2 (mismo
+     * valor que "un par de"). El prefijo ("en/dentro de/de aquí a") + la palabra de
+     * unidad protegen de falsos positivos: "comprar unos libros"/"tengo unos
+     * pendientes" no casan (libros/pendientes no son unidades de tiempo).
      */
     private val relativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un\s+par\s+de|\d{1,3}|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)(?:\s+y\s+(media|medio))?\b"""
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un\s+par\s+de|unos|unas|\d{1,3}|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)(?:\s+y\s+(media|medio))?\b"""
     )
     /**
      * Fecha relativa fraccionaria sin dígitos: "en media hora", "dentro de media hora",
@@ -2716,7 +2723,7 @@ object NaturalTaskParser {
     private fun parseWrittenNumber(raw: String): Long? {
         raw.toLongOrNull()?.let { return it }
         val s = raw.lowercase().trim()
-        if (s == "un par de") return 2L
+        if (s == "un par de" || s == "unos" || s == "unas") return 2L
         wordToNumber[s]?.let { return it }
         // Forma compuesta "X y Y" (31-99, o 21-29 como "veinte y dos").
         val yIdx = s.indexOf(" y ")
