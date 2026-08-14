@@ -964,6 +964,14 @@ object NaturalTaskParser {
         // mananaAsDate y de la cascada de fecha) para que la fecha relativa se resuelva.
         working = dayAfterPattern.replace(working, "mañana")
 
+        // "mañana siguiente": pleonasmo coloquial ("mañana" ya = día siguiente, "siguiente"
+        // refuerza). Antes el borrado de "mañana" dejaba el residuo "siguiente" en el título
+        // ("envío siguiente" en vez de "envío") — contenido capturado degradado (P1). Se
+        // normaliza a "mañana" para reutilizar TODO el flujo existente. \b evita colisionar
+        // con "mañanas siguientes"; no se toca "siguiente" sin "mañana" (ambiguo como
+        // contenido: "capítulo siguiente").
+        working = working.replace(Regex("""(?i)\bma[nñ]ana\s+siguientes?\b"""), "mañana")
+
         // Ordinales numéricos: "1ro"/"2do"/"3er"/"1º"… seguidos de " de " se normalizan a
         // su dígito base para que los patrones de fecha (que exigen \d seguido de espacio)
         // los reconozcan. Solo en contexto de fecha (" de ") para no tocar contenido.

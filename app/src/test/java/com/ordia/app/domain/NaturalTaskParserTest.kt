@@ -1202,6 +1202,29 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "mañana siguiente": forma reforzada/redundante de "mañana" (c.148 ABIERTO en BACKLOG).
+    // Debe comportarse como "mañana" (dueAt = hoy+1, título limpio).
+    @Test fun mananaSiguienteSeResuelveComoManana() {
+        val result = NaturalTaskParser.parse("envío mañana siguiente", now, zone)
+        assertEquals("envío", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Guard anti-falso-positivo: "siguiente" sin "mañana" es contenido, no fecha.
+    @Test fun siguienteSoloEsContenidoNoFecha() {
+        val result = NaturalTaskParser.parse("leer capítulo siguiente", now, zone)
+        assertEquals("leer capítulo siguiente", result.title)
+        assertNull(result.dueAt)
+    }
+
+    // "mañana siguiente" + hora explícita: la fecha y la hora se combinan sin residuo.
+    @Test fun mananaSiguienteConHoraNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("envío mañana siguiente a las 8", now, zone)
+        assertEquals("envío", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     @Test fun explicitTimeOverridesPartOfDayCanonicalTime() {
         val result = NaturalTaskParser.parse("Pagar factura esta noche a las 22:15", now, zone)
         assertEquals(LocalTime.of(22, 15), DateRules.toLocalTime(result.dueAt!!, zone))
