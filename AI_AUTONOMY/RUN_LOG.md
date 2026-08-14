@@ -19,11 +19,11 @@
 - **Features**: 0 (cierre de asimetría palabra-vs-dígito en cantidades > 30; reduce código por eliminación de duplicación).
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Render real del parser en la app no probado en dispositivo.
 - **Hallazgos adicionales (descubrimiento continuo)**: este fix cierra la familia de "números escritos en cantidades" que comenzó en c.29 (relativas 1-12), c.35 ("un par de"), c.40 (recordatorios), c.57 (intervalos de recurrencia), c.85 (duraciones), c.90 (horas), c.97 (intervalo+días). El defecto estructural era la **duplicación** de la lista de literales en cada patrón nuevo; el patrón de fij "un único fragmento regex compartido" previene reapariciones. Quedan bordes: números > 99 escritos ("ciento veinticinco minutos", raro — evaluar demanda real antes), "cada rato"/"de vez en cuando" (recurrencia vaga, requiere anti-falso-positivo). Próxima auditoría debe salir del parser de números y mirar: detección de compromisos en notas, `RecurrenceEngine` edge cases (DST, clamps), replanificación si OVERLOADED recurrente, captura/búsqueda/What Now.
-- **AI_AUTONOMY actualizado**: `CURRENT_STATE.md` (fecha c.99 + nueva sección "Último trabajo — Ciclo 98"), `BACKLOG.md` (fila c.99 FIXED→VERIFIED al frente de Pendientes), `RUN_LOG.md` (esta entrada).
+- **AI_AUTONOMY actualizado**: `CURRENT_STATE.md` (fecha c.99 + nueva sección "Último trabajo — Ciclo 99"), `BACKLOG.md` (fila c.99 FIXED→VERIFIED al frente de Pendientes), `RUN_LOG.md` (esta entrada).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
 - **Commits**: 1 (`fix(parser): números escritos >30 y compuestos ("cuarenta y cinco") → dueAt (P1)`).
-- **HEAD final**: (ver `git log` tras commit).
-- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **HEAD final**: `e9f7526` (fix(parser): números escritos >30 y compuestos ("cuarenta y cinco") → dueAt (P1)); sobre `5043282` (c.98 paralelo "el día N").
+- **Estado**: FIXED → VERIFIED (dominio JVM). 688 domain tests PASS (681 c.98 + 7), smoke 25 OK.
 - **Próxima prioridad**: descubrimiento continuo — salir del parser de números; detección de compromisos en notas, `RecurrenceEngine` edge cases (DST/clamps), replanificación si OVERLOADED recurrente, auditoría de captura/búsqueda/What Now para nuevas oportunidades de producto.
 
 ## Ciclo 98 - 2026-08-14 (UTC) - fix(parser): "el día N" → día de mes resuelto + título limpio (P1 cita olvidada)
