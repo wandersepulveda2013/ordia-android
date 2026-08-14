@@ -19,6 +19,7 @@ object GuardianCoach {
         val title: String,
         val message: String,
         val taskId: Long? = null,
+        val durationMinutes: Int? = null,
         val tone: Tone = Tone.CALM
     )
 
@@ -30,6 +31,11 @@ object GuardianCoach {
         zone: ZoneId = ZoneId.systemDefault()
     ): Insight {
         val today = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+
+        // Calculate dynamic free time from the local day plan
+        val plan = DayPlanner.build(tasks, today, now = now, zone = zone)
+        val remainingMinutes = plan.remainingMinutes
+
         val roots = tasks.filter { it.parentTaskId == null && !it.archived }
         val pending = roots.filterNot { it.completed }
         val overdue = pending.filter { TaskRules.isOverdue(it, now) }
@@ -42,15 +48,18 @@ object GuardianCoach {
 
         if (overdue.isNotEmpty()) {
             val next = TaskRules.nextBestTask(overdue, now)
+            val duration = next?.durationMinutes ?: 25
+            val contextMsg = if (remainingMinutes >= duration) {
+                "Tienes ${overdue.size} tareas atrasadas, pero dispones de $remainingMinutes min libres hoy. Empieza por esta para recuperar el control."
+            } else {
+                "Tienes ${overdue.size} tareas atrasadas. El día está ajustado, así que enfócate solo en sacar esto adelante."
+            }
             return Insight(
-                eyebrow = "RECUPERA EL CONTROL",
+                eyebrow = "AHORA · ATENCIÓN",
                 title = next?.title ?: "Hay algo pendiente",
-                message = if (overdue.size == 1) {
-                    "Esta tarea está atrasada. Empieza con un bloque corto y vuelve a poner el día en movimiento."
-                } else {
-                    "Tienes ${overdue.size} tareas atrasadas. No intentes resolverlas todas: comienza por esta."
-                },
+                message = contextMsg,
                 taskId = next?.id,
+                durationMinutes = duration,
                 tone = Tone.GENTLE
             )
         }
@@ -58,23 +67,36 @@ object GuardianCoach {
         val urgentToday = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
         if (urgentToday.isNotEmpty()) {
             val next = TaskRules.nextBestTask(urgentToday, now)
+            val duration = next?.durationMinutes ?: 25
+            val contextMsg = if (remainingMinutes >= duration) {
+                "Haz esto ahora porque es la mayor prioridad del día y tienes $remainingMinutes min libres en tu plan."
+            } else {
+                "Haz esto ahora porque es tu mayor prioridad y el tiempo restante de hoy es escaso."
+            }
             return Insight(
-                eyebrow = "PROTEGE TU DÍA",
+                eyebrow = "AHORA · PROTEGE TU DÍA",
                 title = next?.title ?: "Prioridad de hoy",
-                message = "Es lo más importante para hoy. Reserva tiempo antes de llenar el resto de la agenda.",
+                message = contextMsg,
                 taskId = next?.id,
+                durationMinutes = duration,
                 tone = Tone.FOCUSED
             )
         }
 
         val next = TaskRules.nextBestTask(pending, now)
         if (next != null) {
+            val duration = next.durationMinutes.coerceAtLeast(15)
+            val contextMsg = if (remainingMinutes >= duration) {
+                "Ordía priorizó esta tarea. Te tomará unos $duration min y tienes $remainingMinutes min disponibles hoy."
+            } else {
+                "Ordía priorizó esta tarea por fecha e importancia."
+            }
             return Insight(
-                eyebrow = "SIGUIENTE PASO",
+                eyebrow = "SIGUIENTE ACCIÓN",
                 title = next.title,
-                message = next.details.takeIf { it.isNotBlank() }
-                    ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
+                message = contextMsg,
                 taskId = next.id,
+                durationMinutes = duration,
                 tone = Tone.FOCUSED
             )
         }
@@ -85,9 +107,9 @@ object GuardianCoach {
         }
         if (pendingHabit != null) {
             return Insight(
-                eyebrow = "UN PEQUEÑO RITUAL",
+                eyebrow = "DESPUÉS · UN PEQUEÑO RITUAL",
                 title = pendingHabit.title,
-                message = "Tu lista está despejada. Este hábito es una buena forma de cerrar el día con intención.",
+                message = "Tu lista está despejada y tienes $remainingMinutes min libres. Este hábito es ideal para avanzar con calma.",
                 tone = Tone.CALM
             )
         }
@@ -96,15 +118,15 @@ object GuardianCoach {
             return Insight(
                 eyebrow = "BIEN HECHO",
                 title = "Tu día está en orden",
-                message = "Completaste $completedToday ${if (completedToday == 1) "tarea" else "tareas"} hoy. Puedes descansar o elegir algo pequeño para mañana.",
+                message = "Completaste $completedToday ${if (completedToday == 1) "tarea" else "tareas"} hoy. Tienes $remainingMinutes min para descansar o planificar.",
                 tone = Tone.CELEBRATING
             )
         }
 
         return Insight(
             eyebrow = "TODO EN CALMA",
-            title = "No hay pendientes inmediatos",
-            message = "Captura una idea, revisa un proyecto o simplemente conserva este espacio libre.",
+            title = "Día sin carga",
+            message = "Dispones de $remainingMinutes min libres. Puedes capturar una idea o simplemente conservar este espacio libre.",
             tone = Tone.CALM
         )
     }

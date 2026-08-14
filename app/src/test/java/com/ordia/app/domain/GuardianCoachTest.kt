@@ -34,6 +34,7 @@ class GuardianCoachTest {
 
         assertEquals(1L, insight.taskId)
         assertEquals(GuardianCoach.Tone.GENTLE, insight.tone)
+        assertNotNull(insight.durationMinutes)
     }
 
     @Test
@@ -43,5 +44,22 @@ class GuardianCoachTest {
 
         assertEquals("Leer diez minutos", insight.title)
         assertNotNull(insight.message)
+    }
+
+    @Test
+    fun insightCalculatesFreeTimeAndDuration() {
+        val task = TaskEntity(
+            id = 3,
+            title = "Escribir test",
+            dueAt = DateRules.toEpochMillis(today, LocalTime.of(14, 0), zone),
+            priority = TaskPriority.NORMAL,
+            durationMinutes = 45
+        )
+        val insight = GuardianCoach.insight(listOf(task), emptyList(), emptyList(), now, zone)
+
+        assertEquals(3L, insight.taskId)
+        assertEquals(45, insight.durationMinutes)
+        assertEquals(GuardianCoach.Tone.FOCUSED, insight.tone)
+        org.junit.Assert.assertTrue(insight.message.contains("min disponibles") || insight.message.contains("min libres"))
     }
 }
