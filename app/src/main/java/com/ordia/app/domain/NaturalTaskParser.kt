@@ -733,6 +733,19 @@ object NaturalTaskParser {
         var working = text.trim()
         val original = text.trim()
 
+        // "anoche"/"antenoche" = palabras únicas que funden "ayer noche"/"anteayer noche":
+        // formas cotidianísimas (más aún que "ayer noche" compacto) para una cita pasada de
+        // la franja nocturna. Antes NO se reconocían: "reunión anoche" → dueAt=null + residuo,
+        // y peor, "anoche a las 10" → HOY 10:00 (debería AYER 22:00): cita pasada agendada en
+        // el futuro. Normalizando a la forma de dos palabras se reutiliza TODO el flujo
+        // existente (el `when` de fecha fija "ayer"=−1d, el patrón compacto aporta noche=
+        // 21:00, y con hora explícita "anoche a las 10" → PM-context → 22:00). "antenoche"
+        // se expande ANTES para que su substring "anoche" no case el reemplazo equivocado.
+        // \b evita colisión con otras palabras ("anoche" no es sustantivo común: adverbio puro).
+        working = working
+            .replace(Regex("""(?i)\bantenoche\b"""), "anteayer noche")
+            .replace(Regex("""(?i)\banoche\b"""), "ayer noche")
+
         val lower = working.lowercase()
         val trailingPriorityWord = trailingPriorityPattern.find(lower)
             ?.takeIf { !negatedPriorityPattern.containsMatchIn(lower) }

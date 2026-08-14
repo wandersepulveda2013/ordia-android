@@ -2123,6 +2123,40 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(16, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "anoche"/"antenoche" (palabra única = "ayer noche"/"anteayer noche") ---
+    // Más cotidiana aún que la forma compacta "ayer noche". Antes: dueAt=null + residuo,
+    // y "anoche a las 10" agendaba HOY 10:00 (cita pasada en el futuro, P1 grave).
+
+    @Test fun anocheEsAyer21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión anoche", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun anocheConHoraAplicaPmYFechaAyer() {
+        // "anoche a las 10" → AYER 22:00 (no HOY 10:00). El contexto PM de "noche" + fecha ayer.
+        val result = NaturalTaskParser.parse("Reunión anoche a las 10", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(22, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun antenocheEsAnteayer21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión antenoche", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun antenocheConHoraAplicaPmYFechaAnteayer() {
+        // "antenoche a las 9" → ANTEAYER 21:00 (no HOY 09:00).
+        val result = NaturalTaskParser.parse("Reunión antenoche a las 9", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- Limpieza de prefijos/sufijos de día de la semana (ciclo 8) ---
     // "del jueves", "el viernes que viene", "el miércoles próximo" dejaban
     // residuos ("del", "que viene", "próximo") en el título.
