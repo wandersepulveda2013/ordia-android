@@ -6798,6 +6798,37 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 9, 25), DateRules.toLocalDate(result.dueAt!!, ZoneId.of("America/Santiago")))
     }
 
+    // --- c.183: extensión de "último <día> del mes". El fix c.180 cubría "del mes" y
+    // "de <mes>", pero 4 formas frecuentes caían a viernes ANTERIOR y dejaban residuo
+    // de título: "de este mes", "del próximo mes" y la redundante "del mes de <mes>".
+    // Más el año explícito ("del 2027") y la conservación de la hora explícita. Todas
+    // deben anclar al último <día> del mes correcto y no dejar basura en el título.
+    // now = 2026-08-14 (viernes), America/Santiago. ---
+
+    @Test fun ultimoViernesDeEsteMesResuelveMesEnCurso() {
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.NOON, ZoneId.of("America/Santiago"))
+        val result = NaturalTaskParser.parse("Pago el último viernes de este mes", agoNow, ZoneId.of("America/Santiago"))
+        // viernes de agosto 2026: 7, 14, 21, 28 → último = 28 (no viernes anterior 07).
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, ZoneId.of("America/Santiago")))
+    }
+
+    @Test fun ultimoViernesDelProximoMesResuelveMesSiguiente() {
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.NOON, ZoneId.of("America/Santiago"))
+        val result = NaturalTaskParser.parse("Cierre el último viernes del próximo mes", agoNow, ZoneId.of("America/Santiago"))
+        assertEquals("Cierre", result.title)
+        assertEquals(LocalDate.of(2026, 9, 25), DateRules.toLocalDate(result.dueAt!!, ZoneId.of("America/Santiago")))
+    }
+
+    @Test fun ultimoViernesDelMesDeSeptiembreNoDejaResiduoNiConfundeMes() {
+        // "del mes de septiembre" = mismo anclaje que "de septiembre"; el "del mes" es
+        // redundante y NO debe dejar "septiembre"/"mes" en el título.
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.NOON, ZoneId.of("America/Santiago"))
+        val result = NaturalTaskParser.parse("Pago el último viernes del mes de septiembre", agoNow, ZoneId.of("America/Santiago"))
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 9, 25), DateRules.toLocalDate(result.dueAt!!, ZoneId.of("America/Santiago")))
+    }
+
     @Test fun primerLunesDelMesProximoResuelve7DeSeptiembre() {
         val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.NOON, ZoneId.of("America/Santiago"))
         // "próximo" con tilde. Primer lunes de septiembre 2026 = 2026-09-07.
@@ -6829,5 +6860,32 @@ class NaturalTaskParserTest {
         val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.NOON, ZoneId.of("America/Santiago"))
         val result = NaturalTaskParser.parse("Revisar el primer informe del mes", agoNow, ZoneId.of("America/Santiago"))
         assertEquals("Revisar el primer informe del mes", result.title)
+    }
+
+    @Test fun ultimoViernesDeJunioPasadoRuedaAlAnioSiguiente() {
+        // junio ya terminó (now = agosto) → rueda a junio 2027.
+        // viernes de junio 2027: 4, 11, 18, 25 → último = 25.
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.NOON, ZoneId.of("America/Santiago"))
+        val result = NaturalTaskParser.parse("Auditoría el último viernes de junio", agoNow, ZoneId.of("America/Santiago"))
+        assertEquals("Auditoría", result.title)
+        assertEquals(LocalDate.of(2027, 6, 25), DateRules.toLocalDate(result.dueAt!!, ZoneId.of("America/Santiago")))
+    }
+
+    @Test fun ultimoViernesDeSeptiembreConAnioExplicito() {
+        // año explícito de 4 cifras: septiembre 2027.
+        // viernes de septiembre 2027: 3, 10, 17, 24 → último = 24.
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.NOON, ZoneId.of("America/Santiago"))
+        val result = NaturalTaskParser.parse("Cobro el último viernes de septiembre del 2027", agoNow, ZoneId.of("America/Santiago"))
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2027, 9, 24), DateRules.toLocalDate(result.dueAt!!, ZoneId.of("America/Santiago")))
+    }
+
+    @Test fun ultimoViernesDeSeptiembreRespetaHoraExplicita() {
+        // El mes nombrado no debe comer la hora explícita "a las 10".
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.NOON, ZoneId.of("America/Santiago"))
+        val result = NaturalTaskParser.parse("Pago el último viernes de septiembre a las 10", agoNow, ZoneId.of("America/Santiago"))
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 9, 25), DateRules.toLocalDate(result.dueAt!!, ZoneId.of("America/Santiago")))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, ZoneId.of("America/Santiago")))
     }
 }
