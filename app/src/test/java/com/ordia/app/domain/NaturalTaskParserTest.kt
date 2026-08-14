@@ -481,6 +481,48 @@ class NaturalTaskParserTest {
         assertEquals("2,4", result.recurrenceDays)
     }
 
+    // Intervalo ESCRITO (no dígito) + lista de días: "cada dos semanas los lunes"
+    // debe combinar ambos (interval=2, días=[lunes]) y limpiar el título. Antes
+    // `detectWeekInterval()` solo reconocía dígitos (`\d{1,3}`) para "cada N semanas",
+    // así la forma escrita devolvía null → la rama de días usaba interval=1 (cadencia
+    // semanal errónea, el doble de frecuente) y dejaba "cada dos semanas" como
+    // residuo en el título → rutina mal programada y título sucio. Asimetría con la
+    // forma con dígitos ("cada 2 semanas los lunes" ya funcionaba) y con el
+    // intervalo escrito SIN días ("cada dos semanas" solo, resuelto en c.57). El
+    // `intervalPattern` que sí admite números escritos NO se alcanza cuando hay una
+    // lista de días (la rama de días devuelve antes).
+    @Test fun writtenBiweeklyIntervalWithDayListCombinesIntervalAndDays() {
+        val result = NaturalTaskParser.parse("Gym cada dos semanas los lunes", now, zone)
+        assertEquals("Gym", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1", result.recurrenceDays)
+    }
+
+    @Test fun writtenTriweeklyIntervalWithMultipleDaysCombinesIntervalAndDays() {
+        val result = NaturalTaskParser.parse("Clase cada tres semanas los martes y jueves", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertEquals("2,4", result.recurrenceDays)
+    }
+
+    @Test fun writtenBiweeklyIntervalWithWeekdayRangeCombinesIntervalAndDays() {
+        val result = NaturalTaskParser.parse("Estudio cada dos semanas de lunes a viernes", now, zone)
+        assertEquals("Estudio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1,2,3,4,5", result.recurrenceDays)
+    }
+
+    @Test fun writtenBiweeklyIntervalWithWeekendCombinesIntervalAndDays() {
+        val result = NaturalTaskParser.parse("Limpieza cada dos semanas los findes", now, zone)
+        assertEquals("Limpieza", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
     @Test fun biweeklyIntervalWithWeekdayRangeCombinesIntervalAndDays() {
         val result = NaturalTaskParser.parse("Estudio cada 2 semanas de lunes a viernes", now, zone)
         assertEquals("Estudio", result.title)

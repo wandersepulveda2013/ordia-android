@@ -1454,6 +1454,14 @@ object NaturalTaskParser {
         val base = RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), emptyList())
         val phrases = mutableListOf<IntRange>()
 
+        // Números escritos admitidos como intervalo de cadencia. Compartido por
+        // `detectWeekInterval()` (rama de lista de días) e `intervalPattern`
+        // (intervalo sin días), para que "cada dos semanas los lunes" se comporte
+        // igual que "cada 2 semanas los lunes".
+        val writtenNumberGroup =
+            "un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|" +
+            "catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|veintiuno|treinta"
+
         // "cada mañana/tarde/noche/madrugada" (y "todas las mañanas/tardes/noches") como
         // recurrencia DIARIA con hora canónica de la parte del día. Es la forma natural
         // más común de un hábito cotidiano en español ("meditar cada mañana", "tomar
@@ -1501,9 +1509,20 @@ object NaturalTaskParser {
         // residuo en el título. Devuelve el intervalo y el rango a consumir, o null si
         // no hay intervalo explícito (cadencia semanal normal).
         fun detectWeekInterval(): Pair<Int, IntRange>? {
-            Regex("""(?i)\bcada\s+(\d{1,3})\s*semanas?\b""").find(working)?.let { m ->
-                val n = m.groupValues[1].toIntOrNull()?.coerceIn(1, 366) ?: return null
-                return n to m.range
+            // N puede ser dígito O número escrito ("cada dos semanas los lunes"):
+            // la forma escrita debe comportarse igual que la con dígitos. Antes
+            // solo `\d{1,3}` se reconocía aquí, así "cada dos semanas los lunes"
+            // devolvía null → interval=1 (el doble de frecuente) y "cada dos
+            // semanas" quedaba como residuo en el título. `parseWrittenNumber`
+            // resuelve la palabra; el grupo está acotado a los números conocidos
+            // para no colisionar con "semanas".
+            Regex("""(?i)\bcada\s+(\d{1,3}|$writtenNumberGroup)\s*semanas?\b""").find(working)?.let { m ->
+                val rawN = m.groupValues[1]
+                val n = rawN.toLongOrNull()?.toInt()
+                    ?: parseWrittenNumber(rawN)?.toInt()
+                if (n != null) {
+                    return n.coerceIn(1, 366) to m.range
+                }
             }
             Regex("""(?i)\b(?:cada\s+quincena|quincenal(?:mente)?|todas\s+las\s+quincenas)\b""").find(working)?.let { m ->
                 return 2 to m.range
@@ -1619,9 +1638,6 @@ object NaturalTaskParser {
         // tarea recurrente nacía sin fecha (recordatorio jamás disparaba). Se reutiliza
         // `parseWrittenNumber` para resolver la palabra; la alternación está acotada a
         // los números conocidos para no colisionar con la unidad (días/semanas/...).
-        val writtenNumberGroup =
-            "un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|" +
-            "catorce|quince|diecis[eé]is|diecisiete|dieciocho|diecinueve|veinte|veintiuno|treinta"
         val intervalPattern =
             Regex("""(?i)\bcada\s+(\d{1,3}|$writtenNumberGroup)\s*(d[ií]as?|semanas?|meses?|a[nñ]os?)\b""")
         intervalPattern.find(working)?.let { match ->
