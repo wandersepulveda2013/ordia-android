@@ -30,6 +30,13 @@ object ReminderRules {
      */
     const val DEFAULT_REMINDER_OFFSET_MS = 30L * 60_000L
 
+    /**
+     * Antelación mínima (en ms) de un recordatorio por defecto: nunca menos de
+     * 1 min antes del vencimiento. Evita avisos sin margen de reacción y, sobre
+     * todo, recordatorios en el pasado (ver [defaultReminderAt]).
+     */
+    const val MIN_REMINDER_LEAD_MS = 60_000L
+
     /** Resultado de posponer: el disparador a agendar y la tarea a persistir. */
     data class SnoozeResult(val triggerAt: Long, val task: TaskEntity)
 
@@ -65,17 +72,22 @@ object ReminderRules {
      *   cambió, se traslada el offset: `dueAt - (oldDueAt - oldReminderAt)`.
      *   Así "15 min antes" sigue siendo 15 min antes en la nueva hora.
      * - En cualquier otro caso (nueva tarea, o recordatorio recién activado sin
-     *   offset previo) se usa [DEFAULT_REMINDER_OFFSET_MS] ("30 min antes").
+     *   offset previo) se usa [defaultReminderAt]: "30 min antes" cuando hay
+     *   margen, o un aviso intermedio recortado cuando el vencimiento está cerca
+     *   (nunca en el pasado; ver [defaultReminderAt]).
      *
      * @param existing tarea previa (null si es nueva).
      * @param reminderEnabled preferencia actual del toggle de recordatorio.
      * @param dueAt vencimiento del guardado (null desactiva el recordatorio).
+     * @param now instante de guardado (para evitar recordatorios en el pasado en
+     *   el camino por defecto; por defecto [System.currentTimeMillis]).
      * @return timestamp del recordatorio, o null si no procede.
      */
     fun resolveReminderAt(
         existing: TaskEntity?,
         reminderEnabled: Boolean,
         dueAt: Long?,
+        now: Long = System.currentTimeMillis(),
     ): Long? {
         if (!reminderEnabled || dueAt == null) return null
         val prevReminder = existing?.reminderAt
@@ -84,6 +96,41 @@ object ReminderRules {
             return if (prevDue == dueAt) prevReminder
             else dueAt - (prevDue - prevReminder)
         }
-        return dueAt - DEFAULT_REMINDER_OFFSET_MS
+        return defaultReminderAt(dueAt, now)
+    }
+
+    /**
+     * Recordatorio por defecto cuando el usuario no dejó un offset explícito (tarea
+     * nueva o recordatorio recién activado). Idealmente [DEFAULT_REMINDER_OFFSET_MS]
+     * ("30 min antes"). Pero si ese instante YA pasó —vencimiento a menos de 30 min
+     * de ahora— un recordatorio en el pasado es inútil: [ReminderScheduler] lo
+     * dispara con delay 0, es decir, AVISA AL GUARDAR, sin dar margen real de
+     * reacción. Y peor, un plazo corto (p. ej. "llamar al médico en 10 min") se
+     * queda SIN aviso previo útil, justo cuando más se necesita para no olvidar.
+     *
+     * Por eso, cuando "30 min antes" cae en el pasado o no deja margen, se recorta
+     * la antelación a la MITAD del tiempo restante (clamped a
+     * [MIN_REMINDER_LEAD_MS]), de modo que el usuario reciba un aviso ANTES del
+     * vencimiento pero DESPUÉS de ahora. Ejemplos (ahora = 0, due en min):
+     * - due en 60 min → 30 min antes (ideal, no se recorta).
+     * - due en 10 min → 5 min antes (recortado: avisa a los 5 min, 5 min antes).
+     * - due en 2 min  → 1 min antes (mínimo; avisa en 1 min).
+     * - due en 30 s   → null (no cabe ni el mínimo: no hay "antes" útil; coherente
+     *   con [com.ordia.app.conversations.CommitmentEngine], que también descarta
+     *   recordatorios por defecto ya vencidos).
+     *
+     * Heurística determinista y local, no aleatoria: misma tarea+ahora → mismo
+     * recordatorio. No simula IA; es una regla honesta de antelación adaptativa.
+     */
+    fun defaultReminderAt(dueAt: Long, now: Long): Long? {
+        val ideal = dueAt - DEFAULT_REMINDER_OFFSET_MS
+        if (ideal > now) return ideal
+        // "30 min antes" ya pasó: buscar una antelación útil que aún preceda al
+        // vencimiento. lead = mitad del tiempo restante, con piso de 1 min.
+        val remaining = dueAt - now
+        if (remaining <= MIN_REMINDER_LEAD_MS) return null
+        val lead = minOf(DEFAULT_REMINDER_OFFSET_MS, maxOf(MIN_REMINDER_LEAD_MS, remaining / 2))
+        val clamped = dueAt - lead
+        return if (clamped > now) clamped else null
     }
 }

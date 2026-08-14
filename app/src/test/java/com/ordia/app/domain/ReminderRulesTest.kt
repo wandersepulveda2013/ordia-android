@@ -6,6 +6,8 @@ import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
@@ -131,21 +133,83 @@ class ReminderRulesTest {
     @Test
     fun resolveReminderAt_newTaskUsesDefaultOffset() {
         val due = 1_700_000_000_000L
+        val now = due - 2 * 60 * 60_000L // 2 h antes del vencimiento: 30 min antes sigue siendo futuro
         assertEquals(
             due - ReminderRules.DEFAULT_REMINDER_OFFSET_MS,
-            ReminderRules.resolveReminderAt(null, reminderEnabled = true, dueAt = due),
+            ReminderRules.resolveReminderAt(null, reminderEnabled = true, dueAt = due, now = now),
         )
     }
 
     @Test
     fun resolveReminderAt_existingWithoutDueTimeUsesDefaultOffset() {
         val due = 1_700_000_000_000L
+        val now = due - 2 * 60 * 60_000L
         // Recordatorio recién activado: existing sin reminderAt previo.
         val existing = TaskEntity(id = 1, title = "X", dueAt = due, reminderAt = null)
         assertEquals(
             due - ReminderRules.DEFAULT_REMINDER_OFFSET_MS,
-            ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = due),
+            ReminderRules.resolveReminderAt(existing, reminderEnabled = true, dueAt = due, now = now),
         )
+    }
+
+    // ---- defaultReminderAt: antelación adaptativa (nunca en el pasado) ----
+
+    /**
+     * Regresión c.162: una tarea con vencimiento cercano (10 min) recibía un
+     * recordatorio por defecto a "due - 30 min" = en el PASADO. El scheduler lo
+     * dispara con delay 0 → avisa al guardar, sin margen real, y el plazo corto
+     * se queda sin aviso previo útil justo cuando más hace falta para no olvidar.
+     */
+    @Test
+    fun defaultReminderAt_shortDeadline_clampsToHalfwayLeadNotPast() {
+        val now = 1_700_000_000_000L
+        val due = now + 10 * 60_000L // vence en 10 min
+
+        val reminder = ReminderRules.defaultReminderAt(due, now)
+
+        // Debe estar en el futuro Y antes del vencimiento: avisa 5 min antes.
+        assertNotNull(reminder)
+        assertTrue(reminder!! > now)
+        assertTrue(reminder < due)
+        assertEquals(now + 5 * 60_000L, reminder) // mitad de los 10 min restantes
+    }
+
+    @Test
+    fun defaultReminderAt_farDeadlineUsesThirtyMinutesBefore() {
+        val now = 1_700_000_000_000L
+        val due = now + 2 * 60 * 60_000L // 2 h: 30 min antes sigue siendo futuro
+        assertEquals(due - ReminderRules.DEFAULT_REMINDER_OFFSET_MS, ReminderRules.defaultReminderAt(due, now))
+    }
+
+    @Test
+    fun defaultReminderAt_veryShortDeadline_usesMinimumLead() {
+        val now = 1_700_000_000_000L
+        val due = now + 2 * 60_000L // 2 min: mitad = 1 min (piso mínimo)
+        assertEquals(due - ReminderRules.MIN_REMINDER_LEAD_MS, ReminderRules.defaultReminderAt(due, now))
+    }
+
+    @Test
+    fun defaultReminderAt_tooShortForAnyLead_returnsNull() {
+        val now = 1_700_000_000_000L
+        val due = now + 30_000L // 30 s: no cabe ni 1 min de antelación
+        assertEquals(null, ReminderRules.defaultReminderAt(due, now))
+    }
+
+    @Test
+    fun defaultReminderAt_alreadyDue_returnsNull() {
+        val now = 1_700_000_000_000L
+        val due = now - 60_000L // ya vencida
+        assertEquals(null, ReminderRules.defaultReminderAt(due, now))
+    }
+
+    @Test
+    fun resolveReminderAt_newTaskShortDeadline_neverPast() {
+        val now = 1_700_000_000_000L
+        val due = now + 10 * 60_000L
+        val reminder = ReminderRules.resolveReminderAt(null, reminderEnabled = true, dueAt = due, now = now)
+        assertNotNull(reminder)
+        assertTrue(reminder!! > now)
+        assertTrue(reminder < due)
     }
 
     /**

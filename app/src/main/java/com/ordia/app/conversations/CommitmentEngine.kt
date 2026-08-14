@@ -3,6 +3,7 @@ package com.ordia.app.conversations
 import com.ordia.app.data.local.CommitmentKind
 import com.ordia.app.data.local.CommitmentOwner
 import com.ordia.app.domain.NaturalTaskParser
+import com.ordia.app.domain.ReminderRules
 import java.security.MessageDigest
 import java.util.Locale
 
@@ -99,7 +100,8 @@ object CommitmentEngine {
                 (if (dueAt != null) 0.11f else 0f) +
                 (if (sender.isNotBlank()) 0.05f else 0f)
             ).coerceAtMost(0.97f)
-        val reminderAt = dueAt?.minus(DEFAULT_REMINDER_OFFSET_MS)?.takeIf { it > System.currentTimeMillis() }
+        val now = System.currentTimeMillis()
+        val reminderAt = dueAt?.let { ReminderRules.defaultReminderAt(it, now) }
         val location = locationSignal.find(text)?.groupValues?.getOrNull(1)
             ?.trim()?.trimEnd('.', ',', ';')?.take(80).orEmpty()
         val fingerprint = sha256(
@@ -124,7 +126,6 @@ object CommitmentEngine {
 
     private const val MAX_COMMITMENTS = 500
     private const val MAX_ACTION_CHARS = 500
-    private const val DEFAULT_REMINDER_OFFSET_MS = 30 * 60_000L
 }
 
 object ConversationSummaryEngine {
