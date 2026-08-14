@@ -2161,6 +2161,12 @@ object NaturalTaskParser {
         // deben eliminarse ANTES del borrado genérico de "mañana"/"hoy", porque ambos
         // contienen "mañana"; si se borra primero, dejan restos huérfanos ("esta", "de la").
         working = working
+            // Cuando una recurrencia fue detectada por una FRASE ANCLADA ("el 15 de cada
+            // mes", "los lunes", "cada quincena"), el adjetivo/adverbio redundante que la
+            // acompañaba ("mensual", "semanalmente"...) no se consumió (parseRecurrence
+            // retornó antes de fixedPatterns) y filtraba al título. Aquí se limpia; es
+            // no-op cuando el adjetivo mismo fue el detector (ya borrado vía phraseRanges).
+            .let { value -> if (recurrence.frequency != RecurrenceFrequency.NONE) recurrenceAdjectiveLeakPattern.replace(value, " ") else value }
             .let { value -> partOfDayPattern.replace(value, " ") }
             .let { value -> timePatterns.fold(value) { acc, pattern -> pattern.replace(acc, " ") } }
             .let { value -> standalonePartOfDayPattern.replace(value, " ") }
@@ -2548,6 +2554,19 @@ object NaturalTaskParser {
     // negativo de " de" filtran el sustantivo. Kotlin/Java soportan lookbehind acotado.
     private val dailyAdjectivePattern =
         Regex("""(?i)(?<!\b(?:el|la|los|las|un|una|unos|unas)\s)\bdiari[oa]\b(?! de\b)""")
+
+    // Adjetivos/adverbios de recurrencia redundantes cuando una FRASE ANCLADA ya expresa
+    // la cadencia. parseRecurrence() retorna desde la rama anclada (monthlyDayPattern,
+    // dayListPattern, cada-N-quincena...) ANTES de llegar a fixedPatterns, que es donde
+    // se consumen estos adjetivos. Sin este paso, "pago mensual el 15 de cada mes" o
+    // "pago semanal los lunes" dejaban el adjetivo filtrado en el título ("pago mensual"),
+    // inconsistente con "pago mensual el 15" → "pago". La cadencia ya la porta el anclaje,
+    // así que el adjetivo no es contenido. Es no-op cuando el adjetivo fue el detector
+    // (caso "pago mensual" a secas): ya se borró vía phraseRanges arriba. No incluye
+    // "diario/diaria" (sustantivo "el diario" = periódico, con guarda propia arriba) ni
+    // aplica guardas de artículo: estos adjetivos no son sustantivos cotidianos.
+    private val recurrenceAdjectiveLeakPattern =
+        Regex("""(?i)\b(?:semanal(?:mente)?|mensual(?:mente)?|anual(?:mente)?|bimestral(?:mente)?|trimestral(?:mente)?|semestral(?:mente)?|quincenal(?:mente)?)\b""")
 
     private fun parseMonthNameDate(today: LocalDate, match: MatchResult): LocalDate? {
         val day = parseWrittenNumber(match.groupValues[1])?.toInt()?.takeIf { it in 1..31 } ?: return null

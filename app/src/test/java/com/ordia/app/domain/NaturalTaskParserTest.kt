@@ -623,6 +623,60 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // Adjetivo de recurrencia + frase anclada coexistentes: "pago mensual el 15 de
+    // cada mes". El adjetivo "mensual" expresa la cadencia (ya dicha por "el 15 de
+    // cada mes") y NO es contenido; antes filtraba al título ("pago mensual") porque
+    // parseRecurrence retornaba desde la rama anclada (monthlyDayPattern) sin llegar
+    // a fixedPatterns, que es donde se consume "mensual". Inconsistencia con
+    // "pago mensual el 15" → "pago" (limpio). El adjetivo redundante debe limpiarse.
+    @Test fun monthlyAdjectiveDoesNotLeakWhenAnchorAlsoPresent() {
+        val result = NaturalTaskParser.parse("Pago mensual el 15 de cada mes", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun monthlyAdjectiveDoesNotLeakWhenDayOneAnchorPresent() {
+        val result = NaturalTaskParser.parse("Renta mensual el 1 de cada mes", now, zone)
+        assertEquals("Renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Mismo leak con recurrencia semanal anclada a días: "pago semanal los lunes"
+    // dejaba "pago semanal" (el adjetivo "semanal" sobrevivía porque dayListPattern
+    // retornaba antes que fixedPatterns). La cadencia ya la da "los lunes".
+    @Test fun weeklyAdjectiveDoesNotLeakWhenDayListAlsoPresent() {
+        val result = NaturalTaskParser.parse("Pago semanal los lunes", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1", result.recurrenceDays)
+    }
+
+    @Test fun weeklyAdjectiveDoesNotLeakWithMultipleDays() {
+        val result = NaturalTaskParser.parse("Reunion semanal los lunes y miercoles", now, zone)
+        assertEquals("Reunion", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3", result.recurrenceDays)
+    }
+
+    // No-regresión: el adjetivo solo (sin anclaje) sigue limpiándose como antes
+    // (fixedPatterns lo consume vía phraseRanges; el nuevo paso es no-op allí).
+    @Test fun monthlyAdjectiveAloneStillCleansTitle() {
+        val result = NaturalTaskParser.parse("Pago mensual", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+    }
+
+    // Adverbio "-mente" + anclaje: "cobro mensualmente el 5 de cada mes" también
+    // filtraba "mensualmente". El adverbio es igualmente redundante con el anclaje.
+    @Test fun monthlyAdverbDoesNotLeakWhenAnchorAlsoPresent() {
+        val result = NaturalTaskParser.parse("Cobro mensualmente el 5 de cada mes", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun parsesReminderOffsetBeforeDue() {
         val result = NaturalTaskParser.parse("Presentar propuesta el viernes recuérdame 2 horas antes", now, zone)
         assertEquals("Presentar propuesta", result.title)
