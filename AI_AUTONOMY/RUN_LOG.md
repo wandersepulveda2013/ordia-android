@@ -3,6 +3,32 @@
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ---
+## Ciclo 81 - 2026-08-13 (UTC) - feat(search): búsqueda semántica por fecha ("hoy", "mañana", "esta semana", "atrasadas/vencidas")
+
+- **Run/ciclo**: 81 (rama `openhands/autonomous-ordia`; renumerado desde 79 por colisión: el remoto avanzó en paralelo con c.79 parser noon-crossing y c.80 parser midnight-crossing, ambos ortogonales al `SearchEngine`). Base inicial `0a21431` (c.78); durante el run el remoto avanzó a `36915ab` (c.80). Reconciliación **no destructiva**: `git fetch` + `git rebase origin/openhands/autonomous-ordia`; conflictos solo en docs `AI_AUTONOMY` (nomenclatura de ciclo colisionaba), resueltos conservando AMBOS runs y renumerando este a **ciclo 81**. Código ortogonal (c.79/c.80 tocan `NaturalTaskParser.kt`; este run toca `SearchEngine.kt`) — sin conflicto de código. Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
+- **HEAD inicial**: `0a21431` (c.78; base reconciliada a `36915ab` c.80 antes de commitear).
+- **Problema seleccionado**: auditoría de la búsqueda universal (`SearchEngine.kt`) reveló que la búsqueda por **intención de fecha** no existía: escribir "hoy", "mañana" o "esta semana" devolvía **vacío** (la palabra no aparecía en el título/detalle de la tarea), y "atrasadas"/"vencidas" solo funcionaba parcialmente (vía `vencid` en `normalized` que activa `TaskRules.isOverdue`, pero no como filtro de fecha coherente). Así un usuario que busca "hoy" para ver qué vence hoy **no ve nada** aunque tenga tareas con `dueAt` en el día. Área de dirección explícita "búsqueda universal"/"recuperación de información importante". P2 funcional de alto impacto (recupera información; convierte la lista mental en una búsqueda accionable; sin nueva pantalla).
+- **Prioridad**: P2 (búsqueda/recuperación; no era pérdida de datos ni crash, pero una capacidad esperable que faltaba y rompía la promesa de "búsqueda universal").
+- **Causa raíz**: `SearchEngine.search` solo comparaba texto (`haystack.contains(normalized)` / `words.all(haystack::contains)`). No interpretaba la intención temporal del query. Para "hoy"/"mañana"/"esta semana" las palabras no están en el contenido → `matches()` era false → la tarea se excluía aunque su `dueAt` cumpliera el rango. Solo "vencid" tenía un atajo especial (`!normalized.contains("vencid") || TaskRules.isOverdue(...)`), pero incompleto e inconsistente.
+- **Solución (mínima, sin nueva pantalla/botón — "menos interfaz, más potencia")**:
+  - `SearchEngine` ahora detecta un `DateScope` (TODAY/TOMORROW/THIS_WEEK/OVERDUE) a partir de los tokens del query (`hoy`, `manana`, `semana`, `atrasada/os`/`vencida/os`). Cuando hay scope, las **palabras de fecha (y modificadores "esta"/"el"/…) no se exigen en el contenido**: el filtro principal pasa a ser por `dueAt` (`taskMatchesDateScope`), y el texto opcional filtra además dentro de ese rango ("hoy reunion" → solo las de hoy que contengan "reunión").
+  - `taskMatchesDateScope`: TODAY = `dueAt` cae hoy; TOMORROW = mañana; THIS_WEEK = desde hoy hasta el domingo ISO (lun→dom) inclusive, excluyendo atrasadas; OVERDUE = `TaskRules.isOverdue`. Los scopes futuros/hoy excluyen tareas completadas/canceladas (consistentes con `isOverdue`/`isDueToday` que ya lo hacen), para que la búsqueda sea accionable. Sin scope → comportamiento idéntico al anterior (no-regresión).
+  - Heurística local honesta (aritmética de `LocalDate`/`ZoneId.systemDefault()`, sin random ni modelo simulado). El orden de resultados preserva el `urgencyRank` existente (atrasada-urgente primero).
+- **Tests**: +9 en `SearchEngineDateScopeTest.kt` (`hoy_returnsOnlyTasksDueToday`, `manana_returnsOnlyTasksDueTomorrow`, `estaSemana_returnsTasksFromTodayToEndOfWeek` jueves 2026-08-13 → dom 16, `atrasadas_returnsOnlyOverdueTasks`, `vencidas_returnsOnlyOverdueTasks`, `completedTasksAreExcludedFromDateScopes`, `dateScopeCombinedWithTextFiltersByBoth` "hoy reunion", `archivedTasksExcludedFromDateScopes`, `overdueScopeRanksUrgentOverdueFirst`). **597 domain tests PASS** (`bash tools/run_domain_tests.sh` tras rebase — 588 c.80 + 9), smoke 25 OK (`tools/run_domain_checks.sh`). Sin regresión: los tests `SearchEngineTest` previos intactos (queries sin intención de fecha usan la rama sin scope → comportamiento idéntico).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Render real de la búsqueda en la app no probado en dispositivo. La zona horaria usa `ZoneId.systemDefault()` (igual que `DateRules.toLocalDate`).
+- **Hallazgos adicionales (descubrimiento continuo)**:
+  - La búsqueda por fecha cubre los rangos más cotidianos. Oportunidades futuras honestas (no implementadas para mantener "menos es más"): "esta tarde"/"esta noche" (parte del día, requiere resolver hora-canónica como `NaturalTaskParser`), "la semana que viene", "este mes". Se dejan en BACKLOG como P3 de descubrimiento, no como backlog automático.
+  - `SearchEngine` ya ordena por urgencia (`urgencyRank`) — el scope OVERDUE beneficia de esto automáticamente (urgente-atrasada primera). Buen diseño previo, reutilizado sin tocar.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt`, `app/src/test/java/com/ordia/app/domain/SearchEngineDateScopeTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras commit + push a `origin/openhands/autonomous-ordia`).
+- **Estado**: VERIFIED (JVM). 597 domain tests PASS.
+
+### Siguiente
+- Búsqueda por parte del día ("esta tarde"/"esta noche") y "la semana que viene"/"este mes" (P3, evaluar necesidad real antes de implementar).
+- Descubrimiento continuo: captura ultrarrápida, rutinas adaptables, detección de compromisos en notas, onboarding.
+- `PlanEngine`/replanización más amplia (OVERLOADED recurrente → redistribuir la semana).
+
+---
 ## Ciclo 80 - 2026-08-13 (UTC) - fix(parser): cruce de medianoche en rango nocturno "de 10 de la noche a 1 de la madrugada" (duración perdida)
 
 - **Run/ciclo**: 80 (rama `openhands/autonomous-ordia`). Base limpia: HEAD inicial local `0f9ff9c` (c.79). `git pull --ff-only` OK sin divergencia. Continúa la nota "Siguiente" del c.79 que dejaba documentado: *falta el simétrico cruce de medianoche (overnight)*. Continuación segura del supervisor.
