@@ -172,6 +172,71 @@ class TaskRulesTest {
         assertNull(deferred.reminderAt)
     }
 
+    // --- Past-safe al posponer una tarea vencida (hilo c.187→c.190) ---
+    // Posponer "a mañana" una tarea vencida por >1 día no debe dejarla TODAVÍA
+    // vencida: "mañana a la misma hora" relativa al vencimiento caería hoy o
+    // antes. Un pospuesto que no adelanta la tarea es un olvido disfrazado.
+
+    @Test
+    fun deferToNextDay_overdueByMoreThanADay_landsInFuture() {
+        // Venció hace 2 días a las 18:30; ahora es hoy 10:00.
+        val due = DateRules.toEpochMillis(date.minusDays(2), LocalTime.of(18, 30), zone)
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val task = TaskEntity(id = 1, title = "Muy vencida", dueAt = due)
+        val deferred = TaskRules.deferToNextDay(task, now, zone)!!
+
+        assertTrue("El vencimiento pospuesto debe quedar en el futuro, no seguir vencido",
+            deferred.dueAt!! > now)
+    }
+
+    @Test
+    fun deferToNextDay_overdueByMoreThanADay_reminderStaysScheduled() {
+        // Recordatorio 30 min antes del vencimiento original (ya disparado).
+        val due = DateRules.toEpochMillis(date.minusDays(2), LocalTime.of(18, 30), zone)
+        val reminder = due - 30 * 60_000L
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val task = TaskEntity(id = 1, title = "Muy vencida", dueAt = due, reminderAt = reminder)
+        val deferred = TaskRules.deferToNextDay(task, now, zone)!!
+
+        // ReminderSync.triggers descarta los recordatorios pasados: si el
+        // recordatorio trasladado queda en el pasado, la tarea pierde su aviso
+        // y se olvida de nuevo. Debe quedar futuro (o nulo si no cabe margen),
+        // pero nunca en el pasado.
+        val trigger = deferred.reminderAt ?: deferred.dueAt
+        assertTrue("El disparo pospuesto no debe caer en el pasado (olvido silencioso)",
+            trigger == null || trigger > now)
+    }
+
+    @Test
+    fun deferToNextDay_nonOverdue_preservesReminderOffsetExactly() {
+        // Tarea sana (vence hoy a la tarde): el offset debe conservarse tal cual,
+        // sin recurrir al default past-safe. Regresión del caso común.
+        val due = DateRules.toEpochMillis(date, LocalTime.of(18, 30), zone)
+        val reminder = due - 90 * 60_000L // 90 min antes
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val task = TaskEntity(id = 1, title = "Sana", dueAt = due, reminderAt = reminder)
+        val deferred = TaskRules.deferToNextDay(task, now, zone)!!
+
+        assertEquals(deferred.dueAt!! - 90 * 60_000L, deferred.reminderAt)
+        assertEquals(date.plusDays(1), DateRules.toLocalDate(deferred.reminderAt!!, zone))
+    }
+
+    @Test
+    fun deferToNextDay_overdueWithHugeOffset_reminderNeverPast() {
+        // Offset enorme (25 días "antes") sobre una tarea vencida: el instante
+        // trasladado cae en el pasado aunque el vencimiento se adelantara al
+        // futuro. Debe caer al default past-safe (futuro o nulo), nunca pasado.
+        val due = DateRules.toEpochMillis(date.minusDays(1), LocalTime.of(18, 30), zone)
+        val reminder = due - 25L * 24 * 60 * 60_000L // 25 días antes
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val task = TaskEntity(id = 1, title = "Offset enorme", dueAt = due, reminderAt = reminder)
+        val deferred = TaskRules.deferToNextDay(task, now, zone)!!
+
+        assertTrue(deferred.dueAt!! > now)
+        assertTrue("Recordatorio nunca en el pasado",
+            deferred.reminderAt == null || deferred.reminderAt!! > now)
+    }
+
     @Test
     fun completedRootCount_countsCompletedRootsAndExcludesSubtasks() {
         val root = TaskEntity(id = 1, title = "Raíz", completed = true)

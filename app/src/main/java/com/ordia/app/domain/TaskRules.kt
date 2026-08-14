@@ -177,8 +177,20 @@ object TaskRules {
      * - [TaskEntity.reminderAt]: se traslada `reminderAt + delta`, conservando
      *   el offset "X min antes" exacto —crítico para recurrentes, donde
      *   [RecurrenceEngine] reutiliza `dueAt - reminderAt` en cada ocurrencia—.
+     *   Si el instante trasladado cae en el pasado (vencimiento muy atrasado o
+     *   offset enorme) cae a [ReminderRules.defaultReminderAt] (nunca pasado),
+     *   igual que el editor (c.183) y la recurrencia (c.189): un recordatorio
+     *   pasado lo descarta [ReminderSync] y la tarea pospuesta se olvidaría de
+     *   nuevo, justo lo que esta acción debe evitar.
      * - [TaskEntity.recurrence]/`recurrenceInterval`/`recurrenceDays` quedan
      *   intactos: se posponen ESTA instancia, no la cadencia.
+     *
+     * Past-safe del vencimiento: si la tarea está vencida por más de un día,
+     * "el día siguiente al vencimiento" caería HOY o antes (todavía vencida), y
+     * posponerla no adelantaría nada. Se avanza día a día (misma hora local)
+     * hasta que el nuevo vencimiento quede en el futuro: un "posponer a mañana"
+     * siempre deja la tarea fuera de lo vencido. Para tareas no vencidas el
+     * resultado es exactamente +1 día (mañana), inalterado.
      *
      * No muta la entrada; devuelve una copia con `updatedAt = now`.
      */
@@ -188,13 +200,19 @@ object TaskRules {
         zone: ZoneId = ZoneId.systemDefault()
     ): TaskEntity? {
         val due = task.dueAt ?: return null
-        val zoned = Instant.ofEpochMilli(due).atZone(zone)
-        val newDue = zoned.plusDays(1).toInstant().toEpochMilli()
+        var newDue = Instant.ofEpochMilli(due).atZone(zone).plusDays(1).toInstant().toEpochMilli()
+        while (newDue <= now) {
+            newDue = Instant.ofEpochMilli(newDue).atZone(zone).plusDays(1).toInstant().toEpochMilli()
+        }
         val delta = newDue - due
+        val newReminder = task.reminderAt?.let { r ->
+            val translated = r + delta
+            if (translated > now) translated else ReminderRules.defaultReminderAt(newDue, now)
+        }
         return task.copy(
             dueAt = newDue,
             startAt = task.startAt?.plus(delta),
-            reminderAt = task.reminderAt?.plus(delta),
+            reminderAt = newReminder,
             updatedAt = now
         )
     }
