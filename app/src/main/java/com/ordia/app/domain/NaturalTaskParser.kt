@@ -50,9 +50,10 @@ object NaturalTaskParser {
         val weekdayMatch = weekdayPattern.find(working)
         val numericDateMatch = numericDatePattern.find(working)
         val date = when {
+            Regex("""(?i)\bpr[oó]xima\s+semana\b""").containsMatchIn(working) -> base.toLocalDate().plusWeeks(1)
             Regex("""(?i)\bpasado\s+mañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(2)
             Regex("""(?i)\bmañana\b""").containsMatchIn(working) -> base.toLocalDate().plusDays(1)
-            Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
+            Regex("""(?i)\bhoy\b|\besta\s+noche\b|\bal\s+mediod[ií]a\b""").containsMatchIn(working) -> base.toLocalDate()
             weekdayMatch != null -> nextWeekday(
                 base.toLocalDate(),
                 weekdayMatch.groupValues[1].toDayOfWeek()
@@ -72,13 +73,19 @@ object NaturalTaskParser {
         }
 
         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
-        val parsedTime = timeMatch?.let { match ->
-            var hour = match.groupValues[1].toInt()
-            val minute = match.groupValues[2].toIntOrNull() ?: 0
-            val meridiem = match.groupValues[3].lowercase().replace(".", "").replace(" ", "")
-            if (meridiem == "pm" && hour < 12) hour += 12
-            if (meridiem == "am" && hour == 12) hour = 0
-            LocalTime.of(hour, minute)
+        val parsedTime = when {
+            timeMatch != null -> {
+                val match = timeMatch
+                var hour = match.groupValues[1].toInt()
+                val minute = match.groupValues[2].toIntOrNull() ?: 0
+                val meridiem = match.groupValues[3].lowercase().replace(".", "").replace(" ", "")
+                if (meridiem == "pm" && hour < 12) hour += 12
+                if (meridiem == "am" && hour == 12) hour = 0
+                LocalTime.of(hour, minute)
+            }
+            Regex("""(?i)\besta\s+noche\b""").containsMatchIn(working) -> LocalTime.of(20, 0)
+            Regex("""(?i)\bal\s+mediod[ií]a\b""").containsMatchIn(working) -> LocalTime.of(12, 0)
+            else -> null
         }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val dueAt = relativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
@@ -87,7 +94,7 @@ object NaturalTaskParser {
         weekdayMatch?.value?.let { working = working.replace(it, " ") }
         timeMatch?.value?.let { working = working.replace(it, " ") }
         working = working
-            .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
+            .replace(Regex("""(?i)\bpr[oó]xima\s+semana\b|\bpasado\s+mañana\b|\bmañana\b|\bhoy\b|\besta\s+noche\b|\bal\s+mediod[ií]a\b"""), " ")
             .let { value -> numericDatePattern.replace(value, " ") }
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
             .replace(Regex("""\s+"""), " ")
