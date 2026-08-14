@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,6 +40,61 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ordia.app.ui.theme.OrdiaGoldSoft
+import com.ordia.app.ui.theme.OrdiaShapes
+
+// --- NEW CORE COMPONENTS ---
+
+@Composable
+fun OrdiaButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(48.dp),
+        shape = OrdiaShapes.medium,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ),
+        contentPadding = PaddingValues(horizontal = 24.dp)
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.size(8.dp))
+        }
+        Text(text, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+@Composable
+fun OrdiaCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    val cardModifier = if (onClick != null) {
+        modifier.clickable(onClick = onClick)
+    } else {
+        modifier
+    }
+
+    Card(
+        modifier = cardModifier,
+        shape = OrdiaShapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        content()
+    }
+}
+
+// --- EXISTING COMPONENTS ---
 
 @Composable
 fun ScreenHeader(
@@ -58,7 +114,7 @@ fun ScreenHeader(
                 if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (actionLabel != null && onAction != null) {
-                OutlinedButton(onClick = onAction) {
+                OutlinedButton(onClick = onAction, shape = OrdiaShapes.medium) {
                     Icon(Icons.Outlined.Add, null)
                     Text(actionLabel, Modifier.padding(start = 6.dp))
                 }
@@ -77,7 +133,7 @@ fun SectionHeader(title: String, supporting: String? = null, action: String? = n
         if (action != null && onAction != null) {
             Text(
                 action,
-                modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onAction).padding(horizontal = 10.dp, vertical = 7.dp),
+                modifier = Modifier.clip(OrdiaShapes.medium).clickable(onClick = onAction).padding(horizontal = 10.dp, vertical = 7.dp),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.secondary
             )
@@ -87,12 +143,8 @@ fun SectionHeader(title: String, supporting: String? = null, action: String? = n
 
 @Composable
 fun StatCard(label: String, value: String, supporting: String? = null, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    OrdiaCard(modifier = modifier) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.headlineMedium)
             if (supporting != null) Text(supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -110,21 +162,21 @@ fun EmptyState(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth().ordiaWorkSurface(),
-        shape = RoundedCornerShape(26.dp),
+        shape = OrdiaShapes.large,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
-            Modifier.padding(horizontal = 26.dp, vertical = 30.dp),
+            Modifier.padding(horizontal = 26.dp, vertical = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             GuardianAvatar(72.dp)
             Text(title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
             Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             if (actionLabel != null && onAction != null) {
-                Spacer(Modifier.height(2.dp))
-                Button(onClick = onAction) { Text(actionLabel) }
+                Spacer(Modifier.height(4.dp))
+                OrdiaButton(text = actionLabel, onClick = onAction)
             }
         }
     }
@@ -185,17 +237,13 @@ fun Modifier.ordiaWorkSurface(): Modifier {
 
 @Composable
 fun PrimaryAction(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Button(
-        onClick = onClick,
-        modifier = modifier,
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-    ) { Text(label) }
+    OrdiaButton(text = label, onClick = onClick, modifier = modifier)
 }
 
 @Composable
 fun InfoBanner(title: String, text: String, modifier: Modifier = Modifier) {
-    Surface(modifier, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    Surface(modifier, shape = OrdiaShapes.large, color = MaterialTheme.colorScheme.secondaryContainer) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
         }
