@@ -1,4 +1,4 @@
-package com.ordia.app.ui.components
+package com.ordia.app.ui.components.core
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background

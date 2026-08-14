@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -36,10 +37,10 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.domain.DateRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.PriorityPill
-import com.ordia.app.ui.components.TaskEditorDialog
-import com.ordia.app.ui.components.TaskRow
+import com.ordia.app.ui.components.core.EmptyState
+import com.ordia.app.ui.components.core.PriorityPill
+import com.ordia.app.ui.components.core.TaskEditorDialog
+import com.ordia.app.ui.components.core.TaskRow
 
 @Composable
 fun TaskDetailScreen(
@@ -77,7 +78,7 @@ fun TaskDetailScreen(
     ) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Volver") }
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Volver") }
                 Text("Detalle de tarea", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 IconButton(onClick = { editing = true }) { Icon(Icons.Outlined.Edit, "Editar") }
                 IconButton(onClick = { vm.deleteTask(task); onBack() }) { Icon(Icons.Outlined.DeleteOutline, "Archivar") }

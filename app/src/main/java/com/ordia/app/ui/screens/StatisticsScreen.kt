@@ -20,8 +20,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ordia.app.ui.OrdiaUiState
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.StatCard
+import com.ordia.app.ui.components.core.ScreenHeader
+import com.ordia.app.ui.components.core.StatCard
 import java.time.LocalDate
 
 @Composable

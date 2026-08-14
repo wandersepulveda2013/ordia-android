@@ -9,9 +9,9 @@ import androidx.compose.ui.graphics.Color
 import com.ordia.app.data.preferences.AccentPalette
 import com.ordia.app.data.preferences.ThemeMode
 
-val OrdiaInk = Color(0xFF1D1B17)
-val OrdiaCream = Color(0xFFF7F3EB)
-val OrdiaPaper = Color(0xFFFFFCF7)
+val OrdiaInk = Color(0xFF111111)
+val OrdiaCream = Color(0xFFFAFAFA)
+val OrdiaPaper = Color(0xFFFFFFFF)
 val OrdiaGold = Color(0xFF8A682D)
 val OrdiaGoldSoft = Color(0xFFD9BC7A)
 val OrdiaSage = Color(0xFF76845F)

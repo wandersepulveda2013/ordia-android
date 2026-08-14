@@ -15,10 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.TaskEditorDialog
-import com.ordia.app.ui.components.TaskRow
+import com.ordia.app.ui.components.core.EmptyState
+import com.ordia.app.ui.components.core.ScreenHeader
+import com.ordia.app.ui.components.core.TaskEditorDialog
+import com.ordia.app.ui.components.core.TaskRow
 
 @Composable
 fun InboxScreen(

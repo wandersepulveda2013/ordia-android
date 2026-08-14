@@ -42,11 +42,11 @@ import com.ordia.app.domain.DayPlanner
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.SectionHeader
-import com.ordia.app.ui.components.TaskEditorDialog
-import com.ordia.app.ui.components.TaskRow
+import com.ordia.app.ui.components.core.EmptyState
+import com.ordia.app.ui.components.core.ScreenHeader
+import com.ordia.app.ui.components.core.SectionHeader
+import com.ordia.app.ui.components.core.TaskEditorDialog
+import com.ordia.app.ui.components.core.TaskRow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.os.ConfigurationCompat
 import androidx.core.os.LocaleListCompat

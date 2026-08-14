@@ -34,8 +34,8 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.domain.SearchEngine
 import com.ordia.app.domain.SearchKind
 import com.ordia.app.ui.OrdiaUiState
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.ScreenHeader
+import com.ordia.app.ui.components.core.EmptyState
+import com.ordia.app.ui.components.core.ScreenHeader
 
 @Composable
 fun SearchScreen(

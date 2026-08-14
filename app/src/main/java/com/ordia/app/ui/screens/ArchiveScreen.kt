@@ -28,9 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
-import com.ordia.app.ui.components.EmptyState
-import com.ordia.app.ui.components.ScreenHeader
-import com.ordia.app.ui.components.SectionHeader
+import com.ordia.app.ui.components.core.EmptyState
+import com.ordia.app.ui.components.core.ScreenHeader
+import com.ordia.app.ui.components.core.SectionHeader
 
 data class ArchivedItem(val kind: String, val id: Long, val title: String, val description: String)
 
