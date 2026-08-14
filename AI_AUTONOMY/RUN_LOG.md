@@ -14,7 +14,7 @@
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room (sin Android SDK); integración `RecurrenceEngine`↔`OrdiaViewModel`/Room al completar una recurrente en runtime Android (el núcleo `nextOccurrence` SÍ verificado en JVM).
 - **AI_AUTONOMY actualizado**: BACKLOG (nueva fila c.189 FIXED→VERIFIED arriba); CURRENT_STATE (entrada c.189 en cabecera); RUN_LOG (esta entrada).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/RecurrenceEngine.kt` (rama past-safe en `nextOccurrence`), `app/src/test/java/com/ordia/app/domain/RecurrenceEngineTest.kt` (+2 tests), `tools/run_domain_checks.sh` (añadida `ReminderRules.kt` a la lista de fuentes), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD inicial**: `98ad534`. **HEAD final**: (tras commit + push).
+- **HEAD inicial**: `98ad534`. **HEAD final**: `6776f0a` (tras commit + push).
 - **Estado**: FIXED → VERIFIED (dominio JVM: **1286 domain tests PASS** — 1284 base c.188 + 2 nuevos; smoke 25 OK; 0 failures; sin regresión).
 - **Próxima prioridad**: descubrimiento continuo — (i) decisión de producto sobre `TaskStatus.CANCELLED` inalcanzable desde la UI (BACKLOG P2 — requiere Android/UI); (ii) más áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento); (iii) seguir auditando superficies de recordatorio/traslación (p. ej. `TaskRules` snooze/mover, `CommitmentEngine`); (iv) gaps léxicos del parser restantes (P3). Re-fetch antes de implementar para evitar colisión con runs paralelos.
 
