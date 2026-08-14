@@ -5006,3 +5006,18 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: (tras push, ver abajo).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: parser "ya" como token final → now (P1); tolerancia a acentos en SearchEngine ("última"/"próxima"); salir del parser hacia recuperación de tareas olvidadas / contexto / onboarding.
+
+## Ciclo 112 — 2026-08-14 — Parser: "ya" / "ya mismo" como token final → now (P1, tarea olvidada)
+
+- **HEAD inicial**: `907af99` (c.111 "manana noche" regression fix, ya pushed).
+- **Problema (P1, captura/olvido de tarea)**: **"ya"** (y **"ya mismo"**) como token final no casaba ningún patrón → `dueAt=null` + residuo "ya" en el título → tarea SIN vencimiento, invisible en "What Now"/planificador, sin recordatorio programable → **olvidada**. "ya" es la forma cotidiana por excelencia de "hazlo ahora" (más corta y frecuente que "ahora" en captura móvil rápida). Asimetría flagrante: **"ahora"/"ahora mismo"** SÍ vencían a `now` (c.107 `nowPattern`: ahorita/ahora mismo/ahora/lo antes posible/cuanto antes/a la brevedad/lo más pronto posible) pero **"ya"** no.
+- **Causa raíz**: `nowPattern` (c.107) enumeraba las frases de "ahora" pero omitió la forma más corta y nativa: "ya" (y "ya mismo"). Era el único adverbio de inmediatez de 2 letras no cubierto.
+- **Descubrimiento**: probe JVM ad-hoc (`/tmp/ordia-probe/YaProbe.kt`, 10 frases) confirmó `due=null` para "comprar pan ya", "llamar a mamá ya", "reunión para ya", "hazlo ya", "ya mismo", mientras "ahora"/"ahora mismo" devolvían `now`.
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón)**: `nowPattern` añade la alternancia `ya\s+mismo|ya` al final de la regex existente. "ya mismo" va ANTES que "ya" para que el match capture la frase entera (sin residuo). El `\b` Unicode de la regex protege contra falsos positivos: NO casa dentro de "playa"/"raya"/"haya" (verificado con probe + test `yaNoCasadentroDeOtraPalabra`). Se resuelve a `now` (no +N min aproximado: el usuario pidió "ya", la app debe sacar la tarea a la superficie de inmediato) — heurística honesta, no IA, simétrica a "ahora". La limpieza final del título (`\b(para|el)\b\s*$`, ya existente) borra "para" en "reunión para ya" → título "reunión".
+- **Tests**: `bash tools/run_domain_tests.sh` → **758 PASS** (754 c.111 + 4 netos; el 5º test `yaNoCasadentroDeOtraPalabra` es anti-falso-positivo "playa"). Nuevos: `yaFinalVenceAhoraYLimpiaTitulo`, `yaMismoVenceAhoraYLimpiaTitulo`, `paraYaVenceAhoraYLimpiaTitulo`, `yaNoCasadentroDeOtraPalabra`. Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Probe JVM 10 casos verde (incluido anti-falso "playa"). Sin regresión: "ahora"/"ahora mismo" intactos a `now`.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: (ver abajo tras push).
+- **HEAD final**: (tras push, ver abajo).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: salir del parser hacia recuperación de tareas olvidadas (What Now/Guardián), contexto, onboarding; tolerancia a acentos en SearchEngine ("última"/"próxima").

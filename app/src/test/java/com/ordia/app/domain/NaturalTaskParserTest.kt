@@ -4155,6 +4155,36 @@ class NaturalTaskParserTest {
         assertEquals(now, result.dueAt)
     }
 
+    // --- "ya" / "ya mismo" como "ahora" inmediato (P1, ciclo 112) ---
+    // "ya" es la forma cotidiana por excelencia de "hazlo ahora"; antes no casaba
+    // ningún patrón → dueAt=null → tarea SIN vencimiento, invisible en "What Now"/
+    // planificador, sin recordatorio → olvidada. Ahora se resuelve a `now`. El \b
+    // de la regex protege contra falsos en palabras que contienen "ya" (playa/raya).
+    @Test fun yaFinalVenceAhoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Comprar pan ya", now, zone)
+        assertEquals("Comprar pan", result.title)
+        assertEquals(now, result.dueAt)
+    }
+
+    @Test fun yaMismoVenceAhoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Llamar a mamá ya mismo", now, zone)
+        assertEquals("Llamar a mamá", result.title)
+        assertEquals(now, result.dueAt)
+    }
+
+    @Test fun paraYaVenceAhoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión para ya", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(now, result.dueAt)
+    }
+
+    @Test fun yaNoCasadentroDeOtraPalabra() {
+        // "playa"/"raya" contienen "ya" pero NO deben vencer a `now`: son contenido.
+        val result = NaturalTaskParser.parse("Comprar una playa", now, zone)
+        assertEquals("Comprar una playa", result.title)
+        assertNull(result.dueAt)
+    }
+
     @Test fun loMasProntoPosibleVenceAhoraYLimpiaTitulo() {
         val result = NaturalTaskParser.parse("Empezar lo más pronto posible", now, zone)
         assertEquals("Empezar", result.title)

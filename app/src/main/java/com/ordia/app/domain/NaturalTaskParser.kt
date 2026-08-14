@@ -101,17 +101,19 @@ object NaturalTaskParser {
     /**
      * "Ahora" inmediato cotidiano: "ahora mismo", "ahorita", "ahora",
      * "lo antes posible", "cuanto antes", "a la brevedad",
-     * "lo más pronto/temprano posible". Estas frases significan literalmente "ya" y son
-     * extremadamente frecuentes; antes no casaban ningún patrón → dueAt=null → tarea SIN
-     * vencimiento, invisible en "What Now"/planificador, sin recordatorio programable
-     * → olvidada (P1). Se resuelve a `now` (no a +N min aproximado: el usuario pidió
-     * "ahora", y la app debe sacar la tarea a la superficie de inmediato). Heurística
-     * honesta, no IA. Se procesa junto a [vagueRelativePattern] para consumir la frase
-     * completa y dejar el título limpio. NO entra en [relativeIsDays]: "ahora" es
+     * "lo más pronto/temprano posible", "ya", "ya mismo". Estas frases significan
+     * literalmente "ya" y son extremadamente frecuentes; antes no casaban ningún
+     * patrón → dueAt=null → tarea SIN vencimiento, invisible en "What Now"/
+     * planificador, sin recordatorio programable → olvidada (P1). Se resuelve a
+     * `now` (no a +N min aproximado: el usuario pidió "ahora"/"ya", y la app debe
+     * sacar la tarea a la superficie de inmediato). Heurística honesta, no IA. Se
+     * procesa junto a [vagueRelativePattern] para consumir la frase completa y
+     * dejar el título limpio. "ya mismo" va antes que "ya" en la alternancia para
+     * que el match capture la frase entera. NO entra en [relativeIsDays]: "ya" es
      * sub-hora, no debe combinarse con una hora explícita (no se rueda a hoy+hora).
      */
     private val nowPattern = Regex(
-        """(?i)\b(?:ahorita|ahora\s+mismo|ahora|lo\s+m[aá]s\s+(?:pronto|temprano)\s+posible|lo\s+antes\s+posible|cuanto\s+antes|a\s+la\s+brevedad)\b"""
+        """(?i)\b(?:ahorita|ahora\s+mismo|ahora|lo\s+m[aá]s\s+(?:pronto|temprano)\s+posible|lo\s+antes\s+posible|cuanto\s+antes|a\s+la\s+brevedad|ya\s+mismo|ya)\b"""
     )
     /**
      * "Más tarde"/"más rato"/"después" (con o sin tilde, suelto o "más tarde de N"):
