@@ -5170,4 +5170,80 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
+
+    @Test fun aEsoDeLasCincoResuelveHoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("llamar a eso de las 5", now, zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(5, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeLasDiezDeLaMananaResuelve10hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("enviar a eso de las 10 de la mañana", now, zone)
+        assertEquals("enviar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeLaUnaDeLaTardeResuelve13hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("llama a eso de la una de la tarde", now, zone)
+        assertEquals("llama", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun sobreLasTresDeLaTardeResuelve15hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión sobre las 3 de la tarde", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun sobreLaUnaDelMediodiaResuelve13hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("pasa sobre la una del mediodía", now, zone)
+        assertEquals("pasa", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haciaLasCuatroDeLaTardeResuelve16hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión hacia las 4 de la tarde", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(16, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun cercaDeLasDiezDeLaMananaResuelve10hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("llego cerca de las 10 de la mañana", now, zone)
+        assertEquals("llego", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun alrededorDeLasNueveDeLaNocheResuelve21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("cobro alrededor de las 9 de la noche", now, zone)
+        assertEquals("cobro", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun sobreLasVentasNoEsHora() {
+        // "sobre" como preposición de tema: no debe agendarse ni mutilar el título.
+        val result = NaturalTaskParser.parse("reunión sobre las ventas de la tienda", now, zone)
+        assertEquals("reunión sobre las ventas de la tienda", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun sobreLasTresCajasNoEsHora() {
+        // "sobre las 3 cajas" es una cantidad, no una cita: no debe agendarse.
+        val result = NaturalTaskParser.parse("comprar sobre las 3 cajas de leche", now, zone)
+        assertEquals("comprar sobre las 3 cajas de leche", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun informeSobreElClienteNoEsHora() {
+        val result = NaturalTaskParser.parse("informe sobre el cliente del jueves", now, zone)
+        assertEquals("informe sobre el cliente", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }

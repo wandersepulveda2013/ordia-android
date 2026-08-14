@@ -457,6 +457,31 @@ object NaturalTaskParser {
         Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+)?medianoche\b""")
     )
     /**
+     * Marcadores de hora aproximada ("a eso de", "hacia", "cerca de", "alrededor de",
+     * "sobre") que se normalizan a la forma canónica "a las"/"a la" reutilizando el
+     * flujo de [timePatterns]. Véase el bloque de normalización en [parse].
+     *
+     * Se reemplaza el marcador por "a " y se conserva intacto el resto ("las 5", "la
+     * una", "3 de la tarde"): así "a eso de las 5" → "a las 5", "sobre las 3 de la
+     * tarde" → "a las 3 de la tarde". El lookahead exige evidencia de reloj (hora +
+     * dígitos/meridiem/parte del día) para no tocar usos de tema ("sobre las ventas",
+     * "informe sobre el cliente") ni cuentas ("sobre las 3 cajas"): "sobre"/"hacia"/
+     * "cerca"/"alrededor" solo se normalizan cuando lo que sigue es inequívocamente
+     * una hora. "a eso de" ya porta "de las"/"de la", así que su lookahead valida la
+     * hora; es un adverbio temporal puro, sin uso de tema.
+     */
+    private val approximateTimePatterns = listOf(
+        // "a eso de" es un adverbio temporal puro (sin uso de tema/cantidad), así que
+        // admite hora en punto sin meridiem ("a eso de las 5"): es el caso más común.
+        Regex("""(?i)\ba\s+eso\s+de\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
+        // "hacia/cerca de/alrededor de/sobre" admiten usos de tema ("sobre las ventas") y
+        // de cantidad ("sobre las 3 cajas"), así que exigen evidencia de reloj INMEDIATA
+        // tras la hora (minutos `:MM`, meridiem, parte del día u "horas") para no agendar
+        // una cuenta como cita. La hora en punto sin meridiem queda fuera por ambigua.
+        Regex("""(?i)\b(?:hacia|cerca\s+de|alrededor\s+de)\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d|\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s*(?:horas?|hs))|la\s+una(?:\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)))"""),
+        Regex("""(?i)\bsobre\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d|\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s*(?:horas?|hs))|la\s+una(?:\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)))""")
+    )
+    /**
      * Cantidad del recordatorio: dígitos o número escrito en español (simétrico con
      * la fecha relativa "en dos horas"). Antes solo se aceptaban dígitos, así que
      * "recuérdame una hora antes" / "dos horas antes" / "treinta minutos antes"
@@ -798,6 +823,20 @@ object NaturalTaskParser {
         working = working
             .replace(Regex("""(?i)\bantenoche\b"""), "anteayer noche")
             .replace(Regex("""(?i)\banoche\b"""), "ayer noche")
+
+        // Hora aproximada: el usuario capta una hora sin precisión exacta ("llamar a eso
+        // de las 5", "reunión sobre las 3 de la tarde", "pasa hacia las 4", "llego cerca
+        // de las 10", "cobro alrededor de las 9"). Antes estos marcadores NO se reconocían
+        // y la hora subyacente quedaba sin capturar: la tarea caía a `dueAt=null` y se
+        // olvidaba, o (con parte del día) la hora sí se resolvía pero el marcador ("sobre
+        // las") sobrevivía como residuo en el título → cita bien fechada pero título
+        // mutilado. Se normaliza el marcador a la forma canónica "a las"/"a la" para
+        // reutilizar TODO el flujo de hora explícita existente (misma resolución AM/PM,
+        // misma limpieza del título), sin fingir precisión: la hora es la mejor estimación
+        // del usuario. "sobre" es ambiguo (preposición de tema: "sobre las ventas"), así
+        // solo se normaliza con hora + evidencia de reloj; el resto de marcadores son
+        // inequívocamente temporales con un número.
+        working = approximateTimePatterns.fold(working) { acc, p -> p.replace(acc, "a ") }
 
         val lower = working.lowercase()
         val trailingPriorityWord = trailingPriorityPattern.find(lower)
