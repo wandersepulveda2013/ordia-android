@@ -4595,6 +4595,62 @@ class NaturalTaskParserTest {
         assertEquals(null, result.dueAt)
     }
 
+    // --- "al amanecer" / "al alba" / "al despuntar el día" (hora canónica de salida del sol) ---
+    // Antes estas frases cotidianas de muy temprano no casaban ningún patrón → dueAt=null
+    // (tarea SIN vencimiento → olvidada, invisible en What Now/planificador, sin
+    // recordatorio) y la frase quedaba como residuo en el título. Asimetría con
+    // "al mediodía"=12:00, "a medianoche"=00:00, "a primera hora"=09:00. El amanecer es
+    // la primera luz (~06:00): distinta de "madrugada" (04:00, franja nocturna) y de
+    // "a primera hora" (09:00, inicio de jornada). Exige conector "al " para no casar
+    // el verbo "amanecer" ni el sustantivo poético suelto.
+
+    @Test fun alAmanecerInterpretaPrimeraLuzYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Caminar al amanecer", now, zone)
+        assertEquals("Caminar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(6, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun alAlbaEsSinonimoDeAmanecer() {
+        val result = NaturalTaskParser.parse("Caminar al alba", now, zone)
+        assertEquals("Caminar", result.title)
+        assertEquals(LocalTime.of(6, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alDespuntarElDiaEsSinonimoDeAmanecer() {
+        val result = NaturalTaskParser.parse("Caminar al despuntar el día", now, zone)
+        assertEquals("Caminar", result.title)
+        assertEquals(LocalTime.of(6, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alClarearYAlAclararSonSinonimosDeAmanecer() {
+        val r1 = NaturalTaskParser.parse("Caminar al clarear", now, zone)
+        val r2 = NaturalTaskParser.parse("Caminar al aclarar", now, zone)
+        assertEquals(LocalTime.of(6, 0), DateRules.toLocalTime(r1.dueAt!!, zone))
+        assertEquals(LocalTime.of(6, 0), DateRules.toLocalTime(r2.dueAt!!, zone))
+    }
+
+    @Test fun alAmanecerCombinaConFechaRelativa() {
+        val result = NaturalTaskParser.parse("Caminar mañana al amanecer", now, zone)
+        assertEquals("Caminar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(6, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun alAmanecerHoraExplicitaTienePrioridad() {
+        // "al amanecer a las 5": la hora explícita gana sobre la canónica de respaldo.
+        val result = NaturalTaskParser.parse("Caminar al amanecer a las 5", now, zone)
+        assertEquals("Caminar", result.title)
+        assertEquals(LocalTime.of(5, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun amanecerSinConectorAlNoEsFalsoPositivo() {
+        // "un amanecer hermoso" (sustantivo poético sin "al") no debe agendarse.
+        val result = NaturalTaskParser.parse("Ver un amanecer hermoso", now, zone)
+        assertEquals("Ver un amanecer hermoso", result.title)
+        assertEquals(null, result.dueAt)
+    }
+
     // --- "a mediodía" / "a medianoche" sin contracción "al" limpian el conector del título ---
 
     @Test fun aMediodiaSinContraccionLimpiaTitulo() {
@@ -4674,6 +4730,93 @@ class NaturalTaskParserTest {
     @Test fun paraYaVenceAhoraYLimpiaTitulo() {
         val result = NaturalTaskParser.parse("Reunión para ya", now, zone)
         assertEquals("Reunión", result.title)
+        assertEquals(now, result.dueAt)
+    }
+
+    // --- Residuo de determinante "este <día>" (P1, ciclo 129) ---
+    // "este lunes"/"este martes"/... indican el próximo día de la semana (igual que
+    // "el lunes"), pero el determinante "este" no lo consumía weekdayPattern: la fecha
+    // se resolvía bien pero "este" quedaba pegado al título ("reunión este"). P1 de
+    // integridad de título. El determinante se consume ahora en el propio patrón.
+    @Test fun esteLunesResuelveFechaYLimpiaDeterminante() {
+        val result = NaturalTaskParser.parse("reunión este lunes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun esteSabadoResuelveFechaYLimpiaDeterminante() {
+        val result = NaturalTaskParser.parse("reunión este sábado", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "este" como determinante de contenido NO debe borrarse: solo se consume cuando
+    // antecede a un día de la semana. Antes ningún patrón lo tocaba; ahora weekdayPattern
+    // lo consume sólo en ese contexto, dejando intacto "este proyecto"/"este libro".
+    @Test fun esteComoDeterminanteDeContenidoNoSeBorra() {
+        val result = NaturalTaskParser.parse("revisar este proyecto", now, zone)
+        assertEquals("revisar este proyecto", result.title)
+        assertNull(result.dueAt)
+    }
+
+    // --- Residuo "en la <parte> de hoy/mañana" (P1, ciclo 129) ---
+    // "en la tarde de hoy"/"en la noche de mañana" (forma caribeña) dejaba el residuo
+    // "de hoy"/"de mañana" en el título: standalonePartOfDayPattern consumía solo "en la
+    // tarde" y el sufijo "de hoy" caía al título. P1 de integridad. Ahora el patrón
+    // consume también el sufijo "de hoy/mañana/ayer".
+    @Test fun enLaTardeDeHoyLimpiaSufijoYResuelveHoraCanonica() {
+        val result = NaturalTaskParser.parse("reunión en la tarde de hoy", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun enLaNocheDeHoyLimpiaSufijoYResuelve21h() {
+        val result = NaturalTaskParser.parse("reunión en la noche de hoy", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun porLaTardeDeMananaLimpiaSufijoYResuelveFechaYHora() {
+        val result = NaturalTaskParser.parse("reunión por la tarde de mañana", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // --- Conector "a" en "a la semana que viene" (P1, ciclo 129) ---
+    // "entregar a la semana que viene": la preposición "a" (dirección temporal) no la
+    // consumía nextPeriodPattern, así que "a" quedaba como residuo ("entregar a") aunque
+    // la fecha se resolvía bien. P1 de integridad de título. Ahora el patrón admite un
+    // "a" conector opcional (con guard de letra previa para no robar la "a" final de
+    // palabras como "Auditoría").
+    @Test fun aLaSemanaQueVieneLimpiaConectorYResuelveFecha() {
+        val result = NaturalTaskParser.parse("entregar a la semana que viene", now, zone)
+        assertEquals("entregar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun laSemanaQueVieneSinConectorSigueFuncionando() {
+        val result = NaturalTaskParser.parse("entregar la semana que viene", now, zone)
+        assertEquals("entregar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Guard: la "a" final de "Auditoría" NO debe robarse como conector. Regresión del
+    // ciclo 129 al añadir el conector "a" sin guard de letra previa.
+    @Test fun palabraConAFinalNoSeTruncaComoConector() {
+        val result = NaturalTaskParser.parse("Auditoría próximo trimestre", now, zone)
+        assertEquals("Auditoría", result.title)
+        assertEquals(LocalDate.of(2026, 10, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // --- "ahorita mismo" (P1, ciclo 129) ---
+    // "ahorita mismo" (caribeño) no casaba: nowPattern tenía "ahorita" pero la
+    // alternancia corta ganaba y dejaba "mismo" como residuo en el título. Ahora se
+    // lista "ahorita mismo" antes que "ahorita" para robar la frase completa.
+    @Test fun ahoritaMismoVenceAhoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("llamar ahorita mismo", now, zone)
+        assertEquals("llamar", result.title)
         assertEquals(now, result.dueAt)
     }
 

@@ -62,7 +62,7 @@ object NaturalTaskParser {
     }
 
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
-    private val weekdayPattern = Regex("""(?i)\b(?:el\s+|del\s+|de\s+)?(?:pr[oó]ximo\s+|pr[oó]xima\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+que\s+viene|\s+pr[oó]ximos?|\s+pr[oó]ximas?)?\b""")
+    private val weekdayPattern = Regex("""(?i)\b(?:el\s+|del\s+|de\s+|este\s+)?(?:pr[oó]ximo\s+|pr[oó]xima\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+que\s+viene|\s+pr[oó]ximos?|\s+pr[oó]ximas?)?\b""")
     /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado.
      *  Acepta también "finales de semana" (plural análogo a "finales de mes"): señala un
      *  fin de semana concreto, no un hábito. Acepta el apócope coloquial "finde"
@@ -113,7 +113,7 @@ object NaturalTaskParser {
      * sub-hora, no debe combinarse con una hora explícita (no se rueda a hoy+hora).
      */
     private val nowPattern = Regex(
-        """(?i)\b(?:ahorita|ahora\s+mismo|ahora|lo\s+m[aá]s\s+(?:pronto|temprano)\s+posible|lo\s+antes\s+posible|cuanto\s+antes|a\s+la\s+brevedad|ya\s+mismo|ya)\b"""
+        """(?i)\b(?:ahorita\s+mismo|ahorita|ahora\s+mismo|ahora|lo\s+m[aá]s\s+(?:pronto|temprano)\s+posible|lo\s+antes\s+posible|cuanto\s+antes|a\s+la\s+brevedad|ya\s+mismo|ya)\b"""
     )
     /**
      * "Más tarde"/"más rato"/"después" (con o sin tilde, suelto o "más tarde de N"):
@@ -267,7 +267,7 @@ object NaturalTaskParser {
      * visibilidad). Se reusa la misma resolución +1 período.
      */
     private val nextPeriodPattern = Regex(
-        """(?i)\b(?:el|la)?\s*(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)\b|(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
+        """(?i)(?<!\p{L})(?:a\s+)?(?:el|la)?\s*(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)\b|(?<!\p{L})(?:a\s+)?(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
     )
     /**
      * "el 15 del mes que viene" / "el 15 del próximo mes" / "el 15 del mes próximo":
@@ -577,7 +577,7 @@ object NaturalTaskParser {
      * título. Se añade el conector "de" suelto para estas partes; no aplica a
      * "mañana" porque "de mañana" colisionaría con la fecha relativa ("mañana").
      */
-    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:(?:a\s+la|de\s+la|por\s+la|en\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada))\b""")
+    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:(?:a\s+la|de\s+la|por\s+la|en\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada))(?:\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier))?\b""")
     private val standalonePartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),
@@ -659,6 +659,21 @@ object NaturalTaskParser {
     private val alFinalDelDiaPattern =
         Regex("""(?i)al\s+final\s+(?:del\s+d[ií]a|de\s+la\s+jornada|de\s+los\s+d[ií]as)\b""")
     private val alFinalDelDiaTime = LocalTime.of(18, 0)
+
+    /**
+     * "al amanecer"/"al alba"/"al despuntar el día": salida del sol, forma cotidiana de
+     * "muy temprano" (antes ~06:00). Antes no se interpretaba como hora canónica: la tarea
+     * quedaba SIN `dueAt` (olvidada, invisible en What Now/planificador, sin recordatorio) y
+     * la frase quedaba como residuo en el título. Distinta de "madrugada" (04:00, franja
+     * nocturna) y de "a primera hora" (09:00, inicio de jornada): el amanecer es la primera
+     * luz, intermedia. Exige el conector "al " para no colisionar con "hoy amanece lloviendo"
+     * (verbo) ni con "un amanecer hermoso" (sustantivo poético sin valor de agenda). Hora de
+     * respaldo: si hay una parte del día/hora explícita, ésta tiene prioridad y el patrón
+     * solo limpia "al amanecer".
+     */
+    private val amanecerPattern =
+        Regex("""(?i)al\s+(?:amanecer|alba|despuntar\s+(?:el|la|de\s+la|del)\s+(?:alba|d[ií]a)|clarear|aclarar)\b""")
+    private val amanecerTime = LocalTime.of(6, 0)
 
     /**
      * Hora suelta con parte del día, sin "a las" ni rango: "Taller 9 de la tarde",
@@ -1238,6 +1253,7 @@ object NaturalTaskParser {
         val primeraHoraMatch = primeraHoraPattern.find(working)
         val ultimaHoraMatch = ultimaHoraPattern.find(working)
         val alFinalDelDiaMatch = alFinalDelDiaPattern.find(working)
+        val amanecerMatch = amanecerPattern.find(working)
         // Contexto PM: una parte del día de tarde/noche (explícita "esta tarde" o suelta "a la noche")
         // aplica offset +12 a una hora sin meridiem ("esta tarde a las 4" → 16:00).
         val partOfDayPmKeys = setOf("tarde", "noche")
@@ -1598,6 +1614,7 @@ object NaturalTaskParser {
             ?: primeraHoraMatch?.let { primeraHoraTime }
             ?: ultimaHoraMatch?.let { ultimaHoraTime }
             ?: alFinalDelDiaMatch?.let { alFinalDelDiaTime }
+            ?: amanecerMatch?.let { amanecerTime }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val rawDueAt = when {
             effectiveRelativeDueAt != null && relativeIsDays && parsedTime != null ->
@@ -1704,6 +1721,7 @@ object NaturalTaskParser {
             .let { value -> primeraHoraPattern.replace(value, " ") }
             .let { value -> ultimaHoraPattern.replace(value, " ") }
             .let { value -> alFinalDelDiaPattern.replace(value, " ") }
+            .let { value -> amanecerPattern.replace(value, " ") }
             // "el día de mañana"/"el día de hoy"/"para el día de mañana": forma
             // pleonástica coloquial de "mañana"/"hoy". El borrado genérico de abajo
             // consume sólo la palabra "mañana"/"hoy" y deja el residuo "el día de"
