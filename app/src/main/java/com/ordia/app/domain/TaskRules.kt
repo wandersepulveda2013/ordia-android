@@ -50,7 +50,23 @@ object TaskRules {
     /** Ventana en la que un compromiso programado futuro se considera "ahora mismo". */
     const val IMMINENT_WINDOW_MINUTES = 15
 
-    private fun timeRank(task: TaskEntity, now: Long, zone: ZoneId): Int = when {
+    /**
+     * Rango temporal de una tarea respecto a [now]: el componente "qué tan
+     * urgente es este instante" del ranking de decisión. Fuente única de
+     * verdad compartida con [WhatNowEngine] (tarjeta What Now, asistente,
+     * plan mínimo) y con [nextBestTask] (widget y fallback del ViewModel),
+     * de forma que TODAS las superficies de "qué hago ahora" ordenen igual.
+     *
+     * El orden del `when` es deliberado y sutil (es la parte propensa a
+     * divergencia silenciosa): una tarea en curso ahora mismo manda sobre
+     * una atrasada; una a punto de empezar (inminente) empata con la
+     * atrasada por encima de lo que vence hoy; lo programado para más
+     * tarde queda último (negativo) para no robar el lugar de lo actual.
+     * Centralizarlo aquí evita que una edición en una superficie deje a
+     * What Now y al widget sugiriendo tareas distintas para el mismo
+     * conjunto (regresión real ya documentada en c.83, antes de c.53).
+     */
+    fun timeRank(task: TaskEntity, now: Long, zone: ZoneId = ZoneId.systemDefault()): Int = when {
         task.status == TaskStatus.IN_PROGRESS -> 6
         isInProgressNow(task, now) -> 5
         isOverdue(task, now) -> 4

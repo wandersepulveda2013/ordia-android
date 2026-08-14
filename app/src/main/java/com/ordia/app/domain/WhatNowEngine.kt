@@ -62,17 +62,15 @@ object WhatNowEngine {
         tasks: List<TaskEntity>,
         now: Long = System.currentTimeMillis(),
         zone: ZoneId = ZoneId.systemDefault()
-    ): List<TaskEntity> {
-        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-        return tasks.filter { isCandidate(it) }.sortedWith(
-            compareByDescending<TaskEntity> { rank(it, now, today, zone) }
+    ): List<TaskEntity> =
+        tasks.filter { isCandidate(it) }.sortedWith(
+            compareByDescending<TaskEntity> { TaskRules.timeRank(it, now, zone) }
                 .thenByDescending { TaskRules.priorityScore(it.priority) }
                 .thenBy { it.dueAt ?: Long.MAX_VALUE }
                 .thenBy { it.startAt ?: Long.MAX_VALUE }
                 .thenBy { it.sortOrder }
                 .thenBy { it.createdAt }
         )
-    }
 
     /** Frase corta y honesta que explica por qué esta tarea va primero. */
     fun reasonLabel(r: WhatNowReason): String = when (r) {
@@ -88,18 +86,6 @@ object WhatNowEngine {
 
     private fun isCandidate(task: TaskEntity): Boolean =
         !task.completed && !task.archived && task.status != TaskStatus.CANCELLED && task.parentTaskId == null
-
-    private fun rank(task: TaskEntity, now: Long, today: LocalDate, zone: ZoneId): Int = when {
-        task.status == TaskStatus.IN_PROGRESS -> 6
-        isInProgressNow(task, now) -> 5
-        TaskRules.isOverdue(task, now) -> 4
-        isImminentStart(task, now) -> 4
-        isScheduledLater(task, now) -> -1
-        isDueToday(task, today, zone) -> 3
-        task.priority == TaskPriority.URGENT -> 2
-        task.priority == TaskPriority.HIGH -> 1
-        else -> 0
-    }
 
     private fun reason(task: TaskEntity, now: Long, today: LocalDate, zone: ZoneId): WhatNowReason = when {
         task.status == TaskStatus.IN_PROGRESS -> WhatNowReason.IN_PROGRESS_NOW

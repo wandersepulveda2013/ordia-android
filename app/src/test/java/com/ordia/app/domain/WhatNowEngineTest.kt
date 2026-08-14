@@ -201,4 +201,53 @@ class WhatNowEngineTest {
         assertEquals(WhatNowReason.IMMINENT_START, suggestion.reason)
     }
 
+    /**
+     * Guardián de divergencia: What Now (tarjeta/asistente) y el widget
+     * (TaskRules.nextBestTask) DEBEN sugerir exactamente la misma tarea para
+     * el mismo conjunto, en cualquier instante. Antes de consolidar
+     * [TaskRules.timeRank] como fuente única de verdad, el ranking temporal
+     * vivía duplicado (privado) en WhatNowEngine y TaskRules; cualquier edición
+     * en uno los hacía discrepar silenciosamente (regresión documentada en
+     * c.83). Este test falla si vuelven a divergir.
+     */
+    @Test
+    fun whatNowAndWidgetAgreeOnBestTaskAcrossTime() {
+        val diverse = listOf(
+            task(1, "Atrasada normal").copy(
+                dueAt = DateRules.toEpochMillis(date.minusDays(1), LocalTime.of(18, 0), zone),
+                durationMinutes = 30
+            ),
+            task(2, "En curso por estado").copy(
+                startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 30), zone),
+                durationMinutes = 60,
+                status = TaskStatus.IN_PROGRESS
+            ),
+            task(3, "Inminente").copy(
+                startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 8), zone),
+                durationMinutes = 20, priority = TaskPriority.LOW
+            ),
+            task(4, "Programada más tarde").copy(
+                startAt = DateRules.toEpochMillis(date, LocalTime.of(17, 0), zone),
+                durationMinutes = 20, priority = TaskPriority.URGENT
+            ),
+            task(5, "Vence hoy").copy(dueAt = DateRules.toEpochMillis(date, LocalTime.of(12, 0), zone)),
+            task(6, "Urgente sin fecha", TaskPriority.URGENT),
+            task(7, "Alta sin fecha", TaskPriority.HIGH),
+            task(8, "Bandeja"),
+            task(9, "Subtarea urgente", TaskPriority.URGENT).copy(parentTaskId = 1L)
+        )
+        val checkPoints = listOf(
+            DateRules.toEpochMillis(date, LocalTime.of(8, 0), zone),
+            now,
+            DateRules.toEpochMillis(date, LocalTime.of(10, 6), zone),
+            DateRules.toEpochMillis(date, LocalTime.of(10, 30), zone),
+            DateRules.toEpochMillis(date, LocalTime.of(20, 0), zone)
+        )
+        checkPoints.forEach { instant ->
+            val whatNowTop = WhatNowEngine.ordered(diverse, now = instant, zone = zone).firstOrNull()?.id
+            val widgetTop = TaskRules.nextBestTask(diverse, now = instant, zone = zone)?.id
+            assertEquals("What Now y widget divergen en $instant", widgetTop, whatNowTop)
+        }
+    }
+
 }
