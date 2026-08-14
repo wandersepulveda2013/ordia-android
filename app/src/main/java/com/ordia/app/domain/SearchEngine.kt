@@ -125,7 +125,7 @@ object SearchEngine {
                     (!hasLowPriorityIntent || task.priority == TaskPriority.LOW) &&
                     (!normalized.contains("pendiente") || !task.completed) &&
                     (!wantsCompleted || task.completed) &&
-                    (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone)) &&
+                    (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted)) &&
                     (matches(task.title, task.details) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms, task.title, task.details))
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE))
@@ -266,7 +266,13 @@ object SearchEngine {
     private fun dateScopeTokens(words: List<String>): Set<String> =
         words.filter { it in OVERDUE_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in MONTH_TOKENS || it in NEXT_MONTH_TOKENS || it in LAST_MONTH_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS }.toSet()
 
-    private fun taskMatchesDateScope(task: TaskEntity, scope: DateScope, now: Long, zone: ZoneId): Boolean {
+    private fun taskMatchesDateScope(
+        task: TaskEntity,
+        scope: DateScope,
+        now: Long,
+        zone: ZoneId,
+        anchorOnCompleted: Boolean = false
+    ): Boolean {
         if (scope == DateScope.OVERDUE) return TaskRules.isOverdue(task, now)
         // Tareas sin vencimiento: el motivo de este scope es recuperar lo pendiente
         // que nunca se agendó. Se excluyen completadas (ya resueltas) y canceladas,
@@ -278,29 +284,61 @@ object SearchEngine {
         // se excluyen siempre (no son información útil de un período pasado).
         val pastScope = scope == DateScope.YESTERDAY || scope == DateScope.LAST_WEEK || scope == DateScope.LAST_MONTH
         if (task.status == TaskStatus.CANCELLED) return false
+        // Cuando el usuario busca "completadas <scope presente>" el anclaje pasa a
+        // completedAt (cuándo la terminó) y NO se excluyen completadas: la lectura
+        // natural de "completadas hoy" es "qué terminé hoy", no "qué vencía hoy".
+        // Si la tarea está marcada completed pero sin completedAt, no hay fecha de
+        // terminación que anclar → no entra (no se inventa una fecha).
+        if (anchorOnCompleted) {
+            val completedAt = task.completedAt ?: return false
+            return anchorMatchesScope(scope, completedAt, now, zone, fullCalendarWeek = true)
+        }
         if (!pastScope && task.completed) return false
         val due = task.dueAt ?: return false
-        val zonedDue = Instant.ofEpochMilli(due).atZone(zone)
-        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         // Partes del día: franja horaria de HOY (presente → excluye completadas,
         // igual que TODAY). Recupera "lo que me espera esta tarde/noche" sin
         // requerir la palabra en el título. Coherente con TODAY (mismo día).
         val partOfDay = scopeBand(scope)
         if (partOfDay != null) {
+            val zonedDue = Instant.ofEpochMilli(due).atZone(zone)
+            val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
             return zonedDue.toLocalDate() == today && zonedDue.hour in partOfDay
         }
-        val dueDate = zonedDue.toLocalDate()
+        return anchorMatchesScope(scope, due, now, zone, fullCalendarWeek = false)
+    }
+
+    // Comprueba si un instante (epoch) cae dentro del rango calendario del scope.
+    // Anclaje canónico: lunes-domingo para semanas, mes natural para meses. Sin
+    // día-fecha relativo (ayer/mañana) ni "hoy" absoluto, siempre dentro de la
+    // semana/mes en curso relativo a `now`. Usado para dueAt (tareas pendientes)
+    // y para completedAt (tareas terminadas por el usuario en un período).
+    // fullCalendarWeek: cuando es true (anclaje en completedAt), THIS_WEEK abarca
+    // la semana calendario completa (lunes-domingo) en vez de hoy→domingo: la
+    // lectura de "completadas esta semana" es "qué terminé esta semana", que
+    // incluye lo terminado el lunes aunque hoy sea jueves.
+    private fun anchorMatchesScope(scope: DateScope, anchorEpoch: Long, now: Long, zone: ZoneId, fullCalendarWeek: Boolean): Boolean {
+        val zoned = Instant.ofEpochMilli(anchorEpoch).atZone(zone)
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        val date = zoned.toLocalDate()
+        val partOfDay = scopeBand(scope)
+        if (partOfDay != null) {
+            return date == today && zoned.hour in partOfDay
+        }
         return when (scope) {
-            DateScope.YESTERDAY -> dueDate == today.minusDays(1)
-            DateScope.TODAY -> dueDate == today
-            DateScope.TOMORROW -> dueDate == today.plusDays(1)
+            DateScope.YESTERDAY -> date == today.minusDays(1)
+            DateScope.TODAY -> date == today
+            DateScope.TOMORROW -> date == today.plusDays(1)
             DateScope.THIS_WEEK -> {
-                // Semana de lunes a domingo (Monday=1..Sunday=7). El `% 7` es
-                // crítico en domingo: `(7 - 7) % 7 = 0` → la semana termina HOY.
-                // Sin él, `7 - (7 % 7) = 7` arrastraba la semana siguiente.
+                // Semana de lunes a domingo (Monday=1..Sunday=7). Para dueAt el
+                // inicio es HOY (lo que me espera esta semana); para completedAt
+                // (fullCalendarWeek) el inicio es el LUNES de esta semana, así
+                // "completadas esta semana" recupera lo terminado desde el lunes.
+                // El `% 7` es crítico en domingo: `(7 - 7) % 7 = 0` → la semana
+                // termina HOY. Sin él, `7 - (7 % 7) = 7` arrastraba la siguiente.
                 val daysToSunday = (7 - today.dayOfWeek.value) % 7
                 val endOfWeek = today.plusDays(daysToSunday.toLong())
-                !dueDate.isBefore(today) && !dueDate.isAfter(endOfWeek)
+                val startOfWeek = if (fullCalendarWeek) today.minusDays((today.dayOfWeek.value - 1).toLong()) else today
+                !date.isBefore(startOfWeek) && !date.isAfter(endOfWeek)
             }
             DateScope.NEXT_WEEK -> {
                 // Próxima semana (lunes-domingo) a partir del fin de la actual.
@@ -309,7 +347,7 @@ object SearchEngine {
                 val daysToSunday = (7 - today.dayOfWeek.value) % 7
                 val startNextWeek = today.plusDays((daysToSunday + 1).toLong())
                 val endNextWeek = startNextWeek.plusDays(6)
-                !dueDate.isBefore(startNextWeek) && !dueDate.isAfter(endNextWeek)
+                !date.isBefore(startNextWeek) && !date.isAfter(endNextWeek)
             }
             DateScope.LAST_WEEK -> {
                 // Semana pasada completa (lunes-domingo) inmediatamente anterior
@@ -318,28 +356,26 @@ object SearchEngine {
                 val daysToSunday = (7 - today.dayOfWeek.value) % 7
                 val endLastWeek = today.plusDays((daysToSunday - 7).toLong())
                 val startLastWeek = endLastWeek.minusDays(6)
-                !dueDate.isBefore(startLastWeek) && !dueDate.isAfter(endLastWeek)
+                !date.isBefore(startLastWeek) && !date.isAfter(endLastWeek)
             }
             DateScope.THIS_MONTH -> {
                 // Mes natural en curso (del 1 al último día del mes de hoy).
                 // Recupera todo lo del mes, incluso lo ya pasado a principios de mes.
                 val thisMonth = YearMonth.from(today)
-                !dueDate.isBefore(thisMonth.atDay(1)) && !dueDate.isAfter(thisMonth.atEndOfMonth())
+                !date.isBefore(thisMonth.atDay(1)) && !date.isAfter(thisMonth.atEndOfMonth())
             }
             DateScope.NEXT_MONTH -> {
                 // Mes natural siguiente al de hoy.
                 val nextMonth = YearMonth.from(today).plusMonths(1)
-                !dueDate.isBefore(nextMonth.atDay(1)) && !dueDate.isAfter(nextMonth.atEndOfMonth())
+                !date.isBefore(nextMonth.atDay(1)) && !date.isAfter(nextMonth.atEndOfMonth())
             }
             DateScope.LAST_MONTH -> {
                 // Mes natural anterior al de hoy (recuperación, incluye completadas).
                 val lastMonth = YearMonth.from(today).minusMonths(1)
-                !dueDate.isBefore(lastMonth.atDay(1)) && !dueDate.isAfter(lastMonth.atEndOfMonth())
+                !date.isBefore(lastMonth.atDay(1)) && !date.isAfter(lastMonth.atEndOfMonth())
             }
-            DateScope.OVERDUE -> TaskRules.isOverdue(task, now)
-            // UNDATED se resuelve antes (return temprano); aquí es inalcanzable.
+            DateScope.OVERDUE -> false // resuelto antes (return temprano)
             DateScope.UNDATED -> false
-            // Partes del día resueltas vía scopeBand() antes de llegar aquí.
             DateScope.TARDE -> false
             DateScope.NOCHE -> false
             DateScope.MADRUGADA -> false

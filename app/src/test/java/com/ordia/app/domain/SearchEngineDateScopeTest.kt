@@ -531,4 +531,65 @@ class SearchEngineDateScopeTest {
         val ids = SearchEngine.search("este mes renta", pod, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
         assertEquals(setOf(1L), ids)
     }
+
+    // --- "completadas hoy"/"completadas esta semana": recuperar lo terminado
+    // en un período presente. Antes del fix el filtro wantsCompleted chocaba con
+    // los scopes NO pasados (que excluyen completadas) → resultado vacío. Ahora,
+    // cuando el usuario busca "completadas [scope presente]", se ancla la fecha en
+    // completedAt (cuándo la terminó) y se permite mostrar completed en ese rango.
+
+    @Test fun completadasHoy_returnsOnlyTasksCompletedToday() {
+        // "completadas hoy" recupera las tareas terminadas HOY (por completedAt),
+        // aunque su título no lo diga. Una terminada ayer NO entra.
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val t0 = atHour(today, 12)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Pagar luz", completed = true, completedAt = atHour(today, 10), dueAt = atHour(today, 9)),
+            TaskEntity(id = 2, title = "Llamar cliente", completed = true, completedAt = atHour(today.minusDays(1), 10), dueAt = atHour(today.minusDays(1), 9)),
+            TaskEntity(id = 3, title = "Comprar pan", completed = false, dueAt = atHour(today, 15))
+        )
+        val ids = SearchEngine.search("completadas hoy", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun hechasHoy_isEquivalentToCompletadasHoy() {
+        // "hechas hoy" es sinónimo coloquial: misma intención que "completadas hoy".
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val t0 = atHour(today, 12)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Enviar informe", completed = true, completedAt = atHour(today, 8)),
+            TaskEntity(id = 2, title = "Ayer", completed = true, completedAt = atHour(today.minusDays(1), 8))
+        )
+        val ids = SearchEngine.search("hechas hoy", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun completadasEstaSemana_returnsTasksCompletedThisWeek() {
+        // Jueves 2026-08-13: esta semana = lun 08-10..dom 08-16. "completadas esta
+        // semana" recupera las terminadas en ese rango (por completedAt), incluso
+        // las de lunes (ya pasado). Una terminada el domingo anterior NO entra.
+        val today = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = atHour(today, 12)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Lunes", completed = true, completedAt = atHour(today.minusDays(3), 9)), // 08-10 esta semana
+            TaskEntity(id = 2, title = "Domingo pasado", completed = true, completedAt = atHour(today.minusDays(4), 9)), // 08-09 semana pasada
+            TaskEntity(id = 3, title = "Pendiente", completed = false, dueAt = atHour(today, 15))
+        )
+        val ids = SearchEngine.search("completadas esta semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun completadasHoy_excludesPendingEvenIfDueToday() {
+        // Una tarea pendiente vencida hoy NO debe aparecer en "completadas hoy":
+        // el filtro de estado exige completed real, y el scope se ancla en
+        // completedAt (la pendiente no lo tiene) → se excluye.
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val t0 = atHour(today, 12)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hecha", completed = true, completedAt = atHour(today, 9)),
+            TaskEntity(id = 2, title = "Pendiente vence hoy", completed = false, dueAt = atHour(today, 18))
+        )
+        val ids = SearchEngine.search("completadas hoy", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
 }
