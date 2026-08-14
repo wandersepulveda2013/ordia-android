@@ -4107,6 +4107,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: Auditoría de acentos del parser COMPLETADA. Descubrimiento funcional: rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; `SearchEngine` date-scope "parte del día"/"este mes" (P3 anti-feature-bloat); `PlanEngine`/replanización si OVERLOADED recurrente.
 
 
+
 ## Ciclo 90 — 2026-08-14
 
 - **Rama**: `openhands/autonomous-ordia`
@@ -4125,3 +4126,56 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: (tras push, ver `git log`).
 - **Estado**: FIXED → VERIFIED (dominio JVM); STALE_RUN resuelto no destructivamente.
 - **Próxima prioridad**: "diez y media" sin conector (P3, requiere decisión de diseño); `SearchEngine` date-scope "parte del día"/"este mes" (P3 anti-feature-bloat); descubrimiento funcional: rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; `PlanEngine`/replanización si OVERLOADED recurrente.
+
+## Ciclo 91 — 2026-08-14
+
+- **Rama**: `openhands/autonomous-ordia`
+- **HEAD inicial**: `fe13527` (c.89 docs commit "registro HEAD final ciclo 89").
+- **Problema seleccionado**: **P1 (pérdida de datos silenciosa)** — `"último día del mes"`
+  (la forma más común y coloquial de "fin de mes") no se parseaba. `endOfMonthPattern`
+  solo reconocía `fin`/`finales` → `"entregar informe último día del mes"` caía en
+  `dueAt=null` y la frase quedaba como título → el vencimiento se olvidaba (sin
+  recordatorio, invisible en planificador/What Now). Pagos, rentas y cierres dichos en la
+  forma más natural se perdían. Simétrico a `fin de mes` (c.32) y `el N del mes que viene`
+  (c.68).
+- **Causa raíz (doble)**:
+  1. `endOfMonthPattern` solo listaba `fin(?:ales|es)?` como alternativa; no incluía
+     `últim[oa] día`.
+  2. **Trampa sutil**: al añadir la alternativa `[uú]ltim[oa]\s+dí[ai]a`, el regex seguía
+     sin casar porque el `\b` inicial (word boundary) es **ASCII-only** en la regex de
+     Java/Kotlin por defecto → no reconoce un boundary antes de la `ú` (U+00FA, no-ASCII).
+     Por eso `fin de mes` (empieza con `f` ASCII) sí casaba y `último día` no.
+- **Solución mínima**:
+  - `endOfMonthPattern`: añadir alternativa `[uú]ltim[oa]\s+d[ií]a` Y reemplazar `\b`
+    inicial por `(?<!\p{L})` (lookbehind Unicode-safe). Reusa todo el flujo de `fin de mes`.
+  - `monthBaseForBoundary`: rama "end" ahora incluye `t.contains("últim") ||
+    t.contains("ultim")`. El modificador "que viene"/"próxim" ya se resuelve antes (línea
+    `isNext`) → "último día del mes que viene" ancla al mes siguiente sin doble-desplazamiento.
+- **Bugs**: P1 vencimiento olvidado ("último día del mes" → dueAt=null).
+- **Features**: ninguna (fix de integridad de datos).
+- **Tests (TDD)**: +5 (`ultimoDiaDelMesParsesDueAtFinMesActual`,
+  `ultimoDiaDelMesConDelRespetaHoraExplicita`, `ultimoDiaDelMesSinTildeFuncionaIgual`,
+  `ultimoDiaDelMesQueVieneAnclaFinMesSiguiente`, `ultimoDiaDelMesProximoAnclaFinMesSiguiente`).
+  Probe JVM confirmó RED antes del fix de la boundary (`due=null`) y GREEN tras
+  (`due=07-31` actual / `08-31` "que viene" / "próximo"; forma sin tilde `ultimo dia del mes`
+  OK). Comando: `bash tools/run_domain_tests.sh` → **637 tests PASS** (27 clases — base
+  c.90=632 + 5 nuevos; ambos fixes coexisten). Smoke: `bash tools/run_domain_checks.sh` →
+  **25 assertions OK**. Sin regresión (`fin de mes`, `fin del mes que viene`, `el N del mes
+  que viene`, horas escritas c.90 siguen OK).
+- **STALE_RUN**: base `fe13527` obsoleta al hacer push (el remoto ya tenía c.90 de otra
+  ejecución — fix horas escritas). Resolución no destructiva: `git fetch` + `git rebase
+  origin/openhands/autonomous-ordia`; código y tests auto-mergearon limpio (distintas áreas
+  del parser), conflictos solo en memoria (CURRENT_STATE/RUN_LOG) resueltos conservando el
+  trabajo del otro agente y renumerando mi ciclo a 91.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: `6eb5b0f` (rebaseado sobre `d3734ed`).
+- **HEAD final**: `6eb5b0f` (push OK por confirmar).
+- **Estado**: FIXED → VERIFIED (dominio JVM); STALE_RUN resuelto no destructivamente.
+- **Próxima prioridad**: descubrimiento continuo — auditar otros sinónimos de "fin de mes"
+  no cubiertos ("a fin de mes" con prefijo ya OK; "cierre de mes"; "vence el mes");
+  `RecurrenceEngine` edge cases; detección de compromisos en notas; `PlanEngine`/replanización
+  si OVERLOADED recurrente.
+

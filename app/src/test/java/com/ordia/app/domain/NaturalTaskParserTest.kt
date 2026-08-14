@@ -2388,6 +2388,42 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "último día del mes": sinónimo cotidiano de "fin de mes" ---
+    // Antes "último día del mes" (y "último día del mes que viene") no se parseaban
+    // → dueAt=null → la tarea quedaba SIN fecha (olvido de vencimiento). P1.
+    // El modificador de mes siguiente se respeta; el título queda limpio de la frase.
+
+    @Test fun ultimoDiaDelMesParsesDueAtFinMesActual() {
+        val result = NaturalTaskParser.parse("Entregar informe último día del mes", now, zone)
+        assertEquals("Entregar informe", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimoDiaDelMesConDelRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Pago el último día del mes a las 9", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun ultimoDiaDelMesSinTildeFuncionaIgual() {
+        val result = NaturalTaskParser.parse("Cobro ultimo dia del mes", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimoDiaDelMesQueVieneAnclaFinMesSiguiente() {
+        val result = NaturalTaskParser.parse("Renta último día del mes que viene", now, zone)
+        assertEquals("Renta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimoDiaDelMesProximoAnclaFinMesSiguiente() {
+        val result = NaturalTaskParser.parse("Cierre último día del mes próximo", now, zone)
+        assertEquals("Cierre", result.title)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun finDelMesQueVieneRespetaHoraExplicita() {
         val result = NaturalTaskParser.parse("Reunión fin del mes que viene a las 18", now, zone)
         assertEquals("Reunión", result.title)

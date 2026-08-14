@@ -176,7 +176,7 @@ object NaturalTaskParser {
      * adelantados). El modificador se consume en el match (limpieza de título) y se
      * detecta en la resolución para desplazar un mes.
      */
-    private val endOfMonthPattern = Regex("""(?i)\b(?:a\s+)?fin(?:ales|es)?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
+    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
     private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
     private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?principios?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
     /**
@@ -1631,7 +1631,7 @@ object NaturalTaskParser {
         val isNext = t.contains("que viene") || t.contains("próxim") || t.contains("proxim")
         if (isNext) return today.plusMonths(1)
         val kind = when {
-            t.contains("fin") || t.contains("finales") -> "end"
+            t.contains("fin") || t.contains("finales") || t.contains("últim") || t.contains("ultim") -> "end"
             t.contains("mediados") || t.contains("mediado") -> "mid"
             else -> "start"
         }
