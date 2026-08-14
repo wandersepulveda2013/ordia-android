@@ -1,4 +1,9 @@
 <resources>
+    <string name="widget_title_default">Todo está en orden</string>
+    <string name="all_in_order">Todo está en orden</string>
+    <string name="widget_brand">ORDIA · SIGUIENTE PASO</string>
+    <string name="widget_zero_pending">0 pendientes</string>
+    <string name="widget_capture">+ Capturar</string>
     <string name="app_name">Ordia</string>
     <string name="app_tagline">Tu mundo, en orden</string>
     <string name="guardian_channel_name">Guardián de Ordia</string>
