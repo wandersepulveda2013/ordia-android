@@ -233,19 +233,26 @@ object NaturalTaskParser {
     )
     /**
      * Período próximo ("la semana que viene", "el mes que viene", "el año que
-     * viene", "próximo mes", "la próxima semana"): +1 período (semana/mes/año).
-     * "trimestre que viene" / "próximo trimestre" = +3 meses = +90 días
-     * (plazo largo cotidiano: impuestos trimestrales, revisiones, informes).
-     * "quincena" (+15d), "bimestre" (+60d) y "semestre" (+180d) son períodos
-     * cotidianos en español (pagos quincenales, reportes bimestrales, cierres
-     * semestrales). Antes estas formas quedaban sin fecha y con la frase «que
-     * viene» como residuo en el título → tarea olvidada (sin recordatorio ni
-     * visibilidad). "próximos días" (con o sin "en los/el/las") es la forma vaga
-     * de "dentro de poco": +3 días (heurística honesta, ni IA ni azar). Antes
-     * quedaba sin fecha → la tarea se olvidaba.
+     * viene", "próximo mes", "la próxima semana", "la semana entrante"):
+     * +1 período (semana/mes/año). "trimestre que viene" / "próximo trimestre"
+     * = +3 meses = +90 días (plazo largo cotidiano: impuestos trimestrales,
+     * revisiones, informes). "quincena" (+15d), "bimestre" (+60d) y "semestre"
+     * (+180d) son períodos cotidianos en español (pagos quincenales, reportes
+     * bimestrales, cierres semestrales). Antes estas formas quedaban sin fecha y
+     * con la frase «que viene» como residuo en el título → tarea olvidada (sin
+     * recordatorio ni visibilidad). "próximos días" (con o sin "en los/el/las")
+     * es la forma vaga de "dentro de poco": +3 días (heurística honesta, ni IA
+     * ni azar). Antes quedaba sin fecha → la tarea se olvidaba.
+     *
+     * "entrante" es el sinónimo caribeño de "que viene"/"próximo" (la app usa
+     * America/Santo_Domingo como zona canónica): "la semana entrante", "el mes
+     * entrante", "el año entrante". Sin esta rama, esas formas caían a
+     * `dueAt=null` + residuo "entrante" en el título → vencimiento olvidado
+     * (invisible en What Now/planificador, sin recordatorio). Se reusa la misma
+     * resolución +1 período que "que viene".
      */
     private val nextPeriodPattern = Regex(
-        """(?i)\b(?:el|la)?\s*(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)\b|(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
+        """(?i)\b(?:el|la)?\s*(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima|entrante)\b|(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
     )
     /**
      * "el 15 del mes que viene" / "el 15 del próximo mes" / "el 15 del mes próximo":
@@ -259,44 +266,46 @@ object NaturalTaskParser {
      * se ajusta al último día válido del mes objetivo.
      */
     private val nextMonthDayPattern = Regex(
-        """(?i)\bel\s+(?:d[ií]a\s+)?(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b"""
+        """(?i)\bel\s+(?:d[ií]a\s+)?(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b"""
     )
     /**
      * Orden inverso del anterior: "el mes que viene el 5" / "el mes que viene el
-     * día 5" / "el próximo mes el 10" / "el mes próximo el 20". Misma semántica
-     * (día N del mes siguiente) pero con el período ANTES del día — forma tan
-     * cotidiana como la directa. Sin este patrón, nextPeriodPattern robaba
-     * "el mes que viene" como +30d genérico (fecha errónea: p. ej. 12/09 en vez
-     * del 05/09) y el día quedaba como residuo en el título o se sombreaba. Se
-     * procesa ANTES que nextPeriodPattern para consumir la frase completa.
+     * día 5" / "el próximo mes el 10" / "el mes próximo el 20" / "el mes entrante
+     * el 15". Misma semántica (día N del mes siguiente) pero con el período ANTES
+     * del día — forma tan cotidiana como la directa. Sin este patrón,
+     * nextPeriodPattern robaba "el mes que viene" como +30d genérico (fecha
+     * errónea: p. ej. 12/09 en vez del 05/09) y el día quedaba como residuo en el
+     * título o se sombreaba. Se procesa ANTES que nextPeriodPattern para consumir
+     * la frase completa.
      */
     private val nextMonthDayReversePattern = Regex(
-        """(?i)\b(?:el\s+)?(?:mes\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\s+el\s+(?:d[ií]a\s+)?(\d{1,2})\b"""
+        """(?i)\b(?:el\s+)?(?:mes\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\s+el\s+(?:d[ií]a\s+)?(\d{1,2})\b"""
     )
     /**
-     * "la semana que viene el lunes" / "la próxima semana el viernes" /
-     * "semana que viene el sábado": día de la semana objetivo de la SEMANA PRÓXIMA
+     * "la semana que viene el lunes" / "la próxima semana el viernes" / "la
+     * semana entrante el sábado": día de la semana objetivo de la SEMANA PRÓXIMA
      * (no +7d genérico desde hoy, que es lo que daba nextPeriodPattern). Sin este
      * patrón, nextPeriodPattern robaba "la semana que viene" como +7d e ignoraba
      * el día explícito → "la semana que viene el viernes" dicho un miércoles daba
      * el próximo miércoles (mañana+7) en vez del viernes de la semana que viene
      * (cita/reunión en día equivocado). Se procesa ANTES que nextPeriodPattern
-     * para consumir la frase completa (período + día) y evitar que éste la robe.
+     * para consumir la frase completa (período + día) y evitar que ésta la robe.
      */
     private val nextWeekWeekdayReversePattern = Regex(
-        """(?i)\b(?:la\s+)?(?:semana\s+(?:que\s+viene|pr[oó]xima)|pr[oó]xima\s+semana)\s+el\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""
+        """(?i)\b(?:la\s+)?(?:semana\s+(?:que\s+viene|pr[oó]xima|entrante)|pr[oó]xima\s+semana)\s+el\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""
     )
     /**
-     * Orden inverso del anterior: "el lunes de la semana que viene" /
-     * "el viernes de la próxima semana". Misma semántica (día objetivo de la
-     * semana próxima) pero con el día ANTES del período — forma tan cotidiana
-     * como la directa. Sin este patrón, weekdayPattern capturaba "el lunes" como
-     * fecha suelta (nextWeekdayOrSame) y nextPeriodPattern robaba "la semana que
-     * viene" como +7d; al combinarse, el +7d ganaba → día equivocado. Se procesa
-     * ANTES que nextPeriodPattern y weekdayPattern para consumir la frase completa.
+     * Orden inverso del anterior: "el lunes de la semana que viene" / "el viernes
+     * de la próxima semana" / "el lunes de la semana entrante". Misma semántica
+     * (día objetivo de la semana próxima) pero con el día ANTES del período —
+     * forma tan cotidiana como la directa. Sin este patrón, weekdayPattern
+     * capturaba "el lunes" como fecha suelta (nextWeekdayOrSame) y
+     * nextPeriodPattern robaba "la semana que viene" como +7d; al combinarse, el
+     * +7d ganaba → día equivocado. Se procesa ANTES que nextPeriodPattern y
+     * weekdayPattern para consumir la frase completa.
      */
     private val nextWeekWeekdayForwardPattern = Regex(
-        """(?i)\bel\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+de\s+(?:la\s+)?(?:semana\s+(?:que\s+viene|pr[oó]xima)|pr[oó]xima\s+semana)\b"""
+        """(?i)\bel\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+de\s+(?:la\s+)?(?:semana\s+(?:que\s+viene|pr[oó]xima|entrante)|pr[oó]xima\s+semana)\b"""
     )
     /**
      * "fin de mes" / "a finales de mes" / "fin del mes" / "cierre de mes" / "cierre del mes"
@@ -318,9 +327,9 @@ object NaturalTaskParser {
      * adelantados). El modificador se consume en el match (limpieza de título) y se
      * detecta en la resolución para desplazar un mes.
      */
-    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
-    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
-    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|primeros?)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
+    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|primeros?)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     /**
      * "la quincena" / "de la quincena" / "primera quincena" / "segunda quincena":
      * hito financiero mensual (cobro, nómina, pago). La "primera quincena" es el día
@@ -2045,7 +2054,7 @@ object NaturalTaskParser {
      */
     private fun monthBaseForBoundary(today: LocalDate, matched: String): LocalDate {
         val t = matched.lowercase()
-        val isNext = t.contains("que viene") || t.contains("próxim") || t.contains("proxim")
+        val isNext = t.contains("que viene") || t.contains("próxim") || t.contains("proxim") || t.contains("entrante")
         if (isNext) return today.plusMonths(1)
         val kind = when {
             t.contains("fin") || t.contains("finales") || t.contains("cierre") || t.contains("corte") || t.contains("últim") || t.contains("ultim") -> "end"

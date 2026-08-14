@@ -2830,6 +2830,45 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "entrante": sinónimo caribeño de "que viene"/"próximo" ---
+    // La app usa America/Santo_Domingo como zona canónica; "la semana entrante",
+    // "el mes entrante", "el año entrante" son cotidianísimos en el español
+    // caribeño. Antes caían a dueAt=null + residuo "entrante" en el título →
+    // vencimiento olvidado (invisible en What Now/planificador, sin recordatorio).
+
+    @Test fun semanaEntranteParsesDueAt() {
+        val result = NaturalTaskParser.parse("Enviar informe la semana entrante", now, zone)
+        assertEquals("Enviar informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mesEntranteParsesDueAt() {
+        val result = NaturalTaskParser.parse("Pagar renta el mes entrante", now, zone)
+        assertEquals("Pagar renta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun anioEntranteParsesDueAt() {
+        val result = NaturalTaskParser.parse("Presentar impuestos el año entrante", now, zone)
+        assertEquals("Presentar impuestos", result.title)
+        assertEquals(LocalDate.of(2027, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mesEntranteRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Pagar el mes entrante a las 10", now, zone)
+        assertEquals("Pagar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun entranteNoEsFalsoPositivoEnSustantivoAjeno() {
+        // "documento/llamada/factura entrante": "entrante" modifica a un sustantivo
+        // que NO es un período → no debe casar (dueAt=null, título intacto).
+        val r = NaturalTaskParser.parse("Revisar el documento entrante", now, zone)
+        assertEquals("Revisar el documento entrante", r.title)
+        assertNull(r.dueAt)
+    }
+
     // --- "el N del mes que viene": día concreto del mes siguiente ---
     // Compromiso mensual anclado a un día (vencimiento, cobro, cita). Antes
     // nextPeriodPattern robaba "mes que viene" como +30d genérico ignorando el día
@@ -2850,6 +2889,14 @@ class NaturalTaskParserTest {
 
     @Test fun elNDelMesProximoResuelveDiaNDelMesSiguiente() {
         val result = NaturalTaskParser.parse("Cobro el 10 del mes próximo", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 10), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elNDelMesEntranteResuelveDiaNDelMesSiguiente() {
+        // "el 15 del mes entrante": compromiso mensual con calificador caribeño.
+        // Antes: nextPeriodPattern no reconocía "entrante" → dueAt=null + residuo.
+        val result = NaturalTaskParser.parse("Cobro el 10 del mes entrante", now, zone)
         assertEquals("Cobro", result.title)
         assertEquals(LocalDate.of(2026, 8, 10), DateRules.toLocalDate(result.dueAt!!, zone))
     }
@@ -2900,6 +2947,13 @@ class NaturalTaskParserTest {
 
     @Test fun elMesProximoElNResuelveDiaNDelMesSiguiente() {
         val result = NaturalTaskParser.parse("Vence el mes próximo el 20", now, zone)
+        assertEquals("Vence", result.title)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elMesEntranteElNResuelveDiaNDelMesSiguiente() {
+        // Orden inverso con calificador caribeño: "el mes entrante el 20".
+        val result = NaturalTaskParser.parse("Vence el mes entrante el 20", now, zone)
         assertEquals("Vence", result.title)
         assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
     }
@@ -2960,6 +3014,20 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Cita el viernes de la próxima semana", now, zone)
         assertEquals("Cita", result.title)
         assertEquals(LocalDate.of(2026, 8, 7), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun laSemanaEntranteElViernesResuelveViernesDeLaSemanaProxima() {
+        // Calificador caribeño en "semana + día": ancla al viernes de la semana próxima.
+        val result = NaturalTaskParser.parse("Cita la semana entrante el viernes", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 7), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elLunesDeLaSemanaEntranteResuelveLunesDeLaSemanaProxima() {
+        // Orden inverso (día ANTES del período) con calificador caribeño.
+        val result = NaturalTaskParser.parse("Reunión el lunes de la semana entrante", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
     @Test fun laSemanaQueVieneElViernesRespetaHoraExplicita() {
@@ -3232,6 +3300,20 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Pago fin de mes que viene", now, zone)
         assertEquals("Pago", result.title)
         assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDelMesEntranteAnclaFinMesSiguiente() {
+        // Calificador caribeño en límite mensual: ancla a fin del mes siguiente.
+        val result = NaturalTaskParser.parse("Pagar tarjeta fin del mes entrante", now, zone)
+        assertEquals("Pagar tarjeta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun principiosDelMesEntranteAnclaInicioMesSiguiente() {
+        // "principios del mes entrante" = día 1 del mes siguiente (agosto).
+        val result = NaturalTaskParser.parse("Cobro principios del mes entrante", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
     // --- "último día del mes": sinónimo cotidiano de "fin de mes" ---
