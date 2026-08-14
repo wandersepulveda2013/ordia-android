@@ -314,6 +314,17 @@ object NaturalTaskParser {
         """(?i)\b(?:el\s+)?(?:d[ií]a\s+)?pr[oó]xim[oa]\s+(?:d[ií]a\s+)?(\d{1,2})\b"""
     )
     /**
+     * Orden inverso del anterior: "el 15 próximo" / "el 15 proximo" (calificador
+     * "próximo" DESPUÉS del día). Misma semántica (día N del mes siguiente). Antes
+     * dayOfMonthPattern capturaba "el 15" como de ESTE mes (fecha equivocada: P1) y
+     * "próximo" sobrevivía como residuo en el título (contenido degradado). Se procesa
+     * DESPUÉS de nextMonthDayShort (forma directa primero) para no doble-procesar y
+     * ANTES que dayOfMonthPattern (que exige "el <dígito>" sin intercalar).
+     */
+    private val nextMonthDayShortReversePattern = Regex(
+        """(?i)\bel\s+(\d{1,2})\s+pr[oó]ximo\b"""
+    )
+    /**
      * "la semana que viene el lunes" / "la próxima semana el viernes" / "la
      * semana entrante el sábado": día de la semana objetivo de la SEMANA PRÓXIMA
      * (no +7d genérico desde hoy, que es lo que daba nextPeriodPattern). Sin este
@@ -1373,6 +1384,20 @@ object NaturalTaskParser {
         }
         nextMonthDayShortMatch?.let { working = working.replaceRange(it.range, " ") }
 
+        // Orden inverso: "el 15 próximo" → día N del mes siguiente (ver patrón).
+        // Se procesa DESPUÉS de nextMonthDayShort (forma directa) para no doble-procesar
+        // y ANTES que dayOfMonthPattern (que exigiría "el 15" como de este mes).
+        val nextMonthDayShortReverseMatch = nextMonthDayShortReversePattern.find(working)
+        val nextMonthDayShortReverseDueAt = nextMonthDayShortReverseMatch?.let { m ->
+            val day = m.groupValues[1].toIntOrNull()?.takeIf { it in 1..31 } ?: return@let null
+            val today = base.toLocalDate()
+            val nextMonth = today.plusMonths(1)
+            val dim = nextMonth.lengthOfMonth()
+            val safeDay = minOf(day, dim)
+            DateRules.toEpochMillis(nextMonth.withDayOfMonth(safeDay), LocalTime.of(9, 0), zone)
+        }
+        nextMonthDayShortReverseMatch?.let { working = working.replaceRange(it.range, " ") }
+
         // "la semana que viene el lunes" / "la próxima semana el viernes":
         // día de la semana objetivo de la SEMANA PRÓXIMA. start-of-next-week (próximo
         // lunes estricto) + offset del weekday objetivo. Se procesa ANTES que
@@ -1485,6 +1510,7 @@ object NaturalTaskParser {
             monthBoundaryNameDueAt ?: yearBoundaryDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?: nextMonthDayShortDueAt ?:
+            nextMonthDayShortReverseDueAt ?:
             nextWeekWeekdayReverseDueAt ?: nextWeekWeekdayForwardDueAt ?: nextPeriodDueAt
         val relativeIsDays = (agoMatch != null || lastPeriodMatch != null ||
             relativeMatch != null || fractionalRelativeMatch != null ||
@@ -1493,7 +1519,7 @@ object NaturalTaskParser {
             monthBoundaryDueAt != null || monthBoundaryNameDueAt != null || yearBoundaryDueAt != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
             quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null ||
-            nextMonthDayShortMatch != null ||
+            nextMonthDayShortMatch != null || nextMonthDayShortReverseMatch != null ||
             nextWeekWeekdayReverseMatch != null || nextWeekWeekdayForwardMatch != null || nextPeriodMatch != null) &&
             (fractionalRelativeMatch == null) &&
             (fractionalAndQuarterRelativeMatch == null) &&

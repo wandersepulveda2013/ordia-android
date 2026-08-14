@@ -5997,4 +5997,35 @@ class NaturalTaskParserTest {
         assertEquals("Pago", result.title)
         assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    @Test fun elNProximoOrdenInversoResuelveAMesSiguiente() {
+        // "el 15 próximo" (calificador DESPUÉS del día) = día 15 del mes siguiente.
+        // Antes dayOfMonthPattern capturaba "el 15" como de ESTE mes (julio) y "próximo"
+        // quedaba de residuo en el título (fecha equivocada + título degradado: P1).
+        val result = NaturalTaskParser.parse("Pago el 15 próximo", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elNProximoSinTildeOrdenInversoFunciona() {
+        val result = NaturalTaskParser.parse("Cobro el 20 proximo", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elNProximoDiaBajoResuelveAMesSiguienteSinResiduo() {
+        // Día bajo (1) que ya pasó este mes: igualmente → mes siguiente + título limpio.
+        val result = NaturalTaskParser.parse("Entrega el 1 próximo", now, zone)
+        assertEquals("Entrega", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elNProximoNoInterfiereConProximoDiaDeSemana() {
+        // "el próximo lunes" (forma directa + weekday) sigue resolviendo como próxima
+        // ocurrencia estricta del weekday, sin que el patrón inverso lo robe.
+        val result = NaturalTaskParser.parse("Reunión el próximo lunes", now, zone)
+        assertEquals("Reunión", result.title)
+        // 2026-07-29 es miércoles → próximo lunes = 2026-08-03.
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }

@@ -423,3 +423,14 @@ antes del "y", así que no casaba. Resultado:
 - **Estado**: FIXED → VERIFIED (dominio JVM: 940 tests, 0 failures).
 - **Próxima prioridad**: gap P2 ABIERTO "día N" sin artículo ("pago día 15"→null, evaluar falso positivo); descubrimiento continuo en áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA.
 
+## Ciclo 150 - 2026-08-14 (UTC) - fix(parser): "el N próximo" (orden inverso) → mes equivocado + residuo (P1)
+
+- **Run/ciclo**: 150 (rama `openhands/autonomous-ordia`). HEAD inicial = `e4351ff`. Base sincronizada con remoto (pull --ff-only limpio, sin colisión).
+- **Problema resuelto (P1)**: gap complementario al fix remoto `e4351ff` (forma directa "el próximo N"). La forma INVERSA "el N próximo" (calificador DESPUÉS del día) no estaba cubierta: "pago el 15 próximo" → antes `due=2026-08-15` (mes en curso, equivocado; debería 2026-09-15) + `title='pago próximo'` (residuo). Vencimiento agendado en mes equivocado + título degradado → recordatorio en fecha errónea, tarea invisible el día real.
+- **Causa raíz**: `dayOfMonthPattern` (día suelto "el 15") capturaba "el 15" y lo anclaba al mes en curso antes de que ningún patrón viera "próximo" como sufijo. No existía patrón espejo de `nextMonthDayShortPattern` para el orden inverso.
+- **Solución**: nuevo `nextMonthDayShortReversePattern` (regex espejo: `\bel\s+(\d{1,2})\s+pr[oó]ximo\b`) + resolución `nextMonthDayShortReverseDueAt` (día N del mes siguiente con clamp de día imposible, año nuevo si dic→ene) + wiring en `effectiveRelativeDueAt` y `relativeIsDays`. Paridad exacta con el fix remoto `e4351ff`, cambios ortogonales, sin nueva pantalla/botón, sin IA fingida.
+- **Tests**: `bash tools/run_domain_tests.sh` → **1099 PASS** (1095 c.`e4351ff` + 4 nuevos), 0 failures. `bash tools/run_domain_checks.sh` → smoke 25 OK. +4 tests TDD: orden inverso (con/sin tilde), día bajo, no-regresión "el próximo lunes" (forma directa+weekday intacta). Probe JVM confirmó gap antes → verde después.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK). Render real del parser en la app no probado en dispositivo.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Estado**: FIXED → VERIFIED (dominio JVM: 1099 tests, 0 failures; smoke 25 OK).
+- **Próxima prioridad**: gap "el día siguiente"/"el día de mañana" (= mañana, P2 ABIERTO, decisión de diseño pendiente vs "pasado mañana"); "de aquí al 15 del 9" (prefijo "de aquí al" no normalizado); áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento); auditoría workers/backup/restore con DAOs reales: paquete `backup/` ya verificado en JVM (c.147-B).
