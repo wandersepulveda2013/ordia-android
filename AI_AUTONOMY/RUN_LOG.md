@@ -22,7 +22,7 @@
 - **AI_AUTONOMY actualizado**: `CURRENT_STATE.md` (fecha c.97 + nueva sección "Último trabajo — Ciclo 97"), `BACKLOG.md` (fila c.97 FIXED→VERIFIED al frente de Pendientes), `RUN_LOG.md` (esta entrada).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
 - **Commits**: 1 (`fix(parser): "cada dos semanas los lunes" → WEEKLY+2 (intervalo escrito+días) (P1)`).
-- **HEAD final**: (pendiente de commit/push).
+- **HEAD final**: `7464431` (fix(parser): "cada dos semanas los lunes" → WEEKLY+2).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: descubrimiento continuo — salir del parser de recurrencias; `RecurrenceEngine` edge cases (saltos DST, clamps fin-de-mes), detección de compromisos en notas, replanificación si OVERLOADED recurrente, auditoría de captura/búsqueda/What Now para nuevas oportunidades de producto.
 
