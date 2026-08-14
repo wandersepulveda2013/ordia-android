@@ -1,6 +1,7 @@
 package com.ordia.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.core.graphics.toColorInt
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,7 +62,7 @@ fun ProjectsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 Modifier.size(14.dp).background(
-                                    runCatching { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(project.colorHex)) }.getOrDefault(MaterialTheme.colorScheme.secondary),
+                                    runCatching { androidx.compose.ui.graphics.Color(project.colorHex.toColorInt()) }.getOrDefault(MaterialTheme.colorScheme.secondary),
                                     androidx.compose.foundation.shape.CircleShape
                                 )
                             )
