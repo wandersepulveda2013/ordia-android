@@ -1682,6 +1682,32 @@ y `dueTodayIsLabeledAsTodayEvenOnFuturePlanDate`, 25 clases). Smoke 25 OK no eje
 `kotlinc` en PATH en este run (libs presentes); el smoke es subconjunto del suite de dominio ya
 pasado. NO VERIFICADO: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 
+## Último trabajo — Ciclo 94: parser "a diario" (DAILY) + "corte de mes" (fin de mes)
+
+Fix P1 ×2 de captura/parser (recurrencia y vencimiento perdidos), continuación natural del
+descubrimiento continuo. DOS brechas simétricas a fixes previos:
+
+1. **"a diario"** (frase adverbial cotidiana: "llevar al niño al colegio a diario", "revisar
+   correos a diario") caía a `rec=NONE`: el compromiso diario nacía como tarea ÚNICA sin
+   recurrencia ni recordatorio periódico → rutina silenciosamente perdida. "todos los días"/
+   "cada día"/"diariamente" SÍ funcionaban (c.33) pero "a diario" no estaba en el patrón.
+2. **"corte de mes"/"corte del mes"** (sinónimo latinoamericano de "fin de mes"/"cierre de
+   mes": corte de caja, corte de nómina, pago de renta al corte del mes) caía a `dueAt=null`:
+   el vencimiento se olvidaba (sin recordatorio ni visibilidad en planificador/What Now).
+   "fin de mes"/"cierre de mes" SÍ funcionaban (c.92 añadió "cierre"); "corte" era la brecha
+   residual documentada en c.93.
+
+**Fix mínimo**: (1) patrón DAILY +`|\ba\s+diario\b` (límites `\b` evitan colisión con "diario"
+sustantivo — solo la frase adverbial activa DAILY); (2) `endOfMonthPattern` +`corte` y
+`monthBaseForBoundary` +`|| t.contains("corte")` en la rama "end" (reutiliza todo el flujo
+de fin de mes). Sin nueva pantalla/botón, sin enum/migración.
+
+**Tests (TDD)**: sonda JVM inicial (3 RED) confirmó ambas brechas; 3 tests permanentes en
+`NaturalTaskParserTest.kt` (`parsesADiarioRecurrence`, `corteDeMesParsesDueAtFinDeMes`,
+`corteDelMesParsesDueAtFinDeMes`). **652 domain tests PASS** (28 clases — subida desde 649
+de c.93). Smoke 25 OK. Sin regresión. NO VERIFICADO: gradle/lint/assemble/Android/UI/Room
+con DAOs reales (sin Android SDK).
+
 ## Último trabajo — Ciclo 47: "el 15" — día del mes suelto con artículo
 
 Fix P1 de captura de citas (parser natural). Frases cotidianas como **"reunión el 15 a las 10"**,

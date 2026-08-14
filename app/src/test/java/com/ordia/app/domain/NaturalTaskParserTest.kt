@@ -237,6 +237,18 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "a diario" = la frase adverbial cotidiana más común para un hábito diario en español
+    // ("llevar al niño al colegio a diario", "revisar correos a diario"). Antes caía a
+    // rec=NONE: el compromiso diario nacía como tarea ÚNICA sin recurrencia ni recordatorio
+    // periódico (P1: rutina silenciosamente perdida). Simétrico a "todos los días"/"cada día".
+    @Test fun parsesADiarioRecurrence() {
+        val result = NaturalTaskParser.parse("llevar al niño al colegio a diario", now, zone)
+        assertEquals("llevar al niño al colegio", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
     // "cada mañana/tarde/noche/madrugada" es la forma natural más común de un hábito
     // cotidiano en español. Antes NO se reconocía como recurrencia: "mañana" colisionaba
     // con la fecha "mañana" (día siguiente) y el hábito nacía como tarea ÚNICA para
@@ -2517,6 +2529,22 @@ class NaturalTaskParserTest {
         val ultNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 31), LocalTime.NOON, zone)
         val result = NaturalTaskParser.parse("Cierre contable a fin de mes", ultNow, zone)
         assertEquals(LocalDate.of(2026, 9, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "corte de mes"/"corte del mes" = sinónimo latinoamericano de "fin de mes"/"cierre de
+    // mes" (corte de caja, corte de nómina, pago de renta al corte del mes). Antes caía a
+    // dueAt=null: el vencimiento se olvidaba (P1: pago/renta sin recordatorio). Reutiliza
+    // el mismo flujo de fin de mes.
+    @Test fun corteDeMesParsesDueAtFinDeMes() {
+        val result = NaturalTaskParser.parse("pago corte de mes", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun corteDelMesParsesDueAtFinDeMes() {
+        val result = NaturalTaskParser.parse("renta corte del mes", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
     @Test fun mediadosDeMesParsesDueAtDia15ProximoMes() {
