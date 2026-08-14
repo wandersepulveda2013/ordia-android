@@ -4,6 +4,7 @@ import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -102,6 +103,107 @@ class GuardianCoachTest {
         assertEquals(2L, insight.taskId)
         assertTrue(insight.message.contains("3 días"))
         assertTrue(insight.message.contains("2"))
+    }
+
+    // Tarea en la bandeja SIN fecha, capturada hace 3 semanas y nunca agendada:
+    // el coach debe rescatarla como "olvidada" (no un "siguiente paso" genérico),
+    // porque la recuperación de tareas olvidadas solo miraba las vencidas (con
+    // dueAt) y dejaba pasar las que no tienen fecha pese a llevar mucho tiempo.
+    @Test
+    fun staleInboxTaskSurfacesAsForgottenRecovery() {
+        val stale = TaskEntity(
+            id = 1,
+            title = "Idea capturada hace 3 semanas",
+            createdAt = DateRules.toEpochMillis(today.minusDays(21), LocalTime.of(9, 0), zone)
+        )
+        val insight = GuardianCoach.insight(listOf(stale), emptyList(), emptyList(), now, zone)
+
+        assertEquals("RECUPERA EL CONTROL", insight.eyebrow)
+        assertEquals(GuardianCoach.Tone.FOCUSED, insight.tone)
+        assertEquals(1L, insight.taskId)
+        assertTrue(insight.message.contains("3 semanas"))
+    }
+
+    // Una tarea de la bandeja capturada hoy no es "olvidada": sigue siendo un
+    // "siguiente paso" normal. Evita falsos positivos del nudge de rescate.
+    @Test
+    fun freshInboxTaskDoesNotTriggerRecovery() {
+        val fresh = TaskEntity(id = 1, title = "Captura de hoy", createdAt = now)
+        val insight = GuardianCoach.insight(listOf(fresh), emptyList(), emptyList(), now, zone)
+
+        assertNotEquals("RECUPERA EL CONTROL", insight.eyebrow)
+    }
+
+    // El umbral de "olvidada" en bandeja es más alto que el de vencida (que
+    // tiene una fecha incumplida): una tarea sin fecha lleva 6 días (< 7) y
+    // todavía no se considera olvidada.
+    @Test
+    fun staleInboxBelowThresholdStaysGeneric() {
+        val almostStale = TaskEntity(
+            id = 1,
+            title = "Captura de hace 6 días",
+            createdAt = DateRules.toEpochMillis(today.minusDays(6), LocalTime.of(9, 0), zone)
+        )
+        val insight = GuardianCoach.insight(listOf(almostStale), emptyList(), emptyList(), now, zone)
+
+        assertNotEquals("RECUPERA EL CONTROL", insight.eyebrow)
+    }
+
+    // Algo que vence hoy (aunque sea normal) tiene prioridad sobre el rescate
+    // de la bandeja: el nudge de "olvidada" no debe robarle el lugar a lo que
+    // sí tiene fecha hoy. La tarea de hoy se sugiere como "siguiente paso".
+    @Test
+    fun dueTodayTaskBeatsStaleInboxRecovery() {
+        val stale = TaskEntity(
+            id = 1,
+            title = "Idea olvidada",
+            createdAt = DateRules.toEpochMillis(today.minusDays(21), LocalTime.of(9, 0), zone)
+        )
+        val dueToday = TaskEntity(
+            id = 2,
+            title = "Vence hoy",
+            dueAt = DateRules.toEpochMillis(today, LocalTime.of(18, 0), zone)
+        )
+        val insight = GuardianCoach.insight(listOf(stale, dueToday), emptyList(), emptyList(), now, zone)
+
+        assertNotEquals("RECUPERA EL CONTROL", insight.eyebrow)
+        assertEquals(2L, insight.taskId)
+    }
+
+    // La edad de la tarea olvidada en bandeja usa la misma etiqueta legible
+    // que las vencidas: 14 días → "2 semanas".
+    @Test
+    fun staleInboxUsesWeeksLabel() {
+        val stale = TaskEntity(
+            id = 1,
+            title = "Idea de hace 2 semanas",
+            createdAt = DateRules.toEpochMillis(today.minusDays(14), LocalTime.of(9, 0), zone)
+        )
+        val insight = GuardianCoach.insight(listOf(stale), emptyList(), emptyList(), now, zone)
+
+        assertEquals("RECUPERA EL CONTROL", insight.eyebrow)
+        assertTrue(insight.message.contains("2 semanas"))
+    }
+
+    // Varias tareas olvidadas en la bandeja: el mensaje surface el recuento y
+    // la edad de la más antigua, y sugiere la mejor de ellas (nextBestTask).
+    @Test
+    fun multipleStaleInboxSurfacesCountAndOldestAge() {
+        val oldest = TaskEntity(
+            id = 1,
+            title = "Idea más antigua",
+            createdAt = DateRules.toEpochMillis(today.minusDays(21), LocalTime.of(9, 0), zone)
+        )
+        val newer = TaskEntity(
+            id = 2,
+            title = "Idea menos antigua",
+            createdAt = DateRules.toEpochMillis(today.minusDays(10), LocalTime.of(9, 0), zone)
+        )
+        val insight = GuardianCoach.insight(listOf(oldest, newer), emptyList(), emptyList(), now, zone)
+
+        assertEquals("RECUPERA EL CONTROL", insight.eyebrow)
+        assertTrue(insight.message.contains("2 tareas"))
+        assertTrue(insight.message.contains("3 semanas"))
     }
 
     @Test

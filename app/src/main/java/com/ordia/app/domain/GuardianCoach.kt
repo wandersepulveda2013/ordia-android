@@ -46,7 +46,29 @@ object GuardianCoach {
             val next = TaskRules.nextBestTask(urgent, now)
             return Insight("PROTEGE TU DÍA", next?.title ?: "Prioridad de hoy", "Reserva tiempo para lo más importante antes de llenar la agenda.", next?.id, Tone.FOCUSED)
         }
-        TaskRules.nextBestTask(pending, now)?.let { return Insight("SIGUIENTE PASO", it.title, it.details.takeIf(String::isNotBlank) ?: "Ordía la priorizó por fecha, importancia y estado.", it.id, Tone.FOCUSED) }
+        val next = TaskRules.nextBestTask(pending, now)
+        // Rescate de tareas "olvidadas" SIN fecha: la recuperación solo miraba
+        // las vencidas (con dueAt), pero una idea capturada en la bandeja y
+        // nunca agendada también se olvida. Si la mejor tarea candidata es
+        // ella misma una captura sin fecha que lleva muchos días esperando
+        // (umbral de calendario, no millis/24h), replantea la decisión real:
+        // hacerla hoy, agendarla o quitarla. Delegar en nextBestTask asegura
+        // que el rescate NUNCA robe el lugar a algo más time-sensitive (vence
+        // hoy, urgente sin fecha…): solo se reencuadra cuando lo elegido es la
+        // captura olvidada. Reusa la etiqueta de edad de las vencidas; sin
+        // nueva pantalla ni botón.
+        if (next != null && next.dueAt == null && next.startAt == null &&
+            inboxAgeDays(next.createdAt, today, zone) >= STALE_INBOX_DAYS_THRESHOLD) {
+            val staleInbox = pending.filter { it.dueAt == null && it.startAt == null && inboxAgeDays(it.createdAt, today, zone) >= STALE_INBOX_DAYS_THRESHOLD }
+            val maxAge = staleInbox.maxOf { inboxAgeDays(it.createdAt, today, zone) }
+            val ageLabel = forgottenAgeLabel(maxAge)
+            val message = if (staleInbox.size == 1)
+                "Esta tarea lleva $ageLabel en tu bandeja sin fecha. Hazla hoy, agéndala o quítala: no la dejes pasar otra vez."
+            else
+                "Tienes ${staleInbox.size} tareas sin fecha y la más antigua lleva $ageLabel. Elige una: hacerla hoy, agendarla o quitarla."
+            return Insight("RECUPERA EL CONTROL", next.title, message, next.id, Tone.FOCUSED)
+        }
+        next?.let { return Insight("SIGUIENTE PASO", it.title, it.details.takeIf(String::isNotBlank) ?: "Ordía la priorizó por fecha, importancia y estado.", it.id, Tone.FOCUSED) }
         habits.firstOrNull { HabitRules.isScheduled(it, today) && HabitRules.countFor(habitLogs, it.id, today) < it.targetPerPeriod }?.let {
             return Insight("UN PEQUEÑO RITUAL", it.title, "Tu lista está despejada. Este hábito puede cerrar el día con intención.", tone = Tone.CALM)
         }
@@ -69,6 +91,23 @@ object GuardianCoach {
     }
 
     private const val FORGOTTEN_DAYS_THRESHOLD = 2
+
+    /**
+     * Umbral de "olvidada" para una tarea de la bandeja SIN fecha: como no
+     * incumple ningún vencimiento, le damos más margen que a una vencida
+     * ([FORGOTTEN_DAYS_THRESHOLD]). Una semana esperando sin agendar es la
+     * señal honesta de que la captura quedó arrinconada.
+     */
+    private const val STALE_INBOX_DAYS_THRESHOLD = 7
+
+    /**
+     * Días de calendario que una tarea de la bandeja lleva esperando desde su
+     * creación (en la zona del usuario), para decidir si está "olvidada".
+     * Cuenta días completos, no millis/24h, igual que [overdueDays]: así es
+     * correcta aunque se consulte a primera hora y es robusta frente al DST.
+     */
+    private fun inboxAgeDays(createdAt: Long, today: java.time.LocalDate, zone: ZoneId): Int =
+        ChronoUnit.DAYS.between(DateRules.toLocalDate(createdAt, zone), today).toInt()
 
     /**
      * Días de vencimiento transcurridos en términos de calendario (no de
