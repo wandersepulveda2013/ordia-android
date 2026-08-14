@@ -391,6 +391,52 @@ class NaturalTaskParserTest {
         assertNotNull(result.dueAt)
     }
 
+    // Adjetivo "diario/diaria" como cadencia DIARIA: la forma adjetiva más común de un
+    // hábito cotidiano en español ("repaso diario", "reunión diaria", "medicación diaria"),
+    // simétrica a "mensual/semanal/anual". Antes solo se reconocían las frases adverbiales
+    // ("cada día", "a diario", "diariamente"): el adjetivo caía a NONE y el hábito nacía
+    // SIN recurrencia ni recordatorio periódico (P1: rutina silenciosamente perdida).
+    @Test fun adjetivoDiarioParsesDailyRecurrence() {
+        val result = NaturalTaskParser.parse("Repaso diario", now, zone)
+        assertEquals("Repaso", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun adjetivoDiariaParsesDailyRecurrence() {
+        val result = NaturalTaskParser.parse("Reunión diaria", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // El sustantivo "diario" (periódico, cuaderno) NO debe activar recurrencia: con
+    // artículo ("leer el diario") o seguido de " de " ("diario de viaje") es un objeto,
+    // no una cadencia. Antes de las guardas, una regla ingenua habría creado un hábito
+    // falso y mutilado el título.
+    @Test fun sustantivoDiarioConArticuloNoActivaRecurrencia() {
+        val result = NaturalTaskParser.parse("Leer el diario", now, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals("Leer el diario", result.title)
+    }
+
+    @Test fun sustantivoDiarioDeViajeNoActivaRecurrencia() {
+        val result = NaturalTaskParser.parse("Diario de viaje", now, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals("Diario de viaje", result.title)
+    }
+
+    // "a diario" sigue comportándose como antes: la frase adverbial se consume completa
+    // y el adjetivo "diario" no deja residuo. Regresión de la interacción entre bloques.
+    @Test fun aDiarioSigueConsumiendoLaFraseCompleta() {
+        val result = NaturalTaskParser.parse("llevar al niño al colegio a diario", now, zone)
+        assertEquals("llevar al niño al colegio", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+    }
+
     // Adjetivos plurimensuales de plazo largo (bimestral/trimestral/semestral): hitos
     // financieros tan comunes como "mensual". Antes solo se reconocían vía numeral
     // ("cada 2/3/6 meses"); el adjetivo caía a NONE (compromiso periódico olvidado).

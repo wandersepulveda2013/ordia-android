@@ -2489,8 +2489,28 @@ object NaturalTaskParser {
             }
         }
 
+        // Adjetivo "diario/diaria" como cadencia DIARIA: la forma adjetiva más común de
+        // un hábito cotidiano en español ("repaso diario", "reunión diaria", "medicación
+        // diaria"), simétrica a "mensual/semanal/anual". Antes solo se reconocían las
+        // frases adverbiales ("cada día", "a diario", "diariamente"): el adjetivo caía a
+        // NONE y el hábito nacía SIN recurrencia ni recordatorio periódico (P1: rutina
+        // silenciosamente perdida). Se procesa DESPUÉS de fixedPatterns para que "a diario"
+        // siga limpiando la frase completa y conserve su título esperado.
+        // Guardas contra el sustantivo "diario" (periódico/cuaderno): no precedido de
+        // artículo (el/la/... un diario) ni seguido de " de " (diario de viaje). La forma
+        // femenina "diaria" es casi siempre adjetivo, pero aplica las mismas guardas.
+        dailyAdjectivePattern.find(working)?.let { match ->
+            phrases += match.range
+            return RecurrenceResult(RecurrenceFrequency.DAILY, 1, emptyList(), phrases)
+        }
+
         return base
     }
+
+    // (?i) + \b para no trocear palabras. Lookbehind negativo de artículo y lookahead
+    // negativo de " de" filtran el sustantivo. Kotlin/Java soportan lookbehind acotado.
+    private val dailyAdjectivePattern =
+        Regex("""(?i)(?<!\b(?:el|la|los|las|un|una|unos|unas)\s)\bdiari[oa]\b(?! de\b)""")
 
     private fun parseMonthNameDate(today: LocalDate, match: MatchResult): LocalDate? {
         val day = parseWrittenNumber(match.groupValues[1])?.toInt()?.takeIf { it in 1..31 } ?: return null
