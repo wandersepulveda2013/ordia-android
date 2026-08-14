@@ -38,4 +38,15 @@ class TaskRulesTest {
         assertEquals("25:00", FocusClock.format(1500))
         assertEquals("00:00", FocusClock.format(-2))
     }
+
+    @Test
+    fun nextBestTask_ignoresBlockedTasks() {
+        val blocking = TaskEntity(id = 1, title = "Blocking task", priority = TaskPriority.HIGH)
+        val blocked = TaskEntity(id = 2, title = "Blocked task", priority = TaskPriority.URGENT, blockedBy = 1)
+        val normal = TaskEntity(id = 3, title = "Normal task", priority = TaskPriority.NORMAL)
+        assertEquals(blocking, TaskRules.nextBestTask(listOf(blocking, blocked, normal), 100))
+
+        val completedBlocking = TaskEntity(id = 1, title = "Blocking task", priority = TaskPriority.HIGH, completed = true)
+        assertEquals(blocked, TaskRules.nextBestTask(listOf(completedBlocking, blocked, normal), 100))
+    }
 }

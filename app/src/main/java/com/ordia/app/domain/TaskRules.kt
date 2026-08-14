@@ -7,9 +7,11 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 object TaskRules {
-    fun nextBestTask(tasks: List<TaskEntity>, now: Long = System.currentTimeMillis()): TaskEntity? =
-        tasks.asSequence()
+    fun nextBestTask(tasks: List<TaskEntity>, now: Long = System.currentTimeMillis()): TaskEntity? {
+        val incompleteTaskIds = tasks.filter { !it.completed }.map { it.id }.toSet()
+        return tasks.asSequence()
             .filter { !it.completed && !it.archived && it.parentTaskId == null }
+            .filter { it.blockedBy == null || it.blockedBy !in incompleteTaskIds }
             .sortedWith(
                 compareByDescending<TaskEntity> { isOverdue(it, now) }
                     .thenByDescending { priorityScore(it.priority) }
@@ -17,6 +19,7 @@ object TaskRules {
                     .thenBy { it.createdAt }
             )
             .firstOrNull()
+    }
 
     fun isOverdue(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean =
         !task.completed && task.dueAt?.let { it < now } == true
