@@ -441,7 +441,11 @@ object NaturalTaskParser {
     // como recurrencia falsa dejando "actual" como residuo (P1: compromiso único del
     // mes en curso perdido + título sucio). Véase el lookahead negativo allá que rechaza
     // esos mismos calificadores para que no caigan a recurrencia.
-    private val dayOfMonthPattern = Regex("""(?i)\b(?:el\s+(?:d[ií]a\s+)?|d[ií]a\s+)(\d{1,2})(?:\s+del?\s+(?:mes\s+actual|presente\s+mes|este\s+(?:mismo\s+)?mes|mes))?\b(?!\s*del?\s+[a-záéíóúüñ])""")
+    private val dayOfMonthPattern = Regex("""(?i)\b(?:el\s+(?:d[ií]a\s+)?|d[ií]a\s+)(\d{1,2})(?![/-])(?:\s+del?\s+(?:mes\s+actual|presente\s+mes|este\s+(?:mismo\s+)?mes|mes))?\b(?!\s*del?\s+[a-záéíóúüñ])""")
+    // Lookahead (?![/-]) tras el dígito: rechaza "el 25/12" para que NO se ancle al
+    // día-suelto del mes (25 de agosto) y caiga a numericDatePattern (25/12 → diciembre).
+    // Sin esto, dayOfMonthPattern ("el 25") casaba ANTES que numericDatePattern → la
+    // fecha numérica completa se perdía y el vencimiento caía en el mes equivocado.
 
     /**
      * Sufijos ordinales numéricos del español ("1ro"/"1ero", "2do", "3er"/"3ero", "4to", "5to",

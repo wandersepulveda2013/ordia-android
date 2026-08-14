@@ -5658,6 +5658,38 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    // BUG: "el 25/12" (fecha numérica DD/MM con artículo) se agendaba al 25 de AGOSTO
+    // (día-suelto del mes) en vez del 25 de DICIEMBRE. dayOfMonthPattern ("el 25")
+    // casaba ANTES que numericDatePattern ("25/12") → el día se anclaba a este mes y el
+    // "/12" se ignoraba → vencimiento en mes equivocado (tarea olvidada en su fecha real).
+    @Test fun numericDateWithArticleSlash_notShadowedByDayOfMonth() {
+        val result = NaturalTaskParser.parse("pago el 25/12", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 12, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun numericDateWithArticleSlashShortMonth_notShadowedByDayOfMonth() {
+        val result = NaturalTaskParser.parse("cita el 15/9", now, zone)
+        assertEquals("cita", result.title)
+        // 15/9 (sep) está en el futuro de este año (hoy 29/7) → 2026-09-15
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun numericDateWithArticleDash_notShadowedByDayOfMonth() {
+        val result = NaturalTaskParser.parse("entregar el 3-1", now, zone)
+        assertEquals("entregar", result.title)
+        // 3-1 (3 enero) ya pasó → próximo año 2027-01-03
+        assertEquals(LocalDate.of(2027, 1, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Guard: el día-suelto del mes ("el 15" sin "/") sigue funcionando.
+    @Test fun dayOfMonthStandaloneStillWorks() {
+        val result = NaturalTaskParser.parse("reunión el 15", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+
     // "el 15 de este mes": ancla al día 15 del mes actual (julio→agosto, 15 ya pasó el 29/7).
     @Test fun dayOfMonthDeEsteMes() {
         val result = NaturalTaskParser.parse("reunión el 15 de este mes", now, zone)
