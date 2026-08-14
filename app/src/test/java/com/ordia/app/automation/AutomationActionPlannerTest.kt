@@ -284,4 +284,83 @@ class AutomationActionPlannerTest {
         assertEquals(1, plan.updates.size)
         assertEquals(1L, plan.updates.first().id)
     }
+
+    @Test
+    fun `batch_quick_tasks reemplaza reminder previo pasado por uno futuro en el nuevo slot`() {
+        // Una tarea rápida vencida cuyo recordatorio ya disparó (reminderAt en el PASADO).
+        // Al agruparla en un slot futuro, conservar el reminder pasado literalmente lo
+        // dejaría SIN aviso (ReminderSync descarta trigger <= now), justo lo que
+        // BATCH_QUICK_TASKS debe evitar. Simétrico con RESCHEDULE_OVERDUE (c.187): un
+        // reminder pasado recae a un default futuro (el inicio del slot, si es futuro).
+        val pastReminder = now - 86_400_000L // ayer: ya disparó
+        val quick = listOf(task(1, durationMinutes = 5, reminderAt = pastReminder))
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.BATCH_QUICK_TASKS, AutomationCondition.HAS_QUICK_TASKS),
+            quick, 0, now, zone
+        )
+        assertTrue(plan.matched)
+        val u = plan.updates.first()
+        assertNotNull("La tarea agrupada debe conservar un reminder", u.reminderAt)
+        assertTrue(
+            "El reminder no debe quedar en el pasado (slot futuro sin aviso): got ${u.reminderAt}",
+            u.reminderAt!! > now
+        )
+        assertTrue(
+            "El reminder futuro debe ser re-encolado por ReminderSync",
+            com.ordia.app.domain.ReminderSync.triggers(listOf(u), now).isNotEmpty()
+        )
+    }
+
+    @Test
+    fun `batch_quick_tasks conserva reminder previo futuro`() {
+        // No-regresión: un reminder previo aún FUTURO se respeta (no se sobrescribe).
+        val futureReminder = now + 7_200_000L
+        val quick = listOf(task(1, durationMinutes = 5, reminderAt = futureReminder))
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.BATCH_QUICK_TASKS, AutomationCondition.HAS_QUICK_TASKS),
+            quick, 0, now, zone
+        )
+        val u = plan.updates.first()
+        assertEquals(futureReminder, u.reminderAt)
+    }
+
+    @Test
+    fun `plan_day reemplaza reminder previo pasado por uno futuro cuando el slot es futuro`() {
+        // Una tarea vencida con reminder pasado entra al plan (DayPlanner prioriza vencidas)
+        // y se le asigna un slot futuro. Conservar el reminder pasado literalmente lo
+        // dejaría SIN aviso para el nuevo slot. Simétrico con RESCHEDULE_OVERDUE (c.187):
+        // un reminder pasado recae al default (inicio del slot, si es futuro).
+        // now a las 08:00 (el primer slot del plan, 09:00, es futuro → expone el bug).
+        val earlyNow = 1_736_766_000_000L // 2025-01-13 08:00 America/Santiago
+        val pastReminder = earlyNow - 86_400_000L
+        val overdue = task(1, durationMinutes = 30, status = TaskStatus.INBOX, reminderAt = pastReminder).copy(
+            createdAt = earlyNow - 1000,
+            updatedAt = earlyNow - 1000
+        )
+        val plan = AutomationActionPlanner.build(rule(AutomationAction.PLAN_DAY), listOf(overdue), 0, earlyNow, zone)
+        assertTrue(plan.matched)
+        val u = plan.updates.first()
+        // El slot asignado (09:00) debe ser futuro respecto al now (08:00).
+        assertNotNull("Debe asignarse un slot", u.startAt)
+        assertTrue("El slot debe ser futuro: got ${u.startAt}", u.startAt!! > earlyNow)
+        assertNotNull("Un slot futuro con reminder previo pasado debe conservar un aviso", u.reminderAt)
+        assertTrue(
+            "El reminder no debe quedar en el pasado (slot futuro sin aviso): got ${u.reminderAt}",
+            u.reminderAt!! > earlyNow
+        )
+        assertTrue(
+            "El reminder futuro debe ser re-encolado por ReminderSync",
+            com.ordia.app.domain.ReminderSync.triggers(listOf(u), earlyNow).isNotEmpty()
+        )
+    }
+
+    @Test
+    fun `plan_day conserva reminder previo futuro`() {
+        // No-regresión: un reminder previo aún FUTURO se respeta (no se sobrescribe).
+        val futureReminder = now + 3_600_000L
+        val t = task(1, durationMinutes = 30, status = TaskStatus.INBOX, reminderAt = futureReminder)
+        val plan = AutomationActionPlanner.build(rule(AutomationAction.PLAN_DAY), listOf(t), 0, now, zone)
+        val u = plan.updates.first()
+        assertEquals(futureReminder, u.reminderAt)
+    }
 }

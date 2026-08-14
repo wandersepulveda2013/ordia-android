@@ -54,10 +54,13 @@ object AutomationActionPlanner {
                     val start = DateRules.toEpochMillis(date, LocalTime.of(block.startMinute / 60, block.startMinute % 60), zone)
                     byId[block.taskId]?.copy(
                         startAt = start,
-                        // Un slot planificado sin recordatorio previo obtiene uno en su inicio,
-                        // pero SOLO si es futuro: un slot ya pasado (plan a media mañana) no debe
-                        // disparar un recordatorio tardío. No pisa un reminderAt previo.
-                        reminderAt = byId[block.taskId]?.reminderAt ?: if (start > now) start else null,
+                        // Recordatorio past-safe: se respeta un aviso previo del usuario SOLO si sigue
+                        // siendo futuro. Si era pasado (tarea vencida cuyo aviso ya disparó), conservarlo
+                        // tal cual lo dejaría SIN nudge para el nuevo slot: [ReminderSync] descarta
+                        // trigger <= now, así la tarea planificada volvería a olvidarse. En ese caso se
+                        // recae al default (inicio del slot, si es futuro). Simétrico con
+                        // RESCHEDULE_OVERDUE (c.187) y [ReminderRules.resolveReminderAt] (c.183).
+                        reminderAt = planReminder(byId[block.taskId]?.reminderAt, start, now),
                         status = TaskStatus.PLANNED,
                         updatedAt = now
                     )
@@ -116,8 +119,10 @@ object AutomationActionPlanner {
                     cursor += task.durationMinutes.coerceIn(5, 10) + 5
                     task.copy(
                         startAt = start,
-                        // Recordatorio en el inicio del slot solo si es futuro y no hay uno previo.
-                        reminderAt = task.reminderAt ?: if (start > now) start else null,
+                        // Recordatorio past-safe (igual que PLAN_DAY): se respeta un aviso previo
+                        // futuro, pero uno pasado se reemplaza por el default del slot futuro. Sin
+                        // esto, una tarea rápida vencida agrupada en un slot futuro quedaría sin aviso.
+                        reminderAt = planReminder(task.reminderAt, start, now),
                         status = TaskStatus.PLANNED,
                         updatedAt = now
                     )
@@ -145,5 +150,18 @@ object AutomationActionPlanner {
                 }
             }
         }
+    }
+
+    /**
+     * Recordatorio para una tarea que pasa a un slot planificado: respeta un aviso previo
+     * del usuario solo si sigue siendo futuro; si era pasado (ya disparó) recae al inicio
+     * del slot cuando este es futuro, y a `null` cuando el slot ya pasó (sin avisos tardíos).
+     * Contrato past-safe compartido por PLAN_DAY y BATCH_QUICK_TASKS; simétrico con
+     * RESCHEDULE_OVERDUE y con [com.ordia.app.domain.ReminderRules.resolveReminderAt].
+     */
+    private fun planReminder(existing: Long?, start: Long, now: Long): Long? = when {
+        existing != null && existing > now -> existing
+        start > now -> start
+        else -> null
     }
 }
