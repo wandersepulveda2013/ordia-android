@@ -297,12 +297,20 @@ object GuardianEngine {
      * prioridad → vencimiento → id) para que dos ejecuciones idénticas nombren
      * la misma tarea. Solo se consideran tareas raíz, no completadas ni
      * archivadas, iguales que el conteo de `overdue`.
+     *
+     * Excluye las tareas que se están ejecutando justo ahora
+     * ([TaskRules.isInProgressNow]): una tarea vencida pero en curso (p. ej.
+     * empezada a tiempo, con `dueAt` ya pasado pero dentro de su ventana de
+     * duración) no debe presentarse como "hazla ya": el usuario ya la está
+     * haciendo, y nombra en su lugar la siguiente atrasada más pequeña. Si
+     * todas las atrasadas están en curso, cae al mensaje genérico.
      */
     private fun smallestOverdueAction(tasks: List<TaskEntity>, nowMillis: Long): String {
         val chosen = tasks
             .filter {
                 it.parentTaskId == null && !it.completed && !it.archived &&
-                    TaskRules.isOverdue(it, nowMillis)
+                    TaskRules.isOverdue(it, nowMillis) &&
+                    !TaskRules.isInProgressNow(it, nowMillis)
             }
             .minWithOrNull(
                 compareBy<TaskEntity> { TaskRules.plannedDuration(it) }

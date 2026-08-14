@@ -204,6 +204,55 @@ class GuardianEngineTest {
     }
 
     @Test
+    fun suggestedActionSkipsOverdueTaskAlreadyInProgress() {
+        // Una tarea vencida que se está ejecutando justo ahora (startAt ya empezó
+        // y no rebasó su duración, dueAt ya pasado) NO debe ser nombrada como
+        // "hazla ya": el usuario ya la está haciendo. El guardián nombra en su
+        // lugar la siguiente atrasada más pequeña que no esté en curso.
+        // midday = 15:00. inProgress: startAt 14:30, duración 120 min → activa hasta
+        // 16:30; dueAt 14:50 → vencida y en curso a la vez.
+        val inProgressOverdue = TaskEntity(
+            id = 1, title = "En curso",
+            startAt = midday - 30 * 60_000L, dueAt = midday - 10 * 60_000L,
+            durationMinutes = 120
+        )
+        val otherOverdue = TaskEntity(id = 2, title = "Pagar luz", dueAt = midday - 86_400_000L, durationMinutes = 30)
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(inProgressOverdue, otherOverdue),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        assertTrue(result.suggestedAction.contains("Pagar luz"))
+        assertFalse(result.suggestedAction.contains("En curso"))
+    }
+
+    @Test
+    fun suggestedActionFallsBackWhenAllOverdueAreInProgress() {
+        // Si TODAS las atrasadas están en curso, no queda ninguna que nombrar: el
+        // nudge cae al mensaje genérico en vez de insistir con una tarea en curso.
+        val inProgressOverdue = TaskEntity(
+            id = 1, title = "En curso",
+            startAt = midday - 30 * 60_000L, dueAt = midday - 10 * 60_000L,
+            durationMinutes = 120
+        )
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(inProgressOverdue),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        // overdue > 0 dispara la rama atrasada, pero sin candidata nombrable cae al
+        // mensaje genérico (no contiene el título de la tarea en curso).
+        assertFalse(result.suggestedAction.contains("En curso"))
+        assertTrue(result.suggestedAction.contains("atrasada"))
+    }
+
+    @Test
     fun dailyCareGoalsAreDeterministicAtFixedTime() {
         val result = GuardianEngine.snapshot(
             tasks = listOf(TaskEntity(title = "Hecha", completed = true, completedAt = midday)),
