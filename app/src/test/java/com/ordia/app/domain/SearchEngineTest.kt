@@ -315,4 +315,42 @@ class SearchEngineTest {
             .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
         assertEquals(setOf(1L), ids)
     }
+
+    // --- Recuperación por jerarquía (relación subtarea↔padre) ---
+
+    @Test fun parentTitle_surfacesSubtaskViaParentName() {
+        // Buscar el título de la tarea padre debe recuperar la subtarea aunque su
+        // propio título no contenga esa palabra: la relación subtarea↔padre (que
+        // la UI explota anidándolas) hace visible lo agrupado, igual que la
+        // membresía de proyecto. La subtarea "Comprar cajas" cuyo padre es
+        // "Mudanza" → buscar "mudanza" la encuentra.
+        val parent = TaskEntity(id = 1, title = "Mudanza")
+        val subtask = TaskEntity(id = 2, title = "Comprar cajas", parentTaskId = 1)
+        val ids = SearchEngine.search("mudanza", listOf(parent, subtask), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L), ids)
+    }
+
+    @Test fun parentTitle_surfacesSubtaskViaParentDetails() {
+        // Los detalles del padre también son contexto válido: una subtarea
+        // "Confirmar horario" cuyo padre detalla "coordinar la mudanza" se
+        // recupera al buscar "mudanza".
+        val parent = TaskEntity(id = 1, title = "Trámite", details = "Coordinar la mudanza del 15")
+        val subtask = TaskEntity(id = 2, title = "Confirmar horario", parentTaskId = 1)
+        val ids = SearchEngine.search("mudanza", listOf(parent, subtask), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L), ids)
+    }
+
+    @Test fun parentTitle_doesNotLeakAcrossUnrelatedTasks() {
+        // La jerarquía es específica: una subtarea cuyo padre NO trata del
+        // término no aparece. "Comprar cajas" bajo "Mudanza" no surge al buscar
+        // "vacaciones" solo porque exista otra tarea "Vacaciones".
+        val parent = TaskEntity(id = 1, title = "Mudanza")
+        val subtask = TaskEntity(id = 2, title = "Comprar cajas", parentTaskId = 1)
+        val other = TaskEntity(id = 3, title = "Vacaciones")
+        val ids = SearchEngine.search("vacaciones", listOf(parent, subtask, other), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(3L), ids)
+    }
 }

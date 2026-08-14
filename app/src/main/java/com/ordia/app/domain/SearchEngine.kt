@@ -135,9 +135,24 @@ object SearchEngine {
             val p = projectId?.let(projectById::get) ?: return emptyArray()
             return if (p.description.isEmpty()) arrayOf(p.name) else arrayOf(p.name, p.description)
         }
+        // Tareas raíz indexadas por id: permite que una subtarea sea recuperada al
+        // buscar el título/detalle de su tarea padre, aunque el de la propia
+        // subtarea no contenga esa palabra. Así la relación subtarea↔padre (que la
+        // UI ya explota anidándolas) se vuelve visible en la búsqueda universal,
+        // sin nueva pantalla ni botón: buscar "mudanza" encuentra la subtarea
+        // "comprar cajas" si su padre se llama "Mudanza". Simétrico a la
+        // membresía de proyecto (relación tarea↔proyecto) y a "marcadas"/
+        // "completadas" (atributo). Recuperación de información importante vía
+        // contexto de jerarquía.
+        val taskById = tasks.associateBy { it.id }
+        fun parentHaystack(task: TaskEntity): Array<String> {
+            val parent = task.parentTaskId?.let(taskById::get) ?: return emptyArray()
+            return arrayOf(parent.title) + if (parent.details.isEmpty()) emptyArray() else arrayOf(parent.details)
+        }
         return buildList {
             tasks.filter { task ->
                 val ph = projectHaystack(task.projectId)
+                val pa = parentHaystack(task)
                 !task.archived && (!typed || wantsTasks) &&
                     (!normalized.contains("vencid") || TaskRules.isOverdue(task, now)) &&
                     (!normalized.contains("importante") || task.priority in setOf(TaskPriority.HIGH, TaskPriority.URGENT)) &&
@@ -148,7 +163,7 @@ object SearchEngine {
                     (!wantsCompleted || task.completed) &&
                     (!wantsFlagged || task.flagged) &&
                     (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted)) &&
-                    (matches(task.title, task.details, *ph) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms + flaggedTerms, task.title, task.details, *ph))
+                    (matches(task.title, task.details, *ph, *pa) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms + flaggedTerms, task.title, task.details, *ph, *pa))
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE))
             }
