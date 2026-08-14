@@ -45,6 +45,17 @@ class AssistantEngineTest {
         assertEquals(listOf(2L, 1L), answer.relatedTaskIds)
     }
 
+    @Test fun quickTasks_rankOverdueFirst() {
+        val normal = TaskEntity(id = 1, title = "Trámite corto", durationMinutes = 10)
+        val overdue = TaskEntity(id = 2, title = "Llamada atrasada", dueAt = 1L, durationMinutes = 10)
+        val answer = AssistantEngine.answer(
+            "tareas de 15 minutos",
+            listOf(normal, overdue),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(2L, 1L), answer.relatedTaskIds)
+    }
+
     @Test fun createNote_requiresContentAndThenOffersAction() {
         assertEquals(AssistantAction.NONE, AssistantEngine.answer("Guardar como nota", emptyList(), emptyList(), emptyList()).action)
         assertEquals(AssistantAction.CREATE_NOTE, AssistantEngine.answer("Guardar como nota: idea privada", emptyList(), emptyList(), emptyList()).action)

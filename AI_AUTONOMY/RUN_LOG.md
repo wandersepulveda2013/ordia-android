@@ -3817,3 +3817,24 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Asistente "tareas rápidas" alineado al ranking de What Now (`WhatNowEngine.ordered` filtrando `durationMinutes <= 15`) en vez de orden de lista.
 - `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
 - Descubrimiento continuo: rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; onboarding.
+
+## Ciclo 84 — Inteligencia — asistente "tareas rápidas" alineado al ranking de What Now
+
+- **Fecha (UTC)**: 2026-08-13.
+- **Run/ciclo**: 84 (rama `openhands/autonomous-ordia`). Continuación natural del c.83 (misma área: coherencia de ranking entre superficies del asistente). Base inicial `623e2bc` (c.83, ya en remoto). `git fetch` confirmó local==remoto, sin divergencia.
+- **HEAD inicial**: `623e2bc` (c.83).
+- **Problema seleccionado**: el asistente respondía "tareas de 15 minutos"/"rápido" con `active.filter { durationMinutes <= 15 }.take(6)` — es decir, en **orden de lista**, sin aplicar el ranking de What Now. Con una vencida y una normal ambas rápidas, podía listar primero la normal, divergiendo de What Now / widget / "plan mínimo" (todas ya alineadas en c.83 salvo este path). El usuario pedía "¿qué hago rápido?" y recibía un orden menos útil (no priorizaba lo vencido/urgente).
+- **Prioridad**: P2 (coherencia/UX — no pérdida de datos, pero mejor decisión automática y menos fricción mental; el ranking ya existía, solo faltaba reusarlo).
+- **Causa raíz**: el path "quick" no reutilizaba `WhatNowEngine.ordered` (introducido en c.83 como fuente única de ranking). Era la última superficie del asistente aún sin alinear con la fuente única.
+- **Solución (mínima, una línea)**: `AssistantEngine` "tareas de 15 minutos" → `WhatNowEngine.ordered(active, now).filter { it.durationMinutes <= 15 }.take(6)`. Conserva el filtro `<= 15` exacto (default `durationMinutes=25` → solo las realmente cortas; `0` no es default salvo asignación explícita, se mantiene `<= 15` para no cambiar semántica). Sin nueva pantalla/botón.
+- **Tests**: +1 en `AssistantEngineTest.kt` (`quickTasks_rankOverdueFirst`: normal `durationMinutes=10` + vencida `durationMinutes=10 dueAt=1` → `relatedTaskIds=[2,1]`, la atrasada primero). **602 domain tests PASS** (`bash tools/run_domain_tests.sh`); **6 AssistantEngineTest PASS** (compiladas/ejecutadas con `kotlinc` aparte, classpath jars `/tmp/libs`); **smoke 25 OK** (`bash tools/run_domain_checks.sh`). Sin regresión: el filtro `<= 15` y `take(6)` son idénticos, solo cambia el orden a ranking What Now.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); render real del asistente no probado en dispositivo.
+- **Hallazgos adicionales**: con esto, las cuatro superficies del asistente (what-now, plan-mínimo, quick-tasks y la tarjeta What Now) comparten `WhatNowEngine.ordered` como fuente única de ranking. Próxima oportunidad de descubrimiento: auditar rutinas/automatizaciones y captura ultrarrápida.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt`, `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras push a `origin/openhands/autonomous-ordia`; base `623e2bc` c.83).
+- **Estado**: FIXED → VERIFIED (dominio JVM + assistant JVM).
+
+### Siguiente
+- Descubrimiento continuo: auditar rutinas/automatizaciones, captura ultrarrápida, detección de compromisos en notas.
+- `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
+- `WhatNowEngine.reasonLabel` reusar desde la UI de What Now si aporta valor sin nueva superficie.

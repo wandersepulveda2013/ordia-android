@@ -80,7 +80,7 @@ object AssistantEngine {
                 )
             }
             "15 minutos" in query || "rapido" in query -> {
-                val quick = active.filter { it.durationMinutes <= 15 }.take(6)
+                val quick = WhatNowEngine.ordered(active, now).filter { it.durationMinutes <= 15 }.take(6)
                 AssistantAnswer(
                     if (quick.isEmpty()) "No encuentro tareas de 15 minutos o menos." else "Puedes completar: " + quick.joinToString(" · ") { it.title },
                     relatedTaskIds = quick.map { it.id }
