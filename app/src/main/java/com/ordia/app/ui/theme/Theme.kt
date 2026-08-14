@@ -9,9 +9,29 @@ import androidx.compose.ui.graphics.Color
 import com.ordia.app.data.preferences.AccentPalette
 import com.ordia.app.data.preferences.ThemeMode
 
-val OrdiaInk = Color(0xFF1D1B17)
-val OrdiaCream = Color(0xFFF7F3EB)
-val OrdiaPaper = Color(0xFFFFFCF7)
+val OrdiaBlack = Color(0xFF000000)
+val OrdiaWhite = Color(0xFFFFFFFF)
+val OrdiaGray50 = Color(0xFFFAFAFA)
+val OrdiaGray100 = Color(0xFFF5F5F5)
+val OrdiaGray200 = Color(0xFFEEEEEE)
+val OrdiaGray300 = Color(0xFFE0E0E0)
+val OrdiaGray400 = Color(0xFFBDBDBD)
+val OrdiaGray500 = Color(0xFF9E9E9E)
+val OrdiaGray600 = Color(0xFF757575)
+val OrdiaGray700 = Color(0xFF616161)
+val OrdiaGray800 = Color(0xFF424242)
+val OrdiaGray900 = Color(0xFF212121)
+
+// Semantic colors
+val OrdiaErrorLight = Color(0xFFD32F2F)
+val OrdiaErrorDark = Color(0xFFEF5350)
+val OrdiaSuccessLight = Color(0xFF2E7D32)
+val OrdiaSuccessDark = Color(0xFF4CAF50)
+val OrdiaWarningLight = Color(0xFFF57C00)
+val OrdiaWarningDark = Color(0xFFFF9800)
+val OrdiaInfoLight = Color(0xFF1976D2)
+val OrdiaInfoDark = Color(0xFF42A5F5)
+
 val OrdiaGold = Color(0xFF8A682D)
 val OrdiaGoldSoft = Color(0xFFD9BC7A)
 val OrdiaSage = Color(0xFF76845F)
@@ -54,55 +74,55 @@ val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
         Color(0xFFD89A78), Color(0xFF4A2417), Color(0xFFF6D9C8)
     ),
     AccentPalette.SYSTEM to AccentSwatch(
-        OrdiaGold, Color(0xFFF2E5C9), Color(0xFF34270F),
-        OrdiaGoldSoft, Color(0xFF4C3C1C), Color(0xFFFFE8AF)
+        OrdiaBlack, OrdiaGray100, OrdiaBlack,
+        OrdiaWhite, OrdiaGray900, OrdiaWhite
     )
 )
 
 private val LightColors = lightColorScheme(
-    primary = OrdiaInk,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFEAE2D4),
-    onPrimaryContainer = OrdiaInk,
-    secondary = OrdiaGold,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFF2E5C9),
-    onSecondaryContainer = Color(0xFF34270F),
-    tertiary = OrdiaSage,
-    onTertiary = Color.White,
-    background = OrdiaCream,
-    onBackground = OrdiaInk,
-    surface = OrdiaPaper,
-    onSurface = OrdiaInk,
-    surfaceVariant = Color(0xFFEDE7DC),
-    onSurfaceVariant = Color(0xFF625D55),
-    outline = Color(0xFF8C8579),
-    outlineVariant = Color(0xFFDAD1C2),
-    error = Color(0xFF9A3E3E),
-    onError = Color.White
+    primary = OrdiaBlack,
+    onPrimary = OrdiaWhite,
+    primaryContainer = OrdiaGray100,
+    onPrimaryContainer = OrdiaBlack,
+    secondary = OrdiaBlack,
+    onSecondary = OrdiaWhite,
+    secondaryContainer = OrdiaGray200,
+    onSecondaryContainer = OrdiaBlack,
+    tertiary = OrdiaGray600,
+    onTertiary = OrdiaWhite,
+    background = OrdiaWhite,
+    onBackground = OrdiaBlack,
+    surface = OrdiaWhite,
+    onSurface = OrdiaBlack,
+    surfaceVariant = OrdiaGray100,
+    onSurfaceVariant = OrdiaGray700,
+    outline = OrdiaGray400,
+    outlineVariant = OrdiaGray200,
+    error = OrdiaErrorLight,
+    onError = OrdiaWhite
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFF3EDE2),
-    onPrimary = Color(0xFF1A1916),
-    primaryContainer = Color(0xFF34312B),
-    onPrimaryContainer = Color(0xFFF5EFE4),
-    secondary = OrdiaGoldSoft,
-    onSecondary = Color(0xFF33270E),
-    secondaryContainer = Color(0xFF4C3C1C),
-    onSecondaryContainer = Color(0xFFFFE8AF),
-    tertiary = Color(0xFFB9C99F),
-    onTertiary = Color(0xFF263017),
-    background = Color(0xFF141310),
-    onBackground = Color(0xFFEDE8DF),
-    surface = Color(0xFF1C1B18),
-    onSurface = Color(0xFFEDE8DF),
-    surfaceVariant = Color(0xFF2B2924),
-    onSurfaceVariant = Color(0xFFC9C2B8),
-    outline = Color(0xFF938C81),
-    outlineVariant = Color(0xFF47433D),
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005)
+    primary = OrdiaWhite,
+    onPrimary = OrdiaBlack,
+    primaryContainer = OrdiaGray900,
+    onPrimaryContainer = OrdiaWhite,
+    secondary = OrdiaWhite,
+    onSecondary = OrdiaBlack,
+    secondaryContainer = OrdiaGray800,
+    onSecondaryContainer = OrdiaWhite,
+    tertiary = OrdiaGray400,
+    onTertiary = OrdiaBlack,
+    background = OrdiaBlack,
+    onBackground = OrdiaWhite,
+    surface = OrdiaBlack,
+    onSurface = OrdiaWhite,
+    surfaceVariant = OrdiaGray900,
+    onSurfaceVariant = OrdiaGray400,
+    outline = OrdiaGray600,
+    outlineVariant = OrdiaGray800,
+    error = OrdiaErrorDark,
+    onError = OrdiaBlack
 )
 
 @Composable
