@@ -3600,4 +3600,57 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Reunión lunes próximos", juevesNow, zone)
         assertEquals(LocalDate.of(2026, 8, 17), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    // "el día N" es la forma más cotidiana en español de fijar un día de mes suelto.
+    // Antes solo "el N" casaba con dayOfMonthPattern; "el día 30" caía a dueAt=null
+    // (pérdida silenciosa de la cita) o dejaba "el día" como residuo en el título
+    // cuando otra rama (mensual, mes con nombre) consumía la fecha. La palabra
+    // "día" (con y sin tilde) ahora se admite en dayOfMonthPattern, nextMonthDayPattern,
+    // monthlyDayPattern y monthNamePattern para que la fecha se resuelva y el título
+    // quede limpio.
+    @Test fun parsesElDiaStandaloneDayOfMonth() {
+        val result = NaturalTaskParser.parse("Reunión el día 30", now, zone)
+        assertEquals("Reunión", result.title)
+        // now=29-jul; el 30 todavía no llegó → 30-jul.
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesElDiaWithoutTilde() {
+        val result = NaturalTaskParser.parse("Reunión el dia 3", now, zone)
+        assertEquals("Reunión", result.title)
+        // now=29-jul; el 3 ya pasó en julio → 3-ago.
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elDiaNextMonthResolvesToNextMonth() {
+        val result = NaturalTaskParser.parse("Entregar el día 1 del mes que viene", now, zone)
+        assertEquals("Entregar", result.title)
+        // now=29-jul; "mes que viene" = agosto → 1-ago.
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elDiaWithExplicitHour() {
+        val result = NaturalTaskParser.parse("Reunión el día 15 a las 10", now, zone)
+        assertEquals("Reunión", result.title)
+        // now=29-jul; el 15 ya pasó en julio → 15-ago.
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elDiaMonthlyRecurrenceCleanTitle() {
+        // "el día 15 de cada mes": antes "el día" sobraba porque monthlyDayPattern
+        // no consumía la palabra "día". Ahora se ancla y se limpia.
+        val result = NaturalTaskParser.parse("Pago el día 15 de cada mes", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        // 29-jul → el 15 ya pasó este mes → 15-ago.
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elDiaMonthNameCleanTitle() {
+        // "el día 1 de enero": antes "el día" sobraba porque monthNamePattern no
+        // consumía la palabra "día". Ahora se resuelve al 1 de enero (próximo año).
+        val result = NaturalTaskParser.parse("Reunión el día 1 de enero", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2027, 1, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }

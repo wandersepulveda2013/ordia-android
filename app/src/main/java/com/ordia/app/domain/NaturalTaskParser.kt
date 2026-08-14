@@ -156,7 +156,7 @@ object NaturalTaskParser {
      * se ajusta al último día válido del mes objetivo.
      */
     private val nextMonthDayPattern = Regex(
-        """(?i)\bel\s+(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b"""
+        """(?i)\bel\s+(?:d[ií]a\s+)?(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b"""
     )
     /**
      * Orden inverso del anterior: "el mes que viene el 5" / "el mes que viene el
@@ -262,7 +262,7 @@ object NaturalTaskParser {
      * "semana que viene".
      */
     private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)semana\b""")
-    private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
+    private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(?:d[ií]a\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
     // Día del mes suelto con artículo: "reunión el 15", "cita el 20 a las 18",
     // "entregar el 5 del mes". Antes "el 15" no casa con numericDatePattern (que exige
     // DD/MM con mes) y quedaba como residuo en el título; la hora suelta ("a las 10") se
@@ -270,7 +270,7 @@ object NaturalTaskParser {
     // reunión perdida). El lookahead negativo evita colisionar con "el 15 de marzo" (lo
     // resuelve monthNameDate) y "el 15 de cada mes" (recurrencia mensual): no se admite
     // "de <palabra>" tras el número salvo la fórmula "del mes".
-    private val dayOfMonthPattern = Regex("""(?i)\bel\s+(\d{1,2})(?:\s+del?\s+mes)?\b(?!\s*de\s+[a-záéíóúüñ])""")
+    private val dayOfMonthPattern = Regex("""(?i)\bel\s+(?:d[ií]a\s+)?(\d{1,2})(?:\s+del?\s+mes)?\b(?!\s*de\s+[a-záéíóúüñ])""")
     /**
      * Nombres de hora escritos en español (dos..veintiuno), ordenados de mayor a menor
      * longitud para que la alternación regex no se quede con un prefijo ("tres" dentro de
@@ -1625,7 +1625,7 @@ object NaturalTaskParser {
         // el título y dueAt=null (la tarea mensual nunca tenía fecha, los recordatorios
         // no disparaban). Ahora se ancla la primera ocurrencia al próximo día N.
         val monthlyDayPattern =
-            Regex("""(?i)\b(?:el|los)?\s*(\d{1,2})\s+(?:de|del)\s+(?:cada\s+)?mes(?:es)?\b""")
+            Regex("""(?i)\b(?:el|los)?\s*(?:d[ií]a\s+)?(\d{1,2})\s+(?:de|del)\s+(?:cada\s+)?mes(?:es)?\b""")
         monthlyDayPattern.find(working)?.let { match ->
             val day = match.groupValues[1].toIntOrNull()?.coerceIn(1, 31) ?: return@let
             phrases += match.range
