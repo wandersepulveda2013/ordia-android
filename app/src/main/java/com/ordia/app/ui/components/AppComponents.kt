@@ -1,5 +1,6 @@
 package com.ordia.app.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,6 +26,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +42,106 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ordia.app.ui.theme.OrdiaGoldSoft
+
+@Composable
+fun OrdiaButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isPrimary: Boolean = true
+) {
+    if (isPrimary) {
+        Button(
+            onClick = onClick,
+            modifier = modifier,
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) { Text(label) }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier
+        ) { Text(label) }
+    }
+}
+
+@Composable
+fun OrdiaCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            modifier = modifier,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shape = MaterialTheme.shapes.large
+        ) {
+            content()
+        }
+    } else {
+        Card(
+            modifier = modifier,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shape = MaterialTheme.shapes.large
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+fun OrdiaInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "",
+    singleLine: Boolean = true
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.fillMaxWidth(),
+        placeholder = { Text(placeholder) },
+        singleLine = singleLine,
+        shape = MaterialTheme.shapes.medium,
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent
+        )
+    )
+}
+
+@Composable
+fun OrdiaAction(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+    ) {
+        Row(
+            Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (icon != null) {
+                Icon(icon, null, Modifier.size(16.dp))
+            }
+            Text(label, style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
 
 @Composable
 fun ScreenHeader(
@@ -58,10 +161,11 @@ fun ScreenHeader(
                 if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (actionLabel != null && onAction != null) {
-                OutlinedButton(onClick = onAction) {
-                    Icon(Icons.Outlined.Add, null)
-                    Text(actionLabel, Modifier.padding(start = 6.dp))
-                }
+                OrdiaAction(
+                    label = actionLabel,
+                    icon = Icons.Outlined.Add,
+                    onClick = onAction
+                )
             }
         }
     }
@@ -87,11 +191,7 @@ fun SectionHeader(title: String, supporting: String? = null, action: String? = n
 
 @Composable
 fun StatCard(label: String, value: String, supporting: String? = null, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
+    OrdiaCard(modifier = modifier) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.headlineMedium)
@@ -112,7 +212,7 @@ fun EmptyState(
         modifier = modifier.fillMaxWidth().ordiaWorkSurface(),
         shape = RoundedCornerShape(26.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             Modifier.padding(horizontal = 26.dp, vertical = 30.dp),
@@ -124,7 +224,7 @@ fun EmptyState(
             Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             if (actionLabel != null && onAction != null) {
                 Spacer(Modifier.height(2.dp))
-                Button(onClick = onAction) { Text(actionLabel) }
+                OrdiaButton(label = actionLabel, onClick = onAction)
             }
         }
     }
@@ -194,7 +294,7 @@ fun PrimaryAction(label: String, onClick: () -> Unit, modifier: Modifier = Modif
 
 @Composable
 fun InfoBanner(title: String, text: String, modifier: Modifier = Modifier) {
-    Surface(modifier, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+    Surface(modifier, shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.secondaryContainer) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
