@@ -5629,6 +5629,35 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    // Variante "ero" del ordinal ("1ero"/"3ero"/"21ero de septiembre"): tan cotidiana en
+    // LATAM como "1ro", pero el sufijo "ero" rompía los patrones de fecha → dueAt=null
+    // (vencimiento olvidado) y la frase entera sobrevivía como título basura. La
+    // normalización a dígito base en contexto de fecha (" de "/" del ") resuelve ambos.
+    @Test fun ordinalEroSuffixParsesAsDate() {
+        val result = NaturalTaskParser.parse("pago el 1ero de septiembre", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 9, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ordinalEroSuffixTercero() {
+        val result = NaturalTaskParser.parse("cita el 3ero de octubre", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalDate.of(2026, 10, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ordinalEroSuffixDelMesRecurrence() {
+        val result = NaturalTaskParser.parse("renta el 2ero de cada mes", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ordinalEroContentNotScheduled() {
+        val result = NaturalTaskParser.parse("ver el 3ero capítulo", now, zone)
+        assertEquals("ver el 3ero capítulo", result.title)
+        assertNull(result.dueAt)
+    }
+
     // "el 15 de este mes": ancla al día 15 del mes actual (julio→agosto, 15 ya pasó el 29/7).
     @Test fun dayOfMonthDeEsteMes() {
         val result = NaturalTaskParser.parse("reunión el 15 de este mes", now, zone)

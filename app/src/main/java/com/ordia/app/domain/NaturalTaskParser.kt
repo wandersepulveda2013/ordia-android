@@ -444,9 +444,9 @@ object NaturalTaskParser {
     private val dayOfMonthPattern = Regex("""(?i)\b(?:el\s+(?:d[ií]a\s+)?|d[ií]a\s+)(\d{1,2})(?:\s+del?\s+(?:mes\s+actual|presente\s+mes|este\s+(?:mismo\s+)?mes|mes))?\b(?!\s*del?\s+[a-záéíóúüñ])""")
 
     /**
-     * Sufijos ordinales numéricos del español ("1ro", "2do", "3er", "4to", "5to", "7mo",
-     * "8vo", "9no", "10mo" y los símbolos "1º"/"2ª") escritos pegados al dígito y seguidos
-     * del conector de fecha " de ". Son marcadores de fecha cotidianísimos en LATAM ("pago
+     * Sufijos ordinales numéricos del español ("1ro"/"1ero", "2do", "3er"/"3ero", "4to", "5to",
+     * "7mo", "8vo", "9no", "10mo" y los símbolos "1º"/"2ª") escritos pegados al dígito y
+     * seguidos del conector de fecha " de ". Son marcadores de fecha cotidianísimos en LATAM ("pago
      * el 1ro de septiembre", "entrega el 2do de cada mes", "vence el 1º de este mes") pero
      * el sufijo rompía los patrones de fecha (\d{1,2} exige dígito seguido de espacio, así
      * que "1ro de" dejaba "ro" como residuo y la fecha se perdía o el título quedaba
@@ -457,7 +457,7 @@ object NaturalTaskParser {
      * falsas fechas. "primero" escrito no se normaliza: "primer capítulo"/"segunda opción"
      * son contenido, no fecha.
      */
-    private val ordinalSuffixPattern = Regex("""(?i)\b(\d{1,2})(?:ro|do|er|to|mo|vo|no|º|ª)(\s+del?\s+)""")
+    private val ordinalSuffixPattern = Regex("""(?i)\b(\d{1,2})(?:ero|ro|do|er|to|mo|vo|no|º|ª)(\s+del?\s+)""")
     /**
      * Nombres de hora escritos en español (dos..veintiuno), ordenados de mayor a menor
      * longitud para que la alternación regex no se quede con un prefijo ("tres" dentro de
