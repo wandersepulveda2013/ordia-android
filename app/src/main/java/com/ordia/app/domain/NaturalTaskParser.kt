@@ -447,7 +447,7 @@ object NaturalTaskParser {
      * "semana que viene".
      */
     private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+la\s+|de\s+|del\s+)semana\b""")
-    private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(?:d[ií]a\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
+    private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(?:d[ií]a\s+)?(\d{1,2}|$writtenNumberGroup|primero)\s+de\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
     // Día del mes suelto con artículo: "reunión el 15", "cita el 20 a las 18",
     // "entregar el 5 del mes". Antes "el 15" no casa con numericDatePattern (que exige
     // DD/MM con mes) y quedaba como residuo en el título; la hora suelta ("a las 10") se
@@ -2461,7 +2461,7 @@ object NaturalTaskParser {
     }
 
     private fun parseMonthNameDate(today: LocalDate, match: MatchResult): LocalDate? {
-        val day = match.groupValues[1].toIntOrNull()?.takeIf { it in 1..31 } ?: return null
+        val day = parseWrittenNumber(match.groupValues[1])?.toInt()?.takeIf { it in 1..31 } ?: return null
         val month = months[match.groupValues[2].lowercase()] ?: return null
         val rawYear = match.groupValues[3].toIntOrNull()
         val year = when {
@@ -2721,7 +2721,7 @@ object NaturalTaskParser {
     }
 
     private val wordToNumber = mapOf(
-        "un" to 1L, "una" to 1L, "uno" to 1L,
+        "un" to 1L, "una" to 1L, "uno" to 1L, "primero" to 1L,
         "dos" to 2L, "tres" to 3L, "cuatro" to 4L, "cinco" to 5L,
         "seis" to 6L, "siete" to 7L, "ocho" to 8L, "nueve" to 9L,
         "diez" to 10L, "once" to 11L, "doce" to 12L, "trece" to 13L,

@@ -4704,6 +4704,46 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    // --- Día ESCRITO en fecha con mes nombre: "el veinte de septiembre", "el quince de
+    // agosto", "el primero de enero". Antes monthNamePattern sólo aceptaba \d{1,2} para el
+    // día → estos compromisos caían a dueAt=null y la frase entera quedaba como título
+    // (vencimiento invisible en planificador/What Now → olvidado). Las horas, duraciones,
+    // recurrencias y recordatorios SÍ aceptaban números escritos; el día de una fecha con
+    // mes nombre era la única asimetría. Se reutiliza writtenNumberGroup + parseWrittenNumber. ---
+
+    @Test fun mesNombreDiaEscritoVeinteDeSeptiembre() {
+        val result = NaturalTaskParser.parse("Pagar el veinte de septiembre", now, zone)
+        assertEquals("Pagar", result.title)
+        assertEquals(LocalDate.of(2026, 9, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mesNombreDiaEscritoQuinceDeAgosto() {
+        val result = NaturalTaskParser.parse("Cita el quince de agosto", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mesNombreDiaEscritoPrimeroDeEneroRodaAno() {
+        // "el primero de enero" (1 de enero) ya pasó este año (hoy 29-jul-2026) → rueda a 2027.
+        val result = NaturalTaskParser.parse("Renovar el primero de enero", now, zone)
+        assertEquals("Renovar", result.title)
+        assertEquals(LocalDate.of(2027, 1, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mesNombreDiaEscritoTreintaYUnoDeMarzoRodaAno() {
+        // "el treinta y uno de marzo" → 31 de marzo 2026 ya pasó → rueda a 2027-03-31.
+        val result = NaturalTaskParser.parse("Vence el treinta y uno de marzo", now, zone)
+        assertEquals("Vence", result.title)
+        assertEquals(LocalDate.of(2027, 3, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mesNombreDiaEscritoTreintaDeFebreroClampaYRoda() {
+        // "el treinta de febrero": día imposible → clamp a 28 (2026 no bisiesto) y, al ser
+        // pasado, rueda a 2027-02-28. Honesto: respeta el mes nombrado, normaliza el día.
+        val result = NaturalTaskParser.parse("el treinta de febrero", now, zone)
+        assertEquals(LocalDate.of(2027, 2, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- Regresión P1: "el 15 de agosto del 2027" (español usa "del" antes del año,
     // no "de") no capturaba el año -> se agendaba para 2026 en vez de 2027 y dejaba
     // "del 2027" como residuo en el título. ---
