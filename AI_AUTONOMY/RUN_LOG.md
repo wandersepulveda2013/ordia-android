@@ -5064,6 +5064,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: `bash tools/run_domain_tests.sh` → **768 PASS** (763 c.113 + 5 nuevos: `sinFecha_returnsOnlyUndatedTasks`, `sinVencimiento_returnsOnlyUndatedTasks`, `sinFecha_excludesCompletedUndatedTasks`, `sinFechaSinAcento_tambiénFunciona`, `negacionAjena_noActivaScopeUndated`). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Sin regresión: "hoy"/"mañana"/"atrasadas"/"ayer"/"semana pasada"/"próxima semana" intactos.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Commits**: `feat(search): recuperar tareas sin fecha con "sin fecha"/"sin vencimiento"` (hash abajo).
-- **HEAD final**: (ver `git log -1`).
+- **HEAD final**: `6721c8a` (push pendiente abajo).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: auditar SummaryEngine/CommitmentEngine/DayPlanner; descubrimiento continuo en contexto/captura ultrarrápida/relaciones notas-tareas.
