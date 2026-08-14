@@ -28,6 +28,17 @@
 - **HEAD inicial**: `4f89435`. **HEAD final**: `5acefe4` (sobre `3f3a2b8`).
 - **Estado final**: FIXED → VERIFIED (1183 tests, 0 failures; smoke 25 OK) tras fusión de ambos c.173 paralelos.
 
+### Actualización (post-fusión del c.174 paralelo — tercera rebase no destructiva + push final)
+
+- Al intentar el push de `5acefe4`/`f1ab7bd`, `git fetch` reveló que **un tercer run paralelo c.174** (docs-only, commit `4f961b6`, "cerrar auditoría `SummaryEngine.mostDeferrableTask` c.174 — sin bug") había pusheado sobre `3f3a2b8`. c.174 auditorizó `mostDeferrableTask` a fondo y lo cerró como **NO-BUG** — **concordante** con mi investigación (a) de c.173 (mismo comparador, misma conclusión: el criterio NO se invierte; LOW/mayor duración/más tarde = más posponible, coincide con la doc).
+- Se integró vía **tercera rebase no destructiva** de mis 2 commits sobre `4f961b6` — sin force push, sin reset destructivo, sin reescribir historial compartido. Código ortogonal (c.174 es docs-only; mis `.kt` auto-mergiaron limpios).
+- **Conflictos SÓLO en docs** (`AI_AUTONOMY/BACKLOG.md`, `AI_AUTONOMY/CURRENT_STATE.md`), resueltos **dedup**: ambos runs cerraron `mostDeferrableTask` como no-bug, así que se conservó UNA fila (la c.174, más detallada — cita cobertura de 8 tests y el fallback `0L` inalcanzable) y se eliminó mi fila c.173 redundante (su sustancia vive en RUN_LOG investigación (a) y en la entrada c.174). En CURRENT_STATE se conservó mi entrada c.173 (snapshot actual: isActive hecho, 1183 tests, ambas investigaciones cerradas) y se eliminó la entrada c.174 redundante (preservada en RUN_LOG/BACKLOG). Historial NO perdido (RUN_LOG es append-only y retiene todo).
+- **Corrección honesta final**: la nota anterior citaba "HEAD final: `5acefe4` (sobre `3f3a2b8`)" — **obsoleto**. HEAD final real tras esta tercera fusión y push: **`6574d51`** (sobre `4f961b6`), con 2 commits rehechos: `7c2a41a` (isActive) + `6574d51` (esta rama de notas).
+- **Tests re-validados en el HEAD final `6574d51`**: `bash tools/run_domain_tests.sh` → **1183 PASS** (1170 + 3 c.172 + 2 c.173-codec + 8 c.173-isActive), 0 failures; `bash tools/run_domain_checks.sh` → smoke 25 OK.
+- **Push**: `git push origin openhands/autonomous-ordia` → `4f961b6..6574d51` (ff-only, exit 0). Local == origin == `6574d51`. No se incrustó token en la URL remota (push usó credenciales de clonado existentes).
+- **Estado final (definitivo)**: FIXED → VERIFIED + PUSHED. Tres fusiones no destructivas consecutivas (c.172, c.173-codec, c.174) integradas sin fuerza ni historial reescrito.
+- **Próxima prioridad**: descubrimiento continuo — la mayoría de P0/P1 CANCELLED está cerrada (clase de bug eliminada vía `isActive`). Explorar: decisión de producto sobre `TaskStatus.CANCELLED` inalcanzable desde la UI (BACKLOG P2), gaps léxicos del parser restantes ("a las 3.5" P3; "diez y media" P3; "pago mensual" P2), y áreas no-CANCELLED (contexto, onboarding, navegación, accesibilidad, rendimiento). Re-fetch antes de implementar (colisión paralela frecuente en esta rama).
+
 ## Ciclo 171 — 2026-08-14 (UTC) — fix(what-now): la etiqueta "¿qué hago ahora?" ya prioriza "vence hoy/urgente" sobre "programada para más tarde" (P1 inteligencia honesta / consistencia entre superficies)
 
 - **Run/ciclo**: 171 (rama `openhands/autonomous-ordia`). Base sincronizada sin divergencia: `git fetch origin openhands/autonomous-ordia` → `2911df5` (c.170, excluye CANCELLED de la búsqueda universal). Sin colisión; sin STALE_RUN. HEAD inicial == HEAD remoto.
