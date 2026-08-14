@@ -5423,4 +5423,31 @@ class NaturalTaskParserTest {
         assertEquals("reunión el 15 de este proyecto", result.title)
         assertNull(result.dueAt)
     }
+
+    // Sinónimos de "mes en curso" como fecha única (día N del mes actual): "del presente
+    // mes", "del mes actual", "de este mismo mes". Antes monthlyDayPattern (que corre
+    // ANTES en parseRecurrence) robaba "N del mes" como recurrencia falsa y dejaba el
+    // calificador ("actual"/"presente"/"mismo") como residuo en el título, además de
+    // perder el carácter de compromiso único (P1). El lookahead negativo en
+    // monthlyDayPattern lo rechaza y dayOfMonthPattern lo resuelve como fecha.
+    @Test fun elNDelMesActualEsSinonimoDeEsteMes() {
+        val result = NaturalTaskParser.parse("Envío el 31 del mes actual", now, zone)
+        assertEquals("Envío", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+    }
+
+    @Test fun elNDelPresenteMesEsSinonimoDeEsteMes() {
+        val result = NaturalTaskParser.parse("Cobro el 15 del presente mes", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+    }
+
+    @Test fun elNDeEsteMismoMesEsSinonimoDeEsteMes() {
+        val result = NaturalTaskParser.parse("Pago el 5 de este mismo mes", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+    }
 }

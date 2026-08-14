@@ -419,9 +419,15 @@ object NaturalTaskParser {
     // (P1: integridad de datos). El lookahead negativo impide colisionar con
     // "el 15 de marzo" (lo resuelve monthNameDate), "el 15 de cada mes" (recurrencia
     // mensual) y referencias no temporales como "día 15 del libro": no se admite
-    // "de/del <palabra>" tras el número salvo la fórmula "del mes"/"de este mes",
-    // que el grupo opcional consume antes del lookahead.
-    private val dayOfMonthPattern = Regex("""(?i)\b(?:el\s+(?:d[ií]a\s+)?|d[ií]a\s+)(\d{1,2})(?:\s+(?:del?\s+mes|de\s+este\s+mes))?\b(?!\s*del?\s+[a-záéíóúüñ])""")
+    // "de/del <palabra>" tras el número salvo las fórmulas de mes en curso, que el
+    // grupo opcional consume antes del lookahead. Ese grupo cubre TODOS los sinónimos
+    // de "mes en curso" ("del mes", "de este mes", "de este mismo mes", "del presente
+    // mes", "del mes actual"): sin esto "el 31 del mes actual" no casaba y, peor,
+    // monthlyDayPattern (que se ejecuta ANTES en parseRecurrence) robaba "31 del mes"
+    // como recurrencia falsa dejando "actual" como residuo (P1: compromiso único del
+    // mes en curso perdido + título sucio). Véase el lookahead negativo allá que rechaza
+    // esos mismos calificadores para que no caigan a recurrencia.
+    private val dayOfMonthPattern = Regex("""(?i)\b(?:el\s+(?:d[ií]a\s+)?|d[ií]a\s+)(\d{1,2})(?:\s+del?\s+(?:mes\s+actual|presente\s+mes|este\s+(?:mismo\s+)?mes|mes))?\b(?!\s*del?\s+[a-záéíóúüñ])""")
 
     /**
      * Sufijos ordinales numéricos del español ("1ro", "2do", "3er", "4to", "5to", "7mo",
@@ -2138,8 +2144,17 @@ object NaturalTaskParser {
         // "15 de cada mes". Antes "el 15 de cada mes" dejaba "el 15 de" como residuo en
         // el título y dueAt=null (la tarea mensual nunca tenía fecha, los recordatorios
         // no disparaban). Ahora se ancla la primera ocurrencia al próximo día N.
+        // P1: parseRecurrence se ejecuta ANTES que dayOfMonthPattern, así que este
+        // patrón vería "el 31 del mes actual" PRIMERO y robaría "31 del mes" como
+        // recurrencia falsa, dejando "actual" como residuo (compromiso único del mes en
+        // curso perdido). El lookahead negativo `(?!\s+(?:actual|presente|este|…))`
+        // rechaza "del mes" cuando le sigue un calificador de mes CONCRETO (actual,
+        // presente, este, entrante, próximo, siguiente, "que viene/entra/sigue"): ésos
+        // son fecha única y los resuelve dayOfMonthPattern/nextMonthDayPattern después.
+        // Solo "el N del mes" a secas (sin calificador) y "de cada mes" casan aquí como
+        // recurrencia mensual (decisión de producto: forma genérica recurrente).
         val monthlyDayPattern =
-            Regex("""(?i)\b(?:el|los)?\s*(?:d[ií]a\s+)?(\d{1,2})\s+(?:de|del)\s+(?:cada\s+)?mes(?:es)?\b""")
+            Regex("""(?i)\b(?:el|los)?\s*(?:d[ií]a\s+)?(\d{1,2})\s+(?:de|del)\s+(?:cada\s+)?mes(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))""")
         monthlyDayPattern.find(working)?.let { match ->
             val day = match.groupValues[1].toIntOrNull()?.coerceIn(1, 31) ?: return@let
             phrases += match.range
