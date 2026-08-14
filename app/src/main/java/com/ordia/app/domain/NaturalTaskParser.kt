@@ -560,7 +560,7 @@ object NaturalTaskParser {
      * se falsifica nada. Simétrico con `UniversalCaptureEngine.reminderSignal`.
      */
     private val bareReminderVerbPattern =
-        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordatorio|no\s+dejes\s+que\s+olvide|no\s+olvides(?:\s+que)?)\b""")
+        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordatorio|no\s+dejes\s+que\s+olvide|no\s+(?:se\s+te\s+|te\s+|me\s+|le\s+)?olvides?(?:\s+de\b)?(?:\s+que\b)?|acu[eé]rdate(?:\s+de\b)?|recuerda)\b""")
     private const val BARE_REMINDER_DEFAULT_OFFSET_MINUTES = 30
     private val durationPatterns = listOf(
         Regex("""(?i)\((\d{1,3})\s*(minutos?|min|horas?|hora)\)"""),

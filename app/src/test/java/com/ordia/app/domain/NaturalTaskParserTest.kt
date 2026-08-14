@@ -929,6 +929,82 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    // "no se te olvide" / "no te olvides de" / "no me olvides": perífrasis de
+    // recordatorio cotidianas con pronombre clítico. Antes dejaban el verbo en el
+    // título y no aplicaban el offset de respaldo aunque hubiera fecha.
+    @Test fun noSeTeOlvideConDueLimpiaTituloYAplicaOffset() {
+        val result = NaturalTaskParser.parse("no se te olvide pagar la luz mañana", now, zone)
+        assertEquals("pagar la luz", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun noSeTeOlvideSustantivoConDueLimpiaTituloYAplicaOffset() {
+        val result = NaturalTaskParser.parse("no se te olvide la cita el viernes", now, zone)
+        assertEquals("la cita", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun noTeOlvidesDeConDueLimpiaTituloYAplicaOffset() {
+        val result = NaturalTaskParser.parse("no te olvides de la reunión mañana", now, zone)
+        assertEquals("la reunión", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun noMeOlvidesConDueLimpiaTituloYAplicaOffset() {
+        val result = NaturalTaskParser.parse("no me olvides llamar al doctor mañana", now, zone)
+        assertEquals("llamar al doctor", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
+    // "acuérdate de" (imperativo de "acordarse"): muy común, antes no se reconocía.
+    @Test fun acuerdateDeConDueLimpiaTituloYAplicaOffset() {
+        val result = NaturalTaskParser.parse("acuérdate de la reunión mañana", now, zone)
+        assertEquals("la reunión", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun acuerdateDeVerboConDueLimpiaTituloYAplicaOffset() {
+        val result = NaturalTaskParser.parse("acuérdate de llamar a juan mañana", now, zone)
+        assertEquals("llamar a juan", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
+    // "recuerda" (imperativo tú, sin pronombre): asimétrico con "recuérdame"
+    // (con pronombre) que sí funcionaba. Antes quedaba en el título.
+    @Test fun recuerdaImperativoConDueLimpiaTituloYAplicaOffset() {
+        val result = NaturalTaskParser.parse("recuerda llamar a juan mañana", now, zone)
+        assertEquals("llamar a juan", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun recuerdaImperativoSustantivoConDueLimpiaTituloYAplicaOffset() {
+        val result = NaturalTaskParser.parse("recuerda la cita del viernes", now, zone)
+        assertEquals("la cita", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
+    // "recuerda" NO debe casar cuando es sustantivo (recuerdos/recuerdo/recordando):
+    // evita falsos positivos sobre sustantivos.
+    @Test fun recuerdosSustantivoNoDisparaRecordatorio() {
+        val result = NaturalTaskParser.parse("Comprar recuerdos para la fiesta", now, zone)
+        assertEquals("Comprar recuerdos para la fiesta", result.title)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
+    @Test fun recuerdoSustantivoNoDisparaRecordatorio() {
+        val result = NaturalTaskParser.parse("Foto recuerdo de la boda", now, zone)
+        assertEquals("Foto recuerdo de la boda", result.title)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
     @Test fun parsesMonthNameDate() {
         val result = NaturalTaskParser.parse("Entregar reporte antes del 5 de agosto", now, zone)
         assertEquals("Entregar reporte", result.title)
