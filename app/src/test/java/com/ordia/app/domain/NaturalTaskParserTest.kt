@@ -5798,6 +5798,30 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2027, 4, 30), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "antes del 15 del 9" = vencimiento el 15 de septiembre. Misma familia que "el 15
+    // del 9" pero con prefijo "antes del". Antes beforeDeadlineDayPattern robaba "antes
+    // del 15" → 15 de agosto (mes en curso, equivocado) y "del 9" sobrevivía como residuo
+    // del título → vencimiento en mes equivocado + título sucio (P1). El plazo se ancla
+    // al día N (canónica 09:00), consistente con c.147 "antes del N" suelto.
+    @Test fun dayOfMonthNumericMonth_AntesDel_ParsesAsSeptember() {
+        val result = NaturalTaskParser.parse("pago antes del 15 del 9", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dayOfMonthNumericMonth_AntesDe_ParsesAsDecember() {
+        val result = NaturalTaskParser.parse("renta antes de 15 de 12", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(LocalDate.of(2026, 12, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "antes del 3 del 1" (3 de enero) en julio 2026 → enero pasado → roll 2027-01-03.
+    @Test fun dayOfMonthNumericMonth_AntesDel_PastMonth_RollsToNextYear() {
+        val result = NaturalTaskParser.parse("cita antes del 3 del 1", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalDate.of(2027, 1, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun dayOfMonthDeEsteMes() {
         val result = NaturalTaskParser.parse("reunión el 15 de este mes", now, zone)
         assertEquals("reunión", result.title)

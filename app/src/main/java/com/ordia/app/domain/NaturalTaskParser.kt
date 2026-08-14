@@ -480,8 +480,11 @@ object NaturalTaskParser {
     // equivocado + título sucio (P1). Se normaliza a "N/M" para reutilizar TODO el flujo
     // numericDatePattern existente (roll de año, clamp de día imposible c.146, año
     // explícito opcional). Exige artículo "el"/"día" previo para reducir falsos positivos.
+    // "antes del 15 del 9": mismo defecto (beforeDeadlineDayPattern robaba "antes del 15"
+    // → 15 de agosto + residuo "del 9"); el prefijo "antes del/de" se normaliza igual a
+    // "N/M" y el plazo se ancla al día N (consistente con c.147 "antes del N").
     private val dayOfMonthNumericMonthPattern =
-        Regex("""(?i)\b(?:el\s+(?:d[ií]a\s+)?|d[ií]a\s+)([0-3]?\d)\s+del?\s+([01]?\d)(?![/-])(?:\s+del?\s+(\d{2,4}))?\b(?!\s+de\s+cada)""")
+        Regex("""(?i)\b(?:antes\s+del?\s+|el\s+(?:d[ií]a\s+)?|d[ií]a\s+)([0-3]?\d)\s+del?\s+([01]?\d)(?![/-])(?:\s+del?\s+(\d{2,4}))?\b(?!\s+de\s+cada)""")
 
     /**
      * Nombres de hora escritos en español (dos..veintiuno), ordenados de mayor a menor
