@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.core.net.toUri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -175,7 +176,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                 state.preferences.guardianEnabled
             ) { enabled ->
                 if (enabled && !Settings.canDrawOverlays(context)) {
-                    overlayPermission.launch(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")))
+                    overlayPermission.launch(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:${context.packageName}".toUri()))
                 } else {
                     vm.setGuardianEnabled(enabled)
                     if (enabled) startGuardian(context) else context.stopService(Intent(context, GuardianOverlayService::class.java))
