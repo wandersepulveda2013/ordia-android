@@ -7,6 +7,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
@@ -815,6 +816,37 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Reunión de dos horas", now, zone)
         assertEquals("Reunión", result.title)
         assertEquals(120, result.durationMinutes)
+    }
+
+    // P0 integridad de datos: "30 min" casa A LA VEZ durationMatch (numérico) y
+    // writtenMatch (el patrón escrito admite dígitos), generando dos rangos
+    // idénticos. Antes del fix, replaceRange aplicado dos veces sobre el mismo
+    // span crasheaba con IndexOutOfBoundsException al mutar `working` (Range [17,9)
+    // out of bounds for length 9). Ahora se deduplica por solapamiento y la
+    // duración correcta se captura sin crash.
+    @Test fun duracionNumericaConConectorNoCrashaPorMatchDuplicado() {
+        val result = NaturalTaskParser.parse("reunion de 30 min", now, zone)
+        assertEquals("reunion", result.title)
+        assertEquals(30, result.durationMinutes)
+    }
+
+    // P0 integridad de datos: el token de duración ("2 horas") aparece DOS veces
+    // en el título, pero solo la PRIMERA ocurrencia es la duración real; la segunda
+    // es contenido legítimo. No debe borrarse globalmente ni corromperse el título.
+    @Test fun duracionRepetidaComoContenidoPreservaSegundaOcurrencia() {
+        val result = NaturalTaskParser.parse("30 min de ejercicio 30 minutos extra", now, zone)
+        assertEquals(30, result.durationMinutes)
+        assertTrue("La segunda ocurrencia debe preservarse: ${result.title}",
+            result.title.contains("30 minutos"))
+    }
+
+    // P0 integridad de datos: duración escrita ("dos horas") repetida como
+    // contenido. Solo se borra la primera; la segunda ("dos horas mas") se conserva.
+    @Test fun duracionEscritaRepetidaComoContenidoPreservaSegundaOcurrencia() {
+        val result = NaturalTaskParser.parse("dos horas de estudio y dos horas mas", now, zone)
+        assertEquals(120, result.durationMinutes)
+        assertTrue("La segunda ocurrencia debe preservarse: ${result.title}",
+            result.title.contains("dos horas"))
     }
 
     // "a las nueve horas" es HORA de un evento, NO duración: el guard

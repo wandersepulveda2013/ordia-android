@@ -1600,25 +1600,26 @@ object NaturalTaskParser {
             }
             else -> null
         }
-        durationMatch?.let { match ->
-            // "Reunión de 30 min": el "de" antes de la duración es conector, se elimina junto.
-            // "durante"/"por" (de los patrones "durante/por N ...") también son conectores
-            // y deben borrarse junto con la duración para no dejar residuo en el título.
-            val withConnector = Regex(
-                "(?i)\\b(?:de|durante|por)\\s+" + Regex.escape(match.value)
-            )
-            working = if (withConnector.containsMatchIn(working)) withConnector.replace(working, " ")
-                else working.replace(match.value, " ")
+        // Borrado de tokens de duración del título. Se recolectan los rangos exactos de
+        // cada token (con conector "de|durante|por" inmediatamente anterior, si existe) y
+        // se aplican en orden descendente para preservar índices. Antes se usaba
+        // working.replace(match.value, " ") (replace LITERAL GLOBAL): si el texto del
+        // token ("30 min", "2 horas", "dos horas") aparecía varias veces en el título,
+        // TODAS las ocurrencias se borraban y se corrompía contenido legítimo.
+        // Varios patrones pueden casar el mismo span ("30 min" casa durationMatch Y
+        // writtenMatch), así que se deduplican por solapamiento: borrar dos veces el
+        // mismo rango además es inútil y, al mutar `working`, dejaría índices fuera de rango.
+        val durationBlankRanges = buildList {
+            durationMatch?.let { match -> add(connectorRange(working, match.range, match.range.first)) }
+            writtenMatch?.let { match -> add(connectorRange(working, match.range, match.range.first)) }
+            fractionalMatch?.let { match -> add(connectorRange(working, match.range, match.range.first)) }
         }
-        writtenMatch?.let { match ->
-            // Mismo borrado de conector que la duración numérica ("reunión de dos horas").
-            val withConnector = Regex(
-                "(?i)\\b(?:de|durante|por)\\s+" + Regex.escape(match.value)
-            )
-            working = if (withConnector.containsMatchIn(working)) withConnector.replace(working, " ")
-                else working.replace(match.value, " ")
+        var lastEnd = Int.MAX_VALUE
+        for (r in durationBlankRanges.sortedByDescending { it.first }) {
+            if (r.last >= lastEnd) continue // solapa con uno ya borrado → saltar
+            working = working.replaceRange(r, " ")
+            lastEnd = r.first
         }
-        fractionalMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // Categoría: la etiqueta explícita "#cat"/"@cat" del usuario tiene prioridad
         // sobre la inferencia por keywords. Se extrae y se elimina del título.
@@ -2153,6 +2154,18 @@ object NaturalTaskParser {
     }
 
     private val ROUND_TENS = setOf(20L, 30L, 40L, 50L, 60L, 70L, 80L, 90L)
+
+    /**
+     * Extiende [tokenRange] hacia atrás para incluir un conector ("de", "durante", "por")
+     * inmediatamente anterior al token, de modo que su borrado no deje residuo en el título.
+     * Si no hay conector, devuelve el rango del token sin cambios. Opera por rango, no por
+     * replace global, para no corromper ocurrencias legítimas del mismo texto en el título.
+     */
+    private fun connectorRange(working: String, tokenRange: IntRange, tokenStart: Int): IntRange {
+        val prefix = working.substring(0, tokenStart)
+        val m = Regex("(?i)\\b(?:de|durante|por)\\s+$").find(prefix)
+        return if (m != null) IntRange(m.range.first, tokenRange.last) else tokenRange
+    }
 
     private val wordToNumber = mapOf(
         "un" to 1L, "una" to 1L, "uno" to 1L,
