@@ -20,7 +20,7 @@
   - La búsqueda por fecha cubre los rangos más cotidianos. Oportunidades futuras honestas (no implementadas para mantener "menos es más"): "esta tarde"/"esta noche" (parte del día, requiere resolver hora-canónica como `NaturalTaskParser`), "la semana que viene", "este mes". Se dejan en BACKLOG como P3 de descubrimiento, no como backlog automático.
   - `SearchEngine` ya ordena por urgencia (`urgencyRank`) — el scope OVERDUE beneficia de esto automáticamente (urgente-atrasada primera). Buen diseño previo, reutilizado sin tocar.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt`, `app/src/test/java/com/ordia/app/domain/SearchEngineDateScopeTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: (tras commit + push a `origin/openhands/autonomous-ordia`).
+- **HEAD final**: `1d9fdf0` (rebase sobre `36915ab` c.80 del remoto + push OK `36915ab..1d9fdf0` → `openhands/autonomous-ordia`). Conflictos de rebase en `AI_AUTONOMY/{RUN_LOG,CURRENT_STATE}.md` resueltos (ciclo renumerado 79→81 para no colisionar con c.79/c.80 del parser empujados por run paralelo); 597 domain tests PASS, smoke 25 OK.
 - **Estado**: VERIFIED (JVM). 597 domain tests PASS.
 
 ### Siguiente
