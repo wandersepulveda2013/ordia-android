@@ -85,6 +85,9 @@ object SearchEngine {
         // (acción por hacer) y evitar colisiones como "remarcable"/"desmarcar".
         val wantsFlagged = FLAGGED_TOKENS.any { it in words }
         val flaggedTerms = if (wantsFlagged) FLAGGED_TOKENS.filter { it in words }.toSet() else emptySet()
+        // "fijadas" (notas pinned) — análogo de "marcadas" para tareas.
+        val wantsPinned = PINNED_TOKENS.any { it in words }
+        val pinnedTerms = if (wantsPinned) PINNED_TOKENS.filter { it in words }.toSet() else emptySet()
         val dateScope = detectDateScope(words)
         // Cuando la búsqueda expresa un rango de fecha ("hoy", "mañana", ...),
         // las palabras de fecha no se exigen en el contenido: se filtra por fecha.
@@ -170,9 +173,9 @@ object SearchEngine {
             projects.filter { !typed && !it.archived && !pureDateScope && matches(it.name, it.description) }.forEach {
                 add(Ranked(SearchResult(SearchKind.PROJECT, it.id, it.name, it.description.take(90))))
             }
-            notes.filter { (!typed || wantsNotes) && !it.archived && !pureDateScope }.filter {
+            notes.filter { (!typed || wantsNotes) && !it.archived && !pureDateScope && (!wantsPinned || it.pinned) }.filter {
                 val ph = projectHaystack(it.projectId)
-                matches(it.title, it.body, *ph) || semanticMatches(NOTE_TERMS, it.title, it.body, *ph)
+                matches(it.title, it.body, *ph) || semanticMatches(NOTE_TERMS + pinnedTerms, it.title, it.body, *ph)
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.NOTE, it.id, it.title, it.body.take(90))))
             }
@@ -244,6 +247,16 @@ object SearchEngine {
     private val FLAGGED_TOKENS = setOf(
         "marcada", "marcadas", "marcado", "marcados",
         "destacada", "destacadas", "destacado", "destacados"
+    )
+    // "fijadas" recupera las NOTAS que el usuario fijó (pinned). Es el análogo de
+    // "marcadas" para tareas: la fijación es la señal que el usuario dejó (UI:
+    // "Fijar"/"Desfijar") para encontrar algo después. Sin este filtro, una nota
+    // fijada cuyo contenido no dijera "fijada" era irrecuperable por búsqueda
+    // universal. Vocabulario propio (no "marcadas", que es de tareas) para honrar
+    // la etiqueta real de la UI y evitar ruido cruzado. Formas del participio
+    // (no el infinitivo "fijar"). Detectadas por palabra exacta.
+    private val PINNED_TOKENS = setOf(
+        "fijada", "fijadas", "fijado", "fijados"
     )
     private val TODAY_TOKENS = setOf("hoy")
     private val TOMORROW_TOKENS = setOf("manana")

@@ -316,6 +316,45 @@ class SearchEngineTest {
         assertEquals(setOf(1L), ids)
     }
 
+    // --- Recuperación de notas fijadas ("fijadas") ---
+
+    @Test fun fijadas_recoversPinnedNotesWithoutTheWordInContent() {
+        // Buscar "fijadas" recupera las notas que el usuario fijó (pinned) aunque su
+        // contenido no contenga esa palabra, simétrico a "marcadas" para tareas. La
+        // fijación es la señal que el usuario dejó (UI: "Fijar"/"Desfijar") para
+        // encontrar algo después; sin este filtro una nota fijada cuyo contenido no
+        // dice "fijada" era irrecuperable por búsqueda universal.
+        val pinned = NoteEntity(id = 1, title = "Lista de compra", body = "pan leche", pinned = true)
+        val plain = NoteEntity(id = 2, title = "Otras ideas", body = "viaje", pinned = false)
+        val ids = SearchEngine.search("fijadas", emptyList(), emptyList(), listOf(pinned, plain), emptyList())
+            .filter { it.kind == SearchKind.NOTE }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun fijadas_withContent_recoversPinnedMatchingContent() {
+        // "fijadas presupuesto" recupera la nota fijada cuyo contenido contiene
+        // "presupuesto", pero no otra fijada ajena ni una no fijada que sí lo
+        // contiene. Igual que "marcadas presupuesto" para tareas.
+        val match = NoteEntity(id = 1, title = "Cuentas", body = "presupuesto mensual", pinned = true)
+        val otherPinned = NoteEntity(id = 2, title = "Rutina", body = "gimnasio", pinned = true)
+        val unpinnedMatch = NoteEntity(id = 3, title = "Viejo", body = "presupuesto anual", pinned = false)
+        val ids = SearchEngine.search("fijadas presupuesto", emptyList(), emptyList(), listOf(match, otherPinned, unpinnedMatch), emptyList())
+            .filter { it.kind == SearchKind.NOTE }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun marcadas_recoversFlaggedTasks_notPinnedNotes() {
+        // Guard de separación de vocabulario: "marcadas" es el término de las
+        // TAREAS (flagged); una nota fijada NO debe aflorar al buscar "marcadas"
+        // (su término es "fijadas"). Evita recuperar ruido cruzado entre
+        // superficies con vocabulario distinto.
+        val flagged = TaskEntity(id = 1, title = "Llamar al banco", flagged = true)
+        val pinnedNote = NoteEntity(id = 2, title = "Lista de compra", body = "pan", pinned = true)
+        val ids = SearchEngine.search("marcadas", listOf(flagged), emptyList(), listOf(pinnedNote), emptyList())
+            .map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
     // --- Recuperación por jerarquía (relación subtarea↔padre) ---
 
     @Test fun parentTitle_surfacesSubtaskViaParentName() {
