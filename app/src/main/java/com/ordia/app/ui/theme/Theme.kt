@@ -9,14 +9,32 @@ import androidx.compose.ui.graphics.Color
 import com.ordia.app.data.preferences.AccentPalette
 import com.ordia.app.data.preferences.ThemeMode
 
-val OrdiaInk = Color(0xFF1D1B17)
-val OrdiaCream = Color(0xFFF7F3EB)
-val OrdiaPaper = Color(0xFFFFFCF7)
-val OrdiaGold = Color(0xFF8A682D)
-val OrdiaGoldSoft = Color(0xFFD9BC7A)
-val OrdiaSage = Color(0xFF76845F)
-val OrdiaRose = Color(0xFFA87373)
-val OrdiaLavender = Color(0xFF88759C)
+// Base Neutral Colors
+val OrdiaWhite = Color(0xFFFFFFFF)
+val OrdiaBlack = Color(0xFF000000)
+val OrdiaGray50 = Color(0xFFFAFAFA)
+val OrdiaGray100 = Color(0xFFF5F5F5)
+val OrdiaGray200 = Color(0xFFEEEEEE)
+val OrdiaGray300 = Color(0xFFE0E0E0)
+val OrdiaGray400 = Color(0xFFBDBDBD)
+val OrdiaGray500 = Color(0xFF9E9E9E)
+val OrdiaGray600 = Color(0xFF757575)
+val OrdiaGray700 = Color(0xFF616161)
+val OrdiaGray800 = Color(0xFF424242)
+val OrdiaGray900 = Color(0xFF212121)
+
+// Semantic Colors
+val OrdiaSemanticAlert = Color(0xFFD32F2F)
+val OrdiaSemanticSuccess = Color(0xFF2E7D32)
+val OrdiaSemanticFocus = Color(0xFF1976D2)
+val OrdiaSemanticGuardian = Color(0xFFFBC02D)
+val OrdiaSemanticCalendar = Color(0xFF8E24AA)
+val OrdiaSemanticAutomation = Color(0xFF0097A7)
+
+// Existing Colors for compatibility (redefined to neutral or maintained for swatches)
+val OrdiaInk = OrdiaBlack
+val OrdiaCream = OrdiaGray50
+val OrdiaPaper = OrdiaWhite
 
 /** Palette of accent colors chosen by the user. Each entry holds (secondary, secondaryContainer, onSecondaryContainer) for light and dark. */
 data class AccentSwatch(
@@ -30,19 +48,19 @@ data class AccentSwatch(
 
 val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
     AccentPalette.GOLD to AccentSwatch(
-        OrdiaGold, Color(0xFFF2E5C9), Color(0xFF34270F),
-        OrdiaGoldSoft, Color(0xFF4C3C1C), Color(0xFFFFE8AF)
+        Color(0xFF8A682D), Color(0xFFF2E5C9), Color(0xFF34270F),
+        Color(0xFFD9BC7A), Color(0xFF4C3C1C), Color(0xFFFFE8AF)
     ),
     AccentPalette.SAGE to AccentSwatch(
-        OrdiaSage, Color(0xFFE0E8D6), Color(0xFF1F2A14),
+        Color(0xFF76845F), Color(0xFFE0E8D6), Color(0xFF1F2A14),
         Color(0xFFB9C99F), Color(0xFF37431F), Color(0xFFDDEBC8)
     ),
     AccentPalette.ROSE to AccentSwatch(
-        OrdiaRose, Color(0xFFF2DADA), Color(0xFF3A1717),
+        Color(0xFFA87373), Color(0xFFF2DADA), Color(0xFF3A1717),
         Color(0xFFD9A3A3), Color(0xFF4A1F1F), Color(0xFFFFDADA)
     ),
     AccentPalette.LAVENDER to AccentSwatch(
-        OrdiaLavender, Color(0xFFE4DCEE), Color(0xFF241B33),
+        Color(0xFF88759C), Color(0xFFE4DCEE), Color(0xFF241B33),
         Color(0xFFB5A5CC), Color(0xFF332745), Color(0xFFE6DCF6)
     ),
     AccentPalette.OCEAN to AccentSwatch(
@@ -54,55 +72,55 @@ val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
         Color(0xFFD89A78), Color(0xFF4A2417), Color(0xFFF6D9C8)
     ),
     AccentPalette.SYSTEM to AccentSwatch(
-        OrdiaGold, Color(0xFFF2E5C9), Color(0xFF34270F),
-        OrdiaGoldSoft, Color(0xFF4C3C1C), Color(0xFFFFE8AF)
+        OrdiaBlack, OrdiaGray200, OrdiaBlack,
+        OrdiaWhite, OrdiaGray800, OrdiaWhite
     )
 )
 
 private val LightColors = lightColorScheme(
-    primary = OrdiaInk,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFEAE2D4),
-    onPrimaryContainer = OrdiaInk,
-    secondary = OrdiaGold,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFF2E5C9),
-    onSecondaryContainer = Color(0xFF34270F),
-    tertiary = OrdiaSage,
-    onTertiary = Color.White,
-    background = OrdiaCream,
-    onBackground = OrdiaInk,
-    surface = OrdiaPaper,
-    onSurface = OrdiaInk,
-    surfaceVariant = Color(0xFFEDE7DC),
-    onSurfaceVariant = Color(0xFF625D55),
-    outline = Color(0xFF8C8579),
-    outlineVariant = Color(0xFFDAD1C2),
-    error = Color(0xFF9A3E3E),
-    onError = Color.White
+    primary = OrdiaBlack,
+    onPrimary = OrdiaWhite,
+    primaryContainer = OrdiaGray200,
+    onPrimaryContainer = OrdiaBlack,
+    secondary = OrdiaBlack,
+    onSecondary = OrdiaWhite,
+    secondaryContainer = OrdiaGray100,
+    onSecondaryContainer = OrdiaBlack,
+    tertiary = OrdiaSemanticFocus,
+    onTertiary = OrdiaWhite,
+    background = OrdiaWhite,
+    onBackground = OrdiaBlack,
+    surface = OrdiaWhite,
+    onSurface = OrdiaBlack,
+    surfaceVariant = OrdiaGray100,
+    onSurfaceVariant = OrdiaGray700,
+    outline = OrdiaGray400,
+    outlineVariant = OrdiaGray200,
+    error = OrdiaSemanticAlert,
+    onError = OrdiaWhite
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFF3EDE2),
-    onPrimary = Color(0xFF1A1916),
-    primaryContainer = Color(0xFF34312B),
-    onPrimaryContainer = Color(0xFFF5EFE4),
-    secondary = OrdiaGoldSoft,
-    onSecondary = Color(0xFF33270E),
-    secondaryContainer = Color(0xFF4C3C1C),
-    onSecondaryContainer = Color(0xFFFFE8AF),
-    tertiary = Color(0xFFB9C99F),
-    onTertiary = Color(0xFF263017),
-    background = Color(0xFF141310),
-    onBackground = Color(0xFFEDE8DF),
-    surface = Color(0xFF1C1B18),
-    onSurface = Color(0xFFEDE8DF),
-    surfaceVariant = Color(0xFF2B2924),
-    onSurfaceVariant = Color(0xFFC9C2B8),
-    outline = Color(0xFF938C81),
-    outlineVariant = Color(0xFF47433D),
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005)
+    primary = OrdiaWhite,
+    onPrimary = OrdiaBlack,
+    primaryContainer = OrdiaGray800,
+    onPrimaryContainer = OrdiaWhite,
+    secondary = OrdiaWhite,
+    onSecondary = OrdiaBlack,
+    secondaryContainer = OrdiaGray900,
+    onSecondaryContainer = OrdiaWhite,
+    tertiary = OrdiaSemanticFocus,
+    onTertiary = OrdiaWhite,
+    background = OrdiaBlack,
+    onBackground = OrdiaWhite,
+    surface = OrdiaBlack,
+    onSurface = OrdiaWhite,
+    surfaceVariant = OrdiaGray900,
+    onSurfaceVariant = OrdiaGray400,
+    outline = OrdiaGray600,
+    outlineVariant = OrdiaGray800,
+    error = OrdiaSemanticAlert,
+    onError = OrdiaBlack
 )
 
 @Composable
@@ -126,14 +144,14 @@ fun OrdiaTheme(
         if (dark) {
             base.copy(
                 secondary = swatch.darkSecondary,
-                onSecondary = Color(0xFF1A1916),
+                onSecondary = OrdiaBlack,
                 secondaryContainer = swatch.darkSecondaryContainer,
                 onSecondaryContainer = swatch.darkOnSecondaryContainer
             )
         } else {
             base.copy(
                 secondary = swatch.lightSecondary,
-                onSecondary = Color.White,
+                onSecondary = OrdiaWhite,
                 secondaryContainer = swatch.lightSecondaryContainer,
                 onSecondaryContainer = swatch.lightOnSecondaryContainer
             )
