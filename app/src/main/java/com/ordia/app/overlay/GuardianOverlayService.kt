@@ -16,6 +16,7 @@ import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
+import androidx.core.content.edit
 import com.ordia.app.MainActivity
 import com.ordia.app.OrdiaApplication
 import com.ordia.app.R
@@ -102,6 +103,7 @@ class GuardianOverlayService : Service() {
             y = saved.getInt("y", dp(180))
         }
         orb.setOnTouchListener(DragTouchListener(params))
+        orb.setOnClickListener { togglePanel(params) }
         windowManager.addView(orb, params)
         guardianView = orb
     }
@@ -189,13 +191,13 @@ class GuardianOverlayService : Service() {
                 MotionEvent.ACTION_UP -> {
                     val moved = abs(event.rawX - touchX) + abs(event.rawY - touchY)
                     if (moved < dp(10)) {
-                        togglePanel(params)
+                        v.performClick()
                     } else {
                         val screenWidth = resources.displayMetrics.widthPixels
                         params.x = if (params.x + v.width / 2 < screenWidth / 2) dp(8) else screenWidth - v.width - dp(8)
                         params.y = params.y.coerceIn(dp(24), resources.displayMetrics.heightPixels - v.height - dp(80))
                         windowManager.updateViewLayout(v, params)
-                        getSharedPreferences(POSITIONS, MODE_PRIVATE).edit().putInt("x", params.x).putInt("y", params.y).apply()
+                        getSharedPreferences(POSITIONS, MODE_PRIVATE).edit { putInt("x", params.x); putInt("y", params.y) }
                     }
                     return true
                 }

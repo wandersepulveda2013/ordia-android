@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.core.graphics.toColorInt
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -61,7 +62,7 @@ fun ProjectsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 Modifier.size(14.dp).background(
-                                    runCatching { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(project.colorHex)) }.getOrDefault(MaterialTheme.colorScheme.secondary),
+                                    runCatching { androidx.compose.ui.graphics.Color(project.colorHex.toColorInt()) }.getOrDefault(MaterialTheme.colorScheme.secondary),
                                     androidx.compose.foundation.shape.CircleShape
                                 )
                             )

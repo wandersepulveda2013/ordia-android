@@ -12,7 +12,7 @@
         android:id="@+id/widget_brand"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="ORDIA · SIGUIENTE PASO"
+        android:text="@string/widget_brand"
         android:textColor="#765A27"
         android:textSize="11sp"
         android:textStyle="bold" />
@@ -25,7 +25,7 @@
         android:ellipsize="end"
         android:gravity="center_vertical"
         android:maxLines="2"
-        android:text="Todo está en orden"
+        android:text="@string/widget_title_default"
         android:textColor="#1C1A17"
         android:textSize="18sp"
         android:textStyle="bold" />
@@ -41,7 +41,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="0 pendientes"
+            android:text="@string/widget_count_default"
             android:textColor="#635E55"
             android:textSize="12sp" />
 
@@ -54,7 +54,7 @@
             android:paddingTop="8dp"
             android:paddingRight="12dp"
             android:paddingBottom="8dp"
-            android:text="+ Capturar"
+            android:text="@string/widget_capture"
             android:textColor="#FFFFFF"
             android:textSize="12sp"
             android:textStyle="bold" />
