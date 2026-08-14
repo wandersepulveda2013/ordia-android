@@ -2059,6 +2059,70 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- Ayer / anteayer / antier compactos (simetría de "hoy tarde") ---
+    // "ayer tarde"/"ayer noche"/"ayer madrugada" son tan cotidianos como "hoy tarde"
+    // al capturar eventos pasados. Antes la asimetría los dejaba en 09:00 con la parte
+    // del día como residuo en el título (cita pasada mal agendada y mal titulada).
+
+    @Test fun ayerTardeEsAyer15hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión ayer tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun ayerNocheEsAyer21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Llamar a mamá ayer noche", now, zone)
+        assertEquals("Llamar a mamá", result.title)
+        assertEquals(LocalDate.of(2026, 7, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun ayerMadrugadaEsAyer4hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Vuelo ayer madrugada", now, zone)
+        assertEquals("Vuelo", result.title)
+        assertEquals(LocalDate.of(2026, 7, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun anteayerTardeEsAnteayer15hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión anteayer tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun anteayerNocheEsAnteayer21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita anteayer noche", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // "antier" = variante coloquial hispanoamericana de "anteayer": misma resolución.
+
+    @Test fun antierTardeEsAnteayer15hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión antier tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun antierNocheEsAnteayer21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita antier noche", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun ayerTardeConHoraSinMeridiemAplicaPm() {
+        // "ayer tarde" aporta contexto PM: "a las 4" → 16:00 (simétrico de "hoy tarde a las 4").
+        val result = NaturalTaskParser.parse("Reunión ayer tarde a las 4", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(16, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- Limpieza de prefijos/sufijos de día de la semana (ciclo 8) ---
     // "del jueves", "el viernes que viene", "el miércoles próximo" dejaban
     // residuos ("del", "que viene", "próximo") en el título.

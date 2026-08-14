@@ -588,15 +588,22 @@ object NaturalTaskParser {
 
     /**
      * Parte del día COMPACTA (coloquial, sin conector): un marcador de día
-     * ("hoy"/"mañana"/"pasado mañana"/"antepasado mañana") seguido DIRECTAMENTE de
-     * "tarde"/"noche"/"madrugada" — p.ej. "hoy tarde", "mañana noche",
-     * "pasado mañana tarde". Es la forma abreviada de "hoy en la tarde"/"mañana por la
-     * noche", muy común al escribir rápido en móvil.
+     * ("hoy"/"mañana"/"pasado mañana"/"antepasado mañana"/"ayer"/"anteayer") seguido
+     * DIRECTAMENTE de "tarde"/"noche"/"madrugada" — p.ej. "hoy tarde", "mañana noche",
+     * "pasado mañana tarde", "ayer noche", "anteayer tarde". Es la forma abreviada de
+     * "hoy en la tarde"/"mañana por la noche"/"ayer por la tarde", muy común al escribir
+     * rápido en móvil.
      *
      * Antes NO se reconocía: el marcador de día fijaba la fecha, pero la parte del día
      * quedaba como residuo en el título y la hora caía al default 09:00 — agenda errónea
      * (una tarea "hoy noche" se vencía a las 09:00 de hoy, no a las 21:00) y título
      * corrupto ("hoy noche" se mostraba tal cual). P1.
+     *
+     * "ayer"/"anteayer"/"antier" (variante coloquial hispanoamericana) también admiten
+     * la forma compacta ("ayer tarde", "anteayer noche"): tan comunes como las futuras al
+     * capturar eventos pasados. Antes la asimetría hacía que "hoy tarde" resolviera a
+     * 15:00 pero "ayer tarde" cayera a 09:00 con "tarde" como residuo en el título — la
+     * cita pasada quedaba mal agendada y mal titulada. Simétrica ahora.
      *
      * Se EXCLUYE "mañana" como parte del día aquí (sólo tarde/noche/madrugada): la
      * palabra "mañana" es ambigua (día vs. parte del día) y la forma compacta "hoy
@@ -611,7 +618,7 @@ object NaturalTaskParser {
      * la resuelve el `when` de fecha existente ("hoy"→hoy, "mañana"→+1, etc.).
      */
     private val compactDayPartOfDayPattern =
-        Regex("""(?i)\b(?:antepasad[oa]\s+ma[nñ]ana|pasado\s+ma[nñ]ana|ma[nñ]ana|hoy)\s+(tarde|noche|madrugada)\b""")
+        Regex("""(?i)\b(?:antepasad[oa]\s+ma[nñ]ana|pasado\s+ma[nñ]ana|ma[nñ]ana|hoy|anteayer|antier|ayer)\s+(tarde|noche|madrugada)\b""")
     private val compactDayPartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),
