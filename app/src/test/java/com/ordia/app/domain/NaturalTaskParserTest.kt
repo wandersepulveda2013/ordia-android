@@ -2237,6 +2237,20 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(14, 30), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // El patrón standalone ("N y <frac> de la <parte>", sin "a las") ahora admite la
+    // misma fracción sub-hora que "a las N y <frac>": antes sólo "y media"/"y cuarto".
+    @Test fun nueveYVeinteDeLaNocheStandaloneEs21_20() {
+        val result = NaturalTaskParser.parse("Cena 9 y veinte de la noche", now, zone)
+        assertEquals("Cena", result.title)
+        assertEquals(LocalTime.of(21, 20), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun cuatroYTresCuartosDeLaTardeStandaloneEs16_45() {
+        val result = NaturalTaskParser.parse("Cita cuatro y tres cuartos de la tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(16, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // Una cantidad NO debe casar como hora aunque contenga "y media": no hay "de la <parte>".
     @Test fun cantidadConYMediaNoSeRobaComoHora() {
         val result = NaturalTaskParser.parse("diez y media botellas", now, zone)
@@ -2405,6 +2419,123 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Cita a las 9 y media am", now, zone)
         assertEquals("Cita", result.title)
         assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // --- "y <minutos escritos>"/"y tres cuartos": minutos sub-hora cotidianos (ciclo 181) ---
+    // "a las once y veinte"/"a las diez y tres cuartos"/"a las 9 y cuarenta y cinco" antes NO
+    // se reconocían: el grupo 3 de [timePatterns] sólo admitía "y media"/"y cuarto", así que
+    // "y veinte"/"y tres cuartos" quedaban como residuo en el título y la hora se agendaba en
+    // punto (reunión/cita 20-45 min mal programados). Forma hablada cotidiana: el usuario dice
+    // la hora con minutos ("nos vemos a las once y veinte") y la cita cae en el momento justo.
+    // Simétrico del "menos veinte/cinco/diez/veinticinco" (ciclo 114) que SÍ restaba minutos:
+    // la rama positiva tenía la misma asimetría — "menos veinte" funcionaba, "y veinte" no.
+
+    @Test fun aLasOnceYVeinteEs11_20YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las once y veinte", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(11, 20), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasDiezYTresCuartosEs10_45YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las diez y tres cuartos", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(10, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas9YCuarentaYCincoEs9_45YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las 9 y cuarenta y cinco", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(9, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasDiezYDiezEs10_10YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las diez y diez", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(10, 10), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas2YVeinticincoEs2_25YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las 2 y veinticinco", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(2, 25), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas7YVeinteDeLaTardeAplicaPm() {
+        val result = NaturalTaskParser.parse("Cita a las 7 y veinte de la tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(19, 20), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas9Y25PmEs21_25() {
+        // Forma numérica del minuto escrito: "a las 9 y 25" → 09:25, con PM → 21:25.
+        val result = NaturalTaskParser.parse("Cita a las 9 y 25 pm", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 25), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLaUnaYTresCuartosEs1_45() {
+        // "a la una y tres cuartos" = 1:45 (simétrico de "a la una y media" = 1:30).
+        val result = NaturalTaskParser.parse("Cita a la una y tres cuartos", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(1, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasCincoYCincuentaYCincoEs5_55() {
+        val result = NaturalTaskParser.parse("Cita a las cinco y cincuenta y cinco", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(5, 55), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun yVeinteNoCorrompeTituloConFecha() {
+        // La fracción se consume y el título queda limpio junto con la fecha.
+        val result = NaturalTaskParser.parse("Reunión mañana a las once y veinte", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(11, 20), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aLas8YTreintaYCincoEs8_35() {
+        val result = NaturalTaskParser.parse("Cita a las 8 y treinta y cinco", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(8, 35), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // --- "mediodía y media"/"medianoche y cuarto": fracción sub-hora en horas canónicas ---
+    // "al mediodía y media"/"a la medianoche y cuarto" antes dejaban "y media"/"y cuarto"
+    // como residuo en el título y la hora quedaba en punto (12:00/00:00, no 12:30/00:15):
+    // el almuerzo o el cierre de día se agendaban 15-30 min antes de lo pedido. Simétrico
+    // del "a las N y media" ya soportado: las horas canónicas mediodía/medianoche reciben
+    // ahora la misma fracción sub-hora.
+
+    @Test fun alMediodiaYMediaEs12_30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Almuerzo al mediodía y media", now, zone)
+        assertEquals("Almuerzo", result.title)
+        assertEquals(LocalTime.of(12, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLaMedianocheYCuartoEs0_15YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Entregar a la medianoche y cuarto", now, zone)
+        assertEquals("Entregar", result.title)
+        assertEquals(LocalTime.of(0, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alMediodiaYTresCuartosEs12_45() {
+        val result = NaturalTaskParser.parse("Reunión al mediodía y tres cuartos", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(12, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alMediodiaYVeinteEs12_20() {
+        val result = NaturalTaskParser.parse("Reunión al mediodía y veinte", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(12, 20), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun mediodiaSoloSigueSiendo12_00() {
+        // No-regresión: "al mediodía" sin fracción sigue siendo 12:00.
+        val result = NaturalTaskParser.parse("Almuerzo al mediodía", now, zone)
+        assertEquals("Almuerzo", result.title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
     // --- "en la tarde/noche/mañana": forma caribeña/hispanoamericana ---
