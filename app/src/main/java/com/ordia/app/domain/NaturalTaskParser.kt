@@ -397,14 +397,14 @@ object NaturalTaskParser {
      * blando nunca se fecha en pasado. Se detecta y borra ANTES del período próximo para
      * que "semana" no active "semana que viene".
      */
-    private val startOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?)\s+(?:de\s+|del\s+)semana\b""")
+    private val startOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?)\s+(?:de\s+la\s+|de\s+|del\s+)semana\b""")
     /**
      * "mediados de semana" / "a mediados de semana" → miércoles más cercano en HOY o
      * futuro. Análogo a "principios de semana" (lunes) y "mediados de mes" (día 15).
      * Se detecta y borra ANTES del período próximo para que "semana" no active
      * "semana que viene".
      */
-    private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)semana\b""")
+    private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+la\s+|de\s+|del\s+)semana\b""")
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(?:d[ií]a\s+)?(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
     // Día del mes suelto con artículo: "reunión el 15", "cita el 20 a las 18",
     // "entregar el 5 del mes". Antes "el 15" no casa con numericDatePattern (que exige

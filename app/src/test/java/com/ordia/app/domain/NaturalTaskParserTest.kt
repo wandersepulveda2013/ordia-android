@@ -3962,6 +3962,47 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "mediados/mitad/principios DE LA semana": forma cotidiana con artículo ---
+    // Antes el patrón sólo admitía "de semana"/"del semana", no "de LA semana" →
+    // dueAt=null (vencimiento olvidado). Asimetría con "mediados de mes" (c.32) que SÍ
+    // funcionaba. Resolución simétrica a las formas sin artículo.
+
+    @Test fun mediadosDeLaSemanaAnclaMiercoles() {
+        // hoy = miércoles 2026-07-29 -> "mediados de la semana" = hoy.
+        val result = NaturalTaskParser.parse("Llamar al banco mediados de la semana", now, zone)
+        assertEquals("Llamar al banco", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mitadDeLaSemanaEsSinonimoDeMediados() {
+        // "mitad de la semana" = "mediados de la semana" → miércoles (hoy).
+        val result = NaturalTaskParser.parse("Revisar correo a mitad de la semana", now, zone)
+        assertEquals("Revisar correo", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun principiosDeLaSemanaAnclaLunes() {
+        // hoy = miércoles 2026-07-29 -> "principios de la semana" = lunes siguiente 2026-08-03.
+        val result = NaturalTaskParser.parse("Revisar informe principios de la semana", now, zone)
+        assertEquals("Revisar informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mediadosDeLaSemanaRespetaHoraExplicita() {
+        // hoy = miércoles 2026-07-29 -> "mediados de la semana a las 9" = hoy 09:00.
+        val result = NaturalTaskParser.parse("Cita mediados de la semana a las 9", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aMediadosDeLaSemanaConPrefijoAOpcional() {
+        // "a mediados de la semana" (con "a" inicial) → miércoles (hoy).
+        val result = NaturalTaskParser.parse("Reunión a mediados de la semana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "hace N días/semanas/meses/años" y "la semana/el mes/el año pasado" ---
     // El usuario registra una tarea ya vencida ("pagué hace 2 días", "revisé el
     // informe la semana pasada"). Antes estas formas quedaban SIN fecha y con la frase

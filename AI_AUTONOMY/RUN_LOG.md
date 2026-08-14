@@ -1,4 +1,22 @@
 # RUN_LOG — Ordía
+## Ciclo 130 — 2026-08-14 (UTC) — fix(parser): "mediados/mitad/principios DE LA semana" (asimetría semanal con "mediados de mes", P2 captura olvidada)
+
+- **Run/ciclo**: 130 (rama `openhands/autonomous-ordia`). Base sincronizada: `git fetch origin openhands/autonomous-ordia` → HEAD remoto `ccbb450` (c.129-run4, residuo "de mañana"/"9 de la noche de mañana"). STALE_RUN gestionado: mi commit local `3c4afc6` (ciclo 130 parcial) resolvió 3 items pero los items 1 y 2 ya estaban resueltos en el remoto `ccbb450` (colisión con run concurrente). Descarté el commit redundante vía `git checkout origin/openhands/autonomous-ordia -- <archivos>` y re-apliqué SOLO el item 3 (aporte único no duplicado) sobre la base limpia. Working tree limpio al iniciar el reaplique.
+- **HEAD inicial**: `ccbb450` (c.129-run4, remoto).
+- **Problema seleccionado (P2 → parser/captura)**: **"mediados de la semana"/"mitad de la semana"/"principios de la semana"** (forma cotidiana con artículo "de la") → `dueAt=null` + residuo en el título → vencimiento olvidado. Asimetría flagrante: "mediados de mes" (c.32) y "mediados de semana" (sin artículo, c.129) SÍ funcionaban, pero la forma con artículo "de LA semana" no casaba ningún patrón. "pago a mediados de la semana" quedaba sin fecha (invisible en What Now/planificador, sin recordatorio) aunque el usuario expresó un plazo concreto.
+- **Prioridad**: P2 (captura/olvido; asimetría léxica regional — "de la semana" es forma estándar en español).
+- **Causa raíz**: `startOfWeekPattern` y `midOfWeekPattern` sólo admitían `de\s+semana` y `del\s+semana` como conector, NO `de\s+la\s+semana` (con artículo). La rama de resolución (lunes/miércoles más cercano en HOY o futuro) ya existía y funcionaba para las formas sin artículo; el gap era puramente léxico en el patrón regex.
+- **Solución (mínima, sin nueva pantalla/botón, sin lógica nueva)**: ambos patrones añaden `de\s+la\s+` como alternativa en el grupo de conectores: `startOfWeekPattern = (?i)\b(?:a\s+)?(?:principios?|comienzos?)\s+(?:de\s+la\s+|de\s+|del\s+)semana\b` y `midOfWeekPattern = (?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+la\s+|de\s+|del\s+)semana\b`. Reusa TODO el flujo existente (resolución simétrica: principios→lunes, mediados/mitad→miércoles, ambos HOY o futuro; respeta hora explícita; se detecta/borra ANTES del período próximo para que "semana" no active "semana que viene"). Cambio de 2 tokens en 2 regex, sin nueva rama de código.
+- **Tests**: +5 tests de regresión en `NaturalTaskParserTest.kt` (`mediadosDeLaSemanaAnclaMiercoles`, `mitadDeLaSemanaEsSinonimoDeMediados`, `principiosDeLaSemanaAnclaLunes`, `mediadosDeLaSemanaRespetaHoraExplicita`, `aMediadosDeLaSemanaConPrefijoAOpcional`). `bash tools/run_domain_tests.sh` → **920 PASS** (915 c.129-run4 + 5); `bash tools/run_domain_checks.sh` → smoke 25 OK.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK en este entorno).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (2 patrones), `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+5 tests), `AI_AUTONOMY/{CURRENT_STATE,RUN_LOG,BACKLOG}.md`.
+- **HEAD final**: (tras commit + push de este run).
+- **Estado**: FIXED → VERIFIED (dominio JVM: 920 tests, 0 failures). Integración Android NO VERIFICADA.
+- **Colisión gestionada**: run concurrente `ccbb450` resolvió items 1 y 2 del diagnóstico c.130 previo. Aporte neto de este run = item 3 únicamente. No se forzó push, no se sobrescribió trabajo válido.
+- **Próxima prioridad**: gaps P2 ABIERTOS del parser ("día N de este mes"→null; "día 15" sin artículo→null; "1ro de septiembre" ordinal→null) y descubrimiento continuo en áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA.
+
+> Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
+
 ## Ciclo 129 — 2026-08-14 — Refactor P1 automatización/recordatorios: extraer `AutomationActionPlanner` de `AutomationEngine` + respetar `reminderAt` previo del usuario
 
 - **Run/ciclo**: 129 (rama `openhands/autonomous-ordia`). Base sincronizada: `git fetch origin openhands/autonomous-ordia` OK, HEAD local = HEAD remoto = `1d9d612` (c.128). Sin divergencia, sin push concurrente al iniciar. Working tree limpio.
