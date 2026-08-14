@@ -19,15 +19,10 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timer
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -50,6 +45,10 @@ import com.ordia.app.ui.components.GuardianAvatar
 import com.ordia.app.ui.components.GuardianMood
 import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.ui.components.SectionHeader
+import com.ordia.app.ui.components.OrdiaButton
+import com.ordia.app.ui.components.OrdiaCard
+import com.ordia.app.ui.components.OrdiaSurface
+import com.ordia.app.ui.components.OrdiaTextField
 import com.ordia.app.ui.components.StatCard
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
@@ -96,7 +95,7 @@ fun TodayScreen(
             )
         }
         item {
-            Surface(
+            OrdiaSurface(
                 shape = MaterialTheme.shapes.large,
                 color = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
@@ -131,18 +130,14 @@ fun TodayScreen(
             }
         }
         item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
+            OrdiaCard {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
-                            quickText,
-                            { quickText = it },
+                        OrdiaTextField(
+                            value = quickText,
+                            onValueChange = { quickText = it },
                             modifier = Modifier.weight(1f),
-                            placeholder = { Text("Ej.: Llamar mañana a las 9 !alta") },
-                            singleLine = true
+                            placeholder = { Text("Ej.: Llamar mañana a las 9 !alta") }
                         )
                         IconButton(
                             onClick = { vm.addSmartTask(quickText); quickText = "" },
@@ -174,7 +169,7 @@ fun TodayScreen(
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(state.habits, key = { it.id }) { habit ->
                         val count = state.habitCount(habit.id)
-                        Card(onClick = { vm.toggleHabit(habit) }) {
+                        androidx.compose.material3.Card(onClick = { vm.toggleHabit(habit) }) {
                             Column(Modifier.padding(16.dp).width(220.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(habit.title, style = MaterialTheme.typography.titleMedium)
                                 Text("$count de ${habit.targetPerPeriod}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -190,7 +185,7 @@ fun TodayScreen(
             item { SectionHeader("Proyectos activos") }
             items(state.projects.take(3), key = { "project-${it.id}" }) { project ->
                 val progress = state.projectProgress(project.id)
-                Card {
+                OrdiaCard {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                         Row(Modifier.fillMaxWidth()) {
                             Text(project.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -202,7 +197,7 @@ fun TodayScreen(
             }
         }
         item {
-            Button(onClick = onOpenFocus, modifier = Modifier.fillMaxWidth()) {
+            OrdiaButton(onClick = onOpenFocus, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Outlined.Timer, null)
                 Text("Iniciar una sesión de enfoque", Modifier.padding(start = 8.dp))
             }
