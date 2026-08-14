@@ -11,7 +11,7 @@
 - **Features**: 0 (mejora de calidad de la decisión en la superficie existente del nudge diario — más potencia sin más interfaz, alineada con "MENOS ES MÁS" y "detección de vencidas importantes").
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); integración `GuardianEngine.snapshot`↔UI del guardián en runtime Android.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/GuardianEngine.kt` (comparador urgent-first + mensaje urgente + KDoc + import `TaskPriority`), `app/src/test/java/com/ordia/app/domain/GuardianEngineTest.kt` (+2 tests, import `TaskPriority`), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **Estado**: FIXED → VERIFIED (dominio JVM: 1164 tests, 0 failures; smoke 25 OK).
+- **Estado**: FIXED → VERIFIED (dominio JVM: 1164 tests, 0 failures; smoke 25 OK). HEAD final = `d86ac50` (push OK a `openhands/autonomous-ordia`).
 - **Próxima prioridad**: descubrimiento continuo — áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento); auditoría workers/backup/restore con DAOs reales (`backup/` ya verificado en JVM c.147-B); gaps léxicos del parser restantes ("a las 3.5" P3; "diez y media" sin "a las" P3; "pago mensual" requiere desambiguador P2). Re-fetch antes de implementar para evitar colisión con runs paralelos.
 
 ## Ciclo 164 — 2026-08-14 (UTC) — fix(recordatorios): el editor ya no agenda recordatorios por defecto en el pasado (plazo corto) (P1 evitar olvidos)
