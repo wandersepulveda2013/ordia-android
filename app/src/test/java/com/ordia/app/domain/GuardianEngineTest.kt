@@ -2,6 +2,7 @@ package com.ordia.app.domain
 
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.data.preferences.UserPreferences
 import java.time.Instant
@@ -182,6 +183,50 @@ class GuardianEngineTest {
         )
 
         assertTrue(result.suggestedAction.contains("Beta"))
+    }
+
+    @Test
+    fun suggestedActionNamesUrgentOverdueOverSmallerNonUrgent() {
+        // Una tarea atrasada URGENTE (la "vencida importante") debe preferirse a una
+        // atrasada más pequeña y de menor prioridad: el nudge del guardián no debe
+        // alejar al usuario de un plazo crítico que se le está pasando solo porque
+        // exista algo más rápido de resolver. La importancia rompe el empate hacia lo
+        // urgente; el "quick win" queda para cuando nada importante está atrasado.
+        val past = midday - 86_400_000L
+        val urgent = TaskEntity(id = 1, title = "Entregar informe", dueAt = past, durationMinutes = 90, priority = TaskPriority.URGENT)
+        val small = TaskEntity(id = 2, title = "Regar plantas", dueAt = past, durationMinutes = 10, priority = TaskPriority.LOW)
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(small, urgent),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        assertTrue(result.suggestedAction.contains("Entregar informe"))
+        assertFalse(result.suggestedAction.contains("Regar plantas"))
+        // El nudge transmite que es urgente (descripción honesta de su prioridad real).
+        assertTrue(result.suggestedAction.contains("urgente"))
+    }
+
+    @Test
+    fun suggestedActionKeepsSmallestAmongUrgentOverdue() {
+        // Entre varias atrasadas URGENTES, el "quick win" sigue vigente: se nombra la
+        // más pequeña para reducir la fricción de arrancar, sin perder la señal de
+        // urgencia. Así urgencia y momentum cooperan en vez de contradecirse.
+        val past = midday - 86_400_000L
+        val bigUrgent = TaskEntity(id = 1, title = "Informe urgente", dueAt = past, durationMinutes = 90, priority = TaskPriority.URGENT)
+        val smallUrgent = TaskEntity(id = 2, title = "Llamar cliente", dueAt = past, durationMinutes = 10, priority = TaskPriority.URGENT)
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(bigUrgent, smallUrgent),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        assertTrue(result.suggestedAction.contains("Llamar cliente"))
+        assertFalse(result.suggestedAction.contains("Informe urgente"))
     }
 
     @Test

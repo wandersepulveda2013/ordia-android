@@ -5,6 +5,7 @@ import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.data.preferences.PreferencesRepository
 import com.ordia.app.data.preferences.UserPreferences
@@ -287,16 +288,27 @@ object GuardianEngine {
     }
 
     /**
-     * Cuando hay tareas atrasadas, el guardián nombra la más pequeña (por
-     * [TaskRules.plannedDuration]) en vez de un consejo genérico. Es la
-     * recuperación concreta de una tarea olvidada en la superficie que ya
-     * existe (el nudge diario del guardián), sin añadir pantallas: el usuario
-     * ve "«Pagar luz» está atrasada (~30 min)" y puede decidir hacerla,
-     * moverla o archivarla en un vistazo. Heurística honesta: usa la duración
-     * planificada real (con clamp) y un orden determinista (duración →
-     * prioridad → vencimiento → id) para que dos ejecuciones idénticas nombren
-     * la misma tarea. Solo se consideran tareas raíz, no completadas ni
-     * archivadas, iguales que el conteo de `overdue`.
+     * Cuando hay tareas atrasadas, el guardián nombra una concreta en vez de un
+     * consejo genérico: recupera una tarea olvidada en la superficie que ya
+     * existe (el nudge diario), sin añadir pantallas.
+     *
+     * Selección de la tarea a nombrar —dos señales que cooperan en vez de
+     * contradecirse:
+     * 1. Si hay alguna atrasada URGENTE, esa gana siempre. Un plazo crítico que
+     *    se está pasando es la "vencida importante": el nudge no debe alejar al
+     *    usuario hacia algo más rápido pero irrelevante mientras lo urgente sigue
+     *    vencido. Es coherente con [TaskRules.timeRank]/[nextBestTask], donde lo
+     *    atrasado urgente manda, y con la dirección "detección de vencidas
+     *    importantes".
+     * 2. Entre las atrasadas no urgentes (o entre las urgentes entre sí), el
+     *    "quick win" sigue vigente: se nombra la más pequeña (por
+     *    [TaskRules.plannedDuration]) para reducir la fricción de arrancar y
+     *    romper la parálisis.
+     *
+     * Orden determinista (urgencia → duración → prioridad → vencimiento → id)
+     * para que dos ejecuciones idénticas nombren la misma tarea. Solo se
+     * consideran tareas raíz, no completadas ni archivadas, iguales que el
+     * conteo de `overdue`.
      *
      * Excluye las tareas que se están ejecutando justo ahora
      * ([TaskRules.isInProgressNow]): una tarea vencida pero en curso (p. ej.
@@ -313,14 +325,23 @@ object GuardianEngine {
                     !TaskRules.isInProgressNow(it, nowMillis)
             }
             .minWithOrNull(
-                compareBy<TaskEntity> { TaskRules.plannedDuration(it) }
+                compareByDescending<TaskEntity> { it.priority == TaskPriority.URGENT }
+                    .thenBy { TaskRules.plannedDuration(it) }
                     .thenBy { TaskRules.priorityScore(it.priority) }
                     .thenBy { it.dueAt ?: Long.MAX_VALUE }
                     .thenBy { it.id }
             )
             ?: return "Elige una tarea atrasada y decide: hacerla, moverla o archivarla."
         val minutes = TaskRules.plannedDuration(chosen)
-        return "«${chosen.title}» está atrasada (~${minutes} min). Hazla, muévela o archívala."
+        // Cuando lo atrasado es urgente, el nudge lo dice: la señal de "plazo crítico
+        // vencido" es justo lo que el usuario necesita oír para no dejarlo pasar. Es
+        // una descripción honesta de la prioridad real de la tarea, no una etiqueta
+        // interna.
+        return if (chosen.priority == TaskPriority.URGENT) {
+            "«${chosen.title}» está atrasada y es urgente (~${minutes} min). Hazla, muévela o archívala."
+        } else {
+            "«${chosen.title}» está atrasada (~${minutes} min). Hazla, muévela o archívala."
+        }
     }
 
     private fun message(
