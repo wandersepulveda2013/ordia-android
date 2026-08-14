@@ -4797,8 +4797,8 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
   `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
   `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **Commits**: (pendiente de push).
-- **HEAD final**: (tras push).
+- **Commits**: `31ccb79` (push a `openhands/autonomous-ordia`).
+- **HEAD final**: `31ccb79`.
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: continuar descubrimiento de frases cotidianas del parser; auditar
   recuperación de tareas olvidadas y "un rato" en otros contextos (recordatorios).
