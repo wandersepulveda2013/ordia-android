@@ -4219,7 +4219,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
   `app/src/test/java/com/ordia/app/domain/NaturalTaskParserCierreTest.kt` (nuevo),
   `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD final**: por confirmar tras push.
+- **HEAD final**: `61c1daa` (push fast-forward OK `3c42171..61c1daa` → `openhands/autonomous-ordia`).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: descubrimiento continuo — auditar sinónimos de mediados/principios
   de mes ("a mitad de mes", "comienzos de mes"); `RecurrenceEngine` edge cases; detección de
