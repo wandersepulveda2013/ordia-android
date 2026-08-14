@@ -219,7 +219,7 @@ object GuardianEngine {
             dailyGoalsCompleted = dailyGoalsCompleted,
             dailyGoalsTotal = 3,
             overdue = overdue,
-            suggestedAction = suggestedAction(tasks, habits, completedToday, focusMinutesToday, habitsDoneToday, overdue)
+            suggestedAction = suggestedAction(tasks, habits, completedToday, focusMinutesToday, habitsDoneToday, overdue, nowMillis)
         )
     }
 
@@ -276,13 +276,43 @@ object GuardianEngine {
         completedToday: Int,
         focusMinutesToday: Int,
         habitsDoneToday: Int,
-        overdue: Int
+        overdue: Int,
+        nowMillis: Long
     ): String = when {
-        overdue > 0 -> "Elige una tarea atrasada pequeña y decide: hacerla, moverla o archivarla."
+        overdue > 0 -> smallestOverdueAction(tasks, nowMillis)
         completedToday == 0 && tasks.any { !it.completed && !it.archived } -> "Completa una tarea breve para iniciar el día con impulso."
         focusMinutesToday < 15 -> "Haz una sesión de enfoque de 15 minutos sin perseguir la perfección."
         habits.isNotEmpty() && habitsDoneToday == 0 -> "Registra un hábito sencillo para mantener la continuidad."
         else -> "Tu cuidado diario está completo. Puedes descansar o avanzar por gusto."
+    }
+
+    /**
+     * Cuando hay tareas atrasadas, el guardián nombra la más pequeña (por
+     * [TaskRules.plannedDuration]) en vez de un consejo genérico. Es la
+     * recuperación concreta de una tarea olvidada en la superficie que ya
+     * existe (el nudge diario del guardián), sin añadir pantallas: el usuario
+     * ve "«Pagar luz» está atrasada (~30 min)" y puede decidir hacerla,
+     * moverla o archivarla en un vistazo. Heurística honesta: usa la duración
+     * planificada real (con clamp) y un orden determinista (duración →
+     * prioridad → vencimiento → id) para que dos ejecuciones idénticas nombren
+     * la misma tarea. Solo se consideran tareas raíz, no completadas ni
+     * archivadas, iguales que el conteo de `overdue`.
+     */
+    private fun smallestOverdueAction(tasks: List<TaskEntity>, nowMillis: Long): String {
+        val chosen = tasks
+            .filter {
+                it.parentTaskId == null && !it.completed && !it.archived &&
+                    TaskRules.isOverdue(it, nowMillis)
+            }
+            .minWithOrNull(
+                compareBy<TaskEntity> { TaskRules.plannedDuration(it) }
+                    .thenBy { TaskRules.priorityScore(it.priority) }
+                    .thenBy { it.dueAt ?: Long.MAX_VALUE }
+                    .thenBy { it.id }
+            )
+            ?: return "Elige una tarea atrasada y decide: hacerla, moverla o archivarla."
+        val minutes = TaskRules.plannedDuration(chosen)
+        return "«${chosen.title}» está atrasada (~${minutes} min). Hazla, muévela o archívala."
     }
 
     private fun message(

@@ -143,6 +143,67 @@ class GuardianEngineTest {
     }
 
     @Test
+    fun suggestedActionNamesTheSmallestOverdueTask() {
+        // El nudge del guardián nombra la tarea atrasada más pequeña (por duración
+        // planificada) en vez de un consejo genérico: recupera la tarea olvidada en
+        // la superficie existente. Aquí "Luz" (30 min) debe preferirse a "Informe"
+        // (90 min) aunque ambas estén atrasadas.
+        val past = midday - 86_400_000L
+        val big = TaskEntity(id = 1, title = "Informe", dueAt = past, durationMinutes = 90)
+        val small = TaskEntity(id = 2, title = "Pagar luz", dueAt = past, durationMinutes = 30)
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(big, small),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        assertTrue(result.suggestedAction.contains("Pagar luz"))
+        assertTrue(result.suggestedAction.contains("atrasada"))
+        // La duración planificada real (30) se muestra, no la cruda si fuera 0.
+        assertTrue(result.suggestedAction.contains("30"))
+        assertFalse(result.suggestedAction.contains("Informe"))
+    }
+
+    @Test
+    fun suggestedActionDeterministicForEqualDurationOverdueTasks() {
+        // A igual duración, el orden es determinista (prioridad → vencimiento → id):
+        // dos ejecuciones idénticas nombran la misma tarea. id menor gana el desempate.
+        val past = midday - 86_400_000L
+        val a = TaskEntity(id = 5, title = "Alfa", dueAt = past, durationMinutes = 30)
+        val b = TaskEntity(id = 2, title = "Beta", dueAt = past, durationMinutes = 30)
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(a, b),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        assertTrue(result.suggestedAction.contains("Beta"))
+    }
+
+    @Test
+    fun suggestedActionIgnoresSubtasksWhenNamingOverdueTask() {
+        // Una subtarea atrasada más pequeña que el padre NO debe ser nombrada:
+        // el guardián solo considera tareas raíz, igual que el conteo `overdue`.
+        val past = midday - 86_400_000L
+        val parent = TaskEntity(id = 1, title = "Padre grande", dueAt = past, durationMinutes = 90)
+        val tinySub = TaskEntity(id = 2, title = "Sub minúscula", dueAt = past, durationMinutes = 10, parentTaskId = 1)
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(parent, tinySub),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        assertTrue(result.suggestedAction.contains("Padre grande"))
+        assertFalse(result.suggestedAction.contains("Sub minúscula"))
+    }
+
+    @Test
     fun dailyCareGoalsAreDeterministicAtFixedTime() {
         val result = GuardianEngine.snapshot(
             tasks = listOf(TaskEntity(title = "Hecha", completed = true, completedAt = midday)),
