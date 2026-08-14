@@ -295,6 +295,22 @@ object NaturalTaskParser {
     )
 
     /**
+     * Duraciones con número escrito (sin dígitos) y unidad de tiempo: "dos horas",
+     * "una hora", "treinta minutos", "un par de horas". Antes solo se aceptaban
+     * dígitos y las fracciones "media hora"/"cuarto de hora", así que las cantidades
+     * escritas caían a `durationMinutes=null`: el planificador las trataba como
+     * [TaskRules.MIN_PLAN_MINUTES] (10 min) y "What Now"/el resumen del día subestimaban
+     * el trabajo real. Simétrico con los recordatorios y las fechas relativas, que SÍ
+     * aceptan números escritos. Se limita a minutos/horas (la duración se acota a
+     * ≤24 h, así que "dos días" no es una duración significativa y se deja fuera).
+     *
+     * Reusa [writtenAmountPattern] (misma lista de palabras) y [parseWrittenNumber]
+     * como fuente única de los literales en español.
+     */
+    private val writtenDurationPattern =
+        Regex("""(?i)\b($writtenAmountPattern)\s*(minutos?|min|horas?|hora)\b""")
+
+    /**
      * Duraciones fraccionarias comunes en español sin dígitos: "media hora" (30 min) y
      * "(un) cuarto de hora" (15 min). Los patrones de dígitos no las capturan, así que
      * quedaban como residuo en el título y `durationMinutes` era null. "cuarto" requiere
@@ -1181,16 +1197,31 @@ object NaturalTaskParser {
                 !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first))
             }
             .minByOrNull { it.range.first }
+        // Duración con número escrito ("dos horas"/"treinta minutos"/"un par de horas"):
+        // mismos guards que la duración numérica para no robar "a las nueve horas" (hora
+        // de un evento) ni "en dos horas" (fecha relativa, ya consumida antes). Se procesa
+        // aparte porque su cantidad se resuelve con [parseWrittenNumber], no con toIntOrNull.
+        val writtenMatch = writtenDurationPattern.find(working)?.takeIf { match ->
+            !Regex("""(?i)\ben\s*$""").containsMatchIn(working.substring(0, match.range.first)) &&
+            !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first))
+        }
         // Duración fraccionaria sin dígitos ("media hora"/"cuarto de hora"): se computa
-        // aparte y se elige la ocurrencia más a la izquierda respecto a la duración numérica.
+        // aparte y se elige la ocurrencia más a la izquierda respecto a las demás.
         val fractionalMatch = fractionalDurationPattern.find(working)
         val durationMinutes = when {
             rangeDurationMinutes != null -> rangeDurationMinutes
             durationMatch != null && (fractionalMatch == null ||
-                durationMatch.range.first <= fractionalMatch.range.first) -> {
+                durationMatch.range.first <= fractionalMatch.range.first) &&
+                (writtenMatch == null || durationMatch.range.first <= writtenMatch.range.first) -> {
                 val amount = durationMatch.groupValues[1].toIntOrNull()
                 val unit = durationMatch.groupValues[2].lowercase()
                 amount?.let { (if (unit.startsWith("hora") || unit == "h") it * 60 else it).coerceIn(5, 24 * 60) }
+            }
+            writtenMatch != null && (fractionalMatch == null ||
+                writtenMatch.range.first <= fractionalMatch.range.first) -> {
+                val amount = parseWrittenNumber(writtenMatch.groupValues[1])
+                val unit = writtenMatch.groupValues[2].lowercase()
+                amount?.let { (if (unit.startsWith("hora")) it * 60 else it).toInt().coerceIn(5, 24 * 60) }
             }
             fractionalMatch != null -> {
                 val text = fractionalMatch.value.lowercase()
@@ -1202,6 +1233,14 @@ object NaturalTaskParser {
             // "Reunión de 30 min": el "de" antes de la duración es conector, se elimina junto.
             // "durante"/"por" (de los patrones "durante/por N ...") también son conectores
             // y deben borrarse junto con la duración para no dejar residuo en el título.
+            val withConnector = Regex(
+                "(?i)\\b(?:de|durante|por)\\s+" + Regex.escape(match.value)
+            )
+            working = if (withConnector.containsMatchIn(working)) withConnector.replace(working, " ")
+                else working.replace(match.value, " ")
+        }
+        writtenMatch?.let { match ->
+            // Mismo borrado de conector que la duración numérica ("reunión de dos horas").
             val withConnector = Regex(
                 "(?i)\\b(?:de|durante|por)\\s+" + Regex.escape(match.value)
             )

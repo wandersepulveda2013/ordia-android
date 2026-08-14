@@ -3838,3 +3838,56 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Descubrimiento continuo: auditar rutinas/automatizaciones, captura ultrarrápida, detección de compromisos en notas.
 - `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
 - `WhatNowEngine.reasonLabel` reusar desde la UI de What Now si aporta valor sin nueva superficie.
+
+## Ciclo 85 — Parser — duraciones con número escrito ("dos horas"/"treinta minutos"/"un par de horas")
+
+- **Fecha (UTC)**: 2026-08-13.
+- **Run/ciclo**: 85 (rama `openhands/autonomous-ordia`). Continuación del área de cantidades
+  escritas (c.35/c.40/c.57). Base inicial `0120249` (c.84, ya en remoto). `git fetch` confirmó
+  local==remoto, sin divergencia (no STALE_RUN).
+- **HEAD inicial**: `0120249` (c.84).
+- **Problema seleccionado**: la **duración** (`ParsedTaskInput.durationMinutes`) era la única
+  superficie de cantidad que NO aceptaba números escritos. Recordatorios (c.40) y fechas
+  relativas (c.35/c.57) sí los aceptaban, pero `durationPatterns` solo casaba `\d{1,3}` y la
+  fraccionaria solo "media hora"/"cuarto de hora". Consecuencia: "estudiar dos horas",
+  "llamada de treinta minutos", "reunión de una hora", "un par de horas" → `durationMinutes=null`
+  → el planificador las trataba como `TaskRules.MIN_PLAN_MINUTES` (10 min), el `DayLoad` del
+  `SummaryEngine` subestimaba la carga real del día y `WhatNowEngine` perdía noción del progreso
+  real. Degradación silenciosa de las decisiones automáticas centrales, no un crasheo.
+- **Prioridad**: P1 (capacidad de tarea / inteligencia; la duración alimenta planificador,
+  carga del día y What Now). No pérdida de datos, pero sí una función central deshabilitada para
+  formas cotidianas de escribir duraciones en español.
+- **Causa raíz**: ausencia de un patrón de duración con cantidad escrita. `parseWrittenNumber`
+  y `writtenAmountPattern` ya existían; solo faltaba conectarlos al cómputo de `durationMinutes`.
+- **Solución (mínima)**: nuevo `writtenDurationPattern = \b($writtenAmountPattern)\s*(minutos?|min|horas?|hora)\b`
+  (reusa la lista única de literales; solo minutos/horas, ya que la duración se acota a ≤24 h).
+  Se procesa con los **mismos guards** que la duración numérica (`timePhrasePreceding` para no
+  robar "a las nueve horas"; `en$` para no robar "en dos horas", ya consumido por la fecha
+  relativa). Recordatorios (con "antes") y fechas relativas (con "en") se procesan **antes** y
+  consumen sus frases, así la duración escrita solo casa con la forma **bare**. El `when`
+  elige la ocurrencia más a la izquierda entre {dígitos, escrita, fraccionaria}; borrado del
+  conector `de/durante/por` simétrico al numérico. Sin nueva pantalla/botón.
+- **Tests**: +9 (`dosHorasEscritasEsDuracionDe120Min`, `unaHoraEscritasEsDuracionDe60Min`,
+  `treintaMinutosEscritosEsDuracionDe30Min`, `unParDeHorasEsDuracionDe120Min`,
+  `duracionEscritaConConectorDeSeLimpiaDelTitulo`, `horasEscritasTrasALasNoSonDuracion`,
+  `enDosHorasNoEsDuracionEscrita`, `dosHorasAntesEsRecordatorioNoDuracion`).
+  **610 domain tests PASS** (`bash tools/run_domain_tests.sh`); **smoke 25 OK**
+  (`PATH=/tmp/kotlinc-home/kotlinc/bin:$PATH bash tools/run_domain_checks.sh`).
+  Sin regresión: las pruebas existentes de duración (digit/fraccionaria/compacta/rango) y de
+  recordatorio pasan intactas.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Hallazgos adicionales (descubrimiento continuo)**: el parser de **horas** (no de duración)
+  aún no acepta números escritos para la hora de un evento ("a las nueve horas" → la frase se
+  conserva en el título; no es bug de duración, pero es una asimetría simétrica). Se deja fuera
+  de este ciclo (área de horas, no duración). Candidata a próxima unidad si aporta valor real.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras push a `origin/openhands/autonomous-ordia`; base `0120249` c.84).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+
+### Siguiente
+- Evaluar si el parser de **horas** de evento debe aceptar números escritos ("a las nueve horas"
+  → 9:00); hoy no lo hace y deja la frase en el título. Verificar necesidad antes de implementar.
+- Descubrimiento continuo: rutinas adaptables; detección de compromisos en notas; captura ultrarrápida.
+- `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.

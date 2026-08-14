@@ -627,6 +627,66 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // --- Duraciones con número escrito (ciclo 85) ---
+    // "dos horas"/"una hora"/"treinta minutos"/"un par de horas" caían a
+    // durationMinutes=null (solo se aceptaban dígitos y "media"/"cuarto de hora"),
+    // así el planificador las trataba como 10 min y "What Now" subestimaba el trabajo.
+    @Test fun dosHorasEscritasEsDuracionDe120Min() {
+        val result = NaturalTaskParser.parse("Estudiar dos horas", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun unaHoraEscritasEsDuracionDe60Min() {
+        val result = NaturalTaskParser.parse("Leer una hora", now, zone)
+        assertEquals("Leer", result.title)
+        assertEquals(60, result.durationMinutes)
+    }
+
+    @Test fun treintaMinutosEscritosEsDuracionDe30Min() {
+        val result = NaturalTaskParser.parse("Meditar treinta minutos", now, zone)
+        assertEquals("Meditar", result.title)
+        assertEquals(30, result.durationMinutes)
+    }
+
+    @Test fun unParDeHorasEsDuracionDe120Min() {
+        val result = NaturalTaskParser.parse("Reunión un par de horas", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    // "reunión de dos horas": el conector "de" se elimina junto con la duración,
+    // sin dejar residuo en el título (como ya ocurre con "de 30 min").
+    @Test fun duracionEscritaConConectorDeSeLimpiaDelTitulo() {
+        val result = NaturalTaskParser.parse("Reunión de dos horas", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    // "a las nueve horas" es HORA de un evento, NO duración: el guard
+    // timePhrasePreceding ("a las" antes) debe impedir robar "nueve horas" como
+    // duración. (El parser de horas no lee "nueve" como 9, así que la frase se
+    // conserva en el título; lo importante aquí es que NO se convierta en duración.)
+    @Test fun horasEscritasTrasALasNoSonDuracion() {
+        val result = NaturalTaskParser.parse("Vuelo a las nueve horas", now, zone)
+        assertNull(result.durationMinutes)
+    }
+
+    // "en dos horas" es fecha relativa, NO duración: se consume antes y el guard
+    // "en$" también lo protege. No debe quedar "dos horas" como duración falsa.
+    @Test fun enDosHorasNoEsDuracionEscrita() {
+        val result = NaturalTaskParser.parse("Llamar a Ana en dos horas", now, zone)
+        assertNull(result.durationMinutes)
+    }
+
+    // "recuérdame dos horas antes" es recordatorio, NO duración: el patrón de
+    // recordatorio (con "antes") se consume antes que la duración escrita.
+    @Test fun dosHorasAntesEsRecordatorioNoDuracion() {
+        val result = NaturalTaskParser.parse("Reunión recuérdame dos horas antes", now, zone)
+        assertEquals(120, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
     @Test fun parsesMonthNameDate() {
         val result = NaturalTaskParser.parse("Entregar reporte antes del 5 de agosto", now, zone)
         assertEquals("Entregar reporte", result.title)
