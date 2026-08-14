@@ -66,6 +66,25 @@ class SearchEngineDateScopeTest {
         assertEquals(listOf(4L), ids)
     }
 
+    @Test fun estaSemana_onSundayEndsTodayNotNextWeek() {
+        // Domingo 2026-08-16: la semana termina HOY (domingo), no abarca hasta el
+        // domingo siguiente. Antes del fix, `daysToSunday = 7 - (7 % 7) = 7`
+        // arrastraba tareas de la semana siguiente (id 2, lunes próximo) a
+        // "esta semana". Tras el fix, solo queda lo de hoy (id 1); la atrasada
+        // (id 3) se excluye del rango "esta semana" (tiene su propio filtro
+        // "atrasadas"), igual que en el caso del jueves ya cubierto.
+        val zone = java.time.ZoneId.systemDefault()
+        val sundayLocal = java.time.LocalDate.of(2026, 8, 16) // domingo
+        val t0 = java.time.ZonedDateTime.of(sundayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy domingo", dueAt = t0),
+            TaskEntity(id = 2, title = "Lunes que viene", dueAt = java.time.ZonedDateTime.of(sundayLocal.plusDays(1).atTime(9, 0), zone).toInstant().toEpochMilli()),
+            TaskEntity(id = 3, title = "Atrasada", dueAt = java.time.ZonedDateTime.of(sundayLocal.minusDays(3).atTime(9, 0), zone).toInstant().toEpochMilli())
+        )
+        val ids = SearchEngine.search("esta semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
     @Test fun completedTasksAreExcludedFromDateScopes() {
         val completedToday = TaskEntity(id = 10, title = "Ya hecha", dueAt = now, completed = true)
         val all = tasks + completedToday

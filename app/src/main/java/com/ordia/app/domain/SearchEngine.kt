@@ -167,7 +167,10 @@ object SearchEngine {
             DateScope.TODAY -> dueDate == today
             DateScope.TOMORROW -> dueDate == today.plusDays(1)
             DateScope.THIS_WEEK -> {
-                val daysToSunday = (7 - today.dayOfWeek.value % 7)
+                // Semana de lunes a domingo (Monday=1..Sunday=7). El `% 7` es
+                // crítico en domingo: `(7 - 7) % 7 = 0` → la semana termina HOY.
+                // Sin él, `7 - (7 % 7) = 7` arrastraba la semana siguiente.
+                val daysToSunday = (7 - today.dayOfWeek.value) % 7
                 val endOfWeek = today.plusDays(daysToSunday.toLong())
                 !dueDate.isBefore(today) && !dueDate.isAfter(endOfWeek)
             }
