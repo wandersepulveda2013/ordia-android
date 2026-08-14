@@ -1031,6 +1031,29 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // ── "el día de mañana/hoy": pleonasmo coloquial de "mañana/hoy" ──
+    // La frase completa debe consumirse; antes el borrado de "mañana"/"hoy" dejaba el
+    // residuo "el día de" en el título (p. ej. "reunión el día de" en vez de "reunión"),
+    // que es contenido capturado degradado (P1: integridad de datos).
+
+    @Test fun elDiaDeMananaNoDejaResiduoEnTitulo() {
+        val result = NaturalTaskParser.parse("reunión el día de mañana", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elDiaDeHoyNoDejaResiduoEnTitulo() {
+        val result = NaturalTaskParser.parse("reunión el día de hoy", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun paraElDiaDeMananaNoDejaResiduoEnTitulo() {
+        val result = NaturalTaskParser.parse("reunión para el día de mañana", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun explicitTimeOverridesPartOfDayCanonicalTime() {
         val result = NaturalTaskParser.parse("Pagar factura esta noche a las 22:15", now, zone)
         assertEquals(LocalTime.of(22, 15), DateRules.toLocalTime(result.dueAt!!, zone))
@@ -3334,6 +3357,16 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // "primeros de mes": variante coloquial de "principios de mes" (vencimientos
+    // financieros: alquiler, tarjeta, servicios). Antes caía a dueAt=null →
+    // vencimiento olvidado. Se resuelve igual que "principios de mes" (día 1).
+
+    @Test fun primerosDeMesVarianteDePrincipios() {
+        val result = NaturalTaskParser.parse("pagar a primeros de mes", now, zone)
+        assertEquals("pagar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "la quincena" / "primera quincena" / "segunda quincena": hito financiero ---
     // La quincena es el hito de cobro/nómina/pago: dos por mes, el día 15 (primera) y el
     // fin de mes (segunda). Antes "cobro de la quincena" caía a dueAt=null → vencimiento
@@ -3613,6 +3646,15 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Entrega la semana que viene", now, zone)
         assertEquals("Entrega", result.title)
         assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "a fin de la semana": plazo = fin de la semana actual (próximo domingo).
+    // Sinónimo coloquial de "esta semana". Antes caía a dueAt=null → olvido.
+
+    @Test fun finDeLaSemanaResuelveProximoDomingo() {
+        val result = NaturalTaskParser.parse("Entregar a fin de la semana", now, zone)
+        assertEquals("Entregar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
     // --- "principios de semana": plazo blando al lunes más cercano (hoy/futuro) ---

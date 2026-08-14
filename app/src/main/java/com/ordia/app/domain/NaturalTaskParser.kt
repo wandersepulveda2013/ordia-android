@@ -320,7 +320,7 @@ object NaturalTaskParser {
      */
     private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
     private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?mediados?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
-    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?principios?\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
+    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|primeros?)\s+(?:de\s+|del\s+)(?:pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|pr[oó]ximo|pr[oó]xima))?\b""")
     /**
      * "la quincena" / "de la quincena" / "primera quincena" / "segunda quincena":
      * hito financiero mensual (cobro, nómina, pago). La "primera quincena" es el día
@@ -346,7 +346,7 @@ object NaturalTaskParser {
      * para que "semana" no active "semana que viene" y para limpiar "esta semana que
      * viene" (frase confusa que el usuario usa como sinónimo de "esta semana").
      */
-    private val thisWeekPattern = Regex("""(?i)\besta\s+semana(?:\s+que\s+viene)?\b""")
+    private val thisWeekPattern = Regex("""(?i)\b(?:esta\s+semana(?:\s+que\s+viene)?|(?:a\s+)?fin(?:es)?\s+de\s+la\s+semana)\b""")
     /**
      * "principios de semana" / "a principios de semana": plazo blando de "a inicios de
      * la semana" (el lunes). Frases cotidianas ("lo termino a principios de semana") que
@@ -1660,6 +1660,14 @@ object NaturalTaskParser {
             .let { value -> primeraHoraPattern.replace(value, " ") }
             .let { value -> ultimaHoraPattern.replace(value, " ") }
             .let { value -> alFinalDelDiaPattern.replace(value, " ") }
+            // "el día de mañana"/"el día de hoy"/"para el día de mañana": forma
+            // pleonástica coloquial de "mañana"/"hoy". El borrado genérico de abajo
+            // consume sólo la palabra "mañana"/"hoy" y deja el residuo "el día de"
+            // en el título (p. ej. "reunión el día de" en vez de "reunión"), que es
+            // contenido capturado degradado (P1: integridad de datos). Se consume la
+            // frase completa primero; el resto del regex sigue borrando los tokens
+            // sueltos ("hoy"/"ayer"/"anteayer"/"pasado mañana"/"antepasado mañana").
+            .replace(Regex("""(?i)\b(?:para\s+)?(?:el|del)\s+d[ií]a\s+de\s+(?:ma[nñ]ana|hoy)\b"""), " ")
             .replace(Regex("""(?i)\bantepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b"""), " ")
             .let { value -> weekdayPattern.replace(value, " ") }
             .let { value -> weekendPattern.replace(value, " ") }
