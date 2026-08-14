@@ -5246,4 +5246,69 @@ class NaturalTaskParserTest {
         assertEquals("informe sobre el cliente", result.title)
         assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    // --- Ordinales numéricos en fechas: "1ro de septiembre", "2do de cada mes", "1º del mes"
+    // Antes el sufijo ("ro"/"º") rompía los patrones de fecha (\d+espacio) y la fecha se
+    // perdía o el título quedaba mutilado ("pago º de septiembre"). Ahora se normaliza a su
+    // dígito base SOLO en contexto de fecha (" de "/" del ") para reutilizar todo el flujo.
+    @Test fun ordinalNumericSuffixParsesAsDate() {
+        val result = NaturalTaskParser.parse("pago el 1ro de septiembre", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 9, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ordinalSymbolParsesAsDate() {
+        val result = NaturalTaskParser.parse("pago el 1º de septiembre", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 9, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ordinalSuffixMonthlyRecurrence() {
+        val result = NaturalTaskParser.parse("renta el 2do de cada mes", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ordinalSuffixDelMes() {
+        val result = NaturalTaskParser.parse("cita el 5to del mes a las 10", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // Ordinales de contenido (no fecha) NO deben agendarse: no hay " de [mes]" tras el
+    // sufijo, así que la normalización no aplica y no se genera una falsa fecha.
+    @Test fun ordinalContentWordNotScheduled() {
+        val result = NaturalTaskParser.parse("ver el 3er capítulo", now, zone)
+        assertEquals("ver el 3er capítulo", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun ordinalContentPisoNotScheduled() {
+        val result = NaturalTaskParser.parse("comprar 2do piso del edificio", now, zone)
+        assertEquals("comprar 2do piso del edificio", result.title)
+        assertNull(result.dueAt)
+    }
+
+    // "el 15 de este mes": ancla al día 15 del mes actual (julio→agosto, 15 ya pasó el 29/7).
+    @Test fun dayOfMonthDeEsteMes() {
+        val result = NaturalTaskParser.parse("reunión el 15 de este mes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dayOfMonthDeEsteMesWithDiaWord() {
+        val result = NaturalTaskParser.parse("reunión el día 15 de este mes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "el 15 de este proyecto" NO es fecha: "de este" restringido a "de este mes" evita el
+    // falso positivo que agendaría una cita inexistente con texto de proyecto.
+    @Test fun deEsteMesNotMatchingDeEsteProyecto() {
+        val result = NaturalTaskParser.parse("reunión el 15 de este proyecto", now, zone)
+        assertEquals("reunión el 15 de este proyecto", result.title)
+        assertNull(result.dueAt)
+    }
 }

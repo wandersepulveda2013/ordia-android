@@ -412,8 +412,24 @@ object NaturalTaskParser {
     // aplicaba a HOY → la cita se programaba hoy en vez del día 15 (P1: día erróneo,
     // reunión perdida). El lookahead negativo evita colisionar con "el 15 de marzo" (lo
     // resuelve monthNameDate) y "el 15 de cada mes" (recurrencia mensual): no se admite
-    // "de <palabra>" tras el número salvo la fórmula "del mes".
-    private val dayOfMonthPattern = Regex("""(?i)\bel\s+(?:d[ií]a\s+)?(\d{1,2})(?:\s+del?\s+mes)?\b(?!\s*de\s+[a-záéíóúüñ])""")
+    // "de <palabra>" tras el número salvo la fórmula "del mes"/"de este mes".
+    private val dayOfMonthPattern = Regex("""(?i)\bel\s+(?:d[ií]a\s+)?(\d{1,2})(?:\s+(?:del?\s+mes|de\s+este\s+mes))?\b(?!\s*de\s+[a-záéíóúüñ])""")
+
+    /**
+     * Sufijos ordinales numéricos del español ("1ro", "2do", "3er", "4to", "5to", "7mo",
+     * "8vo", "9no", "10mo" y los símbolos "1º"/"2ª") escritos pegados al dígito y seguidos
+     * del conector de fecha " de ". Son marcadores de fecha cotidianísimos en LATAM ("pago
+     * el 1ro de septiembre", "entrega el 2do de cada mes", "vence el 1º de este mes") pero
+     * el sufijo rompía los patrones de fecha (\d{1,2} exige dígito seguido de espacio, así
+     * que "1ro de" dejaba "ro" como residuo y la fecha se perdía o el título quedaba
+     * mutilado: "pago º de septiembre"). Se normaliza a su dígito base SOLO cuando va
+     * seguido de " de " (contexto de fecha inequívoco): así "el 1ro de septiembre" → "el 1
+     * de septiembre" reutiliza TODO el flujo existente, mientras que "ver el 3er capítulo"
+     * o "comprar 2do piso" (ordinales de contenido sin " de ") NO se tocan y no generan
+     * falsas fechas. "primero" escrito no se normaliza: "primer capítulo"/"segunda opción"
+     * son contenido, no fecha.
+     */
+    private val ordinalSuffixPattern = Regex("""(?i)\b(\d{1,2})(?:ro|do|er|to|mo|vo|no|º|ª)(\s+del?\s+)""")
     /**
      * Nombres de hora escritos en español (dos..veintiuno), ordenados de mayor a menor
      * longitud para que la alternación regex no se quede con un prefijo ("tres" dentro de
@@ -823,6 +839,11 @@ object NaturalTaskParser {
         working = working
             .replace(Regex("""(?i)\bantenoche\b"""), "anteayer noche")
             .replace(Regex("""(?i)\banoche\b"""), "ayer noche")
+
+        // Ordinales numéricos: "1ro"/"2do"/"3er"/"1º"… seguidos de " de " se normalizan a
+        // su dígito base para que los patrones de fecha (que exigen \d seguido de espacio)
+        // los reconozcan. Solo en contexto de fecha (" de ") para no tocar contenido.
+        working = ordinalSuffixPattern.replace(working) { m -> m.groupValues[1] + m.groupValues[2] }
 
         // Hora aproximada: el usuario capta una hora sin precisión exacta ("llamar a eso
         // de las 5", "reunión sobre las 3 de la tarde", "pasa hacia las 4", "llego cerca

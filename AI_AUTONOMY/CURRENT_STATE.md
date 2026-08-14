@@ -331,3 +331,23 @@ antes del "y", así que no casaba. Resultado:
 - **Próxima prioridad**: continuar descubrimiento de frases cotidianas del parser y auditar
   producto (captura ultrarrápida, What Now, recuperación de vencidas, inbox inteligente).
 
+---
+
+## Ciclo 131 - 2026-08-14 (UTC) - feat(parser): ordinales de fecha "1ro/2do/3er/1º" + "día N de este mes" (P2 captura olvidada + integridad de título)
+
+- **Run/ciclo**: 131 (rama `openhands/autonomous-ordia`). Base sincronizada: `git fetch` + `git pull --ff-only` limpio. HEAD inicial = `26f4be6` (c.130 "hora aproximada"). Sin divergencia.
+- **Problema seleccionado (P2 → captura olvidada + integridad de título)**: dos gaps léxicos del parser confirmados ABIERTOS en BACKLOG (c.129 probe):
+  1. **"pago el 1º de septiembre"** dejaba el título **mutilado** `pago º de septiembre` (fecha resuelta, contenido corrompido); **"pagar el 1ro de septiembre"/"renta el 2do de cada mes"** → `dueAt=null` (cita olvidada). Los sufijos ordinales ("1ro"/"2do"/"3er"/"5to"/"7mo"/"8vo"/"9no"/"10mo" y símbolos "1º"/"2ª") rompían los patrones de fecha (`\d{1,2}` exige dígito seguido de espacio).
+  2. **"reunión el 15 de este mes"** → `dueAt=null`. Asimetría: "el 15" (día suelto) SÍ funcionaba.
+- **Causa raíz**: (1) ningún paso normalizaba el sufijo ordinal a su dígito base → "1ro" dejaba "ro" como residuo; (2) `dayOfMonthPattern` no reconocía "de este mes"/"del mes".
+- **Solución (mínima, `NaturalTaskParser.kt`, sin nueva pantalla/botón, sin lógica nueva)**:
+  - `ordinalSuffixPattern = (?i)\b(\d{1,2})(?:ro|do|er|to|mo|vo|no|º|ª)(\s+del?\s+)` normaliza el ordinal a su dígito base **SOLO** cuando va seguido del conector de fecha " de "/" del " (contexto inequívoco), conservando el conector. "el 1ro de septiembre"→"el 1 de septiembre" reutiliza TODO el flujo existente. Se aplica tras `anoche` y antes de `lower`/`approximateTimePatterns`.
+  - **Anti-falso-positivo clave**: el conector " de "/" del " requerido evita agendar contenido como "ver el 3er capítulo"/"comprar 2do piso"/"1ª edición". Descubierto DURANTE el run: la primera versión (normalización incondicional) agendaba "ver el 3er capítulo" como fecha espuria → endurecido al contexto de fecha.
+  - `dayOfMonthPattern` añade `(?:\s+(?:del?\s+mes|de\s+este\s+mes))?` como calificador de mes actual, con `negative lookahead` que rechaza "de <mes-nombrado>"/"de cada mes"/"de este proyecto". "de este" restringido a "de este mes".
+- **Tests**: `bash tools/run_domain_tests.sh` → **940 PASS** (931 c.130 + 9). `bash tools/run_domain_checks.sh` → smoke 25 OK. +9 tests (`ordinalNumericSuffixParsesAsDate`→09-01, `ordinalSymbolParsesAsDate`→09-01, `ordinalSuffixMonthlyRecurrence`→MONTHLY 08-02, `ordinalSuffixDelMes`→MONTHLY 08-05 10:00, `ordinalContentWordNotScheduled`/`ordinalContentPisoNotScheduled` guards, `dayOfMonthDeEsteMes`→08-15, `dayOfMonthDeEsteMesWithDiaWord`→08-15, `deEsteMesNotMatchingDeEsteProyecto` guard). Probe JVM 25 casos verde (fixes + guards: "3er capítulo"/"2do piso"/"1ª edición" intactos, "el 15 de este proyecto" intacto, recurrencias mensuales con ordinal correctas).
+- **Features**: 0 (corrección de integridad de captura existente — más potencia sin nueva interfaz, sin fingir IA).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Estado**: FIXED → VERIFIED (dominio JVM: 940 tests, 0 failures).
+- **Próxima prioridad**: gap P2 ABIERTO "día N" sin artículo ("pago día 15"→null, evaluar falso positivo); descubrimiento continuo en áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA.
+
