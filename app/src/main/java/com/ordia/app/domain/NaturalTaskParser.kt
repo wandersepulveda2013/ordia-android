@@ -690,6 +690,21 @@ object NaturalTaskParser {
         Regex("""(?i)\b(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\b""")
 
     /**
+     * Duración fraccionaria COMPUESTA: "2 horas y media" (150 min), "1 hora y media"
+     * (90), "3 horas y cuarto" (195), "dos horas y media". Antes solo se capturaba la
+     * parte entera: el patrón "N horas" robaba "2 horas" (→ 120) y dejaba "y media"
+     * como residuo en el título ("Estudiar y media"), subestimando la duración real que
+     * usan el planificador, la carga del día y "What Now". Simétrico de
+     * [compoundFractionalRelativePattern] ("en una hora y media"), que sí resolvía la
+     * fracción entera para fechas relativas. La cantidad admite dígitos o número
+     * escrito (vía [writtenAmountPattern]); se procesa con los mismos guards que la
+     * duración numérica para no robar "a las 2 ... horas" (hora de un evento) ni "en 2
+     * horas y media" (fecha relativa, ya consumida antes en el flujo).
+     */
+    private val compoundFractionalDurationPattern =
+        Regex("""(?i)\b($writtenAmountPattern)\s*horas?\s+y\s+(media|cuarto)\b""")
+
+    /**
      * Rango horario "de H1[MM] [meridiem] a H2[MM] [meridiem] [horas]" (citas, clases,
      * reuniones con ventana). Implica duración = (fin − inicio) en minutos y se elimina
      * del título. Cada extremo admite minutos (`9:30`) y meridiem (`9am`, `9 de la tarde`)
@@ -2051,8 +2066,25 @@ object NaturalTaskParser {
         // Duración fraccionaria sin dígitos ("media hora"/"cuarto de hora"): se computa
         // aparte y se elige la ocurrencia más a la izquierda respecto a las demás.
         val fractionalMatch = fractionalDurationPattern.find(working)
+        // Duración fraccionaria COMPUESTA ("2 horas y media"/"dos horas y cuarto"):
+        // mismos guards que la duración numérica/escrita. Captura la frase completa
+        // (incluida la fracción) para que no quede "y media" como residuo en el título.
+        val compoundFractionalDurationMatch = compoundFractionalDurationPattern.find(working)?.takeIf { match ->
+            !Regex("""(?i)\ben\s*$""").containsMatchIn(working.substring(0, match.range.first)) &&
+            !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first))
+        }
         val durationMinutes = when {
             rangeDurationMinutes != null -> rangeDurationMinutes
+            compoundFractionalDurationMatch != null &&
+                (durationMatch == null || compoundFractionalDurationMatch.range.first <= durationMatch.range.first) &&
+                (writtenMatch == null || compoundFractionalDurationMatch.range.first <= writtenMatch.range.first) &&
+                (fractionalMatch == null || compoundFractionalDurationMatch.range.first <= fractionalMatch.range.first) -> {
+                val amount = compoundFractionalDurationMatch.groupValues[1].let {
+                    it.toIntOrNull() ?: parseWrittenNumber(it)?.toInt()
+                }
+                val fraction = compoundFractionalDurationMatch.groupValues[2].lowercase()
+                amount?.let { (it * 60 + if (fraction.startsWith("media")) 30 else 15).coerceIn(5, 24 * 60) }
+            }
             durationMatch != null && (fractionalMatch == null ||
                 durationMatch.range.first <= fractionalMatch.range.first) &&
                 (writtenMatch == null || durationMatch.range.first <= writtenMatch.range.first) -> {
@@ -2085,6 +2117,11 @@ object NaturalTaskParser {
             durationMatch?.let { match -> add(connectorRange(working, match.range, match.range.first)) }
             writtenMatch?.let { match -> add(connectorRange(working, match.range, match.range.first)) }
             fractionalMatch?.let { match -> add(connectorRange(working, match.range, match.range.first)) }
+            // La duración compuesta abarca "N horas" + fracción; se blanquea entera para
+            // no dejar "y media" como residuo. Su rango contiene al de durationMatch/
+            // writtenMatch (mismo inicio, mayor extensión), así que la deduplicación por
+            // solapamiento conservará solo este (el exterior) en la práctica.
+            compoundFractionalDurationMatch?.let { match -> add(connectorRange(working, match.range, match.range.first)) }
         }
         // Varias coincidencias pueden anidarse: con el keyword "duración 30 minutos",
         // [durationMatch] casa toda la frase ("duración 30 minutos") Y el patrón

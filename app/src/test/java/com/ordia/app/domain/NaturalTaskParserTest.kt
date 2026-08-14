@@ -895,6 +895,51 @@ class NaturalTaskParserTest {
             result.title.contains("dos horas"))
     }
 
+    // --- Duración fraccionaria compuesta (ciclo actual) ---
+    // "2 horas y media"/"1 hora y media"/"3 horas y cuarto": antes el patrón "N horas"
+    // robaba solo la parte entera (2 horas → 120) y dejaba "y media" como residuo en el
+    // título, subestimando la duración real (150) que usa el planificador y "What Now".
+    // Simétrico del "en una hora y media" (fecha relativa) que SÍ se resolvía entero.
+    @Test fun dosHorasYMediaEsDuracionDe150Min() {
+        val result = NaturalTaskParser.parse("Estudiar 2 horas y media", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(150, result.durationMinutes)
+    }
+
+    @Test fun unaHoraYMediaEsDuracionDe90Min() {
+        val result = NaturalTaskParser.parse("Reunión de 1 hora y media", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(90, result.durationMinutes)
+    }
+
+    @Test fun tresHorasYCuartoEsDuracionDe195Min() {
+        val result = NaturalTaskParser.parse("Trabajo 3 horas y cuarto", now, zone)
+        assertEquals("Trabajo", result.title)
+        assertEquals(195, result.durationMinutes)
+    }
+
+    @Test fun dosHorasYMediaEscritasEsDuracionDe150Min() {
+        val result = NaturalTaskParser.parse("Estudiar dos horas y media", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(150, result.durationMinutes)
+    }
+
+    @Test fun duracionFraccionCompuestaConFechaNoInterfiere() {
+        val result = NaturalTaskParser.parse("Estudiar 2 horas y media para el viernes", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(150, result.durationMinutes)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // La fecha relativa "en 2 horas y media" ya se resuelve como vencimiento (no duración):
+    // el patrón compuesto de duración NO debe robarla cuando va con prefijo "en".
+    @Test fun relativaCompuestaNoSeLeeComoDuracion() {
+        val result = NaturalTaskParser.parse("Revisar el horno en 2 horas y media", now, zone)
+        assertEquals("Revisar el horno", result.title)
+        assertEquals(now + 150 * 60_000L, result.dueAt)
+        assertNull("La fecha relativa no debe leerse como duración", result.durationMinutes)
+    }
+
     // "a las nueve horas" es HORA de un evento, NO duración: el guard
     // timePhrasePreceding ("a las" antes) debe impedir robar "nueve horas" como
     // duración. (El parser de horas no lee "nueve" como 9, así que la frase se
