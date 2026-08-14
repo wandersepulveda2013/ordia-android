@@ -4394,6 +4394,69 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "el último <día> del mes": último día de la semana del mes (vencimientos
+    // mensuales como pago/alquiler/informe). Antes "el último viernes del mes" caía en
+    // el viernes PASADO (previousWeekday) y "del mes" quedaba como residuo en el título:
+    // el plazo se programaba en el PASADO (vencido/invisible) y el título se corrompía.
+    // P1: vencimiento mensual programado ~3 semanas antes y oculto. ---
+
+    @Test fun ultimoViernesDelMesResuelveUltimoViernesDelMes() {
+        // hoy = miércoles 2026-07-29 -> último viernes de julio = 2026-07-31.
+        val result = NaturalTaskParser.parse("Pagar el último viernes del mes", now, zone)
+        assertEquals("Pagar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimoLunesDelMesResuelveUltimoLunesDelMes() {
+        // hoy = miércoles 2026-07-29. Último lunes de julio = 2026-07-27 (PASADO); como
+        // los vencimientos no se programan en el pasado, rueda al último lunes de
+        // agosto = 2026-08-31.
+        val result = NaturalTaskParser.parse("Reunión el último lunes del mes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimoSabadoDeEsteMesResuelveUltimoSabadoDelMes() {
+        // "de este mes" = mes actual (julio); último sábado de julio = 2026-07-25
+        // (PASADO respecto al 29-jul). Rueda al último sábado de agosto = 2026-08-29:
+        // un vencimiento pasado sería invisible/inútil (la clase exacta de bug que se
+        // corrige). Consistente con el resto del parser (nunca agenda en el pasado).
+        val result = NaturalTaskParser.parse("Cita el último sábado de este mes", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimoViernesDelMesQueVieneResuelveUltimoViernesMesSiguiente() {
+        // último viernes de agosto = 2026-08-28.
+        val result = NaturalTaskParser.parse("Pago el último viernes del mes que viene", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimoViernesDelProximoMesResuelveUltimoViernesMesSiguiente() {
+        // variante "del próximo mes" = mes siguiente; último viernes de agosto = 2026-08-28.
+        val result = NaturalTaskParser.parse("Pago el último viernes del próximo mes", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimoViernesDelMesRespetaHoraExplicita() {
+        // la hora explícita se aplica sobre la fecha resuelta (último viernes de julio,
+        // 2026-07-31, que aún está en el futuro respecto al 29-jul).
+        val result = NaturalTaskParser.parse("Pago el último viernes del mes a las 18", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun ultimoViernesDelMesNoColisionaConUltimoViernesPasado() {
+        // "el último viernes" (SIN "del mes") sigue siendo el viernes pasado = 2026-07-24
+        // (referencia al viernes que ya ocurrió, distinto del anclaje mensual).
+        val result = NaturalTaskParser.parse("Pagar el último viernes", now, zone)
+        assertEquals("Pagar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 24), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "esta semana": plazo blando = fin de la semana actual (próximo domingo) ---
 
     @Test fun estaSemanaParsesDueAtProximoDomingo() {

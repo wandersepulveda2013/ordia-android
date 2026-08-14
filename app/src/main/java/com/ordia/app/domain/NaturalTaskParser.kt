@@ -88,6 +88,22 @@ object NaturalTaskParser {
     private val previousWeekdayReversedPattern = Regex("""(?i)\b(?:el|del|de)\s+(?:último|ultimo|pasado|anterior)\s+([a-záéíóúüñ]+)\b""")
 
     /**
+     * "el último viernes del mes [que viene|próximo|...]": último día de la semana
+     * objetivo dentro del mes (vencimientos mensuales: pago/alquiler/informe). Se
+     * procesa ANTES que previousWeekdayReversedPattern, que robaría "el último viernes"
+     * como viernes PASADO dejando "del mes" como residuo en el título y programando el
+     * vencimiento ~3 semanas en el pasado (vencido/invisible). Grupo 1 = día de la
+     * semana. El mes destino (actual vs. siguiente) se infiere del texto casado por si
+     * contiene "que viene"/"próximo"/etc. (igual que monthBaseForBoundary).
+     */
+    private val lastWeekdayOfMonthPattern = Regex(
+        """(?i)\b(?:el|del|de)\s+(?:último|ultimo)\s+""" +
+            """(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+""" +
+            """(?:del\s+(?:mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]xim[oa]|entrante))?|""" +
+            """(?:que\s+viene|que\s+entra|pr[oó]xim[oa]|entrante)\s+mes)|de\s+este\s+mes)\b"""
+    )
+
+    /**
      * Fecha relativa VAGA de futuro cotidiano: "en/dentro de/de aquí a/de acá a un rato",
      * "en/dentro de un momento", "al rato", "pasado un rato", "enseguida"/"en seguida" (adverbio de inmediatez, sin "un rato"). Forma coloquial frecuente que
      * antes no casaba ningún patrón → dueAt=null y la tarea quedaba sin recordatorio (olvidada,
@@ -1281,6 +1297,41 @@ object NaturalTaskParser {
             now - days * 24 * 60 * 60_000L
         }
         lastPeriodMatch?.let { working = working.replaceRange(it.range, " ") }
+
+        // "el último viernes del mes [que viene|próximo]": último día de la semana del
+        // mes (vencimientos mensuales). Se procesa ANTES que previousWeekday para
+        // consumir la frase completa ("el último viernes del mes") y evitar que
+        // previousWeekdayReversed robe "el último viernes" como viernes pasado dejando
+        // "del mes" como residuo y programando el vencimiento en el pasado.
+        val lastWeekdayOfMonthMatch = lastWeekdayOfMonthPattern.find(working)
+            ?.takeIf { it.groupValues[1].toDayOfWeekOrNull() != null }
+        val lastWeekdayOfMonthDueAt = lastWeekdayOfMonthMatch?.let { m ->
+            val target = m.groupValues[1].toDayOfWeek()
+            val isNext = m.value.lowercase().let { t ->
+                t.contains("que viene") || t.contains("que entra") ||
+                    t.contains("próxim") || t.contains("proxim") || t.contains("entrante")
+            }
+            val today = base.toLocalDate()
+            // Anclar al mes objetivo (actual o siguiente) y resolver el último día de
+            // la semana objetivo del mes: último día del mes → previousOrSame(target).
+            var monthBase = if (isNext) today.plusMonths(1) else today
+            fun lastWeekdayOf(month: YearMonth): LocalDate =
+                month.atEndOfMonth().with(TemporalAdjusters.previousOrSame(target))
+            var date = lastWeekdayOf(YearMonth.from(monthBase))
+            // Anti-pasado: si el último día objetivo del mes (mes actual, sin
+            // "que viene") YA transcurrió, rueda al mes siguiente (consistente con el
+            // resto del parser: no programa vencimientos en el pasado). Recorre como
+            // máximo 12 meses (el último día objetivo siempre existe en cualquier mes).
+            var guard = 0
+            while (date.isBefore(today) && guard < 12) {
+                monthBase = monthBase.plusMonths(1)
+                date = lastWeekdayOf(YearMonth.from(monthBase))
+                guard++
+            }
+            DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        }
+        lastWeekdayOfMonthMatch?.let { working = working.replaceRange(it.range, " ") }
+
         // "el jueves pasado" / "el último lunes": fecha pasada. Se borra ANTES que
         // weekdayPattern para que el día no se capture como próximo y "pasado" no
         // quede como residuo en el título.
@@ -1593,7 +1644,9 @@ object NaturalTaskParser {
         val effectiveRelativeDueAt =
             agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: vagueRelativeDueAt ?: nowDueAt ?:
             laterRelativeDueAt ?: fractionalAndQuarterRelativeDueAt ?: fractionalRelativeDueAt ?:
-            compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
+            compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?:
+            lastWeekdayOfMonthDueAt ?:
+            monthBoundaryDueAt ?:
             monthBoundaryNameDueAt ?: yearBoundaryDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?: nextMonthDayShortDueAt ?:
@@ -1604,6 +1657,7 @@ object NaturalTaskParser {
             fractionalAndQuarterRelativeMatch != null ||
             compoundFractionalRelativeMatch != null || multiQuarterRelativeMatch != null ||
             monthBoundaryDueAt != null || monthBoundaryNameDueAt != null || yearBoundaryDueAt != null ||
+            lastWeekdayOfMonthMatch != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
             quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null ||
             nextMonthDayShortMatch != null || nextMonthDayShortReverseMatch != null ||
