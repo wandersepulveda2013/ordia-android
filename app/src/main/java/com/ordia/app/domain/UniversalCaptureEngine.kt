@@ -20,8 +20,12 @@ data class CaptureInterpretation(
  * la propuesta. No usa red ni necesita una clave de IA.
  */
 object UniversalCaptureEngine {
-    private val noteCommand = Regex("""(?i)^\s*(guardar\s+esto\s+como\s+nota|nota|idea)\s*[:\-]?\s*""")
-    private val taskCommand = Regex("""(?i)^\s*(crear\s+)?(una\s+)?tarea\s*[:\-]?\s*""")
+    // Los comandos de captura se reconocen como palabras completas (\b): sin el
+    // límite, "ideal"/"idear", "notas", "notario" y "tareas" coincidían por
+    // PREFIJO y la captura mutilaba el texto ("ideal proyecto" → nota "l
+    // proyecto"). La captura nunca debe dañar datos del usuario.
+    private val noteCommand = Regex("""(?i)^\s*(guardar\s+esto\s+como\s+nota|nota|idea)\b\s*[:\-]?\s*""")
+    private val taskCommand = Regex("""(?i)^\s*(crear\s+)?(una\s+)?tarea\b\s*[:\-]?\s*""")
     private val reminderSignal = Regex("""(?i)\b(recu[eé]rdame|recordatorio|av[ií]same|no\s+dejes\s+que\s+olvide)\b""")
     private val taskSignal = Regex("""(?i)\b(tengo\s+que|debo|hay\s+que|llamar|enviar|comprar|pagar|terminar|entregar|responder|reuni[oó]n)\b""")
     private val urlOnly = Regex("""(?i)^https?://\S+$""")
