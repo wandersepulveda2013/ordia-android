@@ -444,6 +444,31 @@ class SummaryEngineTest {
     }
 
     @Test
+    fun deferralSuggestion_atSamePriorityPicksTaskThatFreesMostCapacity() {
+        // now=12:00 → 360 min libres. Forzamos OVERLOADED (390 min > 360). Dos
+        // tareas LOW posponibles (no vencidas, no en curso, no inminentes): una
+        // grande de 120 min (vence 14:00) y una pequeña de 30 min (vence 17:00).
+        // El PROPÓSITO de posponer bajo OVERLOADED es recuperar capacidad para
+        // que el día quepe: posponer la pequeña libera 30 min (sigue saturado,
+        // consejo inútil); posponer la grande libera 120 min (resuelve la
+        // saturación). Debe sugerir la que más capacidad libera aunque venza
+        // antes (la grande apenas cabe con el resto; la pequeña cabe holgada).
+        val tasks = listOf(
+            task(1, dueAt = at(today, 14), durationMinutes = 120, priority = TaskPriority.LOW, title = "Grande"),
+            task(2, dueAt = at(today, 17), durationMinutes = 30, priority = TaskPriority.LOW, title = "Pequena"),
+            task(3, dueAt = at(today, 16), durationMinutes = 120, priority = TaskPriority.NORMAL, title = "A"),
+            task(4, dueAt = at(today, 17), durationMinutes = 120, priority = TaskPriority.NORMAL, title = "B")
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad) // 120+30+120+120 = 390 > 360
+        val sug = s.deferralSuggestion
+        assertEquals(1L, sug?.taskId)
+        assertEquals("Grande", sug?.title)
+    }
+
+    @Test
     fun deferralSuggestion_neverSuggestsOverdueTask() {
         // A las 19:00 (pasado fin de jornada) cualquier trabajo restante satura.
         // Hay una tarea vencida (ayer) y una de hoy NO vencida. La sugerencia

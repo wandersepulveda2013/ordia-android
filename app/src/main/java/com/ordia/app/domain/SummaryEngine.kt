@@ -217,9 +217,14 @@ object SummaryEngine {
      * tarde y posponerlas empeora el retraso— ni (2) una tarea ocurriendo ahora
      * mismo o a punto de empezar (compromiso inminente) —posponer una reunión
      * que arranca en 5 min es un consejo dañino, no ayuda. Entre las de hoy
-     * posponibles, elige la de menor prioridad (LOW antes que NORMAL antes que
-     * HIGH antes que URGENT) y, a igual prioridad, la que vence más tarde hoy
-     * (más margen → más segura de aplazar sin riesgo inminente). No muta nada.
+     * posponibles, ordena por: menor prioridad (LOW antes que NORMAL antes que
+     * HIGH antes que URGENT) → la que MÁS capacidad libera (`plannedDuration`
+     * mayor) → a igual capacidad, la que vence más tarde hoy (más margen → más
+     * segura de aplazar sin riesgo inminente). El criterio de capacidad es
+     * central: el propósito de posponer bajo OVERLOADED es que el día quepa, y
+     * posponer una tarea de 10 min cuando hay una de 120 min de la misma
+     * prioridad deja el día saturado (consejo inútil); posponer la grande
+     * recupera el tiempo que de verdad resuelve la saturación. No muta nada.
      */
     private fun mostDeferrableTask(
         remainingTodayTasks: List<TaskEntity>,
@@ -233,6 +238,7 @@ object SummaryEngine {
         if (deferrable.isEmpty()) return null
         val chosen = deferrable.maxWithOrNull(
             compareBy<TaskEntity> { priorityDeferralWeight(it.priority) }
+                .thenBy { TaskRules.plannedDuration(it) }
                 .thenBy { it.dueAt ?: it.startAt ?: 0L }
         ) ?: return null
         return DeferralSuggestion(taskId = chosen.id, title = chosen.title, canDefer = chosen.dueAt != null)
