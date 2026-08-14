@@ -4246,4 +4246,36 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
         assertEquals("Llamar después del almuerzo", result.title)
     }
+
+    // --- "luego" como sinónimo de "después"/"más tarde" (P1, ciclo 113) ---
+    // "luego" es uso cotidísimo ("avísale luego", "lo hago luego"); antes no casaba
+    // ningún patrón → dueAt=null → tarea sin vencimiento, invisible en What Now y sin
+    // recordatorio programable → olvidada. Ahora se resuelve a +3 h, igual que
+    // "después"/"más tarde", y limpia el título. La exclusión "luego del/de la N"
+    // (dependencia) se respeta, simétrica a "después del/de la N".
+    @Test fun luegoSueltoVenceMasTardeYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Avisar luego", now, zone)
+        assertEquals("Avisar", result.title)
+        assertEquals(now + 3 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun luegoEnFraseVenceMasTardeYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Enviar factura luego", now, zone)
+        assertEquals("Enviar factura", result.title)
+        assertEquals(now + 3 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun luegoDelAlmuerzoNoEsAdverbioSuelto() {
+        // "luego del almuerzo" es dependencia/evento, no adverbio: NO casa.
+        val result = NaturalTaskParser.parse("Llamar luego del almuerzo", now, zone)
+        assertNull(result.dueAt)
+        assertEquals("Llamar luego del almuerzo", result.title)
+    }
+
+    @Test fun luegoDeLaReunionNoEsAdverbioSuelto() {
+        // "luego de la reunión" es dependencia/evento, no adverbio: NO casa.
+        val result = NaturalTaskParser.parse("Avisar luego de la reunión", now, zone)
+        assertNull(result.dueAt)
+        assertEquals("Avisar luego de la reunión", result.title)
+    }
 }

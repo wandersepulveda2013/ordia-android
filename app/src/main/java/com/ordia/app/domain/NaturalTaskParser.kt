@@ -124,9 +124,13 @@ object NaturalTaskParser {
      * aproximando "más tarde" a "esta tarde/más tarde hoy". Heurística honesta, no IA.
      * Excluye "después del/de la N" (dependencia/evento) y "después de N minutos/horas":
      * esos los cubren patrones específicos; aquí solo interesa el adverbio suelto.
+     * "luego" se trata como sinónimo de "después"/"más tarde" (uso cotidísimo; antes
+     * no casaba → tarea sin vencimiento → olvidada), pero se excluye "luego de N" y
+     * "luego del/de la N" (dependencia: "luego del almuerzo") que patrones específicos
+     * u horas explícitas deben resolver. No se combina con hora explícita.
      */
     private val laterRelativePattern = Regex(
-        """(?i)\b(?:(?:m[aá]s\s+(?:tarde|rato)|despu[eé]s)(?!\s+(?:de\b|del\b|de\s+la\b)))\b"""
+        """(?i)\b(?:(?:m[aá]s\s+(?:tarde|rato)|despu[eé]s|luego)(?!\s+(?:de\b|del\b|de\s+la\b)))\b"""
     )
     /**
      * Fecha relativa: "en N minutos/horas/días/semanas/meses/años" o "dentro de N ...".
