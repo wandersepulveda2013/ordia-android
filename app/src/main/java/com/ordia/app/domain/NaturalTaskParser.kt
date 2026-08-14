@@ -114,6 +114,19 @@ object NaturalTaskParser {
         """(?i)\b(?:ahorita|ahora\s+mismo|ahora|lo\s+m[aá]s\s+(?:pronto|temprano)\s+posible|lo\s+antes\s+posible|cuanto\s+antes|a\s+la\s+brevedad)\b"""
     )
     /**
+     * "Más tarde"/"más rato"/"después" (con o sin tilde, suelto o "más tarde de N"):
+     * adverbios cotidianísimos de "luego, no ahora pero hoy mismo". Antes NO casaban
+     * ningún patrón → dueAt=null → tarea SIN vencimiento, invisible en "What Now"/
+     * planificador, sin recordatorio → olvidada (P1). Se resuelve a +3 h: un
+     * intervalo mayor que el de las vagas ("un rato"=+1 h) y que no es "ya" (ahora),
+     * aproximando "más tarde" a "esta tarde/más tarde hoy". Heurística honesta, no IA.
+     * Excluye "después del/de la N" (dependencia/evento) y "después de N minutos/horas":
+     * esos los cubren patrones específicos; aquí solo interesa el adverbio suelto.
+     */
+    private val laterRelativePattern = Regex(
+        """(?i)\b(?:(?:m[aá]s\s+(?:tarde|rato)|despu[eé]s)(?!\s+(?:de\b|del\b|de\s+la\b)))\b"""
+    )
+    /**
      * Fecha relativa: "en N minutos/horas/días/semanas/meses/años" o "dentro de N ...".
      * Acepta dígitos o números escritos (una/un, dos, ..., veinte, treinta). "una"/"un" → 1.
      * Las semanas (×7 días), meses (×30 días) y años (×365 días) son formas muy
@@ -720,13 +733,20 @@ object NaturalTaskParser {
         val vagueRelativeDueAt = vagueRelativeMatch?.let { now + 60 * 60_000L }
         vagueRelativeMatch?.let { working = working.replace(it.value, " ") }
 
-        // "Ahora" inmediato ("ahora mismo"/"ahorita"/"enseguida"/"lo antes posible"/...)
+        // "Ahora" inmediato ("ahora mismo"/"ahorita"/"lo antes posible"/...)
         // → vence ahora: la tarea sale a la superficie en "What Now" y puede recordar.
         // Se procesa después de [vagueRelativePattern] (por si una frase los combina)
         // y consume la frase completa para no dejar residuo en el título.
         val nowMatch = nowPattern.find(working)
         val nowDueAt = nowMatch?.let { now }
         nowMatch?.let { working = working.replace(it.value, " ") }
+
+        // "Más tarde"/"más rato"/"después" (adverbio suelto, sin "de/del/de la" detrás)
+        // → +3 h: aproxima "más tarde" a "esta tarde". Se procesa tras now/vague para no
+        // robarles sus frases y consume la frase para dejar el título limpio.
+        val laterRelativeMatch = laterRelativePattern.find(working)
+        val laterRelativeDueAt = laterRelativeMatch?.let { now + 3 * 60 * 60_000L }
+        laterRelativeMatch?.let { working = working.replace(it.value, " ") }
 
         // Fecha relativa "en/dentro de N minutos/horas/días" (N = dígitos o palabra).
         val relativeMatch = relativePattern.find(working)
@@ -1028,7 +1048,7 @@ object NaturalTaskParser {
         // aplica sobre la fecha pasada (tarea vencida con hora).
         val effectiveRelativeDueAt =
             agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: vagueRelativeDueAt ?: nowDueAt ?:
-            fractionalAndQuarterRelativeDueAt ?: fractionalRelativeDueAt ?:
+            laterRelativeDueAt ?: fractionalAndQuarterRelativeDueAt ?: fractionalRelativeDueAt ?:
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?:

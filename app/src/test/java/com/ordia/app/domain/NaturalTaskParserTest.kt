@@ -3996,4 +3996,41 @@ class NaturalTaskParserTest {
         assertEquals("Empezar", result.title)
         assertEquals(now, result.dueAt)
     }
+
+    @Test fun masTardeVenceMasTardeYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Llamar a mamá más tarde", now, zone)
+        assertEquals("Llamar a mamá", result.title)
+        assertEquals(now + 3 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun masRatoVenceMasTardeYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Revisar correo más rato", now, zone)
+        assertEquals("Revisar correo", result.title)
+        assertEquals(now + 3 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun despuesSueltoVenceMasTardeYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Enviar factura después", now, zone)
+        assertEquals("Enviar factura", result.title)
+        assertEquals(now + 3 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun despuesSinTildeVenceMasTardeYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Enviar factura despues", now, zone)
+        assertEquals("Enviar factura", result.title)
+        assertEquals(now + 3 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun masTardeSinTildeVenceMasTardeYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Llamar a Ana mas tarde", now, zone)
+        assertEquals("Llamar a Ana", result.title)
+        assertEquals(now + 3 * 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun despuesDelAlmuerzoNoEsAdverbioSuelto() {
+        // "después del almuerzo" es dependencia/evento, no adverbio "luego": NO casa.
+        val result = NaturalTaskParser.parse("Llamar después del almuerzo", now, zone)
+        assertNull(result.dueAt)
+        assertEquals("Llamar después del almuerzo", result.title)
+    }
 }
