@@ -4035,8 +4035,8 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
   `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
   `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **Commits**: pendiente (ver abajo).
-- **HEAD final**: (pendiente de commit/push).
+- **Commits**: `c62c056` (`fix(parser): \"próximo\" sin tilde dicho hoy=ese día ya no cae en HOY (P1)`).
+- **HEAD final**: `c62c056` (push OK a `openhands/autonomous-ordia`).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**:
   - Auditar otros chequeos de string acento-sensibles en el parser (p.ej. "qué viene",
