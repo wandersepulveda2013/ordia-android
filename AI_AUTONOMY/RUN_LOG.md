@@ -4588,17 +4588,57 @@ a un permiso persistente frágil y silencioso ante fallos.
   `cadaFindeSigueSiendoHabitoSemanalFinDeSemana`, `losFindesSigueSiendoHabitoSemanalFinDeSemana`.
   Comando: `bash tools/run_domain_tests.sh` → **685 tests PASS** (681 + 4). Smoke:
   `bash tools/run_domain_checks.sh` → **25 OK**. Sin regresión.
-- **Hallazgo adicional (ABIERTO, P2)**: "cada fin de semana" (forma larga + "cada") sigue
+- **Hallazgo adicional (RESUELTO c.100)**: "cada fin de semana" (forma larga + "cada") seguía
   dando `rec=NONE` (debería WEEKLY 6,7). Preexistente (verificado con git stash: idéntico en
-  `5043282` sin mis cambios). "cada finde" (apócope) SÍ es hábito; la forma larga no casa
-  `weekendRecurrencePattern`. Añadido al BACKLOG como P2 abierto.
+  `5043282` sin mis cambios). "cada finde" (apócope) SÍ era hábito; la forma larga no casaba
+  `weekendRecurrencePattern`. Resuelto en c.100 (FIXED → VERIFIED).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
+  `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
+  `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: `b20a9e6` (fix(parser): "el día N" → día de mes resuelto + título limpio, c.99 → c.100).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: BACKLOG-NEW "cada fin de semana" → WEEKLY (P2, extensión de
+  `weekendRecurrencePattern`); continuar descubrimiento de frases cotidianas del parser
+  ("cita en media hora y cuarto" BACKLOG-16; adjetivos de cadencia desnudos P2);
+  auditoría de captura/búsqueda/What Now para oportunidades de producto.
+
+## Ciclo 100 — 2026-08-14
+
+- **HEAD inicial**: `b20a9e6` (c.99 fix singular "este finde" → fecha; push remoto OK).
+- **Problema seleccionado**: P2 Parser — "cada fin de semana" (forma larga + "cada") caía a
+  `rec=NONE` (debería WEEKLY 6,7), descubierto en c.99 como hallazgo abierto. "cada finde"
+  (apócope) SÍ era hábito; la forma larga "fin de semana" no. Un hábito de fin de semana
+  expresado en lenguaje natural se perdía: la tarea aparecía UNA sola vez sin recurrencia y el
+  recordatorio no repetía.
+- **Causa raíz**: `weekendPattern` (detección temprana de fecha → próximo sábado) se ejecuta
+  ANTES que `parseRecurrence` y consumía "cada fin de semana" por completo (sin distinción del
+  determinante "cada"). Al borrarse la frase antes del analizador de recurrencia, esta nunca la
+  veía → `weekendRecurrencePattern` solo casaba `fines de semana`/`findes?` (apócope), no la
+  forma larga con "cada". Doble asimetría: "cada finde"=hábito (OK) vs "cada fin de semana"=fecha
+  única (mal).
+- **Solución** (`NaturalTaskParser.kt`, cambio mínimo, reutiliza flujo existente):
+  1. `weekendPattern` (fecha) gana lookbehind negativo `(?<!cada\s)` y `(?<!los\s)` en la
+     rama `fin|finales de semana` (igual que ya tenía en la rama `finde`). Así "cada fin de
+     semana" y "los fines de semana" NO son consumidos por la rama de fecha → llegan intactos a
+     `parseRecurrence`.
+  2. `weekendRecurrencePattern` (hábito) añade la alternancia `cada\s+fin\s+de\s+semana\b`.
+     Reutiliza todo: `detectWeekInterval()` ("cada dos semanas los fines de semana"),
+     `WEEKLY` + días 6,7, primera ocurrencia resuelta por la rama WEEKLY+days (próximo sábado).
+- **Heurística honesta**: el determinante de cadencia "cada"/"los" o el plural "fines" es señal
+  real de hábito; el singular sin "cada/los" ("este/el fin de semana", "finde" suelto con
+  este/el) sigue siendo fecha única. Sin IA, sin random.
+- **Tests**: +1 test permanente en `NaturalTaskParserTest.kt`
+  (`cadaFinDeSemanaEsHabitoSemanalFinDeSemana`). Verificado sin regresión: "este finde"/"fin de
+  semana"/"este fin de semana" siguen fecha única (NONE); "cada finde"/"los findes"/"fines de
+  semana"/"cada fin de semana" son WEEKLY 6,7. Comando: `bash tools/run_domain_tests.sh` →
+  **686 tests PASS** (685 + 1). Smoke: `bash tools/run_domain_checks.sh` → **25 OK**. Sin regresión.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`,
   `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`,
   `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
 - **HEAD final**: (tras commit/push, ver commit).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
-- **Próxima prioridad**: BACKLOG-NEW "cada fin de semana" → WEEKLY (P2, extensión de
-  `weekendRecurrencePattern`); continuar descubrimiento de frases cotidianas del parser
-  ("cita en media hora y cuarto" BACKLOG-16; adjetivos de cadencia desnudos P2);
-  auditoría de captura/búsqueda/What Now para oportunidades de producto.
+- **Próxima prioridad**: BACKLOG-16 "cita en media hora y cuarto" (nota de precisión, baja prio);
+  continuar descubrimiento de frases cotidianas del parser y auditoría de producto
+  (captura/What Now/recuperación de tareas vencidas).

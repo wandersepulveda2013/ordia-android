@@ -2235,6 +2235,16 @@ class NaturalTaskParserTest {
         assertEquals("6,7", result.recurrenceDays)
     }
 
+    // "cada fin de semana" (forma larga + "cada") era hábito perdido: caía a fecha única
+    // (rec=NONE) porque weekendPattern lo consumía antes de parseRecurrence. "cada finde"
+    // (apócope) sí era hábito, pero la forma larga no. Brecha preexistente descubierta c.99.
+    @Test fun cadaFinDeSemanaEsHabitoSemanalFinDeSemana() {
+        val result = NaturalTaskParser.parse("Estudiar cada fin de semana", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
     // --- Fechas relativas en semanas/meses ---
     // "en una semana"/"en un mes" son de las formas más comunes en español y antes
     // quedaban SIN fecha (dueAt=null) → la tarea se olvidaba (sin recordatorio). now=2026-07-29.
