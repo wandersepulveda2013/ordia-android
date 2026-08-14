@@ -15,9 +15,6 @@ val OrdiaPaper = Color(0xFFFFFCF7)
 val OrdiaGold = Color(0xFF8A682D)
 val OrdiaGoldSoft = Color(0xFFD9BC7A)
 val OrdiaSage = Color(0xFF76845F)
-val OrdiaRose = Color(0xFFA87373)
-val OrdiaLavender = Color(0xFF88759C)
-
 /** Palette of accent colors chosen by the user. Each entry holds (secondary, secondaryContainer, onSecondaryContainer) for light and dark. */
 data class AccentSwatch(
     val lightSecondary: Color,
@@ -37,22 +34,6 @@ val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
         OrdiaSage, Color(0xFFE0E8D6), Color(0xFF1F2A14),
         Color(0xFFB9C99F), Color(0xFF37431F), Color(0xFFDDEBC8)
     ),
-    AccentPalette.ROSE to AccentSwatch(
-        OrdiaRose, Color(0xFFF2DADA), Color(0xFF3A1717),
-        Color(0xFFD9A3A3), Color(0xFF4A1F1F), Color(0xFFFFDADA)
-    ),
-    AccentPalette.LAVENDER to AccentSwatch(
-        OrdiaLavender, Color(0xFFE4DCEE), Color(0xFF241B33),
-        Color(0xFFB5A5CC), Color(0xFF332745), Color(0xFFE6DCF6)
-    ),
-    AccentPalette.OCEAN to AccentSwatch(
-        Color(0xFF3E6680), Color(0xFFD2E0EA), Color(0xFF0F2533),
-        Color(0xFF8FB4CC), Color(0xFF1F3A4C), Color(0xFFCFE2F0)
-    ),
-    AccentPalette.TERRACOTTA to AccentSwatch(
-        Color(0xFFB5603E), Color(0xFFF2DDD0), Color(0xFF33180C),
-        Color(0xFFD89A78), Color(0xFF4A2417), Color(0xFFF6D9C8)
-    ),
     AccentPalette.SYSTEM to AccentSwatch(
         OrdiaGold, Color(0xFFF2E5C9), Color(0xFF34270F),
         OrdiaGoldSoft, Color(0xFF4C3C1C), Color(0xFFFFE8AF)
@@ -60,22 +41,22 @@ val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
 )
 
 private val LightColors = lightColorScheme(
-    primary = OrdiaInk,
+    primary = Color.Black,
     onPrimary = Color.White,
     primaryContainer = Color(0xFFEAE2D4),
-    onPrimaryContainer = OrdiaInk,
+    onPrimaryContainer = Color.Black,
     secondary = OrdiaGold,
     onSecondary = Color.White,
     secondaryContainer = Color(0xFFF2E5C9),
     onSecondaryContainer = Color(0xFF34270F),
     tertiary = OrdiaSage,
     onTertiary = Color.White,
-    background = OrdiaCream,
-    onBackground = OrdiaInk,
-    surface = OrdiaPaper,
-    onSurface = OrdiaInk,
-    surfaceVariant = Color(0xFFEDE7DC),
-    onSurfaceVariant = Color(0xFF625D55),
+    background = Color.White,
+    onBackground = Color.Black,
+    surface = Color.White,
+    onSurface = Color.Black,
+    surfaceVariant = Color(0xFFF3F3F3),
+    onSurfaceVariant = Color(0xFF555555),
     outline = Color(0xFF8C8579),
     outlineVariant = Color(0xFFDAD1C2),
     error = Color(0xFF9A3E3E),
@@ -83,22 +64,22 @@ private val LightColors = lightColorScheme(
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFF3EDE2),
-    onPrimary = Color(0xFF1A1916),
+    primary = Color.White,
+    onPrimary = Color.Black,
     primaryContainer = Color(0xFF34312B),
-    onPrimaryContainer = Color(0xFFF5EFE4),
+    onPrimaryContainer = Color.White,
     secondary = OrdiaGoldSoft,
     onSecondary = Color(0xFF33270E),
     secondaryContainer = Color(0xFF4C3C1C),
     onSecondaryContainer = Color(0xFFFFE8AF),
     tertiary = Color(0xFFB9C99F),
     onTertiary = Color(0xFF263017),
-    background = Color(0xFF141310),
-    onBackground = Color(0xFFEDE8DF),
-    surface = Color(0xFF1C1B18),
-    onSurface = Color(0xFFEDE8DF),
-    surfaceVariant = Color(0xFF2B2924),
-    onSurfaceVariant = Color(0xFFC9C2B8),
+    background = Color.Black,
+    onBackground = Color.White,
+    surface = Color(0xFF121212),
+    onSurface = Color.White,
+    surfaceVariant = Color(0xFF222222),
+    onSurfaceVariant = Color(0xFFAAAAAA),
     outline = Color(0xFF938C81),
     outlineVariant = Color(0xFF47433D),
     error = Color(0xFFFFB4AB),

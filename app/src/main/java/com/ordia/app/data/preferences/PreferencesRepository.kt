@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.map
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 enum class InterfaceMode { SIMPLE, ORGANIZED, ADVANCED }
 enum class GuardianMode { DORMANT, DISCREET, COMPANION }
-enum class AccentPalette { GOLD, SAGE, ROSE, LAVENDER, OCEAN, TERRACOTTA, SYSTEM }
+enum class AccentPalette { GOLD, SAGE, SYSTEM }
 
 data class UserPreferences(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
