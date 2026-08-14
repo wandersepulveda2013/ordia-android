@@ -3,6 +3,7 @@ package com.ordia.app.domain
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.ProjectEntity
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
@@ -352,6 +353,56 @@ class SearchEngineTest {
         val pinnedNote = NoteEntity(id = 2, title = "Lista de compra", body = "pan", pinned = true)
         val ids = SearchEngine.search("marcadas", listOf(flagged), emptyList(), listOf(pinnedNote), emptyList())
             .map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    // --- Recuperación de tareas recurrentes ("repetitivas"/"recurrentes") ---
+
+    @Test fun recurrentes_recoversRecurringTasksWithoutTheWordInContent() {
+        // Buscar "recurrentes" recupera las tareas que se repiten (recurrence !=
+        // NONE) aunque su título no contenga esa palabra, simétrico a "marcadas"
+        // para flagged. La recurrencia es la señal que el usuario dejó (UI:
+        // "Cambiar repetición"/"Cada mes") para auditar sus compromisos
+        // periódicos; sin este filtro una tarea "Pagar renta" mensual era
+        // irrecuperable al buscar "recurrentes".
+        val renta = TaskEntity(id = 1, title = "Pagar renta", recurrence = RecurrenceFrequency.MONTHLY)
+        val pan = TaskEntity(id = 2, title = "Comprar pan", recurrence = RecurrenceFrequency.NONE)
+        val ids = SearchEngine.search("recurrentes", listOf(renta, pan), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun repetitivas_recoversRecurringTasksSynonym() {
+        // "repetitivas" es sinónimo de "recurrentes" (mismo atributo). Verifica
+        // que ambas entradas léxicas recuperan las tareas recurrentes.
+        val gimnasio = TaskEntity(id = 1, title = "Gimnasio", recurrence = RecurrenceFrequency.WEEKLY)
+        val ids = SearchEngine.search("repetitivas", listOf(gimnasio), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun recurrentes_withContent_recoversRecurringMatchingContent() {
+        // "recurrentes luz" recupera la tarea recurrente cuyo contenido contiene
+        // "luz", pero no otra recurrente ajena ni una no recurrente que sí lo
+        // contiene. Igual que "marcadas presupuesto" para flagged.
+        val match = TaskEntity(id = 1, title = "Pago", details = "factura luz", recurrence = RecurrenceFrequency.MONTHLY)
+        val otherRecurring = TaskEntity(id = 2, title = "Gimnasio", details = "rutina", recurrence = RecurrenceFrequency.WEEKLY)
+        val nonRecurringMatch = TaskEntity(id = 3, title = "Revisar", details = "medidor luz", recurrence = RecurrenceFrequency.NONE)
+        val ids = SearchEngine.search("recurrentes luz", listOf(match, otherRecurring, nonRecurringMatch), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun recurrentes_doesNotRecoverNonRecurringTaskTitledRepetitivo() {
+        // Guard de filtro léxico: "repetitivas" recupera SOLO tareas con
+        // recurrence; una tarea ÚNICA (recurrence=NONE) cuyo título contenga
+        // "repetitivo" no debe aflorar. Es el contrato de los filtros léxicos
+        // (paralelo a "marcadas" no recuperando una no-marcada titulada
+        // "marca"): la palabra es un filtro de atributo, no de contenido.
+        val recurring = TaskEntity(id = 1, title = "Pagar renta", recurrence = RecurrenceFrequency.MONTHLY)
+        val titledButUnique = TaskEntity(id = 2, title = "Entrenamiento repetitivo", recurrence = RecurrenceFrequency.NONE)
+        val ids = SearchEngine.search("repetitivas", listOf(recurring, titledButUnique), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
         assertEquals(setOf(1L), ids)
     }
 

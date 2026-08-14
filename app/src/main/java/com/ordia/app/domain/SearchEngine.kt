@@ -13,6 +13,7 @@ import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.AutomationRuleEntity
 import com.ordia.app.data.local.CommitmentReviewStatus
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 
@@ -88,6 +89,10 @@ object SearchEngine {
         // "fijadas" (notas pinned) — análogo de "marcadas" para tareas.
         val wantsPinned = PINNED_TOKENS.any { it in words }
         val pinnedTerms = if (wantsPinned) PINNED_TOKENS.filter { it in words }.toSet() else emptySet()
+        // "repetitivas"/"recurrentes" (tareas con recurrence) — análogo de
+        // "marcadas"/"completadas" para el atributo de recurrencia.
+        val wantsRecurring = RECURRING_TOKENS.any { it in words }
+        val recurringTerms = if (wantsRecurring) RECURRING_TOKENS.filter { it in words }.toSet() else emptySet()
         val dateScope = detectDateScope(words)
         // Cuando la búsqueda expresa un rango de fecha ("hoy", "mañana", ...),
         // las palabras de fecha no se exigen en el contenido: se filtra por fecha.
@@ -165,8 +170,9 @@ object SearchEngine {
                     (!normalized.contains("pendiente") || !task.completed) &&
                     (!wantsCompleted || task.completed) &&
                     (!wantsFlagged || task.flagged) &&
+                    (!wantsRecurring || task.recurrence != RecurrenceFrequency.NONE) &&
                     (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted)) &&
-                    (matches(task.title, task.details, *ph, *pa) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms + flaggedTerms, task.title, task.details, *ph, *pa))
+                    (matches(task.title, task.details, *ph, *pa) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms + flaggedTerms + recurringTerms, task.title, task.details, *ph, *pa))
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE))
             }
@@ -257,6 +263,22 @@ object SearchEngine {
     // (no el infinitivo "fijar"). Detectadas por palabra exacta.
     private val PINNED_TOKENS = setOf(
         "fijada", "fijadas", "fijado", "fijados"
+    )
+    // "repetitivas"/"recurrentes" recupera las TAREAS que se repiten
+    // (recurrence != NONE: diaria/semanal/mensual/anual), aunque su título no
+    // contenga esa palabra. Es el análogo de "marcadas"/"completadas" para el
+    // atributo de recurrencia: la repetición es la señal que el usuario dejó
+    // (UI: "Cambiar repetición"/"No repetir"/"Cada mes") para auditar sus
+    // compromisos periódicos (renta, gimnasio, pagos). Sin este filtro, una
+    // tarea recurrente "Pagar renta" era irrecuperable al buscar "recurrentes"
+    // salvo que su título dijera literalmente esa palabra. Vocabulario de
+    // ADJETIVO (no el sustantivo "repetición", que sí aparece en títulos de
+    // tareas únicas como "repetición del examen") para minimizar colisiones y
+    // evitar excluir tareas únicas con esa palabra. Detectadas por palabra
+    // exacta (no el infinitivo "repetir").
+    private val RECURRING_TOKENS = setOf(
+        "repetitiva", "repetitivas", "repetitivo", "repetitivos",
+        "recurrente", "recurrentes"
     )
     private val TODAY_TOKENS = setOf("hoy")
     private val TOMORROW_TOKENS = setOf("manana")
