@@ -6,6 +6,7 @@ import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
+import com.ordia.app.data.local.TaskStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -26,6 +27,34 @@ class SearchEngineTest {
     @Test fun archivedContent_isExcluded() {
         val results = SearchEngine.search("oculto", listOf(TaskEntity(title = "Oculto", archived = true)), emptyList(), emptyList(), emptyList())
         assertTrue(results.isEmpty())
+    }
+
+    @Test fun cancelledTasks_areExcluded() {
+        // Una tarea CANCELLED (descartada por el usuario) nunca debe aflorar en la
+        // búsqueda, igual que una archivada. Aunque el estado CANCELLED hoy sólo es
+        // alcanzable importando un respaldo que lo contenga (ninguna acción de la
+        // app lo asigna), todas las superficies activas (What Now, plan del día,
+        // widget, asistente, guardián, recordatorios) lo excluyen; la búsqueda debe
+        // ser coherente. La propia SearchEngine.taskMatchesDateScope ya excluye
+        // CANCELLED en sus scopes de fecha (con comentarios), pero el predicado
+        // de entrada de tareas (búsqueda genérica y por atributo) no lo hacía.
+        // Sin este guard, una cancelada con completed=false pasa el filtro
+        // "pendiente" y aparece al buscar su título o al buscar "pendiente".
+        val cancelled = TaskEntity(id = 1, title = "Cancelar suscripción", status = TaskStatus.CANCELLED, completed = false)
+        val results = SearchEngine.search("cancelar", listOf(cancelled), emptyList(), emptyList(), emptyList())
+        assertTrue(results.isEmpty())
+    }
+
+    @Test fun cancelledTasks_excludedFromPendienteSearch() {
+        // Variante por atributo: buscar "pendiente" recupera las tareas no
+        // completadas, pero una CANCELLED (completed=false) NO es "pendiente"
+        // activa — el usuario la descartó. Sin el guard de estado, el filtro
+        // (!pendiente || !completed) la dejaba pasar porque completed=false.
+        val cancelled = TaskEntity(id = 1, title = "Idea descartada", status = TaskStatus.CANCELLED, completed = false)
+        val active = TaskEntity(id = 2, title = "Tarea real", completed = false)
+        val ids = SearchEngine.search("pendiente", listOf(cancelled, active), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(2L), ids)
     }
 
     @Test fun matchesWithoutAccents() {

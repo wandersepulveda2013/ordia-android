@@ -161,7 +161,7 @@ object SearchEngine {
             tasks.filter { task ->
                 val ph = projectHaystack(task.projectId)
                 val pa = parentHaystack(task)
-                !task.archived && (!typed || wantsTasks) &&
+                !task.archived && task.status != TaskStatus.CANCELLED && (!typed || wantsTasks) &&
                     (!normalized.contains("vencid") || TaskRules.isOverdue(task, now)) &&
                     (!normalized.contains("importante") || task.priority in setOf(TaskPriority.HIGH, TaskPriority.URGENT)) &&
                     (!normalized.contains("urgente") || task.priority == TaskPriority.URGENT) &&
