@@ -201,6 +201,25 @@ class WhatNowEngineTest {
         assertEquals(WhatNowReason.IMMINENT_START, suggestion.reason)
     }
 
+    @Test
+    fun scheduledLaterButDueTodayLabeledDueTodayNotScheduledLater() {
+        // Tarea programada para empezar a las 15:00 pero que VENCE hoy a las 16:00,
+        // siendo la única pendiente (ahora = 10:00). El ranking la elige; la etiqueta
+        // debe reflejar la urgencia real ("vence hoy"), no "programada para más tarde".
+        // Antes, reason() comprobaba isScheduledLater antes que isDueToday y mostraba
+        // "está programada para más tarde" para una tarea que vence hoy: contradictorio
+        // y alineado con un ranking (timeRank) que ya la considera prioritaria.
+        val dueTodayScheduledLater = task(1, "Reunión tarde").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(15, 0), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(16, 0), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(dueTodayScheduledLater), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.DUE_TODAY, suggestion.reason)
+    }
+
     /**
      * Guardián de divergencia: What Now (tarjeta/asistente) y el widget
      * (TaskRules.nextBestTask) DEBEN sugerir exactamente la misma tarea para

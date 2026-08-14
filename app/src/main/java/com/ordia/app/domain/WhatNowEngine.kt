@@ -89,10 +89,10 @@ object WhatNowEngine {
         isInProgressNow(task, now) -> WhatNowReason.IN_PROGRESS_NOW
         TaskRules.isOverdue(task, now) -> WhatNowReason.OVERDUE
         isImminentStart(task, now) -> WhatNowReason.IMMINENT_START
-        isScheduledLater(task, now) -> WhatNowReason.SCHEDULED_LATER
         TaskRules.isDueToday(task, now, zone) -> WhatNowReason.DUE_TODAY
         task.priority == TaskPriority.URGENT -> WhatNowReason.URGENT
         task.priority == TaskPriority.HIGH -> WhatNowReason.HIGH_PRIORITY
+        isScheduledLater(task, now) -> WhatNowReason.SCHEDULED_LATER
         else -> WhatNowReason.NEXT_INBOX
     }
 
