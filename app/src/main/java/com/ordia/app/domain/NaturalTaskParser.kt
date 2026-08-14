@@ -610,6 +610,20 @@ object NaturalTaskParser {
     private val ultimaHoraTime = LocalTime.of(18, 0)
 
     /**
+     * "al final del día/días"/"al final de la jornada": sinónimo cotidiano de
+     * "a última hora" (fin de jornada ~18:00). Antes no se interpretaba como hora
+     * canónica: la tarea quedaba SIN `dueAt` (olvidada, invisible en What Now/
+     * planificador, sin recordatorio) y la frase quedaba como residuo en el título.
+     * Exige el conector "al " para no colisionar con "fase final del proyecto" ni
+     * "en la fase final" (no son fin de jornada). Como [ultimaHoraTime], es hora de
+     * respaldo: si hay una parte del día explícita elsewhere, ésta tiene prioridad y
+     * el patrón solo limpia "al final del día".
+     */
+    private val alFinalDelDiaPattern =
+        Regex("""(?i)al\s+final\s+(?:del\s+d[ií]a|de\s+la\s+jornada|de\s+los\s+d[ií]as)\b""")
+    private val alFinalDelDiaTime = LocalTime.of(18, 0)
+
+    /**
      * Hora suelta con parte del día, sin "a las" ni rango: "Taller 9 de la tarde",
      * "Cena 9 de la noche", "Cita 10 de la mañana", "Evento 9 de la madrugada". Antes la
      * hora caía a la canónica de la parte del día (15:00/21:00/09:00/04:00) ignorando el
@@ -1163,6 +1177,7 @@ object NaturalTaskParser {
         val compactDayPartOfDayTime = compactDayPartOfDayKey?.let { compactDayPartOfDayTimes[it] }
         val primeraHoraMatch = primeraHoraPattern.find(working)
         val ultimaHoraMatch = ultimaHoraPattern.find(working)
+        val alFinalDelDiaMatch = alFinalDelDiaPattern.find(working)
         // Contexto PM: una parte del día de tarde/noche (explícita "esta tarde" o suelta "a la noche")
         // aplica offset +12 a una hora sin meridiem ("esta tarde a las 4" → 16:00).
         val partOfDayPmKeys = setOf("tarde", "noche")
@@ -1522,6 +1537,7 @@ object NaturalTaskParser {
             ?: recurrence.partOfDayTime
             ?: primeraHoraMatch?.let { primeraHoraTime }
             ?: ultimaHoraMatch?.let { ultimaHoraTime }
+            ?: alFinalDelDiaMatch?.let { alFinalDelDiaTime }
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val rawDueAt = when {
             effectiveRelativeDueAt != null && relativeIsDays && parsedTime != null ->
@@ -1626,6 +1642,7 @@ object NaturalTaskParser {
             .let { value -> compactDayPartOfDayPattern.replace(value, " ") }
             .let { value -> primeraHoraPattern.replace(value, " ") }
             .let { value -> ultimaHoraPattern.replace(value, " ") }
+            .let { value -> alFinalDelDiaPattern.replace(value, " ") }
             .replace(Regex("""(?i)\bantepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b"""), " ")
             .let { value -> weekdayPattern.replace(value, " ") }
             .let { value -> weekendPattern.replace(value, " ") }

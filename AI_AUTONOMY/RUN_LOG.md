@@ -5118,3 +5118,21 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: (tras commit de este run).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: salir del parser hacia la prioridad de memoria (auditar WhatNowEngine/GuardianEngine y recuperación de tareas olvidadas), o cerrar los otros 2 gaps del c.113 ("una semana y media"/"un mes y medio" +0.5 unidad, "al final del día"=18:00) si se decide que aportan suficiente valor.
+
+## Ciclo 117 — 2026-08-14 — Parser: "al final del día/día/la jornada/los días" como sinónimo de "a última hora" → 18:00 (P2, tarea olvidada)
+
+- **HEAD inicial**: `df0abd4a2223a9b24cdc5534cba4dcbac0048b2a` (c.116, base sincronizada con `origin/openhands/autonomous-ordia`; `git pull --ff-only` OK, sin divergencia — STALE_RUN descartado).
+- **Problema (P2 recuperación/captura)**: las frases cotidianas **"al final del día"/"al final del dia"/"al final de la jornada"/"al final de los días"** (sinónimos de "a última hora"/fin de jornada) NO se interpretaban como hora → `dueAt=null` (tarea SIN vencimiento → olvidada, invisible en "What Now"/planificador, sin recordatorio programable) Y la frase quedaba como **residuo en el título**. Asimetría flagrante con **"a última hora"=18:00** (`ultimaHoraPattern`, c.102) que SÍ funcionaba. La persona dice "reunión al final del día"/"terminar al final de la jornada" tan o más que "a última hora" en captura móvil. Descubierto en el probe del c.113 (item BACKLOG P2 "al final del día").
+- **Causa raíz**: no existía patrón canónico para la forma "al final del día". `ultimaHoraPattern` sólo casaba `última hora` (con/sin conector "a"), no la perícopasis "al final del día/jornada".
+- **Solución (mínima, simétrica a `ultimaHoraPattern`, sin nueva pantalla/botón)** — `NaturalTaskParser.kt`:
+  1. Nuevo `alFinalDelDiaPattern = (?i)al\s+final\s+(?:del\s+d[ií]a|de\s+la\s+jornada|de\s+los\s+d[ií]as)\b` + `alFinalDelDiaTime = LocalTime.of(18,0)`. Las 3 alternativas cubren las concordancias gramaticales correctas: "del día" (masc. sing.), "de la jornada" (fem. sing.), "de los días" (masc. plur.); `d[ií]a` tolera ausencia de tilde.
+  2. **Exige el conector "al "** para no colisionar con "fase final del proyecto" ni "en la fase final" (no son fin de jornada) → anti-falso-positivo.
+  3. Cableado paralelo al de `ultimaHora`: match → resolución de respaldo 18:00 (en la cadena `?: ... ?: alFinalDelDiaMatch?.let { alFinalDelDiaTime }`) → limpieza del título (`.let { value -> alFinalDelDiaPattern.replace(value, " ") }`).
+  4. Como `ultimaHoraTime`, es **hora de respaldo**: si hay una parte del día explícita elsewhere ("de la tarde"), ésta tiene prioridad y el patrón solo limpia "al final del día".
+- **Tests (TDD)**: 6 tests RED antes del fix (5 failures + 1 anti-falso ya verde). `bash tools/run_domain_tests.sh` → **791 PASS** (785 c.116 + 6 nuevos). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Probe JVM post-fix (10 casos): `reunión al final del día`→18:00 título "reunión"; `al final del dia` (sin tilde)→18:00; `al final de la jornada`→18:00; `al final de los días`→18:00; `terminar al final del día`→18:00; `llamar al final del día`→18:00; `reunión a última hora`→18:00 (**sin regresión**); `reunión fase final del proyecto`→`due=null` (anti-falso); `reunión al final` (sin "del día")→`due=null` (correctamente rechazado); `comprar pan hoy al final del día`→18:00 título "comprar pan" ("hoy" + frase limpios).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras commit de este run).
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: salir del parser hacia la prioridad de memoria (auditar WhatNowEngine/GuardianEngine y recuperación de tareas olvidadas); gap OPEN restante del c.113: "una semana y media"/"un mes y medio" (+0.5 de la unidad) — evaluar frecuencia real (anti-feature-bloat) antes de implementar.
+

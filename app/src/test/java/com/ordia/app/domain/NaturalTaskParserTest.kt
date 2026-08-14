@@ -4152,6 +4152,53 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "al final del día" / "al final de la jornada" (sinónimo de "a última hora") ---
+    // Antes estas frases cotidianas de fin de jornada no casaban ningún patrón →
+    // dueAt=null (tarea SIN vencimiento → olvidada) y la frase quedaba como residuo
+    // en el título. Asimetría con "a última hora"=18:00 (c.102). Ahora resuelven a
+    // 18:00 y limpian el título, igual que "a última hora".
+
+    @Test fun alFinalDelDiaInterpretaFinJornadaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión al final del día", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun alFinalDelDiaSinTildeTambienFunciona() {
+        val result = NaturalTaskParser.parse("Reunión al final del dia", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alFinalDeLaJornadaFunciona() {
+        val result = NaturalTaskParser.parse("Terminar al final de la jornada", now, zone)
+        assertEquals("Terminar", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alFinalDelDiaConFechaRelativaCombinaBien() {
+        val result = NaturalTaskParser.parse("Llamar mañana al final del día", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun alFinalDelDiaConFechaSemanaCombinaBien() {
+        val result = NaturalTaskParser.parse("Reunión el viernes al final del día", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun alFinalDelDiaNoEsFalsoPositivoEnFraseDistinta() {
+        // "fase final del proyecto": "final" no va precedido de "al " y no es fin de
+        // jornada. No debe asignar 18:00 ni borrar nada.
+        val result = NaturalTaskParser.parse("Reunión fase final del proyecto", now, zone)
+        assertEquals("Reunión fase final del proyecto", result.title)
+        assertEquals(null, result.dueAt)
+    }
+
     // --- "a mediodía" / "a medianoche" sin contracción "al" limpian el conector del título ---
 
     @Test fun aMediodiaSinContraccionLimpiaTitulo() {
