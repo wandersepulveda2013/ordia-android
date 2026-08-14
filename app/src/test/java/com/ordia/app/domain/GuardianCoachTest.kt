@@ -21,19 +21,24 @@ class GuardianCoachTest {
             id = 1,
             title = "Enviar informe",
             dueAt = DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(9, 0), zone),
-            priority = TaskPriority.NORMAL
+            priority = TaskPriority.NORMAL,
+            durationMinutes = 25
         )
         val urgentToday = TaskEntity(
             id = 2,
             title = "Llamar proveedor",
             dueAt = DateRules.toEpochMillis(today, LocalTime.of(15, 0), zone),
-            priority = TaskPriority.URGENT
+            priority = TaskPriority.URGENT,
+            durationMinutes = 15
         )
 
         val insight = GuardianCoach.insight(listOf(urgentToday, overdue), emptyList(), emptyList(), now, zone)
 
         assertEquals(1L, insight.taskId)
         assertEquals(GuardianCoach.Tone.GENTLE, insight.tone)
+        assertNotNull(insight.message)
+        assert(insight.message.contains("Haz esto ahora porque esta tarea está atrasada"))
+        assert(insight.message.contains("(25 min · atrasada"))
     }
 
     @Test
@@ -43,5 +48,23 @@ class GuardianCoachTest {
 
         assertEquals("Leer diez minutos", insight.title)
         assertNotNull(insight.message)
+    }
+
+    @Test
+    fun urgentTaskWinsWhenNoOverdue() {
+        val urgentToday = TaskEntity(
+            id = 2,
+            title = "Llamar proveedor",
+            dueAt = DateRules.toEpochMillis(today, LocalTime.of(15, 0), zone),
+            priority = TaskPriority.URGENT,
+            durationMinutes = 15
+        )
+
+        val insight = GuardianCoach.insight(listOf(urgentToday), emptyList(), emptyList(), now, zone)
+
+        assertEquals(2L, insight.taskId)
+        assertEquals(GuardianCoach.Tone.FOCUSED, insight.tone)
+        assert(insight.message.contains("Haz esto ahora porque es lo más importante para hoy."))
+        assert(insight.message.contains("(15 min · vence hoy"))
     }
 }
