@@ -886,6 +886,22 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2027, 7, 5), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    @Test fun parsesMonthAbbreviations() {
+        // Abreviaturas informales ("dic", "ene", "feb"): misma intención que el
+        // nombre completo. Antes caían en dueAt=null y el compromiso se perdía.
+        val dic = NaturalTaskParser.parse("llamar el 25 de dic", now, zone)
+        assertEquals("llamar", dic.title)
+        assertEquals(LocalDate.of(2026, 12, 25), DateRules.toLocalDate(dic.dueAt!!, zone))
+
+        val ene = NaturalTaskParser.parse("pago el 1 de ene", now, zone)
+        assertEquals("pago", ene.title)
+        assertEquals(LocalDate.of(2027, 1, 1), DateRules.toLocalDate(ene.dueAt!!, zone))
+
+        val feb = NaturalTaskParser.parse("pago el 28 de feb", now, zone)
+        assertEquals("pago", feb.title)
+        assertEquals(LocalDate.of(2027, 2, 28), DateRules.toLocalDate(feb.dueAt!!, zone))
+    }
+
     @Test fun detectsCategoryByContext() {
         val result = NaturalTaskParser.parse("Comprar leche en el supermercado", now, zone)
         assertEquals("compras", result.category)

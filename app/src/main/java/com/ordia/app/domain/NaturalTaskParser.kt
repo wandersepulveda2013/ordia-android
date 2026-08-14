@@ -815,7 +815,14 @@ object NaturalTaskParser {
         "enero" to 1, "febrero" to 2, "marzo" to 3, "abril" to 4,
         "mayo" to 5, "junio" to 6, "julio" to 7, "agosto" to 8,
         "septiembre" to 9, "setiembre" to 9, "octubre" to 10,
-        "noviembre" to 11, "diciembre" to 12
+        "noviembre" to 11, "diciembre" to 12,
+        // Abreviaturas informales de uso común al capturar ("el 25 de dic",
+        // "pago el 1 de ene", "cita el 28 de feb"). Sin ellas la fecha caía en
+        // dueAt=null y el compromiso quedaba como título basura sin aviso, pese
+        // a ser la misma intención que el nombre completo ("25 de diciembre").
+        "ene" to 1, "feb" to 2, "mar" to 3, "abr" to 4, "may" to 5,
+        "jun" to 6, "jul" to 7, "ago" to 8, "sep" to 9, "set" to 9,
+        "oct" to 10, "nov" to 11, "dic" to 12
     )
 
     private val categories = listOf(
