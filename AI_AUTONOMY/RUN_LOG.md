@@ -5038,7 +5038,26 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: `bash tools/run_domain_tests.sh` → **763 PASS** (758 c.112 + 5 netos: `ayer_recoversTaskDueYesterday`, `ayer_recoversEvenCompletedTask`, `semanaPasada_recoversTasksFromPreviousWeek`, `ultimaSemana_recoversTasksWithAccent`, `semanaPasada_excludesThisWeekTasks`). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Probe JVM aparte: 9 casos verde ("ayer"→[1], "última/semana pasada"→[2] con/sin tilde, "esta semana"→[], "ayer cita"→[1], "próxima/semana que viene"→[3] intactos). Sin regresión.
 - **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt`, `app/src/test/java/com/ordia/app/domain/SearchEngineDateScopeTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **Commits**: `5efd685`.
+- **HEAD final**: `5efd685`.
+- **Estado**: FIXED → VERIFIED (dominio JVM).
+- **Próxima prioridad**: auditar WhatNowEngine/GuardianEngine (recuperación de vencidas, detección de compromisos); descubrimiento continuo en contexto/onboarding/captura ultrarrápida; no volver a tocar acentos del SearchEngine (ya verificado OK).
+
+## Ciclo 114 — 2026-08-14 — Parser: P0 corrupción de título al borrar el token "ya" (`working.replace` global en vez de `replaceRange`)
+
+- **HEAD inicial**: `5efd685` (c.113 SearchEngine "ayer/semana pasada", base sincronizada con `origin/openhands/autonomous-ordia` tras fetch; mi base original `a12f322` estaba obsoleta — STALE_RUN evitado con stash+ff-only+pop+resolución de conflictos de docs, sin force/reset destructivo).
+- **Problema (P0 integridad de datos)**: el c.112 añadió el token **"ya"** (forma de "ahora") a `nowPattern`, con `\b` Unicode para no casar dentro de "playa"/"raya". Pero el **borrado** del match usaba `working.replace(it.value, " ")` — un reemplazo **global y literal** que elimina TODAS las ocurrencias de la subcadena "ya" en el título, no solo el rango del match. Así, cuando el título contiene una palabra con la secuencia "ya" (maya/playa/raya) Y termina con el token "ya", el título se **corrompía**:
+  - `comprar maya ya` → `title='comprar ma'` (maya→ma)
+  - `reservar en la playa para ya` → `title='reservar en la pla'` (playa→pla)
+  - `volar cometa en la raya ya` → `title='volar cometa en la ra'` (raya→ra)
+  El vencimiento era correcto (now) pero el título quedaba dañado: pérdida silenciosa de contenido de la tarea. El usuario no se entera hasta revisar la tarea y, entre tanto, la info está corrupta. El test anti-falso del c.112 (`yaNoCasadentroDeOtraPalabra`: "Comprar una playa" → due=null) NO cubría este caso porque ahí "ya" NO casa como token (no hay token final "ya"); el bug solo se dispara cuando "ya" SÍ casa Y hay otra palabra que lo contiene.
+- **Causa raíz**: `String.replace(oldValue, newValue)` en Kotlin reemplaza **todas** las ocurrencias literales, no solo el match de la regex. `it.value` es la subcadena "ya", así `working.replace(it.value, " ")` borra cada "ya" del string. La forma correcta es `working.replaceRange(it.range, " ")`, que sustituye solo el rango `[it.range.first, it.range.last]` del match.
+- **Descubrimiento**: probe JVM ad-hoc (`/tmp/probe_ya.kt`, 6 frases) compilado con el mismo enfoque que `run_domain_tests.sh` (RoomStubs + PreferenceStubs + Entities + todo el dominio + probe, kotlinc -cp jars). Confirmó la corrupción en 3 casos P0 + intactos los casos de control ("hacerlo ya"→"hacerlo", "ya mismo llamar"→"llamar", "llamar playa"→due=null).
+- **Solución (mínima, `NaturalTaskParser.kt` bloque `nowPattern`, sin nueva pantalla/botón)**: `working.replace(it.value, " ")` → `working.replaceRange(it.range, " ")`. Cambio de una línea. Sustituye SOLO el rango del match del token "ya", preservando el resto del título.
+- **Tests**: `bash tools/run_domain_tests.sh` → **765 PASS** (763 c.113 + 2 nuevos). Smoke (`bash tools/run_domain_checks.sh`) → **25 OK**. Probe JVM post-fix verde: `comprar maya ya`→`comprar maya` (dueAt=now), `reservar en la playa para ya`→`reservar en la playa` (dueAt=now), `volar cometa en la raya ya`→`volar cometa en la raya` (dueAt=now); casos de control intactos. Sin regresión: los 6 tests de "ya" del c.112 siguen pasando; los 5 de search del c.113 intactos.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt`, `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt`, `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
 - **Commits**: (ver abajo tras push).
 - **HEAD final**: (tras push, ver abajo).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
-- **Próxima prioridad**: auditar WhatNowEngine/GuardianEngine (recuperación de vencidas, detección de compromisos); descubrimiento continuo en contexto/onboarding/captura ultrarrápida; no volver a tocar acentos del SearchEngine (ya verificado OK).
+- **Próxima prioridad**: auditar el resto de `working.replace(it.value, ...)` en `NaturalTaskParser.kt` por el mismo patrón de corrupción; salir del parser hacia recuperación de tareas olvidadas / contexto / onboarding.

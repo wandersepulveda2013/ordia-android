@@ -779,7 +779,7 @@ object NaturalTaskParser {
         // y consume la frase completa para no dejar residuo en el título.
         val nowMatch = nowPattern.find(working)
         val nowDueAt = nowMatch?.let { now }
-        nowMatch?.let { working = working.replace(it.value, " ") }
+        nowMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // "Más tarde"/"más rato"/"después" (adverbio suelto, sin "de/del/de la" detrás)
         // → +3 h: aproxima "más tarde" a "esta tarde". Se procesa tras now/vague para no
