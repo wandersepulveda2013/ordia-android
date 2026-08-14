@@ -115,8 +115,20 @@ object SearchEngine {
             return meaningful.all(haystack::contains)
         }
         val zone = ZoneId.systemDefault()
+        // Mapa de proyectos activos por id: permite que una tarea o nota que pertenece
+        // a un proyecto sea recuperada al buscar por el nombre del proyecto, aunque su
+        // título no lo contenga. Así la relación tarea↔proyecto (y nota↔proyecto) se
+        // vuelve visible en la búsqueda universal, sin nueva pantalla ni botón: buscar
+        // "mudanza" encuentra las tareas "comprar cajas" si viven en el proyecto
+        // "Mudanza". Es recuperación de información importante vía contexto.
+        val projectById = projects.filterNot { it.archived }.associateBy { it.id }
+        fun projectHaystack(projectId: Long?): Array<String> {
+            val p = projectId?.let(projectById::get) ?: return emptyArray()
+            return if (p.description.isEmpty()) arrayOf(p.name) else arrayOf(p.name, p.description)
+        }
         return buildList {
             tasks.filter { task ->
+                val ph = projectHaystack(task.projectId)
                 !task.archived && (!typed || wantsTasks) &&
                     (!normalized.contains("vencid") || TaskRules.isOverdue(task, now)) &&
                     (!normalized.contains("importante") || task.priority in setOf(TaskPriority.HIGH, TaskPriority.URGENT)) &&
@@ -126,14 +138,17 @@ object SearchEngine {
                     (!normalized.contains("pendiente") || !task.completed) &&
                     (!wantsCompleted || task.completed) &&
                     (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted)) &&
-                    (matches(task.title, task.details) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms, task.title, task.details))
+                    (matches(task.title, task.details, *ph) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms, task.title, task.details, *ph))
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE))
             }
             projects.filter { !typed && !it.archived && !pureDateScope && matches(it.name, it.description) }.forEach {
                 add(Ranked(SearchResult(SearchKind.PROJECT, it.id, it.name, it.description.take(90))))
             }
-            notes.filter { (!typed || wantsNotes) && !it.archived && !pureDateScope && (matches(it.title, it.body) || semanticMatches(NOTE_TERMS, it.title, it.body)) }.forEach {
+            notes.filter { (!typed || wantsNotes) && !it.archived && !pureDateScope }.filter {
+                val ph = projectHaystack(it.projectId)
+                matches(it.title, it.body, *ph) || semanticMatches(NOTE_TERMS, it.title, it.body, *ph)
+            }.forEach {
                 add(Ranked(SearchResult(SearchKind.NOTE, it.id, it.title, it.body.take(90))))
             }
             habits.filter { !typed && !it.archived && !pureDateScope && matches(it.title, it.details) }.forEach {

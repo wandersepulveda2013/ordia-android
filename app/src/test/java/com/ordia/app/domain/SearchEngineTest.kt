@@ -235,4 +235,51 @@ class SearchEngineTest {
             .map { it.id }.toSet()
         assertEquals(emptySet<Long>(), ids)
     }
+
+    // --- Recuperación por membresía de proyecto (relación tarea↔proyecto) ---
+
+    @Test fun projectMembership_surfacesTaskViaProjectName() {
+        // Buscar el nombre de un proyecto debe recuperar las tareas que pertenezcan
+        // a ese proyecto aunque su título no contenga la palabra: la relación
+        // tarea↔proyecto hace visible lo agrupado. "comprar cajas" vive en
+        // "Mudanza" → buscar "mudanza" la encuentra (junto al propio proyecto).
+        val task = TaskEntity(id = 1, title = "Comprar cajas", projectId = 10)
+        val other = TaskEntity(id = 2, title = "Pasear al perro", projectId = null)
+        val project = ProjectEntity(id = 10, name = "Mudanza")
+        val taskIds = SearchEngine.search("mudanza", listOf(task, other), listOf(project), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), taskIds)
+    }
+
+    @Test fun projectMembership_surfacesNoteViaProjectName() {
+        // Simétrico a tareas: una nota en un proyecto se recupera al buscar el
+        // nombre del proyecto. "Lista de cosas" en "Mudanza" → "mudanza".
+        val note = NoteEntity(id = 5, title = "Lista de cosas", body = "", projectId = 10)
+        val project = ProjectEntity(id = 10, name = "Mudanza")
+        val noteIds = SearchEngine.search("mudanza", emptyList(), listOf(project), listOf(note), emptyList())
+            .filter { it.kind == SearchKind.NOTE }.map { it.id }.toSet()
+        assertEquals(setOf(5L), noteIds)
+    }
+
+    @Test fun projectMembership_doesNotLeakAcrossProjects() {
+        // La membresía es específica: una tarea de "Mudanza" no aparece al buscar
+        // "Vacaciones" solo porque exista otro proyecto con ese nombre. El proyecto
+        // "Vacaciones" sí aparece (su nombre coincide), pero la tarea ajena no.
+        val mudanzaTask = TaskEntity(id = 1, title = "Comprar cajas", projectId = 10)
+        val vacacionesProject = ProjectEntity(id = 20, name = "Vacaciones")
+        val taskIds = SearchEngine.search("vacaciones", listOf(mudanzaTask), listOf(vacacionesProject), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(emptySet<Long>(), taskIds)
+    }
+
+    @Test fun projectMembership_ignoresArchivedProjectName() {
+        // Un proyecto archivado deja de ser señal de recuperación: su nombre no
+        // debe hacer aflorar tareas (el usuario archivó el proyecto).
+        val task = TaskEntity(id = 1, title = "Comprar cajas", projectId = 10)
+        val archivedProject = ProjectEntity(id = 10, name = "Mudanza", archived = true)
+        val ids = SearchEngine.search("mudanza", listOf(task), listOf(archivedProject), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }
+            .map { it.id }.toSet()
+        assertEquals(emptySet<Long>(), ids)
+    }
 }
