@@ -1,11 +1,9 @@
 {
-  "project_files": 111,
-  "kotlin_source_files": 52,
-  "kotlin_source_lines": 6604,
-  "unit_test_files": 9,
+  "project_files": 2716,
+  "kotlin_source_files": 57,
+  "kotlin_source_lines": 7953,
+  "unit_test_files": 11,
   "instrumentation_test_files": 2,
   "errors": [],
-  "warnings": [
-    "gradle-wrapper.jar is absent; Android Studio or `gradle wrapper --gradle-version 8.13` must generate it before ./gradlew works"
-  ]
+  "warnings": []
 }
