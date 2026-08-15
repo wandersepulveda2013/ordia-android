@@ -251,7 +251,7 @@ fun PlannerScreen(
         }
         item { SectionHeader(selectedDate.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", locale)).replaceFirstChar { it.uppercase() }, "${tasksOnDate.size} tareas") }
         if (tasksOnDate.isEmpty()) {
-            item { EmptyState("Día disponible", "No hay tareas planificadas para esta fecha.", "Añadir tarea", onAction = { adding = true }) }
+            item { EmptyState("Día disponible", "Tu día está libre. Añade algo o deja que Ordía te ayude a planificarlo.", "Añadir tarea", onAction = { adding = true }) }
         } else {
             items(tasksOnDate, key = { it.id }) { task ->
                 val subtasks = state.subtasks(task.id)

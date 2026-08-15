@@ -1,6 +1,7 @@
 package com.ordia.app.domain
 
 import com.ordia.app.data.local.TaskPriority
+import com.ordia.app.data.local.RecurrenceFrequency
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -38,5 +39,26 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Revisar el horno en 45 minutos", now, zone)
         assertEquals("Revisar el horno", result.title)
         assertEquals(now + 45 * 60_000L, result.dueAt)
+    }
+
+    @Test fun parsesColloquialTime() {
+        val result = NaturalTaskParser.parse("Hacer la cena esta noche", now, zone)
+        assertEquals("Hacer la cena", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun parsesRecurrence() {
+        val result = NaturalTaskParser.parse("Correr todos los días", now, zone)
+        assertEquals("Correr", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+    }
+
+    @Test fun parsesWeeklyRecurrenceWithDays() {
+        val result = NaturalTaskParser.parse("Ir al gimnasio todos los lunes y viernes", now, zone)
+        assertEquals("Ir al gimnasio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,5", result.recurrenceDays)
     }
 }

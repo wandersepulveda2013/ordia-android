@@ -164,7 +164,7 @@ fun TodayScreen(
         }
         item { SectionHeader("Para hoy", action = if (state.inboxTasks.isNotEmpty()) "Ver bandeja (${state.inboxTasks.size})" else null, onAction = if (state.inboxTasks.isNotEmpty()) onOpenInbox else null) }
         if (state.todayTasks.isEmpty()) {
-            item { EmptyState("Tu día tiene espacio", "Añade una tarea con fecha para verla aquí.", "Planificar tarea", onAction = { showTaskDialog = true }) }
+            item { EmptyState("Tu día está libre", "Añade algo o deja que Ordía te ayude a planificarlo.", "Planificar tarea", onAction = { showTaskDialog = true }) }
         } else {
             items(state.todayTasks, key = { "today-${it.id}" }) { task -> TaskItem(state, vm, task, onTask) }
         }

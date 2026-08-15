@@ -12,6 +12,7 @@ import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.ProjectEntity
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.RoutineEntity
 import com.ordia.app.data.local.RoutineStepEntity
 import com.ordia.app.data.local.TagEntity
@@ -265,7 +266,13 @@ class OrdiaViewModel(
 
     fun addSmartTask(input: String) {
         val parsed = NaturalTaskParser.parse(input)
-        addTask(parsed.title, dueAt = parsed.dueAt, priority = parsed.priority)
+        addTask(
+            title = parsed.title,
+            dueAt = parsed.dueAt,
+            priority = parsed.priority,
+            recurrence = parsed.recurrence,
+            recurrenceDays = parsed.recurrenceDays
+        )
     }
 
     fun addTask(
@@ -274,7 +281,9 @@ class OrdiaViewModel(
         dueAt: Long? = null,
         priority: TaskPriority = TaskPriority.NORMAL,
         projectId: Long? = null,
-        parentTaskId: Long? = null
+        parentTaskId: Long? = null,
+        recurrence: RecurrenceFrequency = RecurrenceFrequency.NONE,
+        recurrenceDays: String = ""
     ) = saveTask(
         TaskEntity(
             title = title,
@@ -283,6 +292,8 @@ class OrdiaViewModel(
             priority = priority,
             projectId = projectId,
             parentTaskId = parentTaskId,
+            recurrence = recurrence,
+            recurrenceDays = recurrenceDays,
             status = if (dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED
         )
     )
