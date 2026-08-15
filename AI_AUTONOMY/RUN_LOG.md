@@ -14,7 +14,7 @@
   - `app/src/main/java/com/ordia/app/conversations/CommitmentEngine.kt` (+alternancia `le\s+(?:paso|mando|env[ií]o)` en `commitmentSignal`, +nota c.310 en comentario).
   - `app/src/test/java/com/ordia/app/conversations/CommitmentEngineTest.kt` (+3 tests TDD).
   - `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD inicial**: `55f01ec` (c.309). **HEAD final**: (commit c.310 sobre `55f01ec`).
+- **HEAD inicial**: `55f01ec` (c.309). **HEAD final**: `44ac2f8` (c.310, pushed to origin/openhands/autonomous-ordia).
 - **Estado**: VERIFIED (dominio JVM: 1906 tests PASS; smoke 25 OK; 0 failures; probe PRE/POST-fix confirma 8/8 recall + 0 falsos positivos). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) **compromisos (continuación)**: "se lo paso"/"se lo mando"/"se lo envío" (dativo plural/reflexivo "se" + acusativo "lo") — "se lo paso a él mañana", forma muy común cuando se refiere a un tercero ya mencionado; (ii) evaluar FPs de narración de 2ª persona (c.309) con guarda verbo-de-dicción; (iii) **compromisos (continuación c.304)**: barrido "overdue batch" al fin de horas silenciosas; (iv) **privacidad (continuación c.287→c.303)**: identificadores personales NO-credenciales (INE/pasaporte/CURP/NSS); (v) **auditoría UTF-8 global** (continuación c.301); (vi) textos del asistente que ignoran `reason`/estado (familia c.285); (vii) áreas no-parser sin auditar (onboarding, navegación, accesibilidad, rendimiento); (viii) verificar Android de c.270-c.310 cuando haya SDK. Re-fetch antes de implementar.
 
