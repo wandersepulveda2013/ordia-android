@@ -261,4 +261,98 @@ class SubtaskRulesTest {
     fun cloneForNextOccurrence_emptyListReturnsEmpty() {
         assertEquals(emptyList<TaskEntity>(), SubtaskRules.cloneForNextOccurrence(emptyList(), 900, 1_700_000_000_000L))
     }
+
+    // cloneForDuplicate: copia literal del desglose al duplicar una tarea.
+    // A diferencia de cloneForNextOccurrence, PRESERVA planificación y recurrencia
+    // (igual que el duplicado del padre), sólo reinicia identidad + estado de cierre.
+
+    @Test
+    fun cloneForDuplicate_linksToNewParentAndResetsIdentity() {
+        val now = 1_700_000_000_000L
+        val subs = listOf(
+            subtaskTemplate(2, 1, "Agenda", sortOrder = 0),
+            subtaskTemplate(3, 1, "Materiales", sortOrder = 1, details = "Proyector + cables")
+        )
+        val clones = SubtaskRules.cloneForDuplicate(subs, newParentId = 900, now = now)
+
+        assertEquals(2, clones.size)
+        clones.forEach {
+            assertEquals(0L, it.id)
+            assertEquals(900L, it.parentTaskId)
+            assertFalse(it.completed)
+            assertEquals(null, it.completedAt)
+            assertEquals(now, it.createdAt)
+            assertEquals(now, it.updatedAt)
+        }
+        assertEquals(listOf("Agenda", "Materiales"), clones.map { it.title })
+        assertEquals(listOf(0, 1), clones.map { it.sortOrder })
+        assertEquals("Proyector + cables", clones[1].details)
+    }
+
+    @Test
+    fun cloneForDuplicate_resetsCompletionState() {
+        // Una subtarea completada del original renace abierta en la copia.
+        val now = 1_700_000_000_000L
+        val subs = listOf(subtaskTemplate(2, 1, "Agenda", completed = true))
+        val clones = SubtaskRules.cloneForDuplicate(subs, newParentId = 900, now = now)
+
+        assertEquals(1, clones.size)
+        assertFalse(clones[0].completed)
+        assertEquals(null, clones[0].completedAt)
+        assertEquals(TaskStatus.INBOX, clones[0].status)
+    }
+
+    @Test
+    fun cloneForDuplicate_preservesScheduling() {
+        // Duplicar es una copia literal: la planificación del original sobrevive
+        // (igual que el duplicado del padre conserva dueAt/reminderAt).
+        val now = 1_700_000_000_000L
+        val subs = listOf(
+            subtaskTemplate(2, 1, "Agenda", dueAt = 1_699_000_000_000L)
+                .copy(reminderAt = 1_698_000_000_000L, startAt = 1_697_000_000_000L)
+        )
+        val clones = SubtaskRules.cloneForDuplicate(subs, newParentId = 900, now = now)
+
+        assertEquals(1_699_000_000_000L, clones[0].dueAt)
+        assertEquals(1_698_000_000_000L, clones[0].reminderAt)
+        assertEquals(1_697_000_000_000L, clones[0].startAt)
+    }
+
+    @Test
+    fun cloneForDuplicate_preservesRecurrence() {
+        // La recurrencia propia de una subtarea se conserva al duplicar (no hay
+        // anidamiento bajo un padre recurrente, así que no hay explosión).
+        val now = 1_700_000_000_000L
+        val subs = listOf(
+            subtaskTemplate(2, 1, "Revisar", recurrence = RecurrenceFrequency.WEEKLY, dueAt = 1_699_000_000_000L)
+                .copy(recurrenceInterval = 2, recurrenceDays = "MO,WE")
+        )
+        val clones = SubtaskRules.cloneForDuplicate(subs, newParentId = 900, now = now)
+
+        assertEquals(RecurrenceFrequency.WEEKLY, clones[0].recurrence)
+        assertEquals(2, clones[0].recurrenceInterval)
+        assertEquals("MO,WE", clones[0].recurrenceDays)
+    }
+
+    @Test
+    fun cloneForDuplicate_preservesStructuralFields() {
+        val now = 1_700_000_000_000L
+        val subs = listOf(
+            subtaskTemplate(2, 1, "Materiales", durationMinutes = 45, priority = TaskPriority.HIGH,
+                flagged = true, projectId = 7, sortOrder = 3)
+        )
+        val clones = SubtaskRules.cloneForDuplicate(subs, newParentId = 900, now = now)
+
+        assertEquals(45, clones[0].durationMinutes)
+        assertEquals(TaskPriority.HIGH, clones[0].priority)
+        assertTrue(clones[0].flagged)
+        assertEquals(7L, clones[0].projectId)
+        assertEquals(3, clones[0].sortOrder)
+        assertFalse(clones[0].archived)
+    }
+
+    @Test
+    fun cloneForDuplicate_emptyListReturnsEmpty() {
+        assertEquals(emptyList<TaskEntity>(), SubtaskRules.cloneForDuplicate(emptyList(), 900, 1_700_000_000_000L))
+    }
 }

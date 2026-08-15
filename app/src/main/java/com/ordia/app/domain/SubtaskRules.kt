@@ -123,4 +123,44 @@ object SubtaskRules {
             updatedAt = now,
         )
     }
+
+    /**
+     * Copias frescas de [subtasks] para una tarea duplicada, enlazadas a
+     * [newParentId]. A diferencia de [cloneForNextOccurrence] —que descarta la
+     * planificación porque la del ciclo viejo es obsoleta— aquí se PRESERVA la
+     * planificación y la recurrencia, igual que el duplicado del padre
+     * (`OrdiaViewModel.duplicateTask`): duplicar es una copia literal, no una
+     * nueva ocurrencia.
+     *
+     * Sin esto, "Duplicar" en una tarea con desglose creaba un padre "(copia)"
+     * huérfano y silenciaba el checklist —inconsistencia con la recurrencia
+     * (c.223) y pérdida de la estructura construida.
+     *
+     * Campos preservados (estructura + planificación): `title`, `details`,
+     * `durationMinutes`, `priority`, `projectId`, `sortOrder`, `flagged`,
+     * `archived`, `startAt`, `dueAt`, `reminderAt`, `recurrence`,
+     * `recurrenceInterval`, `recurrenceDays`. Campos reiniciados:
+     * - `id` = 0, `parentTaskId` = [newParentId], `createdAt`/`updatedAt` = [now];
+     * - `completed` = false, `completedAt` = null, `status` = INBOX: el duplicado
+     *   nace abierto; un paso cancelado en el original renace abierto (el
+     *   descarte fue del original, no permanente).
+     *
+     * Regla pura y determinista; el llamador persiste las copias y agenda los
+     * recordatorios. Ver `OrdiaViewModel.duplicateTask`.
+     */
+    fun cloneForDuplicate(
+        subtasks: List<TaskEntity>,
+        newParentId: Long,
+        now: Long,
+    ): List<TaskEntity> = subtasks.map { sub ->
+        sub.copy(
+            id = 0L,
+            parentTaskId = newParentId,
+            status = TaskStatus.INBOX,
+            completed = false,
+            completedAt = null,
+            createdAt = now,
+            updatedAt = now,
+        )
+    }
 }

@@ -618,6 +618,18 @@ class OrdiaViewModel(
             )
             val id = taskRepository.add(copy)
             uiState.value.tagsForTask(task.id).forEach { tagRepository.link(id, it.id) }
+            // El desglose renace en la copia (c.224): consistencia con la
+            // recurrencia (c.223). Se preservan planificación y recurrencia de
+            // cada subtarea —igual que el duplicado del padre— y se agenda su
+            // recordatorio si lo tenía (ver SubtaskRules.cloneForDuplicate).
+            val subs = taskRepository.subtasks(task.id)
+            if (subs.isNotEmpty()) {
+                val clones = SubtaskRules.cloneForDuplicate(subs, id, now)
+                val ids = taskRepository.addAll(clones)
+                clones.zip(ids).forEach { (s, sid) ->
+                    if (s.reminderAt != null) reminderScheduler.schedule(s.copy(id = sid))
+                }
+            }
             if (copy.reminderAt != null || copy.dueAt != null) reminderScheduler.schedule(copy.copy(id = id))
             updateWidget()
         }
