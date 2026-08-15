@@ -62,8 +62,8 @@ object ContextPrivacyFilter {
     private val cardCandidate = Regex("""(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)""")
     private val numericSecret = Regex("""^\s*\d{4,8}\s*$""")
     private val shortNumericSecret = Regex("""^\s*\d{3,4}\s*$""")
-    // CLABE interbancaria mexicana: 18 dígitos (con posibles separadores). Se valida
-    // aparte porque su dígito verificador NO es Luhn, por lo que cardCandidate+Luhn la
+    // CLABE interbancaria mexicana: 18 dÃ­gitos (con posibles separadores). Se valida
+    // aparte porque su dÃ­gito verificador NO es Luhn, por lo que cardCandidate+Luhn la
     // deja escapar cuando aparece sin la palabra "clabe"/"cuenta" (fuga de cuenta bancaria).
     private val clabeCandidate = Regex("""(?<!\d)(?:\d[ -]?){17}\d(?!\d)""")
 
@@ -119,10 +119,10 @@ object ContextPrivacyFilter {
     }
 
     /**
-     * Dígito verificador de la CLABE interbancaria mexicana (18 dígitos):
-     * los primeros 17 se ponderan cíclicamente con (3, 7, 1), se suman mod 10 y
-     * el dígito de control es (10 - (suma mod 10)) mod 10. Debe coincidir con el
-     * dígito 18. No es Luhn, por lo que requiere validación propia.
+     * DÃ­gito verificador de la CLABE interbancaria mexicana (18 dÃ­gitos):
+     * los primeros 17 se ponderan cÃ­clicamente con (3, 7, 1), se suman mod 10 y
+     * el dÃ­gito de control es (10 - (suma mod 10)) mod 10. Debe coincidir con el
+     * dÃ­gito 18. No es Luhn, por lo que requiere validaciÃ³n propia.
      */
     private fun passesClabeChecksum(digits: String): Boolean {
         if (digits.length != 18) return false
