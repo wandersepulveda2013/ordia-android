@@ -1085,6 +1085,52 @@ class NaturalTaskParserTest {
         assertEquals(15, result.reminderOffsetMinutes)
     }
 
+    // ── Hora de reloj con sufijo de unidad "h"/"hs" (ciclo 235) ──
+    // "15:30h"/"15:30hs"/"7:15h" son horas de reloj cotidianas (sufijo "h"/"hs" = "horas").
+    // El ":" `:MM` es señal inequívoca de reloj. Antes el sufijo "h" rompía el \b del
+    // patrón de hora `HH:MM` (no casaba) y el patrón de duración "Nh" robaba los MINUTOS
+    // como duración falsa ("15:30h" → dueAt=null, dur=1440, título "15:") → la cita se
+    // OLVIDABA (sin vencimiento) y el título quedaba corrupto. Peor, "7:15h" perdía los
+    // minutos en silencio (due=07:00 en vez de 07:15). Ahora la hora se consume completa.
+    @Test fun horaColonyHSuffixSeResuelveComoReloj() {
+        val result = NaturalTaskParser.parse("Reunión 15:30h", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(null, result.durationMinutes)
+    }
+
+    @Test fun horaColonyHSuffixPlural() {
+        val result = NaturalTaskParser.parse("Reunión 15:30hs", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(null, result.durationMinutes)
+    }
+
+    @Test fun horaColonyHSuffixConservaMinutos() {
+        val result = NaturalTaskParser.parse("Tren 7:15h", now, zone)
+        assertEquals("Tren", result.title)
+        assertEquals(LocalTime.of(7, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(null, result.durationMinutes)
+    }
+
+    @Test fun horaColonyHorasSuffixConservaMinutos() {
+        val result = NaturalTaskParser.parse("Cita 7:15 horas", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(7, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun horaColonyHSuffixConMeridiem() {
+        val result = NaturalTaskParser.parse("Cita 3:30h pm", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun horaColonyHSuffixAm() {
+        val result = NaturalTaskParser.parse("Cita 9:30h am", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // --- Duraciones fraccionarias sin dígitos (ciclo 14) ---
     // "media hora" y "(un) cuarto de hora" no casan con los patrones de dígitos y
     // dejaban residuo en el título + durationMinutes=null.

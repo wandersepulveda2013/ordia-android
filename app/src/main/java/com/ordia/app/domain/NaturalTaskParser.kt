@@ -672,8 +672,24 @@ object NaturalTaskParser {
         // antes esas formas dejaban la hora como residuo y se agendaban a la canónica de
         // la parte del día o sin hora ("reunión a las nueve" → sin dueAt).
         Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(horas?|hs))?\b"""),
-        Regex("""(?i)\b([01]?\d|2[0-4]):([0-5]\d)\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
-        Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)\b"""),
+        // Hora de reloj autónoma "HH:MM [h/hs/horas] [am/pm]" en AMBOS órdenes. El sufijo
+        // de unidad "h/hs/horas" puede ir ANTES ("3:30h pm") o DESPUÉS ("3:30 pm h") del
+        // meridiem: se permite en las dos posiciones (no capturante) para absorberlo
+        // siempre. El ":" `:MM` es señal inequívoca de reloj, así que la hora se consume
+        // completa y el patrón de duración "Nh" no puede robar los MINUTOS como duración
+        // falsa. Antes el sufijo "h" rompía el \b final (entre "30" y "h" no hay límite de
+        // palabra): el patrón no casaba, "30h" caía como duración (1440 min clampeados) y
+        // la cita quedaba SIN dueAt (olvidada) con título corrupto ("Reunión 15:"); "7:15h"
+        // perdía los minutos en silencio (07:00 en vez de 07:15); "3:30h pm" dejaba "pm"
+        // como residuo y se agendaba 03:30 AM en vez de 15:30. El layout de grupos se
+        // preserva (1=hora, 2=minutos, 3=meridiem): los sufijos son NO capturantes.
+        // Sufijo "h" solo permitido con ":" presente (este patrón); el "Nh" sin dos puntos
+        // sigue siendo duración (ver [durationPatterns] + guard clockPreceding).
+        Regex("""(?i)\b([01]?\d|2[0-4]):([0-5]\d)(?:\s*(?:horas?|hs|h))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?(?:\s*(?:horas?|hs|h))?\b"""),
+        // "H[:MM] am/pm [h/hs/horas]" con sufijo de unidad en cualquier posición: "9am",
+        // "9:30pm", "3:30h pm", "3 pm h". Requiere meridiem (hora 1-12). El sufijo se
+        // absorbe antes/después del meridiem para que no quede como residuo en el título.
+        Regex("""(?i)\b(0?[1-9]|1[0-2])(?::([0-5]\d))?(?:\s*(?:horas?|hs|h))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)(?:\s*(?:horas?|hs|h))?\b"""),
         Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+)?mediod[ií]a(?:\s+($CLOCK_FRACTION_Y))?\b"""),
         Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+)?medianoche(?:\s+($CLOCK_FRACTION_Y))?\b""")
     )
@@ -2247,11 +2263,24 @@ object NaturalTaskParser {
         val timePhrasePreceding = Regex(
             """(?i)(?:a\s+las|a\s+la(?:\s+ma[ñn]ana)?|de\s+la\s+(?:ma[ñn]ana|tarde|noche|madrugada))\s*$"""
         )
+        // Reloj precediendo: descarta la duración cuando el número casado es, en realidad,
+        // la parte de MINUTOS de un reloj "HH:MM[h/hs/horas]" (p.ej. "15:30h" → la duración
+        // "Nh" casa "30h" pero el ":" anterior y pegado delata que "30" son minutos de reloj,
+        // no una duración). Sin este guard, "15:30h" robaba "30h" como 1440 min (clampeados) y
+        // dejaba el título corrupto "Reunión 15:" aunque dueAt ya fuese 15:30. El ":" debe ir
+        // PEGADO al número (sin espacio, patrón `HH:` tight): así NO confunde un "Nh" real
+        // tras una etiqueta con dos puntos ("Versión 2: 1h de trabajo" → el "2: " lleva
+        // espacio tras ":", el guard NO casa y "1h" sigue siendo duración legítima). Tampoco
+        // afecta a "Nh" tras reloj SIN sufijo ("15:30 2h" → "2h" va tras "30 ", sin ":" final,
+        // sigue siendo duración). Cubre "HH:MMh pm"/"HH:MMhs"/"HH:MM horas" porque el ":"
+        // precede igual al número casado.
+        val clockPreceding = Regex("""\d{1,2}:$""")
         val durationMatch = durationPatterns.asSequence()
             .mapNotNull { it.find(working) }
             .filter { match ->
                 !Regex("""(?i)\ben\s*$""").containsMatchIn(working.substring(0, match.range.first)) &&
-                !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first))
+                !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first)) &&
+                !clockPreceding.containsMatchIn(working.substring(0, match.range.first))
             }
             .minByOrNull { it.range.first }
         // Duración con número escrito ("dos horas"/"treinta minutos"/"un par de horas"):
@@ -2260,7 +2289,8 @@ object NaturalTaskParser {
         // aparte porque su cantidad se resuelve con [parseWrittenNumber], no con toIntOrNull.
         val writtenMatch = writtenDurationPattern.find(working)?.takeIf { match ->
             !Regex("""(?i)\ben\s*$""").containsMatchIn(working.substring(0, match.range.first)) &&
-            !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first))
+            !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first)) &&
+            !clockPreceding.containsMatchIn(working.substring(0, match.range.first))
         }
         // Duración fraccionaria sin dígitos ("media hora"/"cuarto de hora"): se computa
         // aparte y se elige la ocurrencia más a la izquierda respecto a las demás.
@@ -2270,7 +2300,8 @@ object NaturalTaskParser {
         // (incluida la fracción) para que no quede "y media" como residuo en el título.
         val compoundFractionalDurationMatch = compoundFractionalDurationPattern.find(working)?.takeIf { match ->
             !Regex("""(?i)\ben\s*$""").containsMatchIn(working.substring(0, match.range.first)) &&
-            !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first))
+            !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first)) &&
+            !clockPreceding.containsMatchIn(working.substring(0, match.range.first))
         }
         // Duración multi-cuarto ("tres cuartos de hora"/"dos cuartos"): mismos guards que
         // la duración numérica/escrita. La forma con prefijo "en/dentro de ..." ya la
@@ -2278,7 +2309,8 @@ object NaturalTaskParser {
         // que aquí solo llega la de cantidad (sin prefijo) y se procesa como duración.
         val multiQuarterDurationMatch = multiQuarterDurationPattern.find(working)?.takeIf { match ->
             !Regex("""(?i)\ben\s*$""").containsMatchIn(working.substring(0, match.range.first)) &&
-            !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first))
+            !timePhrasePreceding.containsMatchIn(working.substring(0, match.range.first)) &&
+            !clockPreceding.containsMatchIn(working.substring(0, match.range.first))
         }
         val durationMinutes = when {
             rangeDurationMinutes != null -> rangeDurationMinutes
