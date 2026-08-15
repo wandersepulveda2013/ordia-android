@@ -1182,6 +1182,52 @@ class NaturalTaskParserTest {
         assertNull("La fecha relativa no debe leerse como duración", result.durationMinutes)
     }
 
+    // --- Fecha relativa con cantidad DECIMAL (ciclo 228) ---
+    // "en 1.5 horas"/"en 2,5 horas" (coma decimal, habitual en español) NO casaban
+    // [relativePattern] (solo aceptaba enteros) → caían a la duración → dueAt=null
+    // (tarea olvidada, sin recordatorio posible) y título corrupto ("... en 1"). Ahora
+    // el decimal se resuelve como vencimiento redondeando al minuto y el título queda limpio.
+    @Test fun relativaDecimalHorasPunto() {
+        val result = NaturalTaskParser.parse("Llamar en 1.5 horas", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 90 * 60_000L, result.dueAt)
+        assertNull("La fecha relativa decimal no debe leerse como duración", result.durationMinutes)
+    }
+
+    @Test fun relativaDecimalHorasComa() {
+        val result = NaturalTaskParser.parse("Llamar en 2,5 horas", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 150 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun relativaDecimalMediaHora() {
+        val result = NaturalTaskParser.parse("Llamar en 0.5 horas", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 30 * 60_000L, result.dueAt)
+    }
+
+    @Test fun relativaDecimalMinutosRedondeaAlMinuto() {
+        val result = NaturalTaskParser.parse("Llamar en 1.5 minutos", now, zone)
+        assertEquals("Llamar", result.title)
+        // 1.5 min → 90 s → redondea a 90000 ms (al minuto).
+        assertEquals(now + 90_000L, result.dueAt)
+    }
+
+    @Test fun relativaDecimalDias() {
+        val result = NaturalTaskParser.parse("Llamar en 2.5 días", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + (2.5 * 24 * 60 * 60_000L).toLong(), result.dueAt)
+    }
+
+    @Test fun relativaDecimalNoEsDuracion() {
+        // Sin prefijo "en", "1.5 horas" sigue siendo DURACIÓN (90 min), no vencimiento.
+        val result = NaturalTaskParser.parse("Estudiar 1.5 horas", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(90, result.durationMinutes)
+        assertNull(result.dueAt)
+    }
+
     // --- Cuartos en plural como fracción de duración (ciclo 175) ---
     // "2 horas y tres cuartos" = 120+45=165, "una hora y dos cuartos" = 60+30=90. Antes
     // [compoundFractionalDurationPattern] solo aceptaba "media|cuarto" (no "tres

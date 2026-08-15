@@ -177,7 +177,7 @@ object NaturalTaskParser {
      * pendientes" no casan (libros/pendientes no son unidades de tiempo).
      */
     private val relativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un\s+par\s+de|unos|unas|\d{1,3}|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)(?:\s+y\s+(media|medio))?\b"""
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un\s+par\s+de|unos|unas|\d{1,3}(?:[.,]\d+)?|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)(?:\s+y\s+(media|medio))?\b"""
     )
     /**
      * Fecha relativa fraccionaria sin dígitos: "en media hora", "dentro de media hora",
@@ -1286,7 +1286,14 @@ object NaturalTaskParser {
         // Fecha relativa "en/dentro de N minutos/horas/días" (N = dígitos o palabra).
         val relativeMatch = relativePattern.find(working)
         val relativeDueAt = relativeMatch?.let { match ->
-            val amount = parseWrittenNumber(match.groupValues[1]) ?: 0L
+            // La cantidad admite parte decimal ("en 1.5 horas"/"en 2,5 días", forma
+            // habitual con coma decimal en español). Antes el patrón solo aceptaba
+            // enteros: "en 1.5 horas" NO casaba → caía a la duración → dueAt=null
+            // (tarea olvidada, sin recordatorio posible) y título corrupto. Ahora se
+            // resuelve el decimal a milisegundos redondeando al minuto.
+            val rawAmount = match.groupValues[1].replace(',', '.')
+            val amount = rawAmount.toDoubleOrNull()
+                ?: parseWrittenNumber(match.groupValues[1])?.toDouble() ?: 0.0
             val unit = match.groupValues[2].lowercase()
             // "y media"/"y medio" (grupo 3): suma media unidad. Si la unidad base son
             // `unitDays` días, media unidad = unitDays/2 días. Aplica por igual a todas
@@ -1306,9 +1313,9 @@ object NaturalTaskParser {
                 else -> 1L
             }
             val baseMillis = when {
-                unit.startsWith("min") -> amount * 60_000L
-                unit.startsWith("hora") -> amount * 60 * 60_000L
-                else -> amount * unitDays * 24 * 60 * 60_000L
+                unit.startsWith("min") -> (amount * 60_000L).toLong()
+                unit.startsWith("hora") -> (amount * 60 * 60_000L).toLong()
+                else -> (amount * unitDays * 24 * 60 * 60_000L).toLong()
             }
             val halfMillis = if (match.groupValues[3].isNotEmpty()) unitDays * 24 * 60 * 60_000L / 2 else 0L
             now + baseMillis + halfMillis
