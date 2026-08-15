@@ -14,7 +14,7 @@
   - `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (+cadencia intercalada en 3 patrones de límite + `cadaInBoundaryMatch` en `cadaBoundaryRecurrence`, +comentarios c.311).
   - `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+4 tests TDD).
   - `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD inicial**: `eafc5f8` (c.310, tras integrar c.309/c.310). **HEAD final**: (commit c.311 sobre `eafc5f8`), pushed.
+- **HEAD inicial**: `eafc5f8` (c.310, tras integrar c.309/c.310). **HEAD final**: `8edad83` (commit c.311 sobre `eafc5f8`), pushed.
 - **Estado**: VERIFIED (dominio JVM: 1910 tests PASS; smoke 25 OK; 0 failures; probe 13 frases POST-fix confirman recurrencia EOM/15/1 + título limpio + hora respetada + sin regresión). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) **parser (continuación c.308/c.311)**: auditar más cadencias intercaladas o residuos de título en recurrencias semanales/anuales ("cada lunes del mes"? "el primer viernes de cada mes"?); (ii) **compromisos (continuación c.306-c.310)**: barrido "overdue batch" al fin de horas silenciosas; (iii) **privacidad (continuación c.287→c.303)**: identificadores personales NO-credenciales (INE/pasaporte/CURP/NSS); (iv) **auditoría UTF-8 global** (continuación c.301, ABIERTO en BACKLOG); (v) textos del asistente que ignoran `reason`/estado (familia c.285); (vi) áreas no-parser sin auditar (onboarding, navegación, accesibilidad, rendimiento); (vii) verificar Android de c.270-c.311 cuando haya SDK. Re-fetch antes de implementar.
 
