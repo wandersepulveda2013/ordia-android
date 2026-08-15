@@ -118,6 +118,31 @@ object TaskRules {
     }
 
     /**
+     * Minutos de trabajo planificado que VERDADERAMENTE faltan para una tarea.
+     *
+     * Para una tarea sin empezar (o sin `startAt`), es su [plannedDuration]. Para una
+     * tarea EN CURSO ([isInProgressNow] — su ventana `startAt..startAt+duración` está
+     * activa ahora), descuenta el tiempo ya transcurrido desde `startAt`: el minuto
+     * vivido trabajando ya no es carga pendiente. Acotado a `[0, plannedDuration]`.
+     *
+     * Fuente única de verdad compartida por [SummaryEngine] (la badge "te quedan X min"
+     * y el veredicto de carga del día) y [DayPlanner] (el tamaño del bloque que el plan
+     * reserva): así una tarea en curso aporta solo su tiempo restante AMBAS superficies,
+     * evitando contar dos veces lo ya gastado frente a una capacidad que se mide desde
+     * AHORA (`freeMinutes` hasta el fin de jornada, o la ventana del plan desde `now`).
+     * Antes cada una sumaba la duración COMPLETA y el tiempo ya consumido se contaba
+     * dos veces (consumido + pendiente): el día parecía más saturado de lo que era y el
+     * plan sobre-reservaba, llegando a dejar fuera tareas que sí cabían.
+     */
+    fun remainingPlanMinutes(task: TaskEntity, now: Long = System.currentTimeMillis()): Int {
+        val planned = plannedDuration(task)
+        val start = task.startAt
+        if (start == null || now < start || !isInProgressNow(task, now)) return planned
+        val elapsedMin = ((now - start) / 60_000L).toInt()
+        return (planned - elapsedMin).coerceIn(0, planned)
+    }
+
+    /**
      * Compromiso a punto de empezar: `startAt` futuro pero dentro de
      * [IMMINENT_WINDOW_MINUTES]. Una reunión/llamada/cita que comienza en pocos
      * minutos es exactamente "qué hago ahora", aunque aún no haya arrancado: la

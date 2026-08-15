@@ -99,7 +99,12 @@ object DayPlanner {
         if (effectiveStart < dayEndMinute) {
             var cursor = effectiveStart
             candidates.forEach { task ->
-                val duration = TaskRules.plannedDuration(task)
+                // Una tarea EN CURSO (ventana activa) ya tiene parte de su tiempo
+                // consumido: el bloque reserva solo lo que FALTA (remainingPlanMinutes),
+                // no la duración completa. Así el plan no sobre-reserva ni empuja a
+                // tareas posteriores con un tiempo ya vivido (c.241, simétrico al
+                // c.240 de SummaryEngine). Para el resto equivale a plannedDuration.
+                val duration = TaskRules.remainingPlanMinutes(task, now)
                 val gap = if (blocks.isEmpty()) 0 else breakMinutes
                 val proposedStart = cursor + gap
                 val proposedEnd = proposedStart + duration
