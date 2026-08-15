@@ -345,6 +345,89 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.309: peticiones en indicativo de 2ª persona — la forma MÁS frecuente de
+    // pedir algo en chat español ("me pasas el informe?", "me llamas luego?",
+    // "me envías el archivo mañana", "me lo mandas?"). En mensajería se pregunta
+    // en indicativo más a menudo de lo que se ordena en imperativo (c.307). Probe
+    // JVM PRE-fix: 10/12 MISSED. La desinencia -as distingue la 2ª persona de la
+    // 3ª (-a), así la narración en 3ª persona ("él me llama") se filtra sola.
+    @Test
+    fun detectsSecondPersonIndicativeRequests() {
+        val positives = listOf(
+            "me pasas el informe?",
+            "me llamas luego?",
+            "me envías el archivo mañana",
+            "me escribes el correo?",
+            "me confirmas la hora?",
+            "me dices cuándo llegas?",
+            "me avisas cuando termines?",
+            "me mandas el link?",
+            "me lo pasas?",
+            "me lo envías el documento",
+            "me das el número?",
+            "me alcanzas el libro?"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "ind-req-$text"
+            )
+            assertTrue("indicativo de 2ª persona DEBE detectarse como petición: \"$text\"", result.isNotEmpty())
+            assertEquals(CommitmentKind.REQUEST, result[0].kind)
+        }
+    }
+
+    @Test
+    fun indicativeRequestsRespectDirectNegation() {
+        // La negación antes del indicativo de 2ª persona ("no me pasas nada",
+        // "no me llamas nunca", "no me lo envías") es una queja/acusación, no una
+        // petición — se excluye vía hasUnnegatedIndicativeRequest.
+        val negatives = listOf(
+            "no me pasas nada nunca",
+            "no me llamas a tiempo",
+            "no me envías el archivo",
+            "no me lo mandas",
+            "no me dices la verdad",
+            "no me avisas cuando llegas"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "ind-req-neg-$text"
+            )
+            assertEquals("indicativo negado NO debe disparar petición: \"$text\"", 0, result.size)
+        }
+    }
+
+    @Test
+    fun thirdPersonNarrationIsNotFlaggedAsRequest() {
+        // Precisión: la 3ª persona termina en -a (no -as), así la narración con
+        // "me" + verbo en 3ª persona NO casa — el desambiguador de persona funciona
+        // sin lógica extra. "él me llama", "mi mamá me llama", "el sistema me envía",
+        // "me cuenta", "me muestra", "él me lo envió", "me lo pasó", "la app me lo
+        // muestra" deben quedar fuera.
+        val innocent = listOf(
+            "él siempre me llama tarde",
+            "mi mamá me llama temprano",
+            "el sistema me envía correos cada noche",
+            "me cuenta que llegó bien",
+            "me muestra el resultado en pantalla",
+            "él me lo envió ayer",
+            "me lo pasó ayer",
+            "la app me lo muestra después"
+        )
+        innocent.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "ind-req-3p-$text"
+            )
+            assertEquals("narración en 3ª persona NO debe disparar petición: \"$text\"", 0, result.size)
+        }
+    }
+
     @Test
     fun blocksFinancialAndCryptoContentThatEscapedNotificationsGate() {
         // Estos contenidos llegan vía SMS/mensajería (paquete no bancario): pasan el

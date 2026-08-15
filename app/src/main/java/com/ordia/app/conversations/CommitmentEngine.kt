@@ -96,6 +96,25 @@ object CommitmentEngine {
     )
     private val purchaseSignal = Regex("""(?i)\b(?:comprar|compra|traer|conseguir|mercado|supermercado)\b""")
     private val reminderSignal = Regex("""(?i)\b(?:recu[eé]rdame|recordatorio|av[ií]same|no\s+dejes\s+que\s+olvide)\b""")
+    // c.309: peticiones en indicativo de 2ª persona ("me pasas el informe?",
+    // "me llamas luego?", "me envías el archivo mañana", "me lo mandas?").
+    // Son la forma MÁS frecuente de pedir algo en chat español — más naturales
+    // que el imperativo ("pásame") cubierto en c.307: en mensajería se pregunta
+    // en vez de ordenar. Probe JVM PRE-fix: 10/12 MISSED. La desinencia -as
+    // (pasas/envías/mandas/llamas/escribes/avisas/confirmas/dices/das/alcanzas/
+    // dejas) es el desambiguador de persona: la 3ª persona termina en -a ("él me
+    // llama", "me muestra", "me cuenta") y NO casa, así la narración en 3ª
+    // persona se filtra sin lógica extra. La negación ("no me pasas nada",
+    // "no me llamas nunca") es una queja/acusación, no una petición — se excluye
+    // vía hasUnnegatedIndicativeRequest (a diferencia de requestSignal, donde la
+    // negación es idiomática y positiva "no olvides"=recuérdame; ahí los
+    // imperativos negativos van en subjuntivo "no me llames" que ya no casa con
+    // -as). El pronombre-objeto opcional "me lo/la/los/las" refuerza la lectura
+    // de transferencia ("me lo pasas", "me lo envías"). Nace como draft REQUEST
+    // PENDING revisable, igual que los imperativos de c.307.
+    private val indicativeRequestSignal = Regex(
+        """(?i)\bme\s+(?:(?:lo|la|los|las)\s+)?(?:pasas|env[ií]as|mandas|llamas|escribes|avisas|confirmas|dices|das|alcanzas|dejas)\b"""
+    )
     private val commitmentSignal = Regex(
         // "me encargo"/"me ocupo" son las formas más naturales en español de
         // asumir un compromiso y se dicen SIN pronombre "yo" ("¿Quién llama?"
@@ -136,6 +155,19 @@ object CommitmentEngine {
             !precedingNegation.containsMatchIn(prefix)
         }
 
+    // c.309: la negación antes de un indicativo de 2ª persona ("no me pasas
+    // nada", "no me llamas nunca", "no me lo envías") es una queja/acusación,
+    // no una petición — se excluye. Reusa el mismo precedingNegation que
+    // hasUnnegatedCommitment (c.279). El subjuntivo "no me llames" no casa con
+    // la desinencia -as, así que los imperativos negativos quedan fuera sin
+    // necesidad de guarda (la guarda sólo protege el indicativo).
+    private fun hasUnnegatedIndicativeRequest(text: String): Boolean =
+        indicativeRequestSignal.findAll(text).any { m ->
+            val start = m.range.first
+            val prefix = text.substring(maxOf(0, start - 3), start)
+            !precedingNegation.containsMatchIn(prefix)
+        }
+
     fun extract(
         messages: List<ChatMessage>,
         selfParticipant: String? = null,
@@ -154,7 +186,7 @@ object CommitmentEngine {
     private fun detect(message: ChatMessage, self: String?, scopeHash: String): CommitmentDraft? {
         val text = message.text.trim().replace(Regex("\\s+"), " ").take(MAX_ACTION_CHARS)
         if (text.length < 4) return null
-        val isRequest = requestSignal.containsMatchIn(text)
+        val isRequest = requestSignal.containsMatchIn(text) || hasUnnegatedIndicativeRequest(text)
         val isMeeting = meetingSignal.containsMatchIn(text)
         val isPurchase = purchaseSignal.containsMatchIn(text)
         val isReminder = reminderSignal.containsMatchIn(text)
