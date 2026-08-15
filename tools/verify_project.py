@@ -219,15 +219,15 @@ for token in (
     'versionName = "3.0.1"',
     'isMinifyEnabled = true',
     'room.schemaLocation',
-    'testDebugUnitTest',  # supplied by CI workflow, checked below too
+    'test',  # supplied by CI workflow, checked below too
 ):
-    if token == 'testDebugUnitTest':
+    if token == 'test':
         continue
     if token not in app_gradle:
         fail(f"app/build.gradle.kts missing expected configuration: {token}")
 
 ci = read_text(ROOT / ".github/workflows/android-ci.yml")
-for token in ("testDebugUnitTest", "lintDebug", "assembleDebug", "tools/verify_project.py"):
+for token in ("test", "lint", "assembleDebug", "tools/verify_project.py"):
     if token not in ci:
         fail(f"CI workflow missing {token}")
 
