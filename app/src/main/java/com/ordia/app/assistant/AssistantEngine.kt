@@ -79,12 +79,32 @@ object AssistantEngine {
                 // WhatNowEngine.ordered para elegir el olvido más urgente.
                 val forgottenIntent = "que olvide" in query || "olvidado" in query
                 if (overdue.isNotEmpty()) {
-                    val venc = if (overdue.size == 1) "1 tarea vencida" else "${overdue.size} tareas vencidas"
-                    AssistantAnswer(
-                        "Tienes $venc. Puedo reprogramarlas sin mostrarte una pared de alertas.",
-                        AssistantAction.RUN_REPLAN,
-                        relatedTaskIds = overdue.take(8).map { it.id }
-                    )
+                    if (forgottenIntent) {
+                        // "¿Qué olvidé?" pide recuperar QUÉ se pasó, no un conteo frío.
+                        // Nombramos la vencida más urgente (mismo orden que What Now:
+                        // overdue primero, luego prioridad/fecha) y dejamos el resto
+                        // para reprogramar. Simétrico con la rama sin-vencidas, que
+                        // nombra el missed-start en lugar de decir "no hay vencidas".
+                        val top = WhatNowEngine.ordered(active, now).first { TaskRules.isOverdue(it, now) }
+                        val minutes = TaskRules.plannedDuration(top)
+                        val tail = if (overdue.size == 1) {
+                            "Puedo reprogramarla."
+                        } else {
+                            "y tienes ${overdue.size - 1} más. Puedo reprogramarlas."
+                        }
+                        AssistantAnswer(
+                            "“${top.title}” está vencida (~$minutes min) $tail",
+                            AssistantAction.RUN_REPLAN,
+                            relatedTaskIds = overdue.take(8).map { it.id }
+                        )
+                    } else {
+                        val venc = if (overdue.size == 1) "1 tarea vencida" else "${overdue.size} tareas vencidas"
+                        AssistantAnswer(
+                            "Tienes $venc. Puedo reprogramarlas sin mostrarte una pared de alertas.",
+                            AssistantAction.RUN_REPLAN,
+                            relatedTaskIds = overdue.take(8).map { it.id }
+                        )
+                    }
                 } else {
                     val missed = WhatNowEngine.ordered(active, now)
                         .firstOrNull { TaskRules.isMissedStart(it, now) }

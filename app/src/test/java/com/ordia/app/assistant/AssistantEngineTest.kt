@@ -161,6 +161,57 @@ class AssistantEngineTest {
         assertTrue("no finge vencida una tarea de hueco olvidado: ${answer.text}", answer.text.contains("No tienes tareas vencidas"))
     }
 
+    @Test fun forgottenIntent_namesMostUrgentOverdueTask() {
+        // "¿Qué olvidé?" con vencidas: el usuario quiere recuperar QUÉ se le pasó.
+        // Antes la rama overdue daba sólo un conteo ("2 vencidas") sin nombrar la
+        // más urgente — justo la información de recuperación que pedía. La más
+        // urgente (URGENT, dueAt más antiguo) debe nombrarse antes de ofrecer
+        // reprogramar el resto. Simétrico con la rama sin-vencidas (que nombra el
+        // missed-start) y con "qué hago ahora" (que nombra una).
+        val now = 1_000_000_000_000L
+        val urgent = TaskEntity(id = 1, title = "Entrega crítica", dueAt = now - 2 * 86_400_000L, priority = TaskPriority.URGENT)
+        val low = TaskEntity(id = 2, title = "Regar plantas", dueAt = now - 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿qué olvidé?",
+            listOf(low, urgent),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la más urgente: ${answer.text}", answer.text.contains("Entrega crítica"))
+        assertEquals("ofrece reprogramar las vencidas", AssistantAction.RUN_REPLAN, answer.action)
+        assertTrue("incluye las vencidas: ${answer.relatedTaskIds}", answer.relatedTaskIds.containsAll(listOf(1L, 2L)))
+    }
+
+    @Test fun forgottenIntent_singleOverdue_namesItAndOffersReplan() {
+        // Una sola vencida + "¿qué olvidé?": la nombra (no sólo "1 vencida") y
+        // sigue ofreciendo reprogramar. Menos conteo frío, más recuperación.
+        val now = 1_000_000_000_000L
+        val overdue = TaskEntity(id = 5, title = "Pagar factura", dueAt = now - 3 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿qué olvidé?",
+            listOf(overdue),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la vencida olvidada: ${answer.text}", answer.text.contains("Pagar factura"))
+        assertEquals(AssistantAction.RUN_REPLAN, answer.action)
+        assertEquals(listOf(5L), answer.relatedTaskIds)
+    }
+
+    @Test fun overdueIntent_keepsCountMessageForPureVencidasQuery() {
+        // "vencidas" (sin intención de olvido) sigue dando el conteo, no nombra:
+        // la partición vencida/olvido se mantiene. No regresa del fix de forgotten.
+        val now = 1_000_000_000_000L
+        val overdue = TaskEntity(id = 5, title = "Pagar factura", dueAt = now - 3 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "vencidas",
+            listOf(overdue),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("mantiene el conteo para 'vencidas': ${answer.text}", answer.text.contains("1 tarea vencida"))
+    }
+
     @Test fun forgottenIntent_whenNothingForgotten_saysSoHonestly() {
         // Sin vencidas ni missed-start: "¿qué olvidé?" no debe inventar nada.
         val now = 1_000_000_000_000L
