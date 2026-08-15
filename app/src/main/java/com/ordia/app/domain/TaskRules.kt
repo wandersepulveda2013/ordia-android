@@ -8,13 +8,31 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 object TaskRules {
+    /** Puntuación única de prioridad para todas las decisiones del sistema. */
+    fun priorityScore(priority: TaskPriority): Int = when (priority) {
+        TaskPriority.LOW -> 0
+        TaskPriority.NORMAL -> 1
+        TaskPriority.HIGH -> 2
+        TaskPriority.URGENT -> 3
+    }
+
+    /**
+     * Orden único de programación, compartido por el planificador, el What Now,
+     * el Guardián y la Bandeja: atrasadas primero, luego prioridad, fecha límite,
+     * hora prevista, orden manual y fecha de creación.
+     */
+    fun schedulingComparator(now: Long): Comparator<TaskEntity> =
+        compareByDescending<TaskEntity> { isOverdue(it, now) }
+            .thenByDescending { priorityScore(it.priority) }
+            .thenBy { it.dueAt ?: Long.MAX_VALUE }
+            .thenBy { it.startAt ?: Long.MAX_VALUE }
+            .thenBy { it.sortOrder }
+            .thenBy { it.createdAt }
+
     fun nextBestTask(tasks: List<TaskEntity>, now: Long = System.currentTimeMillis()): TaskEntity? =
         tasks.asSequence()
             .filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED && it.parentTaskId == null }
-            .sortedWith(compareByDescending<TaskEntity> { isOverdue(it, now) }
-                .thenByDescending { priorityScore(it.priority) }
-                .thenBy { it.dueAt ?: Long.MAX_VALUE }
-                .thenBy { it.createdAt })
+            .sortedWith(schedulingComparator(now))
             .firstOrNull()
 
     fun isOverdue(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean =
@@ -34,9 +52,5 @@ object TaskRules {
         val relevant = tasks.filter { !it.archived && it.status != TaskStatus.CANCELLED && it.parentTaskId == null }
         if (relevant.isEmpty()) return 0
         return ((relevant.count { it.completed } * 100.0) / relevant.size).toInt()
-    }
-
-    private fun priorityScore(priority: TaskPriority): Int = when (priority) {
-        TaskPriority.LOW -> 0; TaskPriority.NORMAL -> 1; TaskPriority.HIGH -> 2; TaskPriority.URGENT -> 3
     }
 }

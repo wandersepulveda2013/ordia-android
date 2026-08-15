@@ -21,7 +21,9 @@ enum class WhatNowReason {
 /** Resultado de "¿Qué hago ahora?": la tarea más importante para este momento. */
 data class WhatNowSuggestion(
     val task: TaskEntity,
-    val reason: WhatNowReason
+    val reason: WhatNowReason,
+    /** Explicación breve y dinámica de por qué toca esta tarea ahora. */
+    val detail: String
 )
 
 /**
@@ -55,7 +57,8 @@ object WhatNowEngine {
                 .thenBy { it.sortOrder }
                 .thenBy { it.createdAt }
         ).first()
-        return WhatNowSuggestion(chosen, reason(chosen, now, today, zone))
+        val reason = reason(chosen, now, today, zone)
+        return WhatNowSuggestion(chosen, reason, detail(chosen, reason, now, today, zone))
     }
 
     private fun isCandidate(task: TaskEntity): Boolean =
@@ -81,6 +84,41 @@ object WhatNowEngine {
         task.priority == TaskPriority.URGENT -> WhatNowReason.URGENT
         task.priority == TaskPriority.HIGH -> WhatNowReason.HIGH_PRIORITY
         else -> WhatNowReason.NEXT_INBOX
+    }
+
+    private fun detail(
+        task: TaskEntity,
+        reason: WhatNowReason,
+        now: Long,
+        today: LocalDate,
+        zone: ZoneId
+    ): String = when (reason) {
+        WhatNowReason.IN_PROGRESS_NOW -> "En curso ahora mismo."
+        WhatNowReason.OVERDUE -> overdueDetail(task, today, zone)
+        WhatNowReason.DUE_TODAY -> task.dueAt?.let { "Vence hoy a las ${timeLabel(it, zone)}." } ?: "Vence hoy."
+        WhatNowReason.URGENT -> "Urgente y sin fecha límite."
+        WhatNowReason.HIGH_PRIORITY -> "Alta prioridad y sin fecha límite."
+        WhatNowReason.NEXT_INBOX -> "Primera en tu Bandeja."
+        WhatNowReason.SCHEDULED_LATER -> task.startAt?.let { "Programada para las ${timeLabel(it, zone)}." } ?: "Programada más tarde."
+    }
+
+    private fun overdueDetail(task: TaskEntity, today: LocalDate, zone: ZoneId): String {
+        val due = task.dueAt ?: return "Atrasada."
+        val days = java.time.temporal.ChronoUnit.DAYS.between(
+            Instant.ofEpochMilli(due).atZone(zone).toLocalDate(),
+            today
+        )
+        return when {
+            days <= 0L -> "Atrasada desde hoy."
+            days == 1L -> "Atrasada 1 día."
+            days <= 9L -> "Atrasada $days días."
+            else -> "Atrasada desde hace más de una semana."
+        }
+    }
+
+    private fun timeLabel(epochMillis: Long, zone: ZoneId): String {
+        val time = Instant.ofEpochMilli(epochMillis).atZone(zone)
+        return "%02d:%02d".format(time.hour, time.minute)
     }
 
     private fun isInProgressNow(task: TaskEntity, now: Long): Boolean {

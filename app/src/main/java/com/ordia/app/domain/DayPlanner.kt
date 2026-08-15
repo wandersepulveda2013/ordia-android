@@ -65,13 +65,7 @@ object DayPlanner {
                 } == true
                 dueOnDate || overdueByDate || scheduledOnDate || (includeInbox && task.dueAt == null)
             }
-            .sortedWith(
-                compareByDescending<TaskEntity> { TaskRules.isOverdue(it, now) }
-                    .thenByDescending { priorityScore(it.priority) }
-                    .thenBy { it.dueAt ?: Long.MAX_VALUE }
-                    .thenBy { it.sortOrder }
-                    .thenBy { it.createdAt }
-            )
+            .sortedWith(TaskRules.schedulingComparator(now))
             .toList()
 
         val tasksById = candidates.associateBy { it.id }
@@ -132,12 +126,5 @@ object DayPlanner {
         task.startAt != null -> PlanReason.SCHEDULED_TIME
         task.dueAt != null -> PlanReason.DUE_TODAY
         else -> PlanReason.INBOX
-    }
-
-    private fun priorityScore(priority: TaskPriority): Int = when (priority) {
-        TaskPriority.LOW -> 0
-        TaskPriority.NORMAL -> 1
-        TaskPriority.HIGH -> 2
-        TaskPriority.URGENT -> 3
     }
 }

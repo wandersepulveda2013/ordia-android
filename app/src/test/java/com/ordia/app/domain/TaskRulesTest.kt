@@ -34,6 +34,39 @@ class TaskRulesTest {
     }
 
     @Test
+    fun schedulingComparator_putsOverdueBeforeUrgent() {
+        val overdue = TaskEntity(id = 1, title = "Atrasada", dueAt = 50)
+        val urgent = TaskEntity(id = 2, title = "Urgente", priority = TaskPriority.URGENT)
+        val sorted = listOf(urgent, overdue).sortedWith(TaskRules.schedulingComparator(now = 100))
+        assertEquals(listOf(1L, 2L), sorted.map { it.id })
+    }
+
+    @Test
+    fun schedulingComparator_prefersHigherPriorityOverEarlierDue() {
+        val urgent = TaskEntity(id = 1, title = "Urgente", priority = TaskPriority.URGENT, dueAt = 200)
+        val high = TaskEntity(id = 2, title = "Alta", priority = TaskPriority.HIGH, dueAt = 150)
+        val sorted = listOf(high, urgent).sortedWith(TaskRules.schedulingComparator(now = 100))
+        assertEquals(listOf(1L, 2L), sorted.map { it.id })
+    }
+
+    @Test
+    fun schedulingComparator_breaksTieByDueDate() {
+        val laterDue = TaskEntity(id = 1, title = "Tarde", dueAt = 300)
+        val midDue = TaskEntity(id = 2, title = "Medio", dueAt = 250)
+        val earlierDue = TaskEntity(id = 3, title = "Pronto", dueAt = 200)
+        val sorted = listOf(laterDue, midDue, earlierDue).sortedWith(TaskRules.schedulingComparator(now = 100))
+        assertEquals(listOf(3L, 2L, 1L), sorted.map { it.id })
+    }
+
+    @Test
+    fun schedulingComparator_breaksFullTieBySortOrder() {
+        val first = TaskEntity(id = 1, title = "Primero", dueAt = 200, sortOrder = 1)
+        val second = TaskEntity(id = 2, title = "Segundo", dueAt = 200, sortOrder = 2)
+        val sorted = listOf(second, first).sortedWith(TaskRules.schedulingComparator(now = 100))
+        assertEquals(listOf(1L, 2L), sorted.map { it.id })
+    }
+
+    @Test
     fun focusClock_formatsMinutesAndSeconds() {
         assertEquals("25:00", FocusClock.format(1500))
         assertEquals("00:00", FocusClock.format(-2))

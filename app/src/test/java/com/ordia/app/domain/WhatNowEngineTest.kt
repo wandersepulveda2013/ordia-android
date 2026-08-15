@@ -120,4 +120,31 @@ class WhatNowEngineTest {
         assertEquals(2L, suggestion!!.task.id)
         assertEquals(WhatNowReason.NEXT_INBOX, suggestion.reason)
     }
+
+    @Test
+    fun detail_countsOverdueDays() {
+        val overdue = task(1, "Atrasada").copy(dueAt = DateRules.toEpochMillis(date.minusDays(2), LocalTime.of(18, 0), zone))
+
+        val suggestion = WhatNowEngine.suggest(listOf(overdue), now = now, zone = zone)
+
+        assertEquals("Atrasada 2 días.", suggestion!!.detail)
+    }
+
+    @Test
+    fun detail_showsDueTimeForDueToday() {
+        val dueToday = task(1, "Vence hoy").copy(dueAt = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone))
+
+        val suggestion = WhatNowEngine.suggest(listOf(dueToday), now = now, zone = zone)
+
+        assertEquals("Vence hoy a las 18:00.", suggestion!!.detail)
+    }
+
+    @Test
+    fun detail_explainsUrgentWithoutDate() {
+        val urgent = task(1, "Urgente", TaskPriority.URGENT)
+
+        val suggestion = WhatNowEngine.suggest(listOf(urgent), now = now, zone = zone)
+
+        assertEquals("Urgente y sin fecha límite.", suggestion!!.detail)
+    }
 }

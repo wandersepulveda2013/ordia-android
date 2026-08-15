@@ -52,7 +52,6 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.SummaryEngine
 import com.ordia.app.domain.WhatNowEngine
-import com.ordia.app.domain.WhatNowReason
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.CaptureChips
@@ -212,12 +211,6 @@ fun TodayScreen(
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CompactAction(
-                    label = stringResource(R.string.today_what_now_action),
-                    icon = Icons.Outlined.ArrowForward,
-                    onClick = { whatNow?.let { onTask(it.task.id) } ?: onOpenInbox() },
-                    modifier = Modifier.weight(1f)
-                )
-                CompactAction(
                     label = stringResource(R.string.today_review_messages),
                     icon = Icons.Outlined.ChatBubbleOutline,
                     onClick = onReviewMessages,
@@ -264,7 +257,7 @@ fun TodayScreen(
         item {
             val title = whatNow?.task?.title ?: stringResource(R.string.what_now_empty)
             Card(
-                onClick = { whatNow?.let { onTask(it.task.id) } },
+                onClick = { if (whatNow != null) onTask(whatNow!!.task.id) else onOpenInbox() },
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
@@ -278,7 +271,7 @@ fun TodayScreen(
                         Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         whatNow?.let {
                             Text(
-                                whatNowReasonLabel(it.reason),
+                                it.detail,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -398,17 +391,6 @@ private fun TaskItem(state: OrdiaUiState, vm: OrdiaViewModel, task: TaskEntity, 
         onDuplicate = { vm.duplicateTask(task) },
         onDelete = { vm.deleteTask(task) }
     )
-}
-
-@Composable
-private fun whatNowReasonLabel(reason: WhatNowReason): String = when (reason) {
-    WhatNowReason.IN_PROGRESS_NOW -> stringResource(R.string.what_now_reason_in_progress)
-    WhatNowReason.OVERDUE -> stringResource(R.string.what_now_reason_overdue)
-    WhatNowReason.DUE_TODAY -> stringResource(R.string.what_now_reason_due_today)
-    WhatNowReason.URGENT -> stringResource(R.string.what_now_reason_urgent)
-    WhatNowReason.HIGH_PRIORITY -> stringResource(R.string.what_now_reason_high)
-    WhatNowReason.NEXT_INBOX -> stringResource(R.string.what_now_reason_inbox)
-    WhatNowReason.SCHEDULED_LATER -> stringResource(R.string.what_now_reason_scheduled_later)
 }
 
 @Composable
