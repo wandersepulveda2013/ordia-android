@@ -74,6 +74,8 @@ CONTEXT_PURE_SOURCES=(
   "$CONTEXT_MAIN/ContextPrivacyFilter.kt"
   "$CONTEXT_MAIN/ContextRateLimiter.kt"
   "$CONTEXT_MAIN/NotificationObservationPolicy.kt"
+  "$CONTEXT_MAIN/ContextIntent.kt"
+  "$CONTEXT_MAIN/ContextDeduplicator.kt"
 )
 
 # Paquete conversations: 2 archivos, ambos JVM-puros (CommitmentEngine define

@@ -14,7 +14,9 @@ class ContextDeduplicator(
     /** Ventana en milisegundos durante la cual un intent no puede repetirse */
     private val dedupWindowMs: Long = DEFAULT_DEDUP_WINDOW_MS,
     /** Capacidad máxima de entradas en el historial */
-    private val maxEntries: Int = MAX_DEDUP_ENTRIES
+    private val maxEntries: Int = MAX_DEDUP_ENTRIES,
+    /** Reloj inyectable para tests deterministas; en producción usa el reloj del sistema. */
+    private val clock: () -> Long = System::currentTimeMillis
 ) {
 
     /** Mapa de hash → timestamp en milisegundos */
@@ -24,7 +26,15 @@ class ContextDeduplicator(
     fun isDuplicate(intent: ContextIntent): Boolean {
         expireEntries()
         val hash = computeHash(intent)
-        return seenHashes.containsKey(hash)
+        val seen = seenHashes[hash] ?: return false
+        // Solo es duplicado dentro de la ventana; pasado el umbral ya debe poder
+        // sugerirse de nuevo (coherente con isDuplicateWithDetails). Limpiar la
+        // entrada vencida evita reportarla como duplicada antes de su purge (2×).
+        if (currentTimeMs() - seen >= dedupWindowMs) {
+            seenHashes.remove(hash)
+            return false
+        }
+        return true
     }
 
     @Synchronized
@@ -95,7 +105,7 @@ class ContextDeduplicator(
         }
     }
 
-    private fun currentTimeMs(): Long = System.currentTimeMillis()
+    private fun currentTimeMs(): Long = clock()
 
     companion object {
         /** Ventana por defecto: 1 hora */
