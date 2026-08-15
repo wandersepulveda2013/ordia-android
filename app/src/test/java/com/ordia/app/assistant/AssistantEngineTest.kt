@@ -143,6 +143,34 @@ class AssistantEngineTest {
         assertEquals(listOf(7L), answer.relatedTaskIds)
     }
 
+    @Test fun forgottenIntent_missedStartOffersReplan_toRescheduleForgottenCommitment() {
+        // Simetría con las vencidas: "¿qué olvidé?" ante un compromiso cuyo hueco
+        // se pasó (sin plazo vencido) NOMBRA el olvido, pero antes NO ofrecía
+        // acción — decía "Hazla o reagéndala" con action=NONE, dejando al usuario
+        // reagendar a mano. Las vencidas sí ofrecían RUN_REPLAN (replanDay hoy),
+        // y replanDay ya recupera missed-start (DayPlanner, c.246). Así que el
+        // camino de recuperación existe; faltaba exponerlo. Un toque "Replanificar"
+        // debe reagendar el olvido a un hueco de hoy, igual que una vencida.
+        val now = 1_000_000_000_000L
+        val missedStart = TaskEntity(
+            id = 7, title = "Revisión de contrato",
+            startAt = now - 60 * 60_000L, // hace 1 h
+            durationMinutes = 25,         // ventana terminó hace ~35 min → hueco pasado
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué olvidé?",
+            listOf(missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        assertEquals(
+            "un olvido reagendable debe ofrecer reprogramar, como una vencida: ${answer.text}",
+            AssistantAction.RUN_REPLAN, answer.action
+        )
+        assertEquals(listOf(7L), answer.relatedTaskIds)
+    }
+
     @Test fun overdueIntent_doesNotPretendMissedStartIsOverdue() {
         // "vencidas" pregunta por vencidas (dueAt pasado). Un compromiso cuyo hueco
         // pasó (isMissedStart genuino: start+duración < now, sin dueAt vencido) NO es

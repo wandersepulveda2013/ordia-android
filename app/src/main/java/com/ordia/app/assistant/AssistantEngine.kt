@@ -149,8 +149,20 @@ object AssistantEngine {
                         }
                     } else if (forgottenIntent) {
                         val minutes = TaskRules.plannedDuration(missed)
+                        // Simetría con la rama de vencidas (l.93-110): un olvido
+                        // reagendable debe ofrecer la MISMA acción (RUN_REPLAN →
+                        // replanDay hoy) que una vencida, no dejar al usuario
+                        // reagendando a mano. replanDay construye el plan de hoy y,
+                        // desde c.246, DayPlanner recupera missed-start en ese plan,
+                        // así que el camino de recuperación ya existía — faltaba
+                        // exponerlo aquí. "Puedo reagendarla" (yo le doy un hueco
+                        // nuevo) es la forma honesta y paralela a "Puedo
+                        // reprogramarla" para vencidas: el plazo no voló, lo que se
+                        // pasó fue el inicio, así que "reagendar" capta mejor "darle
+                        // un nuevo hueco" que "reprogramar" (mover el plazo).
                         AssistantAnswer(
-                            "«${missed.title}» tenía su hueco y se pasó (~$minutes min). Hazla o reagéndala.",
+                            "«${missed.title}» tenía su hueco y se pasó (~$minutes min). Puedo reagendarla.",
+                            AssistantAction.RUN_REPLAN,
                             relatedTaskIds = listOf(missed.id)
                         )
                     } else {
