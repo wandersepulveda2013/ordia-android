@@ -13,7 +13,7 @@
   segundos, 1 agente. Ver `tools/SUPERVISOR.md`.
 
 ## Estado
-- **Fecha (UTC)**: 2026-08-15. Rama `openhands/autonomous-ordia`, HEAD remoto `9904e1c` (c.270 TodayScreen P0 `c787ac7` + c.271 recurrencia ordinal `9904e1c` + c.269 SearchEngine + c.268 DayPlanner remotos) + este run **c.272** parser "este mes/año" (pendiente de push). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21.
+- **Fecha (UTC)**: 2026-08-15. Rama `openhands/autonomous-ordia`, HEAD `7c7b910` (c.272 parser "este mes/año" pusheado sobre c.271 `9904e1c` recurrencia + c.270 `c787ac7` what-now + c.269 SearchEngine + c.268 DayPlanner remotos). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21.
 - **Tests**: `bash tools/run_domain_tests.sh` -> **1771 PASS** (1765 base remota c.271 — 1758 c.265-c.269 + 7 recurrencia c.271 — + 6 míos c.272; el helper `RecurrenceSpawn` de c.266 es cableado Android, fuera del harness; c.270 es fix UI fuera del harness), 0 failures, 40 clases; `bash tools/run_domain_checks.sh` -> smoke 25 OK. **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Recientes (rama)**:
   - c.272 (este run): **P1 parser plazos blandos "este mes"/"este año" sueltos** - "renovar licencia este mes" ya ancla al fin de mes en curso (antes `dueAt=null` → vencimiento olvidado + residuo en título); lookbehinds preservan "el 15 de este mes"/"fin de este mes"/posesivo "renta de este mes".
