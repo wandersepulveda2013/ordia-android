@@ -63,11 +63,8 @@ fun TaskRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val priorityColor = priorityAccent(task.priority)
-    Card(
-        modifier = modifier.fillMaxWidth().combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true }),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    OrdiaCard(
+        modifier = modifier.fillMaxWidth().combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true })
     ) {
         Row(
             Modifier.fillMaxWidth(),
@@ -114,7 +111,7 @@ fun TaskRow(
                 DropdownMenuItem(text = { Text("Editar") }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = { menuOpen = false; onEdit() })
                 if (onDuplicate != null) DropdownMenuItem(text = { Text("Duplicar") }, leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) }, onClick = { menuOpen = false; onDuplicate() })
                 if (onDelete != null) {
-                    Divider()
+                    androidx.compose.material3.HorizontalDivider()
                     DropdownMenuItem(text = { Text("Archivar") }, leadingIcon = { Icon(Icons.Outlined.DeleteOutline, null) }, onClick = { menuOpen = false; onDelete() })
                 }
             }
