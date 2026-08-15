@@ -18,6 +18,16 @@ val OrdiaSage = Color(0xFF76845F)
 val OrdiaRose = Color(0xFFA87373)
 val OrdiaLavender = Color(0xFF88759C)
 
+// Semantic colors
+val SemanticAlert = Color(0xFFD32F2F)
+val SemanticAlertDark = Color(0xFFE57373)
+val SemanticSuccess = Color(0xFF388E3C)
+val SemanticSuccessDark = Color(0xFF81C784)
+val SemanticFocus = Color(0xFF1976D2)
+val SemanticFocusDark = Color(0xFF64B5F6)
+val SemanticAutomation = Color(0xFF7B1FA2)
+val SemanticAutomationDark = Color(0xFFBA68C8)
+
 /** Palette of accent colors chosen by the user. Each entry holds (secondary, secondaryContainer, onSecondaryContainer) for light and dark. */
 data class AccentSwatch(
     val lightSecondary: Color,
@@ -62,7 +72,7 @@ val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
 private val LightColors = lightColorScheme(
     primary = OrdiaInk,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFEAE2D4),
+    primaryContainer = Color(0xFFF2EFE8),
     onPrimaryContainer = OrdiaInk,
     secondary = OrdiaGold,
     onSecondary = Color.White,
@@ -70,22 +80,22 @@ private val LightColors = lightColorScheme(
     onSecondaryContainer = Color(0xFF34270F),
     tertiary = OrdiaSage,
     onTertiary = Color.White,
-    background = OrdiaCream,
+    background = Color(0xFFFFFFFF),
     onBackground = OrdiaInk,
-    surface = OrdiaPaper,
+    surface = Color(0xFFFFFFFF),
     onSurface = OrdiaInk,
-    surfaceVariant = Color(0xFFEDE7DC),
+    surfaceVariant = Color(0xFFF5F3ED),
     onSurfaceVariant = Color(0xFF625D55),
-    outline = Color(0xFF8C8579),
-    outlineVariant = Color(0xFFDAD1C2),
-    error = Color(0xFF9A3E3E),
+    outline = Color(0xFFE0DCD3),
+    outlineVariant = Color(0xFFF0EBE0),
+    error = SemanticAlert,
     onError = Color.White
 )
 
 private val DarkColors = darkColorScheme(
     primary = Color(0xFFF3EDE2),
     onPrimary = Color(0xFF1A1916),
-    primaryContainer = Color(0xFF34312B),
+    primaryContainer = Color(0xFF2B2924),
     onPrimaryContainer = Color(0xFFF5EFE4),
     secondary = OrdiaGoldSoft,
     onSecondary = Color(0xFF33270E),
@@ -93,15 +103,15 @@ private val DarkColors = darkColorScheme(
     onSecondaryContainer = Color(0xFFFFE8AF),
     tertiary = Color(0xFFB9C99F),
     onTertiary = Color(0xFF263017),
-    background = Color(0xFF141310),
-    onBackground = Color(0xFFEDE8DF),
-    surface = Color(0xFF1C1B18),
-    onSurface = Color(0xFFEDE8DF),
-    surfaceVariant = Color(0xFF2B2924),
-    onSurfaceVariant = Color(0xFFC9C2B8),
-    outline = Color(0xFF938C81),
-    outlineVariant = Color(0xFF47433D),
-    error = Color(0xFFFFB4AB),
+    background = Color(0xFF0F0E0C),
+    onBackground = Color(0xFFEAE5DC),
+    surface = Color(0xFF141310),
+    onSurface = Color(0xFFEAE5DC),
+    surfaceVariant = Color(0xFF201E1A),
+    onSurfaceVariant = Color(0xFFB3ADA4),
+    outline = Color(0xFF38352F),
+    outlineVariant = Color(0xFF26241F),
+    error = SemanticAlertDark,
     onError = Color(0xFF690005)
 )
 

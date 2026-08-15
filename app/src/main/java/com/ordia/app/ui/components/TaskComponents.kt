@@ -21,8 +21,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
@@ -30,8 +28,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import com.ordia.app.ui.theme.SemanticAlert
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,11 +61,8 @@ fun TaskRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val priorityColor = priorityAccent(task.priority)
-    Card(
+    OrdiaCard(
         modifier = modifier.fillMaxWidth().combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true }),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             Modifier.fillMaxWidth(),
@@ -125,15 +120,15 @@ fun TaskRow(
 
 @Composable
 fun PriorityPill(text: String) {
-    Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+    OrdiaSurface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.secondaryContainer, border = null) {
         Text(text, Modifier.padding(horizontal = 7.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
     }
 }
 
 @Composable
 private fun priorityAccent(priority: TaskPriority): androidx.compose.ui.graphics.Color = when (priority) {
-    TaskPriority.URGENT -> MaterialTheme.colorScheme.error
-    TaskPriority.HIGH -> Color(0xFFC98A2B)
+    TaskPriority.URGENT -> SemanticAlert
+    TaskPriority.HIGH -> Color(0xFFC98A2B) // Fallback or a specific semantic focus could be used here
     TaskPriority.NORMAL -> MaterialTheme.colorScheme.outlineVariant
     TaskPriority.LOW -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
 }
