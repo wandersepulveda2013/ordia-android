@@ -2,7 +2,6 @@ package com.ordia.app.domain
 
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
-import com.ordia.app.data.local.TaskStatus
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -113,10 +112,12 @@ object DayPlanner {
                 // ([remainingPlanMinutes]) reproduce la realidad: ese tiempo ya se está
                 // gastando. Coherente con [TaskRules.timeRank] (IN_PROGRESS/en-curso
                 // es el rango más alto) que comparten What Now, nextBestTask y widget.
-                // Condición `status == IN_PROGRESS || isInProgressNow`: cubre tanto la
-                // marcada a mano (sin `startAt`) como la de ventana activa.
+                // Condición `isBeingWorkedOn` (status IN_PROGRESS o ventana activa):
+                // cubre tanto la marcada a mano (sin `startAt`) como la de ventana activa.
+                // Predicado "sacro en curso" centralizado en TaskRules, compartido con
+                // What Now, guardián, resúmenes y automatizaciones.
                 compareByDescending<TaskEntity> {
-                    it.status == TaskStatus.IN_PROGRESS || TaskRules.isInProgressNow(it, now)
+                    TaskRules.isBeingWorkedOn(it, now)
                 }
                     .thenByDescending { TaskRules.isOverdue(it, now) }
                     .thenByDescending { TaskRules.priorityScore(it.priority) }

@@ -585,4 +585,77 @@ class SearchEngineTest {
             .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
         assertEquals(emptySet<Long>(), ids)
     }
+
+    // --- En curso = lo más accionable ahora (paridad con Qué Hacer Ahora) ---
+
+    @Test fun inProgressTaskRanksAboveOverdueNotStarted() {
+        // La búsqueda debe ordenar igual que "Qué hacer ahora": lo que se está
+        // ejecutando AHORA (ventana startAt..startAt+duración activa) va primero,
+        // por encima de una tarea vencida y urgente que aún no se ha empezado.
+        // Antes, urgencyRank no tenía tier de "en curso", así que la tarea en curso
+        // NORMAL caía al fondo (urgency 6) y la vencida urgente la superaba: la
+        // búsqueda ofrecía primero algo que el usuario NO está haciendo en vez de
+        // lo que ya tiene entre manos, contradiciendo su propia doc de paridad con
+        // Qué Hacer Ahora y el orden que toda la app (WhatNowEngine, DayPlanner,
+        // widget, guardián) ya centralizó en TaskRules.timeRank.
+        val now = System.currentTimeMillis()
+        val inProgress = TaskEntity(
+            id = 50,
+            title = "Reunión equipo",
+            priority = TaskPriority.NORMAL,
+            startAt = now - 30 * 60_000L,
+            durationMinutes = 120
+        )
+        val overdue = TaskEntity(
+            id = 51,
+            title = "Reunión equipo",
+            priority = TaskPriority.URGENT,
+            dueAt = now - 3_600_000L
+        )
+        val results = SearchEngine.search("reunion", listOf(inProgress, overdue), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(2, results.size)
+        assertEquals(50L, results.first().id)
+    }
+
+    @Test fun manuallyInProgressTaskRanksAboveOverdue() {
+        // Una tarea con estado IN_PROGRESS (marcada a mano por el usuario, sin
+        // startAt activo) también encabeza los resultados: el usuario la declaró
+        // "en curso", así que es lo más accionable ahora. Misma regla que
+        // TaskRules.timeRank, donde status==IN_PROGRESS es el rango máximo (6).
+        val now = System.currentTimeMillis()
+        val active = TaskEntity(
+            id = 60,
+            title = "Diseño",
+            priority = TaskPriority.NORMAL,
+            status = TaskStatus.IN_PROGRESS
+        )
+        val overdue = TaskEntity(
+            id = 61,
+            title = "Diseño",
+            priority = TaskPriority.URGENT,
+            dueAt = now - 3_600_000L
+        )
+        val results = SearchEngine.search("diseño", listOf(active, overdue), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(60L, results.first().id)
+    }
+
+    @Test fun overdueStillBeatsNonOverdueNonInProgress() {
+        // La jerarquía histórica se mantiene intacta salvo el nuevo tier superior:
+        // una vencida urgente sigue ganando a una normal pendiente (sin startAt ni
+        // ventana activa). Garantiza que el fix no degrada el orden existente.
+        val now = System.currentTimeMillis()
+        val overdue = TaskEntity(
+            id = 70,
+            title = "Reunión equipo",
+            priority = TaskPriority.URGENT,
+            dueAt = now - 3_600_000L
+        )
+        val fresh = TaskEntity(
+            id = 71,
+            title = "Reunión equipo",
+            priority = TaskPriority.NORMAL
+        )
+        val results = SearchEngine.search("reunion", listOf(overdue, fresh), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(70L, results.first().id)
+    }
 }

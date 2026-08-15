@@ -374,18 +374,20 @@ object GuardianEngine {
      * conteo de `overdue`.
      *
      * Excluye las tareas que se están ejecutando justo ahora
-     * ([TaskRules.isInProgressNow]): una tarea vencida pero en curso (p. ej.
-     * empezada a tiempo, con `dueAt` ya pasado pero dentro de su ventana de
-     * duración) no debe presentarse como "hazla ya": el usuario ya la está
-     * haciendo, y nombra en su lugar la siguiente atrasada más pequeña. Si
-     * todas las atrasadas están en curso, cae al mensaje genérico.
+     * ([TaskRules.isBeingWorkedOn] — marcada en curso o dentro de su ventana): una
+     * tarea vencida pero en curso (p. ej. empezada a tiempo, con `dueAt` ya pasado
+     * pero dentro de su ventana de duración, o que el usuario marcó IN_PROGRESS a
+     * mano) no debe presentarse como "hazla ya": el usuario ya la está haciendo, y
+     * nombra en su lugar la siguiente atrasada más pequeña. Si todas las atrasadas
+     * están en curso, cae al mensaje genérico. Mismo predicado "sacro en curso" que
+     * AutomationActionPlanner e isMissedStart.
      */
     private fun smallestOverdueAction(tasks: List<TaskEntity>, nowMillis: Long): String {
         val chosen = tasks
             .filter {
                 it.parentTaskId == null && TaskRules.isActive(it) &&
                     TaskRules.isOverdue(it, nowMillis) &&
-                    !TaskRules.isInProgressNow(it, nowMillis)
+                    !TaskRules.isBeingWorkedOn(it, nowMillis)
             }
             .minWithOrNull(
                 compareByDescending<TaskEntity> { it.priority == TaskPriority.URGENT }

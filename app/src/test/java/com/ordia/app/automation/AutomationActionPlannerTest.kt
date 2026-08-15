@@ -502,4 +502,52 @@ class AutomationActionPlannerTest {
         val u = plan.updates.first()
         assertNull("Una tarea rápida sin due no debe ganar vencimiento al agruparse", u.dueAt)
     }
+
+    @Test
+    fun `reschedule_overdue no reprograma una tarea en curso`() {
+        // Sacro: una tarea que el usuario está ejecutando (status IN_PROGRESS, vencida)
+        // no debe ser reprogramada automáticamente a mañana. Una automatización que
+        // "reprograme vencidas" no debe pisar el trabajo activo: lo resetearía a
+        // PLANNED, le borraría el startAt y le empujaría el vencimiento, descarrilando
+        // lo que el usuario hace ahora mismo. Simétrico con GuardianEngine, que excluye
+        // lo "en curso" de señalar vencidas, y con timeRank, que lo coloca arriba.
+        val inProgress = task(
+            1,
+            dueAt = now - 86_400_000L, // vencida
+            status = TaskStatus.IN_PROGRESS,
+            startAt = now - 600_000L // ventana activa
+        )
+        val normal = task(2, dueAt = now - 86_400_000L, status = TaskStatus.PLANNED, reminderAt = null)
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.RESCHEDULE_OVERDUE, AutomationCondition.HAS_OVERDUE_TASKS),
+            listOf(inProgress, normal), 0, now, zone
+        )
+        assertTrue(plan.matched)
+        val byId = plan.updates.associateBy { it.id }
+        assertNull("La tarea en curso no debe reprogramarse", byId[1L])
+        assertNotNull("La vencida normal sí debe reprogramarse", byId[2L])
+    }
+
+    @Test
+    fun `batch_quick_tasks no replanifica una tarea rapida en curso`() {
+        // Sacro: una tarea rápida en curso no debe ser reubicada en un nuevo slot.
+        // Reagruparla pisaría el startAt activo y la resetearía a PLANNED, interrumpiendo
+        // lo que el usuario hace ahora. Mismo principio que reschedule_overdue.
+        val inProgress = task(
+            1,
+            durationMinutes = 5,
+            status = TaskStatus.IN_PROGRESS,
+            startAt = now - 120_000L,
+            dueAt = now + 3_600_000L
+        )
+        val inbox = task(2, durationMinutes = 5, dueAt = null)
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.BATCH_QUICK_TASKS, AutomationCondition.HAS_QUICK_TASKS),
+            listOf(inProgress, inbox), 0, now, zone
+        )
+        assertTrue(plan.matched)
+        val byId = plan.updates.associateBy { it.id }
+        assertNull("La tarea rápida en curso no debe reasignarse", byId[1L])
+        assertNotNull("La rápida de inbox sí debe agruparse", byId[2L])
+    }
 }

@@ -277,24 +277,33 @@ object SearchEngine {
     }
 
     /**
-     * Ordena primero lo más accionable: una tarea atrasada/urgente que coincide con
-     * la búsqueda sube por encima de resultados meramente alfabéticos, igual que en
-     * "Qué hacer ahora". Sin pantalla nueva: solo reordena lo que ya aparece. Es una
-     * heurística local honesta (sin IA simulada).
+     * Ordena primero lo más accionable: lo que se está ejecutando AHORA (estado
+     * IN_PROGRESS o ventana `startAt..startAt+duración` activa) encabeza los
+     * resultados, por encima incluso de una vencida urgente; luego lo atrasado y
+     * urgente, igual que en "Qué hacer ahora". Es paridad real con
+     * [TaskRules.timeRank]/[WhatNowEngine], donde "en curso" es el rango máximo
+     * (6/5) y la vencida queda por debajo (4): la búsqueda y "Qué hacer ahora"
+     * deben ofrecer la MISMA tarea como primera opción para un conjunto dado.
+     *
+     * Antes este tier no existía: una tarea en curso NORMAL caía al fondo y una
+     * vencida urgente (no empezada) la superaba — la búsqueda ofrecía primero lo
+     * que el usuario NO estaba haciendo. Sin pantalla nueva: solo reordena lo que
+     * ya aparece. Heurística local honesta (sin IA simulada).
      */
     private fun urgencyRank(task: TaskEntity, now: Long): Int = when {
-        TaskRules.isOverdue(task, now) && task.priority == TaskPriority.URGENT -> 0
-        TaskRules.isOverdue(task, now) -> 1
-        task.priority == TaskPriority.URGENT && TaskRules.isDueToday(task, now) -> 2
-        task.priority == TaskPriority.URGENT -> 3
-        task.priority == TaskPriority.HIGH -> 4
-        TaskRules.isDueToday(task, now) -> 5
-        else -> 6
+        TaskRules.isBeingWorkedOn(task, now) -> 0
+        TaskRules.isOverdue(task, now) && task.priority == TaskPriority.URGENT -> 1
+        TaskRules.isOverdue(task, now) -> 2
+        task.priority == TaskPriority.URGENT && TaskRules.isDueToday(task, now) -> 3
+        task.priority == TaskPriority.URGENT -> 4
+        task.priority == TaskPriority.HIGH -> 5
+        TaskRules.isDueToday(task, now) -> 6
+        else -> 7
     }
 
     private data class Ranked(
         val result: SearchResult,
-        val urgency: Int = 6,
+        val urgency: Int = 7,
         val dueAt: Long = Long.MAX_VALUE
     )
 

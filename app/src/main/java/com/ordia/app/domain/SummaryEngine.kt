@@ -264,7 +264,7 @@ object SummaryEngine {
         val deferrable = remainingTodayTasks.filter { task ->
             task.dueAt != null &&
                 !TaskRules.isOverdue(task, now) &&
-                !TaskRules.isInProgressNow(task, now) &&
+                !TaskRules.isBeingWorkedOn(task, now) &&
                 !TaskRules.isImminentStart(task, now) &&
                 !TaskRules.isMissedStart(task, now)
         }

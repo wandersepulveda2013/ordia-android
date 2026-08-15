@@ -34,8 +34,16 @@ object AutomationActionPlanner {
         // una subtarea con dueAt == null). Misma fuente única de verdad que
         // WhatNowEngine, GuardianEngine, SummaryEngine y DayPlanner.
         val active = tasks.filter { TaskRules.isActive(it) && it.parentTaskId == null }
-        val overdue = active.filter { TaskRules.isOverdue(it, now) }
-        val quick = active.filter { it.durationMinutes <= 10 }
+        // Sacro "en curso": las tareas que el usuario ejecuta ahora (status IN_PROGRESS o
+        // ventana activa) se excluyen de los candidatos a MUTAR. Una automatización que
+        // reprograme vencidas o agrupe rápidas no debe pisar el trabajo activo: resetearía
+        // el estado a PLANNED, borraría el startAt o empujaría el vencimiento, descarrilando
+        // lo que el usuario hace en este instante. Simétrico con GuardianEngine (no señala
+        // vencidas en curso) y con timeRank (las coloca arriba). El filtro fluye también a
+        // las condiciones HAS_OVERDUE_TASKS/HAS_QUICK_TASKS: si las únicas vencidas/rápidas
+        // están en curso, no hay nada que automatizar y la condición no se cumple (correcto).
+        val overdue = active.filter { TaskRules.isOverdue(it, now) && !TaskRules.isBeingWorkedOn(it, now) }
+        val quick = active.filter { it.durationMinutes <= 10 && !TaskRules.isBeingWorkedOn(it, now) }
         val conditionMet = when (rule.condition) {
             AutomationCondition.ALWAYS -> true
             AutomationCondition.HAS_OVERDUE_TASKS -> overdue.isNotEmpty()

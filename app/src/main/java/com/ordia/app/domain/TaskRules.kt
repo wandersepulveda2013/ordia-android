@@ -192,11 +192,25 @@ object TaskRules {
     fun isMissedStart(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean {
         val start = task.startAt ?: return false
         if (!isActive(task)) return false
-        if (task.status == TaskStatus.IN_PROGRESS) return false
-        if (isInProgressNow(task, now)) return false
+        if (isBeingWorkedOn(task, now)) return false
         if (isOverdue(task, now)) return false
         return now > start
     }
+
+    /**
+     * Tarea que el usuario está ejecutando ahora mismo, de forma explícita o por ventana:
+     * la marcó en curso (`status == IN_PROGRESS`) o su slot `startAt..startAt+duración`
+     * está activo ([isInProgressNow]). Es la noción "sacro en curso" compartida: algo en
+     * este estado NO debe ser desplazado, pospuesto ni reprogramado por una automatización
+     * o por el guardián, porque pisaría el trabajo activo (resetearía el estado, borraría
+     * el `startAt` o empujaría el vencimiento). La usan [isMissedStart] (no señalar como
+     * inicio olvidado lo que se hace ahora), [timeRank] (colocarlo arriba) y los
+     * orquestadores de automatización (no mutar lo en curso). Es el OR canónico de las dos
+     * señales de "en curso": mantenerlo en un solo lugar evita que una superficie olvide
+     * una de las dos y deje de proteger el trabajo activo.
+     */
+    fun isBeingWorkedOn(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean =
+        task.status == TaskStatus.IN_PROGRESS || isInProgressNow(task, now)
 
     fun isOverdue(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean =
         isActive(task) && task.dueAt?.let { it < now } == true
