@@ -128,4 +128,41 @@ class CommitmentEngineTest {
         assertEquals(1, result.size)
         assertEquals(CommitmentOwner.OTHER, result[0].owner)
     }
+
+    // c.279: una negacion directa ("no te llamo", "no me encargo") es una
+    // NEGATIVA, no un compromiso. Marcarla como compromiso es un falso positivo
+    // (IA deshonesta: el usuario dijo que NO hara la accion). Verificado por probe
+    // JVM: 6 formas de negativa directa se detectaban como compromiso.
+    @Test
+    fun directNegationIsNotACommitment() {
+        val negatives = listOf(
+            "no te llamo hasta manana",
+            "no me encargo de eso",
+            "no lo hago yo",
+            "no voy a ir",
+            "no debo olvidarlo",
+            "no tengo que hacerlo hoy"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "neg-$text"
+            )
+            assertEquals("una negativa NO debe generar draft: \"$text\"", 0, result.size)
+        }
+    }
+
+    @Test
+    fun negationFarFromVerbDoesNotBlockRealCommitment() {
+        // "no" aparece pero lejos del verbo de compromiso -> SI es compromiso real.
+        // Garantiza que la guarda de negacion no sea excesiva (no rompa positivos).
+        val result = CommitmentEngine.extract(
+            listOf(ChatMessage("Yo", "no tengo tiempo, lo hago manana")),
+            selfParticipant = "Yo",
+            scopeHash = "neg-far"
+        )
+        assertEquals(1, result.size)
+        assertEquals(CommitmentKind.SELF_COMMITMENT, result[0].kind)
+    }
 }

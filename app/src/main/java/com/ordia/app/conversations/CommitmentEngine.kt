@@ -53,6 +53,19 @@ object CommitmentEngine {
     private val locationSignal = Regex(
         """(?i)\b(?:lugar\s*:\s*|(?:nos\s+vemos|reuni[oó]n|cita)[^.!?\n]{0,80}?\ben\s+)([\p{L}\d][\p{L}\d .,'-]{2,50})"""
     )
+    // "no te llamo"/"no me encargo"/"no lo hago" son NEGATIVAS (rechazos), no
+    // compromisos. Hay compromiso solo si alguna frase de compromiso aparece SIN
+    // "no " inmediatamente antes. Así "no tengo tiempo, lo hago manana" sigue
+    // siendo compromiso (la 2ª frase no está negada). NO se aplica a request/reminder,
+    // donde la negación es idiomática y POSITIVA ("no olvides" = recuérdame). (c.279)
+    private val precedingNegation = Regex("""(?i)\bno\s+""")
+
+    private fun hasUnnegatedCommitment(text: String): Boolean =
+        commitmentSignal.findAll(text).any { m ->
+            val start = m.range.first
+            val prefix = text.substring(maxOf(0, start - 3), start)
+            !precedingNegation.containsMatchIn(prefix)
+        }
 
     fun extract(
         messages: List<ChatMessage>,
@@ -76,7 +89,11 @@ object CommitmentEngine {
         val isMeeting = meetingSignal.containsMatchIn(text)
         val isPurchase = purchaseSignal.containsMatchIn(text)
         val isReminder = reminderSignal.containsMatchIn(text)
-        val isCommitment = commitmentSignal.containsMatchIn(text)
+        // "no te llamo"/"no me encargo"/"no lo hago" son NEGATIVAS (rechazos), no
+        // compromisos: excluir las frases de compromiso directamente negadas. Ojo:
+        // NO se aplica a request/reminder, donde la negacion es idiomatica y POSITIVA
+        // ("no olvides" = recuérdame, "no dejes que olvide" = recuérdame). (c.279)
+        val isCommitment = hasUnnegatedCommitment(text)
         if (!isRequest && !isMeeting && !isPurchase && !isReminder && !isCommitment) return null
 
         val sender = message.sender.orEmpty().trim().take(80)
