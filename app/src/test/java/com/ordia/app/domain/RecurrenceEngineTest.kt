@@ -329,4 +329,38 @@ class RecurrenceEngineTest {
         val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
         assertEquals("1:1", next.recurrenceDays)
     }
+
+    @Test fun monthlyOrdinal_staysAnchoredAcrossMultipleCycles() {
+        // Guardián anti-deriva: encadena `nextOccurrence` 3 ciclos consecutivos y
+        // verifica que cada cita sigue siendo el 1.er LUNES del mes (no el día 7,
+        // que es a lo que derivaba el motor antes de anclarlo al ordinal). El bug
+        // original reaparecía silenciosamente en el 2.º/3.er ciclo: la 1.ª cita se
+        // calculaba bien, pero al completarla la siguiente tomaba `dueAt.dayOfMonth`
+        // (7) como ancla y se desplazaba al "7 de cada mes". Este test fallaría con
+        // ese comportamiento (07-oct / 07-nov en vez de 05-oct / 02-nov).
+        // 1.er lunes: sep=07, oct=05, nov=02, dic=07 (2026).
+        var task = TaskEntity(
+            title = "Pago primer lunes de cada mes",
+            dueAt = DateRules.toEpochMillis(LocalDate.of(2026, 9, 7), LocalTime.of(9, 0), zone),
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceDays = "1:1"
+        )
+        val expected = listOf(
+            LocalDate.of(2026, 10, 5),
+            LocalDate.of(2026, 11, 2),
+            LocalDate.of(2026, 12, 7)
+        )
+        for (cycle in expected.indices) {
+            task = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = task.dueAt!!, zone = zone)) {
+                "Ciclo ${cycle + 1}: se esperaba una próxima ocurrencia"
+            }
+            assertEquals(
+                "Ciclo ${cycle + 1} debe caer en el 1.er lunes del mes (sin derivar al día 7)",
+                expected[cycle],
+                DateRules.toLocalDate(task.dueAt!!, zone)
+            )
+            assertEquals("La codificación ordinal debe conservarse en cada ciclo", "1:1", task.recurrenceDays)
+            assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(task.dueAt, zone))
+        }
+    }
 }
