@@ -56,6 +56,31 @@ BACKUP_PURE_SOURCES=(
   "$BACKUP_MAIN/ReminderSchedulerPort.kt"
 )
 
+# Paquete context: la mayoría de fuentes usan Android (ContextEngine, ContextAuditLog,
+# ContextualSettingsStore, OrdiaNotificationListenerService, etc.). Se enumeran aquí
+# solo las fuentes JVM-puras que tienen tests unitarios verificables sin Android SDK:
+# filtros de privacidad, rate-limiter, analyzer contextual y la política de observación
+# de notificaciones (área de privacidad/contexto). NotificationObservationPolicy depende
+# de ConversationPrivacyPolicy (definido en conversations/CommitmentEngine.kt).
+# El subpaquete context/external NO se incluye: sus tests referencian
+# ExternalConfirmationController.SECURE_PACKAGES, fuertemente acoplado a Android
+# (NotificationManager/PackageManager/Context) → queda NO VERIFICADO en JVM pura.
+CONTEXT_MAIN="$ROOT/app/src/main/java/com/ordia/app/context"
+CONTEXT_PURE_SOURCES=(
+  "$CONTEXT_MAIN/ContextEvent.kt"
+  "$CONTEXT_MAIN/ContextualSuggestion.kt"
+  "$CONTEXT_MAIN/ContextCaptureSource.kt"
+  "$CONTEXT_MAIN/ContextualAnalyzer.kt"
+  "$CONTEXT_MAIN/ContextPrivacyFilter.kt"
+  "$CONTEXT_MAIN/ContextRateLimiter.kt"
+  "$CONTEXT_MAIN/NotificationObservationPolicy.kt"
+)
+
+# Paquete conversations: 2 archivos, ambos JVM-puros (CommitmentEngine define
+# ConversationPrivacyPolicy + NotificationObservationPolicy lo consume; ChatImportParser
+# es parser de chat sin Android). Se incluye entero con wildcard.
+CONVERSATIONS_MAIN="$ROOT/app/src/main/java/com/ordia/app/conversations"
+
 SOURCES=(
   "$ROOT/tools/domain-smoke/RoomStubs.kt"
   "$ROOT/tools/domain-smoke/PreferenceStubs.kt"
@@ -63,11 +88,15 @@ SOURCES=(
   "$DOMAIN_MAIN"/*.kt
   "${AUTOMATION_PURE_SOURCES[@]}"
   "${BACKUP_PURE_SOURCES[@]}"
+  "${CONTEXT_PURE_SOURCES[@]}"
+  "$CONVERSATIONS_MAIN"/*.kt
   "$ROOT/app/src/main/java/com/ordia/app/assistant"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/domain"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/automation"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/assistant"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/backup"/*.kt
+  "$ROOT/app/src/test/java/com/ordia/app/context"/*.kt
+  "$ROOT/app/src/test/java/com/ordia/app/conversations"/*.kt
 )
 
 echo ">> Compilando ${#SOURCES[@]} fuentes (main+stubs+tests)..."
