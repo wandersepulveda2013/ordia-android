@@ -27,7 +27,7 @@
 - **AI_AUTONOMY actualizado**: BACKLOG (nueva fila c.246 arriba), CURRENT_STATE (entrada c.246 arriba), RUN_LOG (esta entrada).
 
 - **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/DayPlanner.kt` (+condición `missedStartRecoverable` +comentario de simetría), `app/src/test/java/com/ordia/app/domain/DayPlannerTest.kt` (+2 tests), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD inicial**: `e7f8de6` (c.243 guardián). **HEAD final**: (tras commit + push FF `55399dd..<nuevo>` a `origin/openhands/autonomous-ordia`).
+- **HEAD inicial**: `e7f8de6` (c.243 guardián). **HEAD final**: `3170546` (push FF `55399dd..3170546` a `origin/openhands/autonomous-ordia`, base estable 0 ahead/0 behind pre-push).
 - **Estado**: VERIFIED (dominio JVM: **1604 domain tests PASS** — base fusionada con parser c.245 + asistente c.244 + guardián c.243 + 2 míos; smoke 25 OK; 0 failures). **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); render real del plan en runtime Android (dominio puro `DayPlanner.build` SÍ verificado en JVM; `applyDayPlan` en `OrdiaViewModel` persiste los bloques sin transformar el resultado — sin tocar UI).
 - **Próxima prioridad**: descubrimiento continuo — (i) **consideración OPEN**: `SummaryEngine` (resumen del día) también descarta missed-start — evaluar si debe contar el olvido hacia la carga/veredicto del día (cambio semántico); (ii) decisión `TaskStatus.CANCELLED` UI (BACKLOG P2, requiere Android/UI); (iii) "a las 3.5" decimal-hour residue (BACKLOG P3); (iv) "diez y media" bare sin "a las" (BACKLOG P3); (v) seguir auditando áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
 
