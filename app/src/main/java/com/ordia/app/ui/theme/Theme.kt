@@ -18,6 +18,12 @@ val OrdiaSage = Color(0xFF76845F)
 val OrdiaRose = Color(0xFFA87373)
 val OrdiaLavender = Color(0xFF88759C)
 
+// Semantic colors required for consistent feedback across the app
+val SemanticAlert = Color(0xFFC75454)
+val SemanticSuccess = Color(0xFF679462)
+val SemanticFocus = Color(0xFF5A7E9C)
+val SemanticAutomation = Color(0xFF916A9E)
+
 /** Palette of accent colors chosen by the user. Each entry holds (secondary, secondaryContainer, onSecondaryContainer) for light and dark. */
 data class AccentSwatch(
     val lightSecondary: Color,
