@@ -704,4 +704,74 @@ class SummaryEngineTest {
         assertEquals(DayLoad.OVERLOADED, s.dayLoad)
         assertEquals(null, s.deferralSuggestion)
     }
+
+    // ---- El tiempo YA gastado en una tarea en curso no vuelve a contar ----
+    //
+    // `freeMinutes` (la capacidad contra la que se compara la carga) se mide
+    // desde AHORA hasta el fin de jornada: excluye el tiempo ya transcurrido.
+    // Pero `loadMinutes` sumaba la `plannedDuration` COMPLETA de toda tarea de
+    // hoy, incluida la que está EN CURSO: el minuto ya vivido trabajando esa
+    // tarea se contaba dos veces (una consumida, otra como carga pendiente),
+    // sobrestimando la saturación. Un día que cabía holgado aparecía FULL e
+    // incluso podía sugerir posponer algo innecesariamente. El veredicto ahora
+    // descuenta, de cada tarea en curso, los minutos ya transcurridos.
+
+    @Test
+    fun remainingMinutes_deductsTimeAlreadySpentOnInProgressTask() {
+        // now=12:00; jornada 9-18 → 360 min libres (mitad 180).
+        // Tarea A en curso desde 11:00, duración 120 → 60 min ya consumidos,
+        // quedan 60. Tarea B (sin empezar) 120 min.
+        // Carga REAL restante = 60 + 120 = 180 (≤ mitad 180 → ON_TRACK).
+        // Antes se contaba la duración COMPLETA de A (120): 120+120=240 > 180 →
+        // FULL, un veredicto pesimista que cuenta tiempo ya gastado.
+        val tasks = listOf(
+            task(1, startAt = at(today, 11), durationMinutes = 120),
+            task(2, dueAt = at(today, 16), durationMinutes = 120)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(180, s.remainingMinutesToday)
+        assertEquals(DayLoad.ON_TRACK, s.dayLoad)
+    }
+
+    @Test
+    fun remainingMinutes_loneInProgressTaskCountsOnlyRemaining() {
+        // now=12:00; jornada 9-18 → 360 min libres.
+        // Tarea en curso desde 10:00, duración 180 → 120 min ya consumidos,
+        // quedan 60. La badge debe reflejar el trabajo que VERDADERAMENTE
+        // falta (60), no el total planificado (180).
+        val tasks = listOf(
+            task(1, startAt = at(today, 10), durationMinutes = 180)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(60, s.remainingMinutesToday)
+        assertEquals(DayLoad.ON_TRACK, s.dayLoad)
+    }
+
+    @Test
+    fun dayLoad_deductingInProgressTimeAvoidsSpuriousDeferralSuggestion() {
+        // now=12:00; jornada 9-18 → 360 min libres (mitad 180).
+        // Tarea A en curso desde 09:00, duración 180: a las 12:00 está JUSTO al
+        // final de su ventana (09:00-12:00) → 180 min ya consumidos, quedan 0.
+        // Tareas B y C (no empezadas) 180 min cada una.
+        // Carga REAL restante = 0 + 180 + 180 = 360 ≤ 360 → FULL (cabe, justo) →
+        // NO se sugiere posponer nada.
+        // Antes se contaba la duración COMPLETA de A (180): 180+180+180=540 > 360
+        // → OVERLOADED, y se aconsejaba posponer B aunque el día en realidad cabía:
+        // el tiempo ya totalmente gastado en A se contaba como carga pendiente.
+        val tasks = listOf(
+            task(1, startAt = at(today, 9), durationMinutes = 180, priority = TaskPriority.LOW, title = "EnCurso"),
+            task(2, dueAt = at(today, 17), durationMinutes = 180, priority = TaskPriority.LOW, title = "Posponible"),
+            task(3, dueAt = at(today, 18), durationMinutes = 180, priority = TaskPriority.NORMAL, title = "Otra")
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(360, s.remainingMinutesToday)
+        assertEquals(DayLoad.FULL, s.dayLoad)
+        assertEquals(null, s.deferralSuggestion)
+    }
 }

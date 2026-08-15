@@ -88,7 +88,8 @@ object SummaryEngine {
      *
      * - completedToday: tareas raíz completadas cuyo `completedAt` cae hoy.
      * - remainingToday: tareas raíz activas con `dueAt` u `startAt` hoy.
-     * - remainingMinutesToday: suma de `durationMinutes` de las anteriores.
+     * - remainingMinutesToday: minutos de trabajo que faltan de las anteriores
+     *   (descuenta lo ya hecho en una tarea en curso; ver [remainingPlanMinutes]).
      * - overdue: tareas raíz activas vencidas según `TaskRules.isOverdue`.
      * - inboxPending: tareas en estado INBOX sin archivar (por revisar).
      * - completedThisWeek: completadas entre hoy-6 y hoy (inclusive).
@@ -124,7 +125,7 @@ object SummaryEngine {
                 active(task) && (onDate(task.dueAt, today, zone) || onDate(task.startAt, today, zone))
         }
         val remainingToday = remainingTodayTasks.size
-        val remainingMinutesToday = remainingTodayTasks.sumOf { TaskRules.plannedDuration(it) }
+        val remainingMinutesToday = remainingTodayTasks.sumOf { remainingPlanMinutes(it, now) }
         val overdueTasks = tasks.filter { task ->
             task.parentTaskId == null && active(task) && TaskRules.isOverdue(task, now)
         }
@@ -145,10 +146,13 @@ object SummaryEngine {
         // que queda de jornada: el de hoy MÁS las vencidas (una tarea vencida
         // sigue sin hacerse y consume la misma jornada finita). Se toma la unión
         // de hoy + vencidas (por id) para no contar dos veces una tarea que es a
-        // la vez "de hoy" (dueAt hoy pero ya pasada la hora) y "vencida".
+        // la vez "de hoy" (dueAt hoy pero ya pasada la hora) y "vencida". Cada
+        // tarea aporta solo lo que falta ([remainingPlanMinutes]): una en curso
+        // ya no suma su duración completa, solo el tiempo restante, igual que
+        // `freeMinutes` solo cuenta desde ahora (no doble-contar lo ya gastado).
         val loadMinutes = (remainingTodayTasks + overdueTasks)
             .distinctBy { it.id }
-            .sumOf { TaskRules.plannedDuration(it) }
+            .sumOf { remainingPlanMinutes(it, now) }
         val dayLoad = assessDayLoad(loadMinutes, now, zone, dayStartMinute, dayEndMinute)
         val deferralSuggestion = if (dayLoad == DayLoad.OVERLOADED) {
             mostDeferrableTask(remainingTodayTasks, now)
@@ -208,6 +212,27 @@ object SummaryEngine {
         }
     }
 
+    /**
+     * Minutos de trabajo planificado que VERDADERAMENTE faltan para una tarea.
+     *
+     * Para una tarea sin empezar (o sin `startAt`), es su `plannedDuration`.
+     * Para una tarea EN CURSO ([TaskRules.isInProgressNow]), descuenta el tiempo
+     * ya transcurrido desde su `startAt`: el minuto vivido trabajando ya no es
+     * carga pendiente. Esto es lo que hace que `remainingMinutesToday` (la badge
+     * de "te quedan X min") y `loadMinutes` (el veredicto del día) sean honestos
+     * frente a `freeMinutes`, que se mide desde AHORA hasta el fin de jornada:
+     * antes, una tarea en curso aportaba su duración COMPLETA como carga, así
+     * el tiempo ya gastado se contaba dos veces (consumido + pendiente) y el día
+     * parecía más saturado de lo que era —incluso una sugerencia de posponer algo
+     * innecesaria bajo OVERLOADED espurio. Acotado a `[0, plannedDuration]`.
+     */
+    private fun remainingPlanMinutes(task: TaskEntity, now: Long): Int {
+        val planned = TaskRules.plannedDuration(task)
+        val start = task.startAt
+        if (start == null || now < start || !TaskRules.isInProgressNow(task, now)) return planned
+        val elapsedMin = ((now - start) / 60_000L).toInt()
+        return (planned - elapsedMin).coerceIn(0, planned)
+    }
 
     /**
      * Tarea candidata a mover a mañana cuando el día está saturado. Heurística
