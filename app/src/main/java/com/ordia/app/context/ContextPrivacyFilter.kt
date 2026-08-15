@@ -41,6 +41,12 @@ object ContextPrivacyFilter {
         Regex("""\b(?:AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ABIA|ACCA)[0-9A-Z]{16}\b"""),
         // c.294: JWT (eyJ.\.eyJ\....): 3 segmentos base64url separados por punto.
         Regex("""\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"""),
+        // c.296: Google API key, Slack tokens, GitHub/GitLab PATs (paridad con
+        // ConversationPrivacyPolicy; ver alli).
+        Regex("""\bAIza[0-9A-Za-z_-]{35}\b"""),
+        Regex("""\bxox[abp]-[0-9A-Za-z-]{20,}\b"""),
+        Regex("""\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{20,}\b"""),
+        Regex("""\bglpat-[A-Za-z0-9_-]{20,}\b"""),
         Regex("""\b(sexo|sexual|desnud|porno|xxx|eróti|intimidad)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(matar|asesinar|violar|robar|secuestr|bomba|arma|amenaza)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(droga|cocaína|cocaina|marihuana|heroína|heroina|metanfetamina|narcotráfico|narcotrafico)\b""", RegexOption.IGNORE_CASE),

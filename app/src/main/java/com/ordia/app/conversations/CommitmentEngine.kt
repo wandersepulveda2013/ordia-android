@@ -65,7 +65,14 @@ object ConversationPrivacyPolicy {
         // c.294: AWS access key IDs (prefijo canonico de 4 mayusculas + 16 base32).
         Regex("""\b(?:AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ABIA|ACCA)[0-9A-Z]{16}\b"""),
         // c.294: JWT (eyJ.\.eyJ\....): 3 segmentos base64url separados por punto.
-        Regex("""\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}""")
+        Regex("""\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"""),
+        // c.296: Google API key (AIza + 35 base64url), Slack tokens (xox[abp]-...),
+        // GitHub PATs (ghp_/gho_/ghu_/ghs_/ghr_/github_pat_ + 20+) y GitLab PATs
+        // (glpat-...). Prefijos canonicos muy especificos -> bajo falso positivo.
+        Regex("""\bAIza[0-9A-Za-z_-]{35}\b"""),
+        Regex("""\bxox[abp]-[0-9A-Za-z-]{20,}\b"""),
+        Regex("""\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{20,}\b"""),
+        Regex("""\bglpat-[A-Za-z0-9_-]{20,}\b""")
     )
     // "clave temporal/bancaria 4821" no entra en el patrón 2 (no es "de acceso/") pero
     // sí es un PIN: lo capturamos como otpCode. Añadir "clave" en peludo al patrón 1

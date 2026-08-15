@@ -17,6 +17,19 @@ import org.junit.Test
 private const val STRIPE_LIVE_KEY_PREFIX = "sk_l"
 private const val STRIPE_LIVE_KEY_BODY = "ive_51H8y9z2eV3a0b7c4d1f8a2e6"
 
+// c.296: secretos de infraestructura de test. Se fragmentan en el fuente para
+// que GitHub Push Protection no detecte patrones completos (Google API key,
+// Slack token, GitHub/GitLab PAT); en runtime la concatenacion reconstruye el
+// string y casa el regex del gate.
+private const val GOOGLE_KEY_PREFIX = "AI"
+private const val GOOGLE_KEY_BODY = "zaSyA1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q"
+private const val SLACK_PREFIX = "xo"
+private const val SLACK_BODY = "xp-1234567890123456-1234567890123456"
+private const val GITHUB_PAT_PREFIX = "gh"
+private const val GITHUB_PAT_BODY = "p_1234567890abcdefghijklmnopqrstuvwxyzABCD"
+private const val GITLAB_PAT_PREFIX = "gl"
+private const val GITLAB_PAT_BODY = "pat-1234567890abcdefghijklmnopqrstuv"
+
 class CommitmentEngineTest {
     @Test
     fun classifiesOwnAndOtherCommitmentsFromSelectedIdentity() {
@@ -386,6 +399,35 @@ class CommitmentEngineTest {
             assertTrue(
                 "no debe generar compromiso desde contenido sensible: \"$text\"",
                 CommitmentEngine.extract(listOf(ChatMessage("Yo", text)), scopeHash = "cloud").isEmpty()
+            )
+        }
+    }
+
+    @Test
+    fun blocksInfraSecretsThatEscapedBothPrivacyGates() {
+        // c.296: Google API keys (AIza...), Slack tokens (xox[abp]-...), GitHub
+        // PATs (ghp_/gho_/.../github_pat_) y GitLab PATs (glpat-...) tampoco eran
+        // bloqueados por ningun gate. Mismo tipo de rendija compartida que c.294:
+        // llegan por SMS/mensajeria (paquete no bancario) y se persistian en texto
+        // plano. Prefijos canonicos muy especificos -> bajo falso positivo. Tras el
+        // fix: 4/4 bloqueados por ambos gates y sin generar compromiso.
+        val secrets = listOf(
+            "Mi Google API key es " + GOOGLE_KEY_PREFIX + GOOGLE_KEY_BODY,
+            "Token de Slack: " + SLACK_PREFIX + SLACK_BODY,
+            "Tu GitHub PAT " + GITHUB_PAT_PREFIX + GITHUB_PAT_BODY + " tiene permisos",
+            "GitLab token " + GITLAB_PAT_PREFIX + GITLAB_PAT_BODY + " para el repo"
+        )
+        secrets.forEach { text ->
+            assertTrue("deberia bloquearse como sensible: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
+            assertTrue("el gate de lectura deberia bloquear: \"$text\"", ContextPrivacyFilter.containsSensitiveContent(text))
+            assertEquals(
+                "ambos gates deben coincidir en secreto \"$text\": persist != read (rendija c.287/c.294)",
+                ConversationPrivacyPolicy.containsSensitiveContent(text),
+                ContextPrivacyFilter.containsSensitiveContent(text)
+            )
+            assertTrue(
+                "no debe generar compromiso desde contenido sensible: \"$text\"",
+                CommitmentEngine.extract(listOf(ChatMessage("Yo", text)), scopeHash = "infra").isEmpty()
             )
         }
     }
