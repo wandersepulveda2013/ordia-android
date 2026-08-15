@@ -222,5 +222,51 @@ object RecurrenceEngine {
         else base.plusWeeks(interval).minusDays((current - days.first()).toLong())
     }
 
+    /**
+     * Identifica la ocurrencia generada al completar [original] que debe revertirse
+     * al des-completar la tarea, para evitar el duplicado huérfano: completar una
+     * recurrente genera la próxima ocurrencia (c.223, fila nueva con
+     * `createdAt = completedAt` y la misma huella de recurrencia); si el usuario
+     * deshace, esa ocurrencia generada quedaba activa además de la original
+     * restaurada → dos tareas por la misma recurrencia (BACKLOG c.259).
+     *
+     * Enlace implícito pero fiable: [nextOccurrence] fija `createdAt = completedAt`
+     * y conserva la huella de recurrencia (frecuencia + intervalo + días). Como
+     * `TaskMutationGate` serializa los toggles, no puede colisionar el instante de
+     * creación entre recurrencias distintas; se refina además exigiendo que el
+     * `dueAt` del candidato sea EXACTAMENTE el que [nextOccurrence] calcula.
+     *
+     * Datos sagrados: SÓLO se revierte si la ocurrencia generada sigue prístina
+     * (status PLANNED inicial, no iniciada, no completada, no cancelada, no
+     * archivada, mismo título y detalles). Si el usuario ya la editó/empezó/completó,
+     * se conserva (no se pierde trabajo real) y se acepta el duplicado como mal menor.
+     *
+     * Devuelve el id a revertir, o `null` si no hay ocurrencia prístina que revertir.
+     */
+    fun spawnedOccurrenceToRevert(
+        original: TaskEntity,
+        allTasks: List<TaskEntity>,
+        completedAt: Long,
+        zone: ZoneId = ZoneId.systemDefault()
+    ): Long? {
+        if (original.recurrence == RecurrenceFrequency.NONE) return null
+        if (completedAt <= 0L) return null
+        val expected = nextOccurrence(original, completedAt, zone) ?: return null
+        val expectedDue = expected.dueAt ?: return null
+        return allTasks.firstOrNull { task ->
+            task.id != original.id &&
+                task.createdAt == completedAt &&
+                task.recurrence == original.recurrence &&
+                task.recurrenceInterval == original.recurrenceInterval &&
+                task.recurrenceDays == original.recurrenceDays &&
+                task.dueAt == expectedDue &&
+                task.title == original.title &&
+                task.details == original.details &&
+                !task.completed &&
+                !task.archived &&
+                task.status == TaskStatus.PLANNED
+        }?.id
+    }
+
     private const val MIN_START_LEAD_MS = 60_000L
 }

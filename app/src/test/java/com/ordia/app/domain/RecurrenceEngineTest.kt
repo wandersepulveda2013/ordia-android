@@ -2,6 +2,7 @@ package com.ordia.app.domain
 
 import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.TaskStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -445,5 +446,115 @@ class RecurrenceEngineTest {
             assertEquals("Ciclo ${cycle + 1} hora", t, DateRules.toLocalTime(task.dueAt, zone))
             assertEquals("El intervalo horario se conserva al iterar", 8, task.recurrenceInterval)
         }
+    }
+
+    // --- spawnedOccurrenceToRevert: evitar el duplicado huérfano al des-completar ---
+    // Al completar una recurrente se genera la próxima ocurrencia (fila nueva,
+    // createdAt == completedAt, misma huella de recurrencia, status PLANNED). Si el
+    // usuario deshace (des-completa), esa ocurrencia generada debe revertirse o queda
+    // un duplicado activo además de la original restaurada. La regla la identifica
+    // SÓLO si sigue prístina (el usuario no la tocó): datos sagrados.
+
+    @Test fun spawnedToRevert_findsPristineSpawnedOccurrence() {
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.of(9, 30), zone)
+        val completedAt = due
+        val original = TaskEntity(
+            id = 1, title = "Gym", dueAt = due, recurrence = RecurrenceFrequency.DAILY,
+            completed = true, completedAt = completedAt
+        )
+        val spawn = RecurrenceEngine.nextOccurrence(original, completedAt = completedAt, zone = zone)!!
+            .copy(id = 2, createdAt = completedAt)
+        val all = listOf(original, spawn)
+        assertEquals(2L, RecurrenceEngine.spawnedOccurrenceToRevert(original, all, completedAt, zone))
+    }
+
+    @Test fun spawnedToRevert_noneTaskReturnsNull() {
+        val original = TaskEntity(id = 1, title = "Una vez", completed = true, completedAt = 1000L)
+        assertNull(RecurrenceEngine.spawnedOccurrenceToRevert(original, listOf(original), 1000L, zone))
+    }
+
+    @Test fun spawnedToRevert_nullCompletedAtReturnsNull() {
+        val original = TaskEntity(
+            id = 1, title = "Gym", dueAt = 1000L, recurrence = RecurrenceFrequency.DAILY,
+            completed = true, completedAt = null
+        )
+        assertNull(RecurrenceEngine.spawnedOccurrenceToRevert(original, listOf(original), 0L, zone))
+    }
+
+    @Test fun spawnedToRevert_noSpawnPresentReturnsNull() {
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.of(9, 30), zone)
+        val original = TaskEntity(
+            id = 1, title = "Gym", dueAt = due, recurrence = RecurrenceFrequency.DAILY,
+            completed = true, completedAt = due
+        )
+        // Sólo la original: nada que revertir.
+        assertNull(RecurrenceEngine.spawnedOccurrenceToRevert(original, listOf(original), due, zone))
+    }
+
+    @Test fun spawnedToRevert_editedSpawnIsKept() {
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.of(9, 30), zone)
+        val completedAt = due
+        val original = TaskEntity(
+            id = 1, title = "Gym", dueAt = due, recurrence = RecurrenceFrequency.DAILY,
+            completed = true, completedAt = completedAt
+        )
+        // El usuario renombró la ocurrencia generada: no se pierde trabajo real.
+        val edited = RecurrenceEngine.nextOccurrence(original, completedAt = completedAt, zone = zone)!!
+            .copy(id = 2, createdAt = completedAt, title = "Gym modificado")
+        assertNull(RecurrenceEngine.spawnedOccurrenceToRevert(original, listOf(original, edited), completedAt, zone))
+    }
+
+    @Test fun spawnedToRevert_startedSpawnIsKept() {
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.of(9, 30), zone)
+        val completedAt = due
+        val original = TaskEntity(
+            id = 1, title = "Gym", dueAt = due, recurrence = RecurrenceFrequency.DAILY,
+            completed = true, completedAt = completedAt
+        )
+        // El usuario la inició (IN_PROGRESS): no se borra.
+        val started = RecurrenceEngine.nextOccurrence(original, completedAt = completedAt, zone = zone)!!
+            .copy(id = 2, createdAt = completedAt, status = TaskStatus.IN_PROGRESS)
+        assertNull(RecurrenceEngine.spawnedOccurrenceToRevert(original, listOf(original, started), completedAt, zone))
+    }
+
+    @Test fun spawnedToRevert_completedSpawnIsKept() {
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.of(9, 30), zone)
+        val completedAt = due
+        val original = TaskEntity(
+            id = 1, title = "Gym", dueAt = due, recurrence = RecurrenceFrequency.DAILY,
+            completed = true, completedAt = completedAt
+        )
+        // El usuario ya completó la ocurrencia generada: contiene trabajo real, no se toca.
+        val done = RecurrenceEngine.nextOccurrence(original, completedAt = completedAt, zone = zone)!!
+            .copy(id = 2, createdAt = completedAt, completed = true, status = TaskStatus.COMPLETED)
+        assertNull(RecurrenceEngine.spawnedOccurrenceToRevert(original, listOf(original, done), completedAt, zone))
+    }
+
+    @Test fun spawnedToRevert_unrelatedTaskWithSameCreatedAtIsIgnored() {
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.of(9, 30), zone)
+        val completedAt = due
+        val original = TaskEntity(
+            id = 1, title = "Gym", dueAt = due, recurrence = RecurrenceFrequency.DAILY,
+            completed = true, completedAt = completedAt
+        )
+        // Otra tarea creada el mismo instante pero con recurrencia/distinto dueAt:
+        // no debe confundirse con la ocurrencia generada.
+        val other = TaskEntity(
+            id = 9, title = "Gym", dueAt = due + 99L, recurrence = RecurrenceFrequency.WEEKLY,
+            createdAt = completedAt, status = TaskStatus.PLANNED
+        )
+        assertNull(RecurrenceEngine.spawnedOccurrenceToRevert(original, listOf(original, other), completedAt, zone))
+    }
+
+    @Test fun spawnedToRevert_weeklyFingerprintMatch() {
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.NOON, zone) // miércoles
+        val completedAt = due
+        val original = TaskEntity(
+            id = 1, title = "Lunes y viernes", dueAt = due, recurrence = RecurrenceFrequency.WEEKLY,
+            recurrenceDays = "1,5", completed = true, completedAt = completedAt
+        )
+        val spawn = RecurrenceEngine.nextOccurrence(original, completedAt = completedAt, zone = zone)!!
+            .copy(id = 2, createdAt = completedAt)
+        assertEquals(2L, RecurrenceEngine.spawnedOccurrenceToRevert(original, listOf(original, spawn), completedAt, zone))
     }
 }

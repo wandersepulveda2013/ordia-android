@@ -67,6 +67,7 @@ import com.ordia.app.domain.NoteBlockType
 import com.ordia.app.domain.NaturalTaskParser
 import com.ordia.app.domain.OnboardingCompleter
 import com.ordia.app.domain.ParsedTaskInput
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.domain.RecurrenceEngine
 import com.ordia.app.domain.ReminderSync
 import com.ordia.app.domain.RoutineRules
@@ -517,7 +518,22 @@ class OrdiaViewModel(
                                 .forEach { tagRepository.link(it.taskId, it.tagId) }
                         }
                     }
-                } else if (updated.reminderAt != null || updated.dueAt != null) reminderScheduler.schedule(updated)
+                } else {
+                    // Des-completar (deshacer): revertir la ocurrencia generada al
+                    // completar la recurrente, que de lo contrario quedaba activa
+                    // además de la original restaurada → duplicado huérfano (c.260,
+                    // BACKLOG c.259). Sólo si sigue prístina (datos sagrados: si el
+                    // usuario ya la editó/inició/completó, se conserva).
+                    current.completedAt?.let { completedAt ->
+                        RecurrenceEngine.spawnedOccurrenceToRevert(
+                            current, taskRepository.getAllNow(), completedAt
+                        )?.let { spawnedId ->
+                            taskRepository.subtreeIds(spawnedId).forEach { reminderScheduler.cancel(it) }
+                            taskRepository.deletePermanently(spawnedId)
+                        }
+                    }
+                    if (updated.reminderAt != null || updated.dueAt != null) reminderScheduler.schedule(updated)
+                }
 
                 // Subtareas: el padre se completa automáticamente al cerrar la
                 // última, y se reabre al reactivar una subtarea.
@@ -1017,6 +1033,21 @@ class OrdiaViewModel(
                     reminderScheduler.cancel(id)
                 } else {
                     reminderScheduler.schedule(snapshot.copy(id = id))
+                }
+                // Revertir la ocurrencia generada al (des)completar una recurrente
+                // vía automatización (p.ej. autocompletar el padre al cerrar su
+                // última subtarea): sin esto, deshacer dejaba la ocurrencia
+                // generada activa además de la original restaurada (c.260). Misma
+                // guarda de pristinidad que toggleTask (datos sagrados).
+                if (!snapshot.completed && current.recurrence != RecurrenceFrequency.NONE) {
+                    current.completedAt?.let { completedAt ->
+                        RecurrenceEngine.spawnedOccurrenceToRevert(
+                            current, taskRepository.getAllNow(), completedAt
+                        )?.let { spawnedId ->
+                            taskRepository.subtreeIds(spawnedId).forEach { reminderScheduler.cancel(it) }
+                            taskRepository.deletePermanently(spawnedId)
+                        }
+                    }
                 }
             }
         }
