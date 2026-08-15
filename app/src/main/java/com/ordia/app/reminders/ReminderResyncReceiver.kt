@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.ordia.app.OrdiaApplication
+import com.ordia.app.domain.CommitmentReminderSync
 import com.ordia.app.domain.ReminderSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,16 @@ class ReminderResyncReceiver : BroadcastReceiver() {
                 val now = System.currentTimeMillis()
                 ReminderSync.triggers(tasks, now).forEach { (taskId, triggerAt) ->
                     app.container.reminderScheduler.scheduleAt(taskId, triggerAt)
+                }
+                // Compromisos: mismo principio. Un cambio de zona/hora puede
+                // adelantar el vencimiento de una promesa y dejarla olvidada
+                // si no se reprograma aquí.
+                val commitments = app.container.conversationRepository.getCommitmentsNow()
+                CommitmentReminderSync.triggers(commitments, now).forEach { (id, triggerAt) ->
+                    app.container.reminderScheduler.scheduleCommitmentAt(id, triggerAt)
+                }
+                CommitmentReminderSync.overdueNow(commitments, now).forEach { id ->
+                    app.container.reminderScheduler.scheduleCommitmentAt(id, now)
                 }
             } finally {
                 pending.finish()

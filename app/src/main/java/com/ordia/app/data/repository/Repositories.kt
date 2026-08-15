@@ -184,6 +184,8 @@ class ConversationRepository(private val dao: ConversationDao) {
     suspend fun countSince(sourceType: ConversationSourceType, since: Long): Int =
         dao.countConversationsSince(sourceType, since)
     suspend fun getCommitment(id: Long): CommitmentEntity? = dao.getCommitment(id)
+    suspend fun getCommitmentsByConversation(conversationId: Long): List<CommitmentEntity> =
+        dao.getCommitmentsByConversation(conversationId)
     suspend fun getCommitmentsNow(): List<CommitmentEntity> = dao.getCommitmentsNow()
     suspend fun updateCommitment(commitment: CommitmentEntity) = dao.updateCommitment(commitment)
     suspend fun deleteConversation(id: Long) = dao.deleteConversation(id)

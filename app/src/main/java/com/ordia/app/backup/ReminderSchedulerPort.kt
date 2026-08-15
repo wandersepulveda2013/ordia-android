@@ -11,4 +11,8 @@ interface ReminderSchedulerPort {
     suspend fun cancelAllAndAwait()
 
     fun schedule(task: TaskEntity)
+
+    suspend fun cancelAllCommitmentsAndAwait()
+
+    fun scheduleCommitmentAt(commitmentId: Long, triggerAt: Long)
 }

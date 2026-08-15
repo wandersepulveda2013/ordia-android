@@ -560,6 +560,9 @@ abstract class ConversationDao {
     @Query("SELECT * FROM commitments WHERE id = :id LIMIT 1")
     abstract suspend fun getCommitment(id: Long): CommitmentEntity?
 
+    @Query("SELECT * FROM commitments WHERE conversationId = :conversationId ORDER BY id ASC")
+    abstract suspend fun getCommitmentsByConversation(conversationId: Long): List<CommitmentEntity>
+
     @Query("SELECT COUNT(*) FROM conversations WHERE sourceType = :sourceType AND createdAt >= :since")
     abstract suspend fun countConversationsSince(sourceType: ConversationSourceType, since: Long): Int
 

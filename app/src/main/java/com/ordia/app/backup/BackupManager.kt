@@ -38,6 +38,7 @@ import com.ordia.app.data.local.AutomationCondition
 import com.ordia.app.data.local.AutomationAction
 import com.ordia.app.data.local.AutomationRuleResult
 import com.ordia.app.data.preferences.UserPreferences
+import com.ordia.app.domain.CommitmentReminderSync
 import com.ordia.app.domain.RecurrenceEngine
 import org.json.JSONArray
 import org.json.JSONObject
@@ -216,11 +217,16 @@ class BackupManager(
                 // correspondientes a datos descartados.
                 val reminderWarning = runCatching {
                     reminderScheduler.cancelAllAndAwait()
+                    reminderScheduler.cancelAllCommitmentsAndAwait()
                     val now = System.currentTimeMillis()
                     validated.data.tasks.asSequence()
                         .filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
                         .filter { (it.reminderAt ?: it.dueAt)?.let { trigger -> trigger > now } == true }
                         .forEach(reminderScheduler::schedule)
+                    CommitmentReminderSync.triggers(validated.data.commitments, now)
+                        .forEach { (id, triggerAt) -> reminderScheduler.scheduleCommitmentAt(id, triggerAt) }
+                    CommitmentReminderSync.overdueNow(validated.data.commitments, now)
+                        .forEach { id -> reminderScheduler.scheduleCommitmentAt(id, now) }
                 }.exceptionOrNull()
 
                 val journalNote = "Se guardó un respaldo preventivo de tus datos anteriores (${preRestoreBackupFile.name}) en el almacenamiento privado."

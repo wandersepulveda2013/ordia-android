@@ -62,6 +62,10 @@
     <string name="commitment_discard">Descartar</string>
     <string name="commitment_converted">Compromiso convertido en tarea.</string>
     <string name="commitment_dismissed">Propuesta descartada.</string>
+    <string name="commitment_overdue_title">Compromiso vencido</string>
+    <string name="commitment_overdue_detail">Una promesa pendiente venció. Revísala para convertirla en tarea o descartarla.</string>
+    <string name="commitment_overdue_actor_suffix"> · %1$s</string>
+    <string name="commitment_overdue_action_open">Revisar</string>
 
     <string name="conversation_history_title">Historial</string>
     <string name="conversation_history_subtitle">Resúmenes guardados y resultados de la revisión.</string>

@@ -55,6 +55,7 @@ import com.ordia.app.data.repository.ProjectRepository
 import com.ordia.app.data.repository.RoutineRepository
 import com.ordia.app.data.repository.TagRepository
 import com.ordia.app.data.repository.TaskRepository
+import com.ordia.app.domain.CommitmentReminderSync
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayPlanner
 import com.ordia.app.domain.GuardianCoach
@@ -1394,7 +1395,23 @@ class OrdiaViewModel(
                 )
             )
         )
+        if (created && id > 0L) scheduleCommitmentRemindersFor(id)
         onSaved(true)
+    }
+
+    private suspend fun scheduleCommitmentRemindersFor(conversationId: Long) {
+        val commitments = conversationRepository.getCommitmentsByConversation(conversationId)
+        val now = System.currentTimeMillis()
+        // Disparos futuros: se agendan a su hora exacta.
+        CommitmentReminderSync.triggers(commitments, now).forEach { (commitmentId, triggerAt) ->
+            reminderScheduler.scheduleCommitmentAt(commitmentId, triggerAt)
+        }
+        // Compromisos PENDING con plazo YA vencido al guardar: una promesa
+        // olvidada desde el instante de su detección. Se avisa de inmediato
+        // (delay 0) en vez de quedar invisible hasta abrir conversaciones.
+        CommitmentReminderSync.overdueNow(commitments, now).forEach { commitmentId ->
+            reminderScheduler.scheduleCommitmentAt(commitmentId, now)
+        }
     }
 
     fun convertCommitmentToTask(commitmentId: Long) = viewModelScope.launch {
@@ -1428,6 +1445,7 @@ class OrdiaViewModel(
                 updatedAt = System.currentTimeMillis()
             )
         )
+        reminderScheduler.cancelCommitment(commitmentId)
         updateWidget()
         _events.emit(UiEvent.Message(appContext.getString(R.string.commitment_converted)))
     }
@@ -1441,10 +1459,14 @@ class OrdiaViewModel(
                 updatedAt = System.currentTimeMillis()
             )
         )
+        reminderScheduler.cancelCommitment(commitmentId)
         _events.emit(UiEvent.Message(appContext.getString(R.string.commitment_dismissed)))
     }
 
     fun deleteConversation(conversationId: Long) = viewModelScope.launch {
+        conversationRepository.getCommitmentsByConversation(conversationId).forEach {
+            reminderScheduler.cancelCommitment(it.id)
+        }
         conversationRepository.deleteConversation(conversationId)
         _events.emit(UiEvent.Message(appContext.getString(R.string.conversation_deleted)))
     }

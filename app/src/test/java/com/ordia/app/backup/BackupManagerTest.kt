@@ -304,6 +304,14 @@ class BackupManagerTest {
         override fun schedule(task: TaskEntity) {
             scheduled += task.id
         }
+
+        override suspend fun cancelAllCommitmentsAndAwait() {
+            cancelCalls++
+        }
+
+        override fun scheduleCommitmentAt(commitmentId: Long, triggerAt: Long) {
+            scheduled += commitmentId
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -335,8 +343,9 @@ class BackupManagerTest {
         assertFalse(destinationStore.current.automationRules.single().enabled)
         // Solo la tarea futura abierta se reprograma (no la completada, la
         // cancelada ni las pasadas). CANCELLED debe excluirse como en ReminderSync.
+        // El compromiso del sampleData no tiene dueAt → no se agenda.
         assertEquals(listOf(10L), scheduler.scheduled)
-        assertEquals(1, scheduler.cancelCalls)
+        assertEquals(2, scheduler.cancelCalls)
         assertTrue(journal.exists() && journal.length() > 2L)
     }
 
