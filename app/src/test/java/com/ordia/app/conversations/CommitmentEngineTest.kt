@@ -263,7 +263,11 @@ class CommitmentEngineTest {
             "Tu clave temporal es 4821",
             "tu clave bancaria: 9182",
             "tu pwd de acceso es ab12cd",
-            "tu nip del cajero es 4821"
+            "tu nip del cajero es 4821",
+            // c.293: IBAN alfanumérico pelado y "two factor" en inglés.
+            "Transfiere a GB82WEST12345698765432",
+            "your two factor code is 4821",
+            "two-factor authentication 9182"
         )
         secrets.forEach { text ->
             val persist = ConversationPrivacyPolicy.containsSensitiveContent(text)
@@ -299,6 +303,31 @@ class CommitmentEngineTest {
             assertTrue(
                 "no debe generar compromiso desde contenido sensible: \"$text\"",
                 CommitmentEngine.extract(listOf(ChatMessage("Yo", text)), scopeHash = "cred").isEmpty()
+            )
+        }
+    }
+
+    @Test
+    fun blocksBareIbanAndTwoFactorThatEscapedNotificationsGate() {
+        // c.293: un IBAN alfanumérico PELADO (sin la palabra "iban") y la frase
+        // inglesa "two factor"/"two-factor" llegaban por SMS/mensajería (paquete no
+        // bancario) y se persistían en texto plano. El gate de lectura
+        // (ContextPrivacyFilter) ya los bloqueaba (IBAN estructural línea 35;
+        // "two.?factor" en su patrón de 2FA). Este gate sólo miraba la palabra
+        // "iban" y "2fa" → "Transfiere a GB82WEST1234..." y "two factor code 4821"
+        // se guardaban en la BD de conversaciones. Misma clase de fuga que
+        // c.287/c.290/c.292 (4ª manifestación del desync entre los dos gates).
+        val leaks = listOf(
+            "Transfiere a GB82WEST12345698765432",
+            "mi iban para la transferencia DE89370400440532013000",
+            "your two factor code is 4821",
+            "two-factor authentication 9182"
+        )
+        leaks.forEach { text ->
+            assertTrue("debería bloquearse como sensible: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
+            assertTrue(
+                "no debe generar compromiso desde contenido sensible: \"$text\"",
+                CommitmentEngine.extract(listOf(ChatMessage("Yo", text)), scopeHash = "iban2fa").isEmpty()
             )
         }
     }

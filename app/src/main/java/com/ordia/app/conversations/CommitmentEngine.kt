@@ -41,16 +41,23 @@ object ConversationPrivacyPolicy {
     // peludo y "nip" (PIN en español de México, sinónimo exacto de "pin" que ya
     // bloqueábamos) se guardaban en texto plano en la BD de conversaciones. Cierre
     // simétrico con ContextPrivacyFilter, en la dirección que protege la persistencia.
+    //
+    // c.293: IBAN alfanumérico PELADO (sin la palabra "iban") y "two factor"/
+    // "two-factor" en inglés. El gate de lectura bloquea un IBAN estructural
+    // (2 mayúsculas + 2 dígitos + 11-30 alfanuméricos) aunque no diga "iban", y
+    // bloquea "two factor" aunque no diga "2fa"; este gate sólo miraba la palabra
+    // "iban" y "2fa" → "Transfiere a GB82WEST1234..." se persistía en texto plano.
     private val sensitivePatterns = listOf(
         Regex("""(?i)\b(?:contrase(?:ña|na)|password|passwd|pwd|pin|nip|cvv|cvc|token\s+bancario)\b"""),
         Regex("""(?i)\b(?:c[oó]digo|clave)\s+(?:de\s+)?(?:verificaci[oó]n|seguridad|acceso)\b"""),
-        Regex("""(?i)\b(?:otp|2fa|autenticaci[oó]n\s+de\s+dos\s+pasos)\b"""),
+        Regex("""(?i)\b(?:otp|2fa|two.?factor|autenticaci[oó]n\s+de\s+dos\s+pasos)\b"""),
         Regex("""\b(?:\d[ -]?){13,19}\b"""),
         Regex("""(?i)\b(?:n[uú]mero\s+de\s+cuenta|account\s+number|clabe|iban|swift|c[eé]dula)\b"""),
         Regex("""(?i)\b(?:seed\s+phrase|recovery\s+phrase|frase\s+semilla|frase\s+de\s+recuperaci[oó]n|palabras\s+de\s+recuperaci[oó]n|mnemonic)\b"""),
         Regex("""(?i)\b(?:transferencia|dep[oó]sito|retiro|saldo|estado\s+de\s+cuenta)\b"""),
         Regex("""-----BEGIN [A-Z ]*PRIVATE KEY-----""", RegexOption.IGNORE_CASE),
-        Regex("""\b(?:0x)?[0-9a-f]{64}\b""", RegexOption.IGNORE_CASE)
+        Regex("""\b(?:0x)?[0-9a-f]{64}\b""", RegexOption.IGNORE_CASE),
+        Regex("""\b[A-Z]{2}\s?\d{2}(?:\s?[A-Z0-9]){11,30}\b""")
     )
     // "clave temporal/bancaria 4821" no entra en el patrón 2 (no es "de acceso/") pero
     // sí es un PIN: lo capturamos como otpCode. Añadir "clave" en peludo al patrón 1
