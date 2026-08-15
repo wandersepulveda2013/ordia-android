@@ -779,6 +779,63 @@ class NaturalTaskParserTest {
         assertEquals("2,4", result.recurrenceDays)
     }
 
+    // --- Lista de días con artículo repetido ("el/los X y el/los Y") ---
+    // En español es tan cotidiano repetir el artículo ante cada día ("los lunes y
+    // los miércoles", "el martes y el jueves") como omitirlo ("los lunes y
+    // miércoles"). Antes la continuación de dayListPattern NO toleraba un artículo
+    // antes de cada día siguiente, así "los lunes y los miércoles" casaba SÓLO
+    // "lunes", perdía el miércoles (rutina mutilada: se repetía un solo día en
+    // silencio) y dejaba "y los" como residuo en el título. Asimetría flagrante con
+    // la forma sin repetir ("los lunes y miércoles" ya funcionaba). c.258 cierra la
+    // rendija: la continuación admite un artículo opcional (el/los) antes de cada
+    // día, y un artículo inicial opcional se consume sin marcar hasPrefix (así
+    // "el martes" suelto sigue siendo fecha, no recurrencia).
+    @Test fun pluralRepeatedArticleDayListCapturesAllDays() {
+        val result = NaturalTaskParser.parse("Gym los lunes y los miércoles", now, zone)
+        assertEquals("Gym", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3", result.recurrenceDays)
+    }
+
+    @Test fun pluralRepeatedArticleDayListWithIntervalCapturesAllDays() {
+        val result = NaturalTaskParser.parse("Clase cada 3 semanas los martes y los jueves", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertEquals("2,4", result.recurrenceDays)
+    }
+
+    @Test fun singularRepeatedArticleDayListCapturesAllDays() {
+        val result = NaturalTaskParser.parse("Fisio el lunes y el miércoles", now, zone)
+        assertEquals("Fisio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3", result.recurrenceDays)
+    }
+
+    @Test fun singularRepeatedArticleDayListWithIntervalCapturesAllDays() {
+        val result = NaturalTaskParser.parse("Cita cada 2 semanas el martes y el jueves", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("2,4", result.recurrenceDays)
+    }
+
+    @Test fun threeDayListWithRepeatedArticlesCapturesAllDays() {
+        val result = NaturalTaskParser.parse("Clases los lunes, los miércoles y los viernes", now, zone)
+        assertEquals("Clases", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3,5", result.recurrenceDays)
+    }
+
+    // No-regresión: un día suelto en singular sin cadencia sigue siendo FECHA
+    // (no recurrencia). "el martes" con artículo inicial opcional consumido por
+    // dayListPattern pero SIN hasPrefix y con 1 solo día → cae al patrón de fecha.
+    @Test fun singularWeekdayWithArticleNoCadenceStaysDateNotRecurrence() {
+        val result = NaturalTaskParser.parse("Reunión el martes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+    }
+
     @Test fun writtenBiweeklyIntervalWithWeekdayRangeCombinesIntervalAndDays() {
         val result = NaturalTaskParser.parse("Estudio cada dos semanas de lunes a viernes", now, zone)
         assertEquals("Estudio", result.title)

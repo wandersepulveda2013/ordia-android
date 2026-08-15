@@ -2910,12 +2910,25 @@ object NaturalTaskParser {
         // residuo en el título (la rutina se olvidaba). Se exige 2+ días para el caso
         // bare: un día suelto ("reunión martes") es ambiguo (¿fecha?), así que se deja
         // para el patrón de fecha para no programar una recurrencia equivocada.
+        //
+        // Artículo inicial opcional "el/los" (grupo propio, NO hasPrefix): permite
+        // consumir "el lunes y el miércoles" / "los lunes y los miércoles" sin que el
+        // "el" inicial quede como residuo, y SIN convertir un día suelto con artículo
+        // ("reunión el martes", sin cadencia) en recurrencia: ese caso cae igual al
+        // patrón de fecha porque hasPrefix es falso y solo hay 1 día.
+        //
+        // Artículo opcional "el/los" en CADA paso de la continuación: en español es tan
+        // natural repetir el artículo ante cada día ("los lunes y los miércoles",
+        // "el martes y el jueves") como omitirlo. Antes la continuación no toleraba un
+        // artículo antes del día siguiente, así "los lunes y los miércoles" casaba SÓLO
+        // "lunes", perdía el resto (rutina mutilada: un solo día en silencio) y dejaba
+        // "y los" como residuo en el título. c.258.
         val dayListPattern =
-            Regex("""(?i)\b(?:(todos\s+los|cada|los)\s+)?((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y)?\s*(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
+            Regex("""(?i)\b(?:(todos\s+los|cada|los)\s+)?(?:(el|los)\s+)?((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y)?\s*(?:(?:el|los)\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
         val dayNameRegex = Regex("""(?i)lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo""")
         val weeklyMatch = dayListPattern.find(working)
         if (weeklyMatch != null) {
-            val days = dayNameRegex.findAll(weeklyMatch.groupValues[2])
+            val days = dayNameRegex.findAll(weeklyMatch.groupValues[3])
                 .mapNotNull { it.value.toDayOfWeekOrNull()?.value }
                 .distinct().sorted().toList()
             val hasPrefix = weeklyMatch.groupValues[1].isNotBlank()
@@ -2924,7 +2937,7 @@ object NaturalTaskParser {
             // ("fútbol domingos"). Los demás días son invariables (lunes/martes…),
             // así que "reunión martes" queda como fecha ambigua, no recurrencia.
             val barePluralSingle = !hasPrefix && days.size == 1 &&
-                weeklyMatch.groupValues[2].lowercase().let { g ->
+                weeklyMatch.groupValues[3].lowercase().let { g ->
                     g.contains("sábados") || g.contains("sabados") || g.contains("domingos")
                 }
             if (days.isNotEmpty() && (hasPrefix || days.size >= 2 || barePluralSingle)) {
