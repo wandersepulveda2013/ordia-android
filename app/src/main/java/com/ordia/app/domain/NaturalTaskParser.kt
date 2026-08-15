@@ -677,14 +677,26 @@ object NaturalTaskParser {
         // patrón "a las N" (que excluye "un/una/uno" de WRITTEN_HOUR_ALT justo por esto),
         // así que "reunión a la una" caía sin dueAt y con "a la una" como residuo en el
         // título → el usuario olvidaba la cita. Mismo layout de grupos que el patrón
-        // "a las N" (1=hora, 2=:MM, 3=y media/cuarto, 4=meridiem, 5=horas) para que
+        // "a las N" (1=hora, 2=:MM, 3=y media/cuarto, 4=meridiem) para que
         // [explicitTimeData] lo procese sin ramificación. Admite "del mediodía" como
         // meridiem (PM, → 13:00): "a la una del mediodía" es la forma cotidiana de 1pm.
-        Regex("""(?i)\ba\s+la\s+(una)(?::([0-5]\d))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(horas?|hs))?\b"""),
-        // Sufijo opcional "(horas?|hs)" tras la hora (con o sin meridiem) para consumir
-        // "a las 9 horas" completo: antes "horas" quedaba como residuo en el titulo y,
-        // peor, "9 horas" era robado como duracion (540 min falsos). Como grupo propio
-        // (no meridiem), no altera la logica AM/PM ni marca meridiem explicito.
+        // El sufijo de unidad "horas/hs/h" es NO capturante y se admite ANTES y DESPUÉS
+        // de la fracción/meridiem (simétrico del reloj "HH:MMh pm" de c.235 y del
+        // "a las N" de aquí): así "a la una horas y media" y "a la una h pm" consumen
+        // el sufijo completo en vez de dejar fracción/meridiem como residuo en el título.
+        Regex("""(?i)\ba\s+la\s+(una)(?::([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?\b"""),
+        // Sufijo opcional "(horas?|hs|h)" tras la hora para consumir "a las 9 horas"/
+        // "a las 9h" completo: antes "horas" quedaba como residuo en el titulo y, peor,
+        // "9 horas" era robado como duracion (540 min falsos). Es NO capturante (no
+        // altera la lógica AM/PM ni marca meridiem explícito) y se admite ANTES y DESPUÉS
+        // de la fracción/meridiem, simétrico del reloj "HH:MMh pm" de c.235: así el
+        // sufijo puede ir primero y la fracción/meridiem después sin romperse. Antes el
+        // orden fijo [fracción][meridiem][sufijo] hacía que "a las 9h pm" (→09:00 en vez
+        // de 21:00 + residuo "pm"), "a las 9 horas y media" (→09:00 en vez de 09:30 +
+        // residuo "y media") y "a las 3:30h pm" (→03:30 en vez de 15:30) dejaran el
+        // modificador como residuo y agendaran la cita mal: reunión nocturna 12h antes o
+        // 30 min en punto en vez de y media. El `\b` final (con backtracking) deja
+        // intacta la "h" de "hola"/"hoy" (igual que el reloj).
         // Grupo 3 opcional "y media"/"y cuarto": fracción sub-hora cotidiana en español
         // ("a las 9 y media" → 09:30, "a las 3 y cuarto" → 03:15). Antes "y media" caía
         // como residuo en el título y la hora quedaba en punto (reunión/cita 30 min mal).
@@ -695,7 +707,7 @@ object NaturalTaskParser {
         // hora más común en español). Sin ella, el `\b` final no casa (entre "5" y "h"
         // no hay límite de palabra) → dueAt perdido + "a las 15h" como residuo. El `\b`
         // tras "h" deja intacta la "h" de "hola"/"hello". Simétrico al reloj "HH:MMh".
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(horas?|hs|h))?\b"""),
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?\b"""),
         // Hora de reloj autónoma "HH:MM [h/hs/horas] [am/pm]" en AMBOS órdenes. El sufijo
         // de unidad "h/hs/horas" puede ir ANTES ("3:30h pm") o DESPUÉS ("3:30 pm h") del
         // meridiem: se permite en las dos posiciones (no capturante) para absorberlo

@@ -7746,4 +7746,76 @@ class NaturalTaskParserTest {
         assertEquals(120, result.durationMinutes)
         assertNull(result.dueAt)
     }
+
+    // --- Sufijo de unidad (h/hs/horas) ANTES del meridiem o de la fracción (c.242) ---
+    // El orden natural del usuario no siempre es [fracción][meridiem][sufijo]: escribe
+    // "9h pm", "9 horas y media", "3:30h pm". Antes el orden fijo del patrón dejaba el
+    // modificador (pm / y media) como residuo en el título y agendaba la hora en punto y
+    // sin offset → cita 12 h antes (reunión nocturna) o 30 min mal. Ahora el sufijo es
+    // no capturante y se admite antes y después (simétrico del reloj "HH:MMh pm" de c.235).
+    private fun suffixOrderNow() = DateRules.toEpochMillis(
+        LocalDate.of(2026, 7, 29), LocalTime.NOON, ZoneId.of("America/Santo_Domingo")
+    )
+
+    @Test fun aLasNhPmAplicaOffsetYDejaTituloLimpio() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión a las 9h pm", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNhAmAplicaOffsetYDejaTituloLimpio() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión a las 9h am", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNhorasYMediaResuelveFraccionTrasSufijo() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión a las 9 horas y media", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNhYMediaResuelveFraccionTrasSufijoCompacto() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión a las 9h y media", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNhorasYCuartoResuelveFraccionTrasSufijo() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión a las 9 horas y cuarto", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(9, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNhPmConRelojResuelveOffsetCompleto() {
+        // "3:30h pm" → antes 03:30 + residuo "pm"; ahora 15:30 limpio.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión a las 3:30h pm", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNhorasPmResuelveSufijoYMeridiemJuntos() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión a las 9 horas pm", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNhPmNoSeComePalabraDeContenido() {
+        // Regresión: la "h" del sufijo no debe devorar la "h" de "hoy"/"hola".
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("llamar a las 9h hoy", suffixOrderNow(), zone)
+        // "hoy" se consume como fecha (hoy), no queda en el título; la "h" del sufijo
+        // no se confunde con la "h" inicial de "hoy".
+        assertEquals("llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
 }
