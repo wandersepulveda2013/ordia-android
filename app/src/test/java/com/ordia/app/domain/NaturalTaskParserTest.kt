@@ -5881,6 +5881,29 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "entre lunes y viernes" significa lo mismo que "de lunes a viernes" y
+    // "entre semana": la semana laboral Lun-Vie. Antes esta forma cotidiana NO
+    // casaba como rango y caía a la lista de días sueltos, produciendo
+    // recDays="1,5" (¡solo lunes y viernes!) y dejando "entre" como residuo en
+    // el título. Rutina mutilada en silencio + título sucio. c.281.
+    @Test fun entreLunesYViernesComoRangoWeekdayLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Gimnasio entre lunes y viernes", now, zone)
+        assertEquals("Gimnasio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,2,3,4,5", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "entre sabado y domingo" = hábito de fin de semana (Sáb+Dom). Los días son
+    // correctos como lista {6,7} (no hay día entre sábado y domingo), pero el
+    // conector "entre" quedaba como residuo en el título. c.281.
+    @Test fun entreSabadoYDomingoLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("futbol entre sabado y domingo", now, zone)
+        assertEquals("futbol", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
     @Test fun losLunesAViernesComoRangoNoLista() {
         // Sin el orden de patrones, dayListPattern capturaría solo "lunes" (days=[1]).
         val result = NaturalTaskParser.parse("los lunes a viernes entrenar", now, zone)
