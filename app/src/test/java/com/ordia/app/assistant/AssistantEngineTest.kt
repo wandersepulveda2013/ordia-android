@@ -575,6 +575,33 @@ class AssistantEngineTest {
         assertEquals(listOf(2L), answer.relatedTaskIds)
     }
 
+    // --- meses (consistencia con SearchEngine THIS_MONTH/NEXT_MONTH/LAST_MONTH) ---
+    // Antes el asistente ni siquiera reconocía "mes" como consulta de agenda, así que
+    // "¿qué tengo el próximo mes?" caía fuera de agendaAnswer (respuesta genérica) en
+    // vez de listar los compromisos del mes siguiente.
+
+    @Test fun proximoMes_listsNextMonthNotThisMonth() {
+        // hoy 2026-07-29 (julio); thisMonth=15-jul, nextMonth=15-ago
+        val answer = agendaAnswerFor("¿qué tengo el próximo mes?", listOf(1L to LocalDate.of(2026, 7, 15), 2L to LocalDate.of(2026, 8, 15)))
+        assertTrue("nombra la del próximo mes: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla con este mes: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
+    @Test fun mesQueViene_listsNextMonthNotThisMonth() {
+        val answer = agendaAnswerFor("¿qué tengo el mes que viene?", listOf(1L to LocalDate.of(2026, 7, 15), 2L to LocalDate.of(2026, 8, 20)))
+        assertTrue("nombra la del mes que viene: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla con este mes: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
+    @Test fun mesPasado_recoversPreviousMonthTasks() {
+        val answer = agendaAnswerFor("¿qué tengo el mes pasado?", listOf(1L to LocalDate.of(2026, 7, 15), 2L to LocalDate.of(2026, 6, 15)))
+        assertTrue("recupera la del mes pasado: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla con este mes: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
     // ---- Veredicto del día a demanda ("¿voy bien?"/"¿da tiempo a todo?") ----
     //
     // Ordía YA calcula el veredicto del día (SummaryEngine.dayLoad:
