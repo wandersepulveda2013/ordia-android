@@ -6,9 +6,11 @@ import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.RoutineEntity
 import com.ordia.app.data.local.RoutineStepEntity
+import com.ordia.app.data.local.TagEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
+import com.ordia.app.data.local.TaskTagCrossRef
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -535,5 +537,52 @@ class SearchEngineTest {
         val routine = RoutineEntity(id = 46, name = "Cuidado")
         val result = SearchEngine.search("cuidado", emptyList(), emptyList(), emptyList(), emptyList(), routines = listOf(routine), routineSteps = steps).first()
         assertEquals("Cepillarme · Hidratarme", result.subtitle)
+    }
+
+    @Test fun tag_surfacesTaskViaTagName() {
+        // La capacidad clave: una tarea se recupera al buscar el nombre de
+        // cualquiera de sus etiquetas, aunque su título/detalle no lo contengan.
+        // Simétrico a la membresía de proyecto (tarea↔proyecto) y a la jerarquía
+        // subtarea↔padre. "Llamar al cliente" con etiqueta "trabajo" → "trabajo".
+        val task = TaskEntity(id = 1, title = "Llamar al cliente", completed = false)
+        val other = TaskEntity(id = 2, title = "Pasear al perro", completed = false)
+        val tag = TagEntity(id = 7, name = "trabajo")
+        val links = listOf(TaskTagCrossRef(taskId = 1, tagId = 7))
+        val taskIds = SearchEngine.search("trabajo", listOf(task, other), emptyList(), emptyList(), emptyList(), tags = listOf(tag), taskTags = links)
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), taskIds)
+    }
+
+    @Test fun tag_doesNotLeakAcrossTasks() {
+        // La etiqueta es específica: una tarea SIN la etiqueta "trabajo" no
+        // aparece al buscar "trabajo" solo porque exista la etiqueta en otra
+        // tarea. (Otra tarea sí puede salir; aquí sólo hay una sin la etiqueta.)
+        val untagged = TaskEntity(id = 3, title = "Regar plantas", completed = false)
+        val tag = TagEntity(id = 7, name = "trabajo")
+        val ids = SearchEngine.search("trabajo", listOf(untagged), emptyList(), emptyList(), emptyList(), tags = listOf(tag), taskTags = emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(emptySet<Long>(), ids)
+    }
+
+    @Test fun tag_matchesMultipleTasksSharingTag() {
+        // Varias tareas comparten una etiqueta → buscarla recupera todas.
+        val t1 = TaskEntity(id = 1, title = "Informe", completed = false)
+        val t2 = TaskEntity(id = 2, title = "Reunión", completed = false)
+        val tag = TagEntity(id = 7, name = "oficina")
+        val links = listOf(TaskTagCrossRef(1, 7), TaskTagCrossRef(2, 7))
+        val ids = SearchEngine.search("oficina", listOf(t1, t2), emptyList(), emptyList(), emptyList(), tags = listOf(tag), taskTags = links)
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L), ids)
+    }
+
+    @Test fun tag_unlinkedTagIdIsIgnored() {
+        // Si un link apunta a un tagId que no está en `tags` (p. ej. etiqueta
+        // borrada pero link no limpiado — FK CASCADE lo previene, pero el motor
+        // debe ser robusto), no se rompe ni recupera por un nombre inexistente.
+        val task = TaskEntity(id = 1, title = "Llamar", completed = false)
+        val links = listOf(TaskTagCrossRef(taskId = 1, tagId = 99))
+        val ids = SearchEngine.search("fantasma", listOf(task), emptyList(), emptyList(), emptyList(), tags = emptyList(), taskTags = links)
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(emptySet<Long>(), ids)
     }
 }

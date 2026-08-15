@@ -77,8 +77,8 @@ fun SearchScreen(
     val commitments by vm.commitments.collectAsStateWithLifecycle()
     val automations by vm.automationRules.collectAsStateWithLifecycle()
     val commands = remember(query) { CommandPaletteCatalog.search(query) }
-    val results = remember(query, state.tasks, state.projects, state.notes, state.habits, state.routines, state.routineSteps, conversations, commitments, automations) {
-        SearchEngine.search(query, state.tasks, state.projects, state.notes, state.habits, conversations, commitments, automations, state.routines, state.routineSteps)
+    val results = remember(query, state.tasks, state.projects, state.notes, state.habits, state.routines, state.routineSteps, state.tags, state.taskTags, conversations, commitments, automations) {
+        SearchEngine.search(query, state.tasks, state.projects, state.notes, state.habits, conversations, commitments, automations, state.routines, state.routineSteps, state.tags, state.taskTags)
     }
     LazyColumn(
         Modifier.fillMaxSize(),

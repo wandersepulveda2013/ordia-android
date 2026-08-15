@@ -10,7 +10,9 @@ import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.RoutineEntity
 import com.ordia.app.data.local.RoutineStepEntity
+import com.ordia.app.data.local.TagEntity
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.TaskTagCrossRef
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.AutomationRuleEntity
@@ -48,6 +50,8 @@ object SearchEngine {
         automations: List<AutomationRuleEntity> = emptyList(),
         routines: List<RoutineEntity> = emptyList(),
         routineSteps: List<RoutineStepEntity> = emptyList(),
+        tags: List<TagEntity> = emptyList(),
+        taskTags: List<TaskTagCrossRef> = emptyList(),
         now: Long = System.currentTimeMillis()
     ): List<SearchResult> {
         val normalized = query.foldForSearch()
@@ -173,10 +177,24 @@ object SearchEngine {
         val stepsByRoutine = routineSteps.groupBy { it.routineId }
         fun stepHaystack(routineId: Long): Array<String> =
             stepsByRoutine[routineId]?.map { it.title }?.toTypedArray() ?: emptyArray()
+        // Etiquetas indexadas por taskId: permite que una tarea sea recuperada al
+        // buscar el nombre de cualquiera de sus etiquetas, aunque su título o
+        // detalle no lo contengan. Así la relación tarea↔etiqueta (que la UI ya
+        // explota con chips de color) se vuelve visible en la búsqueda universal,
+        // sin nueva pantalla ni botón: buscar "trabajo" encuentra la tarea
+        // "Llamar al cliente" si lleva la etiqueta "trabajo". Simétrico a la
+        // membresía de proyecto (c.159), a la jerarquía subtarea↔padre (c.162) y
+        // a los pasos de rutina (c.195). Recuperación de información importante
+        // vía contexto de etiquetado.
+        val tagById = tags.associateBy { it.id }
+        val tagsByTask = taskTags.groupBy { it.taskId }
+        fun tagHaystack(taskId: Long): Array<String> =
+            tagsByTask[taskId]?.mapNotNull { it.tagId.let(tagById::get)?.name }?.toTypedArray() ?: emptyArray()
         return buildList {
             tasks.filter { task ->
                 val ph = projectHaystack(task.projectId)
                 val pa = parentHaystack(task)
+                val th = tagHaystack(task.id)
                 !task.archived && task.status != TaskStatus.CANCELLED && (!typed || wantsTasks) &&
                     (!normalized.contains("vencid") || TaskRules.isOverdue(task, now)) &&
                     (!normalized.contains("importante") || task.priority in setOf(TaskPriority.HIGH, TaskPriority.URGENT)) &&
@@ -188,7 +206,7 @@ object SearchEngine {
                     (!wantsFlagged || task.flagged) &&
                     (!wantsRecurring || task.recurrence != RecurrenceFrequency.NONE) &&
                     (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted)) &&
-                    (matches(task.title, task.details, *ph, *pa) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms + flaggedTerms + recurringTerms, task.title, task.details, *ph, *pa))
+                    (matches(task.title, task.details, *ph, *pa, *th) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms + flaggedTerms + recurringTerms, task.title, task.details, *ph, *pa, *th))
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE))
             }
