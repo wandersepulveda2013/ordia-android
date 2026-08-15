@@ -1,5 +1,9 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.CommitmentEntity
+import com.ordia.app.data.local.CommitmentKind
+import com.ordia.app.data.local.CommitmentOwner
+import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
@@ -635,5 +639,120 @@ class GuardianEngineTest {
             preferences = UserPreferences(), nowMillis = midday, zoneId = zone
         )
         assertEquals(0, result.completedToday)
+    }
+
+    // --- suggestedAction: recuperación de la 4ª clase de olvido ---
+    // Un compromiso vencido extraído de una conversación (dueAt pasado, PENDING, sin
+    // convertir en tarea) es una promesa que se pasó de plazo. Hasta ahora el nudge del
+    // guardián recuperaba las 3 clases de olvido de tareas (atrasada / hueco incumplido /
+    // captura arrinconada) pero callaba esta 4ª — la superficie de recuperación visible
+    // decía "todo en orden" mientras una promesa vencida pasaba inadvertida.
+
+    private fun overdueCommitment(
+        id: Long,
+        action: String,
+        dueAt: Long,
+        actor: String = "yo",
+        status: CommitmentReviewStatus = CommitmentReviewStatus.PENDING
+    ) = CommitmentEntity(
+        id = id, conversationId = 1,
+        kind = CommitmentKind.SELF_COMMITMENT, owner = CommitmentOwner.SELF,
+        actor = actor, action = action, dueAt = dueAt, confidence = 0.8f,
+        reviewStatus = status, fingerprint = "fp$id", createdAt = dueAt
+    )
+
+    @Test
+    fun suggestedAction_nombraCompromisoVencidoCuandoNoHayTareasOlvidadas() {
+        // Sin tareas atrasadas ni con hueco pasado, pero con un compromiso vencido
+        // ("te llamo" debido hace 2 días, PENDING): el guardián debe nombrarlo en vez
+        // del consejo genérico. Es la 4ª clase de olvido; callarla es mentir por omisión.
+        val commitment = overdueCommitment(1, "te llamo", midday - 2 * 86_400_000L)
+        val result = GuardianEngine.snapshot(
+            tasks = emptyList(), commitments = listOf(commitment),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("te llamo"))
+    }
+
+    @Test
+    fun suggestedAction_nombraCompromisoMasAtrasadoPrimero() {
+        // Dos compromisos vencidos: el más atrasado (3 días) debe nombrarse antes que
+        // el de 1 día. Orden determinista de CommitmentRules.overduePendingSorted.
+        val older = overdueCommitment(1, "enviar propuesta", midday - 3 * 86_400_000L)
+        val newer = overdueCommitment(2, "te llamo", midday - 86_400_000L)
+        val result = GuardianEngine.snapshot(
+            tasks = emptyList(), commitments = listOf(newer, older),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("enviar propuesta"))
+        assertFalse(result.suggestedAction.contains("te llamo"))
+    }
+
+    @Test
+    fun suggestedAction_tareaAtrasadaTomaPrecedenciaSobreCompromisoVencido() {
+        // Una tarea atrasada (due pasado) es señal más fuerte y accionable directamente:
+        // se nombra primero. El compromiso vencido se añade como cola informativa para no
+        // callarlo. No doble señalización de acción, pero tampoco silencio.
+        val overdueTask = TaskEntity(
+            id = 1, title = "Factura vencida", dueAt = midday - 60 * 60_000L, durationMinutes = 20
+        )
+        val commitment = overdueCommitment(2, "te llamo", midday - 2 * 86_400_000L)
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(overdueTask), commitments = listOf(commitment),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("Factura vencida"))
+        assertTrue(result.suggestedAction.contains("atrasada"))
+        // El compromiso no se calla aunque la tarea encabece: cola informativa.
+        assertTrue(result.suggestedAction.contains("te llamo"))
+    }
+
+    @Test
+    fun suggestedAction_huecoPasadoTomaPrecedenciaSobreCompromisoVencido() {
+        // Tarea con hueco pasado (start pasado, due futuro) es accionable directamente;
+        // el compromiso vencido queda como cola. El guardián prioriza lo que el usuario
+        // puede resolver ahora mismo en una tarea ya capturada.
+        val missed = TaskEntity(
+            id = 1, title = "Llamar al banco", startAt = midday - 2 * 60 * 60_000L,
+            dueAt = midday + 2 * 24 * 60 * 60_000L, durationMinutes = 30
+        )
+        val commitment = overdueCommitment(2, "enviar propuesta", midday - 2 * 86_400_000L)
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(missed), commitments = listOf(commitment),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("Llamar al banco"))
+        assertTrue(result.suggestedAction.contains("hueco"))
+        assertTrue(result.suggestedAction.contains("enviar propuesta"))
+    }
+
+    @Test
+    fun suggestedAction_ignoraCompromisoFuturoORevisado() {
+        // Un compromiso con dueAt futuro, o ya CONVERTED/DISMISSED, no es un olvido: no
+        // debe disparar el nudge. Guard anti-falso-positivo.
+        val future = overdueCommitment(1, "te llamo", midday + 86_400_000L)
+        val converted = overdueCommitment(
+            2, "enviar propuesta", midday - 86_400_000L, status = CommitmentReviewStatus.CONVERTED
+        )
+        val dismissed = overdueCommitment(
+            3, "avisar a ana", midday - 86_400_000L, status = CommitmentReviewStatus.DISMISSED
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = emptyList(), commitments = listOf(future, converted, dismissed),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertFalse(result.suggestedAction.contains("te llamo"))
+        assertFalse(result.suggestedAction.contains("enviar propuesta"))
+        assertFalse(result.suggestedAction.contains("avisar a ana"))
     }
 }

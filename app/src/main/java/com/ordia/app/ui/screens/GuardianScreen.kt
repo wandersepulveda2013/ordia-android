@@ -62,7 +62,8 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
         habitLogs = state.habitLogs,
         focusSessions = state.focusSessions,
         notes = state.notes,
-        preferences = state.preferences
+        preferences = state.preferences,
+        commitments = state.commitments
     )
     var name by remember(state.preferences.guardianName) { mutableStateOf(state.preferences.guardianName) }
 

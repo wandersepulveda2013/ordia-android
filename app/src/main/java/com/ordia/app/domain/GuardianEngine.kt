@@ -1,5 +1,6 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
@@ -91,7 +92,8 @@ object GuardianEngine {
         notes: List<NoteEntity>,
         preferences: UserPreferences,
         nowMillis: Long = System.currentTimeMillis(),
-        zoneId: ZoneId = ZoneId.systemDefault()
+        zoneId: ZoneId = ZoneId.systemDefault(),
+        commitments: List<CommitmentEntity> = emptyList()
     ): Snapshot {
         val now = Instant.ofEpochMilli(nowMillis).atZone(zoneId)
         val today = now.toLocalDate()
@@ -217,7 +219,7 @@ object GuardianEngine {
             dailyGoalsCompleted = dailyGoalsCompleted,
             dailyGoalsTotal = 3,
             overdue = overdue,
-            suggestedAction = suggestedAction(tasks, habits, completedToday, focusMinutesToday, habitsDoneToday, overdue, nowMillis, zoneId)
+            suggestedAction = suggestedAction(tasks, habits, commitments, completedToday, focusMinutesToday, habitsDoneToday, overdue, nowMillis, zoneId)
         )
     }
 
@@ -274,29 +276,33 @@ object GuardianEngine {
      * de enfoque y sin hábito hecho); con avance, invita a cerrar el círculo para
      * no enmarcar como "no empezado" un día que ya avanzó.
      *
-     * Recuperación de los tres olvidos de Ordía: el atraso de plazo
+     * Recuperación de los CUATRO olvidos de Ordía: el atraso de plazo
      * ([smallestOverdueAction]) y el hueco incumplido ([missedStartAction]) ya
-     * tenían rama; faltaba el tercero, la captura de bandeja arrinconada
-     * ([TaskRules.isStaleInbox]). Sin él, un día sin vencidas ni huecos pasados
-     * pero con ideas capturadas y olvidadas (≥7 días sin fecha) recibía el nudge
-     * genérico "Completa una tarea breve" aunque lo más útil era justamente
-     * nombrar esa captura —asimetría con la tarjeta del asistente
-     * ([GuardianCoach]), que sí recupera las tres. Aquí se cierra simétricamente
-     * en la misma superficie existente, sin nueva pantalla.
+     * tenían rama; la captura de bandeja arrinconada ([TaskRules.isStaleInbox]) y
+     * el compromiso vencido de conversación ([overdueCommitmentAction],
+     * [CommitmentRules.isOverduePending]) completan las cuatro. Sin el cuarto, un
+     * día sin vencidas ni huecos pasados pero con una promesa vencida (dueAt
+     * pasado, PENDING, sin convertir en tarea) recibía el nudge genérico "Completa
+     * una tarea breve" aunque lo más útil era justamente nombrar ese compromiso —
+     * asimetría con el asistente (c.286), que sí lo recupera. Aquí se cierra
+     * simétricamente en la misma superficie existente, sin nueva pantalla.
      *
-     * El stale-inbox es la señal más débil (sin plazo ni hueco), así que NO roba
-     * el lugar a nada más time-sensitive: se delega en [TaskRules.nextBestTask]
-     * (igual que [GuardianCoach]) y solo se reencuadra cuando la mejor candidata
-     * ES ella misma la captura olvidada. Va tras overdue/missed y, al ir antes de
-     * la rama de impulso, nombra la captura olvidada como el primer paso del día
-     * (hacerla/agendarla/quitarla), que es la mejor sugerencia única en ese
-     * estado. Es recuperación "suave": respeta que una captura sin fecha es
-     * aplazable, por eso NO nombra cuando ya hay avance (ese día el nudge invita a
-     * cerrar el círculo, no a revolver la bandeja).
+     * Precedencia: lo accionable directamente en una tarea ya capturada manda
+     * (atrasada → hueco pasado), porque el usuario puede resolverlo ahora mismo.
+     * El compromiso vencido va después: no es tarea hasta que se convierte, así
+     * que su acción es guiar (revisar la conversación), no ejecutar a ciegas. El
+     * stale-inbox es la señal más débil (sin plazo ni hueco) y va tras él.
+     *
+     * Cola informativa: cuando el nudge nombra una tarea (atrasada o hueco
+     * pasado) Y hay además un compromiso vencido, este NO se calla — se añade
+     * como cola para no mentir por omisión (paridad con c.286). No doble
+     * señalización de acción: la acción primaria sigue siendo la tarea, pero el
+     * compromiso vencido queda visible.
      */
     private fun suggestedAction(
         tasks: List<TaskEntity>,
         habits: List<HabitEntity>,
+        commitments: List<CommitmentEntity>,
         completedToday: Int,
         focusMinutesToday: Int,
         habitsDoneToday: Int,
@@ -304,12 +310,15 @@ object GuardianEngine {
         nowMillis: Long,
         zoneId: ZoneId
     ): String {
+        val overdueCommitments = CommitmentRules.overduePendingSorted(commitments, nowMillis)
         val missed = missedStartAction(tasks, nowMillis)
         val hasActiveTask = tasks.any { TaskRules.isActive(it) }
         val noMomentumYet = focusMinutesToday < 15 && (habits.isEmpty() || habitsDoneToday == 0)
         return when {
             overdue > 0 -> smallestOverdueAction(tasks, nowMillis)
-            missed != null -> missed
+                .withCommitmentTail(overdueCommitments)
+            missed != null -> missed.withCommitmentTail(overdueCommitments)
+            overdueCommitments.isNotEmpty() -> overdueCommitmentAction(overdueCommitments)
             completedToday == 0 && hasActiveTask && noMomentumYet -> staleInboxAction(tasks, nowMillis, zoneId)
                 ?: "Completa una tarea breve para iniciar el día con impulso."
             focusMinutesToday < 15 ->
@@ -443,6 +452,46 @@ object GuardianEngine {
         } else {
             "«${chosen.title}» tenía su hueco y se le pasó (~${minutes} min). Hazla o reagéndala."
         }
+    }
+
+    /**
+     * Cuarto olvido en el nudge del guardián: un compromiso vencido extraído de una
+     * conversación ([CommitmentRules.isOverduePending] — dueAt pasado, PENDING, sin
+     * convertir en tarea). Una promesa que se pasó de plazo es un olvido distinto de
+     * los tres de tareas: no es tarea hasta que el usuario la convierte, así que la
+     * acción es guiar (revisar la conversación), no ejecutar a ciegas — paridad con
+     * el asistente (c.286), donde convertir/descartar es decisión del usuario sobre
+     * su propia promesa.
+     *
+     * Nombra el compromiso más atrasado ([CommitmentRules.overduePendingSorted] ya
+     * ordena por dueAt ascendente) en la misma superficie existente, sin añadir
+     * pantallas. Cuando hay varios, nombra el más atrasado y cuenta el resto para
+     * que el usuario sepa la magnitud sin ruido.
+     */
+    private fun overdueCommitmentAction(overdueCommitments: List<CommitmentEntity>): String {
+        val worst = overdueCommitments.first()
+        val actor = worst.actor.trim()
+        val who = if (actor.isEmpty()) "" else "$actor "
+        return if (overdueCommitments.size == 1) {
+            "«${who}${worst.action}» es un compromiso vencido de una conversación. Revísalo en Conversaciones."
+        } else {
+            "«${who}${worst.action}» es un compromiso vencido de una conversación (y otros ${overdueCommitments.size - 1}). Revísalos en Conversaciones."
+        }
+    }
+
+    /**
+     * Cola informativa: cuando el nudge ya nombró una tarea olvidada (atrasada o con
+     * hueco pasado) Y hay además un compromiso vencido, este no se calla. Paridad con
+     * el asistente (c.286): la acción primaria sigue siendo la tarea, pero la promesa
+     * vencida queda visible para no mentir por omisión. No doble señalización de
+     * acción: sólo informa del compromiso más atrasado.
+     */
+    private fun String.withCommitmentTail(overdueCommitments: List<CommitmentEntity>): String {
+        if (overdueCommitments.isEmpty()) return this
+        val worst = overdueCommitments.first()
+        val actor = worst.actor.trim()
+        val who = if (actor.isEmpty()) "" else "$actor "
+        return "$this Además, «${who}${worst.action}» es un compromiso vencido de una conversación."
     }
 
     private fun message(

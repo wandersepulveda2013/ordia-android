@@ -48,7 +48,8 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
         habitLogs = state.habitLogs,
         focusSessions = state.focusSessions,
         notes = state.notes,
-        preferences = state.preferences
+        preferences = state.preferences,
+        commitments = state.commitments
     )
     val daily = buildList {
         if (!state.preferences.showFloatingCapture) {

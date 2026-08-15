@@ -157,6 +157,7 @@ data class OrdiaUiState(
     val archivedHabits: List<HabitEntity> = emptyList(),
     val archivedRoutines: List<RoutineEntity> = emptyList(),
     val attachments: List<AttachmentEntity> = emptyList(),
+    val commitments: List<CommitmentEntity> = emptyList(),
     val preferences: UserPreferences = UserPreferences()
 ) {
     val guardianInsight: GuardianCoach.Insight get() = GuardianCoach.insight(tasks, habits, habitLogs)
@@ -368,7 +369,8 @@ class OrdiaViewModel(
             attachments = secondData.attachments,
             preferences = prefs
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OrdiaUiState())
+    }.combine(commitments) { state, commitments -> state.copy(commitments = commitments) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OrdiaUiState())
 
     fun saveTask(task: TaskEntity, tagIds: Set<Long> = emptySet(), preserveInbox: Boolean = false) {
         val clean = task.title.trim()
