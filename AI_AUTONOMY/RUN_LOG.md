@@ -20,9 +20,9 @@
 
 - **AI_AUTONOMY actualizado**: `CURRENT_STATE.md` (entrada c.213 en lo alto), `BACKLOG.md` (entrada c.213 FIXED→VERIFIED + nota de decisión de producto pendiente sobre `HOURLY` real), `RUN_LOG.md` (esta entrada).
 
-- **Commits**: `fix(parser): cada N horas (medicación sub-diaria) ya no se pierde — primera dosis vence ahora (c.213)` (HEAD final tras push).
+- **Commits**: `fix(parser): cada N horas (medicación sub-diaria) ya no se pierde — primera dosis vence ahora (c.213)` (`270d1b4`, pusheado al remoto).
 
-- **HEAD final**: (tras push) rama `openhands/autonomous-ordia`.
+- **HEAD final**: `270d1b4` (rama `openhands/autonomous-ordia`, sincronizado con remoto).
 
 - **Estado**: VERIFIED (JVM). P1 parser resuelto: la medicación sub-diaria capturada YA genera un aviso real (primera dosis vence ahora) en vez de desaparecer silenciosamente; los múltiplos de 24h son recurrencia DAILY fiel. Honestidad preservada (no se finge repetición horaria inexistente). Sin nueva pantalla/botón.
 
