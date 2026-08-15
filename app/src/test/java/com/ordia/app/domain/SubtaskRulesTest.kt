@@ -28,6 +28,32 @@ class SubtaskRulesTest {
         assertEquals(2 to 3, SubtaskRules.progress(subs))
     }
 
+    // --- Progreso coherente con allCompleted para subtareas CANCELADAS ---
+    // Una subtarea cancelada (descartada) sale del alcance: no cuenta como
+    // completada ni como pendiente. Así la fracción visible es honesta y no
+    // contradice al padre autocompletado: "1 hecha + 1 descartada" → 1/1
+    // (barra llena), no "1/2" sobre un padre ya completo.
+
+    @Test
+    fun progressExcludesCancelledFromTotal() {
+        // 1 completada + 1 cancelada → 1/1 (el descarte no infla el total)
+        val subs = listOf(task(2, 1, completed = true), cancelled(3, 1))
+        assertEquals(1 to 1, SubtaskRules.progress(subs))
+    }
+
+    @Test
+    fun progressAllCancelledHidesTotal() {
+        // Todas descartadas → 0/0: la UI oculta la barra (total == 0)
+        assertEquals(0 to 0, SubtaskRules.progress(listOf(cancelled(2, 1), cancelled(3, 1))))
+    }
+
+    @Test
+    fun progressMixedKeepsPendingInTotal() {
+        // 1 completada + 1 pendiente + 1 cancelada → 1/2 (el pendiente sigue contando)
+        val subs = listOf(task(2, 1, completed = true), task(3, 1), cancelled(4, 1))
+        assertEquals(1 to 2, SubtaskRules.progress(subs))
+    }
+
     @Test
     fun allCompletedRequiresNonEmptyAndAllDone() {
         assertFalse(SubtaskRules.allCompleted(emptyList()))

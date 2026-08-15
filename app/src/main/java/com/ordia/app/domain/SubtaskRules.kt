@@ -29,9 +29,20 @@ object SubtaskRules {
     private fun isResolved(task: TaskEntity): Boolean =
         task.completed || task.status == TaskStatus.CANCELLED
 
-    /** Progreso (completadas, total) de las subtareas directas. */
-    fun progress(subtasks: List<TaskEntity>): Pair<Int, Int> =
-        subtasks.count { it.completed } to subtasks.size
+    /**
+     * Progreso (completadas, total) de las subtareas directas, para mostrar en la
+     * UI. Una subtarea CANCELADA (descartada) sale del alcance: no cuenta como
+     * completada ni como pendiente, igual que el usuario la quitó del checklist.
+     *
+     * Así la fracción visible es honesta y consistente con [allCompleted]: si el
+     * padre se autocompleta (todas resueltas), la barra muestra 100% o se oculta
+     * (total=0 cuando todas se descartaron), en vez de mostrar "1/2" sobre un
+     * padre ya completo porque un paso se descartó en vez de completarse.
+     */
+    fun progress(subtasks: List<TaskEntity>): Pair<Int, Int> {
+        val total = subtasks.count { it.status != TaskStatus.CANCELLED }
+        return subtasks.count { it.completed } to total
+    }
 
     fun allCompleted(subtasks: List<TaskEntity>): Boolean =
         subtasks.isNotEmpty() && subtasks.all { isResolved(it) }

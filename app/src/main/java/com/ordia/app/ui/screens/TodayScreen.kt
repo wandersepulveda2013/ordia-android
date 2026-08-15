@@ -53,6 +53,7 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayLoad
 import com.ordia.app.domain.SummaryEngine
+import com.ordia.app.domain.SubtaskRules
 import com.ordia.app.domain.WhatNowEngine
 import com.ordia.app.domain.WhatNowReason
 import com.ordia.app.ui.OrdiaUiState
@@ -437,7 +438,7 @@ private fun TaskItem(state: OrdiaUiState, vm: OrdiaViewModel, task: TaskEntity, 
     TaskRow(
         task = task,
         project = state.project(task.projectId),
-        subtaskProgress = subtasks.count { it.completed } to subtasks.size,
+        subtaskProgress = SubtaskRules.progress(subtasks),
         onToggle = { vm.toggleTask(task) },
         onEdit = { onTask(task.id) },
         onDuplicate = { vm.duplicateTask(task) },

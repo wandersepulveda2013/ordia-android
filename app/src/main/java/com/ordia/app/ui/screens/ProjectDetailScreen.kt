@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.domain.SubtaskRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.EmptyState
@@ -101,7 +102,7 @@ fun ProjectDetailScreen(
         if (tasks.isEmpty()) item { Text(stringResource(R.string.project_detail_no_tasks), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         items(tasks, key = { it.id }) { task ->
             val subtasks = state.subtasks(task.id)
-            TaskRow(task, project, subtasks.count { it.completed } to subtasks.size, { vm.toggleTask(task) }, { onTask(task.id) }, { vm.duplicateTask(task) }, { vm.deleteTask(task) })
+            TaskRow(task, project, SubtaskRules.progress(subtasks), { vm.toggleTask(task) }, { onTask(task.id) }, { vm.duplicateTask(task) }, { vm.deleteTask(task) })
         }
         item { SectionHeader(stringResource(R.string.project_detail_notes_section), action = stringResource(R.string.action_add), onAction = { addingNote = true }) }
         if (notes.isEmpty()) item { Text(stringResource(R.string.project_detail_no_notes), color = MaterialTheme.colorScheme.onSurfaceVariant) }

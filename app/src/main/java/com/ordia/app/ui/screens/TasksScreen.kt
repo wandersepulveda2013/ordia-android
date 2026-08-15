@@ -31,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.domain.SubtaskRules
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
@@ -279,7 +280,7 @@ private fun TaskListItem(state: OrdiaUiState, vm: OrdiaViewModel, task: TaskEnti
     TaskRow(
         task = task,
         project = state.project(task.projectId),
-        subtaskProgress = subtasks.count { it.completed } to subtasks.size,
+        subtaskProgress = SubtaskRules.progress(subtasks),
         onToggle = { vm.toggleTask(task) },
         onEdit = { onTask(task.id) },
         onDuplicate = { vm.duplicateTask(task) },

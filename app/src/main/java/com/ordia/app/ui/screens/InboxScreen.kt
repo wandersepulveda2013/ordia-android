@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.domain.DateRules
+import com.ordia.app.domain.SubtaskRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.CaptureChips
@@ -57,7 +58,7 @@ fun InboxScreen(
                     TaskRow(
                         task = task,
                         project = state.project(task.projectId),
-                        subtaskProgress = subtasks.count { it.completed } to subtasks.size,
+                        subtaskProgress = SubtaskRules.progress(subtasks),
                         onToggle = { vm.toggleTask(task) },
                         onEdit = { onTask(task.id) },
                         onDuplicate = { vm.duplicateTask(task) },
