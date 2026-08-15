@@ -376,6 +376,47 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // "cada hora" (cada 1 hora, sin número) y "cada media hora" (sub-horaria): cadencia
+    // sub-diaria muy común en medicación (jarabes, gotas, gárgaras). Sin número, el
+    // patrón de c.213 (que exige una cantidad) no casaba → caían a NONE SIN fecha y, en
+    // "cada media hora", la duración robaba "media hora" como 30 min falsos y truncaba el
+    // título ("Tomar cada"). Misma clase de olvido que c.213. Se saca la primera dosis a
+    // la superficie venciendo AHORA (NONE + immediateDueAt) y se limpia el título, sin
+    // fingir repetición horaria inexistente.
+    @Test fun cadaHoraSubDiarioVenceAhora() {
+        val result = NaturalTaskParser.parse("Tomar jarabe cada hora", now, zone)
+        assertEquals("Tomar jarabe", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertNotNull("La primera dosis debe tener vencimiento (no olvidada)", result.dueAt)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun cadaHoraPluralSubDiarioVenceAhora() {
+        val result = NaturalTaskParser.parse("Gárgaras cada horas", now, zone)
+        assertEquals("Gárgaras", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun cadaMediaHoraNoRobaDuracionNiTitulo() {
+        val result = NaturalTaskParser.parse("Tomar gotas cada media hora", now, zone)
+        assertEquals("Tomar gotas", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(now, result.dueAt)
+        // "media hora" es cadencia, NO duración: no debe aparecer como 30 min.
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun cadaHoraConHoraExplicitaUsaLaHora() {
+        val result = NaturalTaskParser.parse("Jarabe cada hora a las 3pm", now, zone)
+        assertEquals("Jarabe", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+        assertNull(result.durationMinutes)
+    }
+
     // Recurrencia quincenal con palabra (no dígito): "cada quincena", "quincenalmente".
     // Antes `intervalPattern` (que solo admite dígitos) no casaba, la recurrencia caía
     // a NONE y la tarea nacía SIN fecha (invisible en What Now/planificador, recordatorio

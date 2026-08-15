@@ -2707,6 +2707,22 @@ object NaturalTaskParser {
         //    para limpiar el título y evitar que la duración robe "N horas".
         // La cantidad admite dígitos o número escrito (vía [parseWrittenNumber]),
         // simétrico con [intervalPattern].
+        //
+        // Variantes sin número ("cada hora"/"cada media hora"): misma clase de olvido
+        // — el patrón de abajo exige una cantidad, así que éstas caían a NONE SIN
+        // fecha y, en "cada media hora", la duración robaba "media hora" como 30 min
+        // falsos y truncaba el título ("Tomar cada"). Son cadencias sub-diarias muy
+        // comunes en medicación (jarabes, gotas, gárgaras). Se tratan ANTES y de la
+        // misma forma honesta: NONE + immediateDueAt=now + título limpio. "cada media
+        // hora" se evalúa primero para que "media" no quede colgando.
+        Regex("""(?i)\bcada\s+media\s+horas?\b""").find(working)?.let { match ->
+            phrases += match.range
+            return RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), phrases, immediateDueAt = now)
+        }
+        Regex("""(?i)\bcada\s+horas?\b""").find(working)?.let { match ->
+            phrases += match.range
+            return RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), phrases, immediateDueAt = now)
+        }
         val hourlyIntervalPattern =
             Regex("""(?i)\bcada\s+(\d{1,3}|$writtenNumberGroup)\s*(horas?)\b""")
         hourlyIntervalPattern.find(working)?.let { match ->
