@@ -2,6 +2,7 @@ package com.ordia.app.ui.screens
 
 import android.content.Intent
 import android.provider.OpenableColumns
+import androidx.core.net.toUri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.BackHandler
@@ -206,7 +207,7 @@ fun NoteEditorScreen(
                         Icon(Icons.Outlined.InsertDriveFile, null, modifier = Modifier.size(22.dp))
                         TextButton(
                             onClick = {
-                                val uri = android.net.Uri.parse(attachment.uri)
+                                val uri = attachment.uri.toUri()
                                 val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, attachment.mimeType)
                                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 runCatching { context.startActivity(intent) }

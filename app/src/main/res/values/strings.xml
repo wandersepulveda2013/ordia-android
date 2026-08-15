@@ -1,6 +1,6 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Ordia</string>
-    <string name="app_tagline">Tu mundo, en orden</string>
+    <string name="app_tagline" tools:ignore="UnusedResources">Tu mundo, en orden</string>
     <string name="guardian_channel_name">Guardián de Ordia</string>
     <string name="guardian_channel_description">Mantiene disponible el compañero flotante que activaste.</string>
     <string name="guardian_notification_title">Guardián activo</string>
@@ -8,4 +8,12 @@
     <string name="reminders_channel_name">Recordatorios</string>
     <string name="reminders_channel_description">Avisos de tareas y hábitos programados.</string>
     <string name="widget_description">Muestra tu próximo paso y el número de tareas pendientes.</string>
+
+    <string name="widget_brand" tools:ignore="UnusedResources">ORDIA · SIGUIENTE PASO</string>
+    <string name="widget_no_tasks" tools:ignore="UnusedResources">El día está libre. Todo bajo control.</string>
+    <string name="widget_count" tools:ignore="UnusedResources">%1$s pendientes</string>
+    <string name="widget_empty_title" tools:ignore="UnusedResources">Nada pendiente por ahora</string>
+    <string name="widget_all_good" tools:ignore="UnusedResources">Todo está en orden</string>
+    <string name="widget_zero_pending" tools:ignore="UnusedResources">0 pendientes</string>
+    <string name="widget_capture" tools:ignore="UnusedResources">+ Capturar</string>
 </resources>

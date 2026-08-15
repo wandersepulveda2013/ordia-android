@@ -15,6 +15,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.content.edit
 import androidx.core.app.NotificationCompat
 import com.ordia.app.MainActivity
 import com.ordia.app.OrdiaApplication
@@ -65,6 +66,7 @@ class GuardianOverlayService : Service() {
         return START_STICKY
     }
 
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
     private fun showGuardian() {
         if (guardianView != null) return
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -73,7 +75,12 @@ class GuardianOverlayService : Service() {
             GuardianMode.DISCREET -> 54
             GuardianMode.COMPANION -> 62
         }
-        val orb = TextView(this).apply {
+        val orb = object : TextView(this) {
+            override fun performClick(): Boolean {
+                super.performClick()
+                return true
+            }
+        }.apply {
             text = when (guardianMode) {
                 GuardianMode.DORMANT -> "✦"
                 GuardianMode.DISCREET -> "•‿•"
@@ -189,13 +196,13 @@ class GuardianOverlayService : Service() {
                 MotionEvent.ACTION_UP -> {
                     val moved = abs(event.rawX - touchX) + abs(event.rawY - touchY)
                     if (moved < dp(10)) {
-                        togglePanel(params)
+                        v.performClick(); togglePanel(params)
                     } else {
                         val screenWidth = resources.displayMetrics.widthPixels
                         params.x = if (params.x + v.width / 2 < screenWidth / 2) dp(8) else screenWidth - v.width - dp(8)
                         params.y = params.y.coerceIn(dp(24), resources.displayMetrics.heightPixels - v.height - dp(80))
                         windowManager.updateViewLayout(v, params)
-                        getSharedPreferences(POSITIONS, MODE_PRIVATE).edit().putInt("x", params.x).putInt("y", params.y).apply()
+                        getSharedPreferences(POSITIONS, MODE_PRIVATE).edit { putInt("x", params.x); putInt("y", params.y) }
                     }
                     return true
                 }
