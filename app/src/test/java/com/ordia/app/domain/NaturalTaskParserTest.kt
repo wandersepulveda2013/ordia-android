@@ -1181,6 +1181,63 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(hs.dueAt!!, zone))
     }
 
+    // ── Formato compacto "NhMM" (hora:minutos con "h" como separador, ciclo 253) ──
+    // "a las 9h30"/"9h30 am"/"9h30 de la noche" son formas compactas cotidianas en español
+    // donde la "h" separa hora y minutos (equivalente del ":"). Antes el patrón "a las N"
+    // sólo aceptaba ":MM" como minutos, así "9h30" no casaba (la "h" se consumía como sufijo
+    // de unidad y "30" caía como residuo) → la cita quedaba SIN dueAt (OLVIDADA) y con el
+    // título corrupto. Ahora "h" es también separador de minutos —pero SOLO junto a una
+    // señal inequívoca de reloj ("a las"/"a la", meridiem am/pm o "de la tarde/noche")—:
+    // el "Nh" puro sin señal de reloj sigue siendo duración (decisión c.235), así no se
+    // falsifica "estudiar 2h30" como una cita a las 2:30.
+    @Test fun aLasNhMMSeparaHoraYMinutos() {
+        val result = NaturalTaskParser.parse("Reunión a las 9h30", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(null, result.durationMinutes)
+    }
+
+    @Test fun aLasNhMM24h() {
+        val result = NaturalTaskParser.parse("Reunión a las 15h30", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun NhMMConMeridiemPm() {
+        val result = NaturalTaskParser.parse("Cita 9h30 pm", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(null, result.durationMinutes)
+    }
+
+    @Test fun NhMMConMeridiemAm() {
+        val result = NaturalTaskParser.parse("Cita 9h30 am", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun NhMMConParteDelDia() {
+        val result = NaturalTaskParser.parse("Cita 9h30 de la noche", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // El "Nh" puro (sin minutos tras la "h") sigue siendo hora en punto, no se rompe.
+    @Test fun aLasNhSinMinutosSigueSiendoEnPunto() {
+        val result = NaturalTaskParser.parse("Reunión a las 9h", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // "Nh" puro sin señal de reloj sigue siendo DURACIÓN (no se falsifica como hora).
+    // "estudiar 2h" → 120 min, sin dueAt. El cambio de c.253 no debe alterar esto.
+    @Test fun NhPuroSinSenalDeRelojSigueSiendoDuracion() {
+        val result = NaturalTaskParser.parse("Estudiar 2h", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(null, result.dueAt)
+    }
+
     // --- Duraciones fraccionarias sin dígitos (ciclo 14) ---
     // "media hora" y "(un) cuarto de hora" no casan con los patrones de dígitos y
     // dejaban residuo en el título + durationMinutes=null.
