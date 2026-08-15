@@ -183,10 +183,7 @@ class ConversationRepository(private val dao: ConversationDao) {
     suspend fun updateCommitment(commitment: CommitmentEntity) = dao.updateCommitment(commitment)
     suspend fun deleteConversation(id: Long) = dao.deleteConversation(id)
     suspend fun clearBySource(sourceType: ConversationSourceType) = dao.deleteConversationsBySource(sourceType)
-    suspend fun clearAll() {
-        dao.deleteAllCommitments()
-        dao.deleteAllConversations()
-    }
+    suspend fun clearAll() = dao.clearAll()
 }
 
 class AutomationRuleRepository(

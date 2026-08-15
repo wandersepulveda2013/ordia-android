@@ -30,7 +30,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ConsentEventEntity::class,
         AutomationRuleEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -54,6 +54,20 @@ abstract class OrdiaDatabase : RoomDatabase() {
 
     companion object {
         @Volatile private var instance: OrdiaDatabase? = null
+
+        /**
+         * Índices para consultas frecuentes:
+         * - automation_log(type, createdAt): historial por tipo de automatización.
+         * - captures(resultId): resolución del historial de captura hacia la entidad.
+         * - notes(pinned, updatedAt): orden estable de Notas (fijadas primero, luego recientes).
+         */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_automation_log_type_createdAt ON automation_log(type, createdAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_captures_resultId ON captures(resultId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_pinned_updatedAt ON notes(pinned, updatedAt)")
+            }
+        }
 
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -347,7 +361,7 @@ abstract class OrdiaDatabase : RoomDatabase() {
                     OrdiaDatabase::class.java,
                     "ordia.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .build()
                     .also { instance = it }
             }

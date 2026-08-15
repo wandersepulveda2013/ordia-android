@@ -50,8 +50,14 @@ interface TaskDao {
     @Update
     suspend fun update(task: TaskEntity)
 
-    @Delete
-    suspend fun delete(task: TaskEntity)
+    /**
+     * Borra la tarea y todo su subárbol en una única transacción para no dejar
+     * subtareas huérfanas (misma garantía que [deleteSubtreeAndSelf]).
+     */
+    @Transaction
+    suspend fun delete(task: TaskEntity) {
+        deleteByIds(TaskTree.collectIds(task.id) { getChildIds(it) })
+    }
 
     @Query("UPDATE tasks SET archived = 1, updatedAt = :updatedAt WHERE id = :id")
     suspend fun archive(id: Long, updatedAt: Long = System.currentTimeMillis())
@@ -563,6 +569,13 @@ abstract class ConversationDao {
 
     @Query("DELETE FROM conversations")
     abstract suspend fun deleteAllConversations()
+
+    /** Borra compromisos y conversaciones en una única transacción. */
+    @Transaction
+    open suspend fun clearAll() {
+        deleteAllCommitments()
+        deleteAllConversations()
+    }
 }
 
 @Dao

@@ -124,7 +124,7 @@ data class ProjectEntity(
             onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index("projectId"), Index("pinned"), Index("archived")]
+    indices = [Index("projectId"), Index("pinned"), Index("archived"), Index(value = ["pinned", "updatedAt"])]
 )
 data class NoteEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -289,7 +289,7 @@ data class AutomationRuleEntity(
     val updatedAt: Long = System.currentTimeMillis()
 )
 
-@Entity(tableName = "automation_log")
+@Entity(tableName = "automation_log", indices = [Index(value = ["type", "createdAt"])])
 data class AutomationLogEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     /** Tipo de automatización: "day_plan", "reschedule", "what_now", "routine". */
@@ -310,7 +310,7 @@ data class AutomationLogEntity(
  */
 @Entity(
     tableName = "captures",
-    indices = [Index("createdAt"), Index("status"), Index("fingerprint")]
+    indices = [Index("createdAt"), Index("status"), Index("fingerprint"), Index("resultId")]
 )
 data class CaptureEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
