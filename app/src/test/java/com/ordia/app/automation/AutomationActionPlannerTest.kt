@@ -17,7 +17,7 @@ import org.junit.Test
 class AutomationActionPlannerTest {
 
     private val zone = ZoneId.of("America/Santiago")
-    private val now = 1_736_812_000_000L // 2025-01-13 10:00 America/Santiago
+    private val now = 1_736_773_200_000L // 2025-01-13 10:00 America/Santiago
 
     private fun rule(
         action: AutomationAction,
@@ -69,14 +69,15 @@ class AutomationActionPlannerTest {
 
     @Test
     fun `plan_day asigna reminder al inicio solo si el slot es futuro`() {
-        // Tarea planificada a una hora futura (now=10:00, slot 09:00 no aplica porque
-        // DayPlanner arranca a las 09:00 pero 09:00 < 10:00 → slot pasado → sin reminder).
+        // now=10:00 → el primer slot respeta `now` (c.209): arranca a las 10:00.
+        // startAt == now → el slot no es estrictamente futuro → sin reminder tardío.
+        // (Contrato past-safe: nunca se genera un aviso para un slot que ya empezó.)
         val t = task(1, durationMinutes = 30, status = TaskStatus.INBOX, reminderAt = null)
         val plan = AutomationActionPlanner.build(rule(AutomationAction.PLAN_DAY), listOf(t), 0, now, zone)
 
         val update = plan.updates.first()
         if (update.startAt != null && update.startAt <= now) {
-            assertNull("Un slot pasado no debe generar recordatorio tardío", update.reminderAt)
+            assertNull("Un slot que ya empezó no debe generar recordatorio tardío", update.reminderAt)
         } else {
             assertNotNull("Un slot futuro sin reminder previo obtiene uno al inicio", update.reminderAt)
         }
@@ -197,15 +198,16 @@ class AutomationActionPlannerTest {
     @Test
     fun `plan_day deriva la fecha del now inyectado, no del reloj del sistema`() {
         // Determinismo: los slots del plan deben fecharse con el día de `now`
-        // (2025-01-13 09:00). Antes, LocalDate.now(zone) fechaba con el reloj real y el
-        // primer slot caía en una fecha distinta según cuándo se ejecutara.
+        // (2025-01-13 10:00). Antes, LocalDate.now(zone) fechaba con el reloj real y el
+        // primer slot caía en una fecha distinta según cuándo se ejecutara. El inicio del
+        // slot respeta `now` (c.209): a las 10:00 el primer slot es 10:00, no 09:00.
         val t = task(1, durationMinutes = 30, status = TaskStatus.INBOX, reminderAt = null)
         val plan = AutomationActionPlanner.build(rule(AutomationAction.PLAN_DAY), listOf(t), 0, now, zone)
 
         assertTrue(plan.matched)
         assertEquals(
-            "El primer slot debe ser 2025-01-13 09:00 (día del now inyectado)",
-            1_736_769_600_000L,
+            "El primer slot debe ser 2025-01-13 10:00 (día del now inyectado, sin pasar al pasado)",
+            1_736_773_200_000L,
             plan.updates.first().startAt
         )
     }
@@ -394,6 +396,50 @@ class AutomationActionPlannerTest {
         assertTrue(plan.matched)
         val u = plan.updates.first()
         assertNull("Una tarea sin due no debe ganar vencimiento al planificarse", u.dueAt)
+    }
+
+    @Test
+    fun `plan_day arrancado tarde no escribe slots en el pasado`() {
+        // c.209: si PLAN_DAY se dispara a las 11:00, antes arrancaba los slots a las
+        // 09:00 (pasado). Una tarea de bandeja quedaba con startAt 09:00 → "inicio
+        // perdido" (isMissedStart) y reminder nulo; una vencida re-planificada en un
+        // slot pasado seguía vencida con su due también en el pasado. "Planificar el
+        // día" creaba tareas olvidadas: justo lo opuesto a su propósito. Ahora el
+        // cursor arranca en max(09:00, now): ningún slot escrito cae antes de `now`.
+        val noonNow = 1_736_776_800_000L // 2025-01-13 11:00 America/Santiago
+        val inbox = task(1, durationMinutes = 30, status = TaskStatus.INBOX, dueAt = null)
+        val overdue = task(
+            2, durationMinutes = 30, status = TaskStatus.PLANNED,
+            dueAt = noonNow - 86_400_000L // vencida ayer
+        )
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.PLAN_DAY), listOf(inbox, overdue), 0, noonNow, zone
+        )
+        assertTrue(plan.matched)
+        assertTrue("Debe planificar al menos una tarea", plan.updates.isNotEmpty())
+        plan.updates.forEach { u ->
+            assertNotNull("Toda tarea planificada debe tener startAt", u.startAt)
+            assertTrue(
+                "Ningún slot debe caer estrictamente antes de now (startAt ${u.startAt} < now $noonNow)",
+                u.startAt!! >= noonNow
+            )
+            if (u.dueAt != null) {
+                assertTrue(
+                    "El vencimiento re-planificado tampoco debe quedar en el pasado (dueAt ${u.dueAt} < now $noonNow)",
+                    u.dueAt!! >= noonNow
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `plan_day muy tarde no planifica nada`() {
+        // c.209: si no queda ventana hoy (now >= 18:00), no se escriben slots pasados.
+        val lateNow = 1_736_802_000_000L // 2025-01-13 18:00 America/Santiago (dayStart >= dayEnd)
+        val t = task(1, durationMinutes = 30, status = TaskStatus.INBOX, dueAt = null)
+        val plan = AutomationActionPlanner.build(rule(AutomationAction.PLAN_DAY), listOf(t), 0, lateNow, zone)
+        assertFalse("Muy tarde no debe planificar nada pasado", plan.matched)
+        assertTrue(plan.updates.isEmpty())
     }
 
     @Test

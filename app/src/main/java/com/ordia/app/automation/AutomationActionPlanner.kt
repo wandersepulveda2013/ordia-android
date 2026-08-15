@@ -47,8 +47,25 @@ object AutomationActionPlanner {
                 // determinista y verificable con un `now` fijo. Usar LocalDate.now
                 // hacía que el plan dependiera del instante real y que ningún test
                 // pudiera afirmar la fecha exacta de los slots.
-                val date = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-                val plan = DayPlanner.build(active, date, now = now, zone = zone)
+                val nowZ = Instant.ofEpochMilli(now).atZone(zone)
+                val date = nowZ.toLocalDate()
+                // El inicio del plan respeta el momento real: si PLAN_DAY se dispara
+                // después de las 09:00 (p. ej. a las 12:00), arrancar los slots a las
+                // 09:00 los colocaba en el PASADO. Una tarea de bandeja planificada a
+                // una hora ya pasada se convertía en "inicio perdido" (isMissedStart)
+                // con recordatorio nulo (past-safe), y una vencida re-planificada en un
+                // slot pasado seguía vencida con su due también en el pasado. Es decir,
+                // "planificar el día" creaba tareas olvidadas/ya vencidas: justo lo
+                // opuesto a su propósito. Por eso el cursor arranca en max(09:00, now)
+                // redondeando al alza a cuartos (simétrico con BATCH_QUICK_TASKS). Si no
+                // queda ventana hoy (now >= fin del día), no se escribe nada pasado.
+                val nowMinute = nowZ.hour * 60 + nowZ.minute
+                val dayStart = (((nowMinute + 14) / 15) * 15).coerceAtLeast(9 * 60)
+                val dayEnd = 18 * 60
+                if (dayStart >= dayEnd) {
+                    return AutomationPlan(message = "Es tarde para planificar hoy; no se cambió nada.", matched = false)
+                }
+                val plan = DayPlanner.build(active, date, dayStartMinute = dayStart, dayEndMinute = dayEnd, now = now, zone = zone)
                 val byId = tasks.associateBy { it.id }
                 val updates = plan.blocks.take(12).mapNotNull { block ->
                     val start = DateRules.toEpochMillis(date, LocalTime.of(block.startMinute / 60, block.startMinute % 60), zone)
