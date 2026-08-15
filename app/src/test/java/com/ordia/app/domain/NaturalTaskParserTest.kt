@@ -766,6 +766,123 @@ class NaturalTaskParserTest {
         assertNotNull(result.dueAt)
     }
 
+
+    // --- "todos los/todas las N <unidad>" = forma hablada de "cada N <unidad>" (c.276) ---
+    // El determinante plural ("todas las dos semanas", "todos los tres meses",
+    // "todos los 3 días") es la cadencia espaciada más natural en español hablado.
+    // Antes caía a NONE SIN fecha (rutina olvidada, P1) Y dejaba la frase entera como
+    // residuo literal del título (captura sucia). Ahora resuelve la misma
+    // frecuencia/intervalo que "cada N <unidad>", con título limpio.
+
+    @Test fun todasLasDosSemanasParsesWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Reunión todas las dos semanas", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("", result.recurrenceDays)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun todasLas2SemanasDigitoParsesWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Reunión todas las 2 semanas", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun todosLosDosMesesParsesMonthlyInterval2() {
+        val result = NaturalTaskParser.parse("Pago todos los dos meses", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("", result.recurrenceDays)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun todosLosTresMesesParsesMonthlyInterval3() {
+        val result = NaturalTaskParser.parse("Control todos los tres meses", now, zone)
+        assertEquals("Control", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun todosLos3DiasParsesDailyInterval3() {
+        val result = NaturalTaskParser.parse("Revisar todos los 3 días", now, zone)
+        assertEquals("Revisar", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun todosLosTresDiasEscritoParsesDailyInterval3() {
+        val result = NaturalTaskParser.parse("Revisar todos los tres días", now, zone)
+        assertEquals("Revisar", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // Combo: "todas las dos semanas los lunes" → WEEKLY interval=2 + día. Antes la
+    // rama de lista semanal no reconocía el determinante plural → interval=1 (el doble
+    // de frecuente) y "todas las dos semanas" quedaba como residuo. Mismo cierre que
+    // c.275 aplicó a "bisemanal los lunes".
+    @Test fun todasLasDosSemanasConDiasParsesWeeklyInterval2YDias() {
+        val result = NaturalTaskParser.parse("Reunión todas las dos semanas los lunes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1", result.recurrenceDays)
+        assertNotNull(result.dueAt)
+    }
+
+    // Combo ordinal: "todos los dos meses el primer lunes" → MONTHLY interval=2 anclado
+    // al 1er lunes (no al día del mes). Antes el ordinal precedente no se capturaba
+    // (recurrenceDays='') y "el primer" quedaba como residuo → cada ciclo derivaba a un
+    // weekday distinto. Mismo cierre que c.273 aplicó a "cada N meses el primer lunes".
+    @Test fun todosLosDosMesesPrimerLunesParsesMonthlyInterval2Ordinal() {
+        val result = NaturalTaskParser.parse("Reunión todos los dos meses el primer lunes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1:1", result.recurrenceDays)
+        assertNotNull(result.dueAt)
+        // El anclaje ordinal fuerza el vencimiento al 1er lunes: debe caer en lunes.
+        assertEquals(
+            java.time.DayOfWeek.MONDAY,
+            DateRules.toLocalDate(result.dueAt!!, zone).dayOfWeek
+        )
+    }
+
+    @Test fun todosLosTresMesesUltimoViernesParsesMonthlyInterval3Ordinal() {
+        val result = NaturalTaskParser.parse("Pago todos los tres meses el último viernes", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertEquals("-1:5", result.recurrenceDays)
+        assertNotNull(result.dueAt)
+        assertEquals(
+            java.time.DayOfWeek.FRIDAY,
+            DateRules.toLocalDate(result.dueAt!!, zone).dayOfWeek
+        )
+    }
+
+    // No-regresión: las formas SIN número (N=1) siguen resolviendo interval=1.
+    @Test fun todasLasSemanasSigueSiendoWeeklyInterval1() {
+        val result = NaturalTaskParser.parse("Reunión todas las semanas", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+    }
+
+    @Test fun todosLosDiasSigueSiendoDailyInterval1() {
+        val result = NaturalTaskParser.parse("Revisar todos los días", now, zone)
+        assertEquals("Revisar", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+    }
+
     // Contradicción: anclaje mensual explícito gana sobre el adjetivo bisemanal, pero
     // "bisemanal" se limpia del título (recurrenceAdjectiveLeakPattern), consistente con
     // "pago mensual el 15 de cada mes" → "pago".

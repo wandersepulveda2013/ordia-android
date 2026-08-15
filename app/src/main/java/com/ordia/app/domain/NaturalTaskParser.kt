@@ -146,9 +146,15 @@ object NaturalTaskParser {
      * capturaba → `recurrenceDays=''` (motor anclaba al día del mes → deriva) Y "el primer"
      * quedaba como residuo. Misma rendija que c.256/c.271, ahora cerrada para plazo largo.
      * El número del intervalo va en grupo NO capturador para no desplazar los grupos 2/3.
+     *
+     * c.276: se añade la forma hablada "todos los N meses" (determinante plural en vez de
+     * "cada N meses"). Esta cadencia ahora emite MONTHLY+interval vía intervalPattern, PERO
+     * el ordinal precedente seguía sin capturarse → deriva del weekday + residuo "el primer".
+     * Cierra la misma rendija que c.273 para la forma plural, en paralelo a "todas las N
+     * semanas" (c.276 en detectWeekInterval/intervalPattern).
      */
     private val precedingCadenceOrdinalPattern = Regex(
-        """(?i)(?<!\p{L})(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|bimestral(?:mente)?|trimestral(?:mente)?|cuatrimestral(?:mente)?|semestral(?:mente)?|cada\s+(?:\d{1,3}|$writtenNumberGroup)\s*meses?)\s+((?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b"""
+        """(?i)(?<!\p{L})(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|bimestral(?:mente)?|trimestral(?:mente)?|cuatrimestral(?:mente)?|semestral(?:mente)?|cada\s+(?:\d{1,3}|$writtenNumberGroup)\s*meses?|todos\s+los\s+(?:\d{1,3}|$writtenNumberGroup)\s*meses?)\s+((?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b"""
     )
 
     /**
@@ -3019,7 +3025,13 @@ object NaturalTaskParser {
             // semanas" quedaba como residuo en el título. `parseWrittenNumber`
             // resuelve la palabra; el grupo está acotado a los números conocidos
             // para no colisionar con "semanas".
-            Regex("""(?i)\bcada\s+(\d{1,3}|$writtenNumberGroup)\s*semanas?\b""").find(working)?.let { m ->
+            // El determinante plural "todas las" es la forma hablada de "cada"
+            // para semanas espaciadas ("todas las dos semanas los lunes"): sin él
+            // esa cadena caía a interval=1 (cada semana, el doble de frecuente) y
+            // "todas las dos semanas" quedaba como residuo. Mismo cierre que c.275
+            // aplicó a "bisemanal los lunes". No casa "todas las semanas" (sin
+            // número → cadencia semanal normal resuelta en otra rama).
+            Regex("""(?i)\b(?:cada|todas\s+las)\s+(\d{1,3}|$writtenNumberGroup)\s*semanas?\b""").find(working)?.let { m ->
                 val rawN = m.groupValues[1]
                 val n = rawN.toLongOrNull()?.toInt()
                     ?: parseWrittenNumber(rawN)?.toInt()
@@ -3168,14 +3180,20 @@ object NaturalTaskParser {
             return RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), phrases, day)
         }
 
-        // "cada N días/semanas/meses/años" — N puede ser dígito O número escrito
-        // ("cada dos semanas", "cada tres meses", "cada quince días"). Antes el grupo
-        // sólo admitía `\d{1,3}`, así que las formas con palabra caían a NONE y la
-        // tarea recurrente nacía sin fecha (recordatorio jamás disparaba). Se reutiliza
-        // `parseWrittenNumber` para resolver la palabra; la alternación está acotada a
-        // los números conocidos para no colisionar con la unidad (días/semanas/...).
+        // "cada N días/semanas/meses/años" y "todos los/todas las N ..." — N puede ser
+        // dígito O número escrito ("cada dos semanas", "cada tres meses", "cada quince
+        // días"; "todas las dos semanas", "todos los tres meses", "todos los 3 días").
+        // Antes el grupo sólo admitía `\d{1,3}`, así que las formas con palabra caían a
+        // NONE y la tarea recurrente nacía sin fecha (recordatorio jamás disparaba). Se
+        // reutiliza `parseWrittenNumber` para resolver la palabra; la alternación está
+        // acotada a los números conocidos para no colisionar con la unidad
+        // (días/semanas/...). El determinante plural "todos los/todas las" es la forma
+        // hablada de "cada N" para cadencias espaciadas (N≥2); sin él caían a NONE SIN
+        // fecha Y dejaban "todas las dos semanas" como residuo literal del título
+        // (rutina olvidada + captura sucia). No casa la forma SIN número ("todas las
+        // semanas"→N=1 la resuelve fixedPatterns), así que no hay colisión con ésta.
         val intervalPattern =
-            Regex("""(?i)\bcada\s+(\d{1,3}|$writtenNumberGroup)\s*(d[ií]as?|semanas?|meses?|a[nñ]os?)\b""")
+            Regex("""(?i)\b(?:cada|todos\s+los|todas\s+las)\s+(\d{1,3}|$writtenNumberGroup)\s*(d[ií]as?|semanas?|meses?|a[nñ]os?)\b""")
         intervalPattern.find(working)?.let { match ->
             val rawN = match.groupValues[1]
             val interval = rawN.toLongOrNull()?.toInt()?.coerceIn(1, 366)
