@@ -24,6 +24,7 @@
     <string name="search_kind_conversation">CONVERSACIÓN</string>
     <string name="search_kind_commitment">COMPROMISO</string>
     <string name="search_kind_automation">AUTOMATIZACIÓN</string>
+    <string name="search_kind_routine">RUTINA</string>
     <string name="workspace_eyebrow">TU CENTRO DE TRABAJO</string>
     <string name="workspace_title">Espacio adaptable</string>
     <string name="workspace_subtitle">Abre, minimiza, cierra y recupera paneles; el diseño se adapta al ancho disponible.</string>

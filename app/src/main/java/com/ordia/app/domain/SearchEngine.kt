@@ -8,6 +8,8 @@ import java.time.ZoneId
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.ProjectEntity
+import com.ordia.app.data.local.RoutineEntity
+import com.ordia.app.data.local.RoutineStepEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.CommitmentEntity
@@ -17,7 +19,7 @@ import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 
-enum class SearchKind { TASK, PROJECT, NOTE, HABIT, CONVERSATION, COMMITMENT, AUTOMATION }
+enum class SearchKind { TASK, PROJECT, NOTE, HABIT, ROUTINE, CONVERSATION, COMMITMENT, AUTOMATION }
 
 /**
  * Intención de búsqueda por fecha. Permite escribir "hoy", "mañana",
@@ -44,6 +46,8 @@ object SearchEngine {
         conversations: List<ConversationEntity> = emptyList(),
         commitments: List<CommitmentEntity> = emptyList(),
         automations: List<AutomationRuleEntity> = emptyList(),
+        routines: List<RoutineEntity> = emptyList(),
+        routineSteps: List<RoutineStepEntity> = emptyList(),
         now: Long = System.currentTimeMillis()
     ): List<SearchResult> {
         val normalized = query.foldForSearch()
@@ -157,6 +161,18 @@ object SearchEngine {
             val parent = task.parentTaskId?.let(taskById::get) ?: return emptyArray()
             return arrayOf(parent.title) + if (parent.details.isEmpty()) emptyArray() else arrayOf(parent.details)
         }
+        // Pasos de rutina indexados por routineId: permite que una rutina sea
+        // recuperada al buscar el título de cualquiera de sus pasos, aunque el
+        // nombre o la descripción de la rutina no contengan esa palabra. Así la
+        // relación rutina↔pasos (que la UI ya explota listándolos) se vuelve
+        // visible en la búsqueda universal, sin nueva pantalla ni botón: buscar
+        // "dientes" encuentra la rutina "Noche" si tiene el paso "lavarme los
+        // dientes". Simétrico a la membresía de proyecto (relación
+        // tarea↔proyecto) y a la jerarquía subtarea↔padre. Recuperación de
+        // información importante vía contexto.
+        val stepsByRoutine = routineSteps.groupBy { it.routineId }
+        fun stepHaystack(routineId: Long): Array<String> =
+            stepsByRoutine[routineId]?.map { it.title }?.toTypedArray() ?: emptyArray()
         return buildList {
             tasks.filter { task ->
                 val ph = projectHaystack(task.projectId)
@@ -187,6 +203,18 @@ object SearchEngine {
             }
             habits.filter { !typed && !it.archived && !pureDateScope && matches(it.title, it.details) }.forEach {
                 add(Ranked(SearchResult(SearchKind.HABIT, it.id, it.title, it.details.take(90))))
+            }
+            routines.filter { !typed && !it.archived && !pureDateScope }.filter {
+                val sh = stepHaystack(it.id)
+                matches(it.name, it.description, *sh)
+            }.forEach { r ->
+                // Subtítulo útil aunque la rutina no tenga descripción: los
+                // primeros pasos unidos por " · ", recortados. Reusa datos
+                // existentes, sin nueva cadena ni pantalla.
+                val subtitle = r.description.ifBlank {
+                    stepsByRoutine[r.id]?.joinToString(" · ") { s -> s.title } ?: ""
+                }.take(90)
+                add(Ranked(SearchResult(SearchKind.ROUTINE, r.id, r.name, subtitle)))
             }
             conversations.filter { (!typed || wantsMessages) && !pureDateScope && (matches(it.title, it.summary, it.participants) || semanticMatches(MESSAGE_TERMS, it.title, it.summary, it.participants)) }
                 .forEach { add(Ranked(SearchResult(SearchKind.CONVERSATION, it.id, it.title, it.summary.take(90)))) }

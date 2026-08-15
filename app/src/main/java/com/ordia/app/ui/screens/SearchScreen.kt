@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Loop
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Spa
@@ -76,8 +77,8 @@ fun SearchScreen(
     val commitments by vm.commitments.collectAsStateWithLifecycle()
     val automations by vm.automationRules.collectAsStateWithLifecycle()
     val commands = remember(query) { CommandPaletteCatalog.search(query) }
-    val results = remember(query, state.tasks, state.projects, state.notes, state.habits, conversations, commitments, automations) {
-        SearchEngine.search(query, state.tasks, state.projects, state.notes, state.habits, conversations, commitments, automations)
+    val results = remember(query, state.tasks, state.projects, state.notes, state.habits, state.routines, state.routineSteps, conversations, commitments, automations) {
+        SearchEngine.search(query, state.tasks, state.projects, state.notes, state.habits, conversations, commitments, automations, state.routines, state.routineSteps)
     }
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -122,6 +123,7 @@ fun SearchScreen(
                         SearchKind.PROJECT -> onProject(result.id)
                         SearchKind.NOTE -> onNote(result.id)
                         SearchKind.HABIT -> onHabits()
+                        SearchKind.ROUTINE -> onHabits()
                         SearchKind.CONVERSATION, SearchKind.COMMITMENT -> onConversations()
                         SearchKind.AUTOMATION -> onAutomations()
                     }
@@ -158,6 +160,7 @@ private fun SearchResultCard(kind: SearchKind, title: String, subtitle: String, 
                     SearchKind.PROJECT -> Icons.Outlined.Folder
                     SearchKind.NOTE -> Icons.Outlined.Description
                     SearchKind.HABIT -> Icons.Outlined.Spa
+                    SearchKind.ROUTINE -> Icons.Outlined.Loop
                     SearchKind.CONVERSATION, SearchKind.COMMITMENT -> Icons.Outlined.ChatBubbleOutline
                     SearchKind.AUTOMATION -> Icons.Outlined.Bolt
                 },
@@ -219,6 +222,7 @@ private fun SearchKind.label(): String = when (this) {
     SearchKind.PROJECT -> stringResource(R.string.search_kind_project)
     SearchKind.NOTE -> stringResource(R.string.search_kind_note)
     SearchKind.HABIT -> stringResource(R.string.search_kind_habit)
+    SearchKind.ROUTINE -> stringResource(R.string.search_kind_routine)
     SearchKind.CONVERSATION -> stringResource(R.string.search_kind_conversation)
     SearchKind.COMMITMENT -> stringResource(R.string.search_kind_commitment)
     SearchKind.AUTOMATION -> stringResource(R.string.search_kind_automation)

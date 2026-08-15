@@ -4,6 +4,8 @@ import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.RecurrenceFrequency
+import com.ordia.app.data.local.RoutineEntity
+import com.ordia.app.data.local.RoutineStepEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
@@ -471,5 +473,67 @@ class SearchEngineTest {
         val ids = SearchEngine.search("vacaciones", listOf(parent, subtask, other), emptyList(), emptyList(), emptyList())
             .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
         assertEquals(setOf(3L), ids)
+    }
+
+    // --- Rutinas en la búsqueda universal (relación rutina↔pasos) ---
+
+    @Test fun routine_foundByName() {
+        // La rutina era invisible en la búsqueda universal: existía en la app y
+        // en el estado de UI, pero SearchEngine no la indexaba. Ahora buscar el
+        // nombre de una rutina la recupera, simétrico a hábitos/proyectos/notas.
+        val routine = RoutineEntity(id = 41, name = "Rutina matinal")
+        val results = SearchEngine.search("matinal", emptyList(), emptyList(), emptyList(), emptyList(), routines = listOf(routine))
+        assertEquals(1, results.size)
+        assertEquals(SearchKind.ROUTINE, results.first().kind)
+        assertEquals(41L, results.first().id)
+    }
+
+    @Test fun routine_foundByDescription() {
+        val routine = RoutineEntity(id = 42, name = "Mañana", description = "Desayuno y ejercicio ligero")
+        val results = SearchEngine.search("ejercicio", emptyList(), emptyList(), emptyList(), emptyList(), routines = listOf(routine))
+        assertEquals(listOf(42L), results.map { it.id })
+    }
+
+    @Test fun routine_foundByStepTitle() {
+        // La capacidad clave: una rutina se recupera buscando el título de
+        // cualquiera de sus pasos, aunque el nombre/descripción de la rutina no
+        // contenga esa palabra. Buscar "dientes" encuentra la rutina "Noche" si
+        // tiene el paso "lavarme los dientes". Recupera información que el
+        // usuario organizó dentro de la rutina, sin nueva pantalla ni botón.
+        val steps = listOf(RoutineStepEntity(id = 1, routineId = 43, title = "lavarme los dientes", position = 0))
+        val routine = RoutineEntity(id = 43, name = "Noche")
+        val results = SearchEngine.search("dientes", emptyList(), emptyList(), emptyList(), emptyList(), routines = listOf(routine), routineSteps = steps)
+        assertEquals(listOf(43L), results.map { it.id })
+        assertEquals(SearchKind.ROUTINE, results.first().kind)
+    }
+
+    @Test fun routine_archived_isExcluded() {
+        // Simétrico a tareas/proyectos/notas/hábitos archivados: una rutina
+        // archivada no debe aflorar en la búsqueda activa.
+        val routine = RoutineEntity(id = 44, name = "Rutina archivada", archived = true)
+        val results = SearchEngine.search("archivada", emptyList(), emptyList(), emptyList(), emptyList(), routines = listOf(routine))
+        assertTrue(results.isEmpty())
+    }
+
+    @Test fun routine_pureDateScope_doesNotFlood() {
+        // Un scope de fecha puro ("hoy") solo aplica a entidades con fecha
+        // (tareas). Las rutinas no tienen fecha: buscar "hoy" no debe devolver
+        // cada rutina como ruido. Simétrico a proyectos/notas/hábitos.
+        val routine = RoutineEntity(id = 45, name = "Rutina de hoy")
+        val results = SearchEngine.search("hoy", emptyList(), emptyList(), emptyList(), emptyList(), routines = listOf(routine))
+        assertTrue(results.none { it.kind == SearchKind.ROUTINE })
+    }
+
+    @Test fun routine_subtitleFallsBackToStepTitles() {
+        // Sin descripción, el subtítulo del resultado muestra los pasos unidos,
+        // reutilizando datos existentes (sin nueva cadena). Así el usuario ve
+        // de qué trata la rutina antes de abrirla.
+        val steps = listOf(
+            RoutineStepEntity(id = 1, routineId = 46, title = "Cepillarme", position = 0),
+            RoutineStepEntity(id = 2, routineId = 46, title = "Hidratarme", position = 1)
+        )
+        val routine = RoutineEntity(id = 46, name = "Cuidado")
+        val result = SearchEngine.search("cuidado", emptyList(), emptyList(), emptyList(), emptyList(), routines = listOf(routine), routineSteps = steps).first()
+        assertEquals("Cepillarme · Hidratarme", result.subtitle)
     }
 }
