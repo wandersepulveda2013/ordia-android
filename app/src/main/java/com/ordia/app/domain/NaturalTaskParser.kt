@@ -1250,6 +1250,55 @@ object NaturalTaskParser {
         // así "recuérdame 2 horas antes" (offset explícito) NO cae aquí.
         val hasBareReminderVerb = bareReminderVerbPattern.containsMatchIn(working)
 
+        // Conector de plazo "hasta" + fecha/hora: la fecha subyacente se resuelve bien,
+        // pero el conector "hasta" sobrevivía como residuo en el título ("entregar hasta")
+        // porque los patrones de fecha (weekdayPattern/dayOfMonthPattern/weekendPattern)
+        // y los relativos ("dentro de 3 días"/"mañana") consumían la fecha ANTES del
+        // borrado de "hasta el", dejándolo huérfano (contenido capturado degradado, P1).
+        // Simétrico a c.134 ("de aquí a/al"). Se procesa ANTES que los relativos y las
+        // fechas específicas para que el marcador temporal aún esté presente. Dos rewrites:
+        //  · HORA: "hasta las 5"/"hasta la una" → "a las 5"/"a la una" (timePatterns exige
+        //    el conector "a"); así la hora se resuelve Y se limpia del título de golpe.
+        //  · FECHA: "hasta el viernes"/"hasta fin de mes"/"hasta mañana"/"hasta dentro de
+        //    3 días" → se borra "hasta " dejando la fecha intacta para su patrón.
+        // El lookahead restringe a marcadores temporales reales para preservar "hasta" como
+        // límite de acción ("trabajar hasta terminar", "leer hasta la página 50"): allí no
+        // hay marcador → no se toca. "final" NO es marcador (sí "fin de"): el lookahead
+        // exige "fin(?:es)?\s+de", no "fin" suelto.
+        working = working
+            .replace(Regex("""(?i)\bhasta\s+(?=(?:las\s+\d|la\s+(?:una|\d)))"""), "a ")
+            .replace(
+                Regex(
+                    """(?i)\bhasta\s+(?=(?:el|la|los|las)\s+(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|primer|primero|segundo|tercer|tercero|cuarto|[uú]ltim[oa]?|semana|mes(?:es)?|a[ñn]os?|\d{1,2}\b)|fin(?:es)?\s+de\b|ma[nñ]ana\b|hoy\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b|dentro\s+de\b|en\s+(?:\d|un|una|unos|unas))""",
+                ),
+                " ",
+            )
+            // Conector de plazo "antes de/del" + fecha/hora: simétrico a "hasta"/c.134. La
+            // fecha subyacente se resuelve bien, pero el conector sobrevivía como residuo en
+            // el título ("enviar antes", "llamar las") porque el patrón de fecha consumía la
+            // fecha antes del borrado tardío de "antes del" (que además exige "de" y no casa
+            // con el "antes" huérfano). Se procesa aquí, ANTES que los patrones de fecha.
+            //  · HORA: "antes de las 5 de la tarde" → "a las 5 de la tarde" (timePatterns
+            //    exige "a"). Se exige meridio/parte del día tras la hora para NO tocar la
+            //    forma ambigua "antes de las 5" (5am/5pm): esa queda sin resolver, igual que
+            //    antes (sin regresión), en vez de fijar un 05:00 pasado y engañoso.
+            //  · FECHA: "antes del viernes"/"antes de mañana" → se borra "antes del?/de "
+            //    dejando el día (weekdayPattern admite weekday suelto). Se EXCLUYE \d (día del
+            //    mes): "antes del 30" lo resuelve beforeDeadlineDayPattern y "antes del 15 de
+            //    agosto" monthNameDate (ambos ya limpios); tocarlos aquí los rompería.
+            .replace(
+                Regex(
+                    """(?i)\bantes\s+de\s+(?=(?:las\s+\d{1,2}|la\s+una)\b\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a))""",
+                ),
+                "a ",
+            )
+            .replace(
+                Regex(
+                    """(?i)\bantes\s+del?\s+(?=(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|ma[nñ]ana\b|hoy\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b))""",
+                ),
+                " ",
+            )
+
         // Fecha relativa COMPUESTA fraccionaria ("en una hora y media"/"en 2 horas y
         // cuarto"): se procesa ANTES que [relativePattern] para que este no robe solo
         // "en una hora" (+60) y deje "y media" como residuo en el título. Resuelve

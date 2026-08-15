@@ -7483,4 +7483,116 @@ class NaturalTaskParserTest {
         assertEquals(2, result.recurrenceInterval)
         assertEquals("3:3", result.recurrenceDays) // 3er miércoles (ISO miércoles=3)
     }
+
+    // Conector de plazo "hasta" + fecha: el conector sobrevivía como residuo en el título
+    // ("entregar hasta" aunque la fecha era correcta) porque weekdayPattern/dayOfMonthPattern
+    // consumían "el viernes"/"el 20" ANTES del borrado de "hasta el", dejándolo huérfano.
+    @Test fun hastaElViernesLimpiaTituloYResuelveFecha() {
+        val result = NaturalTaskParser.parse("entregar hasta el viernes", now, zone)
+        assertEquals("entregar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun hastaFinDeMesLimpiaTituloYResuelveFecha() {
+        val result = NaturalTaskParser.parse("enviar hasta fin de mes", now, zone)
+        assertEquals("enviar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun hastaElDiaSueltoLimpiaTituloYRuedaAlMesSiguiente() {
+        // "hasta el 20" dicho el 29: el 20 ya pasó → rueda al 20 del mes siguiente.
+        val result = NaturalTaskParser.parse("entregar hasta el 20", now, zone)
+        assertEquals("entregar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun hastaMananaLimpiaTituloYResuelveFecha() {
+        val result = NaturalTaskParser.parse("reunión hasta mañana", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun hastaFechaConMesLimpiaTituloYResuelveFecha() {
+        val result = NaturalTaskParser.parse("pago hasta el 15 de septiembre", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun hastaDentroDeRelativoLimpiaTituloYResuelveFecha() {
+        val result = NaturalTaskParser.parse("llamar hasta dentro de 3 días", now, zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun hastaLasHoraLimpiaTituloYResuelveHora() {
+        val result = NaturalTaskParser.parse("llamar hasta las 5 de la tarde", now, zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(17, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // Seguridad de contenido: "hasta" como límite de acción (no plazo con fecha) NO debe
+    // tocarse ni inventarse vencimiento.
+    @Test fun hastaComoLimiteDeAccionPreservaContenidoSinVencimiento() {
+        val result = NaturalTaskParser.parse("trabajar hasta terminar el informe", now, zone)
+        assertEquals("trabajar hasta terminar el informe", result.title)
+        assertEquals(null, result.dueAt)
+    }
+
+    @Test fun hastaAnteSustantivoPreservaContenidoSinVencimiento() {
+        val result = NaturalTaskParser.parse("leer hasta la página 50", now, zone)
+        assertEquals("leer hasta la página 50", result.title)
+        assertEquals(null, result.dueAt)
+    }
+
+    // Conector de plazo "antes de/del" + fecha/hora: simétrico a "hasta". La fecha
+    // subyacente se resolvía bien, pero el conector sobrevivía como residuo en el título
+    // ("enviar antes", "llamar las") porque el patrón de fecha consumía la fecha ANTES del
+    // borrado tardío de "antes del". Ahora se normaliza temprano (c.237).
+    @Test fun antesDelViernesLimpiaTituloYResuelveFecha() {
+        val result = NaturalTaskParser.parse("enviar antes del viernes", now, zone)
+        assertEquals("enviar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun antesDeMananaLimpiaTituloYResuelveFecha() {
+        val result = NaturalTaskParser.parse("reunión antes de mañana", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun antesDeLasHoraConMeridianoLimpiaTituloYResuelveHora() {
+        val result = NaturalTaskParser.parse("llamar antes de las 5 de la tarde", now, zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(17, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun antesDeLasMananaLimpiaTituloYResuelveHoraPasada() {
+        // 09:00 dicho al mediodía: el plazo ya pasó → vencida honesta (no se proyecta).
+        val result = NaturalTaskParser.parse("llamar antes de las 9 de la mañana", now, zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // "antes del 30" (día suelto) y "antes del 15 de agosto" (día+mes) ya funcionaban vía
+    // beforeDeadlineDayPattern/monthNameDate: la normalización nueva NO debe romperlos.
+    @Test fun antesDelDiaSueltoSigueResolviendoViaBeforeDeadline() {
+        val result = NaturalTaskParser.parse("enviar antes del 30", now, zone)
+        assertEquals("enviar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun antesDelDiaConMesSigueResolviendoViaMonthNameDate() {
+        val result = NaturalTaskParser.parse("pagar antes del 15 de agosto", now, zone)
+        assertEquals("pagar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "antes de las 5" (sin meridio) es ambiguo (5am/5pm): NO se inventa vencimiento.
+    @Test fun antesDeLasHoraSinMeridioNoInventaVencimiento() {
+        val result = NaturalTaskParser.parse("llamar antes de las 5", now, zone)
+        assertEquals(null, result.dueAt)
+    }
 }
