@@ -17,15 +17,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.FormatQuote
 import androidx.compose.material.icons.outlined.HorizontalRule
@@ -150,7 +151,7 @@ fun NoteEditorScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { saveAndBack() }) { Icon(Icons.Outlined.ArrowBack, stringResource(R.string.note_editor_back_save)) }
+            IconButton(onClick = { saveAndBack() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.note_editor_back_save)) }
             Text(if (dirty) stringResource(R.string.note_editor_dirty) else stringResource(R.string.note_editor_saved), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
             IconButton(onClick = { attachFile() }) { Icon(Icons.Outlined.AttachFile, stringResource(R.string.note_editor_attach)) }
             IconButton(
@@ -162,7 +163,7 @@ fun NoteEditorScreen(
                     }
                 },
                 enabled = existing != null
-            ) { Icon(Icons.Outlined.ArrowForward, stringResource(R.string.note_editor_convert_task)) }
+            ) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, stringResource(R.string.note_editor_convert_task)) }
             TextButton(onClick = { existing?.let { vm.deleteNote(it); onBack() } }, enabled = existing != null) { Text(stringResource(R.string.note_editor_archive)) }
             Button(onClick = { saveAndBack() }) {
                 Icon(Icons.Outlined.Save, null)
@@ -205,7 +206,7 @@ fun NoteEditorScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Outlined.InsertDriveFile, null, modifier = Modifier.size(22.dp))
+                        Icon(Icons.AutoMirrored.Outlined.InsertDriveFile, null, modifier = Modifier.size(22.dp))
                         TextButton(
                             onClick = {
                                 val uri = android.net.Uri.parse(attachment.uri)
@@ -310,6 +311,6 @@ private fun NoteBlockType.icon() = when (this) {
     NoteBlockType.HEADING -> Icons.Outlined.Title
     NoteBlockType.CHECKLIST -> Icons.Outlined.CheckBox
     NoteBlockType.QUOTE -> Icons.Outlined.FormatQuote
-    NoteBlockType.BULLET, NoteBlockType.NUMBERED -> Icons.Outlined.FormatListBulleted
+    NoteBlockType.BULLET, NoteBlockType.NUMBERED -> Icons.AutoMirrored.Outlined.FormatListBulleted
     NoteBlockType.DIVIDER -> Icons.Outlined.HorizontalRule
 }
