@@ -13,8 +13,8 @@
 - **Features**: 0 (fix de parsing/integridad de recurrencia — más exactitud sin más interfaz).
 - **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); integración parser↔motor↔Room↔UI de recurrencia en runtime Android (la codificación `"$ord:$wd"` y `RecurrenceEngine.nextMonthlyOrdinal`/`nextWeekly` ya verificados en JVM en c.216/c.271; este ciclo añade el camino de captura con determinante plural que los alimenta).
 - **Archivos**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (`intervalPattern`/`detectWeekInterval`/`precedingCadenceOrdinalPattern` ampliado + comentarios c.276), `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+11 tests), `AI_AUTONOMY/BACKLOG.md` (+1 entrada FIXED), `AI_AUTONOMY/CURRENT_STATE.md` (estado/OPEN actualizados).
-- **HEAD inicial**: `f09ac08` (c.275). **HEAD final**: pendiente de push.
-- **Commits**: `fix(parser): "todas las N/todos los N" (forma hablada de "cada N") ya es cadencia espaciada con días y ordinal, sin residuo de título` (hash tras commit).
+- **HEAD inicial**: `f09ac08` (c.275). **HEAD final**: `f7f801a` (c.276, pusheado FF sobre `f09ac08`). PUSH OK.
+- **Commits**: `f7f801a` — `fix(parser): "todas las N/todos los N" (forma hablada de "cada N") ya es cadencia espaciada con días y ordinal, sin residuo de título`.
 - **Estado**: VERIFIED (dominio JVM: 1799 PASS; RED del bug confirmado pre-fix vía probe; combo probe + no-regresión probe verde). NO VERIFICADO Android.
 - **Próxima prioridad**: descubrimiento continuo — (i) seguir auditando el parser por paridad léxica residual (otros determinantes de cadencia: "de dos en dos semanas", "alternar cada dos", "una semana sí y otra no" ya cubierto c.97; evaluar "todas las N quincenas" / "todos los N años" con ordinal); (ii) auditar `RecurrenceEngine` por rendijas simétricas (advance con interval alto, mes con menos días, DST); (iii) áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (iv) verificar Android de los fixes parser c.271-c.276 cuando haya SDK. Re-fetch antes de implementar.
 
