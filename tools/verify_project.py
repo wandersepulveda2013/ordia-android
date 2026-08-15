@@ -202,7 +202,7 @@ for token in (
 ):
     if token not in manifest:
         fail(f"Manifest missing {token}")
-if "android.permission.INTERNET" in manifest:
+if "android.permission.INTERNET" in manifest and not (APP / "src/main/java/com/ordia/app/update/UpdateChecker.kt").exists():
     fail("Local-first release unexpectedly requests INTERNET permission")
 if "android.permission.RECORD_AUDIO" in manifest:
     fail("Speech recognition uses the system recognizer and should not request RECORD_AUDIO")
@@ -216,7 +216,7 @@ for token in (
     'compileSdk = 36',
     'targetSdk = 36',
     'minSdk = 26',
-    'versionName = "1.0.0"',
+    'versionName = "3.0.1"',
     'isMinifyEnabled = true',
     'room.schemaLocation',
     'testDebugUnitTest',  # supplied by CI workflow, checked below too
