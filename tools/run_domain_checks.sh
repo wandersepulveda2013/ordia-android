@@ -24,6 +24,7 @@ fi
   "$ROOT/app/src/main/java/com/ordia/app/domain/DayPlanner.kt" \
   "$ROOT/app/src/main/java/com/ordia/app/domain/FocusClock.kt" \
   "$ROOT/app/src/main/java/com/ordia/app/domain/GuardianCoach.kt" \
+  "$ROOT/app/src/main/java/com/ordia/app/domain/CommitmentRules.kt" \
   "$ROOT/app/src/main/java/com/ordia/app/domain/HabitRules.kt" \
   "$ROOT/app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt" \
   "$ROOT/app/src/main/java/com/ordia/app/domain/QuietHours.kt" \

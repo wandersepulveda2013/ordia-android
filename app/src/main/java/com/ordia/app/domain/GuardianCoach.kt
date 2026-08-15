@@ -1,5 +1,6 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.TaskEntity
@@ -11,8 +12,16 @@ object GuardianCoach {
     enum class Tone { CALM, FOCUSED, CELEBRATING, GENTLE }
     data class Insight(val eyebrow: String, val title: String, val message: String, val taskId: Long? = null, val tone: Tone = Tone.CALM)
 
-    fun insight(tasks: List<TaskEntity>, habits: List<HabitEntity>, habitLogs: List<HabitLogEntity>, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Insight {
+    fun insight(tasks: List<TaskEntity>, habits: List<HabitEntity>, habitLogs: List<HabitLogEntity>, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault(), commitments: List<CommitmentEntity> = emptyList()): Insight {
         val today = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        // 4ª clase de olvido: el compromiso vencido extraído de una conversación
+        // (dueAt pasado, PENDING, sin convertir en tarea). Fuente única de verdad
+        // [CommitmentRules.overduePendingSorted] (compartida con el asistente c.286 y
+        // el nudge del guardián c.288). Se calcula una vez y se consume en dos sitios:
+        // (a) como cola informativa cuando la tarjeta ya nombra una tarea olvidada
+        // (ramas `recoverable`/`missedStart` abajo) para no mentir por omisión, y
+        // (b) como rama propia cuando no hay ningún olvido de tarea que nombrar.
+        val overdueCommitments = CommitmentRules.overduePendingSorted(commitments, now)
         val roots = tasks.filter { it.parentTaskId == null && !it.archived && it.status != TaskStatus.CANCELLED }
         val pending = roots.filterNot { it.completed }
         val overdue = pending.filter { TaskRules.isOverdue(it, now) }
@@ -51,9 +60,9 @@ object GuardianCoach {
                     "Esta tarea lleva $ageLabel atrasada. Hazla hoy o muévela con intención, no la dejes pasar otra vez."
                 else
                     "Tienes ${recoverable.size} tareas atrasadas y la más antigua lleva $ageLabel. Elige una: hacerla hoy, reprogramarla o quitarla."
-                return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", message, next?.id, Tone.FOCUSED)
+                return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", withCommitmentTail(message, overdueCommitments), next?.id, Tone.FOCUSED)
             }
-            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", if (recoverable.size == 1) "Esta tarea está atrasada. Empieza con un bloque corto." else "Tienes ${recoverable.size} tareas atrasadas. Comienza por esta.", next?.id, Tone.GENTLE)
+            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", withCommitmentTail(if (recoverable.size == 1) "Esta tarea está atrasada. Empieza con un bloque corto." else "Tienes ${recoverable.size} tareas atrasadas. Comienza por esta.", overdueCommitments), next?.id, Tone.GENTLE)
         }
         val urgent = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
         if (urgent.isNotEmpty()) {
@@ -91,9 +100,33 @@ object GuardianCoach {
                     "Esta tarea tenía su hueco y se pasó hace $ageLabel. Hazla hoy o reagéndala: no la dejes pasar otra vez."
                 else
                     "Tienes ${missedStart.size} compromisos cuyo hueco pasó y el más antiguo lleva $ageLabel. Elige uno: hacerlo hoy, reagendarlo o quitarlo."
-                return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay un compromiso olvidado", message, next?.id, Tone.FOCUSED)
+                return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay un compromiso olvidado", withCommitmentTail(message, overdueCommitments), next?.id, Tone.FOCUSED)
             }
-            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay un compromiso pendiente", if (missedStart.size == 1) "Esta tarea tenía su hueco y se pasó. Empieza con un bloque corto o reagéndala." else "Tienes ${missedStart.size} compromisos cuyo hueco pasó. Comienza por este.", next?.id, Tone.GENTLE)
+            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay un compromiso pendiente", withCommitmentTail(if (missedStart.size == 1) "Esta tarea tenía su hueco y se pasó. Empieza con un bloque corto o reagéndala." else "Tienes ${missedStart.size} compromisos cuyo hueco pasó. Comienza por este.", overdueCommitments), next?.id, Tone.GENTLE)
+        }
+        // 4ª clase de olvido como rama propia: cuando NO hay ninguna tarea
+        // olvidada que nombrar (ni vencida ni hueco pasado), pero sí un
+        // compromiso vencido de conversación, la tarjeta lo nombra en vez de
+        // caer a "SIGUIENTE PASO"/"TODO EN CALMA" — callarlo sería mentir por
+        // omisión sobre un olvido real (el asistente c.286 y el nudge c.288 ya
+        // lo recuperan; la tarjeta es la superficie MÁS visible, así que su
+        // silencio era la rendija más dañina). Va tras los olvidos de tarea
+        // (lo accionable en una tarea ya capturada manda) y antes de la captura
+        // arrinconada: una promesa con plazo vencido es señal más fuerte que
+        // una captura sin fecha. El compromiso no es tarea hasta convertirse,
+        // así que la acción es guiar a Conversaciones (paridad con c.286/c.288),
+        // no un taskId. Tono honesto por edad de calendario —mismo umbral y
+        // helper overdueDays que las vencidas— para no escalar lo reciente.
+        if (overdueCommitments.isNotEmpty()) {
+            val worst = overdueCommitments.first()
+            val worstDays = overdueDays(worst.dueAt, today, zone)
+            val title = worst.action.ifBlank { worst.actor.ifBlank { "Un compromiso vencido" } }
+            val message = if (overdueCommitments.size == 1)
+                "«$title» es un compromiso vencido que aún no convertiste en tarea. Revísalo en Conversaciones: hacerlo hoy, agendarlo o descartarlo."
+            else
+                "Tienes ${overdueCommitments.size} compromisos vencidos sin convertir («$title» es el más atrasado). Revísalos en Conversaciones: hacerlos hoy, agendarlos o descartarlos."
+            val tone = if (worstDays >= FORGOTTEN_DAYS_THRESHOLD) Tone.FOCUSED else Tone.GENTLE
+            return Insight("RECUPERA EL CONTROL", title, message, taskId = null, tone = tone)
         }
         val next = TaskRules.nextBestTask(pending, now)
         // Rescate de tareas "olvidadas" SIN fecha: la recuperación solo miraba
@@ -160,4 +193,22 @@ object GuardianCoach {
      */
     private fun missedStartDays(startAt: Long?, today: java.time.LocalDate, zone: ZoneId): Int =
         startAt?.let { ChronoUnit.DAYS.between(DateRules.toLocalDate(it, zone), today).toInt().coerceAtLeast(0) } ?: 0
+
+    /**
+     * Añade una cola informativa sobre el compromiso vencido más atrasado al mensaje
+     * de una tarjeta que ya nombra una tarea olvidada. Evita mentir por omisión: si la
+     * tarjeta encabeza con "Factura vencida" pero también hay un «te llamo» vencido,
+     * el compromiso queda visible sin robarle la acción primaria a la tarea (paridad
+     * con el nudge del guardián c.288). No añade nada si no hay compromisos vencidos.
+     * Toma el más atrasado ([overduePendingSorted] ordena por dueAt ascendente).
+     */
+    private fun withCommitmentTail(message: String, overdueCommitments: List<CommitmentEntity>): String {
+        val worst = overdueCommitments.firstOrNull() ?: return message
+        val title = worst.action.ifBlank { worst.actor.ifBlank { "un compromiso" } }
+        val extra = if (overdueCommitments.size == 1)
+            " Además, «$title» es un compromiso vencido sin convertir: revísalo en Conversaciones."
+        else
+            " Además, tienes ${overdueCommitments.size} compromisos vencidos sin convertir (el más atrasado: «$title»); revísalos en Conversaciones."
+        return message + extra
+    }
 }

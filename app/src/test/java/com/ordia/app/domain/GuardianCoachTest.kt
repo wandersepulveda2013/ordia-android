@@ -1,10 +1,15 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.CommitmentEntity
+import com.ordia.app.data.local.CommitmentKind
+import com.ordia.app.data.local.CommitmentOwner
+import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -459,5 +464,104 @@ class GuardianCoachTest {
 
         assertEquals(20L, insight.taskId)
         assertEquals("Pagar luz", insight.title)
+    }
+
+    // --- 4ª clase de olvido: compromiso vencido de conversación ---
+    // La tarjeta de insight es la superficie MÁS visible de recuperación (el usuario la
+    // ve siempre en la pantalla principal). Recuperaba los 3 olvidos de tareas (atrasada
+    // / hueco incumplido / captura arrinconada) pero callaba el 4º — un compromiso
+    // vencido extraído de una conversación (dueAt pasado, PENDING, sin convertir). c.286
+    // lo cerró en el asistente (a demanda) y c.288 en el nudge del guardián (proactivo);
+    // aquí se cierra en la tarjeta permanente. Sin él, un día sin vencidas ni huecos
+    // pasados pero con una promesa vencida mostraba "SIGUIENTE PASO" o "TODO EN CALMA" —
+    // mintiendo por omisión sobre un olvido real.
+
+    private fun commitment(
+        id: Long,
+        action: String,
+        dueAt: Long,
+        actor: String = "yo",
+        status: CommitmentReviewStatus = CommitmentReviewStatus.PENDING
+    ) = CommitmentEntity(
+        id = id, conversationId = 1,
+        kind = CommitmentKind.SELF_COMMITMENT, owner = CommitmentOwner.SELF,
+        actor = actor, action = action, dueAt = dueAt, confidence = 0.8f,
+        reviewStatus = status, fingerprint = "fp$id", createdAt = dueAt
+    )
+
+    @Test
+    fun compromisoVencido_seMuestraCuandoNoHayTareasOlvidadas() {
+        // Sin tareas atrasadas ni con hueco pasado ni capturas arrinconadas, pero con un
+        // compromiso vencido ("te llamo" debido hace 2 días, PENDING): la tarjeta debe
+        // nombrarlo en vez de caer a "SIGUIENTE PASO"/"TODO EN CALMA". Callarlo es mentir
+        // por omisión sobre la 4ª clase de olvido.
+        val c = commitment(1, "te llamo", DateRules.toEpochMillis(today.minusDays(2), LocalTime.of(12, 0), zone))
+        val insight = GuardianCoach.insight(emptyList(), emptyList(), emptyList(), now, zone, commitments = listOf(c))
+
+        assertTrue(insight.title.contains("te llamo"))
+        assertTrue(insight.message.contains("Conversaciones"))
+    }
+
+    @Test
+    fun compromisoVencido_nombraElMasAtrasadoPrimero() {
+        // Dos compromisos vencidos: el más atrasado (3 días) encabeza la tarjeta, no el
+        // de 1 día. Orden determinista de CommitmentRules.overduePendingSorted (dueAt asc).
+        val older = commitment(1, "enviar propuesta", DateRules.toEpochMillis(today.minusDays(3), LocalTime.of(12, 0), zone))
+        val newer = commitment(2, "te llamo", DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(12, 0), zone))
+        val insight = GuardianCoach.insight(emptyList(), emptyList(), emptyList(), now, zone, commitments = listOf(newer, older))
+
+        assertTrue(insight.title.contains("enviar propuesta"))
+        assertFalse(insight.title.contains("te llamo"))
+    }
+
+    @Test
+    fun compromisoVencido_tareaAtrasadaTomaPrecedenciaYNoCallaElCompromiso() {
+        // Una tarea atrasada es accionable directamente: encabeza la tarjeta (taskId de la
+        // tarea, "RECUPERA EL CONTROL"). El compromiso vencido NO se calla: aparece como
+        // cola informativa en el mensaje para no mentir por omisión (paridad con c.288).
+        // No doble señalización: la acción primaria sigue siendo la tarea.
+        val overdueTask = TaskEntity(
+            id = 1, title = "Factura vencida",
+            dueAt = DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val c = commitment(2, "te llamo", DateRules.toEpochMillis(today.minusDays(2), LocalTime.of(12, 0), zone))
+        val insight = GuardianCoach.insight(listOf(overdueTask), emptyList(), emptyList(), now, zone, commitments = listOf(c))
+
+        assertEquals(1L, insight.taskId)
+        assertEquals("Factura vencida", insight.title)
+        assertTrue(insight.message.contains("te llamo"))
+    }
+
+    @Test
+    fun compromisoVencido_huecoPasadoTomaPrecedenciaYNoCallaElCompromiso() {
+        // Una tarea con hueco pasado (start pasado, due futuro) es accionable directamente:
+        // encabeza la tarjeta. El compromiso vencido queda como cola informativa.
+        val missed = TaskEntity(
+            id = 1, title = "Llamar al banco",
+            startAt = DateRules.toEpochMillis(today, LocalTime.of(8, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(3), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val c = commitment(2, "enviar propuesta", DateRules.toEpochMillis(today.minusDays(2), LocalTime.of(12, 0), zone))
+        val insight = GuardianCoach.insight(listOf(missed), emptyList(), emptyList(), now, zone, commitments = listOf(c))
+
+        assertEquals(1L, insight.taskId)
+        assertEquals("Llamar al banco", insight.title)
+        assertTrue(insight.message.contains("enviar propuesta"))
+    }
+
+    @Test
+    fun compromisoVencido_ignoraCompromisoFuturoORevisado() {
+        // Un compromiso con dueAt futuro, o ya CONVERTED/DISMISSED, no es un olvido: no
+        // debe aparecer en la tarjeta. Guard anti-falso-positivo.
+        val future = commitment(1, "te llamo", DateRules.toEpochMillis(today.plusDays(1), LocalTime.of(12, 0), zone))
+        val converted = commitment(2, "enviar propuesta", DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(12, 0), zone), status = CommitmentReviewStatus.CONVERTED)
+        val dismissed = commitment(3, "avisar a ana", DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(12, 0), zone), status = CommitmentReviewStatus.DISMISSED)
+        val insight = GuardianCoach.insight(emptyList(), emptyList(), emptyList(), now, zone, commitments = listOf(future, converted, dismissed))
+
+        assertFalse(insight.title.contains("te llamo"))
+        assertFalse(insight.message.contains("enviar propuesta"))
+        assertFalse(insight.message.contains("avisar a ana"))
     }
 }

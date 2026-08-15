@@ -160,7 +160,7 @@ data class OrdiaUiState(
     val commitments: List<CommitmentEntity> = emptyList(),
     val preferences: UserPreferences = UserPreferences()
 ) {
-    val guardianInsight: GuardianCoach.Insight get() = GuardianCoach.insight(tasks, habits, habitLogs)
+    val guardianInsight: GuardianCoach.Insight get() = GuardianCoach.insight(tasks, habits, habitLogs, commitments = commitments)
     val nextTask: TaskEntity? get() = guardianInsight.taskId?.let(::task) ?: TaskRules.nextBestTask(tasks)
     val rootTasks: List<TaskEntity> get() = tasks.filter { it.parentTaskId == null }
     val pendingTasks: List<TaskEntity> get() = rootTasks.filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
