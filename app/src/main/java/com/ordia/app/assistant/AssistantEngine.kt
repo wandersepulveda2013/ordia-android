@@ -265,6 +265,22 @@ object AssistantEngine {
         val ranked = WhatNowEngine.ordered(active, now)
         val due = ranked.filter { isDueInRange(it, start, end, zone) }
         if (due.isEmpty()) {
+            // "¿Qué tengo hoy?" no debe decir "no tienes nada" mientras el usuario
+            // arrastra atrasadas de días anteriores: eso es exactamente lo que tiene
+            // que hacer hoy. Si no hay nada vencido HOY pero sí atrasadas, las
+            // nombramos (la más urgente + recuento) en vez de mentir "agenda vacía".
+            // Para los demás alcances (mañana/semana/mes) sí cabe el "no tienes".
+            if (label == "hoy") {
+                val earlierOverdue = ranked.filter { TaskRules.isOverdue(it, now) && !TaskRules.isDueToday(it, now, zone) }
+                if (earlierOverdue.isNotEmpty()) {
+                    val top = earlierOverdue.first()
+                    val tail = if (earlierOverdue.size == 1) "" else " y tienes ${earlierOverdue.size - 1} más atrasad${if (earlierOverdue.size - 1 == 1) "a" else "as"}."
+                    return AssistantAnswer(
+                        "Para hoy no tienes tareas agendadas, pero tienes ${earlierOverdue.size} atrasad${if (earlierOverdue.size == 1) "a" else "as"} de días anteriores: “${top.title}”$tail",
+                        relatedTaskIds = earlierOverdue.take(8).map { it.id }
+                    )
+                }
+            }
             return AssistantAnswer("Para $label no tienes tareas agendadas.")
         }
         val titles = due.joinToString(" · ") { "“${it.title}”" }

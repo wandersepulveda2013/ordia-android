@@ -602,6 +602,34 @@ class AssistantEngineTest {
         assertEquals(listOf(2L), answer.relatedTaskIds)
     }
 
+    // "¿Qué tengo hoy?" cuando NO hay nada vencido hoy PERO sí atrasado de días
+    // anteriores: antes devolvía "Para hoy no tienes tareas agendadas." y callaba
+    // el trabajo atrasado — justo lo que el usuario tiene que hacer hoy. Ahora
+    // nombra la atrasada más urgente (+ recuento) y deja ids para actuar.
+    @Test fun hoy_conSoloAtrasadas_nombraLaMasUrgente() {
+        val monday = LocalDate.of(2026, 7, 27)
+        val ayer = monday.plusDays(1) // martes (atrasada respecto al "hoy"=miércoles)
+        val answer = agendaAnswerFor("¿qué tengo hoy?", listOf(2L to ayer))
+        assertTrue("nombra la atrasada: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no miente 'no tienes': ${answer.text}", !answer.text.contains("no tienes tareas agendadas."))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
+    @Test fun hoy_conVariasAtrasadas_nombraLaMasUrgenteYRecuenta() {
+        val base = LocalDate.of(2026, 7, 27) // "hoy" en el helper es 2026-07-29
+        val vieja = base.minusDays(3) // más urgente (más antigua)
+        val ayer = base.plusDays(1)  // atrasada menos
+        val answer = agendaAnswerFor("¿qué tengo hoy?", listOf(2L to vieja, 1L to ayer))
+        assertTrue("nombra la más urgente (Tarea2): ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("recuenta 1 más: ${answer.text}", answer.text.contains("1 más atrasada"))
+        assertTrue("no miente 'no tienes': ${answer.text}", !answer.text.contains("no tienes tareas agendadas."))
+    }
+
+    @Test fun hoy_sinAtrasadasNiHoy_diceVacioHonesto() {
+        val answer = agendaAnswerFor("¿qué tengo hoy?", emptyList())
+        assertTrue("agenda vacía honesta: ${answer.text}", answer.text.contains("Para hoy no tienes tareas agendadas."))
+    }
+
     // ---- Veredicto del día a demanda ("¿voy bien?"/"¿da tiempo a todo?") ----
     //
     // Ordía YA calcula el veredicto del día (SummaryEngine.dayLoad:
