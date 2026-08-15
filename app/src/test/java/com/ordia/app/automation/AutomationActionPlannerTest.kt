@@ -363,4 +363,72 @@ class AutomationActionPlannerTest {
         val u = plan.updates.first()
         assertEquals(futureReminder, u.reminderAt)
     }
+
+    @Test
+    fun `plan_day no deja startAt despues de dueAt`() {
+        // Tarea vencida/temprana (due 08:00) colocada en el primer slot del plan
+        // (09:00, posterior al now 10:00). Antes, conservar el due 08:00 dejaba
+        // startAt (09:00) > dueAt (08:00): estado que [BackupManager] rechaza al
+        // restaurar ("Una tarea comienza después de su vencimiento"), así un backup
+        // tomado tras planificar era IRRESTAURABLE. Ahora el due sigue al fin del slot.
+        val dueBeforeSlot = 1_736_766_000_000L // 2025-01-13 08:00 America/Santiago
+        val t = task(1, durationMinutes = 30, status = TaskStatus.INBOX, dueAt = dueBeforeSlot)
+        val plan = AutomationActionPlanner.build(rule(AutomationAction.PLAN_DAY), listOf(t), 0, now, zone)
+        assertTrue(plan.matched)
+        val u = plan.updates.first()
+        assertNotNull("Debe asignarse un slot", u.startAt)
+        assertNotNull("Debe tener un due", u.dueAt)
+        assertTrue(
+            "startAt (${u.startAt}) no debe superar a dueAt (${u.dueAt})",
+            u.startAt!! <= u.dueAt!!
+        )
+    }
+
+    @Test
+    fun `plan_day conserva dueAt nulo en tarea de inbox`() {
+        // No-regresión: una tarea de bandeja (sin due) planificada NO debe ganar un
+        // vencimiento espurio. El due sigue siendo nulo (la planificación mueve
+        // startAt/status/reminder, no inventa un due donde no lo había).
+        val t = task(1, durationMinutes = 30, status = TaskStatus.INBOX, dueAt = null)
+        val plan = AutomationActionPlanner.build(rule(AutomationAction.PLAN_DAY), listOf(t), 0, now, zone)
+        assertTrue(plan.matched)
+        val u = plan.updates.first()
+        assertNull("Una tarea sin due no debe ganar vencimiento al planificarse", u.dueAt)
+    }
+
+    @Test
+    fun `batch_quick_tasks no deja startAt despues de dueAt`() {
+        // Tarea rápida con due (09:30) anterior al slot agrupado (10:15, posterior al
+        // now 10:00). Conservar el due 09:30 dejaría startAt (10:15) > dueAt (09:30),
+        // mismo bug de integridad que PLAN_DAY (backup irrestaurable). El due sigue
+        // al fin del slot.
+        val dueBeforeSlot = now - 1_800_000L // 2025-01-13 09:30 (anterior al now 10:00)
+        val quick = listOf(task(1, durationMinutes = 5, dueAt = dueBeforeSlot))
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.BATCH_QUICK_TASKS, AutomationCondition.HAS_QUICK_TASKS),
+            quick, 0, now, zone
+        )
+        assertTrue(plan.matched)
+        val u = plan.updates.first()
+        assertNotNull("Debe asignarse un slot", u.startAt)
+        assertNotNull("Debe tener un due", u.dueAt)
+        assertTrue(
+            "startAt (${u.startAt}) no debe superar a dueAt (${u.dueAt})",
+            u.startAt!! <= u.dueAt!!
+        )
+    }
+
+    @Test
+    fun `batch_quick_tasks conserva dueAt nulo en tarea de inbox`() {
+        // No-regresión: una tarea rápida sin due agrupada NO debe ganar vencimiento
+        // espurio (el due sigue nulo).
+        val quick = listOf(task(1, durationMinutes = 5, dueAt = null))
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.BATCH_QUICK_TASKS, AutomationCondition.HAS_QUICK_TASKS),
+            quick, 0, now, zone
+        )
+        assertTrue(plan.matched)
+        val u = plan.updates.first()
+        assertNull("Una tarea rápida sin due no debe ganar vencimiento al agruparse", u.dueAt)
+    }
 }

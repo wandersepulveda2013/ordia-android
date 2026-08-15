@@ -52,8 +52,14 @@ object AutomationActionPlanner {
                 val byId = tasks.associateBy { it.id }
                 val updates = plan.blocks.take(12).mapNotNull { block ->
                     val start = DateRules.toEpochMillis(date, LocalTime.of(block.startMinute / 60, block.startMinute % 60), zone)
+                    val end = DateRules.toEpochMillis(date, LocalTime.of(block.endMinute / 60, block.endMinute % 60), zone)
                     byId[block.taskId]?.copy(
                         startAt = start,
+                        // Vencimiento coherente con el slot: si este empieza después del due
+                        // original (tarea vencida/temprana en un bloque posterior), el due
+                        // sigue al fin del slot. Evita `startAt > dueAt`, estado que
+                        // [BackupManager] rechaza al restaurar (backup irrestaurable).
+                        dueAt = TaskRules.dueAtForPlannedSlot(byId[block.taskId]?.dueAt, start, end),
                         // Recordatorio past-safe: se respeta un aviso previo del usuario SOLO si sigue
                         // siendo futuro. Si era pasado (tarea vencida cuyo aviso ya disparó), conservarlo
                         // tal cual lo dejaría SIN nudge para el nuevo slot: [ReminderSync] descarta
@@ -115,10 +121,16 @@ object AutomationActionPlanner {
                 val firstMinute = if (date != current.toLocalDate()) 9 * 60 else (((current.hour * 60 + current.minute + 29) / 15) * 15)
                 var cursor = firstMinute.coerceAtMost(21 * 60)
                 val updates = quick.sortedBy { it.dueAt ?: Long.MAX_VALUE }.take(8).map { task ->
+                    val duration = task.durationMinutes.coerceIn(5, 10)
                     val start = DateRules.toEpochMillis(date, LocalTime.of(cursor / 60, cursor % 60), zone)
-                    cursor += task.durationMinutes.coerceIn(5, 10) + 5
+                    val end = start + duration * 60_000L
+                    cursor += duration + 5
                     task.copy(
                         startAt = start,
+                        // Vencimiento coherente con el slot (igual que PLAN_DAY): si el slot
+                        // empieza después del due original, el due sigue al fin del slot. Evita
+                        // `startAt > dueAt` que [BackupManager] rechaza al restaurar.
+                        dueAt = TaskRules.dueAtForPlannedSlot(task.dueAt, start, end),
                         // Recordatorio past-safe (igual que PLAN_DAY): se respeta un aviso previo
                         // futuro, pero uno pasado se reemplaza por el default del slot futuro. Sin
                         // esto, una tarea rápida vencida agrupada en un slot futuro quedaría sin aviso.

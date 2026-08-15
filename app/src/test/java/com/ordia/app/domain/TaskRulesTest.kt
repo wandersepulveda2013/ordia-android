@@ -321,4 +321,37 @@ class TaskRulesTest {
         // Si isActive fallara, la URGENT cancelada ganaría; debe quedar excluida.
         assertEquals(normal, TaskRules.nextBestTask(listOf(cancelled, normal), now = 100))
     }
+
+    @Test
+    fun dueAtForPlannedSlot_preservaDueNulo() {
+        assertNull(TaskRules.dueAtForPlannedSlot(null, 100, 200))
+    }
+
+    @Test
+    fun dueAtForPlannedSlot_preservaDuePosteriorAlSlot() {
+        val due = 300L
+        assertEquals(due, TaskRules.dueAtForPlannedSlot(due, 100, 200))
+    }
+
+    @Test
+    fun dueAtForPlannedSlot_preservaDueEnElInicioDelSlot() {
+        // due == start: no viola startAt <= dueAt, se conserva intacto.
+        assertEquals(100L, TaskRules.dueAtForPlannedSlot(100L, 100, 200))
+    }
+
+    @Test
+    fun dueAtForPlannedSlot_mueveDueAlFinDelSlotCuandoElSlotEmpiezaDespues() {
+        // due (80) < start (100): conservar el due dejaría startAt > dueAt
+        // (estado que BackupManager rechaza al restaurar). El due sigue al fin del slot.
+        assertEquals(200L, TaskRules.dueAtForPlannedSlot(80L, 100, 200))
+    }
+
+    @Test
+    fun dueAtForPlannedSlot_nuncaProduceStartDespuesDeDue() {
+        // Contrato: para cualquier due no nulo, el resultado es >= start.
+        listOf(1L, 50L, 99L, 100L, 150L, 200L, 500L).forEach { due ->
+            val result = TaskRules.dueAtForPlannedSlot(due, 100, 200)!!
+            assertTrue("due=$due resultó en ${result} < start 100", result >= 100L)
+        }
+    }
 }

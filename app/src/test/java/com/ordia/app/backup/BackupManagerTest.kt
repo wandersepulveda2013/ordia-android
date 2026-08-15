@@ -723,6 +723,29 @@ class BackupManagerTest {
         assertTrue(result.message, result.success)
         assertTrue(result.message.contains(journal.name))
     }
+
+    @Test
+    fun restoreRechazaTareaQueEmpiezaDespuesDeSuVencimiento() = runBlocking {
+        // El invariante `startAt <= dueAt` es exactamente lo que [BackupManager]
+        // valida al restaurar (l. 431, "Una tarea comienza después de su
+        // vencimiento"). Una planificación que deje startAt > dueAt produce un
+        // backup IRRESTAURABLE. Esta prueba ancla el contrato de la fuente de
+        // verdad y motiva el fix simétrico en las 3 superficies de planificación
+        // (applyBlocks, PLAN_DAY, BATCH_QUICK_TASKS) vía TaskRules.dueAtForPlannedSlot.
+        val bad = sampleData().copy(
+            tasks = listOf(
+                TaskEntity(
+                    id = 2, title = "Plan roto", projectId = 1,
+                    startAt = 200L, dueAt = 100L, // startAt (200) > dueAt (100)
+                    createdAt = 1000L, updatedAt = 1000L
+                )
+            )
+        )
+        val origin = newManager(FakeBackupStore(bad))
+        val backup = origin.exportJson()
+        val result = newManager(FakeBackupStore(otherData())).importBackup(backup)
+        assertFalse("Un backup con startAt>dueAt NO debe ser restaurable", result.success)
+    }
 }
 
 private fun UserPreferences.toTestJson(): JSONObject = JSONObject()

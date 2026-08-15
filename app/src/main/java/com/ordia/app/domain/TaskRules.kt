@@ -216,4 +216,26 @@ object TaskRules {
             updatedAt = now
         )
     }
+
+    /**
+     * Vencimiento coherente al planificar una tarea en un slot `[slotStart, slotEnd]`.
+     *
+     * Planificar es reagendar: la tarea pasa a trabajarse en ese slot. Si el slot
+     * empieza DESPUÉS del vencimiento original (tarea vencida o temprana colocada en
+     * un bloque posterior), conservar el due original dejaría `startAt > dueAt`, un
+     * estado que [BackupManager] rechaza al restaurar ("Una tarea comienza después
+     * de su vencimiento") y que es incoherente (la tarea vencería antes de empezar).
+     * En ese caso el due sigue al fin del slot: la tarea vence al terminar de
+     * trabajarla, nunca antes de empezar. En el resto de casos el due previo se
+     * conserva intacto (sin due → sin due; due posterior al slot → due original).
+     *
+     * Garantiza el invariante `startAt <= dueAt` (cuando ambos son no nulos) que
+     * validan las 3 superficies de planificación: `applyBlocks` (plan/replan manual),
+     * `AutomationActionPlanner.PLAN_DAY` y `BATCH_QUICK_TASKS`.
+     */
+    fun dueAtForPlannedSlot(existingDueAt: Long?, slotStart: Long, slotEnd: Long): Long? = when {
+        existingDueAt == null -> null
+        existingDueAt >= slotStart -> existingDueAt
+        else -> slotEnd
+    }
 }

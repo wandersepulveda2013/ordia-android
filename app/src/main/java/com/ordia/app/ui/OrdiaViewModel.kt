@@ -906,7 +906,12 @@ class OrdiaViewModel(
             val end = DateRules.toEpochMillis(plan.date, block.endMinute)
             val normalized = task.copy(
                 startAt = start,
-                dueAt = task.dueAt ?: end,
+                // Vencimiento coherente con el slot: si este empieza después del due
+                // original (tarea vencida/temprana en un bloque posterior), el due
+                // sigue al fin del slot. Evita `startAt > dueAt`, estado que
+                // [BackupManager] rechaza al restaurar (backup irrestaurable). Para
+                // tareas sin due se mantiene el fin del slot (comportamiento previo).
+                dueAt = TaskRules.dueAtForPlannedSlot(task.dueAt, start, end) ?: end,
                 status = if (task.completed) TaskStatus.COMPLETED else TaskStatus.PLANNED,
                 updatedAt = now
             )
