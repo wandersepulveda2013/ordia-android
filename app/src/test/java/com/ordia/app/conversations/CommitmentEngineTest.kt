@@ -293,6 +293,58 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.307: imperativos de 2ª persona con pronombre enclítico — peticiones
+    // directas muy frecuentes en chat español que NO casaban con "envíame"/
+    // "mándame"/"recuerda" (los únicos imperativos cubiertos). Probe JVM PRE-fix:
+    // 8/11 MISSED ("pásame el informe", "llámame más tarde", "escríbeme el
+    // correo", "háblame del tema", "confírmame la hora", "dímelo por mensaje",
+    // "pásamelo esta noche"). El enclítico "me"/"melo" señala una petición
+    // dirigida al usuario; sin él no se añade (verbo pelado ambiguo). Nace como
+    // draft REQUEST PENDING revisable, igual que "envíame"/"mándame".
+    @Test
+    fun detectsImperativeRequestsWithEncliticPronoun() {
+        val positives = listOf(
+            "pásame el informe cuando puedas",
+            "llámame más tarde",
+            "escríbeme el correo",
+            "háblame del tema",
+            "confírmame la hora",
+            "dímelo por mensaje",
+            "pásamelo esta noche",
+            "llámame al terminar"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "imp-$text"
+            )
+            assertTrue("imperativo con enclítico DEBE detectarse como petición: \"$text\"", result.isNotEmpty())
+            assertEquals(CommitmentKind.REQUEST, result[0].kind)
+        }
+    }
+
+    @Test
+    fun bareImperativesWithoutEncliticAreNotFlagged() {
+        // Precisión: un imperativo sin pronombre enclítico ("pasa", "llama",
+        // "escribe") es ambiguo y NO debe disparar por sí solo. El enclítico
+        // "me"/"melo" es el desambiguador (igual que el pronombre-objeto en c.306).
+        val innocent = listOf(
+            "pasa la voz a los demás",
+            "el tren llama a la estación",
+            "escribe bien tu nombre",
+            "habla con recepción"
+        )
+        innocent.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "imp-bare-$text"
+            )
+            assertEquals("imperativo pelado sin enclítico NO debe disparar: \"$text\"", 0, result.size)
+        }
+    }
+
     @Test
     fun blocksFinancialAndCryptoContentThatEscapedNotificationsGate() {
         // Estos contenidos llegan vía SMS/mensajería (paquete no bancario): pasan el

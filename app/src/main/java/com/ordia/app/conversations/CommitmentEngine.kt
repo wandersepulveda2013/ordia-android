@@ -79,7 +79,17 @@ object ConversationPrivacyPolicy {
 /** Extrae compromisos localmente sin guardar ni ejecutar acciones. */
 object CommitmentEngine {
     private val requestSignal = Regex(
-        """(?i)\b(?:env[ií]ame|m[aá]ndame|no\s+olvides|recuerda|recu[eé]rdame|por\s+favor|puedes|podr[ií]as|necesito\s+que)\b"""
+        // c.307: imperativos de 2ª persona con pronombre enclítico — peticiones
+        // directas muy frecuentes en chat español que NO casaban con "envíame"/
+        // "mándame"/"recuerda" (los únicos imperativos cubiertos): "pásame el
+        // informe", "llámame más tarde", "escríbeme el correo", "háblame del tema",
+        // "confírmame la hora", "dímelo por mensaje", "pásamelo esta noche". Probe
+        // JVM PRE-fix: 8/11 MISSED. Sin objeto enclítico no se añaden (un verbo
+        // pelado "pasa"/"llama" es ambiguo); el enclítico "me"/"melo" señala una
+        // petición dirigida al usuario. Nace como draft REQUEST PENDING revisable,
+        // igual que "envíame"/"mándame" ya existentes (un falso positivo se descarta,
+        // un falso negativo es una petición olvidada).
+        """(?i)\b(?:env[ií]ame|m[aá]ndame|no\s+olvides|recuerda|recu[eé]rdame|por\s+favor|puedes|podr[ií]as|necesito\s+que|p[aá]same|ll[aá]mame|escr[ií]beme|h[aá]blame|conf[ií]rmame|d[ií]melo|p[aá]samelo|m[aá]ndamelo)\b"""
     )
     private val meetingSignal = Regex(
         """(?i)\b(?:nos\s+vemos|reuni[oó]n|cita|quedamos|encuentro|ser[aá]\s+a\s+las)\b"""
