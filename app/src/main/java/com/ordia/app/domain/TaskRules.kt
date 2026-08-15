@@ -176,6 +176,56 @@ object TaskRules {
     fun isOverdue(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean =
         isActive(task) && task.dueAt?.let { it < now } == true
 
+    /**
+     * Días de calendario que una tarea lleva creada (desde [TaskEntity.createdAt]
+     * hasta hoy), en la zona del usuario. Cuenta días completos, no millis/24h,
+     * igual que el cómputo de días vencidos del guardián: así es correcta aunque se consulte a
+     * primera hora y es robusta frente al horario de verano (DST), donde un "día"
+     * no siempre son 24 h. Es la edad "pura" de la captura; el predicado de
+     * "olvidada" ([isStaleInbox]) añade encima la condición de bandeja sin fecha.
+     *
+     * Fuente única de verdad compartida con [GuardianCoach] (etiqueta de edad de
+     * la captura olvidada) y con el asistente ("¿qué olvidé?" recupera la
+     * captura arrinconada). Centralizarla evita que dos superficies de
+     * recuperación diverjan sobre cuánto lleva esperando una idea.
+     */
+    fun inboxAgeDays(task: TaskEntity, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Int {
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        return java.time.temporal.ChronoUnit.DAYS.between(
+            Instant.ofEpochMilli(task.createdAt).atZone(zone).toLocalDate(),
+            today
+        ).toInt()
+    }
+
+    /**
+     * Umbral de "olvidada" para una captura de la bandeja SIN fecha: como no
+     * incumple ningún vencimiento, le damos más margen que a una vencida
+     * ([GuardianCoach.FORGOTTEN_DAYS_THRESHOLD], orientado al plazo incumplido).
+     * Una semana esperando sin agendar es la señal honesta de que la captura
+     * quedó arrinconada. Fuente única de verdad para el guardián y el asistente.
+     */
+    const val STALE_INBOX_DAYS_THRESHOLD = 7
+
+    /**
+     * Captura de la bandeja "olvidada": una idea que el usuario registró, no le
+     * dio fecha (`dueAt`) ni hueco (`startAt`) y lleva
+     * [STALE_INBOX_DAYS_THRESHOLD] o más días esperando ([inboxAgeDays]). Es el
+     * tercer olvido de Ordía, junto a [isOverdue] (plazo incumplido) e
+     * [isMissedStart] (hueco incumplido): un compromiso nunca agendado también se
+     * olvida. Lo usan el nudge del guardián (RECUPERA EL CONTROL) y el asistente
+     * ("¿qué olvidé?").
+     *
+     * Partición con [isOverdue]/[isMissedStart] (deliberada): si la tarea tiene
+     * `dueAt` vencido o un `startAt` que se pasó, esas señales más fuertes la
+     * recuperan; aquí se exige expresamente la AUSENCIA de ambos para describir
+     * exactamente "captura arrinconada" — el caso limpio donde agendarla o
+     * hacerla hoy aún evita que se pierda del todo. [isActive] descarta
+     * completadas/canceladas/archivadas.
+     */
+    fun isStaleInbox(task: TaskEntity, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Boolean =
+        isActive(task) && task.dueAt == null && task.startAt == null &&
+            inboxAgeDays(task, now, zone) >= STALE_INBOX_DAYS_THRESHOLD
+
     fun isDueToday(task: TaskEntity, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Boolean {
         if (!isActive(task)) return false
         val due = task.dueAt ?: return false

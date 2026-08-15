@@ -66,10 +66,9 @@ object GuardianCoach {
         // hoy, urgente sin fecha…): solo se reencuadra cuando lo elegido es la
         // captura olvidada. Reusa la etiqueta de edad de las vencidas; sin
         // nueva pantalla ni botón.
-        if (next != null && next.dueAt == null && next.startAt == null &&
-            inboxAgeDays(next.createdAt, today, zone) >= STALE_INBOX_DAYS_THRESHOLD) {
-            val staleInbox = pending.filter { it.dueAt == null && it.startAt == null && inboxAgeDays(it.createdAt, today, zone) >= STALE_INBOX_DAYS_THRESHOLD }
-            val maxAge = staleInbox.maxOf { inboxAgeDays(it.createdAt, today, zone) }
+        if (next != null && TaskRules.isStaleInbox(next, now, zone)) {
+            val staleInbox = pending.filter { TaskRules.isStaleInbox(it, now, zone) }
+            val maxAge = staleInbox.maxOf { TaskRules.inboxAgeDays(it, now, zone) }
             val ageLabel = forgottenAgeLabel(maxAge)
             val message = if (staleInbox.size == 1)
                 "Esta tarea lleva $ageLabel en tu bandeja sin fecha. Hazla hoy, agéndala o quítala: no la dejes pasar otra vez."
@@ -86,37 +85,13 @@ object GuardianCoach {
     }
 
     /**
-     * Etiqueta legible de la antigüedad de una tarea olvidada: "1 día", "2 días",
-     * "1 semana" (7 días), "2 semanas" (14)… Acota a días/semanas para evitar
-     * "30 días" cuando "4 semanas" comunica mejor cuánto se pospuso.
+     * Etiqueta legible de la antigüedad de una tarea olvidada. Fuente única de
+     * verdad en [DateRules.ageLabel] (compartida con el asistente); aquí sólo
+     * delegamos para mantener las dos superficies de recuperación sincronizadas.
      */
-    private fun forgottenAgeLabel(daysOverdue: Int): String {
-        val days = daysOverdue.coerceAtLeast(1)
-        if (days < 7) return "$days ${if (days == 1) "día" else "días"}"
-        val weeks = days / 7
-        if (weeks < 5) return "$weeks ${if (weeks == 1) "semana" else "semanas"}"
-        val months = days / 30
-        return "$months ${if (months == 1) "mes" else "meses"}"
-    }
+    private fun forgottenAgeLabel(daysOverdue: Int): String = DateRules.ageLabel(daysOverdue)
 
     private const val FORGOTTEN_DAYS_THRESHOLD = 2
-
-    /**
-     * Umbral de "olvidada" para una tarea de la bandeja SIN fecha: como no
-     * incumple ningún vencimiento, le damos más margen que a una vencida
-     * ([FORGOTTEN_DAYS_THRESHOLD]). Una semana esperando sin agendar es la
-     * señal honesta de que la captura quedó arrinconada.
-     */
-    private const val STALE_INBOX_DAYS_THRESHOLD = 7
-
-    /**
-     * Días de calendario que una tarea de la bandeja lleva esperando desde su
-     * creación (en la zona del usuario), para decidir si está "olvidada".
-     * Cuenta días completos, no millis/24h, igual que [overdueDays]: así es
-     * correcta aunque se consulte a primera hora y es robusta frente al DST.
-     */
-    private fun inboxAgeDays(createdAt: Long, today: java.time.LocalDate, zone: ZoneId): Int =
-        ChronoUnit.DAYS.between(DateRules.toLocalDate(createdAt, zone), today).toInt()
 
     /**
      * Días de vencimiento transcurridos en términos de calendario (no de
@@ -125,6 +100,10 @@ object GuardianCoach {
      * fecha. Esto evita el error de 1 día que produce `(now - dueAt)/24h`
      * cuando se consulta antes de la hora del vencimiento, y es correcto en
      * zonas con horario de verano (DST), donde un "día" no siempre son 24 h.
+     *
+     * El umbral y la edad de las capturas de bandeja SIN fecha viven ahora en
+     * [TaskRules.isStaleInbox]/[TaskRules.inboxAgeDays] (fuente única de verdad,
+     * compartida con el asistente); aquí sólo queda la edad del plazo incumplido.
      */
     private fun overdueDays(dueAt: Long?, today: java.time.LocalDate, zone: ZoneId): Int =
         dueAt?.let { ChronoUnit.DAYS.between(DateRules.toLocalDate(it, zone), today).toInt() } ?: 0

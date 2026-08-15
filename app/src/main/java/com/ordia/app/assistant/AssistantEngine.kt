@@ -4,6 +4,7 @@ import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.domain.WhatNowEngine
 import com.ordia.app.domain.foldForSearch
@@ -27,7 +28,8 @@ object AssistantEngine {
         tasks: List<TaskEntity>,
         conversations: List<ConversationEntity>,
         commitments: List<CommitmentEntity>,
-        now: Long = System.currentTimeMillis()
+        now: Long = System.currentTimeMillis(),
+        zone: ZoneId = ZoneId.systemDefault()
     ): AssistantAnswer {
         val clean = request.trim().take(2_000)
         val query = clean.foldForSearch()
@@ -113,7 +115,33 @@ object AssistantEngine {
                     val missed = WhatNowEngine.ordered(active, now)
                         .firstOrNull { TaskRules.isMissedStart(it, now) }
                     if (missed == null) {
-                        AssistantAnswer("No tienes tareas vencidas ni compromisos olvidados.")
+                        // Tercer olvido de Ordía: una captura arrinconada en la
+                        // bandeja SIN fecha (dueAt/startAt) que lleva
+                        // [TaskRules.STALE_INBOX_DAYS_THRESHOLD] o más días
+                        // esperando. El guardián ya la reencuadraba (RECUPERA EL
+                        // CONTROL, c.201) pero "¿qué olvidé?" la ignoraba y decía
+                        // "no hay vencidas ni olvidadas" frente a una idea olvidada
+                        // — mentía por omisión en la superficie de recuperación
+                        // explícita. Partición honesta: vencida (dueAt) → missed-
+                        // start (startAt); aquí sólo capturas SIN ambos, así no se
+                        // duplica ni se simula urgencia. La más olvidada = la más
+                        // antigua. Sólo para "qué olvidé", no para "vencidas".
+                        if (forgottenIntent) {
+                            val stale = active
+                                .filter { TaskRules.isStaleInbox(it, now, zone) }
+                                .maxByOrNull { TaskRules.inboxAgeDays(it, now, zone) }
+                            if (stale != null) {
+                                val ageLabel = DateRules.ageLabel(TaskRules.inboxAgeDays(stale, now, zone))
+                                AssistantAnswer(
+                                    "«${stale.title}» lleva $ageLabel en tu bandeja sin fecha. Hazla hoy, agéndala o quítala: no la dejes pasar otra vez.",
+                                    relatedTaskIds = listOf(stale.id)
+                                )
+                            } else {
+                                AssistantAnswer("No tienes tareas vencidas ni compromisos olvidados.")
+                            }
+                        } else {
+                            AssistantAnswer("No tienes tareas vencidas.")
+                        }
                     } else if (forgottenIntent) {
                         val minutes = TaskRules.plannedDuration(missed)
                         AssistantAnswer(

@@ -31,6 +31,23 @@ object DateRules {
     fun toLocalDate(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): LocalDate =
         Instant.ofEpochMilli(epochMillis).atZone(zone).toLocalDate()
 
+    /**
+     * Etiqueta legible de una antigüedad en días: "1 día", "2 días", "1 semana"
+     * (7 días), "2 semanas" (14)… Acota a días/semanas/meses para evitar "30
+     * días" cuando "4 semanas" comunica mejor cuánto se pospuso. Fuente única de
+     * verdad para la edad de un olvido (vencida o captura arrinconada), compartida
+     * por el guardián ([GuardianCoach]) y el asistente, de forma que ambas
+     * superficies de recuperación muestren la misma etiqueta para la misma edad.
+     */
+    fun ageLabel(days: Int): String {
+        val d = days.coerceAtLeast(1)
+        if (d < 7) return "$d ${if (d == 1) "día" else "días"}"
+        val weeks = d / 7
+        if (weeks < 5) return "$weeks ${if (weeks == 1) "semana" else "semanas"}"
+        val months = d / 30
+        return "$months ${if (months == 1) "mes" else "meses"}"
+    }
+
     fun toLocalTime(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): LocalTime =
         Instant.ofEpochMilli(epochMillis).atZone(zone).toLocalTime()
 

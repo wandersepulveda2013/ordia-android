@@ -227,6 +227,76 @@ class AssistantEngineTest {
         assertTrue("no inventa olvidos: ${answer.text}", answer.text.contains("No tienes tareas vencidas") || answer.text.contains("olvidad"))
     }
 
+    @Test fun forgottenIntent_recoversStaleInboxCaptureWhenNoOverdueOrMissedStart() {
+        // "¿Qué olvidé?" debe recuperar la captura arrinconada en la bandeja SIN
+        // fecha, igual que el guardián (c.201): una idea capturada hace semanas y
+        // nunca agendada ES un olvido. Antes decía "No tienes tareas vencidas ni
+        // compromisos olvidados" frente a una captura olvidada — mentía por
+        // omisión en la superficie de recuperación explícita. Simétrico con
+        // GuardianCoach.insight (RECUPERA EL CONTROL) y con la rama de missed-start.
+        val zone = java.time.ZoneId.of("America/Santo_Domingo")
+        val today = java.time.LocalDate.of(2026, 7, 29)
+        val now = com.ordia.app.domain.DateRules.toEpochMillis(today, java.time.LocalTime.NOON, zone)
+        val stale = TaskEntity(
+            id = 11, title = "Idea capturada hace 3 semanas",
+            createdAt = com.ordia.app.domain.DateRules.toEpochMillis(today.minusDays(21), java.time.LocalTime.of(9, 0), zone)
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué olvidé?",
+            listOf(stale),
+            emptyList(), emptyList(),
+            now,
+            zone
+        )
+        assertTrue("nombra la captura olvidada: ${answer.text}", answer.text.contains("Idea capturada hace 3 semanas"))
+        assertEquals(listOf(11L), answer.relatedTaskIds)
+    }
+
+    @Test fun forgottenIntent_staleInboxBelowThresholdNotFlaggedAsForgotten() {
+        // Una captura de hace 6 días (< umbral de 7) NO es "olvidada": sigue
+        // siendo una idea reciente. "¿qué olvidé?" no debe fingir olvido — la
+        // edad de la bandeja sin fecha tiene más margen que una vencida (que
+        // incumple un plazo). Guard anti-falso-positivo (simétrico GuardianCoach).
+        val zone = java.time.ZoneId.of("America/Santo_Domingo")
+        val today = java.time.LocalDate.of(2026, 7, 29)
+        val now = com.ordia.app.domain.DateRules.toEpochMillis(today, java.time.LocalTime.NOON, zone)
+        val recent = TaskEntity(
+            id = 12, title = "Captura de hace 6 días",
+            createdAt = com.ordia.app.domain.DateRules.toEpochMillis(today.minusDays(6), java.time.LocalTime.of(9, 0), zone)
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué olvidé?",
+            listOf(recent),
+            emptyList(), emptyList(),
+            now,
+            zone
+        )
+        assertTrue("no finge olvido de captura reciente: ${answer.text}",
+            answer.text.contains("No tienes tareas vencidas") || answer.text.contains("olvidad"))
+    }
+
+    @Test fun overdueIntent_doesNotFlagStaleInboxAsOverdue() {
+        // "vencidas" (sin intención de olvido) pregunta por vencidas (dueAt
+        // pasado). Una captura arrinconada SIN fecha NO es vencida: la respuesta
+        // debe seguir siendo "No tienes tareas vencidas" (partición honesta:
+        // vencida ≠ captura olvidada en bandeja). No se simula urgencia.
+        val zone = java.time.ZoneId.of("America/Santo_Domingo")
+        val today = java.time.LocalDate.of(2026, 7, 29)
+        val now = com.ordia.app.domain.DateRules.toEpochMillis(today, java.time.LocalTime.NOON, zone)
+        val stale = TaskEntity(
+            id = 13, title = "Idea capturada hace 3 semanas",
+            createdAt = com.ordia.app.domain.DateRules.toEpochMillis(today.minusDays(21), java.time.LocalTime.of(9, 0), zone)
+        )
+        val answer = AssistantEngine.answer(
+            "vencidas",
+            listOf(stale),
+            emptyList(), emptyList(),
+            now,
+            zone
+        )
+        assertTrue("no finge vencida una captura sin fecha: ${answer.text}", answer.text.contains("No tienes tareas vencidas"))
+    }
+
     @Test fun cancelledTaskIsNotCountedAsPending() {
         // Una tarea cancelada no debe contarse como pendiente al organizar el
         // día ni aparecer en el plan mínimo: el usuario ya la descartó.
