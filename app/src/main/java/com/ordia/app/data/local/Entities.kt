@@ -11,7 +11,7 @@ enum class TaskPriority { LOW, NORMAL, HIGH, URGENT }
 
 enum class TaskStatus { INBOX, PLANNED, IN_PROGRESS, COMPLETED, CANCELLED }
 
-enum class RecurrenceFrequency { NONE, DAILY, WEEKLY, MONTHLY, YEARLY }
+enum class RecurrenceFrequency { NONE, DAILY, WEEKLY, MONTHLY, YEARLY, HOURLY }
 
 enum class ProjectStatus { ACTIVE, PAUSED, COMPLETED }
 

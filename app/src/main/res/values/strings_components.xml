@@ -34,6 +34,7 @@
     <string name="dialog_recurrence_weekly">Cada semana</string>
     <string name="dialog_recurrence_monthly">Cada mes</string>
     <string name="dialog_recurrence_yearly">Cada año</string>
+    <string name="dialog_recurrence_hourly">Cada hora</string>
     <string name="dialog_project_status_active">Activo</string>
     <string name="dialog_project_status_paused">En pausa</string>
     <string name="dialog_project_status_completed">Completado</string>

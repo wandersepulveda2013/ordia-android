@@ -363,4 +363,48 @@ class RecurrenceEngineTest {
             assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(task.dueAt, zone))
         }
     }
+
+    // HOURLY ("cada 8 horas"): recurrencia sub-diaria REAL para medicación. Antes era
+    // NONE + dosis única y la 2ª/3ª dosis se olvidaban. Ahora al completar avanza
+    // exactamente N horas, preservando minuto y offset de recordatorio. La 1ª dosis
+    // vence ahora; la siguiente se genera +8h.
+    @Test fun hourlyInterval8_advancesEightHours() {
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.of(15, 0), zone)
+        val task = TaskEntity(title = "Antibiótico cada 8 horas", dueAt = due, reminderAt = due - 15 * 60_000L, recurrence = RecurrenceFrequency.HOURLY, recurrenceInterval = 8)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals(LocalTime.of(23, 0), DateRules.toLocalTime(next.dueAt, zone))
+        assertEquals(15 * 60_000L, next.dueAt - next.reminderAt!!)
+        assertFalse(next.completed)
+    }
+
+    // "cada 12 horas": dos dosis/día. 1ª a las 8:00 → siguiente 20:00 (mismo día).
+    @Test fun hourlyInterval12_advancesTwelveHours() {
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.of(8, 0), zone)
+        val task = TaskEntity(title = " cada 12 horas", dueAt = due, recurrence = RecurrenceFrequency.HOURLY, recurrenceInterval = 12)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(next.dueAt, zone))
+    }
+
+    // Cadena de 3 dosis "cada 8 horas" desde las 15:00: 15:00 → 23:00 → 07:00(+1d).
+    // Verifica que la recurrencia horaria NO se traba ni deriva a diario al iterar.
+    @Test fun hourlyInterval8_threeDosesChainAcrossMidnight() {
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.of(15, 0), zone)
+        var task = TaskEntity(title = "cada 8 horas", dueAt = due, recurrence = RecurrenceFrequency.HOURLY, recurrenceInterval = 8)
+        val expected = listOf(
+            LocalTime.of(23, 0) to LocalDate.of(2026, 7, 29),
+            LocalTime.of(7, 0) to LocalDate.of(2026, 7, 30),
+            LocalTime.of(15, 0) to LocalDate.of(2026, 7, 30)
+        )
+        for (cycle in expected.indices) {
+            task = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = task.dueAt!!, zone = zone)) {
+                "Ciclo ${cycle + 1}: se esperaba próxima dosis horaria"
+            }
+            val (t, d) = expected[cycle]
+            assertEquals("Ciclo ${cycle + 1} día", d, DateRules.toLocalDate(task.dueAt!!, zone))
+            assertEquals("Ciclo ${cycle + 1} hora", t, DateRules.toLocalTime(task.dueAt, zone))
+            assertEquals("El intervalo horario se conserva al iterar", 8, task.recurrenceInterval)
+        }
+    }
 }

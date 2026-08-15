@@ -314,6 +314,9 @@ fun recurrenceChipLabel(frequency: RecurrenceFrequency, interval: Int, days: Str
     RecurrenceFrequency.YEARLY ->
         if (interval <= 1) stringResource(R.string.capture_chip_recurrence_yearly_1)
         else stringResource(R.string.capture_chip_recurrence_yearly_n, interval)
+    RecurrenceFrequency.HOURLY ->
+        if (interval <= 1) stringResource(R.string.capture_chip_recurrence_hourly_1)
+        else stringResource(R.string.capture_chip_recurrence_hourly_n, interval)
 }
 
 private fun shortDayRes(iso: Int): Int = when (iso) {

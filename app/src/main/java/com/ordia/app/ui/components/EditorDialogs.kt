@@ -155,7 +155,11 @@ fun TaskEditorDialog(
                             Text(recurrence.label(), Modifier.padding(start = 6.dp))
                         }
                         DropdownMenu(recurrenceMenu, { recurrenceMenu = false }) {
-                            RecurrenceFrequency.entries.forEach { value -> DropdownMenuItem(text = { Text(value.label()) }, onClick = { recurrence = value; recurrenceMenu = false }) }
+                            // HOURLY es una cadencia de lenguaje natural ("cada 8 horas"): se
+                            // asigna al escribir, no eligiéndola a mano. Se omite del selector
+                            // para no añadir una opción de botón rara (menos interfaz, misma
+                            // potencia). Si la tarea ya la trae, su label sigue renderizando.
+                            RecurrenceFrequency.entries.filter { it != RecurrenceFrequency.HOURLY }.forEach { value -> DropdownMenuItem(text = { Text(value.label()) }, onClick = { recurrence = value; recurrenceMenu = false }) }
                         }
                     }
                     OutlinedTextField(
@@ -317,6 +321,7 @@ private fun RecurrenceFrequency.label(): String = stringResource(
         RecurrenceFrequency.WEEKLY -> R.string.dialog_recurrence_weekly
         RecurrenceFrequency.MONTHLY -> R.string.dialog_recurrence_monthly
         RecurrenceFrequency.YEARLY -> R.string.dialog_recurrence_yearly
+        RecurrenceFrequency.HOURLY -> R.string.dialog_recurrence_hourly
     }
 )
 

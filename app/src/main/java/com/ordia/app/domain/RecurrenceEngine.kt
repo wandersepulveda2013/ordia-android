@@ -84,6 +84,7 @@ object RecurrenceEngine {
 
     private fun advance(base: ZonedDateTime, interval: Long, frequency: RecurrenceFrequency, days: String): ZonedDateTime = when (frequency) {
         RecurrenceFrequency.NONE -> base
+        RecurrenceFrequency.HOURLY -> base.plusHours(interval)
         RecurrenceFrequency.DAILY -> base.plusDays(interval)
         RecurrenceFrequency.WEEKLY -> nextWeekly(base, interval, days)
         RecurrenceFrequency.MONTHLY -> nextMonthly(base, interval, days)

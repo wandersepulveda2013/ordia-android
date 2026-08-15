@@ -159,6 +159,8 @@
     <string name="capture_chip_recurrence_monthly_n">Cada %1$d meses</string>
     <string name="capture_chip_recurrence_yearly_1">Cada año</string>
     <string name="capture_chip_recurrence_yearly_n">Cada %1$d años</string>
+    <string name="capture_chip_recurrence_hourly_1">Cada hora</string>
+    <string name="capture_chip_recurrence_hourly_n">Cada %1$d horas</string>
     <string name="day_short_mon">Lun</string>
     <string name="day_short_tue">Mar</string>
     <string name="day_short_wed">Mié</string>

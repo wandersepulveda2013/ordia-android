@@ -311,7 +311,7 @@ object SearchEngine {
         "fijada", "fijadas", "fijado", "fijados"
     )
     // "repetitivas"/"recurrentes" recupera las TAREAS que se repiten
-    // (recurrence != NONE: diaria/semanal/mensual/anual), aunque su título no
+    // (recurrence != NONE: horaria/diaria/semanal/mensual/anual), aunque su título no
     // contenga esa palabra. Es el análogo de "marcadas"/"completadas" para el
     // atributo de recurrencia: la repetición es la señal que el usuario dejó
     // (UI: "Cambiar repetición"/"No repetir"/"Cada mes") para auditar sus

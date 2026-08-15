@@ -323,26 +323,29 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
-    // "cada N horas" sub-diario (medicación: cada 8/12/6 horas): no existe frecuencia
-    // HOURLY y el motor no puede repetir por hora. Antes la duración "N horas" robaba el
-    // número (480 min falsos) y la tarea nacía SIN vencimiento → medicación olvidada
-    // (recordatorio jamás disparaba, jamás en What Now). Ahora se saca la primera dosis
-    // a la superficie venciendo AHORA (aviso real), el título queda limpio y la
-    // cadencia se reconoce honestamente como NONE (no se finge repetición horaria).
-    @Test fun cadaNHorasSubDiarioVenceAhora() {
+    // "cada N horas" sub-diario (medicación: cada 8/12/6 horas): recurrencia horaria
+    // REAL (HOURLY). Antes la duración "N horas" robaba el número (480 min falsos) y la
+    // tarea nacía SIN vencimiento → medicación olvidada (recordatorio jamás disparaba,
+    // jamás en What Now). Luego se sacó la 1ª dosis a la superficie (NONE + ahora) PERO
+    // era dosis única: la 2ª/3ª dosis se olvidaban. Ahora HOURLY interval=N: la 1ª dosis
+    // vence ahora y al completarla el motor genera la siguiente +N horas. El título queda
+    // limpio y la duración NO roba "8 horas".
+    @Test fun cadaNHorasSubDiarioVenceAhoraYRepite() {
         val result = NaturalTaskParser.parse("Medicamento cada 8 horas", now, zone)
         assertEquals("Medicamento", result.title)
-        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(RecurrenceFrequency.HOURLY, result.recurrence)
+        assertEquals(8, result.recurrenceInterval)
         assertNotNull("La primera dosis debe tener vencimiento (no olvidada)", result.dueAt)
         assertEquals(now, result.dueAt)
         // La duración NO debe robar "8 horas" como 480 min falsos.
         assertNull(result.durationMinutes)
     }
 
-    @Test fun cadaNHorasEscritoVenceAhora() {
+    @Test fun cadaNHorasEscritoVenceAhoraYRepite() {
         val result = NaturalTaskParser.parse("Antibiótico cada doce horas", now, zone)
         assertEquals("Antibiótico", result.title)
-        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(RecurrenceFrequency.HOURLY, result.recurrence)
+        assertEquals(12, result.recurrenceInterval)
         assertEquals(now, result.dueAt)
         assertNull(result.durationMinutes)
     }
@@ -368,34 +371,39 @@ class NaturalTaskParserTest {
     }
 
     // "cada 8 horas a las 3pm": si hay hora explícita, ésta manda (no se fuerza "ahora").
+    // Sigue siendo HOURLY interval=8: 1ª dosis 15:00, siguientes 23:00, 07:00, …
     @Test fun cadaNHorasConHoraExplicitaUsaLaHora() {
         val result = NaturalTaskParser.parse("Medicamento cada 8 horas a las 3pm", now, zone)
         assertEquals("Medicamento", result.title)
+        assertEquals(RecurrenceFrequency.HOURLY, result.recurrence)
+        assertEquals(8, result.recurrenceInterval)
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
         assertNull(result.durationMinutes)
     }
 
-    // "cada hora" (cada 1 hora, sin número) y "cada media hora" (sub-horaria): cadencia
-    // sub-diaria muy común en medicación (jarabes, gotas, gárgaras). Sin número, el
-    // patrón de c.213 (que exige una cantidad) no casaba → caían a NONE SIN fecha y, en
-    // "cada media hora", la duración robaba "media hora" como 30 min falsos y truncaba el
-    // título ("Tomar cada"). Misma clase de olvido que c.213. Se saca la primera dosis a
-    // la superficie venciendo AHORA (NONE + immediateDueAt) y se limpia el título, sin
-    // fingir repetición horaria inexistente.
-    @Test fun cadaHoraSubDiarioVenceAhora() {
+    // "cada hora" (cada 1 hora, sin número): cadencia sub-diaria REAL (HOURLY interval=1).
+    // "cada media hora" (sub-horaria) sigue siendo NONE + ahora (el motor no repite por
+    // minuto). Antes el patrón de c.213 (que exige una cantidad) no casaba con "cada hora"
+    // → caía a NONE SIN fecha y, en "cada media hora", la duración robaba "media hora"
+    // como 30 min falsos y truncaba el título ("Tomar cada"). Misma clase de olvido que
+    // c.213. Ahora "cada hora" repite de verdad; "cada media hora" saca la 1ª dosis a la
+    // superficie venciendo AHORA (NONE + immediateDueAt) y se limpia el título.
+    @Test fun cadaHoraSubDiarioVenceAhoraYRepite() {
         val result = NaturalTaskParser.parse("Tomar jarabe cada hora", now, zone)
         assertEquals("Tomar jarabe", result.title)
-        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(RecurrenceFrequency.HOURLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
         assertNotNull("La primera dosis debe tener vencimiento (no olvidada)", result.dueAt)
         assertEquals(now, result.dueAt)
         assertNull(result.durationMinutes)
     }
 
-    @Test fun cadaHoraPluralSubDiarioVenceAhora() {
+    @Test fun cadaHoraPluralSubDiarioVenceAhoraYRepite() {
         val result = NaturalTaskParser.parse("Gárgaras cada horas", now, zone)
         assertEquals("Gárgaras", result.title)
-        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(RecurrenceFrequency.HOURLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
         assertEquals(now, result.dueAt)
         assertNull(result.durationMinutes)
     }

@@ -1929,7 +1929,15 @@ object NaturalTaskParser {
             // la tarea recurrente era invisible (sin recordatorio, sin aparición en What
             // Now/planificador → se olvidaba). La fecha explícita ya se resolvió arriba en
             // este when, así que esto solo alcanza las recurrencias sin anclaje específico.
-            recurrence.frequency != RecurrenceFrequency.NONE -> base.toLocalDate()
+            // EXCEPCIÓN: HOURLY con immediateDueAt ("cada 8 horas" sin hora escrita). La
+            // 1ª dosis debe vencer AHORA (medicación que el usuario acaba de capturar y
+            // debe tomar ya), no a las 09:00 canónicas ni rodada a mañana. Si se anclara a
+            // hoy aquí, la cascada usaría 09:00 (o rodaría al día siguiente si ya pasó) y
+            // la primera dosis se retrasaría: dejar effectiveDate=null hace que la cascada
+            // caiga a immediateDueAt=now. Cuando hay hora explícita ("cada 8 horas a las
+            // 3pm") parsedTime!=null y el effectiveDate de la cascada usa hoy+hora antes
+            // de llegar aquí, así que la excepción no afecta ese caso.
+            recurrence.frequency != RecurrenceFrequency.NONE && recurrence.immediateDueAt == null -> base.toLocalDate()
             else -> null
         }
 
@@ -2754,9 +2762,14 @@ object NaturalTaskParser {
             phrases += match.range
             return RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), phrases, immediateDueAt = now)
         }
+        // "cada hora"/"cada horas" (cada 1 hora): cadencia sub-diaria REAL. Ahora el
+        // motor SÍ repite por hora (HOURLY), así que se reconoce como recurrencia
+        // horaria interval=1 en vez de dosis única olvidada: al completar la 1ª dosis
+        // el motor genera la siguiente +1h. La primera dosis sale a la superficie
+        // venciendo ahora (immediateDueAt) salvo que haya hora explícita.
         Regex("""(?i)\bcada\s+horas?\b""").find(working)?.let { match ->
             phrases += match.range
-            return RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), phrases, immediateDueAt = now)
+            return RecurrenceResult(RecurrenceFrequency.HOURLY, 1, emptyList(), phrases, immediateDueAt = now)
         }
         val hourlyIntervalPattern =
             Regex("""(?i)\bcada\s+(\d{1,3}|$writtenNumberGroup)\s*(horas?)\b""")
@@ -2768,6 +2781,15 @@ object NaturalTaskParser {
             phrases += match.range
             if (hours >= 24 && hours % 24 == 0) {
                 return RecurrenceResult(RecurrenceFrequency.DAILY, hours / 24, emptyList(), phrases)
+            }
+            // "cada N horas" con N<24 (p. ej. 8, 12): cadencia sub-diaria REAL para
+            // medicación. Antes era NONE + dosis única → la 2ª/3ª dosis se olvidaban
+            // (P1, evitar olvidos). Ahora HOURLY interval=N: al completar la 1ª dosis
+            // el motor genera la siguiente +N horas. La primera dosis sale a la
+            // superficie venciendo ahora (immediateDueAt) salvo que haya hora
+            // explícita ("cada 8 horas a las 3pm" → 1ª dosis 15:00, luego 23:00, …).
+            if (hours >= 1) {
+                return RecurrenceResult(RecurrenceFrequency.HOURLY, hours, emptyList(), phrases, immediateDueAt = now)
             }
             return RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), phrases, immediateDueAt = now)
         }
