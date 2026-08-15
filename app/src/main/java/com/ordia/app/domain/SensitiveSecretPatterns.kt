@@ -50,6 +50,19 @@ object SensitiveSecretPatterns {
         Regex("""\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{20,}\b"""),
         // GitLab PATs (glpat- + 20+).
         Regex("""\bglpat-[A-Za-z0-9_-]{20,}\b"""),
+        // c.300: Stripe restricted keys (rk_live_/rk_test_ + 20+). Distintos de las
+        // sk- (c.295): las "restricted" empiezan por rk_ y tienen permisos acotados
+        // pero siguen siendo credenciales de cobro. Prefijo canonico, bajo falso positivo.
+        Regex("""\brk_(?:live|test)_[A-Za-z0-9]{20,}"""),
+        // c.300: Azure storage account keys embebidos en connection strings
+        // (`AccountKey=` + base64 largo 50+). Los comparten equipos devops por
+        // mensajeria; la clave `AccountKey=` es la sennal de credencial de storage
+        // (blobs/tables/queues de produccion). 50+ evita falsos positivos cortos.
+        Regex("""\bAccountKey=[A-Za-z0-9+/=]{50,}"""),
+        // c.300: Mailgun API keys (`key-` + 32 hex). Prefijo canonico `key-`
+        // + cuerpo hex de 32 (formato historico de Mailgun). Bajo falso positivo:
+        // `key-` seguido de 32 hex no ocurre en texto conversacional normal.
+        Regex("""\bkey-[a-f0-9]{32}\b"""),
         // Cadenas de conexion con credenciales embebidas (esquema://user:pass@host).
         Regex("""(?i)\b[a-z][a-z0-9+.-]*://[^\s:@/]+:[^\s@/]+@[^\s/]+""")
     )

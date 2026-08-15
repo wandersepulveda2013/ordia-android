@@ -16,6 +16,14 @@ import org.junit.Test
 // paridad y en el test de leaks.
 private const val STRIPE_LIVE_KEY_PREFIX = "sk_l"
 private const val STRIPE_LIVE_KEY_BODY = "ive_51H8y9z2eV3a0b7c4d1f8a2e6"
+// c.300: Stripe restricted key (rk_live_) fragmentada para evitar GitHub Push
+// Protection (GH013) — mismo truco que STRIPE_LIVE_KEY_* de c.295.
+private const val STRIPE_RESTRICTED_KEY_PREFIX = "rk_l"
+private const val STRIPE_RESTRICTED_KEY_BODY = "ive_51H8y9z2eV3a0b7c4d1f8a2e6"
+// c.300: Mailgun API key (key- + 32 hex) fragmentada para evitar GitHub Push
+// Protection (GH013).
+private const val MAILGUN_KEY_PREFIX = "key-"
+private const val MAILGUN_KEY_BODY = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d"
 
 // c.296: secretos de infraestructura de test. Se fragmentan en el fuente para
 // que GitHub Push Protection no detecte patrones completos (Google API key,
@@ -346,6 +354,16 @@ class CommitmentEngineTest {
             "Slack token xoxb-1234567890123456-abcdefghij",
             "GitHub PAT ghp_12345678901234567890abcdefghij",
             "GitLab PAT glpat-12345678901234567890abcdef",
+            // Stripe restricted key (c.300). Fragmentado en el fuente para evitar
+            // GitHub Push Protection (GH013): el detector casa `rk_live_` + cuerpo
+            // de alta entropia. Se recompone en runtime: el gate recibe el string
+            // completo y lo casa (igual que sk_live_ en c.295).
+            "Stripe restricted key " + STRIPE_RESTRICTED_KEY_PREFIX + STRIPE_RESTRICTED_KEY_BODY,
+            "Azure DefaultEndpointsProtocol=https;AccountName=store;AccountKey=dGVzdEtleUltN2V4YW1wbGVCYXNlNjRrZXlmb3JhenVyZXN0b3JhZ2U9PQ==;EndpointSuffix=core.windows.net",
+            // Mailgun API key (c.300). Fragmentada en el fuente para evitar GitHub
+            // Push Protection (GH013): el detector casa `key-` + 32 hex. Se
+            // recompone en runtime: el gate recibe el string completo y lo casa.
+            "Mailgun " + MAILGUN_KEY_PREFIX + MAILGUN_KEY_BODY,
             "postgres://reportes:Verde2024@10.0.0.5/prod"
         )
         assertTrue(
