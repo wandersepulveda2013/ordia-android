@@ -6,7 +6,6 @@ import android.content.Intent
 import com.ordia.app.OrdiaApplication
 import com.ordia.app.R
 import com.ordia.app.data.local.TaskStatus
-import com.ordia.app.domain.RecurrenceEngine
 import com.ordia.app.domain.ReminderRules
 import com.ordia.app.domain.SubtaskRules
 import com.ordia.app.domain.TaskMutationGate
@@ -34,10 +33,12 @@ class ReminderActionReceiver : BroadcastReceiver() {
                             val now = System.currentTimeMillis()
                             repo.update(task.copy(completed = true, status = TaskStatus.COMPLETED, completedAt = now, updatedAt = now))
                             app.container.reminderScheduler.cancel(taskId)
-                            RecurrenceEngine.nextOccurrence(task, now)?.let { next ->
-                                val newId = repo.add(next)
-                                app.container.reminderScheduler.schedule(next.copy(id = newId))
-                            }
+                            // Próxima ocurrencia + desglose: misma fuente única que
+                            // la app (c.223/c.236/c.266). Antes este camino de la
+                            // notificación generaba la ocurrencia SIN clonar el
+                            // checklist: completar una recurrente con subtareas
+                            // desde el recordatorio perdía el desglose ciclo a ciclo.
+                            spawnNextOccurrence(task, now, repo, app.container.tagRepository, app.container.reminderScheduler)
                             context.getSystemService(android.app.NotificationManager::class.java).cancel(taskId.hashCode())
                             // Al cerrar la última subtarea desde la notificación, el padre
                             // se completa automáticamente — mismo efecto que toggleTask en
@@ -90,10 +91,8 @@ class ReminderActionReceiver : BroadcastReceiver() {
         )
         repo.update(updated)
         app.container.reminderScheduler.cancel(parentId)
-        RecurrenceEngine.nextOccurrence(parent, now)?.let { next ->
-            val nextId = repo.add(next)
-            app.container.reminderScheduler.schedule(next.copy(id = nextId))
-        }
+        // Próxima ocurrencia + desglose: misma fuente única que la app (c.266).
+        spawnNextOccurrence(parent, now, repo, app.container.tagRepository, app.container.reminderScheduler)
         app.container.automationLogRepository.insert(
             com.ordia.app.data.local.AutomationLogEntity(
                 type = "subtask_auto",

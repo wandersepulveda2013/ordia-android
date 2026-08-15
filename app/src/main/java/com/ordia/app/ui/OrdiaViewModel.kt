@@ -82,6 +82,7 @@ import com.ordia.app.conversations.ConversationPreview
 import com.ordia.app.conversations.ConversationSummaryEngine
 import com.ordia.app.context.ContextualSettingsStore
 import com.ordia.app.reminders.ReminderScheduler
+import com.ordia.app.reminders.spawnNextOccurrence
 import com.ordia.app.widget.OrdiaWidgetUpdater
 import com.ordia.app.BuildConfig
 import com.ordia.app.automation.AutomationEngine
@@ -500,24 +501,12 @@ class OrdiaViewModel(
                 taskRepository.update(updated)
                 if (completing) {
                     reminderScheduler.cancel(current.id)
-                    RecurrenceEngine.nextOccurrence(current, now)?.let { next ->
-                        val nextId = taskRepository.add(next)
-                        reminderScheduler.schedule(next.copy(id = nextId))
-                        // El desglose del padre recurrente renace en la próxima
-                        // ocurrencia (c.223): sin esto, el checklist se perdía en
-                        // cada ciclo. Se clonan las subtareas no archivadas del
-                        // padre recién completado, abiertas y sin planificación
-                        // heredada (ver SubtaskRules.cloneForNextOccurrence).
-                        val subs = taskRepository.subtasks(current.id)
-                        if (subs.isNotEmpty()) {
-                            val ids = taskRepository.addAll(SubtaskRules.cloneForNextOccurrence(subs, nextId, now))
-                            // Las etiquetas de las subtareas renacen en sus copias
-                            // (c.236): igual que projectId/flagged, son metadatos
-                            // categoriales del usuario y se perdían cada ciclo.
-                            SubtaskRules.relinkedSubtaskTags(subs, ids, uiState.value.taskTags)
-                                .forEach { tagRepository.link(it.taskId, it.tagId) }
-                        }
-                    }
+                    // Próxima ocurrencia + desglose (subtareas/etiquetas) en una
+                    // sola fuente de verdad compartida con la notificación
+                    // (c.223/c.236/c.266): antes el path de la app clonaba el
+                    // checklist pero el de la notificación no, perdiéndolo ciclo
+                    // a ciclo al completar desde el recordatorio.
+                    spawnNextOccurrence(current, now, taskRepository, tagRepository, reminderScheduler)
                 } else {
                     // Des-completar (deshacer): revertir la ocurrencia generada al
                     // completar la recurrente, que de lo contrario quedaba activa
@@ -589,20 +578,10 @@ class OrdiaViewModel(
         )
         taskRepository.update(updated)
         reminderScheduler.cancel(before.id)
-        RecurrenceEngine.nextOccurrence(before, now)?.let { next ->
-            val nextId = taskRepository.add(next)
-            reminderScheduler.schedule(next.copy(id = nextId))
-            // Mismo rescate del checklist que en toggleTask (c.223): al
-            // autocompletar el padre por cerrar su última subtarea, el
-            // desglose renace abierto en la próxima ocurrencia.
-            val subs = taskRepository.subtasks(before.id)
-            if (subs.isNotEmpty()) {
-                val ids = taskRepository.addAll(SubtaskRules.cloneForNextOccurrence(subs, nextId, now))
-                // Mismo re-enlace de etiquetas que toggleTask (c.236).
-                SubtaskRules.relinkedSubtaskTags(subs, ids, uiState.value.taskTags)
-                    .forEach { tagRepository.link(it.taskId, it.tagId) }
-            }
-        }
+        // Próxima ocurrencia + desglose: misma fuente única que toggleTask y la
+        // notificación (c.223/c.236/c.266). Al autocompletar el padre por cerrar
+        // su última subtarea, el desglose renace abierto en la próxima ocurrencia.
+        spawnNextOccurrence(before, now, taskRepository, tagRepository, reminderScheduler)
         val logId = automationLogRepository.insert(
             AutomationLogEntity(
                 type = "subtask_auto",

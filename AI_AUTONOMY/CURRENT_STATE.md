@@ -13,10 +13,11 @@
   segundos, 1 agente. Ver `tools/SUPERVISOR.md`.
 
 ## Estado
-- **Fecha (UTC)**: 2026-08-15. Rama `openhands/autonomous-ordia`, HEAD `b813e64` (base c.264 remota; este run c.265 pendiente de commitear). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21.
-- **Tests**: `bash tools/run_domain_tests.sh` -> **1743 PASS** (incluye fixes c.261-c.265), 0 failures, 40 clases; `bash tools/run_domain_checks.sh` -> smoke 25 OK. **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Fecha (UTC)**: 2026-08-15. Rama `openhands/autonomous-ordia`, HEAD `df55c52` (base c.265 remota; este run c.266 pendiente de commitear). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21.
+- **Tests**: `bash tools/run_domain_tests.sh` -> **1743 PASS** (sin regresión tras c.266; el helper `RecurrenceSpawn` es cableado Android, fuera del harness de dominio), 0 failures, 40 clases; `bash tools/run_domain_checks.sh` -> smoke 25 OK. **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Recientes (rama)**:
-  - c.265 (este run): **P1 datos-integridad límites mensuales con mes explícito** - "renta finales de mes de octubre" daba fecha WRONG (mes en curso, 31/8) en vez de 31/10; dejaba residuo. RESUELTO: los 3 patrones `*OfMonthPattern` capturan mes/año explícitos opcionales y `boundaryDueAt` resuelve con `parseMonthBoundaryName`. Adicional: `monthBoundaryNamePattern` ahora casa "final" singular y consume "al " (limpia "pago al final de agosto"->"pago"). Guard "cada fin de mes de \<mes>" no recurre (sinsentido). +11 tests.
+  - c.266 (este run): **P1 fuente-única recurrencia+notificación perdía el desglose** - completar una recurrente CON subtareas desde el RECORDATORIO no clonaba el checklist (sólo la app lo hacía, c.223/c.236). RESUELTO: nuevo orquestador `RecurrenceSpawn.spawnNextOccurrence` (top-level en `com.ordia.app.reminders`) unifica los 4 caminos spawn (2 ViewModel + 2 ReminderActionReceiver) en una sola fuente: `nextOccurrence`→`add`→`schedule`→clonar subtareas→re-enlazar etiquetas. El path de la notificación GANA el clonado que antes perdía. Composición de reglas puras ya verificadas; orquestador Android = NO VERIFICADO JVM.
+  - c.265 (`babdf9b`): **P1 datos-integridad límites mensuales con mes explícito** - "renta finales de mes de octubre" daba fecha WRONG (mes en curso, 31/8) en vez de 31/10; dejaba residuo. RESUELTO: los 3 patrones `*OfMonthPattern` capturan mes/año explícitos opcionales y `boundaryDueAt` resuelve con `parseMonthBoundaryName`. Adicional: `monthBoundaryNamePattern` ahora casa "final" singular y consume "al " (limpia "pago al final de agosto"->"pago"). Guard "cada fin de mes de \<mes>" no recurre (sinsentido). +11 tests.
   - c.261 (`090fe48`): agenda distingue proxima semana/semana que viene/semana pasada vs esta semana (`AssistantEngine.agendaAnswer`).
   - c.262 (`f257e08`): agenda reconoce "mes" y distingue proximo/que viene/pasado/este (bisiesto-safe via `YearMonth`).
   - c.263 (`24e1dd2`): "¿que tengo hoy?" con dia vacio pero atrasadas ya no miente "agenda vacia": nombra la atrasada mas urgente + recuento + `relatedTaskIds`.
@@ -27,7 +28,8 @@
   - P3 residuos de título restantes ("el primer" suelto); P3 "a las 3.5" decimal-hour. (El residuo "de <mes>" de límites mensuales quedó RESUELTO c.265.)
   - P2 decision `TaskStatus.CANCELLED` inalcanzable desde UI (requiere Android/UI).
   - Verificacion Android pendiente del fix c.264 (toggle/un-complete + `deletePermanently` con Room real) cuando haya SDK.
-- **Proxima prioridad**: descubrimiento continuo - (i) seguir auditando motores no-parser (`WhatNowEngine`/`GuardianCoach`/`SummaryEngine`/`SearchEngine`) por rendijas simetricas; (ii) areas no-parser (onboarding, navegacion, accesibilidad, rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
+  - Verificacion Android pendiente del fix c.266 (compilación del helper `RecurrenceSpawn` + los 4 caminos spawn con Room real) cuando haya SDK.
+- **Proxima prioridad**: descubrimiento continuo - (i) seguir auditando motores no-parser (`WhatNowEngine`/`GuardianCoach`/`SummaryEngine`/`SearchEngine`) por rendijas simetricas; (ii) areas no-parser (onboarding, navegacion, accesibilidad, rendimiento, workers/backup con DAOs reales); (iii) auditar OTROS orquestadores Android con copias duplicadas que puedan divergir (patrón simétrico al de c.266). Re-fetch antes de implementar.
 
 ## Último trabajo — Ciclo 109: Parser — parte del día COMPACTA "hoy tarde"/"mañana noche"/"pasado mañana tarde" → agenda 09:00 + residuo en el título (P1 captura/agenda)
 
