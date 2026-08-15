@@ -22,7 +22,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TaskTagCrossRef::class,
         AttachmentEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -167,6 +167,13 @@ abstract class OrdiaDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN blockedBy INTEGER DEFAULT NULL")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_blockedBy ON tasks(blockedBy)")
+            }
+        }
+
         fun getInstance(context: Context): OrdiaDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -174,7 +181,7 @@ abstract class OrdiaDatabase : RoomDatabase() {
                     OrdiaDatabase::class.java,
                     "ordia.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { instance = it }
             }

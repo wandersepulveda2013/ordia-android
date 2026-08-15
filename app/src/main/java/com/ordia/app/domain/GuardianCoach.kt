@@ -40,41 +40,44 @@ object GuardianCoach {
             } == true
         }
 
+        val plan = DayPlanner.build(tasks, today, now = now, zone = zone)
+        val freeMinutes = plan.remainingMinutes
+
         if (overdue.isNotEmpty()) {
-            val next = TaskRules.nextBestTask(overdue, now)
-            return Insight(
-                eyebrow = "RECUPERA EL CONTROL",
-                title = next?.title ?: "Hay algo pendiente",
-                message = if (overdue.size == 1) {
-                    "Esta tarea está atrasada. Empieza con un bloque corto y vuelve a poner el día en movimiento."
-                } else {
-                    "Tienes ${overdue.size} tareas atrasadas. No intentes resolverlas todas: comienza por esta."
-                },
-                taskId = next?.id,
-                tone = Tone.GENTLE
-            )
+            val nextBest = TaskRules.nextBestTask(overdue, now)
+            if (nextBest != null) {
+                val prefix = if (overdue.size == 1) "Esta tarea está atrasada." else "Tienes ${overdue.size} tareas atrasadas."
+                return Insight(
+                    eyebrow = "RECUPERA EL CONTROL",
+                    title = nextBest.task.title,
+                    message = "$prefix Haz esto ahora porque ${nextBest.reason} · ${nextBest.task.durationMinutes} min · tienes $freeMinutes min libres.",
+                    taskId = nextBest.task.id,
+                    tone = Tone.GENTLE
+                )
+            }
         }
 
         val urgentToday = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
         if (urgentToday.isNotEmpty()) {
-            val next = TaskRules.nextBestTask(urgentToday, now)
-            return Insight(
-                eyebrow = "PROTEGE TU DÍA",
-                title = next?.title ?: "Prioridad de hoy",
-                message = "Es lo más importante para hoy. Reserva tiempo antes de llenar el resto de la agenda.",
-                taskId = next?.id,
-                tone = Tone.FOCUSED
-            )
+            val nextBest = TaskRules.nextBestTask(urgentToday, now)
+            if (nextBest != null) {
+                return Insight(
+                    eyebrow = "PROTEGE TU DÍA",
+                    title = nextBest.task.title,
+                    message = "Es lo más importante para hoy. Haz esto ahora porque ${nextBest.reason} · ${nextBest.task.durationMinutes} min · tienes $freeMinutes min libres.",
+                    taskId = nextBest.task.id,
+                    tone = Tone.FOCUSED
+                )
+            }
         }
 
-        val next = TaskRules.nextBestTask(pending, now)
-        if (next != null) {
+        val nextBest = TaskRules.nextBestTask(pending, now)
+        if (nextBest != null) {
             return Insight(
                 eyebrow = "SIGUIENTE PASO",
-                title = next.title,
-                message = next.details.takeIf { it.isNotBlank() }
-                    ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
-                taskId = next.id,
+                title = nextBest.task.title,
+                message = "Haz esto ahora porque ${nextBest.reason} · ${nextBest.task.durationMinutes} min · tienes $freeMinutes min libres.",
+                taskId = nextBest.task.id,
                 tone = Tone.FOCUSED
             )
         }
