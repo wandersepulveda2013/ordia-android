@@ -1,6 +1,7 @@
 package com.ordia.app.domain
 
 import java.text.Normalizer
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -34,7 +35,7 @@ enum class SearchKind { TASK, PROJECT, NOTE, HABIT, ROUTINE, CONVERSATION, COMMI
  * parte del día por su colisión con el scope TOMORROW, igual que hace el
  * parser en su variante compacta de parte del día.
  */
-private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, THIS_MONTH, NEXT_MONTH, LAST_MONTH, OVERDUE, MISSED, UNDATED, TARDE, NOCHE, MADRUGADA }
+private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, THIS_MONTH, NEXT_MONTH, LAST_MONTH, OVERDUE, MISSED, UNDATED, TARDE, NOCHE, MADRUGADA, WEEKDAY }
 
 data class SearchResult(val kind: SearchKind, val id: Long, val title: String, val subtitle: String)
 
@@ -140,6 +141,17 @@ object SearchEngine {
             return meaningful.all(haystack::contains)
         }
         val zone = ZoneId.systemDefault()
+        // Búsqueda por día de la semana ("lunes", "viernes"...): recupera las
+        // tareas que vencen ese día de la semana aunque su título no lo diga, sin
+        // nueva pantalla ni botón. Es la recuperación natural de "¿qué tengo el
+        // viernes?" llevada a la búsqueda universal, simétrica a "hoy"/"mañana"/
+        // "esta semana". Resolución idéntica al parser de captura
+        // ([NaturalTaskParser] nextWeekdayOrSame/nextWeekday) para que buscar y
+        // capturar signifiquen lo mismo: "lunes" dicho un lunes incluye hoy; con
+        // modificador "próximo"/"que viene" salta al estricto siguiente. Un día
+        // dicho a mitad de semana resuelve a su próxima ocurrencia (hacia adelante),
+        // que es la lectura útil para "qué me espera ese día".
+        val weekdayTarget = if (dateScope == DateScope.WEEKDAY) resolveWeekdayTarget(words, now, zone) else null
         // Mapa de proyectos activos por id: permite que una tarea o nota que pertenece
         // a un proyecto sea recuperada al buscar por el nombre del proyecto, aunque su
         // título no lo contenga. Así la relación tarea↔proyecto (y nota↔proyecto) se
@@ -205,7 +217,7 @@ object SearchEngine {
                     (!wantsCompleted || task.completed) &&
                     (!wantsFlagged || task.flagged) &&
                     (!wantsRecurring || task.recurrence != RecurrenceFrequency.NONE) &&
-                    (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted)) &&
+                    (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted, weekdayTarget = weekdayTarget)) &&
                     (matches(task.title, task.details, *ph, *pa, *th) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms + flaggedTerms + recurringTerms, task.title, task.details, *ph, *pa, *th))
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE))
@@ -376,6 +388,27 @@ object SearchEngine {
     private val NIGHT_TOKENS = setOf("noche")
     private val EARLY_MORNING_TOKENS = setOf("madrugada")
 
+    // Días de la semana para búsqueda universal ("lunes", "viernes"...): recuperan
+    // las tareas que vencen ese día sin exigirlo en el título, igual que "hoy" o
+    // "esta semana". Tokens sin acento (foldForSearch): miércoles→miercoles,
+    // sábado→sabado. Mapa a DayOfWeek (ISO lun=1..dom=7) compartido con la
+    // resolución, para que detección y cómputo de fecha usen la misma fuente.
+    private val WEEKDAY_TOKENS = setOf("lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo")
+    private val WEEKDAY_BY_TOKEN = mapOf(
+        "lunes" to DayOfWeek.MONDAY,
+        "martes" to DayOfWeek.TUESDAY,
+        "miercoles" to DayOfWeek.WEDNESDAY,
+        "jueves" to DayOfWeek.THURSDAY,
+        "viernes" to DayOfWeek.FRIDAY,
+        "sabado" to DayOfWeek.SATURDAY,
+        "domingo" to DayOfWeek.SUNDAY
+    )
+    // Modificador de "próximo"/"que viene"/"siguiente"/"posterior" para saltar al
+    // día estricto siguiente (excluye hoy). Coincide con el parser de captura
+    // (NaturalTaskParser nextExplicit). "que" es stop word y ya se elimina antes,
+    // así que "viene" basta para detectar "lunes que viene".
+    private val WEEKDAY_NEXT_MODIFIERS = setOf("proximo", "proximos", "proxima", "proximas", "viene", "siguiente", "siguientes", "posterior", "posteriores")
+
     private fun detectDateScope(words: List<String>): DateScope? = when {
         "sin" in words && UNDATED_HINTS.any { it in words } -> DateScope.UNDATED
         OVERDUE_TOKENS.any { it in words } -> DateScope.OVERDUE
@@ -383,6 +416,13 @@ object SearchEngine {
         TODAY_TOKENS.any { it in words } -> DateScope.TODAY
         TOMORROW_TOKENS.any { it in words } -> DateScope.TOMORROW
         YESTERDAY_TOKENS.any { it in words } -> DateScope.YESTERDAY
+        // Día de la semana suelto o con modificador. Se evalúa antes que las partes
+        // del día para que "sábado" (y "viernes tarde") se resuelvan al día de la
+        // semana y no a la franja de hoy; "tarde"/"noche" solas siguen llegando aquí
+        // porque ningún weekday está presente. No colisiona con hoy/mañana/ayer/
+        // semana/mes (tokens distintos). Resolución estricta-vs-inclusiva en
+        // resolveWeekdayTarget, no aquí: el scope solo indica "es un weekday".
+        WEEKDAY_TOKENS.any { it in words } -> DateScope.WEEKDAY
         // La parte del día se evalúa DESPUÉS de hoy/mañana/ayer: así "hoy tarde"
         // o "mañana tarde" resuelven al día explícito (más amplio) en vez de
         // quedarse solo con la franja de hoy. Sin palabra de día, "tarde"/"noche"/
@@ -405,14 +445,34 @@ object SearchEngine {
     }
 
     private fun dateScopeTokens(words: List<String>): Set<String> =
-        words.filter { it in OVERDUE_TOKENS || it in MISSED_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in MONTH_TOKENS || it in NEXT_MONTH_TOKENS || it in LAST_MONTH_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS }.toSet()
+        words.filter { it in OVERDUE_TOKENS || it in MISSED_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in MONTH_TOKENS || it in NEXT_MONTH_TOKENS || it in LAST_MONTH_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS || it in WEEKDAY_TOKENS || it in WEEKDAY_NEXT_MODIFIERS }.toSet()
+
+    /**
+     * Resuelve el día calendario objetivo de un scope WEEKDAY desde la consulta
+     * original (sin normalizar): extrae el primer token de día de la semana y
+     * decide entre inclusivo (incluye hoy si hoy es ese día) y estricto (salta al
+     * siguiente, con "próximo"/"que viene"). Semántica idéntica al parser de
+     * captura ([NaturalTaskParser] nextWeekdayOrSame/nextWeekday) para que buscar
+     * y capturar signifiquen lo mismo. Devuelve null si por algún motivo no hay
+     * token (no debería ocurrir cuando el scope es WEEKDAY, pero se defiende).
+     */
+    private fun resolveWeekdayTarget(words: List<String>, now: Long, zone: ZoneId): LocalDate? {
+        val token = words.firstOrNull { it in WEEKDAY_TOKENS } ?: return null
+        val target = WEEKDAY_BY_TOKEN[token] ?: return null
+        val today = DateRules.toLocalDate(now, zone)
+        val strict = WEEKDAY_NEXT_MODIFIERS.any { it in words }
+        val delta = (target.value - today.dayOfWeek.value + 7) % 7
+        val days = if (strict) (if (delta == 0) 7 else delta).toLong() else delta.toLong()
+        return today.plusDays(days)
+    }
 
     private fun taskMatchesDateScope(
         task: TaskEntity,
         scope: DateScope,
         now: Long,
         zone: ZoneId,
-        anchorOnCompleted: Boolean = false
+        anchorOnCompleted: Boolean = false,
+        weekdayTarget: LocalDate? = null
     ): Boolean {
         if (scope == DateScope.OVERDUE) return TaskRules.isOverdue(task, now)
         // "olvidadas": unión de lo vencido (plazo incumplido) y lo cuyo hueco
@@ -425,6 +485,27 @@ object SearchEngine {
         // que nunca se agendó. Se excluyen completadas (ya resueltas) y canceladas,
         // igual que los scopes presentes/futuros; las archivadas ya se filtraron.
         if (scope == DateScope.UNDATED) return !task.completed && task.status != TaskStatus.CANCELLED && task.dueAt == null
+        // Búsqueda por día de la semana: la fecha objetivo ya está resuelta en
+        // search() (resolveWeekdayTarget) con la misma semántica que el parser de
+        // captura. Compara el día calendario (sin hora) del dueAt —o del
+        // completedAt bajo anclaje "completadas lunes"— contra ese día. Se excluyen
+        // canceladas siempre y, para la lectura hacia adelante (día futuro/hoy),
+        // las completadas: una tarea ya terminada no es "lo que tengo el viernes".
+        // La nota/task sin dueAt no aporta fecha y por tanto no entra (su título
+        // pudo mencionar el día, pero la fuente de verdad de "cuándo" es dueAt,
+        // igual que en "hoy"/"mañana"; quien escribió "lunes" en el título quería
+        // fijar una fecha y el parser existe para convertirla en dueAt).
+        if (scope == DateScope.WEEKDAY) {
+            val target = weekdayTarget ?: return false
+            if (task.status == TaskStatus.CANCELLED) return false
+            if (anchorOnCompleted) {
+                val completedAt = task.completedAt ?: return false
+                return DateRules.toLocalDate(completedAt, zone) == target
+            }
+            if (task.completed) return false
+            val due = task.dueAt ?: return false
+            return DateRules.toLocalDate(due, zone) == target
+        }
         // Los scopes pasados ("ayer", "semana pasada", "mes pasado") recuperan
         // tareas ya completadas: su propósito es revisar qué había en ese período.
         // Para los scopes presentes/futuros se excluyen completadas. Las canceladas
@@ -527,6 +608,7 @@ object SearchEngine {
             DateScope.TARDE -> false
             DateScope.NOCHE -> false
             DateScope.MADRUGADA -> false
+            DateScope.WEEKDAY -> false // resuelto antes en taskMatchesDateScope
         }
     }
 

@@ -691,4 +691,139 @@ class SearchEngineDateScopeTest {
         val ids = SearchEngine.search("olvidados", listOf(missed), emptyList(), emptyList(), emptyList(), now = now).map { it.id }
         assertEquals(listOf(80L), ids)
     }
+
+    // --- Búsqueda por día de la semana ("lunes", "viernes"...) ---
+    // Recupera las tareas que vencen ese día de la semana sin exigirlo en el
+    // título, simétrico a "hoy"/"mañana"/"esta semana". Resolución idéntica al
+    // parser de captura: "lunes" dicho un lunes incluye hoy; con "próximo"/
+    // "que viene" salta al estricto siguiente; dicho a mitad de semana resuelve
+    // a la próxima ocurrencia hacia adelante.
+
+    private fun weekdayAt(localDate: java.time.LocalDate, hour: Int = 9): Long =
+        java.time.ZonedDateTime.of(localDate.atTime(hour, 0), zone).toInstant().toEpochMilli()
+
+    @Test fun lunes_onMonday_includesToday() {
+        // Lunes 2026-08-10: "lunes" incluye hoy (misma semántica que el parser).
+        val todayLocal = java.time.LocalDate.of(2026, 8, 10) // lunes
+        val t0 = weekdayAt(todayLocal, 12)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy lunes", dueAt = weekdayAt(todayLocal)),
+            TaskEntity(id = 2, title = "Martes", dueAt = weekdayAt(todayLocal.plusDays(1))),
+            TaskEntity(id = 3, title = "Sin fecha")
+        )
+        val ids = SearchEngine.search("lunes", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun viernes_midWeek_resolvesToNextFriday() {
+        // Miércoles 2026-08-12: "viernes" → viernes 08-14 (próxima ocurrencia).
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Este viernes", dueAt = weekdayAt(todayLocal.plusDays(2))),  // 08-14
+            TaskEntity(id = 2, title = "Viernes pasado", dueAt = weekdayAt(todayLocal.minusDays(5))), // 08-07
+            TaskEntity(id = 3, title = "Próximo viernes", dueAt = weekdayAt(todayLocal.plusDays(9)))   // 08-21
+        )
+        val ids = SearchEngine.search("viernes", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun proximoLunes_onMonday_jumpsToNextWeek() {
+        // Lunes 2026-08-10: "próximo lunes" → lunes 08-17 (estricto, excluye hoy).
+        val todayLocal = java.time.LocalDate.of(2026, 8, 10) // lunes
+        val t0 = weekdayAt(todayLocal, 12)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy", dueAt = weekdayAt(todayLocal)),
+            TaskEntity(id = 2, title = "Próximo", dueAt = weekdayAt(todayLocal.plusDays(7))) // 08-17
+        )
+        val ids = SearchEngine.search("próximo lunes", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(2L), ids)
+    }
+
+    @Test fun lunesQueViene_strictNextWeek() {
+        // Lunes 2026-08-10: "lunes que viene" → 08-17 ("que" es stop word).
+        val todayLocal = java.time.LocalDate.of(2026, 8, 10) // lunes
+        val t0 = weekdayAt(todayLocal, 12)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy", dueAt = weekdayAt(todayLocal)),
+            TaskEntity(id = 2, title = "Que viene", dueAt = weekdayAt(todayLocal.plusDays(7)))
+        )
+        val ids = SearchEngine.search("lunes que viene", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(2L), ids)
+    }
+
+    @Test fun viernesReunion_filtersByBothDateAndContent() {
+        // "viernes reunion": solo la tarea del viernes con "reunión" en el título.
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Reunión de equipo", dueAt = weekdayAt(todayLocal.plusDays(2))),  // 08-14 viernes
+            TaskEntity(id = 2, title = "Informe viernes", dueAt = weekdayAt(todayLocal.plusDays(2))),    // 08-14 viernes
+            TaskEntity(id = 3, title = "Otra reunión", dueAt = weekdayAt(todayLocal.plusDays(1)))        // 08-13 jueves
+        )
+        val ids = SearchEngine.search("viernes reunión", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun lunes_pureDateScopeExcludesDatelessEntities() {
+        // "lunes" puro (sin contenido) solo devuelve tareas con dueAt ese día:
+        // notas/proyectos sin fecha no inundan los resultados, igual que "hoy".
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val task = TaskEntity(id = 1, title = "Cita", dueAt = weekdayAt(todayLocal.plusDays(5))) // 08-17 lunes
+        val results = SearchEngine.search(
+            "lunes",
+            tasks = listOf(task),
+            projects = listOf(ProjectEntity(id = 2, name = "Proyecto lunes")),
+            notes = listOf(NoteEntity(id = 3, title = "Nota lunes", body = "")),
+            habits = emptyList()
+        )
+        val kinds = results.map { it.kind }.toSet()
+        assertEquals(setOf(SearchKind.TASK), kinds)
+        assertEquals(listOf(1L), results.map { it.id })
+    }
+
+    @Test fun lunes_excludesCompletedTaskDueThatDay() {
+        // Una tarea completada que vencía el lunes NO aparece en "lunes"
+        // (lectura hacia adelante: ya no es "lo que tengo"). Como en "hoy".
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val nextMonday = todayLocal.plusDays(5) // 08-17 lunes
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Pendiente", dueAt = weekdayAt(nextMonday)),
+            TaskEntity(id = 2, title = "Ya hecha", dueAt = weekdayAt(nextMonday), completed = true, completedAt = t0)
+        )
+        val ids = SearchEngine.search("lunes", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun completadasLunes_anchorsOnCompletedAt() {
+        // "completadas lunes" recupera lo terminado ese lunes (por completedAt),
+        // no lo que vencía ese lunes. Simétrico a "completadas hoy".
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val nextMonday = todayLocal.plusDays(5) // 08-17 lunes
+        val tasks = listOf(
+            // Terminada el próximo lunes aunque vencía antes.
+            TaskEntity(id = 1, title = "Hecha el lunes", completed = true, completedAt = weekdayAt(nextMonday, 10), dueAt = weekdayAt(todayLocal.minusDays(1))),
+            // Vencía el lunes pero aún pendiente: NO entra en "completadas lunes".
+            TaskEntity(id = 2, title = "Pendiente", completed = false, dueAt = weekdayAt(nextMonday))
+        )
+        val ids = SearchEngine.search("completadas lunes", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun sabado_resolvesCorrectlyWithAccent() {
+        // "sábado" (con tilde) se normaliza a "sabado" y resuelve al sábado.
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val saturday = todayLocal.plusDays(3) // 08-15 sábado
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Sábado", dueAt = weekdayAt(saturday)),
+            TaskEntity(id = 2, title = "Domingo", dueAt = weekdayAt(saturday.plusDays(1)))
+        )
+        val ids = SearchEngine.search("sábado", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
 }
