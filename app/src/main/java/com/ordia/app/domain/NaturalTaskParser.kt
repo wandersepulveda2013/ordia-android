@@ -3063,6 +3063,28 @@ object NaturalTaskParser {
             phrases += match.range
             return RecurrenceResult(RecurrenceFrequency.HOURLY, 1, emptyList(), phrases, immediateDueAt = now)
         }
+        // "cada N horas y media/cuarto" y "cada N y media horas" (medicación con precisión
+        // sub-hora: "cada 3 horas y media", "cada 2 horas y cuarto", "cada 6 y media horas"):
+        // cadencia que el motor NO puede representar (HOURLY usa intervalo entero de horas;
+        // 3,5 h no es representable en el modelo). ANTES hourlyIntervalPattern casaba "cada 3
+        // horas" y dejaba "y media" como residuo del título, PERO se asignaba HOURLY
+        // interval=3 → la medicación RECURRE cada 3 h en vez de 3,5 h (cadencia falsa: la
+        // 2ª dosis sale 30 min antes, acumulando error de timing) Y el título nacía
+        // mutilado ("medicación y media"). En "cada N y media horas" además caía a NONE SIN
+        // fecha con la frase entera como residuo (dosis olvidada + título sucio). Se trata
+        // ANTES de hourlyIntervalPattern y de la MISMA forma honesta que "cada media hora"
+        // / "cada N minutos" (cadencias no representables): NONE + immediateDueAt=now +
+        // título limpio. Así la 1ª dosis sale a la superficie (aviso real, What Now) sin
+        // fingir una recurrencia de 3 h que el usuario no pidió. La fracción acepta "media"
+        // (30 min) y "cuarto" (15 min) —las fracciones de reloj canónicas en español—, y el
+        // número admite dígitos o número escrito (simétrico de hourlyIntervalPattern). Las
+        // dos formas ("y media" tras "horas" o antes de "horas") se cubren juntas.
+        val hourlyFractionPattern =
+            Regex("""(?i)\bcada\s+(\d{1,3}|$writtenNumberGroup)\s+(?:horas?\s+)?(?:y\s+(?:media|cuarto))\s*(?:horas?)?\b""")
+        hourlyFractionPattern.find(working)?.let { match ->
+            phrases += match.range
+            return RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), phrases, immediateDueAt = now)
+        }
         val hourlyIntervalPattern =
             Regex("""(?i)\bcada\s+(\d{1,3}|$writtenNumberGroup)\s*(?:horas?|hs?)\b""")
         hourlyIntervalPattern.find(working)?.let { match ->

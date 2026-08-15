@@ -452,6 +452,79 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // "cada N horas y media/cuarto" (medicación con precisión sub-hora: "cada 3 horas y
+    // media", "cada 6 horas y media", "cada 2 horas y cuarto"): cadencia que el motor NO
+    // puede representar (HOURLY usa intervalo entero de horas; 3,5 h no es representable).
+    // ANTES hourlyIntervalPattern casaba "cada 3 horas" y dejaba "y media" colgando como
+    // residuo del título, PERO se asignaba HOURLY interval=3 → la medicación RECURRE cada
+    // 3 h en vez de 3,5 h (cadencia falsa: la 2ª dosis sale 30 min antes, acumulando
+    // error de timing) Y el título nacía mutilado ("medicación y media"). Doble defecto:
+    // cadencia silenciosamente errónea + residuo. Simétrico de "cada media hora" (que es
+    // NONE + ahora + título limpio, porque el motor no repite por minuto): la cadencia
+    // fraccionaria horaria se trata de la MISMA forma honesta — NONE + immediateDueAt=now
+    // + título limpio — en vez de inventar una recurrencia de 3 h que el usuario no pidió.
+    // Así la 1ª dosis sale a la superficie (aviso real, What Now) sin fingir cadencia.
+    @Test fun cadaNHorasYMediaNoFalsaRecurrenciaNiResiduo() {
+        val result = NaturalTaskParser.parse("Medicación cada 3 horas y media", now, zone)
+        assertEquals("Medicación", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun cadaNHorasYCuartoNoFalsaRecurrenciaNiResiduo() {
+        val result = NaturalTaskParser.parse("Jarabe cada 2 horas y cuarto", now, zone)
+        assertEquals("Jarabe", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun cadaNHorasYMediaEscritoNoFalsaRecurrenciaNiResiduo() {
+        val result = NaturalTaskParser.parse("Pastillas cada seis horas y media", now, zone)
+        assertEquals("Pastillas", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    // "cada N y media horas" (fracción ANTES de "horas"): misma cadencia fraccionaria,
+    // pero como el número y la unidad quedan separados por "y media", hourlyIntervalPattern
+    // NO casa ("cada 3 y media horas" no es "cada N horas") → antes caía a NONE SIN fecha
+    // y la frase entera sobrevivía como residuo del título ("medicación cada 3 y media
+    // horas"), es decir, dosis olvidada + título sucio. Misma solución honesta: NONE +
+    // immediateDueAt=now + título limpio.
+    @Test fun cadaNYMediaHorasNoFalsaRecurrenciaNiResiduo() {
+        val result = NaturalTaskParser.parse("Gotas cada 3 y media horas", now, zone)
+        assertEquals("Gotas", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    // No-regresión: "cada N horas" ENTERO (sin fracción) sigue siendo HOURLY interval=N
+    // (la fracción es la que marca la cadencia no representable; sin fracción, el motor
+    // SÍ repite por hora entera). La 1ª dosis vence ahora y el título queda limpio.
+    @Test fun cadaNHorasEnteroSigueHourlySinFraccion() {
+        val result = NaturalTaskParser.parse("Medicación cada 3 horas", now, zone)
+        assertEquals("Medicación", result.title)
+        assertEquals(RecurrenceFrequency.HOURLY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    // No-regresión: "y media" tras una HORA de reloj (no cadencia horaria) sigue siendo
+    // fracción de reloj ("a las 3 y media" = 03:30), NO se confunde con cadencia. La
+    // cadencia fraccionaria sólo aplica tras "cada N horas". "Reunión cada lunes a las 3
+    // y media" → recurre los lunes, hora 03:30.
+    @Test fun yMediaRelojNoSeConfundeConCadenciaFraccionaria() {
+        val result = NaturalTaskParser.parse("Reunión cada lunes a las 3 y media", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(LocalTime.of(3, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // "cada N minutos" (medicación sub-horaria: "cada 30 minutos", "cada 15 minutos",
     // "cada 20 minutos"): cadencia más fina que "cada hora". El motor no repite por
     // minuto, así que —igual que "cada 8 horas"— se saca la primera dosis a la superficie
