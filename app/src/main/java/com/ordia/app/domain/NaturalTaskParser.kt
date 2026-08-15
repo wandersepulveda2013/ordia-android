@@ -3030,6 +3030,14 @@ object NaturalTaskParser {
             Regex("""(?i)\b(?:cada\s+quincena|quincenal(?:mente)?|todas\s+las\s+quincenas)\b""").find(working)?.let { m ->
                 return 2 to m.range
             }
+            // "bisemanal"/"bisemanalmente" = cada dos semanas (quincenal en cadencia de
+            // semana). Aquí acompaña a una lista de días ("bisemanal los lunes" → cada 2
+            // semanas los lunes), igual que "cada dos semanas los lunes" o "cada quincena
+            // los lunes". Sin esto, "bisemanal los lunes" caía a interval=1 (cada semana,
+            // el doble de frecuente) y "bisemanal" quedaba como residuo en el título.
+            Regex("""(?i)\bbisemanal(?:mente)?\b""").find(working)?.let { m ->
+                return 2 to m.range
+            }
             return null
         }
 
@@ -3370,6 +3378,21 @@ object NaturalTaskParser {
             }
         }
 
+        // "bisemanal"/"bisemanalmente" (cada dos semanas, quincenal en cadencia semanal):
+        // el análogo WEEKLY de "bimestral" (MONTHLY/2). Adjetivo/adverbio cotidiano para
+        // rutinas quincenales ancladas a la SEMANA ("reunión bisemanal", "pago bisemanal",
+        // "terapia bisemanal"). Antes caía a NONE sin fecha → la rutina nacía sin cadencia
+        // ni vencimiento (P1: rutina olvidada, invisible en What Now/planificador, el
+        // recordatorio jamás disparaba) y "bisemanal" quedaba como residuo literal en el
+        // título. Se mapea a WEEKLY interval=2 (plusWeeks(2) = 14 días), idéntico a "cada
+        // dos semanas", sin añadir enum ni migración. Distinto de "quincenal" (DAILY/15):
+        // una quincena son 15 días, no 14. La forma con días ("bisemanal los lunes") ya
+        // se resolvió arriba vía detectWeekInterval; aquí sólo llega la forma aislada.
+        Regex("""(?i)\bbisemanal(?:mente)?\b""").find(working)?.let { match ->
+            phrases += match.range
+            return RecurrenceResult(RecurrenceFrequency.WEEKLY, 2, emptyList(), phrases)
+        }
+
         val fixedPatterns = listOf(
             Regex("""(?i)\btodos\s+los\s+d[ií]as\b|\bcada\s+d[ií]a\b|\bdiariamente\b|\ba\s+diario\b""") to RecurrenceFrequency.DAILY,
             Regex("""(?i)\btodas\s+las\s+[sS]emanas\b|\bcada\s+[sS]emana\b|\bsemanalmente\b|\bsemanal\b""") to RecurrenceFrequency.WEEKLY,
@@ -3426,7 +3449,7 @@ object NaturalTaskParser {
     // borró vía phraseRanges. Sólo casa las formas sin cantidad; las con número
     // ("cada dos semanas") las añade detectWeekInterval/intervalPattern a phraseRanges.
     private val recurrenceAdjectiveLeakPattern =
-        Regex("""(?i)\b(?:semanal(?:mente)?|mensual(?:mente)?|anual(?:mente)?|bimestral(?:mente)?|trimestral(?:mente)?|semestral(?:mente)?|quincenal(?:mente)?|cada\s+(?:semanas?|d[ií]as?|mes(?:es)?|a[nñ]os?))\b""")
+        Regex("""(?i)\b(?:semanal(?:mente)?|bisemanal(?:mente)?|mensual(?:mente)?|anual(?:mente)?|bimestral(?:mente)?|trimestral(?:mente)?|semestral(?:mente)?|quincenal(?:mente)?|cada\s+(?:semanas?|d[ií]as?|mes(?:es)?|a[nñ]os?))\b""")
 
     private fun parseMonthNameDate(today: LocalDate, match: MatchResult): LocalDate? {
         val day = parseWrittenNumber(match.groupValues[1])?.toInt()?.takeIf { it in 1..31 } ?: return null

@@ -724,6 +724,57 @@ class NaturalTaskParserTest {
         assertNotNull(result.dueAt)
     }
 
+    // "bisemanal"/"bisemanalmente" = cada dos semanas (quincenal en cadencia semanal):
+    // el análogo WEEKLY de "bimestral" (MONTHLY/2). Antes caía a NONE sin fecha ni
+    // vencimiento (P1: rutina olvidada) y "bisemanal" quedaba como residuo en el título.
+    // Se mapea a WEEKLY interval=2 (plusWeeks(2) = 14 días), idéntico a "cada dos semanas".
+    @Test fun adjetivoBisemanalParsesWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Reunión bisemanal", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("", result.recurrenceDays)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun adverbioBisemanalmenteParsesWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Reporte bisemanalmente", now, zone)
+        assertEquals("Reporte", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // "bisemanal los lunes": cadencia quincenal sobre día concreto. Antes el día
+    // disparaba la rama de lista semanal con interval=1 (cada semana, el doble de
+    // frecuente) y "bisemanal" quedaba en el título. Ahora WEEKLY interval=2 + days.
+    @Test fun bisemanalConDiasParsesWeeklyInterval2YDias() {
+        val result = NaturalTaskParser.parse("Reunión bisemanal los lunes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1", result.recurrenceDays)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun bisemanalConVariosDiasParsesWeeklyInterval2YDias() {
+        val result = NaturalTaskParser.parse("Reunión bisemanal los lunes y jueves", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1,4", result.recurrenceDays)
+        assertNotNull(result.dueAt)
+    }
+
+    // Contradicción: anclaje mensual explícito gana sobre el adjetivo bisemanal, pero
+    // "bisemanal" se limpia del título (recurrenceAdjectiveLeakPattern), consistente con
+    // "pago mensual el 15 de cada mes" → "pago".
+    @Test fun bisemanalConAnclajeMensualLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pago bisemanal el 15 de cada mes", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("Pago", result.title)
+    }
+
     // Sustantivos plurimensuales como CADENCIA recurrente ("cada bimestre/trimestre/
     // cuatrimestre/semestre"): hitos financieros de plazo largo (renta, impuestos,
     // declaraciones). `intervalPattern` solo admite "días|semanas|meses|años", así que
