@@ -1,5 +1,6 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskPriority
 import java.time.DayOfWeek
 import java.time.Instant
@@ -11,12 +12,15 @@ import java.time.ZoneId
 data class ParsedTaskInput(
     val title: String,
     val dueAt: Long?,
-    val priority: TaskPriority
+    val priority: TaskPriority,
+    val recurrence: RecurrenceFrequency = RecurrenceFrequency.NONE,
+    val recurrenceDays: String = ""
 )
 
 object NaturalTaskParser {
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
     private val weekdayPattern = Regex("""(?i)\b(?:el\s+)?(?:pr[oó]ximo\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b""")
+    private val recurrencePattern = Regex("""(?i)\b(?:todos\s+los\s+d[ií]as|cada\s+d[ií]a|diariamente|diario|cada\s+semana|semanalmente|todas\s+las\s+semanas|todos\s+los\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)s?|cada\s+mes|mensualmente|todos\s+los\s+meses|cada\s+año|anualmente|todos\s+los\s+a[nñ]os)\b""")
     private val relativePattern = Regex("""(?i)\ben\s+(\d{1,3})\s*(minutos?|mins?|horas?|d[ií]as?)\b""")
     private val timePatterns = listOf(
         Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b"""),
@@ -35,6 +39,37 @@ object NaturalTaskParser {
             else -> TaskPriority.NORMAL
         }
         working = working.replace(Regex("""(?i)(?:!|#)(urgente|alta|baja)\b"""), " ")
+
+
+        var recurrence = RecurrenceFrequency.NONE
+        var recurrenceDays = ""
+        val recurrenceMatch = recurrencePattern.find(working)
+        if (recurrenceMatch != null) {
+            val rVal = recurrenceMatch.value.lowercase()
+            when {
+                rVal.contains("días") || rVal.contains("dias") || rVal.contains("día") || rVal.contains("dia") || rVal.contains("diariamente") || rVal.contains("diario") -> {
+                    recurrence = RecurrenceFrequency.DAILY
+                }
+                rVal.contains("semana") || rVal.contains("semanalmente") -> {
+                    recurrence = RecurrenceFrequency.WEEKLY
+                }
+                rVal.contains("mes") || rVal.contains("mensualmente") -> {
+                    recurrence = RecurrenceFrequency.MONTHLY
+                }
+                rVal.contains("año") || rVal.contains("ano") || rVal.contains("anualmente") -> {
+                    recurrence = RecurrenceFrequency.YEARLY
+                }
+                else -> {
+                    // Check for specific days like "todos los lunes"
+                    val dayMatch = Regex("""(?i)\b(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b""").find(rVal)
+                    if (dayMatch != null) {
+                        recurrence = RecurrenceFrequency.WEEKLY
+                        recurrenceDays = dayMatch.value.toDayOfWeek().name
+                    }
+                }
+            }
+            working = working.replace(recurrenceMatch.value, " ")
+        }
 
         val relativeMatch = relativePattern.find(working)
         val relativeDueAt = relativeMatch?.let { match ->
@@ -96,7 +131,9 @@ object NaturalTaskParser {
         return ParsedTaskInput(
             title = working.ifBlank { text.trim() }.take(240),
             dueAt = dueAt,
-            priority = priority
+            priority = priority,
+            recurrence = recurrence,
+            recurrenceDays = recurrenceDays
         )
     }
 

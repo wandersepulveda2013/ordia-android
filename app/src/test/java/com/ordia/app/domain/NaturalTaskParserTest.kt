@@ -1,5 +1,6 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -38,5 +39,33 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Revisar el horno en 45 minutos", now, zone)
         assertEquals("Revisar el horno", result.title)
         assertEquals(now + 45 * 60_000L, result.dueAt)
+    }
+
+    @Test fun parsesRecurrenceDaily() {
+        val result = NaturalTaskParser.parse("Hacer ejercicio todos los días a las 7:00", now, zone)
+        assertEquals("Hacer ejercicio", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals("", result.recurrenceDays)
+    }
+
+    @Test fun parsesRecurrenceWeekly() {
+        val result = NaturalTaskParser.parse("Reunión de equipo cada semana", now, zone)
+        assertEquals("Reunión de equipo", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("", result.recurrenceDays)
+    }
+
+    @Test fun parsesRecurrenceSpecificDay() {
+        val result = NaturalTaskParser.parse("Pagar la renta todos los lunes", now, zone)
+        assertEquals("Pagar la renta", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("MONDAY", result.recurrenceDays)
+    }
+
+    @Test fun parsesRecurrenceMonthly() {
+        val result = NaturalTaskParser.parse("Revisar estado de cuenta cada mes", now, zone)
+        assertEquals("Revisar estado de cuenta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("", result.recurrenceDays)
     }
 }
