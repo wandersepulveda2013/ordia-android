@@ -269,4 +269,92 @@ class WhatNowEngineTest {
         }
     }
 
+    // --- c.202: recuperación de inicio olvidado en "¿Qué hago ahora?" ---
+
+    @Test
+    fun missedStartIsLabeledHonestlyNotInbox() {
+        // Hueco 09:00–09:30 (duración 30), ya = 10:00: el compromiso se le pasó sin
+        // deadline vencido. Antes se etiquetaba como "bandeja"/"urgente"; ahora explica
+        // la verdad: el hueco planificado se pasó.
+        val missed = task(1, "Llamada agendada").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone),
+            durationMinutes = 30
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(missed), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.MISSED_START, suggestion.reason)
+        assertEquals("tenía su hueco y se pasó", WhatNowEngine.reasonLabel(suggestion.reason))
+    }
+
+    @Test
+    fun missedStartSurfacesAboveEqualPriorityInbox() {
+        // Misma prioridad NORMAL, misma banda de urgencia (rank 0). El compromiso cuyo
+        // hueco pasó debe ir primero (el usuario le dio hora y se le olvidó), por delante
+        // de una tarea de bandeja sin planificación. Antes competían por orden/creación.
+        val missed = task(1, "Olvidada agendada").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone),
+            durationMinutes = 30,
+            createdAt = now + 1_000
+        )
+        val inbox = task(2, "Bandeja").copy(createdAt = now)
+
+        val ordered = WhatNowEngine.ordered(listOf(inbox, missed), now = now, zone = zone)
+
+        assertEquals(1L, ordered.first().id)
+    }
+
+    @Test
+    fun missedStartDoesNotOverrideHigherPriority() {
+        // Un compromiso olvidado NORMAL NO debe saltarse a una URGENTE sin fecha: la
+        // importancia (prioridad) sigue mandando sobre el hueco olvidado. El desempate
+        // sólo actúa dentro de la misma banda de urgencia + prioridad.
+        val missed = task(1, "Olvidada normal agendada").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone),
+            durationMinutes = 30
+        )
+        val urgent = task(2, "Urgente sin fecha", TaskPriority.URGENT)
+
+        val suggestion = WhatNowEngine.suggest(listOf(missed, urgent), now = now, zone = zone)
+
+        assertEquals(2L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.URGENT, suggestion.reason)
+    }
+
+    @Test
+    fun overdueBeatsMissedStart() {
+        // Plazo incumplido (dueAt vencido) manda sobre hueco olvidado: la vencida es
+        // isOverdue (rank 4); la de inicio olvidado sin deadline vencido decae a su
+        // prioridad. La vencida va primero y se etiqueta como tal.
+        val overdue = task(1, "Vencida").copy(dueAt = DateRules.toEpochMillis(date.minusDays(1), LocalTime.of(18, 0), zone))
+        val missed = task(2, "Hueco olvidado").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone),
+            durationMinutes = 30
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(missed, overdue), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.OVERDUE, suggestion.reason)
+    }
+
+    @Test
+    fun whatNowAndWidgetAgreeOnMissedStartTiebreak() {
+        // Dentro de la misma banda, What Now y el widget deben elegir el mismo compromiso
+        // olvidado (c.83: no divergir). Ambos comparten el desempate isMissedStart.
+        val missed = task(1, "Olvidada agendada").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone),
+            durationMinutes = 30,
+            createdAt = now + 1_000
+        )
+        val inbox = task(2, "Bandeja").copy(createdAt = now)
+
+        val whatNowTop = WhatNowEngine.ordered(listOf(inbox, missed), now = now, zone = zone).firstOrNull()?.id
+        val widgetTop = TaskRules.nextBestTask(listOf(inbox, missed), now = now, zone = zone)?.id
+
+        assertEquals(whatNowTop, widgetTop)
+        assertEquals(1L, widgetTop)
+    }
+
 }

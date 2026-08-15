@@ -43,7 +43,9 @@ object TaskRules {
      * comparten esta lógica): lo que ocurre ahora mismo > atrasado > compromiso a
      * punto de empezar (inminente) > vence hoy > urgente > alta > bandeja; las
      * programadas para más tarde quedan al final.
-     * Desempate: prioridad, fecha límite más próxima, hora prevista, orden, creación.
+     * Desempate: prioridad, compromiso cuyo hueco ya pasó ([isMissedStart] — el
+     * usuario le dio hora y se le olvidó; dentro de su banda de urgencia + prioridad
+     * se recupera primero), fecha límite más próxima, hora prevista, orden, creación.
      */
     fun nextBestTask(
         tasks: List<TaskEntity>,
@@ -55,6 +57,7 @@ object TaskRules {
             .sortedWith(
                 compareByDescending<TaskEntity> { timeRank(it, now, zone) }
                     .thenByDescending { priorityScore(it.priority) }
+                    .thenByDescending { isMissedStart(it, now) }
                     .thenBy { it.dueAt ?: Long.MAX_VALUE }
                     .thenBy { it.startAt ?: Long.MAX_VALUE }
                     .thenBy { it.sortOrder }
@@ -132,10 +135,13 @@ object TaskRules {
      * le pasó. Sin esta señal cae al limbo: no es [isInProgressNow] (pasó la ventana),
      * no es [isImminentStart] (el inicio ya ocurrió), no es [isScheduledLater] (no es
      * futuro), y —si no tiene `dueAt` vencido— tampoco es [isOverdue]. En [timeRank]
-     * decae al rango de pura prioridad y compite como una tarea cualquiera de la
-     * bandeja: el compromiso agendado se vuelve invisible. Es justo el hueco de
-     * "recuperación de tareas olvidadas" en una superficie existente (el nudge del
-     * guardián), sin añadir pantallas.
+     * decae al rango de pura prioridad; sin este predicado competiría como una tarea
+     * cualquiera de la bandeja y el compromiso agendado se volvería invisible. Hoy lo
+     * usan dos superficies de recuperación (sin añadir pantallas): el nudge del
+     * guardián ([com.ordia.app.domain.GuardianEngine]) y el desempate de "qué hago
+     * ahora" ([WhatNowEngine.ordered]/[nextBestTask] la elevan dentro de su banda de
+     * urgencia + prioridad, y [WhatNowEngine] la etiqueta como "tenía su hueco y se
+     * pasó"). Es justo el hueco de "recuperación de tareas olvidadas".
      *
      * Partición con [isOverdue] (deliberada, no redundante): si la tarea ADEMÁS tiene
      * `dueAt` vencido, es `isOverdue` quien la señala (plazo incumplido > hueco

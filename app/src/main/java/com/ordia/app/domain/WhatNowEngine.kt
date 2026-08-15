@@ -10,6 +10,7 @@ enum class WhatNowReason {
     IN_PROGRESS_NOW,
     OVERDUE,
     IMMINENT_START,
+    MISSED_START,
     DUE_TODAY,
     URGENT,
     HIGH_PRIORITY,
@@ -63,6 +64,7 @@ object WhatNowEngine {
         tasks.filter { isCandidate(it) }.sortedWith(
             compareByDescending<TaskEntity> { TaskRules.timeRank(it, now, zone) }
                 .thenByDescending { TaskRules.priorityScore(it.priority) }
+                .thenByDescending { TaskRules.isMissedStart(it, now) }
                 .thenBy { it.dueAt ?: Long.MAX_VALUE }
                 .thenBy { it.startAt ?: Long.MAX_VALUE }
                 .thenBy { it.sortOrder }
@@ -74,6 +76,7 @@ object WhatNowEngine {
         WhatNowReason.IN_PROGRESS_NOW -> "ya está en curso"
         WhatNowReason.OVERDUE -> "está vencida"
         WhatNowReason.IMMINENT_START -> "empieza enseguida"
+        WhatNowReason.MISSED_START -> "tenía su hueco y se pasó"
         WhatNowReason.DUE_TODAY -> "vence hoy"
         WhatNowReason.URGENT -> "es urgente"
         WhatNowReason.HIGH_PRIORITY -> "es prioritaria"
@@ -89,6 +92,7 @@ object WhatNowEngine {
         isInProgressNow(task, now) -> WhatNowReason.IN_PROGRESS_NOW
         TaskRules.isOverdue(task, now) -> WhatNowReason.OVERDUE
         isImminentStart(task, now) -> WhatNowReason.IMMINENT_START
+        TaskRules.isMissedStart(task, now) -> WhatNowReason.MISSED_START
         TaskRules.isDueToday(task, now, zone) -> WhatNowReason.DUE_TODAY
         task.priority == TaskPriority.URGENT -> WhatNowReason.URGENT
         task.priority == TaskPriority.HIGH -> WhatNowReason.HIGH_PRIORITY
