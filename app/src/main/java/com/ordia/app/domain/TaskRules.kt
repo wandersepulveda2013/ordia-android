@@ -252,9 +252,23 @@ object TaskRules {
             val translated = r + delta
             if (translated > now) translated else ReminderRules.defaultReminderAt(newDue, now)
         }
+        // Inicio past-safe (simétrico al reminder de arriba y a
+        // [RecurrenceEngine.pastSafeStart] c.189): el inicio trasladado
+        // (`startAt + delta`) se conserva cuando sigue siendo futuro. Si cae en
+        // el pasado (tarea vencida con antelación grande: el lead original es
+        // mayor que el tiempo hasta el nuevo vencimiento), conservarlo tal cual
+        // dejaría la tarea pospuesta como "inicio perdido" (isMissedStart) sin
+        // que el usuario la hubiese empezado, y GuardianEngine/WhatNowEngine la
+        // marcarían de inmediato. En ese caso se recae a un inicio útil futuro y
+        // <= dueAt (invariante de backup). Antes solo el recordatorio era
+        // past-safe (c.187/c.190); el inicio se trasladaba sin más.
+        val newStart = task.startAt?.let { s ->
+            val translated = s + delta
+            if (translated > now) translated else pastSafeStart(newDue, now, due - s)
+        }
         return task.copy(
             dueAt = newDue,
-            startAt = task.startAt?.plus(delta),
+            startAt = newStart,
             reminderAt = newReminder,
             updatedAt = now
         )
@@ -300,4 +314,27 @@ object TaskRules {
         startAt <= dueAt -> startAt
         else -> null
     }
+
+    /**
+     * Inicio past-safe para un pospuesto/reagendado cuyo `startAt` trasladado
+     * quedó en el pasado. Preserva la antelación preferida del usuario
+     * ([preferredLead]) cuando es posible; si no, reclampa a la mitad del tiempo
+     * restante hasta el vencimiento (piso de 1 min) para que la tarea nazca "a
+     * punto de empezar" en lugar de "ya perdida". Devuelve `null` si no queda
+     * ventana útil antes del vencimiento. Simétrico a
+     * [RecurrenceEngine.pastSafeStart] (c.189) y a [ReminderRules.defaultReminderAt].
+     * Garantiza `result <= dueAt` y `result > now` (o `null`).
+     */
+    private fun pastSafeStart(dueAt: Long, now: Long, preferredLead: Long): Long? {
+        val lead = preferredLead.coerceAtLeast(0L)
+        val ideal = dueAt - lead
+        if (ideal > now) return ideal
+        val remaining = dueAt - now
+        if (remaining <= MIN_START_LEAD_MS) return null
+        val clampedLead = minOf(lead, maxOf(MIN_START_LEAD_MS, remaining / 2))
+        val clamped = dueAt - clampedLead
+        return if (clamped > now) clamped else null
+    }
+
+    private const val MIN_START_LEAD_MS = 60_000L
 }

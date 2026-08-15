@@ -237,6 +237,48 @@ class TaskRulesTest {
             deferred.reminderAt == null || deferred.reminderAt!! > now)
     }
 
+    // --- Past-safe del INICIO al posponer (simétrico al reminder c.187/c.190 y a
+    // RecurrenceEngine.pastSafeStart c.189) ---
+    // Antes solo el recordatorio se hacía past-safe; el `startAt` se trasladaba
+    // por `delta` sin más. En una tarea vencida con antelación grande (p. ej.
+    // empieza 25 h antes del vencimiento), el inicio trasladado caía en el PASADO
+    // y la tarea pospuesta nacía como "inicio perdido" (isMissedStart) sin que el
+    // usuario la hubiese empezado todavía. El inicio debe quedar futuro (o nulo)
+    // y nunca posterior al vencimiento (invariante de backup startAt <= dueAt).
+
+    @Test
+    fun deferToNextDay_overdueWithLargeLead_startNeverPast() {
+        // Inicio 25 h antes del vencimiento; vencida por 2 días. Al posponer, el
+        // inicio trasladado (startAt + delta) cae en el pasado → la tarea nacería
+        // como "inicio perdido", igual que ocurría en RecurrenceEngine antes de c.189.
+        val start = DateRules.toEpochMillis(date.minusDays(3), LocalTime.of(9, 0), zone)
+        val due = DateRules.toEpochMillis(date.minusDays(2), LocalTime.of(10, 0), zone) // antelación 25 h
+        val now = DateRules.toEpochMillis(date, LocalTime.of(12, 0), zone)
+        val task = TaskEntity(id = 1, title = "Lead grande vencida", startAt = start, dueAt = due, durationMinutes = 60)
+        val deferred = TaskRules.deferToNextDay(task, now, zone)!!
+
+        assertTrue("El vencimiento pospuesto debe quedar en el futuro", deferred.dueAt!! > now)
+        assertTrue("El inicio pospuesto no debe caer en el pasado (inicio perdido)",
+            deferred.startAt == null || deferred.startAt!! > now)
+        if (deferred.startAt != null) {
+            assertTrue("startAt <= dueAt (invariante de backup)", deferred.startAt!! <= deferred.dueAt!!)
+        }
+    }
+
+    @Test
+    fun deferToNextDay_nonOverdueLargeLead_preservesStartOffset() {
+        // Tarea sana con antelación grande: el inicio trasladado sigue siendo
+        // futuro, así que se conserva el offset exacto (regresión del caso común).
+        val start = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        val due = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone) // antelación 1 h, sana
+        val now = DateRules.toEpochMillis(date.minusDays(1), LocalTime.of(12, 0), zone) // ayer
+        val task = TaskEntity(id = 1, title = "Sana con lead", startAt = start, dueAt = due, durationMinutes = 60)
+        val deferred = TaskRules.deferToNextDay(task, now, zone)!!
+
+        assertEquals(deferred.dueAt!! - 60 * 60_000L, deferred.startAt)
+        assertTrue(deferred.startAt!! > now)
+    }
+
     @Test
     fun completedRootCount_countsCompletedRootsAndExcludesSubtasks() {
         val root = TaskEntity(id = 1, title = "Raíz", completed = true)
