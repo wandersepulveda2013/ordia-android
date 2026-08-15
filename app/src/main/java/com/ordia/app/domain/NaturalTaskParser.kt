@@ -536,8 +536,16 @@ object NaturalTaskParser {
      * "quincenalmente", "todas las quincenas") para no robar la palabra a
      * parseRecurrence (que las mapea a WEEKLY x2); sin esa guarda la recurrencia
      * caería a NONE (regresión del otro run).
+     *
+     * El prefijo "fin de "/"a fin de " (con "la" opcional) se consume también:
+     * "fin de quincena"/"a fin de la quincena" son sinónimos cotidianos del hito de
+     * cierre de quincena (igual que "fin de mes" = cierre de mes). Antes el patrón
+     * solo tragaba "de quincena" y dejaba "a fin"/"fin" como residuo de título
+     * ("cobrar a fin de quincena" → título "cobrar a fin"). La fecha resolvía bien
+     * (próximo hito, igual que "la quincena" sin cualificar); el cambio solo limpia
+     * el título sin alterar la fecha.
      */
-    private val quincenaPattern = Regex("""(?i)\b(?:de\s+la\s+|de\s+|la\s+)?(primera|1ra|1\.?a|segunda|2da|2\.?a)?\s*quincena\b""")
+    private val quincenaPattern = Regex("""(?i)\b(?:(?:a\s+)?fin\s+de\s+(?:la\s+)?|de\s+la\s+|de\s+|la\s+)?(primera|1ra|1\.?a|segunda|2da|2\.?a)?\s*quincena\b""")
     private val quincenaRecurrencePattern = Regex("""(?i)\b(?:cada\s+quincena|quincenal(?:mente)?|todas\s+las\s+quincenas)\b""")
     /**
      * "esta semana" / "esta semana que viene": plazo blando de "antes de que acabe la

@@ -5607,6 +5607,53 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "fin de quincena" / "a fin de quincena" / "a fin de la quincena": sinónimo de cierre ---
+    // "fin de quincena"/"a fin de quincena" son sinónimos cotidianos del hito de cierre de
+    // quincena (como "fin de mes" = cierre de mes). Antes el patrón solo tragaba "de quincena"
+    // y dejaba "a fin"/"fin" como residuo de título ("cobrar a fin de quincena" → título
+    // "cobrar a fin"), pese a fechar bien. La fecha resuelve igual que "la quincena" sin
+    // cualificar (próximo hito: día 15 si <15, fin de mes si ≥15).
+    // now = 2026-07-29 (≥ 15) → fin de mes (31/7).
+
+    @Test fun aFinDeQuincenaLimpiaTituloYFechaProximoHito() {
+        val result = NaturalTaskParser.parse("Cobrar a fin de quincena", now, zone)
+        assertEquals("Cobrar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinDeLaQuincenaLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pagar a fin de la quincena", now, zone)
+        assertEquals("Pagar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDeQuincenaSinAInicialLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cobro fin de quincena", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDeLaQuincenaLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pago fin de la quincena", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinDeLaPrimeraQuincenaLimpiaYResuelveDia15() {
+        // "a fin de la primera quincena" conserva el cualificador (primera→día 15) y limpia
+        // el prefijo completo. hoy = 29/7 ≥ 15 → primera quincena rueda al 15/8.
+        val result = NaturalTaskParser.parse("Cobro a fin de la primera quincena", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinDeQuincenaRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Cobro a fin de quincena a las 18", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- "fines de semana" (plural) como recurrencia WEEKLY sábado+domingo ---
     // "cada fines de semana" / "los findes" expresa una tarea que se repite sábado Y
     // domingo. Antes "fines de semana" no coincidía con el patrón singular "fin de
