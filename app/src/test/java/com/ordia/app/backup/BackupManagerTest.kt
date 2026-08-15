@@ -800,6 +800,56 @@ class BackupManagerTest {
         val result = newManager(FakeBackupStore(otherData())).importBackup(backup)
         assertFalse("Una tarea mensual con codificación ordinal corrupta NO debe ser restaurable", result.success)
     }
+
+    @Test
+    fun restoreAceptaSesionAntiguaConActualMinutesCero() = runBlocking {
+        // c.219: la migración 5→6 añadió `actualMinutes` con `DEFAULT 0` (sin
+        // backfill). Las sesiones de enfoque COMPLETADAS que ya existían
+        // quedaron con `actualMinutes = 0` aunque `endedAt - startedAt > 0`.
+        // La validación de restore exigía `actualMinutes == (endedAt-startedAt)/60000`,
+        // así que un backup que contuviera UNA de esas sesiones antiguas era
+        // IRRESTAURABLE: el usuario perdía TODO (tareas, notas, hábitos…) al
+        // migrar a un teléfono nuevo. Esta prueba ancla que una sesión legítima
+        // con `actualMinutes` subcontado DEBE ser restaurable (datos sagrados).
+        val withOldSession = sampleData().copy(
+            focusSessions = listOf(
+                FocusSessionEntity(
+                    id = 5, taskId = 2,
+                    startedAt = 1000L, endedAt = 1000L + 25 * 60_000L,
+                    plannedMinutes = 25, actualMinutes = 0, // migración: default 0
+                    completed = true
+                )
+            )
+        )
+        val origin = newManager(FakeBackupStore(withOldSession))
+        val backup = origin.exportJson()
+        val result = newManager(FakeBackupStore(otherData())).importBackup(backup)
+        assertTrue("Una sesión antigua (actualMinutes=0) NO debe bloquear la restauración", result.success)
+    }
+
+    @Test
+    fun restoreRechazaSesionConTiempoFabricado() = runBlocking {
+        // c.219: el fix relaja el invariante a `actualMinutes in 0..measured`
+        // para no rechazar sesiones antiguas/subcontadas, PERO debe seguir
+        // rechazando tiempo FABRICADO: `actualMinutes` mayor que el wall-clock
+        // transcurrido sería inflar minutos de enfoque (XP/guardián) de
+        // fuentes no confiables. Esta prueba protege el invariante
+        // anti-corrupción que la relajación preserva.
+        val fabricated = sampleData().copy(
+            focusSessions = listOf(
+                FocusSessionEntity(
+                    id = 5, taskId = 2,
+                    startedAt = 1000L, endedAt = 1000L + 10 * 60_000L, // 10 min reales
+                    plannedMinutes = 25, actualMinutes = 999, // fabricado: 999 > 10
+                    completed = true
+                )
+            )
+        )
+        val origin = newManager(FakeBackupStore(fabricated))
+        val backup = origin.exportJson()
+        val result = newManager(FakeBackupStore(otherData())).importBackup(backup)
+        assertFalse("Una sesión con actualMinutes > duración real NO debe ser restaurable", result.success)
+    }
 }
 
 private fun UserPreferences.toTestJson(): JSONObject = JSONObject()

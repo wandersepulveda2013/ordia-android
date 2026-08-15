@@ -480,8 +480,15 @@ private fun validateRelationships(data: RestoreData) {
         if (session.endedAt == null) {
             require(session.actualMinutes == 0) { "Una sesión abierta contiene tiempo realizado." }
         } else {
+            // `actualMinutes` puede ser MENOR que el wall-clock transcurrido sin ser
+            // corrupción: la migración 5→6 añadió la columna con `DEFAULT 0` y sin
+            // backfill, así que las sesiones completadas previas quedaron en 0 pese a
+            // tener duración real. Exigir igualdad estricta hacía IRRESTAURABLE
+            // cualquier backup con una de esas sesiones (pérdida total al cambiar de
+            // dispositivo). El invariante que sí se protege es el anti-fabricación:
+            // el tiempo registrado nunca puede EXCEDER el wall-clock (inflar enfoque).
             val measured = ((session.endedAt - session.startedAt) / 60_000L).toInt().coerceAtLeast(0)
-            require(session.actualMinutes == measured) { "El tiempo registrado de una sesión no coincide con su duración real." }
+            require(session.actualMinutes in 0..measured) { "El tiempo registrado de una sesión excede su duración real." }
         }
     }
     data.routines.forEach { routine -> require(routine.createdAt <= routine.updatedAt) { "Una rutina fue actualizada antes de ser creada." } }
