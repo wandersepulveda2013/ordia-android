@@ -409,6 +409,41 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // "cada N minutos" (medicación sub-horaria: "cada 30 minutos", "cada 15 minutos",
+    // "cada 20 minutos"): cadencia más fina que "cada hora". El motor no repite por
+    // minuto, así que —igual que "cada 8 horas"— se saca la primera dosis a la superficie
+    // venciendo AHORA (aviso real, What Now) sin fingir recurrencia inexistente. Antes la
+    // duración "N minutos" robaba el número (p. ej. 30 min falsos) y la tarea nacía SIN
+    // vencimiento → recordatorio jamás disparaba, gárgaras/gotas olvidadas (P1). El título
+    // queda limpio y la duración NO debe robar "N minutos".
+    @Test fun cadaNMinutosSubDiarioVenceAhora() {
+        val result = NaturalTaskParser.parse("Gárgaras cada 30 minutos", now, zone)
+        assertEquals("Gárgaras", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertNotNull("La primera dosis debe tener vencimiento (no olvidada)", result.dueAt)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun cada15MinutosSubDiarioVenceAhora() {
+        val result = NaturalTaskParser.parse("Gotas cada 15 minutos", now, zone)
+        assertEquals("Gotas", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    // "cada cuarto de hora" = cada 15 min: forma idiomática sin dígitos, simétrica de
+    // "cada media hora". Misma clase de olvido: antes la duración robaba "cuarto de hora"
+    // y la tarea nacía sin vencimiento. Se saca la primera dosis venciendo ahora.
+    @Test fun cadaCuartoDeHoraSubDiarioVenceAhora() {
+        val result = NaturalTaskParser.parse("Enjuague cada cuarto de hora", now, zone)
+        assertEquals("Enjuague", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
     @Test fun cadaHoraConHoraExplicitaUsaLaHora() {
         val result = NaturalTaskParser.parse("Jarabe cada hora a las 3pm", now, zone)
         assertEquals("Jarabe", result.title)
@@ -554,6 +589,57 @@ class NaturalTaskParserTest {
     @Test fun adjetivoSemestralParsesMonthlyInterval6() {
         val result = NaturalTaskParser.parse("Cierre semestral", now, zone)
         assertEquals("Cierre", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(6, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // Adjetivo plurimensual faltante: "cuatrimestral" (4 meses, p. ej. "informe
+    // cuatrimestral"). Simétrico a bimestral/trimestral/semestral que ya funcionan.
+    // Antes caía a NONE → el compromiso de 4 meses nacía sin cadencia ni vencimiento
+    // (P1: plazo olvidado, recordatorio jamás disparaba). MONTHLY + interval=4.
+    @Test fun adjetivoCuatrimestralParsesMonthlyInterval4() {
+        val result = NaturalTaskParser.parse("Informe cuatrimestral", now, zone)
+        assertEquals("Informe", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(4, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // Sustantivos plurimensuales como CADENCIA recurrente ("cada bimestre/trimestre/
+    // cuatrimestre/semestre"): hitos financieros de plazo largo (renta, impuestos,
+    // declaraciones). `intervalPattern` solo admite "días|semanas|meses|años", así que
+    // estas frases caían a NONE → la tarea recurrente nacía sin fecha ni cadencia
+    // (P1: compromiso periódico olvidado, invisible en What Now/planificador). Se
+    // mapean a MONTHLY + intervalo (2/3/4/6), igual que el adjetivo equivalente, sin
+    // añadir enum ni migración: RecurrenceEngine ya avanza plusMonths(interval).
+    @Test fun cadaBimestreParsesMonthlyInterval2() {
+        val result = NaturalTaskParser.parse("Renta cada bimestre", now, zone)
+        assertEquals("Renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun cadaTrimestreParsesMonthlyInterval3() {
+        val result = NaturalTaskParser.parse("Impuestos cada trimestre", now, zone)
+        assertEquals("Impuestos", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun cadaCuatrimestreParsesMonthlyInterval4() {
+        val result = NaturalTaskParser.parse("Declaración cada cuatrimestre", now, zone)
+        assertEquals("Declaración", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(4, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun cadaSemestreParsesMonthlyInterval6() {
+        val result = NaturalTaskParser.parse("Renovación cada semestre", now, zone)
+        assertEquals("Renovación", result.title)
         assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
         assertEquals(6, result.recurrenceInterval)
         assertNotNull(result.dueAt)

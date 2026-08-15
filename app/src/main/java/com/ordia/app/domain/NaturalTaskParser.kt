@@ -2772,6 +2772,28 @@ object NaturalTaskParser {
             return RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), phrases, immediateDueAt = now)
         }
 
+        // "cada N minutos" y "cada cuarto de hora" (=cada 15 min): cadencia sub-horaria
+        // común en medicación (gárgaras, gotas, enjuagues). El motor no repite por minuto,
+        // así que —igual que "cada N horas"— se saca la primera dosis a la superficie
+        // venciendo AHORA (aviso real, What Now) sin fingir recurrencia inexistente. Antes
+        // la duración "N minutos" robaba el número (p. ej. 30 min falsos) y "cada" quedaba
+        // como residuo en el título; la tarea nacía SIN vencimiento → recordatorio jamás
+        // disparaba, dosis olvidada (P1). La frase se añade a `phrases` para limpiar el
+        // título y evitar que la duración robe "N minutos"/"cuarto de hora". Se evalúa
+        // tras hourlyIntervalPattern (éstas no casan ahí: la unidad es "minutos"/"cuarto")
+        // y antes de everyOtherDay. "cada cuarto de hora" se evalúa primero: "cuarto de
+        // hora" sin "cada" es duración, así que el prefijo "cada " lo acota a cadencia.
+        Regex("""(?i)\bcada\s+(?:un\s+)?cuarto\s+de\s+horas?\b""").find(working)?.let { match ->
+            phrases += match.range
+            return RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), phrases, immediateDueAt = now)
+        }
+        val minuteIntervalPattern =
+            Regex("""(?i)\bcada\s+(\d{1,3}|$writtenNumberGroup)\s*(minutos?|mins?)\b""")
+        minuteIntervalPattern.find(working)?.let { match ->
+            phrases += match.range
+            return RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), phrases, immediateDueAt = now)
+        }
+
         // "cada otro día" / "un día sí y otro no" = cada dos días (DAILY interval=2).
         // Son los equivalentes idiomáticos de "cada dos días" (que sí casa arriba en
         // intervalPattern): "cada otro día" (calque de "every other day", muy usado en
@@ -2806,18 +2828,44 @@ object NaturalTaskParser {
             return RecurrenceResult(RecurrenceFrequency.WEEKLY, 2, emptyList(), phrases)
         }
 
+        // Sustantivos plurimensuales como CADENCIA recurrente: "cada bimestre",
+        // "cada trimestre", "cada cuatrimestre", "cada semestre". Hitos financieros
+        // de plazo largo (renta, impuestos, declaraciones, renovaciones). `intervalPattern`
+        // solo admite "días|semanas|meses|años", así estas frases caían a NONE → la tarea
+        // recurrente nacía sin fecha ni cadencia (P1: compromiso periódico olvidado,
+        // invisible en What Now/planificador, recordatorio jamás disparaba) y "cada X"
+        // quedaba como residuo literal en el título. Se mapean a MONTHLY + intervalo
+        // (2/3/4/6), igual que el adjetivo equivalente, sin añadir enum ni migración:
+        // RecurrenceEngine ya avanza `plusMonths(interval)`. El prefijo "cada" es
+        // obligatorio: "próximo bimestre"/"el bimestre que viene"/"en un bimestre" son
+        // FECHAS únicas (resueltas en la cascada de períodos) y no deben capturarse aquí.
+        // Se procesa ANTES que multiMonthAdjective y fixedPatterns para limpiar el título.
+        val multiMonthNounPattern =
+            Regex("""(?i)\bcada\s+(bimestres?|trimestres?|cuatrimestres?|semestres?)\b""")
+        multiMonthNounPattern.find(working)?.let { match ->
+            val months = when {
+                match.value.contains(Regex("""(?i)cuatrimestre""")) -> 4
+                match.value.contains(Regex("""(?i)semestre""")) -> 6
+                match.value.contains(Regex("""(?i)trimestre""")) -> 3
+                else -> 2 // bimestre
+            }
+            phrases += match.range
+            return RecurrenceResult(RecurrenceFrequency.MONTHLY, months, emptyList(), phrases)
+        }
+
         // Adjetivos plurimensuales cotidianos en español: "pago bimestral",
-        // "impuesto trimestral", "cierre semestral". Son hitos financieros de plazo
-        // largo tan comunes como el propio "mensual". Antes estas formas adjetivas
-        // caían a NONE (la única vía era el numeral "cada 2/3/6 meses"): la tarea
-        // recurrente nacía sin cadencia → vencimiento invisible, recordatorio jamás
-        // disparaba (P1: compromiso periódico olvidado). Se reutilizan MONTHLY +
-        // intervalo (2=bimestral, 3=trimestral, 6=semestral): RecurrenceEngine ya
-        // avanza `plusMonths(interval)`, sin añadir enum ni migración. Se procesa
-        // ANTES que fixedPatterns porque aquél solo admite interval=1.
+        // "impuesto trimestral", "cierre semestral", "informe cuatrimestral". Son hitos
+        // financieros de plazo largo tan comunes como el propio "mensual". Antes estas
+        // formas adjetivas caían a NONE (la única vía era el numeral "cada 2/3/4/6 meses"):
+        // la tarea recurrente nacía sin cadencia → vencimiento invisible, recordatorio
+        // jamás disparaba (P1: compromiso periódico olvidado). Se reutilizan MONTHLY +
+        // intervalo (2=bimestral, 3=trimestral, 4=cuatrimestral, 6=semestral):
+        // RecurrenceEngine ya avanza `plusMonths(interval)`, sin añadir enum ni migración.
+        // Se procesa ANTES que fixedPatterns porque aquél solo admite interval=1.
         val multiMonthAdjective = listOf(
             Regex("""(?i)\bbimestral(?:mente)?\b""") to 2,
             Regex("""(?i)\btrimestral(?:mente)?\b""") to 3,
+            Regex("""(?i)\bcuatrimestral(?:mente)?\b""") to 4,
             Regex("""(?i)\bsemestral(?:mente)?\b""") to 6
         )
         multiMonthAdjective.forEach { (pattern, months) ->
