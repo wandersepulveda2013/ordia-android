@@ -41,14 +41,15 @@ object GuardianCoach {
         }
 
         if (overdue.isNotEmpty()) {
-            val next = TaskRules.nextBestTask(overdue, now)
+            val bestTask = TaskRules.nextBestTask(overdue, now)
+            val next = bestTask?.task
             return Insight(
                 eyebrow = "RECUPERA EL CONTROL",
                 title = next?.title ?: "Hay algo pendiente",
-                message = if (overdue.size == 1) {
-                    "Esta tarea está atrasada. Empieza con un bloque corto y vuelve a poner el día en movimiento."
+                message = bestTask?.reason ?: if (overdue.size == 1) {
+                    "Haz esto ahora porque esta tarea está atrasada. Empieza con un bloque corto y vuelve a poner el día en movimiento."
                 } else {
-                    "Tienes ${overdue.size} tareas atrasadas. No intentes resolverlas todas: comienza por esta."
+                    "Haz esto ahora porque tienes ${overdue.size} tareas atrasadas. No intentes resolverlas todas: comienza por esta."
                 },
                 taskId = next?.id,
                 tone = Tone.GENTLE
@@ -57,23 +58,25 @@ object GuardianCoach {
 
         val urgentToday = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
         if (urgentToday.isNotEmpty()) {
-            val next = TaskRules.nextBestTask(urgentToday, now)
+            val bestTask = TaskRules.nextBestTask(urgentToday, now)
+            val next = bestTask?.task
             return Insight(
                 eyebrow = "PROTEGE TU DÍA",
                 title = next?.title ?: "Prioridad de hoy",
-                message = "Es lo más importante para hoy. Reserva tiempo antes de llenar el resto de la agenda.",
+                message = bestTask?.reason ?: "Es lo más importante para hoy. Reserva tiempo antes de llenar el resto de la agenda.",
                 taskId = next?.id,
                 tone = Tone.FOCUSED
             )
         }
 
-        val next = TaskRules.nextBestTask(pending, now)
+        val bestTask = TaskRules.nextBestTask(pending, now)
+        val next = bestTask?.task
         if (next != null) {
             return Insight(
                 eyebrow = "SIGUIENTE PASO",
                 title = next.title,
                 message = next.details.takeIf { it.isNotBlank() }
-                    ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
+                    ?: bestTask?.reason ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
                 taskId = next.id,
                 tone = Tone.FOCUSED
             )
