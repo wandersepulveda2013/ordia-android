@@ -56,6 +56,7 @@ import com.ordia.app.data.repository.RoutineRepository
 import com.ordia.app.data.repository.TagRepository
 import com.ordia.app.data.repository.TaskRepository
 import com.ordia.app.domain.CommitmentReminderSync
+import com.ordia.app.domain.CommitmentRules
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayPlanner
 import com.ordia.app.domain.GuardianCoach
@@ -1419,6 +1420,13 @@ class OrdiaViewModel(
         if (commitment.reviewStatus != CommitmentReviewStatus.PENDING) return@launch
         val parsed = NaturalTaskParser.parse(commitment.action)
         val now = System.currentTimeMillis()
+        // Recordatorio past-safe (c.304): un compromiso vencido (4.º olvido) tiene
+        // suggestedReminderAt y dueAt en el pasado; armarlos dispara con delay 0 =
+        // notificación espuria al convertir. CommitmentRules decide el aviso útil
+        // (nunca pasado), reusando la fuente única ReminderRules.defaultReminderAt,
+        // cerrando la familia past-safe (c.164/183/187/188/189) en la conversión
+        // del propio 4.º olvido (c.286-c.303).
+        val reminderAt = CommitmentRules.reminderForConvertedTask(commitment, now)
         val task = TaskEntity(
             title = parsed.title,
             details = buildString {
@@ -1427,7 +1435,7 @@ class OrdiaViewModel(
                 if (commitment.location.isNotBlank()) append("\nLugar: ${commitment.location}")
             },
             dueAt = commitment.dueAt,
-            reminderAt = commitment.suggestedReminderAt,
+            reminderAt = reminderAt,
             durationMinutes = parsed.durationMinutes ?: 25,
             priority = parsed.priority,
             status = if (commitment.dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED,

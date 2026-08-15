@@ -35,4 +35,52 @@ object CommitmentRules {
             .filter { isOverduePending(it, now) }
             .sortedBy { it.dueAt!! }
             .toList()
+
+    /**
+     * Recordatorio past-safe para la tarea creada al convertir un compromiso
+     * ([com.ordia.app.ui.OrdiaViewModel.convertCommitmentToTask]).
+     *
+     * El cableado viejo hacía `reminderAt = commitment.suggestedReminderAt` a
+     * ciegas y luego `reminderScheduler.schedule(task)`, cuyo disparador es
+     * `reminderAt ?: dueAt`. Para un compromiso **vencido** (el 4.º olvido de
+     * Ordía) ambos son pasados → [ReminderScheduler] agenda con `delay 0` y la
+     * notificación disparaba AL CONVERTIR, sin margen y sin sentido: la tarea
+     * nace vencida. Esa familia past-safe se cerró en TODAS las demás
+     * superficies (c.164 default, c.183 editor, c.187/c.188 automatización,
+     * c.189 recurrencia) MENOS aquí, en la conversión del propio 4.º olvido
+     * (c.286-c.303 endurecieron 5 superficies de recuperación; ésta faltaba).
+     *
+     * Reglas (deterministas, sin IA, fuente única [ReminderRules.defaultReminderAt]):
+     * - `dueAt` pasado o == `now` → `null`. La tarea nace vencida; las 5
+     *   superficies de recuperación (asistente, nudge, insight, resumen,
+     *   planificador) ya la señalan. Armar un aviso pasado es ruido (se dispara
+     *   al instante) y `ReminderSync.triggers` lo descartaría de todos modos.
+     * - `dueAt` futuro + `suggestedReminderAt` futuro → se conserva (respeta el
+     *   offset explícito que extrajo el parser de la conversación, igual que el
+     *   editor conserva el offset cuando el vencimiento no cambia, c.183).
+     * - `dueAt` futuro + `suggestedReminderAt` pasado o ausente →
+     *   [ReminderRules.defaultReminderAt] ("30 min antes" o recortado nunca-pasado):
+     *   no se conserva un aviso inútil/pasado; simétrico con la rama "translated
+     *   pasado" del editor. Mejora además al cableado viejo, que sin aviso
+     *   sugerido agendaba al `dueAt` mismo (aviso AL vencer, sin margen).
+     * - Sin `dueAt` (la tarea nace INBOX) + `suggestedReminderAt` futuro → se
+     *   conserva (un aviso sin vencimiento pero con hora concreta sigue siendo
+     *   útil). Pasado o ausente → `null`.
+     *
+     * Regla pura; el llamador persiste y agenda. No muta [commitment].
+     */
+    fun reminderForConvertedTask(commitment: CommitmentEntity, now: Long): Long? {
+        val dueAt = commitment.dueAt
+        val suggested = commitment.suggestedReminderAt
+        if (dueAt == null) {
+            // Sin vencimiento: un aviso sugerido futuro es útil; pasado o ausente, no.
+            return if (suggested != null && suggested > now) suggested else null
+        }
+        // Vencido (o justo ahora): la tarea nace atrasada, no se arma un aviso pasado.
+        if (dueAt <= now) return null
+        // Vencimiento futuro: conserva el offset del usuario si aún es futuro.
+        if (suggested != null && suggested > now) return suggested
+        // Sin offset útil: default adaptativo nunca-pasado (fuente única).
+        return ReminderRules.defaultReminderAt(dueAt, now)
+    }
 }
