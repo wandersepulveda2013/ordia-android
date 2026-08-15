@@ -28,9 +28,14 @@ object AutomationActionPlanner {
         now: Long = System.currentTimeMillis(),
         zone: ZoneId = ZoneId.systemDefault()
     ): AutomationPlan {
-        val active = tasks.filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
-        val overdue = active.filter { TaskRules.isOverdue(it, now) && it.parentTaskId == null }
-        val quick = active.filter { it.durationMinutes <= 10 && it.parentTaskId == null }
+        // Solo tareas raíz (parentTaskId == null): las subtareas son anidadas y
+        // contarlas además del padre infla los conteos y dispara condiciones de
+        // automatización sin tareas raíz reales (p. ej. HAS_INBOX_TASKS cierto por
+        // una subtarea con dueAt == null). Misma fuente única de verdad que
+        // WhatNowEngine, GuardianEngine, SummaryEngine y DayPlanner.
+        val active = tasks.filter { TaskRules.isActive(it) && it.parentTaskId == null }
+        val overdue = active.filter { TaskRules.isOverdue(it, now) }
+        val quick = active.filter { it.durationMinutes <= 10 }
         val conditionMet = when (rule.condition) {
             AutomationCondition.ALWAYS -> true
             AutomationCondition.HAS_OVERDUE_TASKS -> overdue.isNotEmpty()

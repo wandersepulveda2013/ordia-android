@@ -399,6 +399,31 @@ class AutomationActionPlannerTest {
     }
 
     @Test
+    fun `has_inbox_tasks no se cumple si solo hay subtareas sin due`() {
+        // c.219: la condición HAS_INBOX_TASKS inflaba con subtareas. `active` no
+        // filtraba parentTaskId == null, así una subtarea con dueAt == null (sin
+        // vencimiento propio, muy común en subtareas que heredan del padre) hacía
+        // que `active.any { it.status == INBOX || it.dueAt == null }` fuera cierto
+        // aunque NO hubiera ninguna tarea raíz de bandeja. La automatización
+        // "si hay tareas en bandeja, planifica el día" se disparaba sin tareas
+        // raíz reales que planificar. Misma clase de inflación por subtareas que
+        // AssistantEngine (c.218): debe contar solo raíces, como WhatNowEngine,
+        // GuardianEngine, SummaryEngine y DayPlanner.
+        val subtaskNoDue = task(2, durationMinutes = 30, status = TaskStatus.INBOX, dueAt = null)
+            .copy(parentTaskId = 1L)
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.PLAN_DAY, AutomationCondition.HAS_INBOX_TASKS),
+            listOf(subtaskNoDue),
+            0, now, zone
+        )
+        assertFalse("Sin tareas raíz en bandeja la condición no debe cumplirse", plan.matched)
+        assertTrue(
+            "El mensaje debe indicar que la condición no se cumple, no planificar",
+            plan.message.contains("no se cumple")
+        )
+    }
+
+    @Test
     fun `plan_day arrancado tarde no escribe slots en el pasado`() {
         // c.209: si PLAN_DAY se dispara a las 11:00, antes arrancaba los slots a las
         // 09:00 (pasado). Una tarea de bandeja quedaba con startAt 09:00 → "inicio
