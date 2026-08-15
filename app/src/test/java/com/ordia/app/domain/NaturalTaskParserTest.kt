@@ -498,29 +498,31 @@ class NaturalTaskParserTest {
     // Recurrencia quincenal con palabra (no dígito): "cada quincena", "quincenalmente".
     // Antes `intervalPattern` (que solo admite dígitos) no casaba, la recurrencia caía
     // a NONE y la tarea nacía SIN fecha (invisible en What Now/planificador, recordatorio
-    // jamás disparaba). Ahora se mapea a WEEKLY interval=2 (cada 2 semanas ≈ quincena).
-    @Test fun cadaQuincenaParsesBiweeklyRecurrence() {
+    // jamás disparaba). Una quincena son 15 días (media mes), no 14 (dos semanas): el
+    // mapeo histórico a WEEKLY interval=2 programaba los pagos un día antes cada ciclo.
+    // Ahora se mapea a DAILY interval=15 (cadencia quincenal exacta, plusDays(15)).
+    @Test fun cadaQuincenaParsesQuincenalRecurrence() {
         val result = NaturalTaskParser.parse("Nómina cada quincena", now, zone)
         assertEquals("Nómina", result.title)
-        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
-        assertEquals(2, result.recurrenceInterval)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(15, result.recurrenceInterval)
         assertNotNull(result.dueAt)
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
-    @Test fun quincenalmenteParsesBiweeklyRecurrence() {
+    @Test fun quincenalmenteParsesQuincenalRecurrence() {
         val result = NaturalTaskParser.parse("Reporte quincenalmente a las 9", now, zone)
         assertEquals("Reporte", result.title)
-        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
-        assertEquals(2, result.recurrenceInterval)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(15, result.recurrenceInterval)
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
     @Test fun cadaQuincenaRespetaFechaExplicita() {
         val result = NaturalTaskParser.parse("Cobro cada quincena el 15/8", now, zone)
-        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
-        assertEquals(2, result.recurrenceInterval)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(15, result.recurrenceInterval)
         // La fecha explícita tiene prioridad sobre el anclaje a la fecha de captura.
         assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
     }
@@ -555,11 +557,11 @@ class NaturalTaskParserTest {
         assertNotNull(result.dueAt)
     }
 
-    @Test fun adjetivoQuincenalParsesBiweeklyRecurrence() {
+    @Test fun adjetivoQuincenalParsesQuincenalRecurrence() {
         val result = NaturalTaskParser.parse("Reporte quincenal", now, zone)
         assertEquals("Reporte", result.title)
-        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
-        assertEquals(2, result.recurrenceInterval)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(15, result.recurrenceInterval)
         assertNotNull(result.dueAt)
     }
 

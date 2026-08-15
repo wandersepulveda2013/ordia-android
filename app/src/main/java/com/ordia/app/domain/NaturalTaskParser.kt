@@ -3116,17 +3116,17 @@ object NaturalTaskParser {
 
         // "cada quincena" / "quincenalmente" / "quincenal" (adjetivo) / "todas las
         // quincenas": cadencia quincenal cotidiana en español (nóminas, pagos,
-        // reportes cada 15 días). `intervalPattern` solo admite dígitos ("cada 2
-        // semanas"), así que la forma con palabra "quincena" caía a NONE y la tarea
-        // recurrente nacía sin fecha (invisible en What Now/planificador, recordatorio
-        // jamás disparaba). La forma ADJETIVA ("pago quincenal", "reunión
-        // quincenal") tampoco casaba: solo se reconocía el adverbio "quincenalmente".
-        // Ahora el adjetivo "quincenal" (sin "-mente") también genera la cadencia.
-        // Se mapea a WEEKLY interval=2 (cada 2 semanas ≈ quincena) sin añadir enum ni
-        // migración: representación honesta y reutiliza el avance semanal existente.
+        // reportes cada 15 días). Una quincena son 15 días (media mes), NO 14 (dos
+        // semanas): antes se mapeaba a WEEKLY interval=2 (cada 2 semanas ≈ quincena),
+        // lo que programaba los pagos un día antes en cada ciclo y derivaba 1 día por
+        // quincena — error real de planificación para nóminas/rentas/pagos. Ahora se
+        // mapea a DAILY interval=15 (avance plusDays(15), cadencia quincenal exacta),
+        // sin añadir enum ni migración. La forma con lista de días ("cada quincena
+        // los lunes") sigue siendo semanal (detectWeekInterval): ahí "quincena" actúa
+        // como "cada dos semanas" sobre días concretos, no como período de 15 días.
         Regex("""(?i)\b(?:cada\s+quincena|quincenal(?:mente)?|todas\s+las\s+quincenas)\b""").find(working)?.let { match ->
             phrases += match.range
-            return RecurrenceResult(RecurrenceFrequency.WEEKLY, 2, emptyList(), phrases)
+            return RecurrenceResult(RecurrenceFrequency.DAILY, 15, emptyList(), phrases)
         }
 
         // Sustantivos plurimensuales como CADENCIA recurrente: "cada bimestre",
