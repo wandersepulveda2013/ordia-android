@@ -91,7 +91,23 @@ object CommitmentEngine {
         // asumir un compromiso y se dicen SIN pronombre "yo" ("¿Quién llama?"
         // → "me encargo"). Exigir "yo me encargo" dejaba estos compromisos sin
         // detectar (falso negativo: olvido). El pronombre es opcional. (c.278)
-        """(?i)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|despu[eé]s\s+te\s+respondo|voy\s+a|debo|tengo\s+que|terminar[eé]|har[eé]|lo\s+hago)\b"""
+        //
+        // c.305: formas de presente de 1ª persona con valor de futuro — las más
+        // frecuentes en chat real y antes NO detectadas ("te paso el informe
+        // mañana", "lo termino el viernes", "lo entrego mañana", "lo reviso y te
+        // aviso", "te lo mando el lunes", "lo preparo para mañana"). El español
+        // expresa compromisos futuros con presente + fecha mucho más a menudo que
+        // con futuro ("terminaré"). Cada forma exige un pronombre de objeto
+        // directo/indirecto ("lo/la/los/las", "te", "te lo"...) para mantener
+        // precisión alta: un verbo pelado ("termino" en "termino la frase") es
+        // ambiguo, pero "lo termino"/"te paso" con objeto es un compromiso claro
+        // de hacer algo con/con para alguien. La guarda de negación
+        // [hasUnnegatedCommitment] sigue aplicándose: "no te paso nada",
+        // "no lo entrego" se excluyen igual que "no te llamo"/"no lo hago" (c.279).
+        // Como todo compromiso, nace como draft PENDING que el usuario revisa
+        // antes de convertir en tarea: un falso positivo se descarta, un falso
+        // negativo es un olvido real (la cuarta clase de olvido de Ordía).
+        """(?i)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|despu[eé]s\s+te\s+respondo|voy\s+a|debo|tengo\s+que|terminar[eé]|har[eé]|lo\s+hago|te\s+(?:paso|mando)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o))\b"""
     )
     private val locationSignal = Regex(
         """(?i)\b(?:lugar\s*:\s*|(?:nos\s+vemos|reuni[oó]n|cita)[^.!?\n]{0,80}?\ben\s+)([\p{L}\d][\p{L}\d .,'-]{2,50})"""

@@ -212,6 +212,87 @@ class CommitmentEngineTest {
         assertEquals(CommitmentKind.SELF_COMMITMENT, result[0].kind)
     }
 
+    // c.305: el español expresa compromisos futuros sobre todo con presente de
+    // 1ª persona + objeto ("te paso el informe mañana", "lo termino el viernes",
+    // "lo entrego mañana", "te lo mando el lunes"). Antes sólo se detectaban las
+    // formas con futuro ("terminaré") o "te envío"/"te llamo"/"lo hago"; las más
+    // frecuentes en chat real pasaban desapercibidas → cuarta clase de olvido.
+    // Verificado por probe JVM: 14/15 formas comunes eran MISSED pre-fix.
+    @Test
+    fun detectsFirstPersonPresentCommitmentsWithObjectPronoun() {
+        val positives = listOf(
+            "manana te paso el informe",
+            "te paso el documento el lunes",
+            "lo termino el viernes",
+            "lo entrego manana",
+            "lo envio hoy",
+            "lo reviso y te aviso",
+            "manana lo reviso y te lo paso",
+            "el viernes lo termino",
+            "te lo mando el lunes",
+            "lo subo al repo hoy",
+            "lo arreglo despues",
+            "lo dejo listo el martes",
+            "lo preparo para manana"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "pres-$text"
+            )
+            assertTrue("presente de 1ª persona con objeto DEBE detectarse: \"$text\"", result.isNotEmpty())
+            assertEquals(CommitmentOwner.SELF, result[0].owner)
+        }
+    }
+
+    // c.305: las nuevas formas presentes se benefician de la misma guarda de
+    // negación que el resto (c.279): "no te paso nada", "no lo entrego" son
+    // NEGATIVAS, no compromisos. Verificado por probe JVM: 6/6 negativas
+    // correctamente excluidas.
+    @Test
+    fun presentTenseCommitmentFormsRespectDirectNegation() {
+        val negatives = listOf(
+            "no te paso nada",
+            "no lo entrego",
+            "no lo termino hoy",
+            "no te lo mando",
+            "no te mando nada",
+            "no lo reviso"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "pres-neg-$text"
+            )
+            assertEquals("una negativa presente NO debe generar draft: \"$text\"", 0, result.size)
+        }
+    }
+
+    // c.305: precisión — un verbo pelado sin pronombre de objeto ("termino la
+    // frase", "mando la carta", "reviso el correo") es ambiguo y NO debe
+    // disparar. El pronombre ("lo/la/te/te lo") es el desambiguador. Verificado
+    // por probe JVM: 6/7 neutras correctamente NO detectadas.
+    @Test
+    fun barePresentVerbsWithoutObjectPronounAreNotFlagged() {
+        val innocent = listOf(
+            "termino la frase y me voy",
+            "el tren llega tarde",
+            "mando la carta al correo",
+            "reviso el correo cada manana",
+            "paso por tu casa sin avisar"
+        )
+        innocent.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "pres-bare-$text"
+            )
+            assertEquals("verbo pelado sin objeto NO debe disparar: \"$text\"", 0, result.size)
+        }
+    }
+
     @Test
     fun blocksFinancialAndCryptoContentThatEscapedNotificationsGate() {
         // Estos contenidos llegan vía SMS/mensajería (paquete no bancario): pasan el
