@@ -23,6 +23,7 @@ import com.ordia.app.data.local.TaskDao
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskTagCrossRef
 import com.ordia.app.data.local.TaskTagDao
+import com.ordia.app.data.local.TaskTree
 import com.ordia.app.data.local.CaptureDao
 import com.ordia.app.data.local.CaptureDraftEntity
 import com.ordia.app.data.local.CaptureEntity
@@ -48,8 +49,10 @@ class TaskRepository(private val dao: TaskDao) {
     suspend fun addAll(tasks: List<TaskEntity>): List<Long> = dao.insertAll(tasks)
     suspend fun update(task: TaskEntity) = dao.update(task)
     suspend fun delete(task: TaskEntity) = dao.delete(task)
-    suspend fun archive(id: Long) = dao.archive(id)
-    suspend fun restore(id: Long) = dao.restore(id)
+    suspend fun archive(id: Long) = dao.archiveSubtree(id)
+    suspend fun restore(id: Long) = dao.restoreSubtree(id)
+    suspend fun subtreeIds(id: Long): List<Long> =
+        TaskTree.collectIds(id) { dao.getChildIds(it) }
     suspend fun deletePermanently(id: Long) = dao.deleteSubtreeAndSelf(id)
     suspend fun search(query: String): List<TaskEntity> = dao.search(query)
     suspend fun getAllNow(): List<TaskEntity> = dao.getAllNow()

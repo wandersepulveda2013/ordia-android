@@ -597,7 +597,11 @@ class OrdiaViewModel(
 
     fun deleteTask(task: TaskEntity) {
         viewModelScope.launch {
-            reminderScheduler.cancel(task.id)
+            // c.225: archivar un padre archiva su subárbol y cancela los
+            // recordatorios de TODAS las subtareas. Antes solo se cancelaba el
+            // del padre, dejando alarmas armadas de subtareas invisibles
+            // (avisos de una tarea que el usuario creyó eliminada).
+            taskRepository.subtreeIds(task.id).forEach { reminderScheduler.cancel(it) }
             taskRepository.archive(task.id)
             updateWidget()
             _events.emit(UiEvent.Archived("task", task.id, appContext.getString(R.string.task_archived)))
@@ -837,16 +841,18 @@ class OrdiaViewModel(
         when (kind) {
             "task" -> {
                 taskRepository.restore(id)
-                // Al archivar se canceló el recordatorio (WorkManager). Al restaurar,
-                // re-encolarlo si la tarea sigue activa con un disparo futuro: sin
-                // esto, una tarea restaurada "olvida" avisar aunque conserve su fecha.
-                val restored = taskRepository.get(id)
-                if (restored != null &&
-                    !restored.completed &&
-                    restored.status != TaskStatus.CANCELLED &&
-                    (restored.reminderAt != null || restored.dueAt != null)
-                ) {
-                    reminderScheduler.schedule(restored)
+                // c.225: restaurar rearma el recordatorio de la tarea Y de su
+                // subárbol (al archivar se cancelaron todos). Antes solo se
+                // rearma el del padre: una subtarea restaurada "olvidaba"
+                // avisar pese a conservar su fecha.
+                taskRepository.subtreeIds(id).forEach { subId ->
+                    val restored = taskRepository.get(subId) ?: return@forEach
+                    if (!restored.completed &&
+                        restored.status != TaskStatus.CANCELLED &&
+                        (restored.reminderAt != null || restored.dueAt != null)
+                    ) {
+                        reminderScheduler.schedule(restored)
+                    }
                 }
             }
             "project" -> projectRepository.restore(id)

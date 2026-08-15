@@ -68,6 +68,12 @@ interface TaskDao {
     @Query("DELETE FROM tasks WHERE id IN (:ids)")
     suspend fun deleteByIds(ids: List<Long>)
 
+    @Query("UPDATE tasks SET archived = 1, updatedAt = :updatedAt WHERE id IN (:ids)")
+    suspend fun archiveByIds(ids: List<Long>, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE tasks SET archived = 0, updatedAt = :updatedAt WHERE id IN (:ids)")
+    suspend fun restoreByIds(ids: List<Long>, updatedAt: Long = System.currentTimeMillis())
+
     /**
      * Borra la tarea y todo su subárbol en una única transacción (ORD-025).
      * Sin esto, `parentTaskId` quedaba apuntando a una fila inexistente (huérfanas).
@@ -75,6 +81,28 @@ interface TaskDao {
     @Transaction
     suspend fun deleteSubtreeAndSelf(id: Long) {
         deleteByIds(TaskTree.collectIds(id) { getChildIds(it) })
+    }
+
+    /**
+     * Archiva la tarea y todo su subárbol (c.225). Sin esto, archivar (borrar
+     * suavemente) un padre dejaba las subtareas activas: invisibles en la lista
+     * (no son raíces y su padre no se renderiza) pero con su recordatorio aún
+     * armado → avisos de una tarea que el usuario creyó eliminada. Coherente con
+     * [deleteSubtreeAndSelf] (el borrado permanente ya mueve el subárbol entero).
+     */
+    @Transaction
+    suspend fun archiveSubtree(id: Long) {
+        archiveByIds(TaskTree.collectIds(id) { getChildIds(it) })
+    }
+
+    /**
+     * Restaura la tarea y todo su subárbol (c.225), espejo de [archiveSubtree]:
+     * restaura las subtareas archivadas junto al padre para que el desglose
+     * reaparezca completo y sus recordatorios se rearmen.
+     */
+    @Transaction
+    suspend fun restoreSubtree(id: Long) {
+        restoreByIds(TaskTree.collectIds(id) { getChildIds(it) })
     }
 
     @Query("DELETE FROM tasks")
