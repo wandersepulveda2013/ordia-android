@@ -10,10 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.ui.components.GuardianAvatar
 import com.ordia.app.ui.components.GuardianMood
+import com.ordia.app.ui.components.OrdiaButton
 import com.ordia.app.ui.components.ordiaWorkSurface
 
 @Composable
@@ -84,9 +83,9 @@ fun OnboardingScreen(
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                if (page > 0) OutlinedButton(onClick = { page-- }) { Text("Atrás") }
+                if (page > 0) OrdiaButton(text = "Atrás", onClick = { page-- }, isPrimary = false)
                 Spacer(Modifier.width(10.dp))
-                Button(onClick = { if (page < 2) page++ else onFinish() }) { Text(if (page < 2) "Continuar" else "Entrar a Ordia") }
+                OrdiaButton(text = if (page < 2) "Continuar" else "Entrar a Ordia", onClick = { if (page < 2) page++ else onFinish() })
             }
         }
     }
