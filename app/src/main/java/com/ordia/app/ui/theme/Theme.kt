@@ -18,6 +18,16 @@ val OrdiaSage = Color(0xFF76845F)
 val OrdiaRose = Color(0xFFA87373)
 val OrdiaLavender = Color(0xFF88759C)
 
+// Semantic colors
+val SemanticAlertLight = Color(0xFFD32F2F)
+val SemanticAlertDark = Color(0xFFF2B8B5)
+val SemanticSuccessLight = Color(0xFF388E3C)
+val SemanticSuccessDark = Color(0xFF81C784)
+val SemanticFocusLight = Color(0xFF1976D2)
+val SemanticFocusDark = Color(0xFF90CAF9)
+val SemanticAutomationLight = Color(0xFF7B1FA2)
+val SemanticAutomationDark = Color(0xFFCE93D8)
+
 /** Palette of accent colors chosen by the user. Each entry holds (secondary, secondaryContainer, onSecondaryContainer) for light and dark. */
 data class AccentSwatch(
     val lightSecondary: Color,
@@ -27,6 +37,13 @@ data class AccentSwatch(
     val darkSecondaryContainer: Color,
     val darkOnSecondaryContainer: Color
 )
+
+object OrdiaSemanticColors {
+    val Alert: Color @Composable get() = if (isSystemInDarkTheme()) SemanticAlertDark else SemanticAlertLight
+    val Success: Color @Composable get() = if (isSystemInDarkTheme()) SemanticSuccessDark else SemanticSuccessLight
+    val Focus: Color @Composable get() = if (isSystemInDarkTheme()) SemanticFocusDark else SemanticFocusLight
+    val Automation: Color @Composable get() = if (isSystemInDarkTheme()) SemanticAutomationDark else SemanticAutomationLight
+}
 
 val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
     AccentPalette.GOLD to AccentSwatch(
