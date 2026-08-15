@@ -626,4 +626,31 @@ class SummaryEngineTest {
         assertEquals(1, s.remainingToday)
         assertEquals(60, s.remainingMinutesToday)
     }
+
+    @Test
+    fun deferralSuggestion_neverNamesTaskThatCannotBeDeferred() {
+        // now=12:00 → 360 min libres. Una vencida (ayer, 180→180) satura el día
+        // junto con dos tareas de hoy de 180 cada una → 540 > 360 → OVERLOADED.
+        // La candidata TOP por la heurística (menor prioridad LOW) es una tarea
+        // agendada con `startAt` hoy y SIN `dueAt`. `TaskRules.deferToNextDay`
+        // devuelve null cuando no hay `dueAt`, así que esa tarea NO es posponible
+        // con la acción "mover a mañana": sugerirla entrega al usuario un consejo
+        // no accionable (canDefer=false → texto pasivo, sin tap) mientras existe
+        // otra tarea de hoy CON vencimiento que SÍ podría moverse. La vencida
+        // queda fuera de la sugerencia (posponer lo atrasado empeora el retraso),
+        // así que la única posponible-real es la de vencimiento: debe ser ella.
+        val tasks = listOf(
+            task(1, startAt = at(today, 14), durationMinutes = 180, priority = TaskPriority.LOW, title = "SinVenc"),
+            task(2, dueAt = at(today, 14), durationMinutes = 180, priority = TaskPriority.NORMAL, title = "ConVenc"),
+            task(3, dueAt = at(today.minusDays(1), 9), durationMinutes = 180, priority = TaskPriority.LOW, title = "Vencida")
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+        val sug = s.deferralSuggestion
+        assertEquals(2L, sug?.taskId)
+        assertEquals("ConVenc", sug?.title)
+        assertEquals(true, sug?.canDefer)
+    }
 }

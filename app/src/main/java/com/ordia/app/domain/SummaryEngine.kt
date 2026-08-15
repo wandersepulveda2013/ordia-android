@@ -214,22 +214,29 @@ object SummaryEngine {
      * honesta y conservadora: nunca sugiere (1) una tarea vencida —ya llegaron
      * tarde y posponerlas empeora el retraso— ni (2) una tarea ocurriendo ahora
      * mismo o a punto de empezar (compromiso inminente) —posponer una reunión
-     * que arranca en 5 min es un consejo dañino, no ayuda. Entre las de hoy
-     * posponibles, ordena por: menor prioridad (LOW antes que NORMAL antes que
-     * HIGH antes que URGENT) → la que MÁS capacidad libera (`plannedDuration`
-     * mayor) → a igual capacidad, la que vence más tarde hoy (más margen → más
-     * segura de aplazar sin riesgo inminente). El criterio de capacidad es
-     * central: el propósito de posponer bajo OVERLOADED es que el día quepa, y
-     * posponer una tarea de 10 min cuando hay una de 120 min de la misma
-     * prioridad deja el día saturado (consejo inútil); posponer la grande
-     * recupera el tiempo que de verdad resuelve la saturación. No muta nada.
+     * que arranca en 5 min es un consejo dañino, no ayuda— ni (3) una tarea sin
+     * `dueAt`: la acción "mover a mañana" ([TaskRules.deferToNextDay]) no puede
+     * ejecutarla (devuelve null sin vencimiento), así que nombrarla entregaría
+     * un consejo no accionable (texto pasivo, sin tap) cuando sí existe otra de
+     * hoy posponible. Entre las de hoy posponibles, ordena por: menor prioridad
+     * (LOW antes que NORMAL antes que HIGH antes que URGENT) → la que MÁS
+     * capacidad libera (`plannedDuration` mayor) → a igual capacidad, la que
+     * vence más tarde hoy (más margen → más segura de aplazar sin riesgo
+     * inminente). El criterio de capacidad es central: el propósito de posponer
+     * bajo OVERLOADED es que el día quepa, y posponer una tarea de 10 min cuando
+     * hay una de 120 min de la misma prioridad deja el día saturado (consejo
+     * inútil); posponer la grande recupera el tiempo que de verdad resuelve la
+     * saturación. No muta nada.
      */
     private fun mostDeferrableTask(
         remainingTodayTasks: List<TaskEntity>,
         now: Long
     ): DeferralSuggestion? {
+        // Exige `dueAt`: [TaskRules.deferToNextDay] no puede mover una tarea sin
+        // vencimiento, así que nombrarla daría un consejo no accionable.
         val deferrable = remainingTodayTasks.filter { task ->
-            !TaskRules.isOverdue(task, now) &&
+            task.dueAt != null &&
+                !TaskRules.isOverdue(task, now) &&
                 !TaskRules.isInProgressNow(task, now) &&
                 !TaskRules.isImminentStart(task, now)
         }
