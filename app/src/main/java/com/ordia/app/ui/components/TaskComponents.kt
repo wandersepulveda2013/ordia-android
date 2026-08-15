@@ -21,7 +21,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
@@ -63,7 +62,7 @@ fun TaskRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val priorityColor = priorityAccent(task.priority)
-    Card(
+    OrdiaCard(
         modifier = modifier.fillMaxWidth().combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true }),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
