@@ -139,9 +139,16 @@ object NaturalTaskParser {
      * que parseRecurrence sigue viendo "cada mes"/"mensual" y emite MONTHLY. Sólo se usa si
      * [lastWeekdayOfMonthPattern] no casó (cadenas mutuamente excluyentes por posición).
      * Grupo 1 = "el primer lunes" (span a borrar); grupo 2 = ordinal; grupo 3 = weekday.
+     *
+     * c.273: la alternancia de cadencia se amplía a los adjetivos PLURIMENSUALES
+     * (bimestral/trimestral/cuatrimestral/semestral) y al intervalo explícito "cada N meses".
+     * Estas cadencias ya emitían MONTHLY+interval (c.258), PERO el ordinal precedente no se
+     * capturaba → `recurrenceDays=''` (motor anclaba al día del mes → deriva) Y "el primer"
+     * quedaba como residuo. Misma rendija que c.256/c.271, ahora cerrada para plazo largo.
+     * El número del intervalo va en grupo NO capturador para no desplazar los grupos 2/3.
      */
     private val precedingCadenceOrdinalPattern = Regex(
-        """(?i)(?<!\p{L})(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?)\s+((?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b"""
+        """(?i)(?<!\p{L})(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|bimestral(?:mente)?|trimestral(?:mente)?|cuatrimestral(?:mente)?|semestral(?:mente)?|cada\s+(?:\d{1,3}|$writtenNumberGroup)\s*meses?)\s+((?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b"""
     )
 
     /**

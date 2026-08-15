@@ -339,6 +339,26 @@ class RecurrenceEngineTest {
         assertEquals(LocalDate.of(2026, 10, 21), DateRules.toLocalDate(next.dueAt!!, zone))
     }
 
+    @Test fun monthlyOrdinal_interval3_trimestral_advancesThreeMonths() {
+        // c.272: "trimestral el primer lunes" → MONTHLY interval=3, days="1:1". La 1ª
+        // cita = 1er lunes sep 2026 = 07-sep. Al completarla, la 2ª debe avanzar 3
+        // meses (NO 1) al 1er lunes de DIC 2026 = 07-dic. Antes del fix del parser, el
+        // ordinal no se capturaba (days='') → el motor anclaba al día 7 y avanzaba 1
+        // mes (07-oct), perdiendo la cadencia trimestral y el weekday (P1: deriva).
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 9, 7), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Reunión trimestral primer lunes",
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceInterval = 3,
+            recurrenceDays = "1:1" // 1er lunes (ISO lunes=1)
+        )
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 12, 7), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals("1:1", next.recurrenceDays)
+        assertEquals(3, next.recurrenceInterval)
+    }
+
     @Test fun monthlyOrdinal_advancesPastCompletedAt() {
         // Completar tarde (varios meses después) avanza hasta la 1ª ocurrencia
         // ordinal futura, no atasca ni retrocede. 1er lunes nov 2026 = 02-nov; al

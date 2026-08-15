@@ -8463,6 +8463,70 @@ class NaturalTaskParserTest {
         assertEquals("Pago", result.title)
     }
 
+    // c.272 — Recurrencia ordinal de weekday con CADENCIA PRECEDENTE PLURIMENSUAL
+    // (trimestral/bimestral/cuatrimestral/semestral) y con intervalo explícito
+    // ("cada N meses"). Estos adjetivos/cadencias SÍ emitían MONTHLY+interval (c.258),
+    // PERO el ordinal "el primer lunes" NO se capturaba: el lookahead del patrón directo
+    // y la alternancia del patrón precedente sólo reconocían "mensual/cada mes/todos los
+    // meses". Así `recurrenceDays=''` (motor anclaba al día del mes → 2ª cita derivaba a
+    // otro weekday) Y "el primer"/"el último" quedaba como residuo del título. Misma clase
+    // de bug que c.256/c.271, ahora cerrada para las cadencias de plazo largo. now=2026-08-20
+    // (jueves): primer lunes ago=03 (pasado) → rueda a sep-07; último viernes ago=28 (futuro).
+
+    @Test fun recurrenciaTrimestralPrimerLunesPrecedenteEmiteCodificacionYRueda() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Reunión trimestral el primer lunes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertEquals("1:1", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 9, 7), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("Reunión", result.title)
+    }
+
+    @Test fun recurrenciaSemestralUltimoViernesPrecedenteEmiteCodificacionYConservaFecha() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Pago semestral el último viernes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(6, result.recurrenceInterval)
+        assertEquals("-1:5", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("Pago", result.title)
+    }
+
+    @Test fun recurrenciaBimestralSegundoMartesPrecedenteLimpiaTitulo() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Control bimestral el segundo martes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("2:2", result.recurrenceDays)
+        assertEquals("Control", result.title)
+    }
+
+    @Test fun recurrenciaCadaDosMesesPrimerLunesPrecedenteEmiteCodificacion() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Reunión cada dos meses el primer lunes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1:1", result.recurrenceDays)
+        assertEquals("Reunión", result.title)
+    }
+
+    // Guard: el adjetivo plurimensual SIN ordinal sigue MONTHLY+interval (sin
+    // codificación ordinal), sin que el fix introduzca falsa captura de ordinal.
+    @Test fun recurrenciaTrimestralSinOrdinalNoEmiteCodificacionOrdinal() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Pago trimestral", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertEquals("", result.recurrenceDays)
+        assertEquals("Pago", result.title)
+    }
+
     // Conector de plazo "hasta" + fecha: el conector sobrevivía como residuo en el título
     // ("entregar hasta" aunque la fecha era correcta) porque weekdayPattern/dayOfMonthPattern
     // consumían "el viernes"/"el 20" ANTES del borrado de "hasta el", dejándolo huérfano.
