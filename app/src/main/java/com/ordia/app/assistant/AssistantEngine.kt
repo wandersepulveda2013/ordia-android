@@ -60,13 +60,38 @@ object AssistantEngine {
                     )
                 }
             }
-            "que olvide" in query || "olvidado" in query || "vencid" in query ->
-                if (overdue.isEmpty()) AssistantAnswer("No tienes tareas vencidas.")
-                else AssistantAnswer(
-                    "Tienes ${overdue.size} tareas vencidas. Puedo reprogramarlas sin mostrarte una pared de alertas.",
-                    AssistantAction.RUN_REPLAN,
-                    relatedTaskIds = overdue.take(8).map { it.id }
-                )
+            "que olvide" in query || "olvidado" in query || "vencid" in query -> {
+                // Partición honesta: "vencid" pregunta por vencidas (dueAt pasado);
+                // "qué olvidé"/"olvidado" pregunta por olvidos, y un compromiso
+                // agendado cuyo hueco pasó (TaskRules.isMissedStart — el "olvido
+                // silencioso") ES un olvido aunque el plazo aún no vuele. Antes esto
+                // decía "No tienes tareas vencidas" frente a una llamada agendada que
+                // se pasó: mentía por omisión en la superficie de recuperación. Cierra
+                // la simetría con What Now (c.203) y el guardián (c.201), reusando
+                // WhatNowEngine.ordered para elegir el olvido más urgente.
+                val forgottenIntent = "que olvide" in query || "olvidado" in query
+                if (overdue.isNotEmpty()) {
+                    AssistantAnswer(
+                        "Tienes ${overdue.size} tareas vencidas. Puedo reprogramarlas sin mostrarte una pared de alertas.",
+                        AssistantAction.RUN_REPLAN,
+                        relatedTaskIds = overdue.take(8).map { it.id }
+                    )
+                } else {
+                    val missed = WhatNowEngine.ordered(active, now)
+                        .firstOrNull { TaskRules.isMissedStart(it, now) }
+                    if (missed == null) {
+                        AssistantAnswer("No tienes tareas vencidas ni compromisos olvidados.")
+                    } else if (forgottenIntent) {
+                        val minutes = TaskRules.plannedDuration(missed)
+                        AssistantAnswer(
+                            "«${missed.title}» tenía su hueco y se pasó (~$minutes min). Hazla o reagéndala.",
+                            relatedTaskIds = listOf(missed.id)
+                        )
+                    } else {
+                        AssistantAnswer("No tienes tareas vencidas.")
+                    }
+                }
+            }
             "resume" in query && ("conversacion" in query || "mensaje" in query) ->
                 AssistantAnswer(
                     "Hay ${conversations.size} conversaciones guardadas y ${pendingCommitments.size} compromisos por revisar.",

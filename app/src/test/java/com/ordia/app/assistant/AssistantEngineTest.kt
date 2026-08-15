@@ -96,6 +96,84 @@ class AssistantEngineTest {
         assertEquals(AssistantAction.CREATE_NOTE, AssistantEngine.answer("Guardar como nota: idea privada", emptyList(), emptyList(), emptyList()).action)
     }
 
+    @Test fun forgottenIntent_namesMissedStartCommitmentWhenNoOverdue() {
+        // "¿Qué olvidé?" no debe mentir por omisión: un compromiso agendado cuyo
+        // hueco ya pasó (sin dueAt vencido) ES un olvido — el "olvido silencioso"
+        // de TaskRules.isMissedStart. Antes decía "No tienes tareas vencidas"
+        // aunque el usuario tuviera una llamada agendada que se le pasó.
+        val now = 1_000_000_000_000L // 2001-09-09 ~01:46 UTC
+        val missedStart = TaskEntity(
+            id = 1, title = "Llamada agendada",
+            startAt = now - 90 * 60_000L, // empezó hace 90 min
+            durationMinutes = 30,          // ventana terminó hace ~60 min → hueco pasado
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué olvidé?",
+            listOf(missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        // La tarea de inicio olvidado debe nombrarse, no descartarse como "sin vencidas".
+        assertTrue("nombra el compromiso olvidado: ${answer.text}", answer.text.contains("Llamada agendada"))
+        assertTrue("describe el olvido honestamente: ${answer.text}", answer.text.contains("se pasó"))
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun forgottenIntent_missedStartStartAfterWindowPassedIsNamed() {
+        // Caso limpio de isMissedStart: el hueco ya terminó (start + duración < now)
+        // y no hay dueAt vencido. "¿Qué olvidé?" debe recuperarlo.
+        val now = 1_000_000_000_000L
+        val missedStart = TaskEntity(
+            id = 7, title = "Revisión de contrato",
+            startAt = now - 60 * 60_000L, // hace 1 h
+            durationMinutes = 25,          // ventana terminó hace ~35 min
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué olvidé?",
+            listOf(missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("recupera el compromiso cuyo hueco pasó: ${answer.text}", answer.text.contains("Revisión de contrato"))
+        assertEquals(listOf(7L), answer.relatedTaskIds)
+    }
+
+    @Test fun overdueIntent_doesNotPretendMissedStartIsOverdue() {
+        // "vencidas" pregunta por vencidas (dueAt pasado). Un compromiso cuyo hueco
+        // pasó (isMissedStart genuino: start+duración < now, sin dueAt vencido) NO es
+        // vencida: la respuesta debe seguir siendo "No tienes tareas vencidas"
+        // (honestidad: vencida ≠ hueco olvidado). No se simula urgencia.
+        val now = 1_000_000_000_000L
+        val missedStart = TaskEntity(
+            id = 3, title = "Llamada agendada",
+            startAt = now - 90 * 60_000L, // empezó hace 90 min
+            durationMinutes = 30,         // ventana terminó hace ~60 min → hueco pasado
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "vencidas",
+            listOf(missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("no finge vencida una tarea de hueco olvidado: ${answer.text}", answer.text.contains("No tienes tareas vencidas"))
+    }
+
+    @Test fun forgottenIntent_whenNothingForgotten_saysSoHonestly() {
+        // Sin vencidas ni missed-start: "¿qué olvidé?" no debe inventar nada.
+        val now = 1_000_000_000_000L
+        val plain = TaskEntity(id = 1, title = "Normal sin fecha")
+        val answer = AssistantEngine.answer(
+            "¿qué olvidé?",
+            listOf(plain),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("no inventa olvidos: ${answer.text}", answer.text.contains("No tienes tareas vencidas") || answer.text.contains("olvidad"))
+    }
+
     @Test fun cancelledTaskIsNotCountedAsPending() {
         // Una tarea cancelada no debe contarse como pendiente al organizar el
         // día ni aparecer en el plan mínimo: el usuario ya la descartó.
