@@ -184,6 +184,8 @@ for path in ROOT.rglob("*"):
             check_balanced(path, text)
 
 for xml_path in ROOT.rglob("*.xml"):
+    if "build/" in str(xml_path) or ".idea/" in str(xml_path) or ".gradle/" in str(xml_path):
+        continue
     try:
         ET.parse(xml_path)
     except Exception as exc:  # noqa: BLE001
@@ -216,7 +218,7 @@ for token in (
     'compileSdk = 36',
     'targetSdk = 36',
     'minSdk = 26',
-    'versionName = "1.0.0"',
+    'versionName = "3.0.1"',
     'isMinifyEnabled = true',
     'room.schemaLocation',
     'testDebugUnitTest',  # supplied by CI workflow, checked below too

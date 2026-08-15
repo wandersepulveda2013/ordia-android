@@ -33,7 +33,8 @@ object OrdiaWidgetUpdater {
         CoroutineScope(Dispatchers.IO).launch {
             val app = context.applicationContext as? OrdiaApplication ?: return@launch
             val tasks = app.container.database.taskDao().getAllNow()
-            val next = TaskRules.nextBestTask(tasks)
+            val nextBest = TaskRules.nextBestTask(tasks)
+            val next = nextBest?.task
             val pending = tasks.count { !it.completed && !it.archived && it.parentTaskId == null }
             val today = java.time.LocalDate.now()
             val dueToday = tasks.count { !it.completed && !it.archived && it.parentTaskId == null && TaskRules.isDueOn(it, today) }
