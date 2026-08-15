@@ -5,6 +5,7 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
@@ -34,6 +35,7 @@ class GuardianCoachTest {
 
         assertEquals(1L, insight.taskId)
         assertEquals(GuardianCoach.Tone.GENTLE, insight.tone)
+        assertTrue(insight.message.contains("Haz esto ahora porque: Esta tarea está atrasada."))
     }
 
     @Test

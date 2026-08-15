@@ -30,7 +30,9 @@ class TaskRulesTest {
     fun nextBestTask_prefersHighPriority() {
         val normal = TaskEntity(id = 1, title = "Normal", priority = TaskPriority.NORMAL)
         val high = TaskEntity(id = 2, title = "Alta", priority = TaskPriority.HIGH)
-        assertEquals(high, TaskRules.nextBestTask(listOf(normal, high), 100))
+        val best = TaskRules.nextBestTask(listOf(normal, high), 100)
+        assertEquals(high, best?.task)
+        assertEquals("Es una prioridad alta.", best?.reason)
     }
 
     @Test
