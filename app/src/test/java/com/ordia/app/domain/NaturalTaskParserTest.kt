@@ -4917,6 +4917,119 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 12, 31), DateRules.toLocalDate(ano.dueAt!!, zone))
     }
 
+    // --- "inicio/inicios de mes": sinónimo cotidiano de "principios de mes" ---
+    // "inicio(s) de mes" / "a inicios de mes" son la forma más natural de decir
+    // "principios de mes" (alquileres, nómina, facturas que vencen a inicios de mes).
+    // Antes NO se parseaban → dueAt=null (vencimiento olvidado, P1: sin recordatorio ni
+    // visibilidad en planificador/What Now) y la frase entera sobrevivía como título.
+    // Peor, "inicio del mes que viene" caía a +1 mes desde hoy (2026-08-28 en vez de
+    // 2026-08-01): vencimiento ERRÓNEO, no olvidado — el usuario creía agendar el 1 del
+    // mes siguiente y la fecha quedaba casi un mes desplazada. Asimetría flagrante con
+    // "principios/comienzo" que SÍ funcionaban. "inicios?" se trata idéntico a
+    // "principios". now = 2026-07-29 (día 29 > 1) → rueda al 1/8.
+
+    @Test fun inicioDeMesAnclaDia1MesSiguiente() {
+        val result = NaturalTaskParser.parse("Cobro inicio de mes", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun iniciosDeMesAnclaDia1MesSiguiente() {
+        val result = NaturalTaskParser.parse("Cobro inicios de mes", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aIniciosDeMesAnclaDia1MesSiguiente() {
+        val result = NaturalTaskParser.parse("Renta a inicios de mes", now, zone)
+        assertEquals("Renta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun inicioDelMesQueVieneAnclaDia1MesSiguiente() {
+        // "inicio del mes que viene" = 1 del mes siguiente, NO +1 mes desde hoy.
+        // Antes caía a 2026-08-28 (fecha errónea) con título basura "Cobro inicio del".
+        val result = NaturalTaskParser.parse("Cobro inicio del mes que viene", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun inicioDelMesProximoAnclaDia1MesSiguiente() {
+        val result = NaturalTaskParser.parse("Pago inicio del mes próximo", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun inicioDeMesRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Cobro inicio de mes a las 9", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // --- "inicio/inicios de semana": sinónimo de "principios de semana" (lunes) ---
+    // El propio comentario del patrón startOfWeekPattern describe la frase mental como
+    // "a inicios de la semana" — pero la forma "inicios" no se reconocía → dueAt=null.
+    // now = 2026-07-29 (miércoles) → lunes siguiente = 2026-08-03.
+
+    @Test fun iniciosDeSemanaAnclaProximoLunes() {
+        val result = NaturalTaskParser.parse("Reunión inicios de semana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aIniciosDeLaSemanaAnclaProximoLunes() {
+        val result = NaturalTaskParser.parse("Reunión a inicios de la semana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun inicioDeSemanaAnclaProximoLunes() {
+        val result = NaturalTaskParser.parse("Reunión inicio de semana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // --- "inicio/inicios de año": sinónimo de "principios de año" (1 de enero) ---
+    // "inicios de año" (propósitos de año nuevo, renovaciones anuales) caía a dueAt=null.
+    // now = 2026-07-29 → 1/1 del año siguiente = 2027-01-01.
+
+    @Test fun iniciosDeAnoAnclaPrimeroDeEneroSiguiente() {
+        val result = NaturalTaskParser.parse("Cierre inicios de año", now, zone)
+        assertEquals("Cierre", result.title)
+        assertEquals(LocalDate.of(2027, 1, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun inicioDeAnoAnclaPrimeroDeEneroSiguiente() {
+        val result = NaturalTaskParser.parse("Cierre inicio de año", now, zone)
+        assertEquals("Cierre", result.title)
+        assertEquals(LocalDate.of(2027, 1, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // --- "inicios de [mes nombre]": sinónimo de "principios de [mes nombre]" ---
+    // "a inicios de enero"/"a inicios de septiembre" (vencimientos a principio de un mes
+    // futuro) caían a dueAt=null. Antes caía a null: vencimiento olvidado. principios→1.
+
+    @Test fun iniciosDeMesNombreAnclaDia1() {
+        val result = NaturalTaskParser.parse("Entregar a inicios de enero", now, zone)
+        assertEquals("Entregar", result.title)
+        assertEquals(LocalDate.of(2027, 1, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun iniciosDeMesNombreFuturoNoRuedaAnioSiAunNoPasa() {
+        // "inicios de diciembre" desde julio 2026 → 1/12/2026 (aún no pasa).
+        val result = NaturalTaskParser.parse("Cobro a inicios de diciembre", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 12, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun iniciosDeMesNombreProximoNoRuedaAnioSiAunNoPasa() {
+        // "inicios de septiembre" desde julio 2026 → 1/9/2026 (aún no pasa).
+        val result = NaturalTaskParser.parse("Cobro a inicios de septiembre", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 9, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "antepasado mañana" = dentro de 3 días ---
     // Antes la palabra "mañana" casaba con el token de fecha suelto → +1 (fecha
     // errónea) y "antepasado" quedaba como residuo en el título. P1: cita 2 días

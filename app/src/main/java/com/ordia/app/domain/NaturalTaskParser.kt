@@ -415,7 +415,7 @@ object NaturalTaskParser {
      */
     private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(?:fin(?:al|ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
-    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?|inicios?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     /**
      * "mediados de septiembre" / "a finales de octubre" / "principios de enero":
      * calificador de límite mensual aplicado a un mes NOMBRE (no al "mes" en curso).
@@ -429,7 +429,7 @@ object NaturalTaskParser {
      * parseMonthNameDate). Se consume ANTES que monthNamePattern para no dejar
      * residuo ni doble-match.
      */
-    private val monthBoundaryNamePattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(mediados?|mitad|principios?|comienzos?|primeros?|finales?|fin|cierre|corte)\s+(?:de\s+|del\s+)([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
+    private val monthBoundaryNamePattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(mediados?|mitad|principios?|comienzos?|primeros?|inicios?|finales?|fin|cierre|corte)\s+(?:de\s+|del\s+)([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
     /**
      * "fin de año" / "a fin de año" / "finales de año" / "fin del año" / "cierre de año"
      * → 31 de diciembre del año actual (o del siguiente si hoy ya es 31/12).
@@ -445,7 +445,7 @@ object NaturalTaskParser {
      */
     private val endOfYearPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|corte)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?a[nñ]o(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     private val midOfYearPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?a[nñ]o(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
-    private val startOfYearPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?a[nñ]o(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val startOfYearPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?|inicios?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?a[nñ]o(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     /**
      * "la quincena" / "de la quincena" / "primera quincena" / "segunda quincena":
      * hito financiero mensual (cobro, nómina, pago). La "primera quincena" es el día
@@ -482,7 +482,7 @@ object NaturalTaskParser {
      * blando nunca se fecha en pasado. Se detecta y borra ANTES del período próximo para
      * que "semana" no active "semana que viene".
      */
-    private val startOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?)\s+(?:de\s+la\s+|de\s+|del\s+)semana\b""")
+    private val startOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|inicios?)\s+(?:de\s+la\s+|de\s+|del\s+)semana\b""")
     /**
      * "mediados de semana" / "a mediados de semana" → miércoles más cercano en HOY o
      * futuro. Análogo a "principios de semana" (lunes) y "mediados de mes" (día 15).
@@ -3186,7 +3186,7 @@ object NaturalTaskParser {
         }
         val q = qualifier.lowercase()
         val day = when {
-            q.contains("princip") || q.contains("comienz") || q.contains("primer") -> 1
+            q.contains("princip") || q.contains("comienz") || q.contains("primer") || q.contains("inicio") -> 1
             q.contains("mediad") || q.contains("mitad") -> 15
             else -> YearMonth.of(year, month).lengthOfMonth()
         }
