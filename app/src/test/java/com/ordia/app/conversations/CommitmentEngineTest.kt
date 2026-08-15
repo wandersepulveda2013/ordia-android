@@ -575,4 +575,64 @@ class CommitmentEngineTest {
         }
     }
 
+    @Test
+    fun numericSensitiveParity_panAndClabeBlockedAndLongNonSensitiveNumbersPass() {
+        // c.303: cierre estructural de la asimetría PAN/CLABE. Antes el gate de
+        // persistencia usaba un patrón crudo `\b(?:\d[ -]?){13,19}\b` que
+        // bloqueaba CUALQUIER secuencia larga de dígitos (IMEI, número de factura,
+        // referencia de 19, teléfono con prefijo internacional), mientras el gate
+        // de lectura exigía dígito verificador Luhn. El resultado era doblemente
+        // malo: (a) persistencia con falsos positivos → un compromiso legítimo
+        // mencionando "factura 9876543210123" se descartaba de la BD aunque el
+        // usuario lo dijo en serio; y (b) divergencia entre gates (persist bloqueaba
+        // lo que lectura dejaba pasar). Al mover la detección numérica validada
+        // (Luhn para PAN, checksum 3-7-1 para CLABE) a la fuente compartida
+        // `SensitiveSecretPatterns.containsNumericSensitive`, ambos gates bloquean
+        // exactamente lo mismo — un PAN real o una CLABE real — y dejan pasar las
+        // secuencias largas que no son ninguna de las dos. Probe JVM pre-fix: la
+        // mitad de los "innocents" de abajo bloqueaban en persist pero no en read.
+        val sensitive = listOf(
+            // PAN reales (Luhn válido) con y sin separadores y dentro de frase.
+            "4111 1111 1111 1111",
+            "4111111111111111",
+            "4242 4242 4242 4242",
+            "5555 5555 5555 4444",
+            "3782 822463 10005",
+            "mi tarjeta es 4111 1111 1111 1111 y pago mañana",
+            // CLABE real (checksum válido), con y sin separadores y en frase.
+            "032180000118359719",
+            "032 180 0001 1835 9719",
+            "transfiere a esta cuenta 032180000118359719 antes del cierre"
+        )
+        val innocents = listOf(
+            // Secuencias largas que NO son PAN (no Luhn) ni CLABE: NO deben
+            // bloquearse en ningún gate. Antes el persist las bloqueaba (falso
+            // positivo del patrón crudo); este test fija el comportamiento correcto.
+            "factura 9876543210123",
+            "mi IMEI es 123456789012345",
+            "referencia 1234567890123456789",
+            "el rastreo es 0000000000000000000",
+            "numero de guia 1234567890123"
+        )
+        sensitive.forEach { text ->
+            assertTrue("PAN/CLABE real debe bloquearse en persist: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
+            assertTrue("PAN/CLABE real debe bloquearse en lectura: \"$text\"", ContextPrivacyFilter.containsSensitiveContent(text))
+            assertEquals(
+                "asimetría PAN/CLABE en \"$text\": persist != read (c.303)",
+                ConversationPrivacyPolicy.containsSensitiveContent(text),
+                ContextPrivacyFilter.containsSensitiveContent(text)
+            )
+        }
+        innocents.forEach { text ->
+            assertFalse("secuencia larga no-PAN no debe bloquearse en persist (falso positivo c.303): \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
+            assertFalse("secuencia larga no-PAN no debe bloquearse en lectura: \"$text\"", ContextPrivacyFilter.containsSensitiveContent(text))
+            assertEquals(
+                "asimetría en secuencia larga no sensible \"$text\": persist != read (c.303)",
+                ConversationPrivacyPolicy.containsSensitiveContent(text),
+                ContextPrivacyFilter.containsSensitiveContent(text)
+            )
+        }
+    }
+
+
 }

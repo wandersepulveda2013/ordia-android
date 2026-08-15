@@ -52,7 +52,6 @@ object ConversationPrivacyPolicy {
         Regex("""(?i)\b(?:contrase(?:ña|na)|password|passwd|pwd|pin|nip|cvv|cvc|token\s+bancario)\b"""),
         Regex("""(?i)\b(?:c[oó]digo|clave)\s+(?:de\s+)?(?:verificaci[oó]n|seguridad|acceso)\b"""),
         Regex("""(?i)\b(?:otp|2fa|two.?factor|autenticaci[oó]n\s+de\s+dos\s+pasos)\b"""),
-        Regex("""\b(?:\d[ -]?){13,19}\b"""),
         Regex("""(?i)\b(?:n[uú]mero\s+de\s+cuenta|account\s+number|clabe|iban|swift|c[eé]dula)\b"""),
         Regex("""(?i)\b(?:seed\s+phrase|recovery\s+phrase|frase\s+semilla|frase\s+de\s+recuperaci[oó]n|palabras\s+de\s+recuperaci[oó]n|mnemonic)\b"""),
         Regex("""(?i)\b(?:transferencia|dep[oó]sito|retiro|saldo|estado\s+de\s+cuenta)\b"""),
@@ -73,6 +72,7 @@ object ConversationPrivacyPolicy {
     fun containsSensitiveContent(text: String): Boolean =
         sensitivePatterns.any { it.containsMatchIn(text) } ||
             SensitiveSecretPatterns.patterns.any { it.containsMatchIn(text) } ||
+            SensitiveSecretPatterns.containsNumericSensitive(text) ||
             otpCode.containsMatchIn(text)
 }
 

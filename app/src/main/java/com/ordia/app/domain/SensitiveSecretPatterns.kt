@@ -87,4 +87,79 @@ object SensitiveSecretPatterns {
         // Cadenas de conexion con credenciales embebidas (esquema://user:pass@host).
         Regex("""(?i)\b[a-z][a-z0-9+.-]*://[^\s:@/]+:[^\s@/]+@[^\s/]+""")
     )
+
+    // ── Numéricos sensibles validados por checksum (c.303) ──────────────────
+    // PAN y CLABE no son detectables por un Regex plano: su naturaleza depende
+    // de un dígito verificador (Luhn para tarjetas, ponderación 3-7-1 para la
+    // CLABE mexicana). Antes, el gate de persistencia usaba un patrón crudo
+    // `\b(?:\d[ -]?){13,19}\b` que bloqueaba CUALQUIER secuencia larga de
+    // dígitos (IMEI, número de factura, referencia de 19 dígitos, teléfono con
+    // prefijo internacional) mientras el gate de lectura exigía Luhn. Esa
+    // asimetría causaba (a) falsos positivos en persistencia → pérdida de
+    // compromisos legítimos y (b) divergencia entre gates. Al centralizar la
+    // detección numérica validada aquí, ambos gates bloquean exactamente lo
+    // mismo: un PAN real (Luhn) o una CLABE real (checksum propio), y dejan
+    // pasar secuencias largas que no son ninguna de las dos.
+
+    /** Candidato PAN: 13-19 dígitos con posibles separadores ` ` o `-`. */
+    private val panCandidate = Regex("""(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)""")
+
+    /** Candidato CLABE: 18 dígitos con posibles separadores. */
+    private val clabeCandidate = Regex("""(?<!\d)(?:\d[ -]?){17}\d(?!\d)""")
+
+    /**
+     * Dígito verificador Luhn (ISO/IEC 7812). `true` si [digits] (sólo dígitos)
+     * forma un número de tarjeta válido. Un PAN real siempre pasa Luhn: es el
+     * checksum que lo define, así que exigirlo no pierde cobertura de tarjetas
+     * reales y sí elimina los falsos positivos de secuencias largas arbitrarias.
+     */
+    private fun passesLuhn(digits: String): Boolean {
+        var sum = 0
+        var doubleDigit = false
+        for (index in digits.indices.reversed()) {
+            var value = digits[index].digitToInt()
+            if (doubleDigit) {
+                value *= 2
+                if (value > 9) value -= 9
+            }
+            sum += value
+            doubleDigit = !doubleDigit
+        }
+        return sum > 0 && sum % 10 == 0
+    }
+
+    /**
+     * Dígito verificador de la CLABE interbancaria mexicana (18 dígitos): los
+     * primeros 17 se ponderan cíclicamente con (3, 7, 1), se suman mod 10 y el
+     * dígito de control es (10 - (suma mod 10)) mod 10. Debe coincidir con el
+     * dígito 18. No es Luhn, por lo que requiere validación propia.
+     */
+    private fun passesClabeChecksum(digits: String): Boolean {
+        if (digits.length != 18) return false
+        val weights = intArrayOf(3, 7, 1)
+        var sum = 0
+        for (i in 0 until 17) {
+            sum += (digits[i].digitToInt() * weights[i % 3]) % 10
+        }
+        val control = (10 - sum % 10) % 10
+        return control == digits[17].digitToInt()
+    }
+
+    /**
+     * `true` si [text] contiene un PAN (Luhn válido, 13-19 dígitos) o una CLABE
+     * mexicana (checksum válido, 18 dígitos). Consumido por AMBOS gates de
+     * privacidad para que la detección de tarjetas/cuentas sea estructuralmente
+     * simétrica (c.303).
+     */
+    fun containsNumericSensitive(text: String): Boolean {
+        if (panCandidate.findAll(text).any { c ->
+                val d = c.value.filter(Char::isDigit)
+                d.length in 13..19 && passesLuhn(d)
+            }) return true
+        if (clabeCandidate.findAll(text).any { c ->
+                val d = c.value.filter(Char::isDigit)
+                d.length == 18 && passesClabeChecksum(d)
+            }) return true
+        return false
+    }
 }
