@@ -323,6 +323,59 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "cada N horas" sub-diario (medicación: cada 8/12/6 horas): no existe frecuencia
+    // HOURLY y el motor no puede repetir por hora. Antes la duración "N horas" robaba el
+    // número (480 min falsos) y la tarea nacía SIN vencimiento → medicación olvidada
+    // (recordatorio jamás disparaba, jamás en What Now). Ahora se saca la primera dosis
+    // a la superficie venciendo AHORA (aviso real), el título queda limpio y la
+    // cadencia se reconoce honestamente como NONE (no se finge repetición horaria).
+    @Test fun cadaNHorasSubDiarioVenceAhora() {
+        val result = NaturalTaskParser.parse("Medicamento cada 8 horas", now, zone)
+        assertEquals("Medicamento", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertNotNull("La primera dosis debe tener vencimiento (no olvidada)", result.dueAt)
+        assertEquals(now, result.dueAt)
+        // La duración NO debe robar "8 horas" como 480 min falsos.
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun cadaNHorasEscritoVenceAhora() {
+        val result = NaturalTaskParser.parse("Antibiótico cada doce horas", now, zone)
+        assertEquals("Antibiótico", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    // "cada 24 horas" = diario, "cada 48 horas" = cada 2 días: múltiplos de 24 se mapean
+    // fielmente a DAILY + intervalo, reutilizando el flujo de intervalo existente.
+    @Test fun cada24HorasEsDiario() {
+        val result = NaturalTaskParser.parse("Vitamina cada 24 horas", now, zone)
+        assertEquals("Vitamina", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun cada48HorasEsCadaDosDias() {
+        val result = NaturalTaskParser.parse("Inyección cada 48 horas", now, zone)
+        assertEquals("Inyección", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    // "cada 8 horas a las 3pm": si hay hora explícita, ésta manda (no se fuerza "ahora").
+    @Test fun cadaNHorasConHoraExplicitaUsaLaHora() {
+        val result = NaturalTaskParser.parse("Medicamento cada 8 horas a las 3pm", now, zone)
+        assertEquals("Medicamento", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+        assertNull(result.durationMinutes)
+    }
+
     // Recurrencia quincenal con palabra (no dígito): "cada quincena", "quincenalmente".
     // Antes `intervalPattern` (que solo admite dígitos) no casaba, la recurrencia caía
     // a NONE y la tarea nacía SIN fecha (invisible en What Now/planificador, recordatorio

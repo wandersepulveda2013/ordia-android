@@ -1715,7 +1715,7 @@ object NaturalTaskParser {
             } ?: true)
 
         // Repetición: se procesa antes que la fecha para que "cada viernes" no se lea como fecha suelta.
-        val recurrence = parseRecurrence(working)
+        val recurrence = parseRecurrence(working, now)
         recurrence.phraseRanges.sortedByDescending { it.first }.forEach { range ->
             working = working.substring(0, range.first) + " " + working.substring(range.last + 1)
         }
@@ -2165,7 +2165,13 @@ object NaturalTaskParser {
         val rawDueAt = when {
             effectiveRelativeDueAt != null && relativeIsDays && parsedTime != null ->
                 DateRules.toEpochMillis(DateRules.toLocalDate(effectiveRelativeDueAt, zone), parsedTime, zone)
-            else -> effectiveRelativeDueAt ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
+            // immediateDueAt (cadencia sub-diaria "cada N horas": el motor no repite por
+            // hora, pero se saca la primera dosis a la superficie venciendo ahora) es el
+            // último recurso: sólo aplica si NO hay otra fecha/hora resuelta. Así "cada 8
+            // horas a las 3pm" usa la hora explícita, no "ahora".
+            else -> effectiveRelativeDueAt
+                ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
+                ?: recurrence.immediateDueAt
         }
         // "el viernes a las 18" escrito el viernes a las 10:00 → hoy 18:00 (se conserva).
         // Pero si la hora ya pasó ("el viernes a las 6" a las 10:00) o no había hora y el
@@ -2457,10 +2463,18 @@ object NaturalTaskParser {
          *  (hábito diario): 09:00/15:00/21:00/04:00. Se usa como hora de respaldo de la
          *  primera ocurrencia y como contexto PM para horas sin meridiem. */
         val partOfDayTime: LocalTime? = null,
-        val partOfDayIsPm: Boolean = false
+        val partOfDayIsPm: Boolean = false,
+        /** Vencimiento inmediato (epoch ms) para cadencias sub-diarias que el motor de
+         *  recurrencia no puede representar ("cada 8/12 horas": no existe frecuencia
+         *  HOURLY). En vez de dejar la tarea SIN fecha (medicación silenciosamente
+         *  olvidada: recordatorio jamás disparaba, jamás en What Now), se saca la PRIMERA
+         *  dosis a la superficie venciendo ahora —honesto sobre lo que la app SÍ puede
+         *  (un aviso ahora) sin fingir una repetición horaria que no existe. Simétrico de
+         *  "ahora"/"lo antes posible" → now. Sólo aplica cuando no hay otra fecha/hora. */
+        val immediateDueAt: Long? = null
     )
 
-    private fun parseRecurrence(working: String): RecurrenceResult {
+    private fun parseRecurrence(working: String, now: Long): RecurrenceResult {
         val base = RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), emptyList())
         val phrases = mutableListOf<IntRange>()
 
@@ -2675,6 +2689,36 @@ object NaturalTaskParser {
             }
             phrases += match.range
             return RecurrenceResult(frequency, interval, emptyList(), phrases)
+        }
+
+        // "cada N horas": cadencia sub-diaria (medicación: "cada 8 horas", "cada 12
+        // horas", "cada 6 horas"; también "cada 24/48 horas" = diario/cada 2 días).
+        // Antes `intervalPattern` no admite "horas" y no existe frecuencia HOURLY, así
+        // que estas frases caían a NONE sin fecha → la duración "N horas" robaba el
+        // número (480 min falsos para "8 horas") y la medicación quedaba SIN
+        // vencimiento: el recordatorio jamás disparaba y nunca aparecía en What Now
+        // (rutina olvidada, P1). Aquí se maneja de forma honesta:
+        //  • N múltiplo de 24 (≥24) → DAILY interval=N/24 (fiel: 24h=diario, 48h=cada
+        //    2 días), reutilizando el flujo de intervalo existente.
+        //  • N sub-diario (6/8/12/18...) → NONE + immediateDueAt=now: el motor no
+        //    puede repetir por hora, así que se saca la PRIMERA dosis a la superficie
+        //    venciendo ahora (aviso real, What Now) en vez de fingir una recurrencia
+        //    horaria inexistente o dejarla olvidada. El rango se añade a `phrases`
+        //    para limpiar el título y evitar que la duración robe "N horas".
+        // La cantidad admite dígitos o número escrito (vía [parseWrittenNumber]),
+        // simétrico con [intervalPattern].
+        val hourlyIntervalPattern =
+            Regex("""(?i)\bcada\s+(\d{1,3}|$writtenNumberGroup)\s*(horas?)\b""")
+        hourlyIntervalPattern.find(working)?.let { match ->
+            val rawN = match.groupValues[1]
+            val hours = rawN.toLongOrNull()?.toInt()
+                ?: parseWrittenNumber(rawN)?.toInt()
+                ?: return@let
+            phrases += match.range
+            if (hours >= 24 && hours % 24 == 0) {
+                return RecurrenceResult(RecurrenceFrequency.DAILY, hours / 24, emptyList(), phrases)
+            }
+            return RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), phrases, immediateDueAt = now)
         }
 
         // "cada otro día" / "un día sí y otro no" = cada dos días (DAILY interval=2).
