@@ -17,7 +17,7 @@
 - **Features**: 0 (fix de integridad de fecha/parsing — más exactitud sin más interfaz; "datos (sagrados)"/"evitar olvidos").
 - **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); integración parser↔UI captura en runtime Android.
 - **Archivos**: `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (constante + 3 patrones extendidos + `boundaryDueAt` + guard cada+mes + `monthBoundaryNamePattern` final/al), `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+11 tests).
-- **HEAD inicial**: `090fe48` (al arrancar) / `121030b` (base remota sincronizada). **HEAD final**: (ver commit).
+- **HEAD inicial**: `090fe48` (al arrancar) / `121030b` (base remota sincronizada). **HEAD final**: `babdf9b` (pusheado; `121030b..babdf9b`).
 - **Estado**: VERIFIED (dominio JVM: 1743 PASS; RED del bug confirmado pre-fix). NO VERIFICADO Android.
 - **Próxima prioridad**: descubrimiento continuo — (i) OPEN P2 "bisemanal" ambiguo (parser); (ii) residuos de título restantes ("el primer" suelto) y P3 "a las 3.5" decimal-hour; (iii) verificación Android del fix c.264 (toggle/un-complete + `deletePermanently` con Room real) cuando haya SDK; (iv) seguir auditando motores no-parser. Re-fetch antes de implementar.
 
