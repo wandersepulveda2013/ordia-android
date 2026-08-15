@@ -398,4 +398,31 @@ class DayPlannerTest {
         assertEquals(1, plan.blocks.size)
         assertEquals(71L, plan.blocks.first().taskId)
     }
+
+    @Test
+    fun scheduledLaterTaskWithoutDueIsNotHijackedIntoTodaysPlan() {
+        // Una tarea programada para OTRO día (startAt futuro) y SIN vencimiento no
+        // es bandeja: el usuario le dio un hueco explícito. Antes la condición
+        // `includeInbox && dueAt == null` la aspiraba al plan de hoy y
+        // `applyBlocks`/`PLAN_DAY` sobrescribían su `startAt` con un slot de hoy,
+        // destruyendo la programación explícita ("reunión el jueves 15:00" → hoy
+        // 09:00). Ahora se respeta el hueco: no aparece en el plan de hoy. (c.268)
+        val today = LocalDate.now(zone)
+        val morning = DateRules.toEpochMillis(today, LocalTime.of(8, 0), zone)
+        val scheduledLater = TaskEntity(
+            id = 80, title = "Reunión semana que viene", durationMinutes = 30,
+            startAt = DateRules.toEpochMillis(today.plusDays(7), LocalTime.of(15, 0), zone),
+            dueAt = null,
+            status = TaskStatus.PLANNED
+        )
+        val inbox = TaskEntity(id = 81, title = "Idea suelta", durationMinutes = 30)
+
+        val plan = DayPlanner.build(listOf(scheduledLater, inbox), today, 9 * 60, 18 * 60, breakMinutes = 0, now = morning, zone = zone)
+
+        // Solo la bandeja real (sin startAt ni dueAt) entra; la programada para otro
+        // día se respeta.
+        assertEquals(1, plan.blocks.size)
+        assertEquals(81L, plan.blocks.first().taskId)
+        assertEquals(PlanReason.INBOX, plan.blocks.first().reason)
+    }
 }

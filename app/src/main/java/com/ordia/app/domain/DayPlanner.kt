@@ -89,8 +89,17 @@ object DayPlanner {
                 // un plan futuro verá la tarea en su fecha de vencimiento. Simétrico con
                 // el guardián (c.201/c.243), What Now (c.203) y el asistente (c.206).
                 val missedStartRecoverable = isToday && TaskRules.isMissedStart(task, now)
+                // Bandeja = captura SIN vencimiento (`dueAt`) Y SIN hueco (`startAt`):
+                // una tarea con `startAt` futuro (programada para otro día) NO es
+                // bandeja aunque no tenga `dueAt`. Antes la condición `dueAt == null`
+                // la aspiraba al plan de HOY, y `applyBlocks`/`PLAN_DAY` sobrescribían
+                // su `startAt` con el slot de hoy, destruyendo la programación explícita
+                // del usuario ("reunión el jueves 15:00" se movía a hoy 09:00 sin
+                // aviso). Exigir `startAt == null` respeta el hueco que el usuario dio;
+                // el compromiso olvidado (startAt pasado) ya se recupera por
+                // `missedStartRecoverable`, y el que vence, por `dueOnDate`/`overdueByDate`.
                 dueOnDate || overdueByDate || scheduledOnDate ||
-                    missedStartRecoverable || (includeInbox && task.dueAt == null)
+                    missedStartRecoverable || (includeInbox && task.dueAt == null && task.startAt == null)
             }
             .sortedWith(
                 compareByDescending<TaskEntity> { TaskRules.isOverdue(it, now) }
