@@ -220,7 +220,7 @@ object GuardianEngine {
             dailyGoalsCompleted = dailyGoalsCompleted,
             dailyGoalsTotal = 3,
             overdue = overdue,
-            suggestedAction = suggestedAction(tasks, habits, completedToday, focusMinutesToday, habitsDoneToday, overdue, nowMillis)
+            suggestedAction = suggestedAction(tasks, habits, completedToday, focusMinutesToday, habitsDoneToday, overdue, nowMillis, zoneId)
         )
     }
 
@@ -276,6 +276,26 @@ object GuardianEngine {
      * "iniciar el día" solo aplica sin impulso real (sin tarea completada, <15 min
      * de enfoque y sin hábito hecho); con avance, invita a cerrar el círculo para
      * no enmarcar como "no empezado" un día que ya avanzó.
+     *
+     * Recuperación de los tres olvidos de Ordía: el atraso de plazo
+     * ([smallestOverdueAction]) y el hueco incumplido ([missedStartAction]) ya
+     * tenían rama; faltaba el tercero, la captura de bandeja arrinconada
+     * ([TaskRules.isStaleInbox]). Sin él, un día sin vencidas ni huecos pasados
+     * pero con ideas capturadas y olvidadas (≥7 días sin fecha) recibía el nudge
+     * genérico "Completa una tarea breve" aunque lo más útil era justamente
+     * nombrar esa captura —asimetría con la tarjeta del asistente
+     * ([GuardianCoach]), que sí recupera las tres. Aquí se cierra simétricamente
+     * en la misma superficie existente, sin nueva pantalla.
+     *
+     * El stale-inbox es la señal más débil (sin plazo ni hueco), así que NO roba
+     * el lugar a nada más time-sensitive: se delega en [TaskRules.nextBestTask]
+     * (igual que [GuardianCoach]) y solo se reencuadra cuando la mejor candidata
+     * ES ella misma la captura olvidada. Va tras overdue/missed y, al ir antes de
+     * la rama de impulso, nombra la captura olvidada como el primer paso del día
+     * (hacerla/agendarla/quitarla), que es la mejor sugerencia única en ese
+     * estado. Es recuperación "suave": respeta que una captura sin fecha es
+     * aplazable, por eso NO nombra cuando ya hay avance (ese día el nudge invita a
+     * cerrar el círculo, no a revolver la bandeja).
      */
     private fun suggestedAction(
         tasks: List<TaskEntity>,
@@ -284,7 +304,8 @@ object GuardianEngine {
         focusMinutesToday: Int,
         habitsDoneToday: Int,
         overdue: Int,
-        nowMillis: Long
+        nowMillis: Long,
+        zoneId: ZoneId
     ): String {
         val missed = missedStartAction(tasks, nowMillis)
         val hasActiveTask = tasks.any { TaskRules.isActive(it) }
@@ -292,8 +313,8 @@ object GuardianEngine {
         return when {
             overdue > 0 -> smallestOverdueAction(tasks, nowMillis)
             missed != null -> missed
-            completedToday == 0 && hasActiveTask && noMomentumYet ->
-                "Completa una tarea breve para iniciar el día con impulso."
+            completedToday == 0 && hasActiveTask && noMomentumYet -> staleInboxAction(tasks, nowMillis, zoneId)
+                ?: "Completa una tarea breve para iniciar el día con impulso."
             focusMinutesToday < 15 ->
                 "Haz una sesión de enfoque de 15 minutos sin perseguir la perfección."
             habits.isNotEmpty() && habitsDoneToday == 0 ->
@@ -302,6 +323,31 @@ object GuardianEngine {
                 "Ya avanzaste hoy: completa una tarea breve para cerrar el círculo."
             else -> "Tu cuidado diario está completo. Puedes descansar o avanzar por gusto."
         }
+    }
+
+    /**
+     * Tercer olvido en el nudge del guardián: una captura de bandeja arrinconada
+     * ([TaskRules.isStaleInbox], ≥[TaskRules.STALE_INBOX_DAYS_THRESHOLD] días sin
+     * fecha). Simétrico a [smallestOverdueAction]/[missedStartAction] en cuanto
+     * nombra UNA tarea concreta para recuperarla en la superficie existente, pero
+     * delega en [TaskRules.nextBestTask] (como [GuardianCoach]) porque el
+     * stale-inbox es la señal más débil y no debe robar el lugar de algo más
+     * time-sensitive: solo retorna mensaje cuando la candidata elegida es ella
+     * misma la captura olvidada. Devuelve `null` si no aplica (la rama llamadora
+     * cae al nudge de iniciar el día).
+     *
+     * Elige la candidata que ya eligió nextBestTask y reusa su edad
+     * ([TaskRules.inboxAgeDays] + [DateRules.ageLabel]) para un mensaje honesto y
+     * sincronizado con el asistente. La acción propuesta (hacer/agendar/quitar) es
+     * la misma decisión real que la tarjeta del coach, coherente entre las dos
+     * superficies de recuperación. Solo tareas raíz activas, por
+     * [TaskRules.isStaleInbox].
+     */
+    private fun staleInboxAction(tasks: List<TaskEntity>, nowMillis: Long, zoneId: ZoneId): String? {
+        val next = TaskRules.nextBestTask(tasks, nowMillis, zoneId) ?: return null
+        if (!TaskRules.isStaleInbox(next, nowMillis, zoneId)) return null
+        val ageLabel = DateRules.ageLabel(TaskRules.inboxAgeDays(next, nowMillis, zoneId))
+        return "«${next.title}» lleva $ageLabel en tu bandeja sin fecha. Hazla hoy, agéndala o quítala."
     }
 
     /**

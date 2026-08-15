@@ -503,4 +503,107 @@ class GuardianEngineTest {
         assertFalse(result.suggestedAction.contains("descansar"))
         assertTrue(result.suggestedAction.contains("cerrar el círculo"))
     }
+
+    // --- suggestedAction: recuperación de la captura de bandeja arrinconada (stale-inbox) ---
+
+    @Test
+    fun suggestedAction_nombraCapturaArrinconadaCuandoNoHayAtrasadasNiHuecos() {
+        // Tercer olvido: una idea capturada en la bandeja, sin fecha ni hueco, que lleva
+        // ≥7 días esperando. Sin vencidas ni huecos pasados, el nudge la nombra como el
+        // primer paso del día (hacer/agendar/quitar) en vez del consejo genérico. Cierra la
+        // asimetría con la tarjeta del asistente (GuardianCoach), que sí la recuperaba.
+        val staleInbox = TaskEntity(
+            id = 1, title = "Idea de proyecto", createdAt = midday - 8L * 24 * 60 * 60_000L
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(staleInbox), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("Idea de proyecto"))
+        assertTrue(result.suggestedAction.contains("bandeja"))
+        assertTrue(result.suggestedAction.contains("sin fecha"))
+    }
+
+    @Test
+    fun suggestedAction_atrasadaTomaPrecedenciaSobreCapturaArrinconada() {
+        // Una atrasada (due pasado) y una captura arrinconada (sin fecha, ≥7 días): la
+        // atrasada es señal más fuerte y debe nombrarse primero. El stale-inbox no roba el
+        // lugar al plazo incumplido. nextBestTask ordena overdue por encima de la bandeja.
+        val overdue = TaskEntity(
+            id = 1, title = "Factura vencida", dueAt = midday - 60 * 60_000L, durationMinutes = 20
+        )
+        val staleInbox = TaskEntity(
+            id = 2, title = "Idea arrinconada", createdAt = midday - 8L * 24 * 60 * 60_000L
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(overdue, staleInbox), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("Factura vencida"))
+        assertTrue(result.suggestedAction.contains("atrasada"))
+        assertFalse(result.suggestedAction.contains("Idea arrinconada"))
+    }
+
+    @Test
+    fun suggestedAction_noNombraCapturaArrinconadaSiYaHayImpulsoReal() {
+        // La recuperación del stale-inbox es "suave": respeta que una captura sin fecha es
+        // aplazable. Si el día ya avanzó (enfoque ≥15 min + hábito), el nudge invita a
+        // "cerrar el círculo", no a revolver la bandeja. La captura olvidada NO se nombra.
+        val staleInbox = TaskEntity(
+            id = 1, title = "Idea arrinconada", createdAt = midday - 8L * 24 * 60 * 60_000L
+        )
+        val habit = HabitEntity(id = 1, title = "Leer", targetPerPeriod = 1)
+        val todayEpoch = Instant.ofEpochMilli(midday).atZone(zone).toLocalDate().toEpochDay()
+        val log = HabitLogEntity(habitId = 1, epochDay = todayEpoch, count = 1)
+        val focus = FocusSessionEntity(
+            id = 1, startedAt = midday - 20 * 60_000L, actualMinutes = 20, completed = true
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(staleInbox), habits = listOf(habit), habitLogs = listOf(log),
+            focusSessions = listOf(focus), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertFalse(result.suggestedAction.contains("Idea arrinconada"))
+        assertFalse(result.suggestedAction.contains("bandeja"))
+        assertTrue(result.suggestedAction.contains("cerrar el círculo"))
+    }
+
+    @Test
+    fun suggestedAction_noNombraCapturaRecienteDeBandeja() {
+        // Una captura fresca (<7 días, sin fecha) NO es "olvidada": nada que recuperar, el
+        // nudge cae al genérico de iniciar el día sin nombrarla. Confirma que la rama
+        // stale-inbox solo dispara con la edad mínima honesta (STALE_INBOX_DAYS_THRESHOLD).
+        val freshInbox = TaskEntity(id = 1, title = "Idea reciente", durationMinutes = 15)
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(freshInbox), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertFalse(result.suggestedAction.contains("Idea reciente"))
+        assertFalse(result.suggestedAction.contains("bandeja"))
+    }
+
+    @Test
+    fun suggestedAction_noNombraCapturaArrinconadaSiTareaConFechaVenceHoyEsMejorCandidata() {
+        // El stale-inbox es la señal más débil: delega en nextBestTask y solo se nombra si
+        // la mejor candidata ES ella misma la captura olvidada. Aquí hay una tarea que vence
+        // hoy (timeRank=3) y una captura arrinconada (timeRank=0): nextBestTask elige la de
+        // hoy, que NO es stale-inbox, así que el nudge cae a genérico sin robarle su lugar.
+        val dueToday = TaskEntity(
+            id = 1, title = "Entregar reporte",
+            dueAt = Instant.parse("2026-07-29T23:59:00Z").toEpochMilli(), durationMinutes = 30
+        )
+        val staleInbox = TaskEntity(
+            id = 2, title = "Idea arrinconada", createdAt = midday - 8L * 24 * 60 * 60_000L
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(dueToday, staleInbox), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertFalse(result.suggestedAction.contains("Idea arrinconada"))
+        assertFalse(result.suggestedAction.contains("bandeja"))
+    }
 }
