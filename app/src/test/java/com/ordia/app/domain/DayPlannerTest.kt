@@ -349,4 +349,53 @@ class DayPlannerTest {
         assertEquals(2, plan.blocks.size)
         assertEquals(0, plan.unscheduledTaskIds.size)
     }
+
+    @Test
+    fun missedStartTaskWithFutureDueIsRecoveredIntoTodaysPlan() {
+        // Un compromiso agendado cuyo hueco ya pasó (startAt ayer 15:00) pero que
+        // vence en el futuro (mañana 18:00) es un "olvido silencioso": no es
+        // vencida (overdueByDate no lo atrapa, dueAt futuro), no es "de hoy"
+        // (dueOnDate no lo atrapa), no es bandeja (tiene dueAt) y su startAt no
+        // cae hoy (scheduledOnDate no lo atrapa). Sin recuperación, el plan de hoy
+        // lo OCULTABA hasta su vencimiento — justo lo opuesto al propósito de un
+        // plan "realista de hoy" y al hilo de evitar olvidos (guardián c.201/c.243,
+        // What Now c.203, asistente c.206). Hoy debe recuperarlo, igual que ya
+        // recupera las vencidas (overdueByDate). Simétrico con c.243. (c.244)
+        val today = LocalDate.now(zone)
+        val morning = DateRules.toEpochMillis(today, LocalTime.of(8, 0), zone)
+        val missedStart = TaskEntity(
+            id = 70, title = "Olvido silencioso", durationMinutes = 30,
+            startAt = DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(15, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(1), LocalTime.of(18, 0), zone)
+        )
+
+        val plan = DayPlanner.build(listOf(missedStart), today, 9 * 60, 18 * 60, breakMinutes = 0, now = morning, zone = zone)
+
+        // Recuperado en el plan de hoy (slot forward-only desde 9:00).
+        assertEquals(1, plan.blocks.size)
+        assertEquals(70L, plan.blocks.first().taskId)
+        assertEquals(9 * 60, plan.blocks.first().startMinute)
+    }
+
+    @Test
+    fun missedStartTaskNotInjectedIntoFuturePlanDate() {
+        // La recuperación de un olvido es un concepto "hoy": un plan construido
+        // para MAÑANA no debe inyectar un compromiso olvidado hoy (aparecerá en su
+        // vencimiento vía dueOnDate). Inyectarlo en una fecha futura inventaría un
+        // slot ajeno al día planificado. Solo HOY recupera. (c.244)
+        val today = LocalDate.now(zone)
+        val tomorrow = today.plusDays(1)
+        val morning = DateRules.toEpochMillis(today, LocalTime.of(8, 0), zone)
+        val missedStart = TaskEntity(
+            id = 71, title = "Olvido silencioso", durationMinutes = 30,
+            startAt = DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(15, 0), zone),
+            dueAt = DateRules.toEpochMillis(tomorrow, LocalTime.of(18, 0), zone)
+        )
+
+        val plan = DayPlanner.build(listOf(missedStart), tomorrow, 9 * 60, 18 * 60, breakMinutes = 0, now = morning, zone = zone)
+
+        // Mañana sí entra (vence mañana) vía dueOnDate, no por recuperación.
+        assertEquals(1, plan.blocks.size)
+        assertEquals(71L, plan.blocks.first().taskId)
+    }
 }

@@ -80,7 +80,17 @@ object DayPlanner {
                 val scheduledOnDate = includeScheduledOnDate && task.startAt?.let {
                     DateRules.toLocalDate(it, zone) == date
                 } == true
-                dueOnDate || overdueByDate || scheduledOnDate || (includeInbox && task.dueAt == null)
+                // Recuperación de "olvido silencioso" (c.244): un compromiso agendado
+                // cuyo hueco ya pasó (startAt < now) pero que aún no vence (dueAt
+                // futuro o nulo) no cae en dueOnDate/overdueByDate/scheduledOnDate/inbox.
+                // El plan de HOY lo recupera igual que ya recupera las vencidas
+                // (overdueByDate): esperar a su vencimiento es justamente olvidarlo.
+                // Solo aplica al plan de hoy (la recuperación es un concepto "ahora");
+                // un plan futuro verá la tarea en su fecha de vencimiento. Simétrico con
+                // el guardián (c.201/c.243), What Now (c.203) y el asistente (c.206).
+                val missedStartRecoverable = isToday && TaskRules.isMissedStart(task, now)
+                dueOnDate || overdueByDate || scheduledOnDate ||
+                    missedStartRecoverable || (includeInbox && task.dueAt == null)
             }
             .sortedWith(
                 compareByDescending<TaskEntity> { TaskRules.isOverdue(it, now) }
