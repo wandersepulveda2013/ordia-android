@@ -369,6 +369,85 @@ class SummaryEngineTest {
         assertEquals(DayLoad.ON_TRACK, s.dayLoad)
     }
 
+    // ---------------------------------------------------------------------------
+    // c.247 — el veredicto de carga del día cuenta el "olvido silencioso"
+    // (missed-start) como trabajo que compite por la jornada, igual que ya cuenta
+    // las vencidas. Simetría con DayPlanner (c.246 recupera missed-start en el
+    // plan de hoy) y con GuardianCoach (c.243 lo reencuadra como RECUPERA EL
+    // CONTROL). Antes el veredicto ignoraba un compromiso agendado cuyo hueco
+    // (startAt) ya pasó y que aún no vence (dueAt futuro): el plan lo agendaba
+    // hoy (c.246) pero la tarjeta/badge decía "ON_TRACK, cabe con holgura" — dos
+    // verdades divergentes. Y mostDeferrableTask ya EXCLUYE missed-start de las
+    // candidatas a posponer ("posponer un olvido lo agrava", l.250): el dominio
+    // trataba el olvido como "hazlo, no lo aplaces", pero loadMinutes no le
+    // asignaba sitio. c.247 cierra la contradicción contándolo como carga.
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun dayLoad_countsMissedStartWorkAsLoad_soOverloadedEvenWhenTodayFits() {
+        // now=12:00 → 360 min libres. Una tarea de hoy (60 min) cabría holgada
+        // (ON_TRACK), pero hay 5 compromisos olvidados (startAt ayer, dueAt
+        // mañana → isMissedStart puro, no vencidos) de 120 min (600 min): el
+        // trabajo real de hoy (hoy + olvidados) = 660 > 360 → OVERLOADED. Antes
+        // el veredicto ignoraba los olvidos y mentía "ON_TRACK" aunque el plan
+        // (c.246) ya los agendaba hoy.
+        val tasks = listOf(
+            task(1, dueAt = at(today, 17), durationMinutes = 60),
+            task(2, startAt = at(today.minusDays(1), 15), dueAt = at(today.plusDays(1), 18), durationMinutes = 120),
+            task(3, startAt = at(today.minusDays(2), 9), dueAt = at(today.plusDays(2), 18), durationMinutes = 120),
+            task(4, startAt = at(today.minusDays(3), 9), dueAt = at(today.plusDays(3), 18), durationMinutes = 120),
+            task(5, startAt = at(today.minusDays(4), 9), dueAt = at(today.plusDays(4), 18), durationMinutes = 120),
+            task(6, startAt = at(today.minusDays(5), 9), dueAt = at(today.plusDays(5), 18), durationMinutes = 120)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        // Los olvidos NO son vencidos (dueAt futuro) → overdue sigue 0.
+        assertEquals(0, s.overdue)
+        // Y no son "de hoy" (dueAt/startAt no caen hoy) → remainingToday y la
+        // badge de minutos de hoy siguen siendo solo la tarea de hoy (60).
+        assertEquals(1, s.remainingToday)
+        assertEquals(60, s.remainingMinutesToday)
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+    }
+
+    @Test
+    fun dayLoad_missedStartPushesOnTrackToFullWhenTodayAloneWouldFit() {
+        // now=12:00 → 360 min libres. Hoy: 60 min (≤ mitad 180 → ON_TRACK solo).
+        // 2 olvidados de 120 min (startAt ayer, dueAt futuro). Carga real =
+        // 300; 180 < 300 ≤ 360 → FULL. El olvido empuja de ON_TRACK a FULL sin
+        // llegar a saturar.
+        val tasks = listOf(
+            task(1, dueAt = at(today, 17), durationMinutes = 60),
+            task(2, startAt = at(today.minusDays(1), 15), dueAt = at(today.plusDays(1), 18), durationMinutes = 120),
+            task(3, startAt = at(today.minusDays(2), 9), dueAt = at(today.plusDays(2), 18), durationMinutes = 120)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(0, s.overdue)
+        assertEquals(DayLoad.FULL, s.dayLoad)
+    }
+
+    @Test
+    fun dayLoad_missedStartOnlyDayIsNotLight() {
+        // Solo hay compromisos olvidados (ninguno "de hoy", ninguno vencido):
+        // antes el veredicto era LIGHT (loadMinutes=0, no había ni hoy ni
+        // vencidas), ocultando que el plan de hoy (c.246) ya recupera estos
+        // olvidos. Ahora 25 min de olvidado + 360 libres cabe holgado → ON_TRACK
+        // (no LIGHT): hay trabajo real, no "día vacío".
+        val tasks = listOf(
+            task(1, startAt = at(today.minusDays(1), 15), dueAt = at(today.plusDays(1), 18), durationMinutes = 25)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(0, s.overdue)
+        assertEquals(0, s.remainingToday)
+        assertEquals(0, s.remainingMinutesToday)
+        assertEquals(DayLoad.ON_TRACK, s.dayLoad)
+    }
+
     @Test
     fun deferralSuggestion_firesWhenOverdueFillsDayEvenIfTodayFits() {
         // now=12:00 → 360 min libres. Hoy: 1 tarea LOW de 60 min (caber, cabe).
