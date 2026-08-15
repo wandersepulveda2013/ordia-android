@@ -78,7 +78,7 @@ object AssistantEngine {
                     )
                 }
             }
-            isAgendaQuery(query) -> agendaAnswer(query, active, now)
+            isAgendaQuery(query) -> agendaAnswer(query, active, now, zone)
             "que olvide" in query || "olvidado" in query || "vencid" in query -> {
                 // Partición honesta: "vencid" pregunta por vencidas (dueAt pasado);
                 // "qué olvidé"/"olvidado" pregunta por olvidos, y un compromiso
@@ -223,13 +223,25 @@ object AssistantEngine {
         return "manana" in query || "hoy" in query || "semana" in query
     }
 
-    private fun agendaAnswer(query: String, active: List<TaskEntity>, now: Long): AssistantAnswer {
-        val zone = ZoneId.systemDefault()
+    private fun agendaAnswer(query: String, active: List<TaskEntity>, now: Long, zone: ZoneId): AssistantAnswer {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         val monday = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        // Detección simétrica con SearchEngine (NEXT_WEEK_TOKENS/LAST_WEEK_TOKENS):
+        // "próxima semana"/"semana que viene" → semana siguiente; "semana pasada"/
+        // "última semana" → semana anterior. Antes TODO lo que no era "mañana"/"hoy"
+        // caía a "esta semana" (mon..dom de hoy): el usuario preguntaba "¿qué tengo
+        // la próxima semana?" y recibía esta semana con la etiqueta "esta semana" —
+        // mentía sobre la agenda y el usuario podía olvidar los compromisos de la
+        // semana que vino a planificar. La consulta ya viene normalizada por
+        // foldForSearch (sin acentos), por eso "proxima"/"ultima" sin tilde.
+        val isNextWeek = "proxima" in query || "proximas" in query || "viene" in query
+        val isLastWeek = "pasada" in query || "pasadas" in query ||
+            "ultima" in query || "ultimas" in query
         val (start, end, label) = when {
             "manana" in query -> Triple(today.plusDays(1), today.plusDays(1), "mañana")
             "hoy" in query -> Triple(today, today, "hoy")
+            isNextWeek -> Triple(monday.plusDays(7), monday.plusDays(13), "próxima semana")
+            isLastWeek -> Triple(monday.minusDays(7), monday.minusDays(1), "semana pasada")
             else -> Triple(monday, monday.plusDays(6), "esta semana")
         }
         val ranked = WhatNowEngine.ordered(active, now)
@@ -242,7 +254,7 @@ object AssistantEngine {
         // Para "hoy", avisar además de las atrasadas de días anteriores (vencidas
         // antes de hoy): son parte de "lo que tienes" pendiente y el usuario las
         // olvidaría si la agenda sólo mirara el día de hoy. Coherente con el "además"
-        // de "qué hago ahora". Para mañana/semana (futuro) no aplica.
+        // de "qué hago ahora". Para mañana/semana (futuro/pasado) no aplica.
         val tail = if (label == "hoy") {
             val earlierOverdue = active.count { TaskRules.isOverdue(it, now) && !TaskRules.isDueToday(it, now, zone) }
             if (earlierOverdue > 0) {

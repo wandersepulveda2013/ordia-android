@@ -518,6 +518,63 @@ class AssistantEngineTest {
         assertEquals(listOf(1L), answer.relatedTaskIds)
     }
 
+    // --- "próxima semana" / "semana que viene" / "semana pasada" (consistencia con
+    // SearchEngine, que ya distingue NEXT_WEEK/LAST_WEEK). Antes el asistente caía al
+    // `else` de agendaAnswer y respondía ESTA semana (mon..dom de hoy) con la etiqueta
+    // "esta semana" aunque el usuario pidiera la próxima/pasada → mentía sobre qué
+    // agenda mostraba. Un usuario que pregunta "¿qué tengo la próxima semana?" para
+    // planificar veía los compromisos de esta semana y podía olvidar los de la próxima.
+
+    private fun agendaZone(): ZoneId = ZoneId.of("America/Santo_Domingo")
+
+    private fun agendaAnswerFor(query: String, idsAndDue: List<Pair<Long, LocalDate>>): com.ordia.app.assistant.AssistantAnswer {
+        val zone = agendaZone()
+        val now = LocalDate.of(2026, 7, 29).atTime(12, 0).atZone(zone).toInstant().toEpochMilli() // miércoles
+        val tasks = idsAndDue.map { (id, date) ->
+            TaskEntity(id = id, title = "Tarea$id", dueAt = date.atTime(9, 0).atZone(zone).toInstant().toEpochMilli())
+        }
+        return AssistantEngine.answer(query, tasks, emptyList(), emptyList(), now, zone)
+    }
+
+    @Test fun proximaSemana_listsNextWeekNotThisWeek() {
+        val monday = LocalDate.of(2026, 7, 27) // lunes de esta semana
+        val thisWeek = monday.plusDays(2) // miércoles esta semana
+        val nextWeek = monday.plusDays(9) // jueves próxima semana
+        val answer = agendaAnswerFor("¿qué tengo la próxima semana?", listOf(1L to thisWeek, 2L to nextWeek))
+        assertTrue("nombra la de la próxima semana: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla con esta semana: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
+    @Test fun semanaQueViene_listsNextWeekNotThisWeek() {
+        val monday = LocalDate.of(2026, 7, 27)
+        val thisWeek = monday.plusDays(2)
+        val nextWeek = monday.plusDays(8) // martes próxima semana
+        val answer = agendaAnswerFor("¿qué tengo la semana que viene?", listOf(1L to thisWeek, 2L to nextWeek))
+        assertTrue("nombra la de la semana que viene: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla con esta semana: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
+    @Test fun proximaSemana_empty_saysNextWeekHonestly() {
+        val monday = LocalDate.of(2026, 7, 27)
+        val thisWeek = monday.plusDays(2) // sólo esta semana
+        val answer = agendaAnswerFor("¿qué tengo la próxima semana?", listOf(1L to thisWeek))
+        assertTrue("dice próxima semana y que no hay: ${answer.text}",
+            answer.text.contains("próxima") && answer.text.contains("no tienes"))
+        assertTrue("no inventa la de esta semana: ${answer.text}", !answer.text.contains("Tarea1"))
+    }
+
+    @Test fun semanaPasada_recoversPreviousWeekTasks() {
+        val monday = LocalDate.of(2026, 7, 27)
+        val lastWeek = monday.minusDays(3) // viernes semana pasada
+        val thisWeek = monday.plusDays(2)
+        val answer = agendaAnswerFor("¿qué tengo la semana pasada?", listOf(1L to thisWeek, 2L to lastWeek))
+        assertTrue("recupera la de la semana pasada: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla con esta semana: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
     // ---- Veredicto del día a demanda ("¿voy bien?"/"¿da tiempo a todo?") ----
     //
     // Ordía YA calcula el veredicto del día (SummaryEngine.dayLoad:
