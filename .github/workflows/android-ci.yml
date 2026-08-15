@@ -47,9 +47,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 tools/verify_project.py
           chmod +x gradlew
           ./gradlew clean testDebugUnitTest lintDebug assembleDebug assembleRelease --stacktrace --no-build-cache --rerun-tasks
-          python3 tools/verify_project.py
 
       - name: Upload unsigned release APK (to be signed)
         uses: actions/upload-artifact@v4
