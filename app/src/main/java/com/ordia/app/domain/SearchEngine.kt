@@ -34,7 +34,7 @@ enum class SearchKind { TASK, PROJECT, NOTE, HABIT, ROUTINE, CONVERSATION, COMMI
  * parte del día por su colisión con el scope TOMORROW, igual que hace el
  * parser en su variante compacta de parte del día.
  */
-private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, THIS_MONTH, NEXT_MONTH, LAST_MONTH, OVERDUE, UNDATED, TARDE, NOCHE, MADRUGADA }
+private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, THIS_MONTH, NEXT_MONTH, LAST_MONTH, OVERDUE, MISSED, UNDATED, TARDE, NOCHE, MADRUGADA }
 
 data class SearchResult(val kind: SearchKind, val id: Long, val title: String, val subtitle: String)
 
@@ -284,6 +284,18 @@ object SearchEngine {
     // --- Búsqueda por fecha (intención semántica) ---
 
     private val OVERDUE_TOKENS = setOf("atrasada", "atrasadas", "atrasado", "atrasados", "vencida", "vencidas", "vencido", "vencidos")
+    // "olvidadas"/"olvidados" recupera lo que el usuario olvidó: una tarea
+    // vencida (plazo incumplido) O una cuyo hueco planificado ya pasó sin
+    // completarse ([TaskRules.isMissedStart] — el "olvido silencioso"). Antes
+    // estas últimas eran irrecuperables por búsqueda: no son "vencidas" (sin
+    // dueAt o con dueAt futuro) y su título no dice "olvidada". Es el tema #1 de
+    // recuperación del producto (GuardianCoach "RECUPERA EL CONTROL",
+    // WhatNowEngine "tenía su hueco y se pasó") llevado a la superficie de
+    // búsqueda universal, sin nueva pantalla. isMissedStart excluye por
+    // definición a las vencidas, así que la unión con isOverdue no duplica.
+    // Detección por palabra exacta (participio, no el infinitivo "olvidar" ni
+    // el sustantivo "olvido") para no activarse con "olvidar hacer X".
+    private val MISSED_TOKENS = setOf("olvidada", "olvidadas", "olvidado", "olvidados")
     // Formas del participio "completado/hecho/terminado/finalizado/acabado" (no el
     // infinitivo "completar"/"terminar"). Detectadas por palabra exacta.
     private val COMPLETED_TOKENS = setOf(
@@ -367,6 +379,7 @@ object SearchEngine {
     private fun detectDateScope(words: List<String>): DateScope? = when {
         "sin" in words && UNDATED_HINTS.any { it in words } -> DateScope.UNDATED
         OVERDUE_TOKENS.any { it in words } -> DateScope.OVERDUE
+        MISSED_TOKENS.any { it in words } -> DateScope.MISSED
         TODAY_TOKENS.any { it in words } -> DateScope.TODAY
         TOMORROW_TOKENS.any { it in words } -> DateScope.TOMORROW
         YESTERDAY_TOKENS.any { it in words } -> DateScope.YESTERDAY
@@ -392,7 +405,7 @@ object SearchEngine {
     }
 
     private fun dateScopeTokens(words: List<String>): Set<String> =
-        words.filter { it in OVERDUE_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in MONTH_TOKENS || it in NEXT_MONTH_TOKENS || it in LAST_MONTH_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS }.toSet()
+        words.filter { it in OVERDUE_TOKENS || it in MISSED_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in MONTH_TOKENS || it in NEXT_MONTH_TOKENS || it in LAST_MONTH_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS }.toSet()
 
     private fun taskMatchesDateScope(
         task: TaskEntity,
@@ -402,6 +415,12 @@ object SearchEngine {
         anchorOnCompleted: Boolean = false
     ): Boolean {
         if (scope == DateScope.OVERDUE) return TaskRules.isOverdue(task, now)
+        // "olvidadas": unión de lo vencido (plazo incumplido) y lo cuyo hueco
+        // planificado ya pasó sin completarse (olvido silencioso). isMissedStart
+        // ya excluye completadas/canceladas/en-curso/vencidas, así que la unión
+        // con isOverdue es limpia (sin duplicados). Se resuelve antes que el
+        // anclaje en completedAt: una tarea olvidada NO es "completada hoy".
+        if (scope == DateScope.MISSED) return TaskRules.isMissedStart(task, now) || TaskRules.isOverdue(task, now)
         // Tareas sin vencimiento: el motivo de este scope es recuperar lo pendiente
         // que nunca se agendó. Se excluyen completadas (ya resueltas) y canceladas,
         // igual que los scopes presentes/futuros; las archivadas ya se filtraron.
@@ -503,6 +522,7 @@ object SearchEngine {
                 !date.isBefore(lastMonth.atDay(1)) && !date.isAfter(lastMonth.atEndOfMonth())
             }
             DateScope.OVERDUE -> false // resuelto antes (return temprano)
+            DateScope.MISSED -> false // resuelto antes (return temprano)
             DateScope.UNDATED -> false
             DateScope.TARDE -> false
             DateScope.NOCHE -> false

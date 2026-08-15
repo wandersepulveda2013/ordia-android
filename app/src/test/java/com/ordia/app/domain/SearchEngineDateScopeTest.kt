@@ -592,4 +592,103 @@ class SearchEngineDateScopeTest {
         val ids = SearchEngine.search("completadas hoy", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
         assertEquals(setOf(1L), ids)
     }
+
+    // --- Recuperación de tareas olvidadas ("olvidadas") ---
+    // "olvidadas" recupera lo que el usuario olvidó: una tarea vencida (plazo
+    // incumplido) O una cuyo hueco planificado ya pasó sin completarse
+    // ([TaskRules.isMissedStart] — el "olvido silencioso"). Antes estas últimas
+    // eran irrecuperables por búsqueda: no son "vencidas" (sin dueAt o con
+    // dueAt futuro) y su título no contiene "olvidada". Es la unión honesta del
+    // tema #1 de recuperación del producto, ahora visible en la superficie de
+    // búsqueda universal (sin nueva pantalla). isMissedStart excluye por
+    // definición a las vencidas, así que la unión con isOverdue no duplica.
+
+    private fun missedStartTask(id: Long, title: String, hoursAgo: Long, durationMinutes: Int = 25): TaskEntity {
+        // Hueco que empezó hace N horas: ya pasó la ventana (start + duración)
+        // sin completarse, pero NO es vencida (sin dueAt).
+        return TaskEntity(
+            id = id,
+            title = title,
+            startAt = now - hoursAgo * 3600_000L,
+            durationMinutes = durationMinutes,
+            status = TaskStatus.PLANNED
+        )
+    }
+
+    @Test fun olvidadas_returnsMissedStartAndOverdueTasks() {
+        val missed = missedStartTask(10, "Llamada que se me pasó", hoursAgo = 3)
+        val overdue = TaskEntity(id = 11, title = "Factura vencida", dueAt = now - 2 * day)
+        val scheduled = TaskEntity(id = 12, title = "Cita futura", startAt = now + 3 * 3600_000L, durationMinutes = 25, status = TaskStatus.PLANNED)
+        val inbox = TaskEntity(id = 13, title = "Idea suelta")
+        val tasks = listOf(missed, overdue, scheduled, inbox)
+        val ids = SearchEngine.search("olvidadas", tasks, emptyList(), emptyList(), emptyList(), now = now).map { it.id }.toSet()
+        assertEquals(setOf(10L, 11L), ids)
+    }
+
+    @Test fun olvidadas_includesOverdueWithoutStart() {
+        // Una vencida sin startAt también es "olvidada" (plazo incumplido).
+        val overdue = TaskEntity(id = 21, title = "Renta atrasada", dueAt = now - 5 * day)
+        val ids = SearchEngine.search("olvidadas", listOf(overdue), emptyList(), emptyList(), emptyList(), now = now).map { it.id }.toSet()
+        assertEquals(setOf(21L), ids)
+    }
+
+    @Test fun olvidadas_excludesCompletedMissedStart() {
+        // Una tarea cuyo hueco pasó pero ya se completó no es un olvido.
+        val done = missedStartTask(30, "Ya hecha", hoursAgo = 4).copy(completed = true, completedAt = now)
+        val pending = missedStartTask(31, "Aún pendiente", hoursAgo = 4)
+        val ids = SearchEngine.search("olvidadas", listOf(done, pending), emptyList(), emptyList(), emptyList(), now = now).map { it.id }.toSet()
+        assertEquals(setOf(31L), ids)
+    }
+
+    @Test fun olvidadas_excludesScheduledFutureStart() {
+        // Un hueco que aún no empezó no es un olvido.
+        val future = TaskEntity(id = 40, title = "Reunión próxima", startAt = now + 2 * 3600_000L, durationMinutes = 25, status = TaskStatus.PLANNED)
+        val ids = SearchEngine.search("olvidadas", listOf(future), emptyList(), emptyList(), emptyList(), now = now).map { it.id }
+        assertTrue(ids.isEmpty())
+    }
+
+    @Test fun olvidadas_excludesTaskStillInProgress() {
+        // El hueco empezó pero la ventana aún no cerró (start + duración >= now):
+        // está en curso, no es un olvido.
+        val inProgress = TaskEntity(
+            id = 50,
+            title = "Trabajando ahora",
+            startAt = now - 5 * 60_000L, // hace 5 min
+            durationMinutes = 25, // ventana cierra en ~20 min
+            status = TaskStatus.PLANNED
+        )
+        val ids = SearchEngine.search("olvidadas", listOf(inProgress), emptyList(), emptyList(), emptyList(), now = now).map { it.id }
+        assertTrue(ids.isEmpty())
+    }
+
+    @Test fun olvidadasConTexto_filtraDentroDelConjunto() {
+        // "olvidadas mudanza" recupera solo la olvidada sobre mudanza.
+        val mudanza = missedStartTask(60, "Mudanza: llamar camión", hoursAgo = 6)
+        val otra = missedStartTask(61, "Comprar regalo", hoursAgo = 6)
+        val ids = SearchEngine.search("olvidadas mudanza", listOf(mudanza, otra), emptyList(), emptyList(), emptyList(), now = now).map { it.id }.toSet()
+        assertEquals(setOf(60L), ids)
+    }
+
+    @Test fun olvidadas_pureDateScopeExcludesDatelessEntities() {
+        // "olvidadas" pura devuelve SOLO tareas olvidadas: notas y proyectos
+        // (sin fecha que olvidar) no inundan los resultados, igual que "vencidas".
+        val missed = missedStartTask(70, "Olvidada", hoursAgo = 2)
+        val results = SearchEngine.search(
+            "olvidadas",
+            tasks = listOf(missed),
+            projects = listOf(ProjectEntity(id = 2, name = "Proyecto")),
+            notes = listOf(NoteEntity(id = 3, title = "Idea", body = "")),
+            habits = emptyList()
+        )
+        val kinds = results.map { it.kind }.toSet()
+        assertEquals(setOf(SearchKind.TASK), kinds)
+        assertEquals(listOf(70L), results.map { it.id })
+    }
+
+    @Test fun olvidados_masculinoPlural_tambienFunciona() {
+        // Formas masculinas/plurales también activan el scope.
+        val missed = missedStartTask(80, "Recordatorio perdido", hoursAgo = 2)
+        val ids = SearchEngine.search("olvidados", listOf(missed), emptyList(), emptyList(), emptyList(), now = now).map { it.id }
+        assertEquals(listOf(80L), ids)
+    }
 }

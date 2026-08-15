@@ -7572,3 +7572,23 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `b790107` (c.224). **HEAD final**: (tras commit + push a `origin/openhands/autonomous-ordia`).
 - **Estado**: FIXED pendiente (dominio JVM: **1487 domain tests PASS**, 0 failures; smoke 25 OK; sin regresión; la conducta de cascada es Room/Android → NO VERIFICADO en JVM, pendiente de verificación con Android SDK/gradle).
 - **Próxima prioridad**: descubrimiento continuo — (i) verificar con Android SDK (cuando esté) la cascada archive/restore + cancel/rearm de recordatorios en runtime (DAO `@Transaction` + WorkManager); (ii) clonar etiquetas de subtareas en recurrencia+duplicado (c.223/c.224, P3 — requiere verificación de uso real de etiquetas en subtareas); (iii) decisión `TaskStatus.CANCELLED` inalcanzable desde UI (BACKLOG P2); (iv) seguir auditando áreas no-parser (workers/backup con DAOs reales, onboarding, navegación, accesibilidad, rendimiento). Re-fetch antes de implementar para evitar colisión con runs paralelos.
+
+---
+
+## Ciclo c.227 — 2026-08-15 — feat búsqueda: "olvidadas" recupera tareas olvidadas (DateScope.MISSED)
+
+- **Rama**: `openhands/autonomous-ordia`.
+- **HEAD inicial**: `b790107` (c.224, al inicio del run). Al re-fetch antes de commitear, el remoto avanzó `b790107`→`967fcf4` (2 commits: c.225 archivar-subárbol + recordatorios, c.226 HOURLY real). **Colisión de NUMERACIÓN** + colisión de archivo (c.225 también tocó `SearchEngine.kt`).
+- **Prioridad**: P2 (funcionalidad/búsqueda/recuperación de olvidadas). No había P0/P1 ABIERTO (todos RESUELTO); elegí mejora funcional de producto de mayor impacto disponible en dominio puro (JVM-verificable), alineada con "recuperación de tareas olvidadas"/"búsqueda universal"/"evitar olvidos"/"MENOS ES MÁS".
+- **Problema seleccionado**: la búsqueda universal no recuperaba las tareas olvidadas — las que vencieron (plazo incumplido, `isOverdue`) o cuyo hueco planificado ya pasó sin completarse (olvido silencioso, `isMissedStart`). "olvidadas" caía a búsqueda literal de contenido (sin match si el título no lo dice). `GuardianCoach` nudgea "RECUPERA EL CONTROL" pero el usuario no podía *listarlas* a demanda. Asimetría: las dos señales (`isOverdue`/`isMissedStart`) existían en `TaskRules` pero la búsqueda no las unía.
+- **Causa raíz**: `SearchEngine` no tenía un `DateScope` que uniera las dos señales de olvido existentes; "olvidadas" no era un token de scope.
+- **Solución**: nuevo `DateScope.MISSED` + `MISSED_TOKENS` (`olvidada`/`olvidadas`/`olvidado`/`olvidados`). `taskMatchesDateScope(MISSED)` = `TaskRules.isMissedStart(task, now) || TaskRules.isOverdue(task, now)` — `isMissedStart` ya excluye completadas/canceladas/en-curso/vencidas, así la unión es limpia (sin duplicados); `return` temprano ANTES del anclaje en `completedAt`. `MISSED_TOKENS` en `dateScopeTokens()` para que "olvidadas" se elimine de `textWords` (así "olvidadas mudanza" filtra contenido dentro del conjunto). `anchorMatchesScope(MISSED)=false` (inalcanzable). Sin nueva pantalla/botón, sin IA fingida — unión determinista de dos señales existentes, reusa `TaskRules`.
+- **Bugs**: ninguno.
+- **Features**: scope de búsqueda "olvidadas" → recupera tareas con vencimiento incumplido o hueco planificado pasado sin completar.
+- **Tests**: `bash tools/run_domain_tests.sh` → **1498 PASS** (1490 c.226 + 8 míos), 0 failures; `bash tools/run_domain_checks.sh` → smoke 25 OK. +8 tests TDD (RED→GREEN, RED confirmado: 6 assertions fallaban pre-fix) en `SearchEngineDateScopeTest.kt`.
+- **Commits**: (pendiente de push).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt` (`dateScopeTokens`, `taskMatchesDateScope`, `anchorMatchesScope`, `MISSED_TOKENS`, `detectDateScope`), `app/src/test/java/com/ordia/app/domain/SearchEngineDateScopeTest.kt` (+8 tests), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
+- **HEAD final**: (tras commit + push a `origin/openhands/autonomous-ordia`).
+- **Estado**: VERIFIED (dominio JVM: **1498 domain tests PASS**, 0 failures; smoke 25 OK; sin regresión). **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); integración `SearchScreen`↔`SearchEngine.search` en runtime Android (dominio puro verificado; el cableado UI ya invoca `SearchEngine.search` sin transformar el resultado — sin tocar UI).
+- **Próxima prioridad**: descubrimiento continuo — (i) decisión `TaskStatus.CANCELLED` UI (BACKLOG P2, requiere Android/UI); (ii) clonar etiquetas de subtareas en recurrencia (P3, requiere Android/UI); (iii) aclarar `nextWeekly` multi-semana (ambiguo, no bug); (iv) seguir auditando áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
+
