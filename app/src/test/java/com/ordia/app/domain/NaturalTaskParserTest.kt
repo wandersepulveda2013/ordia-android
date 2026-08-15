@@ -1166,6 +1166,73 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "cada N del mes" (sin "de" entre "cada" y el día) es la forma cotidiana del
+    // vencimiento mensual ("renta cada 1 del mes"). Antes el prefijo "cada" NO se
+    // consumía y quedaba pegado al título ("renta cada"), ensuciando el texto de una
+    // rutina financiera. c.306: el rango capturado incluye el prefijo "cada".
+    @Test fun cadaPrefixDoesNotLeakInMonthlyDayAnchor() {
+        val result = NaturalTaskParser.parse("Renta cada 1 del mes", now, zone)
+        assertEquals("Renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun cadaPrefixDoesNotLeakInMonthlyMidMonthAnchor() {
+        val result = NaturalTaskParser.parse("Pago cada 15 del mes", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "cada N" a secas (SIN unidad días/semanas/meses/años) es el vencimiento mensual
+    // cotidiano ("reporte cada 15", "nomina cada 1"): el día del mes implícito es la
+    // quincena, la nómina, el corte. La AUSENCIA de unidad es la señal. Antes caía a
+    // NONE sin fecha: la rutina mensual nacía olvidada (recordatorio jamás disparaba).
+    // c.306: se reconoce como MONTHLY anclado al día N.
+    @Test fun bareCadaNumberParsesAsMonthlyDayOfMonth() {
+        val result = NaturalTaskParser.parse("Reporte cada 15", now, zone)
+        assertEquals("Reporte", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun bareCadaDayOneParsesAsMonthlyDayOfMonth() {
+        val result = NaturalTaskParser.parse("Nomina cada 1", now, zone)
+        assertEquals("Nomina", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "cada quince" (número escrito, sin unidad) = mensual anclado al día 15, simétrico
+    // de "cada 15". Admite dígitos o número escrito como el resto del parser.
+    @Test fun bareCadaWrittenNumberParsesAsMonthlyDayOfMonth() {
+        val result = NaturalTaskParser.parse("Reporte cada quince", now, zone)
+        assertEquals("Reporte", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Regresión: "cada N días/semanas/meses/años/horas/minutos" NO debe caer en la rama
+    // de "cada N" mensual. El lookahead negativo los rechaza y los resuelve intervalPattern
+    // (o la rama horaria), como antes de c.306.
+    @Test fun cadaNumberWithUnitDoesNotBecomeMonthly() {
+        val dias = NaturalTaskParser.parse("Revisar cada 15 días", now, zone)
+        assertEquals(RecurrenceFrequency.DAILY, dias.recurrence)
+        assertEquals("Revisar", dias.title)
+
+        val horas = NaturalTaskParser.parse("Medicación cada 12 horas", now, zone)
+        assertEquals(RecurrenceFrequency.HOURLY, horas.recurrence)
+        assertEquals("Medicación", horas.title)
+
+        val semanas = NaturalTaskParser.parse("Reunión cada 2 semanas", now, zone)
+        assertEquals(RecurrenceFrequency.WEEKLY, semanas.recurrence)
+        assertEquals("Reunión", semanas.title)
+
+        val meses = NaturalTaskParser.parse("Pago cada 3 meses", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, meses.recurrence)
+        assertEquals("Pago", meses.title)
+    }
+
     // Mismo leak con recurrencia semanal anclada a días: "pago semanal los lunes"
     // dejaba "pago semanal" (el adjetivo "semanal" sobrevivía porque dayListPattern
     // retornaba antes que fixedPatterns). La cadencia ya la da "los lunes".

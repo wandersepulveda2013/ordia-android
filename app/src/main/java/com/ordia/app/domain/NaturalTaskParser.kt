@@ -3185,12 +3185,47 @@ object NaturalTaskParser {
         // son fecha única y los resuelve dayOfMonthPattern/nextMonthDayPattern después.
         // Solo "el N del mes" a secas (sin calificador) y "de cada mes" casan aquí como
         // recurrencia mensual (decisión de producto: forma genérica recurrente).
+        //
+        // "cada N del mes" (sin "de" entre "cada" y el día) es la forma cotidiana del
+        // vencimiento mensual ("renta cada 1 del mes", "pago cada 15 del mes"). Antes
+        // el prefijo "cada" NO se consumía y quedaba pegado al título ("renta cada"),
+        // ensuciando el texto de una rutina financiera real. c.306: el grupo opcional
+        // inicial ahora admite "cada" además de "el/los" para que el rango capturado
+        // incluya el prefijo y el título quede limpio.
         val monthlyDayPattern =
-            Regex("""(?i)\b(?:el|los)?\s*(?:d[ií]a\s+)?(\d{1,2})\s+(?:de|del)\s+(?:cada\s+)?mes(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))""")
+            Regex("""(?i)\b(?:cada|el|los)?\s*(?:d[ií]a\s+)?(\d{1,2})\s+(?:de|del)\s+(?:cada\s+)?mes(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))""")
         monthlyDayPattern.find(working)?.let { match ->
             val day = match.groupValues[1].toIntOrNull()?.coerceIn(1, 31) ?: return@let
             phrases += match.range
             return RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), phrases, day)
+        }
+
+        // "cada N" a secas (SIN unidad: días/semanas/meses/años) es el vencimiento
+        // mensual cotidiano ("reporte cada 15", "nomina cada 1", "cobro cada 30"):
+        // en español financiero/empresarial el día del mes implícito es la quincena,
+        // la nómina, el corte o el pago recurrente. La AUSENCIA de unidad es la señal
+        // — "cada 15 días"/"cada 2 semanas" llevan unidad y los resuelve intervalPattern;
+        // sin unidad, el número NO es un intervalo sino un día del mes. Antes caía a
+        // NONE sin fecha: la rutina mensual nacía olvidada (recordatorio jamás
+        // disparaba, jamás en What Now). c.306: se reconoce como MONTHLY anclado al día
+        // N (1-28 por seguridad: 29-31 omiten meses cortos y son ambiguos con fecha
+        // suelta "el 30"; el rango seguro cubre nómina/quincena/cobro/pago). Admite
+        // dígitos o número escrito ("cada quince", "cada uno"). El lookahead negativo
+        // rechaza TODO lo que tenga unidad o fracción horaria a continuación:
+        //  • `días|semanas|meses|años|minutos` → intervalPattern (cadencia espaciada).
+        //  • `horas?|hs?` → hourlyIntervalPattern (medicación "cada 8 h"/"cada 12 hs").
+        //  • `y (media|cuarto) horas?` → cadencia fraccionaria no representable
+        //    ("cada 3 y media horas") que resuelve hourlyFractionPattern a NONE+now.
+        // Sin este rechazo, "cada 12 hs" caería aquí como MONTHLY día 12 (falso) y
+        // dejaría " hs" como residuo del título, rompiendo la medicación.
+        Regex("""(?i)\bcada\s+(\d{1,2}|$writtenNumberGroup)(?!\s*(?:d[ií]as?|semanas?|meses?|a[nñ]os?|horas?|hs?|minutos|y\s+(?:media|cuarto)\s*(?:horas?)?))\b""").find(working)?.let { match ->
+            val rawN = match.groupValues[1]
+            val n = rawN.toLongOrNull()?.toInt()
+                ?: parseWrittenNumber(rawN)?.toInt()
+            if (n != null && n in 1..28) {
+                phrases += match.range
+                return RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), phrases, n)
+            }
         }
 
         // "cada N días/semanas/meses/años" y "todos los/todas las N ..." — N puede ser
