@@ -900,19 +900,29 @@ object NaturalTaskParser {
      * la "h" de "hola"/"hoy") en vez de un grupo fijo, así basta una unidad en cualquier
      * extremo como evidencia de reloj.
      *
+     * Minutos compactos "NhMM" por extremo (c.248): la forma `11h30` (unidad ENTRE hora y
+     * minutos, sin dos puntos) no casaba: el extremo final fallaba, el rango se perdía y el
+     * extremo inicial ("9h") era robado como duración falsa (540 min) con residuo "a 11h30"
+     * en el título → dato falseado. Ahora los minutos de cada extremo admiten `:` O `h`
+     * como separador (`(?:(?::|h)([0-5]\d))?`), simétrico del reloj "HH:MMh" (c.235). Sigue
+     * siendo UN solo grupo de minutos por extremo (índices 2/5 intactos): el `h` de la forma
+     * en punto/unitaria ("9h") NO se consume aquí porque no le siguen dos dígitos, y cae al
+     * sufijo de unidad NO capturante de después. Así "9h a 11h30" casa completo, la duración
+     * es real (150 min) y el título queda limpio.
+     *
      * Para no falsear datos (p. ej. "comprar de 2 a 5 entradas") solo se acepta cuando hay
      * evidencia de horario: unidad en algún extremo ("horas"/"hs"/"h"), minutos en algún
-     * extremo (`:30`, inequívoco de reloj), meridiem explícito, o alguna hora >= 13 (24h).
-     * Sin esa evidencia, el rango en punto y ambiguo (<13) requiere además que no le siga un
-     * sustantivo de cantidad (ver `followedByCount`). No fija hora de inicio (ambigua sin
-     * contexto); solo la duración.
+     * extremo (`:30` o `h30`, inequívocos de reloj), meridiem explícito, o alguna hora >= 13
+     * (24h). Sin esa evidencia, el rango en punto y ambiguo (<13) requiere además que no le
+     * siga un sustantivo de cantidad (ver `followedByCount`). No fija hora de inicio (ambigua
+     * sin contexto); solo la duración.
      *
      * Grupo 1/2/3 = hora/minuto/meridiem del INICIO; 4/5/6 = fin. Las unidades por extremo
      * son NO capturantes (no alteran los índices 1-6 que consumen [rangeMatch] y
      * [rangeStartTime]); la evidencia de unidad se obtiene vía [rangeUnitToken].
      */
     private val timeRangePattern =
-        Regex("""(?i)\b(?:de\s+)?(\d{1,2})(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s*(?:horas?|hs|h))?\s*(?:a|-)\s*(\d{1,2})(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s*(?:horas?|hs|h))?\b""")
+        Regex("""(?i)\b(?:de\s+)?(\d{1,2})(?:(?::|h)([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s*(?:horas?|hs|h))?\s*(?:a|-)\s*(\d{1,2})(?:(?::|h)([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s*(?:horas?|hs|h))?\b""")
 
     /** Token de unidad horaria ("h"/"hs"/"hora"/"horas") acotado por límites de palabra. */
     private val rangeUnitToken = Regex("""(?i)(?:\bhoras?\b|\bhs\b|\bh\b)""")

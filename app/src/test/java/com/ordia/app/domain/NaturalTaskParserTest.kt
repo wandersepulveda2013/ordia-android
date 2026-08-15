@@ -3292,6 +3292,71 @@ class NaturalTaskParserTest {
         assertEquals(120, result.durationMinutes)
     }
 
+    // --- Minutos compactos "NhMM" por extremo (c.248) ---
+    // La forma "11h30" (unidad ENTRE hora y minutos, sin dos puntos) no casaba como extremo
+    // de rango: el extremo final fallaba → el rango se perdía y el inicial "9h" era robado
+    // como duración falsa (540 min) con residuo "a 11h30" en el título → dato falseado.
+    // "9h a 11h30": inicio en punto con unidad, fin NhMM. Antes dur=540 + título "clase a 11h30".
+    @Test fun rangeWithNhMmEndParsesRealDurationNotFalseDuration() {
+        val result = NaturalTaskParser.parse("Clase 9h a 11h30", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(150, result.durationMinutes)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Mismo rango con guion como separador: antes también robaba "9h" como 540 min y dejaba
+    // "-11h30" en el título.
+    @Test fun rangeWithNhMmEndAndDashSeparatorParsesRealDuration() {
+        val result = NaturalTaskParser.parse("Clase 9h-11h30", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(150, result.durationMinutes)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // "de 9h30 a 11h30": ambos extremos NhMM. Antes NO casaba (dur=null, título sucio). Ahora
+    // dur real 120 y hora de inicio 09:30.
+    @Test fun rangeWithNhMmBothBoundsParsesRealDurationAndStartTime() {
+        val result = NaturalTaskParser.parse("Clase de 9h30 a 11h30", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // El extremo inicial NhMM conserva los minutos en la hora de inicio (no los pierde como
+    // ocurría con "7:15h" antes del c.235).
+    @Test fun rangeWithNhMmStartKeepsStartMinutes() {
+        val result = NaturalTaskParser.parse("Tren de 7h15 a 9h45", now, zone)
+        assertEquals("Tren", result.title)
+        assertEquals(150, result.durationMinutes)
+        assertEquals(LocalTime.of(7, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Rango NhMM con meridiem en el extremo final: "de 9h30 a 11h30 pm" → inicio hereda el PM
+    // (9<=11) → 21:30-23:30 = 120 min. Antes NO casaba (dur=null).
+    @Test fun rangeWithNhMmBothBoundsAndTrailingPmPropagatesToStart() {
+        val result = NaturalTaskParser.parse("Clase de 9h30 a 11h30 pm", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Mezcla de formas: inicio NhMM + fin con dos puntos ("9h30 a 11:30"). Debe casar igual.
+    @Test fun rangeWithNhMmStartAndColonEndParsesRealDuration() {
+        val result = NaturalTaskParser.parse("Clase de 9h30 a 11:30", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Seguridad (c.248): la forma compacta "NhMM" no debe robar la "h" de palabras. "2 h30"
+    // (con espacio) no es reloj ni rango → se conserva íntegro, sin falsear duración.
+    @Test fun nhMmLikeTokenNotStolenAsDurationInNonRange() {
+        val result = NaturalTaskParser.parse("Comprar 2 h30 cosas", now, zone)
+        assertEquals("Comprar 2 h30 cosas", result.title)
+        assertNull(result.durationMinutes)
+        assertNull(result.dueAt)
+    }
+
     // Seguridad (c.247): la detección de unidad por escaneo usa límites de palabra, así
     // que la "h" inicial de palabras como "hola"/"hoy"/"hablar" tras un rango <13 sin
     // unidad NO se confunde con "h" horaria. Sigue siendo cantidad, no rango horario.
