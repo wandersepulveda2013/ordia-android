@@ -105,6 +105,36 @@ private val DarkColors = darkColorScheme(
     onError = Color(0xFF690005)
 )
 
+class SemanticColors(
+    val alert: Color,
+    val success: Color,
+    val focus: Color,
+    val automation: Color
+)
+
+val LocalSemanticColors = androidx.compose.runtime.staticCompositionLocalOf {
+    SemanticColors(
+        alert = Color(0xFFC44A4A),
+        success = Color(0xFF4A8B5F),
+        focus = Color(0xFF517DA2),
+        automation = Color(0xFF8B64A0)
+    )
+}
+
+val lightSemanticColors = SemanticColors(
+    alert = Color(0xFFC44A4A),
+    success = Color(0xFF4A8B5F),
+    focus = Color(0xFF517DA2),
+    automation = Color(0xFF8B64A0)
+)
+
+val darkSemanticColors = SemanticColors(
+    alert = Color(0xFFE57373),
+    success = Color(0xFF66BB6A),
+    focus = Color(0xFF64B5F6),
+    automation = Color(0xFFBA68C8)
+)
+
 @Composable
 fun OrdiaTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -139,10 +169,16 @@ fun OrdiaTheme(
             )
         }
     }
-    MaterialTheme(
-        colorScheme = colors,
-        typography = OrdiaTypography,
-        shapes = OrdiaShapes,
-        content = content
-    )
+    val semanticColors = if (dark) darkSemanticColors else lightSemanticColors
+
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalSemanticColors provides semanticColors
+    ) {
+        MaterialTheme(
+            colorScheme = colors,
+            typography = OrdiaTypography,
+            shapes = OrdiaShapes,
+            content = content
+        )
+    }
 }
