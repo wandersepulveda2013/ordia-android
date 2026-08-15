@@ -127,16 +127,18 @@ object CommitmentEngine {
         // aviso", "te lo mando el lunes", "lo preparo para mañana"). El español
         // expresa compromisos futuros con presente + fecha mucho más a menudo que
         // con futuro ("terminaré"). Cada forma exige un pronombre de objeto
-        // directo/indirecto ("lo/la/los/las", "te", "te lo"...) para mantener
+        // directo/indirecto ("lo/la/los/las", "te", "te lo", "le"...) para mantener
         // precisión alta: un verbo pelado ("termino" en "termino la frase") es
         // ambiguo, pero "lo termino"/"te paso" con objeto es un compromiso claro
-        // de hacer algo con/con para alguien. La guarda de negación
+        // de hacer algo con/con para alguien. "le paso"/"le mando"/"le envío"
+        // (c.310) cubren el receptor de 3ª persona ("le paso el informe a María"),
+        // complemento de "te paso"/"te mando" (c.306, receptor = interlocutor). La guarda de negación
         // [hasUnnegatedCommitment] sigue aplicándose: "no te paso nada",
         // "no lo entrego" se excluyen igual que "no te llamo"/"no lo hago" (c.279).
         // Como todo compromiso, nace como draft PENDING que el usuario revisa
         // antes de convertir en tarea: un falso positivo se descarta, un falso
         // negativo es un olvido real (la cuarta clase de olvido de Ordía).
-        """(?i)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|despu[eé]s\s+te\s+respondo|voy\s+a|debo|tengo\s+que|terminar[eé]|har[eé]|lo\s+hago|te\s+(?:paso|mando)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o))\b"""
+        """(?i)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|despu[eé]s\s+te\s+respondo|voy\s+a|debo|tengo\s+que|terminar[eé]|har[eé]|lo\s+hago|te\s+(?:paso|mando)|le\s+(?:paso|mando|env[ií]o)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o))\b"""
     )
     private val locationSignal = Regex(
         """(?i)\b(?:lugar\s*:\s*|(?:nos\s+vemos|reuni[oó]n|cita)[^.!?\n]{0,80}?\ben\s+)([\p{L}\d][\p{L}\d .,'-]{2,50})"""

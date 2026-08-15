@@ -850,5 +850,81 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.310: compromisos en presente de 1ª persona con dativo de 3ª persona
+    // "le" — cuando uno se compromete a pasar/enviar/mandar algo a un TERCERO
+    // (no al interlocutor "te"). c.306 cubrió "te paso"/"te mando" (receptor =
+    // interlocutor), pero "le paso el informe a María", "le mando el reporte",
+    // "le envío el correo" (receptor = 3ª persona) NO casaban → compromiso
+    // olvidado. El pronombre "le" es el desambiguador de precisión (un verbo
+    // pelado "paso"/"mando" es ambiguo), igual que "te"/"lo" en c.306. Probe JVM
+    // PRE-fix: 8/8 MISSED. Nace como draft SELF_COMMITMENT PENDING revisable.
+    @Test
+    fun detectsFirstPersonPresentCommitmentsWithThirdPersonDative() {
+        val positives = listOf(
+            "le paso el informe a María mañana",
+            "le mando el reporte el viernes",
+            "le envío el correo hoy",
+            "le paso los datos luego",
+            "le mando el documento esta tarde",
+            "le envío el archivo el lunes",
+            "mañana le paso el informe",
+            "le paso el link cuando lo tenga"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "le-$text"
+            )
+            assertTrue("presente de 1ª persona con dativo 'le' DEBE detectarse: \"$text\"", result.isNotEmpty())
+            assertEquals(CommitmentOwner.SELF, result[0].owner)
+        }
+    }
+
+    // c.310: la guarda de negación existente (c.279) protege también las formas
+    // con "le": "no le paso nada", "no le mando el reporte", "no le envío nada"
+    // son NEGATIVAS (rechazos), no compromisos. Verificado por probe JVM: 5/5
+    // negativas correctamente excluidas.
+    @Test
+    fun thirdPersonDativeCommitmentsRespectDirectNegation() {
+        val negatives = listOf(
+            "no le paso nada",
+            "no le mando el reporte",
+            "no le envío el correo",
+            "no le paso los datos",
+            "no le mando nada"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "le-neg-$text"
+            )
+            assertEquals("una negativa con 'le' NO debe generar draft: \"$text\"", 0, result.size)
+        }
+    }
+
+    // c.310: precisión — un verbo pelado sin pronombre "le" ("paso por tu casa",
+    // "mando la carta", "envío el paquete") es ambiguo y NO debe disparar. El
+    // pronombre "le" es el desambiguador. "se lo paso" (dativo plural/reflexivo
+    // "se") también es compromiso válido y debe detectarse.
+    @Test
+    fun barePresentVerbsWithoutThirdPersonDativeAreNotFlagged() {
+        val innocent = listOf(
+            "paso por tu casa sin avisar",
+            "mando la carta al correo",
+            "envío el paquete hoy",
+            "paso la voz a todos"
+        )
+        innocent.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "le-bare-$text"
+            )
+            assertEquals("verbo pelado sin 'le' NO debe disparar: \"$text\"", 0, result.size)
+        }
+    }
+
 
 }
