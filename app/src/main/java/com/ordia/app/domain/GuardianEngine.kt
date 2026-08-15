@@ -271,6 +271,12 @@ object GuardianEngine {
             activeNotes.coerceAtLeast(0) * 2
         ).coerceIn(0, MAX_EXPERIENCE)
 
+    /**
+     * Nudge diario: una sola acción útil según el estado del día. La rama
+     * "iniciar el día" solo aplica sin impulso real (sin tarea completada, <15 min
+     * de enfoque y sin hábito hecho); con avance, invita a cerrar el círculo para
+     * no enmarcar como "no empezado" un día que ya avanzó.
+     */
     private fun suggestedAction(
         tasks: List<TaskEntity>,
         habits: List<HabitEntity>,
@@ -281,12 +287,19 @@ object GuardianEngine {
         nowMillis: Long
     ): String {
         val missed = missedStartAction(tasks, nowMillis)
+        val hasActiveTask = tasks.any { TaskRules.isActive(it) }
+        val noMomentumYet = focusMinutesToday < 15 && (habits.isEmpty() || habitsDoneToday == 0)
         return when {
             overdue > 0 -> smallestOverdueAction(tasks, nowMillis)
             missed != null -> missed
-            completedToday == 0 && tasks.any { TaskRules.isActive(it) } -> "Completa una tarea breve para iniciar el día con impulso."
-            focusMinutesToday < 15 -> "Haz una sesión de enfoque de 15 minutos sin perseguir la perfección."
-            habits.isNotEmpty() && habitsDoneToday == 0 -> "Registra un hábito sencillo para mantener la continuidad."
+            completedToday == 0 && hasActiveTask && noMomentumYet ->
+                "Completa una tarea breve para iniciar el día con impulso."
+            focusMinutesToday < 15 ->
+                "Haz una sesión de enfoque de 15 minutos sin perseguir la perfección."
+            habits.isNotEmpty() && habitsDoneToday == 0 ->
+                "Registra un hábito sencillo para mantener la continuidad."
+            completedToday == 0 && hasActiveTask ->
+                "Ya avanzaste hoy: completa una tarea breve para cerrar el círculo."
             else -> "Tu cuidado diario está completo. Puedes descansar o avanzar por gusto."
         }
     }

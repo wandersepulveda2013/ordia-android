@@ -1,6 +1,8 @@
 package com.ordia.app.domain
 
 import com.ordia.app.data.local.FocusSessionEntity
+import com.ordia.app.data.local.HabitEntity
+import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
@@ -441,5 +443,64 @@ class GuardianEngineTest {
         )
         assertFalse(result.suggestedAction.contains("Idea suelta"))
         assertFalse(result.suggestedAction.contains("hueco"))
+    }
+
+    @Test
+    fun suggestedAction_noDiceIniciarElDiaSiYaHayImpulsoRealDeEnfoque() {
+        // El usuario concentró 20 min pero no completó ninguna tarea: el día ya está
+        // en marcha. El nudge NO debe enmarcarlo como "no empezado" ("iniciar el día");
+        // señala lo básico pendiente (el hábito), sin ignorar el avance real.
+        val task = TaskEntity(id = 1, title = "Revisar correo", durationMinutes = 15)
+        val habit = HabitEntity(id = 1, title = "Leer", targetPerPeriod = 1)
+        val focus = FocusSessionEntity(
+            id = 1, startedAt = midday - 20 * 60_000L, actualMinutes = 20, completed = true
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(task), habits = listOf(habit), habitLogs = emptyList(),
+            focusSessions = listOf(focus), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertFalse(result.suggestedAction.contains("iniciar el día"))
+        assertTrue(result.suggestedAction.contains("hábito"))
+    }
+
+    @Test
+    fun suggestedAction_noDiceIniciarElDiaSiYaHayImpulsoRealDeHabito() {
+        // Mantuvo un hábito pero no completó tarea ni concentró 15 min: el día avanzó.
+        // No es "iniciar"; el nudge invita a la sesión de enfoque, no a "arrancar el día".
+        val task = TaskEntity(id = 1, title = "Revisar correo", durationMinutes = 15)
+        val habit = HabitEntity(id = 1, title = "Leer", targetPerPeriod = 1)
+        val todayEpoch = Instant.ofEpochMilli(midday).atZone(zone).toLocalDate().toEpochDay()
+        val log = HabitLogEntity(habitId = 1, epochDay = todayEpoch, count = 1)
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(task), habits = listOf(habit), habitLogs = listOf(log),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertFalse(result.suggestedAction.contains("iniciar el día"))
+        assertTrue(result.suggestedAction.contains("enfoque"))
+    }
+
+    @Test
+    fun suggestedAction_cierraElCirculoCuandoHayImpulsoPeroNoTareaCompletada() {
+        // Enfoque (>=15 min) y hábito hechos, sin tareas completadas: el cuidado diario
+        // básico está cubierto y el día avanzó. El nudge invita a "cerrar el círculo"
+        // completando una tarea, en vez de "iniciar el día" (ignoraría el avance) o
+        // "descansar" (quedaría sin transformar el impulso en una tarea terminada).
+        val task = TaskEntity(id = 1, title = "Revisar correo", durationMinutes = 15)
+        val habit = HabitEntity(id = 1, title = "Leer", targetPerPeriod = 1)
+        val todayEpoch = Instant.ofEpochMilli(midday).atZone(zone).toLocalDate().toEpochDay()
+        val log = HabitLogEntity(habitId = 1, epochDay = todayEpoch, count = 1)
+        val focus = FocusSessionEntity(
+            id = 1, startedAt = midday - 20 * 60_000L, actualMinutes = 20, completed = true
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(task), habits = listOf(habit), habitLogs = listOf(log),
+            focusSessions = listOf(focus), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertFalse(result.suggestedAction.contains("iniciar el día"))
+        assertFalse(result.suggestedAction.contains("descansar"))
+        assertTrue(result.suggestedAction.contains("cerrar el círculo"))
     }
 }
