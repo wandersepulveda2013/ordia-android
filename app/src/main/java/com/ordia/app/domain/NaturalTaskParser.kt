@@ -671,7 +671,11 @@ object NaturalTaskParser {
         // Admite horas escritas ("a las nueve", "a las doce y media") vía [WRITTEN_HOUR_ALT];
         // antes esas formas dejaban la hora como residuo y se agendaban a la canónica de
         // la parte del día o sin hora ("reunión a las nueve" → sin dueAt).
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(horas?|hs))?\b"""),
+        // "h" suelta en el grupo de unidad: "a las 15h"/"a las 9h" (forma compacta de
+        // hora más común en español). Sin ella, el `\b` final no casa (entre "5" y "h"
+        // no hay límite de palabra) → dueAt perdido + "a las 15h" como residuo. El `\b`
+        // tras "h" deja intacta la "h" de "hola"/"hello". Simétrico al reloj "HH:MMh".
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(horas?|hs|h))?\b"""),
         // Hora de reloj autónoma "HH:MM [h/hs/horas] [am/pm]" en AMBOS órdenes. El sufijo
         // de unidad "h/hs/horas" puede ir ANTES ("3:30h pm") o DESPUÉS ("3:30 pm h") del
         // meridiem: se permite en las dos posiciones (no capturante) para absorberlo

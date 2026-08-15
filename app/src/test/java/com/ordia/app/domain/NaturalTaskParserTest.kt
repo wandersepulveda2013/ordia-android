@@ -1131,6 +1131,56 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // ── "a las Nh" sufijo compacto (c.239) ──
+    // "a las 15h"/"a las 9h" es la forma compacta de hora más común en español. Antes el
+    // sufijo "h" NO estaba en el grupo de unidad del patrón "a las N", así que `\b` fallaba
+    // (entre "5" y "h" no hay límite de palabra), la cita quedaba SIN dueAt (OLVIDADA) y
+    // "a las 15h" se conservaba íntegro como residuo en el título. Mismo origen que el
+    // reloj "HH:MMh" (c.235) pero en el patrón "a las": era la asimetría que causaba la
+    // fecha perdida. Ahora "h" se consume y la hora se resuelve.
+    @Test fun aLasNhSuffixNoPierdeFecha() {
+        val result = NaturalTaskParser.parse("Reunión a las 15h", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(null, result.durationMinutes)
+    }
+
+    @Test fun aLasNhSuffixManana() {
+        val result = NaturalTaskParser.parse("Reunión a las 9h", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNhSuffixConParteDelDia() {
+        val result = NaturalTaskParser.parse("Reunión a las 9h de la noche", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNhSuffixEspaciado() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 h", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // "a las 9 hola": la "h" del sufijo NO debe robar la "h" de "hola". El `\b` tras "h"
+    // solo casa con espacio/fín/no-palabra, así "hola" se conserva íntegro en el título.
+    @Test fun aLasNhSuffixNoRobaHDePalabra() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 hola", now, zone)
+        assertEquals("Reunión hola", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Las formas ya soportadas "a las 9 horas"/"a las 9 hs" siguen funcionando sin cambio.
+    @Test fun aLasNHorasYHsSiguenFuncionando() {
+        val horas = NaturalTaskParser.parse("Reunión a las 9 horas", now, zone)
+        assertEquals("Reunión", horas.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(horas.dueAt!!, zone))
+        val hs = NaturalTaskParser.parse("Reunión a las 9 hs", now, zone)
+        assertEquals("Reunión", hs.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(hs.dueAt!!, zone))
+    }
+
     // --- Duraciones fraccionarias sin dígitos (ciclo 14) ---
     // "media hora" y "(un) cuarto de hora" no casan con los patrones de dígitos y
     // dejaban residuo en el título + durationMinutes=null.
