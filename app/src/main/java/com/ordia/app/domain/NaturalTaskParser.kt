@@ -754,6 +754,30 @@ object NaturalTaskParser {
         Regex("""(?i)\b(?:hacia|cerca\s+de|alrededor\s+de)\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d|\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s*(?:horas?|hs))|la\s+una(?:\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)))"""),
         Regex("""(?i)\bsobre\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d|\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s*(?:horas?|hs))|la\s+una(?:\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)))""")
     )
+
+    /**
+     * Introductor de hora directo "para las/la", alternativa a "a las/la" ("reunión para
+     * las 9h30", "te veo para las 9 pm", "entrega para la una del mediodía"). A diferencia
+     * de [approximateTimePatterns] (marcadores de hora *aproximada*), "para" porta la hora
+     * exacta; pero comparte el mismo mecanismo: se reescribe a "a las/la" reutilizando TODO
+     * el flujo de [timePatterns] (resolución AM/PM, fracción, limpieza del título).
+     *
+     * "para" es preposición versátil —destinatario ("regalos para las niñas"), cantidad
+     * ("para las 9 personas"), propósito ("reunión para las ventas")—, así que el lookahead
+     * exige evidencia de reloj INMEDIATA tras la hora, como "sobre/hacia": minutos compactos
+     * (`:MM`/`hMM`), meridiem (am/pm), parte del día ("de la noche"), fracción ("y media"/
+     * "menos cuarto") o sufijo de unidad ("horas/hs/h"). La hora en punto sin evidencia
+     * queda fuera, igual que "sobre las 9": "para las 9" es ambiguo con "mesa para las 9
+     * [personas]" y no se falsifica como cita. El `\b` tras la "h" suelta protege contra
+     * palabras que empiezan por h ("hamburguesas", "hoy"): "para las 9 hamburguesas" no casa.
+     *
+     * Antes estas citas caían a `dueAt=null` (el usuario olvidaba la cita) o, cuando el reloj
+     * autónomo (`:MM`/meridiem) casaba por separado, dejaban "para las" como residuo del
+     * título (cita bien fechada pero título mutilado). Simétrico de la familia "a las Nh"
+     * (c.235/239/254) y de la normalización de marcadores aproximados.
+     */
+    private val paraTimeIntroPattern =
+        Regex("""(?i)\bpara\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)[0-5]\d|\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS)|\s*(?:horas?|hs|h)\b)|la\s+una(?:(?::|h)[0-5]\d|\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS)))""")
     /**
      * Cantidad del recordatorio: dígitos o número escrito en español (simétrico con
      * la fecha relativa "en dos horas"). Antes solo se aceptaban dígitos, así que
@@ -1261,6 +1285,12 @@ object NaturalTaskParser {
         // solo se normaliza con hora + evidencia de reloj; el resto de marcadores son
         // inequívocamente temporales con un número.
         working = approximateTimePatterns.fold(working) { acc, p -> p.replace(acc, "a ") }
+
+        // Introductor de hora directo "para las/la" → "a las/la" (simétrico de los marcadores
+        // aproximados de arriba, pero con hora exacta). Reutiliza TODO el flujo de hora
+        // explícita. Véase [paraTimeIntroPattern]: el lookahead exige evidencia de reloj para
+        // no agendar destinatarios/cantidades ("para las 9 personas") como cita.
+        working = paraTimeIntroPattern.replace(working, "a ")
 
         val lower = working.lowercase()
         val trailingPriorityWord = trailingPriorityPattern.find(lower)

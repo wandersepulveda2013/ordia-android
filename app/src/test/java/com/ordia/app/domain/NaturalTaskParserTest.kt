@@ -8216,4 +8216,137 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
+
+    // "para las/la": introductor de hora alternativo a "a las/la" ("reunión para las 9h30",
+    // "te veo para las 9 pm"). Antes estas citas caían a dueAt=null (olvidadas) o, cuando el
+    // reloj independiente (:MM/meridiem) casaba, dejaban "para las" como residuo del título.
+    // Se normaliza a "a las/la" exigiendo evidencia de reloj (no agendar cantidades).
+    @Test fun paraLasNhMmResuelveHoraYDejaTituloLimpio() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las 9h30", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasNPMResuelveOffsetYDejaTituloLimpio() {
+        // Antes: el reloj "9 pm" casaba (21:00) pero "para las" sobrevivía como residuo.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las 9 pm", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasNRelojResuelveHoraYDejaTituloLimpio() {
+        // Antes: "9:30" casaba (09:30) pero "para las" sobrevivía como residuo.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las 9:30", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasNDeLaNocheResuelveOffsetYDejaTituloLimpio() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las 9 de la noche", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasNhResuelveHoraCompactaSinMeridiem() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las 9h", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasNhorasResuelveSufijoDeUnidad() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las 9 horas", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasNuevaYMediaResuelveHoraEscritaYFraccion() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las nueve y media", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasNyMediaResuelveFraccion() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las 9 y media", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLaUnaDelMediodiaResuelvePm() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para la una del mediodía", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasQuinceh30ResuelveHora24Compacta() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las 15h30", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasNAmResuelveMeridiem() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("entrega para las 9 am", suffixOrderNow(), zone)
+        assertEquals("entrega", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // --- SEGURIDAD: "para" como destinatario/cantidad/propósito NO se agenda como cita ---
+    @Test fun paraLasNPersonasNoInventaCita() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("comprar para las 9 personas", suffixOrderNow(), zone)
+        assertNull(result.dueAt)
+        assertEquals("comprar para las 9 personas", result.title)
+    }
+
+    @Test fun paraLasNinasNoInventaCita() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("regalos para las niñas", suffixOrderNow(), zone)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun paraLasNCajasNoInventaCita() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("comprar para las 3 cajas", suffixOrderNow(), zone)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun paraLasVentasNoInventaCita() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las ventas", suffixOrderNow(), zone)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun paraLasNEnPuntoSinEvidenciaNoInventaCita() {
+        // "para las 9" en punto (sin meridiem/minutos) es ambiguo con "mesa para las 9
+        // [personas]": como "sobre las 9", queda fuera (no se falsifica cita).
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las 9", suffixOrderNow(), zone)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun paraMananaSigueResolviendoFechaSinRegresion() {
+        // "para mañana" ya existía como forma de fecha; no debe romperse.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para mañana", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun paraElLunesSigueResolviendoFechaSinRegresion() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para el lunes", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertNotNull(result.dueAt)
+    }
 }
