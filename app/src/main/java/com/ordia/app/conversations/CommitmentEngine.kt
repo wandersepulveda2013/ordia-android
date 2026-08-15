@@ -72,7 +72,14 @@ object ConversationPrivacyPolicy {
         Regex("""\bAIza[0-9A-Za-z_-]{35}\b"""),
         Regex("""\bxox[abp]-[0-9A-Za-z-]{20,}\b"""),
         Regex("""\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{20,}\b"""),
-        Regex("""\bglpat-[A-Za-z0-9_-]{20,}\b""")
+        Regex("""\bglpat-[A-Za-z0-9_-]{20,}\b"""),
+        // c.298: cadenas de conexion con credenciales embebidas
+        // (esquema://usuario:password@host). Rendija compartida con
+        // ContextPrivacyFilter: un SMS "postgres://reportes:Verde2024@10.0.0.5/prod"
+        // se persistia en texto plano en la BD de conversaciones porque ninguna
+        // palabra-clave ni patron numerico lo casaba. El user:pass@ en la autoridad
+        // es la sennal de credencial. Paridad con el gate de lectura.
+        Regex("""(?i)\b[a-z][a-z0-9+.-]*://[^\s:@/]+:[^\s@/]+@[^\s/]+""")
     )
     // "clave temporal/bancaria 4821" no entra en el patrón 2 (no es "de acceso/") pero
     // sí es un PIN: lo capturamos como otpCode. Añadir "clave" en peludo al patrón 1

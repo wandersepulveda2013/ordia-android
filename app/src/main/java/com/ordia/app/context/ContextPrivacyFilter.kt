@@ -47,6 +47,13 @@ object ContextPrivacyFilter {
         Regex("""\bxox[abp]-[0-9A-Za-z-]{20,}\b"""),
         Regex("""\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{20,}\b"""),
         Regex("""\bglpat-[A-Za-z0-9_-]{20,}\b"""),
+        // c.298: cadenas de conexion con credenciales embebidas
+        // (esquema://usuario:password@host). Llegan por SMS/mensajeria (paquete no
+        // bancario) desde equipos devops y se persistian en texto plano en la BD de
+        // contexto Y de conversaciones. Ni las palabras-clave (sin "password" en
+        // peludo) ni Luhn/IBAN las casaban. El user:pass@ en la autoridad es la
+        // sennal de credencial: las URLs normales (sin userinfo) no la tienen.
+        Regex("""(?i)\b[a-z][a-z0-9+.-]*://[^\s:@/]+:[^\s@/]+@[^\s/]+"""),
         Regex("""\b(sexo|sexual|desnud|porno|xxx|eróti|intimidad)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(matar|asesinar|violar|robar|secuestr|bomba|arma|amenaza)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(droga|cocaína|cocaina|marihuana|heroína|heroina|metanfetamina|narcotráfico|narcotrafico)\b""", RegexOption.IGNORE_CASE),

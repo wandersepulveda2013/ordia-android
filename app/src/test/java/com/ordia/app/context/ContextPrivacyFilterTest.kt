@@ -165,6 +165,30 @@ class ContextPrivacyFilterTest {
     }
 
     @Test
+    fun connectionStringWithCredentials_blocked() {
+        // c.298: cadenas de conexion con user:pass@ embebidas (devops por SMS).
+        // Antes del fix escapaban al gate de lectura y se persistian como contexto.
+        assertTrue(ContextPrivacyFilter.containsSensitiveContent("te paso la cadena: postgres://reportes:Verde2024@10.0.0.5/prod"))
+        assertTrue(ContextPrivacyFilter.containsSensitiveContent("conexion mongodb://admin:S3cr3tP4ss@db.host.com:27017/prod"))
+        assertTrue(ContextPrivacyFilter.containsSensitiveContent("usa mysql://root:toor@10.0.0.5:3306/db"))
+        assertTrue(ContextPrivacyFilter.containsSensitiveContent("redis://default:redispassword@cache.internal:6379"))
+        assertTrue(ContextPrivacyFilter.containsSensitiveContent("amqp://guest:guest@rabbitmq:5672/vhost"))
+        assertTrue(ContextPrivacyFilter.containsSensitiveContent("https://admin:SuperSecret@api.service.io/data"))
+    }
+
+    @Test
+    fun plainUrlWithoutCredentials_notBlocked() {
+        // c.298: URLs normales (sin user:pass@) no deben bloquearse (falso positivo
+        // romperia la captura de enlaces legitimos).
+        assertFalse(ContextPrivacyFilter.containsSensitiveContent("mira https://example.com/articulo interesante"))
+        assertFalse(ContextPrivacyFilter.containsSensitiveContent("el sitio es http://ordia.app no te lo pierdas"))
+        assertFalse(ContextPrivacyFilter.containsSensitiveContent("enviame el link de https://docs.ejemplo.com/guia"))
+        assertFalse(ContextPrivacyFilter.containsSensitiveContent("descarga de https://github.com/usuario/repo"))
+        // URL con puerto, sin userinfo: no hay credencial -> no bloquear.
+        assertFalse(ContextPrivacyFilter.containsSensitiveContent("servidor en https://api.ejemplo.com:8443/v1/status"))
+    }
+
+    @Test
     fun normalTask_notBlocked() {
         assertFalse(ContextPrivacyFilter.shouldBlock(event(text = "Recordar comprar leche y pan")))
     }

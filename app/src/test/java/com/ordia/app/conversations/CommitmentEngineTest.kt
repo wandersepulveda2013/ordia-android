@@ -432,4 +432,48 @@ class CommitmentEngineTest {
         }
     }
 
+    @Test
+    fun blocksConnectionStringsThatEscapedBothPrivacyGates() {
+        // c.298: cadenas de conexion con credenciales embebidas
+        // (esquema://usuario:password@host) llegan por SMS/mensajeria desde
+        // equipos devops y NO eran bloqueadas por NINGUN gate. Mismo tipo de
+        // rendija compartida que c.294/c.296: ni las palabras-clave (sin
+        // "password" en peludo) ni Luhn/IBAN ni los prefijos canonicos las casaban
+        // -> la credencial se persistia en texto plano en la BD de conversaciones
+        // Y se leia como contexto. El user:pass@ en la autoridad es la sennal.
+        // Probe JVM pre-fix: 6/6 leaks (persist=false Y read=false). Tras fix:
+        // 6/6 bloqueados por ambos gates y sin generar compromiso.
+        val leaks = listOf(
+            "te paso la cadena: postgres://reportes:Verde2024@10.0.0.5/prod",
+            "conexion mongodb://admin:S3cr3tP4ss@db.host.com:27017/prod",
+            "usa mysql://root:toor@10.0.0.5:3306/db",
+            "redis://default:redispassword@cache.internal:6379",
+            "amqp://guest:guest@rabbitmq:5672/vhost",
+            "https://admin:SuperSecret@api.service.io/data"
+        )
+        val innocents = listOf(
+            "mira https://example.com/articulo interesante",
+            "el sitio es http://ordia.app no te lo pierdas",
+            "enviame el link de https://docs.ejemplo.com/guia",
+            "descarga de https://github.com/usuario/repo"
+        )
+        leaks.forEach { text ->
+            assertTrue("deberia bloquearse como sensible: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
+            assertTrue("el gate de lectura deberia bloquear: \"$text\"", ContextPrivacyFilter.containsSensitiveContent(text))
+            assertEquals(
+                "ambos gates deben coincidir en secreto \"$text\": persist != read (rendija c.298)",
+                ConversationPrivacyPolicy.containsSensitiveContent(text),
+                ContextPrivacyFilter.containsSensitiveContent(text)
+            )
+            assertTrue(
+                "no debe generar compromiso desde contenido sensible: \"$text\"",
+                CommitmentEngine.extract(listOf(ChatMessage("Yo", text)), scopeHash = "db").isEmpty()
+            )
+        }
+        innocents.forEach { text ->
+            assertFalse("URL legitima no debe bloquearse en persist: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
+            assertFalse("URL legitima no debe bloquearse en lectura: \"$text\"", ContextPrivacyFilter.containsSensitiveContent(text))
+        }
+    }
+
 }
