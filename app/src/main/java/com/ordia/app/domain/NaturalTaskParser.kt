@@ -62,6 +62,12 @@ object NaturalTaskParser {
             tens + "|" + units
     }
 
+    /** Nombres de mes (completos + abreviaturas) como fragmento de regex, sincronizado
+     *  con el mapa `months` (c.1208). Reutilizado por los límites mensuales para casar
+     *  el mes explícito opcional ("fin de mes de octubre"). */
+    private val monthNameGroup: String =
+        "(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic)"
+
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
     private val weekdayPattern = Regex("""(?i)\b(?:el\s+|del\s+|de\s+|este\s+)?(?:pr[oó]ximo\s+|pr[oó]xima\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+que\s+viene|\s+pr[oó]ximos?|\s+pr[oó]ximas?|\s+siguientes?|\s+posterior(?:es)?)?\b""")
     /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado.
@@ -423,10 +429,20 @@ object NaturalTaskParser {
      * un mes antes (P1: fecha de vencimiento errónea, pago/renta olvidados o
      * adelantados). El modificador se consume en el match (limpieza de título) y se
      * detecta en la resolución para desplazar un mes.
+     *
+     * Mes EXPLÍCITO opcional: "fin de mes de octubre" / "mediados de mes de septiembre"
+     * / "principios de mes de marzo" nombran el mes de vencimiento. Antes el patrón
+     * sólo casaba "<límite> de mes" y dejaba "de <mes>" como residuo en el título
+     * Y peor: el mes nombrado se IGNORABA y la fecha caía al límite del mes EN CURSO
+     * (p. ej. "renta finales de mes de octubre" → 31 de agosto en vez de 31 de
+     * octubre, P1: vencimiento un mes antes, pago mal fechado). El grupo 1 captura el
+     * nombre del mes y el grupo 2 el año opcional; si el mes es válido la resolución
+     * usa `parseMonthBoundaryName` (mismo criterio que "finales de octubre" sin "de
+     * mes"), si no, mantiene la lógica original de mes en curso/que viene.
      */
-    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(?:fin(?:al|ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
-    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
-    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?|inicios?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(?:fin(?:al|ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
+    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
+    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?|inicios?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
     /**
      * Prefijo "cada" inmediatamente antes de un límite mensual ("cada fin de mes",
      * "cada mediados de mes", "cada principios de mes"): convierte el vencimiento
@@ -448,7 +464,7 @@ object NaturalTaskParser {
      * parseMonthNameDate). Se consume ANTES que monthNamePattern para no dejar
      * residuo ni doble-match.
      */
-    private val monthBoundaryNamePattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(mediados?|mitad|principios?|comienzos?|primeros?|inicios?|finales?|fin|cierre|corte)\s+(?:de\s+|del\s+)([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
+    private val monthBoundaryNamePattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(mediados?|mitad|principios?|comienzos?|primeros?|inicios?|final(?:es)?|fin|cierre|corte)\s+(?:de\s+|del\s+)([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
     /**
      * "fin de año" / "a fin de año" / "finales de año" / "fin del año" / "cierre de año"
      * → 31 de diciembre del año actual (o del siguiente si hoy ya es 31/12).
@@ -1639,32 +1655,53 @@ object NaturalTaskParser {
             startOfMonthEarlyMatch != null -> "start"
             else -> null
         }
-        val monthBoundaryDueAt = when {
-            endOfMonthEarlyMatch != null -> {
-                val baseMonth = monthBaseForBoundary(base.toLocalDate(), endOfMonthEarlyMatch.value)
-                val lastDay = baseMonth.withDayOfMonth(baseMonth.lengthOfMonth())
-                DateRules.toEpochMillis(lastDay, LocalTime.of(9, 0), zone)
+        // Resolución del límite mensual. Si el match trae un mes EXPLÍCITO (grupo 1,
+        // p. ej. "fin de mes de octubre") se resuelve a ese mes con
+        // `parseMonthBoundaryName` (mismo criterio y roll anual que "finales de
+        // octubre"); si no, se usa el mes en curso/que viene (`monthBaseForBoundary`).
+        fun boundaryDueAt(match: MatchResult, kind: String): Long? {
+            val namedMonth = months[match.groupValues[1].lowercase()]
+            val qualifier = when (kind) {
+                "end" -> "finales"
+                "mid" -> "mediados"
+                else -> "principios"
             }
-            midOfMonthEarlyMatch != null -> {
-                val baseMonth = monthBaseForBoundary(base.toLocalDate(), midOfMonthEarlyMatch.value)
-                DateRules.toEpochMillis(baseMonth.withDayOfMonth(15), LocalTime.of(9, 0), zone)
+            if (namedMonth != null) {
+                return parseMonthBoundaryName(base.toLocalDate(), qualifier, namedMonth, match.groupValues[2])
+                    ?.let { DateRules.toEpochMillis(it, LocalTime.of(9, 0), zone) }
             }
-            startOfMonthEarlyMatch != null -> {
-                val baseMonth = monthBaseForBoundary(base.toLocalDate(), startOfMonthEarlyMatch.value)
-                DateRules.toEpochMillis(baseMonth.withDayOfMonth(1), LocalTime.of(9, 0), zone)
+            val baseMonth = monthBaseForBoundary(base.toLocalDate(), match.value)
+            return when (kind) {
+                "end" -> {
+                    val lastDay = baseMonth.withDayOfMonth(baseMonth.lengthOfMonth())
+                    DateRules.toEpochMillis(lastDay, LocalTime.of(9, 0), zone)
+                }
+                "mid" -> DateRules.toEpochMillis(baseMonth.withDayOfMonth(15), LocalTime.of(9, 0), zone)
+                else -> DateRules.toEpochMillis(baseMonth.withDayOfMonth(1), LocalTime.of(9, 0), zone)
             }
+        }
+        val monthBoundaryDueAt = when (boundaryKind) {
+            "end" -> boundaryDueAt(endOfMonthEarlyMatch!!, "end")
+            "mid" -> boundaryDueAt(midOfMonthEarlyMatch!!, "mid")
+            "start" -> boundaryDueAt(startOfMonthEarlyMatch!!, "start")
             else -> null
         }
         // "cada fin/mediados/principios de mes" (c.257): el prefijo "cada" convierte el
         // vencimiento único en recurrencia MONTHLY. Fin→anclaje al último día REAL del
         // mes (EOM, no omite meses cortos); mediados/principios→anclaje al día 15/1 vía
         // dueAt. Se borra "cada <límite>" de golpe para que parseRecurrence no vea "cada".
+        // Si el límite nombra un mes EXPLÍCITO ("cada fin de mes de octubre") la frase
+        // es contradictoria (un mes concreto no es hábito mensual): se borra igual (sin
+        // residuo) pero NO se promueve a recurrencia — prima el vencimiento único del
+        // mes nombrado, que ya resolvió `monthBoundaryDueAt`.
         val cadaBoundaryRecurrence: RecurrenceResult? = if (boundaryWinner != null && boundaryKind != null) {
             val before = working.substring(0, boundaryWinner.range.first)
             val cadaPrefix = cadaBoundaryPrefixPattern.find(before)
+            val hasNamedMonth = months[boundaryWinner.groupValues[1].lowercase()] != null
             if (cadaPrefix != null) {
                 working = working.replaceRange(cadaPrefix.range.first..boundaryWinner.range.last, " ")
-                when (boundaryKind) {
+                if (hasNamedMonth) null
+                else when (boundaryKind) {
                     "end" -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList(), monthlyLastDay = true)
                     else -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList())
                 }

@@ -13,17 +13,18 @@
   segundos, 1 agente. Ver `tools/SUPERVISOR.md`.
 
 ## Estado
-- **Fecha (UTC)**: 2026-08-15. Rama `openhands/autonomous-ordia`, HEAD `b813e64` (mas memoria de este run, pendiente de commitear). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21.
-- **Tests**: `bash tools/run_domain_tests.sh` -> **1732 PASS** (incluye fixes c.261-c.264), 0 failures, 40 clases; `bash tools/run_domain_checks.sh` -> smoke 25 OK. **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Fecha (UTC)**: 2026-08-15. Rama `openhands/autonomous-ordia`, HEAD `b813e64` (base c.264 remota; este run c.265 pendiente de commitear). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21.
+- **Tests**: `bash tools/run_domain_tests.sh` -> **1743 PASS** (incluye fixes c.261-c.265), 0 failures, 40 clases; `bash tools/run_domain_checks.sh` -> smoke 25 OK. **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
 - **Recientes (rama)**:
-  - c.261 (`090fe48`, este run): agenda distingue proxima semana/semana que viene/semana pasada vs esta semana (`AssistantEngine.agendaAnswer`).
-  - c.262 (`f257e08`, este run): agenda reconoce "mes" y distingue proximo/que viene/pasado/este (bisiesto-safe via `YearMonth`).
-  - c.263 (`24e1dd2`, este run): "¿que tengo hoy?" con dia vacio pero atrasadas ya no miente "agenda vacia": nombra la atrasada mas urgente + recuento + `relatedTaskIds`.
-  - c.264 (`b813e64`, run paralelo): **P1 datos-integridad des-hacer recurrente deja huerfano** - RESUELTO sin migracion Room: nueva regla `RecurrenceEngine.spawnedOccurrenceToRevert` re-deriva la ocurrencia esperada (no se almacena `originTaskId`) y la revierte solo si sigue pristina; cableado en `toggleTask`/`undoLastAutomation`. +9 tests. (El P1 que este run habia marcado OPEN ya fue resuelto por el run paralelo.)
+  - c.265 (este run): **P1 datos-integridad límites mensuales con mes explícito** - "renta finales de mes de octubre" daba fecha WRONG (mes en curso, 31/8) en vez de 31/10; dejaba residuo. RESUELTO: los 3 patrones `*OfMonthPattern` capturan mes/año explícitos opcionales y `boundaryDueAt` resuelve con `parseMonthBoundaryName`. Adicional: `monthBoundaryNamePattern` ahora casa "final" singular y consume "al " (limpia "pago al final de agosto"->"pago"). Guard "cada fin de mes de \<mes>" no recurre (sinsentido). +11 tests.
+  - c.261 (`090fe48`): agenda distingue proxima semana/semana que viene/semana pasada vs esta semana (`AssistantEngine.agendaAnswer`).
+  - c.262 (`f257e08`): agenda reconoce "mes" y distingue proximo/que viene/pasado/este (bisiesto-safe via `YearMonth`).
+  - c.263 (`24e1dd2`): "¿que tengo hoy?" con dia vacio pero atrasadas ya no miente "agenda vacia": nombra la atrasada mas urgente + recuento + `relatedTaskIds`.
+  - c.264 (`b813e64`, run paralelo): **P1 datos-integridad des-hacer recurrente deja huerfano** - RESUELTO sin migracion Room: nueva regla `RecurrenceEngine.spawnedOccurrenceToRevert` re-deriva la ocurrencia esperada (no se almacena `originTaskId`) y la revierte solo si sigue pristina; cableado en `toggleTask`/`undoLastAutomation`. +9 tests.
   - Todos TDD (RED->GREEN), sin nueva pantalla/intento.
 - **OPEN pendientes** (mayor impacto primero):
   - P2 "bisemanal" ambiguo (parser).
-  - P2/P3 residuos de titulo pre-existentes ("de <mes>", "el primer" suelto); P3 "a las 3.5" decimal-hour.
+  - P3 residuos de título restantes ("el primer" suelto); P3 "a las 3.5" decimal-hour. (El residuo "de <mes>" de límites mensuales quedó RESUELTO c.265.)
   - P2 decision `TaskStatus.CANCELLED` inalcanzable desde UI (requiere Android/UI).
   - Verificacion Android pendiente del fix c.264 (toggle/un-complete + `deletePermanently` con Room real) cuando haya SDK.
 - **Proxima prioridad**: descubrimiento continuo - (i) seguir auditando motores no-parser (`WhatNowEngine`/`GuardianCoach`/`SummaryEngine`/`SearchEngine`) por rendijas simetricas; (ii) areas no-parser (onboarding, navegacion, accesibilidad, rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.

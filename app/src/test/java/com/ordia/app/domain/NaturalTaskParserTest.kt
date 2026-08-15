@@ -4913,6 +4913,93 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "principios/mediados/finales de mes de <mes>": límite mensual con mes EXPLÍCITO ---
+    // El usuario a menudo nombra el mes ("finales de mes de octubre", "a fin de mes de
+    // diciembre"). Antes el "<de mes>" se consumía como límite del mes ACTUAL y el
+    // "de <mes>" quedaba pegado al título → fecha WRONG (mes en curso) y residuo. Ahora
+    // se respeta el mes nombrado y el año implícito/explícito (con roll al año siguiente
+    // si la fecha ya pasó, igual que parseMonthNameDate). P1: vencimiento de
+    // pago/renta/cobro sin fecha correcta = recordatorio incorrecto. now = 2026-07-29.
+
+    @Test fun finalesDeMesConMesExplicitoResuelveMesNombrado() {
+        val result = NaturalTaskParser.parse("renta finales de mes de octubre", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(LocalDate.of(2026, 10, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mediadosDeMesConMesExplicitoResuelveDia15() {
+        val result = NaturalTaskParser.parse("cobro mediados de mes de septiembre", now, zone)
+        assertEquals("cobro", result.title)
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun principiosDeMesConMesExplicitoResuelveDia1() {
+        val result = NaturalTaskParser.parse("pago principios de mes de agosto", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDeMesConMesExplicitoRuedaAlAnoSiguienteSiPaso() {
+        // 31 de marzo de 2026 < 29/7/2026 → rueda a 31 de marzo de 2027.
+        val result = NaturalTaskParser.parse("pago finales de mes de marzo", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2027, 3, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finalesDeMesConMesExplicitoYAno() {
+        val result = NaturalTaskParser.parse("renta finales de mes de octubre de 2027", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(LocalDate.of(2027, 10, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinDeMesConMesExplicitoLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("pago a fin de mes de diciembre", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 12, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aPrincipiosDelMesConMesExplicitoLimpiaTitulo() {
+        // "a principios del mes de agosto": variante con "del" + título "pago" limpio.
+        val result = NaturalTaskParser.parse("pago a principios del mes de agosto", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // --- "cada fin de mes de <mes>": NO recurre (cada + mes específico = plazo único) ---
+    // "cada" + límite mensual genera recurrencia, PERO "cada fin de mes de octubre" fija
+    // un vencimiento único en octubre: combinarlo con recurrencia sería un sinsentido.
+    // El guard evita la recurrencia, respeta la fecha del mes nombrado y limpia el título.
+    @Test fun cadaFinDeMesConMesExplicitoNoRecurre() {
+        val result = NaturalTaskParser.parse("pago cada fin de mes de octubre", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(LocalDate.of(2026, 10, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // --- "al final/al principio/al inicio de <mes>": límite + mes NOMBRE sin "de mes" ---
+    // monthBoundaryNamePattern cubre "mediados/finales/principios de <mes nombre>" sin
+    // la frase "de mes". El singular "final" no casaba (solo "finales") y el prefijo "al "
+    // quedaba pegado al título. Ahora "final" singular se resuelve (último día del mes
+    // nombrado) y "al/principio/inicio" limpian el título. now = 2026-07-29.
+
+    @Test fun alFinalDeMesNombreResuelveUltimoDia() {
+        val result = NaturalTaskParser.parse("pago al final de agosto", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun alPrincipioDeMesNombreResuelveDia1() {
+        val result = NaturalTaskParser.parse("renta al principio de agosto", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun alInicioDeMesNombreResuelveDia1() {
+        val result = NaturalTaskParser.parse("entregar al inicio de agosto", now, zone)
+        assertEquals("entregar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "cada fin/mediados/principios de mes": RECURRENCIA mensual de límite (c.257) ---
     // Antes, "cada fin de mes" se trataba como fecha única (rec=NONE): al completar la
     // tarea ésta NO generaba próxima ocurrencia → pago/cierre mensual recurrente se
