@@ -86,18 +86,21 @@ object RecurrenceEngine {
         RecurrenceFrequency.NONE -> base
         RecurrenceFrequency.DAILY -> base.plusDays(interval)
         RecurrenceFrequency.WEEKLY -> nextWeekly(base, interval, days)
-        RecurrenceFrequency.MONTHLY -> nextMonthly(base, interval)
+        RecurrenceFrequency.MONTHLY -> nextMonthly(base, interval, days)
         RecurrenceFrequency.YEARLY -> nextYearly(base, interval)
     }
 
     /**
-     * Avanza una recurrencia mensual anclada al día del mes de [base], saltando los
-     * meses que no contienen ese día (p. ej. "el 31 de cada mes" salta feb → mar 31)
-     * en lugar de clampar a feb 28. Así el motor coincide con el anclaje que usa
-     * `NaturalTaskParser.nextMonthlyDate`, evitando deriva silenciosa del día
-     * (31 → 30 → 30…) tras el primer ciclo. Conserva la hora y zona de `base`.
+     * Avanza una recurrencia mensual. Si [days] codifica un ordinal de día de la
+     * semana (`"ord:weekday"`, p. ej. `"1:1"` = primer lunes, `"-1:5"` = último
+     * viernes), la próxima ocurrencia se ancla al N-ésimo/último día de la semana
+     * del mes objetivo (c.216) en lugar del día del mes; sin esto, "primer lunes
+     * de cada mes" derivaba al día 7 de cada mes y la 2ª cita se desplazaba
+     * silenciosamente. Si [days] está vacío, conserva el anclaje al día del mes.
      */
-    private fun nextMonthly(base: ZonedDateTime, interval: Long): ZonedDateTime {
+    private fun nextMonthly(base: ZonedDateTime, interval: Long, days: String): ZonedDateTime {
+        val ordinal = parseOrdinalWeekday(days)
+        if (ordinal != null) return nextMonthlyOrdinal(base, interval, ordinal.first, ordinal.second)
         val day = base.dayOfMonth
         var ym = YearMonth.from(base).plusMonths(interval)
         repeat(24) {
@@ -108,6 +111,56 @@ object RecurrenceEngine {
         }
         // Reserva: día ≤ 31 siempre halla mes válido en 24 iteraciones.
         return base.plusMonths(interval)
+    }
+
+    /**
+     * Codificación ordinal mensual en `recurrenceDays`: `"ord:weekday"` (formato
+     * literal `"$ord:$wd"`, p. ej. `"1:1"` = 1er lunes, `"-1:5"` = último viernes),
+     * con `ord ∈ {1,2,3,4,-1}` (-1 = último) y `weekday ∈ 1..7` (ISO, 1=lunes).
+     * Devuelve `(ord, weekday)` o `null` si [value] no casa (incluido el día del
+     * mes puro, que usa `recurrenceDays` vacío). Compartido por el motor y las
+     * reglas de seguridad de backup (validación única de la codificación). El
+     * parser (`NaturalTaskParser`) emite exactamente este formato para MONTHLY
+     * ordinal; cambiarlo aquí o allí rompería el anclaje anti-deriva (c.216).
+     */
+    fun parseOrdinalWeekday(value: String): Pair<Int, Int>? {
+        val parts = value.trim().split(':')
+        if (parts.size != 2) return null
+        val ord = parts[0].toIntOrNull() ?: return null
+        val wd = parts[1].toIntOrNull() ?: return null
+        if (ord !in -1..4 || ord == 0) return null
+        if (wd !in 1..7) return null
+        return ord to wd
+    }
+
+    /**
+     * Avanza [interval] meses desde [base] y recalcula el N-ésimo (`ord` 1..4) o
+     * último (`ord` = -1) día de la semana `weekday` (ISO 1..7) de ese mes,
+     * conservando hora y zona de [base]. Así el anclaje ordinal persiste ciclo a
+     * ciclo sin deriva al día del mes.
+     */
+    private fun nextMonthlyOrdinal(base: ZonedDateTime, interval: Long, ord: Int, weekday: Int): ZonedDateTime {
+        val ym = YearMonth.from(base).plusMonths(interval.coerceAtLeast(1))
+        val target = nthWeekdayInMonth(ym, ord, weekday)
+        return base.withYear(ym.year).withMonth(ym.monthValue).withDayOfMonth(target)
+    }
+
+    /**
+     * Día del mes del N-ésimo (`n` 1..4) o último (`n` = -1) día de la semana
+     * `weekday` (ISO 1..7) en [ym]. Simétrico al cálculo del parser para la 1ª
+     * ocurrencia, garantizando que motor y parser acuerdan el mismo anclaje.
+     */
+    private fun nthWeekdayInMonth(ym: YearMonth, n: Int, weekday: Int): Int {
+        val first = ym.atDay(1)
+        val firstWd = first.dayOfWeek.value
+        val offset = (weekday - firstWd + 7) % 7
+        if (n == -1) {
+            val lastDay = ym.lengthOfMonth()
+            val lastWd = ym.atDay(lastDay).dayOfWeek.value
+            val back = (lastWd - weekday + 7) % 7
+            return lastDay - back
+        }
+        return 1 + offset + (n - 1) * 7
     }
 
     /**

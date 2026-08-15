@@ -245,4 +245,88 @@ class RecurrenceEngineTest {
         assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(next.dueAt!!, zone))
         assertEquals(startOffset, next.dueAt - next.startAt!!)
     }
+
+    // ─── Recurrencia mensual ORDINAL (c.215) ─────────────────────────────────
+    // "primer lunes de cada mes", "último viernes de cada mes", "tercer miércoles
+    // de cada 2 meses": la ocurrencia NO se ancla al día del mes de la 1ª fecha,
+    // sino al N-ésimo (o último) día de la semana del mes. Sin persistencia del
+    // ordinal, el motor derivaba al día del mes y la 2ª cita se desplazaba
+    // silenciosamente ("evitar olvidos"/"rutinas", P1). Codificación: MONTHLY con
+    // recurrenceDays = "ord:weekday" (ord∈{1,2,3,4,-1}, weekday∈1..7 ISO). El día
+    // del mes puro sigue usando recurrenceDays vacío (regresión cubierta arriba).
+
+    @Test fun monthlyOrdinal_firstMonday_advancesToFirstMondayNextMonth() {
+        // "primer lunes de cada mes": 1er lunes de sep 2026 = 07-sep. La próxima NO
+        // debe ser 07-oct (día del mes), sino el 1er lunes de oct 2026 = 05-oct.
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 9, 7), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Pago primer lunes",
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceDays = "1:1" // 1er lunes (ISO lunes=1)
+        )
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 10, 5), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(next.dueAt, zone))
+    }
+
+    @Test fun monthlyOrdinal_lastFriday_advancesToLastFridayNextMonth() {
+        // "último viernes de cada mes": último viernes de ago 2026 = 28-ago. Próxima
+        // = último viernes de sep 2026 = 25-sep (NO 28-sep).
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 8, 28), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Reunión último viernes",
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceDays = "-1:5" // último viernes (ISO viernes=5)
+        )
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 9, 25), DateRules.toLocalDate(next.dueAt!!, zone))
+    }
+
+    @Test fun monthlyOrdinal_interval2_advancesTwoMonths() {
+        // "tercer miércoles de cada 2 meses": 3er miércoles de ago 2026 = 19-ago.
+        // Próxima = 3er miércoles de OCT 2026 (intervalo 2) = 21-oct.
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 8, 19), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Tercer miércoles cada 2 meses",
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceInterval = 2,
+            recurrenceDays = "3:3" // 3er miércoles (ISO miércoles=3)
+        )
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 10, 21), DateRules.toLocalDate(next.dueAt!!, zone))
+    }
+
+    @Test fun monthlyOrdinal_advancesPastCompletedAt() {
+        // Completar tarde (varios meses después) avanza hasta la 1ª ocurrencia
+        // ordinal futura, no atasca ni retrocede. 1er lunes nov 2026 = 02-nov; al
+        // completar el 05-nov esa ocurrencia ya pasó → avanza al 1er lunes dic.
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 9, 7), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Pago primer lunes",
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceDays = "1:1"
+        )
+        // Completa el 05-nov: la 1ª ocurrencia ordinal futura = 1er lunes dic 2026 = 07-dic.
+        val late = DateRules.toEpochMillis(LocalDate.of(2026, 11, 5), LocalTime.NOON, zone)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = late, zone = zone))
+        assertEquals(LocalDate.of(2026, 12, 7), DateRules.toLocalDate(next.dueAt!!, zone))
+    }
+
+    @Test fun monthlyOrdinal_propagatesEncodingToNextOccurrence() {
+        // La nueva ocurrencia debe conservar la codificación ordinal para que la
+        // 3ª cita tampoco derive (de lo contrario el bug reaparece en el 2º ciclo).
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 9, 7), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Pago primer lunes",
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceDays = "1:1"
+        )
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals("1:1", next.recurrenceDays)
+    }
 }

@@ -7190,4 +7190,60 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 9, 7), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
+
+    // --- Persistencia del anclaje ordinal en `recurrenceDays` (c.215: guard anti-deriva) ---
+    // Los tests anteriores verifican la 1ª ocurrencia (dueAt). Pero el bug real de deriva
+    // estaba en la 2ª cita: si el parser NO persiste el ordinal en `recurrenceDays`, el motor
+    // sólo ve el día del mes (p. ej. 7) y la 2ª cita deriva a "el 7 de cada mes" (un miércoles)
+    // en vez del 1er lunes. Estos tests fijan el CONTRATO parser→motor: el parser DEBE emitir
+    // "ord:weekday" para que `RecurrenceEngine` ancle cada ciclo al N-ésimo/último día de la
+    // semana. Sin ellos, una regresión que vacíe `recurrenceDays` pasaría los tests de dueAt
+    // (1ª ocurrencia) y los tests del motor (que alimentan la codificación a mano) pero
+    // reintroduciría la deriva silenciosa en el mundo real. Codificación: ord∈{1,2,3,4,-1},
+    // weekday∈1..7 ISO (1=lunes).
+
+    @Test fun recurrenciaOrdinalEmiteCodificacionPrimerLunes() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Pago el primer lunes de cada mes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("1:1", result.recurrenceDays) // 1er lunes (ISO lunes=1)
+    }
+
+    @Test fun recurrenciaOrdinalEmiteCodificacionUltimoViernes() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Reunión el último viernes de cada mes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("-1:5", result.recurrenceDays) // último viernes (ISO viernes=5)
+    }
+
+    @Test fun recurrenciaOrdinalEmiteCodificacionTercerJueves() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Reunión el tercer jueves de cada mes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("3:4", result.recurrenceDays) // 3er jueves (ISO jueves=4)
+    }
+
+    @Test fun recurrenciaMensualDiaDelMesNoEmiteCodificacionOrdinal() {
+        // Guard anti-falso-positivo: "el 15 de cada mes" (día del mes puro) NO debe emitir
+        // codificación ordinal; `recurrenceDays` queda vacío y el motor ancla al día 15.
+        // Si el parser emitiara "ord:weekday" aquí, el motor descartaría el día 15.
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Pago el 15 de cada mes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("", result.recurrenceDays)
+    }
+
+    @Test fun recurrenciaOrdinalIntervalo2EmiteCodificacionYIntervalo() {
+        // "tercer miércoles de cada 2 meses": codificación ordinal + intervalo 2.
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Reunión el tercer miércoles de cada 2 meses", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("3:3", result.recurrenceDays) // 3er miércoles (ISO miércoles=3)
+    }
 }

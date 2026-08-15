@@ -1716,7 +1716,28 @@ object NaturalTaskParser {
             } ?: true)
 
         // Repetición: se procesa antes que la fecha para que "cada viernes" no se lea como fecha suelta.
-        val recurrence = parseRecurrence(working, now)
+        // Recurrencia mensual + ocurrencia ordinal de día de la semana ("el primer lunes de
+        // cada mes"): se captura el (ordinal, weekday) del match para que el motor ancle cada
+        // ciclo al N-ésimo/último día de la semana en vez del día del mes (c.215: sin esto
+        // "primer lunes de cada mes" derivaba al día 7 de cada mes y la 2ª cita se desplazaba).
+        // Sólo aplica a MONTHLY: WEEKLY usa `days` (lista de días) y la 1ª ocurrencia ordinal
+        // ya resolvió la fecha de `dueAt`.
+        val recurrence = parseRecurrence(working, now).let { r ->
+            if (r.frequency != RecurrenceFrequency.MONTHLY || lastWeekdayOfMonthMatch == null) r
+            else {
+                val ordWord = lastWeekdayOfMonthMatch.groupValues[1].lowercase()
+                val ordinal = when (ordWord) {
+                    "último", "ultimo" -> -1
+                    "primer", "primero" -> 1
+                    "segundo" -> 2
+                    "tercer", "tercero" -> 3
+                    "cuarto" -> 4
+                    else -> null
+                }
+                val weekday = lastWeekdayOfMonthMatch.groupValues[2].toDayOfWeekOrNull()
+                if (ordinal != null && weekday != null) r.copy(monthlyOrdinalWeekday = ordinal to weekday.value) else r
+            }
+        }
         recurrence.phraseRanges.sortedByDescending { it.first }.forEach { range ->
             working = working.substring(0, range.first) + " " + working.substring(range.last + 1)
         }
@@ -2447,7 +2468,13 @@ object NaturalTaskParser {
                 ?: if (hasBareReminderVerb && dueAt != null) BARE_REMINDER_DEFAULT_OFFSET_MINUTES else null,
             recurrence = recurrence.frequency,
             recurrenceInterval = recurrence.interval,
-            recurrenceDays = recurrence.days.joinToString(","),
+            // MONTHLY ordinal de weekday ("primer lunes de cada mes") → codificación
+            // "ord:weekday" que `RecurrenceEngine` decodifica para anclar el N-ésimo/último
+            // día de la semana cada ciclo. WEEKLY usa `days` (lista) y el resto queda
+            // vacío (día del mes puro: monthlyDayOfMonth se ancla vía dueAt).
+            recurrenceDays = recurrence.monthlyOrdinalWeekday
+                ?.let { (ord, wd) -> "$ord:$wd" }
+                ?: recurrence.days.joinToString(","),
             category = category,
             confidence = confidence
         )
@@ -2460,6 +2487,13 @@ object NaturalTaskParser {
         val phraseRanges: List<IntRange>,
         /** Para recurrencia mensual anclada a un día del mes ("el 15 de cada mes"). */
         val monthlyDayOfMonth: Int? = null,
+        /** Para recurrencia mensual ORDINAL de día de la semana ("el primer lunes de
+         *  cada mes", "el último viernes del mes" recurrente): `(ord, weekday)` con
+         *  `ord ∈ {1,2,3,4,-1}` (-1 = último) y `weekday ∈ 1..7` (ISO, 1=lunes). Se
+         *  emite como `recurrenceDays = "ord:weekday"` para que `RecurrenceEngine`
+         *  ancle cada ciclo al N-ésimo/último día de la semana (c.216); sin esto el
+         *  motor sólo veía el día del mes y "primer lunes" derivaba al día 7. */
+        val monthlyOrdinalWeekday: Pair<Int, Int>? = null,
         /** Hora canónica de la parte del día para "cada mañana/tarde/noche/madrugada"
          *  (hábito diario): 09:00/15:00/21:00/04:00. Se usa como hora de respaldo de la
          *  primera ocurrencia y como contexto PM para horas sin meridiem. */

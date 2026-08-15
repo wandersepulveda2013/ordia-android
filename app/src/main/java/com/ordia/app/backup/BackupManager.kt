@@ -38,6 +38,7 @@ import com.ordia.app.data.local.AutomationCondition
 import com.ordia.app.data.local.AutomationAction
 import com.ordia.app.data.local.AutomationRuleResult
 import com.ordia.app.data.preferences.UserPreferences
+import com.ordia.app.domain.RecurrenceEngine
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URI
@@ -441,6 +442,12 @@ private fun validateRelationships(data: RestoreData) {
         if (task.recurrence == RecurrenceFrequency.WEEKLY) {
             require(BackupSecurityRules.parseUniqueDayList(task.recurrenceDays, 1..7) != null) {
                 "Una tarea semanal contiene días de recurrencia inválidos."
+            }
+        } else if (task.recurrence == RecurrenceFrequency.MONTHLY) {
+            // MONTHLY admite `recurrenceDays` vacío (anclaje al día del mes) o la
+            // codificación ordinal "ord:weekday" ("primer lunes de cada mes" → "1:1").
+            require(task.recurrenceDays.isBlank() || RecurrenceEngine.parseOrdinalWeekday(task.recurrenceDays) != null) {
+                "Una tarea mensual contiene días de recurrencia inválidos."
             }
         } else {
             require(task.recurrenceDays.isBlank()) { "Una tarea no semanal contiene días de recurrencia inesperados." }

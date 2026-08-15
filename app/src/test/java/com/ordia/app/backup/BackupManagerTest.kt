@@ -20,6 +20,7 @@ import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.ObservedSourceEntity
 import com.ordia.app.data.local.ProjectEntity
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.RoutineEntity
 import com.ordia.app.data.local.RoutineStepEntity
 import com.ordia.app.data.local.TagEntity
@@ -745,6 +746,59 @@ class BackupManagerTest {
         val backup = origin.exportJson()
         val result = newManager(FakeBackupStore(otherData())).importBackup(backup)
         assertFalse("Un backup con startAt>dueAt NO debe ser restaurable", result.success)
+    }
+
+    @Test
+    fun restoreAceptaTareaMensualOrdinalAncladaPorDiaDeSemana() = runBlocking {
+        // c.215: "primer lunes de cada mes" codifica `recurrence=MONTHLY,
+        // recurrenceDays="1:1"`. La validación de seguridad de restore (c.215 en
+        // `validateRelationships`) debe ACEPTAR esta codificación; sin el fix,
+        // caía a la rama "Una tarea no semanal contiene días de recurrencia
+        // inesperados" → backup IRRESTAURABLE → el usuario PERDÍA la recurrencia
+        // ordinal al restaurar (pérdida de datos silenciosa). Esta prueba ancla
+        // que el backup/restore preserva el anclaje anti-deriva ordinal.
+        val ordinal = sampleData().copy(
+            tasks = listOf(
+                TaskEntity(
+                    id = 2, title = "Pago primer lunes", projectId = 1,
+                    recurrence = RecurrenceFrequency.MONTHLY,
+                    recurrenceInterval = 1,
+                    recurrenceDays = "1:1", // 1er lunes de cada mes
+                    dueAt = now + 86_400_000L,
+                    createdAt = 1000L, updatedAt = 1000L
+                )
+            )
+        )
+        val origin = newManager(FakeBackupStore(ordinal))
+        val backup = origin.exportJson()
+        val result = newManager(FakeBackupStore(otherData())).importBackup(backup)
+        assertTrue("Una tarea mensual ordinal ('1:1') DEBE ser restaurable", result.success)
+    }
+
+    @Test
+    fun restoreRechazaTareaMensualConCodificacionOrdinalCorrupta() = runBlocking {
+        // c.215: la codificación ordinal "ord:weekday" admite `ord ∈ {1,2,3,4,-1}`
+        // y `weekday ∈ 1..7`. Una codificación corrupta ("9:9", ord fuera de rango)
+        // debe ser RECHAZADA al restaurar: si se aceptara, el motor no la
+        // decodificaría y la recurrencia caería a día-del-mes (deriva silenciosa,
+        // el bug mismo que c.215 corrige). Esta prueba protege la integridad de
+        // los datos restaurados.
+        val corrupted = sampleData().copy(
+            tasks = listOf(
+                TaskEntity(
+                    id = 2, title = "Roto", projectId = 1,
+                    recurrence = RecurrenceFrequency.MONTHLY,
+                    recurrenceInterval = 1,
+                    recurrenceDays = "9:9", // ord 9 y weekday 9 ambos fuera de rango
+                    dueAt = now + 86_400_000L,
+                    createdAt = 1000L, updatedAt = 1000L
+                )
+            )
+        )
+        val origin = newManager(FakeBackupStore(corrupted))
+        val backup = origin.exportJson()
+        val result = newManager(FakeBackupStore(otherData())).importBackup(backup)
+        assertFalse("Una tarea mensual con codificación ordinal corrupta NO debe ser restaurable", result.success)
     }
 }
 
