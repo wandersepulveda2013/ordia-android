@@ -34,8 +34,15 @@ enum class SearchKind { TASK, PROJECT, NOTE, HABIT, ROUTINE, CONVERSATION, COMMI
  * en esa franja sin nueva pantalla ni botón. Se excluye "mañana" (mañana) como
  * parte del día por su colisión con el scope TOMORROW, igual que hace el
  * parser en su variante compacta de parte del día.
+ *
+ * [WEEKDAY]/[WEEKEND] añaden recuperación por día de la semana ("lunes",
+ * "viernes"…) y por fin de semana ("finde"/"fin de semana"): simétricas al
+ * parser de captura (nextWeekdayOrSame/nextWeekday y weekendPattern), para
+ * que buscar y capturar signifiquen lo mismo. "fin de semana" SIEMPRE
+ * resuelve al próximo sábado estricto (sábado+domingo), nunca cae a THIS_WEEK
+ * aunque contenga la palabra "semana".
  */
-private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, THIS_MONTH, NEXT_MONTH, LAST_MONTH, OVERDUE, MISSED, UNDATED, TARDE, NOCHE, MADRUGADA, WEEKDAY }
+private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, THIS_MONTH, NEXT_MONTH, LAST_MONTH, OVERDUE, MISSED, UNDATED, TARDE, NOCHE, MADRUGADA, WEEKDAY, WEEKEND }
 
 data class SearchResult(val kind: SearchKind, val id: Long, val title: String, val subtitle: String)
 
@@ -151,7 +158,13 @@ object SearchEngine {
         // modificador "próximo"/"que viene" salta al estricto siguiente. Un día
         // dicho a mitad de semana resuelve a su próxima ocurrencia (hacia adelante),
         // que es la lectura útil para "qué me espera ese día".
+        // Resolución de día/semana objetivo para scopes WEEKDAY y WEEKEND. WEEKDAY
+        // usa el día de la semana explícito (inclusivo salvo "próximo"/"que viene");
+        // WEEKEND resuelve siempre al próximo sábado estricto (sábado+domingo).
+        // Ambos simétricos al parser de captura (nextWeekdayOrSame/nextWeekday y
+        // weekendPattern) para que buscar y capturar signifiquen lo mismo.
         val weekdayTarget = if (dateScope == DateScope.WEEKDAY) resolveWeekdayTarget(words, now, zone) else null
+        val weekendTarget = if (dateScope == DateScope.WEEKEND) resolveWeekendTarget(now, zone) else null
         // Mapa de proyectos activos por id: permite que una tarea o nota que pertenece
         // a un proyecto sea recuperada al buscar por el nombre del proyecto, aunque su
         // título no lo contenga. Así la relación tarea↔proyecto (y nota↔proyecto) se
@@ -217,7 +230,7 @@ object SearchEngine {
                     (!wantsCompleted || task.completed) &&
                     (!wantsFlagged || task.flagged) &&
                     (!wantsRecurring || task.recurrence != RecurrenceFrequency.NONE) &&
-                    (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted, weekdayTarget = weekdayTarget)) &&
+                    (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted, weekdayTarget = weekdayTarget, weekendTarget = weekendTarget)) &&
                     (matches(task.title, task.details, *ph, *pa, *th) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms + flaggedTerms + recurringTerms, task.title, task.details, *ph, *pa, *th))
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE))
@@ -411,6 +424,32 @@ object SearchEngine {
     // así que "viene" basta para detectar "lunes que viene".
     private val WEEKDAY_NEXT_MODIFIERS = setOf("proximo", "proximos", "proxima", "proximas", "viene", "siguiente", "siguientes", "posterior", "posteriores")
 
+    // Fin de semana para búsqueda universal ("finde"/"fin de semana"): recupera
+    // las tareas que vencen el sábado o domingo del PRÓXIMO fin de semana sin
+    // exigirlo en el título, simétrico a "hoy"/"lunes"/"esta semana". Resolución
+    // idéntica al parser de captura (weekendPattern → nextWeekday(SATURDAY),
+    // SIEMPRE estricto: si hoy es sábado salta al siguiente) para que buscar y
+    // capturar signifiquen lo mismo. "finde" es la apócope coloquial; "fin de
+    // semana" es la forma completa ("de" es STOP_WORD → words = ["fin","semana"]).
+    // "fines" (plural) NO casa: el parser lo reserva para recurrencia, así que
+    // queda fuera del scope y "fines de semana" cae a búsqueda por contenido/
+    // THIS_WEEK (no empeora el comportamiento previo). La detección va ANTES que
+    // WEEK_TOKENS: sin esto, la palabra "semana" dispararía THIS_WEEK y "fin de
+    // semana" devolvería toda la semana en vez del finde.
+    //
+    // Nota de simetría con captura: el parser DISTINGUE "fin de semana" (sábado,
+    // weekendPattern) de "fin de la semana" (domingo fin de semana actual,
+    // thisWeekPattern c.123). En búsqueda "la" es STOP_WORD, así que ambas formas
+    // colapsan a WEEKEND. Esto es intencional y correcto para recuperación: una
+    // tarea capturada como "reunión a fin de la semana" (dueAt=domingo) SÍ se
+    // recupera con "fin de la semana" (cae dentro de la ventana sáb-dom), y la
+    // ventana de finde es más útil que toda la semana (THIS_WEEK) para una
+    // consulta de "fin de semana". La simetría nuclear —"finde"/"fin de semana"→
+    // próximo sábado estricto en captura Y búsqueda— es exacta.
+    private val WEEKEND_TOKENS = setOf("finde")
+    private fun isWeekendQuery(words: List<String>): Boolean =
+        "finde" in words || ("fin" in words && "semana" in words)
+
     private fun detectDateScope(words: List<String>): DateScope? = when {
         "sin" in words && UNDATED_HINTS.any { it in words } -> DateScope.UNDATED
         OVERDUE_TOKENS.any { it in words } -> DateScope.OVERDUE
@@ -440,6 +479,11 @@ object SearchEngine {
         MONTH_TOKENS.any { it in words } && NEXT_MONTH_TOKENS.any { it in words } -> DateScope.NEXT_MONTH
         MONTH_TOKENS.any { it in words } && LAST_MONTH_TOKENS.any { it in words } -> DateScope.LAST_MONTH
         MONTH_TOKENS.any { it in words } && ("este" in words || "esta" in words) -> DateScope.THIS_MONTH
+        // Fin de semana ("finde"/"fin de semana"). Va ANTES que WEEK_TOKENS para
+        // que la palabra "semana" de "fin de semana" NO dispare THIS_WEEK. "finde"
+        // suelto también casa. La resolución (próximo sábado estricto) vive en
+        // resolveWeekendTarget, no aquí: el scope solo indica "es un finde".
+        isWeekendQuery(words) -> DateScope.WEEKEND
         WEEK_TOKENS.any { it in words } && NEXT_WEEK_TOKENS.any { it in words } -> DateScope.NEXT_WEEK
         WEEK_TOKENS.any { it in words } && LAST_WEEK_TOKENS.any { it in words } -> DateScope.LAST_WEEK
         WEEK_TOKENS.any { it in words } -> DateScope.THIS_WEEK
@@ -447,7 +491,7 @@ object SearchEngine {
     }
 
     private fun dateScopeTokens(words: List<String>): Set<String> =
-        words.filter { it in OVERDUE_TOKENS || it in MISSED_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in MONTH_TOKENS || it in NEXT_MONTH_TOKENS || it in LAST_MONTH_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS || it in WEEKDAY_TOKENS || it in WEEKDAY_NEXT_MODIFIERS }.toSet()
+        words.filter { it in OVERDUE_TOKENS || it in MISSED_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in MONTH_TOKENS || it in NEXT_MONTH_TOKENS || it in LAST_MONTH_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS || it in WEEKDAY_TOKENS || it in WEEKDAY_NEXT_MODIFIERS || it in WEEKEND_TOKENS || (isWeekendQuery(words) && (it == "fin" || it == "semana")) }.toSet()
 
     /**
      * Resuelve el día calendario objetivo de un scope WEEKDAY desde la consulta
@@ -468,13 +512,31 @@ object SearchEngine {
         return today.plusDays(days)
     }
 
+    /**
+     * Resuelve el sábado objetivo de un scope WEEKEND: SIEMPRE el próximo sábado
+     * estricto (si hoy es sábado, salta al siguiente), idéntico al parser de
+     * captura ([NaturalTaskParser] weekendPattern → nextWeekday(SATURDAY)). El
+     * domingo objetivo es el día siguiente. Así "finde"/"fin de semana"/
+     * "este finde"/"próximo finde" resuelven todos al mismo fin de semana (el
+     * parser tampoco distingue "este" de "próximo" para el finde). La simetría
+     * con la captura es deliberada: buscar "finde" el sábado devuelve lo del
+     * PRÓXIMO finde, no lo de hoy que ya está corriendo.
+     */
+    private fun resolveWeekendTarget(now: Long, zone: ZoneId): LocalDate {
+        val today = DateRules.toLocalDate(now, zone)
+        val delta = (DayOfWeek.SATURDAY.value - today.dayOfWeek.value + 7) % 7
+        val days = if (delta == 0) 7L else delta.toLong()
+        return today.plusDays(days)
+    }
+
     private fun taskMatchesDateScope(
         task: TaskEntity,
         scope: DateScope,
         now: Long,
         zone: ZoneId,
         anchorOnCompleted: Boolean = false,
-        weekdayTarget: LocalDate? = null
+        weekdayTarget: LocalDate? = null,
+        weekendTarget: LocalDate? = null
     ): Boolean {
         if (scope == DateScope.OVERDUE) return TaskRules.isOverdue(task, now)
         // "olvidadas": unión de los TRES olvidos de Ordía — un plazo incumplido
@@ -517,6 +579,26 @@ object SearchEngine {
             if (task.completed) return false
             val due = task.dueAt ?: return false
             return DateRules.toLocalDate(due, zone) == target
+        }
+        // Fin de semana (sábado+domingo del próximo finde): la fecha objetivo es el
+        // sábado resuelto en search() (resolveWeekendTarget), y entra todo lo que
+        // caiga ese sábado o el domingo siguiente. Misma lógica de anclaje y
+        // exclusión que WEEKDAY: canceladas nunca; "completadas finde" ancla en
+        // completedAt; lectura hacia adelante excluye completadas (lo ya hecho no
+        // es "lo del finde"). Sin dueAt/completedAt no entra, igual que WEEKDAY.
+        if (scope == DateScope.WEEKEND) {
+            val saturday = weekendTarget ?: return false
+            val sunday = saturday.plusDays(1)
+            if (task.status == TaskStatus.CANCELLED) return false
+            if (anchorOnCompleted) {
+                val completedAt = task.completedAt ?: return false
+                val day = DateRules.toLocalDate(completedAt, zone)
+                return day == saturday || day == sunday
+            }
+            if (task.completed) return false
+            val due = task.dueAt ?: return false
+            val day = DateRules.toLocalDate(due, zone)
+            return day == saturday || day == sunday
         }
         // Los scopes pasados ("ayer", "semana pasada", "mes pasado") recuperan
         // tareas ya completadas: su propósito es revisar qué había en ese período.
@@ -621,6 +703,7 @@ object SearchEngine {
             DateScope.NOCHE -> false
             DateScope.MADRUGADA -> false
             DateScope.WEEKDAY -> false // resuelto antes en taskMatchesDateScope
+            DateScope.WEEKEND -> false // resuelto antes en taskMatchesDateScope
         }
     }
 

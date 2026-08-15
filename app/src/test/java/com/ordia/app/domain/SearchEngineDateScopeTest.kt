@@ -857,4 +857,165 @@ class SearchEngineDateScopeTest {
         assertEquals(setOf(1L), ids)
     }
 
+    // --- Búsqueda por fin de semana ("finde"/"fin de semana") ---
+    // Recupera las tareas que vencen el fin de semana (sábado+domingo) sin
+    // exigirlo en el título, simétrico a "hoy"/"lunes"/"esta semana". Resolución
+    // idéntica al parser de captura (c.33/c.2039): el fin de semana SIEMPRE
+    // resuelve al PRÓXIMO sábado estricto (nextWeekday(SATURDAY): si hoy es
+    // sábado, salta al siguiente), y abarca ese sábado y su domingo. Así buscar
+    // y capturar significan lo mismo. Antes "fin de semana" caía por error a
+    // THIS_WEEK (la palabra "semana" disparaba WEEK_TOKENS) e "finde" no tenía
+    // scope: ambos devolvían solo contenido literal — una tarea que vence el
+    // sábado sin la palabra "finde" en el título era irrecuperable.
+
+    @Test fun finde_midWeek_findsSaturdayAndSunday() {
+        // Miércoles 2026-08-12: "finde" → fin de semana del 08-15 (sábado) y
+        // 08-16 (domingo). No incluye viernes (08-14) ni lunes (08-17).
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val sat = todayLocal.plusDays(3) // 08-15 sábado
+        val sun = todayLocal.plusDays(4) // 08-16 domingo
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Sábado", dueAt = weekdayAt(sat)),
+            TaskEntity(id = 2, title = "Domingo", dueAt = weekdayAt(sun)),
+            TaskEntity(id = 3, title = "Viernes", dueAt = weekdayAt(todayLocal.plusDays(2))), // 08-14
+            TaskEntity(id = 4, title = "Lunes", dueAt = weekdayAt(todayLocal.plusDays(5)))     // 08-17
+        )
+        val ids = SearchEngine.search("finde", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L), ids)
+    }
+
+    @Test fun finDeSemana_doesNotFallToThisWeek() {
+        // Regresión clave: "fin de semana" contiene "semana" y antes disparaba
+        // THIS_WEEK (WEEK_TOKENS), inundando con tareas de toda la semana
+        // (viernes 08-14, lunes 08-17). Ahora debe resolver al fin de semana
+        // (sábado 08-15 + domingo 08-16) únicamente. "de" es stop word.
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val sat = todayLocal.plusDays(3) // 08-15 sábado
+        val sun = todayLocal.plusDays(4) // 08-16 domingo
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Sábado", dueAt = weekdayAt(sat)),
+            TaskEntity(id = 2, title = "Domingo", dueAt = weekdayAt(sun)),
+            TaskEntity(id = 3, title = "Viernes", dueAt = weekdayAt(todayLocal.plusDays(2))), // 08-14 (esta semana)
+            TaskEntity(id = 4, title = "Lunes", dueAt = weekdayAt(todayLocal.plusDays(5)))    // 08-17 (esta semana)
+        )
+        val ids = SearchEngine.search("fin de semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L), ids)
+    }
+
+    @Test fun esteFinDeSemana_sameAsFinde() {
+        // "este fin de semana" → mismo fin de semana próximo que "finde"
+        // (semántica del parser: siempre próximo sábado estricto).
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val sat = todayLocal.plusDays(3) // 08-15 sábado
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Sábado", dueAt = weekdayAt(sat)),
+            TaskEntity(id = 2, title = "Próximo sábado", dueAt = weekdayAt(sat.plusDays(7))) // 08-22
+        )
+        val ids = SearchEngine.search("este fin de semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun finde_onSaturday_jumpsToNextWeekend() {
+        // Sábado 2026-08-15: "finde" resuelve al PRÓXIMO fin de semana (08-22/
+        // 08-23), no al de hoy — simétrico al parser (nextWeekday estricto:
+        // si hoy es sábado, +7). El usuario que busca "finde" un sábado por la
+        // tarde quiere saber qué le espera el PRÓXIMO, no lo de hoy (que ya
+        // está corriendo); coherente con capturar "finde" ese sábado.
+        val todayLocal = java.time.LocalDate.of(2026, 8, 15) // sábado
+        val t0 = weekdayAt(todayLocal, 12)
+        val nextSat = todayLocal.plusDays(7) // 08-22
+        val nextSun = todayLocal.plusDays(8) // 08-23
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Este sábado", dueAt = weekdayAt(todayLocal)),      // 08-15 hoy
+            TaskEntity(id = 2, title = "Próximo sábado", dueAt = weekdayAt(nextSat)),       // 08-22
+            TaskEntity(id = 3, title = "Próximo domingo", dueAt = weekdayAt(nextSun))       // 08-23
+        )
+        val ids = SearchEngine.search("finde", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(2L, 3L), ids)
+    }
+
+    @Test fun findeReunion_filtersByBothDateAndContent() {
+        // "finde reunion": solo la tarea del fin de semana con "reunión" en el
+        // título. "finde" no se exige como contenido (es scope de fecha).
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val sat = todayLocal.plusDays(3) // 08-15 sábado
+        val sun = todayLocal.plusDays(4) // 08-16 domingo
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Reunión de equipo", dueAt = weekdayAt(sat)),   // finde + reunión
+            TaskEntity(id = 2, title = "Brindis", dueAt = weekdayAt(sun)),             // finde sin reunión
+            TaskEntity(id = 3, title = "Otra reunión", dueAt = weekdayAt(todayLocal))  // reunión sin finde (hoy)
+        )
+        val ids = SearchEngine.search("finde reunión", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun finde_pureDateScopeExcludesDatelessEntities() {
+        // "finde" puro (sin contenido) solo devuelve tareas con dueAt ese fin
+        // de semana: notas/proyectos sin fecha no inundan los resultados.
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val sat = todayLocal.plusDays(3) // 08-15 sábado
+        val task = TaskEntity(id = 1, title = "Cita", dueAt = weekdayAt(sat))
+        val results = SearchEngine.search(
+            "finde",
+            tasks = listOf(task),
+            projects = listOf(ProjectEntity(id = 2, name = "Proyecto finde")),
+            notes = listOf(NoteEntity(id = 3, title = "Nota finde", body = "")),
+            habits = emptyList(),
+            now = t0
+        )
+        val kinds = results.map { it.kind }.toSet()
+        assertEquals(setOf(SearchKind.TASK), kinds)
+        assertEquals(listOf(1L), results.map { it.id })
+    }
+
+    @Test fun finde_excludesCompletedTaskDueWeekend() {
+        // Una tarea completada que vencía el sábado NO aparece en "finde"
+        // (lectura hacia adelante: ya no es "lo que tengo"). Como en "hoy"/"lunes".
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val sat = todayLocal.plusDays(3) // 08-15 sábado
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Pendiente", dueAt = weekdayAt(sat)),
+            TaskEntity(id = 2, title = "Ya hecha", dueAt = weekdayAt(sat), completed = true, completedAt = t0)
+        )
+        val ids = SearchEngine.search("finde", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun completadasFinde_anchorsOnCompletedAt() {
+        // "completadas finde" recupera lo terminado ese fin de semana (por
+        // completedAt), no lo que vencía entonces. Simétrico a "completadas hoy"/
+        // "completadas lunes".
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val sat = todayLocal.plusDays(3) // 08-15 sábado
+        val tasks = listOf(
+            // Terminada el sábado aunque vencía antes.
+            TaskEntity(id = 1, title = "Hecha el sábado", completed = true, completedAt = weekdayAt(sat, 10), dueAt = weekdayAt(todayLocal.minusDays(1))),
+            // Vencía el sábado pero aún pendiente: NO entra en "completadas finde".
+            TaskEntity(id = 2, title = "Pendiente", completed = false, dueAt = weekdayAt(sat))
+        )
+        val ids = SearchEngine.search("completadas finde", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun finDeSemana_withAccent_normalizesAndResolves() {
+        // "fin de semana" con tilde en ninguna palabra (no hay tildes aquí),
+        // pero verifica que el apócope "finde" escrito como "Finde" (mayúscula)
+        // se normaliza y resuelve. foldForSearch baja a minúsculas.
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val sat = todayLocal.plusDays(3) // 08-15 sábado
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Sábado", dueAt = weekdayAt(sat))
+        )
+        val ids = SearchEngine.search("Finde", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
 }
