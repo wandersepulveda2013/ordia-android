@@ -55,6 +55,7 @@
     <string name="task_detail_volver">Volver</string>
     <string name="task_detail_title">Detalle de tarea</string>
     <string name="task_detail_archive">Archivar</string>
+    <string name="task_detail_convert_note">Convertir en nota</string>
     <string name="task_detail_no_project">Sin proyecto</string>
     <string name="task_detail_mark_pending">Marcar pendiente</string>
     <string name="task_detail_complete">Completar tarea</string>

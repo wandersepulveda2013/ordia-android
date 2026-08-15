@@ -429,7 +429,8 @@ private fun OrdiaNavHost(
                 entry.arguments?.getLong("taskId") ?: 0L,
                 padding,
                 onBack = { navController.popBackStack() },
-                onTask = { navController.navigate(Destination.task(it)) }
+                onTask = { navController.navigate(Destination.task(it)) },
+                onNote = { navController.navigate(Destination.note(it)) }
             )
         }
         composable(
@@ -441,7 +442,8 @@ private fun OrdiaNavHost(
                 vm,
                 entry.arguments?.getLong("noteId") ?: 0L,
                 padding,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onTask = { navController.navigate(Destination.task(it)) }
             )
         }
         composable(

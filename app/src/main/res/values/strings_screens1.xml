@@ -235,6 +235,7 @@
     <string name="note_editor_saved">Guardado local</string>
     <string name="note_editor_attach">Adjuntar archivo</string>
     <string name="note_editor_archive">Archivar</string>
+    <string name="note_editor_convert_task">Convertir en tarea</string>
     <string name="note_editor_title_placeholder">Título de la nota</string>
     <string name="note_editor_attachments">Archivos adjuntos</string>
     <string name="note_editor_remove_attachment">Quitar %1$s</string>

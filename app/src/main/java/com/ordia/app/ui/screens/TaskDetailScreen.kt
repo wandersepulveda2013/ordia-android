@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
@@ -61,7 +62,8 @@ fun TaskDetailScreen(
     taskId: Long,
     contentPadding: PaddingValues,
     onBack: () -> Unit,
-    onTask: (Long) -> Unit
+    onTask: (Long) -> Unit,
+    onNote: (Long) -> Unit
 ) {
     val context = LocalContext.current
     val fallbackAttachmentName = stringResource(R.string.capture_attachment_name)
@@ -137,6 +139,10 @@ fun TaskDetailScreen(
                 IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, stringResource(R.string.task_detail_volver)) }
                 Text(stringResource(R.string.task_detail_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 IconButton(onClick = { editing = true }) { Icon(Icons.Outlined.Edit, stringResource(R.string.action_edit)) }
+                IconButton(
+                    onClick = { vm.convertTaskToNote(task) { onBack(); onNote(it) } },
+                    enabled = task.parentTaskId == null && subtasks.isEmpty()
+                ) { Icon(Icons.Outlined.ArrowForward, stringResource(R.string.task_detail_convert_note)) }
                 IconButton(onClick = { vm.deleteTask(task); onBack() }) { Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.task_detail_archive)) }
             }
         }

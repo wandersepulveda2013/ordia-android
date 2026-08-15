@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowDownward
+import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.CheckBox
@@ -72,7 +73,8 @@ fun NoteEditorScreen(
     vm: OrdiaViewModel,
     noteId: Long,
     contentPadding: PaddingValues,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onTask: (Long) -> Unit
 ) {
     val context = LocalContext.current
     val defaultAttachmentName = stringResource(R.string.note_editor_default_filename)
@@ -151,6 +153,16 @@ fun NoteEditorScreen(
             IconButton(onClick = { saveAndBack() }) { Icon(Icons.Outlined.ArrowBack, stringResource(R.string.note_editor_back_save)) }
             Text(if (dirty) stringResource(R.string.note_editor_dirty) else stringResource(R.string.note_editor_saved), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
             IconButton(onClick = { attachFile() }) { Icon(Icons.Outlined.AttachFile, stringResource(R.string.note_editor_attach)) }
+            IconButton(
+                onClick = {
+                    val note = existing ?: return@IconButton
+                    vm.convertNoteToTask(note) {
+                        onBack()
+                        onTask(it)
+                    }
+                },
+                enabled = existing != null
+            ) { Icon(Icons.Outlined.ArrowForward, stringResource(R.string.note_editor_convert_task)) }
             TextButton(onClick = { existing?.let { vm.deleteNote(it); onBack() } }, enabled = existing != null) { Text(stringResource(R.string.note_editor_archive)) }
             Button(onClick = { saveAndBack() }) {
                 Icon(Icons.Outlined.Save, null)

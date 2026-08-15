@@ -62,6 +62,7 @@ import com.ordia.app.domain.LearningEngine
 import com.ordia.app.domain.LearningProfile
 import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockCodec
+import com.ordia.app.domain.NoteTaskConverter
 import com.ordia.app.domain.NoteBlockType
 import com.ordia.app.domain.NaturalTaskParser
 import com.ordia.app.domain.OnboardingCompleter
@@ -627,6 +628,30 @@ class OrdiaViewModel(
     fun deleteNote(note: NoteEntity) = viewModelScope.launch {
         noteRepository.archive(note.id)
         _events.emit(UiEvent.Archived("note", note.id, appContext.getString(R.string.note_archived)))
+    }
+
+    /** Convierte una nota en tarea de la Bandeja y archiva la nota original. */
+    fun convertNoteToTask(note: NoteEntity, onConverted: (Long) -> Unit = {}) = viewModelScope.launch {
+        val now = System.currentTimeMillis()
+        val task = NoteTaskConverter.noteToTask(note).copy(createdAt = now, updatedAt = now)
+        val id = taskRepository.add(task)
+        noteRepository.archive(note.id)
+        reminderScheduler.cancel(id)
+        updateWidget()
+        _events.emit(UiEvent.TaskSaved(id))
+        onConverted(id)
+    }
+
+    /** Convierte una tarea raíz sin subtareas en nota y archiva la tarea original. */
+    fun convertTaskToNote(task: TaskEntity, onConverted: (Long) -> Unit = {}) = viewModelScope.launch {
+        val now = System.currentTimeMillis()
+        val note = NoteTaskConverter.taskToNote(task).copy(createdAt = now, updatedAt = now)
+        val id = noteRepository.add(note)
+        taskRepository.archive(task.id)
+        reminderScheduler.cancel(task.id)
+        updateWidget()
+        _events.emit(UiEvent.NoteSaved(id))
+        onConverted(id)
     }
 
     fun togglePin(note: NoteEntity) = viewModelScope.launch {
