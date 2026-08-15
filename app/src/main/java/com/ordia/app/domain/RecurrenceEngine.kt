@@ -10,6 +10,19 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 object RecurrenceEngine {
+    /**
+     * Sentinel en `recurrenceDays` que codifica una recurrencia mensual anclada al
+     * ÚLTIMO día real del mes ("cada fin de mes", c.257). A diferencia del anclaje por
+     * día del mes (día 31), que salta meses sin 31 (febrero, abril, junio, septiembre,
+     * noviembre) al siguiente mes con 31, este anclaje aterriza siempre en el último
+     * día del mes objetivo (28/29 en febrero, 30 en meses cortos) sin omitir ciclos:
+     * un pago/cierre mensual recurrente no se "salta" un mes. Sólo aplica a MONTHLY;
+     * `nextMonthly` lo detecta y despacha a [nextMonthlyLastDay].
+     */
+    const val LAST_DAY_OF_MONTH = "EOM"
+
+    fun isLastDayOfMonthEncoding(value: String): Boolean = value.trim() == LAST_DAY_OF_MONTH
+
     fun nextOccurrence(task: TaskEntity, completedAt: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): TaskEntity? {
         if (task.recurrence == RecurrenceFrequency.NONE) return null
         val interval = task.recurrenceInterval.coerceAtLeast(1).toLong()
@@ -97,11 +110,14 @@ object RecurrenceEngine {
      * viernes), la próxima ocurrencia se ancla al N-ésimo/último día de la semana
      * del mes objetivo (c.216) en lugar del día del mes; sin esto, "primer lunes
      * de cada mes" derivaba al día 7 de cada mes y la 2ª cita se desplazaba
-     * silenciosamente. Si [days] está vacío, conserva el anclaje al día del mes.
+     * silenciosamente. Si [days] es [LAST_DAY_OF_MONTH] (`"EOM"`), se ancla al
+     * último día REAL del mes objetivo (c.257): un cierre mensual no salta meses
+     * cortos. Si [days] está vacío, conserva el anclaje al día del mes.
      */
     private fun nextMonthly(base: ZonedDateTime, interval: Long, days: String): ZonedDateTime {
         val ordinal = parseOrdinalWeekday(days)
         if (ordinal != null) return nextMonthlyOrdinal(base, interval, ordinal.first, ordinal.second)
+        if (isLastDayOfMonthEncoding(days)) return nextMonthlyLastDay(base, interval)
         val day = base.dayOfMonth
         var ym = YearMonth.from(base).plusMonths(interval)
         repeat(24) {
@@ -112,6 +128,17 @@ object RecurrenceEngine {
         }
         // Reserva: día ≤ 31 siempre halla mes válido en 24 iteraciones.
         return base.plusMonths(interval)
+    }
+
+    /**
+     * Avanza [interval] meses desde [base] y aterriza en el último día REAL de ese
+     * mes objetivo (28/29 en febrero, 30 en meses cortos, 31 en largos), conservando
+     * hora y zona de [base]. Así "cada fin de mes" no omite meses cortos: el anclaje
+     * por día del mes (día 31) saltaría febrero entero; este anclaje lo respeta.
+     */
+    private fun nextMonthlyLastDay(base: ZonedDateTime, interval: Long): ZonedDateTime {
+        val ym = YearMonth.from(base).plusMonths(interval.coerceAtLeast(1))
+        return base.withYear(ym.year).withMonth(ym.monthValue).withDayOfMonth(ym.lengthOfMonth())
     }
 
     /**

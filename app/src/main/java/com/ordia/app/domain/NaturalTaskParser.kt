@@ -417,6 +417,14 @@ object NaturalTaskParser {
     private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?|inicios?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     /**
+     * Prefijo "cada" inmediatamente antes de un límite mensual ("cada fin de mes",
+     * "cada mediados de mes", "cada principios de mes"): convierte el vencimiento
+     * ÚNICO en RECURRENCIA mensual anclada (c.257). Se ancla al final del texto
+     * anterior al match del límite (`$`); `\bcada` evita casar dentro de palabras
+     * ("sacada", "bocadillo"). El recorte de "cada " se suma al borrado del límite.
+     */
+    private val cadaBoundaryPrefixPattern = Regex("""(?i)\bcada\s+$""")
+    /**
      * "mediados de septiembre" / "a finales de octubre" / "principios de enero":
      * calificador de límite mensual aplicado a un mes NOMBRE (no al "mes" en curso).
      * Vencimientos/plazos dichos sin día exacto ("pago a mediados de septiembre",
@@ -1611,6 +1619,15 @@ object NaturalTaskParser {
         val endOfMonthEarlyMatch = endOfMonthPattern.find(working)
         val midOfMonthEarlyMatch = midOfMonthPattern.find(working)
         val startOfMonthEarlyMatch = startOfMonthPattern.find(working)
+        // Límite mensual ganador (fin > mediados > principios) y su "tipo": sirve para
+        // detectar el prefijo "cada" (recurrencia) y extender su borrado en un solo paso.
+        val boundaryWinner: MatchResult? = endOfMonthEarlyMatch ?: midOfMonthEarlyMatch ?: startOfMonthEarlyMatch
+        val boundaryKind: String? = when {
+            endOfMonthEarlyMatch != null -> "end"
+            midOfMonthEarlyMatch != null -> "mid"
+            startOfMonthEarlyMatch != null -> "start"
+            else -> null
+        }
         val monthBoundaryDueAt = when {
             endOfMonthEarlyMatch != null -> {
                 val baseMonth = monthBaseForBoundary(base.toLocalDate(), endOfMonthEarlyMatch.value)
@@ -1627,9 +1644,26 @@ object NaturalTaskParser {
             }
             else -> null
         }
-        endOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
-        midOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
-        startOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+        // "cada fin/mediados/principios de mes" (c.257): el prefijo "cada" convierte el
+        // vencimiento único en recurrencia MONTHLY. Fin→anclaje al último día REAL del
+        // mes (EOM, no omite meses cortos); mediados/principios→anclaje al día 15/1 vía
+        // dueAt. Se borra "cada <límite>" de golpe para que parseRecurrence no vea "cada".
+        val cadaBoundaryRecurrence: RecurrenceResult? = if (boundaryWinner != null && boundaryKind != null) {
+            val before = working.substring(0, boundaryWinner.range.first)
+            val cadaPrefix = cadaBoundaryPrefixPattern.find(before)
+            if (cadaPrefix != null) {
+                working = working.replaceRange(cadaPrefix.range.first..boundaryWinner.range.last, " ")
+                when (boundaryKind) {
+                    "end" -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList(), monthlyLastDay = true)
+                    else -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList())
+                }
+            } else {
+                endOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+                midOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+                startOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+                null
+            }
+        } else null
 
         // "mediados/finales/principios de [mes nombre]": límite mensual con mes
         // explícito (sin día). Se procesa aquí (tras monthBoundary, antes que
@@ -1907,7 +1941,7 @@ object NaturalTaskParser {
         // Sólo aplica a MONTHLY: WEEKLY usa `days` (lista de días) y la 1ª ocurrencia ordinal
         // ya resolvió la fecha de `dueAt`.
         val recurrence = parseRecurrence(working, now).let { r ->
-            if (r.frequency != RecurrenceFrequency.MONTHLY || lastWeekdayOfMonthMatch == null) r
+            val withOrdinal = if (r.frequency != RecurrenceFrequency.MONTHLY || lastWeekdayOfMonthMatch == null) r
             else {
                 val ordWord = lastWeekdayOfMonthMatch.groupValues[1].lowercase()
                 val ordinal = when (ordWord) {
@@ -1921,6 +1955,10 @@ object NaturalTaskParser {
                 val weekday = lastWeekdayOfMonthMatch.groupValues[2].toDayOfWeekOrNull()
                 if (ordinal != null && weekday != null) r.copy(monthlyOrdinalWeekday = ordinal to weekday.value) else r
             }
+            // "cada fin/mediados/principios de mes" (c.257): si no quedó otra recurrencia
+            // explícita, el límite mensual se promueve a recurrencia MONTHLY anclada.
+            if (withOrdinal.frequency == RecurrenceFrequency.NONE && cadaBoundaryRecurrence != null) cadaBoundaryRecurrence
+            else withOrdinal
         }
         recurrence.phraseRanges.sortedByDescending { it.first }.forEach { range ->
             working = working.substring(0, range.first) + " " + working.substring(range.last + 1)
@@ -2695,11 +2733,16 @@ object NaturalTaskParser {
             recurrenceInterval = recurrence.interval,
             // MONTHLY ordinal de weekday ("primer lunes de cada mes") → codificación
             // "ord:weekday" que `RecurrenceEngine` decodifica para anclar el N-ésimo/último
-            // día de la semana cada ciclo. WEEKLY usa `days` (lista) y el resto queda
-            // vacío (día del mes puro: monthlyDayOfMonth se ancla vía dueAt).
-            recurrenceDays = recurrence.monthlyOrdinalWeekday
-                ?.let { (ord, wd) -> "$ord:$wd" }
-                ?: recurrence.days.joinToString(","),
+            // día de la semana cada ciclo. MONTHLY "fin de mes" (c.257) → sentinel "EOM"
+            // que ancla al último día REAL del mes (no omite meses cortos). WEEKLY usa
+            // `days` (lista) y el resto queda vacío (día del mes puro: monthlyDayOfMonth
+            // se ancla vía dueAt).
+            recurrenceDays = when {
+                recurrence.monthlyOrdinalWeekday != null ->
+                    recurrence.monthlyOrdinalWeekday!!.let { (ord, wd) -> "$ord:$wd" }
+                recurrence.monthlyLastDay -> RecurrenceEngine.LAST_DAY_OF_MONTH
+                else -> recurrence.days.joinToString(",")
+            },
             category = category,
             confidence = confidence
         )
@@ -2712,6 +2755,14 @@ object NaturalTaskParser {
         val phraseRanges: List<IntRange>,
         /** Para recurrencia mensual anclada a un día del mes ("el 15 de cada mes"). */
         val monthlyDayOfMonth: Int? = null,
+        /** Para recurrencia mensual anclada al ÚLTIMO día REAL del mes ("cada fin de
+         *  mes", c.257). A diferencia del anclaje por día del mes (día 31), que omite
+         *  meses cortos (febrero, abril, junio, septiembre, noviembre), este anclaje
+         *  aterriza siempre en el último día del mes objetivo. Se emite como
+         *  `recurrenceDays = "EOM"` ([RecurrenceEngine.LAST_DAY_OF_MONTH]) para que el
+         *  motor despache cada ciclo al último día real del mes objetivo. Sólo afecta
+         *  el vencimiento recurrente; la PRIMERA fecha la fija el límite ("fin de mes"). */
+        val monthlyLastDay: Boolean = false,
         /** Para recurrencia mensual ORDINAL de día de la semana ("el primer lunes de
          *  cada mes", "el último viernes del mes" recurrente): `(ord, weekday)` con
          *  `ord ∈ {1,2,3,4,-1}` (-1 = último) y `weekday ∈ 1..7` (ISO, 1=lunes). Se

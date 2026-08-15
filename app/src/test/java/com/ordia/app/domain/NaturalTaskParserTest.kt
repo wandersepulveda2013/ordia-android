@@ -4781,6 +4781,76 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "cada fin/mediados/principios de mes": RECURRENCIA mensual de límite (c.257) ---
+    // Antes, "cada fin de mes" se trataba como fecha única (rec=NONE): al completar la
+    // tarea ésta NO generaba próxima ocurrencia → pago/cierre mensual recurrente se
+    // olvidaba ciclo a ciclo (P1: "evitar olvidos"). El prefijo "cada" ahora convierte
+    // el límite mensual en recurrencia MONTHLY anclada: fin→último día real (EOM),
+    // mediados→día 15, principios→día 1. La 1ª ocurrencia usa el propio límite; el motor
+    // avanza ciclo a ciclo sin deriva. now = 2026-07-29 → fin=7/31, mediados=8/15,
+    // principios=8/1.
+
+    @Test fun cadaFinDeMesGeneraRecurrenciaMensualUltimoDia() {
+        val result = NaturalTaskParser.parse("Reporte cada fin de mes", now, zone)
+        assertEquals("Reporte", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun cadaFinDeMesRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Pago cada fin de mes a las 18", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun cadaMediadosDeMesGeneraRecurrenciaMensualDia15() {
+        val result = NaturalTaskParser.parse("Reporte cada mediados de mes", now, zone)
+        assertEquals("Reporte", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        // mediados ancla al día 15 (existe en todo mes): sin codificación especial.
+        assertEquals("", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun cadaPrincipiosDeMesGeneraRecurrenciaMensualDia1() {
+        val result = NaturalTaskParser.parse("Renta cada principios de mes", now, zone)
+        assertEquals("Renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        // principios ancla al día 1 (existe en todo mes): sin codificación especial.
+        assertEquals("", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Sin "cada", el límite sigue siendo fecha única (regresión: no convertir a recurrencia).
+    @Test fun finDeMesSinCadaSigueSiendoFechaUnica() {
+        val result = NaturalTaskParser.parse("Reporte fin de mes", now, zone)
+        assertEquals("Reporte", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Sinónimos de fin de mes ("finales"/"cierre"/"corte"/"último día") también generan
+    // recurrencia con "cada".
+    @Test fun cadaFinalesDeMesGeneraRecurrenciaMensualEOM() {
+        val result = NaturalTaskParser.parse("Cierre cada finales de mes", now, zone)
+        assertEquals("Cierre", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun cadaUltimoDiaDelMesGeneraRecurrenciaMensualEOM() {
+        val result = NaturalTaskParser.parse("Auditoría cada último día del mes", now, zone)
+        assertEquals("Auditoría", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- límites mensuales con modificador "mes que viene"/"próximo" ---
     // Antes el patrón terminaba en "mes" e ignoraba el calificador → un vencimiento
     // fijado para "fin del mes que viene" caía un mes ANTES (fin de este mes). P1:

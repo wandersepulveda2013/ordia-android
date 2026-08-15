@@ -75,6 +75,45 @@ class RecurrenceEngineTest {
         assertEquals(LocalDate.of(2026, 3, 31), DateRules.toLocalDate(next.dueAt!!, zone))
     }
 
+    // "cada fin de mes" (recurrenceDays = "EOM"): anclaje al ÚLTIMO día real de cada
+    // mes, sin saltar meses cortos. A diferencia del anclaje por día del mes (día 31),
+    // que salta febrero (28/29) y abril/junio/sept/nov (30) al mes siguiente con 31,
+    // EOM aterriza siempre en el último día del mes objetivo. Sin esto, "cada fin de
+    // mes" completado el 31/1 saltaba al 31/3 (omitía fin de febrero: 28/2) → pago/
+    // cierre mensual olvidado (P1). c.257.
+    @Test fun monthly_lastDayOfMonth_anchorsToActualLastDayNotSkippingShortMonths() {
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 1, 31), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(title = "Reporte cada fin de mes", dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY, recurrenceDays = RecurrenceEngine.LAST_DAY_OF_MONTH)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        // enero 31 → febrero NO tiene 31, pero EOM aterriza en 28/2 (no salta a 31/3).
+        assertEquals(LocalDate.of(2026, 2, 28), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(next.dueAt, zone))
+    }
+
+    @Test fun monthly_lastDayOfMonth_advancesAcrossShortAndLongMonthsStably() {
+        // Cadena fin de mes: 28/2 → 31/3 → 30/4 → 31/5 (cada uno el último día real).
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 2, 28), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(title = "Cierre", dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY, recurrenceDays = RecurrenceEngine.LAST_DAY_OF_MONTH)
+        var current = task
+        current = requireNotNull(RecurrenceEngine.nextOccurrence(current, completedAt = current.dueAt!!, zone = zone))
+        assertEquals(LocalDate.of(2026, 3, 31), DateRules.toLocalDate(current.dueAt!!, zone))
+        current = requireNotNull(RecurrenceEngine.nextOccurrence(current, completedAt = current.dueAt!!, zone = zone))
+        assertEquals(LocalDate.of(2026, 4, 30), DateRules.toLocalDate(current.dueAt!!, zone))
+        current = requireNotNull(RecurrenceEngine.nextOccurrence(current, completedAt = current.dueAt!!, zone = zone))
+        assertEquals(LocalDate.of(2026, 5, 31), DateRules.toLocalDate(current.dueAt!!, zone))
+    }
+
+    @Test fun monthly_lastDayOfMonth_handlesLeapFebruary() {
+        // 2028 es bisiesto: fin de mes de enero (31/1) → 29/2/2028 (no 28).
+        val due = DateRules.toEpochMillis(LocalDate.of(2028, 1, 31), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(title = "Cierre bisiesto", dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY, recurrenceDays = RecurrenceEngine.LAST_DAY_OF_MONTH)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2028, 2, 29), DateRules.toLocalDate(next.dueAt!!, zone))
+    }
+
     @Test fun yearly_leapDayAnchorSkipsNonLeapYears() {
         // "aniversario el 29 de febrero de cada año": 29/2/2024 +1 año NO debe dar
         // 28/2/2025 (clamp que deriva el ancla para siempre), sino saltar al próximo
