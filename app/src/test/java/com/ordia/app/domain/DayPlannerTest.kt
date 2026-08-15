@@ -207,4 +207,84 @@ class DayPlannerTest {
         assertEquals(0, plan.blocks.size)
         assertEquals(0, plan.unscheduledTaskIds.size)
     }
+
+    @Test
+    fun planForTodayAfterDayStartDoesNotScheduleSlotsInThePast() {
+        // Un plan construido para HOY cuando ya pasaron las 09:00 no debe colocar
+        // slots en el pasado: arrancar el cursor a las 09:00 sembraría tareas con
+        // startAt anterior a `now` → "inicio perdido" (isMissedStart) con recordatorio
+        // nulo. El plan "realista de hoy" debe ser forward-only. (c.211)
+        val today = LocalDate.now(zone)
+        val afternoon = DateRules.toEpochMillis(today, LocalTime.of(13, 7), zone)
+        val inbox = TaskEntity(id = 50, title = "Bandeja", durationMinutes = 30)
+
+        val plan = DayPlanner.build(listOf(inbox), today, 9 * 60, 18 * 60, breakMinutes = 0, now = afternoon, zone = zone)
+
+        assertEquals(1, plan.blocks.size)
+        // 13:07 redondeado al alza a 15 min = 13:15 = 795. Nunca por debajo de `now`.
+        assertEquals(795, plan.blocks.first().startMinute)
+        assertTrue(plan.blocks.first().startMinute * 60_000L >= 0)
+    }
+
+    @Test
+    fun planForTodayRespectsConfiguredDayStartIfEarlierThanNow() {
+        // Si el usuario planifica hoy de mañana (antes de su dayStart), el cursor no
+        // debe saltarse al pasado: respeta el dayStart configurado porque aún no ha
+        // llegado. (c.211)
+        val today = LocalDate.now(zone)
+        val morning = DateRules.toEpochMillis(today, LocalTime.of(7, 30), zone)
+        val inbox = TaskEntity(id = 51, title = "Bandeja", durationMinutes = 30)
+
+        val plan = DayPlanner.build(listOf(inbox), today, 9 * 60, 18 * 60, breakMinutes = 0, now = morning, zone = zone)
+
+        assertEquals(1, plan.blocks.size)
+        assertEquals(9 * 60, plan.blocks.first().startMinute)
+    }
+
+    @Test
+    fun planForTodayLateReportsReducedAvailableMinutes() {
+        // Planificando hoy a las 14:00, el tiempo realmente disponible es menor que
+        // toda la ventana 09:00–18:00: el plan no puede fingir que dispone de 9 h
+        // cuando ya se consumieron 5 h. (c.211)
+        val today = LocalDate.now(zone)
+        val afternoon = DateRules.toEpochMillis(today, LocalTime.of(14, 0), zone)
+        val inbox = TaskEntity(id = 52, title = "Bandeja", durationMinutes = 30)
+
+        val plan = DayPlanner.build(listOf(inbox), today, 9 * 60, 18 * 60, breakMinutes = 0, now = afternoon, zone = zone)
+
+        // Cursor efectivo = 14:00 (840) → disponibles = 18:00(1080) − 840 = 240 min.
+        assertEquals(240, plan.availableMinutes)
+    }
+
+    @Test
+    fun planForTodayTooLateSchedulesNothing() {
+        // Planificar hoy cuando ya no queda ventana de trabajo no debe colocar slots
+        // pasados: el plan queda vacío en vez de inventar un horario imposible. (c.211)
+        val today = LocalDate.now(zone)
+        val evening = DateRules.toEpochMillis(today, LocalTime.of(18, 30), zone)
+        val inbox = TaskEntity(id = 53, title = "Bandeja", durationMinutes = 30)
+
+        val plan = DayPlanner.build(listOf(inbox), today, 9 * 60, 18 * 60, breakMinutes = 0, now = evening, zone = zone)
+
+        assertEquals(0, plan.blocks.size)
+    }
+
+    @Test
+    fun planForFutureDateKeepsFullWindowRegardlessOfNow() {
+        // La protección past-safe SOLO aplica al plan de HOY: un plan para una fecha
+        // futura debe seguir usando la ventana completa desde dayStart (no se recorta
+        // por el `now` real). Evita que planificar "mañana" arranque a mediodía. (c.211)
+        val today = LocalDate.now(zone)
+        val tomorrow = today.plusDays(1)
+        val afternoon = DateRules.toEpochMillis(today, LocalTime.of(14, 0), zone)
+        val due = TaskEntity(
+            id = 54, title = "Mañana", durationMinutes = 30,
+            dueAt = DateRules.toEpochMillis(tomorrow, LocalTime.of(18, 0), zone)
+        )
+
+        val plan = DayPlanner.build(listOf(due), tomorrow, 9 * 60, 18 * 60, breakMinutes = 0, now = afternoon, zone = zone)
+
+        assertEquals(1, plan.blocks.size)
+        assertEquals(9 * 60, plan.blocks.first().startMinute)
+    }
 }

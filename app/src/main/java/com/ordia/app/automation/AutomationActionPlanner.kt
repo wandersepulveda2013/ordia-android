@@ -44,28 +44,20 @@ object AutomationActionPlanner {
             AutomationAction.PLAN_DAY -> {
                 // La fecha del plan se deriva del `now` inyectado (igual que
                 // BATCH_QUICK_TASKS), no del reloj del sistema: así la decisión es
-                // determinista y verificable con un `now` fijo. Usar LocalDate.now
-                // hacía que el plan dependiera del instante real y que ningún test
-                // pudiera afirmar la fecha exacta de los slots.
+                // determinista y verificable con un `now` fijo.
                 val nowZ = Instant.ofEpochMilli(now).atZone(zone)
                 val date = nowZ.toLocalDate()
-                // El inicio del plan respeta el momento real: si PLAN_DAY se dispara
-                // después de las 09:00 (p. ej. a las 12:00), arrancar los slots a las
-                // 09:00 los colocaba en el PASADO. Una tarea de bandeja planificada a
-                // una hora ya pasada se convertía en "inicio perdido" (isMissedStart)
-                // con recordatorio nulo (past-safe), y una vencida re-planificada en un
-                // slot pasado seguía vencida con su due también en el pasado. Es decir,
-                // "planificar el día" creaba tareas olvidadas/ya vencidas: justo lo
-                // opuesto a su propósito. Por eso el cursor arranca en max(09:00, now)
-                // redondeando al alza a cuartos (simétrico con BATCH_QUICK_TASKS). Si no
-                // queda ventana hoy (now >= fin del día), no se escribe nada pasado.
+                // Past-safe: DayPlanner.build ya arranca el cursor en
+                // max(dayStart, now redondeado al alza) cuando el plan es de hoy (c.211),
+                // así que aquí no se recalcula el inicio. Solo se detecta el caso en que
+                // ya no queda ventana hoy para dar un mensaje claro y no invocar a build
+                // en vano. Simétrico con BATCH_QUICK_TASKS.
                 val nowMinute = nowZ.hour * 60 + nowZ.minute
-                val dayStart = (((nowMinute + 14) / 15) * 15).coerceAtLeast(9 * 60)
                 val dayEnd = 18 * 60
-                if (dayStart >= dayEnd) {
+                if ((((nowMinute + 14) / 15) * 15) >= dayEnd) {
                     return AutomationPlan(message = "Es tarde para planificar hoy; no se cambió nada.", matched = false)
                 }
-                val plan = DayPlanner.build(active, date, dayStartMinute = dayStart, dayEndMinute = dayEnd, now = now, zone = zone)
+                val plan = DayPlanner.build(active, date, dayStartMinute = 9 * 60, dayEndMinute = dayEnd, now = now, zone = zone)
                 val byId = tasks.associateBy { it.id }
                 val updates = plan.blocks.take(12).mapNotNull { block ->
                     val start = DateRules.toEpochMillis(date, LocalTime.of(block.startMinute / 60, block.startMinute % 60), zone)

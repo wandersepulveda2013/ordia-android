@@ -55,6 +55,23 @@ object DayPlanner {
         require(dayEndMinute > dayStartMinute)
         require(breakMinutes in 0..60)
 
+        // Past-safe: un plan "realista de HOY" no puede arrancar en una hora ya
+        // pasada. Si se construye el plan de hoy a las 13:00, colocar el primer
+        // slot a las 09:00 (dayStartMinute) sembraría tareas con `startAt` anterior
+        // a `now` → "inicio perdido" (isMissedStart) con recordatorio nulo, y una
+        // vencida re-planificada en un slot pasado seguía vencida con su `due`
+        // también en el pasado. "Planificar el día" producía justo lo opuesto a su
+        // propósito. Por eso, cuando la fecha del plan es HOY, el cursor arranca en
+        // max(dayStart, now redondeado al alza a 15 min) — simétrico con
+        // BATCH_QUICK_TASKS y planReminder. Para fechas futuras no se recorta: un
+        // plan de mañana usa su ventana completa. (c.211)
+        val nowZ = Instant.ofEpochMilli(now).atZone(zone)
+        val isToday = nowZ.toLocalDate() == date
+        val effectiveStart = if (isToday) {
+            val nowMinute = nowZ.hour * 60 + nowZ.minute
+            (((nowMinute + 14) / 15) * 15).coerceAtLeast(dayStartMinute)
+        } else dayStartMinute
+
         val candidates = tasks.asSequence()
             .filter { TaskRules.isActive(it) && it.parentTaskId == null }
             .filter { task ->
@@ -77,26 +94,29 @@ object DayPlanner {
         val tasksById = candidates.associateBy { it.id }
         val blocks = mutableListOf<Block>()
         val unscheduled = mutableListOf<Long>()
-        var cursor = dayStartMinute
-
-        candidates.forEach { task ->
-            val duration = TaskRules.plannedDuration(task)
-            val gap = if (blocks.isEmpty()) 0 else breakMinutes
-            val proposedStart = cursor + gap
-            val proposedEnd = proposedStart + duration
-            if (proposedEnd <= dayEndMinute) {
-                blocks += Block(
-                    taskId = task.id,
-                    title = task.title,
-                    startMinute = proposedStart,
-                    endMinute = proposedEnd,
-                    priority = task.priority,
-                    overdue = TaskRules.isOverdue(task, now),
-                    reason = planReason(task, now, date, zone)
-                )
-                cursor = proposedEnd
-            } else {
-                unscheduled += task.id
+        // Si el inicio efectivo cae en o después del fin del día, ya no hay ventana
+        // hoy: el plan queda vacío en vez de inventar slots pasados.
+        if (effectiveStart < dayEndMinute) {
+            var cursor = effectiveStart
+            candidates.forEach { task ->
+                val duration = TaskRules.plannedDuration(task)
+                val gap = if (blocks.isEmpty()) 0 else breakMinutes
+                val proposedStart = cursor + gap
+                val proposedEnd = proposedStart + duration
+                if (proposedEnd <= dayEndMinute) {
+                    blocks += Block(
+                        taskId = task.id,
+                        title = task.title,
+                        startMinute = proposedStart,
+                        endMinute = proposedEnd,
+                        priority = task.priority,
+                        overdue = TaskRules.isOverdue(task, now),
+                        reason = planReason(task, now, date, zone)
+                    )
+                    cursor = proposedEnd
+                } else {
+                    unscheduled += task.id
+                }
             }
         }
 
@@ -123,7 +143,9 @@ object DayPlanner {
             date = date,
             blocks = blocks,
             unscheduledTaskIds = unscheduled,
-            availableMinutes = dayEndMinute - dayStartMinute,
+            // Tiempo realmente disponible: si el plan es de hoy y ya pasaron las
+            // 09:00, no se cuenta el tramo ya consumido. (c.211)
+            availableMinutes = (dayEndMinute - effectiveStart).coerceAtLeast(0),
             scheduledMinutes = blocks.sumOf { it.durationMinutes } +
                 ((blocks.size - 1).coerceAtLeast(0) * breakMinutes),
             conflicts = conflicts

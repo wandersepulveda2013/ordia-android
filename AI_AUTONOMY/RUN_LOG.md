@@ -1,5 +1,66 @@
 # RUN_LOG — Ordía
 
+## Ciclo 211 — 2026-08-15 (UTC) — fix(planner): past-slot safety centralizada en `DayPlanner.build` — todos los callers (UI `replanDay`, preview `PlannerScreen`, `AutomationActionPlanner`) ya no siembran slots pasados; simplificación de `AutomationActionPlanner.PLAN_DAY` (elimina cálculo duplicado del cursor) (P1 NO-parser "replanificación automática"/"evitar olvidos"/"datos (sagrados)"/MENOS ES MÁS)
+
+- **Run/ciclo**: 211 (rama `openhands/autonomous-ordia`). HEAD inicial = `755f0fc` (c.210, ya pusheado; sincronizado con remoto). Entorno JVM: kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21. **Sin colisión**: `git fetch origin openhands/autonomous-ordia` → base local == remoto (0 ahead, 0 behind) → ff-only limpio.
+
+- **Problema seleccionado (P1, continuación/centralización de c.210, área NO-parser "replanificación automática"/"evitar olvidos"/"datos (sagrados)"/MENOS ES MÁS)**: c.210 cerró el bug de past-slots en el camino de automatización (`AutomationActionPlanner.PLAN_DAY`), pero el fix vivía EN EL CALLER: `AutomationActionPlanner` calculaba `dayStart = max(540, now redondeado)` y lo pasaba a `DayPlanner.build`. Los **otros dos callers de `DayPlanner.build`** seguían sin protección:
+  - `OrdiaViewModel.replanDay` (l.870): llama a `build` para `date` (hoy) con `dayStartMinute = 540` (o perfil aprendido) **sin pasar `now`** (usa default `System.currentTimeMillis()`). Al re-planificar a mediodía, los slots arrancaban 09:00 → `applyBlocks` mutaba tareas reales con `startAt` pasado → `isMissedStart` (c.201) + recordatorio nulo. **Causa pérdida de datos funcional**: "replanificar el día" creaba tareas olvidadas — y ésta es la ruta que el USUARIO dispara manualmente (no sólo la automatización).
+  - `PlannerScreen.suggestedPlan` (l.130): preview del plan sugerido para `selectedDate` (hoy por defecto) con `dayStartMinute = 540`, sin `now`. La preview a las 14:00 mostraba slots 09:00 (pasado); al aplicar (`applyDayPlan`), se sembraban las mismas tareas olvidadas.
+  Asimetría: la familia `isMissedStart` (c.201/203/206/209/210) recuperaba olvidos *existentes*, pero `replanDay` y la preview los *creaban* — c.210 tapó sólo 1 de 3 callers. Área "replanificación automática"/"evitar olvidos"/"datos (sagrados)"/"MENOS ES MÁS".
+
+- **Causa raíz**: el past-safe vivía en el caller en vez de en el motor. Tres callers, tres oportunidades de olvidar la protección (dos ya la olvidaban). Principio de fuente única de verdad.
+
+- **Solución (cambio mínima, sin nueva pantalla/botón, sin IA fingida — regla determinista centralizada)**:
+  - `DayPlanner.build` ahora computa `effectiveStart` internamente: cuando `date == today` (según `now`+`zone`), el cursor arranca en `max(dayStartMinute, now redondeado al alza a 15 min)`; para fechas futuras, ventana completa. El cursor y `availableMinutes` del `Plan` devuelto usan `effectiveStart` (refleja el tiempo real restante, no la ventana entera). Si `effectiveStart >= dayEndMinute`, el plan queda vacío (sin require()-violation: el guard chequea la ventana *configurada*, no la efectiva). Simétrico con `BATCH_QUICK_TASKS` y `planReminder`.
+  - `AutomationActionPlanner.PLAN_DAY` simplificado (MENOS ES MÁS): elimina el cálculo duplicado `dayStart = max(540, now)` (c.210) — ahora pasa `dayStartMinute = 540` y deja que `build` haga el past-safe. Conserva el guard "Es tarde para planificar hoy" (detección `ceil(now) >= dayEnd` → mensaje claro, no invoca `build` en vano), que los tests c.210 (`plan_day muy tarde no planifica nada`) preservan. Neto: −10 líneas de lógica duplicada, mismo comportamiento.
+  - Los callers UI (`replanDay`, `PlannerScreen`) **no se tocan**: al no pasar `now`, usan `System.currentTimeMillis()` (default) → `build` aplica el past-safe automáticamente con la hora real. La propagación a la UI es gratis: un cambio en el motor arregla 3 callers. El guard `plan.blocks.isEmpty()` de `replanDay` (l.879) ahora maneja también el caso "muy tarde hoy" mostrando `planner_replan_none`.
+
+- **Tests (TDD, RED→GREEN)**:
+  - +5 tests en `DayPlannerTest.kt` usando `LocalDate.now(zone)` (determinista respecto a la fecha de ejecución, no fecha hardcodeada): `past_slot_after_day_start_clamped_to_now` (now=14:00 → ningún slot antes de now; antes RED: slots 09:00), `past_slot_when_too_late_returns_empty` (now=18:00 → 0 bloques), `availableMinutes_reflects_real_remaining_time` (now=12:00, ventana 540–1080 → available=360, no 540; antes RED: 540), `future_date_uses_full_window` (no recorta), `past_slot_before_day_start_uses_day_start` (now=07:00 → cursor 540). RED confirmado (3 failures pre-implementación: past slots, false availableMinutes, no time left).
+  - `DomainSmoke.kt`: el smoke de prioridad usaba `now=NOON` con `dayEnd=11:00`, que tras el fix disparaba past-safe → 0 bloques. Se dio a `build` un `now` propio (pre-`dayStart`) para probar el orden de prioridades de forma determinista. Smoke 25 assertions OK.
+  - `SummaryEngineTest` (l.160): usa `today=2026-07-29` + `now=12:00` ese día; al correr hoy (2026-08-15), `isToday`=true → `effectiveStart`=720. Re-verificado: la aserción de coherencia plan↔resumen sigue pasando (ambos ven el mismo `now`=noon) — robustez coincidental, sin regresión.
+
+- **Tests (suite completa)**: `bash tools/run_domain_tests.sh` → **1430 PASS** (1425 c.210 + 5 míos), 0 failures; `bash tools/run_domain_checks.sh` → smoke 25 OK. **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room (sin Android SDK); integración `DayPlanner`↔`replanDay`/`PlannerScreen` en runtime Android (la corrección vive en el dominio puro verificado; los callers UI no se modificaron, sólo heredan el past-safe).
+
+- **AI_AUTONOMY actualizado**: `BACKLOG.md` (entrada c.211 FIXED — resuelve el "Pendiente verificar: caller directo PlannerScreen" de c.210; entrada c.210 marcada verificada en callers UI), `CURRENT_STATE.md` (entrada c.211 en lo alto), `RUN_LOG.md` (esta entrada + backfill c.209/c.210 que faltaban).
+
+- **Commits**: `fix(planner): past-slot safety centralizada en DayPlanner.build (c.211)` (HEAD final tras push).
+
+- **HEAD final**: (tras push) rama `openhands/autonomous-ordia`.
+
+- **Estado**: VERIFIED (JVM). Centralización verificada por 5 tests TDD + suite 1430 PASS + smoke 25 OK. Los callers UI se benefician automáticamente (no requieren cambio, heredan el past-safe del motor).
+
+- **Próxima prioridad**: descubrimiento continuo — (i) más áreas no-parser (onboarding, navegación, accesibilidad, rendimiento); (ii) decisión de producto sobre `TaskStatus.CANCELLED` inalcanzable desde la UI (BACKLOG P2 — requiere Android/UI); (iii) deriva de recurrencia ordinal-mes (BACKLOG P1/P2 — requiere campo `TaskEntity` + migración Room); (iv) auditar `applyDayPlan`/`applyBlocks` por si otras rutas de mutación siembran `startAt` pasado (p. ej. arrastrar/reordenar slots en el planificador); (v) gaps léxicos del parser restantes (P3). Re-fetch antes de implementar.
+
+## Ciclo 210 — 2026-08-15 (UTC) — fix(automation): `PLAN_DAY` respeta la hora de `now`, no siembra slots pasados (P1 NO-parser "replanificación automática"/"evitar olvidos"/"datos (sagrados)") *(entrada reconstruida desde commit `755f0fc` + registros CURRENT_STATE/BACKLOG; la entrada RUN_LOG original no se escribió en su run)*
+
+- **Run/ciclo**: 210 (rama `openhands/autonomous-ordia`). HEAD inicial = `d3e33e7` (c.209, ya pusheado). Entorno JVM: kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21.
+
+- **Problema (P1)**: `AutomationActionPlanner.PLAN_DAY` arrancaba el cursor siempre a las 09:00 (default de `DayPlanner.build`), ignorando la hora real de `now`. Si "planificar el día" disparaba a las 12:00, todos los slots caían en el PASADO: tarea de bandeja → `startAt` 09:00 → `isMissedStart` (c.201) con recordatorio nulo; vencida re-planificada → slot pasado, `dueAt` pasado. "Planificar el día" creaba olvidos, justo lo opuesto a su propósito. Asimetría: c.184 cerró que PLAN_DAY derivara la *fecha* de `now`, pero la *hora de inicio* seguía fija en 09:00. La familia `isMissedStart` (c.201/203/206) recuperaba olvidos *existentes*, pero PLAN_DAY los *creaba*.
+
+- **Solución**: el cursor arranca en `max(09:00, now redondeado al alza a 15 min)`; si no queda ventana hoy (`now >= 18:00`) no se escribe nada pasado (plan vacío `matched=false`). Past-safe por construcción. Reaprovecha `dayStartMinute`/`dayEndMinute` de `DayPlanner` (c.65/77) sin tocar `DayPlanner`. Simétrico con `BATCH_QUICK_TASKS`. Bug latente adicional: el literal `now` de `AutomationActionPlannerTest` (`1_736_812_000_000L`) era 20:46 Santiago, no 10:00 (su comentario mentía; inofensivo pre-fix porque PLAN_DAY ignoraba la hora) — corregido a 10:00 real (`1_736_773_200_000L`).
+
+- **Tests**: +2 tests TDD de regresión (`plan_day arrancado tarde no escribe slots en el pasado`; `plan_day muy tarde no planifica nada`) + actualización de 2 existentes. `bash tools/run_domain_tests.sh` → **1425 PASS** (1423 c.209 + 2), 0 failures; smoke 25 OK. **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room. Colisión de numeración con c.209 (SummaryEngine, código ORTOGONAL) integrada vía rebase no destructivo.
+
+- **Commits**: `fix(automation): PLAN_DAY respeta la hora de now, no siembra slots pasados (c.210)` (`755f0fc`).
+
+- **Estado**: VERIFIED (JVM). Pendiente (cerrado en c.211): caller directo de `DayPlanner.build` en `PlannerScreen`/`replanDay` (UI) por el mismo gap hora-de-inicio — resuelto centralizando el past-safe en `build` (c.211).
+
+## Ciclo 209 — 2026-08-15 (UTC) — fix(summary): posponer no nombra un compromiso olvidado (P2 NO-parser "replanificación automática"/"recuperación de tareas olvidadas"/"inteligencia honesta") *(entrada reconstruida desde commit `d3e33e7` + registros CURRENT_STATE/BACKLOG; la entrada RUN_LOG original no se escribió en su run)*
+
+- **Run/ciclo**: 209 (rama `openhands/autonomous-ordia`). HEAD inicial = `2d5d37a` (c.208, ya pusheado). Entorno JVM: kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21.
+
+- **Problema (P2)**: bajo OVERLOADED, `SummaryEngine.mostDeferrableTask` podía nombrar como "dejar para mañana" un compromiso agendado cuyo hueco ya pasó (`TaskRules.isMissedStart`, c.201): tarea con `startAt` 09:00 (dur 120, ventana cerrada) y `dueAt` hoy 23:00 (no vencido) pasaba el filtro accionable de c.207 (`dueAt != null`), no era vencida/en-curso/inminente → candidata válida y, por LOW (peso máx), la TOP sugerida. Posponer a mañana un compromiso olvidado es RE-OLVIDARLO: contradice las TRES superficies (guardián c.201, What Now c.203, asistente c.206) que lo RECUPERAN. Seguimiento del ítem (i) de c.206: "auditar `SummaryEngine`/`DayPlanner`/`AutomationActionPlanner` por si ignoran `isMissedStart`" — `SummaryEngine` lo ignoraba.
+
+- **Solución**: el filtro de candidatos añade `&& !TaskRules.isMissedStart(task, now)` (4ª exclusión, simétrica a vencidas). Si la única posponible es un olvido → `deferralSuggestion==null` → la UI cae al mensaje genérico honesto. Reusa `isMissedStart`, fuente única. Complementario y ortogonal a c.207 (ambas exclusiones componen: dueAt≠null ∧ ¬overdue ∧ ¬inProgress ∧ ¬imminent ∧ ¬missedStart). Cierra la 4ª superficie del compromiso olvidado.
+
+- **Tests**: +2 tests TDD (RED→GREEN) en `SummaryEngineTest.kt`. Ambas aislan `isMissedStart` dando `dueAt` futuro a la olvidada. RED confirmado empíricamente. `bash tools/run_domain_tests.sh` → **1423 PASS** (1421 c.208 + 2), 41 clases, 0 failures; smoke 25 OK. **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room. Colisión con c.207 (MISMO archivo, condición ORTOGONAL) integrada vía stash→ff-only→re-aplicación manual.
+
+- **Commits**: `fix(summary): posponer no nombra un compromiso olvidado (c.209)` (`d3e33e7`).
+
+- **Estado**: VERIFIED (JVM).
+
 ## Ciclo 208 — 2026-08-15 (UTC) — refactor(context): elimina `ContextualAnalyzer`, código muerto deprecado (130 líneas) con CERO usos en producción; `ContextEngine` es el pipeline real desde c.202 (P2 NO-parser "eliminar complejidad"/MENOS ES MÁS)
 
 - **Run/ciclo**: 208 (rama `openhands/autonomous-ordia`). HEAD inicial = `15d2d25` (c.207, ya pusheado; sincronizado con remoto). Entorno JVM: kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21. **Sin colisión**: `git fetch origin openhands/autonomous-ordia` → base local == remoto (0 ahead, 0 behind) → ff-only limpio.

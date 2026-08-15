@@ -100,6 +100,11 @@ fun main() {
     checkThat(DateRules.toLocalDate(afterMidnight, zone) == today.plusDays(1), "Absolute minute day rollover failed")
     checkThat(DateRules.toLocalTime(afterMidnight, zone) == LocalTime.of(0, 30), "Absolute minute time rollover failed")
 
+    // El smoke verifica el ORDEN de prioridad del plan (urgente antes que normal),
+    // no la protección past-safe: por eso `now` es anterior a dayStart, así el
+    // cursor arranca en 09:00 y ambos bloques caben. La rama past-safe (plan de hoy
+    // cuando ya pasó dayStart) se cubre en DayPlannerTest. (c.211)
+    val planNow = DateRules.toEpochMillis(today, LocalTime.of(8, 0), zone)
     val plan = DayPlanner.build(
         listOf(
             TaskEntity(id = 10, title = "Normal", durationMinutes = 30, priority = TaskPriority.NORMAL),
@@ -108,7 +113,7 @@ fun main() {
         today,
         dayStartMinute = 9 * 60,
         dayEndMinute = 11 * 60,
-        now = now,
+        now = planNow,
         zone = zone
     )
     checkThat(plan.blocks.firstOrNull()?.taskId == 11L, "Day planner priority failed")
