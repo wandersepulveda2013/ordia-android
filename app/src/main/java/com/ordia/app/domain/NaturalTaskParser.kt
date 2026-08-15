@@ -105,7 +105,18 @@ object NaturalTaskParser {
         // "de este mes", "del mes que viene/próximo/entrante" (mes siguiente). La alternación
         // explícita de meses hace que "del mes a las 9" NO robe la "a" (sólo meses reales casan)
         // y deja la hora explícita intacta. Ordinales: último = última ocurrencia; N = N-ésima.
-        """(?i)(?<!\p{L})(?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+del?\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?(?:mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+)?)?((?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic))?(?:\s+del?\s+(\d{2,4}))?\b"""
+        //
+        // Alternativa de CADENCIA (lookahead, c.256): la cola "del? <mes>" exige el puente "de".
+        // La forma cotidiana SIN "de" —"el primer lunes cada mes", "el último viernes todos los
+        // meses", "renta mensual el primer lunes"— NO casaba → el parser perdía el ordinal
+        // (recurrenceDays='' → el motor anclaba al día del mes: 2ª cita en día 7 aunque cayera
+        // miércoles, deriva silenciosa) Y dejaba "el primer" como residuo en el título. El
+        // lookahead `(?=\s+(?:cada mes|...))` casa el ordinal-weekday SIN consumir el conector:
+        // parseRecurrence (que corre DESPUÉS) sigue viendo "cada mes"/"todos los meses"/"mensual"
+        // y emite MONTHLY, y aquí se captura el ordinal para anclar el motor. Simétrico del
+        // puente "de" (que consume sólo "de" y deja "cada mes"). Sin conector de cadencia la
+        // alternativa NO dispara → fecha suelta (no recurrente), sin regresión.
+        """(?i)(?<!\p{L})(?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+del?\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?(?:mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+)?)?((?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic))?(?:\s+del?\s+(\d{2,4}))?|(?=\s+(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|mensualidades?)\b))\b"""
     )
 
     /**
