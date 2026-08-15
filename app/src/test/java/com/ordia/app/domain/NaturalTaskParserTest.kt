@@ -7932,6 +7932,86 @@ class NaturalTaskParserTest {
         assertEquals("3:3", result.recurrenceDays) // 3er miércoles (ISO miércoles=3)
     }
 
+    // --- Paridad léxica "cada mes" (sin "de") para recurrencia ordinal mensual ---
+    // El conector de cadencia "de cada mes" funciona (tests de arriba), pero la forma
+    // cotidiana SIN el "de" —"el primer lunes cada mes", "el último viernes cada mes"—
+    // NO casaba el patrón ordinal (exigía "del? <mes>"), así que el parser:
+    //   (1) perdía el ordinal → recurrenceDays='' → el motor anclaba al DÍA DEL MES
+    //       (deriva: 1ª cita el lunes 7, 2ª el día 7 aunque caiga miércoles); y
+    //   (2) dejaba "el primer"/"el último" como residuo en el título.
+    // now = 2026-08-20 (jueves). Primer lunes ago = 03 (pasado) → rueda a sep-07; último
+    // viernes ago = 28 (futuro) → se queda. Paridad EXACTA con la forma "de cada mes".
+
+    @Test fun recurrenciaPrimerLunesCadaMesSinDeEmiteCodificacionYRueda() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Pago el primer lunes cada mes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("1:1", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 9, 7), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("Pago", result.title)
+    }
+
+    @Test fun recurrenciaUltimoViernesCadaMesSinDeEmiteCodificacionYConservaFecha() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Reunión el último viernes cada mes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("-1:5", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("Reunión", result.title)
+    }
+
+    @Test fun recurrenciaSegundoMartesCadaMesSinDeEmiteCodificacion() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Reunión el segundo martes cada mes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("2:2", result.recurrenceDays)
+        assertEquals("Reunión", result.title)
+    }
+
+    @Test fun recurrenciaOrdinalCadaMesSinElInicialLimpiaTitulo() {
+        // Sin "el" inicial pero con "cada mes": el ordinal debe anclar y el título quedar limpio.
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Renta primer lunes cada mes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("1:1", result.recurrenceDays)
+        assertEquals("Renta", result.title)
+    }
+
+    @Test fun recurrenciaOrdinalTodosLosMesesSinDeEmiteCodificacion() {
+        // "todos los meses" como conector de cadencia (paridad con "cada mes"/"mensual").
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Pago el tercer jueves todos los meses", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("3:4", result.recurrenceDays)
+        assertEquals("Pago", result.title)
+    }
+
+    @Test fun recurrenciaOrdinalMensualSinDeEmiteCodificacion() {
+        // "mensual" como conector de cadencia tras el weekday (paridad con "cada mes"/"de cada mes").
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Renta el primer lunes mensual", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("1:1", result.recurrenceDays)
+        assertEquals("Renta", result.title)
+    }
+
+    @Test fun fechaSueltaPrimerLunesSinCadenciaNoEsRecurrente() {
+        // Guard anti-falso-positivo: "el primer lunes" SIN conector de cadencia sigue
+        // siendo fecha suelta (no recurrente), igual que antes. Sin "cada mes"/"todos
+        // los meses"/"mensual" no hay nada que anclar como recurrencia.
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Cita el primer lunes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals("", result.recurrenceDays)
+    }
+
     // Conector de plazo "hasta" + fecha: el conector sobrevivía como residuo en el título
     // ("entregar hasta" aunque la fecha era correcta) porque weekdayPattern/dayOfMonthPattern
     // consumían "el viernes"/"el 20" ANTES del borrado de "hasta el", dejándolo huérfano.
