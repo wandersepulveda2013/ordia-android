@@ -71,6 +71,24 @@ class NotificationObservationPolicyTest {
         )
     }
 
+    @Test fun financialContentFromNonBankingPackagesIsRejected() {
+        // Un SMS/mensaje bancario llega desde la app de mensajería (paquete no
+        // bancario) y pasa el filtro de paquete; debe bloquearse por contenido.
+        // Antes de c.286 este contenido escapaba al gate de notificaciones. (c.286)
+        assertEquals(
+            ObservationRejection.SENSITIVE_CONTENT,
+            evaluate(packageName = "com.google.android.apps.messaging", text = "Tu saldo disponible es 45000 MXN").rejection
+        )
+        assertEquals(
+            ObservationRejection.SENSITIVE_CONTENT,
+            evaluate(packageName = "com.android.mms", text = "Estado de cuenta de tu tarjeta listo").rejection
+        )
+        assertEquals(
+            ObservationRejection.SENSITIVE_CONTENT,
+            evaluate(packageName = "com.whatsapp", text = "Mi frase semilla es uno dos tres").rejection
+        )
+    }
+
     @Test fun authorizedCommitmentIsAcceptedWithoutRetainingExtraWhitespace() {
         val decision = evaluate(text = "  Te envío   el informe mañana  ")
         assertTrue(decision.accepted)

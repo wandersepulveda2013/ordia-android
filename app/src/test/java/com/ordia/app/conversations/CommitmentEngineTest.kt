@@ -165,4 +165,43 @@ class CommitmentEngineTest {
         assertEquals(1, result.size)
         assertEquals(CommitmentKind.SELF_COMMITMENT, result[0].kind)
     }
+
+    @Test
+    fun blocksFinancialAndCryptoContentThatEscapedNotificationsGate() {
+        // Estos contenidos llegan vía SMS/mensajería (paquete no bancario): pasan el
+        // filtro de paquete de NotificationObservationPolicy y dependen del filtro de
+        // contenido. Antes de c.286 escapaban porque ConversationPrivacyPolicy no
+        // cubría contexto financiero/cripto en texto plano. (c.286)
+        val leaks = listOf(
+            "Tu saldo disponible es 45000 MXN",
+            "Estado de cuenta de tu tarjeta listo",
+            "Confirma la transferencia a la cuenta",
+            "Realiza el depósito antes del cierre",
+            "Mi frase semilla es uno dos tres cuatro",
+            "Guarda tu recovery phrase en lugar seguro",
+            "Te paso el IBAN para el pago",
+            "anota el numero de cuenta del cliente"
+        )
+        leaks.forEach { text ->
+            assertTrue("debería bloquearse como sensible: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
+            assertTrue(
+                "no debe generar compromiso desde contenido sensible: \"$text\"",
+                CommitmentEngine.extract(listOf(ChatMessage("Yo", text)), scopeHash = "leak").isEmpty()
+            )
+        }
+    }
+
+    @Test
+    fun innocentConversationTextIsNotBlockedByPrivacyGate() {
+        // Regresión: la paridad financiera no debe bloquear chats cotidianos legítimos.
+        val innocent = listOf(
+            "Te envío el informe mañana",
+            "Nos vemos el viernes a las 3",
+            "Reunion en la oficina a las 10",
+            "Te llamo despues para coordinar"
+        )
+        innocent.forEach { text ->
+            assertFalse("no debería bloquearse (falso positivo): \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
+        }
+    }
 }

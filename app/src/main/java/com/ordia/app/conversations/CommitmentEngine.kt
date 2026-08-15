@@ -21,11 +21,19 @@ data class CommitmentDraft(
 
 /** Filtro determinista previo: el contenido bloqueado no llega al extractor. */
 object ConversationPrivacyPolicy {
+    // Cobertura alineada con ContextPrivacyFilter para las categorías que pueden
+    // llegar en una notificación de SMS/mensajería (paquete NO bancario, que pasa el
+    // filtro de paquete de NotificationObservationPolicy). Sin esto, un SMS con
+    // "tu saldo disponible", "estado de cuenta" o una "frase semilla" escapaba al
+    // gate de notificaciones y se persistía. (c.286)
     private val sensitivePatterns = listOf(
         Regex("""(?i)\b(?:contrase(?:ña|na)|password|passwd|pin|cvv|cvc|token\s+bancario)\b"""),
         Regex("""(?i)\b(?:c[oó]digo|clave)\s+(?:de\s+)?(?:verificaci[oó]n|seguridad|acceso)\b"""),
         Regex("""(?i)\b(?:otp|2fa|autenticaci[oó]n\s+de\s+dos\s+pasos)\b"""),
-        Regex("""\b(?:\d[ -]?){13,19}\b""")
+        Regex("""\b(?:\d[ -]?){13,19}\b"""),
+        Regex("""(?i)\b(?:n[uú]mero\s+de\s+cuenta|account\s+number|clabe|iban|swift|c[eé]dula)\b"""),
+        Regex("""(?i)\b(?:seed\s+phrase|recovery\s+phrase|frase\s+semilla|frase\s+de\s+recuperaci[oó]n|palabras\s+de\s+recuperaci[oó]n|mnemonic)\b"""),
+        Regex("""(?i)\b(?:transferencia|dep[oó]sito|retiro|saldo|estado\s+de\s+cuenta)\b""")
     )
     private val otpCode = Regex("""(?i)\b(?:c[oó]digo|otp|verificaci[oó]n)\D{0,20}\d{4,8}\b""")
 
