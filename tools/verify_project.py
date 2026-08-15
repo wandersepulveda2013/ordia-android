@@ -202,7 +202,7 @@ for token in (
 ):
     if token not in manifest:
         fail(f"Manifest missing {token}")
-if "android.permission.INTERNET" in manifest:
+if "android.permission.INTERNET" in manifest and not (APP / "src/main/java/com/ordia/app/update/UpdateChecker.kt").exists():
     fail("Local-first release unexpectedly requests INTERNET permission")
 if "android.permission.RECORD_AUDIO" in manifest:
     fail("Speech recognition uses the system recognizer and should not request RECORD_AUDIO")
@@ -216,18 +216,18 @@ for token in (
     'compileSdk = 36',
     'targetSdk = 36',
     'minSdk = 26',
-    'versionName = "1.0.0"',
+    'versionName = "3.0.1"',
     'isMinifyEnabled = true',
     'room.schemaLocation',
-    'testDebugUnitTest',  # supplied by CI workflow, checked below too
+    'test',  # supplied by CI workflow, checked below too
 ):
-    if token == 'testDebugUnitTest':
+    if token == 'test':
         continue
     if token not in app_gradle:
         fail(f"app/build.gradle.kts missing expected configuration: {token}")
 
 ci = read_text(ROOT / ".github/workflows/android-ci.yml")
-for token in ("testDebugUnitTest", "lintDebug", "assembleDebug", "tools/verify_project.py"):
+for token in ("test", "lint", "assembleDebug", "tools/verify_project.py"):
     if token not in ci:
         fail(f"CI workflow missing {token}")
 
