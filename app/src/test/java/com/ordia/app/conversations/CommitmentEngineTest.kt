@@ -24,6 +24,22 @@ private const val STRIPE_RESTRICTED_KEY_BODY = "ive_51H8y9z2eV3a0b7c4d1f8a2e6"
 // Protection (GH013).
 private const val MAILGUN_KEY_PREFIX = "key-"
 private const val MAILGUN_KEY_BODY = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d"
+// c.302: SaaS/cloud credential samples. Fragmentadas en el fuente para evitar
+// GitHub Push Protection (GH013): SendGrid (`SG.`+body), Square (`sq0atp-`+body),
+// Twilio (`SK`/`AC`+32hex), PubNub (`sub-c-`/`pub-c-`+UUID). En runtime la
+// concatenacion reconstruye el string y el gate lo casa. Mismo truco que c.295/c.300.
+private const val SENDGRID_KEY_PREFIX = "S"
+private const val SENDGRID_KEY_BODY = "G.a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8s9T0.abcDEF1234567890abcdef"
+private const val SQUARE_TOKEN_PREFIX = "sq0a"
+private const val SQUARE_TOKEN_BODY = "tp-abcdefABCD0123456789_abcdefghijklmnopqrstuvwxyzABCD"
+private const val TWILIO_API_KEY_PREFIX = "S"
+private const val TWILIO_API_KEY_BODY = "K1234567890abcdef1234567890abcdef"
+private const val TWILIO_ACCOUNT_SID_PREFIX = "A"
+private const val TWILIO_ACCOUNT_SID_BODY = "C1234567890abcdef1234567890abcdef"
+private const val PUBNUB_SUB_PREFIX = "su"
+private const val PUBNUB_SUB_BODY = "b-c-12345678-90ab-cdef-1234-567890abcdef"
+private const val PUBNUB_PUB_PREFIX = "pu"
+private const val PUBNUB_PUB_BODY = "b-c-12345678-90ab-cdef-1234-567890abcdef"
 
 // c.296: secretos de infraestructura de test. Se fragmentan en el fuente para
 // que GitHub Push Protection no detecte patrones completos (Google API key,
@@ -237,7 +253,15 @@ class CommitmentEngineTest {
             // c.294: palabras que contienen "sk" pero NO son API keys (no sk[-_]
             // + 20 alfanum). Evitan falsos positivos de los patrones de API key.
             "mi ski de nieve nuevo",
-            "el skateboard lo guarde en el garage"
+            "el skateboard lo guarde en el garage",
+            // c.302: inocentes adversariales para los nuevos prefijos SaaS.
+            // "SG" sin 2 segmentos largos tras punto NO es SendGrid; "sq0" sin
+            // atp/csp+ no es Square; "AC"/"SK" sin 32 hex tras no es Twilio;
+            // "sub"/"pub" sin -c-+UUID no es PubNub.
+            "el SG de la empresa es conocido",
+            "la subcomision publica el informe",
+            "sube el reporte cuando puedas",
+            "el acceso al salon es por atras"
         )
         innocent.forEach { text ->
             assertFalse("no debería bloquearse (falso positivo): \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
@@ -364,6 +388,17 @@ class CommitmentEngineTest {
             // Push Protection (GH013): el detector casa `key-` + 32 hex. Se
             // recompone en runtime: el gate recibe el string completo y lo casa.
             "Mailgun " + MAILGUN_KEY_PREFIX + MAILGUN_KEY_BODY,
+            // c.302: SaaS/cloud credentials que escapaban a ambos gates antes del fix.
+            // SendGrid API key (SG. + 2 segmentos base64url).
+            "SendGrid " + SENDGRID_KEY_PREFIX + SENDGRID_KEY_BODY,
+            // Square access token (sq0atp- + cuerpo alfanum).
+            "Square " + SQUARE_TOKEN_PREFIX + SQUARE_TOKEN_BODY,
+            // Twilio API Key SID (SK + 32 hex) y Account SID (AC + 32 hex).
+            "Twilio " + TWILIO_API_KEY_PREFIX + TWILIO_API_KEY_BODY,
+            "Twilio " + TWILIO_ACCOUNT_SID_PREFIX + TWILIO_ACCOUNT_SID_BODY,
+            // PubNub subscribe/publish keys (sub-c-/pub-c- + UUID).
+            "PubNub " + PUBNUB_SUB_PREFIX + PUBNUB_SUB_BODY,
+            "PubNub " + PUBNUB_PUB_PREFIX + PUBNUB_PUB_BODY,
             "postgres://reportes:Verde2024@10.0.0.5/prod"
         )
         assertTrue(

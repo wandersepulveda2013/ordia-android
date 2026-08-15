@@ -63,6 +63,27 @@ object SensitiveSecretPatterns {
         // + cuerpo hex de 32 (formato historico de Mailgun). Bajo falso positivo:
         // `key-` seguido de 32 hex no ocurre en texto conversacional normal.
         Regex("""\bkey-[a-f0-9]{32}\b"""),
+        // c.302: SendGrid API keys (`SG.` + 16+ base64url + `.` + 16+ base64url).
+        // Prefijo canonico `SG.` distintivo de SendGrid (envio de email
+        // transaccional/marketing). El patron de 2 segmentos separados por punto,
+        // ambos de 16+ alfanum, no ocurre en texto conversacional normal -> bajo
+        // falso positivo. Las keys reales son `SG.` + 22 + `.` + 43; 16+ admite
+        // variantes antiguas sin perder distintividad.
+        Regex("""\bSG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}"""),
+        // c.302: Square access tokens (`sq0atp-` produccion / `sq0csp-` sandbox
+        // + 40+ alfanum). Prefijo canonico de Square (procesamiento de pagos).
+        // `sq0` + `atp`/`csp` + `-` + cuerpo largo no ocurre en texto normal.
+        Regex("""\bsq0(?:atp|csp)-[A-Za-z0-9_]{40,}"""),
+        // c.302: Twilio API Key SID (`SK` + 32 hex) y Account SID (`AC` + 32 hex).
+        // Prefijo de 2 letras (`SK`/`AC`) + 32 hex consecutivos. La longitud
+        // exacta (34 total) y el alfabeto hex puro evitan falsos positivos: 32
+        // hex seguidos no aparecen en palabras espanolas tras `SK`/`AC`. El
+        // grupo `[SA][CK]` cubre ambos prefijos. Comprobado en probe JVM.
+        Regex("""\b[SA][CK][0-9a-f]{32}\b""", RegexOption.IGNORE_CASE),
+        // c.302: PubNub subscribe/publish keys (`sub-c-`/`pub-c-` + UUID canonico).
+        // Prefijo `sub`/`pub` + `-c-` + UUID (8-4-4-4-12 hex). Distintivo de PubNub
+        // (mensajeria realtime). No ocurre en texto conversacional normal.
+        Regex("""\b(?:sub|pub)-c-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"""),
         // Cadenas de conexion con credenciales embebidas (esquema://user:pass@host).
         Regex("""(?i)\b[a-z][a-z0-9+.-]*://[^\s:@/]+:[^\s@/]+@[^\s/]+""")
     )
