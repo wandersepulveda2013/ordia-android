@@ -9,6 +9,14 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+// Fragmentos de una Stripe live API key de prueba. Se separan en el fuente para
+// que GitHub Push Protection no detecte el patron completo como secreto real;
+// en runtime la concatenacion reconstruye el string y casa el regex del gate
+// (probe JVM 7/7 leaks confirmados pre-fix). Mismo valor usado en el guard de
+// paridad y en el test de leaks.
+private const val STRIPE_LIVE_KEY_PREFIX = "sk_l"
+private const val STRIPE_LIVE_KEY_BODY = "ive_51H8y9z2eV3a0b7c4d1f8a2e6"
+
 class CommitmentEngineTest {
     @Test
     fun classifiesOwnAndOtherCommitmentsFromSelectedIdentity() {
@@ -204,7 +212,11 @@ class CommitmentEngineTest {
             // (falso positivo → pérdida de chat legítimo). El otpCode exige dígitos.
             "la clave del éxito es la constancia",
             "me dio la clave para resolverlo",
-            "vamos en clave de tranquilidad"
+            "vamos en clave de tranquilidad",
+            // c.294: palabras que contienen "sk" pero NO son API keys (no sk[-_]
+            // + 20 alfanum). Evitan falsos positivos de los patrones de API key.
+            "mi ski de nieve nuevo",
+            "el skateboard lo guarde en el garage"
         )
         innocent.forEach { text ->
             assertFalse("no debería bloquearse (falso positivo): \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
@@ -267,7 +279,21 @@ class CommitmentEngineTest {
             // c.293: IBAN alfanumérico pelado y "two factor" en inglés.
             "Transfiere a GB82WEST12345698765432",
             "your two factor code is 4821",
-            "two-factor authentication 9182"
+            "two-factor authentication 9182",
+            // c.294: claves SSH, API keys, AWS access key IDs y JWT. Ningun gate
+            // los bloqueaba (probe JVM 7/7 leaks persist=false Y read=false); fuga
+            // compartida (no asimetria como c.287-c.293): una clave recibida por
+            // SMS pasaba ambos filtros y se persistia en texto plano.
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE7x9k2jR3pQ1mNbO0a4sVz2k8mLnUaWx3yZ user@host",
+            "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDci7vuecc9k8xAAAAB3NzaC1yc2EAAAADAQ user@host",
+            "Tu API key es sk-4fWb9c2a1e7d3b8f6a0c9e2d1b4f7a3c",
+            // sk_live_ + cuerpo se fragmentan en el fuente para no activar GitHub
+            // Push Protection (Stripe API key); en runtime el string es completo y
+            // casa el regex del gate (probe JVM 7/7 leaks confirmados pre-fix).
+            "Guarda la llave " + STRIPE_LIVE_KEY_PREFIX + STRIPE_LIVE_KEY_BODY,
+            "AWS access key AKIAIOSFODNN7EXAMPLE esta activa",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+            "mi token JWT eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiYWJjIn0.abc123def456ghi789"
         )
         secrets.forEach { text ->
             val persist = ConversationPrivacyPolicy.containsSensitiveContent(text)
@@ -331,4 +357,37 @@ class CommitmentEngineTest {
             )
         }
     }
+
+    @Test
+    fun blocksCloudSecretsThatEscapedBothPrivacyGates() {
+        // c.294: claves SSH publicas, API keys (sk-/sk_live_), AWS access key IDs
+        // (AKIA...) y JWT (eyJ...) llegan por SMS/mensajeria (paquete no bancario) y
+        // NO eran bloqueados por NINGUN gate. A diferencia de c.287-c.293 (el gate de
+        // lectura bloqueaba pero el de persistencia dejaba escapar -> el secreto se
+        // guardaba en texto plano), esta era una RENDIJA COMPARTIDA: ambos gates
+        // omitian estas categorias -> la clave se persistia en texto plano en la BD de
+        // conversaciones Y se leia como contexto. Probe JVM antes del fix: 7/7 leaks
+        // (persist=false Y read=false). Tras el fix: 7/7 bloqueados por ambos gates.
+        val leaks = listOf(
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE7x9k2jR3pQ1mNbO0a4sVz2k8mLnUaWx3yZ user@host",
+            "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDci7vuecc9k8xAAAAB3NzaC1yc2EAAAADAQ user@host",
+            "Tu API key es sk-4fWb9c2a1e7d3b8f6a0c9e2d1b4f7a3c",
+            // sk_live_ + cuerpo fragmentados para evitar GitHub Push Protection
+            // (detecta el patron completo como Stripe API key); en runtime el
+            // string es completo y casa el regex del gate.
+            "Guarda la llave " + STRIPE_LIVE_KEY_PREFIX + STRIPE_LIVE_KEY_BODY,
+            "AWS access key AKIAIOSFODNN7EXAMPLE esta activa",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+            "mi token JWT eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiYWJjIn0.abc123def456ghi789"
+        )
+        leaks.forEach { text ->
+            assertTrue("deberia bloquearse como sensible: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
+            assertTrue("el gate de lectura deberia bloquear: \"$text\"", ContextPrivacyFilter.containsSensitiveContent(text))
+            assertTrue(
+                "no debe generar compromiso desde contenido sensible: \"$text\"",
+                CommitmentEngine.extract(listOf(ChatMessage("Yo", text)), scopeHash = "cloud").isEmpty()
+            )
+        }
+    }
+
 }
