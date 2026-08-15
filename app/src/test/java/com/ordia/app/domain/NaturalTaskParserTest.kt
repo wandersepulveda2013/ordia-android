@@ -7645,4 +7645,105 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("llamar antes de las 5", now, zone)
         assertEquals(null, result.dueAt)
     }
+
+    // --- ciclo 240: "<día> <mes>" sin conector "de" (forma abreviada de captura) ---
+
+    @Test fun bareDayMonthAbbrConHoraResuelveDiaYMesCorrectos() {
+        // "Reunión 22 ago a las 15:30": antes la fecha caía a HOY (día equivocado)
+        // y "ago" sobrevivía en el título. Ahora resuelve 22 de agosto a las 15:30.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val baseNow = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Reunión 22 ago a las 15:30", baseNow, zone)
+        assertEquals("Reunión", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 8, 22), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun bareDayMonthAbbrSinHoraNoSeOlvida() {
+        // "Renovar suscripción 1 sept": antes dueAt=null (compromiso olvidado, sin
+        // recordatorio ni visibilidad en What Now/planificador). Ahora → 1 de septiembre.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val baseNow = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Renovar suscripción 1 sept", baseNow, zone)
+        assertEquals("Renovar suscripción", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 9, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun bareDayMonthAbbrTresLetrasNoSeOlvida() {
+        // "Entregar 1 oct": abreviatura de 3 letras, antes dueAt=null (olvidado).
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val baseNow = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Entregar 1 oct", baseNow, zone)
+        assertEquals("Entregar", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 10, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun bareDayMonthNombreCompletoNoSeOlvida() {
+        // "Cita 20 agosto": nombre completo sin "de", antes caía a día suelto del mes en
+        // curso o null. Ahora → 20 de agosto.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val baseNow = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Cita 20 agosto", baseNow, zone)
+        assertEquals("Cita", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun bareDayMesPasadoRuedaAlProximoAno() {
+        // "Cita 5 enero" dicho en julio: enero ya pasó este año → rueda a enero del año
+        // siguiente (mismo roll que "5 de enero").
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val baseNow = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Cita 5 ene", baseNow, zone)
+        assertEquals("Cita", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2027, 1, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun bareDayMonthNoFalsificaFechaDeContenido() {
+        // "comprar 3 manzanas": "manzanas" NO es mes → no se inventa fecha. El número
+        // y la palabra se conservan íntegros en el título.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val baseNow = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("comprar 3 manzanas", baseNow, zone)
+        assertEquals("comprar 3 manzanas", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun fechaConConectorDeSigueFuncionandoSinRegresion() {
+        // Regresión: la forma canónica "el 22 de agosto" (con "de") sigue resolviéndose.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val baseNow = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Reunión el 22 de agosto a las 15:30", baseNow, zone)
+        assertEquals("Reunión", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 8, 22), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun fechaNumericaConSeparadorSigueFuncionandoSinRegresion() {
+        // Regresión: la fecha numérica "20/8" no debe ser alterada por el normalizador
+        // de "<día> <mes>".
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val baseNow = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Cita 20/8 a las 10", baseNow, zone)
+        assertEquals("Cita", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun duracionEscritaTrasDiaMesNoSeRompe() {
+        // Regresión: "estudiar 2 horas" — "horas" NO es mes → no se fecha; la duración
+        // "2 horas" se sigue capturando como tal.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val baseNow = DateRules.toEpochMillis(LocalDate.of(2026, 7, 29), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("estudiar 2 horas", baseNow, zone)
+        assertEquals("estudiar", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertNull(result.dueAt)
+    }
 }

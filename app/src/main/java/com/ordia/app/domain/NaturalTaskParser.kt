@@ -105,7 +105,7 @@ object NaturalTaskParser {
         // "de este mes", "del mes que viene/próximo/entrante" (mes siguiente). La alternación
         // explícita de meses hace que "del mes a las 9" NO robe la "a" (sólo meses reales casan)
         // y deja la hora explícita intacta. Ordinales: último = última ocurrencia; N = N-ésima.
-        """(?i)(?<!\p{L})(?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+del?\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?(?:mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+)?)?((?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic))?(?:\s+del?\s+(\d{2,4}))?\b"""
+        """(?i)(?<!\p{L})(?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+del?\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?(?:mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+)?)?((?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic))?(?:\s+del?\s+(\d{2,4}))?\b"""
     )
 
     /**
@@ -544,6 +544,26 @@ object NaturalTaskParser {
      * son contenido, no fecha.
      */
     private val ordinalSuffixPattern = Regex("""(?i)\b(\d{1,2})(?:ero|ro|do|er|to|mo|vo|no|º|ª)(\s+del?\s+)""")
+
+    /**
+     * "<día> <mes>" SIN conector "de" ("Reunión 22 ago", "Entregar 1 oct",
+     * "Renovar suscripción 1 sept", "Cita 20 agosto"): la forma abreviada y
+     * cotidiana de capturar una fecha sin teclear "de". Antes NINGÚN patrón la
+     * reconocía (monthNamePattern exige " de ", dayOfMonthPattern exige artículo
+     * "el" y devuelve el mes en curso, numericDatePattern exige "/"): la cita
+     * caía a `dueAt=null` (olvidada — sin recordatorio, invisible en What
+     * Now/planificador) o, si traía hora, ésta se aplicaba a HOY → reunión
+     * agendada el día equivocado (P1: compromiso perdido). El normalizador
+     * reescribe a la forma canónica "N de <mes>" para reutilizar TODO el flujo
+     * monthNamePattern existente (roll de año, clamp de día imposible, acoplamiento
+     * con la hora, limpieza del título). El mes se valida contra `months` (nombres
+     * + abreviaturas) en el lambda de normalización: si el token no es un mes
+     * ("comprar 3 manzanas", "estudiar 2 horas", "enviar 1 correo") NO se reescribe
+     * → no se inventan fechas de contenido. Exige el día como dígito (1-2 cifras)
+     * y que NO medie "de"/"del" (forma compacta específica); "el 22 de agosto" ya
+     * casa monthNamePattern y queda intacto.
+     */
+    private val bareDayMonthPattern = Regex("""(?i)\b(\d{1,2})\s+([a-záéíóúüñ]+)\b""")
 
     // "el día siguiente"/"día siguiente" = mañana relativa (sin weekday nombrado).
     // Forma cotidiana de agendar para mañana sin usar la palabra "mañana"
@@ -1104,7 +1124,7 @@ object NaturalTaskParser {
         // a ser la misma intención que el nombre completo ("25 de diciembre").
         "ene" to 1, "feb" to 2, "mar" to 3, "abr" to 4, "may" to 5,
         "jun" to 6, "jul" to 7, "ago" to 8, "sep" to 9, "set" to 9,
-        "oct" to 10, "nov" to 11, "dic" to 12
+        "sept" to 9, "oct" to 10, "nov" to 11, "dic" to 12
     )
 
     private val categories = listOf(
@@ -1160,6 +1180,15 @@ object NaturalTaskParser {
         // su dígito base para que los patrones de fecha (que exigen \d seguido de espacio)
         // los reconozcan. Solo en contexto de fecha (" de ") para no tocar contenido.
         working = ordinalSuffixPattern.replace(working) { m -> m.groupValues[1] + m.groupValues[2] }
+
+        // "<día> <mes>" sin conector "de" → "N de <mes>": reutiliza TODO el flujo
+        // monthNamePattern (roll de año, clamp de día, acoplamiento con hora,
+        // limpieza del título). El mes se valida contra `months`: si el token no es
+        // un mes, se deja intacto (no se inventan fechas de contenido).
+        working = bareDayMonthPattern.replace(working) { m ->
+            val monthTok = m.groupValues[2].lowercase()
+            if (monthTok in months) "${m.groupValues[1]} de $monthTok" else m.value
+        }
 
         // "el 15 del 9" → "15/9" (día/mes numérico): reutiliza TODO el flujo
         // numericDatePattern (parseo + limpieza del título + roll + clamp c.146).
