@@ -204,4 +204,27 @@ class CommitmentEngineTest {
             assertFalse("no debería bloquearse (falso positivo): \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
         }
     }
+
+    @Test
+    fun blocksPrivateKeysThatEscapedNotificationsGate() {
+        // Claves privadas cripto (hex 64, con/sin prefijo 0x) y bloques PEM
+        // -----BEGIN ... PRIVATE KEY-----. Llegan por SMS/mensajería (paquete no
+        // bancario): pasan el filtro de paquete y dependen del de contenido. El gate
+        // de contexto/IME (ContextPrivacyFilter) ya las bloquea, pero el de
+        // notificaciones (este) NO → el texto se persistía en la BD de conversaciones.
+        // Misma clase de fuga que c.287 cerró para seed phrases. (c.290)
+        val leaks = listOf(
+            "Guarda tu clave: 0x4c0883a6940d54b8e6e3f2a9a1b7c3d4e5f60718293a4b5c6d7e8f901a2b3c4d",
+            "4c0883a6940d54b8e6e3f2a9a1b7c3d4e5f60718293a4b5c6d7e8f901a2b3c4d",
+            "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...\n-----END RSA PRIVATE KEY-----",
+            "-----BEGIN EC PRIVATE KEY-----\nMHQCAQEE...\n-----END EC PRIVATE KEY-----"
+        )
+        leaks.forEach { text ->
+            assertTrue("debería bloquearse como sensible: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
+            assertTrue(
+                "no debe generar compromiso desde contenido sensible: \"$text\"",
+                CommitmentEngine.extract(listOf(ChatMessage("Yo", text)), scopeHash = "privkey").isEmpty()
+            )
+        }
+    }
 }

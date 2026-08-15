@@ -26,6 +26,12 @@ object ConversationPrivacyPolicy {
     // filtro de paquete de NotificationObservationPolicy). Sin esto, un SMS con
     // "tu saldo disponible", "estado de cuenta" o una "frase semilla" escapaba al
     // gate de notificaciones y se persistía. (c.286)
+    //
+    // c.290: también claves privadas cripto (hex 64 con/sin prefijo 0x) y bloques
+    // PEM -----BEGIN ... PRIVATE KEY-----. ContextPrivacyFilter (gate de contexto/IME)
+    // ya las bloqueaba, pero este gate (el que decide si una notificación se persiste
+    // en la BD de conversaciones) NO → una clave privada recibida por SMS quedaba en
+    // texto plano. Misma clase de fuga que c.287 cerró para seed phrases.
     private val sensitivePatterns = listOf(
         Regex("""(?i)\b(?:contrase(?:ña|na)|password|passwd|pin|cvv|cvc|token\s+bancario)\b"""),
         Regex("""(?i)\b(?:c[oó]digo|clave)\s+(?:de\s+)?(?:verificaci[oó]n|seguridad|acceso)\b"""),
@@ -33,7 +39,9 @@ object ConversationPrivacyPolicy {
         Regex("""\b(?:\d[ -]?){13,19}\b"""),
         Regex("""(?i)\b(?:n[uú]mero\s+de\s+cuenta|account\s+number|clabe|iban|swift|c[eé]dula)\b"""),
         Regex("""(?i)\b(?:seed\s+phrase|recovery\s+phrase|frase\s+semilla|frase\s+de\s+recuperaci[oó]n|palabras\s+de\s+recuperaci[oó]n|mnemonic)\b"""),
-        Regex("""(?i)\b(?:transferencia|dep[oó]sito|retiro|saldo|estado\s+de\s+cuenta)\b""")
+        Regex("""(?i)\b(?:transferencia|dep[oó]sito|retiro|saldo|estado\s+de\s+cuenta)\b"""),
+        Regex("""-----BEGIN [A-Z ]*PRIVATE KEY-----""", RegexOption.IGNORE_CASE),
+        Regex("""\b(?:0x)?[0-9a-f]{64}\b""", RegexOption.IGNORE_CASE)
     )
     private val otpCode = Regex("""(?i)\b(?:c[oó]digo|otp|verificaci[oó]n)\D{0,20}\d{4,8}\b""")
 
