@@ -44,7 +44,11 @@ object CommitmentEngine {
     private val purchaseSignal = Regex("""(?i)\b(?:comprar|compra|traer|conseguir|mercado|supermercado)\b""")
     private val reminderSignal = Regex("""(?i)\b(?:recu[eé]rdame|recordatorio|av[ií]same|no\s+dejes\s+que\s+olvide)\b""")
     private val commitmentSignal = Regex(
-        """(?i)\b(?:yo\s+me\s+encargo|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|despu[eé]s\s+te\s+respondo|voy\s+a|debo|tengo\s+que|terminar[eé]|har[eé]|lo\s+hago)\b"""
+        // "me encargo"/"me ocupo" son las formas más naturales en español de
+        // asumir un compromiso y se dicen SIN pronombre "yo" ("¿Quién llama?"
+        // → "me encargo"). Exigir "yo me encargo" dejaba estos compromisos sin
+        // detectar (falso negativo: olvido). El pronombre es opcional. (c.278)
+        """(?i)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|despu[eé]s\s+te\s+respondo|voy\s+a|debo|tengo\s+que|terminar[eé]|har[eé]|lo\s+hago)\b"""
     )
     private val locationSignal = Regex(
         """(?i)\b(?:lugar\s*:\s*|(?:nos\s+vemos|reuni[oó]n|cita)[^.!?\n]{0,80}?\ben\s+)([\p{L}\d][\p{L}\d .,'-]{2,50})"""

@@ -71,4 +71,61 @@ class CommitmentEngineTest {
         assertTrue(summary.contains("2 mensajes"))
         assertFalse(summary.contains("Te llamo mañana"))
     }
+
+    // --- Detección de verbos de compromiso naturales (c.278) ---
+    // "me encargo" y "me ocupo" son las formas más naturales en español de
+    // asumir un compromiso ("¿Quién llama?" → "me encargo"). Antes la señal
+    // exigía "yo me encargo" (con pronombre), de modo que "me encargo de
+    // llamar al fontanero" NO generaba compromiso alguno (falso negativo:
+    // riesgo de olvido). Estas pruebas fijan la cobertura con y sin "yo".
+
+    @Test
+    fun detectsMeEncargoWithoutExplicitYo() {
+        val result = CommitmentEngine.extract(
+            listOf(ChatMessage("Yo", "me encargo de llamar al fontanero")),
+            selfParticipant = "Yo",
+            scopeHash = "chat-5"
+        )
+
+        assertEquals(1, result.size)
+        assertEquals(CommitmentOwner.SELF, result[0].owner)
+        assertEquals(CommitmentKind.SELF_COMMITMENT, result[0].kind)
+    }
+
+    @Test
+    fun stillDetectsYoMeEncargo() {
+        val result = CommitmentEngine.extract(
+            listOf(ChatMessage("Yo", "yo me encargo de llamar el lunes")),
+            selfParticipant = "Yo",
+            scopeHash = "chat-6"
+        )
+
+        assertEquals(1, result.size)
+        assertEquals(CommitmentOwner.SELF, result[0].owner)
+    }
+
+    @Test
+    fun detectsMeOcupoAsCommitment() {
+        val result = CommitmentEngine.extract(
+            listOf(ChatMessage("Yo", "me ocupo de avisar a todos")),
+            selfParticipant = "Yo",
+            scopeHash = "chat-7"
+        )
+
+        assertEquals(1, result.size)
+        assertEquals(CommitmentOwner.SELF, result[0].owner)
+        assertEquals(CommitmentKind.SELF_COMMITMENT, result[0].kind)
+    }
+
+    @Test
+    fun meEncargoFromOtherParticipantIsOtherCommitment() {
+        val result = CommitmentEngine.extract(
+            listOf(ChatMessage("Carlos", "me encargo de traer las sillas")),
+            selfParticipant = "Yo",
+            scopeHash = "chat-8"
+        )
+
+        assertEquals(1, result.size)
+        assertEquals(CommitmentOwner.OTHER, result[0].owner)
+    }
 }
