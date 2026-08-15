@@ -5792,6 +5792,55 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "este mes" / "este a\u00f1o": plazo blando = fin del mes/a\u00f1o en curso ---
+    // Frases cotidianas ("renovar licencia este mes", "cerrar ejercicio este a\u00f1o") que
+    // antes ca\u00edan a dueAt=null (tarea olvidada) dejando la frase entera como residuo en
+    // el t\u00edtulo. Plazo blando sim\u00e9trico a "esta semana" (fin de semana): "este mes" =
+    // \u00faltimo d\u00eda del mes en curso; "este a\u00f1o" = 31/12 del a\u00f1o en curso.
+
+    @Test fun esteMesAnclaFinMesActual() {
+        // ahora = 29/7 -> fin de julio = 31/7.
+        val result = NaturalTaskParser.parse("Renovar licencia este mes", now, zone)
+        assertEquals("Renovar licencia", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun esteMesRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Cerrar cuentas este mes a las 18", now, zone)
+        assertEquals("Cerrar cuentas", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun esteMesSiHoyEsUltimoDiaEsHoy() {
+        // hoy = 31/8 (\u00faltimo d\u00eda de agosto) -> "este mes" vence hoy (no rueda al mes pr\u00f3ximo).
+        val ultimoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 31), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Pago este mes", ultimoNow, zone)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun esteAnoAncla31Diciembre() {
+        val result = NaturalTaskParser.parse("Cerrar ejercicio este a\u00f1o", now, zone)
+        assertEquals("Cerrar ejercicio", result.title)
+        assertEquals(LocalDate.of(2026, 12, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun esteMesNoColisionaConDiaDelMes() {
+        // "el 15 de este mes" ya lo resuelve dayOfMonthPattern (15 del mes en curso): el
+        // "este mes" suelto NO debe robarlo ni dejar residuo ni cambiar la fecha al 31.
+        val result = NaturalTaskParser.parse("Reuni\u00f3n el 15 de este mes", now, zone)
+        assertEquals("Reuni\u00f3n", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun esteMesNoColisionaConFinDeMes() {
+        // "fin de este mes" ya lo resuelve endOfMonthPattern; el "este mes" suelto NO debe
+        // actuar aqu\u00ed (su lookbehind (?<!de\\s) lo bloquea) ni dejar doble residuo.
+        val result = NaturalTaskParser.parse("Pago fin de este mes", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // "a fin de la semana": plazo = fin de la semana actual (próximo domingo).
     // Sinónimo coloquial de "esta semana". Antes caía a dueAt=null → olvido.
 

@@ -501,6 +501,24 @@ object NaturalTaskParser {
     private val midOfYearPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?a[nñ]o(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     private val startOfYearPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?|inicios?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?a[nñ]o(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     /**
+     * "este mes" / "este año": plazo blando cotidiano ("renovar licencia este mes",
+     * "cerrar ejercicio este año") = "antes de que acabe el mes/año en curso". Antes
+     * caían a dueAt=null (tarea olvidada) y la frase entera quedaba como residuo en el
+     * título. Plazo blando simétrico a "esta semana" (fin de semana): "este mes" ancla
+     * al último día del mes en curso; "este año" al 31/12 del año en curso. Sin roll:
+     * es explícitamente el periodo ACTUAL (si hoy es el último día, vence hoy).
+     *
+     * Los lookbehinds evitan robar "este mes/año" cuando forma parte de una frase ya
+     * resuelta por otro patrón: "el 15 de este mes" (dayOfMonthPattern), "fin de este
+     * mes"/"finales de este mes" (endOfMonthPattern), "fin de este año" (endOfYearPattern)
+     * y el posesivo "renta de este mes/año" (no es plazo). Sin estas guardas, el token
+     * suelto se tragaría la subcadena, dejaría residuo ("el 15 de") y/o cambiaría la
+     * fecha (p. ej. 15→31). Se detecta y borra ANTES del período próximo para que la
+     * subcadena "mes"/"año" no active "mes/año que viene".
+     */
+    private val thisMonthPattern = Regex("""(?i)(?<!\d\s)(?<!de\s)(?<!del\s)este\s+mes\b""")
+    private val thisYearPattern = Regex("""(?i)(?<!\d\s)(?<!de\s)(?<!del\s)este\s+a[nñ]o\b""")
+    /**
      * "la quincena" / "de la quincena" / "primera quincena" / "segunda quincena":
      * hito financiero mensual (cobro, nómina, pago). La "primera quincena" es el día
      * 15; la "segunda quincena" el fin de mes. Sin cualificar, resuelve al próximo
@@ -1811,6 +1829,25 @@ object NaturalTaskParser {
         midOfYearEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
         startOfYearEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
 
+        // "este mes" / "este año": plazo blando = fin del mes/año en curso. Se procesa
+        // tras los límites anuales/mensuales (que ya consumieron "fin/mediados/... de
+        // este mes/año" gracias a los lookbehinds) y ANTES del período próximo para que
+        // "mes"/"año" no active "mes/año que viene". Días (epoch medianoche) para
+        // combinarse con hora explícita ("este mes a las 18").
+        val thisMonthEarlyMatch = thisMonthPattern.find(working)
+        val thisMonthDueAt = thisMonthEarlyMatch?.let {
+            val lastDay = base.toLocalDate().withDayOfMonth(base.toLocalDate().lengthOfMonth())
+            DateRules.toEpochMillis(lastDay, LocalTime.of(9, 0), zone)
+        }
+        thisMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+
+        val thisYearEarlyMatch = thisYearPattern.find(working)
+        val thisYearDueAt = thisYearEarlyMatch?.let {
+            val lastDay = base.toLocalDate().withMonth(12).withDayOfMonth(31)
+            DateRules.toEpochMillis(lastDay, LocalTime.of(9, 0), zone)
+        }
+        thisYearEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+
         // "esta semana" / "esta semana que viene": fin de la semana actual (próximo
         // domingo, ISO lunes→domingo). Se borra ANTES del período próximo para que
         // "semana" no active "semana que viene" y para limpiar "esta semana que viene".
@@ -2013,6 +2050,7 @@ object NaturalTaskParser {
             laterRelativeDueAt ?: fractionalAndQuarterRelativeDueAt ?: fractionalRelativeDueAt ?:
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
             monthBoundaryNameDueAt ?: yearBoundaryDueAt ?:
+            thisMonthDueAt ?: thisYearDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?: nextMonthDayShortDueAt ?:
             nextMonthDayShortReverseDueAt ?:
@@ -2022,6 +2060,7 @@ object NaturalTaskParser {
             fractionalAndQuarterRelativeMatch != null ||
             compoundFractionalRelativeMatch != null || multiQuarterRelativeMatch != null ||
             monthBoundaryDueAt != null || monthBoundaryNameDueAt != null || yearBoundaryDueAt != null ||
+            thisMonthEarlyMatch != null || thisYearEarlyMatch != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
             quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null ||
             nextMonthDayShortMatch != null || nextMonthDayShortReverseMatch != null ||
