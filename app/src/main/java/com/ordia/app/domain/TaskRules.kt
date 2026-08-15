@@ -101,11 +101,19 @@ object TaskRules {
      * su duración planificada. Fuente única de verdad compartida con
      * [WhatNowEngine] (rank de "ahora mismo") y con [SummaryEngine] (no
      * sugiere posponer lo que se está ejecutando en este instante).
+     *
+     * La ventana usa [plannedDuration] (acotada a `[MIN_PLAN_MINUTES,
+     * MAX_PLAN_MINUTES]`) — la misma fuente que DayPlanner y SummaryEngine —
+     * para que una tarea de duración desproporcionada (p. ej. "congreso 10
+     * horas" → 600 min) no permanezca "en curso" más allá del slot que el
+     * planificador le asignaría. Sin este tope, el rank de "ahora mismo"
+     * silenciaba la detección de inicio olvidado ([isMissedStart]) durante
+     * horas tras rebasar el bloque planificable real.
      */
     fun isInProgressNow(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean {
         val start = task.startAt ?: return false
         if (now < start) return false
-        val duration = task.durationMinutes.coerceAtLeast(10) * 60_000L
+        val duration = plannedDuration(task) * 60_000L
         return now <= start + duration
     }
 

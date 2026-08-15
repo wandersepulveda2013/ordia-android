@@ -521,4 +521,44 @@ class TaskRulesTest {
         val now = DateRules.toEpochMillis(date, LocalTime.of(11, 0), zone)
         assertFalse(TaskRules.isMissedStart(TaskEntity(id = 1, title = "Inbox", durationMinutes = 25), now))
     }
+
+    // --- isInProgressNow: coherencia con plannedDuration (fuente única de verdad) ---
+
+    @Test
+    fun isInProgressNow_ventanaCappedAMaxPlanParaDuracionOversized() {
+        // "congreso 10 horas" → 600 min. El planificador (DayPlanner) y el resumen
+        // (SummaryEngine) acotan a 180 min (MAX_PLAN_MINUTES). isInProgressNow debe
+        // usar la misma fuente: a las 13:00 (4h tras inicio 09:00) ya rebasó el
+        // bloque planificable real (09:00+180=12:00), así que NO sigue "en curso".
+        // Antes del fix la ventana llegaba hasta las 19:00 y silenciaba el olvido.
+        val start = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        val now = DateRules.toEpochMillis(date, LocalTime.of(13, 0), zone)
+        val task = TaskEntity(id = 1, title = "Congreso", startAt = start, durationMinutes = 600)
+        assertEquals(180, TaskRules.plannedDuration(task))
+        assertFalse(TaskRules.isInProgressNow(task, now))
+    }
+
+    @Test
+    fun isInProgressNow_trueDentroDelBloquePlanificableCapped() {
+        // Mismo congreso 600 min: a las 11:00 sigue dentro del slot planificable
+        // (09:00–12:00 tras el cap a 180). Sigue "en curso ahora mismo": el rank 5
+        // de What Now y el guardián no deben señalarlo como olvido todavía.
+        val start = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        val now = DateRules.toEpochMillis(date, LocalTime.of(11, 0), zone)
+        val task = TaskEntity(id = 1, title = "Congreso", startAt = start, durationMinutes = 600)
+        assertTrue(TaskRules.isInProgressNow(task, now))
+    }
+
+    @Test
+    fun isMissedStart_trueParaOversizedTrasRebasarBloquePlanificable() {
+        // Recuperación del olvido silenciado: el congreso (600→180 capped) cuyo
+        // start 09:00 ya pasó y cuyo bloque 09:00–12:00 se rebasó a las 13:00,
+        // sin dueAt vencido, ES un inicio olvidado recuperable. Antes del fix
+        // permanecía "en curso" hasta las 19:00 y ocultaba este compromiso 7h.
+        val start = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        val now = DateRules.toEpochMillis(date, LocalTime.of(13, 0), zone)
+        val due = DateRules.toEpochMillis(date.plusDays(1), LocalTime.of(18, 0), zone)
+        val task = TaskEntity(id = 1, title = "Congreso", startAt = start, dueAt = due, durationMinutes = 600)
+        assertTrue(TaskRules.isMissedStart(task, now))
+    }
 }
