@@ -188,4 +188,58 @@ class AssistantEngineTest {
         val organize = AssistantEngine.answer("organiza mi dia", listOf(cancelled), emptyList(), emptyList())
         assertTrue("no cuenta la cancelada como pendiente: ${organize.text}", organize.text.contains("0 tareas pendientes"))
     }
+
+    @Test fun organizeDay_doesNotInflatePendingWithSubtasks() {
+        // Coherencia entre superficies: SummaryEngine, GuardianEngine y WhatNow
+        // cuentan SOLO tareas raíz (parentTaskId == null) porque las subtareas son
+        // anidadas y contarlas además del padre infla los números. El asistente
+        // debe hacer lo mismo: un padre con 2 subtareas pendientes es 1 tarea
+        // pendiente, no 3. Antes el asistente mentía al usuario ("3 tareas
+        // pendientes" por una sola descompuesta en 2 partes).
+        val parent = TaskEntity(id = 1, title = "Proyecto grande")
+        val subA = TaskEntity(id = 2, title = "Paso A", parentTaskId = 1)
+        val subB = TaskEntity(id = 3, title = "Paso B", parentTaskId = 1)
+        val answer = AssistantEngine.answer(
+            "organiza mi dia",
+            listOf(parent, subA, subB),
+            emptyList(), emptyList()
+        )
+        assertTrue("cuenta 1 pendiente (raíz), no 3 con subtareas: ${answer.text}", answer.text.contains("1 tarea pendiente"))
+    }
+
+    @Test fun overdueIntent_doesNotInflateOverdueCountWithSubtasks() {
+        // "vencidas" debe contar 1 raíz vencida, no 3 (raíz + 2 subtareas vencidas).
+        // Las subtareas forman parte del mismo trabajo del padre: contarlas como
+        // vencidas independientes miente sobre cuántos compromisos reales se pasaron.
+        val now = 1_000_000_000_000L
+        val parent = TaskEntity(id = 1, title = "Entrega vencida", dueAt = now - 1L)
+        val subA = TaskEntity(id = 2, title = "Subtarea A", parentTaskId = 1, dueAt = now - 1L)
+        val subB = TaskEntity(id = 3, title = "Subtarea B", parentTaskId = 1, dueAt = now - 1L)
+        val answer = AssistantEngine.answer(
+            "vencidas",
+            listOf(parent, subA, subB),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("cuenta 1 vencida (raíz), no 3 con subtareas: ${answer.text}", answer.text.contains("1 tarea vencida"))
+    }
+
+    @Test fun whatNow_doesNotInflateOtherOverdueWithSubtasks() {
+        // La sugerida es una raíz vencida; otra raíz vencida tiene 2 subtareas
+        // vencidas. "Además, tienes N vencidas" debe contar 1 (la otra raíz), no 3
+        // (la otra raíz + sus 2 subtareas). Contar las subtareas inflaría el nudge
+        // y confundiría al usuario sobre cuántos compromisos quedan.
+        val suggested = TaskEntity(id = 1, title = "Urgente atrasada", dueAt = 1L, priority = TaskPriority.URGENT)
+        val otherRoot = TaskEntity(id = 2, title = "Otra atrasada", dueAt = 2L)
+        val subA = TaskEntity(id = 3, title = "Subtarea A", parentTaskId = 2, dueAt = 2L)
+        val subB = TaskEntity(id = 4, title = "Subtarea B", parentTaskId = 2, dueAt = 2L)
+        val answer = AssistantEngine.answer(
+            "¿Qué hago ahora?",
+            listOf(suggested, otherRoot, subA, subB),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("además cuenta 1 vencida (la otra raíz), no 3: ${answer.text}", answer.text.contains("1 vencida"))
+        assertTrue("no infla con 3 vencidas: ${answer.text}", !answer.text.contains("3 vencid"))
+    }
 }

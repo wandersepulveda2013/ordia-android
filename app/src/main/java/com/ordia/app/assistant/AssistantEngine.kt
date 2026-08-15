@@ -4,7 +4,6 @@ import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.TaskEntity
-import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.domain.WhatNowEngine
 import com.ordia.app.domain.foldForSearch
@@ -30,15 +29,24 @@ object AssistantEngine {
         val clean = request.trim().take(2_000)
         val query = clean.foldForSearch()
         if (query.isBlank()) return AssistantAnswer("Escribe qué necesitas organizar.")
-        val active = tasks.filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
+        // Solo tareas raíz (parentTaskId == null): las subtareas son anidadas y
+        // contarlas además del padre infla los conteos que el usuario lee ("3
+        // pendientes" por un proyecto descompuesto en 2 partes, "3 vencidas" por
+        // una entrega con 2 subtareas vencidas). Es la misma fuente única de
+        // verdad que usan SummaryEngine, GuardianEngine y WhatNowEngine, de forma
+        // que el asistente no mienta sobre cuántos compromisos reales hay.
+        val active = tasks.filter { TaskRules.isActive(it) && it.parentTaskId == null }
         val overdue = active.filter { TaskRules.isOverdue(it, now) }
         val pendingCommitments = commitments.filter { it.reviewStatus == CommitmentReviewStatus.PENDING }
         return when {
-            "organiza mi dia" in query || "organizar mi dia" in query || "organiza el dia" in query ->
+            "organiza mi dia" in query || "organizar mi dia" in query || "organiza el dia" in query -> {
+                val pending = if (active.size == 1) "1 tarea pendiente" else "${active.size} tareas pendientes"
+                val venc = if (overdue.size == 1) "1 vencida" else "${overdue.size} vencidas"
                 AssistantAnswer(
-                    "Hay ${active.size} tareas pendientes y ${overdue.size} vencidas. Puedo preparar un plan realista y reversible.",
+                    "Hay $pending y $venc. Puedo preparar un plan realista y reversible.",
                     AssistantAction.OPEN_PLANNER
                 )
+            }
             "que hago ahora" in query || "siguiente accion" in query -> {
                 val suggestion = WhatNowEngine.suggest(active, now)
                 if (suggestion == null) {
@@ -71,8 +79,9 @@ object AssistantEngine {
                 // WhatNowEngine.ordered para elegir el olvido más urgente.
                 val forgottenIntent = "que olvide" in query || "olvidado" in query
                 if (overdue.isNotEmpty()) {
+                    val venc = if (overdue.size == 1) "1 tarea vencida" else "${overdue.size} tareas vencidas"
                     AssistantAnswer(
-                        "Tienes ${overdue.size} tareas vencidas. Puedo reprogramarlas sin mostrarte una pared de alertas.",
+                        "Tienes $venc. Puedo reprogramarlas sin mostrarte una pared de alertas.",
                         AssistantAction.RUN_REPLAN,
                         relatedTaskIds = overdue.take(8).map { it.id }
                     )
