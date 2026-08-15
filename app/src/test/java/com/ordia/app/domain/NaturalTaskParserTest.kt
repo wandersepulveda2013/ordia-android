@@ -1015,6 +1015,34 @@ class NaturalTaskParserTest {
         assertEquals("1,3", result.recurrenceDays)
     }
 
+    // Paridad léxica "cada <unidad>" (intervalo-1) cuando el anclaje ya porta la cadencia:
+    // "reunión cada semana los lunes" dejaba "reunión cada semana" (la cadencia ya la da
+    // "los lunes"), inconsistente con "reunión semanal los lunes" → "reunión". La forma
+    // sin número de "cada semana/día/mes/año" caía fuera de detectWeekInterval/intervalPattern
+    // (que exigen cantidad) y filtraba al título. Ahora recurrenceAdjectiveLeakPattern la
+    // cubre, igual que "semanal/mensual/...". No-regresión: la forma CON número
+    // ("cada dos semanas") también se limpia (la añade intervalPattern a phraseRanges).
+    @Test fun cadaSemanaIntervaloUnoNoFiltraCuandoDayListPresente() {
+        val result = NaturalTaskParser.parse("Reunion cada semana los lunes", now, zone)
+        assertEquals("Reunion", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1", result.recurrenceDays)
+    }
+
+    @Test fun cadaMesIntervaloUnoNoFiltraCuandoAnchorDiaDelMesPresente() {
+        val result = NaturalTaskParser.parse("Reunion cada mes el 15", now, zone)
+        assertEquals("Reunion", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+    }
+
+    @Test fun cadaDosSemanasConNumeroNoRegresionaTituloSucio() {
+        // Guard anti-regresión: la forma con número "cada dos semanas los lunes" debe seguir
+        // limpiando el título (la añade intervalPattern, no el nuevo leak pattern).
+        val result = NaturalTaskParser.parse("Reunion cada dos semanas los lunes", now, zone)
+        assertEquals("Reunion", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+    }
+
     // No-regresión: el adjetivo solo (sin anclaje) sigue limpiándose como antes
     // (fixedPatterns lo consume vía phraseRanges; el nuevo paso es no-op allí).
     @Test fun monthlyAdjectiveAloneStillCleansTitle() {
@@ -8334,6 +8362,56 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Cita el primer lunes", agoNow, zone)
         assertEquals(RecurrenceFrequency.NONE, result.recurrence)
         assertEquals("", result.recurrenceDays)
+    }
+
+    // --- Cadencia PRECEDENTE: "cada mes el primer lunes" (orden inverso) ---
+    // La forma cotidiana con la cadencia ANTES del ordinal —"cada mes el primer lunes",
+    // "mensual el primer lunes", "todos los meses el último viernes"— NO casaba el patrón
+    // ordinal (su lookahead exige cadencia DESPUÉS del weekday). El parser:
+    //   (1) perdía el ordinal → recurrenceDays='' → el motor anclaba al DÍA DEL MES
+    //       (deriva: 1ª cita el lunes 7, 2ª el día 7 aunque caiga miércoles); y
+    //   (2) dejaba "el primer"/"el último" como residuo en el título.
+    // now = 2026-08-20 (jueves). Primer lunes ago = 03 (pasado) → rueda a sep-07; último
+    // viernes ago = 28 (futuro) → se queda. Paridad EXACTA con la forma "el ... de cada mes".
+
+    @Test fun recurrenciaCadaMesPrimerLunesPrecedenteEmiteCodificacionYRueda() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Gym cada mes el primer lunes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("1:1", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 9, 7), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("Gym", result.title)
+    }
+
+    @Test fun recurrenciaCadaMesUltimoViernesPrecedenteEmiteCodificacionYConservaFecha() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Reunión cada mes el último viernes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("-1:5", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("Reunión", result.title)
+    }
+
+    @Test fun recurrenciaMensualPrimerLunesPrecedenteLimpiaTitulo() {
+        // "mensual" antes del ordinal: paridad con "cada mes el primer lunes".
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Gym mensual el primer lunes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("1:1", result.recurrenceDays)
+        assertEquals("Gym", result.title)
+    }
+
+    @Test fun recurrenciaTodosLosMesesUltimoViernesPrecedenteLimpiaTitulo() {
+        // "todos los meses" antes del ordinal: paridad con "cada mes el último viernes".
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Pago todos los meses el último viernes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("-1:5", result.recurrenceDays)
+        assertEquals("Pago", result.title)
     }
 
     // Conector de plazo "hasta" + fecha: el conector sobrevivía como residuo en el título

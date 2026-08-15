@@ -126,6 +126,25 @@ object NaturalTaskParser {
     )
 
     /**
+     * Forma de cadencia PRECEDENTE: "cada mes el primer lunes", "mensual el primer lunes",
+     * "todos los meses el ultimo viernes". El patrón [lastWeekdayOfMonthPattern] detecta el
+     * ordinal-weekday sólo cuando la cadencia va DESPUÉS ("el primer lunes de cada mes" /
+     * "el primer lunes cada mes" vía su lookahead). Cuando la cadencia va ANTES, el lookahead
+     * no dispara → el ordinal NO se captura: la recurrencia MONTHLY quedaba anclada al día del
+     * mes (2ª cita derivaba a un weekday distinto) Y "el primer" se mantenía como residuo en
+     * el título (P1: programación incorrecta + título corrupto). Este patrón captura el
+     * ordinal+weekday para que el motor ancle cada ciclo al N-ésimo/último weekday del mes.
+     *
+     * No consume la cadencia: el rango a borrar es sólo "el primer lunes" (grupo 1), de modo
+     * que parseRecurrence sigue viendo "cada mes"/"mensual" y emite MONTHLY. Sólo se usa si
+     * [lastWeekdayOfMonthPattern] no casó (cadenas mutuamente excluyentes por posición).
+     * Grupo 1 = "el primer lunes" (span a borrar); grupo 2 = ordinal; grupo 3 = weekday.
+     */
+    private val precedingCadenceOrdinalPattern = Regex(
+        """(?i)(?<!\p{L})(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?)\s+((?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b"""
+    )
+
+    /**
      * Fecha relativa VAGA de futuro cotidiano: "en/dentro de/de aquí a/de acá a un rato",
      * "en/dentro de un momento", "al rato", "pasado un rato", "enseguida"/"en seguida" (adverbio de inmediatez, sin "un rato"). Forma coloquial frecuente que
      * antes no casaba ningún patrón → dueAt=null y la tarea quedaba sin recordatorio (olvidada,
@@ -1597,7 +1616,42 @@ object NaturalTaskParser {
         // previousWeekdayReversedPattern para que el weekday no se capture como "último viernes"
         // (viernes anterior) y el calificador "del mes"/"de agosto" no quede como residuo.
         val lastWeekdayOfMonthMatch = lastWeekdayOfMonthPattern.find(working)
-        lastWeekdayOfMonthMatch?.let { working = working.replaceRange(it.range, " ") }
+        // Cadencia PRECEDENTE ("cada mes el primer lunes"): si el patrón directo no casó,
+        // se intenta el de cadencia-antes. Ambos son excluyentes por posición. Se captura el
+        // ordinal+weekday para anclar la recurrencia mensual; se borra SÓLO "el primer lunes"
+        // (grupo 1 del patrón precedente) preservando "cada mes"/"mensual" para que
+        // parseRecurrence emita MONTHLY.
+        val precedingCadenceOrdinalMatch =
+            if (lastWeekdayOfMonthMatch == null) precedingCadenceOrdinalPattern.find(working) else null
+        // Captura ordinal-mensual unificada (cualquiera de las dos formas). La directa pone
+        // ordinal en grupo 1 y weekday en grupo 2; la precedente los pone en 2 y 3 (su grupo 1
+        // es el span "el primer lunes"). Se normalizan a campos comunes para anclar el motor.
+        val ordinalMonthly: OrdinalMonthlyCapture? = when {
+            lastWeekdayOfMonthMatch != null -> OrdinalMonthlyCapture(
+                ordinalWord = lastWeekdayOfMonthMatch.groupValues[1],
+                weekdayWord = lastWeekdayOfMonthMatch.groupValues[2],
+                isNext = lastWeekdayOfMonthMatch.value.lowercase().let { t ->
+                    t.contains("que viene") || t.contains("que entra") ||
+                        t.contains("próxim") || t.contains("proxim") || t.contains("entrante")
+                },
+                monthName = lastWeekdayOfMonthMatch.groupValues[3].takeIf { it.isNotBlank() },
+                yearStr = lastWeekdayOfMonthMatch.groupValues[4].takeIf { it.isNotBlank() }
+            )
+            precedingCadenceOrdinalMatch != null -> OrdinalMonthlyCapture(
+                ordinalWord = precedingCadenceOrdinalMatch.groupValues[2],
+                weekdayWord = precedingCadenceOrdinalMatch.groupValues[3],
+                isNext = false,
+                monthName = null,
+                yearStr = null
+            )
+            else -> null
+        }
+        if (lastWeekdayOfMonthMatch != null) {
+            working = working.replaceRange(lastWeekdayOfMonthMatch.range, " ")
+        } else if (precedingCadenceOrdinalMatch != null) {
+            val g = precedingCadenceOrdinalMatch.groups[1]!!.range
+            working = working.replaceRange(g, " ")
+        }
         // "el jueves pasado" / "el último lunes": fecha pasada. Se borra ANTES que
         // weekdayPattern para que el día no se capture como próximo y "pasado" no
         // quede como residuo en el título.
@@ -1989,9 +2043,9 @@ object NaturalTaskParser {
         // Sólo aplica a MONTHLY: WEEKLY usa `days` (lista de días) y la 1ª ocurrencia ordinal
         // ya resolvió la fecha de `dueAt`.
         val recurrence = parseRecurrence(working, now).let { r ->
-            val withOrdinal = if (r.frequency != RecurrenceFrequency.MONTHLY || lastWeekdayOfMonthMatch == null) r
+            val withOrdinal = if (r.frequency != RecurrenceFrequency.MONTHLY || ordinalMonthly == null) r
             else {
-                val ordWord = lastWeekdayOfMonthMatch.groupValues[1].lowercase()
+                val ordWord = ordinalMonthly.ordinalWord.lowercase()
                 val ordinal = when (ordWord) {
                     "último", "ultimo" -> -1
                     "primer", "primero" -> 1
@@ -2000,7 +2054,7 @@ object NaturalTaskParser {
                     "cuarto" -> 4
                     else -> null
                 }
-                val weekday = lastWeekdayOfMonthMatch.groupValues[2].toDayOfWeekOrNull()
+                val weekday = ordinalMonthly.weekdayWord.toDayOfWeekOrNull()
                 if (ordinal != null && weekday != null) r.copy(monthlyOrdinalWeekday = ordinal to weekday.value) else r
             }
             // "cada fin/mediados/principios de mes" (c.257): si no quedó otra recurrencia
@@ -2102,8 +2156,10 @@ object NaturalTaskParser {
             // actual, sin roll; del mes que viene/próximo/entrante = mes siguiente; de <mes> =
             // ese mes, con avance de año si ya pasó, igual que parseMonthNameDate). Debe ir
             // ANTES de previousWeekday para no caer en "último viernes" = viernes anterior.
-            lastWeekdayOfMonthMatch != null ->
-                lastWeekdayOfMonth(base.toLocalDate(), lastWeekdayOfMonthMatch, recurrence.frequency != RecurrenceFrequency.NONE)
+            // Cubre también la cadencia precedente ("cada mes el primer lunes") vía
+            // [ordinalMonthly], que normaliza ambas formas.
+            ordinalMonthly != null ->
+                lastWeekdayOfMonth(base.toLocalDate(), ordinalMonthly, recurrence.frequency != RecurrenceFrequency.NONE)
             // "el jueves pasado" / "el último lunes" / "el martes anterior": última
             // ocurrencia pasada de ese día. Tarea vencida honesta (What Now la muestra
             // como atrasada), no se proyecta al futuro como hacía antes weekdayMatch.
@@ -2833,6 +2889,18 @@ object NaturalTaskParser {
         val immediateDueAt: Long? = null
     )
 
+    /** Captura normalizada de un anclaje mensual ORDINAL de weekday ("el primer lunes del
+     *  mes" directa, o "cada mes el primer lunes" con cadencia precedente). Unifica ambas
+     *  formas para que el motor ancle cada ciclo al N-ésimo/último weekday del mes y para
+     *  resolver la primera fecha. monthName/yearStr sólo aplican a la forma directa. */
+    private data class OrdinalMonthlyCapture(
+        val ordinalWord: String,
+        val weekdayWord: String,
+        val isNext: Boolean,
+        val monthName: String?,
+        val yearStr: String?
+    )
+
     private fun parseRecurrence(working: String, now: Long): RecurrenceResult {
         val base = RecurrenceResult(RecurrenceFrequency.NONE, 1, emptyList(), emptyList())
         val phrases = mutableListOf<IntRange>()
@@ -3294,8 +3362,17 @@ object NaturalTaskParser {
     // (caso "pago mensual" a secas): ya se borró vía phraseRanges arriba. No incluye
     // "diario/diaria" (sustantivo "el diario" = periódico, con guarda propia arriba) ni
     // aplica guardas de artículo: estos adjetivos no son sustantivos cotidianos.
+    // Incluye también la frase de intervalo-1 "cada <unidad>" ("cada semana", "cada día",
+    // "cada mes", "cada año"): misma clase de fuga. detectWeekInterval/intervalPattern
+    // exigen una cantidad ("cada 2 semanas"), así que la forma sin número es detectada en
+    // fixedPatterns (que se salta al retornar antes desde la rama anclada) y filtraba al
+    // título. "reunión cada semana los lunes" dejaba "reunión cada semana" (la cadencia ya
+    // la porta "los lunes"), inconsistente con "reunión semanal los lunes" → "reunión".
+    // No-op cuando "cada <unidad>" fue el detector ("gym cada semana" a secas): ya se
+    // borró vía phraseRanges. Sólo casa las formas sin cantidad; las con número
+    // ("cada dos semanas") las añade detectWeekInterval/intervalPattern a phraseRanges.
     private val recurrenceAdjectiveLeakPattern =
-        Regex("""(?i)\b(?:semanal(?:mente)?|mensual(?:mente)?|anual(?:mente)?|bimestral(?:mente)?|trimestral(?:mente)?|semestral(?:mente)?|quincenal(?:mente)?)\b""")
+        Regex("""(?i)\b(?:semanal(?:mente)?|mensual(?:mente)?|anual(?:mente)?|bimestral(?:mente)?|trimestral(?:mente)?|semestral(?:mente)?|quincenal(?:mente)?|cada\s+(?:semanas?|d[ií]as?|mes(?:es)?|a[nñ]os?))\b""")
 
     private fun parseMonthNameDate(today: LocalDate, match: MatchResult): LocalDate? {
         val day = parseWrittenNumber(match.groupValues[1])?.toInt()?.takeIf { it in 1..31 } ?: return null
@@ -3492,9 +3569,9 @@ object NaturalTaskParser {
      *   mes válido con el mismo ordinal+weekday (nunca en pasado). Así la cadencia arranca
      *   en la próxima cita real en vez de en una ya vencida que nadie recuerda.
      */
-    private fun lastWeekdayOfMonth(today: LocalDate, match: MatchResult, isRecurring: Boolean = false): LocalDate {
-        val ordinalWord = match.groupValues[1].lowercase()
-        val weekday = match.groupValues[2].toDayOfWeek()
+    private fun lastWeekdayOfMonth(today: LocalDate, capture: OrdinalMonthlyCapture, isRecurring: Boolean = false): LocalDate {
+        val ordinalWord = capture.ordinalWord.lowercase()
+        val weekday = capture.weekdayWord.toDayOfWeek()
         val ordinal = when (ordinalWord) {
             "último", "ultimo" -> -1
             "primer", "primero" -> 1
@@ -3503,12 +3580,10 @@ object NaturalTaskParser {
             "cuarto" -> 4
             else -> -1
         }
-        val t = match.value.lowercase()
         // "del mes que viene/que entra/próximo/entrante" → mes siguiente; "este mes" NO.
-        val isNext = t.contains("que viene") || t.contains("que entra") ||
-            t.contains("próxim") || t.contains("proxim") || t.contains("entrante")
-        val monthName = match.groupValues[3].takeIf { it.isNotBlank() }?.lowercase()
-        val yearStr = match.groupValues[4].takeIf { it.isNotBlank() }
+        val isNext = capture.isNext
+        val monthName = capture.monthName?.lowercase()
+        val yearStr = capture.yearStr
         val namedMonth = monthName?.let { months[it] }
         // Mes nombrado: año actual salvo explícito (2 cifras → 2000+). "del mes" (sin
         // mes-nombre ni isNext) = mes en curso (vencida honesta si ya pasó).
