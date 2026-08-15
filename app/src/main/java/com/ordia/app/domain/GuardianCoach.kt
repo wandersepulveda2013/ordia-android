@@ -18,13 +18,18 @@ object GuardianCoach {
         val overdue = pending.filter { TaskRules.isOverdue(it, now) }
         // Tareas atrasadas que el usuario NO está ejecutando ahora mismo: las
         // únicas sobre las que tiene sentido un nudge de "recuperar/comenzar".
-        // Una atrasada pero en curso (startAt dentro de su ventana de duración)
-        // ya está atendida; nombrarla como "comienza por esta" es incoherente y
-        // distrae (mismo criterio que GuardianEngine.smallestOverdueAction,
-        // c.163). Si TODAS las atrasadas están en curso, no se nudgea a
-        // "recuperar el control": el usuario ya lo hace, así se deja caer al
-        // siguiente insight en vez de repetir "empieza por esta".
-        val recoverable = overdue.filter { !TaskRules.isInProgressNow(it, now) }
+        // Una atrasada pero en curso ya está atendida; nombrarla como "comienza
+        // por esta" es incoherente y distrae. Se usa el predicado canónico
+        // [TaskRules.isBeingWorkedOn] (status IN_PROGRESS o hueco activo),
+        // mismo "sacro en curso" que GuardianEngine.smallestOverdueAction,
+        // SummaryEngine.mostDeferrableTask y AutomationActionPlanner (c.280):
+        // el predicado parcial isInProgressNow solo ve la ventana de tiempo y
+        // NO una atrasada marcada IN_PROGRESS a mano sin ventana activa (p. ej.
+        // hueco ya pasado), así que la incluía y nudgiaba "empieza por esta"
+        // sobre lo que el usuario ya hace. Si TODAS las atrasadas están en
+        // curso, no se nudgea a "recuperar el control": el usuario ya lo hace,
+        // así se deja caer al siguiente insight.
+        val recoverable = overdue.filter { !TaskRules.isBeingWorkedOn(it, now) }
         val dueToday = pending.filter { TaskRules.isDueToday(it, now, zone) && !TaskRules.isOverdue(it, now) }
         val completedToday = roots.count { it.completed && it.completedAt?.let { time -> java.time.Instant.ofEpochMilli(time).atZone(zone).toLocalDate() == today } == true }
         if (recoverable.isNotEmpty()) {

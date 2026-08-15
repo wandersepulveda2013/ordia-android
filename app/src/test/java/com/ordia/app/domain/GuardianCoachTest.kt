@@ -427,4 +427,37 @@ class GuardianCoachTest {
         assertNotEquals("RECUPERA EL CONTROL", insight.eyebrow)
         assertEquals(2L, insight.taskId)
     }
+
+    @Test
+    fun manuallyInProgressOverdueWithoutActiveWindowIsNotNamedAsRecoverable() {
+        // now = mediodía. Una atrasada marcada IN_PROGRESS a mano cuyo hueco
+        // (8:00, 30 min) ya terminó: isInProgressNow=false (sin ventana activa)
+        // pero isBeingWorkedOn=true (status). El coach debe excluiría igual que
+        // a una en ventana activa: el usuario ya la está haciendo, nombra la
+        // otra atrasada recuperable. Antes usaba el predicado parcial
+        // isInProgressNow y la incluía → nudgiaba "comienza por esta" sobre lo
+        // que ya se hace (divergencia con GuardianEngine.smallestOverdueAction,
+        // c.280). Predicado canónico: isBeingWorkedOn.
+        val beingWorked = TaskEntity(
+            id = 10,
+            title = "Informe que arrastré desde la mañana",
+            dueAt = DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(9, 0), zone),
+            startAt = DateRules.toEpochMillis(today, LocalTime.of(8, 0), zone),
+            durationMinutes = 30,
+            priority = TaskPriority.URGENT,
+            status = TaskStatus.IN_PROGRESS
+        )
+        val recoverable = TaskEntity(
+            id = 20,
+            title = "Pagar luz",
+            dueAt = DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(10, 0), zone),
+            durationMinutes = 30,
+            priority = TaskPriority.NORMAL
+        )
+
+        val insight = GuardianCoach.insight(listOf(beingWorked, recoverable), emptyList(), emptyList(), now, zone)
+
+        assertEquals(20L, insight.taskId)
+        assertEquals("Pagar luz", insight.title)
+    }
 }
