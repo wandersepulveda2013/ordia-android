@@ -425,4 +425,41 @@ class DayPlannerTest {
         assertEquals(81L, plan.blocks.first().taskId)
         assertEquals(PlanReason.INBOX, plan.blocks.first().reason)
     }
+
+    @Test
+    fun inProgressTaskOccupiesTheNowSlotBeforeUrgentNotStarted() {
+        // El plan de hoy arranca su cursor en "ahora": el primer bloque describe lo
+        // que ocurre EN este instante. Una tarea EN CURSO (el usuario la está
+        // haciendo) debe ocupar ese primer slot con el tiempo que le FALTA, aunque
+        // compita con una URGENTE no empezada que vence hoy. Sin esta prelación, el
+        // plan decía "empieza la urgente ahora" mientras el usuario estaba a medio
+        // hacer otra — un plan irreal que ignora lo que ya está en marcha.
+        // (c.277)
+        val today = LocalDate.now(zone)
+        val now = DateRules.toEpochMillis(today, LocalTime.of(11, 30), zone)
+        val due = DateRules.toEpochMillis(today, LocalTime.of(18, 0), zone)
+        val a = TaskEntity(
+            id = 90, title = "En curso", durationMinutes = 120,
+            startAt = DateRules.toEpochMillis(today, LocalTime.of(11, 0), zone),
+            dueAt = due, priority = TaskPriority.NORMAL,
+            status = TaskStatus.IN_PROGRESS
+        )
+        val b = TaskEntity(
+            id = 91, title = "Urgente", durationMinutes = 30,
+            dueAt = due, priority = TaskPriority.URGENT
+        )
+
+        val plan = DayPlanner.build(listOf(a, b), today, 9 * 60, 18 * 60, breakMinutes = 0, now = now, zone = zone)
+
+        // A (en curso) encabeza el plan en el slot "ahora" (11:30).
+        assertEquals(2, plan.blocks.size)
+        assertEquals(90L, plan.blocks.first().taskId)
+        // Su bloque dura solo lo que FALTA: a las 11:30 lleva 30 min de 120 → 90.
+        val blockA = plan.blocks.first { it.taskId == 90L }
+        assertEquals(90, blockA.durationMinutes)
+        // El cursor arranca en "ahora" redondeado al alza a 15 min = 11:30.
+        assertEquals(11 * 60 + 30, blockA.startMinute)
+        // B (urgente) va después, no antes.
+        assertEquals(91L, plan.blocks[1].taskId)
+    }
 }

@@ -2,6 +2,7 @@ package com.ordia.app.domain
 
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
+import com.ordia.app.data.local.TaskStatus
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -102,7 +103,22 @@ object DayPlanner {
                     missedStartRecoverable || (includeInbox && task.dueAt == null && task.startAt == null)
             }
             .sortedWith(
-                compareByDescending<TaskEntity> { TaskRules.isOverdue(it, now) }
+                // Una tarea EN CURSO (el usuario la está haciendo ahora) encabeza el
+                // plan: el cursor de hoy arranca en "ahora", así que el primer bloque
+                // describe lo que ocurre EN este instante. Sin esta prelación, una
+                // tarea en curso de prioridad NORMAL quedaba detrás de una URGENTE no
+                // empezada que vence hoy, y el plan decía "empieza la urgente ahora"
+                // mientras el usuario estaba a medio hacer otra: justo lo opuesto a
+                // un plan realista. Reservar primero lo que FALTA de la tarea en curso
+                // ([remainingPlanMinutes]) reproduce la realidad: ese tiempo ya se está
+                // gastando. Coherente con [TaskRules.timeRank] (IN_PROGRESS/en-curso
+                // es el rango más alto) que comparten What Now, nextBestTask y widget.
+                // Condición `status == IN_PROGRESS || isInProgressNow`: cubre tanto la
+                // marcada a mano (sin `startAt`) como la de ventana activa.
+                compareByDescending<TaskEntity> {
+                    it.status == TaskStatus.IN_PROGRESS || TaskRules.isInProgressNow(it, now)
+                }
+                    .thenByDescending { TaskRules.isOverdue(it, now) }
                     .thenByDescending { TaskRules.priorityScore(it.priority) }
                     .thenBy { it.dueAt ?: Long.MAX_VALUE }
                     .thenBy { it.sortOrder }
