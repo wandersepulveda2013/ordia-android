@@ -23,7 +23,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AttachmentEntity::class
     ],
     version = 3,
-    exportSchema = true
+    exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class OrdiaDatabase : RoomDatabase() {

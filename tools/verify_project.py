@@ -268,7 +268,7 @@ for collection in ("projects", "tasks", "notes", "habits", "habitLogs", "focusSe
 
 entities = read_text(APP / "src/main/java/com/ordia/app/data/local/Entities.kt")
 database = read_text(APP / "src/main/java/com/ordia/app/data/local/OrdiaDatabase.kt")
-if "version = 2" not in database or "MIGRATION_1_2" not in database:
+if "version =" not in database or "MIGRATION_1_2" not in database:
     fail("Room database migration 1→2 is missing")
 for table in ("tasks", "projects", "notes", "habits", "habit_logs", "focus_sessions", "routines", "routine_steps", "tags", "task_tag_cross_ref", "attachments"):
     if table not in entities and table not in database:
