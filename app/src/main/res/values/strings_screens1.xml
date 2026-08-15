@@ -12,6 +12,7 @@
     <string name="what_now_reason_in_progress">En curso ahora mismo</string>
     <string name="what_now_reason_overdue">Atrasada</string>
     <string name="what_now_reason_imminent">Empieza enseguida</string>
+    <string name="what_now_reason_missed_start">Se te pasó su hora</string>
     <string name="what_now_reason_due_today">Vence hoy</string>
     <string name="what_now_reason_urgent">Prioridad urgente</string>
     <string name="what_now_reason_high">Prioridad alta</string>

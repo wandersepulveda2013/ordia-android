@@ -13,14 +13,8 @@
   segundos, 1 agente. Ver `tools/SUPERVISOR.md`.
 
 ## Estado
-- **Fecha (UTC)**: 2026-08-15. Rama `openhands/autonomous-ordia`, HEAD `9ba46c9` (c.268 DayPlanner startAt hijack remoto) + memoria de este run c.269 (pendiente de commitear). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21.
-- **Tests**: `bash tools/run_domain_tests.sh` -> **1758 PASS** (1749 base remota `9ba46c9` c.265-c.268 — c.266 RecurrenceSpawn es cableado Android, 0 tests de dominio; c.267 guardian +5; c.268 DayPlanner +1 — + 9 míos c.269), 0 failures, 40 clases; `bash tools/run_domain_checks.sh` -> smoke 25 OK. **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
-- **Recientes (rama)**:
-  - c.269 (este run): **P2 búsqueda/recuperación simetría captura↔búsqueda** - la búsqueda universal NO recuperaba tareas por FIN DE SEMANA ("finde"/"fin de semana") pese a que el parser de captura SÍ crea tareas de finde (`weekendPattern`→próximo sábado estricto l.2039). Nuevo `DateScope.WEEKEND` + `isWeekendQuery` (detectado ANTES que `WEEK_TOKENS`) + `resolveWeekendTarget` byte-for-byte idéntico al `nextWeekday(base, SATURDAY)` del parser. Simetría captura↔búsqueda cerrada. +9 tests TDD.
-  - c.268 (`9ba46c9`, run paralelo): **P1 datos (sagrados)/planificación — tarea programada para otro día (startAt futuro, sin dueAt) ya no es secuestrada al plan de HOY.** `DayPlanner.build` la trataba como bandeja (`dueAt==null`) y `applyBlocks`/`PLAN_DAY` pisaban su `startAt` con un slot de hoy → perdía su programación explícita. Fix: bandeja exige `dueAt==null && startAt==null`. +1 test TDD.
-  - c.267 (`ee460d6`): **feat(guardian) nudge diario nombra capturas arrinconadas** - cuando no hay atrasadas ni huecos perdidos pero hay una captura en bandeja (>=7 días, sin fecha, sin impulso real del día), el nudge la nombra. Adicional: fix de consistencia de zona (`staleInboxAction` usaba systemDefault; ahora propaga `zoneId`). +5 tests.
-  - c.266 (`58d8934`): **P1 fuente-única recurrencia+notificación perdía el desglose** - completar una recurrente CON subtareas desde el RECORDATORIO no clonaba el checklist. RESUELTO: orquestador `RecurrenceSpawn.spawnNextOccurrence` unifica los 4 caminos spawn. NO VERIFICADO JVM (cableado Android).
-  - c.265 (`babdf9b`): límites mensuales con mes explícito ("renta finales de mes de octubre") → fecha correcta (31/10), sin residuo. +11 tests.
+- **Fecha (UTC)**: 2026-08-15. Rama `openhands/autonomous-ordia`, HEAD `bf08c3d` (c.269 SearchEngine + c.268 DayPlanner remotos) + este run **c.270** (pendiente de commitear). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21.
+- **Tests**: `bash tools/run_domain_tests.sh` -> **1758 PASS** (1749 base c.265-c.268 + 9 c.269; c.270 es fix UI fuera del harness -> 1758 sin cambios, sin regresión), 0 failures, 40 clases; `bash tools/run_domain_checks.sh` -> smoke 25 OK. **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
   - c.261 (`090fe48`): agenda distingue proxima semana/semana que viene/semana pasada vs esta semana (`AssistantEngine.agendaAnswer`).
   - c.262 (`f257e08`): agenda reconoce "mes" y distingue proximo/que viene/pasado/este (bisiesto-safe via `YearMonth`).
   - c.263 (`24e1dd2`): "¿que tengo hoy?" con dia vacio pero atrasadas ya no miente "agenda vacia": nombra la atrasada mas urgente + recuento + `relatedTaskIds`.
@@ -33,7 +27,8 @@
   - Verificacion Android pendiente del fix c.264 (toggle/un-complete + `deletePermanently` con Room real) cuando haya SDK.
   - Verificacion Android pendiente del fix c.266 (compilación del helper `RecurrenceSpawn` + los 4 caminos spawn con Room real) cuando haya SDK.
   - Verificacion Android pendiente del fix c.268 (`applyBlocks`/`PLAN_DAY` escribiendo `startAt` con Room real) cuando haya SDK.
-- **Proxima prioridad**: descubrimiento continuo - (i) seguir auditando motores no-parser por rendijas simétricas (c.268 cerró la de `DayPlanner`; GuardianEngine/GuardianCoach ya alineados con stale-inbox c.267/c.259; `WhatNowEngine`/`SummaryEngine`/`SearchEngine` sin defectos JVM-verificables nuevos); (ii) auditar OTROS orquestadores Android con copias duplicadas que puedan divergir (patrón simétrico al de c.266); (iii) areas no-parser (onboarding, navegacion, accesibilidad, rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
+  - **Verificacion Android pendiente del fix c.270 (build Compose de `TodayScreen` + render real de la tarjeta What Now con MISSED_START) cuando haya SDK.**
+- **Proxima prioridad**: descubrimiento continuo - (i) seguir auditando motores no-parser por rendijas simétricas (c.268 cerró DayPlanner; c.270 cerró WhatNowReason build-break + auditó los 39 sitios `when`-on-enum sin `else` en UI no-domain -> todos exhaustivos); (ii) auditar OTROS orquestadores Android con copias duplicadas que puedan divergir (patrón simétrico al de c.266); (iii) areas no-parser (onboarding, navegacion, accesibilidad, rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
 
 ## Último trabajo — Ciclo 109: Parser — parte del día COMPACTA "hoy tarde"/"mañana noche"/"pasado mañana tarde" → agenda 09:00 + residuo en el título (P1 captura/agenda)
 
