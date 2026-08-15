@@ -479,6 +479,44 @@ class AssistantEngineTest {
         assertTrue("cuenta 1 pendiente (raíz), no 3 con subtareas: ${answer.text}", answer.text.contains("1 tarea pendiente"))
     }
 
+    @Test fun organizeDay_surfacesOverdueCommitmentAsTail() {
+        // 4.º olvido (c.286) en la superficie de planificación: "organiza mi día"
+        // conocía los compromisos vencidos (AssistantEngine.answer los calcula) pero
+        // los silenciaba — justo donde más importa saberlo antes de decidir el plan.
+        // Aquí: 0 tareas vencidas + 1 compromiso vencido. Antes decía "0 vencidas"
+        // callando la promesa; ahora la anexa como cola informativa y mantiene
+        // OPEN_PLANNER (no doble señalización: la promesa no se convierte a ciegas).
+        val now = 1_000_000_000_000L
+        val task = TaskEntity(id = 1, title = "Normal sin fecha")
+        val commitment = overdueCommitment(7, "te llamo el martes", now - 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "organiza mi dia",
+            listOf(task),
+            emptyList(), listOf(commitment),
+            now
+        )
+        assertTrue("no miente con 0 vencidas callando el compromiso: ${answer.text}",
+            answer.text.contains("compromiso vencido"))
+        assertEquals(AssistantAction.OPEN_PLANNER, answer.action)
+    }
+
+    @Test fun organizeDay_doesNotMentionCommitmentWhenNoneOverdue() {
+        // Guard anti-falso-positivo: sin compromisos vencidos la cola no aparece y la
+        // frase base se mantiene limpia (no inventa olvidos donde no los hay).
+        val now = 1_000_000_000_000L
+        val task = TaskEntity(id = 1, title = "Normal sin fecha")
+        val future = overdueCommitment(8, "envío el informe", now + 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "organiza mi dia",
+            listOf(task),
+            emptyList(), listOf(future),
+            now
+        )
+        assertTrue("no menciona compromiso sin estar vencido: ${answer.text}",
+            !answer.text.contains("compromiso"))
+        assertEquals(AssistantAction.OPEN_PLANNER, answer.action)
+    }
+
     @Test fun overdueIntent_doesNotInflateOverdueCountWithSubtasks() {
         // "vencidas" debe contar 1 raíz vencida, no 3 (raíz + 2 subtareas vencidas).
         // Las subtareas forman parte del mismo trabajo del padre: contarlas como

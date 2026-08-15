@@ -59,8 +59,14 @@ object AssistantEngine {
             "organiza mi dia" in query || "organizar mi dia" in query || "organiza el dia" in query -> {
                 val pending = if (active.size == 1) "1 tarea pendiente" else "${active.size} tareas pendientes"
                 val venc = if (overdue.size == 1) "1 vencida" else "${overdue.size} vencidas"
+                // Coherencia con "¿qué olvidé?"/"vencidas": el asistente conoce los
+                // compromisos vencidos (4.º olvido, c.286) pero aquí —la superficie de
+                // planificación, justo donde más importa saberlo antes de decidir el
+                // plan— los silenciaba. Se anexan como cola informativa; la acción
+                // primaria sigue siendo OPEN_PLANNER (no doble señalización: la promesa
+                // no se convierte a ciegas, se recuerda para que el usuario decida).
                 AssistantAnswer(
-                    "Hay $pending y $venc. Puedo preparar un plan realista y reversible.",
+                    "Hay $pending y $venc. Puedo preparar un plan realista y reversible.${overdueCommitmentTail(overdueCommitments)}",
                     AssistantAction.OPEN_PLANNER
                 )
             }
