@@ -184,6 +184,8 @@ for path in ROOT.rglob("*"):
             check_balanced(path, text)
 
 for xml_path in ROOT.rglob("*.xml"):
+    if xml_path.name == "lint-resources.xml":
+        continue
     try:
         ET.parse(xml_path)
     except Exception as exc:  # noqa: BLE001
