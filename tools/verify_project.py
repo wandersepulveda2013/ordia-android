@@ -216,7 +216,7 @@ for token in (
     'compileSdk = 36',
     'targetSdk = 36',
     'minSdk = 26',
-    'versionName = "1.0.0"',
+    'versionName = "3.0.1"',
     'isMinifyEnabled = true',
     'room.schemaLocation',
     'testDebugUnitTest',  # supplied by CI workflow, checked below too
