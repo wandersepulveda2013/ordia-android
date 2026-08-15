@@ -4205,6 +4205,48 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "final de mes" (singular) = sinónimo cotidiano de "fin de mes" ---
+    // "fin"/"finales" ya se parseaban, pero la forma SINGULAR "final" NO: el patrón
+    // `fin(?:ales|es)?` casa fin/fines/finales pero NO "final" (fin+al). Así "enviar
+    // reporte a final de mes" / "final del mes" / "al final del mes" caían a dueAt=null
+    // → el vencimiento se olvidaba (P1: sin recordatorio ni visibilidad en What Now),
+    // con la frase completa como residuo en el título. Asimetría léxica: mismo
+    // significado, distinta suerte según la palabra elegida. Fix: el patrón admite
+    // "final" y el prefijo "al " (cotidiano: "al final del mes"). now = 2026-07-29.
+
+    @Test fun finalDeMesParsesDueAtFinDeMes() {
+        val result = NaturalTaskParser.parse("Enviar reporte final de mes", now, zone)
+        assertEquals("Enviar reporte", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinalDeMesParsesDueAtFinDeMes() {
+        val result = NaturalTaskParser.parse("Pagar renta a final de mes", now, zone)
+        assertEquals("Pagar renta", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finalDelMesParsesDueAtFinDeMes() {
+        val result = NaturalTaskParser.parse("Cierre final del mes", now, zone)
+        assertEquals("Cierre", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun alFinalDelMesParsesDueAtFinDeMesTituloLimpio() {
+        val result = NaturalTaskParser.parse("Entregar informe al final del mes", now, zone)
+        assertEquals("Entregar informe", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finalDelMesQueVieneAnclaFinMesSiguiente() {
+        // El modificador "mes que viene" se consume completo (título limpio) y ancla al
+        // mes siguiente. Antes "final" no casaba → "mes que viene" caía al patrón de
+        // período y dejaba "final del" como residuo en el título.
+        val result = NaturalTaskParser.parse("Pago final del mes que viene", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun principiosDelMesEntranteAnclaInicioMesSiguiente() {
         // "principios del mes entrante" = día 1 del mes siguiente (agosto).
         val result = NaturalTaskParser.parse("Cobro principios del mes entrante", now, zone)

@@ -394,8 +394,9 @@ object NaturalTaskParser {
     )
     /**
      * "fin de mes" / "a finales de mes" / "fin del mes" / "cierre de mes" / "cierre del mes"
-     * → último día del mes actual (o del siguiente si hoy ya es el último día). "mediados de mes" /
-     * "a mediados de mes" → día 15 del mes actual (o del siguiente si hoy ≥ 15).
+     * / "final de mes" / "al final del mes" → último día del mes actual (o del siguiente
+     * si hoy ya es el último día). "mediados de mes" / "a mediados de mes" → día 15 del
+     * mes actual (o del siguiente si hoy ≥ 15).
      * "principios de mes" / "a principios de mes" → día 1 del mes siguiente (si hoy ≥ 1,
      * es decir, siempre: el día 1 de hoy ya pasó salvo que sea hoy mismo, en cuyo caso
      * se mantiene hoy). Vencimientos mensuales cotidianos (alquiler, tarjeta, servicios,
@@ -412,7 +413,7 @@ object NaturalTaskParser {
      * adelantados). El modificador se consume en el match (limpieza de título) y se
      * detecta en la resolución para desplazar un mes.
      */
-    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+)?(?:fin(?:ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
+    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(?:fin(?:al|ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?\b""")
     /**
