@@ -1,5 +1,6 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
@@ -31,7 +32,21 @@ data class DaySummary(
      * al moverla a mañana). Null en el resto de casos. Heurística honesta:
      * no mueve nada, solo nombra qué tarea es candidata a reprogramar.
      */
-    val deferralSuggestion: DeferralSuggestion? = null
+    val deferralSuggestion: DeferralSuggestion? = null,
+    /**
+     * Compromisos vencidos de conversaciones pendientes de revisar (PENDING con
+     * `dueAt` pasado). La cuarta clase de olvido de Ordía: una promesa extraída
+     * de un chat ("te llamo el viernes") cuyo plazo pasó y sigue sin convertirse
+     * en tarea. NO cuenta como carga/veredicto del día (un compromiso no es
+     * tarea hasta convertirse; contarlo como "carga de hoy" sería un cambio
+     * semántico —ver c.246, decisión registrada como OPEN—), sino como una
+     * cola informativa honesta en la tarjeta de resumen: callarlo haría que un
+     * día con 0 tareas vencidas pero 1 compromiso vencido leyera "0 vencidas" /
+     * "El día va a tiempo" ocultando el olvido real. Paridad con el asistente
+     * (c.286), el nudge del guardián (c.288), la tarjeta de insight (c.289) y la
+     * planificación (c.294). Fuente única de verdad: [CommitmentRules.overduePendingSorted].
+     */
+    val overdueCommitments: Int = 0
 )
 
 /**
@@ -69,13 +84,15 @@ object SummaryEngine {
         tasks: List<TaskEntity>,
         now: Long,
         zone: ZoneId,
-        profile: LearningProfile?
+        profile: LearningProfile?,
+        commitments: List<CommitmentEntity> = emptyList()
     ): DaySummary = summarize(
         tasks,
         now,
         zone,
         dayStartMinute = profile?.dayStartMinute ?: DEFAULT_DAY_START,
-        dayEndMinute = profile?.dayEndMinute ?: DEFAULT_DAY_END
+        dayEndMinute = profile?.dayEndMinute ?: DEFAULT_DAY_END,
+        commitments = commitments
     )
 
     /**
@@ -110,7 +127,8 @@ object SummaryEngine {
         now: Long,
         zone: ZoneId = ZoneId.systemDefault(),
         dayStartMinute: Int = DEFAULT_DAY_START,
-        dayEndMinute: Int = DEFAULT_DAY_END
+        dayEndMinute: Int = DEFAULT_DAY_END,
+        commitments: List<CommitmentEntity> = emptyList()
     ): DaySummary {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         val firstOfWeek = today.minusDays(6)
@@ -173,6 +191,12 @@ object SummaryEngine {
             // excluye vencidas. El culpable (el olvido) no se aplaza; se hace.
             mostDeferrableTask(remainingTodayTasks, now)
         } else null
+        // Cuarta clase de olvido: compromisos vencidos de conversaciones. No es
+        // tarea hasta convertirse, así que NO influye en la carga/veredicto (c.246):
+        // es una cola informativa para no mentir por omisión. Fuente única de
+        // verdad compartida con el asistente (c.286), el nudge (c.288), el insight
+        // (c.289) y la planificación (c.294).
+        val overdueCommitments = CommitmentRules.overduePendingSorted(commitments, now).size
 
         return DaySummary(
             completedToday = completedToday,
@@ -183,7 +207,8 @@ object SummaryEngine {
             completedThisWeek = completedThisWeek,
             weekDailyAverage = weekDailyAverage,
             dayLoad = dayLoad,
-            deferralSuggestion = deferralSuggestion
+            deferralSuggestion = deferralSuggestion,
+            overdueCommitments = overdueCommitments
         )
     }
 

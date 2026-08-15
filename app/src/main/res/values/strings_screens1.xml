@@ -36,6 +36,14 @@
     replantea la decisión real: hacer hoy o reprogramar con intención.
     -->
     <string name="summary_load_overloaded_overdue">No cabe todo hoy y hay %1$d vencida(s). Hazlas hoy o reprograma con intención, no las pospongas.</string>
+    <!--
+    Cola informativa del "4º olvido" (compromiso vencido de conversación) en la
+    tarjeta de resumen del día. Un compromiso no es tarea hasta convertirse, así
+    que no influye en el veredicto de carga; aparece como aviso honesto cuando lo
+    hay, para no leer "0 vencidas" mientras una promesa ("te llamo el viernes")
+    lleva vencida sin convertir. Toca para abrir Conversaciones y revisarlo.
+    -->
+    <string name="today_overdue_commitments">%1$d compromiso(s) vencido(s) de conversaciones sin convertir. Toca para revisarlos en Conversaciones.</string>
     <string name="today_inbox_badge">Bandeja (%1$d)</string>
     <string name="today_empty_title">Tu día tiene espacio</string>
     <string name="today_greeting_morning">Buenos días</string>

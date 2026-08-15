@@ -1,5 +1,9 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.CommitmentEntity
+import com.ordia.app.data.local.CommitmentKind
+import com.ordia.app.data.local.CommitmentOwner
+import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
@@ -870,5 +874,92 @@ class SummaryEngineTest {
         val archived = task(1, completed = true, completedAt = at(today, 11)).copy(archived = true)
         val s = SummaryEngine.summarize(listOf(archived), now, zone)
         assertEquals(0, s.completedToday)
+    }
+
+    // --- "4º olvido" en el resumen del día (c.297): compromisos vencidos de
+    // conversaciones como cola informativa honesta, sin inflar la carga/veredicto
+    // (decisión c.246: un compromiso no es tarea hasta convertirse). Paridad con
+    // el asistente (c.286), el nudge del guardián (c.288), el insight (c.289) y
+    // la planificación (c.294): antes la tarjeta de resumen callaba un
+    // compromiso vencido aunque mostrara "0 vencidas" / "El día va a tiempo".
+
+    private fun commitment(
+        id: Long,
+        dueAt: Long? = null,
+        status: CommitmentReviewStatus = CommitmentReviewStatus.PENDING,
+        createdAt: Long = now
+    ) = CommitmentEntity(
+        id = id,
+        conversationId = 1,
+        kind = CommitmentKind.SELF_COMMITMENT,
+        owner = CommitmentOwner.SELF,
+        actor = "yo",
+        action = "te llamo el viernes",
+        dueAt = dueAt,
+        confidence = 0.8f,
+        reviewStatus = status,
+        fingerprint = "fp$id",
+        createdAt = createdAt
+    )
+
+    @Test
+    fun overdueCommitments_zeroWhenNoCommitments() {
+        val s = SummaryEngine.summarize(emptyList(), now, zone, commitments = emptyList())
+        assertEquals(0, s.overdueCommitments)
+    }
+
+    @Test
+    fun overdueCommitments_countsPendingDueBeforeNow() {
+        val overdue = commitment(1, dueAt = at(today.minusDays(2), 9))
+        val s = SummaryEngine.summarize(emptyList(), now, zone, commitments = listOf(overdue))
+        assertEquals(1, s.overdueCommitments)
+    }
+
+    @Test
+    fun overdueCommitments_ignoresConvertedOrDismissed() {
+        val converted = commitment(1, dueAt = at(today.minusDays(2), 9), status = CommitmentReviewStatus.CONVERTED)
+        val dismissed = commitment(2, dueAt = at(today.minusDays(3), 9), status = CommitmentReviewStatus.DISMISSED)
+        val s = SummaryEngine.summarize(emptyList(), now, zone, commitments = listOf(converted, dismissed))
+        assertEquals(0, s.overdueCommitments)
+    }
+
+    @Test
+    fun overdueCommitments_ignoresPendingNotYetDue() {
+        val future = commitment(1, dueAt = at(today.plusDays(1), 9))
+        val noDue = commitment(2, dueAt = null)
+        val s = SummaryEngine.summarize(emptyList(), now, zone, commitments = listOf(future, noDue))
+        assertEquals(0, s.overdueCommitments)
+    }
+
+    @Test
+    fun overdueCommitments_countsMany() {
+        val cs = listOf(
+            commitment(1, dueAt = at(today.minusDays(3), 9)),
+            commitment(2, dueAt = at(today.minusDays(1), 9)),
+            commitment(3, dueAt = at(today.plusDays(1), 9))
+        )
+        val s = SummaryEngine.summarize(emptyList(), now, zone, commitments = cs)
+        assertEquals(2, s.overdueCommitments)
+    }
+
+    @Test
+    fun overdueCommitments_doesNotAffectLoadVerdictOrOverdueTasks() {
+        // Un día despejado de tareas pero con un compromiso vencido: la carga
+        // sigue LIGHT (el compromiso no cuenta como trabajo de hoy) y overdue
+        // (tareas) sigue 0, pero overdueCommitments lo nombra. Así no se miente
+        // por omisión ni se infla el veredicto.
+        val overdue = commitment(1, dueAt = at(today.minusDays(2), 9))
+        val s = SummaryEngine.summarize(emptyList(), now, zone, commitments = listOf(overdue))
+        assertEquals(0, s.overdue)
+        assertEquals(0, s.remainingToday)
+        assertEquals(DayLoad.LIGHT, s.dayLoad)
+        assertEquals(1, s.overdueCommitments)
+    }
+
+    @Test
+    fun overdueCommitments_defaultsToZeroWhenOmitted() {
+        // Backward-compat: el parámetro commitments es opcional.
+        val s = SummaryEngine.summarize(emptyList(), now, zone)
+        assertEquals(0, s.overdueCommitments)
     }
 }

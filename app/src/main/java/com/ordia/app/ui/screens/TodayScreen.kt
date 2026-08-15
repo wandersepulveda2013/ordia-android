@@ -125,7 +125,7 @@ fun TodayScreen(
         val profile = if (state.preferences.learningEnabled) {
             LearningEngine.learn(state.tasks, clockNow)
         } else null
-        SummaryEngine.summarize(state.tasks, clockNow, ZoneId.systemDefault(), profile)
+        SummaryEngine.summarize(state.tasks, clockNow, ZoneId.systemDefault(), profile, state.commitments)
     }
     val capture = {
         if (quickText.isNotBlank()) {
@@ -376,6 +376,25 @@ fun TodayScreen(
                                         it.clickable { vm.deferTaskToTomorrow(suggestion.taskId) }
                                     } else it
                                 }
+                        )
+                    }
+                    // Cuarta clase de olvido como cola informativa en la tarjeta
+                    // de resumen: un compromiso vencido de conversación ("te llamo
+                    // el viernes") no es tarea hasta convertirse, así que no
+                    // influye en la carga/veredicto (c.246), pero callarlo haría
+                    // que un día con 0 tareas vencidas leyera "0 vencidas" /
+                    // "El día va a tiempo" ocultando el olvido real. Paridad con
+                    // el asistente (c.286), el nudge del guardián (c.288), la
+                    // tarjeta de insight (c.289) y la planificación (c.294). Un
+                    // tap abre Conversaciones para revisarlo (fricción mínima).
+                    if (summary.overdueCommitments > 0) {
+                        Text(
+                            stringResource(R.string.today_overdue_commitments, summary.overdueCommitments),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .padding(top = 6.dp)
+                                .clickable { onReviewMessages() }
                         )
                     }
                 }
