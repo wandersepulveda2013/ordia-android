@@ -246,6 +246,7 @@ object AssistantEngine {
             "pasado" in query || "pasados" in query ||
             "ultima" in query || "ultimas" in query || "ultimo" in query || "ultimos" in query)
         val (start, end, label) = when {
+            "pasado manana" in query -> Triple(today.plusDays(2), today.plusDays(2), "pasado mañana")
             "manana" in query -> Triple(today.plusDays(1), today.plusDays(1), "mañana")
             "hoy" in query -> Triple(today, today, "hoy")
             isNextWeek -> Triple(monday.plusDays(7), monday.plusDays(13), "próxima semana")

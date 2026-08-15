@@ -42,7 +42,7 @@ enum class SearchKind { TASK, PROJECT, NOTE, HABIT, ROUTINE, CONVERSATION, COMMI
  * resuelve al próximo sábado estricto (sábado+domingo), nunca cae a THIS_WEEK
  * aunque contenga la palabra "semana".
  */
-private enum class DateScope { YESTERDAY, TODAY, TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, THIS_MONTH, NEXT_MONTH, LAST_MONTH, OVERDUE, MISSED, UNDATED, TARDE, NOCHE, MADRUGADA, WEEKDAY, WEEKEND }
+private enum class DateScope { YESTERDAY, TODAY, TOMORROW, DAY_AFTER_TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, THIS_MONTH, NEXT_MONTH, LAST_MONTH, OVERDUE, MISSED, UNDATED, TARDE, NOCHE, MADRUGADA, WEEKDAY, WEEKEND }
 
 data class SearchResult(val kind: SearchKind, val id: Long, val title: String, val subtitle: String)
 
@@ -464,6 +464,13 @@ object SearchEngine {
         OVERDUE_TOKENS.any { it in words } -> DateScope.OVERDUE
         MISSED_TOKENS.any { it in words } -> DateScope.MISSED
         TODAY_TOKENS.any { it in words } -> DateScope.TODAY
+        // "pasado mañana" contiene el token "mañana"; sin esta rama previa el scope
+        // caía a TOMORROW y la búsqueda devolvía las de MAÑANA para una consulta
+        // sobre PASADO MAÑANA (misma mentira de agenda que se corrigió en
+        // [AssistantEngine]). Se exige "pasado"+"mañana" juntos: "pasado" suelto
+        // vive en "semana pasada"/"mes pasado" (LAST_WEEK/LAST_MONTH), donde "mañana"
+        // no aparece, así que no colisiona.
+        "pasado" in words && TOMORROW_TOKENS.any { it in words } -> DateScope.DAY_AFTER_TOMORROW
         TOMORROW_TOKENS.any { it in words } -> DateScope.TOMORROW
         YESTERDAY_TOKENS.any { it in words } -> DateScope.YESTERDAY
         // Día de la semana suelto o con modificador. Se evalúa antes que las partes
@@ -659,6 +666,7 @@ object SearchEngine {
             DateScope.YESTERDAY -> date == today.minusDays(1)
             DateScope.TODAY -> date == today
             DateScope.TOMORROW -> date == today.plusDays(1)
+            DateScope.DAY_AFTER_TOMORROW -> date == today.plusDays(2)
             DateScope.THIS_WEEK -> {
                 // Semana de lunes a domingo (Monday=1..Sunday=7). Para dueAt el
                 // inicio es HOY (lo que me espera esta semana); para completedAt

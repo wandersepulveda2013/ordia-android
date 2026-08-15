@@ -41,6 +41,15 @@ class SearchEngineDateScopeTest {
         assertEquals(listOf(2L), ids)
     }
 
+    // "pasado mañana" contiene el token "mañana": antes detectDateScope caía a
+    // TOMORROW y la búsqueda devolvía las de MAÑANA (id=2) en vez de las de pasado
+    // mañana (id=3). Misma mentira de agenda que AssistantEngine; aquí se verifica
+    // que la búsqueda universal responde honestamente sobre pasado mañana.
+    @Test fun pasadoManana_returnsOnlyTasksDueDayAfterTomorrow() {
+        val ids = SearchEngine.search("pasado mañana", tasks, emptyList(), emptyList(), emptyList(), now = now).map { it.id }
+        assertEquals(listOf(3L), ids)
+    }
+
     @Test fun estaSemana_returnsTasksFromTodayToEndOfWeek() {
         // Usar instantes a las 09:00 en la zona por defecto para evitar desbordamiento de día
         // cuando el sistema opera en otra zona horaria.

@@ -602,6 +602,30 @@ class AssistantEngineTest {
         assertEquals(listOf(2L), answer.relatedTaskIds)
     }
 
+    // "pasado mañana" contiene el substring "mañana"; antes la rama `"manana" in
+    // query` del `when` ganaba y el asistente devolvía los compromisos de MAÑANA
+    // para una consulta sobre PASADO MAÑANA — una mentira sobre la agenda que podía
+    // hacer olvidar lo que el usuario vino a planificar. Ahora "pasado mañana" se
+    // resuelve a hoy+2 antes de caer en la rama de "mañana".
+    @Test fun pasadoManana_listsDayAfterTomorrowNotTomorrow() {
+        // "hoy" en el helper es 2026-07-29 (miércoles).
+        val manana = LocalDate.of(2026, 7, 30) // jueves = mañana
+        val pasadoManana = LocalDate.of(2026, 7, 31) // viernes = pasado mañana
+        val answer = agendaAnswerFor("¿qué tengo pasado mañana?", listOf(1L to manana, 2L to pasadoManana))
+        assertTrue("nombra la de pasado mañana: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla con mañana: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
+    @Test fun pasadoManana_empty_saysDayAfterTomorrowHonestly() {
+        // "hoy" en el helper es 2026-07-29; sólo hay algo mañana.
+        val manana = LocalDate.of(2026, 7, 30)
+        val answer = agendaAnswerFor("¿qué tengo pasado mañana?", listOf(1L to manana))
+        assertTrue("dice pasado mañana y que no hay: ${answer.text}",
+            answer.text.contains("pasado mañana") && answer.text.contains("no tienes"))
+        assertTrue("no inventa la de mañana: ${answer.text}", !answer.text.contains("Tarea1"))
+    }
+
     // "¿Qué tengo hoy?" cuando NO hay nada vencido hoy PERO sí atrasado de días
     // anteriores: antes devolvía "Para hoy no tienes tareas agendadas." y callaba
     // el trabajo atrasado — justo lo que el usuario tiene que hacer hoy. Ahora
