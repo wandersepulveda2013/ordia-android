@@ -5333,6 +5333,50 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "el último día de cada mes": cadencia "cada" DENTRO del límite (c.311) ---
+    // Antes el patrón de límite exigía "de/del" + "mes" contiguos, así "de cada mes"
+    // (con "cada" intercalado) NO casaba: el límite mensual se perdía, "cada mes" caía a
+    // fixedPatterns (MONTHLY anclado al día de captura) y "el último día de" sobrevivía
+    // como residuo del título ('renta el último día de'). P1: renta/vencimiento mal
+    // fechado al día de captura (no fin de mes) y título corrupto. now=2026-07-29 → fin
+    // del mes en curso = 7/31, recurrencia MONTHLY EOM (no omite meses cortos).
+    @Test fun ultimoDiaDeCadaMesGeneraRecurrenciaMensualEOM() {
+        val result = NaturalTaskParser.parse("renta el último día de cada mes", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimoDiaDeCadaMesRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("alquiler último día de cada mes a las 18", now, zone)
+        assertEquals("alquiler", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // "mediados de todos los meses": misma cadencia intercalada, forma plural. Ancla al
+    // día 15 (existe en todo mes) vía dueAt, no EOM.
+    @Test fun mediadosDeTodosLosMesesGeneraRecurrenciaMensualDia15() {
+        val result = NaturalTaskParser.parse("reporte mediados de todos los meses", now, zone)
+        assertEquals("reporte", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Sin "cada"/"todos los" intercalado, el límite sigue siendo fecha única (regresión:
+    // no convertir "el último día del mes" en recurrencia). Cubre también la forma sin
+    // artículo ("último día de mes").
+    @Test fun ultimoDiaDelMesSinCadaSigueSiendoFechaUnica() {
+        val result = NaturalTaskParser.parse("pago el último día del mes", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- límites mensuales con modificador "mes que viene"/"próximo" ---
     // Antes el patrón terminaba en "mes" e ignoraba el calificador → un vencimiento
     // fijado para "fin del mes que viene" caía un mes ANTES (fin de este mes). P1:

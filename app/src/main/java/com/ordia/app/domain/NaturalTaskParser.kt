@@ -472,9 +472,18 @@ object NaturalTaskParser {
      * usa `parseMonthBoundaryName` (mismo criterio que "finales de octubre" sin "de
      * mes"), si no, mantiene la lógica original de mes en curso/que viene.
      */
-    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(?:fin(?:al|ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
-    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
-    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?|inicios?)\s+(?:de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
+    // El conector entre el límite y "mes" admite ahora "cada"/"todos los" intercalados:
+    // "el último día de cada mes", "mediados de todos los meses". Antes el conector exigía
+    // "de/del" + "mes" contiguos, así "de cada mes" (con "cada" en medio) NO casaba → el
+    // límite mensual se perdía, "cada mes" caía a fixedPatterns (MONTHLY día-de-hoy) y
+    // "el último día de" sobrevivía como residuo del título (P1: renta/vencimiento mal
+    // fechado al día de captura y título corrupto). El grupo es NO capturante para no
+    // desplazar los índices de mes (g1)/año (g2) que usa `boundaryDueAt`. La promoción a
+    // recurrencia la detecta `cadaBoundaryRecurrence` vía `cadaInBoundaryMatch` (c.311).
+    // "todos los" exige "meses" (plural); "cada" va con "mes" (singular, forma canónica).
+    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(?:fin(?:al|ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
+    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
+    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?|inicios?)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
     /**
      * Prefijo "cada" inmediatamente antes de un límite mensual ("cada fin de mes",
      * "cada mediados de mes", "cada principios de mes"): convierte el vencimiento
@@ -1787,12 +1796,32 @@ object NaturalTaskParser {
         // es contradictoria (un mes concreto no es hábito mensual): se borra igual (sin
         // residuo) pero NO se promueve a recurrencia — prima el vencimiento único del
         // mes nombrado, que ya resolvió `monthBoundaryDueAt`.
+        //
+        // c.311: además del prefijo "cada <límite>" (cada ANTES del límite), ahora se
+        // detecta "cada"/"todos los" DENTRO del match — "el último día de cada mes",
+        // "mediados de todos los meses" (cada DESPUÉS de "de/del"). El patrón de límite
+        // (c.308) ahora consume esa palabra intercalada, así el título queda limpio; aquí
+        // sólo se decide la promoción a recurrencia. Sin esto, "el último día de cada mes"
+        // caía a fixedPatterns ("cada mes"→MONTHLY día-de-hoy) con título corrupto
+        // ('renta el último día de') y anclaje al día de captura en vez de fin de mes (P1).
         val cadaBoundaryRecurrence: RecurrenceResult? = if (boundaryWinner != null && boundaryKind != null) {
             val before = working.substring(0, boundaryWinner.range.first)
             val cadaPrefix = cadaBoundaryPrefixPattern.find(before)
+            // "cada"/"todos los" intercalados entre "de/del" y "mes" dentro del propio match.
+            val cadaInBoundaryMatch = Regex("""(?i)\bcada\b|\btodos\s+los\b""").containsMatchIn(boundaryWinner.value)
             val hasNamedMonth = months[boundaryWinner.groupValues[1].lowercase()] != null
             if (cadaPrefix != null) {
                 working = working.replaceRange(cadaPrefix.range.first..boundaryWinner.range.last, " ")
+                if (hasNamedMonth) null
+                else when (boundaryKind) {
+                    "end" -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList(), monthlyLastDay = true)
+                    else -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList())
+                }
+            } else if (cadaInBoundaryMatch) {
+                // El "cada"/"todos los" va dentro del match (tras "de/del"): se borra sólo
+                // el rango del match (que ya incluye la palabra de cadencia) — no hay prefijo
+                // externo que extender. Misma promoción que la rama del prefijo.
+                working = working.replaceRange(boundaryWinner.range, " ")
                 if (hasNamedMonth) null
                 else when (boundaryKind) {
                     "end" -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList(), monthlyLastDay = true)
