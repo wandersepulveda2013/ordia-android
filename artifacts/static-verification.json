@@ -1,11 +1,16 @@
 {
-  "project_files": 111,
-  "kotlin_source_files": 52,
-  "kotlin_source_lines": 6604,
-  "unit_test_files": 9,
+  "project_files": 3408,
+  "kotlin_source_files": 56,
+  "kotlin_source_lines": 7835,
+  "unit_test_files": 11,
   "instrumentation_test_files": 2,
-  "errors": [],
-  "warnings": [
-    "gradle-wrapper.jar is absent; Android Studio or `gradle wrapper --gradle-version 8.13` must generate it before ./gradlew works"
-  ]
+  "errors": [
+    "Invalid XML app/build/intermediates/lint_vital_partial_results/release/lintVitalAnalyzeRelease/out/lint-resources.xml: not well-formed (invalid token): line 1, column 5",
+    "Local-first release unexpectedly requests INTERNET permission",
+    "app/build.gradle.kts missing expected configuration: versionName = \"1.0.0\"",
+    "CI workflow missing testDebugUnitTest",
+    "CI workflow missing lintDebug",
+    "CI workflow missing tools/verify_project.py"
+  ],
+  "warnings": []
 }

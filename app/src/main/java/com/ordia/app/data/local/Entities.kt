@@ -35,7 +35,8 @@ enum class AttachmentOwnerType { TASK, NOTE, PROJECT }
         Index("dueAt"),
         Index("completed"),
         Index("status"),
-        Index("archived")
+        Index("archived"),
+        Index("blockedBy")
     ]
 )
 data class TaskEntity(
@@ -59,7 +60,8 @@ data class TaskEntity(
     @ColumnInfo(defaultValue = "0") val flagged: Boolean = false,
     @ColumnInfo(defaultValue = "0") val archived: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    val blockedBy: Long? = null
 )
 
 @Entity(tableName = "projects", indices = [Index("archived"), Index("status")])

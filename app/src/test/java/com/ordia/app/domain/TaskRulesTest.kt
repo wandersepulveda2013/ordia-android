@@ -30,7 +30,19 @@ class TaskRulesTest {
     fun nextBestTask_prefersHighPriority() {
         val normal = TaskEntity(id = 1, title = "Normal", priority = TaskPriority.NORMAL)
         val high = TaskEntity(id = 2, title = "Alta", priority = TaskPriority.HIGH)
-        assertEquals(high, TaskRules.nextBestTask(listOf(normal, high), 100))
+        assertEquals(high, TaskRules.nextBestTask(listOf(normal, high), 100)?.task)
+    }
+
+    @Test
+    fun nextBestTask_filtersOutBlockedTasks() {
+        val blocker = TaskEntity(id = 1, title = "Blocker")
+        val blocked = TaskEntity(id = 2, title = "Blocked", blockedBy = 1, priority = TaskPriority.HIGH)
+        val other = TaskEntity(id = 3, title = "Other", priority = TaskPriority.NORMAL)
+
+        assertEquals(blocker, TaskRules.nextBestTask(listOf(blocker, blocked, other), 100)?.task)
+
+        val completedBlocker = blocker.copy(completed = true)
+        assertEquals(blocked, TaskRules.nextBestTask(listOf(completedBlocker, blocked, other), 100)?.task)
     }
 
     @Test
