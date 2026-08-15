@@ -296,15 +296,17 @@ object SearchEngine {
     // --- Búsqueda por fecha (intención semántica) ---
 
     private val OVERDUE_TOKENS = setOf("atrasada", "atrasadas", "atrasado", "atrasados", "vencida", "vencidas", "vencido", "vencidos")
-    // "olvidadas"/"olvidados" recupera lo que el usuario olvidó: una tarea
-    // vencida (plazo incumplido) O una cuyo hueco planificado ya pasó sin
-    // completarse ([TaskRules.isMissedStart] — el "olvido silencioso"). Antes
-    // estas últimas eran irrecuperables por búsqueda: no son "vencidas" (sin
-    // dueAt o con dueAt futuro) y su título no dice "olvidada". Es el tema #1 de
-    // recuperación del producto (GuardianCoach "RECUPERA EL CONTROL",
-    // WhatNowEngine "tenía su hueco y se pasó") llevado a la superficie de
-    // búsqueda universal, sin nueva pantalla. isMissedStart excluye por
-    // definición a las vencidas, así que la unión con isOverdue no duplica.
+    // "olvidadas"/"olvidados" recupera lo que el usuario olvidó: los TRES olvidos
+    // de Ordía — una tarea vencida (plazo incumplido, [TaskRules.isOverdue]), una
+    // cuyo hueco planificado ya pasó sin completarse ([TaskRules.isMissedStart] —
+    // el "olvido silencioso") O una captura de la bandeja SIN fecha ni hueco que
+    // lleva ≥7 días arrinconada ([TaskRules.isStaleInbox] — el "tercer olvido").
+    // Antes las dos últimas eran irrecuperables por búsqueda: no son "vencidas"
+    // (sin dueAt o con dueAt futuro) y su título no dice "olvidada". Es el tema #1
+    // de recuperación del producto (GuardianCoach "RECUPERA EL CONTROL" rescata
+    // tanto el hueco pasado como la captura olvidada, asistente "¿qué olvidé?")
+    // llevado a la superficie de búsqueda universal, sin nueva pantalla. Los tres
+    // predicados son disjuntos por construcción, así que la unión no duplica.
     // Detección por palabra exacta (participio, no el infinitivo "olvidar" ni
     // el sustantivo "olvido") para no activarse con "olvidar hacer X".
     private val MISSED_TOKENS = setOf("olvidada", "olvidadas", "olvidado", "olvidados")
@@ -475,12 +477,22 @@ object SearchEngine {
         weekdayTarget: LocalDate? = null
     ): Boolean {
         if (scope == DateScope.OVERDUE) return TaskRules.isOverdue(task, now)
-        // "olvidadas": unión de lo vencido (plazo incumplido) y lo cuyo hueco
-        // planificado ya pasó sin completarse (olvido silencioso). isMissedStart
-        // ya excluye completadas/canceladas/en-curso/vencidas, así que la unión
-        // con isOverdue es limpia (sin duplicados). Se resuelve antes que el
-        // anclaje en completedAt: una tarea olvidada NO es "completada hoy".
-        if (scope == DateScope.MISSED) return TaskRules.isMissedStart(task, now) || TaskRules.isOverdue(task, now)
+        // "olvidadas": unión de los TRES olvidos de Ordía — un plazo incumplido
+        // ([TaskRules.isOverdue]), un hueco planificado que se pasó sin completarse
+        // ([TaskRules.isMissedStart] — el "olvido silencioso") y una captura de la
+        // bandeja SIN fecha ni hueco que lleva ≥7 días arrinconada
+        // ([TaskRules.isStaleInbox] — el "tercer olvido"). Los tres predicados son
+        // disjuntos por construcción (isOverdue exige dueAt vencido, isMissedStart
+        // exige startAt pasado, isStaleInbox exige dueAt==null Y startAt==null) y los
+        // tres excluyen a completadas/canceladas/archivadas, así que la unión no
+        // duplica. La misma definición que el nudge del guardián (RECUPERA EL
+        // CONTROL rescata la captura olvidada) y el asistente ("¿qué olvidé?"):
+        // la búsqueda universal debe honrar la fuente única de verdad del producto.
+        // Se resuelve antes que el anclaje en completedAt: una olvidada NO es
+        // "completada hoy".
+        if (scope == DateScope.MISSED) return TaskRules.isMissedStart(task, now) ||
+            TaskRules.isOverdue(task, now) ||
+            TaskRules.isStaleInbox(task, now, zone)
         // Tareas sin vencimiento: el motivo de este scope es recuperar lo pendiente
         // que nunca se agendó. Se excluyen completadas (ya resueltas) y canceladas,
         // igual que los scopes presentes/futuros; las archivadas ya se filtraron.

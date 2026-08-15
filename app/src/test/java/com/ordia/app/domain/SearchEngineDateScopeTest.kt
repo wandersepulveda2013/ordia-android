@@ -619,7 +619,7 @@ class SearchEngineDateScopeTest {
         val missed = missedStartTask(10, "Llamada que se me pasó", hoursAgo = 3)
         val overdue = TaskEntity(id = 11, title = "Factura vencida", dueAt = now - 2 * day)
         val scheduled = TaskEntity(id = 12, title = "Cita futura", startAt = now + 3 * 3600_000L, durationMinutes = 25, status = TaskStatus.PLANNED)
-        val inbox = TaskEntity(id = 13, title = "Idea suelta")
+        val inbox = TaskEntity(id = 13, title = "Idea suelta", createdAt = now)
         val tasks = listOf(missed, overdue, scheduled, inbox)
         val ids = SearchEngine.search("olvidadas", tasks, emptyList(), emptyList(), emptyList(), now = now).map { it.id }.toSet()
         assertEquals(setOf(10L, 11L), ids)
@@ -690,6 +690,37 @@ class SearchEngineDateScopeTest {
         val missed = missedStartTask(80, "Recordatorio perdido", hoursAgo = 2)
         val ids = SearchEngine.search("olvidados", listOf(missed), emptyList(), emptyList(), emptyList(), now = now).map { it.id }
         assertEquals(listOf(80L), ids)
+    }
+
+    @Test fun olvidadas_includesStaleInboxCapture() {
+        // Una captura de la bandeja SIN fecha ni hueco que lleva >=7 días
+        // esperando ([TaskRules.isStaleInbox] — el "tercer olvido" de Ordía,
+        // junto a isOverdue e isMissedStart) TAMBIÉN es "olvidada": el propio
+        // guardián la rescata como "RECUPERA EL CONTROL ... lleva N en tu
+        // bandeja sin fecha". La búsqueda "olvidadas" debe honrar esa misma
+        // definición para que el usuario que vio el nudge pueda actuar sobre
+        // ella desde la búsqueda universal. No es vencida (sin dueAt) ni
+        // missed-start (sin startAt): es la unión del tercer tipo de olvido.
+        val staleInbox = TaskEntity(
+            id = 90,
+            title = "Idea que dejé botada",
+            createdAt = now - 8 * day // 8 días en la bandeja, sin fecha ni hueco
+        )
+        val ids = SearchEngine.search("olvidadas", listOf(staleInbox), emptyList(), emptyList(), emptyList(), now = now).map { it.id }.toSet()
+        assertEquals(setOf(90L), ids)
+    }
+
+    @Test fun olvidadas_excludesFreshInboxCapture() {
+        // Una captura reciente (menos del umbral de 7 días) NO es un olvido:
+        // el usuario todavía no la ha arrinconado. Anti-regresión: la frontera
+        // de "olvidada" para una captura sin fecha es de calendario, no instantánea.
+        val fresh = TaskEntity(
+            id = 91,
+            title = "Captura de hoy",
+            createdAt = now - 2 * day // 2 días: aún no es olvido
+        )
+        val ids = SearchEngine.search("olvidadas", listOf(fresh), emptyList(), emptyList(), emptyList(), now = now).map { it.id }
+        assertTrue(ids.isEmpty())
     }
 
     // --- Búsqueda por día de la semana ("lunes", "viernes"...) ---
