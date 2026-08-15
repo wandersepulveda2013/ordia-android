@@ -321,6 +321,52 @@ class CommitmentEngineTest {
     }
 
     @Test
+    fun sharedSecretSourceIsWiredToBothGates() {
+        // c.299: cierre de la causa raiz permanente. Los 12 patrones de
+        // credenciales/secretos de infraestructura y nube viven ahora en una
+        // fuente unica (`domain.SensitiveSecretPatterns`) consumida por AMBOS
+        // gates. Este test afirma el cableado ESTRUCTURAL: cada patron de la
+        // fuente compartida debe bloquear en el gate de persistencia
+        // (ConversationPrivacyPolicy) Y en el de lectura (ContextPrivacyFilter).
+        // Si una futura edicion elimina la referencia a `SensitiveSecretPatterns`
+        // de un gate (o vacia la lista compartida) y deja el otro protegido, este
+        // test falla en el gate desprotegido: la paridad deja de ser manual y pasa
+        // a ser estructural, eliminando la clase completa de fugas c.287-c.298.
+        // Muestras representativas por patron (no exaustivas: el invariante es de
+        // cableado, no de cobertura de cada secreto posible).
+        val samples = listOf(
+            "-----BEGIN RSA PRIVATE KEY-----",
+            "clave: 0x4c0883a6940d54b8e6e3f2a9a1b7c3d4e5f60718293a4b5c6d7e8f901a2b3c4d",
+            "Transfiere a GB82WEST12345698765432",
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE7x9k2jR3pQ1mNbO0a4sVz2k8mLnUaWx3yZ user@host",
+            "API key sk-4fWb9c2a1e7d3b8f6a0c9e2d1b4f7a3c",
+            "AWS access key AKIAIOSFODNN7EXAMPLE esta activa",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+            "Google API key AIzaSyB1234567890abcdefghijklmnopqrstuv",
+            "Slack token xoxb-1234567890123456-abcdefghij",
+            "GitHub PAT ghp_12345678901234567890abcdefghij",
+            "GitLab PAT glpat-12345678901234567890abcdef",
+            "postgres://reportes:Verde2024@10.0.0.5/prod"
+        )
+        assertTrue(
+            "la fuente compartida no debe estar vacia (c.299): si lo esta, ambos gates perdieron todos los patrones de credencial a la vez",
+            com.ordia.app.domain.SensitiveSecretPatterns.patterns.isNotEmpty()
+        )
+        samples.forEach { text ->
+            val persist = ConversationPrivacyPolicy.containsSensitiveContent(text)
+            val read = ContextPrivacyFilter.containsSensitiveContent(text)
+            assertTrue(
+                "gate de persistencia no bloquea un patron de la fuente compartida (cableado roto, c.299): \"$text\"",
+                persist
+            )
+            assertTrue(
+                "gate de lectura no bloquea un patron de la fuente compartida (cableado roto, c.299): \"$text\"",
+                read
+            )
+        }
+    }
+
+    @Test
     fun blocksShortCredentialsThatEscapedNotificationsGate() {
         // Credenciales cortas (PIN/NIP/contraseña) que llegan por SMS/mensajería
         // (paquete no bancario) y cuyo valor es un secreto de 4-8 dígitos o una

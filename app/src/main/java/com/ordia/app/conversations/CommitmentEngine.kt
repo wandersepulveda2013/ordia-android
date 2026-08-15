@@ -4,6 +4,7 @@ import com.ordia.app.data.local.CommitmentKind
 import com.ordia.app.data.local.CommitmentOwner
 import com.ordia.app.domain.NaturalTaskParser
 import com.ordia.app.domain.ReminderRules
+import com.ordia.app.domain.SensitiveSecretPatterns
 import java.security.MessageDigest
 import java.util.Locale
 
@@ -55,31 +56,12 @@ object ConversationPrivacyPolicy {
         Regex("""(?i)\b(?:n[uú]mero\s+de\s+cuenta|account\s+number|clabe|iban|swift|c[eé]dula)\b"""),
         Regex("""(?i)\b(?:seed\s+phrase|recovery\s+phrase|frase\s+semilla|frase\s+de\s+recuperaci[oó]n|palabras\s+de\s+recuperaci[oó]n|mnemonic)\b"""),
         Regex("""(?i)\b(?:transferencia|dep[oó]sito|retiro|saldo|estado\s+de\s+cuenta)\b"""),
-        Regex("""-----BEGIN [A-Z ]*PRIVATE KEY-----""", RegexOption.IGNORE_CASE),
-        Regex("""\b(?:0x)?[0-9a-f]{64}\b""", RegexOption.IGNORE_CASE),
-        Regex("""\b[A-Z]{2}\s?\d{2}(?:\s?[A-Z0-9]){11,30}\b"""),
-        // c.294: claves SSH publicas (ssh-(rsa|dsa|ecdsa|ed25519) + blob base64 20+).
-        Regex("""\bssh-(?:rsa|dsa|ecdsa|ed25519)\s+[A-Za-z0-9+/]{20,}={0,2}"""),
-        // c.294: API keys tipo Stripe/OpenAI (sk-, sk_live_, sk_test_ + 20+ alfanum).
-        Regex("""(?i)\bsk[-_](?:live[-_]|test[-_])?[A-Za-z0-9]{20,}"""),
-        // c.294: AWS access key IDs (prefijo canonico de 4 mayusculas + 16 base32).
-        Regex("""\b(?:AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ABIA|ACCA)[0-9A-Z]{16}\b"""),
-        // c.294: JWT (eyJ.\.eyJ\....): 3 segmentos base64url separados por punto.
-        Regex("""\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"""),
-        // c.296: Google API key (AIza + 35 base64url), Slack tokens (xox[abp]-...),
-        // GitHub PATs (ghp_/gho_/ghu_/ghs_/ghr_/github_pat_ + 20+) y GitLab PATs
-        // (glpat-...). Prefijos canonicos muy especificos -> bajo falso positivo.
-        Regex("""\bAIza[0-9A-Za-z_-]{35}\b"""),
-        Regex("""\bxox[abp]-[0-9A-Za-z-]{20,}\b"""),
-        Regex("""\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{20,}\b"""),
-        Regex("""\bglpat-[A-Za-z0-9_-]{20,}\b"""),
-        // c.298: cadenas de conexion con credenciales embebidas
-        // (esquema://usuario:password@host). Rendija compartida con
-        // ContextPrivacyFilter: un SMS "postgres://reportes:Verde2024@10.0.0.5/prod"
-        // se persistia en texto plano en la BD de conversaciones porque ninguna
-        // palabra-clave ni patron numerico lo casaba. El user:pass@ en la autoridad
-        // es la sennal de credencial. Paridad con el gate de lectura.
-        Regex("""(?i)\b[a-z][a-z0-9+.-]*://[^\s:@/]+:[^\s@/]+@[^\s/]+""")
+        // c.299: credenciales/secretos de infraestructura y nube (claves PEM,
+        // hex 64, IBAN estructural, SSH, API keys, AWS, JWT, Google, Slack,
+        // GitHub/GitLab PATs, cadenas de conexion) movidos a la fuente unica
+        // `domain.SensitiveSecretPatterns` (compartida con ContextPrivacyFilter)
+        // para que persistencia y lectura no puedan desincronizarse (causa raiz
+        // de las 7 fugas c.287-c.298). Se consumen en `containsSensitiveContent`.
     )
     // "clave temporal/bancaria 4821" no entra en el patrón 2 (no es "de acceso/") pero
     // sí es un PIN: lo capturamos como otpCode. Añadir "clave" en peludo al patrón 1
@@ -89,7 +71,9 @@ object ConversationPrivacyPolicy {
     private val otpCode = Regex("""(?i)\b(?:c[oó]digo|otp|verificaci[oó]n|clave)\D{0,20}\d{4,8}\b""")
 
     fun containsSensitiveContent(text: String): Boolean =
-        sensitivePatterns.any { it.containsMatchIn(text) } || otpCode.containsMatchIn(text)
+        sensitivePatterns.any { it.containsMatchIn(text) } ||
+            SensitiveSecretPatterns.patterns.any { it.containsMatchIn(text) } ||
+            otpCode.containsMatchIn(text)
 }
 
 /** Extrae compromisos localmente sin guardar ni ejecutar acciones. */

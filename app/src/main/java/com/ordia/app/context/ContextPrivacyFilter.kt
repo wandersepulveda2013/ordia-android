@@ -1,5 +1,7 @@
 package com.ordia.app.context
 
+import com.ordia.app.domain.SensitiveSecretPatterns
+
 /**
  * Filtro local que descarta datos sensibles antes de cualquier análisis.
  * Las reglas son deterministas, no usan red y se aplican a todas las fuentes.
@@ -30,30 +32,14 @@ object ContextPrivacyFilter {
         Regex("""\b(cvv|cvc|código de seguridad|codigo de seguridad|número de tarjeta|numero de tarjeta|card number)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(número de cuenta|numero de cuenta|account number|clabe|iban|swift|cédula|cedula)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(seed phrase|recovery phrase|frase semilla|frase de recuperación|frase de recuperacion|palabras de recuperación|palabras de recuperacion|mnemonic)\b""", RegexOption.IGNORE_CASE),
-        Regex("""-----BEGIN [A-Z ]*PRIVATE KEY-----""", RegexOption.IGNORE_CASE),
-        Regex("""\b(?:0x)?[0-9a-f]{64}\b""", RegexOption.IGNORE_CASE),
-        Regex("""\b[A-Z]{2}\s?\d{2}(?:\s?[A-Z0-9]){11,30}\b"""),
-        // c.294: claves SSH publicas (ssh-(rsa|dsa|ecdsa|ed25519) + blob base64 20+).
-        Regex("""\bssh-(?:rsa|dsa|ecdsa|ed25519)\s+[A-Za-z0-9+/]{20,}={0,2}"""),
-        // c.294: API keys tipo Stripe/OpenAI (sk-, sk_live_, sk_test_ + 20+ alfanum).
-        Regex("""(?i)\bsk[-_](?:live[-_]|test[-_])?[A-Za-z0-9]{20,}"""),
-        // c.294: AWS access key IDs (prefijo canonico de 4 mayusculas + 16 base32).
-        Regex("""\b(?:AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ABIA|ACCA)[0-9A-Z]{16}\b"""),
-        // c.294: JWT (eyJ.\.eyJ\....): 3 segmentos base64url separados por punto.
-        Regex("""\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"""),
-        // c.296: Google API key, Slack tokens, GitHub/GitLab PATs (paridad con
-        // ConversationPrivacyPolicy; ver alli).
-        Regex("""\bAIza[0-9A-Za-z_-]{35}\b"""),
-        Regex("""\bxox[abp]-[0-9A-Za-z-]{20,}\b"""),
-        Regex("""\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{20,}\b"""),
-        Regex("""\bglpat-[A-Za-z0-9_-]{20,}\b"""),
-        // c.298: cadenas de conexion con credenciales embebidas
-        // (esquema://usuario:password@host). Llegan por SMS/mensajeria (paquete no
-        // bancario) desde equipos devops y se persistian en texto plano en la BD de
-        // contexto Y de conversaciones. Ni las palabras-clave (sin "password" en
-        // peludo) ni Luhn/IBAN las casaban. El user:pass@ en la autoridad es la
-        // sennal de credencial: las URLs normales (sin userinfo) no la tienen.
-        Regex("""(?i)\b[a-z][a-z0-9+.-]*://[^\s:@/]+:[^\s@/]+@[^\s/]+"""),
+        // c.299: credenciales/secretos de infraestructura y nube (claves PEM,
+        // hex 64, IBAN estructural, SSH, API keys, AWS, JWT, Google, Slack,
+        // GitHub/GitLab PATs, cadenas de conexion) movidos a la fuente unica
+        // `domain.SensitiveSecretPatterns` para que persistencia y lectura no
+        // puedan desincronizarse (causa raiz de las 7 fugas c.287-c.298). Se
+        // consumen en `containsSensitiveContent` mas abajo. Las categorias de
+        // contenido (adultos, violencia, politica) siguen aqui, propias del gate
+        // de lectura: no aplican a la persistencia de un compromiso.
         Regex("""\b(sexo|sexual|desnud|porno|xxx|eróti|intimidad)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(matar|asesinar|violar|robar|secuestr|bomba|arma|amenaza)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(droga|cocaína|cocaina|marihuana|heroína|heroina|metanfetamina|narcotráfico|narcotrafico)\b""", RegexOption.IGNORE_CASE),
@@ -94,6 +80,7 @@ object ContextPrivacyFilter {
     fun containsSensitiveContent(text: String, metadata: Map<String, String> = emptyMap()): Boolean {
         if (text.isBlank()) return false
         if (blockedContentPatterns.any { it.containsMatchIn(text) }) return true
+        if (SensitiveSecretPatterns.patterns.any { it.containsMatchIn(text) }) return true
         if (numericSecret.matches(text)) return true
         if (metadata["inputClass"].equals("number", ignoreCase = true) && shortNumericSecret.matches(text)) return true
         if (cardCandidate.findAll(text).any { candidate ->
