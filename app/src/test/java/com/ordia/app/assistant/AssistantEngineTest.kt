@@ -326,6 +326,126 @@ class AssistantEngineTest {
         assertTrue("no finge vencida una captura sin fecha: ${answer.text}", answer.text.contains("No tienes tareas vencidas"))
     }
 
+    // --- Cuarto olvido: un compromiso vencido de una conversación. Antes el
+    // asistente contaba los PENDING sin mirar `dueAt`, así que "¿qué olvidé?"
+    // / "vencidas" decía "no hay vencidas ni olvidadas" frente a una promesa
+    // vencida sin convertir — mentía por omisión en la superficie de
+    // recuperación. Un compromiso no es una tarea (no se reprograma, se
+    // convierte o descarta), así que se recupera abriendo Conversaciones.
+
+    private fun overdueCommitment(
+        id: Long,
+        action: String,
+        dueAt: Long,
+        status: com.ordia.app.data.local.CommitmentReviewStatus = com.ordia.app.data.local.CommitmentReviewStatus.PENDING
+    ) = com.ordia.app.data.local.CommitmentEntity(
+        id = id, conversationId = 1,
+        kind = com.ordia.app.data.local.CommitmentKind.SELF_COMMITMENT,
+        owner = com.ordia.app.data.local.CommitmentOwner.SELF,
+        actor = "yo", action = action, dueAt = dueAt, confidence = 0.9f,
+        reviewStatus = status, fingerprint = "fp$id", createdAt = dueAt - 1
+    )
+
+    @Test fun forgottenIntent_recoversOverdueCommitmentWhenNoTaskOverdue() {
+        // Sin tareas vencidas/olvidadas, pero con una promesa vencida: "¿qué
+        // olvidé?" nombra el compromiso y abre Conversaciones. No dice "no hay
+        // olvidados" frente a una promesa vencida.
+        val zone = java.time.ZoneId.of("America/Santo_Domingo")
+        val today = java.time.LocalDate.of(2026, 7, 29)
+        val now = com.ordia.app.domain.DateRules.toEpochMillis(today, java.time.LocalTime.NOON, zone)
+        val overdueDue = com.ordia.app.domain.DateRules.toEpochMillis(today.minusDays(3), java.time.LocalTime.of(10, 0), zone)
+        val commitment = overdueCommitment(1, "te llamo el martes", overdueDue)
+        val answer = AssistantEngine.answer(
+            "¿qué olvidé?",
+            listOf(TaskEntity(id = 1, title = "Normal sin fecha")),
+            emptyList(), listOf(commitment),
+            now, zone
+        )
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("te llamo el martes"))
+        assertTrue("marca como compromiso vencido: ${answer.text}", answer.text.contains("compromiso vencido"))
+        assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
+    }
+
+    @Test fun vencidas_recoversOverdueCommitmentWhenNoTaskOverdue() {
+        // "vencidas" (sin intención de olvido) también debe recuperar la
+        // promesa vencida: un compromiso vencido ES vencido. No dice "No tienes
+        // tareas vencidas" frente a una promesa vencida.
+        val zone = java.time.ZoneId.of("America/Santo_Domingo")
+        val today = java.time.LocalDate.of(2026, 7, 29)
+        val now = com.ordia.app.domain.DateRules.toEpochMillis(today, java.time.LocalTime.NOON, zone)
+        val overdueDue = com.ordia.app.domain.DateRules.toEpochMillis(today.minusDays(2), java.time.LocalTime.of(10, 0), zone)
+        val commitment = overdueCommitment(2, "envío el informe", overdueDue)
+        val answer = AssistantEngine.answer(
+            "vencidas",
+            emptyList(),
+            emptyList(), listOf(commitment),
+            now, zone
+        )
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
+        assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
+    }
+
+    @Test fun forgottenIntent_appendsOverdueCommitmentTailWhenTaskOverdue() {
+        // Con una tarea vencida Y una promesa vencida: nombra la tarea (RUN_REPLAN)
+        // y NO calla el compromiso —lo menciona para no ocultarlo tras la tarea.
+        val now = 1_000_000_000_000L
+        val today = todayNoon(now)
+        val overdueTask = TaskEntity(id = 1, title = "Entrega vieja", dueAt = now - 3 * 86_400_000L)
+        val commitment = overdueCommitment(5, "te llamo el martes", now - 2 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿qué olvidé?",
+            listOf(overdueTask),
+            emptyList(), listOf(commitment),
+            now
+        )
+        assertTrue("nombra la tarea vencida: ${answer.text}", answer.text.contains("Entrega vieja"))
+        assertTrue("no calla el compromiso vencido: ${answer.text}", answer.text.contains("compromiso vencido"))
+        assertEquals(AssistantAction.RUN_REPLAN, answer.action)
+    }
+
+    @Test fun resumeConversacion_flagsOverdueCommitmentCount() {
+        // "resume conversación" cuenta los compromisos por revisar y, si hay
+        // vencidos, lo marca sin inflar la frase. Honestidad sobre el estado real.
+        val now = 1_000_000_000_000L
+        val conv = com.ordia.app.data.local.ConversationEntity(
+            id = 1,
+            sourceType = com.ordia.app.data.local.ConversationSourceType.IMPORTED,
+            title = "Chat de proyecto",
+            summary = "Dos mensajes con una solicitud pendiente.",
+            contentHash = "a".repeat(64),
+            createdAt = now, updatedAt = now
+        )
+        val overdue = overdueCommitment(1, "te llamo el martes", now - 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "resume conversación",
+            emptyList(),
+            listOf(conv), listOf(overdue),
+            now
+        )
+        assertTrue("marca el compromiso vencido: ${answer.text}", answer.text.contains("vencido"))
+    }
+
+    @Test fun forgottenIntent_doesNotFlagNonOverdueCommitment() {
+        // Guard anti-falso-positivo: una promesa PENDING con dueAt FUTURO no es
+        // un olvido; una CONVERTIDA/DISMISSED vencida tampoco (ya revisada).
+        // "¿qué olvidé?" no debe fingir olvido donde no lo hay.
+        val now = 1_000_000_000_000L
+        val future = overdueCommitment(1, "te llamo mañana", now + 86_400_000L)
+        val reviewed = overdueCommitment(
+            2, "te llamo ayer", now - 86_400_000L,
+            status = com.ordia.app.data.local.CommitmentReviewStatus.CONVERTED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué olvidé?",
+            listOf(TaskEntity(id = 1, title = "Normal sin fecha")),
+            emptyList(), listOf(future, reviewed),
+            now
+        )
+        assertTrue("no finge olvido con compromisos no vencidos: ${answer.text}",
+            answer.text.contains("No tienes tareas vencidas") || answer.text.contains("olvidad"))
+        assertTrue("no nombra el compromiso futuro: ${answer.text}", !answer.text.contains("te llamo"))
+    }
+
     @Test fun cancelledTaskIsNotCountedAsPending() {
         // Una tarea cancelada no debe contarse como pendiente al organizar el
         // día ni aparecer en el plan mínimo: el usuario ya la descartó.

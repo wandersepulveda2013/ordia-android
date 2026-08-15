@@ -4,6 +4,7 @@ import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.domain.CommitmentRules
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayLoad
 import com.ordia.app.domain.LearningProfile
@@ -48,6 +49,12 @@ object AssistantEngine {
         val active = tasks.filter { TaskRules.isActive(it) && it.parentTaskId == null }
         val overdue = active.filter { TaskRules.isOverdue(it, now) }
         val pendingCommitments = commitments.filter { it.reviewStatus == CommitmentReviewStatus.PENDING }
+        // Cuarto olvido de Ordía: una promesa extraída de una conversación cuyo
+        // plazo (dueAt) ya pasó y sigue PENDING (sin convertir ni descartar). No es
+        // una tarea vencida —no se puede reprogramar, solo convertir o descartar—,
+        // así que vive aparte en [CommitmentRules]. Se calcula aquí, fuente única,
+        // para que el asistente no mienta por omisión en "¿qué olvidé?"/"vencidas".
+        val overdueCommitments = CommitmentRules.overduePendingSorted(commitments, now)
         return when {
             "organiza mi dia" in query || "organizar mi dia" in query || "organiza el dia" in query -> {
                 val pending = if (active.size == 1) "1 tarea pendiente" else "${active.size} tareas pendientes"
@@ -118,14 +125,16 @@ object AssistantEngine {
                             "y tienes ${overdue.size - 1} más. Puedo reprogramarlas."
                         }
                         AssistantAnswer(
-                            "“${top.title}” está vencida (~$minutes min) $tail",
+                            "“${top.title}” está vencida (~$minutes min) $tail" +
+                                overdueCommitmentTail(overdueCommitments),
                             AssistantAction.RUN_REPLAN,
                             relatedTaskIds = overdue.take(8).map { it.id }
                         )
                     } else {
                         val venc = if (overdue.size == 1) "1 tarea vencida" else "${overdue.size} tareas vencidas"
                         AssistantAnswer(
-                            "Tienes $venc. Puedo reprogramarlas sin mostrarte una pared de alertas.",
+                            "Tienes $venc. Puedo reprogramarlas sin mostrarte una pared de alertas." +
+                                overdueCommitmentTail(overdueCommitments),
                             AssistantAction.RUN_REPLAN,
                             relatedTaskIds = overdue.take(8).map { it.id }
                         )
@@ -152,14 +161,20 @@ object AssistantEngine {
                             if (stale != null) {
                                 val ageLabel = DateRules.ageLabel(TaskRules.inboxAgeDays(stale, now, zone))
                                 AssistantAnswer(
-                                    "«${stale.title}» lleva $ageLabel en tu bandeja sin fecha. Hazla hoy, agéndala o quítala: no la dejes pasar otra vez.",
+                                    "«${stale.title}» lleva $ageLabel en tu bandeja sin fecha. Hazla hoy, agéndala o quítala: no la dejes pasar otra vez." +
+                                        overdueCommitmentTail(overdueCommitments),
                                     relatedTaskIds = listOf(stale.id)
                                 )
                             } else {
-                                AssistantAnswer("No tienes tareas vencidas ni compromisos olvidados.")
+                                // Sin olvidos de tarea pero con una promesa vencida:
+                                // cuarto olvido. No decimos "nada olvidado" frente a
+                                // un compromiso vencido —mentiría por omisión.
+                                if (overdueCommitments.isNotEmpty()) overdueCommitmentAnswer(overdueCommitments)
+                                else AssistantAnswer("No tienes tareas vencidas ni compromisos olvidados.")
                             }
                         } else {
-                            AssistantAnswer("No tienes tareas vencidas.")
+                            if (overdueCommitments.isNotEmpty()) overdueCommitmentAnswer(overdueCommitments)
+                            else AssistantAnswer("No tienes tareas vencidas.")
                         }
                     } else if (forgottenIntent) {
                         val minutes = TaskRules.plannedDuration(missed)
@@ -175,20 +190,31 @@ object AssistantEngine {
                         // pasó fue el inicio, así que "reagendar" capta mejor "darle
                         // un nuevo hueco" que "reprogramar" (mover el plazo).
                         AssistantAnswer(
-                            "«${missed.title}» tenía su hueco y se pasó (~$minutes min). Puedo reagendarla.",
+                            "«${missed.title}» tenía su hueco y se pasó (~$minutes min). Puedo reagendarla." +
+                                overdueCommitmentTail(overdueCommitments),
                             AssistantAction.RUN_REPLAN,
                             relatedTaskIds = listOf(missed.id)
                         )
                     } else {
-                        AssistantAnswer("No tienes tareas vencidas.")
+                        // "vencidas" con un missed-start (no overdue) y, además,
+                        // quizá una promesa vencida (que SÍ es vencida). No decimos
+                        // "no tienes vencidas" si hay un compromiso vencido.
+                        if (overdueCommitments.isNotEmpty()) overdueCommitmentAnswer(overdueCommitments)
+                        else AssistantAnswer("No tienes tareas vencidas.")
                     }
                 }
             }
-            "resume" in query && ("conversacion" in query || "mensaje" in query) ->
+            "resume" in query && ("conversacion" in query || "mensaje" in query) -> {
+                val overdueSuffix = when {
+                    overdueCommitments.isEmpty() -> ""
+                    overdueCommitments.size == 1 -> " (1 vencido)"
+                    else -> " (${overdueCommitments.size} vencidos)"
+                }
                 AssistantAnswer(
-                    "Hay ${conversations.size} conversaciones guardadas y ${pendingCommitments.size} compromisos por revisar.",
+                    "Hay ${conversations.size} conversaciones guardadas y ${pendingCommitments.size} compromisos por revisar$overdueSuffix.",
                     AssistantAction.OPEN_CONVERSATIONS
                 )
+            }
             "compromiso" in query && ("sin fecha" in query || "pendiente" in query) -> {
                 val undated = pendingCommitments.filter { it.dueAt == null }
                 AssistantAnswer(
@@ -381,4 +407,36 @@ object AssistantEngine {
             }
         }
     }
+
+    /**
+     * Recuperación autónoma del cuarto olvido —un compromiso vencido de una
+     * conversación— cuando NO hay olvidos de tarea que mostrar. Nombra el más
+     * atrasado y abre Conversaciones para convertirlo/descartarlo. No inventa
+     * acción sobre la promesa: convertirla o descartarla es decisión del
+     * usuario, así que el `action` es [AssistantAction.OPEN_CONVERSATIONS]
+     * (guiar, no ejecutar a ciegas).
+     */
+    private fun overdueCommitmentAnswer(overdueCommitments: List<CommitmentEntity>): AssistantAnswer {
+        val top = overdueCommitments.first()
+        val head = if (overdueCommitments.size == 1) {
+            "«${top.action}» es un compromiso vencido que aún no convertiste en tarea."
+        } else {
+            "«${top.action}» es el más atrasado de ${overdueCommitments.size} compromisos vencidos de conversaciones que aún no convertiste en tarea."
+        }
+        return AssistantAnswer(
+            "$head Convértelo en tarea o descártalo para no dejarlo pasar.",
+            AssistantAction.OPEN_CONVERSATIONS
+        )
+    }
+
+    /** Cola informativa para no callar un compromiso vencido cuando SÍ hay
+     *  olvidos de tarea que nombrar (no lo oculta detrás de la tarea). */
+    private fun overdueCommitmentTail(overdueCommitments: List<CommitmentEntity>): String =
+        when {
+            overdueCommitments.isEmpty() -> ""
+            overdueCommitments.size == 1 ->
+                " Además, tienes 1 compromiso vencido de una conversación por convertir en tarea."
+            else ->
+                " Además, tienes ${overdueCommitments.size} compromisos vencidos de conversaciones por convertir en tarea."
+        }
 }
