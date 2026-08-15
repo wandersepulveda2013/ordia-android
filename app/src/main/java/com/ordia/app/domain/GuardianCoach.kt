@@ -72,8 +72,7 @@ object GuardianCoach {
             return Insight(
                 eyebrow = "SIGUIENTE PASO",
                 title = next.title,
-                message = next.details.takeIf { it.isNotBlank() }
-                    ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
+                message = "${next.durationMinutes} min · ${if (TaskRules.isDueToday(next, now, zone)) "vence hoy" else "sin límite"}",
                 taskId = next.id,
                 tone = Tone.FOCUSED
             )
@@ -102,7 +101,7 @@ object GuardianCoach {
         }
 
         return Insight(
-            eyebrow = "TODO EN CALMA",
+            eyebrow = "SIN PENDIENTES",
             title = "No hay pendientes inmediatos",
             message = "Captura una idea, revisa un proyecto o simplemente conserva este espacio libre.",
             tone = Tone.CALM
