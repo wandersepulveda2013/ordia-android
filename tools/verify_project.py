@@ -184,6 +184,9 @@ for path in ROOT.rglob("*"):
             check_balanced(path, text)
 
 for xml_path in ROOT.rglob("*.xml"):
+    # build directory xmls shouldn't be validated here as some are generated artifacts that lint writes weirdly
+    if "build/" in str(xml_path):
+        continue
     try:
         ET.parse(xml_path)
     except Exception as exc:  # noqa: BLE001
