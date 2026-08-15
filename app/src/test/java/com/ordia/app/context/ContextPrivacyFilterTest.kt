@@ -106,6 +106,39 @@ class ContextPrivacyFilterTest {
         assertTrue(ContextPrivacyFilter.shouldBlock(event(text = "4111 1111 1111 1111")))
     }
 
+    // ── CLABE interbancaria (MX): no usa Luhn, debe bloquearse por su propio checksum ──
+
+    @Test
+    fun nakedValidClabe_blocked() {
+        // CLABE real con checksum válido, sin palabra "clabe"/"cuenta": antes se fugaba.
+        assertTrue(ContextPrivacyFilter.containsSensitiveContent("032180000118359719"))
+    }
+
+    @Test
+    fun spacedValidClabe_blocked() {
+        assertTrue(ContextPrivacyFilter.containsSensitiveContent("032 180 0001 1835 9719"))
+    }
+
+    @Test
+    fun clabeInSentence_blocked() {
+        assertTrue(
+            ContextPrivacyFilter.containsSensitiveContent(
+                "transfiere a esta cuenta 032180000118359719 antes del cierre"
+            )
+        )
+    }
+
+    @Test
+    fun invalidClabeChecksum_notBlocked() {
+        // 18 dígitos pero checksum inválido: no es CLABE, no se sobrelbloquea.
+        assertFalse(ContextPrivacyFilter.containsSensitiveContent("032180000118359710"))
+    }
+
+    @Test
+    fun randomEighteenDigits_notBlocked() {
+        assertFalse(ContextPrivacyFilter.containsSensitiveContent("123456789012345678"))
+    }
+
     @Test
     fun nakedOtp_blocked() {
         assertTrue(ContextPrivacyFilter.shouldBlock(event(text = "482913")))

@@ -55,6 +55,10 @@ object ContextPrivacyFilter {
     private val cardCandidate = Regex("""(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)""")
     private val numericSecret = Regex("""^\s*\d{4,8}\s*$""")
     private val shortNumericSecret = Regex("""^\s*\d{3,4}\s*$""")
+    // CLABE interbancaria mexicana: 18 dígitos (con posibles separadores). Se valida
+    // aparte porque su dígito verificador NO es Luhn, por lo que cardCandidate+Luhn la
+    // deja escapar cuando aparece sin la palabra "clabe"/"cuenta" (fuga de cuenta bancaria).
+    private val clabeCandidate = Regex("""(?<!\d)(?:\d[ -]?){17}\d(?!\d)""")
 
     fun shouldBlock(event: ContextEvent): Boolean {
         event.sourcePackage?.let { if (isPackageBlocked(it)) return true }
@@ -71,10 +75,15 @@ object ContextPrivacyFilter {
         if (blockedContentPatterns.any { it.containsMatchIn(text) }) return true
         if (numericSecret.matches(text)) return true
         if (metadata["inputClass"].equals("number", ignoreCase = true) && shortNumericSecret.matches(text)) return true
-        return cardCandidate.findAll(text).any { candidate ->
-            val digits = candidate.value.filter(Char::isDigit)
-            digits.length in 13..19 && passesLuhn(digits)
-        }
+        if (cardCandidate.findAll(text).any { candidate ->
+                val digits = candidate.value.filter(Char::isDigit)
+                digits.length in 13..19 && passesLuhn(digits)
+            }) return true
+        if (clabeCandidate.findAll(text).any { candidate ->
+                val digits = candidate.value.filter(Char::isDigit)
+                digits.length == 18 && passesClabeChecksum(digits)
+            }) return true
+        return false
     }
 
     fun isPackageBlocked(packageName: String): Boolean {
@@ -99,5 +108,22 @@ object ContextPrivacyFilter {
             doubleDigit = !doubleDigit
         }
         return sum > 0 && sum % 10 == 0
+    }
+
+    /**
+     * Dígito verificador de la CLABE interbancaria mexicana (18 dígitos):
+     * los primeros 17 se ponderan cíclicamente con (3, 7, 1), se suman mod 10 y
+     * el dígito de control es (10 - (suma mod 10)) mod 10. Debe coincidir con el
+     * dígito 18. No es Luhn, por lo que requiere validación propia.
+     */
+    private fun passesClabeChecksum(digits: String): Boolean {
+        if (digits.length != 18) return false
+        val weights = intArrayOf(3, 7, 1)
+        var sum = 0
+        for (i in 0 until 17) {
+            sum += (digits[i].digitToInt() * weights[i % 3]) % 10
+        }
+        val control = (10 - sum % 10) % 10
+        return control == digits[17].digitToInt()
     }
 }
