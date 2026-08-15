@@ -1,6 +1,8 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -127,5 +129,136 @@ class SubtaskRulesTest {
         )
         assertTrue(SubtaskRules.canAddSubtask(byId.getValue(3L), byId))
         assertFalse(SubtaskRules.canAddSubtask(byId.getValue(4L), byId))
+    }
+
+    // --- Clonación de subtareas al crear la próxima ocurrencia de un padre
+    // recurrente (c.221, "datos sagrados"/"evitar olvidos"): el desglose en
+    // subtareas de una tarea recurrente (p. ej. "Preparar reunión semanal" →
+    // "Agenda", "Materiales", "Minutas") se perdía en cada ciclo: la próxima
+    // ocurrencia nacía como padre huérfano sin su checklist. El usuario debía
+    // recrear las subtareas cada semana o —peor— olvidaba pasos de la rutina.
+    // cloneForNextOccurrence devuelve copias frescas (id=0, abiertas, sin
+    // planificación heredada del ciclo viejo) enlazadas al nuevo padre. ---
+
+    private fun subtaskTemplate(
+        id: Long,
+        parentId: Long,
+        title: String,
+        completed: Boolean = false,
+        dueAt: Long? = null,
+        recurrence: RecurrenceFrequency = RecurrenceFrequency.NONE,
+        sortOrder: Int = 0,
+        durationMinutes: Int = 25,
+        priority: TaskPriority = TaskPriority.NORMAL,
+        flagged: Boolean = false,
+        projectId: Long? = null,
+        details: String = "",
+    ) = TaskEntity(
+        id = id,
+        title = title,
+        details = details,
+        projectId = projectId,
+        parentTaskId = parentId,
+        dueAt = dueAt,
+        durationMinutes = durationMinutes,
+        priority = priority,
+        status = if (completed) TaskStatus.COMPLETED else TaskStatus.INBOX,
+        completed = completed,
+        recurrence = recurrence,
+        sortOrder = sortOrder,
+        flagged = flagged,
+    )
+
+    @Test
+    fun cloneForNextOccurrence_linksToNewParentAndResetsIdentity() {
+        val now = 1_700_000_000_000L
+        val subs = listOf(
+            subtaskTemplate(2, 1, "Agenda", sortOrder = 0),
+            subtaskTemplate(3, 1, "Materiales", sortOrder = 1, details = "Proyector + cables")
+        )
+        val clones = SubtaskRules.cloneForNextOccurrence(subs, newParentId = 900, now = now)
+
+        assertEquals(2, clones.size)
+        clones.forEach {
+            assertEquals(0L, it.id)
+            assertEquals(900L, it.parentTaskId)
+            assertFalse(it.completed)
+            assertEquals(null, it.completedAt)
+            assertEquals(now, it.createdAt)
+            assertEquals(now, it.updatedAt)
+        }
+        assertEquals(listOf("Agenda", "Materiales"), clones.map { it.title })
+        assertEquals(listOf(0, 1), clones.map { it.sortOrder })
+        assertEquals("Proyector + cables", clones[1].details)
+    }
+
+    @Test
+    fun cloneForNextOccurrence_resetsCompletionState() {
+        // Una subtarea COMPLETADA del ciclo viejo renace abierta en el nuevo ciclo.
+        val now = 1_700_000_000_000L
+        val subs = listOf(subtaskTemplate(2, 1, "Agenda", completed = true))
+        val clones = SubtaskRules.cloneForNextOccurrence(subs, newParentId = 900, now = now)
+
+        assertEquals(1, clones.size)
+        assertFalse(clones[0].completed)
+        assertEquals(null, clones[0].completedAt)
+        assertEquals(TaskStatus.INBOX, clones[0].status)
+    }
+
+    @Test
+    fun cloneForNextOccurrence_clearsStaleScheduling() {
+        // La planificación (dueAt/reminderAt/startAt) del ciclo viejo es obsoleta
+        // para el nuevo ciclo: se resetea a null para que la subtarea herede el
+        // contexto del nuevo padre (igual que una subtarea recién creada).
+        val now = 1_700_000_000_000L
+        val subs = listOf(
+            subtaskTemplate(2, 1, "Agenda", dueAt = 1_699_000_000_000L)
+                .copy(reminderAt = 1_698_000_000_000L, startAt = 1_697_000_000_000L)
+        )
+        val clones = SubtaskRules.cloneForNextOccurrence(subs, newParentId = 900, now = now)
+
+        assertEquals(null, clones[0].dueAt)
+        assertEquals(null, clones[0].reminderAt)
+        assertEquals(null, clones[0].startAt)
+    }
+
+    @Test
+    fun cloneForNextOccurrence_resetsNestedRecurrenceToNone() {
+        // Una subtarea con recurrencia propia (anidada) renace SIN recurrencia:
+        // clonarla tal cual generaría ocurrencias recursivas anidadas bajo cada
+        // ciclo del padre (explosión de tareas). Se resetea a NONE.
+        val now = 1_700_000_000_000L
+        val subs = listOf(
+            subtaskTemplate(2, 1, "Revisar", recurrence = RecurrenceFrequency.DAILY, dueAt = 1_699_000_000_000L)
+        )
+        val clones = SubtaskRules.cloneForNextOccurrence(subs, newParentId = 900, now = now)
+
+        assertEquals(RecurrenceFrequency.NONE, clones[0].recurrence)
+        assertEquals(1, clones[0].recurrenceInterval)
+        assertEquals("", clones[0].recurrenceDays)
+    }
+
+    @Test
+    fun cloneForNextOccurrence_preservesStructuralFields() {
+        // La ESTRUCTURA del checklist sobrevive: duración, prioridad, proyecto,
+        // marcado, orden. Es justo lo que el usuario quiere recuperar ciclo a ciclo.
+        val now = 1_700_000_000_000L
+        val subs = listOf(
+            subtaskTemplate(2, 1, "Materiales", durationMinutes = 45, priority = TaskPriority.HIGH,
+                flagged = true, projectId = 7, sortOrder = 3)
+        )
+        val clones = SubtaskRules.cloneForNextOccurrence(subs, newParentId = 900, now = now)
+
+        assertEquals(45, clones[0].durationMinutes)
+        assertEquals(TaskPriority.HIGH, clones[0].priority)
+        assertTrue(clones[0].flagged)
+        assertEquals(7L, clones[0].projectId)
+        assertEquals(3, clones[0].sortOrder)
+        assertFalse(clones[0].archived)
+    }
+
+    @Test
+    fun cloneForNextOccurrence_emptyListReturnsEmpty() {
+        assertEquals(emptyList<TaskEntity>(), SubtaskRules.cloneForNextOccurrence(emptyList(), 900, 1_700_000_000_000L))
     }
 }

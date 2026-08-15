@@ -502,6 +502,15 @@ class OrdiaViewModel(
                     RecurrenceEngine.nextOccurrence(current, now)?.let { next ->
                         val nextId = taskRepository.add(next)
                         reminderScheduler.schedule(next.copy(id = nextId))
+                        // El desglose del padre recurrente renace en la próxima
+                        // ocurrencia (c.223): sin esto, el checklist se perdía en
+                        // cada ciclo. Se clonan las subtareas no archivadas del
+                        // padre recién completado, abiertas y sin planificación
+                        // heredada (ver SubtaskRules.cloneForNextOccurrence).
+                        val subs = taskRepository.subtasks(current.id)
+                        if (subs.isNotEmpty()) {
+                            taskRepository.addAll(SubtaskRules.cloneForNextOccurrence(subs, nextId, now))
+                        }
                     }
                 } else if (updated.reminderAt != null || updated.dueAt != null) reminderScheduler.schedule(updated)
 
@@ -562,6 +571,13 @@ class OrdiaViewModel(
         RecurrenceEngine.nextOccurrence(before, now)?.let { next ->
             val nextId = taskRepository.add(next)
             reminderScheduler.schedule(next.copy(id = nextId))
+            // Mismo rescate del checklist que en toggleTask (c.223): al
+            // autocompletar el padre por cerrar su última subtarea, el
+            // desglose renace abierto en la próxima ocurrencia.
+            val subs = taskRepository.subtasks(before.id)
+            if (subs.isNotEmpty()) {
+                taskRepository.addAll(SubtaskRules.cloneForNextOccurrence(subs, nextId, now))
+            }
         }
         val logId = automationLogRepository.insert(
             AutomationLogEntity(

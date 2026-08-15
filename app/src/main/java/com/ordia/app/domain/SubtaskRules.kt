@@ -1,5 +1,6 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskStatus
 
@@ -71,4 +72,55 @@ object SubtaskRules {
     /** Permite añadir una subtarea solo si el padre no está en la profundidad máxima. */
     fun canAddSubtask(parent: TaskEntity, tasksById: Map<Long, TaskEntity>): Boolean =
         depth(parent, tasksById) < MAX_DEPTH
+
+    /**
+     * Copias frescas de [subtasks] para la próxima ocurrencia de un padre
+     * recurrente, enlazadas a [newParentId].
+     *
+     * Sin esto, completar una tarea recurrente con un desglose (p. ej.
+     * "Preparar reunión semanal" → "Agenda", "Materiales", "Minutas") pierde
+     * todo el checklist en cada ciclo: la próxima ocurrencia nacía como padre
+     * huérfano y el usuario debía recrear las subtareas o —peor— olvidaba
+     * pasos de la rutina ("evitar olvidos", "datos sagrados").
+     *
+     * Campos preservados (la ESTRUCTURA del checklist): `title`, `details`,
+     * `durationMinutes`, `priority`, `projectId`, `sortOrder`, `flagged`,
+     * `archived`. Campos reiniciados para el ciclo nuevo:
+     * - `id` = 0, `parentTaskId` = [newParentId], `createdAt`/`updatedAt` = [now];
+     * - `completed` = false, `completedAt` = null, `status` = INBOX (abierta);
+     * - `dueAt`/`reminderAt`/`startAt` = null: la planificación del ciclo viejo
+     *   es obsoleta; la subtarea hereda el contexto del nuevo padre, igual que
+     *   una subtarea recién creada (que nace sin fechas);
+     * - `recurrence` = NONE: una subtarea recurrente propia generaría
+     *   ocurrencias anidadas bajo cada ciclo del padre (explosión de tareas),
+     *   así que se aplana.
+     *
+     * El cancelado de un ciclo (status CANCELLED) NO se propaga: ese paso
+     * renace abierto porque el descarte fue de la ocurrencia anterior, no un
+     * borrado permanente del checklist.
+     *
+     * Regla pura y determinista; el llamador persiste las copias con el
+     * repositorio. Ver `OrdiaViewModel` (toggleTask / autocompletado de padre).
+     */
+    fun cloneForNextOccurrence(
+        subtasks: List<TaskEntity>,
+        newParentId: Long,
+        now: Long,
+    ): List<TaskEntity> = subtasks.map { sub ->
+        sub.copy(
+            id = 0L,
+            parentTaskId = newParentId,
+            status = TaskStatus.INBOX,
+            completed = false,
+            completedAt = null,
+            startAt = null,
+            dueAt = null,
+            reminderAt = null,
+            recurrence = RecurrenceFrequency.NONE,
+            recurrenceInterval = 1,
+            recurrenceDays = "",
+            createdAt = now,
+            updatedAt = now,
+        )
+    }
 }
