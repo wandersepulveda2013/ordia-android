@@ -55,6 +55,41 @@ object GuardianCoach {
             val next = TaskRules.nextBestTask(urgent, now)
             return Insight("PROTEGE TU DÍA", next?.title ?: "Prioridad de hoy", "Reserva tiempo para lo más importante antes de llenar la agenda.", next?.id, Tone.FOCUSED)
         }
+        // Recuperación del "olvido silencioso" (isMissedStart, c.201): un
+        // compromiso al que el usuario le dio hueco (`startAt`) y cuyo turno ya
+        // pasó sin atraso de plazo. Es el tercer olvido honesto de Ordía, junto
+        // a las vencidas ([TaskRules.isOverdue]) y las capturas arrinconadas
+        // ([TaskRules.isStaleInbox]); antes esta superficie —la más visible de
+        // recuperación— solo reencuadraba los dos primeros como "RECUPERA EL
+        // CONTROL", y un compromiso olvidado caía a un "SIGUIENTE PASO"
+        // genérico pese a que el asistente ("¿qué olvidé?") y el nudge del
+        // guardián ([com.ordia.app.domain.GuardianEngine.missedStartAction]) sí
+        // lo recuperaban. Simétrico a las vencidas: tono suave si el hueco pasó
+        // hoy/mismo día, FOCUSED ("olvidada") cuando lleva
+        // [FORGOTTEN_DAYS_THRESHOLD] o más días de calendario sin atenderse —el
+        // compromiso se agendó a propósito, así que olvidarlo es señal tan
+        // fuerte como un plazo incumplido—. Va tras la rama de prioridad de hoy
+        // (una deadline de hoy URGENT/ALTA es más crítica que un compromiso cuyo
+        // plazo aún no venció) y antes de la bandeja arrinconada: agendar un
+        // compromiso es una decisión más fuerte que una captura sin fecha, así
+        // que su recuperación prevalece (coherente con [TaskRules.nextBestTask],
+        // que ya ordena isMissedStart por encima de isStaleInbox). nextBestTask
+        // sobre los olvidados asegura no robar el lugar a algo más urgente dentro
+        // de la propia lista. Sin nueva pantalla: reencuadra lo que ya existe.
+        val missedStart = pending.filter { TaskRules.isMissedStart(it, now) }
+        if (missedStart.isNotEmpty()) {
+            val next = TaskRules.nextBestTask(missedStart, now)
+            val mostMissedDays = missedStart.maxOf { missedStartDays(it.startAt, today, zone) }
+            if (mostMissedDays >= FORGOTTEN_DAYS_THRESHOLD) {
+                val ageLabel = forgottenAgeLabel(mostMissedDays)
+                val message = if (missedStart.size == 1)
+                    "Esta tarea tenía su hueco y se pasó hace $ageLabel. Hazla hoy o reagéndala: no la dejes pasar otra vez."
+                else
+                    "Tienes ${missedStart.size} compromisos cuyo hueco pasó y el más antiguo lleva $ageLabel. Elige uno: hacerlo hoy, reagendarlo o quitarlo."
+                return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay un compromiso olvidado", message, next?.id, Tone.FOCUSED)
+            }
+            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay un compromiso pendiente", if (missedStart.size == 1) "Esta tarea tenía su hueco y se pasó. Empieza con un bloque corto o reagéndala." else "Tienes ${missedStart.size} compromisos cuyo hueco pasó. Comienza por este.", next?.id, Tone.GENTLE)
+        }
         val next = TaskRules.nextBestTask(pending, now)
         // Rescate de tareas "olvidadas" SIN fecha: la recuperación solo miraba
         // las vencidas (con dueAt), pero una idea capturada en la bandeja y
@@ -107,4 +142,17 @@ object GuardianCoach {
      */
     private fun overdueDays(dueAt: Long?, today: java.time.LocalDate, zone: ZoneId): Int =
         dueAt?.let { ChronoUnit.DAYS.between(DateRules.toLocalDate(it, zone), today).toInt() } ?: 0
+
+    /**
+     * Días de calendario que un compromiso agendado lleva con el hueco pasado:
+     * cuenta los días completos entre la fecha local de [startAt] y [today],
+     * ambas en la zona del usuario. Simétrico a [overdueDays] (que mide el plazo
+     * incumplido): aquí se mide el hueco incumplido (el "olvido silencioso" de
+     * [TaskRules.isMissedStart]). Devuelve 0 si la tarea no tiene `startAt` o el
+     * hueco pasó hoy (mismo día): aún no es "olvidada", solo tarde. Cuenta
+     * calendario, no millis/24h, para ser correcta sin importar la hora de
+     * consulta y robusta frente a DST —mismo motivo que [overdueDays].
+     */
+    private fun missedStartDays(startAt: Long?, today: java.time.LocalDate, zone: ZoneId): Int =
+        startAt?.let { ChronoUnit.DAYS.between(DateRules.toLocalDate(it, zone), today).toInt().coerceAtLeast(0) } ?: 0
 }

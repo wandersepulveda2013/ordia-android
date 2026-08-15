@@ -207,6 +207,114 @@ class GuardianCoachTest {
         assertTrue(insight.message.contains("3 semanas"))
     }
 
+    // Un compromiso agendado cuyo hueco pasó hace días (sin atraso de plazo) es
+    // el "olvido silencioso" (isMissedStart, c.201): el usuario le dio un hueco y
+    // se le pasó. El coach debe rescatarlo como "RECUPERA EL CONTROL" (igual que
+    // las vencidas y las capturas arrinconadas), no como un "siguiente paso"
+    // genérico. Antes este tercer olvido honesto no se reencuadraba en la
+    // superficie más visible de recuperación, aunque sí lo hacían el asistente
+    // ("¿qué olvidé?") y el nudge del guardián.
+    @Test
+    fun forgottenMissedStartSurfacesAsRecovery() {
+        val missedStart = TaskEntity(
+            id = 1,
+            title = "Llamar al cliente",
+            startAt = DateRules.toEpochMillis(today.minusDays(3), LocalTime.of(9, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(1), LocalTime.of(18, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val insight = GuardianCoach.insight(listOf(missedStart), emptyList(), emptyList(), now, zone)
+
+        assertEquals("RECUPERA EL CONTROL", insight.eyebrow)
+        assertEquals(GuardianCoach.Tone.FOCUSED, insight.tone)
+        assertEquals(1L, insight.taskId)
+        assertTrue(insight.message.contains("3 días"))
+    }
+
+    // Un compromiso cuyo hueco pasó hoy (mismo día) aún no es "olvidado": el
+    // coach lo recupera con tono suave (GENTLE), igual que una vencida del mismo
+    // día, en vez de señalarlo como olvidado.
+    @Test
+    fun recentMissedStartStaysGentle() {
+        val recent = TaskEntity(
+            id = 1,
+            title = "Revisar contrato",
+            startAt = DateRules.toEpochMillis(today, LocalTime.of(8, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(1), LocalTime.of(18, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val insight = GuardianCoach.insight(listOf(recent), emptyList(), emptyList(), now, zone)
+
+        assertEquals("RECUPERA EL CONTROL", insight.eyebrow)
+        assertEquals(GuardianCoach.Tone.GENTLE, insight.tone)
+        assertEquals(1L, insight.taskId)
+    }
+
+    // Un compromiso olvidado (hueco pasado) prevalece sobre una captura
+    // arrinconada de la bandeja: agendarlo lo hace una señal más fuerte de
+    // recuperación que una idea vaga sin fecha. nextBestTask ya ordena
+    // isMissedStart por encima de isStaleInbox; el coach lo respeta.
+    @Test
+    fun missedStartBeatsStaleInboxRecovery() {
+        val missedStart = TaskEntity(
+            id = 1,
+            title = "Compromiso olvidado",
+            startAt = DateRules.toEpochMillis(today.minusDays(3), LocalTime.of(9, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(1), LocalTime.of(18, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val stale = TaskEntity(
+            id = 2,
+            title = "Idea de hace 3 semanas",
+            createdAt = DateRules.toEpochMillis(today.minusDays(21), LocalTime.of(9, 0), zone)
+        )
+        val insight = GuardianCoach.insight(listOf(missedStart, stale), emptyList(), emptyList(), now, zone)
+
+        assertEquals("RECUPERA EL CONTROL", insight.eyebrow)
+        assertEquals(1L, insight.taskId)
+    }
+
+    // Algo que vence hoy y es urgente prevalece sobre el rescate de un compromiso
+    // cuyo hueco pasó (plazo aún no vencido): la deadline de hoy es más crítica.
+    @Test
+    fun dueTodayUrgentBeatsMissedStartRecovery() {
+        val missedStart = TaskEntity(
+            id = 1,
+            title = "Compromiso olvidado",
+            startAt = DateRules.toEpochMillis(today.minusDays(3), LocalTime.of(9, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(1), LocalTime.of(18, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val urgentToday = TaskEntity(
+            id = 2,
+            title = "Llamar proveedor",
+            dueAt = DateRules.toEpochMillis(today, LocalTime.of(15, 0), zone),
+            priority = TaskPriority.URGENT
+        )
+        val insight = GuardianCoach.insight(listOf(missedStart, urgentToday), emptyList(), emptyList(), now, zone)
+
+        assertNotEquals("RECUPERA EL CONTROL", insight.eyebrow)
+        assertEquals(2L, insight.taskId)
+    }
+
+    // La edad del compromiso olvidado usa la misma etiqueta legible que las
+    // vencidas y las capturas: 14 días → "2 semanas".
+    @Test
+    fun missedStartUsesWeeksLabel() {
+        val missedStart = TaskEntity(
+            id = 1,
+            title = "Compromiso muy olvidado",
+            startAt = DateRules.toEpochMillis(today.minusDays(14), LocalTime.of(9, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(1), LocalTime.of(18, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val insight = GuardianCoach.insight(listOf(missedStart), emptyList(), emptyList(), now, zone)
+
+        assertEquals("RECUPERA EL CONTROL", insight.eyebrow)
+        assertEquals(GuardianCoach.Tone.FOCUSED, insight.tone)
+        assertTrue(insight.message.contains("2 semanas"))
+    }
+
     @Test
     fun pendingHabitIsSuggestedWhenTasksAreClear() {
         val habit = HabitEntity(id = 7, title = "Leer diez minutos")
