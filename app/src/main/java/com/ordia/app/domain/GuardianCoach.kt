@@ -41,40 +41,48 @@ object GuardianCoach {
         }
 
         if (overdue.isNotEmpty()) {
-            val next = TaskRules.nextBestTask(overdue, now)
+            val next = TaskRules.nextBestTask(overdue, now, allTasks = tasks)
             return Insight(
                 eyebrow = "RECUPERA EL CONTROL",
-                title = next?.title ?: "Hay algo pendiente",
-                message = if (overdue.size == 1) {
+                title = next?.task?.title ?: "Hay algo pendiente",
+                message = next?.reason ?: if (overdue.size == 1) {
                     "Esta tarea está atrasada. Empieza con un bloque corto y vuelve a poner el día en movimiento."
                 } else {
                     "Tienes ${overdue.size} tareas atrasadas. No intentes resolverlas todas: comienza por esta."
                 },
-                taskId = next?.id,
+                taskId = next?.task?.id,
                 tone = Tone.GENTLE
             )
         }
 
         val urgentToday = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
         if (urgentToday.isNotEmpty()) {
-            val next = TaskRules.nextBestTask(urgentToday, now)
+            val next = TaskRules.nextBestTask(urgentToday, now, allTasks = tasks)
             return Insight(
                 eyebrow = "PROTEGE TU DÍA",
-                title = next?.title ?: "Prioridad de hoy",
-                message = "Es lo más importante para hoy. Reserva tiempo antes de llenar el resto de la agenda.",
-                taskId = next?.id,
+                title = next?.task?.title ?: "Prioridad de hoy",
+                message = next?.reason ?: "Es lo más importante para hoy. Reserva tiempo antes de llenar el resto de la agenda.",
+                taskId = next?.task?.id,
                 tone = Tone.FOCUSED
             )
         }
 
-        val next = TaskRules.nextBestTask(pending, now)
+        val next = TaskRules.nextBestTask(pending, now, allTasks = tasks)
         if (next != null) {
+            val plan = DayPlanner.build(tasks, today, now = now, zone = zone)
+            val availableMins = plan.remainingMinutes
+
+            val durationText = if (availableMins > 0) {
+                "${next.task.durationMinutes} min · tienes $availableMins min libres."
+            } else {
+                "${next.task.durationMinutes} min."
+            }
+
             return Insight(
                 eyebrow = "SIGUIENTE PASO",
-                title = next.title,
-                message = next.details.takeIf { it.isNotBlank() }
-                    ?: "Ordia priorizó esta tarea por fecha, importancia y estado.",
-                taskId = next.id,
+                title = next.task.title,
+                message = next.reason ?: "Haz esto ahora. $durationText",
+                taskId = next.task.id,
                 tone = Tone.FOCUSED
             )
         }
