@@ -21,9 +21,9 @@
 
 - **AI_AUTONOMY actualizado**: `CURRENT_STATE.md` (entrada c.214 en lo alto), `BACKLOG.md` (entrada c.214 FIXED→VERIFIED, continuación del hallazgo c.213), `RUN_LOG.md` (esta entrada).
 
-- **Commits**: `fix(parser): cada hora / cada media hora (medicación sub-diaria sin número) ya no se pierde — primera dosis vence ahora (c.214)` (se detallan hashes tras push).
+- **Commits**: `fix(parser): cada hora / cada media hora (medicación sub-diaria sin número) ya no se pierde — primera dosis vence ahora (c.214)` (`8407c0a`, pusheado al remoto).
 
-- **HEAD final**: (tras commit/push — ver informe final).
+- **HEAD final**: `8407c0a` (rama `openhands/autonomous-ordia`, sincronizado con remoto — verificado `git rev-parse HEAD == origin/openhands/autonomous-ordia`).
 
 - **Estado**: VERIFIED (JVM). P1 parser resuelto: la medicación sub-diaria sin número explícito (`cada hora`, `cada media hora`) capturada YA genera un aviso real (primera dosis vence ahora) con título limpio y sin robo de duración, en vez de desaparecer silenciosamente. Honestidad preservada (no se finge repetición horaria inexistente). Sin nueva pantalla/botón. Cierre del hueco léxico residual de c.213.
 
