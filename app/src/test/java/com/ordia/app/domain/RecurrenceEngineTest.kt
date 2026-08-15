@@ -189,4 +189,60 @@ class RecurrenceEngineTest {
             next.startAt == null || next.startAt <= next.dueAt
         )
     }
+
+    @Test fun monthly_largeStartOffsetCompletedLate_birthsPastSafeStart() {
+        // Simétrico a c.189 (recordatorio de offset grande) pero para el OFFSET DE
+        // INICIO. Una tarea recurrente con un `startAt` MUY anterior al `dueAt`
+        // (antelación mayor que el intervalo de recurrencia, p.ej. empieza 6 semanas
+        // antes del vencimiento mensual) completada TARDE -> la próxima ocurrencia
+        // nace con `startAt = nextDue - startOffset` que cae en el PASADO (porque
+        // startOffset > intervalo a la próxima ocurrencia). Sin past-safe, la nueva
+        // tarea nacería ya como "inicio perdido" (isMissedStart) aunque el usuario
+        // acaba de generarla y aún está dentro de su ventana. Se conserva el offset
+        // EXACTO cuando el instante trasladado es futuro; si no, se reclampa a un
+        // inicio útil (futuro, < due).
+        val dayMs = 24L * 60 * 60_000L
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 8, 15), LocalTime.of(9, 0), zone)
+        val startOffset = 45L * dayMs // 45 días de antelación (mayor que el mes de recurrencia)
+        val start = due - startOffset // ~1 de julio
+        val task = TaskEntity(
+            title = "Proyecto trimestral",
+            startAt = start,
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY
+        )
+        // Completada tarde el 14 (víspera del vencimiento): próxima ocurrencia
+        // 15 de septiembre. startAt trasladado = 15-sep - 45 días = 1-ago, que es
+        // PASADO respecto al 14-ago (completedAt). Debe reclamparse al futuro.
+        val completedAt = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.of(18, 0), zone)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = completedAt, zone = zone))
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertNotNull("La próxima ocurrencia debe conservar un startAt (no perder el intento de inicio)", next.startAt)
+        assertTrue(
+            "El startAt no debe quedar en el pasado (la tarea no debe nacer como inicio perdido)",
+            next.startAt!! > completedAt
+        )
+        assertTrue("El startAt debe preceder al vencimiento (no start>=due)", next.startAt!! < next.dueAt)
+    }
+
+    @Test fun monthly_largeStartOffsetCompletedEarly_keepsExactOffset() {
+        // No-regresión: si el instante trasladado SÍ es futuro, se conserva el
+        // offset de inicio EXACTO del usuario (no se reemplaza por un default).
+        val dayMs = 24L * 60 * 60_000L
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 8, 15), LocalTime.of(9, 0), zone)
+        val startOffset = 5L * dayMs // antelación pequeña: trasladado queda futuro
+        val start = due - startOffset
+        val task = TaskEntity(
+            title = "Proyecto viernes",
+            startAt = start,
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY
+        )
+        // Completada a tiempo el 10: próxima 15-sep, startAt trasladado = 10-sep,
+        // futuro respecto al 10-ago. Se conserva el offset exacto.
+        val completedAt = DateRules.toEpochMillis(LocalDate.of(2026, 8, 10), LocalTime.of(9, 30), zone)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = completedAt, zone = zone))
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals(startOffset, next.dueAt - next.startAt!!)
+    }
 }

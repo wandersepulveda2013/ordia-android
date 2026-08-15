@@ -37,9 +37,23 @@ object RecurrenceEngine {
             translatedReminder > completedAt -> translatedReminder
             else -> ReminderRules.defaultReminderAt(nextDue, completedAt)
         }
+        // Offset de INICIO simétrico al de recordatorio (c.189): el `startAt`
+        // trasladado = `nextDue - startOffset` ("empieza N antes del vencimiento").
+        // Si la antelación es mayor que el intervalo a la próxima ocurrencia (p.ej.
+        // tarea que empieza 6 semanas antes de un vencimiento mensual) y se completó
+        // tarde, el instante trasladado cae en el PASADO y la nueva ocurrencia nacía
+        // como "inicio perdido" (isMissedStart) sin que el usuario la hubiese
+        // empezado todavía. Se conserva el offset exacto cuando el trasladado es
+        // futuro; si no, se reclampa a un inicio útil (futuro, < due).
+        val translatedStart = startOffset?.let { nextDue - it }
+        val resolvedStart = when {
+            translatedStart == null -> null
+            translatedStart > completedAt -> translatedStart
+            else -> pastSafeStart(nextDue, completedAt, startOffset)
+        }
         return task.copy(
             id = 0,
-            startAt = TaskRules.coerceStartAt(startOffset?.let { nextDue - it }, nextDue),
+            startAt = TaskRules.coerceStartAt(resolvedStart, nextDue),
             dueAt = nextDue,
             reminderAt = resolvedReminder,
             status = TaskStatus.PLANNED,
@@ -48,6 +62,24 @@ object RecurrenceEngine {
             createdAt = completedAt,
             updatedAt = completedAt
         )
+    }
+
+    /**
+     * Inicio past-safe para una ocurrencia cuyo `startAt` trasladado quedó en el
+     * pasado. Preserva la antelación preferida del usuario (`preferredLead`) cuando
+     * es posible; si no, reclampa a la mitad del tiempo restante hasta el
+     * vencimiento (piso de 1 min) para que la tarea nazca "a punto de empezar" en
+     * lugar de "ya perdida". Devuelve `null` si no queda ventana útil antes del
+     * vencimiento. Simétrico a [ReminderRules.defaultReminderAt].
+     */
+    private fun pastSafeStart(dueAt: Long, now: Long, preferredLead: Long): Long? {
+        val ideal = dueAt - preferredLead
+        if (ideal > now) return ideal
+        val remaining = dueAt - now
+        if (remaining <= MIN_START_LEAD_MS) return null
+        val lead = minOf(preferredLead, maxOf(MIN_START_LEAD_MS, remaining / 2))
+        val clamped = dueAt - lead
+        return if (clamped > now) clamped else null
     }
 
     private fun advance(base: ZonedDateTime, interval: Long, frequency: RecurrenceFrequency, days: String): ZonedDateTime = when (frequency) {
@@ -108,4 +140,6 @@ object RecurrenceEngine {
         return if (later != null) base.plusDays((later - current).toLong())
         else base.plusWeeks(interval).minusDays((current - days.first()).toLong())
     }
+
+    private const val MIN_START_LEAD_MS = 60_000L
 }
