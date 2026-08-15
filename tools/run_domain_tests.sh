@@ -59,9 +59,9 @@ BACKUP_PURE_SOURCES=(
 # Paquete context: la mayoría de fuentes usan Android (ContextEngine, ContextAuditLog,
 # ContextualSettingsStore, OrdiaNotificationListenerService, etc.). Se enumeran aquí
 # solo las fuentes JVM-puras que tienen tests unitarios verificables sin Android SDK:
-# filtros de privacidad, rate-limiter, analyzer contextual y la política de observación
-# de notificaciones (área de privacidad/contexto). NotificationObservationPolicy depende
-# de ConversationPrivacyPolicy (definido en conversations/CommitmentEngine.kt).
+# filtros de privacidad, rate-limiter y la política de observación de notificaciones
+# (área de privacidad/contexto). NotificationObservationPolicy depende de
+# ConversationPrivacyPolicy (definido en conversations/CommitmentEngine.kt).
 # El subpaquete context/external NO se incluye: sus tests referencian
 # ExternalConfirmationController.SECURE_PACKAGES, fuertemente acoplado a Android
 # (NotificationManager/PackageManager/Context) → queda NO VERIFICADO en JVM pura.
@@ -70,7 +70,6 @@ CONTEXT_PURE_SOURCES=(
   "$CONTEXT_MAIN/ContextEvent.kt"
   "$CONTEXT_MAIN/ContextualSuggestion.kt"
   "$CONTEXT_MAIN/ContextCaptureSource.kt"
-  "$CONTEXT_MAIN/ContextualAnalyzer.kt"
   "$CONTEXT_MAIN/ContextPrivacyFilter.kt"
   "$CONTEXT_MAIN/ContextRateLimiter.kt"
   "$CONTEXT_MAIN/NotificationObservationPolicy.kt"

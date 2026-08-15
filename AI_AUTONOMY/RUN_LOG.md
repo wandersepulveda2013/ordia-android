@@ -1,5 +1,31 @@
 # RUN_LOG — Ordía
 
+## Ciclo 208 — 2026-08-15 (UTC) — refactor(context): elimina `ContextualAnalyzer`, código muerto deprecado (130 líneas) con CERO usos en producción; `ContextEngine` es el pipeline real desde c.202 (P2 NO-parser "eliminar complejidad"/MENOS ES MÁS)
+
+- **Run/ciclo**: 208 (rama `openhands/autonomous-ordia`). HEAD inicial = `15d2d25` (c.207, ya pusheado; sincronizado con remoto). Entorno JVM: kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21. **Sin colisión**: `git fetch origin openhands/autonomous-ordia` → base local == remoto (0 ahead, 0 behind) → ff-only limpio.
+
+- **Problema seleccionado (P2, descubrimiento c.205 → resuelto c.208, área NO-parser "eliminar complejidad"/MENOS ES MÁS)**: `ContextualAnalyzer` (object, 130 líneas) era **código muerto**. Marcado `@Deprecated("Reemplazado por ContextEngine — migrar llamadas al pipeline ContextEngine")` con **CERO usos en código de producción** (`app/src/main`): `grep -rn "ContextualAnalyzer" app/src/main/ | grep -v "class\|object"` → exit 1. Sólo lo referenciaban (a) su propio test `ContextualAnalyzerTest.kt` (4 tests del objeto muerto), (b) el harness JVM `tools/run_domain_tests.sh:73` (que lo compilaba), y (c) una mención histórica en `docs/ORDIA_3_CONTEXT_REBUILD_AUDIT.md`. El pipeline contextual real usa `ContextEngine` (c.202 lo integró y verificó en JVM). Mantener un analyzer paralelo deprecado sin callers añadía complejidad/confusión sin valor: un lector podría pensar que hay dos motores contextuales activos. La regla "MENOS ES MÁS / eliminar complejidad" manda aquí (quitar, no añadir).
+
+- **Causa raíz**: código legacy deprecado no purgado tras la migración a `ContextEngine` (c.202).
+
+- **Solución (cambio mínima, sin nueva pantalla/botón, sin IA fingida — sólo se elimina código muerto)**:
+  - Eliminado `app/src/main/java/com/ordia/app/context/ContextualAnalyzer.kt` (130 líneas).
+  - Eliminado `app/src/test/java/com/ordia/app/context/ContextualAnalyzerTest.kt` (4 tests del objeto muerto — no testeaban nada vivo).
+  - `tools/run_domain_tests.sh`: quitada la línea `"$CONTEXT_MAIN/ContextualAnalyzer.kt"` de `CONTEXT_PURE_SOURCES`; comentario ajustado (ya no menciona "analyzer contextual").
+  - `ContextualKind`/`ContextualSuggestion` (tipo compartido, definido en `ContextualSuggestion.kt`) **intactos** → `OrdiaRoot.kt`/`ContextualSuggestionStore.kt` no se rompen. Verificado: `grep -rn "ContextualAnalyzer" app/src/main/java/com/ordia/app/context/` → exit 1 (sin refs colgadas); compila limpio.
+
+- **Tests**: `bash tools/run_domain_tests.sh` → **1421 PASS** (1425 c.207 − 4 tests del objeto eliminado), 0 failures; `bash tools/run_domain_checks.sh` → smoke 25 OK. Sin errores/warnings de compilación. **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room (sin Android SDK).
+
+- **AI_AUTONOMY actualizado**: `BACKLOG.md` (entrada c.208 P2 RESUELTO en lo alto), `CURRENT_STATE.md` (entrada c.208 en lo alto; ciclos 200-208 cada uno una vez), `RUN_LOG.md` (esta entrada).
+
+- **Commits**: `refactor(context): elimina ContextualAnalyzer, código muerto deprecado (c.208)` (HEAD final tras push).
+
+- **HEAD final**: (tras push) rama `openhands/autonomous-ordia`.
+
+- **Estado**: VERIFIED (JVM). Eliminación de código muerto verificada por compilación limpia + tests verdes (1421 PASS, smoke 25 OK).
+
+- **Próxima prioridad**: descubrimiento continuo — (i) decisión de producto sobre `TaskStatus.CANCELLED` inalcanzable desde la UI (BACKLOG P2 — requiere Android/UI); (ii) deriva de recurrencia ordinal-mes (BACKLOG P1/P2 — requiere campo `TaskEntity` + migración Room); (iii) auditar `DayPlanner`/`AutomationActionPlanner` por si ignoran `isMissedStart` (ítem (i) de c.206 pendiente); (iv) más áreas no-parser (onboarding, navegación, accesibilidad, rendimiento); (v) gaps léxicos del parser restantes (P3). Re-fetch antes de implementar.
+
 ## Ciclo 207 — 2026-08-15 (UTC) — fix(summary): sugerencia de posposición accionable — `SummaryEngine.mostDeferrableTask` ya no nombra como "dejar para mañana" una tarea que `deferToNextDay` no puede ejecutar (startAt-hoy sin dueAt → canDefer=false → consejo pasivo); exige dueAt!=null en el filtro de candidatos (P2 NO-parser "replanificación automática"/"inteligencia honesta"/"MENOS ES MÁS")
 
 - **Run/ciclo**: 207 (rama `openhands/autonomous-ordia`). HEAD inicial = `78ad207` (c.205 docs, ya pusheado; sincronizado con remoto tras `git fetch` → `78ad207..b98a6f3` ff-only = c.206 asistente del run paralelo). Entorno JVM: kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21. **Sin colisión**: el run paralelo c.206 tocó `AssistantEngine`/`AssistantEngineTest` (archivos disjuntos a mi cambio en `SummaryEngine`/`SummaryEngineTest`); integrado vía `git pull --ff-only` (auto-merge limpio, sin conflictos). Base fusionada `b98a6f3` re-verificada.
