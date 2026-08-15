@@ -1,5 +1,6 @@
 package com.ordia.app.conversations
 
+import com.ordia.app.context.ContextPrivacyFilter
 import com.ordia.app.data.local.CommitmentKind
 import com.ordia.app.data.local.CommitmentOwner
 import org.junit.Assert.assertEquals
@@ -225,6 +226,44 @@ class CommitmentEngineTest {
                 "no debe generar compromiso desde contenido sensible: \"$text\"",
                 CommitmentEngine.extract(listOf(ChatMessage("Yo", text)), scopeHash = "privkey").isEmpty()
             )
+        }
+    }
+
+    @Test
+    fun privacyGatesStayInSyncOnSecrets() {
+        // Guarda de regresión estructural (c.287, c.290): dos gates de privacidad
+        // decidían la persistencia de notificaciones (ConversationPrivacyPolicy) y
+        // la lectura de contexto/IME (ContextPrivacyFilter) con listas de patrones
+        // mantenidas A MANO. Dos veces se desincronizaron — el gate de lectura
+        // bloqueaba un tipo de secreto (saldo/IBAN/seed en c.287; claves privadas
+        // cripto en c.290) PERO el de persistencia NO → el secreto se guardaba en
+        // texto plano en la BD de conversaciones. Este test no busca paridad total
+        // (los gates tienen propósitos distintos: el de lectura bloquea además
+        // adultos/violencia/política, que NO deben bloquear la persistencia);
+        // afirma el INVARIANTE MÁS ESTRECHO y crítico: para cada secreto de las
+        // categorías que NUNCA deben persistirse, ambos gates coinciden. Si una
+        // futura edición añade un patrón de secreto a un gate y olvida el otro,
+        // este test falla en la dirección que importa (persistencia desprotegida).
+        val secrets = listOf(
+            "0x4c0883a6940d54b8e6e3f2a9a1b7c3d4e5f60718293a4b5c6d7e8f901a2b3c4d",
+            "4c0883a6940d54b8e6e3f2a9a1b7c3d4e5f60718293a4b5c6d7e8f901a2b3c4d",
+            "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...\n-----END RSA PRIVATE KEY-----",
+            "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNza...\n-----END OPENSSH PRIVATE KEY-----",
+            "frase semilla: abandon ability able about above absent absorb abstract absurd abuse access accident",
+            "mi saldo disponible es 5000 pesos",
+            "te paso el estado de cuenta",
+            "contraseña: hunter2",
+            "código de seguridad 1234"
+        )
+        secrets.forEach { text ->
+            val persist = ConversationPrivacyPolicy.containsSensitiveContent(text)
+            val read = ContextPrivacyFilter.containsSensitiveContent(text)
+            assertEquals(
+                "desincronización de gates de privacidad en secreto \"$text\": persist=$persist read=$read. " +
+                    "Si el gate de persistencia NO bloquea lo que el de lectura SÍ, el secreto se guarda en texto plano (bug c.287/c.290).",
+                persist, read
+            )
+            assertTrue("un secreto conocido dejó de bloquearse en algún gate: \"$text\"", persist && read)
         }
     }
 }
