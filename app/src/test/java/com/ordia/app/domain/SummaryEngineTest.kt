@@ -653,4 +653,55 @@ class SummaryEngineTest {
         assertEquals("ConVenc", sug?.title)
         assertEquals(true, sug?.canDefer)
     }
+
+    @Test
+    fun deferralSuggestion_neverSuggestsMissedStartCommitment() {
+        // now=12:00 → 360 min libres; 4×120=480 > 360 → OVERLOADED.
+        // La LOW (más posponible por prioridad) es un compromiso AGENDADO cuyo
+        // hueco ya pasó (start 09:00, dur 120 → ventana 09:00-11:00 cerrada a
+        // las 12:00). Tiene `dueAt` hoy 23:00 (NO vencido a las 12:00), así que
+        // Pasa el filtro de dueAt accionable (c.207) y NO es vencida: sin el
+        // filtro de olvido sería la sugerida. Es exactamente el "olvido
+        // silencioso" de [TaskRules.isMissedStart]: el usuario le dio hora y se
+        // le pasó. Posponerlo a mañana es RE-OLVIDAR el compromiso que el
+        // guardián (c.201), What Now (c.203) y el asistente "¿qué olvidé?"
+        // (c.206) se esfuerzan en RECUPERAR — el mismo consejo dañino que la
+        // exclusión de vencidas evita ("posponerlas empeora el retraso"). Debe
+        // saltarla y apuntar a la NORMAL posponible.
+        val missedStart = today.atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            task(1, startAt = missedStart, dueAt = at(today, 23), durationMinutes = 120, priority = TaskPriority.LOW, title = "Olvidada"),
+            task(2, dueAt = at(today, 14), durationMinutes = 120, priority = TaskPriority.NORMAL, title = "Posponible"),
+            task(3, dueAt = at(today, 15), durationMinutes = 120, priority = TaskPriority.HIGH, title = "Alta"),
+            task(4, dueAt = at(today, 16), durationMinutes = 120, priority = TaskPriority.URGENT, title = "Urgente")
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+        val sug = s.deferralSuggestion
+        assertEquals(2L, sug?.taskId)
+        assertEquals("Posponible", sug?.title)
+    }
+
+    @Test
+    fun deferralSuggestion_whenOnlyPosponibleIsMissedStart_returnsNull() {
+        // A las 19:00 (pasado jornada) cualquier trabajo restante satura. La única
+        // tarea de hoy posponible SIN ser vencida/en-curso/inminente/sin-dueAt es
+        // un compromiso cuyo hueco ya pasó (start 09:00, dur 60 → 09:00-10:00
+        // cerrado) y con `dueAt` hoy 23:00 (no vencido a las 19:00): pasa el filtro
+        // accionable de c.207, así que sin el filtro de olvido sería sugerida.
+        // No debe sugerirse aplazar un compromiso olvidado: igual que no se sugiere
+        // posponer lo vencido, no se sugiere posponer lo olvidado.
+        val lateNow = today.atTime(19, 0).atZone(zone).toInstant().toEpochMilli()
+        val missedStart = today.atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            task(1, startAt = missedStart, dueAt = at(today, 23), durationMinutes = 60, priority = TaskPriority.LOW, title = "Olvidada")
+        )
+
+        val s = SummaryEngine.summarize(tasks, lateNow, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+        assertEquals(null, s.deferralSuggestion)
+    }
 }

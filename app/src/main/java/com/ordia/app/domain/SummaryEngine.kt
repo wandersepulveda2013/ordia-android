@@ -218,15 +218,20 @@ object SummaryEngine {
      * `dueAt`: la acción "mover a mañana" ([TaskRules.deferToNextDay]) no puede
      * ejecutarla (devuelve null sin vencimiento), así que nombrarla entregaría
      * un consejo no accionable (texto pasivo, sin tap) cuando sí existe otra de
-     * hoy posponible. Entre las de hoy posponibles, ordena por: menor prioridad
-     * (LOW antes que NORMAL antes que HIGH antes que URGENT) → la que MÁS
-     * capacidad libera (`plannedDuration` mayor) → a igual capacidad, la que
-     * vence más tarde hoy (más margen → más segura de aplazar sin riesgo
-     * inminente). El criterio de capacidad es central: el propósito de posponer
-     * bajo OVERLOADED es que el día quepa, y posponer una tarea de 10 min cuando
-     * hay una de 120 min de la misma prioridad deja el día saturado (consejo
-     * inútil); posponer la grande recupera el tiempo que de verdad resuelve la
-     * saturación. No muta nada.
+     * hoy posponible— ni (4) un compromiso agendado cuyo hueco ya pasó
+     * ([TaskRules.isMissedStart]): el usuario le dio hora y se le olvidó;
+     * posponerlo a mañana es RE-OLVIDAR el compromiso que el guardián (c.201),
+     * What Now (c.203) y el asistente "¿qué olvidé?" (c.206) se esfuerzan en
+     * RECUPERAR —mismo principio que la exclusión de vencidas: posponer un
+     * olvido no lo resuelve, lo agrava. Entre las de hoy posponibles, ordena
+     * por: menor prioridad (LOW antes que NORMAL antes que HIGH antes que
+     * URGENT) → la que MÁS capacidad libera (`plannedDuration` mayor) → a igual
+     * capacidad, la que vence más tarde hoy (más margen → más segura de aplazar
+     * sin riesgo inminente). El criterio de capacidad es central: el propósito
+     * de posponer bajo OVERLOADED es que el día quepa, y posponer una tarea de
+     * 10 min cuando hay una de 120 min de la misma prioridad deja el día
+     * saturado (consejo inútil); posponer la grande recupera el tiempo que de
+     * verdad resuelve la saturación. No muta nada.
      */
     private fun mostDeferrableTask(
         remainingTodayTasks: List<TaskEntity>,
@@ -238,7 +243,8 @@ object SummaryEngine {
             task.dueAt != null &&
                 !TaskRules.isOverdue(task, now) &&
                 !TaskRules.isInProgressNow(task, now) &&
-                !TaskRules.isImminentStart(task, now)
+                !TaskRules.isImminentStart(task, now) &&
+                !TaskRules.isMissedStart(task, now)
         }
         if (deferrable.isEmpty()) return null
         val chosen = deferrable.maxWithOrNull(
