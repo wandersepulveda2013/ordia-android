@@ -4,6 +4,7 @@ import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
+import com.ordia.app.data.local.TaskTagCrossRef
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -354,5 +355,77 @@ class SubtaskRulesTest {
     @Test
     fun cloneForDuplicate_emptyListReturnsEmpty() {
         assertEquals(emptyList<TaskEntity>(), SubtaskRules.cloneForDuplicate(emptyList(), 900, 1_700_000_000_000L))
+    }
+
+    // relinkedSubtaskTags: las etiquetas de las subtareas ORIGINALES se
+    // re-enlazan a las COPIAS (recurrencia y duplicado). Sin esto, el padre sí
+    // conservaba sus etiquetas al duplicar, pero los pasos del desglose nacían
+    // sin ninguna —pérdida silenciosa de metadatos categoriales del usuario
+    // ("trabajo", "compras") ciclo a ciclo y al duplicar. Datos sagrados.
+
+    private fun link(taskId: Long, tagId: Long) = TaskTagCrossRef(taskId, tagId)
+
+    @Test
+    fun relinkedSubtaskTags_mapsEachSubtaskTagsToItsNewId() {
+        // Original: sub 2 con etiquetas 100/101, sub 3 con etiqueta 102.
+        // Nuevos ids (mismo orden): 900 (para sub 2), 901 (para sub 3).
+        val subs = listOf(task(2, 1), task(3, 1))
+        val newIds = listOf(900L, 901L)
+        val taskTags = listOf(link(2, 100), link(2, 101), link(3, 102))
+
+        val result = SubtaskRules.relinkedSubtaskTags(subs, newIds, taskTags)
+
+        assertEquals(
+            listOf(link(900, 100), link(900, 101), link(901, 102)),
+            result
+        )
+    }
+
+    @Test
+    fun relinkedSubtaskTags_skipsSubtasksWithoutTags() {
+        // Sub 2 sin etiquetas, sub 3 con una: la copia de sub 2 no recibe nada.
+        val subs = listOf(task(2, 1), task(3, 1))
+        val newIds = listOf(900L, 901L)
+        val taskTags = listOf(link(3, 102))
+
+        val result = SubtaskRules.relinkedSubtaskTags(subs, newIds, taskTags)
+
+        assertEquals(listOf(link(901, 102)), result)
+    }
+
+    @Test
+    fun relinkedSubtaskTags_emptySubtasksReturnsEmpty() {
+        assertEquals(
+            emptyList<TaskTagCrossRef>(),
+            SubtaskRules.relinkedSubtaskTags(emptyList(), emptyList(), listOf(link(2, 100)))
+        )
+    }
+
+    @Test
+    fun relinkedSubtaskTags_ignoresLinksOfOtherTasks() {
+        // Enlaces del propio padre (id 1) o de tareas ajenas no se tocan: solo
+        // se re-enlazan las etiquetas de las subtareas que se clonaron.
+        val subs = listOf(task(2, 1))
+        val newIds = listOf(900L)
+        val taskTags = listOf(link(1, 100), link(2, 200), link(5, 300))
+
+        val result = SubtaskRules.relinkedSubtaskTags(subs, newIds, taskTags)
+
+        assertEquals(listOf(link(900, 200)), result)
+    }
+
+    @Test
+    fun relinkedSubtaskTags_emptyTaskTagsReturnsEmpty() {
+        val subs = listOf(task(2, 1))
+        val newIds = listOf(900L)
+        assertEquals(
+            emptyList<TaskTagCrossRef>(),
+            SubtaskRules.relinkedSubtaskTags(subs, newIds, emptyList())
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun relinkedSubtaskTags_rejectsSizeMismatch() {
+        SubtaskRules.relinkedSubtaskTags(listOf(task(2, 1), task(3, 1)), listOf(900L), emptyList())
     }
 }

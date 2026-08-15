@@ -509,7 +509,12 @@ class OrdiaViewModel(
                         // heredada (ver SubtaskRules.cloneForNextOccurrence).
                         val subs = taskRepository.subtasks(current.id)
                         if (subs.isNotEmpty()) {
-                            taskRepository.addAll(SubtaskRules.cloneForNextOccurrence(subs, nextId, now))
+                            val ids = taskRepository.addAll(SubtaskRules.cloneForNextOccurrence(subs, nextId, now))
+                            // Las etiquetas de las subtareas renacen en sus copias
+                            // (c.236): igual que projectId/flagged, son metadatos
+                            // categoriales del usuario y se perdían cada ciclo.
+                            SubtaskRules.relinkedSubtaskTags(subs, ids, uiState.value.taskTags)
+                                .forEach { tagRepository.link(it.taskId, it.tagId) }
                         }
                     }
                 } else if (updated.reminderAt != null || updated.dueAt != null) reminderScheduler.schedule(updated)
@@ -576,7 +581,10 @@ class OrdiaViewModel(
             // desglose renace abierto en la próxima ocurrencia.
             val subs = taskRepository.subtasks(before.id)
             if (subs.isNotEmpty()) {
-                taskRepository.addAll(SubtaskRules.cloneForNextOccurrence(subs, nextId, now))
+                val ids = taskRepository.addAll(SubtaskRules.cloneForNextOccurrence(subs, nextId, now))
+                // Mismo re-enlace de etiquetas que toggleTask (c.236).
+                SubtaskRules.relinkedSubtaskTags(subs, ids, uiState.value.taskTags)
+                    .forEach { tagRepository.link(it.taskId, it.tagId) }
             }
         }
         val logId = automationLogRepository.insert(
@@ -633,6 +641,11 @@ class OrdiaViewModel(
                 clones.zip(ids).forEach { (s, sid) ->
                     if (s.reminderAt != null) reminderScheduler.schedule(s.copy(id = sid))
                 }
+                // Las etiquetas de las subtareas se copian a sus duplicados
+                // (c.236): el padre ya las conservaba, pero los pasos nacían
+                // sin ninguna —inconsistencia con la estructura preservada.
+                SubtaskRules.relinkedSubtaskTags(subs, ids, uiState.value.taskTags)
+                    .forEach { tagRepository.link(it.taskId, it.tagId) }
             }
             if (copy.reminderAt != null || copy.dueAt != null) reminderScheduler.schedule(copy.copy(id = id))
             updateWidget()

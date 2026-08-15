@@ -3,6 +3,7 @@ package com.ordia.app.domain
 import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskStatus
+import com.ordia.app.data.local.TaskTagCrossRef
 
 /**
  * Reglas de subtareas: progreso, autocompletado del padre cuando se cierra
@@ -162,5 +163,45 @@ object SubtaskRules {
             createdAt = now,
             updatedAt = now,
         )
+    }
+
+    /**
+     * Etiquetas que hay que re-enlazar a las copias de las subtareas tras una
+     * clonación ([cloneForNextOccurrence] / [cloneForDuplicate]).
+     *
+     * Sin esto, duplicar una tarea con desglose —o completar una recurrente con
+     * desglose— perdía las etiquetas de las SUBTAREAS: el padre sí las
+     * conservaba (`tagsForTask` en el duplicado), pero las copias de los pasos
+     * nacían sin ninguna. Las etiquetas son metadatos categoriales del usuario
+     * ("trabajo", "compras"), no planificación temporal: pertenecen a la misma
+     * familia de campos estructurales que ambas clonaciones YA preservan
+     * (`projectId`, `flagged`, `priority`…), así que re-enlazarlas cierra la
+     * asimetría. Es "datos sagrados": el usuario las asignó a propósito y se
+     * perdían en silencio ciclo a ciclo y al duplicar.
+     *
+     * Recibe las subtareas ORIGINALES (en el mismo orden en que se pasaron a la
+     * clonación), los NUEVOS ids devueltos por `addAll` (mismo orden) y los
+     * enlaces `taskTags` vigentes. Devuelve un [TaskTagCrossRef] por cada
+     * etiqueta de cada subtarea original, con `taskId` = nuevo id y `tagId` =
+     * etiqueta original (las etiquetas son entidades globales, no se clonan).
+     * Regla pura y determinista; el llamador persiste los enlaces. No muta.
+     */
+    fun relinkedSubtaskTags(
+        originalSubtasks: List<TaskEntity>,
+        newIds: List<Long>,
+        taskTags: List<TaskTagCrossRef>
+    ): List<TaskTagCrossRef> {
+        require(originalSubtasks.size == newIds.size) {
+            "originalSubtasks y newIds deben tener el mismo tama\u00f1o"
+        }
+        if (originalSubtasks.isEmpty()) return emptyList()
+        val linksByTask = taskTags.groupBy { it.taskId }
+        return buildList {
+            originalSubtasks.zip(newIds).forEach { (orig, newId) ->
+                linksByTask[orig.id]?.forEach { link ->
+                    add(TaskTagCrossRef(newId, link.tagId))
+                }
+            }
+        }
     }
 }
