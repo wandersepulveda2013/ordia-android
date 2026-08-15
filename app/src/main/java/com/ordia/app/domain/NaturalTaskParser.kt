@@ -885,23 +885,37 @@ object NaturalTaskParser {
         Regex("""(?i)\b($writtenAmountPattern|\d{1,3})\s+cuartos\s+de\s+hora(?:\s+y\s+cuarto)?\b""")
 
     /**
-     * Rango horario "de H1[MM] [meridiem] a H2[MM] [meridiem] [horas]" (citas, clases,
+     * Rango horario "de H1[MM] [meridiem] [horas] a H2[MM] [meridiem] [horas]" (citas, clases,
      * reuniones con ventana). Implica duración = (fin − inicio) en minutos y se elimina
-     * del título. Cada extremo admite minutos (`9:30`) y meridiem (`9am`, `9 de la tarde`)
-     * además de la forma en punto (`9`).
+     * del título. Cada extremo admite minutos (`9:30`), meridiem (`9am`, `9 de la tarde`),
+     * sufijo de unidad (`9h`/`9hs`/`9 horas`) y la forma en punto (`9`).
+     *
+     * El sufijo de unidad por extremo (c.247) es simétrico del reloj "HH:MMh" (c.235) y del
+     * "a las Nh" (c.245): antes SOLO se admitía la unidad FINAL ("de 9 a 11 horas"). Formas
+     * cotidianas como "9h a 11h", "9hs a 11hs" o "9 horas a 11 horas" rompían el patrón
+     * (el sufijo inicial no es meridiem ni separador) y, peor, "9 horas" era robado como
+     * duración falsa (540 min) con el rango perdido → dato falseado. Ahora cada extremo
+     * lleva una unidad NO capturante; la presencia de unidad se detecta escaneando el
+     * emparejamiento completo con `rangeUnitToken` (límites de palabra, para no confundir
+     * la "h" de "hola"/"hoy") en vez de un grupo fijo, así basta una unidad en cualquier
+     * extremo como evidencia de reloj.
      *
      * Para no falsear datos (p. ej. "comprar de 2 a 5 entradas") solo se acepta cuando hay
-     * evidencia de horario: unidad final ("horas"/"hs"/"h"), minutos en algún extremo
-     * (`:30`, inequívoco de reloj), meridiem explícito, o alguna hora >= 13 (24h). Sin esa
-     * evidencia, el rango en punto y ambiguo (<13) requiere además que no le siga un
-     * sustantivo de cantidad (ver `followedByCount`). Antes solo se capturaban horas en
-     * punto: "clase de 9:30 a 11" casaba `30 a 11` con números equivocados → `dur=null`
-     * y título sucio. No fija hora de inicio (ambigua sin contexto); solo la duración.
+     * evidencia de horario: unidad en algún extremo ("horas"/"hs"/"h"), minutos en algún
+     * extremo (`:30`, inequívoco de reloj), meridiem explícito, o alguna hora >= 13 (24h).
+     * Sin esa evidencia, el rango en punto y ambiguo (<13) requiere además que no le siga un
+     * sustantivo de cantidad (ver `followedByCount`). No fija hora de inicio (ambigua sin
+     * contexto); solo la duración.
      *
-     * Grupo 1/2/3 = hora/minuto/meridiem del INICIO; 4/5/6 = fin; 7 = "horas" opcional.
+     * Grupo 1/2/3 = hora/minuto/meridiem del INICIO; 4/5/6 = fin. Las unidades por extremo
+     * son NO capturantes (no alteran los índices 1-6 que consumen [rangeMatch] y
+     * [rangeStartTime]); la evidencia de unidad se obtiene vía [rangeUnitToken].
      */
     private val timeRangePattern =
-        Regex("""(?i)\b(?:de\s+)?(\d{1,2})(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?\s*(?:a|-)\s*(\d{1,2})(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s*((?:horas?|hs|h)))?\b""")
+        Regex("""(?i)\b(?:de\s+)?(\d{1,2})(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s*(?:horas?|hs|h))?\s*(?:a|-)\s*(\d{1,2})(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s*(?:horas?|hs|h))?\b""")
+
+    /** Token de unidad horaria ("h"/"hs"/"hora"/"horas") acotado por límites de palabra. */
+    private val rangeUnitToken = Regex("""(?i)(?:\bhoras?\b|\bhs\b|\bh\b)""")
 
     /** "urgente" como palabra inicial, para detección de prioridad sin prefijo. */
     private val leadingUrgentPattern = Regex("""(?i)^urgente\b""")
@@ -2161,7 +2175,7 @@ object NaturalTaskParser {
             val endH = m.groupValues[4].toIntOrNull()
             val endM = m.groupValues[5].toIntOrNull() ?: 0
             val endMer = m.groupValues[6].lowercase().replace(".", "").replace(" ", "")
-            val hasUnit = m.groupValues[7].isNotEmpty()
+            val hasUnit = rangeUnitToken.containsMatchIn(m.value)
             val startPm = startMer == "pm" || startMer == "delatarde" || startMer == "delanoche"
             val endPm = endMer == "pm" || endMer == "delatarde" || endMer == "delanoche"
             // Propagación de meridiem: si SOLO un extremo lleva un meridiem PM, el otro
