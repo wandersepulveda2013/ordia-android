@@ -25,7 +25,7 @@ object ContextPrivacyFilter {
     )
 
     private val blockedContentPatterns = listOf(
-        Regex("""\b(contraseña|contrasena|password|passwd|pwd|clave|pin)\b""", RegexOption.IGNORE_CASE),
+        Regex("""\b(contraseña|contrasena|password|passwd|pwd|clave|pin|nip)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(otp|2fa|two.?factor|verificación|verificacion|código de acceso|codigo de acceso)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(cvv|cvc|código de seguridad|codigo de seguridad|número de tarjeta|numero de tarjeta|card number)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(número de cuenta|numero de cuenta|account number|clabe|iban|swift|cédula|cedula)\b""", RegexOption.IGNORE_CASE),

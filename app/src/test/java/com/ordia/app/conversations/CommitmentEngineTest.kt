@@ -199,7 +199,12 @@ class CommitmentEngineTest {
             "Te envío el informe mañana",
             "Nos vemos el viernes a las 3",
             "Reunion en la oficina a las 10",
-            "Te llamo despues para coordinar"
+            "Te llamo despues para coordinar",
+            // c.292: "clave" en peludo sin secreto numérico cercano NO debe bloquearse
+            // (falso positivo → pérdida de chat legítimo). El otpCode exige dígitos.
+            "la clave del éxito es la constancia",
+            "me dio la clave para resolverlo",
+            "vamos en clave de tranquilidad"
         )
         innocent.forEach { text ->
             assertFalse("no debería bloquearse (falso positivo): \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
@@ -253,7 +258,12 @@ class CommitmentEngineTest {
             "mi saldo disponible es 5000 pesos",
             "te paso el estado de cuenta",
             "contraseña: hunter2",
-            "código de seguridad 1234"
+            "código de seguridad 1234",
+            // c.292: credenciales cortas que antes persistían en texto plano.
+            "Tu clave temporal es 4821",
+            "tu clave bancaria: 9182",
+            "tu pwd de acceso es ab12cd",
+            "tu nip del cajero es 4821"
         )
         secrets.forEach { text ->
             val persist = ConversationPrivacyPolicy.containsSensitiveContent(text)
@@ -264,6 +274,32 @@ class CommitmentEngineTest {
                 persist, read
             )
             assertTrue("un secreto conocido dejó de bloquearse en algún gate: \"$text\"", persist && read)
+        }
+    }
+
+    @Test
+    fun blocksShortCredentialsThatEscapedNotificationsGate() {
+        // Credenciales cortas (PIN/NIP/contraseña) que llegan por SMS/mensajería
+        // (paquete no bancario) y cuyo valor es un secreto de 4-8 dígitos o una
+        // cadena alfanumérica corta. Antes de c.292 escapaban al gate de
+        // persistencia: "clave temporal 4821" no es "clave de
+        // acceso/seguridad/verificación" (única forma de "clave" que el gate
+        // reconocía) y "pwd"/"nip" no estaban en su lista. El gate de lectura
+        // (ContextPrivacyFilter) SÍ los bloqueaba → el secreto se guardaba en texto
+        // plano en la BD de conversaciones. Misma clase de fuga que c.287/c.290.
+        val leaks = listOf(
+            "Tu clave temporal es 4821",
+            "tu clave bancaria: 9182",
+            "tu pwd de acceso es ab12cd",
+            "tu nip del cajero es 4821",
+            "te paso el nip 7362"
+        )
+        leaks.forEach { text ->
+            assertTrue("debería bloquearse como sensible: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
+            assertTrue(
+                "no debe generar compromiso desde contenido sensible: \"$text\"",
+                CommitmentEngine.extract(listOf(ChatMessage("Yo", text)), scopeHash = "cred").isEmpty()
+            )
         }
     }
 }

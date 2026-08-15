@@ -32,8 +32,17 @@ object ConversationPrivacyPolicy {
     // ya las bloqueaba, pero este gate (el que decide si una notificación se persiste
     // en la BD de conversaciones) NO → una clave privada recibida por SMS quedaba en
     // texto plano. Misma clase de fuga que c.287 cerró para seed phrases.
+    //
+    // c.292: credenciales cortas (PIN/NIP/contraseña) que el gate de lectura bloquea
+    // pero este NO. Un SMS "tu clave temporal es 4821" o "tu pwd de acceso es ab12cd"
+    // pasaba el gate de persistencia: "clave temporal" no es "clave de
+    // acceso/seguridad/verificación" (patrón 2) y el otpCode sólo miraba
+    // código/otp/verificación. La pareja "clave" + secreto numérico cercano, "pwd" en
+    // peludo y "nip" (PIN en español de México, sinónimo exacto de "pin" que ya
+    // bloqueábamos) se guardaban en texto plano en la BD de conversaciones. Cierre
+    // simétrico con ContextPrivacyFilter, en la dirección que protege la persistencia.
     private val sensitivePatterns = listOf(
-        Regex("""(?i)\b(?:contrase(?:ña|na)|password|passwd|pin|cvv|cvc|token\s+bancario)\b"""),
+        Regex("""(?i)\b(?:contrase(?:ña|na)|password|passwd|pwd|pin|nip|cvv|cvc|token\s+bancario)\b"""),
         Regex("""(?i)\b(?:c[oó]digo|clave)\s+(?:de\s+)?(?:verificaci[oó]n|seguridad|acceso)\b"""),
         Regex("""(?i)\b(?:otp|2fa|autenticaci[oó]n\s+de\s+dos\s+pasos)\b"""),
         Regex("""\b(?:\d[ -]?){13,19}\b"""),
@@ -43,7 +52,12 @@ object ConversationPrivacyPolicy {
         Regex("""-----BEGIN [A-Z ]*PRIVATE KEY-----""", RegexOption.IGNORE_CASE),
         Regex("""\b(?:0x)?[0-9a-f]{64}\b""", RegexOption.IGNORE_CASE)
     )
-    private val otpCode = Regex("""(?i)\b(?:c[oó]digo|otp|verificaci[oó]n)\D{0,20}\d{4,8}\b""")
+    // "clave temporal/bancaria 4821" no entra en el patrón 2 (no es "de acceso/") pero
+    // sí es un PIN: lo capturamos como otpCode. Añadir "clave" en peludo al patrón 1
+    // bloquearía "la clave del éxito" (falso positivo → pérdida de chat legítimo), así
+    // que aquí sólo la casamos cuando un secreto numérico corto la acompaña. Igual que
+    // con código/otp/verificación: la palabra + hasta 20 no-dígitos + 4-8 dígitos.
+    private val otpCode = Regex("""(?i)\b(?:c[oó]digo|otp|verificaci[oó]n|clave)\D{0,20}\d{4,8}\b""")
 
     fun containsSensitiveContent(text: String): Boolean =
         sensitivePatterns.any { it.containsMatchIn(text) } || otpCode.containsMatchIn(text)
