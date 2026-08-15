@@ -3261,6 +3261,46 @@ class NaturalTaskParserTest {
         assertEquals(120, result.durationMinutes)
     }
 
+    // Rango con sufijo de unidad COMPACTO "h"/"hs" en cada extremo ("9h a 11h",
+    // "9hs a 11hs"). Es la forma simétrica del reloj "HH:MMh"/"a las Nh" (c.235/c.245):
+    // antes el sufijo por extremo no se admitía y el rango caía (dur=null, título sucio).
+    @Test fun rangeWithCompactUnitPerBoundParsesDuration() {
+        val result = NaturalTaskParser.parse("Clase de 9h a 11h", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    @Test fun rangeWithHsUnitPerBoundParsesDuration() {
+        val result = NaturalTaskParser.parse("Clase de 9hs a 11hs", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    // "9 horas a 11 horas": sufijo de palabra completa en cada extremo. Antes el extremo
+    // inicial "9 horas" rompía el patrón (no es meridiem) y, peor, "9 horas" era robado
+    // como duración falsa (540 min) con el rango perdido.
+    @Test fun rangeWithWordUnitPerBoundParsesDuration() {
+        val result = NaturalTaskParser.parse("Clase de 9 horas a 11 horas", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    // Unidad sólo en el extremo inicial ("9h a 11"): también es evidencia de reloj.
+    @Test fun rangeWithLeadingCompactUnitParsesDuration() {
+        val result = NaturalTaskParser.parse("Clase de 9h a 11", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
+    // Seguridad (c.247): la detección de unidad por escaneo usa límites de palabra, así
+    // que la "h" inicial de palabras como "hola"/"hoy"/"hablar" tras un rango <13 sin
+    // unidad NO se confunde con "h" horaria. Sigue siendo cantidad, no rango horario.
+    @Test fun rangeDoesNotStealWordInitialHAsUnit() {
+        val result = NaturalTaskParser.parse("Comprar de 2 a 5 helados", now, zone)
+        assertEquals("Comprar de 2 a 5 helados", result.title)
+        assertNull(result.durationMinutes)
+    }
+
     @Test fun rangeDoesNotFalsePositiveOnItemCount() {
         // "de 2 a 5 entradas": sin unidad y ambas < 13 → NO es rango horario.
         val result = NaturalTaskParser.parse("Comprar de 2 a 5 entradas", now, zone)

@@ -143,18 +143,37 @@ object SummaryEngine {
         val weekDailyAverage = completedThisWeek / 7f
 
         // El veredicto de carga compara el trabajo REAL que compite por el tiempo
-        // que queda de jornada: el de hoy MÁS las vencidas (una tarea vencida
-        // sigue sin hacerse y consume la misma jornada finita). Se toma la unión
-        // de hoy + vencidas (por id) para no contar dos veces una tarea que es a
-        // la vez "de hoy" (dueAt hoy pero ya pasada la hora) y "vencida". Cada
-        // tarea aporta solo lo que falta ([TaskRules.remainingPlanMinutes]): una en curso
-        // ya no suma su duración completa, solo el tiempo restante, igual que
-        // `freeMinutes` solo cuenta desde ahora (no doble-contar lo ya gastado).
-        val loadMinutes = (remainingTodayTasks + overdueTasks)
+        // que queda de jornada: el de hoy MÁS las vencidas MÁS los olvidos
+        // silenciosos (missed-start). Una tarea vencida sigue sin hacerse y
+        // consume la misma jornada finita; un compromiso olvidado cuyo hueco
+        // (startAt) ya pasó pero que aún no vence (dueAt futuro) es lo mismo: el
+        // planificador (DayPlanner, c.246) ya lo recupera en el plan de hoy, así
+        // que si el veredicto lo ignorara diría "ON_TRACK" mientras el plan
+        // agendaba el trabajo olvidado — dos verdades divergentes. Se toma la
+        // unión de hoy + vencidas + olvidos (por id) para no contar dos veces:
+        // un olvidado tiene dueAt futuro → no está en remainingToday (que pide
+        // dueAt/startAt hoy) ni en overdue (que pide isOverdue), y un vencido no
+        // es olvidado (isMissedStart excluye isOverdue), así que los tres
+        // conjuntos son disjuntos. Cada tarea aporta solo lo que falta
+        // ([TaskRules.remainingPlanMinutes]): una en curso ya no suma su duración
+        // completa, solo el tiempo restante, igual que `freeMinutes` solo cuenta
+        // desde ahora (no doble-contar lo ya gastado). El olvido NO suma en
+        // `remainingToday`/`remainingMinutesToday`: esas métricas son "lo de hoy"
+        // (la badge "te quedan N min hoy" refleja solo hoy), igual que las
+        // vencidas no inflan dicha badge. Solo el veredicto de carga considera el
+        // trabajo olvidado, porque es trabajo que el plan ya ubicó hoy.
+        val missedStartTasks = tasks.filter { task ->
+            task.parentTaskId == null && active(task) && TaskRules.isMissedStart(task, now)
+        }
+        val loadMinutes = (remainingTodayTasks + overdueTasks + missedStartTasks)
             .distinctBy { it.id }
             .sumOf { TaskRules.remainingPlanMinutes(it, now) }
         val dayLoad = assessDayLoad(loadMinutes, now, zone, dayStartMinute, dayEndMinute)
         val deferralSuggestion = if (dayLoad == DayLoad.OVERLOADED) {
+            // Cuando el olvido satura el día, la sugerencia nombra una tarea de
+            // hoy posponible (no vencida, no olvidada): mostDeferrableTask ya
+            // excluye missed-start ("posponer un olvido lo agrava"), igual que
+            // excluye vencidas. El culpable (el olvido) no se aplaza; se hace.
             mostDeferrableTask(remainingTodayTasks, now)
         } else null
 
