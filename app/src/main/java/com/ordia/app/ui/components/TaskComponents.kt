@@ -48,6 +48,8 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.TaskRules
+import com.ordia.app.ui.theme.SemanticAlert
+import com.ordia.app.ui.theme.SemanticFocus
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -63,11 +65,8 @@ fun TaskRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val priorityColor = priorityAccent(task.priority)
-    Card(
-        modifier = modifier.fillMaxWidth().combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true }),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    OrdiaCard(
+        modifier = modifier.combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true })
     ) {
         Row(
             Modifier.fillMaxWidth(),
@@ -76,11 +75,11 @@ fun TaskRow(
             // Colored accent rail — encodes priority for quick scanning.
             Box(
                 Modifier
-                    .width(5.dp)
-                    .height(46.dp)
-                    .background(priorityColor, RoundedCornerShape(topEnd = 3.dp, bottomEnd = 3.dp))
+                    .width(4.dp)
+                    .height(36.dp)
+                    .background(priorityColor, RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
             )
-            Row(Modifier.fillMaxWidth().padding(end = 10.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().padding(end = 12.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = task.completed, onCheckedChange = { onToggle() })
             Column(Modifier.weight(1f).padding(start = 2.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -132,8 +131,8 @@ fun PriorityPill(text: String) {
 
 @Composable
 private fun priorityAccent(priority: TaskPriority): androidx.compose.ui.graphics.Color = when (priority) {
-    TaskPriority.URGENT -> MaterialTheme.colorScheme.error
-    TaskPriority.HIGH -> Color(0xFFC98A2B)
+    TaskPriority.URGENT -> SemanticAlert
+    TaskPriority.HIGH -> SemanticFocus
     TaskPriority.NORMAL -> MaterialTheme.colorScheme.outlineVariant
     TaskPriority.LOW -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
 }
