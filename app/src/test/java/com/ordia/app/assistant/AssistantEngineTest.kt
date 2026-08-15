@@ -6,6 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 
 class AssistantEngineTest {
@@ -486,6 +487,105 @@ class AssistantEngineTest {
         )
         assertTrue("nombra la de esta semana: ${answer.text}", answer.text.contains("Médico"))
         assertTrue("no incluye la de la próxima: ${answer.text}", !answer.text.contains("Próxima semana"))
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+    }
+
+    // ---- Veredicto del día a demanda ("¿voy bien?"/"¿da tiempo a todo?") ----
+    //
+    // Ordía YA calcula el veredicto del día (SummaryEngine.dayLoad:
+    // LIGHT/ON_TRACK/FULL/OVERLOADED) y, bajo OVERLOADED, nombra la tarea de
+    // hoy más posponible (deferralSuggestion). Pero esa inteligencia sólo
+    // estaba en la tarjeta de resumen: el asistente a demanda caía al mensaje
+    // genérico. Estos tests anclan que preguntar "¿voy bien?" / "¿da tiempo a
+    // todo?" / "¿tengo mucho que hacer?" expone ese veredicto (y, cuando el día
+    // no da para más, nombra QUÉ mover a mañana en vez de dejar al usuario
+    // mirando una agenda saturada sin saber qué soltar).
+
+    private val dayZone = ZoneId.of("America/Santo_Domingo")
+    private val dayToday = LocalDate.of(2026, 7, 29)
+
+    private fun dayAt(date: LocalDate, hour: Int): Long =
+        date.atTime(hour, 0).atZone(dayZone).toInstant().toEpochMilli()
+
+    @Test fun dayLoad_onTrack_saysGoingWell() {
+        // 9:00 → 540 min libres; 90 min de hoy → ON_TRACK (cabe con holgura).
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿voy bien hoy?",
+            listOf(
+                TaskEntity(id = 1, title = "A", dueAt = dayAt(dayToday, 11), durationMinutes = 45),
+                TaskEntity(id = 2, title = "B", dueAt = dayAt(dayToday, 15), durationMinutes = 45)
+            ),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("explica que va con holgura: ${answer.text}", answer.text.contains("holgura"))
+    }
+
+    @Test fun dayLoad_full_saysDayIsFull() {
+        // 12:00 → 360 min libres; 60 de hoy + 240 vencidas = 300 → FULL (180<300≤360).
+        val now = dayAt(dayToday, 12)
+        val answer = AssistantEngine.answer(
+            "¿da tiempo a todo?",
+            listOf(
+                TaskEntity(id = 1, title = "Hoy", dueAt = dayAt(dayToday, 17), durationMinutes = 60),
+                TaskEntity(id = 2, title = "Vencida1", dueAt = dayAt(dayToday.minusDays(1), 9), durationMinutes = 120),
+                TaskEntity(id = 3, title = "Vencida2", dueAt = dayAt(dayToday.minusDays(2), 9), durationMinutes = 120)
+            ),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("explica que el día está lleno/justo: ${answer.text}",
+            answer.text.contains("lleno") || answer.text.contains("justo"))
+    }
+
+    @Test fun dayLoad_overloaded_namesDeferralCandidate() {
+        // 12:00 → 360 libres. 1 tarea LOW de hoy (60) + 5 vencidas de 120 →
+        // OVERLOADED; la sugerencia nombra la de hoy (no vencida) para mover.
+        val now = dayAt(dayToday, 12)
+        val answer = AssistantEngine.answer(
+            "tengo mucho que hacer",
+            listOf(
+                TaskEntity(id = 1, title = "Posponerme", dueAt = dayAt(dayToday, 17), durationMinutes = 60, priority = TaskPriority.LOW),
+                TaskEntity(id = 2, title = "V1", dueAt = dayAt(dayToday.minusDays(1), 9), durationMinutes = 120),
+                TaskEntity(id = 3, title = "V2", dueAt = dayAt(dayToday.minusDays(2), 9), durationMinutes = 120),
+                TaskEntity(id = 4, title = "V3", dueAt = dayAt(dayToday.minusDays(3), 9), durationMinutes = 120),
+                TaskEntity(id = 5, title = "V4", dueAt = dayAt(dayToday.minusDays(4), 9), durationMinutes = 120),
+                TaskEntity(id = 6, title = "V5", dueAt = dayAt(dayToday.minusDays(5), 9), durationMinutes = 120)
+            ),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("dice que no da tiempo a todo: ${answer.text}", answer.text.contains("no da tiempo") || answer.text.contains("No da tiempo"))
+        assertTrue("nombra la candidata a posponer: ${answer.text}", answer.text.contains("Posponerme"))
+        assertEquals("relaciona exactamente la tarea sugerida", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun dayLoad_light_saysDayIsClear() {
+        // Sin trabajo que compita por la jornada → LIGHT.
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿voy bien hoy?",
+            emptyList(),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("dice que el día está despejado: ${answer.text}", answer.text.contains("despejado"))
+    }
+
+    @Test fun dayLoad_doesNotSwallowOrganizeDayIntent() {
+        // Regresión: el nuevo intent de carga no debe robar "organiza mi día".
+        val answer = AssistantEngine.answer("organiza mi día", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_PLANNER, answer.action)
+    }
+
+    @Test fun dayLoad_doesNotSwallowWhatNowIntent() {
+        // Regresión: "¿qué hago ahora?" sigue dando la siguiente tarea, no el veredicto.
+        val answer = AssistantEngine.answer(
+            "¿Qué hago ahora?",
+            listOf(TaskEntity(id = 1, title = "Urgente", priority = TaskPriority.URGENT)),
+            emptyList(), emptyList()
+        )
         assertEquals(listOf(1L), answer.relatedTaskIds)
     }
 }

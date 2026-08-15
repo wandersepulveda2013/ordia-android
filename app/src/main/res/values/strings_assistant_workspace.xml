@@ -14,6 +14,7 @@
     <string name="assistant_prompt_now">¿Qué hago ahora?</string>
     <string name="assistant_prompt_overdue">¿Qué olvidé?</string>
     <string name="assistant_prompt_minimal">Plan mínimo para hoy</string>
+    <string name="assistant_prompt_dayload">¿Da tiempo a todo?</string>
     <string name="assistant_field">¿En qué te ayudo?</string>
     <string name="assistant_ask">Preguntar</string>
     <string name="assistant_action_planner">Abrir planificación</string>

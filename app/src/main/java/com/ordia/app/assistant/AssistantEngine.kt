@@ -5,6 +5,9 @@ import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.domain.DateRules
+import com.ordia.app.domain.DayLoad
+import com.ordia.app.domain.LearningProfile
+import com.ordia.app.domain.SummaryEngine
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.domain.WhatNowEngine
 import com.ordia.app.domain.foldForSearch
@@ -29,7 +32,8 @@ object AssistantEngine {
         conversations: List<ConversationEntity>,
         commitments: List<CommitmentEntity>,
         now: Long = System.currentTimeMillis(),
-        zone: ZoneId = ZoneId.systemDefault()
+        zone: ZoneId = ZoneId.systemDefault(),
+        profile: LearningProfile? = null
     ): AssistantAnswer {
         val clean = request.trim().take(2_000)
         val query = clean.foldForSearch()
@@ -52,6 +56,7 @@ object AssistantEngine {
                     AssistantAction.OPEN_PLANNER
                 )
             }
+            isDayLoadQuery(query) -> dayLoadAnswer(tasks, now, zone, profile)
             "que hago ahora" in query || "siguiente accion" in query -> {
                 val suggestion = WhatNowEngine.suggest(active, now)
                 if (suggestion == null) {
@@ -240,5 +245,67 @@ object AssistantEngine {
         val due = task.dueAt ?: return false
         val d = Instant.ofEpochMilli(due).atZone(zone).toLocalDate()
         return d >= start && d <= end
+    }
+
+    /**
+     * "¿Voy bien?" / "¿Da tiempo a todo?" / "¿Tengo mucho que hacer?" — el
+     * veredicto del día a demanda. Ordía YA calcula si el trabajo restante cabe
+     * en la jornada ([SummaryEngine.dayLoad]: LIGHT/ON_TRACK/FULL/OVERLOADED) y,
+     * cuando no cabe, nombra la tarea de hoy más posponible
+     * ([SummaryEngine.deferralSuggestion]). Pero esa inteligencia sólo vivía en
+     * la tarjeta de resumen: preguntarlo al asistente caía al mensaje genérico y
+     * el usuario debía abrir Hoy y leer la tarjeta. Aquí se expone en la
+     * superficie a demanda, reusando el MISMO motor (fuente única de verdad) de
+     * forma que asistente y tarjeta nunca discrepen sobre "¿da tiempo?". Sin
+     * nueva pantalla/botón, sin IA fingida (veredicto determinista local).
+     *
+     * Bajo OVERLOADED el valor real no es decir "estás saturado" (el usuario lo
+     * sabe) sino nombrar QUÉ mover a mañana: convierte la ansiedad de una agenda
+     * que no cabe en una decisión concreta. La sugerencia es texto + id (el
+     * usuario decide moverla), nunca un auto-movimiento —coherente con el
+     * diseño de [SummaryEngine.deferralSuggestion] ("no mueve nada, solo nombra").
+     *
+     * [profile] (opcional) reproduce la ventana de jornada aprendida del usuario
+     * para que el veredicto coincida con la tarjeta de Hoy (que pasa el perfil
+     * cuando el aprendizaje está activo). Por defecto null → ventana 9–18;
+     * coherente con [SummaryEngine.summarize].
+     */
+    private fun isDayLoadQuery(query: String): Boolean =
+        "voy bien" in query || "voy mal" in query ||
+            "da tiempo" in query || "me da tiempo" in query ||
+            "tengo mucho que hacer" in query ||
+            "cabe todo" in query || "cabe el dia" in query || "cabe hoy" in query ||
+            "alcanzara" in query || "alcanzare" in query || "da alcance" in query ||
+            "estoy saturad" in query
+
+    private fun dayLoadAnswer(
+        tasks: List<TaskEntity>,
+        now: Long,
+        zone: ZoneId,
+        profile: LearningProfile?
+    ): AssistantAnswer {
+        val summary = SummaryEngine.summarize(tasks, now, zone, profile)
+        return when (summary.dayLoad) {
+            DayLoad.LIGHT ->
+                AssistantAnswer("Tu día está despejado.")
+            DayLoad.ON_TRACK ->
+                AssistantAnswer("Vas bien: lo que queda cabe con holgura en la jornada.")
+            DayLoad.FULL ->
+                AssistantAnswer("El día está lleno: cabe, pero justo. Cuida los huecos.")
+            DayLoad.OVERLOADED -> {
+                val sug = summary.deferralSuggestion
+                if (sug != null) {
+                    AssistantAnswer(
+                        "No da tiempo a todo hoy. «${sug.title}» es la candidata a mover a mañana.",
+                        relatedTaskIds = listOf(sug.taskId)
+                    )
+                } else {
+                    AssistantAnswer(
+                        "No da tiempo a todo hoy. Revisa qué posponer o quitar.",
+                        AssistantAction.OPEN_PLANNER
+                    )
+                }
+            }
+        }
     }
 }

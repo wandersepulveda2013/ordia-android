@@ -35,6 +35,7 @@ import com.ordia.app.R
 import com.ordia.app.assistant.AssistantAction
 import com.ordia.app.assistant.AssistantAnswer
 import com.ordia.app.assistant.AssistantEngine
+import com.ordia.app.domain.LearningEngine
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.ScreenHeader
@@ -58,10 +59,19 @@ fun AssistantScreen(
         stringResource(R.string.assistant_prompt_day),
         stringResource(R.string.assistant_prompt_now),
         stringResource(R.string.assistant_prompt_overdue),
-        stringResource(R.string.assistant_prompt_minimal)
+        stringResource(R.string.assistant_prompt_minimal),
+        stringResource(R.string.assistant_prompt_dayload)
     )
     fun ask(value: String) {
-        latest = AssistantEngine.answer(value, state.tasks, conversations, commitments)
+        // El veredicto del día ("¿voy bien?" / "¿da tiempo a todo?") usa la misma
+        // ventana de jornada aprendida que la tarjeta de Hoy, de forma que el
+        // asistente no discrepe de ella sobre cuánto cabe hoy. Mismo patrón que
+        // TodayScreen: perfil solo si el aprendizaje está activo.
+        val clockNow = System.currentTimeMillis()
+        val profile = if (state.preferences.learningEnabled) {
+            LearningEngine.learn(state.tasks, clockNow)
+        } else null
+        latest = AssistantEngine.answer(value, state.tasks, conversations, commitments, now = clockNow, profile = profile)
         input = ""
     }
 
