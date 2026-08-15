@@ -122,6 +122,43 @@ object TaskRules {
     private fun isScheduledLater(task: TaskEntity, now: Long): Boolean =
         task.startAt != null && task.startAt > now
 
+    /**
+     * Compromiso planificado cuyo hueco ya pasó sin completarse — el "olvido silencioso".
+     *
+     * [startAt] sólo lo asignan acciones explícitas de planificación
+     * (`applyBlocks`/`PLAN_DAY`/`BATCH_QUICK_TASKS`/editor): cuando el usuario le
+     * dio a una tarea un hueco concreto, decidió trabajarla en ese momento. Si `now`
+     * rebasó la ventana `start + duración` y la tarea sigue activa, ese compromiso se
+     * le pasó. Sin esta señal cae al limbo: no es [isInProgressNow] (pasó la ventana),
+     * no es [isImminentStart] (el inicio ya ocurrió), no es [isScheduledLater] (no es
+     * futuro), y —si no tiene `dueAt` vencido— tampoco es [isOverdue]. En [timeRank]
+     * decae al rango de pura prioridad y compite como una tarea cualquiera de la
+     * bandeja: el compromiso agendado se vuelve invisible. Es justo el hueco de
+     * "recuperación de tareas olvidadas" en una superficie existente (el nudge del
+     * guardián), sin añadir pantallas.
+     *
+     * Partición con [isOverdue] (deliberada, no redundante): si la tarea ADEMÁS tiene
+     * `dueAt` vencido, es `isOverdue` quien la señala (plazo incumplido > hueco
+     * incumplido); aquí se excluyen las vencidas para que el predicado describa
+     * exactamente "se le pasó el turno pero el plazo aún no voló" —el caso limpiamente
+     * recuperable, donde reprogramar o hacerla ahora aún evita el atraso. Una tarea sin
+     * `dueAt` cuyo hueco pasó también entra: el usuario la agendó (le dio hueco) y no la
+     * hizo; no hay plazo que contar como atrasado, pero sí un compromiso olvidado.
+     *
+     * Excluye las que el usuario está ejecutando a mano (`status == IN_PROGRESS`):
+     * aunque la ventana planificada haya expirado, si la marcó en curso está sobre ella
+     * y no es un olvido. Excluye también las aún dentro de su ventana
+     * ([isInProgressNow]). [isActive] descarta completadas/canceladas/archivadas.
+     */
+    fun isMissedStart(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean {
+        val start = task.startAt ?: return false
+        if (!isActive(task)) return false
+        if (task.status == TaskStatus.IN_PROGRESS) return false
+        if (isInProgressNow(task, now)) return false
+        if (isOverdue(task, now)) return false
+        return now > start
+    }
+
     fun isOverdue(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean =
         isActive(task) && task.dueAt?.let { it < now } == true
 

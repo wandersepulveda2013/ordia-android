@@ -396,4 +396,87 @@ class TaskRulesTest {
             assertTrue("start=$start due=$due resultó en ${result} > due $due", result == null || result <= due)
         }
     }
+
+    // --- isMissedStart: recuperación de tareas con hueco planificado olvidado ---
+
+    @Test
+    fun isMissedStart_trueCuandoElHuecoPasoSinDue() {
+        // start 10:00, duración 30 min → ventana hasta 10:30. now 11:00 rebasó la
+        // ventana; sin dueAt no es atrasada, pero el compromiso agendado se le pasó.
+        val start = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val now = DateRules.toEpochMillis(date, LocalTime.of(11, 0), zone)
+        val task = TaskEntity(id = 1, title = "Llamar médico", startAt = start, durationMinutes = 30)
+        assertTrue(TaskRules.isMissedStart(task, now))
+    }
+
+    @Test
+    fun isMissedStart_trueConDueFuturoAunRecuperable() {
+        // Hueco pasado pero el plazo aún no vuela (due mañana): caso limpiamente
+        // recuperable, es exactamente lo que este predicado debe señalar.
+        val start = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val now = DateRules.toEpochMillis(date, LocalTime.of(11, 0), zone)
+        val due = DateRules.toEpochMillis(date.plusDays(1), LocalTime.of(18, 0), zone)
+        val task = TaskEntity(id = 1, title = "Borrador", startAt = start, dueAt = due, durationMinutes = 30)
+        assertTrue(TaskRules.isMissedStart(task, now))
+    }
+
+    @Test
+    fun isMissedStart_falseCuandoAunDentroDeLaVentana() {
+        // start 10:00, duración 60 min → ventana hasta 11:00. now 10:45 aún dentro:
+        // sigue "en curso ahora mismo", no es un olvido.
+        val start = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 45), zone)
+        val task = TaskEntity(id = 1, title = "Reunión", startAt = start, durationMinutes = 60)
+        assertFalse(TaskRules.isMissedStart(task, now))
+    }
+
+    @Test
+    fun isMissedStart_falseCuandoElInicioEsFuturo() {
+        // start futuro: programada para más tarde, el turno aún no llegó.
+        val start = DateRules.toEpochMillis(date, LocalTime.of(15, 0), zone)
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val task = TaskEntity(id = 1, title = "Cita", startAt = start, durationMinutes = 30)
+        assertFalse(TaskRules.isMissedStart(task, now))
+    }
+
+    @Test
+    fun isMissedStart_falseCuandoEstaVencida_overdueTomaPrecedencia() {
+        // Partición con isOverdue: si el due también pasó, es atrasada (señal más
+        // fuerte), no missed-start. Evita doble señalización.
+        val start = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        val due = DateRules.toEpochMillis(date, LocalTime.of(9, 30), zone)
+        val now = DateRules.toEpochMillis(date, LocalTime.of(11, 0), zone)
+        val task = TaskEntity(id = 1, title = "Vencida", startAt = start, dueAt = due, durationMinutes = 30)
+        assertTrue(TaskRules.isOverdue(task, now))
+        assertFalse(TaskRules.isMissedStart(task, now))
+    }
+
+    @Test
+    fun isMissedStart_falseCuandoEstaMarcadaEnCurso() {
+        // El usuario la puso en curso a mano: está sobre ella, no es un olvido aunque
+        // la ventana planificada haya expirado.
+        val start = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        val now = DateRules.toEpochMillis(date, LocalTime.of(11, 0), zone)
+        val task = TaskEntity(
+            id = 1, title = "Trabajándola", startAt = start, durationMinutes = 30,
+            status = TaskStatus.IN_PROGRESS
+        )
+        assertFalse(TaskRules.isMissedStart(task, now))
+    }
+
+    @Test
+    fun isMissedStart_falseParaCompletadaCanceladaArchivada() {
+        val start = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        val now = DateRules.toEpochMillis(date, LocalTime.of(11, 0), zone)
+        assertFalse(TaskRules.isMissedStart(TaskEntity(id = 1, title = "Hecha", startAt = start, durationMinutes = 30, completed = true), now))
+        assertFalse(TaskRules.isMissedStart(TaskEntity(id = 2, title = "Cancelada", startAt = start, durationMinutes = 30, status = TaskStatus.CANCELLED), now))
+        assertFalse(TaskRules.isMissedStart(TaskEntity(id = 3, title = "Archivada", startAt = start, durationMinutes = 30, archived = true), now))
+    }
+
+    @Test
+    fun isMissedStart_falseCuandoNoHayStartAt() {
+        // Sin hueco planificado no hay "turno" que olvidar: es una tarea de bandeja.
+        val now = DateRules.toEpochMillis(date, LocalTime.of(11, 0), zone)
+        assertFalse(TaskRules.isMissedStart(TaskEntity(id = 1, title = "Inbox", durationMinutes = 25), now))
+    }
 }

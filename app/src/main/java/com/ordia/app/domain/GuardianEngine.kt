@@ -279,12 +279,16 @@ object GuardianEngine {
         habitsDoneToday: Int,
         overdue: Int,
         nowMillis: Long
-    ): String = when {
-        overdue > 0 -> smallestOverdueAction(tasks, nowMillis)
-        completedToday == 0 && tasks.any { TaskRules.isActive(it) } -> "Completa una tarea breve para iniciar el día con impulso."
-        focusMinutesToday < 15 -> "Haz una sesión de enfoque de 15 minutos sin perseguir la perfección."
-        habits.isNotEmpty() && habitsDoneToday == 0 -> "Registra un hábito sencillo para mantener la continuidad."
-        else -> "Tu cuidado diario está completo. Puedes descansar o avanzar por gusto."
+    ): String {
+        val missed = missedStartAction(tasks, nowMillis)
+        return when {
+            overdue > 0 -> smallestOverdueAction(tasks, nowMillis)
+            missed != null -> missed
+            completedToday == 0 && tasks.any { TaskRules.isActive(it) } -> "Completa una tarea breve para iniciar el día con impulso."
+            focusMinutesToday < 15 -> "Haz una sesión de enfoque de 15 minutos sin perseguir la perfección."
+            habits.isNotEmpty() && habitsDoneToday == 0 -> "Registra un hábito sencillo para mantener la continuidad."
+            else -> "Tu cuidado diario está completo. Puedes descansar o avanzar por gusto."
+        }
     }
 
     /**
@@ -341,6 +345,45 @@ object GuardianEngine {
             "«${chosen.title}» está atrasada y es urgente (~${minutes} min). Hazla, muévela o archívala."
         } else {
             "«${chosen.title}» está atrasada (~${minutes} min). Hazla, muévela o archívala."
+        }
+    }
+
+    /**
+     * Recupera un compromiso agendado cuyo hueco ya pasó sin atraso: el "olvido
+     * silencioso" de [TaskRules.isMissedStart]. Cuando no hay nada atrasado (la rama
+     * de [smallestOverdueAction] no aplicó) pero sí quedó una tarea con `startAt`
+     * cuyo turno expiró, el guardián la nombra en la misma superficie existente (el
+     * nudge diario), sin añadir pantallas. Es recuperación de tareas olvidadas en su
+     * forma más útil: el plazo aún no voló, así que hacerla ahora o reprogramarla
+     * evita el atraso.
+     *
+     * Selección idéntica a [smallestOverdueAction] (urgente → más pequeña →
+     * prioridad → vencimiento → id) para que el criterio del nudge sea uno solo y
+     * predecible entre ambas señales: lo urgente manda aunque no esté atrasado (un
+     * compromiso urgente cuyo hueco se pasó es lo más crítico recuperable), y entre
+     * iguales gana el "quick win" (la más corta) para romper la parálisis. Solo
+     * tareas raíz activas, excluyendo las en curso a mano y las ya atrasadas
+     * (partición de `isMissedStart`). Devuelve `null` si no hay ninguna: el nudge
+     * cae a los mensajes genéricos siguientes.
+     */
+    private fun missedStartAction(tasks: List<TaskEntity>, nowMillis: Long): String? {
+        val chosen = tasks
+            .filter {
+                it.parentTaskId == null && TaskRules.isMissedStart(it, nowMillis)
+            }
+            .minWithOrNull(
+                compareByDescending<TaskEntity> { it.priority == TaskPriority.URGENT }
+                    .thenBy { TaskRules.plannedDuration(it) }
+                    .thenBy { TaskRules.priorityScore(it.priority) }
+                    .thenBy { it.dueAt ?: Long.MAX_VALUE }
+                    .thenBy { it.id }
+            )
+            ?: return null
+        val minutes = TaskRules.plannedDuration(chosen)
+        return if (chosen.priority == TaskPriority.URGENT) {
+            "«${chosen.title}» tenía su hueco y se le pasó (~${minutes} min). Es urgente: hazla o reagéndala."
+        } else {
+            "«${chosen.title}» tenía su hueco y se le pasó (~${minutes} min). Hazla o reagéndala."
         }
     }
 

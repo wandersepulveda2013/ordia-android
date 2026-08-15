@@ -3,6 +3,7 @@ package com.ordia.app.domain
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
+import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.data.preferences.UserPreferences
 import java.time.Instant
@@ -345,5 +346,100 @@ class GuardianEngineTest {
         )
         // 1 tarea logica completada = 12 XP, no 48 por las subtareas.
         assertEquals(12, value)
+    }
+
+    // --- suggestedAction: recuperación de tareas con hueco planificado olvidado ---
+
+    @Test
+    fun suggestedAction_nombraTareaConHuecoPasadoCuandoNoHayAtrasadas() {
+        // start 13:00, duración 30 min → ventana hasta 13:30. now 15:00 rebasó el hueco.
+        // due en el futuro → no es atrasada. Sin este nudge, la tarea caía al limbo y el
+        // guardián decía "Completa una tarea breve" sin nombrarla.
+        val missed = TaskEntity(
+            id = 1, title = "Llamar al banco", startAt = midday - 2 * 60 * 60_000L,
+            dueAt = midday + 2 * 24 * 60 * 60_000L, durationMinutes = 30
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(missed), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("Llamar al banco"))
+        assertTrue(result.suggestedAction.contains("hueco"))
+    }
+
+    @Test
+    fun suggestedAction_atrasadaTomaPrecedenciaSobreHuecoPasado() {
+        // Una atrasada (due pasado) y una con hueco pasado (due futuro): la atrasada es
+        // señal más fuerte y debe nombrarse primero. No doble señalización.
+        val overdue = TaskEntity(
+            id = 1, title = "Factura vencida", dueAt = midday - 60 * 60_000L, durationMinutes = 20
+        )
+        val missed = TaskEntity(
+            id = 2, title = "Llamar al banco", startAt = midday - 2 * 60 * 60_000L,
+            dueAt = midday + 2 * 24 * 60 * 60_000L, durationMinutes = 30
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(overdue, missed), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("Factura vencida"))
+        assertTrue(result.suggestedAction.contains("atrasada"))
+        assertFalse(result.suggestedAction.contains("Llamar al banco"))
+    }
+
+    @Test
+    fun suggestedAction_huecoPasadoUrgenteSePrefiereAlNormal() {
+        // Dos huecos pasados: el URGENTE (aunque sea más largo) manda sobre el NORMAL,
+        // igual que smallestOverdueAction prefiere lo urgente. Coherencia de criterio.
+        val urgent = TaskEntity(
+            id = 1, title = "Cita crítica", startAt = midday - 2 * 60 * 60_000L,
+            dueAt = midday + 24 * 60 * 60_000L, durationMinutes = 45,
+            priority = TaskPriority.URGENT
+        )
+        val normal = TaskEntity(
+            id = 2, title = "Leer informe", startAt = midday - 2 * 60 * 60_000L,
+            dueAt = midday + 24 * 60 * 60_000L, durationMinutes = 15,
+            priority = TaskPriority.NORMAL
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(normal, urgent), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("Cita crítica"))
+        assertTrue(result.suggestedAction.contains("urgente"))
+        assertFalse(result.suggestedAction.contains("Leer informe"))
+    }
+
+    @Test
+    fun suggestedAction_noNombraHuecoPasadoSiEstaMarcadaEnCurso() {
+        // Hueco pasado pero el usuario la marcó en curso: está sobre ella, no es olvido.
+        // El nudge cae al mensaje genérico, sin nombrar la tarea ni hablar de "hueco".
+        val inProgress = TaskEntity(
+            id = 1, title = "Trabajándola", startAt = midday - 2 * 60 * 60_000L,
+            durationMinutes = 30, status = TaskStatus.IN_PROGRESS
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(inProgress), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertFalse(result.suggestedAction.contains("Trabajándola"))
+        assertFalse(result.suggestedAction.contains("hueco"))
+    }
+
+    @Test
+    fun suggestedAction_caeAGenericoCuandoNoHayHuecoPasadoNiAtrasadas() {
+        // Tareas de bandeja sin startAt, sin atraso: nada que recuperar, nudge genérico.
+        val inbox = TaskEntity(id = 1, title = "Idea suelta", durationMinutes = 15)
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(inbox), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertFalse(result.suggestedAction.contains("Idea suelta"))
+        assertFalse(result.suggestedAction.contains("hueco"))
     }
 }
