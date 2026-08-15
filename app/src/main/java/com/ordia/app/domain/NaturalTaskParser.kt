@@ -2989,7 +2989,7 @@ object NaturalTaskParser {
             return RecurrenceResult(RecurrenceFrequency.HOURLY, 1, emptyList(), phrases, immediateDueAt = now)
         }
         val hourlyIntervalPattern =
-            Regex("""(?i)\bcada\s+(\d{1,3}|$writtenNumberGroup)\s*(horas?)\b""")
+            Regex("""(?i)\bcada\s+(\d{1,3}|$writtenNumberGroup)\s*(?:horas?|hs?)\b""")
         hourlyIntervalPattern.find(working)?.let { match ->
             val rawN = match.groupValues[1]
             val hours = rawN.toLongOrNull()?.toInt()

@@ -350,6 +350,41 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // "cada N hs" / "cada N h" / "cada Nhs": abreviaturas cotidianísimas de medicación
+    // (jarabes, gotas, pastillas: "cada 12 hs", "cada 8 h", "cada 6h"). El patrón de
+    // recurrencia solo admitía "horas?", así que estas formas caían a NONE SIN fecha y,
+    // peor, la duración "Nh" robaba el número (p. ej. "12 h" → 720 min falsos) dejando
+    // "cada" como residuo en el título → la cadencia de medicación se olvidaba por
+    // completo (P1, evitar olvidos). Ahora la unidad admite "hs?"/"h" (simétrico a
+    // timePatterns): se reconoce la recurrencia HOURLY, la 1ª dosis vence ahora y el
+    // título queda limpio.
+    @Test fun cadaNHorasAbreviaturaHsVenceAhoraYRepite() {
+        val result = NaturalTaskParser.parse("Farmacia cada 12 hs", now, zone)
+        assertEquals("Farmacia", result.title)
+        assertEquals(RecurrenceFrequency.HOURLY, result.recurrence)
+        assertEquals(12, result.recurrenceInterval)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun cadaNHorasAbreviaturaHSeparaVenceAhoraYRepite() {
+        val result = NaturalTaskParser.parse("Pastillas cada 8 h", now, zone)
+        assertEquals("Pastillas", result.title)
+        assertEquals(RecurrenceFrequency.HOURLY, result.recurrence)
+        assertEquals(8, result.recurrenceInterval)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun cadaNHorasAbreviaturaPegadaVenceAhoraYRepite() {
+        val result = NaturalTaskParser.parse("Jarabe cada 6h", now, zone)
+        assertEquals("Jarabe", result.title)
+        assertEquals(RecurrenceFrequency.HOURLY, result.recurrence)
+        assertEquals(6, result.recurrenceInterval)
+        assertEquals(now, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
     // "cada 24 horas" = diario, "cada 48 horas" = cada 2 días: múltiplos de 24 se mapean
     // fielmente a DAILY + intervalo, reutilizando el flujo de intervalo existente.
     @Test fun cada24HorasEsDiario() {
