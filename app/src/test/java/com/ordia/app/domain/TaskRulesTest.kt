@@ -561,4 +561,65 @@ class TaskRulesTest {
         val task = TaskEntity(id = 1, title = "Congreso", startAt = start, dueAt = due, durationMinutes = 600)
         assertTrue(TaskRules.isMissedStart(task, now))
     }
+
+    // --- completedTodayCount: fuente única de verdad "completadas hoy" (c.284) ---
+    // Antes GuardianEngine/SummaryEngine/GuardianCoach re-derivaban "completadas
+    // hoy" inline y divergieron; estos contratos fijan el predicado canónico.
+
+    private fun rootCompletedToday(
+        id: Long = 1,
+        completed: Boolean = true,
+        completedAt: Long? = DateRules.toEpochMillis(date, LocalTime.of(11, 0), zone),
+        status: TaskStatus = TaskStatus.COMPLETED,
+        archived: Boolean = false,
+        parentTaskId: Long? = null
+    ) = TaskEntity(
+        id = id, title = "T$id", completed = completed, completedAt = completedAt,
+        status = status, archived = archived, parentTaskId = parentTaskId
+    )
+
+    @Test
+    fun completedTodayCount_countsRootCompletedToday() {
+        val now = DateRules.toEpochMillis(date, LocalTime.NOON, zone)
+        assertEquals(1, TaskRules.completedTodayCount(listOf(rootCompletedToday()), now, zone))
+    }
+
+    @Test
+    fun completedTodayCount_ignoresCompletedAtSetButCompletedFalse() {
+        // Dato inconsistente (backup restore / camino futuro): completedAt hoy
+        // PERO completed=false. NO es una tarea completada → no cuenta.
+        // GuardianEngine la contaba (bug: inflaba ánimo sobre actividad inexistente).
+        val now = DateRules.toEpochMillis(date, LocalTime.NOON, zone)
+        assertEquals(0, TaskRules.completedTodayCount(listOf(rootCompletedToday(completed = false)), now, zone))
+    }
+
+    @Test
+    fun completedTodayCount_ignoresCancelledCompletedToday() {
+        // Una tarea CANCELADA (descartada) con completedAt hoy NO es un logro.
+        // SummaryEngine la contaba (bug).
+        val now = DateRules.toEpochMillis(date, LocalTime.NOON, zone)
+        assertEquals(0, TaskRules.completedTodayCount(listOf(rootCompletedToday(status = TaskStatus.CANCELLED)), now, zone))
+    }
+
+    @Test
+    fun completedTodayCount_ignoresArchivedCompletedToday() {
+        // Archivada hoy: ya está "archivada", no cuenta como logro activo de hoy.
+        // SummaryEngine la contaba (bug). Mismo criterio que completedRootCount.
+        val now = DateRules.toEpochMillis(date, LocalTime.NOON, zone)
+        assertEquals(0, TaskRules.completedTodayCount(listOf(rootCompletedToday(archived = true)), now, zone))
+    }
+
+    @Test
+    fun completedTodayCount_ignoresSubtaskCompletedToday() {
+        // Una subtarea completada hoy NO cuenta como raíz completada.
+        val now = DateRules.toEpochMillis(date, LocalTime.NOON, zone)
+        assertEquals(0, TaskRules.completedTodayCount(listOf(rootCompletedToday(parentTaskId = 99)), now, zone))
+    }
+
+    @Test
+    fun completedTodayCount_ignoresCompletedYesterday() {
+        val yesterday = DateRules.toEpochMillis(date.minusDays(1), LocalTime.of(11, 0), zone)
+        val now = DateRules.toEpochMillis(date, LocalTime.NOON, zone)
+        assertEquals(0, TaskRules.completedTodayCount(listOf(rootCompletedToday(completedAt = yesterday)), now, zone))
+    }
 }

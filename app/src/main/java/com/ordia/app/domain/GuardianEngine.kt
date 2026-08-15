@@ -96,10 +96,7 @@ object GuardianEngine {
         val now = Instant.ofEpochMilli(nowMillis).atZone(zoneId)
         val today = now.toLocalDate()
         val completedSessions = focusSessions.filter { it.completed }
-        val completedToday = tasks.count { task ->
-            task.parentTaskId == null && !task.archived &&
-                task.completedAt?.let { DateRules.toLocalDate(it, zoneId) == today } == true
-        }
+        val completedToday = TaskRules.completedTodayCount(tasks, nowMillis, zoneId)
         val focusMinutesToday = completedSessions
             .filter { DateRules.toLocalDate(it.startedAt, zoneId) == today }
             .sumOf { it.actualMinutes.coerceIn(0, MAX_FOCUS_MINUTES_PER_SESSION) }

@@ -853,4 +853,22 @@ class SummaryEngineTest {
         assertEquals(DayLoad.FULL, s.dayLoad)
         assertEquals(null, s.deferralSuggestion)
     }
+
+    // --- Paridad "completadas hoy" (c.284): fuente única TaskRules.completedTodayCount ---
+    // SummaryEngine antes contaba canceladas y archivadas con completedAt hoy,
+    // divergiendo del guardián y de la tarjeta de insight (que las excluían).
+
+    @Test
+    fun completedToday_ignoresCancelledCompletedToday() {
+        val cancelled = task(1, completed = true, completedAt = at(today, 11), status = TaskStatus.CANCELLED)
+        val s = SummaryEngine.summarize(listOf(cancelled), now, zone)
+        assertEquals(0, s.completedToday)
+    }
+
+    @Test
+    fun completedToday_ignoresArchivedCompletedToday() {
+        val archived = task(1, completed = true, completedAt = at(today, 11)).copy(archived = true)
+        val s = SummaryEngine.summarize(listOf(archived), now, zone)
+        assertEquals(0, s.completedToday)
+    }
 }

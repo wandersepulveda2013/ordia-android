@@ -31,7 +31,7 @@ object GuardianCoach {
         // así se deja caer al siguiente insight.
         val recoverable = overdue.filter { !TaskRules.isBeingWorkedOn(it, now) }
         val dueToday = pending.filter { TaskRules.isDueToday(it, now, zone) && !TaskRules.isOverdue(it, now) }
-        val completedToday = roots.count { it.completed && it.completedAt?.let { time -> java.time.Instant.ofEpochMilli(time).atZone(zone).toLocalDate() == today } == true }
+        val completedToday = TaskRules.completedTodayCount(tasks, now, zone)
         if (recoverable.isNotEmpty()) {
             val next = TaskRules.nextBestTask(recoverable, now)
             // "Olvidada": la más atrasada lleva tanto tiempo esperando que el

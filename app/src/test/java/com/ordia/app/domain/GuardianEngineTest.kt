@@ -606,4 +606,34 @@ class GuardianEngineTest {
         assertFalse(result.suggestedAction.contains("Idea arrinconada"))
         assertFalse(result.suggestedAction.contains("bandeja"))
     }
+
+    // --- Paridad "completadas hoy" (c.284): fuente única TaskRules.completedTodayCount ---
+    // GuardianEngine antes contaba tareas con completedAt hoy PERO completed=false
+    // (no chequeaba `completed`), inflando ánimo/energía sobre actividad inexistente.
+
+    @Test
+    fun completedToday_ignoresCompletedAtSetButCompletedFalse() {
+        // Dato inconsistente: completedAt hoy pero completed=false. No es un logro.
+        val inconsistent = TaskEntity(title = "Fantasma", completed = false, completedAt = midday)
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(inconsistent), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertEquals(0, result.completedToday)
+    }
+
+    @Test
+    fun completedToday_ignoresCancelledCompletedToday() {
+        val cancelled = TaskEntity(
+            title = "Descartada", completed = true, completedAt = midday,
+            status = TaskStatus.CANCELLED
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(cancelled), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertEquals(0, result.completedToday)
+    }
 }

@@ -292,6 +292,36 @@ object TaskRules {
         tasks.count { it.parentTaskId == null && it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
 
     /**
+     * Tareas raíz completadas HOY (según la zona del usuario). Fuente única de
+     * verdad para las TRES superficies que derivan "completadas hoy": el
+     * guardián ([GuardianEngine.snapshot].completedToday -> ánimo/energía/metas
+     * diarias), el resumen del día ([SummaryEngine.summarize].completedToday ->
+     * badge "Completadas hoy") y la tarjeta de insight ([GuardianCoach.insight]).
+     *
+     * Antes cada superficie re-implementaba el predicado inline y divergieron:
+     * GuardianEngine contaba tareas con `completedAt` hoy PERO `completed=false`
+     * (datos inconsistentes vía backup restore o caminos futuros), inflando el
+     * ánimo del guardián sobre actividad que no ocurrió (IA deshonesta);
+     * SummaryEngine contaba archivadas y canceladas-completadas-hoy; GuardianCoach
+     * ya filtraba correctamente. Ahora todas comparten este predicado canónico,
+     * idéntico a [completedRootCount] más el filtro temporal "completedAt == hoy".
+     */
+    fun completedTodayCount(
+        tasks: List<TaskEntity>,
+        now: Long,
+        zone: ZoneId = ZoneId.systemDefault()
+    ): Int {
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        return tasks.count { task ->
+            task.parentTaskId == null &&
+                task.completed &&
+                !task.archived &&
+                task.status != TaskStatus.CANCELLED &&
+                task.completedAt?.let { DateRules.toLocalDate(it, zone) == today } == true
+        }
+    }
+
+    /**
      * Puntaje de prioridad compartido por todas las superficies de decisión
      * (What Now, widget/asistente, planificador). Fuente única de verdad para
      * que el desempate por prioridad sea idéntico en todos lados.

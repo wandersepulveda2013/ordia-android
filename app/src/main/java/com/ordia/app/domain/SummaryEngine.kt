@@ -116,10 +116,7 @@ object SummaryEngine {
         val firstOfWeek = today.minusDays(6)
 
         val active = { task: TaskEntity -> TaskRules.isActive(task) }
-        val completedToday = tasks.count { task ->
-            task.parentTaskId == null &&
-                task.completed && task.completedAt?.let { DateRules.toLocalDate(it, zone) == today } == true
-        }
+        val completedToday = TaskRules.completedTodayCount(tasks, now, zone)
         val remainingTodayTasks = tasks.filter { task ->
             task.parentTaskId == null &&
                 active(task) && (onDate(task.dueAt, today, zone) || onDate(task.startAt, today, zone))
