@@ -976,6 +976,57 @@ class NaturalTaskParserTest {
         assertEquals(30, result.reminderOffsetMinutes)
     }
 
+    // --- Verbo de recordatorio como ÚNICO contenido (ciclo 230) ---
+    // Cuando el usuario escribe SÓLO el recordatorio + frases de agenda ("recordatorio
+    // cada 2 días a las 8", "recuérdame cada lunes a las 8"), no hay un sustantivo de
+    // contenido que sobreviva. Antes el verbo/nombre se eliminaba último, dejando el
+    // título en blanco, y el respaldo `ifBlank { original }` RESUCITABA la frase cruda
+    // completa: el título quedaba como "recordatorio cada 2 días a las 8" (con la
+    // cadencia, la hora y el verbo como basura visible). Es un bug de captura: la
+    // agenda (dueAt/recurrencia/offset) SÍ se parseaba bien, pero el título mentía.
+    // Ahora, si limpiar el verbo dejaría el título vacío, se CONSERVA el verbo/nombre
+    // como título honesto (lo que el usuario escribió, sin las frases ya consumidas).
+    @Test fun recordatorioCadaNdiasConHora_tituloLimpioConservaRecordatorio() {
+        val result = NaturalTaskParser.parse("recordatorio cada 2 días a las 8", now, zone)
+        assertEquals("recordatorio", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun recordatorioCadaLunesConHora_tituloLimpioConservaRecordatorio() {
+        val result = NaturalTaskParser.parse("recordatorio cada lunes a las 8", now, zone)
+        assertEquals("recordatorio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertNotNull(result.dueAt)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun recordatorioCadaLunesSinHora_tituloLimpioConservaRecordatorio() {
+        val result = NaturalTaskParser.parse("recordatorio cada lunes", now, zone)
+        assertEquals("recordatorio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+    }
+
+    @Test fun recuerdameCadaNdiasConHora_tituloNoResucitaFrasesDeAgenda() {
+        val result = NaturalTaskParser.parse("recuérdame cada 2 días a las 8", now, zone)
+        // No hay sustantivo de contenido: se conserva el verbo como título honesto,
+        // sin resucitar "cada 2 días a las 8".
+        assertEquals("recuérdame", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun recordatorioMananaConHora_tituloLimpioConservaRecordatorio() {
+        val result = NaturalTaskParser.parse("recordatorio mañana a las 8", now, zone)
+        assertEquals("recordatorio", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
     // Sin fecha límite no se puede programar reminderAt (dueAt=null → reminderAt=null):
     // no se falsifica el offset; el verbo igualmente se limpia del título.
     @Test fun verboRecordatorioSinCantidadSinDueNoFalsificaOffset() {

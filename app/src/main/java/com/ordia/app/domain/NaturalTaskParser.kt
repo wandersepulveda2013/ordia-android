@@ -2457,7 +2457,13 @@ object NaturalTaskParser {
             // "no dejes que olvide") expresa intención de aviso, no contenido; se
             // elimina del título. Se hace aquí (tras consumir fechas/horas) para no
             // alterar el parseo de "recuérdame mañana a las 3" (donde "mañana" es fecha).
-            .let { value -> if (hasBareReminderVerb) bareReminderVerbPattern.replace(value, " ") else value }
+            // PERO si limpiar el verbo dejara el título vacío (el usuario escribió SÓLO
+            // el recordatorio + frases de agenda, p. ej. "recordatorio cada 2 días a las
+            // 8"), se CONSERVA el verbo/nombre como título honesto: antes el verbo se
+            // eliminaba último → título en blanco → el respaldo `ifBlank { original }`
+            // resucitaba la frase cruda completa (cadencia/hora/fecha como basura visible).
+            .let { value -> if (!hasBareReminderVerb) value
+                else bareReminderVerbPattern.replace(value, " ").takeIf { it.isNotBlank() } ?: value }
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
             .replace(Regex("""\s+"""), " ")
             .trim(' ', ',', '.', '-')
