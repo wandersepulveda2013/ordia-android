@@ -1040,7 +1040,8 @@ class OrdiaViewModel(
                 CaptureTarget.AUTO -> error("La captura AUTO no fue resuelta")
                 CaptureTarget.INBOX,
                 CaptureTarget.TASK,
-                CaptureTarget.REMINDER -> "TASK" to createTaskFromCapture(
+                CaptureTarget.REMINDER,
+                CaptureTarget.EVENT -> "TASK" to createTaskFromCapture(
                     interpretation = interpretation,
                     original = stored.content,
                     attachmentUri = stored.attachmentUri,

@@ -21,7 +21,7 @@ enum class AttachmentOwnerType { TASK, NOTE, PROJECT }
 
 enum class CaptureSource { COMPOSER, SHARE, PROCESS_TEXT, VOICE, CLIPBOARD, ATTACHMENT, KEYBOARD, WIDGET }
 
-enum class CaptureTarget { AUTO, INBOX, TASK, NOTE, REMINDER }
+enum class CaptureTarget { AUTO, INBOX, TASK, NOTE, REMINDER, EVENT }
 
 enum class CaptureStatus { PENDING, PROCESSED, FAILED }
 

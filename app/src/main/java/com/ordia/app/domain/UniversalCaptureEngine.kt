@@ -24,6 +24,7 @@ object UniversalCaptureEngine {
     private val taskCommand = Regex("""(?i)^\s*(crear\s+)?(una\s+)?tarea\s*[:\-]?\s*""")
     private val reminderSignal = Regex("""(?i)\b(recu[eé]rdame|recordatorio|av[ií]same|no\s+dejes\s+que\s+olvide)\b""")
     private val taskSignal = Regex("""(?i)\b(tengo\s+que|debo|hay\s+que|llamar|enviar|comprar|pagar|terminar|entregar|responder|reuni[oó]n)\b""")
+    private val eventSignal = Regex("""(?i)\b(cita|reuni[oó]n|junta|dentista|m[eé]dico|doctor|almuerzo|cena|desayuno|viaje|fiesta|concierto|entrevista|boda|aniversario|clase|curso|cumplea[nñ]os)\b""")
     private val urlOnly = Regex("""(?i)^https?://\S+$""")
     private val listPrefix = Regex("""^\s*(?:[-*•]|\d+[.)]|\[\s?])\s+""")
 
@@ -36,7 +37,7 @@ object UniversalCaptureEngine {
         val inferred = if (requested == CaptureTarget.AUTO) inferTarget(clean, hasAttachment) else requested
         return when (inferred) {
             CaptureTarget.NOTE -> noteInterpretation(clean, hasAttachment)
-            CaptureTarget.TASK, CaptureTarget.REMINDER, CaptureTarget.INBOX ->
+            CaptureTarget.TASK, CaptureTarget.REMINDER, CaptureTarget.EVENT, CaptureTarget.INBOX ->
                 taskInterpretation(clean, inferred, hasAttachment)
             CaptureTarget.AUTO -> error("AUTO debe resolverse antes de construir la interpretación")
         }
@@ -55,6 +56,12 @@ object UniversalCaptureEngine {
         if (reminderSignal.containsMatchIn(clean)) return CaptureTarget.REMINDER
         if (isList(clean) || urlOnly.matches(clean)) return CaptureTarget.NOTE
         val parsed = clean.takeIf(String::isNotBlank)?.let { NaturalTaskParser.parse(it) }
+        // Sustantivo de evento + señal temporal → evento (se resuelve como tarea con fecha).
+        if (parsed != null && eventSignal.containsMatchIn(clean) &&
+            (parsed.dueAt != null || parsed.confidence >= 0.62f)
+        ) {
+            return CaptureTarget.EVENT
+        }
         if (parsed != null && (parsed.dueAt != null || parsed.confidence >= 0.62f || taskSignal.containsMatchIn(clean))) {
             return CaptureTarget.TASK
         }
@@ -103,6 +110,7 @@ object UniversalCaptureEngine {
             explanation = when (target) {
                 CaptureTarget.REMINDER -> "Recordatorio detectado"
                 CaptureTarget.INBOX -> "Guardado para organizar después"
+                CaptureTarget.EVENT -> "Evento detectado"
                 else -> "Acción detectada"
             }
         )

@@ -348,7 +348,8 @@ private fun CaptureTargetSelector(selected: CaptureTarget, onSelect: (CaptureTar
         CaptureTarget.INBOX to R.string.capture_target_inbox,
         CaptureTarget.TASK to R.string.capture_target_task,
         CaptureTarget.NOTE to R.string.capture_target_note,
-        CaptureTarget.REMINDER to R.string.capture_target_reminder
+        CaptureTarget.REMINDER to R.string.capture_target_reminder,
+        CaptureTarget.EVENT to R.string.capture_target_event
     )
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(targets, key = { it.first.name }) { (target, label) ->
@@ -419,6 +420,7 @@ private fun captureTargetLabel(target: CaptureTarget): String = stringResource(
         CaptureTarget.TASK -> R.string.capture_target_task
         CaptureTarget.NOTE -> R.string.capture_target_note
         CaptureTarget.REMINDER -> R.string.capture_target_reminder
+        CaptureTarget.EVENT -> R.string.capture_target_event
     }
 )
 

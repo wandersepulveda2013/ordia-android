@@ -61,7 +61,7 @@ class QuickCaptureActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setFinishOnTouchOutside(true)
         val container = (application as OrdiaApplication).container
-        val initialMode = intent.getStringExtra(EXTRA_MODE) ?: MODE_TASK
+        val initialMode = intent.getStringExtra(EXTRA_MODE) ?: MODE_AUTO
         val initialText = intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
         val startVoice = intent.getBooleanExtra(EXTRA_START_VOICE, false)
         setContent {
@@ -77,6 +77,7 @@ class QuickCaptureActivity : ComponentActivity() {
                 }
                 val title = stringResource(R.string.quick_capture_title)
                 val subtitle = stringResource(R.string.quick_capture_subtitle)
+                val autoLabel = stringResource(R.string.quick_capture_auto)
                 val taskLabel = stringResource(R.string.suggestion_type_task)
                 val noteLabel = stringResource(R.string.quick_capture_note)
                 val taskHint = stringResource(R.string.quick_capture_task_hint)
@@ -96,6 +97,7 @@ class QuickCaptureActivity : ComponentActivity() {
                             color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(selected = mode == MODE_AUTO, onClick = { mode = MODE_AUTO }, label = { Text(autoLabel) })
                             FilterChip(selected = mode == MODE_TASK, onClick = { mode = MODE_TASK }, label = { Text(taskLabel) })
                             FilterChip(selected = mode == MODE_NOTE, onClick = { mode = MODE_NOTE }, label = { Text(noteLabel) })
                         }
@@ -104,7 +106,7 @@ class QuickCaptureActivity : ComponentActivity() {
                             onValueChange = { text = it },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 3,
-                            label = { Text(if (mode == MODE_TASK) taskHint else noteHint) }
+                            label = { Text(if (mode == MODE_NOTE) noteHint else taskHint) }
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             OutlinedButton(
@@ -118,7 +120,11 @@ class QuickCaptureActivity : ComponentActivity() {
                                 onClick = {
                                     val clean = text.trim()
                                     lifecycleScope.launch {
-                                        val requestedTarget = if (mode == MODE_NOTE) CaptureTarget.NOTE else CaptureTarget.TASK
+                                        val requestedTarget = when (mode) {
+                                            MODE_NOTE -> CaptureTarget.NOTE
+                                            MODE_TASK -> CaptureTarget.TASK
+                                            else -> CaptureTarget.AUTO
+                                        }
                                         val source = if (dictatedText.value.isNotBlank()) CaptureSource.VOICE else CaptureSource.COMPOSER
                                         val interpretation = UniversalCaptureEngine.interpret(clean, requestedTarget)
                                         val now = System.currentTimeMillis()
@@ -135,7 +141,7 @@ class QuickCaptureActivity : ComponentActivity() {
                                         runCatching {
                                             val captureId = container.captureRepository.insert(capture)
                                             capture = capture.copy(id = captureId)
-                                            val result = if (mode == MODE_NOTE) {
+                                            val result = if (interpretation.target == CaptureTarget.NOTE) {
                                                 "NOTE" to container.noteRepository.add(
                                                     NoteEntity(
                                                         title = interpretation.title.take(60).ifBlank { quickNoteFallback },
@@ -220,6 +226,7 @@ class QuickCaptureActivity : ComponentActivity() {
     companion object {
         const val EXTRA_MODE = "capture_mode"
         const val EXTRA_START_VOICE = "start_voice"
+        const val MODE_AUTO = "auto"
         const val MODE_TASK = "task"
         const val MODE_NOTE = "note"
     }

@@ -47,4 +47,23 @@ class UniversalCaptureEngineTest {
 
         assertEquals(CaptureTarget.NOTE, result.target)
     }
+
+    @Test fun eventNounsWithTemporalSignalBecomeEvent() {
+        val result = UniversalCaptureEngine.interpret("Reunión con María mañana a las 10")
+        assertEquals(CaptureTarget.EVENT, result.target)
+        assertTrue("El evento se resuelve con tarea y fecha", result.parsedTask?.dueAt != null)
+    }
+
+    @Test fun eventWithWeekdayBecomesEvent() {
+        val result = UniversalCaptureEngine.interpret("Cena familiar el viernes")
+        assertEquals(CaptureTarget.EVENT, result.target)
+    }
+
+    @Test fun explicitEventRequestStaysEvent() {
+        val result = UniversalCaptureEngine.interpret(
+            raw = "Almuerzo con el equipo",
+            requested = CaptureTarget.EVENT
+        )
+        assertEquals(CaptureTarget.EVENT, result.target)
+    }
 }

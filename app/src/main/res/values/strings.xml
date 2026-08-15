@@ -39,6 +39,7 @@
     <!-- Captura rápida (QuickCaptureActivity, ORD-029) -->
     <string name="quick_capture_title">Captura rápida</string>
     <string name="quick_capture_subtitle">Guárdalo ahora. Ordía te ayuda a organizarlo después.</string>
+    <string name="quick_capture_auto">Auto</string>
     <string name="quick_capture_note">Nota</string>
     <string name="quick_capture_task_hint">¿Qué necesitas hacer?</string>
     <string name="quick_capture_note_hint">¿Qué quieres guardar?</string>

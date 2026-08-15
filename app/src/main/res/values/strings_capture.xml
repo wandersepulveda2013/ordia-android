@@ -13,6 +13,7 @@
     <string name="capture_target_task">Tarea</string>
     <string name="capture_target_note">Nota</string>
     <string name="capture_target_reminder">Recordatorio</string>
+    <string name="capture_target_event">Evento</string>
     <string name="capture_action_voice">Dictar</string>
     <string name="capture_action_attach">Adjuntar</string>
     <string name="capture_action_paste">Pegar</string>
