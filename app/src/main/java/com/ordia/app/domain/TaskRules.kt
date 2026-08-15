@@ -6,17 +6,46 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
+data class BestTask(
+    val task: TaskEntity,
+    val reason: String? = null
+)
+
 object TaskRules {
-    fun nextBestTask(tasks: List<TaskEntity>, now: Long = System.currentTimeMillis()): TaskEntity? =
-        tasks.asSequence()
+    fun nextBestTask(
+        tasks: List<TaskEntity>,
+        now: Long = System.currentTimeMillis(),
+        allTasks: List<TaskEntity>? = null
+    ): BestTask? {
+        val referenceTasks = allTasks ?: tasks
+        val completedIds = referenceTasks.filter { it.completed }.map { it.id }.toSet()
+        val pendingTaskIds = referenceTasks.filter { !it.completed }.map { it.id }.toSet()
+
+        val validTasks = tasks.asSequence()
             .filter { !it.completed && !it.archived && it.parentTaskId == null }
+            .filter { task ->
+                // Filter out tasks that are blocked by another task that is not yet completed
+                val blockedBy = task.blockedBy
+                blockedBy == null || completedIds.contains(blockedBy) || !pendingTaskIds.contains(blockedBy)
+            }
             .sortedWith(
                 compareByDescending<TaskEntity> { isOverdue(it, now) }
                     .thenByDescending { priorityScore(it.priority) }
                     .thenBy { it.dueAt ?: Long.MAX_VALUE }
                     .thenBy { it.createdAt }
             )
-            .firstOrNull()
+            .toList()
+
+        val best = validTasks.firstOrNull() ?: return null
+
+        val reason = when {
+            isOverdue(best, now) -> "Esta tarea está atrasada."
+            isDueToday(best, now) && (best.priority.name == "URGENT" || best.priority.name == "HIGH") -> "Es lo más importante para hoy."
+            else -> null
+        }
+
+        return BestTask(best, reason)
+    }
 
     fun isOverdue(task: TaskEntity, now: Long = System.currentTimeMillis()): Boolean =
         !task.completed && task.dueAt?.let { it < now } == true
