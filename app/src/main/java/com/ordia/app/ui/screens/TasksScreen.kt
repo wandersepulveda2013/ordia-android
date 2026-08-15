@@ -68,7 +68,7 @@ fun TasksScreen(
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item { ScreenHeader("TODO EN UN LUGAR", "Tareas", "Organiza lo necesario sin llenar la pantalla de campos.", "Nueva") { adding = true } }
+        item { ScreenHeader("VISTA GENERAL", "Tareas", "Organiza lo necesario sin llenar la pantalla de campos.", "Nueva") { adding = true } }
         item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Buscar tareas") }, singleLine = true) }
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
