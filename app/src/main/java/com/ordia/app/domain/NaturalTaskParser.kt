@@ -1811,7 +1811,7 @@ object NaturalTaskParser {
             // ese mes, con avance de año si ya pasó, igual que parseMonthNameDate). Debe ir
             // ANTES de previousWeekday para no caer en "último viernes" = viernes anterior.
             lastWeekdayOfMonthMatch != null ->
-                lastWeekdayOfMonth(base.toLocalDate(), lastWeekdayOfMonthMatch)
+                lastWeekdayOfMonth(base.toLocalDate(), lastWeekdayOfMonthMatch, recurrence.frequency != RecurrenceFrequency.NONE)
             // "el jueves pasado" / "el último lunes" / "el martes anterior": última
             // ocurrencia pasada de ese día. Tarea vencida honesta (What Now la muestra
             // como atrasada), no se proyecta al futuro como hacía antes weekdayMatch.
@@ -2948,8 +2948,15 @@ object NaturalTaskParser {
      *   = mes siguiente; "de <mes>" = ese mes este año, con recálculo en el año siguiente
      *   si ya pasó (mismo fin que parseMonthNameDate, pero recalculando el weekday objetivo
      *   en vez de `plusYears`, que desplazaría el día de la semana).
+     * - Recurrencia: una fecha suelta vencida es honesta (deuda real). Pero una recurrencia
+     *   mensual ("el primer lunes de cada mes") sembrada en el pasado OLVIDA la primera
+     *   ocurrencia: queda vencida al instante y su recordatorio se descarta (trigger ≤ now).
+     *   Simétrico con el patrón past-safe de ReminderRules/RecurrenceEngine/deferToNextDay:
+     *   si hay recurrencia y la ocurrencia ordinal calculada ya pasó, se avanza al próximo
+     *   mes válido con el mismo ordinal+weekday (nunca en pasado). Así la cadencia arranca
+     *   en la próxima cita real en vez de en una ya vencida que nadie recuerda.
      */
-    private fun lastWeekdayOfMonth(today: LocalDate, match: MatchResult): LocalDate {
+    private fun lastWeekdayOfMonth(today: LocalDate, match: MatchResult, isRecurring: Boolean = false): LocalDate {
         val ordinalWord = match.groupValues[1].lowercase()
         val weekday = match.groupValues[2].toDayOfWeek()
         val ordinal = when (ordinalWord) {
@@ -2990,6 +2997,19 @@ object NaturalTaskParser {
         // 2027-06-25).
         if (namedMonth != null && yearStr == null && month != today.monthValue && date.isBefore(today)) {
             date = nthWeekdayInMonth(year + 1, month, ordinal, weekday)
+        }
+        // Recurrencia con ocurrencia ordinal ya pasada: avanzar al próximo mes que mantenga
+        // el mismo ordinal+weekday sin caer en pasado (ver cabecera). El mes siguiente siempre
+        // es posterior, así que una iteración basta; el bucle es seguro por guardián.
+        if (isRecurring && date.isBefore(today)) {
+            var y = year
+            var m = month
+            var guard = 0
+            while (date.isBefore(today) && guard++ < 24) {
+                m += 1
+                if (m > 12) { m = 1; y += 1 }
+                date = nthWeekdayInMonth(y, m, ordinal, weekday)
+            }
         }
         return date
     }

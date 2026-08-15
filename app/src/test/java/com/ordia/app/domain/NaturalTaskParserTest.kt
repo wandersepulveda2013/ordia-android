@@ -6947,4 +6947,64 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 9, 25), DateRules.toLocalDate(result.dueAt!!, ZoneId.of("America/Santiago")))
         assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, ZoneId.of("America/Santiago")))
     }
+
+    // --- Recurrencia mensual ordinal sembrada en el pasado (P1: no olvidar la 1ª ocurrencia) ---
+    // "el primer lunes de cada mes" dicho DESPUÉS de que el primer lunes del mes ya pasó sembraba
+    // la cadencia en el pasado → vencida al instante + recordatorio descartado → 1ª cita olvidada.
+    // La fecha suelta vencida sigue siendo honesta (deuda real); la recurrente rueda al próximo
+    // mes con el mismo ordinal+weekday. now = 2026-08-20 (jueves). Primer lunes ago = 03 (pasado).
+
+    @Test fun recurrenciaPrimerLunesPasadoRuedaAProximoMes() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Pago el primer lunes de cada mes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        // Primer lunes de septiembre 2026 = 07 (ago-03 quedó en pasado).
+        assertEquals(LocalDate.of(2026, 9, 7), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun recurrenciaSegundoMartesPasadoRuedaAProximoMes() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Reunión el segundo martes de cada mes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        // Segundo martes ago = 11 (pasado) → segundo martes sep = 08.
+        assertEquals(LocalDate.of(2026, 9, 8), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun recurrenciaOrdinalFuturoNoSeMueve() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        // Último viernes de agosto 2026 = 28 (futuro desde el 20): no debe rodar.
+        val result = NaturalTaskParser.parse("Reunión el último viernes de cada mes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun recurrenciaOrdinalHoyNoRueda() {
+        val zone = ZoneId.of("America/Santiago")
+        // Tercer jueves de agosto 2026 = 20 = hoy. La ocurrencia de hoy es válida (no en pasado).
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Reunión el tercer jueves de cada mes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun fechaSueltaOrdinalPasadoSigueVencidaHonestamente() {
+        // Guard anti-regresión: SIN "de cada mes" la fecha vencida NO rueda (deuda honesta).
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Cobro el primer lunes del mes", agoNow, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun recurrenciaOrdinalPasadoConservaHoraExplicita() {
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Pago el primer lunes de cada mes a las 18", agoNow, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 9, 7), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
 }
