@@ -63,10 +63,10 @@ fun TaskRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val priorityColor = priorityAccent(task.priority)
-    Card(
+    OrdiaCard(
         modifier = modifier.fillMaxWidth().combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true }),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        containerColor = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
@@ -125,7 +125,7 @@ fun TaskRow(
 
 @Composable
 fun PriorityPill(text: String) {
-    Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+    OrdiaSurface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.secondaryContainer, border = null) {
         Text(text, Modifier.padding(horizontal = 7.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
     }
 }
