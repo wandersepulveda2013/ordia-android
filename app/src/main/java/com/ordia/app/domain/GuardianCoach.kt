@@ -8,7 +8,18 @@ import java.time.ZoneId
 
 object GuardianCoach {
     enum class Tone { CALM, FOCUSED, CELEBRATING, GENTLE }
-    data class Insight(val eyebrow: String, val title: String, val message: String, val taskId: Long? = null, val tone: Tone = Tone.CALM)
+    data class Insight(
+        val eyebrow: String,
+        val title: String,
+        val message: String,
+        val taskId: Long? = null,
+        val tone: Tone = Tone.CALM,
+        /** False solo para el mensaje genérico de calma, ya cubierto por el What Now. */
+        val showOnHome: Boolean = true
+    ) {
+        /** Identidad estable para deduplicar descartes en memoria. */
+        val dismissKey: String get() = "$eyebrow|$taskId|$title"
+    }
 
     fun insight(tasks: List<TaskEntity>, habits: List<HabitEntity>, habitLogs: List<HabitLogEntity>, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Insight {
         val today = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
@@ -31,6 +42,6 @@ object GuardianCoach {
             return Insight("UN PEQUEÑO RITUAL", it.title, "Tu lista está despejada. Este hábito puede cerrar el día con intención.", tone = Tone.CALM)
         }
         if (completedToday > 0) return Insight("BIEN HECHO", "Tu día está en orden", "Completaste $completedToday ${if (completedToday == 1) "tarea" else "tareas"} hoy.", tone = Tone.CELEBRATING)
-        return Insight("TODO EN CALMA", "No hay pendientes inmediatos", "Captura una idea, revisa un proyecto o conserva este espacio libre.", tone = Tone.CALM)
+        return Insight("TODO EN CALMA", "No hay pendientes inmediatos", "Captura una idea, revisa un proyecto o conserva este espacio libre.", tone = Tone.CALM, showOnHome = false)
     }
 }

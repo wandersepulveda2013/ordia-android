@@ -66,6 +66,7 @@
     <string name="guardian_assistant_registered">Registrado como: %1$s</string>
     <string name="guardian_assistant_no_action">No detecté una acción clara. ¿Qué te gustaría hacer?</string>
     <string name="guardian_close">Cerrar</string>
+    <string name="guardian_dismiss">Descartar sugerencia</string>
     <string name="guardian_quiet_hours_notification">Horas de silencio: el guardián permanece discreto.</string>
     <string name="guardian_active_notification">Tu compañero virtual está activo. Tócalo para interactuar.</string>
     <string name="guardian_notification_hide">Ocultar</string>

@@ -5,6 +5,7 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
@@ -43,5 +44,27 @@ class GuardianCoachTest {
 
         assertEquals("Leer diez minutos", insight.title)
         assertNotNull(insight.message)
+    }
+
+    @Test
+    fun calmFallback_isHiddenFromHome() {
+        val insight = GuardianCoach.insight(emptyList(), emptyList(), emptyList(), now, zone)
+
+        assertEquals("TODO EN CALMA", insight.eyebrow)
+        assertEquals(false, insight.showOnHome)
+    }
+
+    @Test
+    fun dismissKey_isStableAcrossCalls() {
+        val overdue = TaskEntity(
+            id = 1,
+            title = "Enviar informe",
+            dueAt = DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(9, 0), zone)
+        )
+        val first = GuardianCoach.insight(listOf(overdue), emptyList(), emptyList(), now, zone)
+        val second = GuardianCoach.insight(listOf(overdue), emptyList(), emptyList(), now, zone)
+
+        assertEquals(first.dismissKey, second.dismissKey)
+        assertTrue(first.dismissKey.contains("Enviar informe"))
     }
 }

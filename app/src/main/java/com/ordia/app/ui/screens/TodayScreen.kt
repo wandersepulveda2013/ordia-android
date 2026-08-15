@@ -17,6 +17,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Send
@@ -50,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.domain.DateRules
+import com.ordia.app.domain.GuardianCoach
 import com.ordia.app.domain.SummaryEngine
 import com.ordia.app.domain.WhatNowEngine
 import com.ordia.app.ui.OrdiaUiState
@@ -111,6 +113,13 @@ fun TodayScreen(
     val today = remember(clockNow) { LocalDate.now() }
     val whatNow = remember(state.tasks, clockNow) { WhatNowEngine.suggest(state.tasks, clockNow) }
     val summary = remember(state.tasks, clockNow) { SummaryEngine.summarize(state.tasks, clockNow) }
+    val guardianInsight = remember(state.tasks, state.habits, state.habitLogs, clockNow) {
+        GuardianCoach.insight(state.tasks, state.habits, state.habitLogs, clockNow)
+    }
+    var dismissedInsights by rememberSaveable { mutableStateOf(setOf<String>()) }
+    val showGuardianCard = guardianInsight.showOnHome &&
+        guardianInsight.dismissKey !in dismissedInsights &&
+        guardianInsight.taskId != whatNow?.task?.id
     val capture = {
         if (quickText.isNotBlank()) {
             vm.submitCapture(
@@ -184,6 +193,30 @@ fun TodayScreen(
                             chips = chips,
                             hint = if (parsed.confidence < 0.5f) stringResource(R.string.capture_hint_inbox) else null
                         )
+                    }
+                }
+            }
+        }
+
+        if (showGuardianCard) {
+            item {
+                val (container, content) = guardianToneColors(guardianInsight.tone)
+                Card(
+                    onClick = { guardianInsight.taskId?.let(onTask) },
+                    colors = CardDefaults.cardColors(containerColor = container, contentColor = content)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(start = 16.dp, top = 14.dp, bottom = 14.dp, end = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(guardianInsight.eyebrow, style = MaterialTheme.typography.labelSmall)
+                            Text(guardianInsight.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(guardianInsight.message, style = MaterialTheme.typography.bodySmall)
+                        }
+                        IconButton(onClick = { dismissedInsights = dismissedInsights + guardianInsight.dismissKey }) {
+                            Icon(Icons.Outlined.Close, stringResource(R.string.guardian_dismiss))
+                        }
                     }
                 }
             }
@@ -398,4 +431,12 @@ private fun greeting(): String = when (java.time.LocalTime.now().hour) {
     in 5..11 -> stringResource(R.string.today_greeting_morning)
     in 12..18 -> stringResource(R.string.today_greeting_afternoon)
     else -> stringResource(R.string.today_greeting_evening)
+}
+
+@Composable
+private fun guardianToneColors(tone: GuardianCoach.Tone): Pair<androidx.compose.ui.graphics.Color, androidx.compose.ui.graphics.Color> = when (tone) {
+    GuardianCoach.Tone.GENTLE -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+    GuardianCoach.Tone.FOCUSED -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+    GuardianCoach.Tone.CELEBRATING -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+    GuardianCoach.Tone.CALM -> MaterialTheme.colorScheme.surfaceContainerLow to MaterialTheme.colorScheme.onSurfaceVariant
 }
