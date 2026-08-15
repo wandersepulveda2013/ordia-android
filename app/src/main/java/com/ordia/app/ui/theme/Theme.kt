@@ -9,6 +9,11 @@ import androidx.compose.ui.graphics.Color
 import com.ordia.app.data.preferences.AccentPalette
 import com.ordia.app.data.preferences.ThemeMode
 
+val SemanticAlert = Color(0xFFE57373)
+val SemanticSuccess = Color(0xFF81C784)
+val SemanticFocus = Color(0xFF64B5F6)
+val SemanticAutomation = Color(0xFFBA68C8)
+
 val OrdiaInk = Color(0xFF1D1B17)
 val OrdiaCream = Color(0xFFF7F3EB)
 val OrdiaPaper = Color(0xFFFFFCF7)
