@@ -2171,9 +2171,29 @@ object NaturalTaskParser {
         // Pero si la hora ya pasó ("el viernes a las 6" a las 10:00) o no había hora y el
         // mediodía canónico (09:00) ya pasó, se rueda a la semana siguiente, igual que
         // antes. Así no se agenda nada en el pasado y no se pierde una cita de hoy.
-        val dueAt = if (weekdaySameDayCandidate && rawDueAt != null && rawDueAt < now) {
-            DateRules.toEpochMillis(date!!.plusDays(7), parsedTime ?: LocalTime.of(9, 0), zone)
-        } else rawDueAt
+        //
+        // Hora canónica INEQUÍVOCA (medianoche/mediodía, "12 de la noche"/"12 de la
+        // tarde") SIN fecha explícita cae por defecto en hoy; si ese instante ya pasó,
+        // se rueda al día siguiente (medianoche → madrugada de mañana; mediodía →
+        // mediodía de mañana). Antes "cena a la medianoche" capturada al mediodía caía
+        // en hoy 00:00 (12h en el pasado): el recordatorio (dueAt - offset) también
+        // quedaba en el pasado y ReminderSync.triggers lo descartaba (trigger <= now →
+        // null) → la cita se olvidaba sin aviso. Past-safe consistente con el contrato
+        // de reminders (DECISIONES: "no quedar al olvido"). Sólo horas inequívocas
+        // (meridiem explícito + valor 00:00/12:00 y la hora vino del tiempo explícito,
+        // no de un rango): las horas sueltas ("a las 9") y de franja ambigua
+        // ("9 de la mañana", cuyo día es ambiguo: registrar pasado vs. mañana) se dejan
+        // en hoy para no alterar la semántica existente ni romper la ambigüedad AM/PM.
+        val dueAt = when {
+            weekdaySameDayCandidate && rawDueAt != null && rawDueAt < now ->
+                DateRules.toEpochMillis(date!!.plusDays(7), parsedTime ?: LocalTime.of(9, 0), zone)
+            date == null && effectiveRelativeDueAt == null && !explicitTimeIsRangeEnd &&
+                parsedTime != null && hasExplicitMeridiem &&
+                (parsedTime == LocalTime.MIDNIGHT || parsedTime == LocalTime.NOON) &&
+                rawDueAt != null && rawDueAt < now ->
+                DateRules.toEpochMillis(base.toLocalDate().plusDays(1), parsedTime, zone)
+            else -> rawDueAt
+        }
 
 
         // Duración numérica: se descarta si el número está precedido por una frase

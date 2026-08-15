@@ -1530,7 +1530,11 @@ class NaturalTaskParserTest {
 
     @Test fun twelveDeLaMananaIsMidnight() {
         val result = NaturalTaskParser.parse("cita a las 12 de la manana", now, zone)
-        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        // "12 de la manana" = medianoche (00:00). Capturada al mediodía, la medianoche de
+        // hoy ya pasó (12h en el pasado) → se rueda a la medianoche de mañana (past-safe,
+        // evita agendar la cita en el pasado donde el recordatorio se descartaría). La
+        // aserción de hora (00:00, no 12:00) es el guardia real de la regresión del tilde.
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(0, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
@@ -5760,6 +5764,49 @@ class NaturalTaskParserTest {
         assertEquals("Reunión", result.title)
         assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
     }
+
+    // ── Past-safe: hora canónica inequívoca en el pasado se rueda al día siguiente ──
+    // now = 2026-07-29 12:00 (mediodía). La medianoche de hoy (00:00) ya pasó 12h →
+    // "cena a la medianoche" debe caer en la madrugada de MAÑANA (2026-07-30 00:00), no
+    // en hoy 00:00 (pasado), donde el recordatorio (dueAt - offset) también quedaría en
+    // el pasado y ReminderSync.triggers lo descartaría (trigger <= now → null) → cita
+    // olvidada. El mediodía (12:00) == now → se queda hoy (no es pasado).
+
+    @Test fun medianochePasadaSeRuedaAMadrugadaDeManana() {
+        val result = NaturalTaskParser.parse("Cena a la medianoche", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun doceDeLaNochePasadaSeRuedaAMadrugadaDeManana() {
+        val result = NaturalTaskParser.parse("Fiesta a las 12 de la noche", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mediodiaNoSeRuedaSiEsAhora() {
+        // 12:00 == now → no es pasado, se queda hoy al mediodía.
+        val result = NaturalTaskParser.parse("Almuerzo al mediodía", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.NOON, DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun horaSueltaPasadaNoSeRuedaAmbiguedadAmPm() {
+        // "a las 9" (sin meridiem) capturada al mediodía cae en hoy 09:00 (pasado) y NO se
+        // rueda: la hora es ambigua (AM/PM) y el día también (registrar pasado vs. mañana).
+        // Se preserva la semántica existente en lugar de adivinar.
+        val result = NaturalTaskParser.parse("Reunión a las 9", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun medianocheConFechaExplicitaMañanaNoSeRueda() {
+        // "mañana a la medianoche" → fecha explícita mañana (2026-07-31 00:00), no se toca.
+        val result = NaturalTaskParser.parse("Entregar mañana a la medianoche", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt, zone))
+    }
+
 
     // --- "Ahora" inmediato ("ahora mismo"/"ahorita"/"ahora"/"lo antes posible") ---
     // Antes estas frases cotidianas no casaban ningún patrón → dueAt=null → tarea SIN
