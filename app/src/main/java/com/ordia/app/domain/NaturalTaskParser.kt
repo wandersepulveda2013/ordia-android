@@ -684,7 +684,7 @@ object NaturalTaskParser {
         // de la fracción/meridiem (simétrico del reloj "HH:MMh pm" de c.235 y del
         // "a las N" de aquí): así "a la una horas y media" y "a la una h pm" consumen
         // el sufijo completo en vez de dejar fracción/meridiem como residuo en el título.
-        Regex("""(?i)\ba\s+la\s+(una)(?::([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?\b"""),
+        Regex("""(?i)\ba\s+la\s+(una)(?::([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\b"""),
         // Sufijo opcional "(horas?|hs|h)" tras la hora para consumir "a las 9 horas"/
         // "a las 9h" completo: antes "horas" quedaba como residuo en el titulo y, peor,
         // "9 horas" era robado como duracion (540 min falsos). Es NO capturante (no
@@ -707,7 +707,7 @@ object NaturalTaskParser {
         // hora más común en español). Sin ella, el `\b` final no casa (entre "5" y "h"
         // no hay límite de palabra) → dueAt perdido + "a las 15h" como residuo. El `\b`
         // tras "h" deja intacta la "h" de "hola"/"hello". Simétrico al reloj "HH:MMh".
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?\b"""),
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\b"""),
         // Hora de reloj autónoma "HH:MM [h/hs/horas] [am/pm]" en AMBOS órdenes. El sufijo
         // de unidad "h/hs/horas" puede ir ANTES ("3:30h pm") o DESPUÉS ("3:30 pm h") del
         // meridiem: se permite en las dos posiciones (no capturante) para absorberlo
@@ -1113,17 +1113,30 @@ object NaturalTaskParser {
      * (30 min antes) y contenido capturado degradado. El conector "de la <parte>" sigue
      * siendo la señal de desambiguación que evita robar cantidades ("diez y media botellas"
      * no lleva "de la tarde"), igual que ya ocurre con la hora en punto.
+     *
+     * Admite también la fracción TRAS "de la <parte>" (grupo 5): "9 de la noche y media" →
+     * 21:30, "9 de la tarde y cuarto" → 21:15. Es el orden inverso al del grupo 3 y el mismo
+     * hueco que [timePatterns] cubre con su grupo 5 ("a las 9 pm y media"): antes la fracción
+     * posterior no casaba, la cita caía en punto (21:00 en vez de 21:30) y "y media" quedaba
+     * como residuo en el título. El grupo 3 (fracción anterior) tiene prioridad; el 5 actúa
+     * como fallback (sólo positiva "y media/cuarto/..."). El `\b` final deja intacta la
+     * "y <verbo>" no fraccionaria ("Cena 9 de la noche y hablar" → 21:00 + "Cena y hablar"):
+     * "hablar" no casa CLOCK_FRACTION_Y.
      */
     private val standaloneHourPartOfDayPattern =
-        Regex("""(?i)(?<![:\d])(\d{1,2}|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s+($CLOCK_FRACTION_Y))?\s+de\s+la\s+(tarde|noche|madrugada|ma[nñ]ana|manana)(?!\s+de\s+(?!hoy\b|ma[nñ]ana\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b)[a-záéíóúüñ])""")
+        Regex("""(?i)(?<![:\d])(\d{1,2}|$WRITTEN_HOUR_ALT)(?::([0-5]\d))?(?:\s+($CLOCK_FRACTION_Y))?\s+de\s+la\s+(tarde|noche|madrugada|ma[nñ]ana|manana)(?!\s+de\s+(?!hoy\b|ma[nñ]ana\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b)[a-záéíóúüñ])(?:\s+($CLOCK_FRACTION_Y))?\b""")
 
     private fun resolveStandaloneHourPartOfDay(match: MatchResult): LocalTime? {
         val h = parseHour(match.groupValues[1]) ?: return null
         // Minutos explícitos ":MM" (grupo 2) con prioridad; si no, la fracción sub-hora
         // "y media"/"y cuarto"/"y veinte"/"y tres cuartos"/... (grupo 3, frase "y <min>")
         // aporta los minutos; si tampoco, 0. Simétrico del "a las N y <min>" de [timePatterns].
-        val min = match.groupValues[2].toIntOrNull()
-            ?: (resolveClockFraction(match.groupValues[3]) ?: 0).coerceIn(0, 59)
+        // Grupo 5: fracción TRAS "de la <parte>" ("9 de la noche y media") como fallback del
+        // grupo 3 (fracción ANTES). Véase el comentario del patrón.
+        val g3 = match.groupValues.getOrNull(3)?.lowercase().orEmpty()
+        val g5 = match.groupValues.getOrNull(5)?.lowercase().orEmpty()
+        val frac = resolveClockFraction(g3) ?: resolveClockFraction(g5)
+        val min = match.groupValues[2].toIntOrNull() ?: (frac ?: 0).coerceIn(0, 59)
         if (h !in 0..24 || min !in 0..59) return null
         val part = match.groupValues[4].lowercase()
         val hour = when {
@@ -2117,6 +2130,16 @@ object NaturalTaskParser {
                     // fracción O meridiem según el patrón: se disambigua por contenido.
                     val raw3 = match.groupValues.getOrNull(3)?.lowercase().orEmpty()
                     val raw4 = match.groupValues.getOrNull(4)?.lowercase().orEmpty()
+                    // Grupo 5: fracción sub-hora TRAS el meridiem ("a las 9 pm y media",
+                    // "a las 9 de la tarde y cuarto"). Sólo la tienen los patrones
+                    // "a las N"/"a la una" (que admiten la fracción en ambos lados del
+                    // meridiem); los patrones N:MM/Nam no capturan grupo 5. Antes el
+                    // orden fijo [fracción][meridiem] hacía que la fracción POSTERIOR al
+                    // meridiem no casara: se agendaba la cita en punto (21:00 en vez de
+                    // 21:30) y "y media" quedaba como residuo en el título. Ahora se usa
+                    // como fallback de la fracción principal (g3 tiene prioridad).
+                    val raw5 = match.groupValues.getOrNull(5)?.lowercase().orEmpty()
+                    val isFraction = { s: String -> s.startsWith("y ") || s.startsWith("menos ") }
                     // Fracción sub-hora del grupo 3: positiva "y media"/"y veinte"/
                     // "y tres cuartos" (suma minutos) o negativa "menos cuarto"/"menos
                     // veinte" (resta, con wrap 24h más abajo). Sólo el grupo 3 de los
@@ -2126,10 +2149,11 @@ object NaturalTaskParser {
                     // "y cuarto" sumaban y "menos {cuarto|cinco|diez|veinte|veinticinco|N}"
                     // restaba: "a las once y veinte"/"a las diez y tres cuartos" caían en
                     // punto con residuo en el título (asimetría positiva de c.114).
-                    val frac3 = if (raw3.startsWith("y ") || raw3.startsWith("menos "))
-                        resolveClockFraction(raw3) else null
-                    val addMin = frac3?.takeIf { it > 0 }
-                    val subMin = frac3?.takeIf { it < 0 }?.let { -it }
+                    val frac3 = if (isFraction(raw3)) resolveClockFraction(raw3) else null
+                    val frac5 = if (isFraction(raw5)) resolveClockFraction(raw5) else null
+                    val frac = frac3 ?: frac5
+                    val addMin = frac?.takeIf { it > 0 }
+                    val subMin = frac?.takeIf { it < 0 }?.let { -it }
                     val minute = explicitMinute ?: (addMin ?: 0)
                     // "a las 24" / "24:00" = medianoche (00:00), forma común en horarios.
                     // Se marca como meridiem explícito para evitar que el contexto PM de

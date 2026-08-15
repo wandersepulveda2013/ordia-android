@@ -2636,6 +2636,129 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(16, 45), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- Fracción sub-hora TRAS el meridiem ("9 pm y media", "9 de la tarde y cuarto") ---
+    // En español hablado la fracción puede ir DESPUÉS de la parte del día/meridiem, no
+    // solo antes ("9 y media de la tarde"). Antes el orden fijo [fracción][meridiem] del
+    // patrón "a las N" hacía que la fracción posterior no casara: la cita caía en punto
+    // (21:00 en vez de 21:30) y "y media" quedaba como residuo en el título. Para una app
+    // de recordatorios eso es una cita perdida/media hora mal + título degradado.
+
+    @Test fun aLasNuevePmYMediaEs21y30() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 pm y media", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNueveDeLaNocheYMediaEs21y30() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 de la noche y media", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNueveAmYMediaEs9y30() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 am y media", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNuevePmYCuartoEs21y15() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 pm y cuarto", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(21, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNuevePmYCuarentaYCincoEs21y45() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 pm y cuarenta y cinco", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(21, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNueveDeLaTardeYMediaEs21y30() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 de la tarde y media", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLaUnaPmYMediaEs13y30() {
+        val result = NaturalTaskParser.parse("Cita a la una pm y media", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(13, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLaUnaDeLaTardeYMediaEs13y30() {
+        val result = NaturalTaskParser.parse("Cita a la una de la tarde y media", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(13, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Fracción NEGATIVA tras meridiem: "3 pm menos cuarto" = 14:45 (resta sobre la hora
+    // ya ajustada a PM, con wrap 24h).
+    @Test fun aLasTresPmMenosCuartoEs14y45() {
+        val result = NaturalTaskParser.parse("Tren a las 3 pm menos cuarto", now, zone)
+        assertEquals("Tren", result.title)
+        assertEquals(LocalTime.of(14, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasTresDeLaTardeMenosCuartoEs14y45() {
+        val result = NaturalTaskParser.parse("Tren a las 3 de la tarde menos cuarto", now, zone)
+        assertEquals("Tren", result.title)
+        assertEquals(LocalTime.of(14, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // No-regresión: la fracción ANTES del meridiem sigue funcionando.
+    @Test fun aLasNueveYMediaPmSigueSiendo21y30() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 y media pm", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // No-regresión: "y <palabra>" tras meridiem NO se roba como fracción si no es un
+    // múltiplo de reloj ("y hablar" no es fracción) — la hora cae en punto y el verbo
+    // queda en el título.
+    @Test fun aLasNuevePmYHablarNoRobaFraccion() {
+        val result = NaturalTaskParser.parse("Llamar a las 9 pm y hablar", now, zone)
+        assertEquals("Llamar y hablar", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // --- Forma SIN "a las": fracción TRAS la parte del día ("9 de la noche y media") ---
+    // Simétrico del "a las N de la X y media" pero en la forma standalone (sin "a las").
+    // Antes [standaloneHourPartOfDayPattern] sólo aceptaba la fracción ANTES de "de la"
+    // ("9 y media de la noche"); la posterior no casaba y "y media" quedaba en el título
+    // con la cita en punto (21:00 en vez de 21:30).
+
+    @Test fun nueveDeLaNocheYMediaStandaloneEs21y30() {
+        val result = NaturalTaskParser.parse("Cena 9 de la noche y media", now, zone)
+        assertEquals("Cena", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun nueveDeLaNocheYCuartoStandaloneEs21y15() {
+        val result = NaturalTaskParser.parse("Cena 9 de la noche y cuarto", now, zone)
+        assertEquals("Cena", result.title)
+        assertEquals(LocalTime.of(21, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun ochoDeLaMananaYMediaStandaloneEs8y30() {
+        val result = NaturalTaskParser.parse("Cita 8 de la mañana y media", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(8, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // No-regresión: la fracción ANTES de "de la" sigue funcionando en la forma standalone.
+    @Test fun nueveYMediaDeLaNocheStandaloneSigueSiendo21y30() {
+        val result = NaturalTaskParser.parse("Cena 9 y media de la noche", now, zone)
+        assertEquals("Cena", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // No-regresión: "y <verbo>" tras la parte del día NO se roba como fracción standalone.
+    @Test fun nueveDeLaNocheYHablarNoRobaFraccion() {
+        val result = NaturalTaskParser.parse("Cena 9 de la noche y hablar", now, zone)
+        assertEquals("Cena y hablar", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // Una cantidad NO debe casar como hora aunque contenga "y media": no hay "de la <parte>".
     @Test fun cantidadConYMediaNoSeRobaComoHora() {
         val result = NaturalTaskParser.parse("diez y media botellas", now, zone)
