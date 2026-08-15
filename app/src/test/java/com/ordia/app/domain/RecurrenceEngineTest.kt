@@ -165,4 +165,28 @@ class RecurrenceEngineTest {
         assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(next.dueAt!!, zone))
         assertEquals(offsetDays * dayMs, next.dueAt - next.reminderAt!!)
     }
+
+    @Test fun monthly_legacyCorruptStartAfterDue_doesNotPropagateStartAfterDue() {
+        // Defensa en profundidad (simétrico c.193/c.194): una fila LEGADA con
+        // `startAt > dueAt` (estado que BackupManager rechaza al restaurar, posible
+        // en datos anteriores a c.193/c.194) NO debe propagar el invariante roto a
+        // la próxima ocurrencia. `startOffset = dueAt - startAt` sería NEGATIVO, así
+        // que `nextDue - startOffset > nextDue` dejaría la nueva ocurrencia con
+        // `startAt > dueAt` -> backup irrestaurable + autoperpetuación en cada ciclo.
+        val start = DateRules.toEpochMillis(LocalDate.of(2026, 8, 15), LocalTime.of(14, 0), zone)
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 8, 15), LocalTime.of(9, 0), zone) // due ANTES de start (corrupto)
+        val task = TaskEntity(
+            title = "Legado corrupto",
+            startAt = start,
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY
+        )
+        val completedAt = DateRules.toEpochMillis(LocalDate.of(2026, 8, 15), LocalTime.of(9, 30), zone)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = completedAt, zone = zone))
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertTrue(
+            "La próxima ocurrencia no debe heredar startAt > dueAt (invariante que BackupManager exige al restaurar)",
+            next.startAt == null || next.startAt <= next.dueAt
+        )
+    }
 }

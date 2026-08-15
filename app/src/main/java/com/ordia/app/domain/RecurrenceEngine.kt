@@ -39,7 +39,7 @@ object RecurrenceEngine {
         }
         return task.copy(
             id = 0,
-            startAt = startOffset?.let { nextDue - it },
+            startAt = TaskRules.coerceStartAt(startOffset?.let { nextDue - it }, nextDue),
             dueAt = nextDue,
             reminderAt = resolvedReminder,
             status = TaskStatus.PLANNED,
