@@ -294,9 +294,22 @@ object NaturalTaskParser {
      * comenzar). Antes estas formas caían a `dueAt=null` + residuo "que entra"
      * en el título (P1: vencimiento olvidado, tarea sin recordatorio ni
      * visibilidad). Se reusa la misma resolución +1 período.
+     *
+     * PLURAL de período próximo: "próximas semanas", "próximos meses", "próximos
+     * años", "próximos trimestres", "las semanas que vienen". El plural es la
+     * forma vaga de futuro más cotidiana ("el proyecto estará listo en las
+     * próximas semanas", "entrega en los próximos meses"). Antes el singular
+     * ("próxima semana") se resolvía pero el plural no coincidía → `dueAt=null` +
+     * frase íntegra como residuo en el título → vencimiento olvidado (P1, misma
+     * brecha de simetría que "próximos días"). El sustantivo y el adjetivo aceptan
+     * plural (`semanas`, `próximos`, `que vienen`) y el artículo admite `los/las`.
+     * La resolución reusa el `when` de subcadenas (los plurales contienen el
+     * singular: "semanas"→"semana"→+7d), así que no cambia la heurística. El
+     * prefijo "en los/el/las/la" es opcional (como en "próximos días") para que no
+     * quede "en" como residuo en el título.
      */
     private val nextPeriodPattern = Regex(
-        """(?i)(?<!\p{L})(?:a\s+)?(?:el|la)?\s*(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)\b|(?<!\p{L})(?:a\s+)?(?:el|la)?\s*(?:pr[oó]ximo|pr[oó]xima)\s+(?:semana|mes|a[nñ]o|trimestre|bimestre|semestre|quincena)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
+        """(?i)(?<!\p{L})(?:en\s+(?:los|el|las|la)?\s+)?(?:a\s+)?(?:el|la|los|las)?\s*(?:semanas?|mes(?:es)?|a[nñ]os?|trimestres?|bimestres?|semestres?|quincenas?)\s+(?:que\s+viene[n]?|que\s+entra[n]?|pr[oó]ximos?|pr[oó]ximas?|entrante[s]?)\b|(?<!\p{L})(?:en\s+(?:los|el|las|la)?\s+)?(?:a\s+)?(?:el|la|los|las)?\s*(?:pr[oó]ximos?|pr[oó]ximas?)\s+(?:semanas?|mes(?:es)?|a[nñ]os?|trimestres?|bimestres?|semestres?|quincenas?)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
     )
     /**
      * "el 15 del mes que viene" / "el 15 del próximo mes" / "el 15 del mes próximo":

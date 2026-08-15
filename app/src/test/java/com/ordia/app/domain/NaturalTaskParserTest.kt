@@ -3852,6 +3852,65 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- plural de período próximo: "próximas semanas", "próximos meses",
+    // "próximos años", "próximos trimestres" ---
+    // El plural es la forma vaga de futuro más cotidiana ("el proyecto estará listo
+    // en las próximas semanas", "entrega en los próximos meses"). Antes el singular
+    // ("próxima semana") se resolvía pero el plural no coincidía → dueAt=null + frase
+    // íntegra como residuo en el título → vencimiento olvidado (sin recordatorio ni
+    // visibilidad en What Now/planificador). Es la misma brecha de simetría que
+    // "próximos días" (c.32, P1) extendida a los demás períodos en plural.
+
+    @Test fun proximasSemanasParsesDueAt() {
+        // +7 días, igual que el singular "próxima semana".
+        val result = NaturalTaskParser.parse("Viaje en las próximas semanas", now, zone)
+        assertEquals("Viaje", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximasSemanasSinPrefijoParsesDueAt() {
+        // "próximas semanas" sin "en las" también debe resolver y limpiar el título.
+        val result = NaturalTaskParser.parse("Viaje próximas semanas", now, zone)
+        assertEquals("Viaje", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximosMesesParsesDueAt() {
+        // +30 días, igual que el singular "próximo mes".
+        val result = NaturalTaskParser.parse("Proyecto en los próximos meses", now, zone)
+        assertEquals("Proyecto", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximosAniosParsesDueAt() {
+        // +365 días, igual que el singular "próximo año".
+        val result = NaturalTaskParser.parse("Meta para los próximos años", now, zone)
+        assertEquals("Meta", result.title)
+        assertEquals(LocalDate.of(2027, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximosTrimestresParsesDueAt() {
+        // +90 días, igual que el singular "próximo trimestre".
+        val result = NaturalTaskParser.parse("Revisión en los próximos trimestres", now, zone)
+        assertEquals("Revisión", result.title)
+        assertEquals(LocalDate.of(2026, 10, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun semanasQueVienenParsesDueAt() {
+        // Plural de "la semana que viene": +7 días.
+        val result = NaturalTaskParser.parse("Viaje en las semanas que vienen", now, zone)
+        assertEquals("Viaje", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun proximasSemanasRespetaHoraExplicita() {
+        // Como el singular, el plural combina con hora explícita.
+        val result = NaturalTaskParser.parse("Entrega en las próximas semanas a las 10", now, zone)
+        assertEquals("Entrega", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- "trimestre": período próximo de 3 meses (+90 días) ---
     // "próximo trimestre" / "el trimestre que viene" / "el próximo trimestre":
     // plazo largo cotidiano (impuestos trimestrales, revisiones, informes). Antes
