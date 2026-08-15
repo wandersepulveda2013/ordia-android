@@ -752,4 +752,52 @@ class AssistantEngineTest {
         )
         assertEquals(listOf(1L), answer.relatedTaskIds)
     }
+
+    @Test fun whatNow_inProgressWindow_saysContinueNotStart_andShowsRemainingTime() {
+        // Bug de honestidad: si lo que sugiere "qué hago ahora" es una tarea cuya
+        // ventana startAt..fin YA está activa ([WhatNowReason.IN_PROGRESS_NOW]),
+        // el texto no puede decir "Empieza por … Estimo 25 minutos": contradice
+        // "ya está en curso" (no se empieza lo que está en curso) y miente con el
+        // tiempo (la duración planificada completa cuenta de más: ya se ha vivido
+        // parte). Debe decir "Sigue con" y "Te quedan N minutos" (lo que FALTA).
+        val now = 1_000_000_000_000L
+        val inProgress = TaskEntity(
+            id = 1, title = "Borrador",
+            startAt = now - 15 * 60_000L, // empezó hace 15 min
+            durationMinutes = 25,          // ventana activa, faltan 10 min
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(inProgress),
+            emptyList(), emptyList(),
+            now
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("dice 'Sigue con', no 'Empieza por': ${answer.text}", answer.text.contains("Sigue con"))
+        assertTrue("no dice 'Empieza por': ${answer.text}", !answer.text.contains("Empieza por"))
+        assertTrue("muestra el tiempo que falta, no el planificado: ${answer.text}", answer.text.contains("Te quedan 10 minutos"))
+        assertTrue("no dice 'Estimo': ${answer.text}", !answer.text.contains("Estimo"))
+    }
+
+    @Test fun whatNow_inProgressManualFlag_saysContinueButKeepsEstimate() {
+        // Caso complementario: tarea marcada IN_PROGRESS a mano (sin startAt).
+        // El reason es IN_PROGRESS_NOW (por status), así que "Sigue con" es
+        // honesto. Pero NO hay ventana activa → no sabemos cuánto se ha trabajado:
+        // el tiempo debe seguir siendo "Estimo N" (no se simula elapsed desconocido).
+        val manual = TaskEntity(
+            id = 2, title = "Correo",
+            durationMinutes = 20,
+            status = com.ordia.app.data.local.TaskStatus.IN_PROGRESS
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(manual),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+        assertTrue("dice 'Sigue con' (está en curso): ${answer.text}", answer.text.contains("Sigue con"))
+        assertTrue("conserva 'Estimo' (no hay ventana activa): ${answer.text}", answer.text.contains("Estimo"))
+        assertTrue("no finge 'Te quedan' sin saber el elapsed: ${answer.text}", !answer.text.contains("Te quedan"))
+    }
 }

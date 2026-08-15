@@ -10,6 +10,7 @@ import com.ordia.app.domain.LearningProfile
 import com.ordia.app.domain.SummaryEngine
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.domain.WhatNowEngine
+import com.ordia.app.domain.WhatNowReason
 import com.ordia.app.domain.foldForSearch
 import java.time.Instant
 import java.time.LocalDate
@@ -71,9 +72,22 @@ object AssistantEngine {
                     val tail = if (otherOverdue > 0) {
                         " Además, tienes $otherOverdue vencid${if (otherOverdue == 1) "a" else "as"}."
                     } else ""
-                    val minutes = TaskRules.plannedDuration(suggestion.task)
+                    // "Empieza por" miente si lo sugerido ya está en curso
+                    // ([WhatNowReason.IN_PROGRESS_NOW]): hay que continuar, no empezar.
+                    // Y el tiempo honesto es lo que FALTA, no la duración planificada
+                    // completa: [TaskRules.remainingPlanMinutes] descuenta el tramo ya
+                    // vivido desde `startAt` cuando la ventana está activa. Sólo lo
+                    // afirmamos así cuando [isInProgressNow] confirma elapsed conocido;
+                    // una tarea marcada en curso a mano (sin `startAt`) conserva "Estimo"
+                    // porque no sabemos cuánto se ha trabajado —no se simulan datos.
+                    val inProgress = suggestion.reason == WhatNowReason.IN_PROGRESS_NOW
+                    val elapsedKnown = TaskRules.isInProgressNow(suggestion.task, now)
+                    val minutes = if (elapsedKnown) TaskRules.remainingPlanMinutes(suggestion.task, now)
+                        else TaskRules.plannedDuration(suggestion.task)
+                    val lead = if (inProgress) "Sigue con" else "Empieza por"
+                    val timePhrase = if (elapsedKnown) "Te quedan $minutes minutos" else "Estimo $minutes minutos"
                     AssistantAnswer(
-                        "Empieza por “${suggestion.task.title}”: $why. Estimo $minutes minutos.$tail",
+                        "$lead “${suggestion.task.title}”: $why. $timePhrase.$tail",
                         relatedTaskIds = listOf(suggestion.task.id)
                     )
                 }
