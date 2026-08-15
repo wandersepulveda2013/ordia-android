@@ -5,6 +5,8 @@ import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
+import java.time.ZoneId
 
 class AssistantEngineTest {
     @Test fun blankRequest_isHelpfulAndOffline() {
@@ -292,5 +294,128 @@ class AssistantEngineTest {
         assertEquals(listOf(1L), answer.relatedTaskIds)
         assertTrue("además cuenta 1 vencida (la otra raíz), no 3: ${answer.text}", answer.text.contains("1 vencida"))
         assertTrue("no infla con 3 vencidas: ${answer.text}", !answer.text.contains("3 vencid"))
+    }
+
+    // --- "¿qué tengo mañana/hoy?" — agenda a demanda (c.230) ---
+
+    private fun tomorrowNoon(now: Long): Long {
+        val zone = ZoneId.systemDefault()
+        val tomorrow = Instant.ofEpochMilli(now).atZone(zone).toLocalDate().plusDays(1)
+        return tomorrow.atTime(12, 0).atZone(zone).toInstant().toEpochMilli()
+    }
+
+    private fun todayNoon(now: Long): Long {
+        val zone = ZoneId.systemDefault()
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        return today.atTime(12, 0).atZone(zone).toInstant().toEpochMilli()
+    }
+
+    @Test fun queTengoManana_listsTasksDueTomorrow() {
+        val now = 1_000_000_000_000L
+        val tomorrow = tomorrowNoon(now)
+        val answer = AssistantEngine.answer(
+            "¿qué tengo mañana?",
+            listOf(
+                TaskEntity(id = 1, title = "Reunión de equipo", dueAt = tomorrow),
+                TaskEntity(id = 2, title = "Llamar al médico", dueAt = tomorrow, priority = TaskPriority.URGENT),
+                TaskEntity(id = 3, title = "Tarea de hoy", dueAt = todayNoon(now))
+            ),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra las de mañana: ${answer.text}", answer.text.contains("Reunión de equipo"))
+        assertTrue("nombra la urgente de mañana: ${answer.text}", answer.text.contains("Llamar al médico"))
+        assertTrue("no mezcla con la de hoy: ${answer.text}", !answer.text.contains("Tarea de hoy"))
+        assertTrue("relaciona solo las de mañana: ${answer.relatedTaskIds}", answer.relatedTaskIds.containsAll(listOf(1L, 2L)))
+        assertTrue("no incluye la de hoy en ids: ${answer.relatedTaskIds}", !answer.relatedTaskIds.contains(3L))
+    }
+
+    @Test fun queTengoManana_whenEmpty_saysSoHonestly() {
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "¿qué tengo mañana?",
+            listOf(TaskEntity(id = 1, title = "Solo de hoy", dueAt = todayNoon(now))),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("no inventa tareas: ${answer.text}", answer.text.contains("mañana") && answer.text.contains("no tienes"))
+        assertTrue("sin ids inventados: ${answer.relatedTaskIds}", answer.relatedTaskIds.isEmpty())
+    }
+
+    @Test fun queTengoManana_excludesSubtasks() {
+        val now = 1_000_000_000_000L
+        val tomorrow = tomorrowNoon(now)
+        val parent = TaskEntity(id = 1, title = "Proyecto", dueAt = tomorrow)
+        val sub = TaskEntity(id = 2, title = "Paso", parentTaskId = 1, dueAt = tomorrow)
+        val answer = AssistantEngine.answer(
+            "¿qué tengo para mañana?",
+            listOf(parent, sub),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("cuenta solo la raíz, no la subtarea: ${answer.text}", answer.text.contains("Proyecto"))
+        assertTrue("no infla con la subtarea: ${answer.text}", !answer.text.contains("Paso"))
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun queTengoHoy_listsTodaysTasksAndMentionsEarlierOverdue() {
+        val now = 1_000_000_000_000L
+        val today = todayNoon(now)
+        val earlierOverdue = now - 3 * 86_400_000L // vencida hace 3 días (día anterior)
+        val answer = AssistantEngine.answer(
+            "¿qué tengo hoy?",
+            listOf(
+                TaskEntity(id = 1, title = "Cita médica", dueAt = today),
+                TaskEntity(id = 2, title = "Entrega vieja", dueAt = earlierOverdue)
+            ),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la de hoy: ${answer.text}", answer.text.contains("Cita médica"))
+        assertTrue("avisa de las atrasadas previas: ${answer.text}", answer.text.contains("atrasada"))
+    }
+
+    @Test fun queTengoManana_keepsQuickPhrasesWorking() {
+        // "qué hago ahora" y "plan mínimo" no deben romperse tras añadir el intent
+        // de agenda: siguen su camino propio.
+        val now = 1_000_000_000_000L
+        val whatNow = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(TaskEntity(id = 1, title = "X", priority = TaskPriority.URGENT)),
+            emptyList(), emptyList(),
+            now
+        )
+        assertEquals(listOf(1L), whatNow.relatedTaskIds)
+        val plan = AssistantEngine.answer(
+            "plan mínimo para hoy",
+            listOf(TaskEntity(id = 1, title = "X")),
+            emptyList(), emptyList(),
+            now
+        )
+        assertEquals(listOf(1L), plan.relatedTaskIds)
+    }
+
+    @Test fun queTengoEstaSemana_listsTasksWithinIsoWeek() {
+        // "esta semana" = semana ISO lun→dom que contiene hoy. Una tarea cuyo
+        // vencimiento cae dentro de esa ventana aparece; una de la semana siguiente,
+        // no. Determinista y honesto (no inventa nada, no mezcla semanas).
+        val zone = ZoneId.systemDefault()
+        val now = 1_000_000_000_000L
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        val monday = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val inWeek = monday.plusDays(2).atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
+        val nextWeek = monday.plusDays(9).atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
+        val answer = AssistantEngine.answer(
+            "¿qué tengo esta semana?",
+            listOf(
+                TaskEntity(id = 1, title = "Médico", dueAt = inWeek),
+                TaskEntity(id = 2, title = "Próxima semana", dueAt = nextWeek)
+            ),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la de esta semana: ${answer.text}", answer.text.contains("Médico"))
+        assertTrue("no incluye la de la próxima: ${answer.text}", !answer.text.contains("Próxima semana"))
+        assertEquals(listOf(1L), answer.relatedTaskIds)
     }
 }

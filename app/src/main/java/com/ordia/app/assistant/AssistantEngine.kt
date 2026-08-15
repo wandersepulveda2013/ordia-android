@@ -7,6 +7,9 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.domain.WhatNowEngine
 import com.ordia.app.domain.foldForSearch
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, OPEN_SEARCH }
 
@@ -68,6 +71,7 @@ object AssistantEngine {
                     )
                 }
             }
+            isAgendaQuery(query) -> agendaAnswer(query, active, now)
             "que olvide" in query || "olvidado" in query || "vencid" in query -> {
                 // Partición honesta: "vencid" pregunta por vencidas (dueAt pasado);
                 // "qué olvidé"/"olvidado" pregunta por olvidos, y un compromiso
@@ -155,8 +159,58 @@ object AssistantEngine {
             query.startsWith("busca ") || query.startsWith("muestra ") || query.startsWith("pendientes con") ->
                 AssistantAnswer("Abriré la búsqueda con esa consulta.", AssistantAction.OPEN_SEARCH, clean)
             else -> AssistantAnswer(
-                "Puedo organizar tu día, decirte qué hacer ahora, mostrar lo vencido, resumir conversaciones, buscar pendientes o preparar un plan mínimo."
+                "Puedo organizar tu día, decirte qué hacer ahora, qué tienes mañana, mostrar lo vencido, resumir conversaciones, buscar pendientes o preparar un plan mínimo."
             )
         }
+    }
+
+    /**
+     * "¿Qué tengo mañana/hoy?" — agenda a demanda. El usuario pregunta qué tiene
+     * agendado para un día concreto; antes caía al mensaje genérico (debía abrir el
+     * planificador y filtrar a mano). Lista las tareas raíz activas cuyo vencimiento
+     * cae en ese día (reusa `TaskRules.isDueOn`/`isDueToday`, fuente única de verdad
+     * compartida con la búsqueda y el planificador), ordenadas por urgencia/fecha
+     * (mismo `WhatNowEngine.ordered`). Sin nueva pantalla: la superficie del
+     * asistente ya existe. Determinista y local (sin IA fingida).
+     */
+    private fun isAgendaQuery(query: String): Boolean {
+        if (!("que tengo" in query || "tengo para" in query || "que hay" in query)) return false
+        return "manana" in query || "hoy" in query || "semana" in query
+    }
+
+    private fun agendaAnswer(query: String, active: List<TaskEntity>, now: Long): AssistantAnswer {
+        val zone = ZoneId.systemDefault()
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        val monday = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val (start, end, label) = when {
+            "manana" in query -> Triple(today.plusDays(1), today.plusDays(1), "mañana")
+            "hoy" in query -> Triple(today, today, "hoy")
+            else -> Triple(monday, monday.plusDays(6), "esta semana")
+        }
+        val ranked = WhatNowEngine.ordered(active, now)
+        val due = ranked.filter { isDueInRange(it, start, end, zone) }
+        if (due.isEmpty()) {
+            return AssistantAnswer("Para $label no tienes tareas agendadas.")
+        }
+        val titles = due.joinToString(" · ") { "“${it.title}”" }
+        val ids = due.take(8).map { it.id }
+        // Para "hoy", avisar además de las atrasadas de días anteriores (vencidas
+        // antes de hoy): son parte de "lo que tienes" pendiente y el usuario las
+        // olvidaría si la agenda sólo mirara el día de hoy. Coherente con el "además"
+        // de "qué hago ahora". Para mañana/semana (futuro) no aplica.
+        val tail = if (label == "hoy") {
+            val earlierOverdue = active.count { TaskRules.isOverdue(it, now) && !TaskRules.isDueToday(it, now, zone) }
+            if (earlierOverdue > 0) {
+                " Además, tienes $earlierOverdue atrasad${if (earlierOverdue == 1) "a" else "as"} de días anteriores."
+            } else ""
+        } else ""
+        val head = if (label == "hoy") "Hoy" else label.replaceFirstChar { it.uppercase() }
+        return AssistantAnswer("$head: $titles.$tail", relatedTaskIds = ids)
+    }
+
+    private fun isDueInRange(task: TaskEntity, start: LocalDate, end: LocalDate, zone: ZoneId): Boolean {
+        val due = task.dueAt ?: return false
+        val d = Instant.ofEpochMilli(due).atZone(zone).toLocalDate()
+        return d >= start && d <= end
     }
 }
