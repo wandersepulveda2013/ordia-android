@@ -354,4 +354,46 @@ class TaskRulesTest {
             assertTrue("due=$due resultó en ${result} < start 100", result >= 100L)
         }
     }
+
+    @Test
+    fun coerceStartAt_preservaStartNulo() {
+        assertNull(TaskRules.coerceStartAt(null, 200L))
+    }
+
+    @Test
+    fun coerceStartAt_preservaStartCuandoDueEsNulo() {
+        // Sin vencimiento, el inicio es libre (no hay invariante que violar).
+        assertEquals(100L, TaskRules.coerceStartAt(100L, null))
+    }
+
+    @Test
+    fun coerceStartAt_preservaStartCoherenteConDue() {
+        // startAt <= dueAt: caso común, inalterado.
+        assertEquals(100L, TaskRules.coerceStartAt(100L, 200L))
+    }
+
+    @Test
+    fun coerceStartAt_preservaStartIgualADue() {
+        // startAt == dueAt: límite, no viola el invariante, se conserva.
+        assertEquals(200L, TaskRules.coerceStartAt(200L, 200L))
+    }
+
+    @Test
+    fun coerceStartAt_descartaStartPosteriorADue() {
+        // startAt > dueAt: estado que BackupManager rechaza al restaurar
+        // ("Una tarea comienza después de su vencimiento" → backup irrestaurable).
+        // El editor expone dueAt pero no startAt: editar el vencimiento a un instante
+        // anterior al startAt heredado de la planificación dejaría startAt > dueAt.
+        // Se descarta el startAt incoherente (null).
+        assertNull(TaskRules.coerceStartAt(300L, 200L))
+    }
+
+    @Test
+    fun coerceStartAt_nuncaProduceStartDespuesDeDue() {
+        // Contrato: para cualquier (start, due) no nulos, el resultado es null o <= due.
+        listOf(1L to 100L, 50L to 100L, 100L to 100L, 150L to 100L, 300L to 100L, 999L to 100L).forEach { (start, due) ->
+            val result = TaskRules.coerceStartAt(start, due)
+            assertTrue("start=$start due=$due resultó en ${result} > due $due", result == null || result <= due)
+        }
+    }
 }

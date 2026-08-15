@@ -376,6 +376,11 @@ class OrdiaViewModel(
             val normalized = task.copy(
                 title = clean,
                 details = task.details.trim(),
+                // Invariante startAt <= dueAt (BackupManager lo exige al restaurar):
+                // el editor expone dueAt pero no startAt, así que editar el vencimiento
+                // a un instante anterior al startAt heredado de la planificación dejaría
+                // startAt > dueAt (backup irrestaurable). Se descarta el startAt incoherente.
+                startAt = TaskRules.coerceStartAt(task.startAt, task.dueAt),
                 status = when {
                     task.completed -> TaskStatus.COMPLETED
                     preserveInbox -> task.status

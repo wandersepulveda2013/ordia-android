@@ -238,4 +238,23 @@ object TaskRules {
         existingDueAt >= slotStart -> existingDueAt
         else -> slotEnd
     }
+
+    /**
+     * Mantiene el invariante `startAt <= dueAt` (cuando ambos son no nulos) que
+     * [BackupManager] exige al restaurar ("Una tarea comienza después de su
+     * vencimiento" → backup irrestaurable). El editor de tareas expone `dueAt` pero
+     * NO `startAt`: al editar el vencimiento de una tarea planificada (que ya tiene
+     * `startAt` por `applyBlocks`/`PLAN_DAY`/`BATCH_QUICK_TASKS`) a un instante
+     * ANTERIOR a su `startAt`, conservar el `startAt` heredado de `.copy()` dejaría
+     * `startAt > dueAt`. Aquí se descarta el `startAt` incoherente (`null`): la
+     * tarea conserva el vencimiento que el usuario eligió explícitamente y pierde un
+     * inicio que ya no tiene sentido (no es editable en el editor). En el resto de
+     * casos el `startAt` se conserva intacto (sin due → startAt libre; startAt <=
+     * dueAt → coherente).
+     */
+    fun coerceStartAt(startAt: Long?, dueAt: Long?): Long? = when {
+        startAt == null || dueAt == null -> startAt
+        startAt <= dueAt -> startAt
+        else -> null
+    }
 }
