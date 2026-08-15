@@ -29,11 +29,4 @@
     <string name="nav_guardian">Guardián</string>
     <string name="nav_intelligence">Inteligencia</string>
     <string name="fab_capture">Capturar</string>
-    <string name="fab_close">Cerrar captura</string>
-    <string name="fab_task">Nueva tarea</string>
-    <string name="fab_note">Nota rápida</string>
-    <string name="fab_reminder_capture">Recordatorio o captura</string>
-    <string name="fab_habits">Abrir hábitos</string>
-    <string name="fab_voice">Capturar por voz</string>
-    <string name="fab_assistant">Abrir asistente</string>
 </resources>

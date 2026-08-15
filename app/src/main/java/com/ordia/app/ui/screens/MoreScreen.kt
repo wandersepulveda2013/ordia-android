@@ -78,14 +78,6 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
         MoreEntry(Destination.Intelligence, stringResource(R.string.more_intelligence_desc), null, MaterialTheme.colorScheme.primary),
         MoreEntry(Destination.Settings, stringResource(R.string.more_settings_desc), null, MaterialTheme.colorScheme.tertiary)
     )
-    val experimental = listOf(
-        MoreEntry(
-            Destination.Workspace,
-            stringResource(R.string.more_workspace_desc),
-            stringResource(R.string.more_experimental_badge),
-            MaterialTheme.colorScheme.secondary
-        )
-    )
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -120,9 +112,6 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
 
         item { SectionHeader(stringResource(R.string.more_section_system), stringResource(R.string.more_section_system_supporting)) }
         item(key = "group-system") { GroupedTools(system, open) }
-
-        item { SectionHeader(stringResource(R.string.more_section_experimental), stringResource(R.string.more_section_experimental_supporting)) }
-        item(key = "group-experimental") { GroupedTools(experimental, open) }
     }
 }
 
