@@ -3271,18 +3271,32 @@ object NaturalTaskParser {
         // el 1er día (monthlyDayPattern casaba "el 1") y dejaba el 2º ("y 15") como
         // fecha suelta descartada, generando residuo " y" pegado al título ("pagar y"):
         // un día de pago real nacía olvidado (P1, pérdida de datos). Ahora se capturan
-        // AMBOS días, se codifican en `recurrenceDays = "d:N1,N2"` (c.315) y el 1er
+        // TODOS los días, se codifican en `recurrenceDays = "d:N1,N2,..."` y el 1er
         // vencimiento aterriza en el día más cercano al hoy. El patrón va ANTES del de
-        // un solo día para que "el 1 y 15" no se reduzca a "el 1". Admite "día/días"
-        // opcional y "de cada mes" / "del mes"; sólo 2 días (la forma cotidiana); >2
-        // caen al de un solo día (anclaje al 1º) sin residuo, para no sobre-ingeniar.
+        // un solo día para que "el 1 y 15" no se reduzca a "el 1".
+        //
+        // c.321: generalización a N días + sinónimos léxicos. El patrón c.315 limitaba
+        // a 2 días y dejaba 3 clases de residuo/pérdida (probe JVM c.321): (a) "el 1,
+        // 15 y 30 de cada mes" → casaba "15 y 30" y dejaba "1, " pegado al título; (b)
+        // "el 1 y el 15 de cada mes" (artículo repetido, forma natural) → NO casaba,
+        // caía al single-day y dejaba "y el 15" como residuo; (c) "el 1 y 15 todos los
+        // meses" (sinónimo de "cada mes") → NO casaba, caía al single-day y dejaba "y
+        // 15". RESUELTO: capturar la LISTA entera de días (separada por "," y/o "y" con
+        // artículo opcional repetido) en UN grupo y parsearla en código (split por
+        // [,\s] + "y"); admitir "todos los meses" como sinónimo de "de cada mes". Si la
+        // lista tiene ≥2 días válidos (1..31) distintos → monthlyDays; si tiene 1 → no
+        // reclamar (cae al single-day limpio); 0 → tampoco. El motor/backup ya soportan
+        // N días (c.315) sin cambios.
         val monthlyDualDayPattern =
-            Regex("""(?i)\b(?:cada|el|los)?\s*(?:d[ií]as?\s+)?(\d{1,2})\s+(?:y\s+|al\s+)?(\d{1,2})\s+(?:de|del)\s+(?:cada\s+)?mes(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))""")
+            Regex("""(?i)\b(?:cada|el|los)?\s*(?:d[ií]as?\s+)?(\d{1,2}(?:\s*,\s*\d{1,2})*(?:\s+y\s+(?:el|la|los|las)?\s*\d{1,2})?)\s+(?:de\s+(?:cada\s+)?mes|del\s+(?:cada\s+)?mes|todos\s+los\s+meses)(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))""")
         monthlyDualDayPattern.find(working)?.let { match ->
-            val d1 = match.groupValues[1].toIntOrNull()
-            val d2 = match.groupValues[2].toIntOrNull()
-            if (d1 != null && d2 != null && d1 in 1..31 && d2 in 1..31 && d1 != d2) {
-                val days = listOf(d1, d2).distinct().sorted()
+            // Extraer todos los enteros del grupo de la lista de días ("1, 15 y 30" → [1,15,30]).
+            val days = Regex("""\d{1,2}""").findAll(match.groupValues[1])
+                .mapNotNull { it.value.toIntOrNull()?.takeIf { d -> d in 1..31 } }
+                .distinct()
+                .sorted()
+                .toList()
+            if (days.size >= 2) {
                 phrases += match.range
                 return RecurrenceResult(
                     RecurrenceFrequency.MONTHLY, 1, emptyList(), phrases,

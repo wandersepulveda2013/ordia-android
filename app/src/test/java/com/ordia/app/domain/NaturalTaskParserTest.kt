@@ -9369,4 +9369,38 @@ class NaturalTaskParserTest {
         assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
         assertEquals("", result.recurrenceDays)
     }
+
+    // c.321: generalización a N días + sinónimos léxicos. El patrón c.315 limitaba a 2
+    // días y dejaba 3 clases de residuo/pérdida (probe JVM c.321). Estas pruebas blindan
+    // las 3 correcciones: (a) lista de 3 días sin perder el 1º; (b) artículo repetido
+    // "el 1 y el 15"; (c) sinónimo "todos los meses".
+
+    @Test fun tripleDayMonthlyCapturesAllThreeDaysNoLoss() {
+        // "el 1, 15 y 30 de cada mes": antes el dual-day casaba "15 y 30" y perdía el "1"
+        // (residuo "1, " en título + día de pago olvidado). Ahora se capturan los 3.
+        val result = NaturalTaskParser.parse("pago el 1, 15 y 30 de cada mes", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:1,15,30", result.recurrenceDays)
+    }
+
+    @Test fun dualDayMonthlyRepeatedArticleParsesBothDays() {
+        // "el 1 y el 15 de cada mes" (artículo repetido, forma natural en español):
+        // antes NO casaba (esperaba "y 15" no "y el 15"), caía al single-day y dejaba
+        // "y el 15" como residuo. Ahora se anclan ambos días y el título queda limpio.
+        val result = NaturalTaskParser.parse("pago el 1 y el 15 de cada mes", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:1,15", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dualDayMonthlyTodosLosMesesSynonym() {
+        // "todos los meses" = sinónimo cotidiano de "cada mes": antes NO casaba, caía al
+        // single-day ("el 1") y dejaba "y 15" como residuo. Ahora se anclan ambos días.
+        val result = NaturalTaskParser.parse("renta el 1 y 15 todos los meses", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:1,15", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }
