@@ -44,13 +44,24 @@ suspend fun spawnNextOccurrence(
     val next = RecurrenceEngine.nextOccurrence(original, now) ?: return
     val nextId = taskRepository.add(next)
     reminderScheduler.schedule(next.copy(id = nextId))
+    // Se lee UNA vez y se reusa para el padre y los pasos: enlaces vigentes
+    // (snapshot de la DB) de la ocurrencia recién completada.
+    val taskTags = tagRepository.links.first()
+    // Las etiquetas del PADRE recurrente renacen en la próxima ocurrencia
+    // (simétrico a `duplicateTask`, que sí las copiaba vía `tagsForTask`):
+    // sin esto, una recurrente con etiquetas ("#trabajo Reunión semanal") las
+    // perdía ciclo a ciclo al completarla — su categorización desaparecía de
+    // la nueva ocurrencia aunque el checklist renaciera. Regla pura
+    // [SubtaskRules.tagIdsForTask] (verificada en JVM); el re-enlace es
+    // cableado Android (NO VERIFICADO en JVM).
+    SubtaskRules.tagIdsForTask(original.id, taskTags)
+        .forEach { tagRepository.link(nextId, it) }
     // El desglose del padre recurrente renace abierto en la próxima ocurrencia
     // (c.223), y con él sus etiquetas categoriales (c.236): sin esto, el
     // checklist se perdía ciclo a ciclo al completar desde la notificación.
     val subs = taskRepository.subtasks(original.id)
     if (subs.isEmpty()) return
     val ids = taskRepository.addAll(SubtaskRules.cloneForNextOccurrence(subs, nextId, now))
-    val taskTags = tagRepository.links.first()
     SubtaskRules.relinkedSubtaskTags(subs, ids, taskTags)
         .forEach { tagRepository.link(it.taskId, it.tagId) }
 }

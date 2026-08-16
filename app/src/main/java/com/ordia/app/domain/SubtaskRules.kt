@@ -215,4 +215,26 @@ object SubtaskRules {
             }
         }
     }
+
+    /**
+     * Los ids de etiqueta enlazados a [taskId] seg\u00fan [taskTags]. Regla pura y
+     * determinista (no muta); el llamador persiste los enlaces hacia una nueva
+     * tarea (p. ej. la pr\u00f3xima ocurrencia de una recurrente).
+     *
+     * Cierra la asimetr\u00eda entre recurrencia y duplicado: `duplicateTask` ya
+     * copiaba las etiquetas del padre (`tagsForTask(...).forEach { link }`),
+     * pero `spawnNextOccurrence` (\u00fanico camino de la recurrencia tras c.266)
+     * re-enlazaba S\u00d3LO las etiquetas de las SUBTAREAS (`relinkedSubtaskTags`,
+     * c.238) y NUNCA las del padre. As\u00ed, completar una recurrente CON
+     * etiquetas ("#trabajo Reuni\u00f3n semanal") generaba la pr\u00f3xima ocurrencia
+     * SIN su categorizaci\u00f3n: la etiqueta se perd\u00eda ciclo a ciclo aunque el
+     * checklist y las etiquetas de los pasos renacieran. Las etiquetas son
+     * metadatos categoriales del usuario (no planificaci\u00f3n temporal que
+     * `cloneForNextOccurrence` resetea por obsoleta), as\u00ed que pertenecen a la
+     * ocurrencia siguiente igual que `projectId`/`flagged`/`priority`. Es
+     * "datos sagrados": el usuario las asign\u00f3 a prop\u00f3sito y se perd\u00edan en
+     * silencio cada ciclo \u2014 mismo principio que c.238 para los pasos.
+     */
+    fun tagIdsForTask(taskId: Long, taskTags: List<TaskTagCrossRef>): List<Long> =
+        taskTags.mapNotNull { if (it.taskId == taskId) it.tagId else null }
 }

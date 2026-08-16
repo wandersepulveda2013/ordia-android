@@ -454,4 +454,37 @@ class SubtaskRulesTest {
     fun relinkedSubtaskTags_rejectsSizeMismatch() {
         SubtaskRules.relinkedSubtaskTags(listOf(task(2, 1), task(3, 1)), listOf(900L), emptyList())
     }
+
+    // tagIdsForTask: los ids de etiqueta enlazados a una tarea. Regla pura que
+    // sustenta el re-enlace de las etiquetas del PADRE en la pr\u00f3xima ocurrencia
+    // de una recurrente (spawnNextOccurrence). Sin esto, una recurrente con
+    // etiquetas ("#trabajo Reuni\u00f3n semanal") las perd\u00eda ciclo a ciclo: el padre
+    // duplicado s\u00ed las conservaba, pero la ocurrencia siguiente nac\u00eda sin
+    // categorizaci\u00f3n. Asimetr\u00eda recurrencia vs duplicado \u2014 datos sagrados.
+
+    @Test
+    fun tagIdsForTask_returnsAllTagIdsForThatTask() {
+        val taskTags = listOf(link(1, 100), link(1, 101), link(2, 200))
+
+        assertEquals(listOf(100L, 101L), SubtaskRules.tagIdsForTask(1, taskTags))
+    }
+
+    @Test
+    fun tagIdsForTask_ignoresLinksOfOtherTasks() {
+        val taskTags = listOf(link(1, 100), link(2, 200), link(5, 300))
+
+        assertEquals(listOf(100L), SubtaskRules.tagIdsForTask(1, taskTags))
+    }
+
+    @Test
+    fun tagIdsForTask_emptyWhenTaskHasNoTags() {
+        val taskTags = listOf(link(2, 200), link(5, 300))
+
+        assertEquals(emptyList<Long>(), SubtaskRules.tagIdsForTask(1, taskTags))
+    }
+
+    @Test
+    fun tagIdsForTask_emptyTaskTagsReturnsEmpty() {
+        assertEquals(emptyList<Long>(), SubtaskRules.tagIdsForTask(1, emptyList()))
+    }
 }
