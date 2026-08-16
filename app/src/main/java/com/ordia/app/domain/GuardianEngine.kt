@@ -316,9 +316,10 @@ object GuardianEngine {
         val noMomentumYet = focusMinutesToday < 15 && (habits.isEmpty() || habitsDoneToday == 0)
         // Las colas informativas (compromiso vencido + capturas arrinconadas) se
         // encadenan en orden de precedencia: la acción primaria es la tarea nombrada
-        // (atrasada o hueco pasado); tras ella, el 4.º olvido (compromiso vencido) y
-        // luego el 3.º (captura arrinconada), para no mentir por omisión sobre
-        // ninguno. Ver [withCommitmentTail] / [withStaleInboxTail].
+        // (atrasada o hueco pasado) o, sin tareas olvidadas, el compromiso vencido;
+        // tras ella, el 3.er olvido (capturas arrinconadas) siempre se añade para no
+        // mentir por omisión sobre ninguna. Ver [withCommitmentTail] /
+        // [withStaleInboxTail].
         return when {
             overdue > 0 -> smallestOverdueAction(tasks, nowMillis)
                 .withCommitmentTail(overdueCommitments)
@@ -326,6 +327,7 @@ object GuardianEngine {
             missed != null -> missed.withCommitmentTail(overdueCommitments)
                 .withStaleInboxTail(tasks, nowMillis, zoneId)
             overdueCommitments.isNotEmpty() -> overdueCommitmentAction(overdueCommitments)
+                .withStaleInboxTail(tasks, nowMillis, zoneId)
             completedToday == 0 && hasActiveTask && noMomentumYet -> staleInboxAction(tasks, nowMillis, zoneId)
                 ?: "Completa una tarea breve para iniciar el día con impulso."
             focusMinutesToday < 15 ->

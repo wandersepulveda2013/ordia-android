@@ -809,6 +809,30 @@ class GuardianEngineTest {
         assertTrue(result.suggestedAction.contains("bandeja"))
     }
 
+
+    @Test
+    fun suggestedAction_compromisoVencidoIncluyeColaDeCapturasArrinconadas() {
+        // Cuando la señal primaria es un compromiso vencido (4.º olvido) Y hay además
+        // capturas arrinconadas en la bandeja (3.er olvido), estas no se callan: paridad
+        // con las ramas de tarea atrasada/hueco pasado. Antes, un usuario con una promesa
+        // vencida y varias ideas arrinconadas recibía el nudge del compromiso y NINGUNA
+        // señal de las capturas olvidadas — mentir por omisión sobre el 3.er olvido.
+        val commitment = overdueCommitment(1, "te llamo", midday - 2 * 86_400_000L)
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(staleCapture(2, "Idea A"), staleCapture(3, "Idea B")),
+            commitments = listOf(commitment),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("te llamo"))
+        assertTrue(result.suggestedAction.contains("2 capturas"))
+        assertTrue(result.suggestedAction.contains("bandeja"))
+        // No nombra los títulos de las capturas: la acción primaria sigue siendo el compromiso.
+        assertFalse(result.suggestedAction.contains("Idea A"))
+        assertFalse(result.suggestedAction.contains("Idea B"))
+    }
+
     @Test
     fun suggestedAction_noAnadeColaDeCapturasCuandoNoHayArrinconadas() {
         // Una atrasada sola, sin capturas olvidadas: no se anade cola alguna. La cola es
