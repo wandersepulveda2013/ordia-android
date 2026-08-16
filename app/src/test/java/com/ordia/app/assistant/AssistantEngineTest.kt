@@ -1520,4 +1520,108 @@ class AssistantEngineTest {
         assertTrue("conserva 'Estimo' (no hay ventana activa): ${answer.text}", answer.text.contains("Estimo"))
         assertTrue("no finge 'Te quedan' sin saber el elapsed: ${answer.text}", !answer.text.contains("Te quedan"))
     }
+
+    // --- c.357: "¿qué hago ahora?" no debe callar un compromiso vencido de una
+    // conversación. Quinto olvido: la superficie de MAYOR tráfico (What Now)
+    // sugería una tarea y silenciaba por completo los compromisos vencidos —la
+    // misma mentira por omisión que c.356 corrigió en agenda "hoy" y c.354 en
+    // dayLoad. Paridad con "organiza mi día"/"¿voy bien?"/"resume conversación",
+    // que ya anexaban overdueCommitmentTail. La cola de What Now incluso se
+    // documenta "Simétrica con … las colas de 'qué hago ahora'" (overdueCountTail
+    // l.628) PERO la de compromisos NO estaba: el 5.º olvido.
+    @Test fun whatNow_warnsOverdueCommitmentWhenSuggestingTask() {
+        // Sugerencia de tarea normal + un compromiso vencido: el usuario pregunta
+        // "¿qué hago ahora?" y el asistente le dice qué tarea empezar PERO calla la
+        // promesa vencida — exactamente lo que c.356 corrigió en "¿qué tengo hoy?".
+        val now = 1_000_000_000_000L
+        val task = TaskEntity(id = 1, title = "Revisar correo", priority = TaskPriority.URGENT)
+        val commitment = overdueCommitment(10, "te llamo el martes", now - 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(task),
+            emptyList(),
+            listOf(commitment),
+            now
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("compromiso"))
+        assertTrue("es una cola de conteo, no nombra la acción (paridad con 'organiza mi día'/'¿voy bien?'): ${answer.text}",
+            !answer.text.contains("te llamo el martes"))
+    }
+
+    @Test fun whatNow_recoversOverdueCommitmentWhenNoPendingTask() {
+        // Sin tareas pendientes PERO con un compromiso vencido: antes decía
+        // "No encuentro tareas pendientes. Puedes capturar algo nuevo o descansar."
+        // — "descansar" frente a una promesa olvidada es la mentira por omisión MÁS
+        // severa del 5.º olvido. Debe rutear a overdueCommitmentAnswer (nombrarlo +
+        // OPEN_CONVERSATIONS), igual que "¿qué olvidé?"/agenda "hoy" sin tareas.
+        val now = 1_000_000_000_000L
+        val commitment = overdueCommitment(11, "envío el informe", now - 2 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            emptyList(),
+            emptyList(),
+            listOf(commitment),
+            now
+        )
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
+        assertTrue("no dice 'descansar' frente a una promesa vencida: ${answer.text}", !answer.text.contains("descansar"))
+        assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
+    }
+
+    @Test fun whatNow_warnsOverdueCommitmentAlongsideMissedStart() {
+        // Sugerencia + missed-start (cola de tarea) + compromiso vencido (cola de
+        // compromiso): ambas colas deben coexistir — no se oculta una detrás de la
+        // otra. La sugerida es urgente; el missed-start y el compromiso son
+        // recuperación adicional.
+        val now = 1_000_000_000_000L
+        val urgent = TaskEntity(id = 1, title = "Urgente", priority = TaskPriority.URGENT)
+        val missed = TaskEntity(
+            id = 2, title = "Llamada agendada",
+            startAt = now - 90 * 60_000L, durationMinutes = 30,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val commitment = overdueCommitment(12, "revisar el contrato", now - 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿Qué hago ahora?",
+            listOf(urgent, missed),
+            emptyList(),
+            listOf(commitment),
+            now
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("nombra el inicio olvidado: ${answer.text}", answer.text.contains("Llamada agendada"))
+        assertTrue("nombra el compromiso vencido (cola de conteo): ${answer.text}", answer.text.contains("compromiso"))
+    }
+
+    @Test fun whatNow_doesNotInventCommitmentWhenNone() {
+        // Guard anti-falso-positivo: sin compromiso vencido, la cola no debe
+        // inventar "compromiso" (IA honesta). Una tarea urgente basta.
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(TaskEntity(id = 1, title = "Urgente", priority = TaskPriority.URGENT)),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("no inventa compromiso sin haberlo: ${answer.text}", !answer.text.contains("compromiso"))
+    }
+
+    @Test fun whatNow_doesNotMentionFutureCommitment() {
+        // Guard de coherencia: un compromiso FUTURO (no vencido) no es un olvido —
+        // mencionarlo en "¿qué hago ahora?" sería ruido, no recuperación. La cola
+        // sólo aplica a vencidos (igual que en agenda "hoy" c.356).
+        val now = 1_000_000_000_000L
+        val task = TaskEntity(id = 1, title = "Revisar correo", priority = TaskPriority.URGENT)
+        val future = overdueCommitment(13, "te llamo mañana", now + 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(task),
+            emptyList(),
+            listOf(future),
+            now
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("no menciona compromiso futuro como si estuviera vencido: ${answer.text}", !answer.text.contains("te llamo mañana"))
+    }
 }

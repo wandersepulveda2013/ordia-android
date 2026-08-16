@@ -74,6 +74,15 @@ object AssistantEngine {
             "que hago ahora" in query || "siguiente accion" in query -> {
                 val suggestion = WhatNowEngine.suggest(active, now)
                 if (suggestion == null) {
+                    // Quinto olvido de Ordía (c.357): sin tareas pendientes PERO con
+                    // un compromiso vencido de una conversación. Antes decía "Puedes
+                    // capturar algo nuevo o descansar." — "descansar" frente a una
+                    // promesa olvidada es la mentira por omisión MÁS severa, en la
+                    // superficie de mayor tráfico. Se rutea a overdueCommitmentAnswer
+                    // (lo nombra + OPEN_CONVERSATIONS), igual que "¿qué olvidé?"/
+                    // agenda "hoy" sin tareas (c.286 l.190 / c.356 l.416). Sin nueva
+                    // pantalla: reutiliza la acción existente.
+                    if (overdueCommitments.isNotEmpty()) return overdueCommitmentAnswer(overdueCommitments)
                     AssistantAnswer("No encuentro tareas pendientes. Puedes capturar algo nuevo o descansar.")
                 } else {
                     val why = WhatNowEngine.reasonLabel(suggestion.reason)
@@ -95,7 +104,13 @@ object AssistantEngine {
                     // repetir. Sin nueva pantalla: la cola vive en la respuesta que el
                     // usuario ya pidió. Determinista y local (sin IA fingida).
                     val missedTail = missedStartTail(active, suggestion.task, now)
-                    val tail = overdueTail + missedTail
+                    // Quinto olvido (c.357): la cola de What Now silenciaba los
+                    // compromisos vencidos de conversaciones — la misma mentira por
+                    // omisión que c.356 corrigió en agenda "hoy" y c.354 en dayLoad.
+                    // Se anexa como cola informativa (no doble señalización: la
+                    // promesa no se convierte a ciegas, se recuerda para que el
+                    // usuario decida). Paridad con "organiza mi día"/"¿voy bien?".
+                    val tail = overdueTail + missedTail + overdueCommitmentTail(overdueCommitments)
                     // "Empieza por" miente si lo sugerido ya está en curso
                     // ([WhatNowReason.IN_PROGRESS_NOW]): hay que continuar, no empezar.
                     // Y el tiempo honesto es lo que FALTA, no la duración planificada
