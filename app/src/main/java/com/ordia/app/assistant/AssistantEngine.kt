@@ -70,7 +70,7 @@ object AssistantEngine {
                     AssistantAction.OPEN_PLANNER
                 )
             }
-            isDayLoadQuery(query) -> dayLoadAnswer(tasks, now, zone, profile)
+            isDayLoadQuery(query) -> dayLoadAnswer(tasks, overdue, overdueCommitments, now, zone, profile)
             "que hago ahora" in query || "siguiente accion" in query -> {
                 val suggestion = WhatNowEngine.suggest(active, now)
                 if (suggestion == null) {
@@ -500,34 +500,56 @@ object AssistantEngine {
 
     private fun dayLoadAnswer(
         tasks: List<TaskEntity>,
+        overdue: List<TaskEntity>,
+        overdueCommitments: List<CommitmentEntity>,
         now: Long,
         zone: ZoneId,
         profile: LearningProfile?
     ): AssistantAnswer {
         val summary = SummaryEngine.summarize(tasks, now, zone, profile)
+        // El veredicto de carga NUNCA calla los olvidos: "¿voy bien?" es la
+        // superficie que más se pregunta justo cuando el riesgo de olvidar
+        // vencidas es mayor. Antes era la outlier del asistente — las demás
+        // ramas ("organiza mi día", "qué hago ahora", "qué olvidé") anexaban
+        // colas de vencidas/compromisos, pero dayLoad silenciaba ambas, así un
+        // usuario con 3 vencidas cuya carga "cabe" leía "Vas bien con holgura"
+        // sin saber que tenía vencidas acumuladas (mentira por omisión). La cola
+        // es informativa: la acción primaria sigue siendo el veredicto/deferral.
+        val tail = overdueCountTail(overdue) + overdueCommitmentTail(overdueCommitments)
         return when (summary.dayLoad) {
             DayLoad.LIGHT ->
-                AssistantAnswer("Tu día está despejado.")
+                AssistantAnswer("Tu día está despejado.$tail")
             DayLoad.ON_TRACK ->
-                AssistantAnswer("Vas bien: lo que queda cabe con holgura en la jornada.")
+                AssistantAnswer("Vas bien: lo que queda cabe con holgura en la jornada.$tail")
             DayLoad.FULL ->
-                AssistantAnswer("El día está lleno: cabe, pero justo. Cuida los huecos.")
+                AssistantAnswer("El día está lleno: cabe, pero justo. Cuida los huecos.$tail")
             DayLoad.OVERLOADED -> {
                 val sug = summary.deferralSuggestion
                 if (sug != null) {
                     AssistantAnswer(
-                        "No da tiempo a todo hoy. «${sug.title}» es la candidata a mover a mañana.",
+                        "No da tiempo a todo hoy. «${sug.title}» es la candidata a mover a mañana.$tail",
                         relatedTaskIds = listOf(sug.taskId)
                     )
                 } else {
                     AssistantAnswer(
-                        "No da tiempo a todo hoy. Revisa qué posponer o quitar.",
+                        "No da tiempo a todo hoy. Revisa qué posponer o quitar.$tail",
                         AssistantAction.OPEN_PLANNER
                     )
                 }
             }
         }
     }
+
+    /** Cola informativa para no callar las vencidas en "¿voy bien?"/"¿da tiempo?":
+     *  el veredicto de carga puede decir "cabe con holgura" sin ocultar que hay
+     *  tareas vencidas que necesitan acción (no se simula urgencia, se informa).
+     *  Simétrica con [overdueCommitmentTail] y con las colas de "qué hago ahora". */
+    private fun overdueCountTail(overdue: List<TaskEntity>): String =
+        when {
+            overdue.isEmpty() -> ""
+            overdue.size == 1 -> " Además, tienes 1 tarea vencida."
+            else -> " Además, tienes ${overdue.size} tareas vencidas."
+        }
 
     /**
      * Recuperación autónoma del cuarto olvido —un compromiso vencido de una

@@ -1197,6 +1197,86 @@ class AssistantEngineTest {
         assertEquals(listOf(1L), answer.relatedTaskIds)
     }
 
+    // ---- dayLoad + olvidos silenciados (simetría con el resto del asistente) ----
+    //
+    // "¿voy bien?"/"¿da tiempo?" es la OUTLIER del asistente: las demás superficies
+    // ("organiza mi día", "qué hago ahora", "qué olvidé") anexan colas informativas
+    // de vencidas y compromisos vencidos, pero dayLoadAnswer los silenciaba. Un
+    // usuario con 3 vencidas cuya carga "cabe" en la jornada leía "Vas bien con
+    // holgura" sin saber que tiene vencidas acumuladas — mentira por omisión en una
+    // superficie de alto tráfico (la que pregunta "¿voy bien?" justo cuando el
+    // riesgo de olvidar vencidas es mayor). Estos tests anclan que el veredicto de
+    // carga NUNCA calla los olvidos, igual que las demás ramas.
+
+    @Test fun dayLoad_onTrack_namesOverdueTasksWhenPresent() {
+        // 9:00 → 540 min libres; 1 vencida pequeña (45) + 1 de hoy (45) → cabe con
+        // holgura (ON_TRACK), PERO hay una vencida: el veredicto no puede callarla.
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿voy bien hoy?",
+            listOf(
+                TaskEntity(id = 1, title = "Hoy", dueAt = dayAt(dayToday, 11), durationMinutes = 45),
+                TaskEntity(id = 2, title = "Vencida", dueAt = dayAt(dayToday.minusDays(1), 9), durationMinutes = 45)
+            ),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("explica que va con holgura: ${answer.text}", answer.text.contains("holgura"))
+        assertTrue("no calla la vencida: ${answer.text}", answer.text.contains("vencida"))
+    }
+
+    @Test fun dayLoad_light_doesNotInventOverdueWhenNone() {
+        // Sin trabajo ni vencidas → LIGHT; no debe inventar "Además, vencidas".
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿voy bien hoy?",
+            emptyList(),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("dice que el día está despejado: ${answer.text}", answer.text.contains("despejado"))
+        assertFalse("no inventa vencidas: ${answer.text}", answer.text.contains("vencida"))
+    }
+
+    @Test fun dayLoad_namesOverdueCommitmentEvenWhenDayIsLight() {
+        // Sin tareas (día despejado) pero con una promesa vencida: el veredicto no
+        // puede decir "despejado" sin recordar el compromiso vencido (4.º olvido).
+        val now = dayAt(dayToday, 9)
+        val overdueDue = dayAt(dayToday.minusDays(3), 10)
+        val commitment = overdueCommitment(1, "te llamo el martes", overdueDue)
+        val answer = AssistantEngine.answer(
+            "¿voy bien hoy?",
+            emptyList(),
+            emptyList(), listOf(commitment),
+            now, dayZone
+        )
+        assertTrue("dice que el día está despejado: ${answer.text}", answer.text.contains("despejado"))
+        assertTrue("no calla el compromiso vencido: ${answer.text}",
+            answer.text.contains("compromiso") && answer.text.contains("vencido"))
+    }
+
+    @Test fun dayLoad_overloaded_keepsDeferralCandidateAndNamesOverdue() {
+        // OVERLOADED con vencidas: sigue nombrando la candidata a posponer (acción
+        // primaria) Y no calla que hay vencidas (cola informativa). No-regresión de
+        // relatedTaskIds (la candidata, no las vencidas).
+        val now = dayAt(dayToday, 12)
+        val answer = AssistantEngine.answer(
+            "tengo mucho que hacer",
+            listOf(
+                TaskEntity(id = 1, title = "Posponerme", dueAt = dayAt(dayToday, 17), durationMinutes = 60, priority = TaskPriority.LOW),
+                TaskEntity(id = 2, title = "V1", dueAt = dayAt(dayToday.minusDays(1), 9), durationMinutes = 120),
+                TaskEntity(id = 3, title = "V2", dueAt = dayAt(dayToday.minusDays(2), 9), durationMinutes = 120),
+                TaskEntity(id = 4, title = "V3", dueAt = dayAt(dayToday.minusDays(3), 9), durationMinutes = 120),
+                TaskEntity(id = 5, title = "V4", dueAt = dayAt(dayToday.minusDays(4), 9), durationMinutes = 120)
+            ),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("nombra la candidata a posponer: ${answer.text}", answer.text.contains("Posponerme"))
+        assertEquals("relaciona exactamente la tarea sugerida", listOf(1L), answer.relatedTaskIds)
+        assertTrue("no calla las vencidas: ${answer.text}", answer.text.contains("vencida"))
+    }
+
     @Test fun whatNow_inProgressWindow_saysContinueNotStart_andShowsRemainingTime() {
         // Bug de honestidad: si lo que sugiere "qué hago ahora" es una tarea cuya
         // ventana startAt..fin YA está activa ([WhatNowReason.IN_PROGRESS_NOW]),
