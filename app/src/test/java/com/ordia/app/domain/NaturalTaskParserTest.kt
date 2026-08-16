@@ -9885,4 +9885,40 @@ class NaturalTaskParserTest {
         // feb-2026 ya pasó → rueda a 2027; 30/31 se normalizan a 28 → 1ª = 28-feb-2027.
         assertEquals(LocalDate.of(2027, 2, 28), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    @Test fun dualDayListElRepeatedWithNamedMonthClaimsMonthly() {
+        // c.342: "reunión el 15 y el 30 de septiembre" (forma con "el" repetido, sin
+        // "días" plural). Asimetría con "los días 15 y 30 de septiembre" (c.341, que SÍ
+        // es MONTHLY d:15,30 due=15-sep). Antes caía a NONE + título roto ('reunión y').
+        // El mes nombrado trasero es por sí mismo señal de cadencia (quita la ambigüedad
+        // de la lista pelada, c.324): mes futuro sep → 1ª menor día = 15-sep-2026.
+        val result = NaturalTaskParser.parse("reunión el 15 y el 30 de septiembre", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertEquals("d:15,30", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("reunión", result.title)
+    }
+
+    @Test fun dualDayListElRepeatedWithNamedMonthCleansTitle() {
+        // La forma con "el" repetido también limpia el título: tanto la lista
+        // "el 15 y el 30" como "de septiembre" se borran → título "pago".
+        val result = NaturalTaskParser.parse("pago el 1 y el 15 de agosto", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:1,15", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("pago", result.title)
+    }
+
+    @Test fun bareDualDayListWithoutNamedMonthStillAmbiguous() {
+        // No-regresión c.324/c.331: la lista SIN "días" plural NI mes nombrado sigue
+        // siendo ambigua ("el 1 y 15" sin mes) → NO reclama MONTHLY (recurrence=NONE).
+        // El fix c.342 sólo reclama cuando hay mes nombrado trasero (señal de cadencia).
+        // (Nota: "el 1" sí se fecha individualmente por otro patrón → dueAt no es null,
+        // pero la cadencia NO se reclama. El residuo de título "y 15" es un problema UX
+        // separado, registrado en BACKLOG — fuera del alcance de c.342.)
+        val result = NaturalTaskParser.parse("reunión el 1 y 15", now, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals("", result.recurrenceDays)
+    }
 }

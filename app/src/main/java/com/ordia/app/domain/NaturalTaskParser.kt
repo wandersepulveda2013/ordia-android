@@ -3426,7 +3426,17 @@ object NaturalTaskParser {
                     v.contains(Regex("""(?i)\b(?:los|las)\s+d[ií]as\b""")) ||
                     v.contains(Regex("""(?i)\bd[ií]as\s+\d"""))
             }
-            if (days.size >= 2 && hasCadence) {
+            // c.342: el guard original exigía `hasCadence` (marcador "días" plural o
+            // "de cada mes"/quincenal) ANTES de escanear el mes nombrado. Así la forma
+            // con "el" repetido sin "días" plural ("reunión el 15 y el 30 de septiembre")
+            // nunca llegaba a scanTrailingNamedMonth → caía a NONE + título roto
+            // ('reunión y'). Pero un mes nombrado trasero es por sí mismo señal de
+            // cadencia honesta (quita la ambigüedad de la lista pelada, c.324): es la
+            // misma señal que c.341 ya aceptaba para la forma plural. Aquí calculamos
+            // `named` primero y relajamos el guard a `hasCadence || named != null`. La
+            // lista pelada SIN mes nombrado sigue siendo ambigua → NONE (no-regresión).
+            val named = scanTrailingNamedMonth(working, match.range.last + 1)
+            if (days.size >= 2 && (hasCadence || named != null)) {
                 // c.341: "reunión los días 15 y 30 de septiembre" — el día-lista consume
                 // los dígitos, así `monthNamePattern` (que exige dígito+mes) no casa y el
                 // mes nombrado se pierde (1ª fecha anclada al mes actual → cita en mes
@@ -3435,7 +3445,6 @@ object NaturalTaskParser {
                 // trasera ("de cada mes"). Ambos se incluyen en `phrases` para que se
                 // borren del título (residuo "de septiembre" eliminado). El mes/año se
                 // guardan en el RecurrenceResult para anclar la 1ª ocurrencia.
-                val named = scanTrailingNamedMonth(working, match.range.last + 1)
                 if (named != null) {
                     phrases += match.range
                     phrases += named.range
