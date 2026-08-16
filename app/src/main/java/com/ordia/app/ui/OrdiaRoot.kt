@@ -1,6 +1,8 @@
 package com.ordia.app.ui
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -9,13 +11,16 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
@@ -32,6 +37,7 @@ import com.ordia.app.conversations.ChatImportParser
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.CaptureSource
 import com.ordia.app.data.local.CaptureTarget
+import com.ordia.app.data.preferences.ThemeMode
 import com.ordia.app.domain.GuardianEngine
 import com.ordia.app.ui.components.ContextualSuggestionDialog
 import com.ordia.app.ui.navigation.Destination
@@ -226,6 +232,19 @@ fun OrdiaRoot(
     }
 
     OrdiaTheme(state.preferences.themeMode) {
+        val dark = when (state.preferences.themeMode) {
+            ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            ThemeMode.LIGHT -> false
+            ThemeMode.DARK -> true
+        }
+        val rootView = LocalView.current
+        SideEffect {
+            val window = (rootView.context as? Activity)?.window ?: return@SideEffect
+            WindowCompat.getInsetsController(window, rootView).apply {
+                isAppearanceLightStatusBars = !dark
+                isAppearanceLightNavigationBars = !dark
+            }
+        }
         pendingContext?.let { suggestion ->
             ContextualSuggestionDialog(
                 suggestion = suggestion,
