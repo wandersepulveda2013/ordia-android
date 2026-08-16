@@ -9655,10 +9655,67 @@ class NaturalTaskParserTest {
     }
 
     @Test fun bareDayListWithoutCadenceDoesNotClaimMonthly() {
-        // NO-regresión: "los días 1 y 15" sin NINGÚN marcador de cadencia (ni "mes" ni
-        // "quincenal") es ambigua y NO se reclama como mensual (se deja a la cascada).
-        val result = NaturalTaskParser.parse("los días 1 y 15", now, zone)
-        // Sin cadencia, la recurrencia NO debe ser MONTHLY con d:1,15.
+        // NO-regresión: "el 1 y 15" SIN la palabra "días" y sin NINGÚN marcador de
+        // cadencia (ni "mes" ni "quincenal") sigue siendo ambigua y NO se reclama como
+        // MONTHLY con "d:1,15" (se deja a la cascada, que resuelve el 1er día por
+        // monthlyDayPattern). c.331 refinó la decisión c.324: la lista CON "días"
+        // plural explícito ("los días 15 y 30") SÍ es cadencia mensual; la lista SIN
+        // "días" sigue siendo ambigua. Este test ancla el caso SIN "días".
+        val result = NaturalTaskParser.parse("el 1 y 15", now, zone)
+        // Sin "días" plural, la recurrencia NO debe ser MONTHLY con d:1,15.
+        assertFalse(result.recurrence == RecurrenceFrequency.MONTHLY && result.recurrenceDays == "d:1,15")
+    }
+
+    // c.331: "los días N y M" (plural explícito) SIN "de cada mes"/"quincenal" es la
+    // frase canónica LATAM de cobro/pago quincenal. Antes caía a NONE+dueAt=null →
+    // rutina olvidada (sin recordatorio, invisible en What Now/planificador). Ahora el
+    // prefijo "los días"/"días" plural es POR SÍ MISMO marcador de cadencia mensual.
+    @Test fun losDiasPluralSinSufijoParsesMonthlyAnchoredDays() {
+        // "cobro los días 15 y 30": hoy=29-jul → 1ª = 30-jul (2º día de la lista).
+        val result = NaturalTaskParser.parse("cobro los días 15 y 30", now, zone)
+        assertEquals("cobro", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:15,30", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun losDiasPluralSinArticuloParsesMonthlyAnchoredDays() {
+        // "días 1 y 15" sin "los": la palabra "días" plural basta como marcador.
+        val result = NaturalTaskParser.parse("pago días 1 y 15", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:1,15", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun losDiasPluralMatchesCanonicalWithDeCadaMes() {
+        // Paridad: "los días 15 y 30" == "los días 15 y 30 de cada mes" (canónico).
+        val bare = NaturalTaskParser.parse("cobro los días 15 y 30", now, zone)
+        val canonico = NaturalTaskParser.parse("cobro los días 15 y 30 de cada mes", now, zone)
+        assertEquals(canonico.recurrence, bare.recurrence)
+        assertEquals(canonico.recurrenceDays, bare.recurrenceDays)
+        assertEquals(canonico.dueAt, bare.dueAt)
+    }
+
+    @Test fun losDiasPluralTresDiasParsesAllThree() {
+        // "los días 1, 15 y 30": N días con coma + "y".
+        val result = NaturalTaskParser.parse("cobro los días 1, 15 y 30", now, zone)
+        assertEquals("cobro", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:1,15,30", result.recurrenceDays)
+    }
+
+    @Test fun losDiasPluralRespetaHoraExplicita() {
+        // "cobro los días 15 y 30 a las 10": la hora explícita se respeta.
+        val result = NaturalTaskParser.parse("cobro los días 15 y 30 a las 10", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:15,30", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun listaSinDiasPluralSigueSiendoAmbigua() {
+        // NO-regresión: "reunión el 1 y 15" (sin "días") sigue sin reclamar d:1,15.
+        val result = NaturalTaskParser.parse("reunión el 1 y 15", now, zone)
         assertFalse(result.recurrence == RecurrenceFrequency.MONTHLY && result.recurrenceDays == "d:1,15")
     }
 }

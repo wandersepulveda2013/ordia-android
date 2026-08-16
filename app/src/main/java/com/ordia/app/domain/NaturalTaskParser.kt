@@ -3373,6 +3373,20 @@ object NaturalTaskParser {
         // retrocediera y capturara sólo el 1er día cuando la lista terminaba en final
         // de string. Se exige ≥2 días Y un marcador de cadencia para reclamar como
         // mensual: la lista pelada sin cadencia es ambigua y se deja a la cascada.
+        //
+        // c.331: el prefijo plural explícito "los días"/"días" (la palabra "días"
+        // en plural, con o sin artículo) es POR SÍ MISMO un marcador de cadencia
+        // mensual honesto. "cobro los días 15 y 30" / "pago los días 1 y 15" /
+        // "nómina los días 15 y 30" son las frases canónicas LATAM de cobro/pago
+        // quincenal; antes caían a NONE+dueAt=null → rutina olvidada (sin
+        // recordatorio, invisible en What Now/planificador). La decisión c.324 dejaba
+        // la "lista pelada sin cadencia" como ambigua, pero esa decisión no distinguía
+        // la lista CON "días" plural explícito (señal fuerte de periodicidad) de la
+        // lista SIN "días" ("el 1 y 15", que SÍ es ambigua). Ahora: si el match
+        // contiene "días" en plural → hasCadence=true. La lista SIN "días" sigue
+        // siendo ambigua (intacto). Con mes nombrado ("de agosto") la lista sigue
+        // reclamándose como MONTHLY (días+fecha correctos); el residuo "de agosto" en
+        // el título es cosmético y prefible a NONE+fecha perdida.
         val monthlyDualDayPattern =
             Regex("""(?i)\b(?:(?:$quincenaCadenceMarker)\s+)?(?:cada|el|los)?\s*(?:d[ií]as?\s+)?(\d{1,2}(?:\s*,\s*\d{1,2})*(?:\s+y\s+(?:el|la|los|las)?\s*\d{1,2})?)(?:\s+(?:(de\s+(?:cada\s+)?mes|del\s+(?:cada\s+)?mes|todos\s+los\s+meses)|(?:$quincenaCadenceMarker))?(?:es)?)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))""")
         monthlyDualDayPattern.find(working)?.let { match ->
@@ -3382,11 +3396,14 @@ object NaturalTaskParser {
                 .distinct()
                 .sorted()
                 .toList()
-            // hasCadence: hay marcador de cadencia (delantero quincenal, sufijo "mes" o
-            // sufijo quincenal trasero). Sin marcador la lista es ambigua → no reclamar.
+            // hasCadence: hay marcador de cadencia (delantero quincenal, sufijo "mes",
+            // sufijo quincenal trasero, o el prefijo plural explícito "los días"/"días"
+            // en plural — c.331). Sin marcador la lista es ambigua → no reclamar.
             val hasCadence = match.value.let { v ->
                 v.contains(Regex("""(?i)\b(?:$quincenaCadenceMarker)\b""")) ||
-                    match.groupValues[2].isNotBlank()
+                    match.groupValues[2].isNotBlank() ||
+                    v.contains(Regex("""(?i)\b(?:los|las)\s+d[ií]as\b""")) ||
+                    v.contains(Regex("""(?i)\bd[ií]as\s+\d"""))
             }
             if (days.size >= 2 && hasCadence) {
                 phrases += match.range
