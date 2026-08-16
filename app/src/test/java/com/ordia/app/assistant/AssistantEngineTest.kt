@@ -1098,6 +1098,106 @@ class AssistantEngineTest {
     }
 
 
+    // --- Parte del día a demanda ("¿qué tengo esta tarde?"/"esta noche"/"la
+    // madrugada") (c.353) ---
+    //
+    // Antes "¿qué tengo esta noche?" NO se reconocía como agenda: "noche"/"tarde"/
+    // "madrugada" no casaban ningún token de isAgendaQuery → caía al mensaje
+    // genérico. El asistente callaba la agenda vespertina/nocturna pese a
+    // preguntarla. SearchEngine YA filtraba por parte del día (DateScope.TARTE/
+    // NOCHE/MADRUGADA, scopeBand 12..17 / 18..23 / 0..5); ahora el asistente es
+    // simétrico. La franja es un modificador opcional: "esta noche" = hoy 18-23;
+    // "el viernes en la noche" = viernes 18-23; "mañana en la noche" = mañana 18-23.
+    // Las tareas "solo fecha" (hora 0) sólo casan con madrugada, igual que en
+    // SearchEngine: no se afirme honestamente que pertenecen a la tarde/noche.
+    // hoy en agendaAnswerFor es 2026-07-29 (miércoles) a las 12:00.
+
+    private fun agendaAtHour(query: String, idsAndDateHour: List<Triple<Long, LocalDate, Int>>): com.ordia.app.assistant.AssistantAnswer {
+        val zone = agendaZone()
+        val now = LocalDate.of(2026, 7, 29).atTime(12, 0).atZone(zone).toInstant().toEpochMilli() // miércoles
+        val tasks = idsAndDateHour.map { (id, date, hour) ->
+            TaskEntity(id = id, title = "Tarea$id", dueAt = date.atTime(hour, 0).atZone(zone).toInstant().toEpochMilli())
+        }
+        return AssistantEngine.answer(query, tasks, emptyList(), emptyList(), now, zone)
+    }
+
+    @Test fun queTengoEstaNoche_listsOnlyEveningTasksOfToday() {
+        // hoy 2026-07-29. Tarea de hoy a las 20:00 (noche, 18-23) debe aparecer;
+        // tarea de hoy a las 10:00 (mañana, fuera de banda) NO; tarea de mañana a
+        // las 21:00 NO (otro día).
+        val hoy = LocalDate.of(2026, 7, 29)
+        val manana = LocalDate.of(2026, 7, 30)
+        val answer = agendaAtHour("¿qué tengo esta noche?", listOf(
+            Triple(1L, hoy, 20),    // noche → sí
+            Triple(2L, hoy, 10),    // día, fuera de banda → no
+            Triple(3L, manana, 21)  // otro día → no
+        ))
+        assertTrue("nombra la de esta noche: ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("no mezcla la diurna de hoy: ${answer.text}", !answer.text.contains("Tarea2"))
+        assertTrue("no mezcla la de mañana: ${answer.text}", !answer.text.contains("Tarea3"))
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun queTengoEstaTarde_listsAfternoonBand() {
+        // tarde = 12..17. Tarea de hoy 14:00 sí; hoy 19:00 (noche) no.
+        val hoy = LocalDate.of(2026, 7, 29)
+        val answer = agendaAtHour("¿qué tengo esta tarde?", listOf(
+            Triple(1L, hoy, 14),  // tarde → sí
+            Triple(2L, hoy, 19)   // noche, fuera de banda → no
+        ))
+        assertTrue("nombra la de esta tarde: ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("no mezcla la nocturna: ${answer.text}", !answer.text.contains("Tarea2"))
+    }
+
+    @Test fun parteDelDia_hoyEnLaTarde_muestraEtiquetaEstaTarde() {
+        // "hoy en la tarde" debe resolver a "esta tarde" (hoy + banda 12-17), no a
+        // la etiqueta "hoy" (que no filtraría por hora).
+        val hoy = LocalDate.of(2026, 7, 29)
+        val answer = agendaAtHour("¿qué tengo hoy en la tarde?", listOf(
+            Triple(1L, hoy, 15),   // tarde → sí
+            Triple(2L, hoy, 9)     // mañana, fuera de banda → no
+        ))
+        assertTrue("usa la etiqueta de la tarde: ${answer.text}", answer.text.contains("Esta tarde"))
+        assertTrue("nombra la vespertina: ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("no mezcla la de la mañana: ${answer.text}", !answer.text.contains("Tarea2"))
+    }
+
+    @Test fun parteDelDia_esViernesEnLaNoche_filtraViernesNoche() {
+        // La franja es un MODIFICADOR: "el viernes en la noche" = viernes 18-23,
+        // NO hoy noche. Antes "noche" no se reconocía; ahora debe resolver al
+        // viernes (próximo viernes desde 2026-07-29 = 2026-07-31) y filtrar noche.
+        val viernes = LocalDate.of(2026, 7, 31)
+        val answer = agendaAtHour("¿qué tengo el viernes en la noche?", listOf(
+            Triple(1L, viernes, 21),  // viernes noche → sí
+            Triple(2L, viernes, 8)    // viernes mañana → no
+        ))
+        assertTrue("nombra la del viernes noche: ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("no mezcla la del viernes mañana: ${answer.text}", !answer.text.contains("Tarea2"))
+    }
+
+    @Test fun parteDelDia_mananaEnLaNoche_filtraMananaNoche() {
+        // "mañana en la noche": la rama "mañana" gana (va antes que la parte del
+        // día) y la franja nocturna se aplica encima → mañana 18-23.
+        val manana = LocalDate.of(2026, 7, 30)
+        val answer = agendaAtHour("¿qué tengo mañana en la noche?", listOf(
+            Triple(1L, manana, 22),  // mañana noche → sí
+            Triple(2L, manana, 11)   // mañana día → no
+        ))
+        assertTrue("nombra la de mañana noche: ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("no mezcla la diurna de mañana: ${answer.text}", !answer.text.contains("Tarea2"))
+    }
+
+    @Test fun parteDelDia_empty_diceEstaNocheHonesto() {
+        // nada esta noche → "Para esta noche no tienes tareas agendadas."
+        val hoy = LocalDate.of(2026, 7, 29)
+        val answer = agendaAtHour("¿qué tengo esta noche?", listOf(Triple(1L, hoy, 10)))
+        assertTrue("dice esta noche y que no hay: ${answer.text}",
+            answer.text.contains("esta noche") && answer.text.contains("no tienes"))
+        assertTrue("no inventa la diurna: ${answer.text}", !answer.text.contains("Tarea1"))
+    }
+
+
+
     // ---- Veredicto del día a demanda ("¿voy bien?"/"¿da tiempo a todo?") ----
     //
     // Ordía YA calcula el veredicto del día (SummaryEngine.dayLoad:

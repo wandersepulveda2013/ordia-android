@@ -286,9 +286,14 @@ object AssistantEngine {
         // Fin de semana ("finde"/"fin de semana"): simétrico con
         // SearchEngine.isWeekendQuery. Va ANTES que "semana" para que la palabra
         // "semana" de "fin de semana" NO caiga al scope de semana completa.
+        // Parte del día ("esta tarde"/"esta noche"/"la madrugada"): simétrico con
+        // SearchEngine (DateScope.TARDE/NOCHE/MADRUGADA). Antes "¿qué tengo esta
+        // noche?" caía al mensaje genérico: el asistente callaba la agenda vespertina
+        // /nocturna pese a preguntarla. La franja horaria se resuelve en agendaAnswer.
         return "manana" in query || "hoy" in query || isAgendaWeekendQuery(query) ||
             "semana" in query || "mes" in query ||
-            AGENDA_WEEKDAY_TOKENS.any { it in query }
+            AGENDA_WEEKDAY_TOKENS.any { it in query } ||
+            agendaPartOfDay(query) != null
     }
 
     private fun agendaAnswer(query: String, active: List<TaskEntity>, now: Long, zone: ZoneId): AssistantAnswer {
@@ -317,6 +322,16 @@ object AssistantEngine {
         val (start, end, label) = when {
             "pasado manana" in query -> Triple(today.plusDays(2), today.plusDays(2), "pasado mañana")
             "manana" in query -> Triple(today.plusDays(1), today.plusDays(1), "mañana")
+            // Parte del día ("esta tarde"/"esta noche"/"la madrugada"): franja de
+            // HOY. Va después de "mañana" (para que "mañana en la noche" resuelva a
+            // mañana + franja nocturna, no a hoy) y ANTES de "hoy" (para que
+            // "hoy en la tarde" muestre la etiqueta "esta tarde", no "hoy"). Se
+            // segmenta con !hasAgendaDateScope para no robar "el viernes en la noche"
+            // (→ viernes) ni "el finde en la noche" (→ finde): en esos casos la
+            // franja se aplica como modificador encima de la fecha ganadora. La
+            // franja horaria (band) se calcula tras el when y filtra `due`.
+            agendaPartOfDay(query) != null && !hasAgendaDateScope(query) ->
+                Triple(today, today, agendaPartOfDayLabel(query))
             "hoy" in query -> Triple(today, today, "hoy")
             isNextWeek -> Triple(monday.plusDays(7), monday.plusDays(13), "próxima semana")
             isLastWeek -> Triple(monday.minusDays(7), monday.minusDays(1), "semana pasada")
@@ -356,7 +371,16 @@ object AssistantEngine {
             else -> Triple(monday, monday.plusDays(6), "esta semana")
         }
         val ranked = WhatNowEngine.ordered(active, now)
-        val due = ranked.filter { isDueInRange(it, start, end, zone) }
+        // Franja horaria (parte del día) como modificador opcional encima del
+        // rango de fechas: simétrico con SearchEngine.scopeBand (MADRUGADA 0..5,
+        // TARDE 12..17, NOCHE 18..23). Si la consulta menciona una parte del día,
+        // se filtra además por hora local. Así "¿qué tengo esta noche?" = tareas de
+        // hoy con hora 18-23; "¿qué tengo el viernes en la noche?" = viernes 18-23.
+        // Las tareas sin hora concreta (dueAt a medianoche, hora 0) sólo casan con
+        // madrugada — igual que en SearchEngine: una tarea "solo fecha" no puede
+        // afirmar honestamente pertenecer a la tarde/noche.
+        val band = agendaPartOfDay(query)
+        val due = ranked.filter { isDueInRange(it, start, end, zone) && (band == null || isDueInHourBand(it, band, zone)) }
         if (due.isEmpty()) {
             // "¿Qué tengo hoy?" no debe decir "no tienes nada" mientras el usuario
             // arrastra atrasadas de días anteriores: eso es exactamente lo que tiene
@@ -397,6 +421,40 @@ object AssistantEngine {
         val d = Instant.ofEpochMilli(due).atZone(zone).toLocalDate()
         return d >= start && d <= end
     }
+
+    // Franja horaria (parte del día) de la agenda. Simétrico con
+    // SearchEngine.scopeBand: MADRUGADA 0..5, TARDE 12..17, NOCHE 18..23. Tokens sin
+    // acento (foldForSearch). Devuelve null si la consulta no menciona una parte del
+    // día. NOTA: no hay franja "mañana/mañana" (morning): "mañana" significa
+    // "tomorrow" (igual que en SearchEngine, que no tiene scope de mañana-mañana).
+    private fun agendaPartOfDay(query: String): IntRange? = when {
+        "madrugada" in query -> 0..5
+        "tarde" in query -> 12..17
+        "noche" in query -> 18..23
+        else -> null
+    }
+
+    private fun agendaPartOfDayLabel(query: String): String = when {
+        "madrugada" in query -> "esta madrugada"
+        "tarde" in query -> "esta tarde"
+        "noche" in query -> "esta noche"
+        else -> "hoy"
+    }
+
+    private fun isDueInHourBand(task: TaskEntity, band: IntRange, zone: ZoneId): Boolean {
+        val due = task.dueAt ?: return false
+        return Instant.ofEpochMilli(due).atZone(zone).hour in band
+    }
+
+    // ¿La consulta menciona otro alcance de fecha (día relativo, semana, mes, weekday
+    // o finde)? Sirve para segmentar la rama de parte del día: si hay otro alcance,
+    // la parte del día actúa como modificador (band) sobre la fecha ganadora, no
+    // como la fecha misma. "hoy" no cuenta aquí (es compatible con "hoy en la tarde"
+    // → "esta tarde").
+    private fun hasAgendaDateScope(query: String): Boolean =
+        "manana" in query || "pasado manana" in query || "semana" in query ||
+            "mes" in query || isAgendaWeekendQuery(query) ||
+            AGENDA_WEEKDAY_TOKENS.any { it in query }
 
     // Días de la semana para la agenda a demanda ("¿qué tengo el viernes?"). Tokens
     // sin acento (foldForSearch): miércoles→miercoles, sábado→sabado. Mapa a
