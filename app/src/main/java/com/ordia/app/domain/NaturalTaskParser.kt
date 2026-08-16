@@ -3333,8 +3333,40 @@ object NaturalTaskParser {
         // lista tiene ≥2 días válidos (1..31) distintos → monthlyDays; si tiene 1 → no
         // reclamar (cae al single-day limpio); 0 → tampoco. El motor/backup ya soportan
         // N días (c.315) sin cambios.
+        //
+        // c.324: marcador de cadencia quincenal COMO alternativa al sufijo "mes". Cuando
+        // el usuario especifica DÍAS DEL MES explícitos ("pago quincenal los días 1 y
+        // 15", "nómina quincenal el 1 y el 15") la lista de días fija el significado:
+        // son los días de pago mensuales, NO un intervalo de 15 días. Antes el adjetivo
+        // "quincenal" se tragaba antes (rama `quincenaRecurrencePattern` → DAILY x15) y
+        // "los días 1 y 15" quedaba como residuo pegado al título ("pago los días 1 y
+        // 15") con recurrencia DAILY x15 (cada 15 días), que deriva 1 día por ciclo y
+        // desfasa los días de pago reales (1 y 15) mes a mes (P1: dato de pago
+        // silenciosamente erróneo). La señal honesta de desambiguación es la LISTA de
+        // días del mes: si el usuario pincha días concretos del mes junto a un marcador
+        // de cadencia quincenal/mensual, esos días ANCLAN la recurrencia mensual. El
+        // sufijo "de cada mes"/"todos los meses" sigue siendo la forma canónica; el
+        // adjetivo quincenal se admite como marcador DELANTERO ("quincenal los días 1 y
+        // 15") o TRASERO ("los días 1 y 15 quincenal"). Sin marcador (lista pelada "los
+        // días 1 y 15") NO se reclama: una lista sin cadencia es ambigua y se deja al
+        // resto de la cascada (comportamiento previo intacto). "quincenal" SOLO (sin
+        // lista de días) sigue siendo DAILY x15 (c.276/c.321, inafectado): la
+        // generalización sólo aplica cuando hay días del mes explícitos. Los días de
+        // SEMANA ("quincenal los lunes") ya los resuelve dayListPattern ANTES (WEEKLY
+        // x2) y no llegan aquí.
+        val quincenaCadenceMarker =
+            """cada\s+quincena|quincenal(?:mente)?|todas\s+las\s+quincenas"""
+        // Grupo 1 = lista de días; grupo 2 = sufijo "mes"/"todos los meses" (opcional);
+        // el prefijo delantero y el sufijo trasero quincenal son NO capturadores (se
+        // detectan vía containsMatchIn sobre match.value). El sufijo completo es
+        // OPCIONAL (incluido el `\s+`) para que la lista pueda cerrar al final del
+        // texto ("quincenal los días 1 y 15") o ir seguida de un marcador ("de cada
+        // mes" / "quincenal"). Antes el `\s+` obligatorio tras la lista hacía que
+        // retrocediera y capturara sólo el 1er día cuando la lista terminaba en final
+        // de string. Se exige ≥2 días Y un marcador de cadencia para reclamar como
+        // mensual: la lista pelada sin cadencia es ambigua y se deja a la cascada.
         val monthlyDualDayPattern =
-            Regex("""(?i)\b(?:cada|el|los)?\s*(?:d[ií]as?\s+)?(\d{1,2}(?:\s*,\s*\d{1,2})*(?:\s+y\s+(?:el|la|los|las)?\s*\d{1,2})?)\s+(?:de\s+(?:cada\s+)?mes|del\s+(?:cada\s+)?mes|todos\s+los\s+meses)(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))""")
+            Regex("""(?i)\b(?:(?:$quincenaCadenceMarker)\s+)?(?:cada|el|los)?\s*(?:d[ií]as?\s+)?(\d{1,2}(?:\s*,\s*\d{1,2})*(?:\s+y\s+(?:el|la|los|las)?\s*\d{1,2})?)(?:\s+(?:(de\s+(?:cada\s+)?mes|del\s+(?:cada\s+)?mes|todos\s+los\s+meses)|(?:$quincenaCadenceMarker))?(?:es)?)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))""")
         monthlyDualDayPattern.find(working)?.let { match ->
             // Extraer todos los enteros del grupo de la lista de días ("1, 15 y 30" → [1,15,30]).
             val days = Regex("""\d{1,2}""").findAll(match.groupValues[1])
@@ -3342,7 +3374,13 @@ object NaturalTaskParser {
                 .distinct()
                 .sorted()
                 .toList()
-            if (days.size >= 2) {
+            // hasCadence: hay marcador de cadencia (delantero quincenal, sufijo "mes" o
+            // sufijo quincenal trasero). Sin marcador la lista es ambigua → no reclamar.
+            val hasCadence = match.value.let { v ->
+                v.contains(Regex("""(?i)\b(?:$quincenaCadenceMarker)\b""")) ||
+                    match.groupValues[2].isNotBlank()
+            }
+            if (days.size >= 2 && hasCadence) {
                 phrases += match.range
                 return RecurrenceResult(
                     RecurrenceFrequency.MONTHLY, 1, emptyList(), phrases,

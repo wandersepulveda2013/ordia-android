@@ -9566,4 +9566,74 @@ class NaturalTaskParserTest {
         assertEquals("d:1,15", result.recurrenceDays)
         assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    // c.324: cadencia quincenal + días del mes explícitos → MONTHLY anclado a esos días
+    // (NO DAILY x15). El usuario que especifica "pago quincenal los días 1 y 15" pincha
+    // días de pago mensuales concretos; la lista de días fija el significado y anula la
+    // cadencia genérica DAILY x15 (cada 15 días), que derivaba 1 día por ciclo y
+    // desfasaba los días de pago reales mes a mes (P1: dato de pago erróneo). El
+    // adjetivo "quincenal" actúa como marcador de cadencia DELANTERO o TRASERO,
+    // equivalente a "de cada mes". "quincenal" SOLO (sin días) sigue siendo DAILY x15.
+
+    @Test fun quincenalCadenceWithDayListParsesMonthlyAnchoredDays() {
+        // "pago quincenal los días 1 y 15": antes caía a DAILY x15 + residuo
+        // "pago los días 1 y 15" (días de pago perdidos como recurrencia). Ahora MONTHLY.
+        val result = NaturalTaskParser.parse("pago quincenal los días 1 y 15", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:1,15", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun quincenalCadenceWithDayListMatchesCanonicalForm() {
+        // Paridad: "quincenal los días 1 y 15" == "los días 1 y 15 de cada mes" (canónico).
+        val quincenal = NaturalTaskParser.parse("cobro quincenal los días 1 y 15", now, zone)
+        val canonico = NaturalTaskParser.parse("cobro los días 1 y 15 de cada mes", now, zone)
+        assertEquals(canonico.recurrence, quincenal.recurrence)
+        assertEquals(canonico.recurrenceDays, quincenal.recurrenceDays)
+        assertEquals(canonico.dueAt, quincenal.dueAt)
+        assertEquals("cobro", quincenal.title)
+    }
+
+    @Test fun quincenalCadenceTrailingMarkerParsesMonthlyDays() {
+        // Marcador TRASERO: "los días 1 y 15 quincenal" (forma menos común pero natural).
+        val result = NaturalTaskParser.parse("nómina los días 1 y 15 quincenal", now, zone)
+        assertEquals("nómina", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:1,15", result.recurrenceDays)
+    }
+
+    @Test fun quincenalCadenceWithRepeatedArticleParsesMonthlyDays() {
+        // "quincenal el 1 y el 15" (artículo repetido, como en c.321 para la forma canónica).
+        val result = NaturalTaskParser.parse("pago quincenal el 1 y el 15", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:1,15", result.recurrenceDays)
+    }
+
+    @Test fun quincenalAloneStaysDailyInterval15() {
+        // NO-regresión: "quincenal" SIN días del mes sigue siendo DAILY x15 (c.276/c.321).
+        // La generalización c.324 sólo aplica cuando hay días del mes explícitos.
+        val result = NaturalTaskParser.parse("cobro quincenal", now, zone)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(15, result.recurrenceInterval)
+        assertEquals("", result.recurrenceDays)
+    }
+
+    @Test fun quincenalCadenceWithWeekdaysStaysWeeklyInterval2() {
+        // NO-regresión: "quincenal los lunes" → WEEKLY x2 (días de semana), inafectado por
+        // c.324 (éste sólo actúa sobre días del MES, los de semana los resuelve dayListPattern
+        // ANTES).
+        val result = NaturalTaskParser.parse("reporte quincenal los lunes", now, zone)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+    }
+
+    @Test fun bareDayListWithoutCadenceDoesNotClaimMonthly() {
+        // NO-regresión: "los días 1 y 15" sin NINGÚN marcador de cadencia (ni "mes" ni
+        // "quincenal") es ambigua y NO se reclama como mensual (se deja a la cascada).
+        val result = NaturalTaskParser.parse("los días 1 y 15", now, zone)
+        // Sin cadencia, la recurrencia NO debe ser MONTHLY con d:1,15.
+        assertFalse(result.recurrence == RecurrenceFrequency.MONTHLY && result.recurrenceDays == "d:1,15")
+    }
 }
