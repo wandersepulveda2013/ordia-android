@@ -398,3 +398,58 @@
 - APK Advanced Debug con ruta/tamaño/SHA-256 arriba.
 
 ---
+
+---
+
+## Sesion -- Fix CI Ordia 3.0 "Sign APK" (Missing unsigned APK)
+
+### Contexto
+- Run `31938710550` (push `3828953`): Verify build OK, Sign APK fallo en
+  `Reject debuggable APKs before signing` con `Missing unsigned/app-previewSafe-release-unsigned.apk`.
+
+### Causa raiz (inspeccion del artifact REAL)
+- `gh run download 31938710550 --name ordia-release-unsigned` mostro que el artifact
+  preserva la estructura de directorios de salida de Gradle:
+  - `unsigned/previewSafe/release/app-previewSafe-release-unsigned.apk`
+  - `unsigned/previewFull/release/app-previewFull-release-unsigned.apk`
+  - `unsigned/previewAdvanced/release/app-previewAdvanced-release-unsigned.apk`
+- El workflow asumÃ­a layout plano `unsigned/app-preview<Flavor>-release-unsigned.apk`
+  que nunca existio.
+
+### Correccion (commit `fc03e4f`, en `main`)
+- `android-ci.yml` Sign job: resolver cada APK unsigned por nombre de archivo con
+  `find unsigned -type f -name "app-preview${FLAVOR^}-release-unsigned.apk"` exigiendo
+  exactamente una coincidencia (sin rutas hardcodeadas).
+- Firmar directamente del APK unsigned al nombre canonico
+  `Ordia-3.0-<flavor>-signed.apk` (coincide con
+  `UpdateSecurityRules.expectedApkName(flavor)`).
+- Step de debug que imprime el arbol real del artifact descargado.
+- Convencion unica build -> artifact -> sign -> publish.
+
+### Correccion complementaria (commit `69de55b`, en `main`)
+- Publish job: el heredoc `<<EOF ... EOF` indentado NO cierra en bash y tragaba el
+  resto del script (incl. `gh release create`). Reemplazado por generacion del
+  manifiesto via `python3 -c` leyendo valores desde env vars (JSON valido).
+- Sign job: anadido `setup-java` (Temurin 17) para apksigner/keytool.
+
+### Verificacion -- Run `31947761478` (push `69de55b`): COMPLETAMENTE VERDE
+- Verify build (13m34s)
+- Sign APK (1m9s): las 3 variantes confirmadas no-debuggable y firmadas
+  (v2+v3 verified, Number of signers: 1); `.sha256` generados.
+- Publish release (11s).
+
+### Release publicada
+- Tag: `v3.0.0-build.31947761478`
+- Nombre: `Ordia 3.0 - signed build 31947761478`
+- URL: https://github.com/wandersepulveda2013/ordia-android/releases/tag/v3.0.0-build.31947761478
+- 9 assets (3 APK + 3 .sha256 + 3 update-manifest-*.json):
+  - `Ordia-3.0-safe-signed.apk` (2676195 B) + `.sha256`
+  - `Ordia-3.0-full-signed.apk` (2738139 B) + `.sha256`
+  - `Ordia-3.0-advanced-signed.apk` (2738139 B) + `.sha256`
+  - `update-manifest-safe.json` / `-full.json` / `-advanced.json`
+- `sha256sum -c` OK para las 3 APK; sha256 del manifiesto coincide con el APK real.
+- versionCode = 1300023801 (1_300_000_000 + 238*100 + 1).
+
+### Commits
+- `fc03e4f` fix(ci): resolve real unsigned APK paths in Sign APK job
+- `69de55b` fix(ci): fix broken publish heredoc and add JDK to sign job
