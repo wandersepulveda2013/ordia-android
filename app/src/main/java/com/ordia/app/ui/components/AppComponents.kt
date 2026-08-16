@@ -55,6 +55,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.ui.theme.OrdiaAccent
+import com.ordia.app.ui.components.OrdiaSurface
+import com.ordia.app.ui.components.OrdiaOutlinedButton
+import com.ordia.app.ui.components.OrdiaCard
+import com.ordia.app.ui.components.OrdiaButton
+import com.ordia.app.ui.components.OrdiaInput
 
 /**
  * Barra superior compacta (52–56 dp). Rediseño limpio: encabezado denso con
@@ -99,7 +104,7 @@ fun ScreenHeader(
             }
         }
         if (actionLabel != null && onAction != null) {
-            Button(
+            OrdiaButton(
                 onClick = onAction,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 8.dp)
             ) {
@@ -165,11 +170,10 @@ fun StatCard(
     icon: ImageVector? = null,
     accent: Color = MaterialTheme.colorScheme.primary
 ) {
-    Card(
+    OrdiaCard(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.78f))
     ) {
         Column(
@@ -186,7 +190,7 @@ fun StatCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Surface(shape = CircleShape, color = accent.copy(alpha = 0.14f)) {
+                OrdiaSurface(shape = CircleShape, color = accent.copy(alpha = 0.14f)) {
                     if (icon != null) {
                         Icon(icon, null, Modifier.padding(6.dp).size(15.dp), tint = accent)
                     } else {
@@ -214,7 +218,7 @@ fun EmptyState(
     onAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    OrdiaSurface(
         modifier = modifier.fillMaxWidth().ordiaWorkSurface(),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -235,7 +239,7 @@ fun EmptyState(
             )
             if (actionLabel != null && onAction != null) {
                 Spacer(Modifier.height(2.dp))
-                Button(
+                OrdiaButton(
                     onClick = onAction,
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
@@ -266,7 +270,7 @@ fun OrdiaListItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null) {
-            Surface(shape = MaterialTheme.shapes.small, color = iconTint.copy(alpha = 0.13f)) {
+            OrdiaSurface(shape = MaterialTheme.shapes.small, color = iconTint.copy(alpha = 0.13f)) {
                 Icon(icon, null, Modifier.padding(9.dp).size(19.dp), tint = iconTint)
             }
             Spacer(Modifier.width(12.dp))
@@ -303,7 +307,7 @@ fun StatusBadge(
     background: Color = MaterialTheme.colorScheme.primaryContainer,
     content: Color = MaterialTheme.colorScheme.onPrimaryContainer
 ) {
-    Surface(modifier = modifier, shape = RoundedCornerShape(999.dp), color = background) {
+    OrdiaSurface(modifier = modifier, shape = RoundedCornerShape(999.dp), color = background) {
         Text(
             text,
             Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -353,7 +357,7 @@ fun OrdiaError(
             )
         }
         if (onRetry != null) {
-            OutlinedButton(
+            OrdiaOutlinedButton(
                 onClick = onRetry,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
@@ -466,7 +470,7 @@ fun ActionCard(
     badge: String? = null,
     accent: Color = MaterialTheme.colorScheme.primary
 ) {
-    Card(
+    OrdiaCard(
         onClick = onClick,
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
@@ -475,12 +479,12 @@ fun ActionCard(
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Surface(shape = RoundedCornerShape(14.dp), color = accent.copy(alpha = 0.14f)) {
+                OrdiaSurface(shape = RoundedCornerShape(14.dp), color = accent.copy(alpha = 0.14f)) {
                     Icon(icon, null, Modifier.padding(10.dp).size(21.dp), tint = accent)
                 }
                 Spacer(Modifier.weight(1f))
                 if (!badge.isNullOrBlank()) {
-                    Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+                    OrdiaSurface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
                         Text(
                             badge,
                             Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
@@ -501,7 +505,7 @@ fun SectionSurface(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(
+    OrdiaCard(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -531,7 +535,7 @@ fun Modifier.ordiaWorkSurface(): Modifier {
 
 @Composable
 fun PrimaryAction(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Button(
+    OrdiaButton(
         onClick = onClick,
         modifier = modifier,
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -542,7 +546,7 @@ fun PrimaryAction(label: String, onClick: () -> Unit, modifier: Modifier = Modif
 
 @Composable
 fun InfoBanner(title: String, text: String, modifier: Modifier = Modifier) {
-    Surface(
+    OrdiaSurface(
         modifier,
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.secondaryContainer,

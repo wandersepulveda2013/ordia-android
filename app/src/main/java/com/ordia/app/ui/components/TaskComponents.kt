@@ -57,6 +57,11 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.TaskRules
+import com.ordia.app.ui.components.OrdiaCard
+import com.ordia.app.ui.components.OrdiaSurface
+import com.ordia.app.ui.components.OrdiaButton
+import com.ordia.app.ui.components.OrdiaOutlinedButton
+import com.ordia.app.ui.components.OrdiaInput
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -82,7 +87,7 @@ fun TaskRow(
         else -> MaterialTheme.colorScheme.primary
     }
 
-    Card(
+    OrdiaCard(
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(
@@ -100,7 +105,7 @@ fun TaskRow(
                 MaterialTheme.colorScheme.surfaceContainerLow
             }
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (task.completed) 0.dp else 1.dp),
+
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.78f))
     ) {
         Row(
@@ -108,7 +113,7 @@ fun TaskRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(Modifier.width(4.dp).height(46.dp), contentAlignment = Alignment.Center) {
-                Surface(Modifier.width(4.dp).height(38.dp), shape = CircleShape, color = accent) {}
+                OrdiaSurface(Modifier.width(4.dp).height(38.dp), shape = CircleShape, color = accent) {}
             }
             Checkbox(checked = task.completed, onCheckedChange = { onToggle() })
             Column(
@@ -127,7 +132,7 @@ fun TaskRow(
                         color = if (task.completed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
                     )
                     if (task.flagged) {
-                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
+                        OrdiaSurface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
                             Icon(
                                 Icons.Outlined.Flag,
                                 stringResource(R.string.task_flagged),
@@ -221,7 +226,7 @@ private fun MetadataPill(
     container: Color,
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null
 ) {
-    Surface(shape = RoundedCornerShape(999.dp), color = container) {
+    OrdiaSurface(shape = RoundedCornerShape(999.dp), color = container) {
         Row(
             Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -235,7 +240,7 @@ private fun MetadataPill(
 
 @Composable
 fun PriorityPill(text: String, isUrgent: Boolean = false) {
-    Surface(
+    OrdiaSurface(
         shape = RoundedCornerShape(999.dp),
         color = if (isUrgent) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer
     ) {
@@ -266,7 +271,7 @@ fun CaptureChips(
         if (chips.isNotEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 chips.take(4).forEach { text ->
-                    Surface(
+                    OrdiaSurface(
                         shape = RoundedCornerShape(999.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerHigh
                     ) {
@@ -283,7 +288,7 @@ fun CaptureChips(
             }
         }
         hint?.let { text ->
-            Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+            OrdiaSurface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
                 Text(
                     text,
                     Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
