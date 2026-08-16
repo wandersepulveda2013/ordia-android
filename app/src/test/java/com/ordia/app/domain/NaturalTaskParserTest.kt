@@ -9186,6 +9186,83 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(1, 15), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "a eso de" + hora DESNUDA (sin "las") (c.386) ---
+    // "a eso de" es adverbio temporal puro, así que admite hora en punto sin "las" como la
+    // forma "a eso de las N". Antes estas variantes cotidianas ("a eso de nueve", "a eso de
+    // 9", frecuentes en notas rápidas) caían a dueAt=null → la cita nunca se agendaba (el
+    // usuario olvidaba la cita, P1 datos/captura). Y con parte del día ("a eso de nueve de
+    // la noche") la hora sí se resolvía vía el patrón autónomo "N de la noche" PERO "a eso
+    // de" sobrevivía como residuo del título ("cita a eso de": P1 título mutilado).
+    @Test fun aEsoDeNueveDesnudaResuelve9hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión a eso de nueve", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeNueveDigitoDesnudaResuelve9hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("llamar a eso de 9", now, zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeNueveDeLaNocheDesnudaResuelve21hYLimpiaTitulo() {
+        // Antes: due=21:00 (vía patrón autónomo "N de la noche") PERO title="cita a eso de"
+        // (residuo). Ahora: hora resuelta + título limpio.
+        val result = NaturalTaskParser.parse("cita a eso de nueve de la noche", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeTresYMediaDesnudaResuelve3h30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión a eso de 3 y media", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(3, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeNueveMenosCuartoDesnudaResuelve8h45YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión a eso de 9 menos cuarto", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(8, 45), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeNuevePMDesnudaResuelve21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión a eso de 9pm", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeNueveHorasDesnudaNoEsRobadaComoDuracion() {
+        // "9 horas" tras "a eso de" debe ser sufijo de unidad (→09:00), NO duración (540 min).
+        val result = NaturalTaskParser.parse("reunión a eso de 9 horas", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun aEsoDeNueveConCantidadPreservaCantidadEnTitulo() {
+        // "comprar 9 panes a eso de la tarde": "9 panes" NO se falsifica como hora (va con
+        // "a eso de la tarde", parte del día); la cantidad queda en el título.
+        val result = NaturalTaskParser.parse("comprar 9 panes a eso de la tarde", now, zone)
+        assertEquals("comprar 9 panes", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeLasNueveSigueFuncionandoTrasRewriterDesnuda() {
+        // Regresión: la forma con "las" no debe romperse al añadir el rewriter de hora desnuda.
+        val result = NaturalTaskParser.parse("reunión a eso de las 9", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
 
     @Test fun sobreLasTresDeLaTardeResuelve15hYLimpiaTitulo() {
         val result = NaturalTaskParser.parse("reunión sobre las 3 de la tarde", now, zone)

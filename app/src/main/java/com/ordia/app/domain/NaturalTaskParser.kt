@@ -1079,6 +1079,39 @@ object NaturalTaskParser {
         Regex("""(?i)\ba\s+eso\s+(del\s+mediod[ií]a|de\s+la\s+medianoche|de\s+la\s+(?:ma[nñ]ana|tarde|noche|madrugada)|de\s+(?:tarde|noche|madrugada))\b""")
 
     /**
+     * "a eso de" + hora DESNUDA (sin "las"): "a eso de nueve", "a eso de 9",
+     * "a eso de nueve de la noche", "a eso de 3 y media", "a eso de 9pm".
+     *
+     * "a eso de" es adverbio temporal puro (sin uso de tema/cantidad, a diferencia de
+     * "sobre/hacia/cerca/alrededor"): lo que sigue a "a eso de" sólo puede ser una hora.
+     * Por eso el patrón "a eso de las N" de [approximateTimePatterns] admite hora en punto
+     * sin meridiem ("a eso de las 5"). PERO exigía el artículo "las"/"la una", así que las
+     * formas cotidianas que OMITEN "las" ("a eso de nueve", "a eso de 9", muy frecuentes
+     * en notas rápidas/móvil) NO se normalizaban: caían a `dueAt=null` → la cita NUNCA se
+     * agendaba (sin recordatorio, fuera de What Now: el usuario olvidaba la cita, P1
+     * datos/captura/evitar olvidos). Y con parte del día ("a eso de nueve de la noche") la
+     * hora SÍ se resolvía vía el patrón autónomo "N de la tarde/noche" PERO "a eso de"
+     * sobrevivía como residuo del título ("cita a eso de": contenido capturado mutilado, P1).
+     *
+     * Aquí se reescribe "a eso de " → "a las " conservando intacta la hora y sus
+     * modificadores (`:MM`, "y media"/"menos cuarto", "de la noche"/"del mediodía",
+     * am/pm, "horas/hs/h"), reutilizando TODO el flujo de [timePatterns] "a las N"
+     * (resolución AM/PM, fracción, limpieza del título) sin nueva rama de resolución.
+     *
+     * El lookahead exige una hora válida (dígito `[01]?\d|2[0-4]` o escrita
+     * [WRITTEN_HOUR_ALT], que EXCLUYE "un/una/uno": "a eso de la una" lo trata
+     * [approximateTimePatterns] vía "la una", y aquí no casa para no emitir el agramatical
+     * "a las una"). El resto del tail (`:MM`/fracción/meridiem/unidad) es opcional y
+     * NO capturante: sólo valida que lo que sigue es una hora de reloj y se queda en el
+     * texto para que timePatterns lo consuma. Se procesa ANTES que el fold de
+     * [approximateTimePatterns]: así "a eso de nueve" → "a las nueve" (aquí) y luego el
+     * fold normaliza cualquier "a eso de las N" restante. "a eso de las 5" no casa aquí
+     * (tras "de" viene "las", no una hora desnuda) → lo deja al fold, sin conflicto.
+     */
+    private val aEsoDeBareHourRewriter =
+        Regex("""(?i)\ba\s+eso\s+de\s+(?=(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)[0-5]\d)?(?:\s*(?:horas?|hs|h))?(?:\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\b)""")
+
+    /**
      * Marcadores de hora aproximada ("a eso de", "hacia", "cerca de", "alrededor de",
      * "sobre") que se normalizan a la forma canónica "a las"/"a la" reutilizando el
      * flujo de [timePatterns]. Véase el bloque de normalización en [parse].
@@ -1763,6 +1796,13 @@ object NaturalTaskParser {
                 else -> part
             }
         }
+
+        // "a eso de" + hora DESNUDA (sin "las"): "a eso de nueve"/"a eso de 9"/"a eso de
+        // nueve de la noche" → "a las nueve"/"a las 9"/"a las nueve de la noche", para que
+        // [timePatterns] "a las N" resuelva la hora y limpie el título. ANTES del fold de
+        // [approximateTimePatterns]: "a eso de las N" no casa aquí (viene "las", no hora
+        // desnuda) y lo normaliza el fold. Véase [aEsoDeBareHourRewriter].
+        working = aEsoDeBareHourRewriter.replace(working, "a las ")
 
         working = approximateTimePatterns.fold(working) { acc, p -> p.replace(acc, "a ") }
 
