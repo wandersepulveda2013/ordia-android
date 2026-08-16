@@ -1216,13 +1216,24 @@ object NaturalTaskParser {
     /** Formas copulativas negadas que neutralizan un "urgente"/"importante" final real. */
     private val negatedPriorityPattern = Regex("""(?i)\bno\s+(?:es|era|fue|parece|ser[áa])\s+(?:lo\s+)?(?:urgente|importante)\b\s*[.!?]?$""")
 
-    /** Partes del día: "esta mañana/tarde/noche". Implican fecha=hoy + hora canónica. */
-    private val partOfDayPattern = Regex("""(?i)\besta\s+(ma[nñ]ana|tarde|noche)\b""")
+    /**
+     * Partes del día: "esta mañana/tarde/noche/madrugada". Implican fecha=hoy + hora
+     * canónica. "madrugada" se resuelve a 04:00 (misma hora canónica que en
+     * [standalonePartOfDayTimes] y [compactDayPartOfDayTimes]). Antes "esta madrugada"
+     * no casaba este patrón (sólo mañana/tarde/noche): caía a `dueAt=null` y la frase
+     * entera quedaba como residuo en el título — una cita capturada de madrugada
+     * (p.ej. "reunión esta madrugada") se perdía sin vencimiento ni recordatorio (P1,
+     * tarea olvidada). "madrugada" es inequívoca como parte del día (no hay marcador de
+     * día "madrugada" con el que colisionar, a diferencia de "mañana"), por lo que es
+     * seguro incluirla aquí simétricamente con mañana/tarde/noche.
+     */
+    private val partOfDayPattern = Regex("""(?i)\besta\s+(ma[nñ]ana|tarde|noche|madrugada)\b""")
     private val partOfDayTimes = mapOf(
         "mañana" to LocalTime.of(9, 0),
         "manana" to LocalTime.of(9, 0),
         "tarde" to LocalTime.of(15, 0),
-        "noche" to LocalTime.of(21, 0)
+        "noche" to LocalTime.of(21, 0),
+        "madrugada" to LocalTime.of(4, 0)
     )
 
     /**

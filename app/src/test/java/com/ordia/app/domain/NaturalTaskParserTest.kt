@@ -2647,6 +2647,23 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // ── "esta madrugada": simetría con "esta mañana/tarde/noche" ──
+    // Antes "esta madrugada" NO casaba [partOfDayPattern] (sólo mañana/tarde/noche):
+    // caía a dueAt=null y la frase entera quedaba como residuo en el título — tarea
+    // capturada de madrugada se perdía sin vencimiento ni recordatorio (P1: olvido).
+    @Test fun estaMadrugadaSetsCanonicalTimeToday() {
+        val result = NaturalTaskParser.parse("Reunión esta madrugada", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun estaMadrugadaExplicitHourOverridesCanonicalTime() {
+        val result = NaturalTaskParser.parse("Estudiar esta madrugada a las 3", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(3, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // ── "el día de mañana/hoy": pleonasmo coloquial de "mañana/hoy" ──
     // La frase completa debe consumirse; antes el borrado de "mañana"/"hoy" dejaba el
     // residuo "el día de" en el título (p. ej. "reunión el día de" en vez de "reunión"),
