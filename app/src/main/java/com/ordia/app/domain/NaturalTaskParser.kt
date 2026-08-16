@@ -894,7 +894,7 @@ object NaturalTaskParser {
      * caer como residuo del título o agendarse a la hora canónica de la parte del día.
      */
     private const val WRITTEN_HOUR_ALT =
-        "veintiuno|veinte|diecinueve|dieciocho|diecisiete|diecis[eé]is|quince|catorce|trece|doce|once|diez|nueve|ocho|siete|seis|cinco|cuatro|tres|dos"
+        "veintiuna|veintiuno|veinte|diecinueve|dieciocho|diecisiete|diecis[eé]is|quince|catorce|trece|doce|once|diez|nueve|ocho|siete|seis|cinco|cuatro|tres|dos"
 
     private fun parseHour(raw: String): Int? {
         raw.toIntOrNull()?.let { return it }
@@ -5051,7 +5051,7 @@ object NaturalTaskParser {
         "catorce" to 14L, "quince" to 15L,
         "dieciséis" to 16L, "dieciseis" to 16L, "diecisiete" to 17L,
         "dieciocho" to 18L, "diecinueve" to 19L,
-        "veinte" to 20L, "veintiuno" to 21L,
+        "veinte" to 20L, "veintiuno" to 21L, "veintiuna" to 21L,
         "veintidós" to 22L, "veintidos" to 22L,
         "veintitrés" to 23L, "veintitres" to 23L,
         "veinticuatro" to 24L, "veinticinco" to 25L,

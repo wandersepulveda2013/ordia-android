@@ -3662,6 +3662,38 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- "veintiuna": forma femenina de la hora 21 (ciclo 387) ---
+    // Las horas son femeninas en español: "a las 21" se dice "a las veintiuna", no
+    // "a las veintiuno". Antes WRITTEN_HOUR_ALT sólo tenía la forma masculina y "a las
+    // veintiuna" no casaba → la cita nocturna quedaba SIN dueAt (un compromiso vespertino
+    // silenciosamente olvidado). Cubre el conector "a las", el aproximado "a eso de las"
+    // (admite hora en punto escrita), la fracción "y media" y la ruta standalone con
+    // parte del día.
+
+    @Test fun aLasVeintiunaEscritaResuelve21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión a las veintiuna", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aEsoDeLasVeintiunaResuelve21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a eso de las veintiuna", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasVeintiunaYMediaEs21y30() {
+        val result = NaturalTaskParser.parse("Reunión a las veintiuna y media", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun veintiunaDeLaNocheStandaloneEs21h() {
+        val result = NaturalTaskParser.parse("Cena veintiuna de la noche", now, zone)
+        assertEquals("Cena", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // --- Hora suelta con parte del día + fracción "y media"/"y cuarto" (ciclo 153) ---
     // "9 y media de la noche" → 21:30 (no la canónica 21:00) y título limpio. Antes el
     // sufijo fraccionario NO se reconocía en la forma SIN "a las": la hora caía a la
