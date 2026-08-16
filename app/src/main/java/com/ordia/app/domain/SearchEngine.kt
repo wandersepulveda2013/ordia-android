@@ -643,8 +643,11 @@ object SearchEngine {
                 return DateRules.toLocalDate(completedAt, zone) == target
             }
             if (task.completed) return false
-            val due = task.dueAt ?: return false
-            return DateRules.toLocalDate(due, zone) == target
+            // Una tarea es "del día X" si su `startAt` o su `dueAt` cae en X
+            // (simétrico con PlannerCalendar.datesFor y AssistantEngine).
+            val stt = task.startAt?.let { DateRules.toLocalDate(it, zone) }
+            val due = task.dueAt?.let { DateRules.toLocalDate(it, zone) }
+            return stt == target || due == target
         }
         // Fin de semana (sábado+domingo del próximo finde): la fecha objetivo es el
         // sábado resuelto en search() (resolveWeekendTarget), y entra todo lo que
@@ -662,9 +665,11 @@ object SearchEngine {
                 return day == saturday || day == sunday
             }
             if (task.completed) return false
-            val due = task.dueAt ?: return false
-            val day = DateRules.toLocalDate(due, zone)
-            return day == saturday || day == sunday
+            // startAt o dueAt dentro del finde (simétrico con WEEKDAY/PlannerCalendar).
+            val stt = task.startAt?.let { DateRules.toLocalDate(it, zone) }
+            val due = task.dueAt?.let { DateRules.toLocalDate(it, zone) }
+            fun inWeekend(d: LocalDate?) = d != null && (d == saturday || d == sunday)
+            return inWeekend(stt) || inWeekend(due)
         }
         // Los scopes pasados ("ayer", "semana pasada", "mes pasado") recuperan
         // tareas ya completadas: su propósito es revisar qué había en ese período.
@@ -682,17 +687,31 @@ object SearchEngine {
             return anchorMatchesScope(scope, completedAt, now, zone, fullCalendarWeek = true)
         }
         if (!pastScope && task.completed) return false
-        val due = task.dueAt ?: return false
         // Partes del día: franja horaria de HOY (presente → excluye completadas,
         // igual que TODAY). Recupera "lo que me espera esta tarde/noche" sin
         // requerir la palabra en el título. Coherente con TODAY (mismo día).
         val partOfDay = scopeBand(scope)
         if (partOfDay != null) {
-            val zonedDue = Instant.ofEpochMilli(due).atZone(zone)
             val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-            return zonedDue.toLocalDate() == today && zonedDue.hour in partOfDay
+            // La franja se resuelve con la marca temporal que cae HOY, prefiriendo
+            // `startAt` (simétrico con AssistantEngine.isInHourBand y
+            // PlannerCalendar.timestampOnDate). Así "esta tarde" muestra un slot de
+            // hoy 15:00 aunque venza más tarde; antes miraba sólo `dueAt` y omitía
+            // los slots agendados cuya fecha de vencimiento era posterior.
+            val stt = task.startAt?.takeIf { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() == today }
+            val ts = stt ?: task.dueAt?.takeIf { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() == today } ?: return false
+            val zoned = Instant.ofEpochMilli(ts).atZone(zone)
+            return zoned.toLocalDate() == today && zoned.hour in partOfDay
         }
-        return anchorMatchesScope(scope, due, now, zone, fullCalendarWeek = false)
+        // Membresía por fecha: una tarea pertenece al alcance si su `startAt` o su
+        // `dueAt` cae en él (simétrico con PlannerCalendar.datesFor, que ubica la
+        // tarea en ambos días, y con AssistantEngine.isScheduledInRange de c.385).
+        // Antes sólo se miraba `dueAt`: "hoy"/"esta semana"/"este mes" omitían un
+        // slot agendado por `startAt` cuyo vencimiento era posterior, mintiendo por
+        // omisión en las consultas más cotidianas. `anchorMatchesScope` ignora un
+        // epoch nulo (devuelve false), así el OR es seguro sin falsear miembros.
+        return anchorMatchesScope(scope, task.startAt, now, zone, fullCalendarWeek = false) ||
+            anchorMatchesScope(scope, task.dueAt, now, zone, fullCalendarWeek = false)
     }
 
     // Comprueba si un instante (epoch) cae dentro del rango calendario del scope.
@@ -704,7 +723,11 @@ object SearchEngine {
     // la semana calendario completa (lunes-domingo) en vez de hoy→domingo: la
     // lectura de "completadas esta semana" es "qué terminé esta semana", que
     // incluye lo terminado el lunes aunque hoy sea jueves.
-    private fun anchorMatchesScope(scope: DateScope, anchorEpoch: Long, now: Long, zone: ZoneId, fullCalendarWeek: Boolean): Boolean {
+    private fun anchorMatchesScope(scope: DateScope, anchorEpoch: Long?, now: Long, zone: ZoneId, fullCalendarWeek: Boolean): Boolean {
+        // Un epoch nulo (tarea sin startAt o sin dueAt) nunca ancla: la membresía
+        // se decide por el OR de ambas marcas en `taskMatchesDateScope`, así que
+        // aquí sólo se descarta ese lado del OR sin falsear el otro.
+        if (anchorEpoch == null) return false
         val zoned = Instant.ofEpochMilli(anchorEpoch).atZone(zone)
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         val date = zoned.toLocalDate()

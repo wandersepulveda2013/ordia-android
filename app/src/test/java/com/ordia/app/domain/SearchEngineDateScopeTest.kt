@@ -1062,4 +1062,114 @@ class SearchEngineDateScopeTest {
         assertEquals(setOf(1L), ids)
     }
 
+    // --- startAt como ancla de membresía de fecha (consistencia con
+    // PlannerCalendar.datesFor y AssistantEngine.isScheduledInRange) ---
+    // Antes taskMatchesDateScope miraba SÓLO `dueAt` para decidir si una tarea
+    // pertenecía a un alcance de fecha ("hoy"/"esta semana"/"este mes"/parte del
+    // día). Una tarea agendada para HOY por su hueco `startAt` (con `dueAt`
+    // posterior) NO aparecía al buscar "hoy", aunque sí la mostrara el calendario
+    // del planificador, la carga del día (SummaryEngine) y la agenda del
+    // asistente (c.385). La búsqueda universal mentía por omisión en la consulta
+    // más cotidiana. Ahora una tarea es "del día X" si su `startAt` o su `dueAt`
+    // cae en X — espejo exacto de las demás superficies.
+
+    private fun slotAt(d: java.time.LocalDate, h: Int): Long =
+        java.time.ZonedDateTime.of(d.atTime(h, 0), zone).toInstant().toEpochMilli()
+
+    @Test fun hoy_incluyeTareaAgendadaHoyPorStartAtConDueAtPosterior() {
+        // Slot agendado para hoy 15:00 (startAt) que vence mañana. Antes "hoy" la
+        // omitía (miraba sólo dueAt=mañana); ahora la encuentra por startAt.
+        val today = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = slotAt(today, 9)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Reunión slot", startAt = slotAt(today, 15), dueAt = slotAt(today.plusDays(1), 12)),
+            TaskEntity(id = 2, title = "Vence hoy", dueAt = slotAt(today, 18)),
+            TaskEntity(id = 3, title = "Vence mañana", dueAt = slotAt(today.plusDays(1), 10))
+        )
+        val ids = SearchEngine.search("hoy", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L), ids)
+    }
+
+    @Test fun estaSemana_incluyeTareaAgendadaPorStartAtConDueAtProximaSemana() {
+        // Slot de esta semana (startAt) que vence la próxima semana. Antes "esta
+        // semana" la omitía; ahora la encuentra por startAt. (THIS_WEEK para
+        // pendientes abarca hoy→domingo: el slot debe caer ese rango hacia adelante.)
+        val today = java.time.LocalDate.of(2026, 8, 13) // jueves; esta semana hoy(13)→dom(16)
+        val t0 = slotAt(today, 9)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Slot vie", startAt = slotAt(today.plusDays(1), 11), dueAt = slotAt(today.plusDays(5), 12)), // startAt 08-14 (esta semana), dueAt 08-18 (próxima)
+            TaskEntity(id = 2, title = "Vence próxima", dueAt = slotAt(today.plusDays(5), 12))
+        )
+        val ids = SearchEngine.search("esta semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun esteMes_incluyeTareaAgendadaPorStartAtConDueAtProximoMes() {
+        // Slot de este mes (startAt) que vence el próximo mes. Antes "este mes" la
+        // omitía; ahora la encuentra por startAt.
+        val today = java.time.LocalDate.of(2026, 8, 13) // agosto
+        val t0 = slotAt(today, 9)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Slot agosto", startAt = slotAt(java.time.LocalDate.of(2026, 8, 20), 10), dueAt = slotAt(java.time.LocalDate.of(2026, 9, 5), 12)),
+            TaskEntity(id = 2, title = "Vence septiembre", dueAt = slotAt(java.time.LocalDate.of(2026, 9, 5), 12))
+        )
+        val ids = SearchEngine.search("este mes", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun tarde_incluyeSlotDeHoyPorStartAtAunqueVenzaDespues() {
+        // "esta tarde" encuentra un slot agendado para hoy 15:00 (startAt) aunque
+        // venza mañana: la franja se resuelve con la marca que cae hoy,
+        // prefiriendo startAt (simétrico con AssistantEngine.isInHourBand).
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val t0 = slotAt(today, 9)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Reunión tarde", startAt = slotAt(today, 15), dueAt = slotAt(today.plusDays(1), 12)),
+            TaskEntity(id = 2, title = "Desayuno", startAt = slotAt(today, 8), dueAt = slotAt(today.plusDays(1), 12))
+        )
+        val ids = SearchEngine.search("esta tarde", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun hoy_noIncluyeCompletadaAunqueSuStartAtSeaHoy() {
+        // Guard de no-regresión: una tarea completada NO aparece en "hoy"
+        // (los scopes presentes excluyen completadas), aun cuando su startAt sea
+        // hoy. La exclusión por `completed` se mantiene tras el cambio de ancla.
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val t0 = slotAt(today, 9)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hecha hoy", startAt = slotAt(today, 8), dueAt = slotAt(today.plusDays(1), 12), completed = true),
+            TaskEntity(id = 2, title = "Pendiente hoy", dueAt = slotAt(today, 18))
+        )
+        val ids = SearchEngine.search("hoy", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(2L), ids)
+    }
+
+    @Test fun ayer_recuperaTareaAgendadaAyerPorStartAt() {
+        // Recuperación: una tarea cuyo hueco (startAt) fue ayer aparece al buscar
+        // "ayer" aunque su dueAt sea posterior. Simétrico con PlannerCalendar, que
+        // ubica la tarea en el día de su startAt.
+        val today = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = slotAt(today, 9)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Slot de ayer", startAt = slotAt(today.minusDays(1), 14), dueAt = slotAt(today, 12)),
+            TaskEntity(id = 2, title = "Vence hoy", dueAt = slotAt(today, 12))
+        )
+        val ids = SearchEngine.search("ayer", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun startAtFuturo_noContaminaScopePasado() {
+        // Guard de no-regresión: una tarea con startAt futuro y dueAt futuro NO
+        // aparece en "ayer" (ninguna marca cae ayer).
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val t0 = slotAt(today, 9)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Futura", startAt = slotAt(today.plusDays(2), 10), dueAt = slotAt(today.plusDays(3), 12))
+        )
+        val ids = SearchEngine.search("ayer", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertTrue("Una tarea futura no debe aparecer en 'ayer'", ids.isEmpty())
+    }
+
+
 }
