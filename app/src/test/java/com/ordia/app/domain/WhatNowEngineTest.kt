@@ -464,4 +464,73 @@ class WhatNowEngineTest {
         assertEquals(WhatNowReason.URGENT, suggestion.reason)
     }
 
+    /**
+     * c.373: paridad etiqueta↔ranking cuando una tarea falló su arranque
+     * (startAt pasado) PERO vence hoy (dueAt hoy, futuro). timeRank() la eleva
+     * por isDueToday (rank 3) —por encima de una URGENTE pura (rank 2)— pero
+     * reason() la etiquetaba MISSED_START ("se pasó el arranque") porque
+     * evaluaba isMissedStart ANTES que isDueToday, contradiciendo el orden de
+     * timeRank() (donde isDueToday(3) es rango explícito y isMissedStart cae a
+     * prioridad 0/1/2). El usuario veía "se pasó el hueco" sin enterarse de que
+     * además vence hoy — el dato que justifica que vaya primera. Divergencia
+     * etiqueta↔ranking, misma clase que c.372. Fix: reason() evalúa isDueToday
+     * ANTES que isMissedStart, igualando el orden de timeRank(). El label honesto
+     * pasa a "vence hoy".
+     */
+    @Test
+    fun missedStartButDueTodayLabeledDueTodayNotMissedStart() {
+        // Hueco 09:00 (ya pasado, now=10:00), plazo hoy 18:00 (futuro, dueToday).
+        val missedAndDue = task(1, "Llamada con deadline hoy").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone),
+            durationMinutes = 30
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(missedAndDue), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.DUE_TODAY, suggestion.reason)
+        assertEquals("vence hoy", WhatNowEngine.reasonLabel(suggestion.reason))
+    }
+
+    /**
+     * c.373: confirmación de que el ranking coincide con el label corregido.
+     * La tarea missed-start+dueToday (rank 3) debe ir por delante de una URGENTE
+     * pura sin fecha (rank 2) — porque vence hoy — y la sugerencia etiqueta su
+     * razón como DUE_TODAY, no como URGENT ni MISSED_START.
+     */
+    @Test
+    fun missedStartDueTodayBeatsUrgentAndLabeledDueToday() {
+        val missedAndDue = task(1, "Con plazo hoy").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone),
+            durationMinutes = 30
+        )
+        val urgent = task(2, "Urgente sin fecha", TaskPriority.URGENT)
+
+        val suggestion = WhatNowEngine.suggest(listOf(missedAndDue, urgent), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.DUE_TODAY, suggestion.reason)
+    }
+
+    /**
+     * c.373: el caso missed-start puro (sin dueAt, o dueAt futuro no-hoy) sigue
+     * etiquetándose como MISSED_START — el reordenamiento de isDueToday no
+     * degrada la recuperación de inicio olvidado cuando NO hay plazo de hoy.
+     * Regresión de c.202.
+     */
+    @Test
+    fun pureMissedStartWithoutDueTodayStillLabeledMissedStart() {
+        val missed = task(1, "Hueco olvidado sin deadline").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone),
+            durationMinutes = 30
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(missed), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.MISSED_START, suggestion.reason)
+    }
+
 }

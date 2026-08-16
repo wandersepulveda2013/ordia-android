@@ -92,8 +92,18 @@ object WhatNowEngine {
         isInProgressNow(task, now) -> WhatNowReason.IN_PROGRESS_NOW
         TaskRules.isOverdue(task, now) -> WhatNowReason.OVERDUE
         isImminentStart(task, now) -> WhatNowReason.IMMINENT_START
-        TaskRules.isMissedStart(task, now) -> WhatNowReason.MISSED_START
+        // isDueToday va ANTES que isMissedStart (c.373), en sintonía con
+        // [TaskRules.timeRank] donde isDueToday (rank 3) es rango explícito y
+        // isMissedStart cae a prioridad (0/1/2). Una tarea que falló su arranque
+        // (startAt pasado) PERO vence hoy se eleva por isDueToday — por encima de
+        // una URGENTE pura (rank 2)—; antes reason() evaluaba isMissedStart primero
+        // y mostraba "se pasó el arranque", ocultando que además vence hoy: el dato
+        // que justifica que vaya primera. Divergencia etiqueta ↔ ranking e IA
+        // deshonesta (misma clase que c.372). El label honesto es "vence hoy".
+        // El missed-start puro (sin plazo de hoy) sigue cayendo a MISSED_START más
+        // abajo, recuperando el arranque olvidado como en c.202.
         TaskRules.isDueToday(task, now, zone) -> WhatNowReason.DUE_TODAY
+        TaskRules.isMissedStart(task, now) -> WhatNowReason.MISSED_START
         // isScheduledLater va ANTES que la prioridad (c.372), en sintonía con
         // [TaskRules.timeRank] donde isScheduledLater (-1) se evalúa antes que
         // URGENT/HIGH: una tarea programada para empezar más tarde queda enterrada
