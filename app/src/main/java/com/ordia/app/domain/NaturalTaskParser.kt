@@ -974,8 +974,13 @@ object NaturalTaskParser {
      * título (cita bien fechada pero título mutilado). Simétrico de la familia "a las Nh"
      * (c.235/239/254) y de la normalización de marcadores aproximados.
      */
+    // [paraTimeIntroPattern]: admite el meridiem/parte del día ADYACENTE a la hora
+    // (`\s*`, no `\s+`): "para las 3pm"/"para las 9am" (sin espacio, forma dominante en
+    // móvil) antes dejaban "para las" como residuo en el título (cita bien fechada, título
+    // mutilado: contenido capturado degradado, P1). `\s*` equivale a timePatterns y a
+    // approximateTimePatterns (c.359): simetría.
     private val paraTimeIntroPattern =
-        Regex("""(?i)\bpara\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)[0-5]\d|\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS)|\s*(?:horas?|hs|h)\b)|la\s+una(?:(?::|h)[0-5]\d|\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS)))""")
+        Regex("""(?i)\bpara\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)[0-5]\d|\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS)|\s*(?:horas?|hs|h)\b)|la\s+una(?:(?::|h)[0-5]\d|\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS)))""")
     /**
      * Cantidad del recordatorio: dígitos o número escrito en español (simétrico con
      * la fecha relativa "en dos horas"). Antes solo se aceptaban dígitos, así que
