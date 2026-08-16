@@ -2204,4 +2204,113 @@ class AssistantEngineTest {
         assertTrue("nombra las capturas arrinconadas: ${answer.text}", answer.text.contains("1 captura"))
         assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("compromiso"))
     }
+
+    // --- c.417: "¿qué tengo hoy?" y "¿voy bien?" no deben callar las capturas de
+    // bandeja arrinconadas (3.er olvido). Paridad con "¿qué hago ahora?" (c.411) y
+    // el nudge del guardián (c.410): estas dos superficies ya nombraban vencidas,
+    // missed-start y compromisos como colas, PERO callaban las ideas arrinconadas
+    // — la misma mentir por omisión. Aquí la acción primaria NO es una tarea
+    // sugerida (es la agenda listada / el veredicto de carga), así la cola cuenta
+    // TODAS las capturas arrinconadas (no hay sugerida que excluir); y como
+    // isStaleInbox exige dueAt==null && startAt==null, ninguna aparece en la
+    // agenda listada ni suma a loadMinutes → no hay doble señalización.
+
+    @Test fun queTengoHoy_warnsStaleInboxCapturesAlongsideAgenda() {
+        // Agenda de hoy rellena + capturas arrinconadas: la cola debe avisar del
+        // 3.er olvido sin cambiar el foco de la agenda (no las lista — son
+        // "además", paralelo al tail de atrasadas/missed-start/compromisos).
+        val zone = java.time.ZoneId.of("America/Santo_Domingo")
+        val today = java.time.LocalDate.of(2026, 7, 29)
+        val now = com.ordia.app.domain.DateRules.toEpochMillis(today, java.time.LocalTime.NOON, zone)
+        val answer = AssistantEngine.answer(
+            "¿qué tengo hoy?",
+            listOf(
+                TaskEntity(id = 1, title = "Cita médica", dueAt = now),
+                staleCapture(2, "Idea vieja A", 21, zone, today),
+                staleCapture(3, "Idea vieja B", 14, zone, today)
+            ),
+            emptyList(), emptyList(),
+            now, zone
+        )
+        assertTrue("nombra la de hoy: ${answer.text}", answer.text.contains("Cita médica"))
+        assertTrue("no calla las capturas arrinconadas: ${answer.text}",
+            answer.text.contains("2 capturas"))
+        assertTrue("es cola de conteo, no nombra títulos: ${answer.text}",
+            !answer.text.contains("Idea vieja"))
+    }
+
+    @Test fun queTengoHoy_warnsSingleStaleInboxCapture() {
+        // Una sola captura arrinconada: la cola debe concordar en singular.
+        val zone = java.time.ZoneId.of("America/Santo_Domingo")
+        val today = java.time.LocalDate.of(2026, 7, 29)
+        val now = com.ordia.app.domain.DateRules.toEpochMillis(today, java.time.LocalTime.NOON, zone)
+        val answer = AssistantEngine.answer(
+            "¿qué tengo hoy?",
+            listOf(
+                TaskEntity(id = 1, title = "Cita médica", dueAt = now),
+                staleCapture(2, "Idea vieja", 21, zone, today)
+            ),
+            emptyList(), emptyList(),
+            now, zone
+        )
+        assertTrue("cola en singular: ${answer.text}", answer.text.contains("1 captura"))
+        assertTrue("verbo en singular: ${answer.text}", answer.text.contains("lleva"))
+    }
+
+    @Test fun queTengoHoy_doesNotInventStaleInboxWhenRecent() {
+        // Guard anti-falso-positivo (IA honesta): una captura reciente (< 7 días)
+        // NO es olvidada, así la cola no debe inventar "capturas".
+        val zone = java.time.ZoneId.of("America/Santo_Domingo")
+        val today = java.time.LocalDate.of(2026, 7, 29)
+        val now = com.ordia.app.domain.DateRules.toEpochMillis(today, java.time.LocalTime.NOON, zone)
+        val answer = AssistantEngine.answer(
+            "¿qué tengo hoy?",
+            listOf(
+                TaskEntity(id = 1, title = "Cita médica", dueAt = now),
+                staleCapture(2, "Idea reciente", 6, zone, today)
+            ),
+            emptyList(), emptyList(),
+            now, zone
+        )
+        assertTrue("no inventa capturas olvidadas: ${answer.text}",
+            !answer.text.contains("captura"))
+    }
+
+    @Test fun dayLoad_namesStaleInboxEvenWhenDayIsLight() {
+        // Día despejado (sin tareas con carga) pero con capturas arrinconadas: el
+        // veredicto no puede decir "despejado" sin recordar las ideas olvidadas
+        // (3.er olvido). Paridad con dayLoad_namesOverdueCommitmentEvenWhenDayIsLight
+        // (4.º olvido) y con la tarjeta de resumen (que ya expone los conteos).
+        val zone = dayZone
+        val today = dayToday
+        val now = dayAt(today, 9)
+        val answer = AssistantEngine.answer(
+            "¿voy bien hoy?",
+            listOf(
+                staleCapture(1, "Idea vieja A", 21, zone, today),
+                staleCapture(2, "Idea vieja B", 14, zone, today)
+            ),
+            emptyList(), emptyList(),
+            now, zone
+        )
+        assertTrue("dice que el día está despejado: ${answer.text}", answer.text.contains("despejado"))
+        assertTrue("no calla las capturas arrinconadas: ${answer.text}",
+            answer.text.contains("2 capturas"))
+    }
+
+    @Test fun dayLoad_doesNotInventStaleInboxWhenRecent() {
+        // Guard anti-falso-positivo: una captura reciente (< 7 días) no debe
+        // disparar la cola. Sin ideas arrinconadas, el veredicto calla el 3.er olvido.
+        val zone = dayZone
+        val today = dayToday
+        val now = dayAt(today, 9)
+        val answer = AssistantEngine.answer(
+            "¿voy bien hoy?",
+            listOf(staleCapture(1, "Idea reciente", 6, zone, today)),
+            emptyList(), emptyList(),
+            now, zone
+        )
+        assertTrue("no inventa capturas olvidadas: ${answer.text}",
+            !answer.text.contains("captura"))
+    }
 }

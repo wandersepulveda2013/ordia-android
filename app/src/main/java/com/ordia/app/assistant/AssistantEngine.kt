@@ -521,7 +521,14 @@ object AssistantEngine {
                 val minutes = TaskRules.plannedDuration(missed)
                 " Además, «${missed.title}» tenía su hueco y se pasó (~$minutes min)."
             } else ""
-            overdueTaskTail + missedTail + overdueCommitmentTail(overdueCommitments)
+            // c.417: 3.er olvido (capturas de bandeja arrinconadas, isStaleInbox).
+            // Paralelo a earlierOverdue/missed/compromisos: la agenda "hoy" no puede
+            // callar seis ideas arrinconadas mientras lista las de hoy. Como
+            // isStaleInbox exige dueAt==null && startAt==null, ninguna stale aparece
+            // en la agenda listada → cola de conteo sin doble señalización. Misma
+            // mentir por omisión que c.410/c.411 cerraron en el nudge y What Now.
+            overdueTaskTail + missedTail + staleInboxTail(active, now, zone) +
+                overdueCommitmentTail(overdueCommitments)
         } else ""
         val head = if (label == "hoy") "Hoy" else label.replaceFirstChar { it.uppercase() }
         return AssistantAnswer("$head: $titles.$tail", relatedTaskIds = ids)
@@ -698,6 +705,7 @@ object AssistantEngine {
         // es informativa: la acción primaria sigue siendo el veredicto/deferral.
         val tail = overdueCountTail(overdue) +
             missedStartTail(summary.missedStart) +
+            staleInboxTail(tasks, now, zone) +
             overdueCommitmentTail(overdueCommitments)
         return when (summary.dayLoad) {
             DayLoad.LIGHT ->
@@ -850,6 +858,25 @@ object AssistantEngine {
         zone: ZoneId
     ): String {
         val count = active.count { TaskRules.isStaleInbox(it, now, zone) && it.id != suggested.id }
+        if (count == 0) return ""
+        val capturas = if (count == 1) "1 captura" else "$count capturas"
+        val llevan = if (count == 1) "lleva" else "llevan"
+        return " Además, $capturas en la bandeja $llevan una semana sin agendar."
+    }
+
+    /**
+     * Variante sin exclusión para superficies sin tarea sugerida: la agenda "hoy"
+     * lista tareas con `dueAt`/`startAt` de hoy (ninguna es stale-inbox, que exige
+     * `dueAt==null && startAt==null`), y el veredicto de carga no nombra ninguna
+     * tarea — así no hay candidata que excluir ni doble señalización. Cuenta TODAS
+     * las capturas arrinconadas como cola informativa del 3.er olvido, paralela a
+     * [overdueCountTail]/[missedStartTail]/[overdueCommitmentTail]. Misma clase de
+     * "mentir por omisión" que c.410/c.411 cerraron: un día con agenda rellena o un
+     * veredicto "despejado" no puede callar seis ideas arrinconadas. Determinista y
+     * local (predicado único [TaskRules.isStaleInbox]).
+     */
+    private fun staleInboxTail(active: List<TaskEntity>, now: Long, zone: ZoneId): String {
+        val count = active.count { TaskRules.isStaleInbox(it, now, zone) }
         if (count == 0) return ""
         val capturas = if (count == 1) "1 captura" else "$count capturas"
         val llevan = if (count == 1) "lleva" else "llevan"
