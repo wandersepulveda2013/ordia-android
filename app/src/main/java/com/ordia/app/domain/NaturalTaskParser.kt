@@ -317,9 +317,19 @@ object NaturalTaskParser {
      * disparaba seguimiento. Se resuelve a hoy−N (honesto: vencida, visible). Acepta
      * los mismos números escritos que el patrón futuro (parseWrittenNumber). "hace un
      * rato"/"hace poco" → −3 h (heurística honesta de "acaba de pasar").
+     *
+     * Cuantificadores vagos "un par de"/"unos"/"unas" (sinónimo coloquial de 2, igual
+     * que el lado futuro [vagueQuantitativeRelativePattern], c.242): "hace un par de
+     * horas", "hace unos minutos", "hace unas semanas". Antes estas formas NO casaban:
+     * "hace unos minutos" caía a dueAt=null → tarea vencida olvidada (P1 evitar
+     * olvidos); y "hace un par de horas" robaba solo "hace un" (→ −3 h heurística "un
+     * rato") dejando "par de horas" como residuo en el título (fecha errónea + título
+     * sucio). Se listan ANTES de `un rato`/`$writtenNumberGroup` (longest-match) para
+     * que la regex capture la frase completa y no deje "par de"/"nos"/"nas" sueltos.
+     * [parseWrittenNumber] ya resuelve "un par de"/"unos"/"unas" → 2 (c.4638).
      */
     private val agoPattern = Regex(
-        """(?i)\bhace\s+(\d{1,3}|un\s+rato|poco|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|mes(?:es)?|a[nñ]os?)?\b"""
+        """(?i)\bhace\s+(un\s+par\s+de|unos|unas|\d{1,3}|un\s+rato|poco|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|mes(?:es)?|a[nñ]os?)?\b"""
     )
     /**
      * Fecha relativa PASADA fraccionaria + cuarto: "hace media hora y cuarto" (−45 min),
