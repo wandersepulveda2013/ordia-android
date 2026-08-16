@@ -9006,6 +9006,82 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "a eso de" + parte del día (c.381) ---
+    // Antes el patrón "a eso de las N" sólo admitía hora numérica/escrita, así estas
+    // formas cotidianas NO se normalizaban: la parte del día SÍ se resolvía a su canónica
+    // PERO "a eso de" sobrevivía como residuo en el título ("pasar recado a eso del",
+    // "reunión a eso") → cita bien fechada pero título mutilado (P1 captura/título limpio).
+    @Test fun aEsoDelMediodiaResuelve12hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("pasar recado a eso del mediodía", now, zone)
+        assertEquals("pasar recado", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeLaTardeResuelve15hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión a eso de la tarde", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeLaNocheResuelve21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión a eso de la noche", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeLaMadrugadaResuelve4hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión a eso de la madrugada", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeLaMananaResuelve9hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión a eso de la mañana", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeLaMedianocheResuelve0hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión a eso de la medianoche", now, zone)
+        assertEquals("reunión", result.title)
+        // now=12:00 → la medianoche de hoy ya pasó (12h en el pasado), así se rueda a la
+        // medianoche de mañana (past-safe, igual que "a la medianoche"). No se aserta fecha.
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(0, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDelMediodiaConDestinatarioLimpiaTitulo() {
+        // "ver a juan a eso del mediodía": el destinatario debe conservarse y "a eso del
+        // mediodía" limpiarse sin residuo.
+        val result = NaturalTaskParser.parse("ver a juan a eso del mediodía", now, zone)
+        assertEquals("ver a juan", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDelMediodiaMananaResuelveDiaSiguienteY12h() {
+        // "a eso del mediodía mañana": día relativo + parte del día aproximada.
+        val result = NaturalTaskParser.parse("almuerzo a eso del mediodía mañana", now, zone)
+        assertEquals("almuerzo", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDelMediodiaStandaloneNoDejaResiduoAEso() {
+        // Frase de agenda sin acción: el respaldo de título no debe resucitar "a eso del"
+        // crudo; se normaliza al conector canónico ("al mediodía"), igual que "al viernes"
+        // standalone → "el viernes" (c.379).
+        val result = NaturalTaskParser.parse("a eso del mediodía", now, zone)
+        assertEquals("al mediodía", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     @Test fun sobreLasTresDeLaTardeResuelve15hYLimpiaTitulo() {
         val result = NaturalTaskParser.parse("reunión sobre las 3 de la tarde", now, zone)
         assertEquals("reunión", result.title)

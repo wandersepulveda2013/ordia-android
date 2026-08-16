@@ -1039,6 +1039,32 @@ object NaturalTaskParser {
         Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+|pasad[oa]\s+(?:el\s+|la\s+)?|despu[eé]s\s+(?:del\s+|de\s+la\s+|de\s+))?medianoche(?:\s+($CLOCK_FRACTION_Y))?\b""")
     )
     /**
+     * "a eso de" + parte del día: "a eso de la tarde", "a eso del mediodía", "a eso de
+     * la noche", "a eso de la madrugada", "a eso de la mañana", "a eso de la medianoche",
+     * "a eso de tarde/noche/madrugada" (forma "de" suelta).
+     *
+     * El patrón "a eso de las N" de [approximateTimePatterns] sólo admite hora
+     * numérica/escrita ("a eso de las 5"/"a eso de la una"). Estas formas cotidianas NO
+     * se normalizaban: la parte del día SÍ se resolvía a su hora canónica (vía
+     * [standalonePartOfDayPattern]/[timePatterns] mediodía/medianoche) PERO "a eso de"
+     * sobrevivía como residuo en el título ("pasar recado a eso del", "reunión a eso")
+     * → cita bien fechada pero título mutilado (P1 captura/título limpio).
+     *
+     * Aquí se reescribe al conector canónico que cada patrón downstream espera
+     * ("a la tarde"/"al mediodía"/"de tarde"), reutilizando TODO el flujo existente
+     * (resolución + limpieza) sin nueva rama de resolución. Es adverbio temporal puro:
+     * "a eso de la tarde" no tiene uso de tema/cantidad, así que no necesita evidencia
+     * de reloj (igual que "a eso de las 5"). El grupo 1 captura la parte del día para
+     * emitir el conector correcto: "del mediodía"→"al mediodía" (contracción),
+     * "de la X"→"a la X", "de X"→"de X" (forma "de" suelta, canónica).
+     *
+     * Se procesa ANTES que [approximateTimePatterns] en [parse] para que "a eso de la
+     * tarde" no caiga al patrón "a eso de las N" (que no casa y dejaría residuo).
+     */
+    private val aEsoDePartOfDayRewriter =
+        Regex("""(?i)\ba\s+eso\s+(del\s+mediod[ií]a|de\s+la\s+medianoche|de\s+la\s+(?:ma[nñ]ana|tarde|noche|madrugada)|de\s+(?:tarde|noche|madrugada))\b""")
+
+    /**
      * Marcadores de hora aproximada ("a eso de", "hacia", "cerca de", "alrededor de",
      * "sobre") que se normalizan a la forma canónica "a las"/"a la" reutilizando el
      * flujo de [timePatterns]. Véase el bloque de normalización en [parse].
@@ -1050,7 +1076,9 @@ object NaturalTaskParser {
      * "informe sobre el cliente") ni cuentas ("sobre las 3 cajas"): "sobre"/"hacia"/
      * "cerca"/"alrededor" solo se normalizan cuando lo que sigue es inequívocamente
      * una hora. "a eso de" ya porta "de las"/"de la", así que su lookahead valida la
-     * hora; es un adverbio temporal puro, sin uso de tema.
+     * hora; es un adverbio temporal puro, sin uso de tema. La forma "a eso de" + parte
+     * del día ("a eso de la tarde"/"a eso del mediodía") la trata
+     * [aEsoDePartOfDayRewriter], que emite el conector canónico correcto.
      */
     private val approximateTimePatterns = listOf(
         // "a eso de" es un adverbio temporal puro (sin uso de tema/cantidad), así que
@@ -1702,6 +1730,24 @@ object NaturalTaskParser {
         // del usuario. "sobre" es ambiguo (preposición de tema: "sobre las ventas"), así
         // solo se normaliza con hora + evidencia de reloj; el resto de marcadores son
         // inequívocamente temporales con un número.
+        // "a eso de" + parte del día ("a eso de la tarde"/"a eso del mediodía"/"a eso de
+        // la noche"/"a eso de la madrugada"/"a eso de la mañana"/"a eso de la medianoche"/
+        // "a eso de tarde"): se reescribe al conector canónico ("a la tarde"/"al mediodía"/
+        // "de tarde") ANTES del fold de [approximateTimePatterns] para que reutilice TODO
+        // el flujo de parte-del-día existente (resolución + limpieza) sin dejar "a eso de"
+        // como residuo en el título. Antes estas formas cotidianas NO se normalizaban: la
+        // parte del día sí se resolvía pero "a eso de" sobrevivía ("pasar recado a eso del",
+        // "reunión a eso") → cita bien fechada pero título mutilado (P1). Véase
+        // [aEsoDePartOfDayRewriter].
+        working = aEsoDePartOfDayRewriter.replace(working) { m ->
+            val part = m.groupValues[1]
+            when {
+                part.startsWith("del mediod") -> "al mediodía"
+                part.startsWith("de la ") -> "a la " + part.substring(6)
+                else -> part
+            }
+        }
+
         working = approximateTimePatterns.fold(working) { acc, p -> p.replace(acc, "a ") }
 
         // Introductor de hora directo "para las/la" → "a las/la" (simétrico de los marcadores
@@ -3493,6 +3539,14 @@ object NaturalTaskParser {
             .replace(deAquiConnectorRewriter, "el")
             .replace(deAquiToRewriter, " ")
             .replace(alWeekdayRewriter) { m -> "el${m.groupValues[1]}" }
+            .replace(aEsoDePartOfDayRewriter) { m ->
+                val part = m.groupValues[1]
+                when {
+                    part.startsWith("del mediod") -> "al mediodía"
+                    part.startsWith("de la ") -> "a la " + part.substring(6)
+                    else -> part
+                }
+            }
             .replace(Regex("""\s+"""), " ").trim(' ', ',', '.', '-')
 
         return ParsedTaskInput(
