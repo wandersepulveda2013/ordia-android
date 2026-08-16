@@ -2339,6 +2339,11 @@ object NaturalTaskParser {
             // futura con ese día (avanza de mes si ya pasó o si el día no existe).
             recurrence.frequency == RecurrenceFrequency.MONTHLY && recurrence.monthlyDayOfMonth != null ->
                 nextMonthlyDate(base.toLocalDate(), recurrence.monthlyDayOfMonth)
+            // c.315: mensual con VARIOS días ("el 1 y 15 de cada mes"): 1ª ocurrencia
+            // futura = el menor día de la lista estrictamente posterior a hoy, o el
+            // menor día del mes siguiente si ninguno cabe este mes (sin omitir el 2º).
+            recurrence.frequency == RecurrenceFrequency.MONTHLY && recurrence.monthlyDays != null ->
+                nextMonthlyDateFromList(base.toLocalDate(), recurrence.monthlyDays)
             // Recurrencias de intervalo (diaria, semanal/quincenal/mensual/anual sin día
             // explícito): se anclan a la fecha de captura. Antes quedaban con dueAt=null y
             // la tarea recurrente era invisible (sin recordatorio, sin aparición en What
@@ -2961,6 +2966,8 @@ object NaturalTaskParser {
             // `days` (lista) y el resto queda vacío (día del mes puro: monthlyDayOfMonth
             // se ancla vía dueAt).
             recurrenceDays = when {
+                recurrence.monthlyDays != null ->
+                    "d:" + recurrence.monthlyDays.joinToString(",")
                 recurrence.monthlyOrdinalWeekday != null ->
                     recurrence.monthlyOrdinalWeekday!!.let { (ord, wd) -> "$ord:$wd" }
                 recurrence.monthlyLastDay -> RecurrenceEngine.LAST_DAY_OF_MONTH
@@ -3005,7 +3012,14 @@ object NaturalTaskParser {
          *  dosis a la superficie venciendo ahora —honesto sobre lo que la app SÍ puede
          *  (un aviso ahora) sin fingir una repetición horaria que no existe. Simétrico de
          *  "ahora"/"lo antes posible" → now. Sólo aplica cuando no hay otra fecha/hora. */
-        val immediateDueAt: Long? = null
+        val immediateDueAt: Long? = null,
+        /** Para recurrencia mensual anclada a una LISTA de días del mes ("el 1 y 15 de
+         *  cada mes", c.315): días 1..31 únicos, ordenados. Se emite como
+         *  `recurrenceDays = "d:N1,N2"` para que `RecurrenceEngine` dispare una
+         *  ocurrencia por cada día de la lista dentro del ciclo (quincena/nómina).
+         *  El 1er vencimiento lo fija el día más cercano al hoy; los siguientes los
+         *  genera el motor alternando entre días. */
+        val monthlyDays: List<Int>? = null
     )
 
     /** Captura normalizada de un anclaje mensual ORDINAL de weekday ("el primer lunes del
@@ -3251,6 +3265,31 @@ object NaturalTaskParser {
         // ensuciando el texto de una rutina financiera real. c.306: el grupo opcional
         // inicial ahora admite "cada" además de "el/los" para que el rango capturado
         // incluya el prefijo y el título quede limpio.
+        //
+        // c.315: VARIOS días del mes ("el 1 y 15 de cada mes", "cobro los días 15 y
+        // 30 de cada mes") — quincena/nómina/cobro LATAM. Antes el parser sólo anclaba
+        // el 1er día (monthlyDayPattern casaba "el 1") y dejaba el 2º ("y 15") como
+        // fecha suelta descartada, generando residuo " y" pegado al título ("pagar y"):
+        // un día de pago real nacía olvidado (P1, pérdida de datos). Ahora se capturan
+        // AMBOS días, se codifican en `recurrenceDays = "d:N1,N2"` (c.315) y el 1er
+        // vencimiento aterriza en el día más cercano al hoy. El patrón va ANTES del de
+        // un solo día para que "el 1 y 15" no se reduzca a "el 1". Admite "día/días"
+        // opcional y "de cada mes" / "del mes"; sólo 2 días (la forma cotidiana); >2
+        // caen al de un solo día (anclaje al 1º) sin residuo, para no sobre-ingeniar.
+        val monthlyDualDayPattern =
+            Regex("""(?i)\b(?:cada|el|los)?\s*(?:d[ií]as?\s+)?(\d{1,2})\s+(?:y\s+|al\s+)?(\d{1,2})\s+(?:de|del)\s+(?:cada\s+)?mes(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))""")
+        monthlyDualDayPattern.find(working)?.let { match ->
+            val d1 = match.groupValues[1].toIntOrNull()
+            val d2 = match.groupValues[2].toIntOrNull()
+            if (d1 != null && d2 != null && d1 in 1..31 && d2 in 1..31 && d1 != d2) {
+                val days = listOf(d1, d2).distinct().sorted()
+                phrases += match.range
+                return RecurrenceResult(
+                    RecurrenceFrequency.MONTHLY, 1, emptyList(), phrases,
+                    monthlyDays = days
+                )
+            }
+        }
         val monthlyDayPattern =
             Regex("""(?i)\b(?:cada|el|los)?\s*(?:d[ií]a\s+)?(\d{1,2})\s+(?:de|del)\s+(?:cada\s+)?mes(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))""")
         monthlyDayPattern.find(working)?.let { match ->
@@ -3857,6 +3896,26 @@ object NaturalTaskParser {
         }
         // Reserva: día válido en algún mes, nunca debe llegarse aquí (day ≤ 31).
         return from.withDayOfMonth(minOf(day, from.month.length(from.isLeapYear)))
+    }
+
+    /**
+     * c.315: 1ª ocurrencia futura de una recurrencia mensual con varios días
+     * ("el 1 y 15 de cada mes"). Devuelve el menor día de [days] estrictamente
+     * posterior a `from.dayOfMonth` dentro del mismo mes (p. ej. hoy=29-jul con
+     * [15,30] → 30-jul); si ningún día cabe este mes, el menor día del mes
+     * siguiente que exista (sin omitir ciclos). Simétrico a [nextMonthlyDate].
+     */
+    private fun nextMonthlyDateFromList(from: LocalDate, days: List<Int>): LocalDate {
+        val sameMonth = days.firstOrNull { it > from.dayOfMonth && it <= from.month.length(from.isLeapYear) }
+        if (sameMonth != null) return from.withDayOfMonth(sameMonth)
+        val target = days.min()
+        var candidate = from.withDayOfMonth(1).plusMonths(1)
+        repeat(24) {
+            val dim = candidate.month.length(candidate.isLeapYear)
+            if (target <= dim) return candidate.withDayOfMonth(target)
+            candidate = candidate.plusMonths(1)
+        }
+        return from.withDayOfMonth(minOf(target, from.month.length(from.isLeapYear)))
     }
 
     private fun String.toDayOfWeek(): DayOfWeek = weekdays[this.lowercase()] ?: DayOfWeek.MONDAY

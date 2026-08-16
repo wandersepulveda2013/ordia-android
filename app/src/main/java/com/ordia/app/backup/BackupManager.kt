@@ -451,10 +451,12 @@ private fun validateRelationships(data: RestoreData) {
             }
         } else if (task.recurrence == RecurrenceFrequency.MONTHLY) {
             // MONTHLY admite `recurrenceDays` vacío (anclaje al día del mes), la
-            // codificación ordinal "ord:weekday" ("primer lunes de cada mes" → "1:1") o
-            // el sentinel [RecurrenceEngine.LAST_DAY_OF_MONTH] ("cada fin de mes" → EOM).
+            // codificación ordinal "ord:weekday" ("primer lunes de cada mes" → "1:1"),
+            // el sentinel [RecurrenceEngine.LAST_DAY_OF_MONTH] ("cada fin de mes" → EOM)
+            // o la lista de días "d:N1,N2" ("el 1 y 15 de cada mes" → "d:1,15", c.315).
             require(task.recurrenceDays.isBlank() ||
                 RecurrenceEngine.isLastDayOfMonthEncoding(task.recurrenceDays) ||
+                RecurrenceEngine.isMonthlyDayListEncoding(task.recurrenceDays) ||
                 RecurrenceEngine.parseOrdinalWeekday(task.recurrenceDays) != null) {
                 "Una tarea mensual contiene días de recurrencia inválidos."
             }

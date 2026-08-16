@@ -811,6 +811,54 @@ class BackupManagerTest {
     }
 
     @Test
+    fun restoreAceptaTareaMensualConListaDeDiasQuincenal() = runBlocking {
+        // c.315: "el 1 y 15 de cada mes" codifica `recurrence=MONTHLY,
+        // recurrenceDays="d:1,15"`. La validación de restore debe ACEPTAR esta
+        // codificación (simétrica a "1:1" c.215 y "EOM" c.257); sin el fix caía a
+        // "días de recurrencia inesperados" → backup IRRESTAURABLE → el usuario
+        // perdía la quincena al restaurar (pérdida de datos silenciosa, P1).
+        val quincenal = sampleData().copy(
+            tasks = listOf(
+                TaskEntity(
+                    id = 2, title = "Renta el 1 y 15", projectId = 1,
+                    recurrence = RecurrenceFrequency.MONTHLY,
+                    recurrenceInterval = 1,
+                    recurrenceDays = "d:1,15",
+                    dueAt = now + 86_400_000L,
+                    createdAt = 1000L, updatedAt = 1000L
+                )
+            )
+        )
+        val origin = newManager(FakeBackupStore(quincenal))
+        val backup = origin.exportJson()
+        val result = newManager(FakeBackupStore(otherData())).importBackup(backup)
+        assertTrue("Una tarea mensual quincenal ('d:1,15') DEBE ser restaurable", result.success)
+    }
+
+    @Test
+    fun restoreRechazaTareaMensualConListaDeDiasCorrupta() = runBlocking {
+        // c.315: la codificación "d:N1,N2" admite días 1..31 únicos. Una lista con
+        // día fuera de rango ("d:1,99") debe RECHAZARSE al restaurar: si se
+        // aceptara, el motor no hallaría ocurrencia y la recurrencia derivaría.
+        val corrupted = sampleData().copy(
+            tasks = listOf(
+                TaskEntity(
+                    id = 2, title = "Roto", projectId = 1,
+                    recurrence = RecurrenceFrequency.MONTHLY,
+                    recurrenceInterval = 1,
+                    recurrenceDays = "d:1,99",
+                    dueAt = now + 86_400_000L,
+                    createdAt = 1000L, updatedAt = 1000L
+                )
+            )
+        )
+        val origin = newManager(FakeBackupStore(corrupted))
+        val backup = origin.exportJson()
+        val result = newManager(FakeBackupStore(otherData())).importBackup(backup)
+        assertFalse("Una tarea mensual con lista de días corrupta NO debe ser restaurable", result.success)
+    }
+
+    @Test
     fun restoreAceptaSesionAntiguaConActualMinutesCero() = runBlocking {
         // c.219: la migración 5→6 añadió `actualMinutes` con `DEFAULT 0` (sin
         // backfill). Las sesiones de enfoque COMPLETADAS que ya existían

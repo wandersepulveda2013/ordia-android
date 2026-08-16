@@ -118,6 +118,8 @@ object RecurrenceEngine {
         val ordinal = parseOrdinalWeekday(days)
         if (ordinal != null) return nextMonthlyOrdinal(base, interval, ordinal.first, ordinal.second)
         if (isLastDayOfMonthEncoding(days)) return nextMonthlyLastDay(base, interval)
+        // c.315: lista de días del mes ("d:1,15") — quincena/nómina con varios días por ciclo.
+        parseMonthlyDayList(days)?.let { return nextMonthlyDayList(base, interval, it) }
         val day = base.dayOfMonth
         var ym = YearMonth.from(base).plusMonths(interval)
         repeat(24) {
@@ -159,6 +161,78 @@ object RecurrenceEngine {
         if (ord !in -1..4 || ord == 0) return null
         if (wd !in 1..7) return null
         return ord to wd
+    }
+
+    /**
+     * Prefijo en `recurrenceDays` que codifica una recurrencia mensual anclada a una
+     * LISTA de días del mes (`"d:N1,N2"`, p. ej. `"d:1,15"` = días 1 y 15 de cada mes,
+     * c.315). A diferencia del anclaje por día del mes puro (vacío), que dispara UNA
+     * ocurrencia por ciclo, éste dispara una ocurrencia por CADA día de la lista
+     * dentro del mes (quincena/nómina/cobro: el 1 y el 15). Simétrico a los ordinales
+     * `"ord:wd"` (c.216) y al sentinel `"EOM"` (c.257): se reutiliza `recurrenceDays`
+     * (String) para un nuevo anclaje sin tocar Room. Antes el 2º día se perdía
+     * silenciosamente (el parser sólo anclaba el 1º): un día de pago real nacía
+     * olvidado (P1, pérdida de datos).
+     */
+    private const val MONTHLY_DAY_LIST_PREFIX = "d"
+
+    /**
+     * ¿Codifica [value] una lista mensual de días (`"d:N1,N2,…"`, c.315)?
+     * Devuelve `true` sólo si el prefijo y la lista son válidos (días 1..31 únicos,
+     * ≥1 elemento). Lo usa la validación de restore de [BackupManager] para aceptar
+     * esta codificación (simétrico a `isLastDayOfMonthEncoding` y `parseOrdinalWeekday`).
+     */
+    fun isMonthlyDayListEncoding(value: String): Boolean = parseMonthlyDayList(value) != null
+
+    /**
+     * Decodifica una lista mensual de días (`"d:N1,N2"`, c.315) a `List<Int>` ordenada
+     * ascendente y sin duplicados, o `null` si el formato o los días son inválidos
+     * (días fuera de 1..31, lista vacía, prefijo ausente). Compartido por el motor
+     * (`nextMonthlyDayList`) y la validación de restore.
+     */
+    fun parseMonthlyDayList(value: String): List<Int>? {
+        val trimmed = value.trim()
+        if (!trimmed.startsWith("$MONTHLY_DAY_LIST_PREFIX:")) return null
+        val body = trimmed.substring("$MONTHLY_DAY_LIST_PREFIX:".length).trim()
+        if (body.isEmpty()) return null
+        val tokens = body.split(',')
+        // Strict: si algún token no es entero o cae fuera de 1..31, la codificación
+        // entera es inválida (null) — así el restore RECHAZA "d:1,99" en vez de
+        // aceptarla silenciosamente como [1] y dejar la recurrencia derivando.
+        val days = tokens.mapNotNull { token ->
+            val n = token.trim().toIntOrNull()
+            if (n != null && n in 1..31) n else null
+        }
+        if (days.size != tokens.size) return null
+        return days.distinct().sorted().takeIf { it.isNotEmpty() }
+    }
+
+    /**
+     * Avanza una recurrencia mensual con varios días del mes (`days` = lista
+     * `"d:N1,N2"`, c.315). La próxima ocurrencia es el MENOR día de la lista que sea
+     * ESTRICTAMENTE posterior a `base.dayOfMonth` DENTRO del mismo mes (p. ej. tras el
+     * 1 → 15 del mismo mes). Si ningún día de la lista cabe en el mes restante (o no
+     * existe en el mes por ser corto, p. ej. 30 en febrero), avanza `interval` meses y
+     * aterriza en el menor día de la lista de ese mes objetivo (saltando meses cortos,
+     * igual que el anclaje por día del mes puro, sin clampar). Conserva hora y zona de
+     * [base].
+     */
+    private fun nextMonthlyDayList(base: ZonedDateTime, interval: Long, days: List<Int>): ZonedDateTime {
+        val sameMonthNext = days.firstOrNull { it > base.dayOfMonth && it <= YearMonth.from(base).lengthOfMonth() }
+        if (sameMonthNext != null) {
+            return base.withDayOfMonth(sameMonthNext)
+        }
+        // No cabe otro día este mes (o no existe en mes corto): avanzar al menor día
+        // de la lista en el mes objetivo, saltando meses donde el menor día no exista.
+        val target = days.min()
+        var ym = YearMonth.from(base).plusMonths(interval.coerceAtLeast(1))
+        repeat(24) {
+            if (target <= ym.lengthOfMonth()) {
+                return base.withYear(ym.year).withMonth(ym.monthValue).withDayOfMonth(target)
+            }
+            ym = ym.plusMonths(1)
+        }
+        return base.plusMonths(interval.coerceAtLeast(1))
     }
 
     /**

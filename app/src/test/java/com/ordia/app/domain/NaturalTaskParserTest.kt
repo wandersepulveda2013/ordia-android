@@ -9337,4 +9337,36 @@ class NaturalTaskParserTest {
         assertEquals("reunión", result.title)
         assertNotNull(result.dueAt)
     }
+
+    // "el 1 y 15 de cada mes" / "cobro los días 15 y 30 de cada mes": recurrencia
+    // mensual con DOS días del mes (quincena/nómina/cobro, LATAM). Antes el parser
+    // sólo anclaba el 1er día, perdía el 2º silenciosamente y dejaba " y" como residuo
+    // en el título ("pagar y") — un día de pago real nacía olvidado (P1). Ahora ambos
+    // días se codifican en recurrenceDays="d:N1,N2" y el título queda limpio (c.315).
+    @Test fun dualDayMonthlyParsesBothDaysAndCleanTitle() {
+        val result = NaturalTaskParser.parse("renta el 1 y 15 de cada mes", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:1,15", result.recurrenceDays)
+        // hoy=29-jul-2026: la 1ª ocurrencia futura de {1,15} es 01-ago.
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dualDayMonthlyWithDiasWordAndLastOfMonth() {
+        // "cobro los días 15 y 30 de cada mes": hoy=29-jul → 1ª = 30-jul (2º día).
+        val result = NaturalTaskParser.parse("cobro los días 15 y 30 de cada mes", now, zone)
+        assertEquals("cobro", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:15,30", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dualDayMonthlyDoesNotBreakSingleDay() {
+        // Regresión: la forma de un solo día "el 15 de cada mes" sigue siendo MONTHLY
+        // anclado al día (recurrenceDays vacío), NO "d:15".
+        val result = NaturalTaskParser.parse("renta el 15 de cada mes", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("", result.recurrenceDays)
+    }
 }

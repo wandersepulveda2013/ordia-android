@@ -577,4 +577,54 @@ class RecurrenceEngineTest {
             .copy(id = 2, createdAt = completedAt)
         assertEquals(2L, RecurrenceEngine.spawnedOccurrenceToRevert(original, listOf(original, spawn), completedAt, zone))
     }
+
+    // "el 1 y 15 de cada mes", "cobro los días 15 y 30 de cada mes": recurrencia
+    // mensual con VARIOS días del mes. Codificación MONTHLY + recurrenceDays="d:N1,N2"
+    // (c.315, simétrico a los ordinales "ord:wd" c.216 y "EOM" c.257). Antes el 2º día
+    // se perdía silenciosamente (el parser sólo anclaba el 1º y dejaba el 2º como fecha
+    // suelta descartada + residuo " y" en el título): un día de cobro/nómina quincenal
+    // real nacía olvidado (P1: pérdida de datos). Ahora ambos días disparan ocurrencia.
+    @Test fun monthlyDayList_advancesToSecondDaySameMonth() {
+        // "renta el 1 y 15 de cada mes": 1ª cita = 01-sep. Al completarla, la próxima
+        // NO es 01-oct (perdería el 15), sino 15-sep (2º día del MISMO mes).
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 9, 1), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Renta el 1 y 15 de cada mes",
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceDays = "d:1,15"
+        )
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(next.dueAt, zone))
+        assertEquals("d:1,15", next.recurrenceDays)
+    }
+
+    @Test fun monthlyDayList_advancesToFirstDayNextMonth() {
+        // Tras el 15-sep (2º día), la próxima = 01-oct (1er día del mes siguiente).
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 9, 15), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Renta el 1 y 15 de cada mes",
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceDays = "d:1,15"
+        )
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 10, 1), DateRules.toLocalDate(next.dueAt!!, zone))
+    }
+
+    @Test fun monthlyDayList_skipsDayAbsentInShortMonth() {
+        // "los días 15 y 30 de cada mes": 30 no existe en febrero. Tras el 15-feb, la
+        // próxima NO es 30-feb (inexistente), sino 15-mar (simétrico al anclaje por día
+        // del mes que salta meses cortos). El motor debe avanzar, no clampar a 28-feb.
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 2, 15), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Cobro los días 15 y 30",
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceDays = "d:15,30"
+        )
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 3, 15), DateRules.toLocalDate(next.dueAt!!, zone))
+    }
 }
