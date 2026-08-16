@@ -132,6 +132,42 @@ object CommitmentEngine {
     // un falso negativo es una obligación olvidada (área "evitar olvidos" +
     // "detección de compromisos").
     private val userObligationSignal = Regex("""(?i)\btienes\s+que\b""")
+
+    // c.329: obligaciones PENDIENTES — la clase de compromiso más común en un
+    // seguimiento de chat donde el usuario reconoce algo que le quedó por hacer:
+    // "tengo pendiente enviar el informe", "me queda pendiente el pago",
+    // "me falta confirmar la hora", "tengo por revisar el contrato". Antes estas
+    // frases caían a MISSED: no son futuro ("haré"), ni presente+objeto ("lo
+    // hago"), ni "tengo que" — son un ESTADO de deuda abierta, una cuarta forma
+    // léxica de compromiso. Sin detección, el usuario anota mentalmente "tengo
+    // pendiente X" en un chat y Ordía no crea ningún draft → olvido real.
+    //
+    // Tres sub-patrones, todos exigentes para mantener precisión alta (un draft
+    // se descarta, pero un inbox inundado de falsos no ayuda):
+    //  (1) "pendiente(s)" precedido de construcción verbal de tener/quedar:
+    //      "tengo/tienes/tenemos pendiente", "me/te/le/nos/les queda(n)
+    //      pendiente", "quedo/queda pendiente". La palabra "pendiente" tras un
+    //      verbo de posesión/estado desambigua del sustantivo "pendiente"
+    //      (arete) — "el pendiente del collar" no casa (sin verbo previo).
+    //  (2) "tengo/tienes/tenemos por" + infinitivo de acción: giro peninsular
+    //      culto de obligación pendiente ("tengo por revisar", "tengo por
+    //      enviar"). El "por" + infinitivo es inequívoco.
+    //  (3) "me/te/le/nos/les falta(n)" + infinitivo de acción: "me falta
+    //      confirmar", "me falta enviar". Se restringe a una lista curada de
+    //      infinitivos de acción (como hace commitmentSignal con sus verbos) en
+    //      vez del sufijo -ar/-er/-ir, porque ese sufijo casa con sustantivos
+    //      comunes ("lugar", "azúcar", "hogar") → falsos positivos. La lista
+    //      cubre los verbos de gestión/seguimiento más cotidianos.
+    //
+    // La guarda de negación [hasUnnegatedCommitment] sigue aplicándose: "no
+    // tengo nada pendiente", "ya no me queda pendiente nada" se excluyen igual
+    // que "no tengo que" / "no me encargo". Nace como draft SELF_COMMITMENT
+    // PENDING revisable: un falso positivo se descarta, un falso negativo es
+    // una obligación olvidada (área "evitar olvidos" + "detección de
+    // compromisos").
+    private val pendingObligationSignal = Regex(
+        """(?i)\b(?:(?:tengo|tienes|tenemos)\s+pendientes?\b|(?:me|te|le|nos|les)\s+quedan?\s+pendientes?\b|qued[ao]\s+pendiente\b|(?:tengo|tienes|tenemos)\s+por\s+(?:enviar|revisar|llamar|mandar|pagar|firmar|responder|hacer|terminar|entregar|preparar|subir|dejar|pasar|arreglar|completar|agendar|programar|contactar|avisar|recordar|cobrar|facturar)\b|(?:me|te|le|nos|les)\s+faltan?\s+(?:enviar|confirmar|revisar|llamar|mandar|pagar|firmar|responder|hacer|terminar|entregar|preparar|subir|dejar|pasar|arreglar|completar|agendar|programar|contactar|avisar|recordar|cobrar|facturar)\b)\b"""
+    )
     // c.316: auto-promesas de seguimiento en presente de 1ª persona con objeto
     // "te" — "te aviso cuando llegue", "te confirmo mas tarde", "te aviso el
     // lunes". Continuación directa de c.305 (presente de 1ª persona + objeto):
@@ -218,6 +254,19 @@ object CommitmentEngine {
             !precedingNegation.containsMatchIn(prefix)
         }
 
+    // c.329: "no tengo nada pendiente" / "ya no me queda pendiente nada" son
+    // AUSENCIA de obligación — se excluyen igual que "no tengo que". La guarda
+    // reusa precedingNegation: el "no " queda inmediatamente antes del inicio
+    // del match ("tengo pendiente", "me queda pendiente"). Para "ya no me
+    // queda", el match empieza en "me" y el prefijo "no " (entre "ya " y "me")
+    // queda visible en la ventana de 3 chars → se excluye correctamente.
+    private fun hasUnnegatedPendingObligation(text: String): Boolean =
+        pendingObligationSignal.findAll(text).any { m ->
+            val start = m.range.first
+            val prefix = text.substring(maxOf(0, start - 3), start)
+            !precedingNegation.containsMatchIn(prefix)
+        }
+
     fun extract(
         messages: List<ChatMessage>,
         selfParticipant: String? = null,
@@ -246,7 +295,8 @@ object CommitmentEngine {
         // ("no olvides" = recuérdame, "no dejes que olvide" = recuérdame). (c.279)
         val isCommitment = hasUnnegatedCommitment(text)
         val isUserObligation = hasUnnegatedUserObligation(text)
-        if (!isRequest && !isMeeting && !isPurchase && !isReminder && !isCommitment && !isUserObligation) return null
+        val isPendingObligation = hasUnnegatedPendingObligation(text)
+        if (!isRequest && !isMeeting && !isPurchase && !isReminder && !isCommitment && !isUserObligation && !isPendingObligation) return null
 
         val sender = message.sender.orEmpty().trim().take(80)
         val owner = when {
@@ -257,6 +307,10 @@ object CommitmentEngine {
             // (como si la obligación fuese del otro) y el usuario lo descartaría
             // creyendo que no es suyo — cuando en realidad es suya. Se ancla a SELF.
             isUserObligation -> CommitmentOwner.SELF
+            // c.329: "tengo pendiente"/"me falta enviar" es siempre una obligación
+            // DEL USUARIO (él reconoce su propia deuda abierta), independientemente
+            // del remitente. Se ancla a SELF igual que isUserObligation.
+            isPendingObligation -> CommitmentOwner.SELF
             sender.isNotBlank() && self != null && sender.lowercase(Locale.ROOT) == self -> CommitmentOwner.SELF
             sender.isNotBlank() && self != null -> CommitmentOwner.OTHER
             sender.isNotBlank() -> CommitmentOwner.UNKNOWN

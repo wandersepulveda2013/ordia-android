@@ -1314,4 +1314,104 @@ class CommitmentEngineTest {
         assertTrue("\"no te aviso\" no debe generar draft (es negación)", result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF })
     }
 
+    // c.329: obligaciones PENDIENTES — "tengo pendiente enviar el informe",
+    // "me queda pendiente el pago", "me falta confirmar la hora", "tengo por
+    // revisar el contrato". Antes caían a MISSED (probe JVM pre-fix: 9/10
+    // MISSED). Estas frases reconocen una deuda abierta del usuario y deben
+    // generar draft SELF_COMMITMENT/SELF. Probe JVM post-fix: 9/9 DETECT.
+    @Test
+    fun detectsPendingObligationPhrases() {
+        val positives = listOf(
+            "tengo pendiente enviar el informe",
+            "tengo pendiente llamar al cliente",
+            "me queda pendiente el pago",
+            "me queda pendiente confirmar la hora",
+            "me falta enviar el reporte",
+            "me falta confirmar la hora",
+            "tengo por revisar el contrato",
+            "tengo por enviar el correo",
+            "quedo pendiente el pago del alquiler"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "pend-$text"
+            )
+            assertTrue("obligación pendiente DEBE detectarse: \"$text\"", result.isNotEmpty())
+            assertEquals("la deuda pendiente es DEL usuario: \"$text\"", CommitmentOwner.SELF, result[0].owner)
+            assertEquals("debe ser SELF_COMMITMENT: \"$text\"", CommitmentKind.SELF_COMMITMENT, result[0].kind)
+        }
+    }
+
+    // c.329: la obligación pendiente se ancla a SELF incluso cuando la dice un
+    // TERCERO (Ana le recuerda al usuario "tienes pendiente firmar el
+    // contrato"). Igual que isUserObligation ("tienes que"), la deuda es del
+    // usuario, no del remitente. Sin este anclaje el draft iría a OTHER y el
+    // usuario lo descartaría creyendo que no es suyo.
+    @Test
+    fun pendingObligationFromOtherParticipantAnchoredToSelf() {
+        val result = CommitmentEngine.extract(
+            listOf(ChatMessage("Ana", "tienes pendiente firmar el contrato")),
+            selfParticipant = "Yo",
+            scopeHash = "pend-other"
+        )
+        assertTrue("obligación pendiente dicha por tercero DEBE detectarse", result.isNotEmpty())
+        assertEquals("la deuda es DEL usuario aunque la diga Ana", CommitmentOwner.SELF, result[0].owner)
+    }
+
+    // c.329: "no tengo nada pendiente" / "ya no me queda pendiente nada" son
+    // AUSENCIA de obligación. La guarda de negación [hasUnnegatedPendingObligation]
+    // las excluye, igual que excluye "no tengo que" en hasUnnegatedCommitment
+    // (c.279). Probe JVM: 2/2 correctamente excluidas.
+    @Test
+    fun pendingObligationRespectsDirectNegation() {
+        val negatives = listOf(
+            "no tengo nada pendiente",
+            "ya no me queda pendiente nada"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "neg-pend-$text"
+            )
+            assertTrue("\"$text\" NO debe generar draft (es negación de obligación)", result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF })
+        }
+    }
+
+    // c.329: el sustantivo "pendiente" (arete) NO debe confundirse con la
+    // obligación. "el pendiente del collar" no lleva construcción verbal de
+    // tener/quedar antes, así que la señal no casa. Probe JVM: 1/1 excluido.
+    @Test
+    fun pendingNounEarringIsNotFlaggedAsObligation() {
+        val result = CommitmentEngine.extract(
+            listOf(ChatMessage("Yo", "el pendiente del collar")),
+            selfParticipant = "Yo",
+            scopeHash = "noun-pend"
+        )
+        assertTrue("\"el pendiente del collar\" no debe generar draft (es el sustantivo, no obligación)", result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF })
+    }
+
+    // c.329: "me falta azúcar" / "me falta un dólar" NO son obligaciones
+    // pendientes — son carencias materiales. La señal exige "me falta" +
+    // infinitivo de acción (lista curada), no sustantivo, para evitar estos
+    // falsos positivos. Sufijo -ar/-er/-ir habría casado con "lugar"/"azúcar".
+    @Test
+    fun meFaltaWithNounIsNotFlaggedAsObligation() {
+        val negatives = listOf(
+            "me falta azucar",
+            "me falta un dolar",
+            "me falta lugar"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "noun-falta-$text"
+            )
+            assertTrue("\"$text\" no debe generar draft (carencia material, no obligación)", result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF })
+        }
+    }
+
 }
