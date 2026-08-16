@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -18,10 +19,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -31,6 +36,7 @@ import com.ordia.app.R
 import com.ordia.app.ui.components.InfoBanner
 import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.updates.OrdiaUpdateController
+import com.ordia.app.updates.OrdiaUpdateManager
 import com.ordia.app.updates.OrdiaUpdateController.UpdateState
 import java.text.DateFormat
 import java.util.Date
@@ -41,6 +47,15 @@ fun UpdatesScreen(contentPadding: PaddingValues) {
     val context = LocalContext.current
     val state by OrdiaUpdateController.state.collectAsStateWithLifecycle()
     val lastCheck = remember(state) { OrdiaUpdateController.lastCheckAt(context) }
+
+    // Comprobar siempre al abrir la pantalla de actualizaciones, sin depender del
+    // ajuste de auto-update: así el usuario obtiene un diagnóstico fresco y claro
+    // (instalado vs remoto, disponible, al día o el motivo exacto del fallo).
+    LaunchedEffect(Unit) {
+        if (state is UpdateState.Idle || state is UpdateState.Failed) {
+            OrdiaUpdateController.checkNow(context)
+        }
+    }
 
     LazyColumn(
         Modifier.fillMaxWidth(),
@@ -90,6 +105,8 @@ fun UpdatesScreen(contentPadding: PaddingValues) {
 
 @Composable
 private fun InstalledCard(lastCheck: Long) {
+    val context = LocalContext.current
+    val canInstall = remember { context.packageManager.canRequestPackageInstalls() }
     Card {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -113,6 +130,30 @@ private fun InstalledCard(lastCheck: Long) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (!canInstall) {
+                HorizontalDivider()
+                Text(
+                    stringResource(R.string.update_install_permission_missing),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+                OutlinedButton(onClick = {
+                    runCatching {
+                        context.startActivity(
+                            Intent(
+                                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                Uri.parse("package:${context.packageName}")
+                            )
+                        )
+                    }
+                }) { Text(stringResource(R.string.update_install_permission_grant)) }
+            } else {
+                Text(
+                    stringResource(R.string.update_install_permission_ok),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -205,12 +246,25 @@ private fun ReadyCard(state: UpdateState.Ready) {
 @Composable
 private fun FailedCard(state: UpdateState.Failed) {
     val context = LocalContext.current
+    val signatureIssue = state.reason.contains("firma", ignoreCase = true)
     Card {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(stringResource(R.string.updates_failed), style = MaterialTheme.typography.titleMedium)
             Text(state.reason, style = MaterialTheme.typography.bodySmall)
-            OutlinedButton(onClick = { OrdiaUpdateController.retry(context) }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.updates_retry))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(onClick = { OrdiaUpdateController.retry(context) }) {
+                    Text(stringResource(R.string.updates_retry))
+                }
+                if (signatureIssue) {
+                    Button(onClick = {
+                        runCatching {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse(OrdiaUpdateManager.releasePageUrl))
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                    }) { Text(stringResource(R.string.update_download_manual)) }
+                }
             }
         }
     }
