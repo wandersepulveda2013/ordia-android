@@ -44,3 +44,4 @@ ordia-3.0-upgrade/
 
 # Auditoría: logs transitorios de builds de verificación
 logs-*.txt
+release-contract.json

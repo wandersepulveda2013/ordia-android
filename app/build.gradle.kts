@@ -7,6 +7,11 @@ plugins {
 
 val ciRunNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
 val ciRunAttempt = System.getenv("GITHUB_RUN_ATTEMPT")?.toIntOrNull()
+// Override explícito y autoritativo del versionCode: lo calcula el CI de forma
+// monótona (siempre > al último publicado) y lo comparte con el tag de release y
+// el manifiesto, de modo que build -> artifact -> sign -> publish usen EXACTAMENTE
+// el mismo versionCode (contrato canónico v3.0.<build>-code-<versionCode>).
+val explicitVersionCode = System.getenv("ORDIA_VERSION_CODE")?.toIntOrNull()?.takeIf { it > 0 }
 val stableKeyPath = System.getenv("ORDIA_KEYSTORE_PATH")
 val stableKeyPassword = System.getenv("ORDIA_KEYSTORE_PASSWORD")
 val stableKeyAlias = System.getenv("ORDIA_KEY_ALIAS")
@@ -26,7 +31,10 @@ android {
         applicationId = "com.ordia.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = if (ciRunNumber != null && ciRunAttempt != null) {
+        versionCode = if (explicitVersionCode != null) {
+            require(explicitVersionCode <= Int.MAX_VALUE) { "ORDIA_VERSION_CODE exceeds Android's Int limit" }
+            explicitVersionCode
+        } else if (ciRunNumber != null && ciRunAttempt != null) {
             require(ciRunNumber >= 0) { "GITHUB_RUN_NUMBER must be non-negative" }
             require(ciRunAttempt in 1..99) { "GITHUB_RUN_ATTEMPT must be between 1 and 99" }
             val candidate = 1_300_000_000L + (ciRunNumber.toLong() * 100L) + ciRunAttempt

@@ -92,6 +92,7 @@
     <string name="update_fail_no_checksum">La publicación no incluye el checksum exacto de %1$s.</string>
     <string name="update_fail_bad_checksum">El checksum publicado es ausente, ambiguo o inválido.</string>
     <string name="update_fail_github">No se pudo consultar GitHub Releases.</string>
+    <string name="update_fail_security">No pudimos verificar de forma segura esta actualización. La versión publicada no cumple el formato esperado.</string>
     <string name="update_fail_channel">El manifiesto anuncia el canal «%1$s», que no es el canal estable de Ordía.</string>
     <string name="update_download_failed">No se pudo completar la descarga verificada.</string>
     <string name="update_install_started">Ordía se está instalando. Confirma la solicitud de Android.</string>

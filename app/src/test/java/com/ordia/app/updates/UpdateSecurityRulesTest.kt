@@ -13,6 +13,103 @@ class UpdateSecurityRulesTest {
         assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v4.0.0-code-1000000101"))
     }
 
+    /**
+     * Contrato CI ↔ app: el tag que genera android-ci.yml DEBE ser aceptado por
+     * parseVersionCodeFromTag y devolver EXACTAMENTE el versionCode embebido en
+     * el APK y el manifiesto. Formato canónico: v3.0.<build>-code-<versionCode>.
+     */
+    @Test fun canonicalCiTag_isAcceptedAndReturnsItsVersionCode() {
+        // Tag real producido por el CI (build 449 → versionCode 1300044901).
+        assertEquals(1_300_044_901, UpdateSecurityRules.parseVersionCodeFromTag("v3.0.449-code-1300044901"))
+        assertEquals(1_300_050_000, UpdateSecurityRules.parseVersionCodeFromTag("v3.0.240-code-1300050000"))
+        // El versionCode del tag debe poder usarse para seleccionar la APK legacy.
+        val vc = 1_300_044_901
+        assertEquals("Ordia-3.0-code-$vc.apk", UpdateSecurityRules.expectedApkName(vc))
+        assertEquals(
+            "Ordia-3.0-code-$vc.apk",
+            UpdateSecurityRules.selectExpectedApk(listOf("Ordia-3.0-code-$vc.apk"), vc)
+        )
+    }
+
+    /** El tag inválido que PUBLICÓ el CI antes de la corrección debe ser RECHAZADO. */
+    @Test fun invalidBuildTag_isRejected() {
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.0-build.31948697776"))
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.0-build.42"))
+    }
+
+    @Test fun malformedTags_areRejected() {
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag(""))
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.1-code-"))
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.1-code-abc"))
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0-code-100"))
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.1-code-100-extra"))
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("prefix-v3.0.1-code-100"))
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.1-code-100/evil"))
+    }
+
+    @Test fun negativeZeroAndOverflowVersionCodes_areRejected() {
+        // versionCode debe ser estrictamente positivo.
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.1-code-0"))
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.1-code--5"))
+        // Overflow de Int (2_147_483_648 > Int.MAX_VALUE) → toIntOrNull da null.
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.1-code-2147483648"))
+    }
+
+    @Test fun tagCaseAndUnicode_areRejectedUnlessCanonical() {
+        // Sensible a mayúsculas: el patrón canónico es minúsculas.
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("V3.0.1-code-100"))
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.1-CODE-100"))
+        // Espacios alrededor se toleran (trim), pero internos no.
+        assertEquals(100, UpdateSecurityRules.parseVersionCodeFromTag("  v3.0.1-code-100  "))
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.1 -code-100"))
+        // Caracteres confusables Unicode (cirílico 'а') no coinciden con 'a' ASCII.
+        assertNull(UpdateSecurityRules.parseVersionCodeFromTag("v3.0.1-code-100\u0430"))
+    }
+
+    /**
+     * Test de contrato CI ↔ app: garantiza que una release publicada por el CI
+     * (tag + versionCode + nombre de APK + nombre de manifiesto + URL) satisface
+     * TODAS las reglas de seguridad de UpdateSecurityRules a la vez. Si este test
+     * pasa, es imposible que el CI publique algo que Ordía rechace por formato.
+     */
+    @Test fun releaseContract_isFullyAcceptedBySecurityRules() {
+        val flavor = "advanced"
+        val versionCode = 1_300_050_000
+        val buildNumber = 240
+        val tag = "v3.0.$buildNumber-code-$versionCode"
+
+        // 1) Tag aceptado y devuelve el versionCode exacto.
+        val parsedCode = UpdateSecurityRules.parseVersionCodeFromTag(tag)
+        assertEquals(versionCode, parsedCode)
+
+        // 2) versionCode del tag > versionCode instalado (actualización real).
+        assertTrue(UpdateSecurityRules.isNewerCode(parsedCode!!, 1_300_044_901))
+
+        // 3) Nombre canónico de APK por flavor (flujo manifiesto, app nueva).
+        val apkName = UpdateSecurityRules.expectedApkName(flavor)
+        assertEquals("Ordia-3.0-$flavor-signed.apk", apkName)
+
+        // 4) Nombre canónico de manifiesto.
+        val manifestName = UpdateSecurityRules.expectedManifestName(flavor)
+        assertEquals("update-manifest-$flavor.json", manifestName)
+
+        // 5) URL de la APK (estable latest) es confiable y su filename coincide.
+        val apkUrl = "https://github.com/wandersepulveda2013/ordia-android/releases/latest/download/$apkName"
+        assertTrue(UpdateSecurityRules.isTrustedApkUrl(apkUrl, apkName))
+
+        // 6) Asset legacy por versionCode (bootstrap de la app ya instalada).
+        val legacyApk = UpdateSecurityRules.expectedApkName(versionCode)
+        assertEquals("Ordia-3.0-code-$versionCode.apk", legacyApk)
+        assertEquals(
+            legacyApk,
+            UpdateSecurityRules.selectExpectedApk(listOf(legacyApk), versionCode)
+        )
+
+        // 7) URL inmutable de la release también es confiable.
+        val immutableUrl = "https://github.com/wandersepulveda2013/ordia-android/releases/download/$tag/$apkName"
+        assertTrue(UpdateSecurityRules.isTrustedReleaseAssetUrl(immutableUrl, apkName))
+    }
+
     @Test fun assetSelection_requiresCodeSpecificExactName() {
         assertNull(UpdateSecurityRules.selectExpectedApk(listOf("Ordia-3.0.apk"), 20001))
         assertNull(UpdateSecurityRules.selectExpectedApk(listOf("Ordia-3.0-code-20001.apk", "ordia-3.0-code-20001.APK"), 20001))

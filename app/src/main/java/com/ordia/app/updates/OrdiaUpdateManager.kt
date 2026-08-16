@@ -154,7 +154,20 @@ object OrdiaUpdateManager {
                 )
             )
         }.getOrElse { error ->
-            CheckResult.Failed(error.message?.take(180) ?: context.getString(R.string.update_fail_github))
+            // Código interno seguro (no se muestra tal cual al usuario): registra la
+            // causa sin exponer detalles sensibles y muestra un mensaje genérico cuando
+            // el rechazo es por validación de seguridad (origen/APK no confiables, etc.).
+            val message = error.message.orEmpty()
+            val securityFailure = message.contains("confiable", ignoreCase = true) ||
+                message.contains("canal oficial", ignoreCase = true) ||
+                message.contains("formato", ignoreCase = true) ||
+                message.contains("no es", ignoreCase = true)
+            val reason = if (securityFailure) {
+                context.getString(R.string.update_fail_security)
+            } else {
+                message.take(180).ifBlank { context.getString(R.string.update_fail_github) }
+            }
+            CheckResult.Failed(reason)
         }
     }
 
