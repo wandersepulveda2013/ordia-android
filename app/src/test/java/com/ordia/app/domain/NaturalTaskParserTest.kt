@@ -4866,6 +4866,50 @@ class NaturalTaskParserTest {
         assertEquals("6,7", result.recurrenceDays)
     }
 
+    // "final de semana" (singular) es la variante regional latinoamericana de "fin de
+    // semana" (común en Colombia/Venezuela/Centroamérica). Antes NO se reconocía: la
+    // tarea quedaba SIN fecha (dueAt=null) con "final de semana" pegado al título →
+    // tarea olvidada, invisible en What Now/búsqueda. P1: pérdida de fecha para una
+    // frase de captura cotidiana en el dialecto de la base de usuarios. Ahora resuelve
+    // idéntico a "fin de semana" (próximo sábado, hora canónica 09:00) y limpia el título.
+    // Simetría: cada variante de "este/el/próximo/suelto" debe comportarse igual que su
+    // equivalente con "fin".
+    @Test fun finalDeSemanaSueltoProgramaProximoSabadoYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pintar la valla final de semana", now, zone)
+        assertEquals("Pintar la valla", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun esteFinalDeSemanaProgramaProximoSabadoYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Comprar pan este final de semana", now, zone)
+        assertEquals("Comprar pan", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun elFinalDeSemanaRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Fiesta el final de semana a las 20:00", now, zone)
+        assertEquals("Fiesta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun proximoFinalDeSemanaProgramaProximoSabadoYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Viaje próximo final de semana", now, zone)
+        assertEquals("Viaje", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "cada final de semana" (variante regional + "cada") es hábito semanal sáb+dom,
+    // simétrico a "cada fin de semana". Antes caía a dueAt=null/NONE → tarea repetitiva
+    // olvidada. P1 en el dialecto regional.
+    @Test fun cadaFinalDeSemanaEsHabitoSemanalFinDeSemana() {
+        val result = NaturalTaskParser.parse("Estudiar cada final de semana", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
     // --- Fechas relativas en semanas/meses ---
     // "en una semana"/"en un mes" son de las formas más comunes en español y antes
     // quedaban SIN fecha (dueAt=null) → la tarea se olvidaba (sin recordatorio). now=2026-07-29.

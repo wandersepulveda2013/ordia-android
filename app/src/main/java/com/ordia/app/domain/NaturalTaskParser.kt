@@ -71,16 +71,21 @@ object NaturalTaskParser {
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
     private val weekdayPattern = Regex("""(?i)\b(?:el\s+|del\s+|de\s+|este\s+)?(?:pr[oó]ximo\s+|pr[oó]xima\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+que\s+viene|\s+pr[oó]ximos?|\s+pr[oó]ximas?|\s+siguientes?|\s+posterior(?:es)?)?\b""")
     /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado.
-     *  Acepta también "finales de semana" (plural análogo a "finales de mes"): señala un
-     *  fin de semana concreto, no un hábito. Acepta el apócope coloquial "finde"
-     *  ("este finde"/"el finde"/"próximo finde"/"finde" suelto) como fecha única, NO como
-     *  recurrencia: el singular señala UN fin de semana concreto, mientras que el
-     *  determinante plural/cada ("los findes"/"cada finde") es hábito y se resuelve
-     *  aparte en parseRecurrence. Antes "este finde" caía por error a la recurrencia
-     *  semanal (WEEKLY sábado+domingo para siempre) cuando el usuario pedía una sola
-     *  fecha. OJO: "fines de semana" (f-i-n-e-s) y "los findes"/"cada finde" son
-     *  recurrencia semanal y se resuelven aparte en parseRecurrence, no aquí. */
-    private val weekendPattern = Regex("""(?i)\b(?<!cada\s)(?<!los\s)(?:a\s+)?(?:este\s+|el\s+|pr[oó]ximo\s+)?(?:fin|finales)\s+de\s+semana\b|\b(?:a\s+)?(?:este\s+|el\s+|pr[oó]ximo\s+)?(?<!cada\s)(?<!los\s)finde\b""")
+     *  Acepta también "finales de semana" (plural análogo a "finales de mes") y la
+     *  variante regional latinoamericana "final de semana" (singular, común en
+     *  Colombia/Venezuela/Centroamérica, equivalente exacto de "fin de semana"):
+     *  señala un fin de semana concreto, no un hábito. Acepta el apócope coloquial
+     *  "finde" ("este finde"/"el finde"/"próximo finde"/"finde" suelto) como fecha
+     *  única, NO como recurrencia: el singular señala UN fin de semana concreto,
+     *  mientras que el determinante plural/cada ("los findes"/"cada finde") es hábito
+     *  y se resuelve aparte en parseRecurrence. Antes "este finde" caía por error a la
+     *  recurrencia semanal (WEEKLY sábado+domingo para siempre) cuando el usuario pedía
+     *  una sola fecha. OJO: "fines de semana" (f-i-n-e-s) y "los findes"/"cada finde"
+     *  son recurrencia semanal y se resuelven aparte en parseRecurrence, no aquí.
+     *  "final de semana" se añade aquí (no en parseRecurrence) porque es sinónimo de
+     *  UN fin de semana concreto, igual que "fin de semana"; sin esto la tarea queda
+     *  SIN fecha (P1: olvidada, invisible en What Now). */
+    private val weekendPattern = Regex("""(?i)\b(?<!cada\s)(?<!los\s)(?:a\s+)?(?:este\s+|el\s+|pr[oó]ximo\s+)?(?:fin|final|finales)\s+de\s+semana\b|\b(?:a\s+)?(?:este\s+|el\s+|pr[oó]ximo\s+)?(?<!cada\s)(?<!los\s)finde\b""")
     /**
      * "el jueves pasado" / "el último lunes" / "el martes anterior": última ocurrencia
      * PASADA de ese día de la semana. El usuario reconoce que la tarea está vencida
@@ -3644,12 +3649,14 @@ object NaturalTaskParser {
         // limpiar, deporte). Antes quedaba sin recurrencia y sin fecha -> la tarea
         // repetitiva se olvidaba o aparecia una sola vez. La primera ocurrencia la
         // resuelve la rama WEEKLY+days (proximo sabado o domingo). Distinto del
-        // singular "fin de semana"/"finde" (fecha unica, proximo sabado): el plural o
-        // el determinante "cada/los" = habito. "este finde"/"el finde" se resuelve
-        // arriba como fecha (weekendPattern), NO aqui, porque el singular con "este/el"
-        // señala UN fin de semana concreto, no un habito recurrente.
+        // singular "fin de semana"/"finde"/"final de semana" (fecha unica, proximo
+        // sabado): el plural o el determinante "cada/los" = habito. "este finde"/"el
+        // finde" se resuelve arriba como fecha (weekendPattern), NO aqui, porque el
+        // singular con "este/el" señala UN fin de semana concreto, no un habito
+        // recurrente. "cada final de semana" (variante regional) se admite aquí como
+        // hábito semanal, simétrico a "cada fin de semana".
         val weekendRecurrencePattern =
-            Regex("""(?i)\b(?:cada\s+)?(?:los\s+)?fines\s+de\s+semana\b|\b(?:cada\s+)?(?:los\s+)?findes?\b|\bcada\s+fin\s+de\s+semana\b""")
+            Regex("""(?i)\b(?:cada\s+)?(?:los\s+)?fines\s+de\s+semana\b|\b(?:cada\s+)?(?:los\s+)?findes?\b|\bcada\s+(?:fin|final)\s+de\s+semana\b""")
         weekendRecurrencePattern.find(working)?.let { match ->
             phrases += match.range
             val interval = detectWeekInterval()

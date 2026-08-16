@@ -946,6 +946,41 @@ class SearchEngineDateScopeTest {
         assertEquals(setOf(2L, 3L), ids)
     }
 
+    // "final de semana" (variante regional latinoamericana de "fin de semana") debe ser
+    // un scope WEEKEND en la búsqueda, idéntico a "fin de semana"/"finde". Simetría con el
+    // parser: una tarea capturada como "final de semana" (dueAt=sábado) se recupera
+    // buscando "final de semana"; y viceversa, buscar "fin de semana" también la encuentra.
+    // Antes "final de semana" caía a THIS_WEEK (WEEK_TOKENS vía "semana") y devolvía toda
+    // la semana, no el finde. P1 de recuperación en el dialecto regional.
+    @Test fun finalDeSemana_resolvesAsWeekendScope() {
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val sat = todayLocal.plusDays(3) // 08-15 sábado
+        val sun = todayLocal.plusDays(4) // 08-16 domingo
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Sábado", dueAt = weekdayAt(sat)),
+            TaskEntity(id = 2, title = "Domingo", dueAt = weekdayAt(sun)),
+            TaskEntity(id = 3, title = "Viernes", dueAt = weekdayAt(todayLocal.plusDays(2))), // 08-14 (esta semana, NO finde)
+            TaskEntity(id = 4, title = "Lunes", dueAt = weekdayAt(todayLocal.plusDays(5)))    // 08-17 (esta semana, NO finde)
+        )
+        val ids = SearchEngine.search("final de semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L), ids)
+    }
+
+    @Test fun finalDeSemana_crossSymmetricWithFinDeSemanaCapture() {
+        // Simetría cruzada: una tarea capturada con "fin de semana" se recupera
+        // buscando "final de semana", y viceversa. Ambas son el mismo concepto.
+        val todayLocal = java.time.LocalDate.of(2026, 8, 12) // miércoles
+        val t0 = weekdayAt(todayLocal, 12)
+        val sat = todayLocal.plusDays(3) // 08-15 sábado
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Capturada con fin", dueAt = weekdayAt(sat)),
+            TaskEntity(id = 2, title = "Otra", dueAt = weekdayAt(sat.plusDays(7)))
+        )
+        val ids = SearchEngine.search("final de semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
     @Test fun findeReunion_filtersByBothDateAndContent() {
         // "finde reunion": solo la tarea del fin de semana con "reunión" en el
         // título. "finde" no se exige como contenido (es scope de fecha).
