@@ -8583,6 +8583,97 @@ class NaturalTaskParserTest {
         assertEquals("Revisar el primer informe del mes", result.title)
     }
 
+    // --- Ordinal + weekday SUELTO sin calificador de mes (c.320: título corrupto) ---
+    // "reunión el primer lunes" (sin "del mes"/"de cada mes") no casa el patrón ordinal-mensual
+    // ni previousWeekdayReversed. Antes weekdayPattern capturaba SÓLO "lunes" y dejaba "el primer"
+    // como residuo pegado al título ("reunión el primer" = título corrupto, P2). El ordinal de
+    // semana sin mes es semánticamente inválido, así que se degrada a "el lunes" (= próximo lunes)
+    // y el título queda limpio. now = 2026-08-16 (domingo) → próximo lunes = 2026-08-17.
+    @Test fun ordinalSueltoPrimerLunesLimpiaTituloYResuelveProximoLunes() {
+        val zone = ZoneId.of("America/Santiago")
+        val now = DateRules.toEpochMillis(LocalDate.of(2026, 8, 16), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("reunión el primer lunes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 17), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+    }
+
+    @Test fun ordinalSueltoSegundoMartesLimpiaTitulo() {
+        val zone = ZoneId.of("America/Santiago")
+        val now = DateRules.toEpochMillis(LocalDate.of(2026, 8, 16), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("reunión el segundo martes", now, zone)
+        assertEquals("reunión", result.title)
+        // próximo martes desde dom 16 = 2026-08-18.
+        assertEquals(LocalDate.of(2026, 8, 18), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ordinalSueltoTercerJuevesLimpiaTitulo() {
+        val zone = ZoneId.of("America/Santiago")
+        val now = DateRules.toEpochMillis(LocalDate.of(2026, 8, 16), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("reunión el tercer jueves", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ordinalSueltoCuartoSabadoLimpiaTitulo() {
+        val zone = ZoneId.of("America/Santiago")
+        val now = DateRules.toEpochMillis(LocalDate.of(2026, 8, 16), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("reunión el cuarto sábado", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 22), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ordinalSueltoSinElInicialLimpiaTitulo() {
+        // "reunión primer lunes" (sin "el"): el ordinal queda como residuo igual.
+        val zone = ZoneId.of("America/Santiago")
+        val now = DateRules.toEpochMillis(LocalDate.of(2026, 8, 16), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("reunión primer lunes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 17), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ordinalSueltoConHoraConservaHora() {
+        val zone = ZoneId.of("America/Santiago")
+        val now = DateRules.toEpochMillis(LocalDate.of(2026, 8, 16), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("reunión el primer lunes a las 5", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 17), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(5, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun ordinalSueltoConContenidoMezcladoLimpiaTitulo() {
+        // "entregar el segundo viernes informe": antes weekday consumía "viernes" pero
+        // "el segundo" quedaba pegado ANTES de "informe" → "entregar el segundo informe".
+        val zone = ZoneId.of("America/Santiago")
+        val now = DateRules.toEpochMillis(LocalDate.of(2026, 8, 16), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("entregar el segundo viernes informe", now, zone)
+        assertEquals("entregar informe", result.title)
+        // próximo viernes desde dom 16 = 2026-08-21.
+        assertEquals(LocalDate.of(2026, 8, 21), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ordinalSueltoUltimoViernesSigueSiendoFechaPasada() {
+        // Guard anti-regresión: "el último viernes" SÍ es fecha pasada válida
+        // (previousWeekdayReversed), NO se degrada a próximo viernes.
+        val zone = ZoneId.of("America/Santiago")
+        val now = DateRules.toEpochMillis(LocalDate.of(2026, 8, 16), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("reunión el último viernes", now, zone)
+        assertEquals("reunión", result.title)
+        // viernes anterior al dom 16 = 2026-08-14.
+        assertEquals(LocalDate.of(2026, 8, 14), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ordinalSueltoNoRompeCalificadorDelMes() {
+        // Guard anti-regresión: "el primer lunes del mes" sigue resolviendo el ordinal-mensual
+        // (NO se degrada a próximo lunes). now = 2026-08-14 (jueves) → primer lunes ago = 03.
+        val zone = ZoneId.of("America/Santiago")
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("Cobro el primer lunes del mes", agoNow, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+    }
+
     @Test fun ultimoViernesDeJunioPasadoRuedaAlAnioSiguiente() {
         // junio ya terminó (now = agosto) → rueda a junio 2027.
         // viernes de junio 2027: 4, 11, 18, 25 → último = 25.

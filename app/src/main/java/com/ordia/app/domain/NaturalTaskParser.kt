@@ -92,6 +92,17 @@ object NaturalTaskParser {
     private val previousWeekdayPattern = Regex("""(?i)\b(?:el|del|de)\s+([a-záéíóúüñ]+)\s+(?:pasado|anterior|último|ultimo)\b""")
     // Orden inverso: "el último lunes"/"el pasado martes" (modificador antes del día).
     private val previousWeekdayReversedPattern = Regex("""(?i)\b(?:el|del|de)\s+(?:último|ultimo|pasado|anterior)\s+([a-záéíóúüñ]+)\b""")
+    // Ordinal + weekday SUELTO sin calificador de mes ("el primer lunes", "el segundo martes",
+    // "el tercer jueves", "el cuarto sábado"): no casa [lastWeekdayOfMonthPattern] (éste exige
+    // "del mes"/"de cada mes"/"de <mes>") ni [previousWeekdayReversedPattern] (éste sólo admite
+    // último/pasado/anterior). Se normaliza a "el <weekday>" para que [weekdayPattern] consuma
+    // el weekday limpio y el ordinal no quede como residuo en el título. Grupo 1 = ordinal
+    // (excluye último/ultimo, que sí son fecha pasada válida); grupo 2 = weekday. El lookahead
+    // negativo descarta cualquier calificador de mes superviviente (ya borrados arriba, pero
+    // protege contra reordenamientos futuros) y "de cada/todos los/mensual" (cadencia mensual).
+    private val looseOrdinalWeekdayPattern = Regex(
+        """(?i)\b(?:el\s+)?(primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?!\s+(?:del?\s+(?:mes|cada|este|esta|pr[oó]xim[oa]|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic)|todos\s+los|mensual))\b"""
+    )
     // "el último viernes del mes" / "el primer lunes de agosto" / "el tercer viernes del mes que
     // viene": ocurrencia ORDINAL de ese weekday en un mes (no la semana pasada, que es lo que
     // resuelve previousWeekdayReversed al casar "el último viernes"). Más específico: exige el
@@ -1699,6 +1710,21 @@ object NaturalTaskParser {
         } else if (precedingCadenceOrdinalMatch != null) {
             val g = precedingCadenceOrdinalMatch.groups[1]!!.range
             working = working.replaceRange(g, " ")
+        }
+        // Ordinal + weekday SUELTO sin calificador de mes ("reunión el primer lunes",
+        // "el segundo martes", "el tercer jueves"): los patrones ordinales-mensuales
+        // no casan (exigen "del mes"/"de cada mes"/"de <mes>"), y previousWeekdayReversed
+        // tampoco (sólo admite último/pasado/anterior). Así weekdayPattern capturaba SÓLO
+        // el weekday ("lunes") y dejaba "el primer"/"el segundo" como residuo pegado al
+        // título ("reunión el primer" = título corrupto, P2). Un ordinal de semana sin mes
+        // es semánticamente inválido/ambiguo (no hay "primer lunes" sin decir de qué mes),
+        // así que se degrada honestamente a "el <weekday>" (= próximo lunes) y weekdayPattern
+        // lo consume limpio. El lookahead negativo protege por si un calificador de mes
+        // sobreviviera (aunque ya fueron borrados arriba). "último" se excluye: "el último
+        // lunes" SÍ es fecha pasada válida (previousWeekdayReversed).
+        working = looseOrdinalWeekdayPattern.replace(working) { m ->
+            if (m.groupValues[2].toDayOfWeekOrNull() == null) return@replace m.value
+            "el ${m.groupValues[2]}"
         }
         // "el jueves pasado" / "el último lunes": fecha pasada. Se borra ANTES que
         // weekdayPattern para que el día no se capture como próximo y "pasado" no
