@@ -179,9 +179,17 @@ object NaturalTaskParser {
      * intencionalmente imprecisos; se resuelve a +1 h (heurística honesta, no IA): agenda el
      * recordatorio para que la tarea no desaparezca. Se procesa ANTES que [relativePattern]
      * para robar la frase completa y dejar el título limpio.
+     *
+     * Admite los DIMINUTIVOS coloquiales "un ratito"/"un ratico"/"un momentito" (y el
+     * suelto "al ratito"): formas extremadamente frecuentes en español latinoamericano
+     * informal ("llamar en un ratito", "dentro de un momentito", "al ratito"). Antes
+     * caían a dueAt=null (tarea olvidada, sin recordatorio). Misma heurística +1 h,
+     * mismo comportamiento de limpieza del título. "ratito"/"momentito" se listan ANTES
+     * que "rato"/"momento" para que la alternancia capture el diminutivo completo y no
+     * deje el sufijo "-ito" como residuo en el título.
      */
     private val vagueRelativePattern = Regex(
-        """(?i)\b(?:(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(?:un\s+rato|un\s+momento)|al\s+rato|pasado\s+un\s+rato|en\s*seguida|enseguida)\b"""
+        """(?i)\b(?:(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(?:un\s+ratito|un\s+ratico|un\s+momentito|un\s+rato|un\s+momento)|al\s+ratito|al\s+rato|pasado\s+un\s+rato|en\s*seguida|enseguida)\b"""
     )
     /**
      * "Ahora" inmediato cotidiano: "ahora mismo", "ahorita", "ahora",

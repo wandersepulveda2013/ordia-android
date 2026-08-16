@@ -3084,6 +3084,54 @@ class NaturalTaskParserTest {
         assertEquals(now + 60 * 60_000L, result.dueAt)
     }
 
+    // --- Diminutivos coloquiales "un ratito"/"un ratico"/"un momentito"/"al ratito" ---
+    // Formas extremadamente frecuentes en español latinoamericano informal ("llamar en un
+    // ratito", "dentro de un momentito", "al ratito"). Antes NO casaban vagueRelative →
+    // dueAt=null y la tarea quedaba SIN recordatorio (olvidada, P1). Misma heurística +1 h
+    // y título limpio, igual que "un rato"/"un momento".
+    @Test fun enUnRatitoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Llamar a mamá en un ratito", now, zone)
+        assertEquals("Llamar a mamá", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun dentroDeUnRatitoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Pausa dentro de un ratito", now, zone)
+        assertEquals("Pausa", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun enUnRaticoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Llamar en un ratico", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun enUnMomentitoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Llamar en un momentito", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun dentroDeUnMomentitoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Pausa dentro de un momentito", now, zone)
+        assertEquals("Pausa", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun alRatitoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Cita al ratito", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun deAquiAUnRatitoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Cita de aquí a un ratito", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
     // --- "enseguida"/"en seguida" (adverbio puro de inmediatez, sin "un rato") (ciclo 106) ---
     // No casa ningún otro patrón (vagueRelative exige "un rato"/"un momento"; relative exige
     // unidad) → antes dueAt=null + residuo en el título. +1 h (misma heurística honesta).
