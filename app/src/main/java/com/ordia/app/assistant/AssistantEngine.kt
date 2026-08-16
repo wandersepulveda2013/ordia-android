@@ -463,7 +463,7 @@ object AssistantEngine {
                 // así se ruta a overdueCommitmentAnswer para identificarlo y abrir
                 // Conversaciones. Sin nueva pantalla (acción existente).
                 if (overdueCommitments.isNotEmpty()) return overdueCommitmentAnswer(overdueCommitments)
-                // c.409: inicio olvidado (missed-start) cuyo hueco se pasó en un día
+                // c.412: inicio olvidado (missed-start) cuyo hueco se pasó en un día
                 // ANTERIOR. startAt en un día previo y dueAt futuro (o sin dueAt) →
                 // no cae en el rango de hoy (isScheduledInRange) ni es vencida por
                 // dueAt (earlierOverdue), así que antes la agenda "hoy" decía "no
@@ -494,7 +494,7 @@ object AssistantEngine {
         // aunque la promesa aún no sea tarea. Simétrico con "¿voy bien?" (c.354) y
         // "organiza mi día" (c.294): cola informativa, no doble señalización. Para
         // alcances futuros/pasados no se anexa (no son parte de ese día).
-        // c.409: y lo mismo con los inicios olvidados (missed-start) cuyo hueco se
+        // c.412: y lo mismo con los inicios olvidados (missed-start) cuyo hueco se
         // pasó en un día anterior (startAt previo, dueAt futuro/sin dueAt): no son
         // ni atrasadas por dueAt ni agenda de hoy, pero son trabajo olvidado que
         // debe hacer hoy. Aquí, al haber agenda de hoy, va como cola informativa
