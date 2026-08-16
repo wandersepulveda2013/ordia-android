@@ -32,8 +32,11 @@ object SensitiveSecretPatterns {
         Regex("""-----BEGIN [A-Z ]*PRIVATE KEY-----""", RegexOption.IGNORE_CASE),
         // Clave cripto/secreto de 64 hex (con o sin prefijo 0x): wallet, API secret, hash.
         Regex("""\b(?:0x)?[0-9a-f]{64}\b""", RegexOption.IGNORE_CASE),
-        // IBAN estructural (ISO 13616): 2 letras + 2 digitos + 11-30 alfanumericos.
-        Regex("""\b[A-Z]{2}\s?\d{2}(?:\s?[A-Z0-9]){11,30}\b"""),
+        // IBAN (ISO 13616): migrado en c.316 a `containsNumericSensitive` con validacion
+        // mod-97 (checksum canonico). La regex estructural pelada producia falsos
+        // positivos sobre codigos de producto/referencia largos (p.ej. "US99ABC..."),
+        // bloqueando chats legitimos y perdiendo compromisos. El mod-97 elimina esos
+        // falsos positivos sin perder IBANs reales (todo IBAN valido pasa mod-97).
         // Clave SSH publica (rsa|dsa|ecdsa|ed25519) + blob base64.
         Regex("""\bssh-(?:rsa|dsa|ecdsa|ed25519)\s+[A-Za-z0-9+/]{20,}={0,2}"""),
         // API keys tipo Stripe/OpenAI (sk-, sk_live_, sk_test_ + 20+ alfanum).
@@ -127,6 +130,18 @@ object SensitiveSecretPatterns {
     private val clabeCandidate = Regex("""(?<!\d)(?:\d[ -]?){17}\d(?!\d)""")
 
     /**
+     * Candidato IBAN (ISO 13616): codigo de pais (2 letras) + 2 digitos de control
+     * + 11-30 alfanumericos (BBAN), con espacios opcionales entre grupos. La regex
+     * es solo estructural; la confirmacion la hace `passesIbanMod97` (checksum
+     * canonico ISO 13616), sin la cual cualquier secuencia larga "LLDD..." (codigos
+     * de producto, referencias) generaria falsos positivos. Acepta mayusculas Y
+     * minusculas (c.317): un IBAN en chat casual se escribe a menudo en minusculas
+     * ("es66 2100...") y antes escapaba; como `passesIbanMod97` uppercasesa internamente,
+     * el mod-97 filtra los falsos positivos igual que en mayusculas.
+     */
+    private val ibanCandidate = Regex("""\b[A-Z]{2}\s?\d{2}(?:\s?[A-Z0-9]){11,30}\b""", RegexOption.IGNORE_CASE)
+
+    /**
      * Dígito verificador Luhn (ISO/IEC 7812). `true` si [digits] (sólo dígitos)
      * forma un número de tarjeta válido. Un PAN real siempre pasa Luhn: es el
      * checksum que lo define, así que exigirlo no pierde cobertura de tarjetas
@@ -163,6 +178,31 @@ object SensitiveSecretPatterns {
         val control = (10 - sum % 10) % 10
         return control == digits[17].digitToInt()
     }
+
+    /**
+     * Checksum canonico ISO 13616 de un IBAN: se mueven los 4 primeros caracteres
+     * (pais + control) al final, las letras se convierten a su valor decimal
+     * (A=10 ... Z=35) y el numero resultante mod 97 debe ser 1. `true` si [raw]
+     * (con o sin espacios) es un IBAN valido. Todo IBAN real pasa este checksum,
+     * asi que exigirlo no pierde cobertura y elimina los falsos positivos de
+     * secuencias alfanumericas largas que solo cumplen la estructura (c.316).
+     */
+    private fun passesIbanMod97(raw: String): Boolean {
+        val s = raw.filter { !it.isWhitespace() }.uppercase()
+        if (s.length !in 15..34) return false
+        if (!s.substring(0, 2).all { it.isLetter() } || !s.substring(2, 4).all { it.isDigit() }) return false
+        if (!s.all { it.isLetterOrDigit() }) return false
+        val rearranged = s.substring(4) + s.substring(0, 4)
+        val converted = StringBuilder()
+        for (ch in rearranged) {
+            converted.append(if (ch.isDigit()) ch.toString() else (ch - 'A' + 10).toString())
+        }
+        val big = converted.toString().toBigIntegerOrNull() ?: return false
+        return big % BIG_97 == BIG_ONE
+    }
+
+    private val BIG_97 = 97.toBigInteger()
+    private val BIG_ONE = 1.toBigInteger()
 
     /**
      * `true` si [text] contiene un PAN (Luhn válido, 13-19 dígitos) o una CLABE
@@ -240,6 +280,12 @@ object SensitiveSecretPatterns {
         }
     }
 
+    /**
+     * `true` si [text] contiene un PAN (Luhn valido, 13-19 digitos), una CLABE
+     * mexicana (checksum valido, 18 digitos) o un IBAN (ISO 13616, mod-97 valido).
+     * Consumido por AMBOS gates de privacidad para que la deteccion de
+     * tarjetas/cuentas sea estructuralmente simetrica (c.303; IBAN anadido en c.316).
+     */
     fun containsNumericSensitive(text: String): Boolean {
         if (panCandidate.findAll(text).any { c ->
                 val d = c.value.filter(Char::isDigit)
@@ -249,6 +295,7 @@ object SensitiveSecretPatterns {
                 val d = c.value.filter(Char::isDigit)
                 d.length == 18 && passesClabeChecksum(d)
             }) return true
+        if (ibanCandidate.findAll(text).any { passesIbanMod97(it.value) }) return true
         return false
     }
 }

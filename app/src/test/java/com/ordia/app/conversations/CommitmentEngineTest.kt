@@ -687,6 +687,44 @@ class CommitmentEngineTest {
     }
 
     @Test
+    fun blocksValidIbansAndDropsStructuralFalsePositives() {
+        // c.316: el IBAN se detectaba solo por regex estructural (2 letras + 2
+        // digitos + 11-30 alfanumericos), sin checksum. Eso bloqueaba chats
+        // legitimos cuyo contenido casualmente cumplia la estructura: codigos de
+        // producto, referencias de seguimiento, IDs de reserva (p.ej.
+        // "US99ABC1234567890123" parece un IBAN pero no pasa mod-97). La migracion
+        // a mod-97 (ISO 13616 canonico) elimina esos falsos positivos sin perder
+        // IBANs reales: todo IBAN valido pasa mod-97 por definicion.
+        val realIbans = listOf(
+            "Transfiere a GB82WEST12345698765432",
+            "mi iban para la transferencia DE89370400440532013000",
+            "cuenta ES6621000418401234567891",
+            // Con espacios entre grupos (formato humano habitual).
+            "ES66 2100 0418 4012 3456 7891",
+            // c.317: en minúsculas (chat casual); antes escapaba por la regex [A-Z].
+            "mi iban es es6621000418401234567891"
+        )
+        realIbans.forEach { text ->
+            assertTrue(
+                "IBAN real deberia bloquearse: \"$text\"",
+                ConversationPrivacyPolicy.containsSensitiveContent(text)
+            )
+        }
+        // Falsos positivos estructurales que mod-97 rechaza: parecen IBAN por
+        // estructura pero el checksum no casa -> no son IBAN -> no se bloquean.
+        val falsePositives = listOf(
+            "US99ABC1234567890123",
+            "FR99ZZZ9999999"
+        )
+        falsePositives.forEach { text ->
+            assertFalse(
+                "no-IBAN estructural no deberia bloquearse: \"$text\"",
+                ConversationPrivacyPolicy.containsSensitiveContent(text)
+            )
+        }
+    }
+
+    @Test
     fun blocksCloudSecretsThatEscapedBothPrivacyGates() {
         // c.294: claves SSH publicas, API keys (sk-/sk_live_), AWS access key IDs
         // (AKIA...) y JWT (eyJ...) llegan por SMS/mensajeria (paquete no bancario) y
