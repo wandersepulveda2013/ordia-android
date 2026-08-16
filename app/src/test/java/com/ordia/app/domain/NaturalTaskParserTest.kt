@@ -323,6 +323,76 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // c.343: "cada N <weekday>" (cada dos lunes, cada tres jueves…) es la forma
+    // hablada de "cada N semanas los lunes": el número cuenta ocurrencias del día.
+    // Antes el número se ignoraba y el día casaba desnudo → frecuencia equivocada
+    // (MONTHLY día N para días invariables) o interval=1 + residuo "cada N" en el
+    // título (para sábados/domingos plurales). Ahora: WEEKLY interval=N, días
+    // correctos, título limpio y 1ª ocurrencia en el próximo día de la semana.
+    @Test fun parsesEveryNthWeekdayCount_singleInvariable() {
+        // 2026-07-29 es miércoles; el próximo lunes es 2026-08-03.
+        val result = NaturalTaskParser.parse("gym cada dos lunes", now, zone)
+        assertEquals("gym", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesEveryNthWeekdayCount_writtenNumber() {
+        // "cada tres jueves": próximo jueves es 2026-07-30 (al día siguiente del now).
+        val result = NaturalTaskParser.parse("reunion cada tres jueves", now, zone)
+        assertEquals("reunion", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertEquals("4", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesEveryNthWeekdayCount_pluralWeekend() {
+        // Antes "futbol cada dos domingos" dejaba "cada dos" pegado al título e
+        // interval=1 (cada semana, el doble de frecuente). Ahora título limpio e
+        // interval=2. Próximo domingo: 2026-08-02.
+        val result = NaturalTaskParser.parse("futbol cada dos domingos", now, zone)
+        assertEquals("futbol", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("7", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun parsesEveryNthWeekdayCount_multiDayList() {
+        // "cada dos lunes y jueves": interval=2 sobre ambos días. Próximo lunes
+        // (2026-08-03) es anterior al próximo jueves (2026-07-30) → 1ª ocurrencia
+        // es el jueves 30 (el menor de los nextWeekday).
+        val result = NaturalTaskParser.parse("clase cada dos lunes y jueves", now, zone)
+        assertEquals("clase", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1,4", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun cadaNWeekday_doesNotStealEveryNSemanas() {
+        // Regresión: "cada 2 semanas los lunes" NO debe caer al conteo de weekday
+        // (tras el número viene "semanas", no un weekday). Sigue por la ruta de
+        // dayListPattern + detectWeekInterval: WEEKLY interval=2 days=[1].
+        val result = NaturalTaskParser.parse("meditar cada 2 semanas los lunes", now, zone)
+        assertEquals("meditar", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1", result.recurrenceDays)
+    }
+
+    @Test fun cadaUnicoWeekday_staysWeeklyInterval1() {
+        // "cada lunes" (sin número) sigue siendo WEEKLY interval=1, intacto.
+        val result = NaturalTaskParser.parse("meditar cada lunes", now, zone)
+        assertEquals("meditar", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertEquals("1", result.recurrenceDays)
+    }
+
     // "cada N horas" sub-diario (medicación: cada 8/12/6 horas): recurrencia horaria
     // REAL (HOURLY). Antes la duración "N horas" robaba el número (480 min falsos) y la
     // tarea nacía SIN vencimiento → medicación olvidada (recordatorio jamás disparaba,

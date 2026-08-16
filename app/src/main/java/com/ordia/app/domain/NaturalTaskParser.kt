@@ -3227,8 +3227,51 @@ object NaturalTaskParser {
             return RecurrenceResult(RecurrenceFrequency.WEEKLY, interval?.first ?: 1, listOf(1, 2, 3, 4, 5), phrases)
         }
 
+        // "cada dos lunes" / "todos los dos martes" / "cada tres jueves": cadencia
+        // semanal espaciada por CONTEO de weekday ("cada N-ésimo lunes") sin la
+        // palabra "semanas". Es la forma hablada de "cada N semanas los lunes": el
+        // número cuenta ocurrencias del día, no semanas, pero para un único weekday
+        // el efecto es idéntico (cada 2 lunes = cada 2 semanas los lunes). Antes el
+        // número NO se reconocía aquí: el `dayListPattern` abajo exigía un weekday
+        // justo tras el prefijo, así "dos" lo descartaba y el día casaba DESNUDO
+        // (sin prefijo). Eso producía dos fallos reales según el día:
+        //  • día INVARIABLE (lunes/martes/...): caía al "cada N" a-secas (c.306) y
+        //    nacía como MONTHLY día N (frecuencia equivocada: "gym cada dos lunes"
+        //    → mensual día 2, recordatorio y What Now engañados).
+        //  • día PLURAL (sábados/domingos): `barePluralSingle` sí reclamaba WEEKLY
+        //    interval=1 (cada semana, el doble de frecuente) y "cada dos" quedaba
+        //    pegado al título ("futbol cada dos").
+        // c.343: se reconoce ANTES que dayListPattern. Captura prefijo + número +
+        // lista de días (reusa la misma continuación de día-lista para "cada dos
+        // lunes y jueves") y emite WEEKLY interval=N (coercido 1..366, igual que
+        // detectWeekInterval). El motor `nextWeekly` ya despacha interval>1 con
+        // días correctamente (verificado: desde el lunes de la semana N, interval=2
+        // → siguiente lunes en la semana N+2). La 1ª ocurrencia la resuelve la
+        // rama WEEKLY+days de la cascada de dueAt (nextWeekday), igual que "cada N
+        // semanas los lunes". No casa "cada 2 semanas los lunes" (tras el número
+        // viene "semanas", no un weekday → cae a dayListPattern + detectWeekInterval,
+        // intacto). N puede ser dígito o número escrito ("cada dos lunes").
+        // Nombre de día reusable (lo usa el conteo "cada N lunes" de arriba y la
+        // lista de días de abajo). Definido aquí para estar disponible en ambos.
+        val dayNameRegex = Regex("""(?i)lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo""")
+        val weekdayCountPattern =
+            Regex("""(?i)\b(?:cada|todos\s+los|todas\s+las)\s+(\d{1,3}|$writtenNumberGroup)\s+((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y)?\s*(?:(?:el|los)\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
+        weekdayCountPattern.find(working)?.let { match ->
+            val rawN = match.groupValues[1]
+            val n = rawN.toLongOrNull()?.toInt() ?: parseWrittenNumber(rawN)?.toInt()
+            if (n != null) {
+                val days = dayNameRegex.findAll(match.groupValues[2])
+                    .mapNotNull { it.value.toDayOfWeekOrNull()?.value }
+                    .distinct().sorted().toList()
+                if (days.isNotEmpty()) {
+                    phrases += match.range
+                    return RecurrenceResult(RecurrenceFrequency.WEEKLY, n.coerceIn(1, 366), days, phrases)
+                }
+            }
+        }
+
         // "todos los viernes" / "cada lunes y jueves" / "los lunes y jueves".
-// Un único patrón captura una lista de días separados por ",", "y" o solo
+// Un único patrón captura una lista de días separada por ",", "y" o solo
         // espacio ("lunes miércoles viernes" / "lunes miércoles y viernes"), forma
         // habitual en español. El separador es opcional: en español informal
         // "los lunes miércoles y viernes" (sin coma entre los dos primeros) es
@@ -3265,7 +3308,6 @@ object NaturalTaskParser {
         // se resolvió arriba, así que aquí solo llegan listas reales. c.282.
         val dayListPattern =
             Regex("""(?i)\b(?:entre\s+)?(?:(todos\s+los|cada|los)\s+)?(?:(el|los)\s+)?((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y)?\s*(?:(?:el|los)\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
-        val dayNameRegex = Regex("""(?i)lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo""")
         val weeklyMatch = dayListPattern.find(working)
         if (weeklyMatch != null) {
             val days = dayNameRegex.findAll(weeklyMatch.groupValues[3])
