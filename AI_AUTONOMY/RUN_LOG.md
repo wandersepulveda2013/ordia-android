@@ -12,7 +12,7 @@
 - **Commits**: `feat(asistente): "¿qué tengo el finde?" reconoce fin de semana como agenda (c.352)` (+ docs AI_AUTONOMY).
 - **Hallazgos adicionales**: weekday plural "¿qué tengo los viernes?" (recurrencia vs agenda — modelo semántico distinto) rebaajado a P3 PENDIENTE separada en BACKLOG (baja frecuencia, requiere decisión de diseño: ¿próximas N ocurrencias? ¿sólo tareas con cadencia semanal de ese weekday?). Continúa la familia de consistencia entre superficies asistente/search/parser (c.236/c.33/c.351).
 - **Próxima prioridad**: continuar discovery — auditar `resumeConversacion` branch, `over` patterns, otras asimetrías léxicas entre superficies; o evaluar el weekday plural si se decide el modelo semántico.
-- **HEAD final**: (tras commit+push).
+- **HEAD final**: `61c4d4a` (commit c.352, pendiente push; tras push = remoto `openhands/autonomous-ordia`).
 - **Estado**: VERIFIED (lógica pura en JVM; Android runtime NO VERIFICADO).
 
 
