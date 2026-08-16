@@ -1582,7 +1582,7 @@ object NaturalTaskParser {
      * "merienda", "cena") son ambos idiomáticos ("después de comer"="después del almuerzo").
      */
     private val mealSleepAnchorPattern = Regex(
-        """(?i)\b(antes|despu[eé]s)\s+de(?:l)?\s+(?:la\s+)?(desayuno|desayunar|almuerzo|comer|comida|almorzar|merienda|merendar|cena|cenar|dormir|acostarse|acostar|siesta)\b"""
+        """(?i)\b(?:justo\s+)?(antes|despu[eé]s)\s+de(?:l)?\s+(?:la\s+)?(desayuno|desayunar|almuerzo|comer|comida|almorzar|merienda|merendar|cena|cenar|dormir|acostarse|acostar|siesta)\b"""
     )
     private val mealSleepAnchorTimes: Map<String, Map<String, LocalTime>> = mapOf(
         "desayuno" to mapOf("antes" to LocalTime.of(7, 30), "después" to LocalTime.of(9, 0)),

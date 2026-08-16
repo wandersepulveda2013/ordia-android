@@ -3629,6 +3629,42 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- intensificador "justo" + ancla comida/sueño/siesta (c.391) ---
+    // "justo" intensifica al modificador ("justo después de comer"); el patrón de ancla
+    // consumía "antes/después de + ancla" pero NO el "justo" precedente → quedaba huérfano
+    // en el título ("cita justo" en vez de "cita"), contenido capturado degradado (P1).
+
+    @Test fun justoDespuesDeComerConsumeElIntensificadorYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita justo después de comer", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun justoAntesDelAlmuerzoConsumeElIntensificador() {
+        val result = NaturalTaskParser.parse("Reunión justo antes del almuerzo", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(11, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun justoDespuesDeLaSiestaConsumeElIntensificador() {
+        val result = NaturalTaskParser.parse("Llamar justo después de la siesta", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun justoAntesDeDormirConsumeElIntensificador() {
+        val result = NaturalTaskParser.parse("Cita justo antes de dormir", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun justoComoAdjetivoNoSeConsumeSinAncla() {
+        // "justo" legítimo (adjetivo, sin ancla de comida/sueño) NO debe desaparecer.
+        val result = NaturalTaskParser.parse("comprar justo lo necesario", now, zone)
+        assertEquals("comprar justo lo necesario", result.title)
+        assertEquals(null, result.dueAt)
+    }
+
     // --- "a la una" (hora 1, femenino singular) (ciclo 94b/c) ---
     // La hora 1 se dice "a la una" (no "a las 1"). Antes no había patrón para esa
     // forma, así que "reunión a la una" caía sin dueAt y con "a la una" como residuo
