@@ -103,6 +103,11 @@
     <string name="update_fail_storage">No hay espacio suficiente para instalar la actualización.</string>
     <string name="update_fail_incompatible">La APK no es compatible con esta versión de Android o la arquitectura del dispositivo.</string>
     <string name="update_fail_generic">Android no pudo completar la instalación.</string>
+    <string name="update_install_permission_missing">Ordía no tiene permiso para instalar actualizaciones. Android necesita que autorices la instalación de apps desconocidas para Ordía, o no verás la solicitud de instalación.</string>
+    <string name="update_install_permission_grant">Autorizar instalación</string>
+    <string name="update_install_permission_ok">Permiso de instalación concedido.</string>
+    <string name="update_invalid_signature_mismatch">La firma de la nueva APK no coincide con la Ordía que tienes instalada (probablemente la instalaste desde Android Studio o un canal distinto al oficial). Para actualizar, desinstala Ordía y vuelve a instalarla desde la release oficial; después las actualizaciones automáticas funcionarán.</string>
+    <string name="update_download_manual">Descargar APK oficial</string>
     <string name="update_dialog_title">Nueva versión de Ordía</string>
     <string name="update_dialog_text">%1$s está disponible.</string>
     <string name="update_dialog_now">Actualizar ahora</string>

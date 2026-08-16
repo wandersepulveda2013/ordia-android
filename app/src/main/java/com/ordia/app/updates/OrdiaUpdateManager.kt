@@ -34,6 +34,9 @@ import java.util.concurrent.TimeUnit
 /** Hardened local-first updater for APKs distributed through the official GitHub Releases page. */
 object OrdiaUpdateManager {
     private const val RELEASES_PAGE = "https://github.com/wandersepulveda2013/ordia-android/releases"
+
+    /** Página pública de releases para descarga manual cuando la self-update no es viable (firma distinta). */
+    val releasePageUrl: String get() = RELEASES_PAGE
     private const val WORK_NAME = "ordia-auto-update"
     private const val PREFS = "ordia_updates"
     private const val KEY_DOWNLOAD_ID = "download_id"
@@ -356,7 +359,13 @@ object OrdiaUpdateManager {
             preserveVerified = true
             ValidationResult.Valid(privateUri)
         } catch (error: Exception) {
-            ValidationResult.Invalid(error.message?.take(180) ?: context.getString(R.string.update_invalid_cannot_validate))
+            val rawMessage = error.message.orEmpty()
+            val reason = when {
+                rawMessage == "SIGNATURE_MISMATCH" ->
+                    context.getString(R.string.update_invalid_signature_mismatch)
+                else -> rawMessage.take(180).ifBlank { context.getString(R.string.update_invalid_cannot_validate) }
+            }
+            ValidationResult.Invalid(reason)
         } finally {
             temporary.delete()
             if (!preserveVerified) verified.delete()
@@ -539,7 +548,7 @@ object OrdiaUpdateManager {
             "El versionCode de la APK ($archiveCode) no coincide con la versión publicada ($expectedCode)."
         }
         require(signaturesAreCompatible(packageInfoForInstalledApp(context), archiveInfo)) {
-            "La firma de la APK no coincide con la instalación actual."
+            "SIGNATURE_MISMATCH"
         }
     }
 
