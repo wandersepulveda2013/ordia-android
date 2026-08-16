@@ -1767,4 +1767,71 @@ class AssistantEngineTest {
         )
         assertTrue("no inventa compromiso sin haberlo: ${answer.text}", !answer.text.contains("compromiso"))
     }
+
+    // --- "¿tengo algo mañana?" / "¿hay algo el viernes?" — agenda con frases
+    // cotidianas que el detector de agenda no reconocía. "que tengo"/"tengo para"/
+    // "que hay" eran los únicos disparadores; "tengo algo" y "hay algo" (formas
+    // igual de naturales) caían al mensaje genérico, callando la agenda pese a
+    // preguntarla. Recupera la intención sin nueva pantalla.
+
+    @Test fun tengoAlgoManana_listsTasksDueTomorrow() {
+        val now = 1_000_000_000_000L
+        val tomorrow = tomorrowNoon(now)
+        val answer = AssistantEngine.answer(
+            "¿tengo algo mañana?",
+            listOf(
+                TaskEntity(id = 1, title = "Reunión de equipo", dueAt = tomorrow),
+                TaskEntity(id = 2, title = "Tarea de hoy", dueAt = todayNoon(now))
+            ),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra las de mañana: ${answer.text}", answer.text.contains("Reunión de equipo"))
+        assertTrue("no mezcla con la de hoy: ${answer.text}", !answer.text.contains("Tarea de hoy"))
+        assertTrue("relaciona solo las de mañana: ${answer.relatedTaskIds}", answer.relatedTaskIds.contains(1L))
+        assertTrue("no incluye la de hoy en ids: ${answer.relatedTaskIds}", !answer.relatedTaskIds.contains(2L))
+    }
+
+    @Test fun hayAlgoManana_listsTasksDueTomorrow() {
+        val now = 1_000_000_000_000L
+        val tomorrow = tomorrowNoon(now)
+        val answer = AssistantEngine.answer(
+            "¿hay algo mañana?",
+            listOf(TaskEntity(id = 1, title = "Cita médica", dueAt = tomorrow)),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la de mañana: ${answer.text}", answer.text.contains("Cita médica"))
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun tengoAlgoElViernes_listsWeekdayAgenda() {
+        val now = 1_000_000_000_000L
+        val zone = ZoneId.systemDefault()
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        val friday = today.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.FRIDAY))
+        val fridayNoon = friday.atTime(12, 0).atZone(zone).toInstant().toEpochMilli()
+        val answer = AssistantEngine.answer(
+            "¿tengo algo el viernes?",
+            listOf(TaskEntity(id = 1, title = "Clase de inglés", dueAt = fridayNoon)),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la del viernes: ${answer.text}", answer.text.contains("Clase de inglés"))
+    }
+
+    @Test fun tengoAlgoSinFecha_noEsAgenda_noInventa() {
+        // Guard anti-falso-positivo: "tengo algo que hacer" SIN scope de fecha
+        // no es una pregunta de agenda (no hay día objetivo). No debe inventar
+        // una agenda vacía ni listar todas las tareas como "agenda".
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "¿tengo algo que hacer?",
+            listOf(TaskEntity(id = 1, title = "Idea suelta")),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("no trata 'tengo algo' sin fecha como agenda: ${answer.text}",
+            !answer.relatedTaskIds.contains(1L))
+    }
 }

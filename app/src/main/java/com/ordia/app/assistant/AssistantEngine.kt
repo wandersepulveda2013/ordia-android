@@ -301,7 +301,8 @@ object AssistantEngine {
      * asistente ya existe. Determinista y local (sin IA fingida).
      */
     private fun isAgendaQuery(query: String): Boolean {
-        if (!("que tengo" in query || "tengo para" in query || "que hay" in query)) return false
+        if (!("que tengo" in query || "tengo para" in query || "que hay" in query ||
+                "tengo algo" in query || "hay algo" in query)) return false
         // Día de la semana suelto ("¿qué tengo el viernes?"): antes no se reconocía
         // como agenda y la consulta caía al mensaje genérico — el asistente callaba
         // la agenda de un día concreto pese a preguntarla. Simétrico con
