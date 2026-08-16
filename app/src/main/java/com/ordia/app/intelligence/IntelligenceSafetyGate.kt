@@ -1,7 +1,7 @@
 package com.ordia.app.intelligence
 
 import android.util.Log
-import com.ordia.app.context.ContextPrivacyFilter
+import com.ordia.app.domain.SensitiveSecretPatterns
 
 /**
  * Puerta de seguridad que se ejecuta ANTES de cualquier proveedor de inteligencia.
@@ -11,15 +11,29 @@ import com.ordia.app.context.ContextPrivacyFilter
  * 2. Contenido bloqueado (sexual, violencia, drogas, delitos)
  * 3. Sanitización básica del texto
  *
- * Si safetyGate.block() devuelve true, el proveedor de inteligencia NO debe ejecutarse.
- * El texto original se descarta inmediatamente.
+ * La detección de secretos estructurados (PAN/CLABE/IBAN por Luhn/checksum,
+ * claves PEM, tokens, CURP/RFC/DNI/INE, etc.) se delega a
+ * [SensitiveSecretPatterns], única fuente de verdad (c.299), para que la
+ * puerta de inteligencia, la de persistencia y la de lectura no se
+ * desincronicen. Antes de c.361 este gate usaba patrones propios
+ * (`\b\d{13,19}\b` sin Luhn y un SSN `\d{3}-\d{2}-\d{4}`) que producían
+ * falsos positivos sobre referencias/facturas/IMEI largos (pérdida de
+ * captura de tareas legítimas) y falsos negativos sobre claves PEM y
+ * tokens que el gate canónico sí detectaba.
+ *
+ * Si evaluate() devuelve [PrivacyResult.BLOCKED], el proveedor de
+ * inteligencia NO debe ejecutarse. El texto original se descarta.
  */
 object IntelligenceSafetyGate {
 
     private const val TAG = "IntelligenceSafetyGate"
 
-    /** Palabras y patrones de contenido bloqueado */
-    private val BLOCKED_PATTERNS = listOf(
+    /**
+     * Patrones de contenido bloqueado: modera el tema del que la inteligencia
+     * puede ocuparse. Son legítimamente específicos de esta puerta (no forman
+     * parte de [SensitiveSecretPatterns], que solo detecta secretos).
+     */
+    private val BLOCKED_CONTENT_PATTERNS = listOf(
         // Contenido sexual explícito
         Regex("""\b(sexo|sexual|desnud|porno|xxx|eróti|culos|tetas|pene|vagina|orgasmo|masturb)""", RegexOption.IGNORE_CASE),
         // Violencia y amenazas
@@ -27,11 +41,7 @@ object IntelligenceSafetyGate {
         // Drogas ilegales
         Regex("""\b(droga|cocaína|heroína|marihuana|metanfetamina|narcotráfico)""", RegexOption.IGNORE_CASE),
         // Insultos graves
-        Regex("""\b(pendejo|estúpido|imbécil|malparido|hijueputa)""", RegexOption.IGNORE_CASE),
-        // Datos bancarios / financieros sensibles
-        Regex("""\b(\d{13,19})\b""").also { /* tarjetas de crédito */ },
-        // Números de seguridad social / identificación
-        Regex("""\b(\d{3}[-\s]?\d{2}[-\s]?\d{4})\b""", RegexOption.IGNORE_CASE)
+        Regex("""\b(pendejo|estúpido|imbécil|malparido|hijueputa)""", RegexOption.IGNORE_CASE)
     )
 
     /**
@@ -44,17 +54,28 @@ object IntelligenceSafetyGate {
         val lower = text.lowercase().trim()
         if (lower.isBlank()) return PrivacyResult.BLOCKED
 
-        // 1. Verificar patrones bloqueados
-        for (blockedPattern in BLOCKED_PATTERNS) {
+        // 1. Contenido bloqueado (moderación temática).
+        for (blockedPattern in BLOCKED_CONTENT_PATTERNS) {
             if (blockedPattern.containsMatchIn(text)) {
-                Log.w(TAG, "Bloqueado por patrón: ${blockedPattern.pattern.take(40)}")
+                Log.w(TAG, "Bloqueado por contenido: ${blockedPattern.pattern.take(40)}")
                 return PrivacyResult.BLOCKED
             }
         }
 
-        // 2. Delegar al filtro de privacidad existente
-        // ContextPrivacyFilter.shouldBlock requiere un ContextEvent,
-        // aquí hacemos una verificación simplificada de patrones sensibles
+        // 2. Secretos estructurados: fuente única de verdad (c.299/c.303).
+        //    PAN/CLABE/IBAN validados por Luhn/checksum, claves criptográficas
+        //    (PEM), tokens de servicio e identificadores personales (CURP/RFC/
+        //    DNI/INE/pasaporte). Evita falsos positivos sobre números largos
+        //    que no son tarjetas válidas.
+        if (SensitiveSecretPatterns.containsNumericSensitive(text) ||
+            SensitiveSecretPatterns.containsPersonalIdentifier(text) ||
+            SensitiveSecretPatterns.patterns.any { it.containsMatchIn(text) }
+        ) {
+            Log.w(TAG, "Bloqueado por secreto detectado")
+            return PrivacyResult.BLOCKED
+        }
+
+        // 3. Credenciales conversacionales (contraseña/PIN/OTP con valor).
         if (containsCredentials(text)) {
             Log.w(TAG, "Bloqueado por credenciales detectadas")
             return PrivacyResult.BLOCKED
@@ -70,8 +91,12 @@ object IntelligenceSafetyGate {
      */
     fun sanitize(text: String): String {
         var safe = text
-        // Reemplazar números largos (tarjetas, teléfonos)
-        safe = safe.replace(Regex("""\b\d{13,19}\b"""), "[TARJETA]")
+        // Reemplazar secretos estructurados detectados por la fuente canónica
+        // (no cualquier número largo, para no ocultar referencias/facturas
+        // legítimas — c.303).
+        SensitiveSecretPatterns.patterns.forEach { p ->
+            safe = safe.replace(p, "[REDACTED]")
+        }
         // Reemplazar emails
         safe = safe.replace(Regex("""\b[\w.+-]+@[\w-]+\.[\w.]+"""), "[EMAIL]")
         return safe.trim().take(500)
@@ -79,18 +104,34 @@ object IntelligenceSafetyGate {
 
     private fun containsCredentials(text: String): Boolean {
         val lower = text.lowercase()
-        // Contraseñas
-        if (lower.contains("contraseña") || lower.contains("password") ||
-            lower.contains("mi contraseña") || lower.contains("clave") && lower.length < 30) {
+        // Contraseñas: palabra clave + valor adyacente (evita bloquear
+        // "recuérdame cambiar mi contraseña" sin valor real, que el gate
+        // canónico también deja pasar).
+        if (credentialKeywordWithValue(lower, listOf("contraseña", "password", "pwd", "clave"))) {
             return true
         }
         // OTP / códigos de verificación
         if (lower.contains("código") && Regex("""\d{4,8}""").containsMatchIn(lower)) {
             return true
         }
-        // PIN
-        if (lower.contains("pin") && Regex("""\d{4,6}""").containsMatchIn(lower)) {
+        // PIN / NIP
+        if ((lower.contains("pin") || lower.contains("nip")) && Regex("""\d{4,6}""").containsMatchIn(lower)) {
             return true
+        }
+        return false
+    }
+
+    /** Palabra clave de credencial seguida (en una ventana corta) de un valor: separador
+     *  explícito (`:`/`=`) o un token numérico (\d{3,}). Evita bloquear frases sin valor
+     *  real como "recuérdame cambiar mi contraseña esta semana" (sin dígitos). */
+    private fun credentialKeywordWithValue(lower: String, keywords: List<String>): Boolean {
+        val valueAfter = Regex("""[=:]\s*\S+""")
+        val tokenAfter = Regex("""\d{3,}""")
+        for (kw in keywords) {
+            val idx = lower.indexOf(kw)
+            if (idx < 0) continue
+            val window = lower.substring(idx + kw.length).take(40)
+            if (valueAfter.containsMatchIn(window) || tokenAfter.containsMatchIn(window)) return true
         }
         return false
     }
