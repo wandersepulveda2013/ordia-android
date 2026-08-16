@@ -977,7 +977,7 @@ object NaturalTaskParser {
      * Estos modificadores son evidencia de reloj inequívoca (no hay "9 más o menos
      * [personas]"): se cuentan en [hasClockEvidence] para el guard anti-cuenta (c.361).
      */
-    private val APPROX_TIME_SUFFIX = """(?:\s*(?:m[aá]s\s+o\s+menos|aproximadamente|y\s+pico))?"""
+    private val APPROX_TIME_SUFFIX = """(?:\s*(?:m[aá]s\s+o\s+menos|aproximadamente|y\s+pico|pasad[ao]s?))?"""
 
     /**
      * Resuelve la fracción sub-hora de un grupo de [timePatterns] en minutos (0..59).
@@ -3242,7 +3242,7 @@ object NaturalTaskParser {
             // para"; aquí la hora en punto SÍ se admite salvo tras sustantivo plural.
             val hasClockEvidence = mv.contains(":") || mv.contains("h") || // :MM o sufijo horas/hs/h
                 mv.contains("en punto") || // "a las 9 en punto": evidencia de reloj inequívoca
-                mv.contains("más o menos") || mv.contains("mas o menos") || mv.contains("aproximadamente") || mv.contains("y pico") || // aproximación post-hora
+                mv.contains("más o menos") || mv.contains("mas o menos") || mv.contains("aproximadamente") || mv.contains("y pico") || mv.contains("pasada") || // aproximación post-hora ("a las 9 pasadas")
                 match.groupValues.getOrNull(2)?.isNotBlank() == true || // :MM (grupo 2)
                 match.groupValues.getOrNull(3)?.let { it.lowercase().startsWith("y ") || it.lowercase().startsWith("menos ") } == true || // fracción
                 match.groupValues.getOrNull(4)?.isNotBlank() == true || // meridiem

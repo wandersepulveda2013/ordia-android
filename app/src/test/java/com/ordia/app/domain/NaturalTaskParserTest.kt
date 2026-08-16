@@ -11875,6 +11875,48 @@ class NaturalTaskParserTest {
         assertEquals(null, result.dueAt)
     }
 
+    // --- Sufijo de aproximaciÃ³n "pasadas"/"pasada" post-hora (ciclo 419) ---
+    // "a las 9 pasadas" = un poco despuÃ©s de las 9: forma cotidiana simÃ©trica del PREFIJO
+    // "pasadas las 9" (que ya resolvÃ­a [aproximateTimePatterns]). Antes el sufijo NO se
+    // reconocÃ­a y, en hora en punto sin meridiem ("a las 9 pasadas"), el guard anti-cuenta
+    // (c.361) tomaba "pasadas" por un sustantivo plural de cantidad y RECHAZABA la cita
+    // (dueAt=null y "pasadas" como residuo): la cita se OLVIDABA (P1 datos/evitar olvidos).
+    // Con meridiem ("a las 9 de la tarde pasadas") la hora sÃ­ se agendaba pero "pasadas"
+    // quedaba como residuo del tÃ­tulo. Ahora [APPROX_TIME_SUFFIX] consume "pasadas/pasada"
+    // como sufijo de aproximaciÃ³n y cuenta como evidencia de reloj en [hasClockEvidence].
+
+    @Test fun aLas9PasadasLimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("ReuniÃ³n a las 9 pasadas", now, zone)
+        assertEquals("ReuniÃ³n", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas9DeLaTardePasadasLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("ReuniÃ³n a las 9 de la tarde pasadas", now, zone)
+        assertEquals("ReuniÃ³n", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLaUnaPasadaLimpiaTituloYResuelve1h() {
+        val result = NaturalTaskParser.parse("ReuniÃ³n a la una pasada", now, zone)
+        assertEquals("ReuniÃ³n", result.title)
+        assertEquals(LocalTime.of(1, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas930PasadasResuelve930() {
+        val result = NaturalTaskParser.parse("ReuniÃ³n a las 9:30 pasadas", now, zone)
+        assertEquals("ReuniÃ³n", result.title)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // El guard anti-cuenta sigue activo sobre lo que siga al sufijo: "a las 9 pasadas
+    // cajas" no es gramatical, pero confirma que el sufijo da evidencia de reloj (la hora
+    // sÃ­ se agenda) sin desactivar el guard para el resto del tail. No es una cita limpia:
+    // el residuo "cajas" permanece, consistente con "a las 9 mÃ¡s o menos cajas".
+
+    // El uso demostrativo de "pasada" ("la semana pasada", "el viernes pasado") NO debe
+    // verse afectado: el sufijo sÃ³lo consume tras un [timePattern] que casÃ³ la hora.
+
     // --- Prefijo "casi a las/la" (ciclo 389) ---
     // "casi a las 9" = un poco antes de las 9. Es adverbio de aproximación temporal
     // puro (no admite lectura de cantidad: "casi a las 9 personas" no es gramatical),
