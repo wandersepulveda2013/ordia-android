@@ -104,14 +104,17 @@ object NaturalTaskParser {
         """(?i)\b(?:el\s+)?(primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?!\s+(?:del?\s+(?:mes|cada|este|esta|pr[oó]xim[oa]|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic)|todos\s+los|mensual))\b"""
     )
     // "el último viernes del mes" / "el primer lunes de agosto" / "el tercer viernes del mes que
-    // viene": ocurrencia ORDINAL de ese weekday en un mes (no la semana pasada, que es lo que
-    // resuelve previousWeekdayReversed al casar "el último viernes"). Más específico: exige el
-    // calificador "del mes"/"del mes que viene/próximo/entrante"/"de <mes>" tras el día. Se
-    // procesa ANTES que previousWeekdayReversed para consumir la frase entera (así el calificador
-    // no queda como residuo en el título y el día no se captura dos veces). Sin este patrón,
-    // "el último viernes del mes" caía en previousWeekdayReversed → viernes ANTERIOR (fecha
-    // equivocada) + "del mes" como basura en el título. Ordinales: último = última ocurrencia;
-    // primer/segundo/tercer/cuarto = N-ésima desde el inicio (todo mes tiene ≥4 de cada weekday).
+    // viene" / "el último viernes del mes pasado": ocurrencia ORDINAL de ese weekday en un mes
+    // (no la semana pasada, que es lo que resuelve previousWeekdayReversed al casar "el último
+    // viernes"). Más específico: exige el calificador "del mes"/"del mes que viene/próximo/
+    // entrante/pasado/anterior"/"de <mes>" tras el día. Se procesa ANTES que lastPeriodPattern
+    // y previousWeekdayReversed para consumir la frase entera (así el calificador no queda como
+    // residuo en el título, el día no se captura dos veces y "del mes pasado" NO lo roba
+    // lastPeriodPattern como "el mes pasado" suelto → fecha now−30d ignorando ordinal+weekday).
+    // Sin este patrón, "el último viernes del mes" caía en previousWeekdayReversed → viernes
+    // ANTERIOR (fecha equivocada) + "del mes" como basura en el título. Ordinales:
+    // último = última ocurrencia; primer/segundo/tercer/cuarto = N-ésima desde el inicio
+    // (todo mes tiene ≥4 de cada weekday).
     private val lastWeekdayOfMonthPattern = Regex(
         // Grupo 1: ordinal (último=-1 | primer/segundo/tercer/cuarto = N-ésimo desde el inicio).
         // Grupo 2: día de la semana (alternancia explícita: "el último día/informe del mes" NO
@@ -133,7 +136,7 @@ object NaturalTaskParser {
         // y emite MONTHLY, y aquí se captura el ordinal para anclar el motor. Simétrico del
         // puente "de" (que consume sólo "de" y deja "cada mes"). Sin conector de cadencia la
         // alternativa NO dispara → fecha suelta (no recurrente), sin regresión.
-        """(?i)(?<!\p{L})(?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+del?\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?(?:mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+)?)?((?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic))?(?:\s+del?\s+(\d{2,4}))?|(?=\s+(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|mensualidades?)\b))\b"""
+        """(?i)(?<!\p{L})(?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+del?\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+|pasad[oa]\s+|anterior\s+)?(?:mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante|pasad[oa]|anterior))?(?:\s+del?\s+)?)?((?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic))?(?:\s+del?\s+(\d{2,4}))?|(?=\s+(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|mensualidades?)\b))\b"""
     )
 
     /**
@@ -1672,11 +1675,39 @@ object NaturalTaskParser {
         // resolución de fecha posterior (weekendMatch != null).
         val weekendEarlyMatch = weekendPattern.find(working)
         weekendEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+        // "el último viernes del mes" / "el primer lunes de agosto" / "el tercer viernes del mes
+        // que viene" / "el último viernes del mes pasado": weekday ORDINAL del mes. Se detecta
+        // y borra ANTES que lastPeriodPattern y previousWeekdayReversedPattern para que el
+        // weekday no se capture como "último viernes" (viernes anterior), el calificador
+        // "del mes"/"de agosto"/"del mes pasado" no quede como residuo Y "del mes pasado" no
+        // lo robe lastPeriodPattern como "el mes pasado" suelto (→ fecha now−30d ignorando el
+        // ordinal+weekday). El patrón es específico (exige ordinal+weekday+calificador de mes),
+        // así que un "el mes pasado" aislado NO casa y lastPeriodPattern sigue manejándolo.
+        val lastWeekdayOfMonthMatch = lastWeekdayOfMonthPattern.find(working)
+        // Cadencia PRECEDENTE ("cada mes el primer lunes"): si el patrón directo no casó,
+        // se intenta el de cadencia-antes. Ambos son excluyentes por posición. Se captura el
+        // ordinal+weekday para anclar la recurrencia mensual; se borra SÓLO "el primer lunes"
+        // (grupo 1 del patrón precedente) preservando "cada mes"/"mensual" para que
+        // parseRecurrence emita MONTHLY.
+        val precedingCadenceOrdinalMatch =
+            if (lastWeekdayOfMonthMatch == null) precedingCadenceOrdinalPattern.find(working) else null
+        // Se consume el ordinal-weekday-mes AHORA (antes de lastPeriodPattern) para que la
+        // subfrase "del mes pasado"/"del mes que viene" no la robe lastPeriodPattern u otros
+        // patrones de período. La captura ordinalMonthly se construye tras consumir (usa los
+        // groupValues del match ya guardados, no el texto vivo).
+        if (lastWeekdayOfMonthMatch != null) {
+            working = working.replaceRange(lastWeekdayOfMonthMatch.range, " ")
+        } else if (precedingCadenceOrdinalMatch != null) {
+            val g = precedingCadenceOrdinalMatch.groups[1]!!.range
+            working = working.replaceRange(g, " ")
+        }
         // "la semana/el mes/el año pasado": período anterior. Se detecta y borra ANTES
         // que previousWeekdayPattern, que de otro modo capturaría "mes"/"semana" como
         // si fuera un día de semana ("el mes pasado" -> grupo1="mes", no es día ->
         // sin fecha y la frase ya borrada -> dueAt=null). Así se captura como período
-        // (resta 1 semana/mes/año) y se combina con hora explícita.
+        // (resta 1 semana/mes/año) y se combina con hora explícita. Se procesa DESPUÉS
+        // de lastWeekdayOfMonthPattern: si la frase era "el último viernes del mes
+        // pasado", aquél ya consumió la totalidad y aquí no queda nada por robar.
         val lastPeriodMatch = lastPeriodPattern.find(working)
         val lastPeriodDueAt = lastPeriodMatch?.let { m ->
             val text = m.value.lowercase()
@@ -1689,18 +1720,6 @@ object NaturalTaskParser {
             now - days * 24 * 60 * 60_000L
         }
         lastPeriodMatch?.let { working = working.replaceRange(it.range, " ") }
-        // "el último viernes del mes" / "el primer lunes de agosto" / "el tercer viernes del mes
-        // que viene": weekday ORDINAL del mes. Se detecta y borra ANTES que
-        // previousWeekdayReversedPattern para que el weekday no se capture como "último viernes"
-        // (viernes anterior) y el calificador "del mes"/"de agosto" no quede como residuo.
-        val lastWeekdayOfMonthMatch = lastWeekdayOfMonthPattern.find(working)
-        // Cadencia PRECEDENTE ("cada mes el primer lunes"): si el patrón directo no casó,
-        // se intenta el de cadencia-antes. Ambos son excluyentes por posición. Se captura el
-        // ordinal+weekday para anclar la recurrencia mensual; se borra SÓLO "el primer lunes"
-        // (grupo 1 del patrón precedente) preservando "cada mes"/"mensual" para que
-        // parseRecurrence emita MONTHLY.
-        val precedingCadenceOrdinalMatch =
-            if (lastWeekdayOfMonthMatch == null) precedingCadenceOrdinalPattern.find(working) else null
         // Captura ordinal-mensual unificada (cualquiera de las dos formas). La directa pone
         // ordinal en grupo 1 y weekday en grupo 2; la precedente los pone en 2 y 3 (su grupo 1
         // es el span "el primer lunes"). Se normalizan a campos comunes para anclar el motor.
@@ -1712,6 +1731,9 @@ object NaturalTaskParser {
                     t.contains("que viene") || t.contains("que entra") ||
                         t.contains("próxim") || t.contains("proxim") || t.contains("entrante")
                 },
+                isPrevious = lastWeekdayOfMonthMatch.value.lowercase().let { t ->
+                    t.contains("pasad") || t.contains("anterior")
+                } && lastWeekdayOfMonthMatch.groupValues[3].isBlank(),
                 monthName = lastWeekdayOfMonthMatch.groupValues[3].takeIf { it.isNotBlank() },
                 yearStr = lastWeekdayOfMonthMatch.groupValues[4].takeIf { it.isNotBlank() }
             )
@@ -1719,16 +1741,11 @@ object NaturalTaskParser {
                 ordinalWord = precedingCadenceOrdinalMatch.groupValues[2],
                 weekdayWord = precedingCadenceOrdinalMatch.groupValues[3],
                 isNext = false,
+                isPrevious = false,
                 monthName = null,
                 yearStr = null
             )
             else -> null
-        }
-        if (lastWeekdayOfMonthMatch != null) {
-            working = working.replaceRange(lastWeekdayOfMonthMatch.range, " ")
-        } else if (precedingCadenceOrdinalMatch != null) {
-            val g = precedingCadenceOrdinalMatch.groups[1]!!.range
-            working = working.replaceRange(g, " ")
         }
         // Ordinal + weekday SUELTO sin calificador de mes ("reunión el primer lunes",
         // "el segundo martes", "el tercer jueves"): los patrones ordinales-mensuales
@@ -2232,6 +2249,7 @@ object NaturalTaskParser {
                 r.frequency == RecurrenceFrequency.NONE &&
                 ordinalMonthly != null &&
                 !ordinalMonthly.isNext &&
+                !ordinalMonthly.isPrevious &&
                 ordinalMonthly.monthName == null &&
                 ordinalMonthly.yearStr == null
             ) {
@@ -3177,6 +3195,7 @@ object NaturalTaskParser {
         val ordinalWord: String,
         val weekdayWord: String,
         val isNext: Boolean,
+        val isPrevious: Boolean,
         val monthName: String?,
         val yearStr: String?
     )
@@ -4202,13 +4221,15 @@ object NaturalTaskParser {
             "cuarto" -> 4
             else -> -1
         }
-        // "del mes que viene/que entra/próximo/entrante" → mes siguiente; "este mes" NO.
+        // "del mes que viene/que entra/próximo/entrante" → mes siguiente; "del mes pasado/
+        // anterior" → mes anterior (fecha vencida honesta, sin roll al futuro); "este mes" NO.
         val isNext = capture.isNext
+        val isPrevious = capture.isPrevious
         val monthName = capture.monthName?.lowercase()
         val yearStr = capture.yearStr
         val namedMonth = monthName?.let { months[it] }
         // Mes nombrado: año actual salvo explícito (2 cifras → 2000+). "del mes" (sin
-        // mes-nombre ni isNext) = mes en curso (vencida honesta si ya pasó).
+        // mes-nombre ni isNext ni isPrevious) = mes en curso (vencida honesta si ya pasó).
         var year = when {
             yearStr == null -> today.year
             yearStr.toIntOrNull()?.let { it < 100 } == true -> 2000 + yearStr.toInt()
@@ -4217,9 +4238,14 @@ object NaturalTaskParser {
         val month = when {
             namedMonth != null -> namedMonth
             isNext -> if (today.monthValue == 12) { year = today.year + 1; 1 } else today.monthValue + 1
+            isPrevious -> if (today.monthValue == 1) { year = today.year - 1; 12 } else today.monthValue - 1
             else -> today.monthValue
         }
         var date = nthWeekdayInMonth(year, month, ordinal, weekday)
+        // "del mes pasado/anterior" es una fecha PASADA explícita (el usuario registra una
+        // tarea vencida refiriéndose al mes previo): se mantiene honesta en el pasado, sin
+        // roll al año siguiente ni avance de recurrencia (igual que "ayer"/"el jueves pasado").
+        if (isPrevious) return date
         // Mes nombrado (no "del mes"/"este mes"/isNext) ya pasado SIN año explícito: si es un
         // mes DISTINTO al actual (p. ej. "de enero" dicho en agosto), se recalcula en el año
         // siguiente (no agendar en pasado). Si es el mes ACTUAL ("primer lunes de agosto" dicho

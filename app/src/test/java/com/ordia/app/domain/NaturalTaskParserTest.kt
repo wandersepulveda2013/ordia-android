@@ -1004,6 +1004,42 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "el último viernes del mes pasado" / "del mes anterior": ocurrencia ORDINAL del weekday
+    // en el mes PREVIO, como fecha pasada honesta (tarea vencida registrada refiriéndose al
+    // mes anterior). Antes lastPeriodPattern robaba "del mes pasado" como "el mes pasado"
+    // suelto → dueAt = now−30d ignorando ordinal+weekday (fecha equivocada + título corrupto).
+    @Test fun ultimoViernesDelMesPasadoEsFechaOrdinalEnMesPrevio() {
+        val result = NaturalTaskParser.parse("pago el último viernes del mes pasado", now, zone)
+        assertEquals("pago", result.title)
+        // No se promueve a MONTHLY: es una fecha pasada única (no "cada mes").
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(java.time.DayOfWeek.FRIDAY, due.dayOfWeek)
+        // Último viernes de junio 2026 = 2026-06-26.
+        assertEquals(LocalDate.of(2026, 6, 26), due)
+    }
+
+    // Variante con tilde y "mes anterior" (sinónimo).
+    @Test fun ultimoViernesDelMesAnteriorConTildeEsFechaOrdinalEnMesPrevio() {
+        val result = NaturalTaskParser.parse("pago el último viernes del mes anterior", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(java.time.DayOfWeek.FRIDAY, due.dayOfWeek)
+        assertEquals(LocalDate.of(2026, 6, 26), due)
+    }
+
+    // Ordinal no-último + mes pasado: "primer lunes del mes pasado" = 1er lunes de junio.
+    @Test fun primerLunesDelMesPasadoEsPrimerLunesDeJunio() {
+        val result = NaturalTaskParser.parse("reunión el primer lunes del mes pasado", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(java.time.DayOfWeek.MONDAY, due.dayOfWeek)
+        // 1er lunes de junio 2026 = 2026-06-01.
+        assertEquals(LocalDate.of(2026, 6, 1), due)
+    }
+
     @Test fun todosLosDiasSigueSiendoDailyInterval1() {
         val result = NaturalTaskParser.parse("Revisar todos los días", now, zone)
         assertEquals("Revisar", result.title)
