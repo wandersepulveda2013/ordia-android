@@ -362,6 +362,13 @@ fun TodayScreen(
                             verdict == R.string.summary_load_overloaded && summary.overdue > 0 -> {
                                 stringResource(R.string.summary_load_overloaded_overdue, summary.overdue)
                             }
+                            // Sobrecarga SOLO por olvidos agendados: no hay nada
+                            // de hoy posponible (suggestion==null) ni vencidas.
+                            // El genérico "dejar para mañana" es dañino aquí (un
+                            // olvido se agrava al posponerlo); nombra la causa real.
+                            verdict == R.string.summary_load_overloaded && summary.missedStart > 0 -> {
+                                stringResource(R.string.summary_load_overloaded_missed_start, summary.missedStart)
+                            }
                             else -> stringResource(verdict)
                         }
                         Text(
@@ -376,6 +383,28 @@ fun TodayScreen(
                                         it.clickable { vm.deferTaskToTomorrow(suggestion.taskId) }
                                     } else it
                                 }
+                        )
+                    }
+                    // Cola informativa del "3.er olvido" (missed-start) en la
+                    // tarjeta: el olvido silencioso ya cuenta como carga del día
+                    // (c.247), pero callarlo rompe la paridad con overdue y
+                    // overdueCommitments (que sí se nombran). Aparece cuando hay
+                    // olvidos y NO estamos ya en el veredicto saturado-por-olvidos
+                    // (que nombra la causa arriba) para no duplicar el mensaje.
+                    // Toca para ir a "¿Qué hago ahora?", donde el olvido se
+                    // recupera como "Se te pasó su hora" (c.243/WhatNow paridad).
+                    val showMissedStartInfo = summary.missedStart > 0 &&
+                        !(verdict == R.string.summary_load_overloaded &&
+                            summary.deferralSuggestion == null &&
+                            summary.overdue == 0)
+                    if (showMissedStartInfo) {
+                        Text(
+                            stringResource(R.string.today_missed_start, summary.missedStart),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .padding(top = 6.dp)
+                                .clickable { onOpenFocus() }
                         )
                     }
                     // Cuarta clase de olvido como cola informativa en la tarjeta

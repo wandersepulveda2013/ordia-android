@@ -37,6 +37,25 @@
     -->
     <string name="summary_load_overloaded_overdue">No cabe todo hoy y hay %1$d vencida(s). Hazlas hoy o reprograma con intención, no las pospongas.</string>
     <!--
+    Cuando el día está saturado SOLO por olvidos agendados (compromisos cuyo
+    `startAt` ya pasó y aún no vencen → "olvido silencioso"): no hay nada de hoy
+    que posponer (mostDeferrableTask devolvió null) ni vencidas que nombrar.
+    Decir "dejar para mañana" aquí es el mismo consejo dañino que c.155 corrigió
+    para vencidas: posponer un olvido lo agrava. El mensaje nombra la causa real
+    y replantea la decisión honesta (recuperar el control, no aplazar ciego).
+    -->
+    <string name="summary_load_overloaded_missed_start">No cabe todo hoy: hay %1$d pendiente(s) cuya hora ya pasó. Recupéralas hoy o reprograma con intención, no las pospongas.</string>
+    <!--
+    Cola informativa del "3.er olvido" (missed-start) en la tarjeta de resumen.
+    El olvido silencioso ya CUENTA como carga del día (c.247 lo suma al
+    veredicto), pero callarlo hace que un día saturado por olvidos lea solo "no
+    cabe todo" sin nombrar la causa —rompiendo la paridad con overdue (vencidas)
+    y overdueCommitments (compromisos de conversación), que sí se nombran. Aparece
+    cuando hay olvidos y el veredicto de carga no es el saturado-por-olvidos
+    (para no duplicar el mensaje anterior), como aviso honesto de recuperación.
+    -->
+    <string name="today_missed_start">%1$d pendiente(s) cuya hora ya pasó. Recupera el control y hazlas hoy.</string>
+    <!--
     Cola informativa del "4º olvido" (compromiso vencido de conversación) en la
     tarjeta de resumen del día. Un compromiso no es tarea hasta convertirse, así
     que no influye en el veredicto de carga; aparece como aviso honesto cuando lo

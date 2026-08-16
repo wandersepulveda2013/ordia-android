@@ -46,7 +46,21 @@ data class DaySummary(
      * (c.286), el nudge del guardián (c.288), la tarjeta de insight (c.289) y la
      * planificación (c.294). Fuente única de verdad: [CommitmentRules.overduePendingSorted].
      */
-    val overdueCommitments: Int = 0
+    val overdueCommitments: Int = 0,
+    /**
+     * "Olvido silencioso": tareas raíz activas cuyo hueco planificado (`startAt`)
+     * ya pasó sin completarse y aún no vencen (`isMissedStart`, el "3.er olvido"
+     * de Ordía). Ya cuenta como CARGA en `dayLoad` (c.247 lo suma a `loadMinutes`),
+     * pero NO se nombraba en la tarjeta: a diferencia de [overdue] y
+     * [overdueCommitments], un día saturado SOLO por olvidos agendados leía un
+     * veredicto que ocultaba qué inflaba la carga, y —sin tarea de hoy posponible—
+     * caía al genérico "dejar para mañana" (c.155), consejo dañino porque posponer
+     * un olvido lo agrava (`mostDeferrableTask` ya excluye missed-start). Este
+     * conteo permite a la tarjeta nombrar el olvido honestamente (paridad con
+     * overdue/overdueCommitments). Cuenta solo raíces (`parentTaskId == null`),
+     * igual que [overdue], para no inflar el ánimo ni el veredicto con subtareas.
+     */
+    val missedStart: Int = 0
 )
 
 /**
@@ -197,6 +211,10 @@ object SummaryEngine {
         // verdad compartida con el asistente (c.286), el nudge (c.288), el insight
         // (c.289) y la planificación (c.294).
         val overdueCommitments = CommitmentRules.overduePendingSorted(commitments, now).size
+        // Conteo de "olvido silencioso" para la tarjeta: missedStartTasks ya se
+        // calcula arriba (suma a loadMinutes). Se expone su tamaño (raíces, ya
+        // filtrado) para nombrarlo honestamente, igual que overdue/overdueCommitments.
+        val missedStart = missedStartTasks.size
 
         return DaySummary(
             completedToday = completedToday,
@@ -208,7 +226,8 @@ object SummaryEngine {
             weekDailyAverage = weekDailyAverage,
             dayLoad = dayLoad,
             deferralSuggestion = deferralSuggestion,
-            overdueCommitments = overdueCommitments
+            overdueCommitments = overdueCommitments,
+            missedStart = missedStart
         )
     }
 

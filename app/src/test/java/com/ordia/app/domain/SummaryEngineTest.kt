@@ -962,4 +962,102 @@ class SummaryEngineTest {
         val s = SummaryEngine.summarize(emptyList(), now, zone)
         assertEquals(0, s.overdueCommitments)
     }
+
+    // ---------------------------------------------------------------------------
+    // c.406 — el "olvido silencioso" (missed-start) ya CUENTA como carga del día
+    // (c.247 lo suma a loadMinutes), pero la tarjeta de resumen NUNCA lo nombra:
+    // a diferencia de overdue (nombra las vencidas) y overdueCommitments (nombra
+    // los compromisos de conversación), un día saturado SOLO por olvidos agendados
+    // (startAt pasado, dueAt futuro → no vencidos) leía un veredicto que ocultaba
+    // qué estaba inflando la carga. Peor: cuando la saturación venía EXCLUSIVAMENTE
+    // de olvidos (sin tarea de hoy posponible, sin vencidas), mostDeferrableTask
+    // devolvía null y el veredicto caía al genérico "Elige qué dejar para mañana"
+    // —el mismo consejo dañino que c.155 corrigió para vencidas, porque posponer
+    // un olvido lo agrava (mostDeferrableTask ya excluye missed-start de las
+    // candidatas). Aquí cerramos la mentira por omisión: DaySummary expone el
+    // conteo de missed-start para que la tarjeta pueda nombrarlo (paridad con
+    // overdueCommitments/overdue), sin nueva pantalla ni botón.
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun missedStart_countNamesSilentForgettingInSummary() {
+        // 2 olvidos puros (startAt ayer, dueAt futuro → isMissedStart, no vencidos)
+        // de 120 min. La tarjeta debe poder nombrarlos (cuenta honesta), igual
+        // que nombra overdue y overdueCommitments.
+        val tasks = listOf(
+            task(1, startAt = at(today.minusDays(1), 15), dueAt = at(today.plusDays(1), 18), durationMinutes = 120),
+            task(2, startAt = at(today.minusDays(2), 9), dueAt = at(today.plusDays(2), 18), durationMinutes = 120)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(0, s.overdue) // no vencidos
+        assertEquals(2, s.missedStart) // los 2 olvidos nombrados
+    }
+
+    @Test
+    fun missedStart_pureOverloadHasNoDeferralSuggestionAndNamesForgottenWork() {
+        // now=12:00 → 360 min libres. 3 olvidos de 120 min (360 min exactos) + 1
+        // tarea de hoy de 60 min (que SÍ es posponible: dueAt hoy, no vencida, no
+        // olvidada) = 420 > 360 → OVERLOADED. La saturación proviene en gran parte
+        // de los olvidos. La sugerencia nombra la tarea de hoy (no vencida) —esa
+        // parte es correcta—, pero el veredicto también debe poder nombrar los
+        // olvidos para no mutar el conteo honesto. Aquí la clave es que la
+        // presencia de missedStart sea visible aunque haya sugerencia.
+        val tasks = listOf(
+            task(1, dueAt = at(today, 17), durationMinutes = 60, priority = TaskPriority.LOW, title = "Hoy"),
+            task(2, startAt = at(today.minusDays(1), 15), dueAt = at(today.plusDays(1), 18), durationMinutes = 120),
+            task(3, startAt = at(today.minusDays(2), 9), dueAt = at(today.plusDays(2), 18), durationMinutes = 120),
+            task(4, startAt = at(today.minusDays(3), 9), dueAt = at(today.plusDays(3), 18), durationMinutes = 120)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+        assertEquals(0, s.overdue)
+        assertEquals(3, s.missedStart) // los olvidos nombrados junto a la sugerencia
+    }
+
+    @Test
+    fun missedStart_pureOverloadWithNoDeferrableTaskLeavesSuggestionNull() {
+        // 5 olvidos de 120 min (600 min) > 360 libres → OVERLOADED puro por
+        // olvidos. NO hay ninguna tarea de hoy posponible (sólo olvidos) →
+        // mostDeferrableTask opera sobre remainingTodayTasks vacío → null. Este es
+        // el caso donde el veredicto genérico "dejar para mañana" era dañino: no
+        // hay nada de hoy que aplazar y los olvidos no se posponen. El conteo
+        // missedStart permite a la UI nombrar el olvido en vez de invitar al
+        // aplazamiento ciego.
+        val tasks = listOf(
+            task(1, startAt = at(today.minusDays(1), 15), dueAt = at(today.plusDays(1), 18), durationMinutes = 120),
+            task(2, startAt = at(today.minusDays(2), 9), dueAt = at(today.plusDays(2), 18), durationMinutes = 120),
+            task(3, startAt = at(today.minusDays(3), 9), dueAt = at(today.plusDays(3), 18), durationMinutes = 120),
+            task(4, startAt = at(today.minusDays(4), 9), dueAt = at(today.plusDays(4), 18), durationMinutes = 120),
+            task(5, startAt = at(today.minusDays(5), 9), dueAt = at(today.plusDays(5), 18), durationMinutes = 120)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(DayLoad.OVERLOADED, s.dayLoad)
+        assertEquals(0, s.overdue)
+        assertEquals(5, s.missedStart)
+        assertEquals(null, s.deferralSuggestion) // nada de hoy posponible
+    }
+
+    @Test
+    fun missedStart_countsOnlyLogicalRootTasksNotSubtasks() {
+        // Simétrico a overdue/subtareas (c.46/c.20): un padre olvidado + 3
+        // subtareas (también isMissedStart) debe contar como 1, no 4. Inflar
+        // el conteo de olvidos conlleva el mismo daño que inflar overdue: un
+        // ánimo degradado y un veredicto engañoso ("5 olvidos" cuando hay 1).
+        val tasks = listOf(
+            task(1, startAt = at(today.minusDays(1), 15), dueAt = at(today.plusDays(1), 18), durationMinutes = 120),
+            task(2, startAt = at(today.minusDays(1), 15), dueAt = at(today.plusDays(1), 18), durationMinutes = 30, title = "Sub1").copy(parentTaskId = 1),
+            task(3, startAt = at(today.minusDays(1), 15), dueAt = at(today.plusDays(1), 18), durationMinutes = 30, title = "Sub2").copy(parentTaskId = 1),
+            task(4, startAt = at(today.minusDays(1), 15), dueAt = at(today.plusDays(1), 18), durationMinutes = 30, title = "Sub3").copy(parentTaskId = 1)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(1, s.missedStart)
+    }
 }
