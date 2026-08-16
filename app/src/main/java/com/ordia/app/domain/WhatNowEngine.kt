@@ -14,6 +14,7 @@ enum class WhatNowReason {
     DUE_TODAY,
     URGENT,
     HIGH_PRIORITY,
+    STALE_INBOX,
     NEXT_INBOX,
     SCHEDULED_LATER
 }
@@ -80,6 +81,7 @@ object WhatNowEngine {
         WhatNowReason.DUE_TODAY -> "vence hoy"
         WhatNowReason.URGENT -> "es urgente"
         WhatNowReason.HIGH_PRIORITY -> "es prioritaria"
+        WhatNowReason.STALE_INBOX -> "lleva una semana o más en la bandeja sin agendar"
         WhatNowReason.SCHEDULED_LATER -> "está programada para más tarde"
         WhatNowReason.NEXT_INBOX -> "es lo siguiente de la bandeja"
     }
@@ -116,6 +118,15 @@ object WhatNowEngine {
         isScheduledLater(task, now) -> WhatNowReason.SCHEDULED_LATER
         task.priority == TaskPriority.URGENT -> WhatNowReason.URGENT
         task.priority == TaskPriority.HIGH -> WhatNowReason.HIGH_PRIORITY
+        // Una captura de la bandeja arrinconada (sin dueAt/startAt y ≥ 7 días
+        // esperando) se etiqueta como olvidada antes de caer al neutro NEXT_INBOX:
+        // What Now es la superficie principal de «haz esto ahora» y ocultar el
+        // tercer olvido bajo «es lo siguiente de la bandeja» subestimaba el riesgo
+        // de perderla del todo. Coincide con [TaskRules.timeRank] (rank 0: stale o
+        // inbox caen al mismo escalón; aquí desempata la honestidad del motivo).
+        // Urgente/Alta ya se etiquetaron arriba: la prioridad explícita del usuario
+        // prevalece sobre la antigüedad para una captura priorizada.
+        TaskRules.isStaleInbox(task, now, zone) -> WhatNowReason.STALE_INBOX
         else -> WhatNowReason.NEXT_INBOX
     }
 

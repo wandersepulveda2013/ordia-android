@@ -5,6 +5,7 @@ import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
@@ -531,6 +532,67 @@ class WhatNowEngineTest {
 
         assertEquals(1L, suggestion!!.task.id)
         assertEquals(WhatNowReason.MISSED_START, suggestion.reason)
+    }
+
+    /**
+     * c.419: una captura de la bandeja arrinconada (≥ 7 días sin dueAt ni
+     * startAt, prioridad NORMAL) se etiqueta como STALE_INBOX en What Now, no
+     * como el neutro NEXT_INBOX. What Now es la superficie principal de «haz
+     * esto ahora»: antes ocultaba el tercer olvido bajo «es lo siguiente de la
+     * bandeja», subestimando el riesgo de perder la idea del todo.
+     */
+    @Test
+    fun staleInboxCaptureLabeledStaleNotNeutralInbox() {
+        val stale = task(1, "Idea arrinconada").copy(createdAt = now - 10 * 86_400_000L)
+
+        val suggestion = WhatNowEngine.suggest(listOf(stale), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.STALE_INBOX, suggestion.reason)
+    }
+
+    /**
+     * c.419: una captura FRESCA (creada hoy, sin fecha) sigue siendo
+     * NEXT_INBOX — la etiqueta de olvido no debe dispararse para capturas
+     * que aún no han envejecido (anti falso positivo).
+     */
+    @Test
+    fun freshInboxCaptureStillNeutralNextInbox() {
+        val fresh = task(1, "Idea nueva").copy(createdAt = now)
+
+        val suggestion = WhatNowEngine.suggest(listOf(fresh), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.NEXT_INBOX, suggestion.reason)
+    }
+
+    /**
+     * c.419: una captura arrinconada marcada URGENTE se etiqueta URGENT, no
+     * STALE_INBOX — la prioridad explícita del usuario prevalece sobre la
+     * antigüedad; el olvido ya está cubierto por la etiqueta de urgencia.
+     */
+    @Test
+    fun urgentStaleCaptureLabeledUrgentNotStale() {
+        val staleUrgent = task(1, "Idea urgente y vieja", TaskPriority.URGENT)
+            .copy(createdAt = now - 30 * 86_400_000L)
+
+        val suggestion = WhatNowEngine.suggest(listOf(staleUrgent), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.URGENT, suggestion.reason)
+    }
+
+    /**
+     * c.419: reasonLabel(STALE_INBOX) describe honestamente el olvido (menciona
+     * «bandeja»), para que el asistente («qué hago ahora?») no llame IA a
+     * un mero «es lo siguiente» cuando en realidad está recuperando una
+     * captura a punto de perderse.
+     */
+    @Test
+    fun staleInboxReasonLabelIsHonest() {
+        val label = WhatNowEngine.reasonLabel(WhatNowReason.STALE_INBOX)
+
+        assertTrue(label.contains("bandeja"))
     }
 
 }

@@ -524,6 +524,7 @@ private fun whatNowReasonLabel(reason: WhatNowReason): String = when (reason) {
     WhatNowReason.DUE_TODAY -> stringResource(R.string.what_now_reason_due_today)
     WhatNowReason.URGENT -> stringResource(R.string.what_now_reason_urgent)
     WhatNowReason.HIGH_PRIORITY -> stringResource(R.string.what_now_reason_high)
+    WhatNowReason.STALE_INBOX -> stringResource(R.string.what_now_reason_stale_inbox)
     WhatNowReason.NEXT_INBOX -> stringResource(R.string.what_now_reason_inbox)
     WhatNowReason.SCHEDULED_LATER -> stringResource(R.string.what_now_reason_scheduled_later)
 }

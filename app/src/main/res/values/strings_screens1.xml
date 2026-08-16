@@ -16,6 +16,7 @@
     <string name="what_now_reason_due_today">Vence hoy</string>
     <string name="what_now_reason_urgent">Prioridad urgente</string>
     <string name="what_now_reason_high">Prioridad alta</string>
+    <string name="what_now_reason_stale_inbox">Arrinconada en la bandeja</string>
     <string name="what_now_reason_inbox">Primera de la Bandeja</string>
     <string name="what_now_reason_scheduled_later">Programada para más tarde</string>
     <string name="what_now_empty">No hay nada pendiente ahora. Bien hecho.</string>
