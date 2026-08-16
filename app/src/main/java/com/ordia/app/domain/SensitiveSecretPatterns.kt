@@ -242,12 +242,21 @@ object SensitiveSecretPatterns {
             if (kw.value.lowercase().contains("cnpj") &&
                 cnpjValue.containsMatchIn(window) &&
                 matchesCnpjChecksum(window)) return true
+            // c.327: RUT (Rol Unico Tributario, Chile). 7-8 digitos + digito
+            // verificador (0-9 o K) modulo-11 con la serie [2,3,4,5,6,7]. Es el
+            // identificador nacional unico de Chile: aparece en toda factura,
+            // contrato y chat chileno. Se exige palabra-clave "rut" + el
+            // checksum es el desambiguador de precision (un valor con digito de
+            // control incorrecto no se bloquea). Misma forma que DNI/CPF/CUIT.
+            if (kw.value.lowercase().contains("rut") &&
+                rutValue.containsMatchIn(window) &&
+                matchesRutChecksum(window)) return true
         }
         return false
     }
 
     private val personalIdKeyword = Regex(
-        """(?i)\b(?:curp|nss|ine|credencial\s+de\s+elector|n[uú]mero\s+de\s+seguro\s+social|seguro\s+social|pasaporte|licencia(?:\s+de\s+conducir)?|rfc|dni|nie|nif|cpf|cnpj|cuit|cuil)\b"""
+        """(?i)\b(?:curp|nss|ine|credencial\s+de\s+elector|n[uú]mero\s+de\s+seguro\s+social|seguro\s+social|pasaporte|licencia(?:\s+de\s+conducir)?|rfc|dni|nie|nif|cpf|cnpj|cuit|cuil|rut)\b"""
     )
     private val nssValue = Regex("""\b\d{11}\b""")
     private val curpValue = Regex("""\b[A-Z]{4}\d{6}[A-Z0-9]{6}\d{2}\b""")
@@ -372,6 +381,46 @@ object SensitiveSecretPatterns {
         val d1 = dv(digits.substring(0, 12), w1)
         val d2 = dv(digits.substring(0, 12) + d1.toString(), w2)
         return d1 == digits[12].digitToInt() && d2 == digits[13].digitToInt()
+    }
+
+    // â”€â”€ RUT (Rol Unico Tributario, Chile) (c.327) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // 7-8 digitos base + 1 digito verificador (0-9 o K), modulo-11 con la serie
+    // [2,3,4,5,6,7] aplicada de derecha a izquierda. Formatos: "12.345.678-5",
+    // "12345678-5", "123456785", "7.654.321-6", "76543216". La regex admite
+    // puntos (miles) y guion opcional antes del verificador; deja que el checksum
+    // descarte los invalidos. Se ancla por palabra-clave "rut".
+    private val rutValue = Regex("""\b(?:\d{1,3}(?:\.\d{3}){1,2}|\d{7,8})[-]?[0-9Kk]\b""")
+
+    /**
+     * `true` si [window] contiene un RUT chileno de 7-8 digitos con su digito
+     * verificador modulo-11 correcto. La validacion del checksum es el
+     * desambiguador de precision: una secuencia con verificador incorrecto
+     * (p.ej. una referencia) no se bloquea. A diferencia de CPF/CNPJ, un RUT
+     * "11.111.111-1" (todos iguales) es valido -> no hay guarda anti-all-iguales.
+     */
+    private fun matchesRutChecksum(window: String): Boolean {
+        return rutValue.findAll(window).any { match ->
+            val raw = match.value
+            val dvChar = raw.last().uppercaseChar()
+            val base = raw.dropLast(1).filter(Char::isDigit)
+            base.length in 7..8 && passesRutChecksum(base, dvChar)
+        }
+    }
+
+    /** RUT (Chile): serie [2,3,4,5,6,7] derecha-a-izquierda; residuo 10 -> K, 11 -> 0. */
+    private fun passesRutChecksum(base: String, dvChar: Char): Boolean {
+        val series = intArrayOf(2, 3, 4, 5, 6, 7)
+        var sum = 0
+        for (i in base.indices) {
+            sum += base[base.length - 1 - i].digitToInt() * series[i % 6]
+        }
+        val r = 11 - (sum % 11)
+        val expected = when (r) {
+            11 -> '0'
+            10 -> 'K'
+            else -> r.digitToChar()
+        }
+        return expected == dvChar
     }
 
     /**

@@ -1101,7 +1101,18 @@ class CommitmentEngineTest {
             // c.326: CNPJ (Brasil, 14 dígitos, 2 verificadores mod-11). Valid:
             // 11.222.333/0001-81. Formato con barra de rama.
             "CNPJ 11.222.333/0001-81",
-            "CNPJ 11222333000181"
+            "CNPJ 11222333000181",
+            // c.327: RUT (Rol Único Tributario, Chile, 7-8 dígitos + 1 verificador
+            // mod-11 serie [2,3,4,5,6,7]; 10->K, 11->0). Valid: 12.345.678-5,
+            // 16.894.365-2, 11.111.111-1, 7.654.321-6, 10.000.013-K. Con puntos,
+            // pelado, con guion y sin guion; verificador alfanumérico K.
+            "mi RUT es 12.345.678-5",
+            "RUT 16.894.365-2",
+            "RUT 123456785",
+            "el rut del cliente 11.111.111-1",
+            "anota mi rut 7.654.321-6 porfa",
+            "mi RUT 76543216",
+            "mi RUT es 10.000.013-K"
         )
         leaks.forEach { text ->
             assertTrue("PII debe bloquearse en persist: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
@@ -1160,14 +1171,32 @@ class CommitmentEngineTest {
             "CPF 529.982.247-26",       // verificador incorrecto (25 -> 26)
             "CUIT 30-50001091-3",       // verificador incorrecto (2 -> 3)
             "CNPJ 11.222.333/0001-82",  // verificador incorrecto (81 -> 82)
+            // c.327: RUT con checksum INCORRECTO + palabra-clave presente -> no es
+            // un RUT válido, no debe bloquearse (precisión). 12.345.678->5 (no 9),
+            // 7.654.321->6 (no 0), 10.000.013->K (no 2). Letra A como verificador
+            // no es válida (solo 0-9/K).
+            "RUT 12.345.678-9",         // verificador incorrecto (5 -> 9)
+            "RUT 7.654.321-0",          // verificador incorrecto (6 -> 0)
+            "RUT 10.000.013-2",         // verificador incorrecto (K -> 2)
+            "RUT 12345678A",            // verificador letra no-K (A no es válido)
             // c.326: valor de 11/14 digitos SIN palabra-clave "cpf/cnpj/cuit"
             // -> referencia/telefono, no identificador fiscal.
             "referencia 52998224725 en la factura",
             "pedido 11222333000181 confirmado",
+            // c.327: valor de 7-8 dígitos + verificador SIN palabra-clave "rut"
+            // -> referencia, no RUT.
+            "referencia 123456785 en la factura",
+            "pedido 76543216 confirmado",
             // c.326: palabra-clave pelada sin valor estructurado no bloquea.
             "tengo que tramitar el CPF la semana que viene",
             "el CNPJ de la empresa lo busco luego",
-            "mi CUIT aún no me acuerdo"
+            "mi CUIT aún no me acuerdo",
+            // c.327: palabra-clave "rut" pelada sin valor estructurado no bloquea.
+            // "fruta"/"ruta"/"bruto" contienen "rut" pero no como palabra aislada.
+            "tengo que tramitar el RUT la semana que viene",
+            "mi rut aún no me acuerdo",
+            "comprar fruta y verdura",
+            "toma la ruta por la montaña"
         )
         innocent.forEach { text ->
             assertFalse("falso positivo PII en persist: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
