@@ -11895,4 +11895,50 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Comprar apenas a las 3 cajas", now, zone)
         assertEquals(null, result.dueAt)
     }
+
+    // --- "pasadas las/la N" (ciclo c.398) ---
+    // "pasadas las N" = un poco después de las N (aproximación post-hora, como "y pico"
+    // de c.393). Antes producía dueAt=null → cita olvidada. Es adverbio temporal puro
+    // antes de "las N" (sin "a" intermedio, a diferencia de "casi a las"/"justo a las"):
+    // el rewriter consume "pasadas " y reescribe a "a " → "a las N", reutilizando
+    // [timePatterns] (resolución + limpieza del título). El guard anti-cuenta (c.361)
+    // sigue activo tras la reescritura: "pasadas las 9 cajas" → "a las 9 cajas" →
+    // rechazado por followedByCountNoun (uso de cuenta forzado, no cotidiano).
+
+    @Test fun pasadasLas9LimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Reunión pasadas las 9", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun pasadasLasNueveLimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Reunión pasadas las nueve", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun pasadasLas9DeLaNocheLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("Cita pasadas las 9 de la noche", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun pasadaLaUnaPmLimpiaTituloYResuelve13h() {
+        val result = NaturalTaskParser.parse("Almuerzo pasada la una pm", now, zone)
+        assertEquals("Almuerzo", result.title)
+        assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // El guard anti-cuenta sigue activo tras reescribir "pasadas " → "a ":
+    // "pasadas las 9 cajas" → "a las 9 cajas" → rechazado como cita.
+    @Test fun pasadasLas9CajasNoEsCita() {
+        val result = NaturalTaskParser.parse("Pasadas las 9 cajas", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
+    // "pasadas" sin "las/la N" NO es hora: no debe robar el modificador en otros contextos.
+    @Test fun pasadasLasNormasNoEsCita() {
+        val result = NaturalTaskParser.parse("Revisar las pasadas normas", now, zone)
+        assertEquals(null, result.dueAt)
+    }
 }
