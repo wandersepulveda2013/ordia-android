@@ -4,7 +4,7 @@
 
 - **Ciclo**: c.314. **Rama**: `openhands/autonomous-ordia`.
 - **HEAD inicial**: `358bb75` (c.313, sincronizado con origin).
-- **HEAD final**: `692ddfe`.
+- **HEAD final**: `2f56665`.
 - **Problema seleccionado**: P0-adjacent privacidad/datos (sagrados) — continuación inmediata de c.313. c.313 cerró INE/CURP/NSS/pasaporte/licencia con palabra-clave acompañante; el RFC mexicano (Registro Federal de Contribuyentes, el identificador fiscal personal más común en chats en español de México) quedaba fuera. Un SMS "mi RFC es GODE850101HXA"/"RFC: ABC850101XYZ" pasaba AMBOS filtros (`ConversationPrivacyPolicy` persistencia Y `ContextPrivacyFilter` lectura) y se persistía en texto plano en la BD de conversaciones Y se leía como contexto/IME → fuga de PII fiscal a BD/backup/ADB.
 - **Causa raíz**: el RFC NO es detectable por valor pelado (persona física = 4 letras + 6 dígitos + 3 homoclave = 13 alfanuméricos estructurados, indistinguible de un código de producto/referencia larga). La detección por valor solo generaría falsos positivos masivos que bloquearían chats legítimos (contrario a "datos sagrados"). Misma dificultad que c.313.
 - **Solución**: extender `SensitiveSecretPatterns.containsPersonalIdentifier` con la palabra-clave `rfc` + patrón de valor `[A-Z&]{3,4}\d{6}[A-Z0-9]{3}\b` (persona moral 12 / física 13; `&` representa `Ñ` en RFCs con ampersand). El `\b` final impide casar un substring dentro de un CURP (18 chars): tras 3 alfanum el siguiente char de un CURP sigue siendo word-char → no hay boundary. Consumido por AMBOS gates sin cambios (ya cableado en c.313 vía `containsPersonalIdentifier`). Sin nueva pantalla/botón, sin IA fingida (regex determinista, fuente única).
