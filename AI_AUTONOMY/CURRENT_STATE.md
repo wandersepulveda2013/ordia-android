@@ -4,6 +4,18 @@
 > Actualizar AL FINAL de cada sesión autónoma (reescribir, no acumular).
 
 ## Modo continuo (supervisor persistente)
+## Ciclo c.406 — 2026-08-16 (EVALUACIÓN: hora explícita en PASADO capturada NO es bug de olvido — cierra "próxima prioridad" recurrente c.399/c.400 — P1 eval datos/evitar olvidos, 0 cambios de código)
+
+- **Run/ciclo**: 406 (rama `openhands/autonomous-ordia`). Base remota integrada = `22e906e` (c.404 remoto, fix parser intensificador "justo"). Re-numeración propia c.401→c.405 por quíntuple colisión con runs remotos consecutivos c.399/c.400/c.401/c.402/c.403/c.404. Integraciones NO destructivas sucesivas (c.403, luego c.404) preservando el HEAD remoto y reinsertando entradas de documentación. NO STALE_RUN. Entorno JVM (sin Android SDK): kotlinc 2.1.20, OpenJDK 21. `bash tools/run_domain_tests.sh` -> **2405 PASS** (base c.404, sin mis cambios que son sólo docs). Test env parser: `now=2026-07-29 12:00 America/Santo_Domingo`.
+- **Problema evaluado (P1 eval — recordatorios/evitar olvidos/datos (sagrados))**: la "próxima prioridad (i)/(iv) hora explícita en PASADO" marcada en c.399 y c.400 generaba re-auditoría ciclo tras ciclo. Había que determinar si una cita con `dueAt`/`reminderAt` pasado se olvida (P1) o se recupera.
+- **Conclusión: NO es bug**. La sospecha venía de un probe aislado que sólo miraba `ReminderSync.triggers` (re-sync masivo), NO el camino de captura. Evaluación de 3 mecanismos convergentes (leyendo implementación real): (1) **camino de captura dispara inmediato** — `OrdiaViewModel.saveTask` → `ReminderScheduler.scheduleAt(taskId, reminderAt ?: dueAt)` → `delay = (triggerAt - now).coerceAtLeast(0)` → WorkManager `setInitialDelay(0)` → la notificación se entrega al guardar (DECISIONES 2026-08-14 "NO clampar reminderAt"). (2) **deuda honesta visible** — `TaskRules.isOverdue` + `WhatNowEngine`/widget/`SummaryEngine.overdue`. (3) el WorkManager job persiste a través de reboot. `ReminderSync.triggers` descartar pasados es CORRECTO: no duplicar triggers ya entregados en el re-sync masivo.
+- **Bugs**: 0. 0 cambios de código de producción.
+- **Features**: 0.
+- **Tests**: `bash tools/run_domain_tests.sh` -> **2405 PASS** (base c.404), 0 failures, 45 classes (Time: 1.75s); `bash tools/run_domain_checks.sh` -> smoke 25 OK. Probe `tools/probe/ProbePastExplicitTime.kt` + `tools/probe/ProbeParserTemporalForms.kt` (24 formas) ejecutados para evidencia empírica y eliminados tras la evaluación. Sin tests reducidos/eliminados.
+- **Archivos modificados**: `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG,DECISIONS}.md` (entrada c.405, síntesis de evaluación). 0 archivos `.kt` modificados.
+- **HEAD inicial**: `893485f` (c.402 remoto al iniciar). **HEAD final**: commit c.406 sobre base remota `22e906e` (c.404 remoto).
+- **Estado**: VERIFIED (dominio JVM: 2405 tests PASS; smoke 25 OK; 0 failures; evaluación confirmada por lectura de `ReminderScheduler.kt` + DECISIONES c.200/fila "NO clampar reminderAt" + probe empírico). NO VERIFICADO el disparo inmediato real de WorkManager en runtime Android (sin SDK). La pregunta "hora explícita en PASADO" queda CERRADA (DECISIONES c.406).
+
 
 ## Ciclo c.405 — 2026-08-16 (Parser: "entre [las] H1 y [las] H2" / "de las H1 a las H2" no normalizaban → cita con rango olvidada o título mutilado — P1 captura/evitar olvidos/datos/título limpio) — rebase anti-colisión sobre c.404
 
