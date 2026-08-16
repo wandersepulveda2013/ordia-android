@@ -229,12 +229,25 @@ object SensitiveSecretPatterns {
             if (kw.value.lowercase().let { "dni" in it || "nie" in it || "nif" in it } &&
                 dniNieValue.containsMatchIn(window) &&
                 matchesDniNieLetter(window)) return true
+            // c.326: identificadores fiscales/personales de Brasil y Argentina
+            // (CPF/CNPJ/CUIT/CUIL). Igual que NSS, son 11 (CUIT/CPF) o 14 (CNPJ)
+            // digitos puros -> indistinguibles de una referencia o telefono por
+            // valor pelado. Se exige palabra-clave canonica (cpf/cnpj/cuit/cuil)
+            // + ventana corta, y el checksum modulo-11 (2 digitos verificadores)
+            // es el desambiguador de precision: una secuencia con digitos de
+            // control incorrectos no se bloquea. Misma forma que el DNI/NIE.
+            if (kw.value.lowercase().let { "cpf" in it || "cuit" in it || "cuil" in it } &&
+                cpfCuitValue.containsMatchIn(window) &&
+                matchesCpfCuitChecksum(window)) return true
+            if (kw.value.lowercase().contains("cnpj") &&
+                cnpjValue.containsMatchIn(window) &&
+                matchesCnpjChecksum(window)) return true
         }
         return false
     }
 
     private val personalIdKeyword = Regex(
-        """(?i)\b(?:curp|nss|ine|credencial\s+de\s+elector|n[uú]mero\s+de\s+seguro\s+social|seguro\s+social|pasaporte|licencia(?:\s+de\s+conducir)?|rfc|dni|nie|nif)\b"""
+        """(?i)\b(?:curp|nss|ine|credencial\s+de\s+elector|n[uú]mero\s+de\s+seguro\s+social|seguro\s+social|pasaporte|licencia(?:\s+de\s+conducir)?|rfc|dni|nie|nif|cpf|cnpj|cuit|cuil)\b"""
     )
     private val nssValue = Regex("""\b\d{11}\b""")
     private val curpValue = Regex("""\b[A-Z]{4}\d{6}[A-Z0-9]{6}\d{2}\b""")
@@ -278,6 +291,87 @@ object SensitiveSecretPatterns {
             val number = digitsPart.toLongOrNull() ?: return@any false
             dniControlLetters[(number % 23).toInt()] == letter.uppercaseChar()
         }
+    }
+
+    // ── CPF/CNPJ (Brasil) y CUIT/CUIL (Argentina) (c.326) ───────────────────
+    // CPF: 11 digitos (9 base + 2 verificadores). CNPJ: 14 digitos (12 base +
+    // 2 verificadores). CUIT/CUIL: 11 digitos (2 prefijo + 8 base + 1 verif).
+    // Todos usan modulo-11 con ponderaciones descendentes. El 2do verificador
+    // del CPF/CNPJ recalcula incluyendo el 1ro. El CUIT pondera con la tabla
+    // fija [5,4,3,2,7,6,5,4,3,2] y su caso especial: residuo 1 -> digito 9.
+    // La regex admite separadores `.` `-` `/` (formatos canonico de cada pais)
+    // y deja que el checksum descarte los invalidos. Se ancla por palabra-clave.
+    private val cpfCuitValue = Regex("""\b(?:\d[.\-]?){10}\d\b""")
+    private val cnpjValue = Regex("""\b(?:\d[.\-/?]?){13}\d\b""")
+
+    /**
+     * `true` si [window] contiene un CPF (Brasil) o CUIT/CUIL (Argentina) de
+     * 11 digitos con sus digitos verificadores modulo-11 correctos. La
+     * validacion del checksum es el desambiguador de precision: una secuencia
+     * de 11 digitos con verificadores incorrectos (p.ej. una referencia) no
+     * se bloquea. CPF y CUIT comparten longitud (11) pero difieren en el
+     * algoritmo: CPF tiene 2 verificadores consecutivos, CUIT tiene 1 (con su
+     * caso especial residuo 1 -> 9). Se acepta si CUALQUIERA pasa.
+     */
+    private fun matchesCpfCuitChecksum(window: String): Boolean {
+        return cpfCuitValue.findAll(window).any { match ->
+            val digits = match.value.filter(Char::isDigit)
+            digits.length == 11 && (passesCpfChecksum(digits) || passesCuitChecksum(digits))
+        }
+    }
+
+    /**
+     * `true` si [window] contiene un CNPJ (Brasil) de 14 digitos con sus 2
+     * digitos verificadores modulo-11 correctos.
+     */
+    private fun matchesCnpjChecksum(window: String): Boolean {
+        return cnpjValue.findAll(window).any { match ->
+            val digits = match.value.filter(Char::isDigit)
+            digits.length == 14 && passesCnpjChecksum(digits)
+        }
+    }
+
+    /** CPF (Brasil): 2 digitos verificadores modulo-11 con ponderacion descendente. */
+    private fun passesCpfChecksum(digits: String): Boolean {
+        if (digits.all { it == digits[0] }) return false // CPFs all-iguales son invalidos por ley
+        fun dv(slice: String): Int {
+            var sum = 0
+            for (i in slice.indices) sum += slice[i].digitToInt() * (slice.length + 1 - i)
+            val r = sum % 11
+            return if (r < 2) 0 else 11 - r
+        }
+        val d1 = dv(digits.substring(0, 9))
+        val d2 = dv(digits.substring(0, 9) + d1.toString())
+        return d1 == digits[9].digitToInt() && d2 == digits[10].digitToInt()
+    }
+
+    /** CUIT/CUIL (Argentina): 1 digito verificador, tabla fija [5,4,3,2,7,6,5,4,3,2], residuo 1 -> 9. */
+    private fun passesCuitChecksum(digits: String): Boolean {
+        val weights = intArrayOf(5, 4, 3, 2, 7, 6, 5, 4, 3, 2)
+        var sum = 0
+        for (i in 0 until 10) sum += digits[i].digitToInt() * weights[i]
+        val dv = when (sum % 11) {
+            0 -> 0
+            1 -> 9
+            else -> 11 - (sum % 11)
+        }
+        return dv == digits[10].digitToInt()
+    }
+
+    /** CNPJ (Brasil): 2 digitos verificadores modulo-11 con tablas [5..2] y [6..2]. */
+    private fun passesCnpjChecksum(digits: String): Boolean {
+        if (digits.all { it == digits[0] }) return false
+        val w1 = intArrayOf(5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2)
+        val w2 = intArrayOf(6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2)
+        fun dv(slice: String, weights: IntArray): Int {
+            var sum = 0
+            for (i in slice.indices) sum += slice[i].digitToInt() * weights[i]
+            val r = sum % 11
+            return if (r < 2) 0 else 11 - r
+        }
+        val d1 = dv(digits.substring(0, 12), w1)
+        val d2 = dv(digits.substring(0, 12) + d1.toString(), w2)
+        return d1 == digits[12].digitToInt() && d2 == digits[13].digitToInt()
     }
 
     /**

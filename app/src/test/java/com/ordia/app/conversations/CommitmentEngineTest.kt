@@ -1087,7 +1087,21 @@ class CommitmentEngineTest {
             // erroneamente excluidas por una regex previa (c.315 fix). Ahora
             // deben bloquearse (no perder ~9% de DNIs reales por falso negativo).
             "mi DNI es 10000010R",
-            "dni: 10000024S"
+            "dni: 10000024S",
+            // c.326: CPF (Brasil, 11 dígitos, 2 verificadores mod-11). Valid:
+            // 529.982.247-25, 111.444.777-35. Formato con puntos/guion y pelado.
+            "mi CPF es 529.982.247-25",
+            "CPF 111.444.777-35",
+            "CPF 52998224725",
+            // c.326: CUIT/CUIL (Argentina, 11 dígitos, 1 verificador mod-11).
+            // Valid: 30-50001091-2. "cuil" es sinónimo de "cuit".
+            "mi CUIT 30-50001091-2",
+            "CUIT 30500010912",
+            "CUIL 30500010912",
+            // c.326: CNPJ (Brasil, 14 dígitos, 2 verificadores mod-11). Valid:
+            // 11.222.333/0001-81. Formato con barra de rama.
+            "CNPJ 11.222.333/0001-81",
+            "CNPJ 11222333000181"
         )
         leaks.forEach { text ->
             assertTrue("PII debe bloquearse en persist: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
@@ -1138,7 +1152,22 @@ class CommitmentEngineTest {
             // 8 digitos + letra SIN palabra-clave "dni": referencia/codigo.
             "pedido 12345678Z confirmado",
             // Letra I: NO aparece en la tabla de control -> no es DNI valido.
-            "mi DNI es 12345678I"
+            "mi DNI es 12345678I",
+            // c.326: checksum INCORRECTO con palabra-clave presente -> no es un
+            // identificador valido, no debe bloquearse (precision). El digito
+            // verificador se altera en 1 -> invalido. Misma logica que la letra
+            // de control incorrecta del DNI.
+            "CPF 529.982.247-26",       // verificador incorrecto (25 -> 26)
+            "CUIT 30-50001091-3",       // verificador incorrecto (2 -> 3)
+            "CNPJ 11.222.333/0001-82",  // verificador incorrecto (81 -> 82)
+            // c.326: valor de 11/14 digitos SIN palabra-clave "cpf/cnpj/cuit"
+            // -> referencia/telefono, no identificador fiscal.
+            "referencia 52998224725 en la factura",
+            "pedido 11222333000181 confirmado",
+            // c.326: palabra-clave pelada sin valor estructurado no bloquea.
+            "tengo que tramitar el CPF la semana que viene",
+            "el CNPJ de la empresa lo busco luego",
+            "mi CUIT aún no me acuerdo"
         )
         innocent.forEach { text ->
             assertFalse("falso positivo PII en persist: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
