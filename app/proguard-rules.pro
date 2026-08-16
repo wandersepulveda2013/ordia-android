@@ -4,6 +4,7 @@
 
 # WorkManager instantiates ListenableWorker implementations by class name.
 -keep class com.ordia.app.reminders.** extends androidx.work.ListenableWorker { *; }
+-keep class com.ordia.app.updates.** extends androidx.work.ListenableWorker { *; }
 
 # Keep enum names serialized by Room converters and backup files.
 -keepclassmembers enum com.ordia.app.data.local.** { *; }

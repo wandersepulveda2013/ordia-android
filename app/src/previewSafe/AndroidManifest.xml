@@ -1,18 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!--
-        previewSafe: intentionally excludes these permissions and components:
+        previewSafe: intentionally excludes these sensitive capabilities:
         - android.permission.SYSTEM_ALERT_WINDOW
         - android.permission.FOREGROUND_SERVICE_SPECIAL_USE
-        - android.permission.REQUEST_INSTALL_PACKAGES
-        - android.permission.INTERNET
         - GuardianOverlayService
         - OrdiaNotificationListenerService
-        - FileProvider (update-files)
-        - UpdateInstallActivity
-        - UpdateDownloadReceiver
 
-        This variant must pass Google Play Protect without warnings
-        and install normally from Files.
+        La auto-actualización in-app (INTERNET, REQUEST_INSTALL_PACKAGES,
+        FileProvider, UpdateInstallActivity, UpdateInstallResultReceiver) está
+        habilitada en TODAS las variantes en el manifiesto principal: el usuario
+        la exige para poder actualizar Ordía desde dentro de la propia app.
     -->
 </manifest>

@@ -3,12 +3,18 @@ package com.ordia.app.ui
 import android.annotation.SuppressLint
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -20,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -44,6 +51,8 @@ import com.ordia.app.ui.navigation.Destination
 import com.ordia.app.ui.navigation.OrdiaNavigation
 import com.ordia.app.ui.screens.OnboardingScreen
 import com.ordia.app.ui.theme.OrdiaTheme
+import com.ordia.app.updates.OrdiaUpdateController
+import com.ordia.app.updates.OrdiaUpdateController.UpdateState
 
 /** Convierte un ContextIntent del nuevo motor al modelo ContextualSuggestion del diálogo existente */
 private fun ContextIntent.toContextualSuggestion(): ContextualSuggestion {
@@ -109,6 +118,8 @@ fun OrdiaRoot(
     val snackbarHostState = remember { SnackbarHostState() }
     var pendingContext by remember { mutableStateOf<ContextualSuggestion?>(null) }
     var pendingConfirmationId by remember { mutableStateOf<String?>(null) }
+    val updateState by OrdiaUpdateController.state.collectAsStateWithLifecycle()
+    var updateDialogHidden by remember { mutableStateOf(false) }
     val noteFromContextText = stringResource(R.string.root_note_created_from_context)
     val taskFromContextText = stringResource(R.string.root_task_created_from_context)
 
@@ -274,7 +285,44 @@ fun OrdiaRoot(
             )
     }
 
-        if (!state.preferences.onboardingComplete) {
+    val availableUpdate = updateState as? UpdateState.Available
+    if (availableUpdate != null && !updateDialogHidden && state.preferences.onboardingComplete) {
+        val release = availableUpdate.release
+        AlertDialog(
+            onDismissRequest = { if (!availableUpdate.mandatory) updateDialogHidden = true },
+            title = { Text(stringResource(R.string.update_dialog_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.update_dialog_text, release.tag))
+                    if (availableUpdate.mandatory) {
+                        Text(stringResource(R.string.update_dialog_mandatory))
+                    }
+                    if (release.changelog.isNotBlank()) {
+                        Text(
+                            release.changelog.take(220),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    OrdiaUpdateController.download(context, release)
+                    updateDialogHidden = true
+                }) { Text(stringResource(R.string.update_dialog_now)) }
+            },
+            dismissButton = if (availableUpdate.mandatory) null else {
+                {
+                    TextButton(onClick = { updateDialogHidden = true }) {
+                        Text(stringResource(R.string.update_dialog_later))
+                    }
+                }
+            }
+        )
+    }
+
+    if (!state.preferences.onboardingComplete) {
             Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
                 Box(Modifier.padding(padding)) {
                     OnboardingScreen(

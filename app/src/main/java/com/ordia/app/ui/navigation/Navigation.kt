@@ -32,6 +32,7 @@ import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Spa
+import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -102,6 +103,7 @@ import com.ordia.app.ui.screens.StatisticsScreen
 import com.ordia.app.ui.screens.TaskDetailScreen
 import com.ordia.app.ui.screens.TasksScreen
 import com.ordia.app.ui.screens.TodayScreen
+import com.ordia.app.ui.screens.UpdatesScreen
 import com.ordia.app.overlay.QuickCaptureActivity
 
 /**
@@ -128,6 +130,7 @@ sealed class Destination(val route: String, @StringRes val labelRes: Int, val ic
     data object Statistics : Destination("statistics", R.string.nav_statistics, Icons.Outlined.BarChart)
     data object Archive : Destination("archive", R.string.nav_archive, Icons.Outlined.Archive)
     data object Settings : Destination("settings", R.string.nav_settings, Icons.Outlined.Settings)
+    data object Updates : Destination("updates", R.string.nav_updates, Icons.Outlined.SystemUpdate)
     data object More : Destination("more", R.string.nav_more, Icons.Outlined.MoreHoriz)
     data object Guardian : Destination("guardian", R.string.nav_guardian, Icons.Outlined.Psychology)
     data object Conversations : Destination("conversations", R.string.nav_conversations, Icons.Outlined.ChatBubbleOutline)
@@ -163,7 +166,8 @@ private val compactMoreRoutes = setOf(
     Destination.Automations.route,
     Destination.Assistant.route,
     Destination.Intelligence.route,
-    Destination.Settings.route
+    Destination.Settings.route,
+    Destination.Updates.route
 )
 private val topLevelRoutes = setOf(
     Destination.Today.route,
@@ -184,6 +188,7 @@ private val topLevelRoutes = setOf(
     Destination.Assistant.route,
     Destination.Intelligence.route,
     Destination.Settings.route,
+    Destination.Updates.route,
     Destination.More.route
 )
 
@@ -415,7 +420,12 @@ private fun OrdiaNavHost(
         }
         composable(Destination.Statistics.route) { StatisticsScreen(state, padding) }
         composable(Destination.Archive.route) { ArchiveScreen(state, vm, padding) }
-        composable(Destination.Settings.route) { SettingsScreen(state, vm, padding) }
+        composable(Destination.Settings.route) {
+            SettingsScreen(state, vm, padding, onUpdates = { navController.navigateSingle(Destination.Updates.route) })
+        }
+        composable(Destination.Updates.route) {
+            UpdatesScreen(contentPadding = padding)
+        }
         composable(Destination.More.route) {
             MoreScreen(state = state, padding = padding, open = { navController.navigateSingle(it) })
         }

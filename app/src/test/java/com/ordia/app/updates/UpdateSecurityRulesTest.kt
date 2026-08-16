@@ -39,6 +39,55 @@ class UpdateSecurityRulesTest {
         assertFalse(UpdateSecurityRules.isTrustedNetworkUrl("https://user@github.com/app.apk"))
     }
 
+    @Test fun manifestFeed_isBoundToOfficialRepositoryAndFlavor() {
+        assertEquals("update-manifest-safe.json", UpdateSecurityRules.expectedManifestName("safe"))
+        assertEquals("update-manifest-advanced.json", UpdateSecurityRules.expectedManifestName("advanced"))
+        assertEquals("Ordia-3.0-safe-signed.apk", UpdateSecurityRules.expectedApkName("safe"))
+        assertEquals("Ordia-3.0-full-signed.apk", UpdateSecurityRules.expectedApkName("full"))
+
+        val stable = "https://github.com/wandersepulveda2013/ordia-android/releases/latest/download/update-manifest-safe.json"
+        assertTrue(UpdateSecurityRules.isTrustedLatestDownloadUrl(stable))
+        assertTrue(UpdateSecurityRules.isTrustedNetworkUrl(stable))
+        assertFalse(UpdateSecurityRules.isTrustedLatestDownloadUrl("https://github.com/owner/repo/releases/latest/download/update-manifest-safe.json"))
+        assertFalse(UpdateSecurityRules.isTrustedLatestDownloadUrl("$stable?x=1"))
+        assertFalse(UpdateSecurityRules.isTrustedLatestDownloadUrl("https://github.com/wandersepulveda2013/ordia-android/releases/latest/download/../secret"))
+        // La redirección a un asset concreto de la release sigue siendo confiable.
+        assertTrue(UpdateSecurityRules.isTrustedReleaseAssetUrl(
+            "https://github.com/wandersepulveda2013/ordia-android/releases/download/v3.0.0-build.42/update-manifest-safe.json"
+        ))
+        // La APK firmada publicada por variante se acepta con su nombre exacto.
+        assertTrue(UpdateSecurityRules.isTrustedReleaseAssetUrl(
+            "https://github.com/wandersepulveda2013/ordia-android/releases/download/v3.0.0-build.42/Ordia-3.0-safe-signed.apk",
+            "Ordia-3.0-safe-signed.apk"
+        ))
+        assertFalse(UpdateSecurityRules.isTrustedReleaseAssetUrl(
+            "https://github.com/wandersepulveda2013/ordia-android/releases/download/v3.0.0-build.42/Ordia-3.0-safe-signed.apk",
+            "Ordia-3.0-advanced-signed.apk"
+        ))
+        // La APK del manifiesto puede venir del enlace estable "latest" con su nombre exacto.
+        assertTrue(UpdateSecurityRules.isTrustedApkUrl(
+            "https://github.com/wandersepulveda2013/ordia-android/releases/latest/download/Ordia-3.0-safe-signed.apk",
+            "Ordia-3.0-safe-signed.apk"
+        ))
+        assertFalse(UpdateSecurityRules.isTrustedApkUrl(
+            "https://github.com/wandersepulveda2013/ordia-android/releases/latest/download/Ordia-3.0-safe-signed.apk",
+            "Ordia-3.0-full-signed.apk"
+        ))
+    }
+
+    @Test fun versionComparison_isStrictlyGreater() {
+        assertTrue(UpdateSecurityRules.isNewerCode(101, 100))
+        assertFalse(UpdateSecurityRules.isNewerCode(100, 100))
+        assertFalse(UpdateSecurityRules.isNewerCode(99, 100))
+    }
+
+    @Test fun mandatoryUpdate_combinesFlagAndMinSupportedVersion() {
+        assertTrue(UpdateSecurityRules.isMandatoryUpdate(mandatory = true, installedCode = 200, minSupportedVersion = 1))
+        assertTrue(UpdateSecurityRules.isMandatoryUpdate(mandatory = false, installedCode = 50, minSupportedVersion = 100))
+        assertFalse(UpdateSecurityRules.isMandatoryUpdate(mandatory = false, installedCode = 100, minSupportedVersion = 100))
+        assertFalse(UpdateSecurityRules.isMandatoryUpdate(mandatory = false, installedCode = 101, minSupportedVersion = 100))
+    }
+
     @Test fun unknownDownloadSize_isAllowedButZeroAndOversizeAreNot() {
         assertTrue(UpdateSecurityRules.isReportedSizeAcceptable(-1L, 100L))
         assertTrue(UpdateSecurityRules.isReportedSizeAcceptable(null, 100L))

@@ -18,11 +18,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ordia.app.R
 import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.domain.GuardianEngine
@@ -32,6 +34,8 @@ import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.ui.components.SectionHeader
 import com.ordia.app.ui.components.StatusBadge
 import com.ordia.app.ui.navigation.Destination
+import com.ordia.app.updates.OrdiaUpdateController
+import com.ordia.app.updates.OrdiaUpdateController.UpdateState
 
 private data class MoreEntry(
     val destination: Destination,
@@ -75,7 +79,10 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
             add(MoreEntry(Destination.Archive, stringResource(R.string.more_archive_desc), state.archivedCount.toString(), MaterialTheme.colorScheme.secondary))
         }
     }
+    val updateState by OrdiaUpdateController.state.collectAsStateWithLifecycle()
+    val updatesBadge = if (updateState is UpdateState.Available) stringResource(R.string.updates_badge_new) else null
     val system = listOf(
+        MoreEntry(Destination.Updates, stringResource(R.string.more_updates_desc), updatesBadge, MaterialTheme.colorScheme.tertiary),
         MoreEntry(Destination.Intelligence, stringResource(R.string.more_intelligence_desc), null, MaterialTheme.colorScheme.primary),
         MoreEntry(Destination.Settings, stringResource(R.string.more_settings_desc), null, MaterialTheme.colorScheme.tertiary)
     )

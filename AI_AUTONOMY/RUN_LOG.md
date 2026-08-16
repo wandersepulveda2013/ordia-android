@@ -306,3 +306,45 @@
 - `app/build/reports/lint-results-previewSafeDebug.xml` → 0 errores.
 
 ---
+
+## SESIÓN 006 — Actualizador in-app nativo basado en manifiesto (requisitos del usuario)
+
+- **Fecha (UTC)**: 2026-08-16
+- **Trigger**: requisitos explícitos del usuario: check sin bloquear el arranque, aviso in-app, descarga con progreso/cancelar/reintentar, verificación pre-instalación obligatoria (SHA-256, package ID, versionCode, firma), flujo `PackageInstaller` con confirmación final de Android, pantalla Ajustes → Actualizaciones, badge, feed `update-manifest.json` desacoplado del agente.
+- **Resultado**: ÉXITO (compilación + tests + lint; verificación física de instalación pendiente de dispositivo ADB)
+
+### Qué se hizo
+
+1. **Decisión de arquitectura**: el feed de actualizaciones pasa de GitHub API a `update-manifest-<flavor>.json` por variante en la URL estable `https://github.com/wandersepulveda2013/ordia-android/releases/latest/download/update-manifest-<flavor>.json`. El nombre de APK publicado pasa a `Ordia-3.0-<flavor>-signed.apk`, reconciliando la discrepancia crítica anterior (el actualizador ya no depende de tags de release). Se mantiene DownloadManager + `validateDownloadedPackage` (hash, tamaño, package ID, versionCode, firma) y se suma `PackageInstaller.Session` con `STATUS_PENDING_USER_ACTION`.
+2. **Tensión previewSafe resuelta**: el actualizador queda habilitado en TODAS las variantes (`SELF_UPDATE_ENABLED=true`, sin override `false` en release). INTERNET, REQUEST_INSTALL_PACKAGES, FileProvider, UpdateInstallActivity, UpdateDownloadReceiver y el nuevo UpdateInstallResultReceiver se movieron al manifest de `main`. Override deliberado del usuario sobre la postura "safe sin INTERNET" de la Fase 21 (tradeoff Play Protect documentado en DECISIONS).
+3. **Archivos nuevos**: `UpdateManifest.kt` (modelo + parser estricto: versionCode>0, versionName≤64, sha256 validada, size obligatorio 1..250 MB, changelog≤2000, minSupportedVersion>0, channel≤24 default "stable"); `OrdiaUpdateController.kt` (StateFlow `UpdateState`: Idle/Checking/UpToDate/Available/Downloading/Ready/Installing/Installed/Failed; polling de descarga cada 400 ms; `lastCheckAt` persistido en SharedPreferences `"ordia_updates"`/`last_check_at` a propósito fuera de UserPreferences/DataStore para no romper round-trip de backup); `UpdateInstallResultReceiver.kt` (resultado PackageInstaller: SUCCESS → limpieza + estado, PENDING_USER_ACTION → espera, resto → descartar + error claro); `UpdatesScreen.kt` (tarjeta versión instalada/canal/última comprobación + tarjetas por estado + Buscar actualizaciones).
+4. **Archivos reescritos**: `UpdateInstallActivity.kt` → `SessionParams(MODE_FULL_INSTALL)` + `openWrite` + `fsync` + `commit(PendingIntent → UpdateInstallResultReceiver)`, con permiso "instalar apps desconocidas" (explicación única + reanudación del flujo).
+5. **Archivos editados**: `UpdateSecurityRules.kt` (expectedManifestName/expectedApkName(flavor), isTrustedLatestDownloadUrl, isTrustedApkUrl, isNewerCode, isMandatoryUpdate, rechazo de path traversal `..`); `OrdiaUpdateManager.kt` (checkDetailed manifest-driven, `Release` extendido con changelog/mandatory/minSupportedVersion/releaseDate, helpers `downloadProgress`/`currentDownloadCode`/`discardCurrent`, validación de descarga por `expectedApkName(UPDATE_FLAVOR)`); `Navigation.kt` (Destination.Updates), `MoreScreen.kt` (entrada + badge "Nuevo"), `SettingsScreen.kt` (la tarjeta de comprobar navega a la pantalla), `OrdiaRoot.kt` (diálogo opcional/mandatory), `OrdiaApplication.kt` (check de arranque no bloqueante), `build.gradle.kts` (UPDATE_FLAVOR/UPDATE_MANIFEST_URL por flavor), `proguard-rules.pro` (keep workers `com.ordia.app.updates.**`), manifest principal y `previewFull`/`previewAdvanced`.
+6. **CI (`android-ci.yml`)**: el job SIGN firma las 3 variantes → `Ordia-3.0-<flavor>-signed.apk` + `.sha256`; el job PUBLISH genera `update-manifest-<flavor>.json` por flavor (versionCode = `1300000000 + run*100 + attempt` — idéntico al del build.gradle.kts —, versionName `3.0.${run}-preview-${flavor}.${attempt}`, apkUrl estable, sha256, size, releaseDate, mandatory=false, minSupportedVersion=1, channel="stable") y publica una release inmutable con los 9 assets.
+7. **Tests**: `UpdateManifestParserTest` (11 tests: manifiesto válido/opciones por defecto, JSON inválido, versionCode 0/negativo, versionName blank/largo, SHA inválido, tamaño 0/negativo/>250MB, apkUrl blank, changelog>2000, minSupportedVersion=0, channel>24, documento vacío/gigante, comparación estricta de versiones, mandatory+minSupportedVersion) + ampliación de `UpdateSecurityRulesTest` (reglas por flavor, latest-download, isTrustedApkUrl, isNewerCode, isMandatoryUpdate, rechazo de `../`). Los escenarios de dispositivo (APK corrupta, firma incorrecta, applicationId incorrecto, sin permiso, rechazo de instalación, instalación exitosa, descarga interrumpida, sin internet) quedan cubiertos por `validateDownloadedPackage`/`verifyArchive`/DownloadManager y pendientes de verificación física.
+
+### Verificación
+
+- `:app:compilePreview{Safe,Full,Advanced}{Debug,Release}Kotlin` → BUILD SUCCESSFUL (6 variantes).
+- `:app:test{PreviewSafe,PreviewFull,PreviewAdvanced}DebugUnitTest` → **BUILD SUCCESSFUL**; `UpdateManifestParserTest` 11/11 y `UpdateSecurityRulesTest` 9/9 en verde.
+- `:app:lint` (todas las variantes) → sin errores nuevos (solo warnings SKIP documentados).
+- Corrección de 6 errores de compilación detectados en la primera pasada: import `Release` en el controller, smart-cast de `state` delegado (val `currentState`), import `dp` en OrdiaRoot, `setAppVersionCode` inexistente (eliminado), `commit(IntentSender)` vía `intentSender`, y constante correcta `PackageInstaller.STATUS_SUCCESS` (no `STATUS_SUCCESSFUL`).
+- `python3`/`py`/`rg` NO disponibles localmente → la validación del YAML del workflow se hizo por inspección (estructura verificada línea a línea; heredoc JSON con sangría aceptable para JSON).
+
+### Problemas encontrados
+
+- `UpdateManifestParser`/`UpdateSecurityRules` rechazaban la URL "latest" del manifiesto (`releases/latest/download/...` no matcheaba `isTrustedReleaseAssetUrl`) → añadido `isTrustedApkUrl` que acepta asset directo O enlace estable con nombre exacto, y re-validación de cada hop por `isTrustedNetworkUrl`.
+- Path traversal `..` en rutas de release pasaba el allow-list (el prefijo `startsWith` no lo detectaba) → `isPlainPath` rechaza segmentos `..`.
+- Sin dispositivo ADB en el entorno → la verificación física de instalación queda pendiente de hardware (no de software).
+
+### Commits creados
+
+- Pendiente de crear (esta sesión se cierra con el commit del actualizador + memoria).
+
+### Evidencia
+
+- `app/build/test-results/testPreviewSafeDebugUnitTest/com.ordia.app.updates.UpdateManifestParserTest.xml` → 11 tests, 0 fallos.
+- `app/build/test-results/testPreviewSafeDebugUnitTest/com.ordia.app.updates.UpdateSecurityRulesTest.xml` → 9 tests, 0 fallos.
+- `app/build/reports/lint-results-*.html` → sin errores.
+
+---

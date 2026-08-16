@@ -4,6 +4,7 @@ import android.app.Application
 import com.ordia.app.di.AppContainer
 import com.ordia.app.BuildConfig
 import com.ordia.app.reminders.TaskReminderWorker
+import com.ordia.app.updates.OrdiaUpdateController
 import com.ordia.app.updates.OrdiaUpdateManager
 import com.ordia.app.automation.AutomationScheduler
 import com.ordia.app.data.local.AutomationTrigger
@@ -38,6 +39,11 @@ class OrdiaApplication : Application() {
                 OrdiaUpdateManager.cleanupObsolete(this@OrdiaApplication)
                 if (preferences.autoUpdateEnabled) OrdiaUpdateManager.schedule(this@OrdiaApplication)
                 else OrdiaUpdateManager.cancelSchedule(this@OrdiaApplication)
+                // Comprobación de arranque no bloqueante: trabaja en su propio scope
+                // (Dispatchers.IO). Sin red o con el feed caído la app abre igual.
+                if (preferences.autoUpdateEnabled) {
+                    OrdiaUpdateController.checkNow(this@OrdiaApplication)
+                }
             } else {
                 OrdiaUpdateManager.cancelSchedule(this@OrdiaApplication)
             }

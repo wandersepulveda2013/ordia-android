@@ -83,7 +83,7 @@ import java.time.LocalDate
 // Los getString de Ajustes viven en callbacks de launchers (CreateDocument/OpenDocument/
 // RequestPermission) y corrutinas, ámbitos no-componibles donde stringResource no aplica.
 @Composable
-fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: PaddingValues) {
+fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: PaddingValues, onUpdates: () -> Unit = {}) {
     val context = LocalContext.current
     val app = context.applicationContext as OrdiaApplication
     val repository = app.container.preferencesRepository
@@ -96,7 +96,6 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
     var quietStart by remember(state.preferences.quietStartMinutes) { mutableStateOf(DateRules.minutesToClock(state.preferences.quietStartMinutes)) }
     var quietEnd by remember(state.preferences.quietEndMinutes) { mutableStateOf(DateRules.minutesToClock(state.preferences.quietEndMinutes)) }
     var guardianName by remember(state.preferences.guardianName) { mutableStateOf(state.preferences.guardianName) }
-    var updateStatus by remember { mutableStateOf<String?>(null) }
     var guardianStatus by remember { mutableStateOf<String?>(null) }
     var quietStatus by remember { mutableStateOf<String?>(null) }
     var notificationsGranted by remember {
@@ -444,35 +443,12 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         item {
             SettingsCard(Icons.Outlined.SystemUpdate, stringResource(R.string.settings_card_check_now)) {
                 Text(
-                    updateStatus ?: stringResource(R.string.settings_update_installed_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
+                    stringResource(R.string.settings_update_installed_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Button(
-                    onClick = {
-                        updateStatus = context.getString(R.string.settings_update_searching)
-                        scope.launch {
-                            when (val result = OrdiaUpdateManager.checkDetailed(context)) {
-                                OrdiaUpdateManager.CheckResult.UpToDate -> {
-                                    updateStatus = context.getString(R.string.settings_update_uptodate)
-                                }
-                                is OrdiaUpdateManager.CheckResult.Failed -> {
-                                    updateStatus = context.getString(R.string.settings_update_check_failed, result.reason)
-                                }
-                                is OrdiaUpdateManager.CheckResult.Available -> {
-                                    val release = result.release
-                                    if (!notificationsGranted && Build.VERSION.SDK_INT >= 33) {
-                                        updateStatus = context.getString(R.string.settings_update_need_notifications)
-                                        notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                    } else {
-                                        val id = OrdiaUpdateManager.download(context, release, allowMetered = true, userInitiated = true)
-                                        updateStatus = if (id != null) context.getString(R.string.settings_update_downloading, release.tag)
-                                        else context.getString(R.string.settings_update_download_failed)
-                                    }
-                                }
-                            }
-                        }
-                    },
+                    onClick = onUpdates,
                     modifier = Modifier.fillMaxWidth()
                 ) { Text(stringResource(R.string.settings_update_check_button)) }
             }

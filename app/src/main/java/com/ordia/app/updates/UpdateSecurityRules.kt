@@ -16,10 +16,29 @@ object UpdateSecurityRules {
 
     fun isValidSha256(value: String): Boolean = sha256Pattern.matches(value)
 
+    /** Nunca se considera nueva una versión cuyo versionCode no sea estrictamente superior. */
+    fun isNewerCode(remoteCode: Int, installedCode: Int): Boolean = remoteCode > installedCode
+
+    /** Una versión es obligatoria cuando el manifiesto lo marca o el instalado es insoportado. */
+    fun isMandatoryUpdate(mandatory: Boolean, installedCode: Int, minSupportedVersion: Int): Boolean =
+        mandatory || installedCode < minSupportedVersion
+
+    /** Acepta la URL de la APK del manifiesto: asset directo de una release o el enlace
+     *  estable "latest" (que GitHub redirige al asset real, validado en cada hop). */
+    fun isTrustedApkUrl(value: String, expectedFileName: String): Boolean =
+        isTrustedReleaseAssetUrl(value, expectedFileName) ||
+            (isTrustedLatestDownloadUrl(value) && value.substringAfterLast('/') == expectedFileName)
+
     fun parseVersionCodeFromTag(tag: String): Int? =
         releaseTagPattern.matchEntire(tag.trim())?.groupValues?.getOrNull(1)?.toIntOrNull()?.takeIf { it > 0 }
 
     fun expectedApkName(versionCode: Int): String = "Ordia-3.0-code-$versionCode.apk"
+
+    /** Nombre exacto del manifiesto publicado para una variante (safe/full/advanced). */
+    fun expectedManifestName(flavor: String): String = "update-manifest-$flavor.json"
+
+    /** Nombre exacto de la APK firmada publicada para una variante. */
+    fun expectedApkName(flavor: String): String = "Ordia-3.0-$flavor-signed.apk"
 
     /** Requires one exact canonical filename and rejects case-confusable duplicates. */
     fun selectExpectedApk(assetNames: Collection<String>, versionCode: Int): String? {
@@ -58,20 +77,33 @@ object UpdateSecurityRules {
         return uri.path == base || uri.path.startsWith("$base/tag/")
     }
 
+    /**
+     * URL estable del manifiesto de actualización (`/releases/latest/download/<name>`).
+     * Esta ruta solo existe dentro de la release oficial del repositorio y GitHub
+     * la redirige después a un asset concreto de `/releases/download/<tag>/`.
+     */
+    fun isTrustedLatestDownloadUrl(value: String): Boolean {
+        val uri = secureUri(value) ?: return false
+        if (uri.host?.lowercase() !in setOf("github.com", "www.github.com")) return false
+        val prefix = "/$OWNER/$REPOSITORY/releases/latest/download/"
+        return isPlainPath(uri.path) && uri.path?.startsWith(prefix) == true
+    }
+
     fun isTrustedReleaseAssetUrl(value: String, expectedFileName: String? = null): Boolean {
         val uri = secureUri(value) ?: return false
         if (uri.host?.lowercase() !in setOf("github.com", "www.github.com")) return false
         val prefix = "/$OWNER/$REPOSITORY/releases/download/"
-        if (!uri.path.startsWith(prefix)) return false
+        if (!isPlainPath(uri.path) || !uri.path.startsWith(prefix)) return false
         return expectedFileName == null || uri.path.substringAfterLast('/') == expectedFileName
     }
 
     fun isTrustedNetworkUrl(value: String): Boolean {
         val uri = secureUri(value, allowQuery = true) ?: return false
         val host = uri.host?.lowercase() ?: return false
-        if (host in redirectHosts) return true // GitHub uses signed query parameters on its asset CDN.
+        if (host in redirectHosts) return true // GitHub usa parámetros firmados en su CDN de assets.
         if (uri.query != null) return false
         if (host == "api.github.com") return uri.path == "/repos/$OWNER/$REPOSITORY/releases/latest"
+        if (isTrustedLatestDownloadUrl(value)) return true
         return isTrustedReleaseAssetUrl(value)
     }
 
@@ -82,4 +114,8 @@ object UpdateSecurityRules {
         if (!uri.path.orEmpty().startsWith('/')) return null
         return uri
     }
+
+    /** Rechaza rutas con segmentos de retroceso (`..`) que un servidor normalizaría. */
+    private fun isPlainPath(path: String?): Boolean =
+        path != null && path.isNotEmpty() && path.split('/').none { it == ".." }
 }

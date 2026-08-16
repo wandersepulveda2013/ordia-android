@@ -121,6 +121,36 @@
     <string name="settings_update_downloading">Descargando %1$s.</string>
     <string name="settings_update_download_failed">No se pudo iniciar la descarga verificada.</string>
     <string name="settings_update_check_button">Buscar actualización</string>
+
+    <!-- Pantalla de Actualizaciones (in-app updater, manifest-driven) -->
+    <string name="updates_screen_eyebrow">Sistema</string>
+    <string name="updates_screen_title">Actualizaciones</string>
+    <string name="updates_screen_subtitle">Comprueba, descarga e instala nuevas versiones de Ordía sin perder datos.</string>
+    <string name="updates_channel_label">Canal</string>
+    <string name="updates_last_check_label">Última comprobación</string>
+    <string name="updates_last_check_never">Nunca</string>
+    <string name="updates_installed_label">Versión instalada</string>
+    <string name="updates_check_button">Buscar actualizaciones</string>
+    <string name="updates_checking">Comprobando el canal estable…</string>
+    <string name="updates_uptodate">Ya tienes la última versión de Ordía.</string>
+    <string name="updates_new_version">Versión nueva disponible</string>
+    <string name="updates_version">%1$s</string>
+    <string name="updates_changelog_label">Cambios principales</string>
+    <string name="updates_install_now">Actualizar ahora</string>
+    <string name="updates_later">Más tarde</string>
+    <string name="updates_downloading">Descargando %1$s</string>
+    <string name="updates_progress_mb">%1$d MB de %2$d MB</string>
+    <string name="updates_cancel">Cancelar</string>
+    <string name="updates_retry">Reintentar</string>
+    <string name="updates_ready">APK descargada y verificada</string>
+    <string name="updates_ready_desc">El SHA-256, el tamaño, el paquete, la versión y la firma coinciden con la publicación oficial.</string>
+    <string name="updates_install">Instalar</string>
+    <string name="updates_installing">Instalando… Confirma la solicitud de Android cuando aparezca.</string>
+    <string name="updates_installed">Ordía se actualizó correctamente. Todos tus datos se conservan.</string>
+    <string name="updates_failed">No se pudo completar la actualización.</string>
+    <string name="updates_mandatory_note">Esta versión es obligatoria.</string>
+    <string name="more_updates_desc">Comprueba manualmente, descarga e instala nuevas versiones.</string>
+    <string name="updates_badge_new">Nuevo</string>
     <string name="settings_section_planning">Planificación</string>
     <string name="settings_card_notifications">Notificaciones y recordatorios</string>
     <string name="settings_notifications_active">Permiso activo. Ordía puede mostrar recordatorios y avisos de actualización.</string>

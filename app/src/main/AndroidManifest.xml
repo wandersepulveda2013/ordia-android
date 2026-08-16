@@ -4,6 +4,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Backups desactivados por diseño (ver app/lint.xml → DataExtractionRules):
          allowBackup=false gobierna API 26-30; dataExtractionRules (exclusión total,
@@ -99,6 +101,36 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/ordia_widget_info" />
         </receiver>
+
+        <!-- Infraestructura de auto-actualización (presente en TODAS las variantes):
+             permite que Ordía se actualice a sí misma desde su canal estable oficial. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.update-files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/ordia_update_paths" />
+        </provider>
+
+        <activity
+            android:name=".updates.UpdateInstallActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@style/Theme.Ordia.QuickCapture" />
+
+        <receiver
+            android:name=".updates.UpdateDownloadReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".updates.UpdateInstallResultReceiver"
+            android:exported="false" />
 
     </application>
 </manifest>

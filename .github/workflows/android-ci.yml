@@ -50,11 +50,14 @@ jobs:
           chmod +x gradlew
           ./gradlew clean test lint assembleDebug assembleRelease --stacktrace
 
-      - name: Upload unsigned release APK (previewAdvanced, to be signed)
+      - name: Upload unsigned release APKs (all flavors, to be signed)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ordia-release-unsigned
-          path: app/build/outputs/apk/previewAdvanced/release/app-previewAdvanced-release-unsigned.apk
+          path: |
+            app/build/outputs/apk/previewSafe/release/*.apk
+            app/build/outputs/apk/previewFull/release/*.apk
+            app/build/outputs/apk/previewAdvanced/release/*.apk
           if-no-files-found: error
           retention-days: 7
 
@@ -86,7 +89,7 @@ jobs:
           echo "- **Branch**: \`${{ github.head_ref || github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Event**: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Release APK**: uploaded unsigned as \`ordia-release-unsigned\` (signed later)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release APKs**: uploaded unsigned (safe/full/advanced) as \`ordia-release-unsigned\` (signed later)" >> $GITHUB_STEP_SUMMARY
           echo "- **Debug APKs**: uploaded as \`app-debug-apks\`" >> $GITHUB_STEP_SUMMARY
 
   # ─────────────────────────────────────────────────────────
@@ -111,24 +114,24 @@ jobs:
           name: ordia-release-unsigned
           path: unsigned
 
-      - name: Reject debuggable APK before signing
+      - name: Reject debuggable APKs before signing
         shell: bash
         run: |
           set -euo pipefail
-          UNSIGNED="unsigned/app-previewAdvanced-release-unsigned.apk"
-          test -f "$UNSIGNED" || { echo "Missing $UNSIGNED"; exit 1; }
-
           # Debuggable APKs must never be signed as a release.
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
           AAPT2=$(find "$SDK_ROOT/build-tools" -name aapt2 -type f 2>/dev/null | head -1)
           test -n "$AAPT2" || { echo "aapt2 not found in Android SDK"; exit 1; }
+          for FLAVOR in safe full advanced; do
+            UNSIGNED="unsigned/app-preview${FLAVOR^}-release-unsigned.apk"
+            test -f "$UNSIGNED" || { echo "Missing $UNSIGNED"; exit 1; }
+            if "$AAPT2" dump badging "$UNSIGNED" | grep -q "application-debuggable"; then
+              echo "REFUSING to sign a debuggable APK as release ($FLAVOR)"; exit 1
+            fi
+            echo "$FLAVOR: APK is not debuggable, proceeding to sign"
+          done
 
-          if "$AAPT2" dump badging "$UNSIGNED" | grep -q "application-debuggable"; then
-            echo "REFUSING to sign a debuggable APK as release"; exit 1
-          fi
-          echo "APK is not debuggable, proceeding to sign"
-
-      - name: Restore keystore and sign APK
+      - name: Restore keystore and sign APKs
         shell: bash
         env:
           KEYSTORE_B64: ${{ secrets.ORDIA_UPDATE_KEYSTORE_BASE64 }}
@@ -149,7 +152,7 @@ jobs:
             echo "Generic Android debug keys are forbidden"; exit 1
           }
 
-          # Decode keystore (temporary, cleaned up in post step)
+          # Decode keystore (temporary, cleaned up below)
           printf '%s' "$KEYSTORE_B64" | base64 --decode > /tmp/ordia-update.keystore
           chmod 600 /tmp/ordia-update.keystore
 
@@ -167,37 +170,44 @@ jobs:
           test -n "$APKSIGNER" || { echo "apksigner not found in Android SDK"; exit 1; }
           echo "Using apksigner: $APKSIGNER"
 
-          # Sign the release APK
-          UNSIGNED="unsigned/app-previewAdvanced-release-unsigned.apk"
-          SIGNED="Ordia-3.0-signed.apk"
-          cp "$UNSIGNED" "$SIGNED"
-          "$APKSIGNER" sign \
-            --ks /tmp/ordia-update.keystore \
-            --ks-pass "pass:$KEYSTORE_PASSWORD" \
-            --ks-key-alias "$KEY_ALIAS" \
-            --key-pass "pass:$KEY_PASSWORD" \
-            --out "$SIGNED" \
-            "$SIGNED"
+          # Sign each flavor release APK with the stable key (naming reconciliado
+          # con UpdateSecurityRules.expectedApkName(flavor)).
+          for FLAVOR in safe full advanced; do
+            UNSIGNED="unsigned/app-preview${FLAVOR^}-release-unsigned.apk"
+            SIGNED="Ordia-3.0-${FLAVOR}-signed.apk"
+            cp "$UNSIGNED" "$SIGNED"
+            "$APKSIGNER" sign \
+              --ks /tmp/ordia-update.keystore \
+              --ks-pass "pass:$KEYSTORE_PASSWORD" \
+              --ks-key-alias "$KEY_ALIAS" \
+              --key-pass "pass:$KEY_PASSWORD" \
+              --out "$SIGNED" \
+              "$SIGNED"
 
-          # Verify signature
-          "$APKSIGNER" verify --verbose --print-certs "$SIGNED" 2>&1
+            # Verify signature
+            "$APKSIGNER" verify --verbose --print-certs "$SIGNED" 2>&1
 
-          # Calculate checksum
-          sha256sum "$SIGNED" | awk '{print $1 "  Ordia-3.0-signed.apk"}' > "$SIGNED.sha256"
+            # Calculate checksum
+            sha256sum "$SIGNED" | awk '{print $1 "  '"$SIGNED"'"}' > "$SIGNED.sha256"
+            echo "Signed $SIGNED"
+          done
 
           # Clean up keystore immediately
           rm -f /tmp/ordia-update.keystore
 
-          echo "SIGNED_APK=$SIGNED" >> "$GITHUB_ENV"
-          echo "SIGNED_CHECKSUM=$SIGNED.sha256" >> "$GITHUB_ENV"
+          echo "SIGNED_APKS=Ordia-3.0-safe-signed.apk Ordia-3.0-full-signed.apk Ordia-3.0-advanced-signed.apk" >> "$GITHUB_ENV"
 
-      - name: Upload signed APK and checksum
+      - name: Upload signed APKs and checksums
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ordia-3.0-signed
           path: |
-            Ordia-3.0-signed.apk
-            Ordia-3.0-signed.apk.sha256
+            Ordia-3.0-safe-signed.apk
+            Ordia-3.0-safe-signed.apk.sha256
+            Ordia-3.0-full-signed.apk
+            Ordia-3.0-full-signed.apk.sha256
+            Ordia-3.0-advanced-signed.apk
+            Ordia-3.0-advanced-signed.apk.sha256
           if-no-files-found: error
           retention-days: 30
 
@@ -217,13 +227,13 @@ jobs:
       actions: read
 
     steps:
-      - name: Download signed APK
+      - name: Download signed APKs
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: ordia-3.0-signed
           path: release
 
-      - name: Publish immutable release
+      - name: Publish immutable release with per-flavor manifests
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -231,25 +241,51 @@ jobs:
           set -euo pipefail
           cd release
 
-          APK="Ordia-3.0-signed.apk"
-          CHECKSUM="$APK.sha256"
+          # versionCode/versionName deben coincidir EXACTAMENTE con lo que
+          # embebió el APK en build.gradle.kts (1_300_000_000 + run*100 + attempt).
+          RUN_NUMBER=${{ github.run_number }}
+          RUN_ATTEMPT=${{ github.run_attempt }}
+          VERSION_CODE=$((1300000000 + RUN_NUMBER * 100 + RUN_ATTEMPT))
 
-          test -f "$APK" || { echo "Missing $APK"; exit 1; }
-          test -f "$CHECKSUM" || { echo "Missing $CHECKSUM"; exit 1; }
-          sha256sum --check "$CHECKSUM"
+          for FLAVOR in safe full advanced; do
+            APK="Ordia-3.0-${FLAVOR}-signed.apk"
+            CHECKSUM="$APK.sha256"
+            MANIFEST="update-manifest-${FLAVOR}.json"
+            VERSION_NAME="3.0.${RUN_NUMBER}-preview-${FLAVOR}.${RUN_ATTEMPT}"
+            APK_URL="https://github.com/wandersepulveda2013/ordia-android/releases/latest/download/${APK}"
 
-          # Derive versionCode from APK via aapt (from SDK)
-          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
-          AAPT2=$(find "$SDK_ROOT/build-tools" -name aapt2 -type f 2>/dev/null | head -1)
-          if [ -n "$AAPT2" ]; then
-            echo "APK package info:"
-            "$AAPT2" dump packagename "$APK" 2>/dev/null || true
-          fi
+            test -f "$APK" || { echo "Missing $APK"; exit 1; }
+            test -f "$CHECKSUM" || { echo "Missing $CHECKSUM"; exit 1; }
+            sha256sum --check "$CHECKSUM"
+
+            SHA256=$(awk '{print $1}' "$CHECKSUM")
+            SIZE=$(stat -c%s "$APK")
+            RELEASE_DATE=$(date +%F)
+
+            cat > "$MANIFEST" <<EOF
+            {
+              "versionCode": $VERSION_CODE,
+              "versionName": "$VERSION_NAME",
+              "apkUrl": "$APK_URL",
+              "sha256": "$SHA256",
+              "size": $SIZE,
+              "releaseDate": "$RELEASE_DATE",
+              "changelog": "Versión 3.0 de Ordía para el canal $FLAVOR: estabilidad, guardianes y actualizador automático.",
+              "mandatory": false,
+              "minSupportedVersion": 1,
+              "channel": "stable"
+            }
+            EOF
+
+            python3 -c "import json,sys; json.load(open('$MANIFEST'))" \
+              || { echo "Invalid JSON in $MANIFEST"; exit 1; }
+            echo "Generated $MANIFEST (versionCode=$VERSION_CODE, sha256=$SHA256, size=$SIZE)"
+          done
 
           # Create tag from run info
           TAG="v3.0.0-build.${{ github.run_id }}"
           TITLE="Ordia 3.0 · signed build ${{ github.run_id }}"
-          NOTES="APK firmada verificada de Ordia 3.0. Incluye atención contextual, guardianes, actualizador automático y más."
+          NOTES="APKs firmadas verificadas de Ordia 3.0. Incluyen atención contextual, guardianes y actualizador automático por manifiesto."
 
           # Prevent overwriting existing release
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
@@ -257,5 +293,8 @@ jobs:
             exit 1
           fi
 
-          gh release create "$TAG" "$APK" "$CHECKSUM" \
+          gh release create "$TAG" \
+            Ordia-3.0-safe-signed.apk Ordia-3.0-safe-signed.apk.sha256 update-manifest-safe.json \
+            Ordia-3.0-full-signed.apk Ordia-3.0-full-signed.apk.sha256 update-manifest-full.json \
+            Ordia-3.0-advanced-signed.apk Ordia-3.0-advanced-signed.apk.sha256 update-manifest-advanced.json \
             --title "$TITLE" --notes "$NOTES" --latest --repo "$GITHUB_REPOSITORY"

@@ -48,10 +48,12 @@ android {
             versionName = if (ciRunNumber == null || ciRunAttempt == null) {
                 "3.0.0-preview-safe"
             } else "3.0.${ciRunNumber}-preview-safe.${ciRunAttempt}"
-            buildConfigField("boolean", "SELF_UPDATE_ENABLED", "false")
+            buildConfigField("boolean", "SELF_UPDATE_ENABLED", "true")
             buildConfigField("boolean", "OVERLAY_ENABLED", "false")
             buildConfigField("boolean", "CONTEXT_NOTIFICATION_ACCESS_ENABLED", "false")
             buildConfigField("boolean", "PREVIEW", "true")
+            buildConfigField("String", "UPDATE_FLAVOR", "\"safe\"")
+            buildConfigField("String", "UPDATE_MANIFEST_URL", "\"https://github.com/wandersepulveda2013/ordia-android/releases/latest/download/update-manifest-safe.json\"")
             resValue("string", "app_name", "Ordía")
         }
 
@@ -65,6 +67,8 @@ android {
             buildConfigField("boolean", "OVERLAY_ENABLED", "true")
             buildConfigField("boolean", "CONTEXT_NOTIFICATION_ACCESS_ENABLED", "true")
             buildConfigField("boolean", "PREVIEW", "true")
+            buildConfigField("String", "UPDATE_FLAVOR", "\"full\"")
+            buildConfigField("String", "UPDATE_MANIFEST_URL", "\"https://github.com/wandersepulveda2013/ordia-android/releases/latest/download/update-manifest-full.json\"")
             resValue("string", "app_name", "Ordía")
         }
 
@@ -78,6 +82,8 @@ android {
             buildConfigField("boolean", "OVERLAY_ENABLED", "true")
             buildConfigField("boolean", "CONTEXT_NOTIFICATION_ACCESS_ENABLED", "true")
             buildConfigField("boolean", "PREVIEW", "true")
+            buildConfigField("String", "UPDATE_FLAVOR", "\"advanced\"")
+            buildConfigField("String", "UPDATE_MANIFEST_URL", "\"https://github.com/wandersepulveda2013/ordia-android/releases/latest/download/update-manifest-advanced.json\"")
             resValue("string", "app_name", "Ordía")
         }
     }
@@ -100,7 +106,6 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            buildConfigField("boolean", "SELF_UPDATE_ENABLED", "false")
             if (stableSigningConfigured) signingConfig = signingConfigs.getByName("stableUpdate")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

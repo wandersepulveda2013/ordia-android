@@ -25,7 +25,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -34,7 +33,6 @@ import java.util.concurrent.TimeUnit
 
 /** Hardened local-first updater for APKs distributed through the official GitHub Releases page. */
 object OrdiaUpdateManager {
-    private const val RELEASE_API = "https://api.github.com/repos/wandersepulveda2013/ordia-android/releases/latest"
     private const val RELEASES_PAGE = "https://github.com/wandersepulveda2013/ordia-android/releases"
     private const val WORK_NAME = "ordia-auto-update"
     private const val PREFS = "ordia_updates"
@@ -45,8 +43,7 @@ object OrdiaUpdateManager {
     private const val KEY_DOWNLOAD_STARTED_AT = "download_started_at"
     private const val CHANNEL = "ordia_updates"
     private const val NOTIFICATION_ID = 3001
-    private const val MAX_RELEASE_JSON_BYTES = 1_000_000
-    private const val MAX_CHECKSUM_BYTES = 8_192
+    private const val MAX_MANIFEST_BYTES = 64 * 1024
     private const val MAX_APK_BYTES = 250L * 1024L * 1024L
     private const val MAX_VERIFIED_AGE_MILLIS = 7L * 24L * 60L * 60L * 1000L
     private const val MAX_HTTP_REDIRECTS = 5
@@ -62,7 +59,11 @@ object OrdiaUpdateManager {
         val pageUrl: String,
         val apkUrl: String,
         val sha256: String,
-        val apkBytes: Long
+        val apkBytes: Long,
+        val changelog: String = "",
+        val mandatory: Boolean = false,
+        val minSupportedVersion: Int = 1,
+        val releaseDate: String? = null
     )
 
     sealed interface CheckResult {
@@ -100,54 +101,57 @@ object OrdiaUpdateManager {
         WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
     }
 
+    /**
+     * Consulta el canal estable y decide si existe una versión nueva.
+     *
+     * El feed es un `update-manifest.json` firmado de forma indirecta por la propia
+     * GitHub Release (HTTPS + allow-list de [UpdateSecurityRules]). Nunca se considera
+     * nueva una versión cuyo versionCode no sea ESTRICTAMENTE superior al instalado.
+     */
     suspend fun checkDetailed(context: Context): CheckResult = withContext(Dispatchers.IO) {
         if (!BuildConfig.SELF_UPDATE_ENABLED) {
             return@withContext CheckResult.Failed(context.getString(R.string.update_fail_store_channel))
         }
         runCatching {
-            val releaseJson = JSONObject(requestText(RELEASE_API, MAX_RELEASE_JSON_BYTES))
-            if (releaseJson.optBoolean("draft") || releaseJson.optBoolean("prerelease")) {
-                return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_not_stable))
+            val manifestUrl = BuildConfig.UPDATE_MANIFEST_URL
+            require(UpdateSecurityRules.isTrustedLatestDownloadUrl(manifestUrl)) {
+                "El origen de actualización no es confiable."
             }
-            val tag = releaseJson.optString("tag_name").trim().takeIf { it.isNotBlank() }
-                ?: return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_no_tag))
-            val remoteCode = UpdateSecurityRules.parseVersionCodeFromTag(tag)
-                ?: return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_bad_tag, tag))
-            if (remoteCode <= BuildConfig.VERSION_CODE) return@runCatching CheckResult.UpToDate
-
-            val page = releaseJson.optString("html_url").takeIf(UpdateSecurityRules::isTrustedReleasePageUrl) ?: RELEASES_PAGE
-            val assets = releaseJson.optJSONArray("assets")
-                ?: return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_no_assets))
-            data class Asset(val name: String, val url: String, val bytes: Long)
-            val trustedAssets = buildList {
-                for (index in 0 until assets.length()) {
-                    val asset = assets.optJSONObject(index) ?: continue
-                    val name = asset.optString("name")
-                    val url = asset.optString("browser_download_url")
-                    val bytes = asset.optLong("size", -1L)
-                    if (name.isNotBlank() && UpdateSecurityRules.isTrustedReleaseAssetUrl(url, name)) {
-                        add(Asset(name, url, bytes))
-                    }
-                }
+            val manifest = UpdateManifestParser.parse(
+                requestText(manifestUrl, MAX_MANIFEST_BYTES),
+                MAX_APK_BYTES
+            )
+            require(
+                UpdateSecurityRules.isTrustedApkUrl(
+                    manifest.apkUrl,
+                    UpdateSecurityRules.expectedApkName(BuildConfig.UPDATE_FLAVOR)
+                )
+            ) {
+                "La APK publicada no proviene del canal oficial."
             }
-            val apkName = UpdateSecurityRules.selectExpectedApk(trustedAssets.map { it.name }, remoteCode)
-                ?: return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_no_apk, remoteCode))
-            val apkMatches = trustedAssets.filter { it.name == apkName }
-            if (apkMatches.size != 1 || apkMatches.single().bytes !in 1..MAX_APK_BYTES) {
-                return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_ambiguous_apk))
+            require(manifest.channel.isBlank() || manifest.channel.equals("stable", ignoreCase = true)) {
+                context.getString(R.string.update_fail_channel, manifest.channel)
             }
-            val checksumName = "$apkName.sha256"
-            val checksumMatches = trustedAssets.filter { it.name == checksumName }
-            if (checksumMatches.size != 1) {
-                return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_no_checksum, apkName))
+            if (!UpdateSecurityRules.isNewerCode(manifest.versionCode, BuildConfig.VERSION_CODE)) {
+                return@runCatching CheckResult.UpToDate
             }
-            val checksum = UpdateSecurityRules.parseChecksum(
-                requestText(checksumMatches.single().url, MAX_CHECKSUM_BYTES),
-                apkName
-            ) ?: return@runCatching CheckResult.Failed(context.getString(R.string.update_fail_bad_checksum))
-
             CheckResult.Available(
-                Release(tag, remoteCode, page, apkMatches.single().url, checksum, apkMatches.single().bytes)
+                Release(
+                    tag = manifest.versionName,
+                    code = manifest.versionCode,
+                    pageUrl = RELEASES_PAGE,
+                    apkUrl = manifest.apkUrl,
+                    sha256 = manifest.sha256.lowercase(),
+                    apkBytes = manifest.size,
+                    changelog = manifest.changelog,
+                    mandatory = UpdateSecurityRules.isMandatoryUpdate(
+                        mandatory = manifest.mandatory,
+                        installedCode = BuildConfig.VERSION_CODE,
+                        minSupportedVersion = manifest.minSupportedVersion
+                    ),
+                    minSupportedVersion = manifest.minSupportedVersion,
+                    releaseDate = manifest.releaseDate
+                )
             )
         }.getOrElse { error ->
             CheckResult.Failed(error.message?.take(180) ?: context.getString(R.string.update_fail_github))
@@ -171,7 +175,7 @@ object OrdiaUpdateManager {
             }
             return@synchronized active.id
         }
-        if (!UpdateSecurityRules.isTrustedReleaseAssetUrl(release.apkUrl, UpdateSecurityRules.expectedApkName(release.code)) ||
+        if (!UpdateSecurityRules.isTrustedApkUrl(release.apkUrl, UpdateSecurityRules.expectedApkName(BuildConfig.UPDATE_FLAVOR)) ||
             !UpdateSecurityRules.isValidSha256(release.sha256) ||
             !UpdateSecurityRules.isReportedSizeAcceptable(release.apkBytes, MAX_APK_BYTES)
         ) {
@@ -215,6 +219,32 @@ object OrdiaUpdateManager {
 
     fun isManagedDownload(context: Context, id: Long): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_DOWNLOAD_ID, -1L) == id
+
+    /** Estado de descarga en vivo para la UI in-app (bytes, total y estado DownloadManager). */
+    data class DownloadProgress(val bytes: Long, val total: Long, val status: Int)
+
+    fun downloadProgress(context: Context, id: Long): DownloadProgress? = runCatching {
+        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        manager.query(DownloadManager.Query().setFilterById(id))?.use { cursor ->
+            if (!cursor.moveToFirst()) return@use null
+            val bytesIndex = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+            val totalIndex = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+            val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+            if (bytesIndex < 0 || totalIndex < 0 || statusIndex < 0) null
+            else DownloadProgress(cursor.getLong(bytesIndex), cursor.getLong(totalIndex), cursor.getInt(statusIndex))
+        }
+    }.getOrNull()
+
+    fun currentDownloadCode(context: Context): Int =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_DOWNLOAD_CODE, -1)
+
+    /** Descarta la descarga gestionada actual sin conocer su id (usado al fallar la instalación). */
+    fun discardCurrent(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.getLong(KEY_DOWNLOAD_ID, -1L).takeIf { it > 0L }?.let { removeDownload(context, it) }
+        clearDownloadMetadata(context)
+        deleteVerifiedPackages(context)
+    }
 
     fun discardDownload(context: Context, id: Long) {
         if (!isManagedDownload(context, id)) return
