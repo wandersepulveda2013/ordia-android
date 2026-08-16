@@ -86,6 +86,7 @@ import androidx.navigation.navArgument
 import com.ordia.app.data.preferences.InterfaceMode
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
+import com.ordia.app.ui.components.CommandPaletteSheet
 import com.ordia.app.ui.components.GuardianAvatar
 import com.ordia.app.ui.screens.ArchiveScreen
 import com.ordia.app.ui.screens.AssistantScreen
@@ -228,6 +229,7 @@ fun OrdiaNavigation(
     viewModel: OrdiaViewModel,
     snackbarHostState: SnackbarHostState
 ) {
+    var showPalette by remember { mutableStateOf(false) }
     val navigationFocusRequester = remember { FocusRequester() }
     LaunchedEffect(navigationFocusRequester) {
         navigationFocusRequester.requestFocus()
@@ -237,13 +239,12 @@ fun OrdiaNavigation(
             .fillMaxSize()
             .focusRequester(navigationFocusRequester)
             .onPreviewKeyEvent { event ->
-                if (
-                    event.type == KeyEventType.KeyDown &&
-                    event.key == Key.K &&
-                    (event.isCtrlPressed || event.isMetaPressed)
-                ) {
-                    navController.navigateSingle(Destination.Search.route)
-                    true
+                if (event.type == KeyEventType.KeyDown && (event.isCtrlPressed || event.isMetaPressed)) {
+                    when (event.key) {
+                        Key.K -> { navController.navigateSingle(Destination.Search.route); true }
+                        Key.P -> { showPalette = true; true }
+                        else -> false
+                    }
                 } else {
                     false
                 }
@@ -351,6 +352,28 @@ fun OrdiaNavigation(
                 }
             ) { padding -> OrdiaNavHost(navController, state, viewModel, padding) }
         }
+    }
+
+    if (showPalette) {
+        CommandPaletteSheet(
+            onSelect = { commandId ->
+                showPalette = false
+                when (commandId) {
+                    "create_task" -> navController.navigateSingle(Destination.Tasks.route)
+                    "create_note" -> navController.navigateSingle(Destination.Notes.route)
+                    "capture" -> navController.navigateSingle(Destination.Capture.route)
+                    "mental_offload" -> navController.navigateSingle(Destination.MentalOffload.route)
+                    "search" -> navController.navigateSingle(Destination.Search.route)
+                    "organize_today" -> navController.navigateSingle(Destination.Organize.route)
+                    "organize_week" -> navController.navigateSingle(Destination.Organize.route)
+                    "review_pending" -> navController.navigateSingle(Destination.Guardian.route)
+                    "open_calendar" -> navController.navigateSingle(Destination.Planner.route)
+                    "open_guardians" -> navController.navigateSingle(Destination.Guardian.route)
+                    "open_settings" -> navController.navigateSingle(Destination.Settings.route)
+                }
+            },
+            onDismiss = { showPalette = false }
+        )
     }
 }
 
