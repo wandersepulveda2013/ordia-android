@@ -762,6 +762,102 @@ class AssistantEngineTest {
         assertTrue("avisa de las atrasadas previas: ${answer.text}", answer.text.contains("atrasada"))
     }
 
+    // --- c.356: "¿qué tengo hoy?" no debe callar un compromiso vencido de una
+    // conversación (el cuarto olvido). La rama "hoy" de agendaAnswer ya rompía la
+    // pureza "sólo agenda de hoy" para nombrar las atrasadas de días anteriores
+    // (earlierOverdue) — pero silenciaba los compromisos vencidos, exactamente la
+    // outlier que c.354 corrigió en "¿voy bien?". Todas las demás superficies del
+    // asistente ("organiza mi día", "qué hago ahora", "qué olvidé", "vencidas",
+    // "resume conversación", "¿voy bien?") ya anexaban overdueCommitmentTail;
+    // agendaAnswer "hoy" era la única que callaba el olvido en la consulta de
+    // agenda más común. Cola informativa, paralela a c.354/c.294/c.297.
+
+    @Test fun queTengoHoy_warnsOverdueCommitmentWhenAgendaHasTasks() {
+        // Con agenda de hoy: la cola informativa avisa del compromiso vencido sin
+        // cambiar el foco de la agenda (no lo nombra — es "además", paralelo al
+        // tail de atrasadas). La acción primaria sigue siendo la agenda de hoy.
+        val now = 1_000_000_000_000L
+        val today = todayNoon(now)
+        val overdueDue = now - 86_400_000L
+        val commitment = overdueCommitment(1, "te llamo el martes", overdueDue)
+        val answer = AssistantEngine.answer(
+            "¿qué tengo hoy?",
+            listOf(TaskEntity(id = 10, title = "Cita médica", dueAt = today)),
+            emptyList(), listOf(commitment),
+            now
+        )
+        assertTrue("nombra la de hoy: ${answer.text}", answer.text.contains("Cita médica"))
+        assertTrue("no calla el compromiso vencido: ${answer.text}", answer.text.contains("compromiso") && answer.text.contains("vencido"))
+    }
+
+    @Test fun queTengoHoy_warnsOverdueCommitmentWhenEmptyAgendaButEarlierOverdue() {
+        // Sin agenda de hoy PERO con atrasada de tarea: ya nombraba la atrasada;
+        // ahora debe además avisar del compromiso vencido (cola), no callarlo.
+        val now = 1_000_000_000_000L
+        val earlierOverdue = now - 3 * 86_400_000L
+        val overdueDue = now - 86_400_000L
+        val commitment = overdueCommitment(2, "envío el informe", overdueDue)
+        val answer = AssistantEngine.answer(
+            "¿qué tengo hoy?",
+            listOf(TaskEntity(id = 20, title = "Entrega vieja", dueAt = earlierOverdue)),
+            emptyList(), listOf(commitment),
+            now
+        )
+        assertTrue("nombra la atrasada de tarea: ${answer.text}", answer.text.contains("Entrega vieja"))
+        assertTrue("no calla el compromiso vencido: ${answer.text}", answer.text.contains("compromiso") && answer.text.contains("vencido"))
+    }
+
+    @Test fun queTengoHoy_recoversOverdueCommitmentWhenNoTaskOverdue() {
+        // Agenda de hoy vacía y SIN atrasadas de tarea: antes decía "Para hoy no
+        // tienes tareas agendadas." frente a una promesa vencida — mentía por
+        // omisión en la superficie de agenda más común. Ahora la nombra (cola
+        // informativa, no routing a overdueCommitmentAnswer: la consulta es de
+        // agenda, no de olvidos; se avisa, no se cambia de tema).
+        val now = 1_000_000_000_000L
+        val overdueDue = now - 86_400_000L
+        val commitment = overdueCommitment(3, "revisar el contrato", overdueDue)
+        val answer = AssistantEngine.answer(
+            "¿qué tengo hoy?",
+            emptyList(),
+            emptyList(), listOf(commitment),
+            now
+        )
+        assertTrue("no miente 'no tienes nada': ${answer.text}", answer.text.contains("revisar el contrato"))
+        assertTrue("menciona que es vencido: ${answer.text}", answer.text.contains("vencido"))
+    }
+
+    @Test fun queTengoHoy_doesNotInventCommitmentWhenNone() {
+        // Guard anti-falso-positivo: sin compromiso vencido (ni tarea atrasada ni
+        // agenda), la respuesta NO debe inventar "compromiso vencido".
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "¿qué tengo hoy?",
+            listOf(TaskEntity(id = 30, title = "Cita médica", dueAt = todayNoon(now))),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("no inventa compromiso: ${answer.text}", !answer.text.contains("compromiso"))
+    }
+
+    @Test fun queTengoManana_doesNotMentionOverdueCommitmentInFutureScope() {
+        // "¿qué tengo mañana?" es alcance futuro: los atrasados/compromisos
+        // vencidos NO son parte de "lo de mañana". El tail de compromisos sólo
+        // aplica al alcance "hoy" (igual que earlierOverdue). Guard de coherencia
+        // con el diseño existente: mañana/semana/mes no anexan atrasadas.
+        val now = 1_000_000_000_000L
+        val tomorrow = tomorrowNoon(now)
+        val overdueDue = now - 86_400_000L
+        val commitment = overdueCommitment(4, "te llamo el martes", overdueDue)
+        val answer = AssistantEngine.answer(
+            "¿qué tengo mañana?",
+            listOf(TaskEntity(id = 40, title = "Reunión", dueAt = tomorrow)),
+            emptyList(), listOf(commitment),
+            now
+        )
+        assertTrue("nombra la de mañana: ${answer.text}", answer.text.contains("Reunión"))
+        assertTrue("no mezcla el compromiso vencido en el alcance futuro: ${answer.text}", !answer.text.contains("te llamo el martes"))
+    }
+
     @Test fun queTengoManana_keepsQuickPhrasesWorking() {
         // "qué hago ahora" y "plan mínimo" no deben romperse tras añadir el intent
         // de agenda: siguen su camino propio.

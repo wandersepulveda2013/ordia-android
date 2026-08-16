@@ -116,7 +116,7 @@ object AssistantEngine {
                     )
                 }
             }
-            isAgendaQuery(query) -> agendaAnswer(query, active, now, zone)
+            isAgendaQuery(query) -> agendaAnswer(query, active, overdueCommitments, now, zone)
             "que olvide" in query || "olvidado" in query || "vencid" in query -> {
                 // Partición honesta: "vencid" pregunta por vencidas (dueAt pasado);
                 // "qué olvidé"/"olvidado" pregunta por olvidos, y un compromiso
@@ -296,7 +296,13 @@ object AssistantEngine {
             agendaPartOfDay(query) != null
     }
 
-    private fun agendaAnswer(query: String, active: List<TaskEntity>, now: Long, zone: ZoneId): AssistantAnswer {
+    private fun agendaAnswer(
+        query: String,
+        active: List<TaskEntity>,
+        overdueCommitments: List<CommitmentEntity>,
+        now: Long,
+        zone: ZoneId
+    ): AssistantAnswer {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         val monday = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
         val thisMonth = java.time.YearMonth.from(today)
@@ -393,10 +399,21 @@ object AssistantEngine {
                     val top = earlierOverdue.first()
                     val tail = if (earlierOverdue.size == 1) "" else " y tienes ${earlierOverdue.size - 1} más atrasad${if (earlierOverdue.size - 1 == 1) "a" else "as"}."
                     return AssistantAnswer(
-                        "Para hoy no tienes tareas agendadas, pero tienes ${earlierOverdue.size} atrasad${if (earlierOverdue.size == 1) "a" else "as"} de días anteriores: “${top.title}”$tail",
+                        "Para hoy no tienes tareas agendadas, pero tienes ${earlierOverdue.size} atrasad${if (earlierOverdue.size == 1) "a" else "as"} de días anteriores: “${top.title}”$tail" +
+                            overdueCommitmentTail(overdueCommitments),
                         relatedTaskIds = earlierOverdue.take(8).map { it.id }
                     )
                 }
+                // Cuarto olvido: agenda de hoy vacía y SIN atrasadas de tarea, PERO
+                // con un compromiso vencido de una conversación. Antes decía "Para
+                // hoy no tienes tareas agendadas." frente a una promesa vencida —
+                // mentía por omisión en la superficie de agenda más común. Lo
+                // nombramos (no callamos), igual que "¿qué olvidé?" sin atrasadas
+                // (c.286 l.190): la promesa vencida es parte de "lo que tienes
+                // pendiente hoy". La cola no basta aquí: no hay nada más que nombrar,
+                // así se ruta a overdueCommitmentAnswer para identificarlo y abrir
+                // Conversaciones. Sin nueva pantalla (acción existente).
+                if (overdueCommitments.isNotEmpty()) return overdueCommitmentAnswer(overdueCommitments)
             }
             return AssistantAnswer("Para $label no tienes tareas agendadas.")
         }
@@ -406,11 +423,17 @@ object AssistantEngine {
         // antes de hoy): son parte de "lo que tienes" pendiente y el usuario las
         // olvidaría si la agenda sólo mirara el día de hoy. Coherente con el "además"
         // de "qué hago ahora". Para mañana/semana/mes (futuro/pasado) no aplica.
+        // Lo mismo con los compromisos vencidos de conversaciones (cuarto olvido,
+        // c.356): el alcance "hoy" incluye lo que se pasó y necesita acción hoy,
+        // aunque la promesa aún no sea tarea. Simétrico con "¿voy bien?" (c.354) y
+        // "organiza mi día" (c.294): cola informativa, no doble señalización. Para
+        // alcances futuros/pasados no se anexa (no son parte de ese día).
         val tail = if (label == "hoy") {
             val earlierOverdue = active.count { TaskRules.isOverdue(it, now) && !TaskRules.isDueToday(it, now, zone) }
-            if (earlierOverdue > 0) {
+            val overdueTaskTail = if (earlierOverdue > 0) {
                 " Además, tienes $earlierOverdue atrasad${if (earlierOverdue == 1) "a" else "as"} de días anteriores."
             } else ""
+            overdueTaskTail + overdueCommitmentTail(overdueCommitments)
         } else ""
         val head = if (label == "hoy") "Hoy" else label.replaceFirstChar { it.uppercase() }
         return AssistantAnswer("$head: $titles.$tail", relatedTaskIds = ids)
