@@ -11734,4 +11734,46 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Justo termino el informe", now, zone)
         assertEquals(null, result.dueAt)
     }
+
+    // --- Prefijos de aproximación/intensificación "recién"/"apenas" antes de "a las/la N" (ciclo 396) ---
+    // "recién a las 9"/"apenas a las 3" son adverbios temporales puros antes de "a las N" (igual que
+    // "justo"/"casi" de c.395/c.393): "recién a las 9 personas"/"apenas a las 3 cajas" no son lectura
+    // de cantidad (la forma de cuenta es "recién 9 personas"/"apenas 3 cajas", sin "a las"), así que NO
+    // exigen evidencia de reloj. Antes dejaban residuo en el título ("reunión recién", "reunión apenas")
+    // pese a agendar la hora correctamente.
+    @Test fun recienALas9LimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Reunión recién a las 9", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun recienALas9DeLaNocheLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("Llamar recién a las 9 de la noche", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun apenasALas3LimpiaTituloYResuelve3h() {
+        val result = NaturalTaskParser.parse("Reunión apenas a las 3", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(3, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun apenasALas9DeLaMananaLimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Cita apenas a las 9 de la mañana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // El guard anti-cuenta sigue activo tras reescribir "recién a "/"apenas a " → "a ":
+    // "recién a las 9 personas" → "a las 9 personas" → rechazado como cita.
+    @Test fun recienALas9PersonasNoEsCita() {
+        val result = NaturalTaskParser.parse("Cita recién a las 9 personas", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
+    @Test fun apenasALas3CajasNoEsCita() {
+        val result = NaturalTaskParser.parse("Comprar apenas a las 3 cajas", now, zone)
+        assertEquals(null, result.dueAt)
+    }
 }
