@@ -75,11 +75,13 @@
             android:exported="false" />
 
         <!-- Re-sincroniza recordatorios al cambiar hora, fecha o zona horaria.
-             No usa BOOT_COMPLETED para no añadir permisos: WorkManager restaura
-             sus trabajos tras reinicio. -->
+             exported=false: solo el sistema puede emitir estas broadcast protegidas
+             (TIME_SET/TIMEZONE_CHANGED/DATE_CHANGED); ninguna app de terceros
+             puede disparar el resync. No usa BOOT_COMPLETED para no añadir
+             permisos: WorkManager restaura sus trabajos tras reinicio. -->
         <receiver
             android:name=".reminders.ReminderResyncReceiver"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
                 <action android:name="android.intent.action.TIME_SET" />
