@@ -12200,4 +12200,82 @@ class NaturalTaskParserTest {
         assertEquals(30, result.durationMinutes)
         assertNull(result.reminderOffsetMinutes)
     }
+
+    // --- Rangos horarios "entre las N y las M [meridiem]" / "de las N a las M [meridiem]" ---
+    // Antes estas formas NO las reconocía [timeRangePattern] (que admite "de H1 a H2" con
+    // horas NUMÉRICAS desnudas, sin "las" ni "entre...y"): el parser resolvía UNA hora (la
+    // segunda, con meridiem) PERO dejaba el marco del rango como residuo del título
+    // ("reunión entre las 3 y las"), e incluso misparseaba "entre 3 y 5 de la tarde" →
+    // 15:05 ("3 y 5" leído como 3:05). El rewriter normaliza "entre [las ]H1 y [las ]H2
+    // [meridiem]" y "de las H1 a las H2 [meridiem]" a la forma canónica "de H1 a H2
+    // [meridiem]" que SÍ digiere [timeRangePattern] → duración (M−N) + hora de INICIO como
+    // dueAt, idéntico a "de 9 a 11 de la mañana" (c.76/c.77). Reutiliza TODO el flujo
+    // existente (propagación de meridiem, cruce de mediodía, guard anti-cuenta).
+
+    @Test fun entreLas3YLas5DeLaTardeNormalizaARangoDuracion2hInicio15h() {
+        val result = NaturalTaskParser.parse("Reunión entre las 3 y las 5 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun entreLas9YLas11DeLaMananaNormalizaARangoInicio9h() {
+        val result = NaturalTaskParser.parse("Reunión entre las 9 y las 11 de la mañana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun entre3Y5DeLaTardeNormalizaSinMisparsear1505() {
+        val result = NaturalTaskParser.parse("Reunión entre 3 y 5 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun entreLas2YLas4PmNormalizaARangoInicio14h() {
+        val result = NaturalTaskParser.parse("Cita entre las 2 y las 4 pm", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun entreLas3pmYLas5pmNormalizaARangoInicio15h() {
+        val result = NaturalTaskParser.parse("Reunión entre las 3pm y las 5pm", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun deLas3ALas5DeLaTardeNormalizaARangoInicio15h() {
+        val result = NaturalTaskParser.parse("Reunión de las 3 a las 5 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun entreLas3YLas5DeLaTardeMananaCombinaFechaYHoraInicio() {
+        val result = NaturalTaskParser.parse("Reunión entre las 3 y las 5 de la tarde mañana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Rango en punto ambiguo (<13, sin meridiem/unidad) al FINAL de la frase: se acepta
+    // como duración + hora de INICIO (rangeStartTime) como dueAt, igual que "Clase de 9 a
+    // 11" (c. existente). Antes "entre las 3 y las 5" dejaba el rango crudo como residuo.
+    @Test fun entreLas3YLas5SinMeridiemAlFinalDaDuracionEInicio3h() {
+        val result = NaturalTaskParser.parse("Reunión entre las 3 y las 5", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(3, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Guard anti-cuenta: "entre 3 y 5 cajas" NO es un rango horario (no agendar como cita).
+    @Test fun entre3Y5CajasNoEsCita() {
+        val result = NaturalTaskParser.parse("Reunión entre 3 y 5 cajas", now, zone)
+        assertEquals(null, result.dueAt)
+    }
 }

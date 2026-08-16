@@ -1164,6 +1164,35 @@ object NaturalTaskParser {
         Regex("""(?i)\ba\s+eso\s+de\s+(?=(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)[0-5]\d)?(?:\s*(?:horas?|hs|h))?(?:\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\b)""")
 
     /**
+     * Normaliza rangos horarios expresados con "entre...y" o con "las" en cada extremo
+     * a la forma canónica "de H1 a H2 [meridiem]" que SÍ digiere [timeRangePattern]
+     * (duración M−N + hora de INICIO como dueAt, con propagación de meridiem, cruce de
+     * mediodía y guard anti-cuenta). Antes estas formas cotidianas NO casaban en
+     * [timeRangePattern] (que exige horas NUMÉRICAS desnudas y conector "a"/"-"): el
+     * parser resolvía UNA hora (la del segundo extremo, con meridiem) PERO dejaba el
+     * marco del rango como residuo del título ("reunión entre las 3 y las"), e incluso
+     * misparseaba "entre 3 y 5 de la tarde" → 15:05 ("3 y 5" leído como 3:05). Ahora:
+     *
+     *   "entre las 3 y las 5 de la tarde" → "de 3 a 5 de la tarde" → 120 min, inicio 15:00
+     *   "de las 3 a las 5 de la tarde"    → "de 3 a 5 de la tarde"
+     *   "entre las 3pm y las 5pm"         → "de 3pm a 5pm"
+     *
+     * Sólo horas NUMÉRICAS (la forma dominante en móvil; las horas escritas en rango son
+     * raras y [timeRangePattern] tampoco las admite). El rewriter es pura normalización de
+     * conectores: NO exige evidencia de reloj propia porque el guard anti-cuenta y la
+     * validación de rango ambiguo de [timeRangePattern]/[rangeMatch] (followedByCount,
+     * hasMinutesOrMeridiem, acceptAmbiguous) ya filtran cuentas ("entre 3 y 5 cajas" →
+     * "de 3 a 5 cajas" → rechazado) y rangos absurdos. Dos patrones separados (en vez de
+     * uno con alternancia) para que los grupos 1-6 (H1/min1/suf1, H2/min2/suf2) ocupen los
+     * MISMOS índices en ambos y el lambda de reconstrucción sea común.
+     */
+    private val entreRangeNormalizerRewriter =
+        Regex("""(?i)\bentre\s+(?:las\s+)?(\d{1,2})(?:(?::|h)([0-5]\d))?\s*((?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s+(?:horas?|hs|h))?)\s+y\s+(?:las\s+)?(\d{1,2})(?:(?::|h)([0-5]\d))?\s*((?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s+(?:horas?|hs|h))?)\b""")
+
+    private val deLasRangeNormalizerRewriter =
+        Regex("""(?i)\bde\s+las\s+(\d{1,2})(?:(?::|h)([0-5]\d))?\s*((?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s+(?:horas?|hs|h))?)\s+a\s+las\s+(\d{1,2})(?:(?::|h)([0-5]\d))?\s*((?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s+(?:horas?|hs|h))?)\b""")
+
+    /**
      * Marcadores de hora aproximada ("a eso de", "hacia", "cerca de", "alrededor de",
      * "sobre") que se normalizan a la forma canónica "a las"/"a la" reutilizando el
      * flujo de [timePatterns]. Véase el bloque de normalización en [parse].
@@ -1982,6 +2011,25 @@ object NaturalTaskParser {
         // [approximateTimePatterns]: "a eso de las N" no casa aquí (viene "las", no hora
         // desnuda) y lo normaliza el fold. Véase [aEsoDeBareHourRewriter].
         working = aEsoDeBareHourRewriter.replace(working, "a las ")
+
+        // Normaliza rangos "entre [las] H1 y [las] H2 [meridiem]" y "de las H1 a las H2
+        // [meridiem]" a la forma canónica "de H1 a H2 [meridiem]" ANTES de [timeRangePattern]
+        // (que se evalúa más abajo en [parse]): así reutiliza TODO el flujo de rango
+        // existente (duración M−N + hora de INICIO como dueAt, propagación de meridiem,
+        // cruce de mediodía, guard anti-cuenta) en vez de resolver una sola hora y dejar
+        // el marco del rango como residuo del título. Véase [entreRangeNormalizerRewriter]/
+        // [deLasRangeNormalizerRewriter]; grupos 1/2/3 = H1[:MM][suf1], 4/5/6 = H2[:MM][suf2].
+        fun rebuildRange(m: MatchResult): String {
+            val h1 = m.groupValues[1]
+            val min1 = m.groupValues[2].let { if (it.isNotEmpty()) ":$it" else "" }
+            val suf1 = m.groupValues[3].trim()
+            val h2 = m.groupValues[4]
+            val min2 = m.groupValues[5].let { if (it.isNotEmpty()) ":$it" else "" }
+            val suf2 = m.groupValues[6].trim()
+            return "de $h1$min1${if (suf1.isNotEmpty()) " $suf1" else ""} a $h2$min2${if (suf2.isNotEmpty()) " $suf2" else ""}"
+        }
+        working = entreRangeNormalizerRewriter.replace(working) { rebuildRange(it) }
+        working = deLasRangeNormalizerRewriter.replace(working) { rebuildRange(it) }
 
         working = approximateTimePatterns.fold(working) { acc, p -> p.replace(acc, "a ") }
 
