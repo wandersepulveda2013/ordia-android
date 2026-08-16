@@ -11917,6 +11917,74 @@ class NaturalTaskParserTest {
     // El uso demostrativo de "pasada" ("la semana pasada", "el viernes pasado") NO debe
     // verse afectado: el sufijo sólo consume tras un [timePattern] que casó la hora.
 
+    // --- Sufijo de aproximación y artículo "las" en hora suelta con parte del día (c.425) ---
+    // [standaloneHourPartOfDayPattern] ("N de la noche", forma de captura rÃ¡pida sin "a las")
+    // NO incluÃ­a [APPROX_TIME_SUFFIX] ni admitÃ­a el artÃ­culo "las", a diferencia de
+    // [timePatterns] ("a las N"). Esto dejaba dos huecos asimÃ©tricos: (1) los modificadores
+    // "mÃ¡s o menos"/"y pico"/"pasadas"/"aproximadamente" se limpiaban con "a las 9 pasadas"
+    // (c.419) PERO dejaban residuo en "9 de la noche pasadas" ("reuniÃ³n pasadas"); (2) la
+    // forma cotidiana "reuniÃ³n las 9 de la noche" (artÃ­culo sin "a") dejaba "las" como
+    // residuo ("reuniÃ³n las"). Ambos: cita bien fechada pero tÃ­tulo mutilado (P1 captura/
+    // tÃ­tulo limpio). Ahora el patrÃ³n incluye $APPROX_TIME_SUFFIX y `(?:las\s+)?`, simÃ©trico
+    // de [timePatterns]. El lookahead anti-"de <mes>" y la exigencia de "de la <parte>"
+    // siguen filtrando cuentas ("las 9 cajas" no casa: no hay "de la noche/tarde/...").
+
+    @Test fun nueveDeLaNocheMasOMenosLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("ReuniÃ³n 9 de la noche mas o menos", now, zone)
+        assertEquals("ReuniÃ³n", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun nueveDeLaNocheYPicoLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("Cita 9 de la noche y pico", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun nueveDeLaNochePasadasLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("Cena 9 de la noche pasadas", now, zone)
+        assertEquals("Cena", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun nueveDeLaNocheAproximadamenteLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("Cita 9 de la noche aproximadamente", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun nueveYMediaDeLaNocheMasOMenosLimpiaTituloYResuelve2130() {
+        val result = NaturalTaskParser.parse("ReuniÃ³n 9 y media de la noche mas o menos", now, zone)
+        assertEquals("ReuniÃ³n", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun lasNueveDeLaNocheLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("ReuniÃ³n las 9 de la noche", now, zone)
+        assertEquals("ReuniÃ³n", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun lasOchoYMediaDeLaNocheLimpiaTituloYResuelve2030() {
+        val result = NaturalTaskParser.parse("Cita las 8 y media de la noche", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(20, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun lasNueveDeLaNochePasadasLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("Cena las 9 de la noche pasadas", now, zone)
+        assertEquals("Cena", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Guard anti-cuenta: "las 9 cajas" NO debe falsificarse como cita (no hay "de la
+    // <parte>", asÃ­ el patrÃ³n autÃ³nomo no casa y el guard anti-cuenta retiene el tÃ­tulo).
+    @Test fun lasNueveCajasNoSeFalsificaComoCita() {
+        val result = NaturalTaskParser.parse("Comprar las 9 cajas de leche", now, zone)
+        assertEquals("Comprar las 9 cajas de leche", result.title)
+        assertNull(result.dueAt)
+    }
+
     // --- Prefijo "casi a las/la" (ciclo 389) ---
     // "casi a las 9" = un poco antes de las 9. Es adverbio de aproximación temporal
     // puro (no admite lectura de cantidad: "casi a las 9 personas" no es gramatical),

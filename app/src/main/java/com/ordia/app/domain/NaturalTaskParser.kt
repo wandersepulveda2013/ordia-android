@@ -1815,11 +1815,20 @@ object NaturalTaskParser {
      * posterior no casaba, la cita caía en punto (21:00 en vez de 21:30) y "y media" quedaba
      * como residuo en el título. El grupo 3 (fracción anterior) tiene prioridad; el 5 actúa
      * como fallback (sólo positiva "y media/cuarto/..."). El `\b` final deja intacta la
-     * "y <verbo>" no fraccionaria ("Cena 9 de la noche y hablar" → 21:00 + "Cena y hablar"):
-     * "hablar" no casa CLOCK_FRACTION_Y.
+     * palabra siguiente ("9 de la noche y hablar" → "y hablar" sobrevive, no se roba:
+     * "hablar" no casa CLOCK_FRACTION_Y).
+     *
+     * c.425 — artículo "las" opcional antes de la hora ("las 9 de la noche"): la forma
+     * cotidiana de dictado/captura rápida omite la "a" ("reunión las 9 de la noche").
+     * Antes el patrón exigía el número justo tras el límite de palabra, así "las" quedaba
+     * como residuo del título ("reunión las") pese a agendar 21:00. Ahora `(?:las\s+)?`
+     * consume el artículo cuando lo hay, simétrico a [timePatterns] ("a las N"). El
+     * lookahead anti-"de <mes>" y la exigencia de "de la <parte>" siguen filtrando
+     * cuentas ("las 9 cajas" no casa: no hay "de la noche/tarde/..."), así no se
+     * falsifica como cita.
      */
     private val standaloneHourPartOfDayPattern =
-        Regex("""(?i)(?<![:\d])(\d{1,2}|$WRITTEN_HOUR_ALT)(?:(?::|h)([0-5]\d))?(?:\s+($CLOCK_FRACTION_Y))?\s+de\s+la\s+(tarde|noche|madrugada|ma[nñ]ana|manana)(?!\s+de\s+(?!hoy\b|ma[nñ]ana\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b)[a-záéíóúüñ])(?:\s+($CLOCK_FRACTION_Y))?\b""")
+        Regex("""(?i)(?<![:\d])(?:las\s+)?(\d{1,2}|$WRITTEN_HOUR_ALT)(?:(?::|h)([0-5]\d))?(?:\s+($CLOCK_FRACTION_Y))?\s+de\s+la\s+(tarde|noche|madrugada|ma[nñ]ana|manana)(?!\s+de\s+(?!hoy\b|ma[nñ]ana\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b)[a-záéíóúüñ])(?:\s+($CLOCK_FRACTION_Y))?$APPROX_TIME_SUFFIX\b""")
 
     private fun resolveStandaloneHourPartOfDay(match: MatchResult): LocalTime? {
         val h = parseHour(match.groupValues[1]) ?: return null
