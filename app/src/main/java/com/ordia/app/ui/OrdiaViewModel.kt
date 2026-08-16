@@ -157,19 +157,23 @@ data class OrdiaUiState(
     val attachments: List<AttachmentEntity> = emptyList(),
     val preferences: UserPreferences = UserPreferences()
 ) {
-    val guardianInsight: GuardianCoach.Insight get() = GuardianCoach.insight(tasks, habits, habitLogs)
-    val nextTask: TaskEntity? get() = guardianInsight.taskId?.let(::task) ?: TaskRules.nextBestTask(tasks)
-    val rootTasks: List<TaskEntity> get() = tasks.filter { it.parentTaskId == null }
-    val pendingTasks: List<TaskEntity> get() = rootTasks.filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
+    // Derivados sin tiempo: se calculan una sola vez por emisión de uiState para
+    // evitar recomputar filtros O(n) en cada recomposición de pantalla.
+    val rootTasks: List<TaskEntity> = tasks.filter { it.parentTaskId == null }
+    val pendingTasks: List<TaskEntity> = rootTasks.filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
     // La Bandeja es una cola de revisión por estado. Una fecha extraída con
     // baja confianza no debe sacar silenciosamente la captura de esa cola.
-    val inboxTasks: List<TaskEntity> get() = pendingTasks.filter { it.status == TaskStatus.INBOX }
+    val inboxTasks: List<TaskEntity> = pendingTasks.filter { it.status == TaskStatus.INBOX }
+    val completedCount: Int = rootTasks.count { it.completed }
+    val pendingCount: Int = pendingTasks.size
+    val completionRate: Int = TaskRules.completionRate(rootTasks)
+    val archivedCount: Int = archivedTasks.size + archivedProjects.size + archivedNotes.size + archivedHabits.size + archivedRoutines.size
+
+    // Derivados sensibles al tiempo: siguen siendo perezosos para usar la hora actual.
+    val guardianInsight: GuardianCoach.Insight get() = GuardianCoach.insight(tasks, habits, habitLogs)
+    val nextTask: TaskEntity? get() = guardianInsight.taskId?.let(::task) ?: TaskRules.nextBestTask(tasks)
     val overdueTasks: List<TaskEntity> get() = pendingTasks.filter { TaskRules.isOverdue(it) }
     val todayTasks: List<TaskEntity> get() = pendingTasks.filter { TaskRules.isDueToday(it) && !TaskRules.isOverdue(it) }
-    val completedCount: Int get() = rootTasks.count { it.completed }
-    val pendingCount: Int get() = pendingTasks.size
-    val completionRate: Int get() = TaskRules.completionRate(rootTasks)
-    val archivedCount: Int get() = archivedTasks.size + archivedProjects.size + archivedNotes.size + archivedHabits.size + archivedRoutines.size
     val focusMinutesThisWeek: Int get() {
         val start = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
         return focusSessions.filter { it.startedAt >= start && it.completed }.sumOf { it.actualMinutes }
