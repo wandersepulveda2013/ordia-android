@@ -56,7 +56,7 @@ object AssistantEngine {
         // para que el asistente no mienta por omisión en "¿qué olvidé?"/"vencidas".
         val overdueCommitments = CommitmentRules.overduePendingSorted(commitments, now)
         return when {
-            "organiza mi dia" in query || "organizar mi dia" in query || "organiza el dia" in query -> {
+            isPlannerIntent(query) -> {
                 val pending = if (active.size == 1) "1 tarea pendiente" else "${active.size} tareas pendientes"
                 val venc = if (overdue.size == 1) "1 vencida" else "${overdue.size} vencidas"
                 // Coherencia con "¿qué olvidé?"/"vencidas": el asistente conoce los
@@ -706,6 +706,19 @@ object AssistantEngine {
             "cabe todo" in query || "cabe el dia" in query || "cabe hoy" in query ||
             "alcanzara" in query || "alcanzare" in query || "da alcance" in query ||
             "estoy saturad" in query
+
+    /**
+     * Intención de planificación: abre el planificador. "organiza mi día" y sus
+     * sinónimos cotidianos. La query ya viene normalizada (sin acentos, minúsculas).
+     * Excluye "plan mínimo" (lista de 3) porque se resuelve en su propia rama más
+     * abajo; aquí no colisiona porque se exige un verbo + "día"/"plan".
+     */
+    private fun isPlannerIntent(query: String): Boolean =
+        "organiza mi dia" in query || "organizar mi dia" in query || "organiza el dia" in query ||
+            "planifica mi dia" in query || "planificar mi dia" in query ||
+            "planifica el dia" in query || "planificar el dia" in query ||
+            "arma mi dia" in query || "armar mi dia" in query ||
+            "arma el plan" in query || "armar el plan" in query
 
     private fun dayLoadAnswer(
         tasks: List<TaskEntity>,

@@ -4,6 +4,7 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
@@ -2398,6 +2399,53 @@ class AssistantEngineTest {
         assertTrue("dice que el día está despejado: ${answer.text}", answer.text.contains("despejado"))
         assertTrue("no calla las capturas arrinconadas: ${answer.text}",
             answer.text.contains("2 capturas"))
+    }
+
+    @Test fun planificaMiDia_opensPlannerLikeOrganiza() {
+        // "planifica mi día" es la forma más natural en español del verbo de
+        // planificación, pero caía al mensaje genérico en vez de abrir el
+        // planificador. Debe comportarse igual que "organiza mi día" (OPEN_PLANNER
+        // + conteo honesto de pendientes/vencidas).
+        val task = TaskEntity(id = 1, title = "Revisar correo")
+        val answer = AssistantEngine.answer(
+            "planifica mi dia",
+            listOf(task), emptyList(), emptyList()
+        )
+        assertEquals(AssistantAction.OPEN_PLANNER, answer.action)
+        assertTrue("cuenta la tarea pendiente: ${answer.text}", answer.text.contains("1 tarea pendiente"))
+    }
+
+    @Test fun planificarElDia_opensPlanner() {
+        // Forma infinitiva + "el día": paridad con "organiza el día".
+        val answer = AssistantEngine.answer(
+            "planificar el dia",
+            emptyList(), emptyList(), emptyList()
+        )
+        assertEquals(AssistantAction.OPEN_PLANNER, answer.action)
+        assertTrue("0 pendientes sin inflar: ${answer.text}", answer.text.contains("0 tareas pendientes"))
+    }
+
+    @Test fun armaMiDia_opensPlanner() {
+        // "arma mi día"/"armar el plan": forma coloquial de planificación.
+        val answer = AssistantEngine.answer(
+            "arma mi dia",
+            emptyList(), emptyList(), emptyList()
+        )
+        assertEquals(AssistantAction.OPEN_PLANNER, answer.action)
+    }
+
+    @Test fun planificaDoesNotStealPlanMinimo() {
+        // Guard anti-falso-positivo: "plan mínimo" sigue siendo la lista de 3
+        // (RUN_REPLAN/relatedTaskIds), NO abre el planificador. La nueva rama
+        // "planifica" no debe robar "plan mínimo".
+        val task = TaskEntity(id = 1, title = "Algo")
+        val answer = AssistantEngine.answer(
+            "plan minimo para hoy",
+            listOf(task), emptyList(), emptyList()
+        )
+        assertTrue("plan mínimo sigue listando la tarea: ${answer.text}",
+            answer.relatedTaskIds.contains(1L))
+        assertNotEquals(AssistantAction.OPEN_PLANNER, answer.action)
     }
 
     @Test fun dayLoad_doesNotInventStaleInboxWhenRecent() {
