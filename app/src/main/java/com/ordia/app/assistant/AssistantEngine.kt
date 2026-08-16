@@ -110,7 +110,20 @@ object AssistantEngine {
                     // Se anexa como cola informativa (no doble señalización: la
                     // promesa no se convierte a ciegas, se recuerda para que el
                     // usuario decida). Paridad con "organiza mi día"/"¿voy bien?".
-                    val tail = overdueTail + missedTail + overdueCommitmentTail(overdueCommitments)
+                    // Tercer olvido (c.411): la misma superficie callaba las capturas
+                    // de bandeja arrinconadas ([TaskRules.isStaleInbox], ≥7 días sin
+                    // fecha ni hueco). El nudge del guardián ya las nombra como cola en
+                    // TODAS sus ramas con acción ([GuardianEngine.withStaleInboxTail],
+                    // c.410), pero "¿qué hago ahora?" —la superficie de mayor tráfico—
+                    // sólo anexaba vencidas, missed-start y compromisos. Así un usuario
+                    // con 6 ideas arrinconadas leía "empieza por X" sin señal alguna de
+                    // que las está olvidando: la misma mentira por omisión que c.410
+                    // cerró en el nudge. Excluye la tarea sugerida (si la propia
+                    // sugerida es la captura olvidada, su reason/posición ya lo explica
+                    // y no se cuenta dos veces), igual que overdueTail excluye la
+                    // sugerida y missedStartTail la excluye. Determinista y local.
+                    val tail = overdueTail + missedTail + staleInboxTail(active, suggestion.task, now, zone) +
+                        overdueCommitmentTail(overdueCommitments)
                     // "Empieza por" miente si lo sugerido ya está en curso
                     // ([WhatNowReason.IN_PROGRESS_NOW]): hay que continuar, no empezar.
                     // Y el tiempo honesto es lo que FALTA, no la duración planificada
@@ -799,4 +812,35 @@ object AssistantEngine {
         now: Long
     ): TaskEntity? =
         WhatNowEngine.ordered(active, now).firstOrNull { TaskRules.isMissedStart(it, now) && it.id != excludeId }
+
+    /**
+     * Cola que recupera el 3.er olvido en "¿qué hago ahora?": cuenta las
+     * capturas de bandeja arrinconadas ([TaskRules.isStaleInbox], ≥7 días sin
+     * fecha ni hueco) DISTINTAS a la [suggested]. Antes esta señal sólo vivía en
+     * "¿qué olvidé?" y en el nudge del guardián ([GuardianEngine.withStaleInboxTail],
+     * c.410): si la tarea más prioritaria del momento era otra, seis ideas
+     * arrinconadas quedaban ocultas en la superficie de MAYOR tráfico y el
+     * usuario no las agendaba ni hacía — la misma mentira por omisión que
+     * c.357/c.410 cerraron para vencidas, missed-start y compromisos. Es una
+     * cola de CONTEO (no nombra títulos ni pide acción concreta: la acción
+     * primaria es la tarea ya señalada), simétrica con
+     * [overdueCommitmentTail] (4.º olvido) y coherente con el nudge, que
+     * también sólo cuenta. Excluye la sugerida: si la propia candidata es la
+     * captura olvidada, su razón/posición ya la explica y no se cuenta dos
+     * veces — igual que [overdueTail] excluye la sugerida y [missedStartTail]
+     * la excluye. No añade ids: avisa, no navega (el usuario ya tiene la
+     * sugerida para actuar; la cola empuja a revisar la bandeja).
+     */
+    private fun staleInboxTail(
+        active: List<TaskEntity>,
+        suggested: TaskEntity,
+        now: Long,
+        zone: ZoneId
+    ): String {
+        val count = active.count { TaskRules.isStaleInbox(it, now, zone) && it.id != suggested.id }
+        if (count == 0) return ""
+        val capturas = if (count == 1) "1 captura" else "$count capturas"
+        val llevan = if (count == 1) "lleva" else "llevan"
+        return " Además, $capturas en la bandeja $llevan una semana sin agendar."
+    }
 }

@@ -2026,4 +2026,141 @@ class AssistantEngineTest {
         assertTrue("no trata 'tengo algo' sin fecha como agenda: ${answer.text}",
             !answer.relatedTaskIds.contains(1L))
     }
+
+    // --- c.411: "¿qué hago ahora?" no debe callar las capturas de bandeja
+    // arrinconadas (3.er olvido). Paridad con el nudge del guardián
+    // ([GuardianEngine.withStaleInboxTail], c.410), que ya las nombra como cola
+    // en todas sus ramas con acción, y simétrica con las colas de vencidas,
+    // missed-start y compromisos que ya viven en esta superficie. Antes, un
+    // usuario con una tarea urgente que hacer AHORA y seis ideas arrinconadas
+    // leía "empieza por lo urgente" sin señal de que las está olvidando.
+
+    private fun staleCapture(
+        id: Long,
+        title: String,
+        daysOld: Long,
+        zone: java.time.ZoneId,
+        today: java.time.LocalDate
+    ): TaskEntity = TaskEntity(
+        id = id, title = title,
+        createdAt = com.ordia.app.domain.DateRules.toEpochMillis(
+            today.minusDays(daysOld), java.time.LocalTime.of(9, 0), zone)
+    )
+
+    @Test fun whatNow_warnsStaleInboxWhenSuggestingAnotherTask() {
+        // Sugerencia urgente + capturas arrinconadas: "¿qué hago ahora?" debe
+        // nombrar la tarea a hacer PERO no callar las ideas olvidadas en la
+        // bandeja — la misma mentira por omisión que c.357 cerró para
+        // compromisos en esta misma superficie. Es cola de conteo, no nombra
+        // títulos (la acción primaria es la urgente).
+        val zone = java.time.ZoneId.of("America/Santo_Domingo")
+        val today = java.time.LocalDate.of(2026, 7, 29)
+        val now = com.ordia.app.domain.DateRules.toEpochMillis(today, java.time.LocalTime.NOON, zone)
+        val urgent = TaskEntity(id = 1, title = "Revisar correo", priority = TaskPriority.URGENT)
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(
+                urgent,
+                staleCapture(2, "Idea vieja A", 21, zone, today),
+                staleCapture(3, "Idea vieja B", 14, zone, today)
+            ),
+            emptyList(), emptyList(),
+            now, zone
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("no calla las capturas arrinconadas: ${answer.text}",
+            answer.text.contains("2 capturas"))
+        assertTrue("es cola de conteo, no nombra títulos: ${answer.text}",
+            !answer.text.contains("Idea vieja"))
+    }
+
+    @Test fun whatNow_warnsSingleStaleInboxCapture() {
+        // Una sola captura arrinconada: la cola debe concordar en singular
+        // ("1 captura ... lleva"). Guard de coherencia gramatical.
+        val zone = java.time.ZoneId.of("America/Santo_Domingo")
+        val today = java.time.LocalDate.of(2026, 7, 29)
+        val now = com.ordia.app.domain.DateRules.toEpochMillis(today, java.time.LocalTime.NOON, zone)
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(
+                TaskEntity(id = 1, title = "Revisar correo", priority = TaskPriority.URGENT),
+                staleCapture(2, "Idea vieja", 21, zone, today)
+            ),
+            emptyList(), emptyList(),
+            now, zone
+        )
+        assertTrue("cola en singular: ${answer.text}", answer.text.contains("1 captura"))
+        assertTrue("verbo en singular: ${answer.text}", answer.text.contains("lleva"))
+    }
+
+    @Test fun whatNow_doesNotCountSuggestedStaleCaptureInTail() {
+        // Si la propia sugerida es la captura arrinconada (no hay nada más
+        // time-sensitive), no se cuenta a sí misma en la cola — su posición
+        // como sugerida ya la explica, igual que overdueTail excluye la vencida
+        // sugerida. Sin duplicar la señal.
+        val zone = java.time.ZoneId.of("America/Santo_Domingo")
+        val today = java.time.LocalDate.of(2026, 7, 29)
+        val now = com.ordia.app.domain.DateRules.toEpochMillis(today, java.time.LocalTime.NOON, zone)
+        val onlyStale = staleCapture(1, "Idea vieja", 21, zone, today)
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(onlyStale),
+            emptyList(), emptyList(),
+            now, zone
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("no se cuenta a sí misma: ${answer.text}",
+            !answer.text.contains("captura"))
+    }
+
+    @Test fun whatNow_doesNotInventStaleInboxWhenNone() {
+        // Guard anti-falso-positivo (IA honesta): sin capturas arrinconadas, la
+        // cola no debe inventar "capturas". Una captura reciente (< 7 días) NO
+        // es olvidada, así que tampoco se cuenta.
+        val zone = java.time.ZoneId.of("America/Santo_Domingo")
+        val today = java.time.LocalDate.of(2026, 7, 29)
+        val now = com.ordia.app.domain.DateRules.toEpochMillis(today, java.time.LocalTime.NOON, zone)
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(
+                TaskEntity(id = 1, title = "Revisar correo", priority = TaskPriority.URGENT),
+                staleCapture(2, "Idea reciente", 6, zone, today)
+            ),
+            emptyList(), emptyList(),
+            now, zone
+        )
+        assertTrue("no inventa capturas olvidadas: ${answer.text}",
+            !answer.text.contains("captura"))
+    }
+
+    @Test fun whatNow_warnsStaleInboxAlongsideOverdueAndCommitment() {
+        // Coexistencia de las colas: vencidas + missed-start + capturas
+        // arrinconadas + compromiso vencido. Ningún olvido debe ocultarse
+        // detrás de otro en la superficie de mayor tráfico.
+        val zone = java.time.ZoneId.of("America/Santo_Domingo")
+        val today = java.time.LocalDate.of(2026, 7, 29)
+        val now = com.ordia.app.domain.DateRules.toEpochMillis(today, java.time.LocalTime.NOON, zone)
+        // La sugerida es la vencida URGENT (las vencidas se priorizan sobre
+        // las urgentes no vencidas); otra vencida alimenta la cola de conteo.
+        val suggestedOverdue = TaskEntity(id = 1, title = "Atrasada urgente", dueAt = 1L, priority = TaskPriority.URGENT)
+        val otherOverdue = TaskEntity(id = 2, title = "Otra atrasada", dueAt = 2L)
+        val missed = TaskEntity(
+            id = 3, title = "Llamada agendada",
+            startAt = now - 90 * 60_000L, durationMinutes = 30,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val commitment = overdueCommitment(10, "te llamo el martes", now - 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(suggestedOverdue, otherOverdue, missed, staleCapture(4, "Idea vieja", 21, zone, today)),
+            emptyList(),
+            listOf(commitment),
+            now, zone
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("nombra la otra vencida: ${answer.text}", answer.text.contains("1 vencida"))
+        assertTrue("nombra el inicio olvidado: ${answer.text}", answer.text.contains("Llamada agendada"))
+        assertTrue("nombra las capturas arrinconadas: ${answer.text}", answer.text.contains("1 captura"))
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("compromiso"))
+    }
 }
