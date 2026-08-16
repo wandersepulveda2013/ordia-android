@@ -12181,6 +12181,43 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // --- Hardening c.402: el conector "de" EXIGIDO evita falsos positivos sobre contenido real ---
+    // El patrón "con (anticipación|adelanto) de N unidad" sólo casa con unidad horaria tras "de";
+    // no roba "anticipación"/"adelanto" cuando son contenido real del título.
+    @Test fun conAnticipacionSolaNoEsRecordatorioNiDuracion() {
+        val result = NaturalTaskParser.parse("Reunión con anticipación", now, zone)
+        assertEquals("Reunión con anticipación", result.title)
+        assertNull(result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun anticipacionDeLaReunionNoEsRecordatorioNiResiduo() {
+        val result = NaturalTaskParser.parse("Revisar la anticipación de la reunión", now, zone)
+        assertEquals("Revisar la anticipación de la reunión", result.title)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
+    @Test fun adelantoDelPagoNoEsRecordatorioNiResiduo() {
+        val result = NaturalTaskParser.parse("Solicitar adelanto del pago", now, zone)
+        assertEquals("Solicitar adelanto del pago", result.title)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
+    @Test fun anticipacionDeNPersonasNoEsRecordatorio() {
+        // "con anticipación de 3 personas": hay "de N" pero la unidad NO es horaria → no robar.
+        val result = NaturalTaskParser.parse("Evento con anticipación de 3 personas", now, zone)
+        assertEquals("Evento con anticipación de 3 personas", result.title)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
+    // --- No-regresión: la forma directa "con N unidad de anticipación" (c.401) sigue intacta ---
+    @Test fun conNMinDeAnticipacionDirectoSigueRecordatorio() {
+        val result = NaturalTaskParser.parse("Llamar con 10 min de anticipación", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(10, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
     // --- Falsos positivos: "aviso"/"alerta" como contenido real, no recordatorio ---
     @Test fun avisoDeLaComunidadNoEsRecordatorioNiResiduo() {
         val result = NaturalTaskParser.parse("Revisar el aviso de la comunidad", now, zone)
