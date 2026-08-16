@@ -4,8 +4,11 @@ import com.ordia.app.data.local.AutomationAction
 import com.ordia.app.data.local.AutomationCondition
 import com.ordia.app.data.local.AutomationRuleEntity
 import com.ordia.app.data.local.AutomationTrigger
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskStatus
+import com.ordia.app.domain.DateRules
+import java.time.Instant
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -41,7 +44,8 @@ class AutomationActionPlannerTest {
         status: TaskStatus = TaskStatus.INBOX,
         dueAt: Long? = null,
         reminderAt: Long? = null,
-        startAt: Long? = null
+        startAt: Long? = null,
+        recurrence: RecurrenceFrequency = RecurrenceFrequency.NONE
     ) = TaskEntity(
         id = id,
         title = title,
@@ -50,6 +54,7 @@ class AutomationActionPlannerTest {
         dueAt = dueAt,
         reminderAt = reminderAt,
         startAt = startAt,
+        recurrence = recurrence,
         createdAt = now - 1000,
         updatedAt = now - 1000
     )
@@ -549,5 +554,106 @@ class AutomationActionPlannerTest {
         val byId = plan.updates.associateBy { it.id }
         assertNull("La tarea rápida en curso no debe reasignarse", byId[1L])
         assertNotNull("La rápida de inbox sí debe agruparse", byId[2L])
+    }
+
+    @Test
+    fun `reschedule_overdue no reprograma una tarea recurrente`() {
+        // Sacro recurrencia: una tarea recurrente vencida NO debe ser reprogramada.
+        // Su `dueAt` es el ANCLA de la cadencia: [RecurrenceEngine.nextOccurrence]
+        // deriva de él (y de reminderAt/startAt) los offsets que reutiliza para todas
+        // las ocurrencias futuras. Mover el vencimiento a "mañana 18:00" desplazaría
+        // cada ciclo venidero (p. ej. una mensual "pagar el 1" vencida el 3 arrastraría
+        // toda la serie). El motor de recurrencia gestiona su ciclo: completarla
+        // engendra la siguiente ocurrencia. Simétrico con el sacro "en curso".
+        val recurring = task(
+            1,
+            dueAt = now - 86_400_000L, // vencida
+            status = TaskStatus.PLANNED,
+            reminderAt = now - 2 * 86_400_000L,
+            recurrence = RecurrenceFrequency.MONTHLY
+        )
+        val normal = task(2, dueAt = now - 86_400_000L, status = TaskStatus.PLANNED, reminderAt = null)
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.RESCHEDULE_OVERDUE, AutomationCondition.HAS_OVERDUE_TASKS),
+            listOf(recurring, normal), 0, now, zone
+        )
+        assertTrue(plan.matched)
+        val byId = plan.updates.associateBy { it.id }
+        assertNull("La recurrente vencida no debe reprogramarse (corrompería la cadencia)", byId[1L])
+        assertNotNull("La vencida normal sí debe reprogramarse", byId[2L])
+    }
+
+    @Test
+    fun `reschedule_overdue condicion no se cumple si solo hay recurrentes vencidas`() {
+        // Si las ÚNICAS vencidas son recurrentes, no hay nada que automatizar sin
+        // corromper datos: la condición HAS_OVERDUE_TASKS no se cumple (no dispara
+        // la acción). La recurrente se recupera por completado/spawn, no por
+        // reprogramación masiva. El filtro fluye de los candidatos a la condición.
+        val recurring = task(
+            1,
+            dueAt = now - 86_400_000L,
+            status = TaskStatus.PLANNED,
+            recurrence = RecurrenceFrequency.WEEKLY
+        )
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.RESCHEDULE_OVERDUE, AutomationCondition.HAS_OVERDUE_TASKS),
+            listOf(recurring), 0, now, zone
+        )
+        assertFalse("Sin vencidas mutables, la condición no se cumple", plan.matched)
+        assertTrue(plan.updates.isEmpty())
+    }
+
+    @Test
+    fun `batch_quick_tasks no replanifica una tarea rapida recurrente`() {
+        // Sacro recurrencia: una tarea rápida recurrente (p. ej. "regar cada lunes",
+        // 5 min) no debe reagruparse en un slot. Pisaría su startAt/dueAt y, con ello,
+        // el startOffset/reminderOffset que el motor reutiliza en cada spawn. Misma
+        // razón que reschedule_overdue.
+        val recurring = task(
+            1,
+            durationMinutes = 5,
+            dueAt = now + 3_600_000L,
+            status = TaskStatus.PLANNED,
+            recurrence = RecurrenceFrequency.WEEKLY
+        )
+        val inbox = task(2, durationMinutes = 5, dueAt = null)
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.BATCH_QUICK_TASKS, AutomationCondition.HAS_QUICK_TASKS),
+            listOf(recurring, inbox), 0, now, zone
+        )
+        assertTrue(plan.matched)
+        val byId = plan.updates.associateBy { it.id }
+        assertNull("La rápida recurrente no debe reagruparse (corrompería la cadencia)", byId[1L])
+        assertNotNull("La rápida de inbox sí debe agruparse", byId[2L])
+    }
+
+    @Test
+    fun `plan_day no muta una tarea recurrente`() {
+        // Sacro recurrencia: una tarea recurrente con vencimiento HOY no debe entrar
+        // en el plan del día (que pisaría su startAt/reminderAt/status). Su slot es su
+        // propio dueAt, gestionado por el motor de recurrencia; planificarla en un
+        // bloque horizontal desplazaría su ancla y, con ella, los offsets de toda la
+        // serie. Se excluye igual que las "en curso".
+        val dayStart = DateRules.toEpochMillis(
+            Instant.ofEpochMilli(now).atZone(zone).toLocalDate(),
+            java.time.LocalTime.of(9, 0),
+            zone
+        )
+        val recurring = task(
+            1,
+            durationMinutes = 30,
+            dueAt = dayStart + 3 * 60 * 60_000L, // vence hoy 12:00
+            status = TaskStatus.PLANNED,
+            recurrence = RecurrenceFrequency.DAILY
+        )
+        val inbox = task(2, durationMinutes = 30, status = TaskStatus.INBOX)
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.PLAN_DAY),
+            listOf(recurring, inbox), 0, now, zone
+        )
+        assertTrue(plan.matched)
+        val byId = plan.updates.associateBy { it.id }
+        assertNull("La recurrente no debe mutarse en el plan (corrompería la cadencia)", byId[1L])
+        assertNotNull("La tarea de inbox sí debe planificarse", byId[2L])
     }
 }

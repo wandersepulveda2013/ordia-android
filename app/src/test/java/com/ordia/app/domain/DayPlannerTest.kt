@@ -1,5 +1,6 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
@@ -461,5 +462,37 @@ class DayPlannerTest {
         assertEquals(11 * 60 + 30, blockA.startMinute)
         // B (urgente) va después, no antes.
         assertEquals(91L, plan.blocks[1].taskId)
+    }
+
+    @Test
+    fun recurringTaskIsNotRescheduledIntoPlanBlocks() {
+        // Sacro recurrencia: una tarea periódica vencida/con vencimiento hoy NO
+        // debe entrar en los bloques del plan sugerido. Su dueAt/startAt son el
+        // ANCLA de la cadencia: reasignarla a un slot del cursor pisaría los
+        // offsets que [RecurrenceEngine.nextOccurrence] reutiliza en cada ocurrencia
+        // futura ("pagar el 1 a las 09:00" se desplazaría para siempre). La
+        // recurrente se gestiona por su motor (completar → spawn siguiente); su
+        // visibilidad en el día la da la agenda, no este plan. Cierra las dos rutas
+        // que mutan fechas: PLAN_DAY (automatización) y Apply/Replan (UI).
+        val today = LocalDate.now(zone)
+        val now = DateRules.toEpochMillis(today, LocalTime.of(10, 0), zone)
+        val due = DateRules.toEpochMillis(today, LocalTime.of(12, 0), zone)
+        val recurring = TaskEntity(
+            id = 1, title = "Mensual recurrente", durationMinutes = 30,
+            dueAt = due, priority = TaskPriority.URGENT,
+            status = TaskStatus.PLANNED,
+            recurrence = RecurrenceFrequency.MONTHLY
+        )
+        val inbox = TaskEntity(id = 2, title = "Bandeja", durationMinutes = 30)
+
+        val plan = DayPlanner.build(
+            listOf(recurring, inbox), today, 9 * 60, 18 * 60,
+            breakMinutes = 0, now = now, zone = zone
+        )
+
+        // La recurrente NO genera bloque (no se reasigna); la de bandeja sí.
+        assertEquals(1, plan.blocks.size)
+        assertEquals(2L, plan.blocks.first().taskId)
+        assertTrue(plan.unscheduledTaskIds.isEmpty())
     }
 }

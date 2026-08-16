@@ -4,6 +4,7 @@ import com.ordia.app.data.local.AutomationAction
 import com.ordia.app.data.local.AutomationCondition
 import com.ordia.app.data.local.AutomationRuleEntity
 import com.ordia.app.data.local.CommitmentReviewStatus
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.domain.DateRules
@@ -42,12 +43,26 @@ object AutomationActionPlanner {
         // vencidas en curso) y con timeRank (las coloca arriba). El filtro fluye también a
         // las condiciones HAS_OVERDUE_TASKS/HAS_QUICK_TASKS: si las únicas vencidas/rápidas
         // están en curso, no hay nada que automatizar y la condición no se cumple (correcto).
-        val overdue = active.filter { TaskRules.isOverdue(it, now) && !TaskRules.isBeingWorkedOn(it, now) }
-        val quick = active.filter { it.durationMinutes <= 10 && !TaskRules.isBeingWorkedOn(it, now) }
+        //
+        // Sacro "recurrencia": las tareas recurrentes (recurrence != NONE) se excluyen
+        // IGUALMENTE de todo candidato a MUTAR. Su `dueAt`/`startAt`/`reminderAt` son el
+        // ANCLA de la cadencia: [RecurrenceEngine.nextOccurrence] deriva de ellos los
+        // offsets (`dueAt - reminderAt`, `dueAt - startAt`) que reutiliza para TODAS las
+        // ocurrencias futuras. Reprogramar/agrupar una recurrente pisaría ese ancla y
+        // desplazaría cada ciclo venidero (p. ej. "pagar el 1" vencida movida a "mañana
+        // 18:00" arrastra toda la serie mensual). Su ciclo lo gestiona el motor de
+        // recurrencia: completarla engendra la siguiente ocurrencia; la automatización no
+        // debe "mover" un compromiso periódico, sino dejarlo a su motor. Simétrico con el
+        // sacro "en curso" y con GuardianEngine, que recupera las vencidas por otros
+        // caminos (nudge, What Now). El filtro fluye a las mismas condiciones: si las únicas
+        // vencidas/rápidas son recurrentes, no hay nada que automatizar sin corromper datos.
+        val mutable = active.filter { it.recurrence == RecurrenceFrequency.NONE }
+        val overdue = mutable.filter { TaskRules.isOverdue(it, now) && !TaskRules.isBeingWorkedOn(it, now) }
+        val quick = mutable.filter { it.durationMinutes <= 10 && !TaskRules.isBeingWorkedOn(it, now) }
         val conditionMet = when (rule.condition) {
             AutomationCondition.ALWAYS -> true
             AutomationCondition.HAS_OVERDUE_TASKS -> overdue.isNotEmpty()
-            AutomationCondition.HAS_INBOX_TASKS -> active.any { it.status == TaskStatus.INBOX || it.dueAt == null }
+            AutomationCondition.HAS_INBOX_TASKS -> mutable.any { it.status == TaskStatus.INBOX || it.dueAt == null }
             AutomationCondition.HAS_QUICK_TASKS -> quick.isNotEmpty()
             AutomationCondition.HAS_PENDING_COMMITMENTS -> pendingCommitments > 0
         }
@@ -70,7 +85,7 @@ object AutomationActionPlanner {
                 if ((((nowMinute + 14) / 15) * 15) >= dayEnd) {
                     return AutomationPlan(message = "Es tarde para planificar hoy; no se cambió nada.", matched = false)
                 }
-                val plan = DayPlanner.build(active, date, dayStartMinute = 9 * 60, dayEndMinute = dayEnd, now = now, zone = zone)
+                val plan = DayPlanner.build(mutable, date, dayStartMinute = 9 * 60, dayEndMinute = dayEnd, now = now, zone = zone)
                 val byId = tasks.associateBy { it.id }
                 val updates = plan.blocks.take(12).mapNotNull { block ->
                     val start = DateRules.toEpochMillis(date, LocalTime.of(block.startMinute / 60, block.startMinute % 60), zone)

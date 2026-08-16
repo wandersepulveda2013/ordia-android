@@ -1,5 +1,6 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import java.time.Instant
@@ -74,6 +75,19 @@ object DayPlanner {
 
         val candidates = tasks.asSequence()
             .filter { TaskRules.isActive(it) && it.parentTaskId == null }
+            // Sacro recurrencia: una tarea periódica (recurrence != NONE) es un
+            // compromiso FIJO anclado a su propio dueAt/startAt. Reasignarla a un
+            // slot del cursor pisaría ese ancla y, con ella, los offsets
+            // (reminderOffset = dueAt - reminderAt, startOffset = dueAt - startAt)
+            // que [RecurrenceEngine.nextOccurrence] reutiliza para TODAS las
+            // ocurrencias futuras: "pagar el 1 a las 09:00" se desplazaría a otro
+            // día/hora para siempre. Su visibilidad en el día la da la agenda
+            // (tasksOnDate/PlannerCalendar), no el plan sugerido; este último
+            // programa trabajo SIN hueco fijo. Simétrico con el sacro "en curso" y
+            // con los filtros de AutomationActionPlanner (RESCHEDULE_OVERDUE,
+            // BATCH_QUICK_TASKS). Cierra de forma centralizada las dos rutas que
+            // mutan fechas: la automatización (PLAN_DAY) y la UI (Apply/Replan).
+            .filter { it.recurrence == RecurrenceFrequency.NONE }
             .filter { task ->
                 val dueOnDate = TaskRules.isDueOn(task, date, zone)
                 val overdueByDate = task.dueAt?.let { DateRules.toLocalDate(it, zone).isBefore(date) } == true
