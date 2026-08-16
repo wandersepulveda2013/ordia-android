@@ -60,9 +60,9 @@ object GuardianCoach {
                     "Esta tarea lleva $ageLabel atrasada. Hazla hoy o muévela con intención, no la dejes pasar otra vez."
                 else
                     "Tienes ${recoverable.size} tareas atrasadas y la más antigua lleva $ageLabel. Elige una: hacerla hoy, reprogramarla o quitarla."
-                return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", withCommitmentTail(message, overdueCommitments), next?.id, Tone.FOCUSED)
+                return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", withStaleInboxTail(withCommitmentTail(message, overdueCommitments), roots, now, zone), next?.id, Tone.FOCUSED)
             }
-            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", withCommitmentTail(if (recoverable.size == 1) "Esta tarea está atrasada. Empieza con un bloque corto." else "Tienes ${recoverable.size} tareas atrasadas. Comienza por esta.", overdueCommitments), next?.id, Tone.GENTLE)
+            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", withStaleInboxTail(withCommitmentTail(if (recoverable.size == 1) "Esta tarea está atrasada. Empieza con un bloque corto." else "Tienes ${recoverable.size} tareas atrasadas. Comienza por esta.", overdueCommitments), roots, now, zone), next?.id, Tone.GENTLE)
         }
         val urgent = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
         if (urgent.isNotEmpty()) {
@@ -100,9 +100,9 @@ object GuardianCoach {
                     "Esta tarea tenía su hueco y se pasó hace $ageLabel. Hazla hoy o reagéndala: no la dejes pasar otra vez."
                 else
                     "Tienes ${missedStart.size} compromisos cuyo hueco pasó y el más antiguo lleva $ageLabel. Elige uno: hacerlo hoy, reagendarlo o quitarlo."
-                return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay un compromiso olvidado", withCommitmentTail(message, overdueCommitments), next?.id, Tone.FOCUSED)
+                return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay un compromiso olvidado", withStaleInboxTail(withCommitmentTail(message, overdueCommitments), roots, now, zone), next?.id, Tone.FOCUSED)
             }
-            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay un compromiso pendiente", withCommitmentTail(if (missedStart.size == 1) "Esta tarea tenía su hueco y se pasó. Empieza con un bloque corto o reagéndala." else "Tienes ${missedStart.size} compromisos cuyo hueco pasó. Comienza por este.", overdueCommitments), next?.id, Tone.GENTLE)
+            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay un compromiso pendiente", withStaleInboxTail(withCommitmentTail(if (missedStart.size == 1) "Esta tarea tenía su hueco y se pasó. Empieza con un bloque corto o reagéndala." else "Tienes ${missedStart.size} compromisos cuyo hueco pasó. Comienza por este.", overdueCommitments), roots, now, zone), next?.id, Tone.GENTLE)
         }
         // 4ª clase de olvido como rama propia: cuando NO hay ninguna tarea
         // olvidada que nombrar (ni vencida ni hueco pasado), pero sí un
@@ -126,7 +126,7 @@ object GuardianCoach {
             else
                 "Tienes ${overdueCommitments.size} compromisos vencidos sin convertir («$title» es el más atrasado). Revísalos en Conversaciones: hacerlos hoy, agendarlos o descartarlos."
             val tone = if (worstDays >= FORGOTTEN_DAYS_THRESHOLD) Tone.FOCUSED else Tone.GENTLE
-            return Insight("RECUPERA EL CONTROL", title, message, taskId = null, tone = tone)
+            return Insight("RECUPERA EL CONTROL", title, withStaleInboxTail(message, roots, now, zone), taskId = null, tone = tone)
         }
         val next = TaskRules.nextBestTask(pending, now)
         // Rescate de tareas "olvidadas" SIN fecha: la recuperación solo miraba
@@ -210,5 +210,43 @@ object GuardianCoach {
         else
             " Además, tienes ${overdueCommitments.size} compromisos vencidos sin convertir (el más atrasado: «$title»); revísalos en Conversaciones."
         return message + extra
+    }
+
+    /**
+     * Cola informativa del 3.er olvido: cuando la tarjeta ya nombró una acción
+     * primaria (tarea atrasada, hueco pasado o compromiso vencido) Y hay además
+     * capturas de bandeja arrinconadas ([TaskRules.isStaleInbox],
+     * ≥[TaskRules.STALE_INBOX_DAYS_THRESHOLD] días sin fecha ni hueco), éstas no
+     * se callan. Cierra la asimetría con [withCommitmentTail] (4.º olvido) y con
+     * el nudge del guardián (c.410, [GuardianEngine.withStaleInboxTail]): antes, un
+     * usuario con una tarea atrasada y seis ideas arrinconadas leía en la tarjeta
+     * —la superficie MÁS visible de recuperación— «RECUPERA EL CONTROL:
+     * [atrasada]» sin NINGUNA señal de las seis capturas olvidadas, porque la
+     * recuperación proactiva del stale-inbox solo disparaba cuando era la candidata
+     * #1 ([staleInboxAction] abajo), invisible en cualquier otra rama.
+     *
+     * No nombra títulos ni pide acción concreta (la acción primaria es la tarea
+     * ya señalada): sólo informa del conteo para no mentir por omisión y empujar a
+     * revisar la bandeja —mismo texto exacto que [GuardianEngine.withStaleInboxTail]
+     * para que ambas superficies de recuperación digan lo mismo. La tarea nombrada
+     * es mutuamente excluyente con [TaskRules.isStaleInbox] (ésta exige
+     * `dueAt == null && startAt == null`, mientras que atrasadas/huecos tienen
+     * `dueAt`/`startAt`), así que nunca se cuenta dos veces la misma. Los
+     * compromisos vencidos tampoco son tareas (no tienen `dueAt` de tarea), luego
+     * son igualmente excluyentes.
+     */
+    private fun withStaleInboxTail(
+        message: String,
+        tasks: List<TaskEntity>,
+        now: Long,
+        zone: ZoneId
+    ): String {
+        val count = tasks.count {
+            it.parentTaskId == null && TaskRules.isStaleInbox(it, now, zone)
+        }
+        if (count == 0) return message
+        val capturas = if (count == 1) "1 captura" else "$count capturas"
+        val llevan = if (count == 1) "lleva" else "llevan"
+        return "$message Además, $capturas en la bandeja $llevan una semana sin agendar."
     }
 }

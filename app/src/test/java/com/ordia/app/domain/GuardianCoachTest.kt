@@ -551,6 +551,87 @@ class GuardianCoachTest {
         assertTrue(insight.message.contains("enviar propuesta"))
     }
 
+    // --- 3.er olvido como cola: capturas de bandeja arrinconadas ---
+    // La tarjeta de insight es la superficie MÁS visible de recuperación. c.410 cerró
+    // en el nudge del guardián (GuardianEngine) que las ramas con acción nombrada
+    // (atrasada / hueco pasado / compromiso vencido) añadían una cola informativa del
+    // 3.er olvido (capturas arrinconadas ≥7 días sin fecha ni hueco) para no mentir
+    // por omisión. La tarjeta usaba `withCommitmentTail` (4.º olvido) en esas mismas
+    // ramas PERO callaba el 3.er olvido: un usuario con una tarea atrasada y seis
+    // ideas arrinconadas leía "RECUPERA EL CONTROL: [atrasada]" sin SEÑAL de las seis
+    // capturas olvidadas. Asimetría con el nudge y con la propia rama `staleInboxAction`
+    // (que sólo dispara cuando la candidata #1 es ella misma arrinconada).
+
+    private fun staleCapture(id: Long, daysOld: Int = 21, title: String = "Idea arrinconada $id") = TaskEntity(
+        id = id,
+        title = title,
+        createdAt = DateRules.toEpochMillis(today.minusDays(daysOld.toLong()), LocalTime.of(9, 0), zone)
+    )
+
+    @Test
+    fun tareaAtrasada_nombraAdemasLasCapturasArrinconadas() {
+        // Una tarea atrasada encabeza la tarjeta (acción primaria). Además hay capturas
+        // arrinconadas: la cola debe nombrar su conteo para no mentir por omisión
+        // (paridad con el nudge del guardián c.410 y con `withCommitmentTail`).
+        val overdue = TaskEntity(
+            id = 1, title = "Factura vencida",
+            dueAt = DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val tasks = listOf(overdue, staleCapture(2), staleCapture(3), staleCapture(4))
+        val insight = GuardianCoach.insight(tasks, emptyList(), emptyList(), now, zone)
+
+        assertEquals(1L, insight.taskId)
+        assertTrue("La cola debe nombrar el conteo de capturas arrinconadas", insight.message.contains("3 capturas"))
+        assertTrue(insight.message.contains("bandeja"))
+    }
+
+    @Test
+    fun huecoPasado_nombraAdemasLasCapturasArrinconadas() {
+        // Un compromiso con hueco pasado (start pasado, due futuro) encabeza la tarjeta.
+        // Además hay una única captura arrinconada: la cola la nombra (singular).
+        val missed = TaskEntity(
+            id = 1, title = "Llamar al banco",
+            startAt = DateRules.toEpochMillis(today, LocalTime.of(8, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(3), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val tasks = listOf(missed, staleCapture(2))
+        val insight = GuardianCoach.insight(tasks, emptyList(), emptyList(), now, zone)
+
+        assertEquals(1L, insight.taskId)
+        assertTrue("La cola debe nombrar la única captura arrinconada (singular)", insight.message.contains("1 captura"))
+    }
+
+    @Test
+    fun tareaAtrasada_noInventaCapturasArrinconadasCuandoNoLasHay() {
+        // Guard anti-falso-positivo: sin capturas arrinconadas, la cola no se añade
+        // (no se inventa el 3.er olvido). Una captura reciente (< 7 días) no cuenta.
+        val overdue = TaskEntity(
+            id = 1, title = "Factura vencida",
+            dueAt = DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val fresh = TaskEntity(id = 2, title = "Idea de ayer", createdAt = DateRules.toEpochMillis(today.minusDays(1), LocalTime.of(9, 0), zone))
+        val insight = GuardianCoach.insight(listOf(overdue, fresh), emptyList(), emptyList(), now, zone)
+
+        assertFalse("Sin capturas arrinconadas la cola no debe añadirse", insight.message.contains("captura"))
+    }
+
+    @Test
+    fun compromisoVencido_comoRamaPrimaria_nombraAdemasLasCapturasArrinconadas() {
+        // Sin tareas atrasadas ni con hueco pasado, la rama de compromiso vencido es la
+        // primaria. Además hay capturas arrinconadas: la cola debe nombrarlas también
+        // (paridad con el nudge del guardián c.410, que cerró esta misma rendija en la
+        // rama `overdueCommitments.isNotEmpty()`).
+        val c = commitment(1, "te llamo", DateRules.toEpochMillis(today.minusDays(2), LocalTime.of(12, 0), zone))
+        val tasks = listOf(staleCapture(10), staleCapture(11))
+        val insight = GuardianCoach.insight(tasks, emptyList(), emptyList(), now, zone, commitments = listOf(c))
+
+        assertTrue(insight.title.contains("te llamo"))
+        assertTrue("La rama de compromiso debe nombrar también las capturas arrinconadas", insight.message.contains("2 capturas"))
+    }
+
     @Test
     fun compromisoVencido_ignoraCompromisoFuturoORevisado() {
         // Un compromiso con dueAt futuro, o ya CONVERTED/DISMISSED, no es un olvido: no
