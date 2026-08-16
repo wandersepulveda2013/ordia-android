@@ -22,7 +22,7 @@
   - `app/src/main/java/com/ordia/app/domain/SearchEngine.kt` (`urgencyRank` + banda inminente; `Ranked.missedStart`; tiebreak `thenByDescending{missedStart}` en sort; doc ampliado).
   - `app/src/test/java/com/ordia/app/domain/SearchEngineTest.kt` (+3 tests TDD).
   - `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md`.
-- **HEAD inicial**: `f63fa61` (c.350 al empezar) → rebaseado a `7752e16` (c.352) tras detectar avance remoto. **HEAD final**: (commit c.353, pendiente de push).
+- **HEAD inicial**: `f63fa61` (c.350 al empezar) → rebaseado a `7752e16` (c.352) tras detectar avance remoto. **HEAD final**: `5794cb8` (commit c.353, pushed FF).
 - **Estado**: VERIFIED (dominio JVM: 2054 tests PASS; smoke 25 OK; 0 failures; RED→GREEN confirmado). NO VERIFICADO gradle/lint/assemble/Android/UI/Room (sin Android SDK); render real del buscador en `SearchScreen`/buscador en runtime Android (la lógica pura `SearchEngine.search` SÍ verificada en JVM).
 - **Próxima prioridad**: descubrimiento continuo — (i) auditoría no-parser: `DayPlanner`/`WhatNowEngine` coherencia con búsqueda (ahora alineadas en inminente/olvidada — verificar no otra señal huérfana); (ii) `TaskStatus.CANCELLED` aún inalcanzable desde UI (P2, BACKLOG) — decidir si merece acción de cancelar o si el flujo archivar lo cubre; (iii) parser/duración compacta `1h30` (c.327, decisión de diseño); (iv) "primer lunes del mes" ordinal weekday-of-month; (v) áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (vi) verificar Android c.270-c.353 cuando haya SDK. Re-fetch antes de implementar.
 
