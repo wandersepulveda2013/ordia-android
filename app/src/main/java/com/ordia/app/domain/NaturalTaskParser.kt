@@ -1319,9 +1319,17 @@ object NaturalTaskParser {
      * (a) limpiar el verbo del título y (b) aplicar un offset de respaldo (30 min)
      * cuando hay fecha límite — sin dueAt no se puede programar reminderAt, así que no
      * se falsifica nada. Simétrico con `UniversalCaptureEngine.reminderSignal`.
+     *
+     * c.403: el sustantivo `recordatorio` es ambiguo — al inicio de frase
+     * ("recordatorio cada 2 días", "recordatorio: pagar la luz") es etiqueta de
+     * aviso (petición), PERO precedido de artículo/posesivo es contenido real
+     * ("leer el recordatorio del profesor", "borrar mi recordatorio viejo") y NO debe
+     * blanquearse (lo mutilaba a "leer el del profesor"). El negative lookbehind
+     * permite `recordatorio` solo al inicio o tras puntuación/conector, no tras
+     * determinante. Los verbos imperativos (recuérdame/avísame/...) son inequívocos.
      */
     private val bareReminderVerbPattern =
-        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordatorio|no\s+dejes\s+que\s+olvide|no\s+(?:se\s+te\s+|te\s+|me\s+|le\s+)?olvides?(?:\s+de\b)?(?:\s+que\b)?|acu[eé]rdate(?:\s+de\b)?|recuerda)\b""")
+        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|no\s+dejes\s+que\s+olvide|no\s+(?:se\s+te\s+|te\s+|me\s+|le\s+)?olvides?(?:\s+de\b)?(?:\s+que\b)?|acu[eé]rdate(?:\s+de\b)?|recuerda|(?<!(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus|nuestros?|nuestras?|estes?|estas?|esos?|esas?|aquella?)\s)recordatorio)\b""")
     private const val BARE_REMINDER_DEFAULT_OFFSET_MINUTES = 30
     private val durationPatterns = listOf(
         Regex("""(?i)\((\d{1,3}(?:[.,]\d+)?)\s*(minutos?|min|horas?|hora)\)"""),

@@ -1715,6 +1715,49 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    // --- Sustantivo "recordatorio" como contenido, no petición (c.403) ---
+    // El sustantivo "recordatorio" precedido de artículo/posesivo es contenido real
+    // ("leer el recordatorio del profesor"), NO una petición de aviso. Antes el
+    // bareReminderVerbPattern lo blanqueaba mutilando el título ("leer el del profesor").
+    // Ahora un negative lookbehind lo permite solo al inicio/tras puntuación (petición),
+    // no tras determinante (contenido). Título limpio + sin recordatorio falso.
+    @Test fun leerElRecordatorioDelProfesorNoSeMutila() {
+        val result = NaturalTaskParser.parse("Leer el recordatorio del profesor", now, zone)
+        assertEquals("Leer el recordatorio del profesor", result.title)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
+    @Test fun borrarElRecordatorioViejoNoSeMutila() {
+        val result = NaturalTaskParser.parse("Borrar el recordatorio viejo", now, zone)
+        assertEquals("Borrar el recordatorio viejo", result.title)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
+    @Test fun unRecordatorioDeLaCitaEsContenido() {
+        val result = NaturalTaskParser.parse("Un recordatorio de la cita", now, zone)
+        assertEquals("Un recordatorio de la cita", result.title)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
+    @Test fun miRecordatorioDelDentistaEsContenido() {
+        val result = NaturalTaskParser.parse("Mi recordatorio del dentista", now, zone)
+        assertEquals("Mi recordatorio del dentista", result.title)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
+    // --- Regresión c.403: "recordatorio" al inicio SIGUE siendo petición (no se rompe) ---
+    @Test fun recordatorioAlInicioConDueSigueSiendoPeticion() {
+        val result = NaturalTaskParser.parse("recordatorio llamar a mamá mañana", now, zone)
+        assertEquals("llamar a mamá", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun recordatorioConDosPuntosSigueSiendoPeticion() {
+        val result = NaturalTaskParser.parse("recordatorio: pagar la luz el viernes", now, zone)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
     // El offset explícito tiene prioridad: "recuérdame 2 horas antes" NO cae en el
     // respaldo de 30 min, usa los 120 min explícitos.
     @Test fun verboRecordatorioConCantidadExplicitaUsaOffsetExplicito() {
