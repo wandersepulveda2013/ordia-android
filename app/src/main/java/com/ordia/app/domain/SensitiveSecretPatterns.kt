@@ -181,17 +181,23 @@ object SensitiveSecretPatterns {
             if (kw.value.lowercase().let {
                     "pasaporte" in it || "licencia" in it
                 } && passportLicenceValue.containsMatchIn(window)) return true
+            if (kw.value.lowercase().contains("rfc") && rfcValue.containsMatchIn(window)) return true
         }
         return false
     }
 
     private val personalIdKeyword = Regex(
-        """(?i)\b(?:curp|nss|ine|credencial\s+de\s+elector|n[uú]mero\s+de\s+seguro\s+social|seguro\s+social|pasaporte|licencia(?:\s+de\s+conducir)?)\b"""
+        """(?i)\b(?:curp|nss|ine|credencial\s+de\s+elector|n[uú]mero\s+de\s+seguro\s+social|seguro\s+social|pasaporte|licencia(?:\s+de\s+conducir)?|rfc)\b"""
     )
     private val nssValue = Regex("""\b\d{11}\b""")
     private val curpValue = Regex("""\b[A-Z]{4}\d{6}[A-Z0-9]{6}\d{2}\b""")
     private val ineValue = Regex("""\b[A-Z0-9]{12,18}\b""")
     private val passportLicenceValue = Regex("""\b[A-Z0-9]{6,12}\b""")
+    // RFC mexicano: persona moral = 3 letras + 6 dígitos + 3 homoclave (12);
+    // persona física = 4 letras + 6 dígitos + 3 homoclave (13). El `\b` final
+    // impide casar un substring dentro de un CURP (18 chars): tras 3 alfanum
+    // el siguiente char de un CURP sigue siendo word-char → no hay boundary.
+    private val rfcValue = Regex("""\b[A-Z&]{3,4}\d{6}[A-Z0-9]{3}\b""")
 
     fun containsNumericSensitive(text: String): Boolean {
         if (panCandidate.findAll(text).any { c ->

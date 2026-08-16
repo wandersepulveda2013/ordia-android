@@ -1029,7 +1029,12 @@ class CommitmentEngineTest {
             "pasaporte: M99887766",
             // Licencia de conducir.
             "mi licencia de conducir es A12345678",
-            "licencia B98765432"
+            "licencia B98765432",
+            // RFC mexicano (c.314): persona física = 4 letras + 6 dígitos + 3 homoclave (13);
+            // persona moral = 3 letras + 6 dígitos + 3 homoclave (12).
+            "mi RFC es GODE850101HXA",
+            "RFC: ABC850101XYZ",
+            "anota el RFC COS950101MB1"
         )
         leaks.forEach { text ->
             assertTrue("PII debe bloquearse en persist: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
@@ -1064,7 +1069,13 @@ class CommitmentEngineTest {
             // alfanumérico corto sin palabra-clave de PII: código de producto.
             "el producto SKU ABC12345 llegó",
             "factura 9876543210123",
-            "mi IMEI es 123456789012345"
+            "mi IMEI es 123456789012345",
+            // RFC: palabra-clave pelada sin valor estructurado no bloquea (c.314).
+            "tengo que tramitar el RFC la próxima semana",
+            "mi rfc aún no me acuerdo",
+            // alfanumérico con estructura tipo-RFC pero SIN palabra-clave "rfc":
+            // es una referencia/código, no un RFC.
+            "referencia GODE850101HXA"
         )
         innocent.forEach { text ->
             assertFalse("falso positivo PII en persist: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
