@@ -2569,6 +2569,31 @@ class NaturalTaskParserTest {
         assertEquals("Revisar si es urgente el documento", result.title)
     }
 
+    // ── Regresión BUG4c: "importante" como palabra INICIAL (asimetría con "urgente") ──
+
+    @Test fun leadingImportanteSetsHighPriority() {
+        // "importante" como palabra inicial debe activar HIGH, simétrico a "urgente"→URGENT.
+        // Antes solo se detectaba "urgente" inicial; "importante" caía a NORMAL (asimetría).
+        val result = NaturalTaskParser.parse("importante llamar al cliente", now, zone)
+        assertEquals(TaskPriority.HIGH, result.priority)
+        // "importante" se limpia del título.
+        assertEquals("llamar al cliente", result.title)
+    }
+
+    @Test fun leadingImportanteCaseInsensitive() {
+        val result = NaturalTaskParser.parse("Importante revisar contrato", now, zone)
+        assertEquals(TaskPriority.HIGH, result.priority)
+        assertEquals("revisar contrato", result.title)
+    }
+
+    @Test fun midSentenceImportanteDoesNotSetPriority() {
+        // "es importante" a mitad de frase NO debe activar HIGH (evita falsos positivos),
+        // simétrico al comportamiento de "urgente".
+        val result = NaturalTaskParser.parse("el documento es importante revisarlo", now, zone)
+        assertEquals(TaskPriority.NORMAL, result.priority)
+        assertEquals("el documento es importante revisarlo", result.title)
+    }
+
     // ── Regresión BUG4b: "urgente"/"importante" como palabra FINAL (sufijo de prioridad) ──
 
     @Test fun trailingUrgenteSetsUrgentPriority() {

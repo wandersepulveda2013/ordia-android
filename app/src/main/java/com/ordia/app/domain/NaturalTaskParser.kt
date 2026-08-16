@@ -1064,8 +1064,15 @@ object NaturalTaskParser {
     /** Token de unidad horaria ("h"/"hs"/"hora"/"horas") acotado por límites de palabra. */
     private val rangeUnitToken = Regex("""(?i)(?:\bhoras?\b|\bhs\b|\bh\b)""")
 
-    /** "urgente" como palabra inicial, para detección de prioridad sin prefijo. */
-    private val leadingUrgentPattern = Regex("""(?i)^urgente\b""")
+    /**
+     * "urgente"/"importante" como palabra INICIAL (sin prefijo !/#): detección de
+     * prioridad en captura libre ("urgente enviar documento", "importante llamar
+     * al cliente"). Simétrica con [trailingPriorityPattern]: ambos extremos de la
+     * frase activan la prioridad. No se casa a mitad de frase para evitar falsos
+     * positivos ("revisar si es urgente el documento"). El anclaje `^` garantiza
+     * que sea palabra inicial real (no "no es importante" ni contenido interior).
+     */
+    private val leadingPriorityPattern = Regex("""(?i)^(urgente|importante)\b""")
 
     /**
      * "urgente"/"importante" como palabra FINAL (con puntuación opcional): el usuario añade la
@@ -1413,10 +1420,11 @@ object NaturalTaskParser {
             "!urgente" in lower || "#urgente" in lower -> TaskPriority.URGENT
             "!alta" in lower || "#alta" in lower -> TaskPriority.HIGH
             "!baja" in lower || "#baja" in lower -> TaskPriority.LOW
-            // "urgente" como palabra inicial (ej. "urgente enviar documento mañana")
-            // sin prefijo. No se detecta a mitad de frase para evitar falsos positivos
-            // como "no es urgente".
-            leadingUrgentPattern.containsMatchIn(lower) -> TaskPriority.URGENT
+            // "urgente"/"importante" como palabra INICIAL (ej. "urgente enviar documento
+            // mañana", "importante llamar al cliente") sin prefijo. No se detecta a mitad
+            // de frase para evitar falsos positivos como "no es urgente"/"no es importante".
+            leadingPriorityPattern.find(lower)?.groupValues?.get(1) == "urgente" -> TaskPriority.URGENT
+            leadingPriorityPattern.containsMatchIn(lower) -> TaskPriority.HIGH
             // "urgente"/"importante" como palabra FINAL: sufijo de prioridad en texto libre
             // ("Llamar mamá urgente"), salvo negación ("no es urgente").
             trailingPriorityWord == "urgente" -> TaskPriority.URGENT
@@ -1424,7 +1432,7 @@ object NaturalTaskParser {
             else -> TaskPriority.NORMAL
         }
         working = working.replace(Regex("""(?i)(?:!|#)(urgente|alta|baja)\b"""), " ")
-            .replace(leadingUrgentPattern, " ")
+            .replace(leadingPriorityPattern, " ")
         if (trailingPriorityWord != null) {
             working = working.replace(trailingPriorityPattern, " ")
         }
