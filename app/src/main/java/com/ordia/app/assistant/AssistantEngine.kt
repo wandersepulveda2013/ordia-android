@@ -71,7 +71,19 @@ object AssistantEngine {
                 )
             }
             isDayLoadQuery(query) -> dayLoadAnswer(tasks, overdue, overdueCommitments, now, zone, profile)
-            "que hago ahora" in query || "siguiente accion" in query -> {
+            // Reconocimiento de intención "¿qué hago ahora?" — la consulta de mayor
+            // valor del asistente (la siguiente acción). Antes sólo "qué hago ahora" y
+            // "siguiente acción" la activaban: formas cotidianas como "¿qué sigue?",
+            // "¿qué me toca?" o el simple "¿qué hago?" caían al mensaje genérico, y el
+            // usuario perdía la sugerencia de What Now justo cuando más la necesita.
+            // Se anclan en secuencias de 2+ palabras con "qué" para evitar falsos
+            // positivos del verbo suelto ("sigue", "toca"): "qué sigue" exige "qué" antes
+            // de "sigue", "qué me toca" exige el pronombre. "qué hago" cubre la forma
+            // desnuda (es subcadena de "qué hago ahora", así el caso original sigue
+            // funcionando). No colisiona con agenda: ésta usa "tengo"/"hay"/"para".
+            "que hago ahora" in query || "que hago" in query ||
+                "siguiente accion" in query || "que sigue" in query ||
+                "que me toca" in query -> {
                 val suggestion = WhatNowEngine.suggest(active, now)
                 if (suggestion == null) {
                     // Quinto olvido de Ordía (c.357): sin tareas pendientes PERO con

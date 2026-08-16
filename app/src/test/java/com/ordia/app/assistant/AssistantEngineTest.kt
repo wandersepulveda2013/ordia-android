@@ -654,6 +654,47 @@ class AssistantEngineTest {
         assertTrue("no inventa olvido sin missed-start: ${answer.text}", !answer.text.contains("se pasó"))
     }
 
+    // --- Formas cotidianas de "¿qué hago ahora?" (c.415) ---
+    // La consulta de mayor valor sólo reconocía "qué hago ahora"/"siguiente acción".
+    // Formas comunes ("¿qué sigue?", "¿qué me toca?", "¿qué hago?") caían al mensaje
+    // genérico y el usuario perdía la sugerencia de What Now.
+
+    private val whatNowUrgent = listOf(TaskEntity(id = 1, title = "Urgente", priority = TaskPriority.URGENT))
+
+    @Test fun whatNow_recognizesQueSigue() {
+        val answer = AssistantEngine.answer("¿Qué sigue?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿qué sigue? debe sugerir la tarea urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun whatNow_recognizesQueMeToca() {
+        val answer = AssistantEngine.answer("¿Qué me toca hacer?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿qué me toca? debe sugerir la tarea urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun whatNow_recognizesBareQueHago() {
+        // La forma desnuda "¿qué hago?" (sin "ahora") antes no se reconocía.
+        val answer = AssistantEngine.answer("¿Qué hago?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿qué hago? debe sugerir la tarea urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun whatNow_verbsAloneAreNotWhatNow() {
+        // El verbo suelto NO es intención: "sigue" y "toca" sin "qué" no deben
+        // disparar What Now (evita falsos positivos sobre "sigue lloviendo", etc.).
+        // Con tareas activas, What Now sugeriría una; el mensaje genérico no lista
+        // relatedTaskIds, así que verificamos que NO se activa la rama de sugerencia.
+        for (q in listOf("sigue lloviendo", "me toca el turno")) {
+            val answer = AssistantEngine.answer(q, whatNowUrgent, emptyList(), emptyList())
+            assertTrue("'$q' no debe activar What Now: ${answer.text}", answer.relatedTaskIds.isEmpty())
+        }
+    }
+
+    @Test fun whatNow_recognizesQueSigueSinTareas() {
+        // Sin tareas, la nueva forma sigue dando el mensaje útil (no el genérico).
+        val answer = AssistantEngine.answer("¿qué sigue ahora?", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.NONE, answer.action)
+        assertTrue("mensaje útil sin tareas: ${answer.text}", answer.text.contains("descansar") || answer.text.contains("pendiente"))
+    }
+
     @Test fun whatNow_namesMostUrgentMissedStartAmongSeveral() {
         // Con varios inicios olvidados, la cola nombra el MÁS urgente (mismo orden
         // que What Now / "¿qué olvidé?"), no uno arbitrario. Una URGENT sin fecha
