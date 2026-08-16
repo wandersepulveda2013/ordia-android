@@ -3259,6 +3259,15 @@ object NaturalTaskParser {
             Regex("""(?i)\bbisemanal(?:mente)?\b""").find(working)?.let { m ->
                 return 2 to m.range
             }
+            // "semana por medio" aquí acompaña a una lista de días ("fútbol semana por
+            // medio los sábados" -> cada 2 semanas los sábados), igual que "cada dos
+            // semanas los sábados". Sin esto, el combo caía a interval=1 (cada sábado, el
+            // doble de frecuente) y "semana por medio" quedaba pegado al título. La forma
+            // SIN días ("fisioterapia semana por medio") no llega aquí (ningún
+            // dayListPattern casa) y la resuelve alternatePeriodPattern más abajo (WEEKLY/2).
+            Regex("""(?i)\b(?:una\s+)?semanas?\s+por\s+medio\b""").find(working)?.let { m ->
+                return 2 to m.range
+            }
             return null
         }
 
@@ -3777,6 +3786,11 @@ object NaturalTaskParser {
             phrases += match.range
             return RecurrenceResult(RecurrenceFrequency.DAILY, 2, emptyList(), phrases)
         }
+
+        // NOTA: "semana por medio"/"mes por medio" (formas aisladas, con "cada"/"una"/"un",
+        // semana+mes, singular+plural) se resuelven en alternatePeriodPattern más abajo
+        // (c.348 c33d25b, superconjunto). El COMBO con lista de días se resuelve arriba
+        // en detectWeekInterval() (único caso disjunto que requiere conservar los días).
 
         // "cada tercer/cuarto/quinto/sexto día": cadencia espaciada con ordinal, equivalente
         // exacto de "cada 3/4/5/6 días" ([intervalPattern] sólo admite cardinales: dígitos o

@@ -7085,6 +7085,86 @@ class NaturalTaskParserTest {
         assertNotNull(result.dueAt)
     }
 
+    // --- "semana por medio" / "mes por medio" = cada 2 semanas / cada 2 meses ---
+    // Giros idiomáticos LATAM sin cantidad numérica, simétricos de "día por medio"
+    // (DAILY/2). Antes caían a NONE + dueAt=null → rutina olvidada (P1 evitar olvidos).
+    // "semana por medio" = WEEKLY interval=2 (idéntico a "cada 2 semanas");
+    // "mes por medio" = MONTHLY interval=2 (idéntico a "cada 2 meses").
+    // Las formas aisladas (semana/una semana/mes/un mes por medio) y con "cada" se
+    // cubren en los tests c.348 (c33d25b) más abajo; aquí los COMBOS con día/días.
+    @Test fun unMesPorMedioParsesMonthlyInterval2() {
+        val result = NaturalTaskParser.parse("Auditoría un mes por medio", now, zone)
+        assertEquals("Auditoría", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // Forma plural "semanas por medio" (giro habitual en LATAM): misma semántica que
+    // el singular "semana por medio" (WEEKLY/2), simétrica de "días por medio".
+    @Test fun semanasPorMedioPluralParsesWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Clase semanas por medio", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // Combo "mes por medio + día del mes": MONTHLY/2 anclado al día N (igual que
+    // "cada 2 meses el 15"). Antes perdía el interval o no anclaba el día.
+    @Test fun mesPorMedioConDiaDelMesParsesMonthlyInterval2() {
+        val result = NaturalTaskParser.parse("Clínica mes por medio el 15", now, zone)
+        assertEquals("Clínica", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Combo "semana por medio + 2 días": interval=2 y ambos días conservados.
+    @Test fun semanaPorMedioMultiDiaParsesWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Fútbol semana por medio lunes y jueves", now, zone)
+        assertEquals("Fútbol", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("1,4", result.recurrenceDays)
+    }
+
+    // No-regresión: "cada 2 semanas"/"cada 2 meses" (forma cardinal) sigue igual.
+    @Test fun cada2SemanasStaysWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Reunión cada 2 semanas", now, zone)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+    }
+
+    // No-regresión: el "por medio" suelto sin unidad temporal NO se roba como recurrencia
+    // (frases como "dejar por medio" no son cadencia). Se exige semana/mes justo antes.
+    @Test fun porMedioSinUnidadTemporalNoEsRecurrencia() {
+        val result = NaturalTaskParser.parse("Comentar lo del proyecto por medio", now, zone)
+        assertNotEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertNotEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+    }
+
+    // Combo "semana por medio + días de semana": antes perdía el interval (WEEKLY/1 en
+    // vez de /2) y dejaba "semana por medio" pegado al título. Ahora igual que
+    // "cada 2 semanas los sábados" (interval=2, días=[6], título limpio).
+    @Test fun semanaPorMedioConDiasParsesWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Fútbol semana por medio los sábados", now, zone)
+        assertEquals("Fútbol", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("6", result.recurrenceDays)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun cada2SemanasLosSabadosStaysWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Fútbol cada 2 semanas los sábados", now, zone)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertEquals("6", result.recurrenceDays)
+        assertEquals("Fútbol", result.title)
+    }
+
     // --- "cada tercer/cuarto/quinto/sexto día" = cada N días (ordinal) ---
     // Equivalente exacto de "cada 3/4/5/6 días" (intervalPattern sólo admite cardinales).
     // "cada tercer día"=cada 3 días, "cada cuarto día"=cada 4, etc. Antes caían a NONE
