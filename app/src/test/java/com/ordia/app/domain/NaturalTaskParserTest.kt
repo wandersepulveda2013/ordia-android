@@ -1059,6 +1059,50 @@ class NaturalTaskParserTest {
         assertNotNull(result.dueAt)
     }
 
+    // Par léxico plural de "cada bimestre/trimestre/cuatrimestre/semestre":
+    // "todos los bimestres/trimestres/cuatrimestres/semestres" — simétrico de "todos los
+    // meses"/"todos los años" (fixedPatterns). Antes caía a NONE + título con la frase
+    // pegada (rutina periódica olvidada: sin cadencia, sin recordatorio, invisible en
+    // What Now/planificador). P1 consistencia léxica / datos (sagrados) / evitar olvidos.
+    @Test fun todosLosBimestresParsesMonthlyInterval2() {
+        val result = NaturalTaskParser.parse("Renta todos los bimestres", now, zone)
+        assertEquals("Renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun todosLosTrimestresParsesMonthlyInterval3() {
+        val result = NaturalTaskParser.parse("Impuestos todos los trimestres", now, zone)
+        assertEquals("Impuestos", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun todosLosCuatrimestresParsesMonthlyInterval4() {
+        val result = NaturalTaskParser.parse("Declaración todos los cuatrimestres", now, zone)
+        assertEquals("Declaración", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(4, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun todosLosSemestresParsesMonthlyInterval6() {
+        val result = NaturalTaskParser.parse("Renovación todos los semestres", now, zone)
+        assertEquals("Renovación", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(6, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // La rama "todos los" exige PLURAL ("bimestres"): el singular "todos los bimestre"
+    // es gramaticalmente anómalo y no casa — paralelo a "todos los meses" (plural).
+    @Test fun todosLosBimestreSingularNoCasa() {
+        val result = NaturalTaskParser.parse("Renta todos los bimestre", now, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+    }
+
     // El adjetivo respeta una fecha explícita (prioridad sobre el anclaje a la captura),
     // simétrico a "cada quincena el 15/8": la cadencia se conserva y la fecha manda.
     @Test fun adjetivoMensualRespetaFechaExplicita() {

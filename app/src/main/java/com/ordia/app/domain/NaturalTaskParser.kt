@@ -3848,19 +3848,23 @@ object NaturalTaskParser {
         }
 
         // Sustantivos plurimensuales como CADENCIA recurrente: "cada bimestre",
-        // "cada trimestre", "cada cuatrimestre", "cada semestre". Hitos financieros
-        // de plazo largo (renta, impuestos, declaraciones, renovaciones). `intervalPattern`
-        // solo admite "días|semanas|meses|años", así estas frases caían a NONE → la tarea
-        // recurrente nacía sin fecha ni cadencia (P1: compromiso periódico olvidado,
-        // invisible en What Now/planificador, recordatorio jamás disparaba) y "cada X"
-        // quedaba como residuo literal en el título. Se mapean a MONTHLY + intervalo
-        // (2/3/4/6), igual que el adjetivo equivalente, sin añadir enum ni migración:
-        // RecurrenceEngine ya avanza `plusMonths(interval)`. El prefijo "cada" es
-        // obligatorio: "próximo bimestre"/"el bimestre que viene"/"en un bimestre" son
-        // FECHAS únicas (resueltas en la cascada de períodos) y no deben capturarse aquí.
-        // Se procesa ANTES que multiMonthAdjective y fixedPatterns para limpiar el título.
+        // "cada trimestre", "cada cuatrimestre", "cada semestre", y la forma plural
+        // "todos los bimestres/trimestres/cuatrimestres/semestres" (par léxico simétrico
+        // de "todos los meses"/"todos los años", ya cubiertos en fixedPatterns). Hitos
+        // financieros de plazo largo (renta, impuestos, declaraciones, renovaciones).
+        // `intervalPattern` solo admite "días|semanas|meses|años" y fixedPatterns solo
+        // día/semana/mes/año, así estas frases caían a NONE → la tarea recurrente nacía
+        // sin fecha ni cadencia (P1: compromiso periódico olvidado, invisible en What
+        // Now/planificador, recordatorio jamás disparaba) y la frase quedaba como residuo
+        // literal en el título. Se mapean a MONTHLY + intervalo (2/3/4/6), igual que el
+        // adjetivo equivalente, sin añadir enum ni migración: RecurrenceEngine ya avanza
+        // `plusMonths(interval)`. El prefijo es "cada" o "todos los": "próximo bimestre"/
+        // "el bimestre que viene"/"en un bimestre" son FECHAS únicas (resueltas en la
+        // cascada de períodos) y no capturan aquí. La rama "todos los" exige PLURAL
+        // ("bimestres"), paralelo gramatical a "todos los meses". Se procesa ANTES que
+        // multiMonthAdjective y fixedPatterns para limpiar el título.
         val multiMonthNounPattern =
-            Regex("""(?i)\bcada\s+(bimestres?|trimestres?|cuatrimestres?|semestres?)\b""")
+            Regex("""(?i)\bcada\s+(bimestres?|trimestres?|cuatrimestres?|semestres?)\b|\btodos\s+los\s+(bimestres|trimestres|cuatrimestres|semestres)\b""")
         multiMonthNounPattern.find(working)?.let { match ->
             val months = when {
                 match.value.contains(Regex("""(?i)cuatrimestre""")) -> 4
