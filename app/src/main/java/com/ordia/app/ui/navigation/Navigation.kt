@@ -27,6 +27,8 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.ViewAgenda
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Search
@@ -69,6 +71,10 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -91,9 +97,11 @@ import com.ordia.app.ui.screens.GuardianScreen
 import com.ordia.app.ui.screens.HabitsScreen
 import com.ordia.app.ui.screens.InboxScreen
 import com.ordia.app.ui.screens.IntelligenceScreen
+import com.ordia.app.ui.screens.MentalOffloadScreen
 import com.ordia.app.ui.screens.MoreScreen
 import com.ordia.app.ui.screens.NoteEditorScreen
 import com.ordia.app.ui.screens.NotesScreen
+import com.ordia.app.ui.screens.OrganizeScreen
 import com.ordia.app.ui.screens.PlannerScreen
 import com.ordia.app.ui.screens.ProjectDetailScreen
 import com.ordia.app.ui.screens.ProjectsScreen
@@ -132,6 +140,8 @@ sealed class Destination(val route: String, @StringRes val labelRes: Int, val ic
     data object Settings : Destination("settings", R.string.nav_settings, Icons.Outlined.Settings)
     data object Updates : Destination("updates", R.string.nav_updates, Icons.Outlined.SystemUpdate)
     data object More : Destination("more", R.string.nav_more, Icons.Outlined.MoreHoriz)
+    data object Organize : Destination("organize", R.string.nav2_organize, Icons.Outlined.ViewAgenda)
+    data object MentalOffload : Destination("offload", R.string.offload_title, Icons.Outlined.Bolt)
     data object Guardian : Destination("guardian", R.string.nav_guardian, Icons.Outlined.Psychology)
     data object Conversations : Destination("conversations", R.string.nav_conversations, Icons.Outlined.ChatBubbleOutline)
     data object Automations : Destination("automations", R.string.nav_automations, Icons.Outlined.AutoAwesome)
@@ -148,8 +158,9 @@ sealed class Destination(val route: String, @StringRes val labelRes: Int, val ic
     }
 }
 
-/** Barra inferior: tres primitivas. El resto vive en Búsqueda y en Más. */
-private val compactItems = listOf(Destination.Today, Destination.Search, Destination.More)
+/** Barra inferior 2026: tres destinos primarios + acción central de captura.
+ *  Buscar/Comandos vive en el encabezado de cada pantalla y en el atajo K. */
+private val compactItems = listOf(Destination.Today, Destination.Organize, Destination.Guardian, Destination.Search)
 private val compactMoreRoutes = setOf(
     Destination.Capture.route,
     Destination.Inbox.route,
@@ -161,16 +172,18 @@ private val compactMoreRoutes = setOf(
     Destination.Planner.route,
     Destination.Statistics.route,
     Destination.Archive.route,
-    Destination.Guardian.route,
     Destination.Conversations.route,
     Destination.Automations.route,
     Destination.Assistant.route,
     Destination.Intelligence.route,
     Destination.Settings.route,
-    Destination.Updates.route
+    Destination.Updates.route,
+    Destination.More.route
 )
 private val topLevelRoutes = setOf(
     Destination.Today.route,
+    Destination.Organize.route,
+    Destination.MentalOffload.route,
     Destination.Inbox.route,
     Destination.Tasks.route,
     Destination.Capture.route,
@@ -359,6 +372,7 @@ private fun OrdiaNavHost(
                 onOpenFocus = { navController.navigateSingle(Destination.Focus.route) },
                 onOpenInbox = { navController.navigateSingle(Destination.Inbox.route) },
                 onOpenPlanner = { navController.navigateSingle(Destination.Planner.route) },
+                onOpenOffload = { navController.navigateSingle(Destination.MentalOffload.route) },
                 onReviewMessages = { navController.navigateSingle(Destination.Conversations.route) },
                 onQuickNote = { navController.navigate(Destination.note(0L)) }
             )
@@ -429,6 +443,27 @@ private fun OrdiaNavHost(
         composable(Destination.More.route) {
             MoreScreen(state = state, padding = padding, open = { navController.navigateSingle(it) })
         }
+        composable(Destination.Organize.route) {
+            OrganizeScreen(
+                state = state,
+                vm = vm,
+                padding = padding,
+                onTask = { navController.navigate(Destination.task(it)) },
+                onNote = { navController.navigate(Destination.note(it)) },
+                onProject = { navController.navigate(Destination.project(it)) },
+                onInbox = { navController.navigateSingle(Destination.Inbox.route) },
+                onPlanner = { navController.navigateSingle(Destination.Planner.route) },
+                onAutomations = { navController.navigateSingle(Destination.Automations.route) }
+            )
+        }
+        composable(Destination.MentalOffload.route) {
+            MentalOffloadScreen(
+                vm = vm,
+                padding = padding,
+                onDone = { navController.navigateSingle(Destination.Today.route) },
+                onTask = { navController.navigate(Destination.task(it)) }
+            )
+        }
         composable(
             Destination.TASK_ROUTE,
             arguments = listOf(navArgument("taskId") { type = NavType.LongType })
@@ -473,16 +508,24 @@ private fun OrdiaNavHost(
     }
 }
 
-/** FAB único de Ordía: abre la captura universal (interpreta tarea, nota o lo que sea). */
+/** Acción central de captura 2026: tap = captura universal; long press = voz
+ *  cuando sea natural. Es la interacción principal para alimentar Ordía. */
 @Composable
 private fun QuickCaptureFab() {
     val context = LocalContext.current
-    FloatingActionButton(onClick = {
-        context.startActivity(
-            Intent(context, QuickCaptureActivity::class.java)
-        )
-    }) {
-        Icon(Icons.Outlined.Add, stringResource(R.string.fab_capture), Modifier.size(24.dp))
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+    androidx.compose.material3.LargeFloatingActionButton(
+        onClick = {
+            context.startActivity(Intent(context, QuickCaptureActivity::class.java))
+        },
+        modifier = Modifier.semantics {
+            contentDescription = context.getString(R.string.fab_capture)
+            role = Role.Button
+        },
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary
+    ) {
+        Icon(Icons.Outlined.Add, stringResource(R.string.fab_capture), Modifier.size(28.dp))
     }
 }
 

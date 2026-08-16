@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.EditNote
@@ -50,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ordia.app.R
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.domain.DateRules
@@ -64,6 +67,9 @@ import com.ordia.app.ui.components.SectionHeader
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
 import com.ordia.app.ui.components.recurrenceChipLabel
+import com.ordia.app.ui.theme.OrdiaInk
+import com.ordia.app.ui.theme.OrdiaAccent
+import com.ordia.app.ui.theme.OrdiaAccentSoft
 import com.ordia.app.domain.NaturalTaskParser
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.CaptureSource
@@ -87,6 +93,7 @@ fun TodayScreen(
     onOpenFocus: () -> Unit,
     onOpenInbox: () -> Unit,
     onOpenPlanner: () -> Unit,
+    onOpenOffload: () -> Unit,
     onReviewMessages: () -> Unit,
     onQuickNote: () -> Unit
 ) {
@@ -160,17 +167,47 @@ fun TodayScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            ScreenHeader(
-                eyebrow = today.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
-                title = greeting(),
+            OrdiaBrandHeader(
+                greeting = greeting(),
+                dateLabel = today.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)),
                 subtitle = when {
                     state.pendingCount == 0 -> stringResource(R.string.today_subtitle_clear)
                     state.overdueTasks.isNotEmpty() -> stringResource(R.string.today_subtitle_overdue, state.overdueTasks.size)
                     else -> stringResource(R.string.today_subtitle_active, state.pendingCount)
                 },
-                actionLabel = stringResource(R.string.today_new),
-                onAction = { showTaskDialog = true }
+                onNew = { showTaskDialog = true }
             )
+        }
+
+        item {
+            Surface(
+                onClick = onOpenOffload,
+                shape = MaterialTheme.shapes.large,
+                color = OrdiaAccentSoft,
+                contentColor = OrdiaInk
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(Icons.Outlined.Bolt, null)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            stringResource(R.string.offload_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            stringResource(R.string.offload_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
+                }
+            }
         }
 
         item {
@@ -524,4 +561,55 @@ private fun guardianToneColors(tone: GuardianCoach.Tone): Pair<androidx.compose.
     GuardianCoach.Tone.FOCUSED -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
     GuardianCoach.Tone.CELEBRATING -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
     GuardianCoach.Tone.CALM -> MaterialTheme.colorScheme.surfaceContainerLow to MaterialTheme.colorScheme.onSurfaceVariant
+}
+
+/**
+ * Cabecera de marca 2026. Identidad propia "ORDÍA" + saludo temporal + estado
+ * del día. Reemplaza el header genérico para que la app se perciba nueva.
+ */
+@Composable
+private fun OrdiaBrandHeader(
+    greeting: String,
+    dateLabel: String,
+    subtitle: String,
+    onNew: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                "ORDÍA",
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = OrdiaAccent,
+                letterSpacing = (-0.5).sp
+            )
+            OutlinedButton(
+                onClick = onNew,
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Icon(Icons.Outlined.Add, null, Modifier.size(18.dp))
+                Text(stringResource(R.string.today_new), Modifier.padding(start = 6.dp))
+            }
+        }
+        Text(
+            greeting,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = OrdiaInk
+        )
+        Text(
+            dateLabel,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Navegación 2026: destinos primarios rediseñados. -->
+    <string name="nav2_today">Hoy</string>
+    <string name="nav2_capture">Captura</string>
+    <string name="nav2_organize">Organizar</string>
+    <string name="nav2_guardians">Guardianes</string>
+
+    <!-- Home 2026: briefing y secciones vivas. -->
+    <string name="home_briefing_eyebrow">Resumen de hoy</string>
+    <string name="home_briefing_clear">Hoy está despejado.</string>
+    <string name="home_briefing_overload">Esta tarde está demasiado cargada. ¿Quieres reorganizarla?</string>
+    <string name="home_section_today">Hoy</string>
+    <string name="home_section_today_support">Cosas importantes que requieren tu atención</string>
+    <string name="home_section_next">Próximo</string>
+    <string name="home_section_waiting">En espera</string>
+    <string name="home_section_recent_capture">Capturado recientemente</string>
+    <string name="home_empty_clear">Hoy está despejado.</string>
+    <string name="home_empty_clear_support">No hay nada urgente. Disfruta el espacio.</string>
+    <string name="home_organize_day">Organiza mi día</string>
+    <string name="home_organize_day_desc">Ordía propone bloques a partir de tus tareas</string>
+    <string name="home_reorganize">Reorganizar</string>
+
+    <!-- Descarga mental 2026. -->
+    <string name="offload_title">Descarga mental</string>
+    <string name="offload_hint">Escribe o pega todo lo que tienes en la cabeza…</string>
+    <string name="offload_understood">Entendí %1$d cosas</string>
+    <string name="offload_confirm">Todo correcto</string>
+    <string name="offload_task">Tarea</string>
+    <string name="offload_purchase">Compra</string>
+    <string name="offload_followup">Seguimiento</string>
+    <string name="offload_event">Evento</string>
+    <string name="offload_voice">Hablar</string>
+    <string name="offload_process">Procesar</string>
+    <string name="offload_no_items">No detecté elementos accionables. ¿Quieres guardarlo como nota?</string>
+    <string name="offload_save_as_note">Guardar como nota</string>
+
+    <!-- Guardianes 2.0. -->
+    <string name="guardian2_eyebrow">Guardianes</string>
+    <string name="guardian2_title">Tus Guardianes velan por ti</string>
+    <string name="guardian2_subtitle">Alertas útiles, no spam</string>
+    <string name="guardian2_all_clear">Todo tranquilo.</string>
+    <string name="guardian2_all_clear_support">No detectamos nada que requiera tu atención ahora.</string>
+    <string name="guardian2_pending_title">Guardián de Pendientes</string>
+    <string name="guardian2_pending_msg">%1$d tareas llevan más de una semana moviéndose.</string>
+    <string name="guardian2_pending_msg_one">1 tarea lleva más de una semana moviéndose.</string>
+    <string name="guardian2_chaos_title">Guardián del Caos</string>
+    <string name="guardian2_chaos_msg">Encontré %1$d notas sin organizar.</string>
+    <string name="guardian2_commitments_title">Guardián de Compromisos</string>
+    <string name="guardian2_commitments_msg">Dijiste que llamarías a %1$s esta semana.</string>
+    <string name="guardian2_routine_title">Guardián de Rutina</string>
+    <string name="guardian2_routine_msg">Esta actividad se omitió %1$d veces.</string>
+    <string name="guardian2_action_review">Revisar</string>
+    <string name="guardian2_action_organize">Organizar conmigo</string>
+    <string name="guardian2_action_reminder">Crear recordatorio</string>
+    <string name="guardian2_action_done">Ya lo hice</string>
+    <string name="guardian2_action_schedule">Revisar horario</string>
+    <string name="guardian2_why">¿Por qué veo esto?</string>
+    <string name="guardian2_silence">Silenciar</string>
+
+    <!-- Organizar 2026. -->
+    <string name="organize_title">Organizar</string>
+    <string name="organize_subtitle">Tareas, notas, listas y proyectos</string>
+    <string name="organize_section_tasks">Tareas</string>
+    <string name="organize_section_notes">Notas</string>
+    <string name="organize_section_lists">Listas</string>
+    <string name="organize_section_projects">Proyectos</string>
+    <string name="organize_ai_propose">Preparé %1$d cambios</string>
+    <string name="organize_ai_apply_all">Aplicar todos</string>
+    <string name="organize_ai_review">Revisar</string>
+    <string name="organize_ai_undo">Deshacer</string>
+    <string name="organize_ai_working">Ordía está organizando…</string>
+
+    <!-- Organizar mi día / Briefing / Cierre. -->
+    <string name="dayplan_title">Organiza mi día</string>
+    <string name="dayplan_proposal">Propuesta de bloques</string>
+    <string name="dayplan_confirm">Confirmar plan</string>
+    <string name="dayplan_empty">No hay suficiente información para proponer bloques.</string>
+    <string name="briefing_today">Hoy</string>
+    <string name="briefing_important">%1$d importantes</string>
+    <string name="briefing_appointment">%1$d cita</string>
+    <string name="briefing_appointments">%1$d citas</string>
+    <string name="briefing_overdue">%1$d vencida</string>
+    <string name="briefing_overdue_plural">%1$d vencidas</string>
+    <string name="briefing_suggestion">Podrías mover una tarea a mañana.</string>
+    <string name="dayclose_title">Cierre del día</string>
+    <string name="dayclose_remaining">Quedaron %1$d cosas.</string>
+    <string name="dayclose_tomorrow">Mañana</string>
+    <string name="dayclose_this_week">Esta semana</string>
+    <string name="dayclose_choose">Elegir</string>
+    <string name="dayclose_discard">Descartar</string>
+
+    <!-- Paleta de comandos móvil. -->
+    <string name="palette_title">¿Qué quieres hacer?</string>
+    <string name="palette_hint">Buscar acción…</string>
+
+    <!-- Captura universal 2026. -->
+    <string name="capture2_hint">¿Qué tienes en mente?</string>
+    <string name="capture2_voice">Voz</string>
+    <string name="capture2_create_event">Crear evento</string>
+    <string name="capture2_create_reminder">Crear recordatorio</string>
+    <string name="capture2_create_list">Crear lista</string>
+    <string name="capture2_create_task">Crear tarea</string>
+    <string name="capture2_create_note">Crear nota</string>
+
+    <!-- Vacíos cálidos. -->
+    <string name="empty_inbox">Todo procesado.</string>
+    <string name="empty_pending">Estás al día.</string>
+    <string name="empty_guardians">Todo tranquilo.</string>
+
+    <!-- Progreso de agente. -->
+    <string name="agent_step_review_pending">Revisando pendientes</string>
+    <string name="agent_step_detect_dates">Detectando fechas</string>
+    <string name="agent_step_prepare">Preparando propuesta</string>
+    <string name="agent_view">Ver</string>
+    <string name="agent_stop">Detener</string>
+</resources>
