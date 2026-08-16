@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -388,7 +389,7 @@ fun PlannerScreen(
                 )
             }
             items(state.inboxTasks.take(5), key = { "backlog-${it.id}" }) { task ->
-                Card(onClick = { onTask(task.id) }) {
+                OrdiaCard(onClick = { onTask(task.id) }) {
                     Row(
                         Modifier.fillMaxWidth().padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -730,14 +731,14 @@ private fun AutoPlanCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                OutlinedButton(onClick = onToggleDetails, enabled = plan.blocks.isNotEmpty()) {
+                OrdiaOutlinedButton(onClick = onToggleDetails, enabled = plan.blocks.isNotEmpty()) {
                     Text(
                         if (showDetails) stringResource(R.string.planner_hide)
                         else stringResource(R.string.planner_view)
                     )
                 }
             }
-            OutlinedButton(onClick = onReplan, modifier = Modifier.fillMaxWidth()) {
+            OrdiaOutlinedButton(onClick = onReplan, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.planner_replan))
             }
             if (showDetails) {
@@ -778,7 +779,7 @@ private fun AutoPlanCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Button(onClick = onApply, modifier = Modifier.fillMaxWidth()) {
+                OrdiaButton(onClick = onApply, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         if (selectedBlockIds.isEmpty()) stringResource(R.string.planner_apply)
                         else stringResource(R.string.planner_apply_selection, selectedBlockIds.size)

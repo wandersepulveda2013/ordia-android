@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -201,7 +202,7 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(GuardianEngine.Interaction.entries) { interaction ->
-                    Button(onClick = { scope.launch { repository.interactGuardian(interaction) } }) {
+                    OrdiaButton(onClick = { scope.launch { repository.interactGuardian(interaction) } }) {
                         Text(stringResource(interaction.labelRes()))
                     }
                 }
@@ -224,14 +225,14 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
         item {
             Card {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
+                    OrdiaInput(
                         value = name,
                         onValueChange = { name = it.take(24) },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text(stringResource(R.string.guardian_screen_name_label)) },
                         singleLine = true
                     )
-                    OutlinedButton(
+                    OrdiaOutlinedButton(
                         onClick = { scope.launch { repository.setGuardianName(name) } },
                         enabled = name.isNotBlank(),
                         modifier = Modifier.fillMaxWidth()

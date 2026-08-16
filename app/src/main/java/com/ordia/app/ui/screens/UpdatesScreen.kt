@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -79,7 +80,7 @@ fun UpdatesScreen(contentPadding: PaddingValues) {
             is UpdateState.Failed -> item { FailedCard(currentState) }
         }
         item {
-            Button(
+            OrdiaButton(
                 onClick = { OrdiaUpdateController.checkNow(context) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = currentState !is UpdateState.Checking && currentState !is UpdateState.Downloading
@@ -152,7 +153,7 @@ private fun AvailableCard(state: UpdateState.Available) {
                 Text(state.release.changelog, style = MaterialTheme.typography.bodySmall)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = { OrdiaUpdateController.download(context, state.release) }) {
+                OrdiaButton(onClick = { OrdiaUpdateController.download(context, state.release) }) {
                     Text(stringResource(R.string.updates_install_now))
                 }
                 TextButton(onClick = { OrdiaUpdateController.dismissAvailable() }) {
@@ -195,7 +196,7 @@ private fun ReadyCard(state: UpdateState.Ready) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(stringResource(R.string.updates_ready), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.updates_ready_desc), style = MaterialTheme.typography.bodySmall)
-            Button(onClick = { OrdiaUpdateController.install(context) }, modifier = Modifier.fillMaxWidth()) {
+            OrdiaButton(onClick = { OrdiaUpdateController.install(context) }, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.updates_install))
             }
         }
@@ -209,7 +210,7 @@ private fun FailedCard(state: UpdateState.Failed) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(stringResource(R.string.updates_failed), style = MaterialTheme.typography.titleMedium)
             Text(state.reason, style = MaterialTheme.typography.bodySmall)
-            OutlinedButton(onClick = { OrdiaUpdateController.retry(context) }, modifier = Modifier.fillMaxWidth()) {
+            OrdiaOutlinedButton(onClick = { OrdiaUpdateController.retry(context) }, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.updates_retry))
             }
         }

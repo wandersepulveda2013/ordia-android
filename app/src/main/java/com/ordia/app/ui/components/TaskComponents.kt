@@ -82,7 +82,7 @@ fun TaskRow(
         else -> MaterialTheme.colorScheme.primary
     }
 
-    Card(
+    OrdiaCard(
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(

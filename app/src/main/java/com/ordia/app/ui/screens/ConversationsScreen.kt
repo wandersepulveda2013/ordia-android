@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import android.content.ClipboardManager
 import android.content.Context
@@ -176,7 +177,7 @@ fun ConversationsScreen(
             onDismissRequest = { showPaste = false },
             title = { Text(stringResource(R.string.conversation_paste_title)) },
             text = {
-                OutlinedTextField(
+                OrdiaInput(
                     value = pasteText,
                     onValueChange = { pasteText = it.take(MAX_SAVEABLE_PASTE_CHARS) },
                     modifier = Modifier.fillMaxWidth(),
@@ -310,11 +311,11 @@ fun ConversationsScreen(
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { picker.launch(arrayOf("text/*", "application/json")) }) {
+                OrdiaButton(onClick = { picker.launch(arrayOf("text/*", "application/json")) }) {
                     Icon(Icons.Outlined.FileOpen, null)
                     Text(stringResource(R.string.conversation_import), Modifier.padding(start = 8.dp))
                 }
-                OutlinedButton(onClick = {
+                OrdiaOutlinedButton(onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     pasteText = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
                     showPaste = true
@@ -327,7 +328,7 @@ fun ConversationsScreen(
 
         parseError?.let { error ->
             item {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                OrdiaCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
                     Text(error, Modifier.fillMaxWidth().padding(14.dp), color = MaterialTheme.colorScheme.onErrorContainer)
                 }
             }
@@ -371,7 +372,7 @@ fun ConversationsScreen(
         }
         if (pending.isEmpty()) {
             item {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+                OrdiaCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
                     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.ChatBubbleOutline, null)
                         Text(stringResource(R.string.commitment_empty), Modifier.padding(start = 12.dp))
@@ -426,7 +427,7 @@ private fun ObservationControlCard(
     onClear: () -> Unit
 ) {
     val observationLabel = stringResource(R.string.observation_title)
-    Card(
+    OrdiaCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
@@ -467,13 +468,13 @@ private fun ObservationControlCard(
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 item {
-                    OutlinedButton(onClick = onPermission) {
+                    OrdiaOutlinedButton(onClick = onPermission) {
                         Icon(Icons.AutoMirrored.Outlined.OpenInNew, null)
                         Text(stringResource(R.string.observation_permission), Modifier.padding(start = 6.dp))
                     }
                 }
                 item {
-                    OutlinedButton(onClick = if (runtime.paused) onResume else onPause, enabled = runtime.enabled) {
+                    OrdiaOutlinedButton(onClick = if (runtime.paused) onResume else onPause, enabled = runtime.enabled) {
                         Icon(if (runtime.paused) Icons.Outlined.PlayArrow else Icons.Outlined.Pause, null)
                         Text(
                             stringResource(
@@ -484,7 +485,7 @@ private fun ObservationControlCard(
                     }
                 }
             }
-            OutlinedButton(onClick = onClear, modifier = Modifier.fillMaxWidth()) {
+            OrdiaOutlinedButton(onClick = onClear, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.observation_clear_data))
             }
             TextButton(onClick = onStop, modifier = Modifier.fillMaxWidth(), enabled = runtime.enabled) {
@@ -507,7 +508,7 @@ private fun ObservationSourceCard(
     source: ObservedSourceEntity?,
     onEnabled: (Boolean) -> Unit
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+    OrdiaCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
         Row(
             Modifier.fillMaxWidth().padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -539,7 +540,7 @@ private fun ConsentHistoryCard(events: List<ConsentEventEntity>) {
             stringResource(R.string.observation_history_title),
             stringResource(R.string.observation_history_subtitle)
         )
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+        OrdiaCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (events.isEmpty()) {
                     Text(stringResource(R.string.observation_history_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -598,7 +599,7 @@ private fun ConversationPreviewCard(
         ConversationSummaryEngine.summarize(preview, commitments)
     }
     val retainOriginalLabel = stringResource(R.string.conversation_retain_original)
-    Card(
+    OrdiaCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
@@ -663,8 +664,8 @@ private fun ConversationPreviewCard(
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onSave) { Text(stringResource(R.string.conversation_save_review)) }
-                OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
+                OrdiaButton(onClick = onSave) { Text(stringResource(R.string.conversation_save_review)) }
+                OrdiaOutlinedButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
             }
         }
     }
@@ -676,7 +677,7 @@ private fun CommitmentCard(
     onConvert: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    Card(
+    OrdiaCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
     ) {
@@ -703,11 +704,11 @@ private fun CommitmentCard(
                 Text(stringResource(R.string.commitment_location, commitment.location), style = MaterialTheme.typography.bodySmall)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onConvert) {
+                OrdiaButton(onClick = onConvert) {
                     Icon(Icons.Outlined.AddTask, null)
                     Text(stringResource(R.string.commitment_create_task), Modifier.padding(start = 6.dp))
                 }
-                OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.commitment_discard)) }
+                OrdiaOutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.commitment_discard)) }
             }
         }
     }
@@ -721,7 +722,7 @@ private fun ConversationHistoryCard(
     onTask: (Long) -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+    OrdiaCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {

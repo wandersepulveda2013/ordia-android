@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -131,14 +132,14 @@ fun OnboardingScreen(
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                 if (page > 0) {
-                    OutlinedButton(
+                    OrdiaOutlinedButton(
                         onClick = { page-- },
                         enabled = !finishing,
                         modifier = Modifier.weight(1f)
                     ) { Text(stringResource(R.string.onboarding_back)) }
                     Spacer(Modifier.width(10.dp))
                 }
-                Button(
+                OrdiaButton(
                     onClick = {
                         if (page < 2) page++ else if (!finishing) onFinish()
                     },

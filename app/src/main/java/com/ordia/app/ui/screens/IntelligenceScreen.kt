@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,7 +38,7 @@ fun IntelligenceScreen(contentPadding: PaddingValues) {
         )
 
         SectionHeader(stringResource(R.string.intel_section_current_mode))
-        Card(
+        OrdiaCard(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
         ) {
@@ -56,7 +57,7 @@ fun IntelligenceScreen(contentPadding: PaddingValues) {
 
         Spacer(Modifier.height(16.dp))
         SectionHeader(stringResource(R.string.intel_rules_scope_title))
-        Card(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)) {
+        OrdiaCard(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)) {
             Text(
                 stringResource(R.string.intel_rules_scope_desc),
                 modifier = Modifier.padding(16.dp),
@@ -66,7 +67,7 @@ fun IntelligenceScreen(contentPadding: PaddingValues) {
 
         Spacer(Modifier.height(16.dp))
         SectionHeader(stringResource(R.string.intel_generative_title))
-        Card(
+        OrdiaCard(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
         ) {
@@ -85,7 +86,7 @@ fun IntelligenceScreen(contentPadding: PaddingValues) {
 
         Spacer(Modifier.height(16.dp))
         SectionHeader(stringResource(R.string.intel_section_privacy))
-        Card(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)) {
+        OrdiaCard(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)) {
             Text(
                 stringResource(R.string.intel_privacy_verified_desc),
                 modifier = Modifier.padding(16.dp),
