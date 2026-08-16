@@ -78,19 +78,31 @@ object TaskRules {
      * El orden del `when` es deliberado y sutil (es la parte propensa a
      * divergencia silenciosa): una tarea en curso ahora mismo manda sobre
      * una atrasada; una a punto de empezar (inminente) empata con la
-     * atrasada por encima de lo que vence hoy; lo programado para más
-     * tarde queda último (negativo) para no robar el lugar de lo actual.
-     * Centralizarlo aquí evita que una edición en una superficie deje a
-     * What Now y al widget sugiriendo tareas distintas para el mismo
-     * conjunto (regresión real ya documentada en c.83, antes de c.53).
+     * atrasada por encima de lo que vence hoy; lo programado para más tarde
+     * SIN vencimiento hoy queda último (negativo) para no robar el lugar de
+     * lo actual — pero si VENCE hoy, el plazo prevalece y se queda por encima
+     * del inbox (c.361: isDueToday se evalúa antes que isScheduledLater, en
+     * sintonía con [WhatNowEngine.reason]). Centralizarlo aquí evita que una
+     * edición en una superficie deje a What Now y al widget sugiriendo tareas
+     * distintas para el mismo conjunto (regresión real ya documentada en
+     * c.83, antes de c.53).
      */
     fun timeRank(task: TaskEntity, now: Long, zone: ZoneId = ZoneId.systemDefault()): Int = when {
         task.status == TaskStatus.IN_PROGRESS -> 6
         isInProgressNow(task, now) -> 5
         isOverdue(task, now) -> 4
         isImminentStart(task, now) -> 4
-        isScheduledLater(task, now) -> -1
         isDueToday(task, now, zone) -> 3
+        // isScheduledLater va DESPUÉS de isDueToday (c.361): una tarea que VENCE hoy
+        // pero está programada para empezar más tarde sigue siendo urgente por su
+        // plazo; evaluar isScheduledLater antes la hundía a rank -1 (último recurso)
+        // por debajo de una captura del inbox sin fecha (rank 0), y What Now sugería
+        // una idea aleatoria en lugar de la que vence hoy — el usuario podía olvidar
+        // una tarea con plazo de hoy. Así el ranking coincide con reason(), que ya
+        // muestra "vence hoy" para este caso (consistencia etiqueta ↔ ranking). Lo
+        // programado para más tarde SIN vencimiento hoy sigue al fondo (-1) para no
+        // robar el lugar de lo actual.
+        isScheduledLater(task, now) -> -1
         task.priority == TaskPriority.URGENT -> 2
         task.priority == TaskPriority.HIGH -> 1
         else -> 0
