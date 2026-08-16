@@ -1196,6 +1196,18 @@ object NaturalTaskParser {
         // de c.393). El guard anti-cuenta (c.361) sigue activo tras la reescritura: "justo a
         // las 9 personas" → "a las 9 personas" → rechazado por followedByCountNoun.
         Regex("""(?i)\b(?:aproximadamente|m[aá]s\s+o\s+menos|justo|exactamente|reci[eé]n|apenas)\s+a\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
+        // "pasadas las N" / "pasada la una" = un poco después de las N (aproximación
+        // post-hora, análoga al sufijo "y pico"/"más o menos" de c.393 y a los prefijos
+        // "casi/aproximadamente a las N" de c.393/c.395). A diferencia de "casi a las"/
+        // "justo a las", aquí NO hay "a" intermedio: la forma cotidiana es "pasadas las 9"
+        // (femenino plural concordando con "las"). El rewriter consume "pasadas "/"pasada "
+        // y reescribe a "a " → "a las 9"/"a la una", reutilizando TODO [timePatterns]
+        // (resolución + limpieza del título). Antes producía dueAt=null (o título mutilado
+        // si había meridiem) → cita olvidada (P1 evitar olvidos/datos (sagrados)). El
+        // guard anti-cuenta (c.361) sigue activo tras la reescritura: "pasadas las 9
+        // cajas" → "a las 9 cajas" → rechazado por followedByCountNoun (la lectura de
+        // cuenta "cajas ya pasadas" es forzada y rara; el uso dominante es temporal).
+        Regex("""(?i)\bpasadas?\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
         // "hacia/cerca de/alrededor de/sobre" admiten usos de tema ("sobre las ventas") y
         // de cantidad ("sobre las 3 cajas"), así que exigen evidencia de reloj INMEDIATA
         // tras la hora (minutos `:MM`, meridiem, parte del día, "horas/hs/h") para no
