@@ -1183,6 +1183,19 @@ object NaturalTaskParser {
         // [timePatterns] (resolución + limpieza del título). Antes "casi a las 9" dejaba
         // "casi" como residuo del título (cita bien fechada pero título mutilado, P2).
         Regex("""(?i)\bcasi\s+a\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
+        // Prefijos de aproximación/intensificación antes de "a las/la N": "aproximadamente
+        // a las 9", "más o menos a las 9", "justo a las 9", "exactamente a las 9". Son
+        // adverbios temporales puros antes de "a las N" (no admiten lectura de cantidad:
+        // "aproximadamente a las 9 personas" no es gramatical; la forma de cuenta es
+        // "aproximadamente 9 personas", sin "a las"), así que NO exigen evidencia de
+        // reloj (igual que "casi"). El match incluye "aproximadamente a "/"justo a " y se
+        // reescribe a "a " → "a las 9", reutilizando [timePatterns] (resolución + limpieza
+        // del título). Antes estos prefijos dejaban residuo ("reunión aproximadamente",
+        // "cita justo") pese a agendar la hora correcta (P2 captura/título limpio, espejo
+        // del sufijo "y pico"/"más o menos"/"aproximadamente" de c.393). El guard
+        // anti-cuenta (c.361) sigue activo tras la reescritura: "justo a las 9 personas"
+        // → "a las 9 personas" → rechazado por followedByCountNoun.
+        Regex("""(?i)\b(?:aproximadamente|m[aá]s\s+o\s+menos|justo|exactamente)\s+a\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
         // "hacia/cerca de/alrededor de/sobre" admiten usos de tema ("sobre las ventas") y
         // de cantidad ("sobre las 3 cajas"), así que exigen evidencia de reloj INMEDIATA
         // tras la hora (minutos `:MM`, meridiem, parte del día, "horas/hs/h") para no

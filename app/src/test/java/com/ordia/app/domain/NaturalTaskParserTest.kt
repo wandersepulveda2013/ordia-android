@@ -11676,4 +11676,62 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Casi termino el informe", now, zone)
         assertEquals(null, result.dueAt)
     }
+
+    // --- Prefijos de aproximación/intensificación antes de "a las/la N" (ciclo 395) ---
+    // "aproximadamente a las 9", "más o menos a las 9", "justo a las 9", "exactamente
+    // a las 9" son adverbios temporales puros antes de "a las N" (no admiten lectura de
+    // cantidad: "justo a las 9 personas" no es gramatical), así que NO exigen evidencia
+    // de reloj (igual que "casi"). Antes dejaban residuo ("reunión aproximadamente",
+    // "cita justo") pese a agendar la cita correctamente. Espejo del sufijo de c.393.
+
+    @Test fun aproximadamenteALas9LimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Reunión aproximadamente a las 9", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun masOMenosALas9DeLaNocheLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("Reunión más o menos a las 9 de la noche", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun justoALas9LimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Cita justo a las 9", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun justoALaUnaPmLimpiaTituloYResuelve13h() {
+        val result = NaturalTaskParser.parse("Almuerzo justo a la una pm", now, zone)
+        assertEquals("Almuerzo", result.title)
+        assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun exactamenteALas9DeLaTardeLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("Cita exactamente a las 9 de la tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Interacción combinada: prefijo "justo a las" + sufijo "y pico" (c.393) deben
+    // convivir sin residuo, reutilizando ambos mecanismos en la misma frase.
+    @Test fun justoALas9YPicoLimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Reunión justo a las 9 y pico", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // El guard anti-cuenta sigue activo tras reescribir "justo a " → "a ":
+    // "justo a las 9 personas" → "a las 9 personas" → rechazado como cita.
+    @Test fun justoALas9PersonasNoEsCita() {
+        val result = NaturalTaskParser.parse("Cita justo a las 9 personas", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
+    // "justo" sin "a las/la" NO es hora: no debe robar el modificador en otros contextos.
+    @Test fun justoTerminoElInformeNoEsCita() {
+        val result = NaturalTaskParser.parse("Justo termino el informe", now, zone)
+        assertEquals(null, result.dueAt)
+    }
 }
