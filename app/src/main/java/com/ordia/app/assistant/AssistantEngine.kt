@@ -278,7 +278,13 @@ object AssistantEngine {
      */
     private fun isAgendaQuery(query: String): Boolean {
         if (!("que tengo" in query || "tengo para" in query || "que hay" in query)) return false
-        return "manana" in query || "hoy" in query || "semana" in query || "mes" in query
+        // Día de la semana suelto ("¿qué tengo el viernes?"): antes no se reconocía
+        // como agenda y la consulta caía al mensaje genérico — el asistente callaba
+        // la agenda de un día concreto pese a preguntarla. Simétrico con
+        // SearchEngine.WEEKDAY_TOKENS y el parser de captura. Resolución
+        // inclusiva/estricta en agendaAnswer, no aquí.
+        return "manana" in query || "hoy" in query || "semana" in query || "mes" in query ||
+            AGENDA_WEEKDAY_TOKENS.any { it in query }
     }
 
     private fun agendaAnswer(query: String, active: List<TaskEntity>, now: Long, zone: ZoneId): AssistantAnswer {
@@ -303,6 +309,7 @@ object AssistantEngine {
         val isLastMonth = "mes" in query && ("pasada" in query || "pasadas" in query ||
             "pasado" in query || "pasados" in query ||
             "ultima" in query || "ultimas" in query || "ultimo" in query || "ultimos" in query)
+        val weekdayTarget = resolveAgendaWeekday(query, today)
         val (start, end, label) = when {
             "pasado manana" in query -> Triple(today.plusDays(2), today.plusDays(2), "pasado mañana")
             "manana" in query -> Triple(today.plusDays(1), today.plusDays(1), "mañana")
@@ -316,6 +323,18 @@ object AssistantEngine {
             isLastMonth -> {
                 val pm = thisMonth.minusMonths(1)
                 Triple(pm.atDay(1), pm.atEndOfMonth(), "mes pasado")
+            }
+            // Día de la semana ("¿qué tengo el viernes?"/"¿qué tengo el próximo
+            // lunes?"). Resolución simétrica con SearchEngine.resolveWeekdayTarget
+            // y el parser de captura: inclusiva (incluye hoy si hoy es ese día) salvo
+            // con modificador "próximo"/"que viene"/"siguiente" → estricta (salta al
+            // siguiente). Así buscar y preguntar signifiquen lo mismo. Si el día
+            // resuelto ES hoy (caso inclusivo), se reusa la etiqueta "hoy" para que
+            // aplique la rama de atrasadas previas (la misma honestidad que
+            // "¿qué tengo hoy?": no callar lo atrasado de días anteriores).
+            weekdayTarget != null -> {
+                if (weekdayTarget == today) Triple(today, today, "hoy")
+                else Triple(weekdayTarget, weekdayTarget, agendaWeekdayLabel(query))
             }
             "semana" in query -> Triple(monday, monday.plusDays(6), "esta semana")
             "mes" in query -> Triple(thisMonth.atDay(1), thisMonth.atEndOfMonth(), "este mes")
@@ -362,6 +381,51 @@ object AssistantEngine {
         val due = task.dueAt ?: return false
         val d = Instant.ofEpochMilli(due).atZone(zone).toLocalDate()
         return d >= start && d <= end
+    }
+
+    // Días de la semana para la agenda a demanda ("¿qué tengo el viernes?"). Tokens
+    // sin acento (foldForSearch): miércoles→miercoles, sábado→sabado. Mapa a
+    // DayOfWeek ISO (lun=1..dom=7). Simétrico con SearchEngine.WEEKDAY_TOKENS y el
+    // parser de captura, para que preguntar, buscar y capturar signifiquen lo mismo.
+    private val AGENDA_WEEKDAY_TOKENS = setOf("lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo")
+    private val AGENDA_WEEKDAY_BY_TOKEN = mapOf(
+        "lunes" to java.time.DayOfWeek.MONDAY,
+        "martes" to java.time.DayOfWeek.TUESDAY,
+        "miercoles" to java.time.DayOfWeek.WEDNESDAY,
+        "jueves" to java.time.DayOfWeek.THURSDAY,
+        "viernes" to java.time.DayOfWeek.FRIDAY,
+        "sabado" to java.time.DayOfWeek.SATURDAY,
+        "domingo" to java.time.DayOfWeek.SUNDAY
+    )
+    // Modificador "próximo"/"que viene"/"siguiente"/"posterior" → estricto (salta al
+    // siguiente, excluye hoy). Coincide con SearchEngine.WEEKDAY_NEXT_MODIFIERS.
+    private val AGENDA_WEEKDAY_NEXT_MODIFIERS = setOf("proximo", "proximos", "proxima", "proximas", "viene", "siguiente", "siguientes", "posterior", "posteriores")
+
+    /**
+     * Resuelve el día calendario objetivo de un weekday en la consulta de agenda,
+     * con la MISMA semántica que [SearchEngine.resolveWeekdayTarget] y el parser de
+     * captura: inclusivo (incluye hoy si hoy es ese día) salvo con modificador
+     * "próximo"/"que viene"/"siguiente" → estricto (salta al siguiente). Devuelve
+     * null si la consulta no menciona un día de la semana.
+     */
+    private fun resolveAgendaWeekday(query: String, today: LocalDate): LocalDate? {
+        val token = AGENDA_WEEKDAY_TOKENS.firstOrNull { it in query } ?: return null
+        val target = AGENDA_WEEKDAY_BY_TOKEN[token] ?: return null
+        val strict = AGENDA_WEEKDAY_NEXT_MODIFIERS.any { it in query }
+        val delta = (target.value - today.dayOfWeek.value + 7) % 7
+        val days = if (strict) (if (delta == 0) 7 else delta).toLong() else delta.toLong()
+        return today.plusDays(days)
+    }
+
+    /** Etiqueta legible del weekday de la agenda, conservando "próximo" si lo hubo. */
+    private fun agendaWeekdayLabel(query: String): String {
+        val token = AGENDA_WEEKDAY_TOKENS.firstOrNull { it in query } ?: return "ese día"
+        val pretty = when (token) {
+            "miercoles" -> "miércoles"
+            "sabado" -> "sábado"
+            else -> token
+        }
+        return if (AGENDA_WEEKDAY_NEXT_MODIFIERS.any { it in query }) "próximo $pretty" else pretty
     }
 
     /**

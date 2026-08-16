@@ -942,6 +942,85 @@ class AssistantEngineTest {
         assertTrue("agenda vacía honesta: ${answer.text}", answer.text.contains("Para hoy no tienes tareas agendadas."))
     }
 
+    // --- Día de la semana a demanda ("¿qué tengo el viernes?") (c.350) ---
+    //
+    // Antes una consulta por weekday suelto NO se reconocía como agenda: caía al
+    // mensaje genérico ("Puedo organizar tu día...") y el asistente callaba la
+    // agenda de un día concreto pese a preguntarla — una mentira por omisión que
+    // podía hacer olvidar lo que el usuario vino a planificar. Ahora resuelve el
+    // día (simétrico con SearchEngine.resolveWeekdayTarget y el parser de captura):
+    // inclusivo (incluye hoy si hoy es ese día) salvo "próximo"/"que viene" →
+    // estricto. "hoy" en el helper es 2026-07-29 (miércoles).
+
+    @Test fun queTengoElViernes_listsTasksDueThatWeekday() {
+        // hoy miércoles 2026-07-29; viernes inclusivo = 2026-07-31.
+        val viernes = LocalDate.of(2026, 7, 31)
+        val jueves = LocalDate.of(2026, 7, 30) // mañana, no debe mezclarse
+        val answer = agendaAnswerFor("¿qué tengo el viernes?", listOf(1L to jueves, 2L to viernes))
+        assertTrue("nombra la del viernes: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla con jueves: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
+    @Test fun queTengoElViernes_empty_diceEseDiaHonesto() {
+        // sólo hay algo el jueves; el viernes está vacío.
+        val jueves = LocalDate.of(2026, 7, 30)
+        val answer = agendaAnswerFor("¿qué tengo el viernes?", listOf(1L to jueves))
+        assertTrue("dice viernes y que no hay: ${answer.text}",
+            answer.text.contains("viernes") && answer.text.contains("no tienes"))
+        assertTrue("no inventa la del jueves: ${answer.text}", !answer.text.contains("Tarea1"))
+    }
+
+    @Test fun proximoViernes_strictCoincideConParserYSearch() {
+        // "próximo viernes" usa la MISMA semántica que NaturalTaskParser.nextWeekday
+        // y SearchEngine.resolveWeekdayTarget: próxima ocurrencia, saltando SOLO si
+        // hoy es ese día. En miércoles 2026-07-29, "próximo viernes" = 07-31 (el
+        // viernes inminente), no 08-07. Sin esta simetría, asistente, búsqueda y
+        // capturar discordarían sobre a qué viernes se refiere una misma frase.
+        val esteViernes = LocalDate.of(2026, 7, 31)
+        val viernesSiguiente = LocalDate.of(2026, 8, 7)
+        val answer = agendaAnswerFor("¿qué tengo el próximo viernes?", listOf(1L to esteViernes, 2L to viernesSiguiente))
+        assertTrue("nombra el viernes inminente (07-31): ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("no salta al viernes siguiente: ${answer.text}", !answer.text.contains("Tarea2"))
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun proximoMiercoles_strictSaltaHoy() {
+        // hoy es miércoles 2026-07-29: "próximo miércoles" estricto debe saltar HOY
+        // (+7) → 2026-08-05, no hoy. Este es el caso donde strict e inclusivo
+        // divergen (delta==0). Sin el salto, "próximo miércoles" devolvería la
+        // agenda de hoy — exactamente lo que el usuario NO pidió al decir "próximo".
+        val hoy = LocalDate.of(2026, 7, 29)
+        val proximoMiercoles = LocalDate.of(2026, 8, 5)
+        val answer = agendaAnswerFor("¿qué tengo el próximo miércoles?", listOf(1L to hoy, 2L to proximoMiercoles))
+        assertTrue("nombra el próximo miércoles (08-05), no hoy: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no muestra la de hoy: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
+    @Test fun weekdayInclusivo_cuandoEsHoy_reusaRamaHoyYMuestraAtrasadas() {
+        // hoy miércoles 2026-07-29; "¿qué tengo el miércoles?" inclusivo = hoy.
+        // Debe comportarse como "¿qué tengo hoy?": no callar lo atrasado de días
+        // anteriores. Sólo hay una atrasada del martes → la nombra en vez de
+        // "no tienes tareas agendadas".
+        val martes = LocalDate.of(2026, 7, 28) // atrasada respecto al "hoy"=miércoles
+        val answer = agendaAnswerFor("¿qué tengo el miércoles?", listOf(2L to martes))
+        assertTrue("no miente 'no tienes': ${answer.text}", !answer.text.contains("no tienes tareas agendadas."))
+        assertTrue("nombra la atrasada: ${answer.text}", answer.text.contains("Tarea2"))
+    }
+
+    @Test fun weekday_noRegresanFrasesRapidas() {
+        // Añadir weekday a isAgendaQuery no debe romper "qué hago ahora" ni
+        // "plan mínimo": siguen su camino propio.
+        val now = 1_000_000_000_000L
+        val whatNow = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(TaskEntity(id = 1, title = "X", priority = TaskPriority.URGENT)),
+            emptyList(), emptyList(), now
+        )
+        assertEquals(listOf(1L), whatNow.relatedTaskIds)
+    }
+
     // ---- Veredicto del día a demanda ("¿voy bien?"/"¿da tiempo a todo?") ----
     //
     // Ordía YA calcula el veredicto del día (SummaryEngine.dayLoad:
