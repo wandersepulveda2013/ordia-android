@@ -1863,6 +1863,51 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(hs.dueAt!!, zone))
     }
 
+    // ── Anti falso positivo: "a las N <sustantivo plural de cantidad>" es CUENTA, no cita ──
+    // "hablar a las 10 personas del equipo" = hablar con las 10 personas, NO una cita a las
+    // 10:00. Antes se creaba una cita falsa a las 10:00 (pérdida de integridad: cita
+    // inventada). Ahora dueAt es null y no se falsifica la agenda. El título conserva la
+    // acción y el objeto (el recorte de "a las 10" preexistía; aquí se valida la cita falsa).
+    @Test fun aLasNPersonasNoEsCita() {
+        val r = NaturalTaskParser.parse("Hablar a las 10 personas del equipo", now, zone)
+        assertNull("una cuenta de personas no debe agendar una cita falsa", r.dueAt)
+        assertTrue("el objeto debe conservarse: ${r.title}", r.title.contains("personas"))
+        assertTrue("la acción debe conservarse: ${r.title}", r.title.contains("Hablar"))
+    }
+
+    @Test fun aLasNCajasNoEsCita() {
+        val r = NaturalTaskParser.parse("Comprar a las 3 cajas de leche", now, zone)
+        assertNull("una cuenta de cajas no debe agendar una cita falsa", r.dueAt)
+        assertTrue("el objeto debe conservarse: ${r.title}", r.title.contains("cajas"))
+    }
+
+    @Test fun aLaUnaPersonasNoEsCita() {
+        val r = NaturalTaskParser.parse("Reunión a la una personas", now, zone)
+        assertNull("'a la una personas' es cuenta, no cita a la 1:00", r.dueAt)
+    }
+
+    // Las horas CON evidencia de reloj (meridiem, :MM, fracción, sufijo horas/hs/h) siguen
+    // siendo cita aunque siga un sustantivo plural: la evidencia desambigua.
+    @Test fun aLasNConMeridiemSiempreEsCitaAunqueSigaPlural() {
+        val r = NaturalTaskParser.parse("Reunión a las 10 pm personas invitadas", now, zone)
+        assertNotNull("con 'pm' inequívoco es cita aunque siga un plural", r.dueAt)
+        assertEquals(LocalTime.of(22, 0), DateRules.toLocalTime(r.dueAt!!, zone))
+    }
+
+    @Test fun aLasNConMMSiempreEsCitaAunqueSigaPlural() {
+        val r = NaturalTaskParser.parse("Reunión a las 10:30 personas", now, zone)
+        assertNotNull("con ':30' inequívoco es cita aunque siga un plural", r.dueAt)
+        assertEquals(LocalTime.of(10, 30), DateRules.toLocalTime(r.dueAt!!, zone))
+    }
+
+    // Singular tras "a las N" NO es cuenta (no hay concordancia plural "las N <plural>"):
+    // "reunión a las 9 hola" sigue siendo cita a las 9:00 con "hola" en el título.
+    @Test fun aLasNSingularNoSeFiltra() {
+        val r = NaturalTaskParser.parse("Reunión a las 9 hola", now, zone)
+        assertNotNull("singular tras la hora sigue siendo cita", r.dueAt)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r.dueAt!!, zone))
+    }
+
     // ── Formato compacto "NhMM" (hora:minutos con "h" como separador, ciclo 253) ──
     // "a las 9h30"/"9h30 am"/"9h30 de la noche" son formas compactas cotidianas en español
     // donde la "h" separa hora y minutos (equivalente del ":"). Antes el patrón "a las N"
@@ -9942,6 +9987,40 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("entrega para las 9 am", suffixOrderNow(), zone)
         assertEquals("entrega", result.title)
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // --- c.362: meridiem COMPACTO (sin espacio) "para las Npm/Nam" no deja residuo ---
+    // La forma dominante en móvil omite el espacio antes del meridiem. Antes el reloj
+    // (:MM) casaba pero el introductor "para las" sobrevivía como residuo del título
+    // (cita bien fechada, título mutilado). `\s+`→`\s*` en el grupo de meridiem de
+    // paraTimeIntroPattern, simétrico de approximateTimePatterns (c.359) y timePatterns.
+    @Test fun paraLasNPmCompactoNoDejaResiduo() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("comprar regalos para las 3pm", suffixOrderNow(), zone)
+        assertEquals("comprar regalos", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasNAmCompactoNoDejaResiduo() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("llamar a juan para las 9am", suffixOrderNow(), zone)
+        assertEquals("llamar a juan", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasUnaPmCompactoResuelve13h() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("cita para las 1pm", suffixOrderNow(), zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasNPmConEspacioSigueFuncionando() {
+        // Sin regresión: la forma CON espacio ("3 pm") sigue resolviendo y limpiando.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las 3 pm", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
     // --- SEGURIDAD: "para" como destinatario/cantidad/propósito NO se agenda como cita ---

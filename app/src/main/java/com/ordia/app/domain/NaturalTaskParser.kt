@@ -787,6 +787,25 @@ object NaturalTaskParser {
         return if (negative) -m else m
     }
 
+    /**
+     * Continuación "segura" tras una hora en punto sin evidencia de reloj (`:MM`,
+     * meridiem, fracción, sufijo horas/hs/h): puntuación, conjunciones/preposiciones
+     * (y/o/con/de/del/en/para/hasta/desde/luego/después/pero/porque/por/sin/sobre/a/al/
+     * el/la/los/las/un/una) o adverbios temporales (mañana/hoy/ayer/anteayer/días de la
+     * semana). Si lo que sigue NO es ninguna de estas, es un SUSTANTIVO de cantidad
+     * ("personas", "cajas", "entradas", "habitaciones", "ventas") y la frase "las N
+     * <sustantivo>" es una CUENTA ("a las 10 personas" = "a las 10 [personas]"), no una
+     * cita. Reutilizado por el rango horario ([followedByCount] en `rangeMatch`) y por
+     * el guard anti-falso-positivo de "a las N" en punto (c.361): evita agendar
+     * "hablar a las 10 personas del equipo" como una cita falsa a las 10:00 con título
+     * mutilado ("hablar personas del equipo"). Simétrico del lookahead de evidencia de
+     * reloj que exigen los marcadores aproximados "hacia/sobre/para" (que rechazan la
+     * hora en punto ambigua por completo); aquí la hora en punto SÍ se admite como cita
+     * salvo cuando le sigue un sustantivo de cantidad.
+     */
+    private val countNounFollowerPattern =
+        Regex("""(?i)^\s*(?:,|\.|;|:|!|\?|y\b|o\b|con\b|de\b|del\b|en\b|para\b|hasta\b|desde\b|luego\b|después\b|despues\b|pero\b|porque\b|por\b|sin\b|sobre\b|a\b|al\b|el\b|la\b|los\b|las\b|un\b|una\b|mañana\b|manana\b|hoy\b|ayer\b|anteayer\b|lunes\b|martes\b|miércoles\b|miercoles\b|jueves\b|viernes\b|sábado\b|sabado\b|domingo\b|$)""")
+
     private val timePatterns = listOf(
         // "a la una": la hora 1 se dice en femenino singular ("a la una", no "a las 1"),
         // con conector "a la" en vez de "a las". Quedaba sin resolver por el
@@ -903,8 +922,13 @@ object NaturalTaskParser {
      * título (cita bien fechada pero título mutilado). Simétrico de la familia "a las Nh"
      * (c.235/239/254) y de la normalización de marcadores aproximados.
      */
+    // [paraTimeIntroPattern]: admite el meridiem/parte del día ADYACENTE a la hora
+    // (`\s*`, no `\s+`): "para las 3pm"/"para las 9am" (sin espacio, forma dominante en
+    // móvil) antes dejaban "para las" como residuo en el título (cita bien fechada, título
+    // mutilado: contenido capturado degradado, P1). `\s*` equivale a timePatterns y a
+    // approximateTimePatterns (c.359): simetría.
     private val paraTimeIntroPattern =
-        Regex("""(?i)\bpara\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)[0-5]\d|\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS)|\s*(?:horas?|hs|h)\b)|la\s+una(?:(?::|h)[0-5]\d|\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS)))""")
+        Regex("""(?i)\bpara\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)[0-5]\d|\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS)|\s*(?:horas?|hs|h)\b)|la\s+una(?:(?::|h)[0-5]\d|\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS)))""")
     /**
      * Cantidad del recordatorio: dígitos o número escrito en español (simétrico con
      * la fecha relativa "en dos horas"). Antes solo se aceptaban dígitos, así que
@@ -2514,6 +2538,31 @@ object NaturalTaskParser {
         val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
         val explicitTimeData = timeMatch?.let { match ->
             val mv = match.value.lowercase()
+            // ANTI FALSO POSITIVO (c.361): "a las 10 personas"/"a la una personas" en
+            // punto (sin evidencia de reloj: `:MM`, meridiem, fracción "y media", sufijo
+            // horas/hs/h) es una CUENTA ("a las 10 [personas]"), no una cita. Se rechaza
+            // el match si, tras la hora en punto sin evidencia, le sigue un SUSTANTIVO de
+            // cantidad PLURAL (palabra alfabética de >=3 letras terminada en 's' que no sea
+            // una continuación segura): "personas", "cajas", "entradas", "habitaciones",
+            // "ventas". Así "hablar a las 10 personas del equipo" NO se agenda a las 10:00
+            // ni mutila el título; cae a dueAt=null con el texto intacto. Las horas CON
+            // evidencia de reloj ("a las 10:30", "a las 10 pm", "a las 10 horas", "a las 10
+            // y media") son inequívocamente una cita y no se filtran. Exige PLURAL (no
+            // 'hola'/'equipo'/'mañana') para no rechazar capturas legítimas donde una
+            // palabra singular sigue a la hora ("reunión a las 9 hola" → 09:00, "hola" se
+            // conserva en el título): el.quantity reading exige concordancia plural "las N
+            // <plural>". Simétrico del lookahead de evidencia de reloj de "hacia/sobre/
+            // para"; aquí la hora en punto SÍ se admite salvo tras sustantivo plural.
+            val hasClockEvidence = mv.contains(":") || mv.contains("h") || // :MM o sufijo horas/hs/h
+                match.groupValues.getOrNull(2)?.isNotBlank() == true || // :MM (grupo 2)
+                match.groupValues.getOrNull(3)?.let { it.lowercase().startsWith("y ") || it.lowercase().startsWith("menos ") } == true || // fracción
+                match.groupValues.getOrNull(4)?.isNotBlank() == true || // meridiem
+                match.groupValues.getOrNull(5)?.isNotBlank() == true    // fracción post-meridiem
+            val tail = working.substring(match.range.last + 1)
+            val followedByCountNoun = !hasClockEvidence &&
+                !countNounFollowerPattern.containsMatchIn(tail) &&
+                Regex("""(?i)^\s*[a-záéíóúñ]{3,}s\b""").containsMatchIn(tail)
+            if (followedByCountNoun) return@let null
             when {
                 // "a la una del mediodía" captura hora (grupo 1 = "una") + meridiem "del
                 // mediodía": NO debe caer a NOON, sino resolver 1pm (13:00) en la rama
@@ -2647,8 +2696,7 @@ object NaturalTaskParser {
             // followedByCount no depende del meridiem; se calcula antes para gatear la
             // propagación inversa.
             val followedByCount = m.range.last + 1 < working.length &&
-                !Regex("""^\s*(?:,|\.|;|:|!|\?|y\b|o\b|con\b|de\b|del\b|en\b|para\b|hasta\b|desde\b|luego\b|después\b|despues\b|pero\b|porque\b|por\b|sin\b|sobre\b|a\b|al\b|el\b|la\b|los\b|las\b|un\b|una\b|mañana\b|manana\b|hoy\b|ayer\b|anteayer\b|lunes\b|martes\b|miércoles\b|miercoles\b|jueves\b|viernes\b|sábado\b|sabado\b|domingo\b|$)""", RegexOption.IGNORE_CASE)
-                    .containsMatchIn(working.substring(m.range.last + 1))
+                !countNounFollowerPattern.containsMatchIn(working.substring(m.range.last + 1))
             val startPmEffective = startPm || (startMer.isEmpty() && endPm && startH <= endH)
             val endPmEffective = endPm || (endMer.isEmpty() && startPm && startH <= endH && !followedByCount)
             fun resolve(h: Int, mer: String, pm: Boolean): Int? = when {
