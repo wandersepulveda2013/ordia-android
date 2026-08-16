@@ -70,6 +70,16 @@ object NaturalTaskParser {
 
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
     private val weekdayPattern = Regex("""(?i)\b(?:el\s+|del\s+|de\s+|este\s+)?(?:pr[oó]ximo\s+|pr[oó]xima\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+que\s+viene|\s+pr[oó]ximos?|\s+pr[oó]ximas?|\s+siguientes?|\s+posterior(?:es)?)?\b""")
+    // Reescritores de conectores direccionales-temporales (c.371/c.378). Se aplican a
+    // `working` durante el parseo y TAMBIÉN al `original` crudo en el respaldo de título
+    // vacío (línea `working.ifBlank { ... }`): cuando el usuario escribe SÓLO una frase
+    // de agenda ("al viernes", "de aquí al 15") sin acción, `working` queda en blanco
+    // (toda la fecha se limpió) y el respaldo resucitaba el `original` sin reescribir →
+    // el conector "al"/"de aquí al" sobrevivía como título visible ("al viernes" en vez
+    // de "el viernes"). Reutilizar los mismos regex garantiza coherencia sin duplicar.
+    private val deAquiConnectorRewriter = Regex("""(?i)\bde\s+aqu[íi]\s+al\b|\bde\s+ac[aá]\s+al\b""")
+    private val deAquiToRewriter = Regex("""(?i)\bde\s+aqu[íi]\s+a\b|\bde\s+ac[aá]\s+a\b""")
+    private val alWeekdayRewriter = Regex("""(?i)\bal(\s+(?:pr[oó]xim[oa]\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b""")
     /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado.
      *  Acepta también "finales de semana" (plural análogo a "finales de mes") y la
      *  variante regional latinoamericana "final de semana" (singular, común en
@@ -1934,8 +1944,8 @@ object NaturalTaskParser {
         // semana que viene", todos ya capturados por sus patrones). Se procesa aquí
         // (tras TODOS los relativos, antes de las fechas específicas) para no interferir.
         working = working
-            .replace(Regex("""(?i)\bde\s+aqu[íi]\s+al\b|\bde\s+ac[aá]\s+al\b"""), "el")
-            .replace(Regex("""(?i)\bde\s+aqu[íi]\s+a\b|\bde\s+ac[aá]\s+a\b"""), " ")
+            .replace(deAquiConnectorRewriter, "el")
+            .replace(deAquiToRewriter, " ")
         // Contracción direccional-temporal "al" + día de la semana SUELTA
         // ("reunión al viernes", "llamar al sábado", "salida al domingo"): "al" = "a" + "el"
         // (contracción), es un introductor temporal tan cotidiano como "el viernes", pero
@@ -1951,9 +1961,7 @@ object NaturalTaskParser {
         // El lookahead exige un día de la semana real (con optional "próximo/que viene") para
         // no tocar "al" en otros contextos ("ir al cine", "almorzar al mediodía"). "al próximo
         // viernes" y "al viernes que viene" también se normalizan (se conserva el modificador).
-        working = working.replace(
-            Regex("""(?i)\bal(\s+(?:pr[oó]xim[oa]\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b""")
-        ) { m -> "el${m.groupValues[1]}" }
+        working = working.replace(alWeekdayRewriter) { m -> "el${m.groupValues[1]}" }
         // El "fin de semana" se detecta y se borra ANTES del período próximo para que
         // "fin de semana que viene" no active por error el patrón "semana que viene"
         // (que dejaría el residuo «fin de» en el título). El match se conserva para la
@@ -3470,8 +3478,18 @@ object NaturalTaskParser {
             else -> 0.35f
         }
 
+        // Respaldo de título vacío: si `working` quedó en blanco (el usuario escribió
+        // SÓLO una frase de agenda sin acción), se usa el `original` PERO con los mismos
+        // reescritores de conectores aplicados (c.371/c.378), así el respaldo no resucita
+        // "al"/"de aquí al" crudos como título visible ("al viernes"→"el viernes").
+        val titleFallback = original
+            .replace(deAquiConnectorRewriter, "el")
+            .replace(deAquiToRewriter, " ")
+            .replace(alWeekdayRewriter) { m -> "el${m.groupValues[1]}" }
+            .replace(Regex("""\s+"""), " ").trim(' ', ',', '.', '-')
+
         return ParsedTaskInput(
-            title = working.ifBlank { original }.take(240),
+            title = working.ifBlank { titleFallback }.take(240),
             dueAt = dueAt,
             priority = priority,
             durationMinutes = durationMinutes,

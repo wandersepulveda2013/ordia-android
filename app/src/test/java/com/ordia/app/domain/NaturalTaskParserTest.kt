@@ -7586,6 +7586,54 @@ class NaturalTaskParserTest {
         assertEquals("ir al cine", result.title)
     }
 
+    // --- Respaldo de título vacío (c.379): cuando el usuario escribe SÓLO una frase de
+    // agenda ("al viernes", "de aquí al 15") sin acción, `working` queda en blanco y el
+    // respaldo resucitaba el `original` crudo con el conector "al"/"de aquí al" como
+    // título visible. Ahora se aplican los mismos reescritores al respaldo → "el viernes".
+
+    @Test fun alViernesSoloFallbackSinResiduoAl() {
+        val result = NaturalTaskParser.parse("al viernes", now, zone)
+        assertEquals("el viernes", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun alViernesQueVieneSoloFallbackSinResiduoAl() {
+        val result = NaturalTaskParser.parse("al viernes que viene", now, zone)
+        assertEquals("el viernes que viene", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun alProximoViernesSoloFallbackSinResiduoAl() {
+        val result = NaturalTaskParser.parse("al próximo viernes", now, zone)
+        assertEquals("el próximo viernes", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAquiAlViernesSoloFallbackSinResiduoDeAquiAl() {
+        val result = NaturalTaskParser.parse("de aquí al viernes", now, zone)
+        assertEquals("el viernes", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAquiAMananaSoloFallbackSinResiduoDeAquiA() {
+        val result = NaturalTaskParser.parse("de aquí a mañana", now, zone)
+        assertEquals("mañana", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deAquiAl15SoloFallbackSinResiduoDeAquiAl() {
+        val result = NaturalTaskParser.parse("de aquí al 15", now, zone)
+        assertEquals("el 15", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun reunionConAccionNoUsaFallback() {
+        // Caso con acción: `working` NO queda en blanco → no se toca el respaldo.
+        val result = NaturalTaskParser.parse("entregar de aquí al viernes", now, zone)
+        assertEquals("entregar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // Recurrencia con intervalo escrito (no dígito): "cada dos semanas",
     // "cada tres meses", "cada quince días". Antes `intervalPattern` sólo admitía
     // `\d{1,3}`, así que estas formas caían a NONE y la tarea nacía SIN fecha
