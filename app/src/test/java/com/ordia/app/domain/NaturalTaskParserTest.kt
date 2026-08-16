@@ -4826,6 +4826,23 @@ class NaturalTaskParserTest {
         assertFalse(result.title.contains("hora", ignoreCase = true))
     }
 
+    // Forma plural del adjetivo: "a primeras horas" (variantes cotidiana de
+    // "a primera hora"). Antes dejaba residuo "a primeras horas" en el título aunque el
+    // dueAt se resolvía vía la parte del día. c.400: limpieza simétrica al singular.
+    @Test fun primerasHorasLimpiaTituloYResuelveInicioJornada() {
+        val result = NaturalTaskParser.parse("Ir al dentista a primeras horas de la mañana", now, zone)
+        assertEquals("Ir al dentista", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun primerasHorasSinParteDelDiaUsaCanonicaPrimeraHora() {
+        val result = NaturalTaskParser.parse("Llamar a Ana a primeras horas", now, zone)
+        assertEquals("Llamar a Ana", result.title)
+        assertFalse(result.title.contains("primeras", ignoreCase = true))
+        assertFalse(result.title.contains("horas", ignoreCase = true))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // Rango horario "de H1 a H2 [horas]": la ventana se interpreta como duración y no
     // deja residuo. Antes "Clase de 18 a 20 horas" dejaba "20 horas" como 20h (1200 min).
     @Test fun rangeWithHoursUnitParsesDuration() {
@@ -8711,6 +8728,23 @@ class NaturalTaskParserTest {
         assertEquals("Llamar", result.title)
         assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // Forma plural del adjetivo: "a últimas horas" (variante cotidiana de
+    // "a última hora"). Antes dejaba residuo en el título aunque el dueAt se resolvía
+    // vía la parte del día. c.400: limpieza simétrica al singular.
+    @Test fun ultimasHorasLimpiaTituloYRespetaParteDelDia() {
+        val result = NaturalTaskParser.parse("Reunión a últimas horas de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimasHorasSinParteDelDiaUsaCanonicaUltimaHora() {
+        val result = NaturalTaskParser.parse("Terminar a últimas horas", now, zone)
+        assertEquals("Terminar", result.title)
+        assertFalse(result.title.contains("últimas", ignoreCase = true))
+        assertFalse(result.title.contains("horas", ignoreCase = true))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
     @Test fun ultimaHoraSinConectorATambienFunciona() {

@@ -1542,12 +1542,14 @@ object NaturalTaskParser {
     )
 
     /**
-     * "a primera hora" (opcionalmente "de la mañana/madrugada"): inicio de jornada ~09:00.
-     * Frase natural muy común; antes dejaba residuo en el título y no se interpretaba.
-     * Como es una hora canónica de respaldo (no un reloj explícito), no fuerza contexto PM.
+     * "a primera(s) hora(s)" (opcionalmente "de la mañana/madrugada"): inicio de jornada
+     * ~09:00. Acepta la forma plural del adjetivo ("a primeras horas"), variante
+     * cotidiana del singular; antes dejaba residuo en el título aunque el dueAt se
+     * resolvía vía la parte del día (c.400). Como es una hora canónica de respaldo
+     * (no un reloj explícito), no fuerza contexto PM.
      */
     private val primeraHoraPattern =
-        Regex("""(?i)(?:justo\s+)?\b(?:a\s+)?primera\s+horas?(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|madrugada))?\b""")
+        Regex("""(?i)(?:justo\s+)?\b(?:a\s+)?primeras?\s+horas?(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|madrugada))?\b""")
     private val primeraHoraTime = LocalTime.of(9, 0)
 
     /**
@@ -1559,7 +1561,7 @@ object NaturalTaskParser {
      * patrón solo limpia "a última hora" (la parte del día la limpia su propio patrón).
      */
     private val ultimaHoraPattern =
-        Regex("""(?i)(?:justo\s+)?(?<![a-záéíóúñ])(?:a\s+)?[uú]ltima\s+horas?(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?\b""")
+        Regex("""(?i)(?:justo\s+)?(?<![a-záéíóúñ])(?:a\s+)?[uú]ltimas?\s+horas?(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?\b""")
     private val ultimaHoraTime = LocalTime.of(18, 0)
 
     /**
