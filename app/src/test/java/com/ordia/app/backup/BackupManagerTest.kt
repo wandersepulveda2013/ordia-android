@@ -293,6 +293,8 @@ class BackupManagerTest {
 
     private class FakeReminderScheduler : ReminderSchedulerPort {
         val scheduled = mutableListOf<Long>()
+        val scheduledAtNow = mutableListOf<Long>()
+        val scheduledCommitmentsAtNow = mutableListOf<Long>()
         var cancelCalls = 0
         var throwOnCancel: Exception? = null
 
@@ -305,12 +307,22 @@ class BackupManagerTest {
             scheduled += task.id
         }
 
+        override fun scheduleAt(taskId: Long, triggerAt: Long) {
+            if (taskId <= 0L) return
+            scheduledAtNow += taskId
+        }
+
         override suspend fun cancelAllCommitmentsAndAwait() {
             cancelCalls++
         }
 
         override fun scheduleCommitmentAt(commitmentId: Long, triggerAt: Long) {
             scheduled += commitmentId
+            // El restore llama overdueNow → scheduleCommitmentAt(id, now); los
+            // futuros van con triggerAt > now. Distinguimos para los tests.
+            if (triggerAt <= System.currentTimeMillis()) {
+                scheduledCommitmentsAtNow += commitmentId
+            }
         }
     }
 
@@ -347,6 +359,46 @@ class BackupManagerTest {
         assertEquals(listOf(10L), scheduler.scheduled)
         assertEquals(2, scheduler.cancelCalls)
         assertTrue(journal.exists() && journal.length() > 2L)
+    }
+
+    @Test
+    fun restoreFiresOverdueTaskRemindersImmediatelyLikeCommitments() = runBlocking {
+        // c.372: tras restore se cancelan todos los WorkManager jobs y sólo se
+        // re-encolan los FUTUROS. Una tarea con disparo (reminderAt/dueAt) YA
+        // vencido quedaba SIN aviso — a diferencia de los compromisos vencidos,
+        // que sí se avisan (CommitmentReminderSync.overdueNow). Este test
+        // verifica la simetría: la tarea vencida se agenda AHORA (delay 0).
+        val now = System.currentTimeMillis()
+        val data = RestoreData(
+            projects = listOf(ProjectEntity(id = 1, name = "P", createdAt = 1000L, updatedAt = 1000L)),
+            tasks = listOf(
+                TaskEntity(
+                    id = 50, title = "Vencida", projectId = 1,
+                    dueAt = now - 3_600_000L, // vencida hace 1 h
+                    createdAt = now - 10_000L, updatedAt = now - 5_000L
+                ),
+                TaskEntity(
+                    id = 51, title = "Futura", projectId = 1,
+                    dueAt = now + 86_400_000L,
+                    createdAt = now - 10_000L, updatedAt = now - 5_000L
+                )
+            )
+        )
+        val origin = newManager(FakeBackupStore(data))
+        val backup = origin.exportJson()
+
+        val destinationStore = FakeBackupStore(otherData())
+        val scheduler = FakeReminderScheduler()
+        val destination = newManager(destinationStore, FakeBackupPreferences(), scheduler, journalFile())
+
+        val result = destination.importBackup(backup)
+
+        assertTrue(result.message, result.success)
+        // La tarea futura se re-encola por su hora (schedule → scheduled).
+        assertEquals(listOf(51L), scheduler.scheduled)
+        // La tarea vencida se avisa AHORA (scheduleAt → scheduledAtNow), simétrica
+        // a los compromisos vencidos. Antes de c.372 esto quedaba vacío (olvido).
+        assertEquals(listOf(50L), scheduler.scheduledAtNow)
     }
 
     @Test

@@ -74,4 +74,71 @@ class ReminderSyncTest {
         assertTrue(ReminderSync.triggers(tasks, now = 1_000L).isEmpty())
         assertTrue(ReminderSync.triggers(emptyList(), now = 1_000L).isEmpty())
     }
+
+    // --- overdueNow: espejo simétrico de CommitmentReminderSync.overdueNow (c.372) ---
+    // Tras un restore, BackupManager cancela todos los WorkManager jobs y sólo
+    // re-encola los FUTUROS. Una tarea con disparo pasado quedaba sin aviso (olvido).
+    // overdueNow recupera esas tareas para avisarlas de inmediato (delay 0).
+
+    @Test
+    fun overdueNowReturnsActiveWhoseTriggerHasPassed() {
+        val now = 10_000L
+        val tasks = listOf(
+            task(1, reminderAt = 5_000L, dueAt = 9_000L),  // reminder pasado
+            task(2, dueAt = 10_000L),                       // due justo ahora
+            task(3, dueAt = 11_000L),                       // futuro
+            task(4)                                          // sin disparo
+        )
+
+        val overdue = ReminderSync.overdueNow(tasks, now)
+
+        assertEquals(listOf(1L, 2L), overdue)
+    }
+
+    @Test
+    fun overdueNowFallsBackToDueAtWhenReminderIsNull() {
+        val now = 10_000L
+        val tasks = listOf(task(2, dueAt = 8_000L))
+
+        assertEquals(listOf(2L), ReminderSync.overdueNow(tasks, now))
+    }
+
+    @Test
+    fun overdueNowIgnoresCompletedArchivedAndCancelled() {
+        val now = 10_000L
+        val tasks = listOf(
+            task(1, TaskStatus.COMPLETED, dueAt = 5_000L).copy(completed = true),
+            task(2, TaskStatus.CANCELLED, dueAt = 5_000L),
+            task(3, TaskStatus.INBOX, dueAt = 5_000L).copy(archived = true),
+            task(4, TaskStatus.INBOX, dueAt = 5_000L)
+        )
+
+        val overdue = ReminderSync.overdueNow(tasks, now)
+
+        assertEquals(listOf(4L), overdue)
+    }
+
+    @Test
+    fun overdueNowIgnoresTasksWithoutAnyTrigger() {
+        val now = 10_000L
+
+        assertTrue(ReminderSync.overdueNow(listOf(task(1)), now).isEmpty())
+        assertTrue(ReminderSync.overdueNow(emptyList(), now).isEmpty())
+    }
+
+    @Test
+    fun overdueNowSymmetricWithCommitmentReminderSyncShape() {
+        // Paridad estructural con CommitmentReminderSync.overdueNow: devuelve
+        // List<Long> de ids, sin duplicados, en el orden de entrada.
+        val now = 10_000L
+        val tasks = listOf(
+            task(1, dueAt = 5_000L),
+            task(2, dueAt = 5_000L),
+            task(3, dueAt = 15_000L)
+        )
+
+        val overdue = ReminderSync.overdueNow(tasks, now)
+
+        assertEquals(listOf(1L, 2L), overdue)
+    }
 }

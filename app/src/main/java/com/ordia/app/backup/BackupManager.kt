@@ -39,6 +39,7 @@ import com.ordia.app.data.local.AutomationAction
 import com.ordia.app.data.local.AutomationRuleResult
 import com.ordia.app.data.preferences.UserPreferences
 import com.ordia.app.domain.CommitmentReminderSync
+import com.ordia.app.domain.ReminderSync
 import com.ordia.app.domain.RecurrenceEngine
 import org.json.JSONArray
 import org.json.JSONObject
@@ -223,6 +224,13 @@ class BackupManager(
                         .filter { !it.completed && !it.archived && it.status != TaskStatus.CANCELLED }
                         .filter { (it.reminderAt ?: it.dueAt)?.let { trigger -> trigger > now } == true }
                         .forEach(reminderScheduler::schedule)
+                    // Tareas activas cuyo disparo YA venció: simétrico a los
+                    // compromisos vencidos de abajo (CommitmentReminderSync.overdueNow).
+                    // Tras cancelAllAndAwait los jobs pasados dejaron de existir; sin
+                    // esto una tarea vencida restaurada quedaba SIN aviso (olvido).
+                    ReminderSync.overdueNow(validated.data.tasks, now).forEach { taskId ->
+                        reminderScheduler.scheduleAt(taskId, now)
+                    }
                     CommitmentReminderSync.triggers(validated.data.commitments, now)
                         .forEach { (id, triggerAt) -> reminderScheduler.scheduleCommitmentAt(id, triggerAt) }
                     CommitmentReminderSync.overdueNow(validated.data.commitments, now)

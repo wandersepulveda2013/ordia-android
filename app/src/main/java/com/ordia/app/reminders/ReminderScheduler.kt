@@ -18,7 +18,7 @@ class ReminderScheduler(context: Context) : com.ordia.app.backup.ReminderSchedul
         scheduleAt(task.id, triggerAt)
     }
 
-    fun scheduleAt(taskId: Long, triggerAt: Long) {
+    override fun scheduleAt(taskId: Long, triggerAt: Long) {
         if (taskId <= 0L) return
         val delay = (triggerAt - System.currentTimeMillis()).coerceAtLeast(0)
         val request = OneTimeWorkRequestBuilder<TaskReminderWorker>()
@@ -35,7 +35,7 @@ class ReminderScheduler(context: Context) : com.ordia.app.backup.ReminderSchedul
 
     // --- Compromisos (c.304): notificación proactiva al vencer una promesa PENDING ---
 
-    fun scheduleCommitmentAt(commitmentId: Long, triggerAt: Long) {
+    override fun scheduleCommitmentAt(commitmentId: Long, triggerAt: Long) {
         if (commitmentId <= 0L) return
         val delay = (triggerAt - System.currentTimeMillis()).coerceAtLeast(0)
         val request = OneTimeWorkRequestBuilder<CommitmentDueWorker>()
