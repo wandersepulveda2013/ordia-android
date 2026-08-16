@@ -3487,6 +3487,96 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(16, 30), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "antes de/después de + comida/sueño" (c.387): citas cotidianas olvidadas ---
+    // "reunión después del almuerzo", "llamar antes de dormir", "cita antes de la cena":
+    // antes NO casaban ningún patrón → dueAt=null (tarea SIN vencimiento → olvidada,
+    // invisible en What Now/planificador, sin recordatorio). El modificador es obligatorio:
+    // "almuerzo"/"cena" solos no son cita (son el evento). Verbo y sustantivo son ambos
+    // idiomáticos ("después de comer" = "después del almuerzo").
+
+    @Test fun despuesDelAlmuerzoParsesEarlyAfternoonAndCleanTitle() {
+        val result = NaturalTaskParser.parse("Reunión después del almuerzo", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun antesDeDormirParsesLateEveningAndCleanTitle() {
+        val result = NaturalTaskParser.parse("Llamar antes de dormir", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun despuesDeComerEsSinonimoDeDespuesDelAlmuerzo() {
+        val result = NaturalTaskParser.parse("Medicina después de comer", now, zone)
+        assertEquals("Medicina", result.title)
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun antesDeLaCenaParsesEarlyEvening() {
+        val result = NaturalTaskParser.parse("Cita antes de la cena", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(19, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun despuesDeLaCenaParsesLateEvening() {
+        val result = NaturalTaskParser.parse("Llamada después de la cena", now, zone)
+        assertEquals("Llamada", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun antesDelAlmuerzoPasadoHoySeRuedaAManana() {
+        // "antes del almuerzo"=11:30; capturado a las 12:00 (ya pasó) → se rueda al día
+        // siguiente (past-safe, consistente con medianoche/mediodía), evitando que el
+        // recordatorio caiga en el pasado y sea descartado (cita olvidada).
+        val result = NaturalTaskParser.parse("Reunión antes del almuerzo", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(11, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun despuesDelAlmuerzoSinArticuloCasaIgual() {
+        val result = NaturalTaskParser.parse("Reunión después de almuerzo", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun antesDeAcostarseEsSinonimoDeAntesDeDormir() {
+        val result = NaturalTaskParser.parse("Pasear antes de acostarse", now, zone)
+        assertEquals("Pasear", result.title)
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun antesDeDormirCombinaConFechaRelativa() {
+        val result = NaturalTaskParser.parse("Llamar antes de dormir mañana", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun despuesDeComerAlInicioDelTextoCasaYRespetaTituloRestante() {
+        // "después de comer revisar email": el modificador abre el texto; el ancla se
+        // consume y queda "revisar email" como título.
+        val result = NaturalTaskParser.parse("después de comer revisar email", now, zone)
+        assertEquals("revisar email", result.title)
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun antesDelAlmuerzoHoraExplicitaTienePrioridad() {
+        // "antes del almuerzo a las 11": la hora explícita gana sobre la canónica de
+        // respaldo; como 11:00 < now (12:00), se rueda al día siguiente (past-safe).
+        val result = NaturalTaskParser.parse("Reunión antes del almuerzo a las 11", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(11, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun almuerzoSoloNoEsCitaSinModificador() {
+        // "almuerzo" sin modificador no debe agendarse (es el evento, no una cita).
+        val result = NaturalTaskParser.parse("almuerzo", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
     // --- "a la una" (hora 1, femenino singular) (ciclo 94b/c) ---
     // La hora 1 se dice "a la una" (no "a las 1"). Antes no había patrón para esa
     // forma, así que "reunión a la una" caía sin dueAt y con "a la una" como residuo
@@ -8906,11 +8996,15 @@ class NaturalTaskParserTest {
         assertEquals(now + 3 * 60 * 60_000L, result.dueAt)
     }
 
-    @Test fun despuesDelAlmuerzoNoEsAdverbioSuelto() {
-        // "después del almuerzo" es dependencia/evento, no adverbio "luego": NO casa.
+    @Test fun despuesDelAlmuerzoEsCitaNoAdverbioSuelto() {
+        // "después del almuerzo" es dependencia/evento, no adverbio "luego" (+3 h): NO
+        // cae al adverbio suelto. Sí casa como cita del almuerzo (14:00) — antes caía a
+        // null (olvidada); ahora se resuelve como ancla de comida (c.387) y limpia el título.
         val result = NaturalTaskParser.parse("Llamar después del almuerzo", now, zone)
-        assertNull(result.dueAt)
-        assertEquals("Llamar después del almuerzo", result.title)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        // El adverbio "después"=+3h NO capturó: el vencimiento es 14:00, no now+3h.
+        assertNotEquals(now + 3 * 60 * 60_000L, result.dueAt)
     }
 
     // --- "luego" como sinónimo de "después"/"más tarde" (P1, ciclo 113) ---

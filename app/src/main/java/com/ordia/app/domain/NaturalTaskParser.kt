@@ -1533,6 +1533,53 @@ object NaturalTaskParser {
     private val atardecerTime = LocalTime.of(18, 0)
 
     /**
+     * "antes de/después de + comida o sueño": ancla temporal cotidiano en español (LATAM)
+     * para citas recordatorias — "reunión después del almuerzo", "llamar antes de dormir",
+     * "medicina después de comer", "cita antes de la cena". Antes estas frases caían a
+     * `dueAt=null` (olvidada, invisible en What Now/planificador, sin recordatorio) y la
+     * frase entera quedaba como residuo en el título — o, peor, el conector "antes del?/de"
+     * se borraba tarde y mutilaba el título ("cita antes del almuerzo"→"cita almuerzo").
+     *
+     * `laterRelativePattern` excluye "después de/del" (para no tocar "después de N minutos",
+     * que resuelve otro patrón), así estas frases caían al vacío. La diferencia con ese
+     * adverbio suelto: aquí hay un ANCLA concreta (comida/sueño) que aporta hora de respaldo
+     * honesta (no IA: horas canónicas de comidas/ritmo de sueño LATAM).
+     *
+     * El grupo 1 es el modificador ("antes"/"después") y el grupo 2 el ancla (comida/sueño):
+     *   · desayuno/desayunar: antes→07:30, después→09:00
+     *   · almuerzo/comer/comida/almorzar: antes→11:30, después→14:00
+     *   · merienda/merendar: antes→16:30, después→17:30
+     *   · cena/cenar: antes→19:30, después→21:00
+     *   · dormir/acostarse: antes→21:30 (no "después de dormir": no es idiomático)
+     * "después de la cena" admite el artículo opcional; "antes del almuerzo" la contracción.
+     * El modificador (antes/después) es obligatorio: "almuerzo" solo no es cita (es el evento),
+     * no se agenda. Hora de respaldo: si hay hora explícita, ésta gana (igual que amanecer).
+     *
+     * Simétrica de [amanecerPattern]/[atardecerPattern]: mismo contrato (hora canónica de
+     * respaldo, título limpio, no colisión con verbos). El verbo infinitivo ("desayunar",
+     * "comer", "merendar", "cenar", "dormir") y el sustantivo ("desayuno", "almuerzo",
+     * "merienda", "cena") son ambos idiomáticos ("después de comer"="después del almuerzo").
+     */
+    private val mealSleepAnchorPattern = Regex(
+        """(?i)\b(antes|despu[eé]s)\s+de(?:l)?\s+(?:la\s+)?(desayuno|desayunar|almuerzo|comer|comida|almorzar|merienda|merendar|cena|cenar|dormir|acostarse|acostar)\b"""
+    )
+    private val mealSleepAnchorTimes: Map<String, Map<String, LocalTime>> = mapOf(
+        "desayuno" to mapOf("antes" to LocalTime.of(7, 30), "después" to LocalTime.of(9, 0)),
+        "desayunar" to mapOf("antes" to LocalTime.of(7, 30), "después" to LocalTime.of(9, 0)),
+        "almuerzo" to mapOf("antes" to LocalTime.of(11, 30), "después" to LocalTime.of(14, 0)),
+        "comer" to mapOf("antes" to LocalTime.of(11, 30), "después" to LocalTime.of(14, 0)),
+        "comida" to mapOf("antes" to LocalTime.of(11, 30), "después" to LocalTime.of(14, 0)),
+        "almorzar" to mapOf("antes" to LocalTime.of(11, 30), "después" to LocalTime.of(14, 0)),
+        "merienda" to mapOf("antes" to LocalTime.of(16, 30), "después" to LocalTime.of(17, 30)),
+        "merendar" to mapOf("antes" to LocalTime.of(16, 30), "después" to LocalTime.of(17, 30)),
+        "cena" to mapOf("antes" to LocalTime.of(19, 30), "después" to LocalTime.of(21, 0)),
+        "cenar" to mapOf("antes" to LocalTime.of(19, 30), "después" to LocalTime.of(21, 0)),
+        "dormir" to mapOf("antes" to LocalTime.of(21, 30), "después" to LocalTime.of(23, 0)),
+        "acostarse" to mapOf("antes" to LocalTime.of(21, 30), "después" to LocalTime.of(23, 0)),
+        "acostar" to mapOf("antes" to LocalTime.of(21, 30), "después" to LocalTime.of(23, 0))
+    )
+
+    /**
      * "media mañana/tarde/noche/madrugada" y "medio/media día/noche": el PUNTO MEDIO de una
      * parte del día, forma cotidiana muy común ("reunión a media tarde", "llamar a media
      * noche", "revisar a media mañana", "almuerzo a medio día"). Antes NO se interpretaba
@@ -2790,6 +2837,13 @@ object NaturalTaskParser {
         val mediaPartOfDayMatch = mediaPartOfDayPattern.find(working)
         val mediaPartOfDayKey = mediaPartOfDayMatch?.let { it.groupValues[2].lowercase() }
         val mediaPartOfDayTime = mediaPartOfDayKey?.let { mediaPartOfDayTimes[it] }
+        // "antes de/después de + comida/sueño": hora canónica de respaldo (ver mealSleepAnchorPattern).
+        val mealSleepAnchorMatch = mealSleepAnchorPattern.find(working)
+        val mealSleepAnchorTime = mealSleepAnchorMatch?.let {
+            val mod = it.groupValues[1].lowercase()
+            val anchor = it.groupValues[2].lowercase()
+            mealSleepAnchorTimes[anchor]?.get(mod)
+        }
         // Contexto PM: una parte del día de tarde/noche (explícita "esta tarde" o suelta "a la noche")
         // aplica offset +12 a una hora sin meridiem ("esta tarde a las 4" → 16:00). Las horas
         // canónicas vespertinas "al atardecer"/"al anochecer"/"al ocaso" también aportan contexto
@@ -3265,6 +3319,7 @@ object NaturalTaskParser {
             ?: amanecerMatch?.let { amanecerTime }
             ?: atardecerMatch?.let { atardecerTime }
             ?: mediaPartOfDayTime
+            ?: mealSleepAnchorTime
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val rawDueAt = when {
             effectiveRelativeDueAt != null && relativeIsDays && parsedTime != null ->
@@ -3310,6 +3365,16 @@ object NaturalTaskParser {
                 (parsedTime == LocalTime.MIDNIGHT || parsedTime == LocalTime.NOON) &&
                 rawDueAt != null && rawDueAt < now ->
                 DateRules.toEpochMillis(base.toLocalDate().plusDays(1), parsedTime, zone)
+            // "antes de/después de + comida/sueño" (mealSleepAnchor): hora canónica de respaldo
+            // sin fecha explícita. Si el instante ya pasó hoy (p.ej. "antes del almuerzo"=11:30
+            // capturado a las 12:00, o "después de comer"=14:00 capturado a las 15:00), se rueda
+            // al día siguiente — consistente con el past-safe de medianoche/mediodía: sin esto,
+            // el recordatorio (dueAt - offset) caía en el pasado y ReminderSync.triggers lo
+            // descartaba (trigger <= now → null) → cita olvidada sin aviso (P1 evitar olvidos).
+            // El ancla es inequívoca (11:30/14:00/21:30…), así el rodado es seguro.
+            date == null && effectiveRelativeDueAt == null && !explicitTimeIsRangeEnd &&
+                mealSleepAnchorTime != null && rawDueAt != null && rawDueAt < now ->
+                DateRules.toEpochMillis(base.toLocalDate().plusDays(1), parsedTime!!, zone)
             else -> rawDueAt
         }
 
@@ -3505,6 +3570,12 @@ object NaturalTaskParser {
             .let { value -> amanecerPattern.replace(value, " ") }
             .let { value -> atardecerPattern.replace(value, " ") }
             .let { value -> mediaPartOfDayPattern.replace(value, " ") }
+            // "antes de/después de + comida/sueño": consume la frase completa (conector +
+            // artículo + ancla) para no dejar residuo ("antes del", "de almuerzo") en el
+            // título. Antes el conector se borraba tarde y mutilaba el título
+            // ("cita antes del almuerzo"→"cita almuerzo"); ahora se consume junto con el
+            // ancla, como las demás horas canónicas (amanecer, atardecer, media X).
+            .let { value -> mealSleepAnchorPattern.replace(value, " ") }
             // "el día de mañana"/"el día de hoy"/"para el día de mañana": forma
             // pleonástica coloquial de "mañana"/"hoy". El borrado genérico de abajo
             // consume sólo la palabra "mañana"/"hoy" y deja el residuo "el día de"
