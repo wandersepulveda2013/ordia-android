@@ -256,7 +256,16 @@ class BackupManager(
         }
         val version = rawVersion.toInt()
         if (!BackupSecurityRules.supportsVersion(version)) {
-            throw IllegalArgumentException("La versión de la copia ($version) no es compatible.")
+            if (version > BackupSecurityRules.CURRENT_EXPORT_VERSION) {
+                throw IllegalArgumentException(
+                    "El respaldo pertenece a una versión más reciente de Ordía y no puede restaurarse aquí. " +
+                        "Tus datos actuales no se modificaron. Actualiza Ordía o usa una copia de esta versión."
+                )
+            }
+            throw IllegalArgumentException(
+                "Este respaldo es demasiado antiguo para restaurarse (versión $version). " +
+                    "Tus datos actuales no se modificaron."
+            )
         }
         val allowedTopLevel = BackupSecurityRules.requiredCollections + setOf("format", "version", "createdAt", "preferences", "checksum")
         val topLevelKeys = buildSet {

@@ -499,6 +499,70 @@ class BackupManagerTest {
     }
 
     @Test
+    fun futureVersionMessageWarnsAboutNewerOrdia() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val tampered = rewrap(JSONObject(origin.exportJson()), version = 9)
+
+        val store = FakeBackupStore(otherData())
+        val result = newManager(store).importBackup(tampered)
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("más reciente"))
+        assertTrue(result.message.contains("no se modificaron"))
+        assertEquals("Viejo", store.current.projects.first().name)
+    }
+
+    @Test
+    fun truncatedJsonIsRejectedWithoutTouchingData() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val full = origin.exportJson()
+
+        val store = FakeBackupStore(otherData())
+        val result = newManager(store).importBackup(full.substring(0, full.length / 2))
+
+        assertFalse(result.success)
+        assertEquals("Viejo", store.current.projects.first().name)
+    }
+
+    @Test
+    fun unknownTopLevelSectionsAreRejected() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val tampered = JSONObject(origin.exportJson()).apply {
+            put("sesionSecreta", JSONObject())
+        }
+
+        val store = FakeBackupStore(otherData())
+        val result = newManager(store).importBackup(rewrap(tampered))
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("desconocidas"))
+        assertEquals("Viejo", store.current.projects.first().name)
+    }
+
+    @Test
+    fun thousandsOfRecordsRoundTripSucceeds() = runBlocking {
+        val taskCount = 2_500
+        val projects = (1L..50L).map { ProjectEntity(it, "P$it", createdAt = 1000L, updatedAt = 1000L) }
+        val tasks = (1L..taskCount).map {
+            TaskEntity(
+                id = 100_000L + it, title = "Tarea $it", projectId = ((it - 1) % 50) + 1,
+                createdAt = 1000L, updatedAt = 1000L
+            )
+        }
+        val origin = newManager(
+            FakeBackupStore(RestoreData(projects = projects, tasks = tasks))
+        )
+        val backup = origin.exportJson()
+
+        val destinationStore = FakeBackupStore(otherData())
+        val result = newManager(destinationStore).importBackup(backup)
+
+        assertTrue(result.message, result.success)
+        assertEquals(taskCount, destinationStore.current.tasks.size)
+        assertEquals(50, destinationStore.current.projects.size)
+    }
+
+    @Test
     fun missingCollectionsAreRejected() = runBlocking {
         val origin = newManager(FakeBackupStore(sampleData()))
         val root = JSONObject(origin.exportJson())
