@@ -1245,6 +1245,88 @@ class AssistantEngineTest {
         assertTrue("no mezcla la nocturna: ${answer.text}", !answer.text.contains("Tarea2"))
     }
 
+    // --- c.385: agenda a demanda alinea membresía de fecha con el planificador
+    // y con el conteo de carga del día. Antes, "¿qué tengo hoy?" miraba SÓLO
+    // `dueAt` (isDueInRange/isDueInHourBand), mientras que el calendario del
+    // planificador (PlannerCalendar.datesFor) y el veredicto "¿voy bien?"
+    // (SummaryEngine.remainingToday) cuentan una tarea cuya hora prevista
+    // (`startAt`) cae en el día. Así el usuario podía oír "el día está lleno"
+    // (la cuenta incluía un slot de hoy) y, al preguntar "¿qué tengo hoy?", ver
+    // una lista que omitía ese slot — mentía por omisión en la consulta más
+    // común. Ahora las tres superficies acuerdan: una tarea es "del día X" si su
+    // `startAt` o su `dueAt` cae en X; la franja horaria usa la marca que cae en
+    // el rango (prefiere `startAt`, simétrico con PlannerCalendar.timestampOnDate).
+    // Mismo `now`/`zone` que los tests de franja (2026-07-29 mié 12:00, Sto. Dgo).
+
+    private fun agendaStartAt(query: String, startAt: Long?, dueAt: Long?, title: String = "Slot de hoy"): com.ordia.app.assistant.AssistantAnswer {
+        val zone = agendaZone()
+        val now = LocalDate.of(2026, 7, 29).atTime(12, 0).atZone(zone).toInstant().toEpochMilli()
+        val task = TaskEntity(id = 1, title = title, startAt = startAt, dueAt = dueAt)
+        return AssistantEngine.answer(query, listOf(task), emptyList(), emptyList(), now, zone)
+    }
+
+    private fun millisAt(date: LocalDate, hour: Int): Long =
+        date.atTime(hour, 0).atZone(agendaZone()).toInstant().toEpochMilli()
+
+    @Test fun queTengoHoy_incluyeTareaConStartAtHoyAunqueVenzaDespues() {
+        // Slot agendado para HOY 15:00 pero con vencimiento el viernes (startAt
+        // hoy, dueAt futuro). El planificador la muestra hoy; el asistente debe
+        // nombrarla al preguntar "¿qué tengo hoy?".
+        val hoy = LocalDate.of(2026, 7, 29)
+        val viernes = hoy.plusDays(3)
+        val answer = agendaStartAt("¿qué tengo hoy?", startAt = millisAt(hoy, 15), dueAt = millisAt(viernes, 18))
+        assertTrue("nombra el slot de hoy: ${answer.text}", answer.text.contains("Slot de hoy"))
+        assertTrue("relaciona el slot: ${answer.relatedTaskIds}", answer.relatedTaskIds.contains(1L))
+    }
+
+    @Test fun queTengoHoy_noCuentaStartAtDeOtroDiaComoHoy() {
+        // startAt mañana, sin vencimiento hoy → no es "de hoy". No se inventa.
+        val hoy = LocalDate.of(2026, 7, 29)
+        val manana = hoy.plusDays(1)
+        val answer = agendaStartAt("¿qué tengo hoy?", startAt = millisAt(manana, 10), dueAt = null, title = "Slot de mañana")
+        assertTrue("no mezcla el slot de mañana como de hoy: ${answer.text}", !answer.text.contains("Slot de mañana"))
+        assertTrue("sin ids inventados: ${answer.relatedTaskIds}", answer.relatedTaskIds.isEmpty())
+    }
+
+    @Test fun queTengoManana_incluyeStartAtMananaSinDueAt() {
+        // startAt mañana, sin dueAt → pertenece a mañana (simétrico con el
+        // planificador y con el conteo de carga).
+        val manana = LocalDate.of(2026, 7, 30)
+        val answer = agendaStartAt("¿qué tengo mañana?", startAt = millisAt(manana, 10), dueAt = null, title = "Slot de mañana")
+        assertTrue("nombra el slot de mañana: ${answer.text}", answer.text.contains("Slot de mañana"))
+        assertTrue("relaciona el slot: ${answer.relatedTaskIds}", answer.relatedTaskIds.contains(1L))
+    }
+
+    @Test fun queTengoEstaTarde_incluyeSlotDeHoyConStartAtEnFranja() {
+        // Slot de hoy 15:00 (tarde 12-17), vencimiento el viernes. La franja usa
+        // la marca que cae en el rango (startAt hoy 15:00) → 15 ∈ 12-17 → sí.
+        val hoy = LocalDate.of(2026, 7, 29)
+        val viernes = hoy.plusDays(3)
+        val answer = agendaStartAt("¿qué tengo esta tarde?", startAt = millisAt(hoy, 15), dueAt = millisAt(viernes, 18))
+        assertTrue("nombra el slot vespertino de hoy: ${answer.text}", answer.text.contains("Slot de hoy"))
+    }
+
+    @Test fun queTengoEstaTarde_excluyeSlotDeHoyEnOtraFranja() {
+        // Slot de hoy 09:00 (mañana, fuera de 12-17), vencimiento viernes. La
+        // franja cae fuera → no se nombra aunque la fecha sí sea hoy.
+        val hoy = LocalDate.of(2026, 7, 29)
+        val viernes = hoy.plusDays(3)
+        val answer = agendaStartAt("¿qué tengo esta tarde?", startAt = millisAt(hoy, 9), dueAt = millisAt(viernes, 18), title = "Slot matutino")
+        assertTrue("no mezcla el slot matutino en la tarde: ${answer.text}", !answer.text.contains("Slot matutino"))
+    }
+
+    @Test fun queTengoEstaTarde_prefiereStartAtSobreDueAtParaFranja() {
+        // startAt hoy 09:00 (mañana), dueAt hoy 20:00 (noche). Ambas caen hoy.
+        // La franja prefiere startAt (09:00, fuera de 12-17) → no se nombra en
+        // "esta tarde", simétrico con PlannerCalendar.timestampOnDate (startAt
+        // manda). Evita afirmar que la tarea "es de la tarde" por su vencimiento
+        // cuando el usuario la agendó para la mañana.
+        val hoy = LocalDate.of(2026, 7, 29)
+        val answer = agendaStartAt("¿qué tengo esta tarde?", startAt = millisAt(hoy, 9), dueAt = millisAt(hoy, 20), title = "Slot matutino vence de noche")
+        assertTrue("no mezcla por el dueAt nocturno: ${answer.text}", !answer.text.contains("Slot matutino vence de noche"))
+    }
+
+
     @Test fun parteDelDia_hoyEnLaTarde_muestraEtiquetaEstaTarde() {
         // "hoy en la tarde" debe resolver a "esta tarde" (hoy + banda 12-17), no a
         // la etiqueta "hoy" (que no filtraría por hora).

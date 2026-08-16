@@ -410,7 +410,18 @@ object AssistantEngine {
         // madrugada — igual que en SearchEngine: una tarea "solo fecha" no puede
         // afirmar honestamente pertenecer a la tarde/noche.
         val band = agendaPartOfDay(query)
-        val due = ranked.filter { isDueInRange(it, start, end, zone) && (band == null || isDueInHourBand(it, band, zone)) }
+        // c.385: la membresía de fecha espeja PlannerCalendar.datesFor y
+        // SummaryEngine.remainingToday — una tarea es "del rango [start,end]" si
+        // su hora prevista (`startAt`) o su fecha límite (`dueAt`) cae en él. Antes
+        // este filtro miraba SÓLO `dueAt`, así "¿qué tengo hoy?" omitía un slot
+        // agendado para hoy cuyo vencimiento era posterior (startAt hoy, dueAt el
+        // viernes): el planificador lo mostraba hoy y "¿voy bien?" lo contaba en la
+        // carga de hoy, pero la agenda lo callaba — mentía por omisión en la
+        // consulta más común. Ahora las tres superficies acuerdan. La franja
+        // horaria (band) se resuelve con la marca que cae en el rango, prefiriendo
+        // `startAt` (simétrico con PlannerCalendar.timestampOnDate), así "¿qué tengo
+        // esta tarde?" muestra un slot de hoy 15:00 aunque venza más tarde.
+        val due = ranked.filter { isScheduledInRange(it, start, end, zone) && (band == null || isInHourBand(it, band, start, end, zone)) }
         if (due.isEmpty()) {
             // "¿Qué tengo hoy?" no debe decir "no tienes nada" mientras el usuario
             // arrastra atrasadas de días anteriores: eso es exactamente lo que tiene
@@ -463,10 +474,16 @@ object AssistantEngine {
         return AssistantAnswer("$head: $titles.$tail", relatedTaskIds = ids)
     }
 
-    private fun isDueInRange(task: TaskEntity, start: LocalDate, end: LocalDate, zone: ZoneId): Boolean {
-        val due = task.dueAt ?: return false
-        val d = Instant.ofEpochMilli(due).atZone(zone).toLocalDate()
-        return d >= start && d <= end
+    private fun isScheduledInRange(task: TaskEntity, start: LocalDate, end: LocalDate, zone: ZoneId): Boolean {
+        // Una tarea pertenece al rango si su `startAt` o su `dueAt` cae en él.
+        // Simétrico con PlannerCalendar.datesFor (que suma ambas fechas) y con el
+        // conteo de carga del día (SummaryEngine.remainingToday, que cuenta por
+        // startAt). Mirar sólo `dueAt` haría que la agenda omitiera un slot agendado
+        // para hoy cuyo vencimiento es posterior.
+        val inRange = { d: LocalDate -> d >= start && d <= end }
+        val due = task.dueAt?.let { DateRules.toLocalDate(it, zone) }
+        val stt = task.startAt?.let { DateRules.toLocalDate(it, zone) }
+        return (due != null && inRange(due)) || (stt != null && inRange(stt))
     }
 
     // Franja horaria (parte del día) de la agenda. Simétrico con
@@ -488,9 +505,15 @@ object AssistantEngine {
         else -> "hoy"
     }
 
-    private fun isDueInHourBand(task: TaskEntity, band: IntRange, zone: ZoneId): Boolean {
-        val due = task.dueAt ?: return false
-        return Instant.ofEpochMilli(due).atZone(zone).hour in band
+    private fun isInHourBand(task: TaskEntity, band: IntRange, start: LocalDate, end: LocalDate, zone: ZoneId): Boolean {
+        // La franja se resuelve con la marca temporal que cae dentro del rango de
+        // fechas de la consulta, prefiriendo `startAt` (simétrico con
+        // PlannerCalendar.timestampOnDate). Así "¿qué tengo esta tarde?" muestra un
+        // slot de hoy 15:00 aunque venza más tarde, y no mezcla por un `dueAt`
+        // nocturno cuando el usuario agendó el slot para la mañana.
+        val stt = task.startAt?.takeIf { DateRules.toLocalDate(it, zone) in start..end }
+        val ts = stt ?: task.dueAt?.takeIf { DateRules.toLocalDate(it, zone) in start..end } ?: return false
+        return Instant.ofEpochMilli(ts).atZone(zone).hour in band
     }
 
     // ¿La consulta menciona otro alcance de fecha (día relativo, semana, mes, weekday
