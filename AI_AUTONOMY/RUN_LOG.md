@@ -473,3 +473,6 @@ Sesión de implementación del rediseño 2026. Build + tests verificados.
 - applicationId sin cambios (com.ordia.app / .preview / .preview.full)
 - versionCode/contract intacto (v3.0.<build>-code-<versionCode>)
 - No se tocaron DB/migrations/updater
+- `4d1212c` feat(capture-context): contextual capture suggestions (section 5/7)
+- `c6439df` feat(day-closing): day closing report engine (section 19)
+- **Tests finales: 490 (0 fail)**
