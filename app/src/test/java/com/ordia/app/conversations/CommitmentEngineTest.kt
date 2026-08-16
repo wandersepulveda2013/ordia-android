@@ -1146,4 +1146,114 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.316: obligación DIRIGIDA AL USUARIO por un tercero en 2ª persona —
+    // "tienes que firmar el contrato el lunes". Forma natural en español de que
+    // OTRA persona le comunique al usuario una obligación suya. Simétrica de
+    // "tengo que" (c.305). Antes caía a MISSED: el usuario olvidaba una
+    // obligación que alguien le comunicó en el chat. Probe JVM PRE-fix: 1/1
+    // MISSED. La clave de la corrección: aunque el remitente sea OTRA persona,
+    // la obligación es DEL USUARIO ("tienes" = 2ª persona dirigida al oyente),
+    // así que el draft se ancla a owner=SELF / kind=SELF_COMMITMENT — NO a
+    // OTHER_COMMITMENT (que llevaría al usuario a descartarlo creyendo que es
+    // compromiso ajeno cuando es suyo).
+    @Test
+    fun detectsUserDirectedObligationFromOtherParticipant() {
+        val positives = listOf(
+            "tienes que firmar el contrato el lunes",
+            "tienes que pagar la renta esta semana",
+            "tienes que entregar el reporte el viernes",
+            "tienes que llamar al medico manana",
+            "Ana, tienes que revisar el contrato hoy"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "obl-$text"
+            )
+            assertEquals("obligación 2ª persona dirigida al usuario DEBE detectarse: \"$text\"", 1, result.size)
+            assertEquals("la obligación es DEL usuario (no del remitente): \"$text\"", CommitmentOwner.SELF, result[0].owner)
+            assertEquals("debe ser SELF_COMMITMENT del usuario (no OTHER): \"$text\"", CommitmentKind.SELF_COMMITMENT, result[0].kind)
+        }
+    }
+
+    // c.316: "no tienes que" es AUSENCIA de obligación ("no tienes que
+    // preocuparte", "no tienes que venir"). La guarda de negación [precedingNegation]
+    // la excluye, igual que excluye "no tengo que" en hasUnnegatedCommitment (c.279).
+    // Probe JVM: 2/2 correctamente excluidas.
+    @Test
+    fun userObligationRespectsDirectNegation() {
+        val negatives = listOf(
+            "no tienes que preocuparte",
+            "no tienes que venir manana",
+            "no tienes que hacer nada"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "neg-obl-$text"
+            )
+            assertTrue("\"$text\" NO debe generar draft de obligación (es negación)", result.isEmpty())
+        }
+    }
+
+    // c.316: "tienes razón" / "tienes tiempo" NO llevan "que" — no son
+    // obligaciones. La señal exige "tienes que", así que estas formas cotidianas
+    // NO se confunden con compromisos. Probe JVM: 1/1 correctamente excluido.
+    @Test
+    fun tienesSinQueNoFiresAsObligation() {
+        val notObligations = listOf(
+            "tienes razon",
+            "tienes tiempo para esto",
+            "tienes un mensaje nuevo"
+        )
+        notObligations.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "noque-$text"
+            )
+            assertTrue("\"$text\" no debe clasificarse como obligación (sin 'que')", result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF })
+        }
+    }
+
+    // c.316: auto-promesas de seguimiento en presente de 1ª persona con objeto
+    // "te" — "te aviso cuando llegue", "te confirmo mas tarde". Continuación de
+    // c.305: "te paso"/"te mando" ya se detectaban, pero "te aviso"/"te confirmo"
+    // (verbos de avisar/confirmar, igual de cotidianos en un seguimiento) caían a
+    // MISSED. Probe JVM PRE-fix: 2/2 MISSED. El objeto "te" señala que el usuario
+    // se compromete a informar a su interlocutor después, como "te llamo".
+    @Test
+    fun detectsFollowUpPromiseWithTeAvisoTeConfirmo() {
+        val positives = listOf(
+            "te aviso cuando llegue",
+            "te confirmo mas tarde",
+            "te aviso el lunes"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "fu-$text"
+            )
+            assertTrue("seguimiento 'te aviso/te confirmo' DEBE detectarse: \"$text\"", result.isNotEmpty())
+            assertEquals(CommitmentOwner.SELF, result[0].owner)
+            assertEquals(CommitmentKind.SELF_COMMITMENT, result[0].kind)
+        }
+    }
+
+    // c.316: "no te aviso" es negación del seguimiento — se excluye igual que
+    // "no te llamo" (c.279). Reutiliza hasUnnegatedCommitment, así que la guarda
+    // de negación de compromiso cubre también estas formas nuevas.
+    @Test
+    fun followUpTeAvisoRespectsDirectNegation() {
+        val result = CommitmentEngine.extract(
+            listOf(ChatMessage("Yo", "no te aviso nada")),
+            selfParticipant = "Yo",
+            scopeHash = "neg-fu"
+        )
+        assertTrue("\"no te aviso\" no debe generar draft (es negación)", result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF })
+    }
+
 }

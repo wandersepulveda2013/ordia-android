@@ -116,6 +116,31 @@ object CommitmentEngine {
     private val indicativeRequestSignal = Regex(
         """(?i)\bme\s+(?:(?:lo|la|los|las)\s+)?(?:pasas|env[ií]as|mandas|llamas|escribes|avisas|confirmas|dices|das|alcanzas|dejas)\b"""
     )
+    // c.316: obligación DIRIGIDA AL USUARIO por un tercero en 2ª persona —
+    // "tienes que firmar el contrato el lunes", "tienes que pagar la renta",
+    // "tienes que entregar el reporte". Es la forma más natural en español de
+    // que OTRA persona comunique al usuario una obligación suya (simétrica de
+    // "tengo que", c.305, que cubre la obligación que el propio usuario se
+    // impone). Antes caía a MISSED (0 drafts): el usuario olvidaba una
+    // obligación que alguien le comunicó en el chat. La desinencia "tienes"
+    // (2ª persona) es el desambiguador: la 1ª persona "tengo" ya se cubre en
+    // commitmentSignal; aquí el interlocutor le dice al usuario lo que ÉL debe
+    // hacer. La guarda de negación [hasUnnegatedUserObligation] excluye
+    // "no tienes que" (ausencia de obligación / "no tienes que preocuparte"),
+    // igual que la guarda de compromiso excluye "no tengo que". Nace como
+    // draft SELF_COMMITMENT PENDING revisable: un falso positivo se descarta,
+    // un falso negativo es una obligación olvidada (área "evitar olvidos" +
+    // "detección de compromisos").
+    private val userObligationSignal = Regex("""(?i)\btienes\s+que\b""")
+    // c.316: auto-promesas de seguimiento en presente de 1ª persona con objeto
+    // "te" — "te aviso cuando llegue", "te confirmo mas tarde", "te aviso el
+    // lunes". Continuación directa de c.305 (presente de 1ª persona + objeto):
+    // "te paso"/"te mando" ya se detectaban, pero "te aviso"/"te confirmo" —
+    // verbos de avisar/confirmar, igual de cotidianos en un seguimiento de
+    // chat— caían a MISSED. El objeto "te" señala que el usuario se compromete
+    // a informar a su interlocutor después, como "te llamo"/"te respondo" (ya
+    // cubiertos). La guarda de negación existente (hasUnnegatedCommitment)
+    // sigue aplicándose: "no te aviso" se excluye igual que "no te llamo".
     private val commitmentSignal = Regex(
         // "me encargo"/"me ocupo" son las formas más naturales en español de
         // asumir un compromiso y se dicen SIN pronombre "yo" ("¿Quién llama?"
@@ -151,7 +176,7 @@ object CommitmentEngine {
         // PENDING que el usuario revisa antes de convertir en tarea: un falso
         // positivo se descarta, un falso negativo es un olvido real (la cuarta
         // clase de olvido de Ordía).
-        """(?i)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|despu[eé]s\s+te\s+respondo|voy\s+a|debo|tengo\s+que|terminar[eé]|har[eé]|lo\s+hago|te\s+(?:paso|mando)|le\s+(?:paso|mando|env[ií]o)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o))\b"""
+        """(?i)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|te\s+aviso|te\s+confirmo|despu[eé]s\s+te\s+respondo|voy\s+a|debo|tengo\s+que|terminar[eé]|har[eé]|lo\s+hago|te\s+(?:paso|mando)|le\s+(?:paso|mando|env[ií]o)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o))\b"""
     )
     private val locationSignal = Regex(
         """(?i)\b(?:lugar\s*:\s*|(?:nos\s+vemos|reuni[oó]n|cita)[^.!?\n]{0,80}?\ben\s+)([\p{L}\d][\p{L}\d .,'-]{2,50})"""
@@ -178,6 +203,16 @@ object CommitmentEngine {
     // necesidad de guarda (la guarda sólo protege el indicativo).
     private fun hasUnnegatedIndicativeRequest(text: String): Boolean =
         indicativeRequestSignal.findAll(text).any { m ->
+            val start = m.range.first
+            val prefix = text.substring(maxOf(0, start - 3), start)
+            !precedingNegation.containsMatchIn(prefix)
+        }
+
+    // c.316: "no tienes que" es AUSENCIA de obligación ("no tienes que
+    // preocuparte", "no tienes que venir") — se excluye igual que "no tengo
+    // que". La guarda sólo protege la 2ª persona dirigida al usuario.
+    private fun hasUnnegatedUserObligation(text: String): Boolean =
+        userObligationSignal.findAll(text).any { m ->
             val start = m.range.first
             val prefix = text.substring(maxOf(0, start - 3), start)
             !precedingNegation.containsMatchIn(prefix)
@@ -210,11 +245,18 @@ object CommitmentEngine {
         // NO se aplica a request/reminder, donde la negacion es idiomatica y POSITIVA
         // ("no olvides" = recuérdame, "no dejes que olvide" = recuérdame). (c.279)
         val isCommitment = hasUnnegatedCommitment(text)
-        if (!isRequest && !isMeeting && !isPurchase && !isReminder && !isCommitment) return null
+        val isUserObligation = hasUnnegatedUserObligation(text)
+        if (!isRequest && !isMeeting && !isPurchase && !isReminder && !isCommitment && !isUserObligation) return null
 
         val sender = message.sender.orEmpty().trim().take(80)
         val owner = when {
             isRequest -> CommitmentOwner.SELF
+            // c.316: "tienes que X" lo dice un tercero pero la obligación es DEL
+            // USUARIO (el interlocutor: "tienes que firmar el contrato"). Sin esta
+            // rama, el enrutado por remitente mandaría el draft a OTHER_COMMITMENT
+            // (como si la obligación fuese del otro) y el usuario lo descartaría
+            // creyendo que no es suyo — cuando en realidad es suya. Se ancla a SELF.
+            isUserObligation -> CommitmentOwner.SELF
             sender.isNotBlank() && self != null && sender.lowercase(Locale.ROOT) == self -> CommitmentOwner.SELF
             sender.isNotBlank() && self != null -> CommitmentOwner.OTHER
             sender.isNotBlank() -> CommitmentOwner.UNKNOWN
@@ -226,6 +268,11 @@ object CommitmentEngine {
             isMeeting -> CommitmentKind.MEETING
             isPurchase -> CommitmentKind.PURCHASE
             isReminder -> CommitmentKind.REMINDER
+            // c.316: la obligación dirigida al usuario ("tienes que firmar") es un
+            // SELF_COMMITMENT del usuario, no un OTHER_COMMITMENT. Se evalúa ANTES
+            // de la rama `owner == OTHER` para que el remitente!=self no la
+            // reclasifique como compromiso ajeno.
+            isUserObligation -> CommitmentKind.SELF_COMMITMENT
             owner == CommitmentOwner.OTHER -> CommitmentKind.OTHER_COMMITMENT
             else -> CommitmentKind.SELF_COMMITMENT
         }
@@ -233,7 +280,7 @@ object CommitmentEngine {
         val dueAt = parsed.dueAt
         val confidence = (
             0.67f +
-                (if (isCommitment || isRequest) 0.12f else 0f) +
+                (if (isCommitment || isRequest || isUserObligation) 0.12f else 0f) +
                 (if (dueAt != null) 0.11f else 0f) +
                 (if (sender.isNotBlank()) 0.05f else 0f)
             ).coerceAtMost(0.97f)
