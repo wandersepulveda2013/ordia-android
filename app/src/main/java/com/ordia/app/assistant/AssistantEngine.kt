@@ -82,9 +82,20 @@ object AssistantEngine {
                     // "está vencida" — repetir "además tienes 1 vencida" cuando es esa misma
                     // tarea confunde al usuario (¿otra? ¿cuál?).
                     val otherOverdue = overdue.count { it.id != suggestion.task.id }
-                    val tail = if (otherOverdue > 0) {
+                    val overdueTail = if (otherOverdue > 0) {
                         " Además, tienes $otherOverdue vencid${if (otherOverdue == 1) "a" else "as"}."
                     } else ""
+                    // Recuperación de olvidos en la superficie de mayor tráfico: si la
+                    // sugerida NO es el propio inicio olvidado, nombramos el missed-
+                    // start más urgente (mismo orden que What Now) para que un
+                    // compromiso cuyo hueco pasó no quede oculto detrás de otra tarea
+                    // más prioritaria pero menos "olvidada". Simétrico con el tail de
+                    // vencidas y con "¿qué olvidé?" (c.203): la sugerida ya lo explica
+                    // vía su reason ("tenía su hueco y se pasó"), así se excluye para no
+                    // repetir. Sin nueva pantalla: la cola vive en la respuesta que el
+                    // usuario ya pidió. Determinista y local (sin IA fingida).
+                    val missedTail = missedStartTail(active, suggestion.task, now)
+                    val tail = overdueTail + missedTail
                     // "Empieza por" miente si lo sugerido ya está en curso
                     // ([WhatNowReason.IN_PROGRESS_NOW]): hay que continuar, no empezar.
                     // Y el tiempo honesto es lo que FALTA, no la duración planificada
@@ -445,4 +456,29 @@ object AssistantEngine {
             else ->
                 " Además, tienes ${overdueCommitments.size} compromisos vencidos de conversaciones por convertir en tarea."
         }
+
+    /**
+     * Cola que recupera el "olvido silencioso" en "¿qué hago ahora?": nombra el
+     * inicio olvidado ([TaskRules.isMissedStart]) más urgente DISTINTO a la
+     * [suggested] — un compromiso al que el usuario le dio hueco y se le pasó,
+     * pero cuyo plazo aún no voló (no es vencida). Antes esta señal sólo vivía en
+     * "¿qué olvidé?": si la tarea más prioritaria del momento era otra, el hueco
+     * incumplido quedaba oculto en la superficie de mayor tráfico y el usuario no
+     * reagendaba. Elige con el MISMO orden que What Now (fuente única) para no
+     * discrepar con "¿qué olvidé?" sobre cuál olvidó. Devuelve "" si no hay ninguno
+     * o si el único es la propia sugerida (ya explicado por su reason). No añade
+     * ids a la respuesta: el usuario ya tiene la sugerida para actuar; la cola
+     * avisa, no navega.
+     */
+    private fun missedStartTail(
+        active: List<TaskEntity>,
+        suggested: TaskEntity,
+        now: Long
+    ): String {
+        val missed = WhatNowEngine.ordered(active, now)
+            .firstOrNull { TaskRules.isMissedStart(it, now) && it.id != suggested.id }
+            ?: return ""
+        val minutes = TaskRules.plannedDuration(missed)
+        return " Además, «${missed.title}» tenía su hueco y se pasó (~$minutes min)."
+    }
 }

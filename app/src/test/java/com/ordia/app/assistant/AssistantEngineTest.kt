@@ -553,6 +553,95 @@ class AssistantEngineTest {
         assertTrue("no infla con 3 vencidas: ${answer.text}", !answer.text.contains("3 vencid"))
     }
 
+    @Test fun whatNow_surfacesMissedStartHiddenBehindMoreUrgentTask() {
+        // Recuperación de olvidos en la superficie de mayor tráfico: "¿qué hago
+        // ahora?" elige la tarea más prioritaria del momento. Si esa NO es el
+        // inicio olvidado, el hueco incumplido quedaba oculto — el usuario no
+        // reagendaba un compromiso al que le dio hora y se le pasó. La cola debe
+        // nombrarlo (mismo orden que What Now / "¿qué olvidé?").
+        val now = 1_000_000_000_000L
+        val urgent = TaskEntity(id = 1, title = "Urgente sin fecha", priority = TaskPriority.URGENT)
+        val missed = TaskEntity(
+            id = 2, title = "Llamada agendada",
+            startAt = now - 90 * 60_000L, // empezó hace 90 min
+            durationMinutes = 30,         // ventana terminada → hueco pasado, no vencida (sin dueAt)
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿Qué hago ahora?",
+            listOf(urgent, missed),
+            emptyList(), emptyList(),
+            now
+        )
+        // La sugerida sigue siendo la urgente (timeRank URGENT=2 > missed-start band 0).
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("nombra el inicio olvidado oculto: ${answer.text}", answer.text.contains("Llamada agendada"))
+        assertTrue("describe el olvido: ${answer.text}", answer.text.contains("se pasó"))
+    }
+
+    @Test fun whatNow_doesNotRepeatMissedStartWhenSuggestedIsItself() {
+        // Si la sugerida YA es el inicio olvidado, su reason ("tenía su hueco y se
+        // pasó") ya lo explica: la cola no debe repetirlo ("además «X» tenía su
+        // hueco…" sobre la misma X). Evita ruido/confusión.
+        val now = 1_000_000_000_000L
+        val missed = TaskEntity(
+            id = 5, title = "Reunión perdida",
+            startAt = now - 60 * 60_000L, // hace 1 h
+            durationMinutes = 25,         // ventana terminada
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(missed),
+            emptyList(), emptyList(),
+            now
+        )
+        assertEquals(listOf(5L), answer.relatedTaskIds)
+        assertTrue("la sugerida explica su propio olvido: ${answer.text}", answer.text.contains("se pasó"))
+        assertTrue("no repite la misma tarea como 'además': ${answer.text}", !answer.text.contains("Además"))
+    }
+
+    @Test fun whatNow_missedStartTailSilentWhenNone() {
+        // Sin inicio olvidado, la cola no debe añadir "además … se pasó": no se
+        // inventan olvidos (IA honesta). Una tarea urgente + una normal sin hueco.
+        val answer = AssistantEngine.answer(
+            "¿Qué hago ahora?",
+            listOf(TaskEntity(id = 1, title = "Urgente", priority = TaskPriority.URGENT)),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("no inventa olvido sin missed-start: ${answer.text}", !answer.text.contains("se pasó"))
+    }
+
+    @Test fun whatNow_namesMostUrgentMissedStartAmongSeveral() {
+        // Con varios inicios olvidados, la cola nombra el MÁS urgente (mismo orden
+        // que What Now / "¿qué olvidé?"), no uno arbitrario. Una URGENT sin fecha
+        // encabeza la sugerencia; entre los missed-start, el de prioridad HIGH va
+        // antes que el NORMAL.
+        val now = 1_000_000_000_000L
+        val urgent = TaskEntity(id = 1, title = "Urgente", priority = TaskPriority.URGENT)
+        val missedHigh = TaskEntity(
+            id = 2, title = "Llamada HIGH",
+            startAt = now - 90 * 60_000L, durationMinutes = 30,
+            priority = TaskPriority.HIGH,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val missedNormal = TaskEntity(
+            id = 3, title = "Llamada NORMAL",
+            startAt = now - 90 * 60_000L, durationMinutes = 30,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿Qué hago ahora?",
+            listOf(urgent, missedHigh, missedNormal),
+            emptyList(), emptyList(),
+            now
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("nombra el missed-start más urgente (HIGH): ${answer.text}", answer.text.contains("Llamada HIGH"))
+        assertTrue("no nombra el menos urgente en la cola: ${answer.text}", !answer.text.contains("Llamada NORMAL"))
+    }
+
     // --- "¿qué tengo mañana/hoy?" — agenda a demanda (c.230) ---
 
     private fun tomorrowNoon(now: Long): Long {
