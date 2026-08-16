@@ -98,6 +98,12 @@ jobs:
               head_ref = (pr.get("head") or {}).get("ref")
               head_sha = (pr.get("head") or {}).get("sha")
               title = pr.get("title") or ""
+              body_text = pr.get("body") or ""
+
+              # ── GUARDA 0: NO auto-merge para PRs de misiones (Bridge/Agent) ──
+              if re.search(r"ORDIA-AGENT-\d+", title, re.IGNORECASE) or re.search(r"ORDIA-AGENT-\d+", body_text, re.IGNORECASE):
+                  log.append(f"PR #{number}: asociada a misión → SKIP explícito (debe ser supervisada)")
+                  continue
 
               # ── GUARDA 1: base ref EXACTAMENTE jules/autonomous-ordia ──
               if base_ref != BASE:

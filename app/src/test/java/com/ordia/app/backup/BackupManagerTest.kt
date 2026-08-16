@@ -486,6 +486,26 @@ class BackupManagerTest {
     }
 
     @Test
+    fun emptyBackupIsRejectedWithoutTouchingData() = runBlocking {
+        val store = FakeBackupStore(otherData())
+        val journal = journalFile()
+        val result = newManager(store, journal = journal).importBackup("")
+        assertFalse(result.success)
+        assertTrue(result.message.contains("vacío"))
+        assertEquals("Viejo", store.current.projects.first().name)
+    }
+
+    @Test
+    fun truncatedBackupIsRejectedWithoutTouchingData() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val backup = origin.exportJson()
+        val store = FakeBackupStore(otherData())
+        val result = newManager(store).importBackup(backup.substring(0, backup.length / 2))
+        assertFalse(result.success)
+        assertEquals("Viejo", store.current.projects.first().name)
+    }
+
+    @Test
     fun unsupportedVersionIsRejected() = runBlocking {
         val origin = newManager(FakeBackupStore(sampleData()))
         val tampered = rewrap(JSONObject(origin.exportJson()), version = 1)

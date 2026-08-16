@@ -138,8 +138,14 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                 context.contentResolver.openInputStream(uri)?.use { readUtf8Limited(context, it, BackupSecurityRules.MAX_UTF8_BYTES) }
             }.onSuccess { raw ->
                 if (raw != null) {
-                    pendingRestoreJson = raw
-                    restoreFileName = uri.lastPathSegment ?: context.getString(R.string.settings_backup_default_filename)
+                    if (raw.isBlank()) {
+                        backupStatus = context.getString(R.string.settings_backup_error_empty)
+                    } else {
+                        pendingRestoreJson = raw
+                        restoreFileName = uri.lastPathSegment ?: context.getString(R.string.settings_backup_default_filename)
+                    }
+                } else {
+                    backupStatus = context.getString(R.string.settings_backup_error_invalid)
                 }
             }.onFailure {
                 backupStatus = context.getString(R.string.settings_backup_read_failed, it.message ?: context.getString(R.string.settings_backup_error_invalid))

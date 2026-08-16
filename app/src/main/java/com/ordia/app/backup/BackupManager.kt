@@ -239,6 +239,9 @@ class BackupManager(
      * Lanza [IllegalArgumentException] con un mensaje claro y diferenciado.
      */
     private fun validateAndParse(raw: String): ValidatedBackup {
+        require(raw.isNotBlank()) {
+            "El archivo del manifiesto de copia está vacío o no contiene datos."
+        }
         val rawBytes = raw.toByteArray(Charsets.UTF_8)
         require(BackupSecurityRules.inputSizeAllowed(rawBytes.size)) {
             "La copia está vacía o supera el límite de 10 MB."

@@ -167,8 +167,45 @@
 - (pendiente) docs(autonomy): memoria de la sesión 002 (este commit)
 
 ---
+## SESIÓN 003 — PRUEBA CONTROLADA DEL PUENTE CHATGPT→AIRTABLE→GITHUB ACTIONS→JULES
 
-## SESIÓN 003 — Mega-evolución integral de Ordía (fases 1-7)
+- **Fecha (UTC)**: 2026-08-13
+- **Trigger**: Misión ORDIA-AGENT-0001
+- **Resultado**: ÉXITO
+
+### Qué se hizo
+
+1. Se ejecutó la misión ORDIA-AGENT-0001 a través del puente del supervisor ChatGPT.
+2. No se modificó funcionalidad de Ordía, secretos, ni flujos de trabajo, de acuerdo con el contrato de seguridad.
+
+---
+
+## SESIÓN AUTOMÁTICA — Refactor de iconos deprecados (Jetpack Compose 1.7.0+)
+
+- **Resultado**: ÉXITO
+- **Área**: UI
+
+### Qué se hizo
+
+1. Se identificaron advertencias de compilación relacionadas con el uso de iconos `Icons.Outlined.*` que pasaron a estar deprecados en Jetpack Compose 1.7.0+.
+2. Se reemplazaron las siguientes referencias deprecadas por sus versiones `AutoMirrored`:
+   - `Icons.Outlined.ArrowForward` -> `Icons.AutoMirrored.Outlined.ArrowForward`
+   - `Icons.Outlined.ArrowBack` -> `Icons.AutoMirrored.Outlined.ArrowBack`
+   - `Icons.Outlined.InsertDriveFile` -> `Icons.AutoMirrored.Outlined.InsertDriveFile`
+   - `Icons.Outlined.FormatListBulleted` -> `Icons.AutoMirrored.Outlined.FormatListBulleted`
+   - `Icons.Outlined.Notes` -> `Icons.AutoMirrored.Outlined.Notes`
+   - `Icons.Outlined.Send` -> `Icons.AutoMirrored.Outlined.Send`
+   - `Icons.Outlined.OpenInNew` -> `Icons.AutoMirrored.Outlined.OpenInNew`
+3. Estos cambios se aplicaron en `AppComponents.kt`, `NoteEditorScreen.kt`, `OnboardingScreen.kt`, `ProjectDetailScreen.kt`, `ProjectsScreen.kt`, `TaskDetailScreen.kt`, `TodayScreen.kt`, y `WorkspaceScreen.kt`.
+4. Se modificaron las importaciones necesarias (añadiendo `automirrored.`) para que el código compile correctamente.
+
+### Evidencia
+- Todos los tests pasaron (`./gradlew testPreviewSafeDebugUnitTest`).
+- La compilación es exitosa (`./gradlew assemblePreviewSafeDebug`).
+
+---
+
+## SESIÓN 004 — Mega-evolución integral de Ordía (fases 1-7)
 
 - **Fecha (UTC)**: 2026-08-15
 - **Trigger**: plan `docs/MEGAACTUALIZACION_ORDIA_2026.md` — menos UI con más potencia interna

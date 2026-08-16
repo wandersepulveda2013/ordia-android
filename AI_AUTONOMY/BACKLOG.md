@@ -9,7 +9,8 @@
 
 | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|----------|--------|
-| P2 | Backup | Comprobar restauración con manifiesto corrupto (escenario adverso) | revisión de `RestoreData` | VERIFIED — `BackupManagerTest`: nonObjectRootJson, wrongFormatField, nonIntegerVersion, nonNumericCreatedAt, collectionWithWrongType, preferencesWithWrongType |
+| P2 | UI | `Icons.Outlined.InsertDriveFile` deprecado; usar `Icons.AutoMirrored.Outlined.InsertDriveFile` | warning de compilación en `TaskDetailScreen` | FIXED |
+| P2 | i18n | Revisar coherencia de cadenas nuevas (command_palette, feedback, floating_capture, android_access) | inspección manual pendiente | OPEN |
 | P3 | UX | Pulido visual de pantallas renovadas del workspace | capturas tras sesión | OPEN |
 | P3 | QA | Lint: 115 warnings no bloqueantes (UseKtx 42, PluralsCandidate 31, GradleDependency 7, ModifierParameter 7…) | `lint-results-previewSafeDebug.xml` | FIXED — 0 errores, 95 warnings (Fase 18, commit `fbacf74`) |
 
@@ -24,6 +25,7 @@
 | P0 | Integridad | Borrar tarea padre podía dejar subtareas huérfanas | `TaskDao.delete` transaccional con `TaskTree.collectIds` + `TaskTreeTest` | FIXED |
 | P0 | Integridad | `ConversationDao` no tenía borrado atómico de datos completos | `clearAll()` `@Transaction` + test de cobertura | FIXED |
 | P0 | Integridad | Consultas repetidas sin índices (log de automatización, capturas, notas) | migración Room v8 + 3 índices + esquema exportado | FIXED |
+| P2 | Backup | Comprobar restauración con manifiesto corrupto (escenario adverso) | `BackupManagerTest`: nonObjectRootJson, wrongFormatField, nonIntegerVersion, nonNumericCreatedAt, collectionWithWrongType, preferencesWithWrongType | VERIFIED |
 | P1 | Privacy | Fragmentos de paquete sin punto (banca genérica) no se filtraban | `ContextPrivacyFilterTest` | FIXED |
 | P1 | Capture | `StartActivityAndCollapseDeprecated` en tile de Quick Settings | lint | FIXED |
 | P1 | UI | `stringResource` fuera del ámbito composable en `TaskDetailScreen` | lint | FIXED |
