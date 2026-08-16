@@ -836,7 +836,7 @@ object NaturalTaskParser {
      * coherente con cómo ya resolvía el día final cuando lo capturaba parcial.
      */
     private val dayRangePattern = Regex(
-        """(?i)\b(?:del?\s+)?(\d{1,2})(?![/-])\s+al\s+(\d{1,2})(?![/-])""" +
+        """(?i)\b(?:del?\s+)?(\d{1,2})(?![/-])\s+(?:al|hasta(?:\s+el)?)\s+(\d{1,2})(?![/-])""" +
             """(?:\s+del?\s+((?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?))|""" +
             """\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?)?\b"""
     )
@@ -859,9 +859,16 @@ object NaturalTaskParser {
      * (Lun-Vie) y la resuelve [weekdayRangePattern] en parseRecurrence (c.282) como
      * WEEKLY; aquí NO se toca (no se reclama como evento único) para no regresar esa
      * cadencia. Tampoco casa el par lunes-viernes específico de la semana laboral.
+     *
+     * El conector de cierre admite "hasta"/"hasta el" además de "al" (c.380): "del
+     * lunes hasta el viernes" es el mismo rango inclusivo. Antes "hasta" no casaba
+     * aquí y caía a la normalización de plazo "hasta el viernes"→"el viernes" (c.134),
+     * que fragmentaba el par ("del lunes el viernes") y dejaba residuo. Como exige un
+     * weekday a AMBOS lados, no colisiona con "hasta el viernes" suelto (fecha límite)
+     * ni con "hasta las 5" (hora).
      */
     private val weekdayPairRangePattern = Regex(
-        """(?i)\bdel\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+al\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""
+        """(?i)\bdel\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+(?:al|hasta(?:\s+el)?)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""
     )
 
     /**
@@ -3716,8 +3723,12 @@ object NaturalTaskParser {
         // (recDays="1,5": rutina mutilada en silencio) y dejaba "entre" como residuo
         // en el título. Ahora se resuelve como el rango Lun-Vie, simétrico a "de lunes
         // a viernes". c.282.
+        //
+        // "hasta" como conector de cierre (c.380): "de lunes hasta viernes" es la misma
+        // semana laboral. La normalización de plazo "hasta el viernes" (c.134) no toca
+        // "hasta viernes" (exige artículo), así llega intacto aquí. Simétrico a "a".
         val weekdayRangePattern =
-            Regex("""(?i)\b(?:(?:los\s+|de\s+)?lunes\s+a\s+viernes|entre\s+lunes\s+(?:a|y)\s+viernes)\b""")
+            Regex("""(?i)\b(?:(?:los\s+|de\s+)?lunes\s+(?:a|hasta)\s+viernes|entre\s+lunes\s+(?:a|y|hasta)\s+viernes)\b""")
         val weekdayRangeMatch = weekdayRangePattern.find(working)
         if (weekdayRangeMatch != null) {
             phrases += weekdayRangeMatch.range

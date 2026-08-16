@@ -6,6 +6,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.ordia.app.data.local.RecurrenceFrequency
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -77,5 +78,62 @@ class NaturalTaskParserDayRangeTest {
         val r = parse("taller del 10 al 12 del próximo mes")
         assertEquals("taller", r.title.trim())
         assertEquals(LocalDate.of(2026, 9, 12), r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() })
+    }
+
+    // c.380: "hasta" como conector de cierre de rango, simétrico a "al"/"a".
+    // Antes "del 15 hasta el 20 de diciembre" no casaba y dejaba "hasta" como residuo
+    // en el título (contenido mutilado, P1 captura/datos).
+
+    @Test fun rangoHastaAnclaAlCierreYlimpiaTitulo() {
+        val r = parse("vacaciones del 15 hasta el 20 de diciembre")
+        assertEquals("vacaciones", r.title.trim())
+        assertEquals(LocalDate.of(2026, 12, 20), r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() })
+    }
+
+    @Test fun rangoHastaConAnioExplicito() {
+        val r = parse("viaje del 3 hasta el 8 de enero del 2027")
+        assertEquals("viaje", r.title.trim())
+        assertEquals(LocalDate.of(2027, 1, 8), r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() })
+    }
+
+    @Test fun rangoHastaNoDejaResiduoConector() {
+        val title = parse("curso del 10 hasta el 14 de marzo").title
+        assertFalse("el título no debe contener residuo 'hasta'", title.contains("hasta"))
+        assertFalse("el título no debe contener el día inicial 10", title.contains("10"))
+    }
+
+    @Test fun rangoWeekdayHastaAnclaAlCierreYlimpiaTitulo() {
+        // "del lunes hasta el viernes": evento único anclado al cierre (viernes).
+        val r = parse("reunión del lunes hasta el viernes")
+        assertEquals("reunión", r.title.trim())
+        val dt = r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone) }
+        assertNotNull("debe producir vencimiento", dt)
+        assertEquals(LocalDate.of(2026, 8, 21), dt!!.toLocalDate())
+    }
+
+    @Test fun rangoWeekdayHastaSinArticulo() {
+        // "del lunes hasta viernes" (sin "el"): misma resolución.
+        val r = parse("taller del martes hasta jueves")
+        assertEquals("taller", r.title.trim())
+        val dt = r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone) }
+        assertNotNull("debe producir vencimiento", dt)
+        assertEquals(LocalDate.of(2026, 8, 20), dt!!.toLocalDate())
+    }
+
+    @Test fun semanaLaboralHastaEsRecurrente() {
+        // "de lunes hasta viernes": semana laboral recurrente Lun-Vie, simétrico a
+        // "de lunes a viernes" (no evento único). c.380.
+        val r = parse("gym de lunes hasta viernes")
+        assertEquals("gym", r.title.trim())
+        assertEquals(RecurrenceFrequency.WEEKLY, r.recurrence)
+        assertEquals("1,2,3,4,5", r.recurrenceDays)
+    }
+
+    @Test fun hastaSueltoNoEsRango() {
+        // "hasta el viernes" suelto (fecha límite) NO debe casar como rango: exige
+        // weekday a ambos lados. Regresión de seguridad: el conector de plazo sigue
+        // funcionando y no se falsifica un rango sin día inicial.
+        val r = parse("entregar hasta el viernes")
+        assertFalse("no debe dejar residuo 'hasta'", r.title.contains("hasta"))
     }
 }
