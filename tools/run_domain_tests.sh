@@ -82,19 +82,38 @@ CONTEXT_PURE_SOURCES=(
 # es parser de chat sin Android). Se incluye entero con wildcard.
 CONVERSATIONS_MAIN="$ROOT/app/src/main/java/com/ordia/app/conversations"
 
+# Paquete intelligence: IntelligenceSafetyGate delega la detección de secretos a
+# SensitiveSecretPatterns (domain) y solo usa android.util.Log (stub). IntelligenceSchema
+# define los enums/tipos (PrivacyResult, Actor, Polarity...) y es puro. GenerativeModelStatus
+# documenta el estado del motor local (puro). Se excluyen BasicRuleProvider (usa android.util.Log
+# + ContextPrivacyFilter ya incluido, pero NO tiene tests JVM) y el resto con dependencias
+# Android/Room no cubiertas. El Log stub permite compilar estas fuentes sin tocar su código.
+INTELLIGENCE_MAIN="$ROOT/app/src/main/java/com/ordia/app/intelligence"
+INTELLIGENCE_PURE_SOURCES=(
+  "$INTELLIGENCE_MAIN/IntelligenceSchema.kt"
+  "$INTELLIGENCE_MAIN/IntelligenceSafetyGate.kt"
+  "$INTELLIGENCE_MAIN/GenerativeModelStatus.kt"
+  "$INTELLIGENCE_MAIN/IntelligenceResponse.kt"
+  "$INTELLIGENCE_MAIN/IntelligenceProvider.kt"
+  "$INTELLIGENCE_MAIN/IntelligenceRequest.kt"
+)
+
 SOURCES=(
   "$ROOT/tools/domain-smoke/RoomStubs.kt"
   "$ROOT/tools/domain-smoke/PreferenceStubs.kt"
+  "$ROOT/tools/domain-smoke/AndroidLogStub.kt"
   "$DATA_LOCAL/Entities.kt"
   "$DOMAIN_MAIN"/*.kt
   "${AUTOMATION_PURE_SOURCES[@]}"
   "${BACKUP_PURE_SOURCES[@]}"
   "${CONTEXT_PURE_SOURCES[@]}"
+  "${INTELLIGENCE_PURE_SOURCES[@]}"
   "$CONVERSATIONS_MAIN"/*.kt
   "$ROOT/app/src/main/java/com/ordia/app/assistant"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/domain"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/automation"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/assistant"/*.kt
+  "$ROOT/app/src/test/java/com/ordia/app/intelligence"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/backup"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/context"/*.kt
   "$ROOT/app/src/test/java/com/ordia/app/conversations"/*.kt

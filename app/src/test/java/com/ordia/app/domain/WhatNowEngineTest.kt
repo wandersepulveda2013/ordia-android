@@ -129,8 +129,13 @@ class WhatNowEngineTest {
     }
 
     @Test
-    fun ignoresTaskScheduledLaterToday() {
-        val later = task(1, "Más tarde").copy(
+    fun dueTodayScheduledLaterStillBeatsInbox() {
+        // start 15:00, vence 16:00 HOY (now=10:00): aunque empiece más tarde,
+        // TIENE plazo de hoy y debe quedar por encima del inbox sin fecha — de lo
+        // contrario el usuario puede olvidar un compromiso de hoy. Antes esta tarea
+        // se hundía a rank -1 por isScheduledLater evaluado antes que isDueToday
+        // (c.363 corrige el orden); ahora reason() y timeRank coinciden en DUE_TODAY.
+        val later = task(1, "Más tarde pero vence hoy").copy(
             startAt = DateRules.toEpochMillis(date, LocalTime.of(15, 0), zone),
             dueAt = DateRules.toEpochMillis(date, LocalTime.of(16, 0), zone)
         )
@@ -138,8 +143,8 @@ class WhatNowEngineTest {
 
         val suggestion = WhatNowEngine.suggest(listOf(later, inbox), now = now, zone = zone)
 
-        assertEquals(2L, suggestion!!.task.id)
-        assertEquals(WhatNowReason.NEXT_INBOX, suggestion.reason)
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.DUE_TODAY, suggestion.reason)
     }
 
     @Test
@@ -158,9 +163,12 @@ class WhatNowEngineTest {
     }
 
     @Test
-    fun startOutsideImminentWindowStillDeprioritized() {
-        // Empieza en 30 min (> ventana de 15): sigue como último recurso frente a la Bandeja.
-        val soonButNotImminent = task(1, "En 30 min").copy(
+    fun dueTodayOutsideImminentWindowStillSurfacesAboveInbox() {
+        // Empieza en 30 min (> ventana inminente de 15) pero VENCE hoy (11:00):
+        // al tener plazo de hoy se mantiene por encima del inbox. Antes se hundía
+        // a último recurso (-1) por isScheduledLater evaluado antes que isDueToday;
+        // c.363 invierte el orden para evitar olvidar compromisos con plazo de hoy.
+        val soonButNotImminent = task(1, "En 30 min, vence hoy").copy(
             startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 30), zone),
             dueAt = DateRules.toEpochMillis(date, LocalTime.of(11, 0), zone)
         )
@@ -168,8 +176,8 @@ class WhatNowEngineTest {
 
         val suggestion = WhatNowEngine.suggest(listOf(soonButNotImminent, inbox), now = now, zone = zone)
 
-        assertEquals(2L, suggestion!!.task.id)
-        assertEquals(WhatNowReason.NEXT_INBOX, suggestion.reason)
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.DUE_TODAY, suggestion.reason)
     }
 
     @Test
@@ -215,6 +223,31 @@ class WhatNowEngineTest {
         )
 
         val suggestion = WhatNowEngine.suggest(listOf(dueTodayScheduledLater), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.DUE_TODAY, suggestion.reason)
+    }
+
+    /**
+     * Guardián de priorización: una tarea que VENCE HOY pero está programada para
+     * empezar más tarde (startAt futuro, dueAt hoy) DEBE quedar por encima de una
+     * captura del inbox sin fecha. Antes, [TaskRules.timeRank] evaluaba
+     * `isScheduledLater` ANTES que `isDueToday`, así que la tarea vencida-hoy
+     * recibía rank -1 (último recurso) mientras el inbox sin fecha recibía rank 0:
+     * What Now sugería una idea aleatoria en lugar de la que vence hoy — el usuario
+     * podía olvidar una tarea con plazo de hoy (inconsistencia entre la etiqueta,
+     * que ya decía "vence hoy", y el ranking, que la hundía). El fix alinea el
+     * orden de timeRank con el de reason(): isDueToday por encima de isScheduledLater.
+     */
+    @Test
+    fun dueTodayScheduledLaterBeatsInboxWithoutDate() {
+        val dueTodayScheduledLater = task(1, "Reunión tarde").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(15, 0), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(16, 0), zone)
+        )
+        val inbox = task(2, "Idea sin fecha")
+
+        val suggestion = WhatNowEngine.suggest(listOf(inbox, dueTodayScheduledLater), now = now, zone = zone)
 
         assertEquals(1L, suggestion!!.task.id)
         assertEquals(WhatNowReason.DUE_TODAY, suggestion.reason)
