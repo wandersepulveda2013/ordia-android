@@ -392,7 +392,17 @@ private fun OrdiaNavHost(
         composable(Destination.Notes.route) { NotesScreen(state, vm, padding, onNote = { navController.navigate(Destination.note(it)) }) }
         composable(Destination.Habits.route) { HabitsScreen(state, vm, padding) }
         composable(Destination.Focus.route) { FocusScreen(state, vm, padding) }
-        composable(Destination.Guardian.route) { GuardianScreen(state, padding) }
+        composable(Destination.Guardian.route) {
+            GuardianScreen(
+                state = state,
+                vm = vm,
+                contentPadding = padding,
+                onOpenInbox = { navController.navigateSingle(Destination.Inbox.route) },
+                onOpenNotes = { navController.navigateSingle(Destination.Notes.route) },
+                onOpenPlanner = { navController.navigateSingle(Destination.Planner.route) },
+                onOpenHabits = { navController.navigateSingle(Destination.Habits.route) }
+            )
+        }
         composable(Destination.Conversations.route) {
             ConversationsScreen(
                 vm = vm,

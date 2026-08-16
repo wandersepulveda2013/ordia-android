@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
@@ -27,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,7 +44,11 @@ import com.ordia.app.OrdiaApplication
 import com.ordia.app.R
 import com.ordia.app.data.preferences.GuardianSpecies
 import com.ordia.app.domain.GuardianEngine
+import com.ordia.app.domain.GuardianCard
+import com.ordia.app.domain.GuardianKind
+import com.ordia.app.domain.GuardianReportEngine
 import com.ordia.app.ui.OrdiaUiState
+import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.ui.components.SectionHeader
 import com.ordia.app.ui.components.StatCard
@@ -52,7 +58,15 @@ import com.ordia.app.ui.labelRes
 import kotlinx.coroutines.launch
 
 @Composable
-fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
+fun GuardianScreen(
+    state: OrdiaUiState,
+    vm: OrdiaViewModel,
+    contentPadding: PaddingValues,
+    onOpenInbox: () -> Unit,
+    onOpenNotes: () -> Unit,
+    onOpenPlanner: () -> Unit,
+    onOpenHabits: () -> Unit
+) {
     val context = LocalContext.current
     val repository = (context.applicationContext as OrdiaApplication).container.preferencesRepository
     val scope = rememberCoroutineScope()
@@ -64,6 +78,20 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
         notes = state.notes,
         preferences = state.preferences
     )
+    val pendingCommitments by vm.pendingCommitments.collectAsState(initial = emptyList())
+    val report = remember(
+        state.tasks, state.notes, state.habits, state.habitLogs, state.projects,
+        pendingCommitments
+    ) {
+        GuardianReportEngine.report(
+            tasks = state.tasks,
+            notes = state.notes,
+            habits = state.habits,
+            habitLogs = state.habitLogs,
+            projects = state.projects,
+            commitments = pendingCommitments
+        )
+    }
     var name by remember(state.preferences.guardianName) { mutableStateOf(state.preferences.guardianName) }
 
     LazyColumn(
@@ -82,6 +110,47 @@ fun GuardianScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
                 title = stringResource(R.string.guardian_screen_refuge_title, snapshot.name),
                 subtitle = stringResource(R.string.guardian_screen_header_subtitle)
             )
+        }
+
+        if (report.cards.isNotEmpty()) {
+            item {
+                Text(
+                    stringResource(R.string.guardian2_section_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            items(report.cards, key = { it.kind.name }) { card ->
+                Guardian2Card(card)
+            }
+        } else {
+            item {
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            Icons.Outlined.BatteryChargingFull,
+                            null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            stringResource(R.string.guardian2_all_clear),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            stringResource(R.string.guardian2_all_clear_desc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         }
 
         item {
@@ -295,3 +364,48 @@ private fun ProgressLine(title: String, value: Int, description: String) {
         }
     }
 }
+
+/**
+ * Tarjeta de Guardián 2.0: propósito claro, mensaje y acción directa.
+ */
+@Composable
+private fun Guardian2Card(card: GuardianCard) {
+    val (icon, tone) = when (card.kind) {
+        GuardianKind.PENDING -> Icons.Outlined.Refresh to GuardianTone.WARNING
+        GuardianKind.CHAOS -> Icons.Outlined.AutoAwesome to GuardianTone.ACCENT
+        GuardianKind.COMMITMENTS -> Icons.Outlined.Favorite to GuardianTone.HUMAN
+        GuardianKind.ROUTINE -> Icons.Outlined.Psychology to GuardianTone.ACTIVITY
+    }
+    val (container, content) = when (tone) {
+        GuardianTone.WARNING -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        GuardianTone.ACCENT -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        GuardianTone.HUMAN -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+        GuardianTone.ACTIVITY -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+    }
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = container,
+        contentColor = content
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(icon, null)
+                Text(card.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
+            Text(card.message, style = MaterialTheme.typography.bodyMedium)
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(onClick = {}) {
+                    Text(card.actionLabel)
+                }
+            }
+        }
+    }
+}
+
+private enum class GuardianTone { ACCENT, ACTIVITY, HUMAN, WARNING }

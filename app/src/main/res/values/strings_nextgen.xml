@@ -39,8 +39,9 @@
     <string name="guardian2_eyebrow">Guardianes</string>
     <string name="guardian2_title">Tus Guardianes velan por ti</string>
     <string name="guardian2_subtitle">Alertas útiles, no spam</string>
+    <string name="guardian2_section_title">Tus Guardianes velan por ti</string>
     <string name="guardian2_all_clear">Todo tranquilo.</string>
-    <string name="guardian2_all_clear_support">No detectamos nada que requiera tu atención ahora.</string>
+    <string name="guardian2_all_clear_desc">No detectamos nada que requiera tu atención ahora.</string>
     <string name="guardian2_pending_title">Guardián de Pendientes</string>
     <string name="guardian2_pending_msg">%1$d tareas llevan más de una semana moviéndose.</string>
     <string name="guardian2_pending_msg_one">1 tarea lleva más de una semana moviéndose.</string>
