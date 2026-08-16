@@ -55,6 +55,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
@@ -263,6 +265,7 @@ private fun NoteBlockEditor(
     onMoveDown: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val checklistItemLabel = stringResource(R.string.note_editor_checklist_item)
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             IconButton(onClick = onMoveUp, enabled = index > 0) { Icon(Icons.Outlined.ArrowUpward, stringResource(R.string.note_editor_move_up)) }
@@ -270,7 +273,11 @@ private fun NoteBlockEditor(
             IconButton(onClick = onMoveDown, enabled = index < total - 1) { Icon(Icons.Outlined.ArrowDownward, stringResource(R.string.note_editor_move_down)) }
         }
         if (block.type == NoteBlockType.CHECKLIST) {
-            Checkbox(block.checked, { onChange(block.copy(checked = it)) })
+            Checkbox(
+                block.checked,
+                { onChange(block.copy(checked = it)) },
+                modifier = Modifier.semantics { contentDescription = checklistItemLabel }
+            )
         }
         if (block.type == NoteBlockType.DIVIDER) {
             Column(Modifier.weight(1f).padding(vertical = 18.dp)) {

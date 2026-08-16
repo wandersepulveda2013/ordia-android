@@ -46,6 +46,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.local.ProjectEntity
@@ -69,6 +72,8 @@ fun TaskRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val overdue = TaskRules.isOverdue(task)
+    val editLabel = stringResource(R.string.dialog_task_edit)
+    val moreLabel = stringResource(R.string.task_more_options)
     val accent = when {
         overdue -> MaterialTheme.colorScheme.error
         task.priority == TaskPriority.URGENT -> MaterialTheme.colorScheme.error
@@ -80,7 +85,13 @@ fun TaskRow(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .combinedClickable(onClick = onEdit, onLongClick = { menuOpen = true }),
+            .combinedClickable(
+                onClick = onEdit,
+                onClickLabel = editLabel,
+                onLongClick = { menuOpen = true },
+                onLongClickLabel = moreLabel
+            )
+            .semantics { role = Role.Button },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = if (task.completed) {

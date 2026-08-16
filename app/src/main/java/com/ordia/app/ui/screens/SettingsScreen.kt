@@ -51,6 +51,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.ordia.app.BuildConfig
@@ -594,7 +596,13 @@ private fun SettingSwitch(title: String, subtitle: String, checked: Boolean, onC
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Switch(checked = checked, onCheckedChange = onChecked)
+            Switch(
+                checked = checked,
+                onCheckedChange = onChecked,
+                modifier = Modifier.semantics {
+                    contentDescription = if (subtitle.isBlank()) title else "$title. $subtitle"
+                }
+            )
         }
     }
 }

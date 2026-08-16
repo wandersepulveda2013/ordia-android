@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronLeft
@@ -41,6 +42,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -484,7 +491,9 @@ private fun WeekSelector(
         items(dates, key = { it.toEpochDay() }) { date ->
             val selected = date == selectedDate
             Surface(
-                modifier = Modifier.clickable { onSelect(date) },
+                modifier = Modifier
+                    .clickable { onSelect(date) }
+                    .semantics { role = Role.Button; this.selected = selected },
                 shape = MaterialTheme.shapes.small,
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
                 contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
@@ -580,7 +589,15 @@ private fun MonthDayCell(
         else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
     }
     Surface(
-        modifier = modifier.padding(1.dp).aspectRatio(0.8f).clickable(onClick = onClick),
+        modifier = modifier
+            .padding(1.dp)
+            .aspectRatio(0.8f)
+            .clickable(onClick = onClick)
+            .semantics {
+                role = Role.Button
+                this.selected = selected
+                if (!day.inDisplayedMonth) disabled()
+            },
         shape = MaterialTheme.shapes.small,
         color = container,
         contentColor = content,
@@ -826,11 +843,14 @@ private fun BlockRow(
 ) {
     Column(Modifier.fillMaxWidth()) {
         Row(
-            Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(vertical = 2.dp),
+            Modifier
+                .fillMaxWidth()
+                .toggleable(value = selected, role = Role.Checkbox, onValueChange = { onToggle() })
+                .padding(vertical = 2.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Checkbox(checked = selected, onCheckedChange = null)
+            Checkbox(checked = selected, onCheckedChange = null, modifier = Modifier.clearAndSetSemantics { })
             Text(
                 "${DateRules.minutesToClock(block.startMinute)}–${DateRules.minutesToClock(block.endMinute)}",
                 style = MaterialTheme.typography.labelLarge

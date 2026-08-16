@@ -306,7 +306,7 @@ fun TodayScreen(
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
-                        IconButton(onClick = onOpenPlanner) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, null) }
+                        IconButton(onClick = onOpenPlanner) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, stringResource(R.string.today_open_planner)) }
                     }
                 }
             }

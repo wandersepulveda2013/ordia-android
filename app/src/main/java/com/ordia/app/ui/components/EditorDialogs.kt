@@ -36,6 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.local.HabitEntity
@@ -83,6 +85,8 @@ fun TaskEditorDialog(
     var recurrenceMenu by remember { mutableStateOf(false) }
     var chosenTags by remember(existing?.id) { mutableStateOf(selectedTagIds) }
     var newTag by remember(existing?.id) { mutableStateOf("") }
+    val reminderLabel = stringResource(R.string.dialog_task_reminder)
+    val importantLabel = stringResource(R.string.dialog_task_important)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -167,12 +171,21 @@ fun TaskEditorDialog(
                 }
 
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.dialog_task_reminder), Modifier.weight(1f))
-                    Switch(reminderEnabled, { reminderEnabled = it }, enabled = dueAt != null)
+                    Text(reminderLabel, Modifier.weight(1f))
+                    Switch(
+                        reminderEnabled,
+                        { reminderEnabled = it },
+                        enabled = dueAt != null,
+                        modifier = Modifier.semantics { contentDescription = reminderLabel }
+                    )
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.dialog_task_important), Modifier.weight(1f))
-                    Switch(flagged, { flagged = it })
+                    Text(importantLabel, Modifier.weight(1f))
+                    Switch(
+                        flagged,
+                        { flagged = it },
+                        modifier = Modifier.semantics { contentDescription = importantLabel }
+                    )
                 }
 
                 Text(stringResource(R.string.dialog_task_tags))

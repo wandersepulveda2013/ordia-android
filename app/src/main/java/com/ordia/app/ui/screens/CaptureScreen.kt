@@ -52,6 +52,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -371,7 +374,10 @@ private fun CaptureHistoryRow(
 ) {
     val canOpen = capture.status == CaptureStatus.PROCESSED && capture.resultId != null
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(enabled = canOpen, onClick = onOpen),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = canOpen, onClick = onOpen)
+            .semantics { role = Role.Button },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
     ) {

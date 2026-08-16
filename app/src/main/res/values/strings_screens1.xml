@@ -134,6 +134,7 @@
     <string name="today_overdue_recovery">Preparar un nuevo comienzo</string>
     <string name="today_next_deadlines">Próximos pasos</string>
     <string name="today_next_deadlines_support">Solo lo que merece atención ahora.</string>
+    <string name="today_open_planner">Abrir planificador</string>
     <string name="today_capture_type_hint">Escribe una tarea, nota, idea o recordatorio</string>
     <string name="today_capture_keyboard_action">Guardar en la bandeja</string>
     <string name="today_focus_mode">Modo enfoque</string>
@@ -213,4 +214,5 @@
     <string name="note_editor_block_bullet">Viñeta</string>
     <string name="note_editor_block_numbered">Lista numerada</string>
     <string name="note_editor_block_divider">Separador</string>
+    <string name="note_editor_checklist_item">Elemento de la lista de tareas</string>
 </resources>

@@ -35,6 +35,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ordia.app.R
@@ -147,7 +149,11 @@ private fun AutomationRuleCard(
                     Text(rule.name, style = MaterialTheme.typography.titleMedium)
                     Text(rule.explanation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Switch(checked = rule.enabled, onCheckedChange = onEnabled)
+                Switch(
+                    checked = rule.enabled,
+                    onCheckedChange = onEnabled,
+                    modifier = Modifier.semantics { contentDescription = rule.name }
+                )
                 IconButton(onClick = onDelete) { Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.automation_delete)) }
             }
             Text(

@@ -56,6 +56,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -423,6 +425,7 @@ private fun ObservationControlCard(
     onStop: () -> Unit,
     onClear: () -> Unit
 ) {
+    val observationLabel = stringResource(R.string.observation_title)
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -431,7 +434,7 @@ private fun ObservationControlCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.Security, null, tint = MaterialTheme.colorScheme.primary)
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                    Text(stringResource(R.string.observation_title), style = MaterialTheme.typography.titleMedium)
+                    Text(observationLabel, style = MaterialTheme.typography.titleMedium)
                     Text(
                         stringResource(
                             if (available) R.string.observation_subtitle else R.string.observation_unavailable
@@ -441,7 +444,11 @@ private fun ObservationControlCard(
                     )
                 }
                 if (available) {
-                    Switch(checked = runtime.enabled, onCheckedChange = onEnabled)
+                    Switch(
+                        checked = runtime.enabled,
+                        onCheckedChange = onEnabled,
+                        modifier = Modifier.semantics { contentDescription = observationLabel }
+                    )
                 }
             }
             if (!available) return@Column
@@ -516,7 +523,11 @@ private fun ObservationSourceCard(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-            Switch(checked = source?.enabled == true, onCheckedChange = onEnabled)
+            Switch(
+                checked = source?.enabled == true,
+                onCheckedChange = onEnabled,
+                modifier = Modifier.semantics { contentDescription = app.label }
+            )
         }
     }
 }
@@ -586,6 +597,7 @@ private fun ConversationPreviewCard(
     val summary = remember(preview.contentHash, selfParticipant) {
         ConversationSummaryEngine.summarize(preview, commitments)
     }
+    val retainOriginalLabel = stringResource(R.string.conversation_retain_original)
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -637,14 +649,18 @@ private fun ConversationPreviewCard(
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.conversation_retain_original), style = MaterialTheme.typography.titleSmall)
+                    Text(retainOriginalLabel, style = MaterialTheme.typography.titleSmall)
                     Text(
                         stringResource(R.string.conversation_retain_original_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Switch(checked = retainOriginal, onCheckedChange = onRetainOriginal)
+                Switch(
+                    checked = retainOriginal,
+                    onCheckedChange = onRetainOriginal,
+                    modifier = Modifier.semantics { contentDescription = retainOriginalLabel }
+                )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onSave) { Text(stringResource(R.string.conversation_save_review)) }
