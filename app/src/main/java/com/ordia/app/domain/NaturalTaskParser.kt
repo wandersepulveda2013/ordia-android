@@ -832,6 +832,29 @@ object NaturalTaskParser {
     )
 
     /**
+     * Rango de días de la semana como evento ÚNICO ("taller del martes al jueves",
+     * "reunión del lunes al viernes", "curso del miércoles al viernes"). Simétrico de
+     * [dayRangePattern] (c.377, "del 15 al 20 de diciembre"→"el 20"): el rango
+     * "del X al Y" con días de la SEMANA se ancla al CIERRE (Y) y se reescribe a
+     * "el Y" para que [weekdayPattern] lo consuma limpio.
+     *
+     * Antes este rango caía al vacío: [weekdayPattern].find anclaba al PRIMER día
+     * ("del lunes", consumido por su prefijo `del`) y el segundo ("al viernes") nunca
+     * se re-emparejaba → el conector "al" sobrevivía pegado al título ("reunión al",
+     * contenido mutilado, P2) con la fecha anclada al inicio en vez del cierre.
+     *
+     * Exige la forma contracta "del ... al ..." (de+el, a+el): es la forma de rango
+     * puntual (un taller/viaje/curso que abarca esos días). La forma NO contracta
+     * "de lunes a viernes" / "entre lunes y viernes" es la SEMANA LABORAL recurrente
+     * (Lun-Vie) y la resuelve [weekdayRangePattern] en parseRecurrence (c.282) como
+     * WEEKLY; aquí NO se toca (no se reclama como evento único) para no regresar esa
+     * cadencia. Tampoco casa el par lunes-viernes específico de la semana laboral.
+     */
+    private val weekdayPairRangePattern = Regex(
+        """(?i)\bdel\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+al\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""
+    )
+
+    /**
      * Nombres de hora escritos en español (dos..veintiuno), ordenados de mayor a menor
      * longitud para que la alternación regex no se quede con un prefijo ("tres" dentro de
      * "trece"). Se excluye "un/una/uno" (la hora 1 se dice "a la una", con otro conector).
@@ -1620,6 +1643,18 @@ object NaturalTaskParser {
             }
         }
 
+        // Rango de días de la SEMANA como evento único ("del martes al jueves") → "el jueves"
+        // (cierre). Simétrico al dayRange numérico de arriba: reescribe al día FINAL para que
+        // [weekdayPattern] ancle al cierre y limpie el título entero. Va ANTES que el rewriter
+        // "al <weekday>"→"el <weekday>" (más abajo) y antes de dayListPattern/weekdayPattern,
+        // así el par "del X al Y" no se descompone en dos días sueltos (lo que generaría una
+        // recurrencia WEEKLY fantasma [1,5] ni dejaba "al" como residuo). Sólo la forma
+        // contracta "del ... al ..."; la semana laboral recurrente ("de lunes a viernes") la
+        // resuelve parseRecurrence y aquí no se toca.
+        working = weekdayPairRangePattern.replace(working) { m ->
+            "el ${m.groupValues[2]}"
+        }
+
         // "<día> <mes>" sin conector "de" → "N de <mes>": reutiliza TODO el flujo
         // monthNamePattern (roll de año, clamp de día, acoplamiento con hora,
         // limpieza del título). El mes se valida contra `months`: si el token no es
@@ -1901,6 +1936,24 @@ object NaturalTaskParser {
         working = working
             .replace(Regex("""(?i)\bde\s+aqu[íi]\s+al\b|\bde\s+ac[aá]\s+al\b"""), "el")
             .replace(Regex("""(?i)\bde\s+aqu[íi]\s+a\b|\bde\s+ac[aá]\s+a\b"""), " ")
+        // Contracción direccional-temporal "al" + día de la semana SUELTA
+        // ("reunión al viernes", "llamar al sábado", "salida al domingo"): "al" = "a" + "el"
+        // (contracción), es un introductor temporal tan cotidiano como "el viernes", pero
+        // [weekdayPattern] sólo admite los prefijos el|del|de|este (no "al"). Así "al viernes"
+        // se capturaba como weekday pelado ("viernes") y el conector "al" sobrevivía como
+        // residuo pegado al título ("reunión al" — contenido capturado degradado, P2). También
+        // rompía el rango de días "del lunes al viernes": [weekdayPattern].find anclaba al
+        // PRIMER día ("del lunes", consumido) y el segundo ("al viernes") nunca se re-emparejaba
+        // → título "reunión al" con la fecha anclada al lunes. Se reescribe "al"→"el" igual que
+        // el conector "de aquí al" de arriba (así "al viernes"→"el viernes" casa weekdayPattern
+        // y la limpieza de título lo consume entero). Se procesa aquí, tras "de aquí/al" (ya
+        // reescrito a "el", sin doble proceso) y antes de cualquier emparejamiento de fecha.
+        // El lookahead exige un día de la semana real (con optional "próximo/que viene") para
+        // no tocar "al" en otros contextos ("ir al cine", "almorzar al mediodía"). "al próximo
+        // viernes" y "al viernes que viene" también se normalizan (se conserva el modificador).
+        working = working.replace(
+            Regex("""(?i)\bal(\s+(?:pr[oó]xim[oa]\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b""")
+        ) { m -> "el${m.groupValues[1]}" }
         // El "fin de semana" se detecta y se borra ANTES del período próximo para que
         // "fin de semana que viene" no active por error el patrón "semana que viene"
         // (que dejaría el residuo «fin de» en el título). El match se conserva para la

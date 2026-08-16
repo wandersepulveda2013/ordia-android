@@ -7536,6 +7536,56 @@ class NaturalTaskParserTest {
         assertEquals(now + 30 * 60_000L, result.dueAt)
     }
 
+    // --- Rango de días de la semana como evento ÚNICO ("del lunes al viernes"):
+    // [weekdayPattern].find anclaba al PRIMER día ("del lunes", consumido por su
+    // prefijo `del`) y el segundo ("al viernes") nunca se re-emparejaba → el conector
+    // "al" sobrevivía pegado al título ("reunión al") con la fecha anclada al INICIO
+    // en vez del cierre (P2 contenido capturado degradado). Ahora [weekdayPairRangePattern]
+    // reescribe el rango contracto "del X al Y" al CIERRE ("el viernes"), simétrico a
+    // [dayRangePattern] numérico (c.377, "del 15 al 20 de diciembre"→"el 20"): ancla al
+    // vencimiento/cierre del evento, sin recurrencia fantasma.
+
+    @Test fun delLunesAlViernesParsesComoEventoUnicoAncladoAlCierre() {
+        val result = NaturalTaskParser.parse("reunión del lunes al viernes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+    }
+
+    @Test fun delMartesAlJuevesParsesComoEventoUnicoAncladoAlCierre() {
+        val result = NaturalTaskParser.parse("taller del martes al jueves", now, zone)
+        assertEquals("taller", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+    }
+
+    // --- "al <día de semana>" SUELTO ("reunión al viernes", "llamar al sábado"):
+    // la contracción direccional-temporal "al" es un introductor tan cotidiano como
+    // "el viernes", pero [weekdayPattern] sólo admite los prefijos el|del|de|este (no
+    // "al"). Así "al viernes" se capturaba como weekday pelado ("viernes") y el
+    // conector "al" sobrevivía pegado al título ("reunión al"). Ahora el rewriter
+    // "al <weekday>"→"el <weekday>" normaliza (exige un día de la semana real para no
+    // tocar "ir al cine" ni "almorzar al mediodía").
+
+    @Test fun alViernesSueltoParsesSinResiduoAl() {
+        val result = NaturalTaskParser.parse("reunión al viernes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun alSabadoSueltoParsesSinResiduoAl() {
+        val result = NaturalTaskParser.parse("salida al sábado", now, zone)
+        assertEquals("salida", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun alCineNoSeTocaComoFecha() {
+        // "ir al cine": "al" NO precede a un día de la semana → el rewriter no actúa y
+        // "al cine" permanece como contenido del título (no se inventa fecha).
+        val result = NaturalTaskParser.parse("ir al cine", now, zone)
+        assertEquals("ir al cine", result.title)
+    }
+
     // Recurrencia con intervalo escrito (no dígito): "cada dos semanas",
     // "cada tres meses", "cada quince días". Antes `intervalPattern` sólo admitía
     // `\d{1,3}`, así que estas formas caían a NONE y la tarea nacía SIN fecha
