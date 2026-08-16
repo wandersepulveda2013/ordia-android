@@ -3577,6 +3577,58 @@ class NaturalTaskParserTest {
         assertEquals(null, result.dueAt)
     }
 
+    // --- "antes/después de la siesta" (ciclo 389) ---
+    // "siesta" es ancla post-almuerzo LATAM con hora canónica honesta (no IA):
+    // antes→ 13:30, después→ 15:30. Sin esto, "llamar después de la siesta" caía sin
+    // vencimiento → cita olvidada. Simétrica del resto de mealSleepAnchorPattern.
+
+    @Test fun despuesDeLaSiestaParsesEarlyAfternoonAndCleanTitle() {
+        val result = NaturalTaskParser.parse("Llamar después de la siesta", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun antesDeLaSiestaParsesEarlyAfternoon() {
+        val result = NaturalTaskParser.parse("Reunión antes de la siesta", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(13, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun despuesDeSiestaSinArticuloCasaIgual() {
+        val result = NaturalTaskParser.parse("Pasear después de siesta", now, zone)
+        assertEquals("Pasear", result.title)
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun siestaSoloNoEsCitaSinModificador() {
+        // "siesta" sin modificador no debe agendarse (es el evento, no una cita).
+        val result = NaturalTaskParser.parse("siesta", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
+    @Test fun antesDeSiestaPasadoHoySeRuedaAManana() {
+        // "antes de la siesta"=13:30; capturado a las 12:00 (aún no llega) → hoy mismo.
+        val result = NaturalTaskParser.parse("Reunión antes de la siesta", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(13, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun despuesDeSiestaCombinaConFechaRelativa() {
+        val result = NaturalTaskParser.parse("Llamar después de la siesta mañana", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun despuesDeSiestaInicioDelTextoCasaYRespetaTituloRestante() {
+        // "después de la siesta revisar email": el modificador abre el texto; el ancla se
+        // consume y queda "revisar email" como título.
+        val result = NaturalTaskParser.parse("después de la siesta revisar email", now, zone)
+        assertEquals("revisar email", result.title)
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // --- "a la una" (hora 1, femenino singular) (ciclo 94b/c) ---
     // La hora 1 se dice "a la una" (no "a las 1"). Antes no había patrón para esa
     // forma, así que "reunión a la una" caía sin dueAt y con "a la una" como residuo

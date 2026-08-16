@@ -1571,6 +1571,7 @@ object NaturalTaskParser {
      *   · merienda/merendar: antes→16:30, después→17:30
      *   · cena/cenar: antes→19:30, después→21:00
      *   · dormir/acostarse: antes→21:30 (no "después de dormir": no es idiomático)
+     *   · siesta: antes→13:30, después→15:30 (ritual post-almuerzo LATAM, hora canónica honesta)
      * "después de la cena" admite el artículo opcional; "antes del almuerzo" la contracción.
      * El modificador (antes/después) es obligatorio: "almuerzo" solo no es cita (es el evento),
      * no se agenda. Hora de respaldo: si hay hora explícita, ésta gana (igual que amanecer).
@@ -1581,7 +1582,7 @@ object NaturalTaskParser {
      * "merienda", "cena") son ambos idiomáticos ("después de comer"="después del almuerzo").
      */
     private val mealSleepAnchorPattern = Regex(
-        """(?i)\b(antes|despu[eé]s)\s+de(?:l)?\s+(?:la\s+)?(desayuno|desayunar|almuerzo|comer|comida|almorzar|merienda|merendar|cena|cenar|dormir|acostarse|acostar)\b"""
+        """(?i)\b(antes|despu[eé]s)\s+de(?:l)?\s+(?:la\s+)?(desayuno|desayunar|almuerzo|comer|comida|almorzar|merienda|merendar|cena|cenar|dormir|acostarse|acostar|siesta)\b"""
     )
     private val mealSleepAnchorTimes: Map<String, Map<String, LocalTime>> = mapOf(
         "desayuno" to mapOf("antes" to LocalTime.of(7, 30), "después" to LocalTime.of(9, 0)),
@@ -1596,7 +1597,8 @@ object NaturalTaskParser {
         "cenar" to mapOf("antes" to LocalTime.of(19, 30), "después" to LocalTime.of(21, 0)),
         "dormir" to mapOf("antes" to LocalTime.of(21, 30), "después" to LocalTime.of(23, 0)),
         "acostarse" to mapOf("antes" to LocalTime.of(21, 30), "después" to LocalTime.of(23, 0)),
-        "acostar" to mapOf("antes" to LocalTime.of(21, 30), "después" to LocalTime.of(23, 0))
+        "acostar" to mapOf("antes" to LocalTime.of(21, 30), "después" to LocalTime.of(23, 0)),
+        "siesta" to mapOf("antes" to LocalTime.of(13, 30), "después" to LocalTime.of(15, 30))
     )
 
     /**
