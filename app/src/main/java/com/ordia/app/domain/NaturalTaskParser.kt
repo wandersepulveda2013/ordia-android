@@ -955,6 +955,31 @@ object NaturalTaskParser {
     private val EN_PUNTO_SUFFIX = """(?:\s*en\s+punto)?"""
 
     /**
+     * Sufijo opcional NO capturante de modificador de aproximación post-hora:
+     * "más o menos", "aproximadamente", "y pico". Frases cotidianas que matizan una hora
+     * ya reconocida ("a las 9 más o menos", "a las nueve y pico", "reunión a las 3
+     * aproximadamente"). Antes NO se consumían: el patrón casaba la hora y dejaba el
+     * modificador como residuo del título ("reunión más o menos", "reunión y pico") — la
+     * cita se agendaba bien pero el título quedaba mutilado con basura (P2 captura/título
+     * limpio). Simétrico de [EN_PUNTO_SUFFIX].
+     *
+     * La hora se conserva en punto (sin desplazar): "a las 9 y pico" → 09:00 (la
+     * aproximación sub-hora no es modelable sin un campo de jitter; el valor útil es la
+     * hora base, igual que "a eso de las 9"). Mejor agendar 09:00 exacto con título limpio
+     * que dejar el modificador como residuo.
+     *
+     * "y pico" es posicional: va SIEMPRE tras la hora (nunca "pico" suelto al inicio),
+     * y su "y" NO casa como [CLOCK_FRACTION_Y] ("y media"/"y cuarto"/"y \d") porque
+     * "pico" no es fracción ni dígito, así que no roba ni colisiona. Se ubica DESPUÉS de
+     * [EN_PUNTO_SUFFIX] ("a las 9 en punto más o menos" es raro pero válido; el orden no
+     * afecta la resolución horaria).
+     *
+     * Estos modificadores son evidencia de reloj inequívoca (no hay "9 más o menos
+     * [personas]"): se cuentan en [hasClockEvidence] para el guard anti-cuenta (c.361).
+     */
+    private val APPROX_TIME_SUFFIX = """(?:\s*(?:m[aá]s\s+o\s+menos|aproximadamente|y\s+pico))?"""
+
+    /**
      * Resuelve la fracción sub-hora de un grupo de [timePatterns] en minutos (0..59).
      * Acepta la frase completa tal cual la captura el grupo ("y media", "menos cuarto",
      * "y tres cuartos", "y 20") o la palabra suelta ("media", "tres cuartos"); en el
@@ -1013,7 +1038,7 @@ object NaturalTaskParser {
         // de la fracción/meridiem (simétrico del reloj "HH:MMh pm" de c.235 y del
         // "a las N" de aquí): así "a la una horas y media" y "a la una h pm" consumen
         // el sufijo completo en vez de dejar fracción/meridiem como residuo en el título.
-        Regex("""(?i)\ba\s+la\s+(una)(?:(?::|h)([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX\b"""),
+        Regex("""(?i)\ba\s+la\s+(una)(?:(?::|h)([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
         // Sufijo opcional "(horas?|hs|h)" tras la hora para consumir "a las 9 horas"/
         // "a las 9h" completo: antes "horas" quedaba como residuo en el titulo y, peor,
         // "9 horas" era robado como duracion (540 min falsos). Es NO capturante (no
@@ -1036,7 +1061,7 @@ object NaturalTaskParser {
         // hora más común en español). Sin ella, el `\b` final no casa (entre "5" y "h"
         // no hay límite de palabra) → dueAt perdido + "a las 15h" como residuo. El `\b`
         // tras "h" deja intacta la "h" de "hola"/"hello". Simétrico al reloj "HH:MMh".
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX\b"""),
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
         // Hora de reloj autónoma "HH:MM [h/hs/horas] [am/pm]" en AMBOS órdenes. El sufijo
         // de unidad "h/hs/horas" puede ir ANTES ("3:30h pm") o DESPUÉS ("3:30 pm h") del
         // meridiem: se permite en las dos posiciones (no capturante) para absorberlo
@@ -1050,11 +1075,11 @@ object NaturalTaskParser {
         // preserva (1=hora, 2=minutos, 3=meridiem): los sufijos son NO capturantes.
         // Sufijo "h" solo permitido con ":" presente (este patrón); el "Nh" sin dos puntos
         // sigue siendo duración (ver [durationPatterns] + guard clockPreceding).
-        Regex("""(?i)\b([01]?\d|2[0-4]):([0-5]\d)(?:\s*(?:horas?|hs|h))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?(?:\s*(?:horas?|hs|h))?$EN_PUNTO_SUFFIX\b"""),
+        Regex("""(?i)\b([01]?\d|2[0-4]):([0-5]\d)(?:\s*(?:horas?|hs|h))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?(?:\s*(?:horas?|hs|h))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
         // "H[:MM] am/pm [h/hs/horas]" con sufijo de unidad en cualquier posición: "9am",
         // "9:30pm", "3:30h pm", "3 pm h". Requiere meridiem (hora 1-12). El sufijo se
         // absorbe antes/después del meridiem para que no quede como residuo en el título.
-        Regex("""(?i)\b(0?[1-9]|1[0-2])(?:(?::|h)([0-5]\d))?(?:\s*(?:horas?|hs|h))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)(?:\s*(?:horas?|hs|h))?$EN_PUNTO_SUFFIX\b"""),
+        Regex("""(?i)\b(0?[1-9]|1[0-2])(?:(?::|h)([0-5]\d))?(?:\s*(?:horas?|hs|h))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)(?:\s*(?:horas?|hs|h))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
         // "al mediodía"/"a la medianoche" (canónicas 12:00/00:00). Admite prefijo
         // demostrativo opcional ("al"/"a la"/"a") Y los modificadores cotidianos de
         // "a partir de esa hora": "pasada la medianoche"/"pasado el mediodía"/
@@ -1151,6 +1176,13 @@ object NaturalTaskParser {
         // "a eso de" es un adverbio temporal puro (sin uso de tema/cantidad), así que
         // admite hora en punto sin meridiem ("a eso de las 5"): es el caso más común.
         Regex("""(?i)\ba\s+eso\s+de\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
+        // "casi a las/la" es adverbio de aproximación temporal puro: "casi a las 9" =
+        // un poco antes de las 9. No admite lectura de cantidad ("casi a las 9 personas"
+        // no es gramatical), así que NO exige evidencia de reloj (igual que "a eso de").
+        // El match incluye "casi a " y se reescribe a "a " → "a las 9", reutilizando
+        // [timePatterns] (resolución + limpieza del título). Antes "casi a las 9" dejaba
+        // "casi" como residuo del título (cita bien fechada pero título mutilado, P2).
+        Regex("""(?i)\bcasi\s+a\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
         // "hacia/cerca de/alrededor de/sobre" admiten usos de tema ("sobre las ventas") y
         // de cantidad ("sobre las 3 cajas"), así que exigen evidencia de reloj INMEDIATA
         // tras la hora (minutos `:MM`, meridiem, parte del día, "horas/hs/h") para no
@@ -3075,6 +3107,7 @@ object NaturalTaskParser {
             // para"; aquí la hora en punto SÍ se admite salvo tras sustantivo plural.
             val hasClockEvidence = mv.contains(":") || mv.contains("h") || // :MM o sufijo horas/hs/h
                 mv.contains("en punto") || // "a las 9 en punto": evidencia de reloj inequívoca
+                mv.contains("más o menos") || mv.contains("mas o menos") || mv.contains("aproximadamente") || mv.contains("y pico") || // aproximación post-hora
                 match.groupValues.getOrNull(2)?.isNotBlank() == true || // :MM (grupo 2)
                 match.groupValues.getOrNull(3)?.let { it.lowercase().startsWith("y ") || it.lowercase().startsWith("menos ") } == true || // fracción
                 match.groupValues.getOrNull(4)?.isNotBlank() == true || // meridiem

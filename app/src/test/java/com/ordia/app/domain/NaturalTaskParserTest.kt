@@ -11587,4 +11587,93 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("reunión los días 15 y 30 del mes que viene", now, zone)
         assertEquals("reunión", result.title)
     }
+
+    // --- Sufijos de aproximación post-hora (ciclo 389) ---
+    // "a las 9 y pico" / "a las 9 más o menos" / "a las 9 aproximadamente" marcan la
+    // hora como aproximada en español. Antes el modificador NO se consumía: el patrón
+    // casaba "a las 9" y dejaba "y pico"/"más o menos"/"aproximadamente" como residuo
+    // del título ("reunión y pico") — la cita se agendaba pero el título quedaba
+    // mutilado. [APPROX_TIME_SUFFIX] los consume opcionalmente tras la hora (con word
+    // boundary final `\b` para no robar "y pico de todo") y cuentan como evidencia de
+    // reloj en [hasClockEvidence] para que el guard anti-cuenta no los trate como cuenta.
+
+    @Test fun aLas9YPicoLimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 y pico", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNueveYPicoLimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Reunión a las nueve y pico", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas9MasOMenosLimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 más o menos", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas9AproximadamenteLimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 aproximadamente", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas9AproximadamenteDeLaTardeLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("Cita a las 9 aproximadamente de la tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // "y pico" sin hora precedente NO debe generar cita (no hay hora base reconocida):
+    // el sufijo sólo consume tras un [timePattern] que ya casó la hora.
+    @Test fun informeYPicoDePaginasNoEsCita() {
+        val result = NaturalTaskParser.parse("Un informe y pico de páginas", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
+    @Test fun comprarAproximadamente3KilosNoEsCita() {
+        // "aproximadamente" modificando una cantidad, no una hora.
+        val result = NaturalTaskParser.parse("Comprar aproximadamente 3 kilos", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
+    // --- Prefijo "casi a las/la" (ciclo 389) ---
+    // "casi a las 9" = un poco antes de las 9. Es adverbio de aproximación temporal
+    // puro (no admite lectura de cantidad: "casi a las 9 personas" no es gramatical),
+    // así que NO exige evidencia de reloj (igual que "a eso de"). Antes dejaba "casi"
+    // como residuo del título ("reunión casi") pese a agendar la cita correctamente.
+
+    @Test fun casiALas9LimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Reunión casi a las 9", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun casiALasNueveLimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Reunión casi a las nueve", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun casiALaUnaLimpiaTituloYResuelve13h() {
+        val result = NaturalTaskParser.parse("Almuerzo casi a la una pm", now, zone)
+        assertEquals("Almuerzo", result.title)
+        assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // "casi a las 9 personas" (cuenta rara): el guard anti-cuenta sigue activo tras
+    // reescribir "casi a " → "a ", así que "a las 9 personas" se rechaza como cita.
+    @Test fun casiALas9PersonasNoEsCita() {
+        val result = NaturalTaskParser.parse("Casi a las 9 personas", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
+    // "casi" sin "a las/la" NO es hora: no debe robar el modificador en otros contextos.
+    @Test fun casiTerminoElInformeNoEsCita() {
+        val result = NaturalTaskParser.parse("Casi termino el informe", now, zone)
+        assertEquals(null, result.dueAt)
+    }
 }
