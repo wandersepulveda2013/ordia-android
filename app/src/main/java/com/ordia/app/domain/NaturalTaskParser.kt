@@ -806,6 +806,32 @@ object NaturalTaskParser {
         Regex("""(?i)\b(?:antes\s+del?\s+|de\s+aqu[íi]\s+al\s+|de\s+ac[aá]\s+al\s+|el\s+(?:d[ií]a\s+)?|d[ií]a\s+)([0-3]?\d)\s+del?\s+([01]?\d)(?![/-])(?:\s+del?\s+(\d{2,4}))?\b(?!\s+de\s+cada)""")
 
     /**
+     * Rango de días multi-evento ("vacaciones del 15 al 20 de diciembre",
+     * "viaje del 3 al 8 de enero", "curso del 10 al 14 de marzo del 2027").
+     * Antes NO se reconocía: `monthNamePattern` capturaba SOLO el día final
+     * ("20 de diciembre") y dejaba "del 15 al" como residuo pegado al título
+     * → "vacaciones del 15 al" (contenido mutilado, P1 captura/datos); en
+     * algunos casos el día final tampoco casaba y la cita caía a `dueAt=null`
+     * con título basura ("congreso del 20 al 25"). Vacaciones, viajes, cursos
+     * y ferias son captura cotidiana: el compromiso quedaba olvidado o
+     * irreconocible.
+     *
+     * Se normaliza al día FINAL (cierre del evento) reutilizando TODO el flujo
+     * `monthNamePattern` (roll de año, clamp de día, acoplamiento con hora,
+     * limpieza del título): "del 15 al 20 de diciembre" → "el 20 de diciembre".
+     * Exige nombre de mes explícito (validado) para no agendar rangos numéricos
+     * de contenido ("del 15 al 20 por ciento", "del 3 al 5 de unidades"):
+     * si el token no es un mes, se deja intacto. El día inicial se descarta a
+     * propósito: Ordía ancla el vencimiento al CIERRE del rango (último día),
+     * coherente con cómo ya resolvía el día final cuando lo capturaba parcial.
+     */
+    private val dayRangePattern = Regex(
+        """(?i)\b(?:del?\s+)?(\d{1,2})(?![/-])\s+al\s+(\d{1,2})(?![/-])""" +
+            """(?:\s+del?\s+((?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?))|""" +
+            """\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?)?\b"""
+    )
+
+    /**
      * Nombres de hora escritos en español (dos..veintiuno), ordenados de mayor a menor
      * longitud para que la alternación regex no se quede con un prefijo ("tres" dentro de
      * "trece"). Se excluye "un/una/uno" (la hora 1 se dice "a la una", con otro conector).
@@ -1573,6 +1599,26 @@ object NaturalTaskParser {
         // su dígito base para que los patrones de fecha (que exigen \d seguido de espacio)
         // los reconozcan. Solo en contexto de fecha (" de ") para no tocar contenido.
         working = ordinalSuffixPattern.replace(working) { m -> m.groupValues[1] + m.groupValues[2] }
+
+        // Rango de días multi-evento ("del 15 al 20 de diciembre") → "el 20 de diciembre":
+        // reutiliza TODO el flujo monthNamePattern (fecha + limpieza del título). Va ANTES
+        // que bareDayMonthPattern/monthNamePattern para que éstos vean sólo el día final
+        // y no dejen "del 15 al" como residuo. Exige mes válido o cualificador relativo
+        // ("del mes que viene"); si no, se deja intacto (no se inventan fechas de contenido).
+        working = dayRangePattern.replace(working) { m ->
+            val relQualifier = m.groupValues[3].trim()
+            val monthTok = m.groupValues[4].trim().lowercase()
+            when {
+                relQualifier.isNotEmpty() -> "el ${m.groupValues[2]} del $relQualifier"
+                monthTok.isNotEmpty() && monthTok in months -> {
+                    val endDay = m.groupValues[2]
+                    val year = m.groupValues[5].trim()
+                    if (year.isNotEmpty()) "el $endDay de $monthTok del $year"
+                    else "el $endDay de $monthTok"
+                }
+                else -> m.value
+            }
+        }
 
         // "<día> <mes>" sin conector "de" → "N de <mes>": reutiliza TODO el flujo
         // monthNamePattern (roll de año, clamp de día, acoplamiento con hora,
