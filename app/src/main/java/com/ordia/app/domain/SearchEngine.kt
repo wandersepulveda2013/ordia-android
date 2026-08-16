@@ -480,8 +480,14 @@ object SearchEngine {
     // consulta de "fin de semana". La simetría nuclear —"finde"/"fin de semana"→
     // próximo sábado estricto en captura Y búsqueda— es exacta.
     private val WEEKEND_TOKENS = setOf("finde")
+    // "fin de semana" / "final de semana" (variante regional latinoamericana,
+    // común en Colombia/Venezuela/Centroamérica, equivalente exacto de "fin de
+    // semana"). Simétrico al weekendPattern del parser de captura, para que buscar
+    // y capturar signifiquen lo mismo: una tarea capturada como "final de semana"
+    // (dueAt=sábado) se recupera buscando "final de semana".
+    private val WEEKEND_HEAD_TOKENS = setOf("fin", "final")
     private fun isWeekendQuery(words: List<String>): Boolean =
-        "finde" in words || ("fin" in words && "semana" in words)
+        "finde" in words || (WEEKEND_HEAD_TOKENS.any { it in words } && "semana" in words)
 
     private fun detectDateScope(words: List<String>): DateScope? = when {
         "sin" in words && UNDATED_HINTS.any { it in words } -> DateScope.UNDATED
@@ -531,7 +537,7 @@ object SearchEngine {
     }
 
     private fun dateScopeTokens(words: List<String>): Set<String> =
-        words.filter { it in OVERDUE_TOKENS || it in MISSED_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in MONTH_TOKENS || it in NEXT_MONTH_TOKENS || it in LAST_MONTH_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS || it in WEEKDAY_TOKENS || it in WEEKDAY_NEXT_MODIFIERS || it in WEEKEND_TOKENS || (isWeekendQuery(words) && (it == "fin" || it == "semana")) }.toSet()
+        words.filter { it in OVERDUE_TOKENS || it in MISSED_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in MONTH_TOKENS || it in NEXT_MONTH_TOKENS || it in LAST_MONTH_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS || it in WEEKDAY_TOKENS || it in WEEKDAY_NEXT_MODIFIERS || it in WEEKEND_TOKENS || (isWeekendQuery(words) && (it in WEEKEND_HEAD_TOKENS || it == "semana")) }.toSet()
 
     /**
      * Resuelve el día calendario objetivo de un scope WEEKDAY desde la consulta

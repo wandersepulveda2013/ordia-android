@@ -4866,6 +4866,50 @@ class NaturalTaskParserTest {
         assertEquals("6,7", result.recurrenceDays)
     }
 
+    // "final de semana" (singular) es la variante regional latinoamericana de "fin de
+    // semana" (común en Colombia/Venezuela/Centroamérica). Antes NO se reconocía: la
+    // tarea quedaba SIN fecha (dueAt=null) con "final de semana" pegado al título →
+    // tarea olvidada, invisible en What Now/búsqueda. P1: pérdida de fecha para una
+    // frase de captura cotidiana en el dialecto de la base de usuarios. Ahora resuelve
+    // idéntico a "fin de semana" (próximo sábado, hora canónica 09:00) y limpia el título.
+    // Simetría: cada variante de "este/el/próximo/suelto" debe comportarse igual que su
+    // equivalente con "fin".
+    @Test fun finalDeSemanaSueltoProgramaProximoSabadoYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pintar la valla final de semana", now, zone)
+        assertEquals("Pintar la valla", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun esteFinalDeSemanaProgramaProximoSabadoYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Comprar pan este final de semana", now, zone)
+        assertEquals("Comprar pan", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun elFinalDeSemanaRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Fiesta el final de semana a las 20:00", now, zone)
+        assertEquals("Fiesta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun proximoFinalDeSemanaProgramaProximoSabadoYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Viaje próximo final de semana", now, zone)
+        assertEquals("Viaje", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "cada final de semana" (variante regional + "cada") es hábito semanal sáb+dom,
+    // simétrico a "cada fin de semana". Antes caía a dueAt=null/NONE → tarea repetitiva
+    // olvidada. P1 en el dialecto regional.
+    @Test fun cadaFinalDeSemanaEsHabitoSemanalFinDeSemana() {
+        val result = NaturalTaskParser.parse("Estudiar cada final de semana", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
     // --- Fechas relativas en semanas/meses ---
     // "en una semana"/"en un mes" son de las formas más comunes en español y antes
     // quedaban SIN fecha (dueAt=null) → la tarea se olvidaba (sin recordatorio). now=2026-07-29.
@@ -6971,6 +7015,74 @@ class NaturalTaskParserTest {
         assertEquals("llamé", result.title)
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
         assertEquals(LocalTime.of(10, 15), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // --- Cuantificadores vagos en pasado ("un par de"/"unos"/"unas") ---
+    // Simétrica PASADA del lado futuro (vagueQuantitativeRelativePattern, c.242). Antes
+    // el agoPattern NO incluía "un par de|unos|unas" en su alternancia de cantidad:
+    // "hace unos minutos"/"hace unas horas"/"hace unos días" caían a dueAt=null → tarea
+    // vencida olvidada (P1 evitar olvidos); y "hace un par de horas" robaba solo "hace un"
+    // (→ -3 h heurística "un rato") dejando "par de horas" como residuo en el título
+    // (fecha errónea + título sucio). Ahora se resuelven como 2 unidades y la frase se
+    // consume completa para título limpio.
+    @Test fun haceUnParDeHorasResuelveDosHorasYPoneTituloLimpio() {
+        // 12:00 - 2 h = 10:00 mismo día. Título sin residuo "par de horas".
+        val result = NaturalTaskParser.parse("Llamé hace un par de horas", now, zone)
+        assertEquals("Llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haceUnParDeDiasResuelveDosDiasPasados() {
+        // 2026-07-29 - 2 días = 2026-07-27.
+        val result = NaturalTaskParser.parse("Pagué hace un par de días", now, zone)
+        assertEquals("Pagué", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun haceUnosMinutosResuelveDosMinutosPasados() {
+        // 12:00 - 2 min = 11:58 mismo día.
+        val result = NaturalTaskParser.parse("envié hace unos minutos", now, zone)
+        assertEquals("envié", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(11, 58), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haceUnasHorasResuelveDosHorasPasadas() {
+        // 12:00 - 2 h = 10:00 mismo día.
+        val result = NaturalTaskParser.parse("revisé hace unas horas", now, zone)
+        assertEquals("revisé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haceUnosDiasResuelveDosDiasPasados() {
+        // 2026-07-29 - 2 días = 2026-07-27.
+        val result = NaturalTaskParser.parse("completé hace unos días", now, zone)
+        assertEquals("completé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 27), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun haceUnasSemanasResuelveDosSemanasPasadas() {
+        // 2026-07-29 - 14 días = 2026-07-15.
+        val result = NaturalTaskParser.parse("envié hace unas semanas", now, zone)
+        assertEquals("envié", result.title)
+        assertEquals(LocalDate.of(2026, 7, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun haceUnParDeMesesResuelveDosMesesPasados() {
+        // 2026-07-29 - 2 meses (60 días) = 2026-05-30.
+        val result = NaturalTaskParser.parse("audité hace un par de meses", now, zone)
+        assertEquals("audité", result.title)
+        assertEquals(LocalDate.of(2026, 5, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun haceUnParDeHorasConHoraExplicitaRespetaHora() {
+        // La hora explícita se aplica sobre la fecha pasada (simetría con "hace 2 días a las 10").
+        val result = NaturalTaskParser.parse("Llamé hace un par de horas a las 9", now, zone)
+        assertEquals("Llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
     // Regresión: la familia FUTURA no debe romperse (simetría).
