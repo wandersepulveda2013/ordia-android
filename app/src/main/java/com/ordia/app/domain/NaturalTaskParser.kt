@@ -314,6 +314,58 @@ object NaturalTaskParser {
         """(?i)\bhace\s+(\d{1,3}|un\s+rato|poco|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|mes(?:es)?|a[nñ]os?)?\b"""
     )
     /**
+     * Fecha relativa PASADA fraccionaria + cuarto: "hace media hora y cuarto" (−45 min),
+     * "hace un cuarto de hora y cuarto" (−30). Simétrica PASADA de
+     * [fractionalAndQuarterRelativePattern] ("en media hora y cuarto" → +45). Antes estas
+     * formas caían a [fractionalDurationPattern], que robaba "media hora"/"cuarto de hora"
+     * como DURACIÓN (30/15 min) y dejaba "hace ... y cuarto" como residuo corrupto en el
+     * título, con `dueAt=null`: una tarea que el usuario registraba como "acaba de pasar"
+     * ("llamé hace media hora y cuarto") quedaba SIN vencimiento, invisible en What Now y
+     * sin recordatorio. Se procesa ANTES que [fractionalAgoPattern] y que [agoPattern]
+     * para robar la frase completa y resolver now − (base + 15) min. base = 30 si "media",
+     * 15 si "cuarto".
+     */
+    private val fractionalAndQuarterAgoPattern = Regex(
+        """(?i)\bhace\s+(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\s+y\s+cuarto\b"""
+    )
+    /**
+     * Fecha relativa PASADA fraccionaria sin dígitos: "hace media hora" (−30 min),
+     * "hace un cuarto de hora" (−15). Simétrica PASADA de [fractionalRelativePattern]
+     * ("en media hora" → +30). Antes estas formas NO casaban [agoPattern] (solo admite
+     * enteros/escritos, no "media"/"cuarto de hora") y caían a [fractionalDurationPattern],
+     * que robaba "media hora"/"cuarto de hora" como DURACIÓN (30/15 min) con `dueAt=null`:
+     * el usuario pedía un punto en el tiempo pasado ("llamé hace media hora") y obtenía una
+     * duración sin fecha → tarea SIN vencimiento, título corrupto ("llamé hace", "hace
+     * llamé") y la tarea vencida no aparecía en What Now como atrasada ni disparaba
+     * seguimiento. Con este patrón se resuelve como now − (30|15) min y se consume la frase
+     * completa (prefijo "hace" incluido) para que el título quede limpio. Se procesa ANTES
+     * que [agoPattern] para que este no robe parcialmente "hace un" (→ "un"=1, unidad
+     * vacía → −3 h) de "hace un cuarto de hora" y produzca una fecha errónea (−3 h en vez
+     * de −15 min), y antes que [fractionalDurationPattern] para que no la robe como
+     * duración. Exige el prefijo "hace" para no colisionar con la duración real ("reunión
+     * media hora" sin "hace" sigue siendo duración 30 min) ni con el futuro ("en media
+     * hora" lo captura [fractionalRelativePattern]) ni con el recordatorio ("media hora
+     * antes" lo captura [reminderPatterns]).
+     */
+    private val fractionalAgoPattern = Regex(
+        """(?i)\bhace\s+(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\b"""
+    )
+    /**
+     * Fecha relativa PASADA fraccionaria COMPUESTA: "hace una hora y media" (−90 min),
+     * "hace dos horas y media" (−150), "hace una hora y cuarto" (−75), "hace 3 horas y
+     * cuarto". Simétrica PASADA de [compoundFractionalRelativePattern] ("en una hora y
+     * media" → +90). Admite también cuartos en plural: "hace una hora y tres cuartos"
+     * (−105). Antes [agoPattern] robaba solo "hace una hora" (→ −60) y dejaba "y media"
+     * como residuo en el título ("hace una hora y media llamé" → título "y media llamé"),
+     * con la fracción (30 min) perdida y el vencimiento subestimado. Se procesa ANTES que
+     * [agoPattern] para robar la frase completa: now − (amount×60 + (45 si "tres cuartos"
+     * | 30 si "dos cuartos" o "media" | 15 si "cuarto")). La cantidad admite dígitos o
+     * número escrito (vía [writtenNumberGroup], igual que la familia futura).
+     */
+    private val compoundFractionalAgoPattern = Regex(
+        """(?i)\bhace\s+($writtenNumberGroup|\d{1,3})\s*horas?\s+y\s+(tres\s+cuartos|dos\s+cuartos|media|un\s+cuarto|cuarto)\b"""
+    )
+    /**
      * "la semana pasada" / "el mes pasado" / "el año pasado": período completo
      * anterior. El usuario registra una tarea vencida refiriéndose al período previo
      * ("revisé el informe la semana pasada"). Se resuelve a hoy−1 período (semana/mes/
@@ -1798,6 +1850,43 @@ object NaturalTaskParser {
         previousWeekdayMatch?.let { working = working.replaceRange(it.range, " ") }
         previousWeekdayReversedMatch?.let { working = working.replaceRange(it.range, " ") }
 
+        // Fecha relativa PASADA fraccionaria: "hace media hora"/"hace un cuarto de hora"
+        // (y compuestas "hace media hora y cuarto"/"hace una hora y media"). Simétrica
+        // PASADA de la familia [fractionalRelativePattern]/[compoundFractionalRelativePattern].
+        // Se procesa ANTES que [agoPattern] para que este no robe parcialmente "hace un" de
+        // "hace un cuarto de hora" (→ "un"=1, unidad vacía → −3 h erróneos) y ANTES que
+        // [fractionalDurationPattern] (que robaría "media hora" como DURACIÓN con dueAt=null,
+        // corrompiendo el título). Todas son sub-hora: resuelven un instante preciso now−N min
+        // (no medianoche), por lo que NO entran en relativeIsDays. Orden: compuesta > +cuarto
+        // > simple (match más largo gana, igual que la familia futura).
+        val compoundFractionalAgoMatch = compoundFractionalAgoPattern.find(working)
+        val compoundFractionalAgoDueAt = compoundFractionalAgoMatch?.let { match ->
+            val amount = parseWrittenNumber(match.groupValues[1]) ?: 0L
+            val frac = match.groupValues[2].lowercase()
+            val extra = when {
+                frac.startsWith("tres") -> 45L
+                frac.startsWith("dos") -> 30L
+                frac.startsWith("media") -> 30L
+                else -> 15L
+            }
+            now - (amount * 60 + extra) * 60_000L
+        }
+        compoundFractionalAgoMatch?.let { working = working.replaceRange(it.range, " ") }
+
+        val fractionalAndQuarterAgoMatch = fractionalAndQuarterAgoPattern.find(working)
+        val fractionalAndQuarterAgoDueAt = fractionalAndQuarterAgoMatch?.let { match ->
+            val base = if (match.groupValues[1].lowercase().contains("media")) 30L else 15L
+            now - (base + 15L) * 60_000L
+        }
+        fractionalAndQuarterAgoMatch?.let { working = working.replaceRange(it.range, " ") }
+
+        val fractionalAgoMatch = fractionalAgoPattern.find(working)
+        val fractionalAgoDueAt = fractionalAgoMatch?.let { match ->
+            val minutes = if (match.groupValues[1].lowercase().contains("media")) 30L else 15L
+            now - minutes * 60_000L
+        }
+        fractionalAgoMatch?.let { working = working.replaceRange(it.range, " ") }
+
         // "hace N días/semanas/...": fecha relativa PASADA. Se trata como días
         // relativos (epoch a medianoche) para combinarse con hora explícita
         // ("hace 2 días a las 10"). "hace un rato"/"hace poco" -> -3 h.
@@ -2216,7 +2305,12 @@ object NaturalTaskParser {
         // Fechas pasadas (ago/lastPeriod) tienen prioridad: son explícitas y no
         // deben sobrescribirse por una fecha futura ambigua. La hora explícita se
         // aplica sobre la fecha pasada (tarea vencida con hora).
+        // Las fraccionarias PASADAS ("hace media hora"/"hace una hora y media"/...) van
+        // PRIMERO: son sub-hora (instante preciso now−N min) y más específicas que el
+        // ago entero genérico; como se blanquean antes de [agoPattern], a lo sumo una de
+        // ellas y agoDueAt están activas a la vez, pero por seguridad se prefieren aquí.
         val effectiveRelativeDueAt =
+            compoundFractionalAgoDueAt ?: fractionalAndQuarterAgoDueAt ?: fractionalAgoDueAt ?:
             agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: vagueRelativeDueAt ?: nowDueAt ?:
             laterRelativeDueAt ?: fractionalAndQuarterRelativeDueAt ?: fractionalRelativeDueAt ?:
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
@@ -2240,6 +2334,9 @@ object NaturalTaskParser {
             (fractionalAndQuarterRelativeMatch == null) &&
             (compoundFractionalRelativeMatch == null) &&
             (multiQuarterRelativeMatch == null) &&
+            (fractionalAgoMatch == null) &&
+            (fractionalAndQuarterAgoMatch == null) &&
+            (compoundFractionalAgoMatch == null) &&
             (relativeMatch?.let { m ->
                 val unit = m.groupValues[2].lowercase()
                 !unit.startsWith("min") && !unit.startsWith("hora")

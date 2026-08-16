@@ -6752,6 +6752,101 @@ class NaturalTaskParserTest {
     // y caía a dueAt=null -> tarea olvidada. Ahora resuelve como "fin de semana" = sábado.
     // OJO: "fines de semana" (f-i-n-e-s) sigue siendo recurrencia semanal, no se toca.
 
+    // --- "hace media hora / un cuarto de hora" y fraccionarias PASADAS (c.362) ---
+    // Espejo de la familia futura ("en media hora"). Antes "hace media hora" caía a
+    // fractionalDurationPattern -> dueAt=null, durationMinutes=30 y residuo en el título
+    // ("hace media hora llamé" -> título "hace llamé"). El usuario registra una tarea
+    // vencida honesta y se quedaba SIN fecha + título corrupto (P1: recordatorio perdido).
+    // "hace un cuarto de hora" además casaba multiHourPattern y fechaba a -3 h en vez de
+    // -15 min (falso vencimiento). now=2026-07-29 (miércoles) 12:00.
+
+    @Test fun haceMediaHoraEsFechaPasadaYSinDuracion() {
+        // 12:00 - 30 min = 11:30 mismo día.
+        val result = NaturalTaskParser.parse("Llamé hace media hora", now, zone)
+        assertEquals("Llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(11, 30), DateRules.toLocalTime(result.dueAt, zone))
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun haceUnCuartoDeHoraEsFechaPasadaYSinDuracion() {
+        // 12:00 - 15 min = 11:45 mismo día.
+        val result = NaturalTaskParser.parse("Llamé hace un cuarto de hora", now, zone)
+        assertEquals("Llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(11, 45), DateRules.toLocalTime(result.dueAt, zone))
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun haceMediaHoraAlInicioDelTituloLimpiaSinResiduo() {
+        // "hace media hora llamé" -> "llamé" (no "hace llamé").
+        val result = NaturalTaskParser.parse("hace media hora llamé", now, zone)
+        assertEquals("llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(11, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // "hace una hora y media" = -(60 + 30) = -90 min. Antes [agoPattern] robaba solo
+    // "hace una hora" (-60) y "y media" quedaba en el título ("y media llamé"), agendando
+    // 30 min antes de lo pedido y ensuciando el título.
+    @Test fun haceUnaHoraYMediaEsFechaPasadaDeMenos90Min() {
+        // 12:00 - 90 min = 10:30 mismo día.
+        val result = NaturalTaskParser.parse("hace una hora y media llamé", now, zone)
+        assertEquals("llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 30), DateRules.toLocalTime(result.dueAt, zone))
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun haceUnaHoraYCuartoEsFechaPasadaDeMenos75Min() {
+        // 12:00 - 75 min = 10:45 mismo día.
+        val result = NaturalTaskParser.parse("hace una hora y cuarto llamé", now, zone)
+        assertEquals("llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 45), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haceMediaHoraYCuartoEsFechaPasadaDeMenos45Min() {
+        // 12:00 - 45 min = 11:15 mismo día. Antes "media hora" robaba +30 y "y cuarto"
+        // se perdía, dejando vencimiento a 11:30 (15 min antes de lo pedido).
+        val result = NaturalTaskParser.parse("hace media hora y cuarto llamé", now, zone)
+        assertEquals("llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(11, 15), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun hace2HorasYMediaEsFechaPasadaDeMenos150Min() {
+        // 12:00 - 150 min = 09:30 mismo día.
+        val result = NaturalTaskParser.parse("hace dos horas y media llamé", now, zone)
+        assertEquals("llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun hace3HorasYCuartoDigitosEsFechaPasadaDeMenos195Min() {
+        // 12:00 - 195 min = 08:45 mismo día.
+        val result = NaturalTaskParser.parse("hace 3 horas y cuarto llamé", now, zone)
+        assertEquals("llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(8, 45), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haceUnaHoraYTresCuartosEsFechaPasadaDeMenos105Min() {
+        // 12:00 - 105 min = 10:15 mismo día.
+        val result = NaturalTaskParser.parse("hace una hora y tres cuartos llamé", now, zone)
+        assertEquals("llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 15), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // Regresión: la familia FUTURA no debe romperse (simetría).
+    @Test fun enMediaHoraSigueSiendoFechaFutura() {
+        val result = NaturalTaskParser.parse("Llamar en media hora", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(12, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     @Test fun aFinalesDeSemanaProgramaProximoSabadoYLimpiaTitulo() {
         // hoy = miércoles 2026-07-29 -> sábado 2026-08-01, hora canónica 09:00.
         val result = NaturalTaskParser.parse("Enviar el informe a finales de semana", now, zone)
