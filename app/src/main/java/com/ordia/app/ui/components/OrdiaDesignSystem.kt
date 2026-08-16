@@ -554,3 +554,147 @@ fun InfoBanner(title: String, text: String, modifier: Modifier = Modifier) {
         }
     }
 }
+
+// --- ORDÍA MEGA EVOLUTION DESIGN SYSTEM COMPONENTS ---
+
+@Composable
+fun OrdiaButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        shape = MaterialTheme.shapes.medium,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ),
+        content = content
+    )
+}
+
+@Composable
+fun OrdiaOutlinedButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        content = content
+    )
+}
+
+@Composable
+fun OrdiaCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            modifier = modifier,
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            content = content
+        )
+    } else {
+        Card(
+            modifier = modifier,
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            content = content
+        )
+    }
+}
+
+@Composable
+fun OrdiaSurface(
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.surface,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        color = color,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        content = content
+    )
+}
+
+@Composable
+fun OrdiaDialog(
+    onDismissRequest: () -> Unit,
+    title: String,
+    text: String,
+    confirmButtonText: String,
+    onConfirm: () -> Unit,
+    dismissButtonText: String? = null,
+    onDismiss: (() -> Unit)? = null
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text(title, style = MaterialTheme.typography.titleLarge) },
+        text = { Text(text, style = MaterialTheme.typography.bodyLarge) },
+        confirmButton = {
+            OrdiaButton(onClick = onConfirm) {
+                Text(confirmButtonText)
+            }
+        },
+        dismissButton = if (dismissButtonText != null && onDismiss != null) {
+            {
+                OrdiaOutlinedButton(onClick = onDismiss) {
+                    Text(dismissButtonText)
+                }
+            }
+        } else null,
+        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
+    )
+}
+
+@Composable
+fun OrdiaInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    placeholder: String? = null,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
+    maxLines: Int = 1
+) {
+    val safeSingleLine = singleLine && minLines == 1 && maxLines == 1
+    androidx.compose.material3.OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.fillMaxWidth(),
+        label = if (label != null) { { Text(label) } } else null,
+        placeholder = if (placeholder != null) { { Text(placeholder) } } else null,
+        singleLine = safeSingleLine,
+        minLines = minLines,
+        maxLines = maxLines,
+        shape = MaterialTheme.shapes.medium,
+        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            focusedBorderColor = MaterialTheme.colorScheme.primary
+        )
+    )
+}

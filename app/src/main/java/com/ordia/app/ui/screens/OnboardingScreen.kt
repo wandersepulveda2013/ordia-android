@@ -2,6 +2,7 @@ package com.ordia.app.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,15 +22,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.PlayCircleOutline
 import androidx.compose.material.icons.automirrored.outlined.Notes
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,6 +45,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.preferences.InterfaceMode
+import com.ordia.app.ui.components.OrdiaButton
+import com.ordia.app.ui.components.OrdiaOutlinedButton
+import com.ordia.app.ui.components.OrdiaSurface
 import com.ordia.app.ui.theme.OrdiaAccent
 
 /**
@@ -69,8 +72,20 @@ fun OnboardingScreen(
             .padding(horizontal = 24.dp, vertical = 20.dp),
         contentAlignment = Alignment.TopCenter
     ) {
+        // Option to skip onboarding
+        if (page < 4) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopEnd) {
+                Text(
+                    stringResource(R.string.onboarding_skip),
+                    modifier = Modifier.clickable { onFinish() }.padding(8.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
         Column(
-            Modifier.fillMaxWidth().widthIn(max = 520.dp),
+            Modifier.fillMaxWidth().widthIn(max = 520.dp).padding(top = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
@@ -84,7 +99,9 @@ fun OnboardingScreen(
                 when (page) {
                     0 -> stringResource(R.string.app_tagline)
                     1 -> stringResource(R.string.onboarding_page1_title)
-                    else -> stringResource(R.string.onboarding_page2_title)
+                    2 -> stringResource(R.string.onboarding_page2_title)
+                    3 -> stringResource(R.string.onboarding_page3_title)
+                    else -> stringResource(R.string.onboarding_page4_title)
                 },
                 style = MaterialTheme.typography.headlineLarge,
                 textAlign = TextAlign.Center
@@ -93,7 +110,9 @@ fun OnboardingScreen(
                 when (page) {
                     0 -> stringResource(R.string.onboarding_page0_body)
                     1 -> stringResource(R.string.onboarding_page1_body)
-                    else -> stringResource(R.string.onboarding_page2_body)
+                    2 -> stringResource(R.string.onboarding_page2_body)
+                    3 -> stringResource(R.string.onboarding_page3_body)
+                    else -> stringResource(R.string.onboarding_page4_body)
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -118,7 +137,7 @@ fun OnboardingScreen(
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                repeat(3) { index ->
+                repeat(5) { index ->
                     Box(
                         Modifier
                             .size(if (index == page) 9.dp else 7.dp)
@@ -131,22 +150,22 @@ fun OnboardingScreen(
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                 if (page > 0) {
-                    OutlinedButton(
+                    OrdiaOutlinedButton(
                         onClick = { page-- },
                         enabled = !finishing,
                         modifier = Modifier.weight(1f)
                     ) { Text(stringResource(R.string.onboarding_back)) }
                     Spacer(Modifier.width(10.dp))
                 }
-                Button(
+                OrdiaButton(
                     onClick = {
-                        if (page < 2) page++ else if (!finishing) onFinish()
+                        if (page < 4) page++ else if (!finishing) onFinish()
                     },
                     enabled = !finishing,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        if (page < 2) stringResource(R.string.onboarding_continue)
+                        if (page < 4) stringResource(R.string.onboarding_continue)
                         else stringResource(R.string.onboarding_enter)
                     )
                 }
@@ -161,16 +180,16 @@ private fun OnboardingArtwork(page: Int) {
     val icon = when (page) {
         0 -> Icons.Outlined.Inbox
         1 -> Icons.Outlined.AutoAwesome
-        else -> Icons.Outlined.Lock
+        2 -> Icons.Outlined.Lock
+        3 -> Icons.Outlined.PlayCircleOutline
+        else -> Icons.Outlined.Edit
     }
-    Surface(
+    OrdiaSurface(
         modifier = Modifier.fillMaxWidth().height(210.dp),
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        color = MaterialTheme.colorScheme.surface
     ) {
         Box(Modifier.fillMaxSize().padding(22.dp), contentAlignment = Alignment.Center) {
-            Surface(shape = CircleShape, color = OrdiaAccent.copy(alpha = 0.09f)) {
+            androidx.compose.material3.Surface(shape = CircleShape, color = OrdiaAccent.copy(alpha = 0.09f)) {
                 Icon(
                     icon,
                     contentDescription = null,
@@ -200,7 +219,7 @@ private fun OnboardingArtwork(page: Int) {
 
 @Composable
 private fun MiniIllustrationCard(icon: ImageVector, modifier: Modifier = Modifier) {
-    Surface(
+    androidx.compose.material3.Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainerLow,

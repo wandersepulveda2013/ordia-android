@@ -50,6 +50,11 @@
     <string name="onboarding_page0_body">Captura tareas, notas, enlaces y mensajes en segundos. Ordía los organiza sin obligarte a llenar formularios.</string>
     <string name="onboarding_page1_body">Elige cuánta estructura quieres ver. La potencia interna es la misma y puedes cambiar esta decisión después.</string>
     <string name="onboarding_page2_body">Las funciones esenciales trabajan sin conexión. Conversaciones, teclado y automatizaciones sensibles permanecen desactivados hasta que tú los autorices.</string>
+    <string name="onboarding_page3_title">Movimiento con propósito</string>
+    <string name="onboarding_page3_body">Pequeñas animaciones te ayudan a entender qué sucede en el sistema sin interrumpirte.</string>
+    <string name="onboarding_page4_title">Empieza escribiendo</string>
+    <string name="onboarding_page4_body">Cualquier idea, nota o tarea puede nacer desde el teclado. Ordía interpretará el resto.</string>
+    <string name="onboarding_skip">Saltar</string>
     <string name="onboarding_mode_simple">Simple · Tareas, notas y calendario</string>
     <string name="onboarding_mode_organized">Organizado · Proyectos, hábitos y planificación</string>
     <string name="onboarding_mode_advanced">Avanzado · Etiquetas, vistas y controles adicionales</string>
