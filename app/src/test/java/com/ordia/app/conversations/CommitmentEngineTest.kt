@@ -1414,4 +1414,90 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.330: PASADO de obligación pendiente — "me quedó pendiente el pago",
+    // "me quedó por enviar el reporte". El usuario describe una deuda YA
+    // contraída en pretérito, no solo futura. c.329 cubría presente "me
+    // queda/quedan" pero NO "me quedó/quedaron" (olvido de deuda histórica).
+    // Probe JVM pre-fix: 2/2 MISSED. Post-fix: 2/2 DETECT SELF_COMMITMENT/SELF.
+    @Test
+    fun detectsPendingObligationPastTense() {
+        val positives = listOf(
+            "me quedó pendiente el pago",
+            "me quedó pendiente confirmar la hora",
+            "me quedó por enviar el reporte",
+            "me quedaron pendientes dos facturas"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "pend-past-$text"
+            )
+            assertTrue("obligación pendiente en pasado DEBE detectarse: \"$text\"", result.isNotEmpty())
+            assertEquals("la deuda pasada es DEL usuario: \"$text\"", CommitmentOwner.SELF, result[0].owner)
+            assertEquals("debe ser SELF_COMMITMENT: \"$text\"", CommitmentKind.SELF_COMMITMENT, result[0].kind)
+        }
+    }
+
+    // c.330: "me falta por confirmar la hora" / "me queda por hacer la
+    // entrega" — giro cotidiano de obligación pendiente con "falta/queda por" +
+    // infinitivo. c.329 cubría "tengo por" + infinitivo pero NO las formas con
+    // "falta/queda por". Probe JVM pre-fix: 2/2 MISSED. Post-fix: 2/2 DETECT.
+    @Test
+    fun detectsFaltaQuedaPorInfinitiveObligation() {
+        val positives = listOf(
+            "me falta por confirmar la hora",
+            "me falta por enviar el reporte",
+            "me queda por hacer la entrega",
+            "me queda por revisar el contrato"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "pend-por-$text"
+            )
+            assertTrue("\"$text\" DEBE detectarse (falta/queda por + infinitivo)", result.isNotEmpty())
+            assertEquals("la deuda es DEL usuario: \"$text\"", CommitmentOwner.SELF, result[0].owner)
+            assertEquals("debe ser SELF_COMMITMENT: \"$text\"", CommitmentKind.SELF_COMMITMENT, result[0].kind)
+        }
+    }
+
+    // c.330: las nuevas formas en pasado respetan la negación igual que c.329.
+    // "no me quedó pendiente nada" / "ya no me falta por enviar nada" son
+    // AUSENCIA de obligación. La guarda hasUnnegatedPendingObligation las
+    // excluye (reusa precedingNegation). Probe JVM: 2/2 excluidas.
+    @Test
+    fun pendingObligationPastTenseRespectsNegation() {
+        val negatives = listOf(
+            "no me quedó pendiente nada",
+            "ya no me falta por confirmar nada",
+            "no me falta por enviar nada"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "neg-pend-past-$text"
+            )
+            assertTrue("\"$text\" NO debe generar draft (negación de obligación pasada)", result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF })
+        }
+    }
+
+    // c.330: al añadir el pretérito "quedó" al patrón, se evita que la forma
+    // INDEPENDIENTE "quedó pendiente" (3ª persona, sin pronombre reflexivo)
+    // genere un draft anclado a SELF — sería un falso positivo de enrutado.
+    // Solo la forma con pronombre "me/te/le... quedó pendiente" casa; "quedó
+    // pendiente de llamarme" (3ª persona) NO debe ir a SELF. Probe JVM: 1/1
+    // excluido de SELF (no genera draft SELF_COMMITMENT/SELF).
+    @Test
+    fun thirdPersonQuedoPendienteNotAnchoredToSelf() {
+        val result = CommitmentEngine.extract(
+            listOf(ChatMessage("Yo", "quedó pendiente de llamarme")),
+            selfParticipant = "Yo",
+            scopeHash = "3p-quedo"
+        )
+        assertTrue("\"quedó pendiente de llamarme\" (3ª persona) NO debe anclarse a SELF", result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF })
+    }
+
 }

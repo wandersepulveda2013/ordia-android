@@ -159,14 +159,28 @@ object CommitmentEngine {
     //      comunes ("lugar", "azúcar", "hogar") → falsos positivos. La lista
     //      cubre los verbos de gestión/seguimiento más cotidianos.
     //
+    //  (4) [c.330] Pasado: "me quedó/quedaron pendiente(s)" — el usuario
+    //      describe una deuda CONTRAÍDA en pasado ("me quedó pendiente el pago",
+    //      "me quedó por enviar el reporte"). "quedó" es pretérito de "queda";
+    //      sin él, el compromiso histórico quedaba sin capturar (olvido de
+    //      deuda ya abierta, no solo futura).
+    //  (5) [c.330] "me/te/le/nos/les falta(n)/queda(n) por" + infinitivo: giro
+    //      de obligación pendiente cotidiano ("me falta por confirmar la hora",
+    //      "me queda por hacer la entrega"). El "por" + infinitivo es
+    //      inequívoco (igual que "tengo por" de c.329); reusa la misma lista
+    //      curada de verbos de acción. Antes solo "tengo por" + infinitivo se
+    //      detectaba, no las formas con "falta/queda por".
+    //
     // La guarda de negación [hasUnnegatedCommitment] sigue aplicándose: "no
     // tengo nada pendiente", "ya no me queda pendiente nada" se excluyen igual
     // que "no tengo que" / "no me encargo". Nace como draft SELF_COMMITMENT
     // PENDING revisable: un falso positivo se descarta, un falso negativo es
     // una obligación olvidada (área "evitar olvidos" + "detección de
     // compromisos").
+    private val pendingActionInfinitives =
+        "enviar|confirmar|revisar|llamar|mandar|pagar|firmar|responder|hacer|terminar|entregar|preparar|subir|dejar|pasar|arreglar|completar|agendar|programar|contactar|avisar|recordar|cobrar|facturar"
     private val pendingObligationSignal = Regex(
-        """(?i)\b(?:(?:tengo|tienes|tenemos)\s+pendientes?\b|(?:me|te|le|nos|les)\s+quedan?\s+pendientes?\b|qued[ao]\s+pendiente\b|(?:tengo|tienes|tenemos)\s+por\s+(?:enviar|revisar|llamar|mandar|pagar|firmar|responder|hacer|terminar|entregar|preparar|subir|dejar|pasar|arreglar|completar|agendar|programar|contactar|avisar|recordar|cobrar|facturar)\b|(?:me|te|le|nos|les)\s+faltan?\s+(?:enviar|confirmar|revisar|llamar|mandar|pagar|firmar|responder|hacer|terminar|entregar|preparar|subir|dejar|pasar|arreglar|completar|agendar|programar|contactar|avisar|recordar|cobrar|facturar)\b)\b"""
+        """(?i)\b(?:(?:tengo|tienes|tenemos)\s+pendientes?\b|(?:me|te|le|nos|les)\s+qued(?:an?|o|ó|aron)\s+pendientes?\b|qued[ao]\s+pendiente\b|(?:tengo|tienes|tenemos)\s+por\s+(?:$pendingActionInfinitives)\b|(?:me|te|le|nos|les)\s+faltan?\s+(?:$pendingActionInfinitives)\b|(?:me|te|le|nos|les)\s+(?:faltan?|qued(?:an?|o|ó|aron))\s+por\s+(?:$pendingActionInfinitives)\b)\b"""
     )
     // c.316: auto-promesas de seguimiento en presente de 1ª persona con objeto
     // "te" — "te aviso cuando llegue", "te confirmo mas tarde", "te aviso el
