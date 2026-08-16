@@ -9,16 +9,24 @@
 
 | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|----------|--------|
-| P2 | UI | `Icons.Outlined.InsertDriveFile` deprecado; usar `Icons.AutoMirrored.Outlined.InsertDriveFile` | warning de compilación en `TaskDetailScreen` | OPEN |
-| P2 | i18n | Revisar coherencia de cadenas nuevas (command_palette, feedback, floating_capture, android_access) | inspección manual pendiente | OPEN |
-| P2 | QA | Verificar que las 6 variantes (Safe/Full/Advanced × debug/release) compilan tras cambios | `./gradlew test` | OPEN |
 | P2 | Backup | Comprobar restauración con manifiesto corrupto (escenario adverso) | revisión de `RestoreData` | OPEN |
 | P3 | UX | Pulido visual de pantallas renovadas del workspace | capturas tras sesión | OPEN |
+| P3 | QA | Lint: 115 warnings no bloqueantes (UseKtx 42, PluralsCandidate 31, GradleDependency 7, ModifierParameter 7…) | `lint-results-previewSafeDebug.xml` | OPEN |
 
 ## Completados
 
 | PRIORIDAD | ÁREA | PROBLEMA | EVIDENCIA | ESTADO |
 |-----------|------|----------|----------|--------|
+| P0 | What Now | Explicar por qué se sugiere cada tarea en "Qué hago ahora" | `WhatNowSuggestion.detail` + `WhatNowEngineTest` | FIXED |
+| P0 | Priorización | Priorizador duplicado entre `DayPlanner` y `WhatNowEngine` | `TaskRules.schedulingComparator` único + tests | FIXED |
+| P0 | Guardianes | `guardianInsight` se computaba pero no se mostraba en ninguna UI | card dismissible en Today + `GuardianCoachTest` | FIXED |
+| P0 | Unificación | Notas y tareas no convertibles entre sí | `NoteTaskConverter` + UI en TaskDetail/NoteEditor + tests | FIXED |
+| P0 | Integridad | Borrar tarea padre podía dejar subtareas huérfanas | `TaskDao.delete` transaccional con `TaskTree.collectIds` + `TaskTreeTest` | FIXED |
+| P0 | Integridad | `ConversationDao` no tenía borrado atómico de datos completos | `clearAll()` `@Transaction` + test de cobertura | FIXED |
+| P0 | Integridad | Consultas repetidas sin índices (log de automatización, capturas, notas) | migración Room v8 + 3 índices + esquema exportado | FIXED |
 | P1 | Privacy | Fragmentos de paquete sin punto (banca genérica) no se filtraban | `ContextPrivacyFilterTest` | FIXED |
 | P1 | Capture | `StartActivityAndCollapseDeprecated` en tile de Quick Settings | lint | FIXED |
 | P1 | UI | `stringResource` fuera del ámbito composable en `TaskDetailScreen` | lint | FIXED |
+| P2 | UI | `Icons.Outlined.InsertDriveFile` (y ArrowForward/ArrowBack/Send/FormatListBulleted) deprecados | warnings de compilación → AutoMirrored | FIXED |
+| P2 | i18n | 65 cadenas sin ninguna referencia en Kotlin/XML/variantes/tests | análisis automático → poda de 58 strings + 7 plurals verificados en uso vía `R.plurals.*` | FIXED |
+| P2 | QA | Verificar que las 6 variantes (Safe/Full/Advanced × debug/release) compilan tras cambios | `assemble` ×6 → 6 APK generados | FIXED |

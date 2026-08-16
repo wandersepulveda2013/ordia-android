@@ -167,3 +167,59 @@
 - (pendiente) docs(autonomy): memoria de la sesión 002 (este commit)
 
 ---
+
+## SESIÓN 003 — Mega-evolución integral de Ordía (fases 1-7)
+
+- **Fecha (UTC)**: 2026-08-15
+- **Trigger**: plan `docs/MEGAACTUALIZACION_ORDIA_2026.md` — menos UI con más potencia interna
+- **Resultado**: ÉXITO
+
+### Qué se hizo
+
+1. **Fase 1 (commit `cc4c115`)** — navegación a 3 primitivas (Hoy/Buscar/Más) con FAB único de captura.
+2. **Fase 2 (commit `417ee33`)** — captura universal en Hoy: detecta eventos sin confundirlos con tareas; parser natural más robusto.
+3. **Fase 3 (commit `833a50f`)** — What Now explicable:
+   - `TaskRules.priorityScore` pública + `TaskRules.schedulingComparator(now)` (fuente única; DayPlanner reutiliza, eliminado `priorityScore` privado).
+   - `WhatNowSuggestion.detail` dinámico en español (en curso / atrasada "desde hoy/N días/más de una semana" / "vence hoy a las HH:MM" / urgente / alta prioridad / bandeja / programada).
+   - Eliminado `CompactAction` "Qué hago ahora"; card What Now sin sugerencia abre la Bandeja.
+   - Tests: `TaskRulesTest` +3, `WhatNowEngineTest` +3 (corregido un tie-break que asumía estabilidad).
+4. **Fase 4 (commit `c482ef8`)** — Guardianes 2.0: el insight (antes computado y no mostrado) ahora es card dismissible en Hoy con dedup por clave estable `eyebrow|taskId|title`, colores por tono, fallback "TODO EN CALMA" sin tarjeta. Tests `GuardianCoachTest` +2.
+5. **Fase 5 (commit `2d95e0c`)** — Unificación nota↔tarea: `NoteTaskConverter` (archiva la fuente, conserva título/detalle/proyecto), botones "Convertir en tarea"/"Convertir en nota" en NoteEditor/TaskDetail, navegación cableada. `NoteTaskConverterTest` (5) verde.
+6. **Fase 6 (commits `0a37d4b` + `1585bf3`)** — Integridad de datos:
+   - `TaskDao.delete` transaccional con subárbol (`TaskTree.collectIds`, BFS tolerante a ciclos; `TaskTreeTest` +3).
+   - `ConversationDao.clearAll()` `@Transaction` (commitments + conversations).
+   - Migración Room 7→8 con 3 índices; `app/schemas/.../8.json` exportado y versionado (v2..v8).
+7. **Fase 7 (commit `9e594a3`)** — Consolidación y poda:
+   - Iconos AutoMirrored (ArrowForward/ArrowBack/InsertDriveFile/Send/FormatListBulleted).
+   - Poda de 65 candidatas a muertas: análisis automático de `R.string.*`/`R.plurals.*`/`@string`/XML res/manifest/variantes/tests. 58 `<string>` eliminadas; 7 `<plurals>` detectadas como EN USO vía `R.plurals.*` y restauradas. 0 sin uso residual.
+
+### Verificación
+
+- `:app:testPreviewSafeDebugUnitTest` → suite completa verde.
+- Matriz 6 variantes (`assemble` Safe/Full/Advanced × debug/release) → 6 APK generados (release unsigned por falta de keystore local).
+- `lintPreviewSafeDebug` → BUILD SUCCESSFUL (115 warnings + 1 info; 0 errores). Los 4 `UnusedResources` son falsos positivos cross-variante (IME/notificaciones/update_paths usados por otros flavors).
+
+### Problemas encontrados
+
+- La poda inicial eliminó 7 `<plurals>` que SÍ se usan vía `R.plurals.*` (el análisis solo miraba `R.string.`); compilación falló (`Unresolved reference 'plurals'`), los 7 se restauraron y el análisis final incluyó `R.plurals.*` → 0 muertas.
+- `assemble` ×6 en un solo comando excedía el timeout del runner; el daemon Gradle huérfano terminó los 6 APK en segundo plano. Verificado con `git`/`Get-ChildItem` sobre `app/build/outputs/apk`.
+
+### Commits creados
+
+- `cc4c115` refactor(nav): simplify to three primitives Hoy/Buscar/Mas con FAB unico
+- `417ee33` feat(capture): captura universal detecta eventos y parser natural mas robusto
+- `833a50f` feat(whatnow): priorizacion unificada y explicacion dinamica de sugerencias
+- `c482ef8` feat(guardian): card de insight en Hoy descartable con dedup por clave estable
+- `2d95e0c` feat(unify): conversion reversible nota<->tarea conservando titulo, detalle y proyecto
+- `0a37d4b` fix(integrity): delete de tarea borra subarbol, clearAll atomico e indices en v8
+- `1585bf3` chore(schema): exporta esquema Room v8 con los indices nuevos
+- `9e594a3` refactor(cleanup): iconos AutoMirrored y poda de 58 cadenas muertas
+
+### Evidencia
+
+- `git log --oneline -12` → 8 commits de la mega-evolución sobre `jules/autonomous-ordia` (HEAD `9e594a3`).
+- APK en `app/build/outputs/apk/{previewSafe,previewFull,previewAdvanced}/{debug,release}` (6).
+- `app/build/reports/lint-results-previewSafeDebug.{html,xml}`.
+- Esquema `app/schemas/com.ordia.app.data.local.OrdiaDatabase/8.json` versionado.
+
+---
