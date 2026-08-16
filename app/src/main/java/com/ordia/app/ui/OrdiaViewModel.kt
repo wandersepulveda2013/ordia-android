@@ -116,6 +116,7 @@ sealed interface UiEvent {
     /** Automatización aplicada; la UI ofrece deshacer con [AutomationApplied.logId]. */
     data class AutomationApplied(val logId: Long, val message: String) : UiEvent
     data class Archived(val kind: String, val id: Long, val message: String) : UiEvent
+    data class Cancelled(val id: Long, val message: String) : UiEvent
 }
 
 /**
@@ -612,6 +613,52 @@ class OrdiaViewModel(
             taskRepository.archive(task.id)
             updateWidget()
             _events.emit(UiEvent.Archived("task", task.id, appContext.getString(R.string.task_archived)))
+        }
+    }
+
+    /**
+     * Descarta una tarea sin borrarla y sin contarla como logro: pasa a
+     * `status=CANCELLED`, que [TaskRules.isActive] excluye de todas las superficies
+     * activas. Diferencia clave frente a [deleteTask] (archivo/borrado) y
+     * [toggleTask] (completar = logro): cancelar significa "esta tarea ya no
+     * aplica" (p. ej. una cita que se suspendió, una idea descartada). No genera
+     * próxima ocurrencia (no es un cumplimiento). El manejo jerárquico reutiliza
+     * [SubtaskRules]: una subtarea cancelada cuenta como resuelta, así que el
+     * padre se autocompleta si era la última pendiente.
+     */
+    fun cancelTask(task: TaskEntity) {
+        viewModelScope.launch {
+            TaskMutationGate.mutex.withLock {
+                val current = taskRepository.get(task.id) ?: return@withLock
+                val now = System.currentTimeMillis()
+                taskRepository.update(TaskRules.cancelTask(current, now))
+                reminderScheduler.cancel(current.id)
+                // Cascade: descartar un padre descarta también su desglose PENDIENTE
+                // (simétrico a [deleteTask], que archiva el subárbol). Las subtareas ya
+                // COMPLETADAS se respetan (no se muta trabajo hecho: cancelar no deshace
+                // logros). Sólo se cancelan las activas, desarmando su recordatorio.
+                taskRepository.subtreeIds(current.id)
+                    .filter { it != current.id }
+                    .forEach { descId ->
+                        val desc = taskRepository.get(descId) ?: return@forEach
+                        if (TaskRules.isActive(desc)) {
+                            taskRepository.update(TaskRules.cancelTask(desc, now))
+                            reminderScheduler.cancel(descId)
+                        }
+                    }
+                // Cierre jerárquico ascendente: si la cancelada era la última
+                // subtarea pendiente, el padre se autocompleta (una cancelada cuenta
+                // como resuelta, igual que una completada).
+                current.parentTaskId?.let { parentId ->
+                    val parent = taskRepository.get(parentId)
+                    val siblings = taskRepository.subtasks(parentId)
+                    if (parent != null && SubtaskRules.shouldAutoCompleteParent(parent, siblings)) {
+                        completeParentAutomatically(parent, now)
+                    }
+                }
+            }
+            updateWidget()
+            _events.emit(UiEvent.Cancelled(task.id, appContext.getString(R.string.task_cancelled)))
         }
     }
 

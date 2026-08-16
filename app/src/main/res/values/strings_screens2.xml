@@ -58,6 +58,7 @@
     <string name="task_detail_no_project">Sin proyecto</string>
     <string name="task_detail_mark_pending">Marcar pendiente</string>
     <string name="task_detail_complete">Completar tarea</string>
+    <string name="task_detail_discard">Descartar</string>
     <string name="task_detail_steps">Pasos</string>
     <string name="task_detail_add_subtask">Añadir subtarea</string>
     <string name="task_detail_no_subtasks">Divide la tarea en pasos pequeños cuando lo necesites.</string>

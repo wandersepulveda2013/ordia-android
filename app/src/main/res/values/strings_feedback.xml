@@ -2,6 +2,7 @@
 <resources>
     <string name="archive_undo_action">Deshacer</string>
     <string name="task_archived">Tarea movida al archivo.</string>
+    <string name="task_cancelled">Tarea descartada (no cuenta como logro).</string>
     <string name="project_archived">Proyecto movido al archivo.</string>
     <string name="note_archived">Nota movida al archivo.</string>
     <string name="habit_archived">Hábito movido al archivo.</string>

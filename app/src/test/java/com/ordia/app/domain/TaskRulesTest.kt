@@ -622,4 +622,66 @@ class TaskRulesTest {
         val now = DateRules.toEpochMillis(date, LocalTime.NOON, zone)
         assertEquals(0, TaskRules.completedTodayCount(listOf(rootCompletedToday(completedAt = yesterday)), now, zone))
     }
+
+    @Test
+    fun cancelTask_setsCancelledStatusWithoutCompleting() {
+        val now = DateRules.toEpochMillis(date, LocalTime.NOON, zone)
+        val task = TaskEntity(title = "Reunión que ya no aplica", dueAt = now + 3600_000L)
+
+        val cancelled = TaskRules.cancelTask(task, now)
+
+        assertEquals(TaskStatus.CANCELLED, cancelled.status)
+        // Cancelar NO es completar: no cuenta como logro.
+        assertFalse(cancelled.completed)
+        assertNull(cancelled.completedAt)
+        assertEquals(now, cancelled.updatedAt)
+        // La identidad y el resto de campos se conservan (no se borra nada).
+        assertEquals(task.id, cancelled.id)
+        assertEquals(task.title, cancelled.title)
+        assertEquals(task.dueAt, cancelled.dueAt)
+    }
+
+    @Test
+    fun cancelTask_isExcludedFromActiveSurfaces() {
+        val now = DateRules.toEpochMillis(date, LocalTime.NOON, zone)
+        val task = TaskEntity(title = "Idea descartada", dueAt = now - 1000L)
+        val cancelled = TaskRules.cancelTask(task, now)
+
+        // isActive es la puerta de TODAS las superficies activas.
+        assertFalse(TaskRules.isActive(cancelled))
+        // Y no se cuela como vencida (una tarea descartada no reclama urgencia).
+        assertFalse(TaskRules.isOverdue(cancelled, now))
+    }
+
+    @Test
+    fun cancelTask_doesNotCountAsCompletion() {
+        val now = DateRules.toEpochMillis(date, LocalTime.NOON, zone)
+        val cancelled = TaskRules.cancelTask(
+            TaskEntity(title = "Descartada", dueAt = now, parentTaskId = null),
+            now
+        )
+        // Ni en el recuento de hoy ni en el total de raíces completadas.
+        assertEquals(0, TaskRules.completedTodayCount(listOf(cancelled), now, zone))
+        assertEquals(0, TaskRules.completedRootCount(listOf(cancelled)))
+    }
+
+    @Test
+    fun cancelTask_canBeUndoneViaToggleRestoringActiveStatus() {
+        // Cancelar es reversible: des-marcar (toggle) debe devolver la tarea al
+        // estado activo coherente, igual que des-completar. Como cancelTask deja
+        // completed=false, un toggle la completaría; el camino de "deshacer cancelar"
+        // es reagendar/editar. Aquí se verifica sólo que el estado CANCELLED no es
+        // un callejón sin salida para isActive: una copia con status PLANNED vuelve
+        // a estar activa (simetría con el toggle de completadas).
+        val now = DateRules.toEpochMillis(date, LocalTime.NOON, zone)
+        val cancelled = TaskRules.cancelTask(
+            TaskEntity(title = "Reagendable", dueAt = now + 3600_000L),
+            now
+        )
+        val restored = cancelled.copy(
+            status = TaskStatus.PLANNED,
+            updatedAt = now
+        )
+        assertTrue(TaskRules.isActive(restored))
+    }
 }

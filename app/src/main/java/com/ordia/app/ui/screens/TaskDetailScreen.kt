@@ -46,6 +46,7 @@ import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.SubtaskRules
+import com.ordia.app.domain.TaskRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.EmptyState
@@ -140,6 +141,11 @@ fun TaskDetailScreen(
                     Text(DateRules.formatDate(task.dueAt), style = MaterialTheme.typography.bodyMedium)
                 }
                 Button(onClick = { vm.toggleTask(task) }) { Text(if (task.completed) stringResource(R.string.task_detail_mark_pending) else stringResource(R.string.task_detail_complete)) }
+                if (TaskRules.isActive(task)) {
+                    TextButton(onClick = { vm.cancelTask(task); onBack() }) {
+                        Text(stringResource(R.string.task_detail_discard))
+                    }
+                }
             }
         }
         item { Text(stringResource(R.string.task_detail_steps), style = MaterialTheme.typography.titleLarge) }

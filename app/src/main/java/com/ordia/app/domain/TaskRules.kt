@@ -414,6 +414,29 @@ object TaskRules {
     }
 
     /**
+     * Cancela (descarta) una tarea: la saca del trabajo pendiente SIN borrarla y
+     * SIN contarla como logro. Pasa a `status=CANCELLED`, que [isActive] excluye de
+     * todas las superficies activas (What Now, agenda, asistente, búsqueda,
+     * recordatorios, widgets). A diferencia de completar, NO marca `completed` ni
+     * `completedAt` (no infla estadísticas de logro: `completedTodayCount` y
+     * `completedRootCount` ignoran CANCELLED), y NO genera próxima ocurrencia
+     * (cancelar significa "esta tarea ya no aplica", no "la hice").
+     *
+     * El manejo jerárquico ya existe: `SubtaskRules` cuenta una subtarea cancelada
+     * como resuelta (el padre se autocompleta si era la última pendiente) y
+     * `BackupManager` admite `status=CANCELLED` en restore. Esta regla sólo produce
+     * el estado que toda esa infraestructura ya espera pero que la UI no podía
+     * alcanzar (BACKLOG P2 c.170-c.181).
+     */
+    fun cancelTask(task: TaskEntity, now: Long = System.currentTimeMillis()): TaskEntity =
+        task.copy(
+            completed = false,
+            status = TaskStatus.CANCELLED,
+            completedAt = null,
+            updatedAt = now
+        )
+
+    /**
      * Vencimiento coherente al planificar una tarea en un slot `[slotStart, slotEnd]`.
      *
      * Planificar es reagendar: la tarea pasa a trabajarse en ese slot. Si el slot
