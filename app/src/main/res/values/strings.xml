@@ -97,6 +97,12 @@
     <string name="update_download_failed">No se pudo completar la descarga verificada.</string>
     <string name="update_install_started">Ordía se está instalando. Confirma la solicitud de Android.</string>
     <string name="update_install_rejected">La instalación fue cancelada o rechazada. La descarga se descartó y puedes intentarlo de nuevo.</string>
+    <string name="update_fail_blocked">Android bloqueó la instalación (posible firma distinta o permiso de orígenes desconocidos).</string>
+    <string name="update_fail_aborted">Cancelaste la confirmación de Android. Puedes intentarlo de nuevo.</string>
+    <string name="update_fail_conflict">La APK no coincide con la app instalada (applicationId o firma distinta).</string>
+    <string name="update_fail_storage">No hay espacio suficiente para instalar la actualización.</string>
+    <string name="update_fail_incompatible">La APK no es compatible con esta versión de Android o la arquitectura del dispositivo.</string>
+    <string name="update_fail_generic">Android no pudo completar la instalación.</string>
     <string name="update_dialog_title">Nueva versión de Ordía</string>
     <string name="update_dialog_text">%1$s está disponible.</string>
     <string name="update_dialog_now">Actualizar ahora</string>
