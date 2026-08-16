@@ -195,9 +195,9 @@ object OrdiaUpdateController {
     }
 
     /** Lo notifica UpdateInstallResultReceiver al terminar la confirmación de Android. */
-    fun onInstallResult(success: Boolean) {
+    fun onInstallResult(success: Boolean, reason: String? = null) {
         _state.value = if (success) UpdateState.Installed else {
-            UpdateState.Failed("Instalación cancelada o rechazada.", lastRelease)
+            UpdateState.Failed(reason ?: "Instalación cancelada o rechazada.", lastRelease)
         }
     }
 
