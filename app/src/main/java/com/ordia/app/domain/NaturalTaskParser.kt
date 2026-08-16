@@ -1266,6 +1266,30 @@ object NaturalTaskParser {
         """\d{1,3}|un\s+par\s+de|$writtenNumberGroup"""
 
     private val reminderPatterns = listOf(
+        // Forma sustantivada "con aviso/alerta/recordatorio [de] N unidad [antes]":
+        // cotidiana en español ("reunión con aviso 15 min", "cita con recordatorio de 20
+        // minutos antes"). Antes NO se reconocía: el offset caía a null (recordatorio
+        // nunca programado → la cita se olvidaba, P1) y "con aviso"/"con alerta"/"con
+        // recordatorio" sobrevivía como residuo en el título. Va PRIMERO para que el
+        // match (que incluye "con X") gane sobre los patrones de verbos ("N unidad antes")
+        // en la selección del offset (más a la izquierda) y en el blanqueo del residuo.
+        // Acepta "de" opcional ("con aviso de 15 min") y "antes"/"de anticipación" opcional
+        // (la mera mención de "aviso"/"alerta"/"recordatorio" ya es intención de aviso).
+        Regex("""(?i)\bcon\s+(?:aviso|alerta|recordatorio)(?:\s+de)?\s+($writtenAmountPattern)\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)(?:\s+(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto))?\b"""),
+        // "con N unidad antes|de anticipación|de adelanto" (sin sustantivo aviso, pero con
+        // "con" como conector de plazo de aviso): "cita con 15 min antes", "llamar con 10 min
+        // de anticipación", "reunión con 15 minutos de adelanto". Antes el patrón "N unidad
+        // antes" (más abajo) capturaba el offset PERO dejaba "con" como residuo huérfano en el
+        // título ("cita con"), y "con N unidad de anticipación/adelanto" ni siquiera casaba →
+        // caía como duración (falsa) y "con … de anticipación" sobrevivía como residuo (P1:
+        // recordatorio perdido + título mutilado). Exige sufijo inequívoco (antes/anticipación/
+        // adelanto) para no robar una duración real ("reunión con 30 min" sin sufijo = duración).
+        Regex("""(?i)\bcon\s+($writtenAmountPattern)\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s+(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto)\b"""),
+        // Variante sin "con": "aviso 15 min" / "alerta 10 min" / "recordatorio 20 min"
+        // (sustantivo suelto, sin verbo imperativo). "recordatorio N unidad" ya lo cubre
+        // el patrón de verbos de abajo, pero "aviso"/"alerta" no. Va tras "con X" para no
+        // robar el "con" del patrón anterior.
+        Regex("""(?i)\b(?:aviso|alerta|recordatorio)(?:\s+de)?\s+($writtenAmountPattern)\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)(?:\s+(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto))?\b"""),
         Regex("""(?i)\b(?:recuérdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?($writtenAmountPattern)\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
         // "N min/hora antes": debe aceptar las mismas abreviaturas que la duración
         // (min, hora) para que "30 min antes" sea recordatorio y no caiga como duración.

@@ -11975,4 +11975,111 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Revisar las pasadas normas", now, zone)
         assertEquals(null, result.dueAt)
     }
+
+    // --- Recordatorio sustantivado "con aviso/alerta/recordatorio N unidad" (c.399) ---
+    // Antes estas formas NO se reconocían como recordatorio: el offset caía a null (la cita
+    // se olvidaba, P1) y "con aviso"/"con alerta"/"con recordatorio" sobrevivía como residuo
+    // en el título. Ahora se captura el offset Y se limpia el residuo.
+
+    @Test fun conAvisoNMinEsRecordatorioSinResiduo() {
+        val result = NaturalTaskParser.parse("Reunión con aviso 15 min", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(15, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun conAvisoDeNMinutosEsRecordatorioSinResiduo() {
+        val result = NaturalTaskParser.parse("Reunión con aviso de 15 minutos", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(15, result.reminderOffsetMinutes)
+    }
+
+    @Test fun conAvisoNMinAntesEsRecordatorioSinResiduo() {
+        val result = NaturalTaskParser.parse("Reunión con aviso 15 min antes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(15, result.reminderOffsetMinutes)
+    }
+
+    @Test fun conAlertaNMinEsRecordatorioSinResiduo() {
+        val result = NaturalTaskParser.parse("Cita con alerta 10 min", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(10, result.reminderOffsetMinutes)
+    }
+
+    @Test fun conRecordatorioNMinEsRecordatorioSinResiduo() {
+        val result = NaturalTaskParser.parse("Cita con recordatorio 20 min", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(20, result.reminderOffsetMinutes)
+    }
+
+    @Test fun conRecordatorioDeNMinutosEsRecordatorioSinResiduo() {
+        val result = NaturalTaskParser.parse("Cita con recordatorio de 20 minutos", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(20, result.reminderOffsetMinutes)
+    }
+
+    @Test fun conAvisoUnDiaEsRecordatorio1440SinResiduo() {
+        val result = NaturalTaskParser.parse("Pagar luz con aviso de un día", now, zone)
+        assertEquals("Pagar luz", result.title)
+        assertEquals(1440, result.reminderOffsetMinutes)
+    }
+
+    @Test fun conAvisoDosHorasAntesEsRecordatorioSinResiduo() {
+        val result = NaturalTaskParser.parse("Cita con aviso dos horas antes", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(120, result.reminderOffsetMinutes)
+    }
+
+    // "aviso N unidad" sin "con" también es recordatorio.
+    @Test fun avisoSueltoNMinEsRecordatorioSinResiduo() {
+        val result = NaturalTaskParser.parse("Reunión aviso 15 min", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(15, result.reminderOffsetMinutes)
+    }
+
+    // --- "con N unidad antes|de anticipación|de adelanto" (c.399) ---
+    // Antes el patrón "N unidad antes" capturaba el offset PERO dejaba "con" como residuo
+    // ("cita con"), y "con N unidad de anticipación/adelanto" ni casaba → caía como duración
+    // falsa + residuo. Ahora se captura el offset, NO la duración, y se limpia todo.
+
+    @Test fun conNMinAntesLimpiaConDelTitulo() {
+        val result = NaturalTaskParser.parse("Cita con 15 min antes", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(15, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun conNMinDeAnticipacionEsRecordatorioNoDuracion() {
+        val result = NaturalTaskParser.parse("Llamar a mamá con 10 min de anticipación", now, zone)
+        assertEquals("Llamar a mamá", result.title)
+        assertEquals(10, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun conNMinutosDeAdelantoEsRecordatorioNoDuracion() {
+        val result = NaturalTaskParser.parse("Cita con 15 minutos de adelanto", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(15, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    // --- Falsos positivos: "aviso"/"alerta" como contenido real, no recordatorio ---
+    @Test fun avisoDeLaComunidadNoEsRecordatorioNiResiduo() {
+        val result = NaturalTaskParser.parse("Revisar el aviso de la comunidad", now, zone)
+        assertEquals("Revisar el aviso de la comunidad", result.title)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
+    @Test fun alertaDelSistemaNoEsRecordatorioNiResiduo() {
+        val result = NaturalTaskParser.parse("Responder alerta del sistema", now, zone)
+        assertEquals("Responder alerta del sistema", result.title)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
+    // "con N unidad" sin sufijo de aviso (antes/anticipación/adelanto) sigue siendo duración.
+    @Test fun conNDuracionSinSufijoSigueSiendoDuracion() {
+        val result = NaturalTaskParser.parse("Reunión con 30 min", now, zone)
+        assertEquals(30, result.durationMinutes)
+        assertNull(result.reminderOffsetMinutes)
+    }
 }
