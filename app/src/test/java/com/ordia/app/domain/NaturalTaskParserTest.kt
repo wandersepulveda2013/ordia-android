@@ -9991,4 +9991,47 @@ class NaturalTaskParserTest {
         assertEquals(RecurrenceFrequency.NONE, result.recurrence)
         assertEquals("", result.recurrenceDays)
     }
+
+    // --- c.344: "los días N y M del mes que viene/próximo/entrante" ---
+    // REPRODUCCIÓN del bug: la lista multi-día se reclama MONTHLY y ancla la 1ª fecha
+    // al mes ACTUAL (ignora "del mes que viene") porque scanTrailingNamedMonth solo
+    // reconoce meses NOMBRADOS ("de septiembre"), no relativos ("del mes que viene").
+    // Rutina quincenal anclada al mes equivocado = cita en mes erróneo (P1 de datos).
+    // Hoy = 2026-07-29; "del mes que viene" = agosto; 1ª = 2026-08-15 (menor día).
+
+    @Test fun dualDayListDelMesQueVieneAnclaAlMesSiguiente() {
+        val result = NaturalTaskParser.parse("reunión los días 15 y 30 del mes que viene", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:15,30", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dualDayListDelMesProximoAnclaAlMesSiguiente() {
+        val result = NaturalTaskParser.parse("cobro los días 15 y 30 del mes próximo", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:15,30", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dualDayListDelMesEntranteAnclaAlMesSiguiente() {
+        val result = NaturalTaskParser.parse("reunión los días 15 y 30 del mes entrante", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:15,30", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dualDayListElRepeatedDelMesQueVieneAnclaAlMesSiguiente() {
+        // Forma con "el" repetido (sin "días" plural) + "del mes que viene": mismo
+        // anclaje al mes siguiente. Paridad con el fix c.343 (mes nombrado).
+        val result = NaturalTaskParser.parse("reunión el 15 y el 30 del mes que viene", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:15,30", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dualDayListDelMesQueVieneLimpiaTitulo() {
+        // El calificador "del mes que viene" se borra del título (no queda residuo "del").
+        val result = NaturalTaskParser.parse("reunión los días 15 y 30 del mes que viene", now, zone)
+        assertEquals("reunión", result.title)
+    }
 }
