@@ -3784,6 +3784,61 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- Sufijo "en punto" (ciclo 388) ---
+    // "a las 9 en punto" / "a las nueve en punto" marca la hora exacta en español. Antes
+    // el sufijo NO se consumía: el patrón casaba "a las 9" y dejaba "en punto" como residuo
+    // del título ("reunión en punto") — la cita se agendaba bien pero el título quedaba
+    // mutilado con basura horaria. El separador del sufijo es `\s*` (no `\s+`) porque los
+    // grupos greedy anteriores (meridiem/fracción/sufijo horas) roban el espacio y dejan
+    // el `\s+` sin nada que consumir → el sufijo entero fallaba. Además "en punto" cuenta
+    // como evidencia de reloj en [hasClockEvidence] para que el guard anti-cuenta (c.361)
+    // no trate "a las 9 en punto" como "a las 9 [personas]".
+
+    @Test fun aLasNueveEnPuntoLimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Reunión a las nueve en punto", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas9EnPuntoLimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Llamar a las 9 en punto", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasTresEnPuntoDeLaTardeLimpiaTituloYResuelve15h() {
+        val result = NaturalTaskParser.parse("Cita a las tres en punto de la tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas900EnPuntoLimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Llamada a las 9:00 en punto", now, zone)
+        assertEquals("Llamada", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLasNueveYMediaEnPuntoLimpiaTituloYResuelve9y30() {
+        val result = NaturalTaskParser.parse("Reunión a las nueve y media en punto", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas9PmEnPuntoLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("Reunión a las 9 pm en punto", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // El guard anti-cuenta (c.361) sigue activo: "a las 9 en punto" es cita inequívoca,
+    // pero "a las 10 personas" (sin "en punto") sigue siendo CUENTA, no cita.
+    @Test fun aLas10EnPuntoNoEsCuentaResuelve10h() {
+        val result = NaturalTaskParser.parse("Reunión a las 10 en punto", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+
     // --- Hora suelta con parte del día + fracción "y media"/"y cuarto" (ciclo 153) ---
     // "9 y media de la noche" → 21:30 (no la canónica 21:00) y título limpio. Antes el
     // sufijo fraccionario NO se reconocía en la forma SIN "a las": la hora caía a la
