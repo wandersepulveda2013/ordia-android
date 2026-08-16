@@ -9989,6 +9989,40 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- c.362: meridiem COMPACTO (sin espacio) "para las Npm/Nam" no deja residuo ---
+    // La forma dominante en móvil omite el espacio antes del meridiem. Antes el reloj
+    // (:MM) casaba pero el introductor "para las" sobrevivía como residuo del título
+    // (cita bien fechada, título mutilado). `\s+`→`\s*` en el grupo de meridiem de
+    // paraTimeIntroPattern, simétrico de approximateTimePatterns (c.359) y timePatterns.
+    @Test fun paraLasNPmCompactoNoDejaResiduo() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("comprar regalos para las 3pm", suffixOrderNow(), zone)
+        assertEquals("comprar regalos", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasNAmCompactoNoDejaResiduo() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("llamar a juan para las 9am", suffixOrderNow(), zone)
+        assertEquals("llamar a juan", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasUnaPmCompactoResuelve13h() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("cita para las 1pm", suffixOrderNow(), zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun paraLasNPmConEspacioSigueFuncionando() {
+        // Sin regresión: la forma CON espacio ("3 pm") sigue resolviendo y limpiando.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las 3 pm", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // --- SEGURIDAD: "para" como destinatario/cantidad/propósito NO se agenda como cita ---
     @Test fun paraLasNPersonasNoInventaCita() {
         val zone = ZoneId.of("America/Santo_Domingo")

@@ -134,7 +134,7 @@ class WhatNowEngineTest {
         // TIENE plazo de hoy y debe quedar por encima del inbox sin fecha — de lo
         // contrario el usuario puede olvidar un compromiso de hoy. Antes esta tarea
         // se hundía a rank -1 por isScheduledLater evaluado antes que isDueToday
-        // (c.362 corrige el orden); ahora reason() y timeRank coinciden en DUE_TODAY.
+        // (c.363 corrige el orden); ahora reason() y timeRank coinciden en DUE_TODAY.
         val later = task(1, "Más tarde pero vence hoy").copy(
             startAt = DateRules.toEpochMillis(date, LocalTime.of(15, 0), zone),
             dueAt = DateRules.toEpochMillis(date, LocalTime.of(16, 0), zone)
@@ -167,7 +167,7 @@ class WhatNowEngineTest {
         // Empieza en 30 min (> ventana inminente de 15) pero VENCE hoy (11:00):
         // al tener plazo de hoy se mantiene por encima del inbox. Antes se hundía
         // a último recurso (-1) por isScheduledLater evaluado antes que isDueToday;
-        // c.362 invierte el orden para evitar olvidar compromisos con plazo de hoy.
+        // c.363 invierte el orden para evitar olvidar compromisos con plazo de hoy.
         val soonButNotImminent = task(1, "En 30 min, vence hoy").copy(
             startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 30), zone),
             dueAt = DateRules.toEpochMillis(date, LocalTime.of(11, 0), zone)

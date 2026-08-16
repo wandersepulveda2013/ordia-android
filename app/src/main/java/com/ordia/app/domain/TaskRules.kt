@@ -81,7 +81,7 @@ object TaskRules {
      * atrasada por encima de lo que vence hoy; lo programado para más tarde
      * SIN vencimiento hoy queda último (negativo) para no robar el lugar de
      * lo actual — pero si VENCE hoy, el plazo prevalece y se queda por encima
-     * del inbox (c.362: isDueToday se evalúa antes que isScheduledLater, en
+     * del inbox (c.363: isDueToday se evalúa antes que isScheduledLater, en
      * sintonía con [WhatNowEngine.reason]). Centralizarlo aquí evita que una
      * edición en una superficie deje a What Now y al widget sugiriendo tareas
      * distintas para el mismo conjunto (regresión real ya documentada en
@@ -93,7 +93,7 @@ object TaskRules {
         isOverdue(task, now) -> 4
         isImminentStart(task, now) -> 4
         isDueToday(task, now, zone) -> 3
-        // isScheduledLater va DESPUÉS de isDueToday (c.362): una tarea que VENCE hoy
+        // isScheduledLater va DESPUÉS de isDueToday (c.363): una tarea que VENCE hoy
         // pero está programada para empezar más tarde sigue siendo urgente por su
         // plazo; evaluar isScheduledLater antes la hundía a rank -1 (último recurso)
         // por debajo de una captura del inbox sin fecha (rank 0), y What Now sugería
