@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.FormatQuote
 import androidx.compose.material.icons.outlined.HorizontalRule
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.Title
 import androidx.compose.material3.Button
@@ -154,6 +155,10 @@ fun NoteEditorScreen(
             IconButton(onClick = { saveAndBack() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.note_editor_back_save)) }
             Text(if (dirty) stringResource(R.string.note_editor_dirty) else stringResource(R.string.note_editor_saved), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
             IconButton(onClick = { attachFile() }) { Icon(Icons.Outlined.AttachFile, stringResource(R.string.note_editor_attach)) }
+            IconButton(
+                onClick = { existing?.let { vm.togglePin(it) } },
+                enabled = existing != null
+            ) { Icon(Icons.Outlined.PushPin, if (existing?.pinned == true) stringResource(R.string.notes_unpin) else stringResource(R.string.notes_pin), tint = if (existing?.pinned == true) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant) }
             IconButton(
                 onClick = {
                     val note = existing ?: return@IconButton

@@ -63,6 +63,7 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
         add(MoreEntry(Destination.Automations, stringResource(R.string.more_automations_desc), null, MaterialTheme.colorScheme.secondary))
     }
     val organize = buildList {
+        add(MoreEntry(Destination.Notes, stringResource(R.string.more_notes_desc), state.notes.count { !it.archived }.toString(), MaterialTheme.colorScheme.secondary))
         if (state.preferences.interfaceMode != InterfaceMode.SIMPLE) {
             add(MoreEntry(Destination.Projects, stringResource(R.string.more_projects_desc), state.projects.size.toString(), MaterialTheme.colorScheme.primary))
             add(MoreEntry(Destination.Habits, stringResource(R.string.more_habits_desc), state.habits.size.toString(), MaterialTheme.colorScheme.tertiary))

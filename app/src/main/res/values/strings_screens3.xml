@@ -23,6 +23,7 @@
     <string name="more_statistics_desc">Analiza tendencias reales de tareas, hábitos y enfoque.</string>
     <string name="more_completion_rate_badge">%1$s%%</string>
     <string name="more_archive_desc">Recupera o elimina elementos que ya no están activos.</string>
+    <string name="more_notes_desc">Captura ideas sueltas, reuniones, notas rápidas y listas.</string>
     <string name="more_settings_desc">Personaliza tema, navegación, guardián, respaldo y preferencias.</string>
 
     <!-- Pantalla Bandeja (InboxScreen, ORD-029 i18n). -->

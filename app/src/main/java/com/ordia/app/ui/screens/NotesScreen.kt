@@ -31,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.local.NoteEntity
+import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockType
 import com.ordia.app.ui.OrdiaUiState
@@ -112,7 +113,10 @@ fun NotesScreen(
                             }
                         }
                         Text(note.body.ifBlank { stringResource(R.string.notes_empty_body) }.take(180), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        state.project(note.projectId)?.let { Text(it.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary) }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(DateRules.formatDate(note.updatedAt), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            state.project(note.projectId)?.let { Text(it.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary) }
+                        }
                     }
                 }
             }
