@@ -70,6 +70,7 @@ fun MentalOffloadScreen(
     onTask: (Long) -> Unit
 ) {
     val context = LocalContext.current
+    val confirmMessage = stringResource(R.string.offload_confirm)
     var text by remember { mutableStateOf("") }
     var result by remember { mutableStateOf<com.ordia.app.domain.OffloadResult?>(null) }
     var applied by remember { mutableStateOf(false) }
@@ -104,7 +105,7 @@ fun MentalOffloadScreen(
             }
         }
         applied = true
-        Toast.makeText(context, context.getString(R.string.offload_confirm), Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, confirmMessage, Toast.LENGTH_SHORT).show()
     }
 
     LazyColumn(

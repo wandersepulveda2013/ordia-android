@@ -546,19 +546,20 @@ private fun OrdiaNavHost(
 @Composable
 private fun QuickCaptureFab() {
     val context = LocalContext.current
+    val captureLabel = stringResource(R.string.fab_capture)
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     androidx.compose.material3.LargeFloatingActionButton(
         onClick = {
             context.startActivity(Intent(context, QuickCaptureActivity::class.java))
         },
         modifier = Modifier.semantics {
-            contentDescription = context.getString(R.string.fab_capture)
+            contentDescription = captureLabel
             role = Role.Button
         },
         containerColor = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary
     ) {
-        Icon(Icons.Outlined.Add, stringResource(R.string.fab_capture), Modifier.size(28.dp))
+        Icon(Icons.Outlined.Add, captureLabel, Modifier.size(28.dp))
     }
 }
 
