@@ -37,6 +37,7 @@ import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskStatus
+import com.ordia.app.domain.OrganizeActionsEngine
 import com.ordia.app.domain.TaskRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
@@ -72,6 +73,10 @@ fun OrganizeScreen(
             .filter { it.value.size >= 3 }
             .entries.take(3)
     }
+    var showProposal by remember { mutableStateOf(false) }
+    val proposal = remember(state.tasks, showProposal) {
+        if (showProposal) OrganizeActionsEngine.proposeWeek(state.tasks) else null
+    }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -97,27 +102,54 @@ fun OrganizeScreen(
 
         item {
             OrdiaCard {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(Icons.Outlined.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(Icons.Outlined.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary)
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                if (proposal != null) stringResource(R.string.organize_ai_propose, proposal.count)
+                                else stringResource(R.string.organize_ai_working),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                stringResource(R.string.organize_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (proposal == null) {
+                            OutlinedButton(onClick = { showProposal = true }) {
+                                Text(stringResource(R.string.organize_ai_review))
+                            }
+                        }
+                    }
+                    if (proposal != null && !proposal.isEmpty) {
+                        proposal.changes.take(6).forEach { change ->
+                            Text(
+                                "• ${change.summary}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(onClick = { showProposal = false }, modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.organize_ai_undo))
+                            }
+                        }
+                    } else if (proposal != null && proposal.isEmpty) {
                         Text(
-                            stringResource(R.string.organize_ai_working),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            stringResource(R.string.organize_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
+                            stringResource(R.string.empty_pending),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    }
-                    OutlinedButton(onClick = onAutomations) {
-                        Text(stringResource(R.string.organize_ai_review))
-                        Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.padding(start = 4.dp))
                     }
                 }
             }
