@@ -296,10 +296,21 @@ object AssistantEngine {
                     relatedTaskIds = minimal.map { it.id }
                 )
             }
-            "15 minutos" in query || "rapido" in query -> {
+            "15 minutos" in query || "rapido" in query || "rapida" in query -> {
                 val quick = WhatNowEngine.ordered(active, now).filter { it.durationMinutes <= 15 }.take(6)
+                // Séptimo olvido (c.419): "tareas rápidas" es análoga a "plan mínimo"
+                // — el usuario pide qué hacer ahora. Con lista vacía decía "No encuentro
+                // tareas de 15 minutos o menos." frente a un compromiso vencido (mentira
+                // por omisión: sí hay algo que hacer); con tareas, no anexaba la cola.
+                // Paridad con c.358/c.357. "rapida" cubre la forma femenina natural
+                // ("tareas rápidas"/"cosas rápidas"): antes sólo "rapido" casaba y la
+                // consulta más común caía al mensaje genérico. Sin nueva pantalla:
+                // reutiliza overdueCommitmentAnswer/overdueCommitmentTail.
+                if (quick.isEmpty() && overdueCommitments.isNotEmpty()) {
+                    return overdueCommitmentAnswer(overdueCommitments)
+                }
                 AssistantAnswer(
-                    if (quick.isEmpty()) "No encuentro tareas de 15 minutos o menos." else "Puedes completar: " + quick.joinToString(" · ") { it.title },
+                    if (quick.isEmpty()) "No encuentro tareas de 15 minutos o menos." else "Puedes completar: " + quick.joinToString(" · ") { it.title } + overdueCommitmentTail(overdueCommitments),
                     relatedTaskIds = quick.map { it.id }
                 )
             }

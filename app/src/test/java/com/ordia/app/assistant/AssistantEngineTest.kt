@@ -75,6 +75,69 @@ class AssistantEngineTest {
         assertEquals(listOf(2L, 1L), answer.relatedTaskIds)
     }
 
+    // --- c.416: "tareas rápidas"/"15 minutos" no debe callar un compromiso vencido
+    // de una conversación. Séptimo olvido: la superficie de tareas rápidas ("¿qué
+    // puedo hacer de 15 minutos?"/"tareas rápidas") es análoga a "¿qué hago ahora?"
+    // y a "plan mínimo" — el usuario pide SU siguiente acción. Sin tareas rápidas
+    // decía "No encuentro tareas de 15 minutos o menos." frente a una promesa
+    // vencida (mentira por omisión: sí hay algo urgente que hacer, solo que no es
+    // rápido); con tareas rápidas, no anexaba la cola. Paridad con "¿qué hago
+    // ahora?" (c.357) y "plan mínimo" (c.358). Sin nueva pantalla.
+    @Test fun quickTasks_recoversOverdueCommitmentWhenEmpty() {
+        // Sin tareas rápidas PERO con un compromiso vencido: antes decía "No
+        // encuentro tareas de 15 minutos o menos." — "no encuentro" frente a una
+        // promesa olvidada es la mentira por omisión del 7.º olvido. Debe rutear a
+        // overdueCommitmentAnswer (nombrarlo + OPEN_CONVERSATIONS), igual que "¿qué
+        // hago ahora?" y "plan mínimo" sin tareas.
+        val now = 1_000_000_000_000L
+        val commitment = overdueCommitment(30, "envío el informe", now - 2 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "tareas de 15 minutos",
+            emptyList(),
+            emptyList(),
+            listOf(commitment),
+            now
+        )
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
+        assertTrue("no dice 'No encuentro' frente a una promesa vencida: ${answer.text}", !answer.text.contains("No encuentro"))
+        assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
+    }
+
+    @Test fun quickTasks_warnsOverdueCommitmentWhenHasTasks() {
+        // Tareas rápidas + un compromiso vencido: el usuario pide tareas rápidas y
+        // el asistente las lista PERO calla la promesa vencida — la misma mentira
+        // por omisión que c.357/c.358 corrigieron. Debe anexar la cola de conteo
+        // (no nombra la acción: es informativa, la acción primaria sigue siendo
+        // mostrar las tareas rápidas).
+        val now = 1_000_000_000_000L
+        val task = TaskEntity(id = 1, title = "Responder un correo", durationMinutes = 10)
+        val commitment = overdueCommitment(31, "te llamo el martes", now - 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "tareas rápidas",
+            listOf(task),
+            emptyList(),
+            listOf(commitment),
+            now
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("nombra el compromiso vencido (cola de conteo): ${answer.text}", answer.text.contains("compromiso"))
+        assertTrue("es cola de conteo, no nombra la acción (paridad con 'plan mínimo'): ${answer.text}",
+            !answer.text.contains("te llamo el martes"))
+    }
+
+    @Test fun quickTasks_doesNotInventCommitmentWhenNone() {
+        // Guard anti-falso-positivo (IA honesta): sin compromiso vencido, la cola
+        // no debe inventar "compromiso". Una tarea rápida basta.
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "tareas de 15 minutos",
+            listOf(TaskEntity(id = 1, title = "Responder un correo", durationMinutes = 10)),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("no inventa compromiso sin haberlo: ${answer.text}", !answer.text.contains("compromiso"))
+    }
+
     @Test fun whatNow_estimatesClampedDurationForZeroDurationTask() {
         val answer = AssistantEngine.answer(
             "¿Qué hago ahora?",
