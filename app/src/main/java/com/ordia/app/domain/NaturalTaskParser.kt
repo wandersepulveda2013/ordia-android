@@ -862,10 +862,21 @@ object NaturalTaskParser {
         Regex("""(?i)\ba\s+eso\s+de\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
         // "hacia/cerca de/alrededor de/sobre" admiten usos de tema ("sobre las ventas") y
         // de cantidad ("sobre las 3 cajas"), así que exigen evidencia de reloj INMEDIATA
-        // tras la hora (minutos `:MM`, meridiem, parte del día u "horas") para no agendar
-        // una cuenta como cita. La hora en punto sin meridiem queda fuera por ambigua.
-        Regex("""(?i)\b(?:hacia|cerca\s+de|alrededor\s+de)\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d|\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s*(?:horas?|hs))|la\s+una(?:\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)))"""),
-        Regex("""(?i)\bsobre\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d|\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s*(?:horas?|hs))|la\s+una(?:\s+(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)))""")
+        // tras la hora (minutos `:MM`, meridiem, parte del día, "horas/hs/h") para no
+        // agendar una cuenta como cita. La hora en punto sin meridiem queda fuera por
+        // ambigua. El meridiem/parte del día se admite ADYACENTE a la hora (`\s*`, no
+        // `\s+`): "hacia las 10am"/"sobre las 4pm" (sin espacio) es la forma dominante en
+        // móvil. Antes el lookahead exigía `\s+` y el marcador NO se reescribía →
+        // `timePatterns` (que SÍ usa `\s*`) resolvía la hora pero dejaba "hacia las"/
+        // "sobre las" como residuo en el título (cita bien fechada, título mutilado:
+        // contenido capturado degradado, P1). `\s*` equivale a `timePatterns` (líneas
+        // 823/841): simetría. El sufijo suelto "h" (forma europea "10 h"/"10h") se admite
+        // con `\b` final para no colisionar con palabras que empiezan por h ("hacia las
+        // 10 habitaciones"/"10 horario" no se falsifican como cita); idéntico a
+        // [paraTimeIntroPattern]. Antes faltaba `|h` aquí (asimetría con timePatterns y
+        // paraTime) y "hacia las 10h"/"sobre las 4h" caían a `dueAt=null` + residuo.
+        Regex("""(?i)\b(?:hacia|cerca\s+de|alrededor\s+de)\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d|\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s*(?:horas?|hs|h)\b)|la\s+una(?:\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)))"""),
+        Regex("""(?i)\bsobre\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d|\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s*(?:horas?|hs|h)\b)|la\s+una(?:\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)))""")
     )
 
     /**

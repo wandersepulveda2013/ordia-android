@@ -8376,6 +8376,98 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    // --- Sufijo "h" suelto (forma europea "10h"/"10 h") con marcadores aproximados ---
+    // Antes approximateTimePatterns omitía `|h` (asimetría con timePatterns y
+    // paraTimeIntroPattern): "hacia las 10h"/"sobre las 4h" caían a dueAt=null y dejaban
+    // "hacia las"/"sobre las" como residuo (cita perdida + título degradado, P1).
+    @Test fun haciaLasDiezHResuelve10hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión hacia las 10h", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haciaLasDiezHEspaciadoResuelve10hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión hacia las 10 h", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun sobreLasCuatroHResuelve4hYLimpiaTitulo() {
+        // "4h" es formato 24h puro (sin meridiem): 04:00, no 16:00.
+        val result = NaturalTaskParser.parse("reunión sobre las 4h", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun cercaDeLasDiezHResuelve10hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("llego cerca de las 10h", now, zone)
+        assertEquals("llego", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun alrededorDeLasNueveHsResuelve9hYLimpiaTitulo() {
+        // "9hs" es formato 24h puro (sin meridiem): 09:00, no 21:00.
+        val result = NaturalTaskParser.parse("cobro alrededor de las 9hs", now, zone)
+        assertEquals("cobro", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haciaLasDiezHorasResuelve10hYLimpiaTitulo() {
+        // Regresión: "hacia las 10 horas" ya funcionaba; se re-verifica tras añadir `|h\b`.
+        val result = NaturalTaskParser.parse("reunión hacia las 10 horas", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haciaLasDiezHabitacionesNoEsHora() {
+        // El `\b` tras la "h" suelta evita falsificar "10 habitaciones" como cita:
+        // antes (con `horas?` sin `\b`) "hacia las 10 horario" se agendaba a 10:00.
+        val result = NaturalTaskParser.parse("reunión hacia las 10 habitaciones", now, zone)
+        assertEquals("reunión hacia las 10 habitaciones", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun haciaLasDiezHorarioNoEsHora() {
+        // "horario" empieza por "hora": sin `\b`, `horas?` casaba su prefijo y agendaba.
+        val result = NaturalTaskParser.parse("reunión hacia las 10 horario", now, zone)
+        assertEquals("reunión hacia las 10 horario", result.title)
+        assertNull(result.dueAt)
+    }
+
+    // --- Meridiem ADYACENTE sin espacio ("10am"/"4pm") con marcadores aproximados ---
+    // Antes el lookahead exigía `\s+` antes del meridiem/parte del día, mientras
+    // `timePatterns` (l.~823) usaba `\s*`: "hacia las 10am"/"sobre las 4pm" (sin espacio,
+    // forma dominante en móvil) NO reescribían el marcador → `timePatterns` resolvía la
+    // hora PERO dejaba "hacia las"/"sobre las" como residuo en el título (cita bien
+    // fechada, título mutilado, P1). Ahora `\s*` = simetría con `timePatterns`.
+    @Test fun haciaLasDiezAmAdyacenteResuelve10hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión hacia las 10am", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun sobreLasCuatroPmAdyacenteResuelve16hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión sobre las 4pm", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(16, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haciaLasDiezAmEspaciadoSigueResolviendo10hYLimpiaTitulo() {
+        // No-regresión: la forma CON espacio "10 am" (que `\s+` cubría) sigue funcionando.
+        val result = NaturalTaskParser.parse("reunión hacia las 10 am", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     @Test fun informeSobreElClienteNoEsHora() {
         val result = NaturalTaskParser.parse("informe sobre el cliente del jueves", now, zone)
         assertEquals("informe sobre el cliente", result.title)
