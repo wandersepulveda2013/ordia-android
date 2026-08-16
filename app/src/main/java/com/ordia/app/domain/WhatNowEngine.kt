@@ -94,9 +94,18 @@ object WhatNowEngine {
         isImminentStart(task, now) -> WhatNowReason.IMMINENT_START
         TaskRules.isMissedStart(task, now) -> WhatNowReason.MISSED_START
         TaskRules.isDueToday(task, now, zone) -> WhatNowReason.DUE_TODAY
+        // isScheduledLater va ANTES que la prioridad (c.372), en sintonía con
+        // [TaskRules.timeRank] donde isScheduledLater (-1) se evalúa antes que
+        // URGENT/HIGH: una tarea programada para empezar más tarde queda enterrada
+        // bajo el inbox aunque sea urgente — el usuario le dio un hueco futuro y
+        // Ordía respeta esa decisión. Antes reason() comprobaba la prioridad primero
+        // y mostraba "es urgente" para una tarea que el ranking hundía: contradicción
+        // etiqueta ↔ ranking e IA deshonesta (animaba a hacerla ahora contra la propia
+        // planificación). Si llega a sugerirse (único candidato), el label honesto es
+        // "está programada para más tarde".
+        isScheduledLater(task, now) -> WhatNowReason.SCHEDULED_LATER
         task.priority == TaskPriority.URGENT -> WhatNowReason.URGENT
         task.priority == TaskPriority.HIGH -> WhatNowReason.HIGH_PRIORITY
-        isScheduledLater(task, now) -> WhatNowReason.SCHEDULED_LATER
         else -> WhatNowReason.NEXT_INBOX
     }
 

@@ -390,4 +390,78 @@ class WhatNowEngineTest {
         assertEquals(1L, widgetTop)
     }
 
+    // --- c.364: paridad etiqueta ↔ ranking para "programada para más tarde" ---
+
+    /**
+     * Guardián de paridad etiqueta ↔ ranking (c.364). Una tarea programada para
+     * empezar más tarde (startAt futuro) Y urgente, sin vencimiento hoy, queda
+     * enterrada bajo el inbox en [TaskRules.timeRank] (isScheduledLater -> -1 se
+     * evalúa antes que URGENT -> 2): el usuario le dio un hueco futuro y Ordía
+     * respeta esa decisión. Cuando hay una captura del inbox sin fecha, What Now
+     * debe sugerir ésta (rank 0 > -1), NO la programada-urgente.
+     */
+    @Test
+    fun scheduledLaterUrgentBuriedBelowInboxEvenWhenUrgent() {
+        val scheduledUrgent = task(1, "Reunión tarde urgente", TaskPriority.URGENT).copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(15, 0), zone)
+        )
+        val inbox = task(2, "Idea sin fecha")
+
+        val suggestion = WhatNowEngine.suggest(listOf(scheduledUrgent, inbox), now = now, zone = zone)
+
+        assertEquals(2L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.NEXT_INBOX, suggestion.reason)
+    }
+
+    /**
+     * c.364: si la única pendiente es una tarea programada para más tarde (aunque
+     * sea urgente), el label honesto es "está programada para más tarde", NO "es
+     * urgente". Antes reason() comprobaba la prioridad antes que isScheduledLater y
+     * mostraba "es urgente" para una tarea que el ranking hundía por programada —
+     * contradicción etiqueta ↔ ranking e IA deshonesta (animaba a hacerla ahora
+     * contra la propia planificación del usuario).
+     */
+    @Test
+    fun scheduledLaterUrgentLabeledScheduledLaterNotUrgent() {
+        val scheduledUrgent = task(1, "Reunión tarde urgente", TaskPriority.URGENT).copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(15, 0), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(scheduledUrgent), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.SCHEDULED_LATER, suggestion.reason)
+        assertEquals("está programada para más tarde", WhatNowEngine.reasonLabel(suggestion.reason))
+    }
+
+    /**
+     * c.364: ídem para prioridad ALTA programada para más tarde.
+     */
+    @Test
+    fun scheduledLaterHighLabeledScheduledLaterNotHighPriority() {
+        val scheduledHigh = task(1, "Reunión tarde alta", TaskPriority.HIGH).copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(15, 0), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(scheduledHigh), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.SCHEDULED_LATER, suggestion.reason)
+    }
+
+    /**
+     * c.364: la prioridad sigue mandando cuando NO hay startAt futuro. Una tarea
+     * urgente sin programar (bandeja) se sugiere y se etiqueta como urgente — el
+     * reordenamiento de isScheduledLater en reason() NO degrada la prioridad pura.
+     */
+    @Test
+    fun urgentWithoutScheduledStartStillLabeledUrgent() {
+        val urgent = task(1, "Urgente sin fecha", TaskPriority.URGENT)
+
+        val suggestion = WhatNowEngine.suggest(listOf(urgent), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(WhatNowReason.URGENT, suggestion.reason)
+    }
+
 }

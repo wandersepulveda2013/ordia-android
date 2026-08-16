@@ -5,6 +5,19 @@
 
 ## Modo continuo (supervisor persistente)
 
+## Ciclo c.372 — 2026-08-16 (What Now: paridad etiqueta↔ranking para tareas programadas para más tarde)
+
+- **Run/ciclo**: 372 (rama `openhands/autonomous-ordia`). HEAD inicial = `50e3338` (c.370, base local obsoleta). Re-sync NO destructivo atop `aeae6a1` (c.371): stash→reset→pop (auto-merge limpio, código DISJUNTO `WhatNowEngine` vs parser c.371). NO STALE_RUN del trabajo válido.
+- **Problema seleccionado (P1 What Now / IA honesta / paridad etiqueta↔ranking)**: `WhatNowEngine.reason()` evaluaba prioridad (URGENT/HIGH) ANTES que `isScheduledLater`, mientras `TaskRules.timeRank()` evalúa `isScheduledLater -> -1` ANTES que URGENT(2)/HIGH(1). Una tarea URGENT programada para empezar más tarde quedaba enterrada bajo el inbox (rank -1) PERO, si era el único candidato, el label decía "es urgente" — animando a hacerla ahora contra la propia planificación del usuario. IA deshonesta: el label contradecía el ranking.
+- **Causa raíz**: orden de ramas del `when` en `reason()` inconsistente con `timeRank()`.
+- **Solución (mínima, sin nueva pantalla/botón, sin IA fingida)**: `WhatNowEngine.kt` `reason()`: rama `isScheduledLater -> SCHEDULED_LATER` movida ANTES de `priority == URGENT/HIGH`. El label "está programada para más tarde" ahora coincide con el ranking (-1). La prioridad pura sigue mandando sin startAt futuro.
+- **Tests**: +4 tests TDD en `WhatNowEngineTest.kt`. Verificado RED→GREEN (revertí fix → 2 fail; restauré → verde). `bash tools/run_domain_tests.sh` → **2183 PASS** (2179 c.371 + 4 c.372), 0 failures, 44 classes. Sin regresión (`urgentReasonWhenOnlyUrgentPending` intacto). **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **Commits**: (pendiente) `fix(what-now): paridad etiqueta↔ranking para tareas programadas más tarde (c.372)`.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/WhatNowEngine.kt` (`reason()` reordenado + comentario c.372), `app/src/test/java/com/ordia/app/domain/WhatNowEngineTest.kt` (+4 tests), `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md`.
+- **HEAD inicial**: `50e3338` (c.370 obsoleto). Re-sync atop `aeae6a1` (c.371). **HEAD final**: commit c.372 (pendiente de push).
+- **Estado**: VERIFIED (dominio JVM: 2183 tests PASS; 0 failures; RED→GREEN confirmado). NO VERIFICADO Android/gradle/lint/assemble.
+- **Próxima prioridad**: descubrimiento continuo — (i) What Now: auditar paridad etiqueta↔ranking en los demás motivos (overdue/imminent/missedStart/dueToday ¿coinciden con timeRank?); (ii) áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (iii) verificar Android c.270-c.372 cuando haya SDK. Re-fetch antes de implementar.
+
 - **Arquitectura de continuidad real**: `tools/ordia_supervisor.py` (+ `ordia_supervisor.sh`,
   `SUPERVISOR.md`). Un proceso persistente en una máquina siempre encendida del usuario orquesta
   la Automation `Ordía Continuous Evolution` (id `b3bd3870-…`), garantiza `MAX_CONCURRENT_RUNS=1`
