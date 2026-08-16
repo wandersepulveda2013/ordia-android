@@ -875,6 +875,64 @@ class NaturalTaskParserTest {
         assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
         assertEquals(1, result.recurrenceInterval)
     }
+    // P1 evitar-olvidos: "el primer lunes del mes" SIN "cada"/"mensual" explícito.
+    // Antes (c.315): recurrence=NONE y dueAt = 1er lunes del mes ACTUAL ya pasado
+    // (2026-07-06, con now=2026-07-29) → rutina mensual nacía olvidada (vencida en
+    // el pasado, recordatorio jamás disparaba). Simétrico con "el 1 del mes"
+    // (monthlyDayPattern, que SÍ promueve a MONTHLY sin "cada"): ahora "el (ordinal)
+    // (weekday) del mes" genérico (sin mes nombrado, sin "que viene") se promueve a
+    // MONTHLY anclada al ordinal+weekday y la 1ª cita avanza al próximo mes válido
+    // (2026-08-03), nunca en pasado. "renta el primer lunes del mes" deja de olvidarse.
+    @Test fun primerLunesDelMesSinCadaPromueveMonthlyYAvanzaAFuturo() {
+        val result = NaturalTaskParser.parse("renta el primer lunes del mes", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertEquals("1:1", result.recurrenceDays)
+        assertNotNull(result.dueAt)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(java.time.DayOfWeek.MONDAY, due.dayOfWeek)
+        // 1er lunes de agosto (07-06 ya pasó con now=2026-07-29).
+        assertEquals(LocalDate.of(2026, 8, 3), due)
+    }
+
+    @Test fun ultimoViernesDelMesSinCadaPromueveMonthlyYAvanzaAFuturo() {
+        val result = NaturalTaskParser.parse("pago el último viernes del mes", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("-1:5", result.recurrenceDays)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(java.time.DayOfWeek.FRIDAY, due.dayOfWeek)
+        // Último viernes de julio = 2026-07-31; dicho el 29 (aún no llega) → sin roll.
+        assertEquals(LocalDate.of(2026, 7, 31), due)
+    }
+
+    // No-regresión: mes nombrado NO se promueve a MONTHLY (fecha única en mes concreto).
+    @Test fun primerLunesDeAgostoSigueSiendoFechaUnicaNoRecurrente() {
+        val result = NaturalTaskParser.parse("cita el primer lunes de agosto", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        // Agosto dicho en julio → 1er lunes de agosto 2026-08-03 (futuro, sin roll).
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // No-regresión: "del mes que viene" NO se promueve a MONTHLY sin "cada" (fecha
+    // única del próximo mes).
+    @Test fun primerLunesDelMesQueVieneSinCadaEsFechaUnica() {
+        val result = NaturalTaskParser.parse("cita el primer lunes del mes que viene", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // No-regresión: con "cada"/"todos los meses" explícito, el comportamiento mensual
+    // ya existente se conserva (anclaje ordinal + avance al futuro).
+    @Test fun primerLunesDeCadaMesSigueMonthlyOrdinal() {
+        val result = NaturalTaskParser.parse("renta el primer lunes de cada mes", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("1:1", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 
     @Test fun todosLosDiasSigueSiendoDailyInterval1() {
         val result = NaturalTaskParser.parse("Revisar todos los días", now, zone)
@@ -8471,10 +8529,16 @@ class NaturalTaskParserTest {
 
     @Test fun primeroViernesDelMesResuelvePrimerViernes() {
         val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.NOON, ZoneId.of("America/Santiago"))
-        // "primero" (variante con -o) = primer viernes del mes. Primer viernes agosto 2026 = 07.
+        // c.316 — "el primero viernes del mes" (variante -o de "primer") SIN "cada":
+        // antes quedaba como fecha ÚNICA vencida en pasado (07-ago, < now 14-ago) → rutina
+        // mensual olvidada. Ahora se promueve a MONTHLY anclada al 1er viernes y la 1ª cita
+        // avanza al próximo mes válido (04-sep). Sustituye el guard "vencida honesta" previo:
+        // BACKLOG c.318 redefinió este caso como P1 (rutina periódica olvidada).
         val result = NaturalTaskParser.parse("Pago el primero viernes del mes", agoNow, ZoneId.of("America/Santiago"))
         assertEquals("Pago", result.title)
-        assertEquals(LocalDate.of(2026, 8, 7), DateRules.toLocalDate(result.dueAt!!, ZoneId.of("America/Santiago")))
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("1:5", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 9, 4), DateRules.toLocalDate(result.dueAt!!, ZoneId.of("America/Santiago")))
     }
 
     @Test fun segundoMartesDeSeptiembreResuelve8DeSeptiembre() {
@@ -8664,14 +8728,18 @@ class NaturalTaskParserTest {
     }
 
     @Test fun ordinalSueltoNoRompeCalificadorDelMes() {
-        // Guard anti-regresión: "el primer lunes del mes" sigue resolviendo el ordinal-mensual
-        // (NO se degrada a próximo lunes). now = 2026-08-14 (jueves) → primer lunes ago = 03.
+        // "el primer lunes del mes" (genérico, sin "cada"/mes nombrado/"que viene"):
+        // originalmente c.322-paralelo lo trataba como fecha única vencida (due=08-03 PASADO,
+        // recur=NONE) como "guard anti-regresión". c.318 redefinió eso como el BUG P1
+        // (rutina mensual olvidada — asimetría con "el 1 del mes" que SÍ promueve a MONTHLY).
+        // c.323 lo PROMUEVE a MONTHLY y avanza al próximo 1er lunes válido (nunca pasado).
+        // now = 2026-08-14 (jueves) → 1er lunes ago = 03 (pasado) → rueda a 1er lunes sept = 07.
         val zone = ZoneId.of("America/Santiago")
         val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.NOON, zone)
         val result = NaturalTaskParser.parse("Cobro el primer lunes del mes", agoNow, zone)
         assertEquals("Cobro", result.title)
-        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
-        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(LocalDate.of(2026, 9, 7), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
     }
 
     @Test fun ultimoViernesDeJunioPasadoRuedaAlAnioSiguiente() {
@@ -8743,13 +8811,17 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
-    @Test fun fechaSueltaOrdinalPasadoSigueVencidaHonestamente() {
-        // Guard anti-regresión: SIN "de cada mes" la fecha vencida NO rueda (deuda honesta).
+    @Test fun ordinalDelMesPasadoSePromueveMonthlyYAvanzaAFuturo() {
+        // c.316 — SUSTITUYE al guard "vencida honesta" previo. SIN "de cada mes" la rutina
+        // mensual ordinal "del mes" ya NO queda como deuda vencida en pasado: se promueve a
+        // MONTHLY (BACKLOG c.318 P1: rutina periódica olvidada). now=2026-08-20, 1er lunes
+        // de agosto=08-03 (pasado) → avanza al 1er lunes de septiembre=09-07.
         val zone = ZoneId.of("America/Santiago")
         val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 20), LocalTime.NOON, zone)
         val result = NaturalTaskParser.parse("Cobro el primer lunes del mes", agoNow, zone)
-        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
-        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("1:1", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 9, 7), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
     @Test fun recurrenciaOrdinalPasadoConservaHoraExplicita() {

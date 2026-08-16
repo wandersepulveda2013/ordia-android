@@ -2158,7 +2158,27 @@ object NaturalTaskParser {
         // Sólo aplica a MONTHLY: WEEKLY usa `days` (lista de días) y la 1ª ocurrencia ordinal
         // ya resolvió la fecha de `dueAt`.
         val recurrence = parseRecurrence(working, now).let { r ->
-            val withOrdinal = if (r.frequency != RecurrenceFrequency.MONTHLY || ordinalMonthly == null) r
+            // c.316 — evitar-olvidos: "el primer lunes del mes" / "el último viernes del
+            // mes" SIN "cada"/"mensual"/"todos los meses" explícitos. Antes quedaba como
+            // fecha ÚNICA vencida en el pasado (1er lunes de este mes ya pasó → recurrencia
+            // NONE, dueAt en pasado): la rutina mensual nacía olvidada (recordatorio jamás
+            // disparaba, jamás en What Now). Simétrico con el NUMÉRICO "el 1 del mes"
+            // (monthlyDayPattern, que SÍ promueve a MONTHLY sin "cada"): la ocurrencia
+            // ORDINAL de weekday "del mes" genérico (sin mes nombrado, sin "que viene") se
+            // promueve aquí a MONTHLY; `withOrdinal` adjunta el anclaje (ord,weekday) y
+            // lastWeekdayOfMonth pasa isRecurring=true → la 1ª cita avanza al próximo mes
+            // válido, nunca en pasado. Mes nombrado ("de agosto") y "del mes que viene"
+            // siguen siendo fecha única (no se promueven): prima el vencimiento concreto.
+            val promoted = if (
+                r.frequency == RecurrenceFrequency.NONE &&
+                ordinalMonthly != null &&
+                !ordinalMonthly.isNext &&
+                ordinalMonthly.monthName == null &&
+                ordinalMonthly.yearStr == null
+            ) {
+                RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), r.phraseRanges)
+            } else r
+            val withOrdinal = if (promoted.frequency != RecurrenceFrequency.MONTHLY || ordinalMonthly == null) promoted
             else {
                 val ordWord = ordinalMonthly.ordinalWord.lowercase()
                 val ordinal = when (ordWord) {
@@ -2170,7 +2190,7 @@ object NaturalTaskParser {
                     else -> null
                 }
                 val weekday = ordinalMonthly.weekdayWord.toDayOfWeekOrNull()
-                if (ordinal != null && weekday != null) r.copy(monthlyOrdinalWeekday = ordinal to weekday.value) else r
+                if (ordinal != null && weekday != null) promoted.copy(monthlyOrdinalWeekday = ordinal to weekday.value) else promoted
             }
             // "cada fin/mediados/principios de mes" (c.257): si no quedó otra recurrencia
             // explícita, el límite mensual se promueve a recurrencia MONTHLY anclada.
