@@ -226,7 +226,45 @@ object CommitmentEngine {
         // PENDING que el usuario revisa antes de convertir en tarea: un falso
         // positivo se descarta, un falso negativo es un olvido real (la cuarta
         // clase de olvido de Ordía).
-        """(?i)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|te\s+aviso|te\s+confirmo|despu[eé]s\s+te\s+respondo|voy\s+a|debo|tengo\s+que|terminar[eé]|har[eé]|lo\s+hago|te\s+(?:paso|mando)|le\s+(?:paso|mando|env[ií]o)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o))\b"""
+        // c.342 — la rama futura de compromiso era ASIMÉTRICA con la de presente.
+        // Antes: (?i)\b(...|voy\s+a|terminar[eé]|har[eé]|lo\s+hago|...). El presente
+        // con clítico cubría 9 verbos (termino/entrego/reviso/preparo/arreglo/subo/
+        // dejo/paso/mando/envío), pero el futuro SÓLO haré/terminaré + "voy a".
+        // Así "lo reviso" (presente) se detectaba pero "lo revisaré" (futuro, la
+        // forma de promesa MÁS explícita en español) caía a MISSED → olvido real de
+        // compromiso futuro (P1, pérdida de datos: una promesa explícita no generaba
+        // draft, no había nada que avisar al vencer).
+        //
+        // TRES cambios juntos (un solo commit c.342):
+        // (1) (?U) UNICODE_CHARACTER_CLASS — hace \b consciente de Unicode. Sin él,
+        //     (?i) solo ASCII trata áéíóú como NO-palabra, así \b TRAS una vocal
+        //     acentada NO casa → los futuros con tilde "terminaré"/"haré"/"revisaré"
+        //     se perdían silenciosamente (la rama sin tilde "e" sí casaba: "lo hare
+        //     hoy", dando el falso síntoma de cobertura). (?U) hace \b coherente con
+        //     \p{L}; las ramas que terminan en ASCII ('o','a','e') no cambian. La
+        //     guarda precedingNegation (\bno\s+) es regex independiente, ASCII, sin
+        //     afecto. Auditado: ninguna otra señal termina en vocal acentada, así el
+        //     cambio queda focal en commitmentSignal.
+        // (2) Clítico OPCIONAL precedente agrupado con la rama futura
+        //     (lo/la/los/las/te lo/.../se lo), igual que la rama de presente "lo
+        //     hago". Antes el match arrancaba en el verbo; con "no lo haré" el "lo"
+        //     tapaba el "no " a la guarda de 3 chars → falso SELF_COMMITMENT
+        //     (rechazo detectado como compromiso). Al arrancar el match en el
+        //     clítico, el "no " queda adyacente y la guarda lo excluye igual que
+        //     hace con "no lo hago". La perífrasis "voy a" se agrupa bajo el MISMO
+        //     clítico opcional — "no lo voy a hacer" tiene el mismo bug (el "lo"
+        //     tapa el "no " antes de "voy a"); al mover `voy\s+a` dentro del grupo,
+        //     "lo voy a" arranca en "lo" y el "no " queda visible. Sin clítico
+        //     ("terminaré el informe"/"voy a hacer") el match arranca en el verbo:
+        //     "no terminaré" sigue excluido (prefijo "no ").
+        // (3) 9 futuros alineados con los 9 presentes: entregaré, revisaré,
+        //     prepararé, arreglaré, subiré, dejaré, pasaré, mandaré, enviaré —
+        //     cobertura futura SIMÉTRICA con la presente. El clítico opcional del
+        //     punto (2) cubre "te lo mandaré", "lo revisaré", "se lo enviaré"; la
+        //     guarda precedingNegation excluye "no lo revisaré"/"no te lo mandaré"
+        //     igual que "no lo haré". Cada forma admite variante con/sin tilde en
+        //     la é final (har[eé]) por errores de escritura comunes.
+        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|te\s+aviso|te\s+confirmo|despu[eé]s\s+te\s+respondo|debo|tengo\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|terminar[eé]|har[eé]|entregar[eé]|revisar[eé]|preparar[eé]|arreglar[eé]|subir[eé]|dejar[eé]|pasar[eé]|mandar[eé]|enviar[eé])|lo\s+hago|te\s+(?:paso|mando)|le\s+(?:paso|mando|env[ií]o)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o))\b"""
     )
     private val locationSignal = Regex(
         """(?i)\b(?:lugar\s*:\s*|(?:nos\s+vemos|reuni[oó]n|cita)[^.!?\n]{0,80}?\ben\s+)([\p{L}\d][\p{L}\d .,'-]{2,50})"""

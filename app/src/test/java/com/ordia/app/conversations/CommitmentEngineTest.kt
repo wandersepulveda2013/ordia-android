@@ -1500,4 +1500,60 @@ class CommitmentEngineTest {
         assertTrue("\"quedó pendiente de llamarme\" (3ª persona) NO debe anclarse a SELF", result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF })
     }
 
+    // c.342: la rama futura de commitmentSignal era ASIMETRICA con la rama de
+    // presente: solo cubria hare/terminare + "voy a", pero el presente con
+    // clitico cubria 9 verbos (termino, entrego, reviso, preparo, arreglo,
+    // subo, dejo, paso, mando, envio). Asi "lo reviso" (presente) se detectaba
+    // pero "lo revisare" (futuro, la forma de promesa MAS explicita) caia a
+    // MISSED -> olvido de compromiso futuro (P1, perdida de datos). Se alinean
+    // los futuros de los mismos 9 verbos. Probe JVM PRE-fix: 8/10 MISSED
+    // (revisare, mandare, enviare, entregare, preparare, arreglare, subire,
+    // dejare, pasare + clitico). Este test los fija como regresion permanente.
+    @Test
+    fun futureTenseCommitmentsWithCliticAreDetected() {
+        val positives = listOf(
+            "lo revisar\u00e9", "te lo mandar\u00e9", "se lo enviar\u00e9",
+            "lo entregar\u00e9", "lo preparar\u00e9", "lo arreglar\u00e9",
+            "lo subir\u00e9", "lo dejar\u00e9", "lo pasar\u00e9",
+            "te lo voy a mandar", "se lo voy a enviar", "lo voy a revisar",
+            "lo har\u00e9 hoy", "terminar\u00e9 el informe", "lo voy a hacer"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "fut-pos-$text"
+            )
+            assertTrue(
+                "\"$text\" (futuro explicito) debe generar draft SELF_COMMITMENT",
+                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
+    // c.342: la guarda precedingNegation debe seguir excluyendo los futuros con
+    // clitico igual que "no lo hare": al arrancar el match en el clitico, el
+    // "no " queda adyacente y visible a 3 chars. Sin esta guarda, "no lo
+    // revisare" generaria un draft espurio (rechazo detectado como compromiso).
+    // Probe JVM: 7/7 excluidos.
+    @Test
+    fun futureTenseCommitmentsRespectNegation() {
+        val negatives = listOf(
+            "no lo revisar\u00e9", "no te lo mandar\u00e9", "no lo enviar\u00e9",
+            "no lo voy a revisar", "no se lo voy a mandar",
+            "no lo har\u00e9", "no terminar\u00e9 nada", "no lo voy a hacer"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "fut-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" (negacion de futuro) NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
 }
