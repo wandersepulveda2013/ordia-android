@@ -714,6 +714,98 @@ class SearchEngineTest {
         assertEquals(90L, results.first().id)
     }
 
+    // --- Vence hoy: paridad de bandas con TaskRules.timeRank (c.383) ---
+
+    @Test fun dueTodayBeatsUrgentWithoutDateInSearch() {
+        // Paridad con "Qué hacer ahora": en [TaskRules.timeRank] isDueToday
+        // (rango 3) se evalúa ANTES que la prioridad URGENT (rango 2), así una
+        // NORMAL que vence hoy manda sobre una URGENT sin fecha. Antes la
+        // búsqueda ponía la URGENT sin fecha (urgency 4) por encima de la
+        // NORMAL que vence hoy (urgency 6): buscar una cita que vence hoy la
+        // enterraba bajo una urgente sin plazo, contradiciendo lo que sugería
+        // "Qué hacer ahora". Mismo principio que isImminentStart: la banda
+        // temporal manda sobre la prioridad pura.
+        val now = System.currentTimeMillis()
+        val dueToday = TaskEntity(
+            id = 110,
+            title = "Reunión equipo",
+            priority = TaskPriority.NORMAL,
+            dueAt = now
+        )
+        val urgentNoDate = TaskEntity(
+            id = 111,
+            title = "Reunión equipo",
+            priority = TaskPriority.URGENT
+        )
+        val results = SearchEngine.search("reunion", listOf(dueToday, urgentNoDate), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(2, results.size)
+        assertEquals(110L, results.first().id)
+    }
+
+    @Test fun dueTodayBeatsHighWithoutDateInSearch() {
+        // Misma lógica contra HIGH: una NORMAL que vence hoy debe encabezar la
+        // búsqueda sobre una HIGH sin fecha, igual que en timeRank (rango 3 > 1)
+        // y simétrico a isImminentStart NORMAL sobre HIGH (c.664).
+        val now = System.currentTimeMillis()
+        val dueToday = TaskEntity(
+            id = 120,
+            title = "Reunión equipo",
+            priority = TaskPriority.NORMAL,
+            dueAt = now
+        )
+        val highNoDate = TaskEntity(
+            id = 121,
+            title = "Reunión equipo",
+            priority = TaskPriority.HIGH
+        )
+        val results = SearchEngine.search("reunion", listOf(dueToday, highNoDate), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(120L, results.first().id)
+    }
+
+    @Test fun dueTodayUrgentBeatsDueTodayNormalInSearch() {
+        // Dentro de la banda dueToday, URGENT desempata antes que NORMAL
+        // (urgency 3 < 4), igual que priorityScore desempata dentro de cada
+        // banda de timeRank. Garantiza que la prioridad sigue decidiendo cuando
+        // la banda temporal es la misma.
+        val now = System.currentTimeMillis()
+        val dueTodayUrgent = TaskEntity(
+            id = 130,
+            title = "Reunión equipo",
+            priority = TaskPriority.URGENT,
+            dueAt = now
+        )
+        val dueTodayNormal = TaskEntity(
+            id = 131,
+            title = "Reunión equipo",
+            priority = TaskPriority.NORMAL,
+            dueAt = now
+        )
+        val results = SearchEngine.search("reunion", listOf(dueTodayUrgent, dueTodayNormal), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(130L, results.first().id)
+    }
+
+    @Test fun overdueStillBeatsDueTodayInSearch() {
+        // La banda vencida (urgency 1/2) sigue por encima de vence-hoy
+        // (urgency 3/4), igual que timeRank (rango 4 > 3): el plazo ya volado
+        // manda sobre el de hoy. Evita que el reordenamiento de dueToday
+        // promueva una tarea de hoy por encima de una ya vencida.
+        val now = System.currentTimeMillis()
+        val overdue = TaskEntity(
+            id = 140,
+            title = "Reunión equipo",
+            priority = TaskPriority.URGENT,
+            dueAt = now - 3_600_000L
+        )
+        val dueTodayNormal = TaskEntity(
+            id = 141,
+            title = "Reunión equipo",
+            priority = TaskPriority.NORMAL,
+            dueAt = now
+        )
+        val results = SearchEngine.search("reunion", listOf(overdue, dueTodayNormal), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(140L, results.first().id)
+    }
+
     @Test fun missedStartElevatedAboveFreshInboxTask() {
         // Recuperación de tareas olvidadas: una tarea cuyo hueco planificado ya
         // pasó sin completarse ([TaskRules.isMissedStart] — el "olvido silencioso")

@@ -312,15 +312,35 @@ object SearchEngine {
      * captura fresca NORMAL de la misma banda (ambas urgency 7, dueAt MAX),
      * rescatando el compromiso agendado que se le pasó al usuario en vez de
      * dejarlo ordenar tras ella por título. Tema #1 de recuperación del producto.
+     *
+     * Paridad de bandas con [TaskRules.timeRank] (c.383): el orden de los tiers
+     * espeja el de los rangos — en curso (6/5) > vencida/inminente (4) >
+     * vence hoy (3) > URGENT (2) > HIGH (1) > demás (0). Antes la banda
+     * `isDueToday` quedaba DEBAJO de la prioridad pura (URGENT/HIGH sin fecha),
+     * contradiciendo timeRank (donde vence-hoy manda sobre la prioridad): la
+     * búsqueda y "Qué hacer ahora" discrepaban para una NORMAL que vence hoy
+     * frente a una URGENT sin fecha. Ahora ambas superficies ofrecen primero la
+     * que vence hoy.
      */
     private fun urgencyRank(task: TaskEntity, now: Long): Int = when {
         TaskRules.isBeingWorkedOn(task, now) -> 0
         (TaskRules.isOverdue(task, now) || TaskRules.isImminentStart(task, now)) && task.priority == TaskPriority.URGENT -> 1
         TaskRules.isOverdue(task, now) || TaskRules.isImminentStart(task, now) -> 2
-        task.priority == TaskPriority.URGENT && TaskRules.isDueToday(task, now) -> 3
-        task.priority == TaskPriority.URGENT -> 4
-        task.priority == TaskPriority.HIGH -> 5
-        TaskRules.isDueToday(task, now) -> 6
+        // isDueToday va ANTES que la prioridad pura (c.383), en sintonía con
+        // [TaskRules.timeRank] donde isDueToday (rango 3) se evalúa antes que
+        // URGENT (2)/HIGH (1): una tarea que VENCE hoy manda sobre una urgente
+        // sin fecha. Antes urgencyRank ponía la urgente sin fecha (tier 4) y la
+        // HIGH (tier 5) por encima de una NORMAL que vence hoy (tier 6): la
+        // búsqueda ofrecía primero una tarea sin plazo mientras "Qué hacer
+        // ahora"/widget sugerían la que vence hoy — divergencia entre
+        // superficies, misma clase que c.83 (ranking duplicado que discrepa) y
+        // simétrica al fix de isImminentStart (banda temporal sobre prioridad).
+        // Dentro de la banda dueToday, URGENT desempata antes (3 < 4), igual que
+        // priorityScore desempata dentro de cada banda de timeRank.
+        TaskRules.isDueToday(task, now) && task.priority == TaskPriority.URGENT -> 3
+        TaskRules.isDueToday(task, now) -> 4
+        task.priority == TaskPriority.URGENT -> 5
+        task.priority == TaskPriority.HIGH -> 6
         else -> 7
     }
 
