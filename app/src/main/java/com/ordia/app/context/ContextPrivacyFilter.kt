@@ -77,6 +77,7 @@ object ContextPrivacyFilter {
         if (blockedContentPatterns.any { it.containsMatchIn(text) }) return true
         if (SensitiveSecretPatterns.patterns.any { it.containsMatchIn(text) }) return true
         if (SensitiveSecretPatterns.containsNumericSensitive(text)) return true
+        if (SensitiveSecretPatterns.containsPersonalIdentifier(text)) return true
         if (numericSecret.matches(text)) return true
         if (metadata["inputClass"].equals("number", ignoreCase = true) && shortNumericSecret.matches(text)) return true
         return false

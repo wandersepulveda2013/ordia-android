@@ -73,6 +73,7 @@ object ConversationPrivacyPolicy {
         sensitivePatterns.any { it.containsMatchIn(text) } ||
             SensitiveSecretPatterns.patterns.any { it.containsMatchIn(text) } ||
             SensitiveSecretPatterns.containsNumericSensitive(text) ||
+            SensitiveSecretPatterns.containsPersonalIdentifier(text) ||
             otpCode.containsMatchIn(text)
 }
 

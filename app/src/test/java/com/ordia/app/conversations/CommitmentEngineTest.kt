@@ -1004,5 +1004,72 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.313: identificadores personales (INE/CURP/NSS/pasaporte/licencia) son PII:
+    // su fuga en texto plano es tan grave como una credencial. No son detectables
+    // por valor pelado (11 dígitos = teléfono; alfanumérico corto = código de
+    // producto), por eso se exige palabra-clave acompañante. Ambos gates (persist
+    // y lectura) deben bloquearlos de forma simétrica vía la fuente única
+    // SensitiveSecretPatterns.containsPersonalIdentifier.
+    @Test
+    fun personalIdentifiersAreBlockedByBothPrivacyGates() {
+        val leaks = listOf(
+            // CURP (18 rígidos: 4 letras + 6 dígitos + 6 alfanum + 2 dígitos).
+            "mi CURP es GOME850101HDFLRN09",
+            "CURP: GOME850101HDFLRN09",
+            "anota mi curp GOME850101HDFLRN09 porfa",
+            // NSS (11 dígitos mexicano).
+            "mi NSS es 12345678901",
+            "número de seguro social 12345678901",
+            "NSS 12345678901",
+            // INE / credencial de elector (12-18 alfanuméricos).
+            "mi INE es ABCDEF123456789",
+            "credencial de elector RSTUVW012345678901",
+            // Pasaporte (6-12 alfanuméricos; MX: 1 letra + 8 dígitos).
+            "mi pasaporte es G12345678",
+            "pasaporte: M99887766",
+            // Licencia de conducir.
+            "mi licencia de conducir es A12345678",
+            "licencia B98765432"
+        )
+        leaks.forEach { text ->
+            assertTrue("PII debe bloquearse en persist: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
+            assertTrue("PII debe bloquearse en lectura: \"$text\"", ContextPrivacyFilter.containsSensitiveContent(text))
+            assertEquals(
+                "asimetría PII en \"$text\": persist != read (c.313)",
+                ConversationPrivacyPolicy.containsSensitiveContent(text),
+                ContextPrivacyFilter.containsSensitiveContent(text)
+            )
+            assertTrue(
+                "no debe generar compromiso desde PII: \"$text\"",
+                CommitmentEngine.extract(listOf(ChatMessage("Yo", text)), scopeHash = "pii").isEmpty()
+            )
+        }
+    }
+
+    @Test
+    fun personalIdentifierKeywordWithoutValueDoesNotBlockInnocentChat() {
+        // La palabra-clave pelada ("INE", "CURP", "pasaporte") sin un valor con
+        // la estructura esperada NO debe bloquear: evita falsos positivos y
+        // pérdida de chats legítimos ("trámite del INE", "renovar pasaporte").
+        // También secuencias largas de dígitos que NO van con palabra-clave de PII.
+        val innocent = listOf(
+            "tengo que renovar el INE la próxima semana",
+            "me pidieron el CURP para el trámite",
+            "voy a sacar el pasaporte el viernes",
+            "se me venció la licencia de conducir",
+            "trámite del seguro social en la mañana",
+            // 11 dígitos SIN palabra-clave de PII: es un teléfono/referencia, no NSS.
+            "llama al 12345678901",
+            "referencia 1234567890123",
+            // alfanumérico corto sin palabra-clave de PII: código de producto.
+            "el producto SKU ABC12345 llegó",
+            "factura 9876543210123",
+            "mi IMEI es 123456789012345"
+        )
+        innocent.forEach { text ->
+            assertFalse("falso positivo PII en persist: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
+            assertFalse("falso positivo PII en lectura: \"$text\"", ContextPrivacyFilter.containsSensitiveContent(text))
+        }
+    }
 
 }

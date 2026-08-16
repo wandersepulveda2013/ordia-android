@@ -88,6 +88,25 @@ object SensitiveSecretPatterns {
         Regex("""(?i)\b[a-z][a-z0-9+.-]*://[^\s:@/]+:[^\s@/]+@[^\s/]+""")
     )
 
+    // ── Identificadores personales anclados por palabra-clave (c.313) ───────
+    // INE/CURP/NSS/pasaporte/licencia son PII: su fuga en texto plano es tan
+    // grave como una credencial. Pero NO son detectables por valor pelado: un
+    // NSS son 11 dígitos (idéntico a un teléfono o referencia), una licencia es
+    // alfanumérico corto (idéntico a un código de producto). Detectarlos por
+    // valor solo generaría falsos positivos masivos y bloquearía chats legítimos
+    // (pérdida de compromisos válidos).
+    //
+    // Solución (alineada con el principio de "palabra-clave acompañante" del
+    // BACKLOG y simétrica a `otpCode`): exigir la palabra-clave canónica
+    // (INE/CURP/NSS/seguro social/credencial de elector/pasaporte/licencia) en
+    // una ventana corta (≤40 chars) antes del valor. "mi CURP es GOME850101..."
+    // se bloquea, pero "referencia 1234567890123" no.
+    //
+    // CURP: 18 rígidos (4 letras + 6 dígitos + 6 alfanum + 2 dígitos).
+    // NSS: 11 dígitos (mexicano). INE/credencial de elector: 12-18 alfanum.
+    // Pasaporte/licencia: 6-12 alfanum (MX pasaporte: 1 letra + 8 dígitos).
+
+
     // ── Numéricos sensibles validados por checksum (c.303) ──────────────────
     // PAN y CLABE no son detectables por un Regex plano: su naturaleza depende
     // de un dígito verificador (Luhn para tarjetas, ponderación 3-7-1 para la
@@ -151,6 +170,29 @@ object SensitiveSecretPatterns {
      * privacidad para que la detección de tarjetas/cuentas sea estructuralmente
      * simétrica (c.303).
      */
+    fun containsPersonalIdentifier(text: String): Boolean {
+        for (kw in personalIdKeyword.findAll(text)) {
+            val window = text.substring(kw.range.last + 1).take(40)
+            if (nssValue.containsMatchIn(window)) return true
+            if (curpValue.containsMatchIn(window)) return true
+            if (kw.value.lowercase().let {
+                    "ine" in it || "credencial" in it
+                } && ineValue.containsMatchIn(window)) return true
+            if (kw.value.lowercase().let {
+                    "pasaporte" in it || "licencia" in it
+                } && passportLicenceValue.containsMatchIn(window)) return true
+        }
+        return false
+    }
+
+    private val personalIdKeyword = Regex(
+        """(?i)\b(?:curp|nss|ine|credencial\s+de\s+elector|n[uú]mero\s+de\s+seguro\s+social|seguro\s+social|pasaporte|licencia(?:\s+de\s+conducir)?)\b"""
+    )
+    private val nssValue = Regex("""\b\d{11}\b""")
+    private val curpValue = Regex("""\b[A-Z]{4}\d{6}[A-Z0-9]{6}\d{2}\b""")
+    private val ineValue = Regex("""\b[A-Z0-9]{12,18}\b""")
+    private val passportLicenceValue = Regex("""\b[A-Z0-9]{6,12}\b""")
+
     fun containsNumericSensitive(text: String): Boolean {
         if (panCandidate.findAll(text).any { c ->
                 val d = c.value.filter(Char::isDigit)
