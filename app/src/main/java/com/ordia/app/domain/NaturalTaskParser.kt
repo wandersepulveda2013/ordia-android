@@ -2396,8 +2396,20 @@ object NaturalTaskParser {
             // c.315: mensual con VARIOS días ("el 1 y 15 de cada mes"): 1ª ocurrencia
             // futura = el menor día de la lista estrictamente posterior a hoy, o el
             // menor día del mes siguiente si ninguno cabe este mes (sin omitir el 2º).
+            // c.341: si la lista lleva mes NOMBRADO ("los días 15 y 30 de septiembre"),
+            // la 1ª ocurrencia se ancla a ese mes (antes se anclaba al mes actual por
+            // la pérdida del mes nombrado al consumir los dígitos la lista → P1).
             recurrence.frequency == RecurrenceFrequency.MONTHLY && recurrence.monthlyDays != null ->
-                nextMonthlyDateFromList(base.toLocalDate(), recurrence.monthlyDays)
+                if (recurrence.monthlyNamedMonth != null) {
+                    nextMonthlyDateFromListInMonth(
+                        base.toLocalDate(),
+                        recurrence.monthlyDays,
+                        recurrence.monthlyNamedMonth,
+                        recurrence.monthlyNamedYear
+                    )
+                } else {
+                    nextMonthlyDateFromList(base.toLocalDate(), recurrence.monthlyDays)
+                }
             // Recurrencias de intervalo (diaria, semanal/quincenal/mensual/anual sin día
             // explícito): se anclan a la fecha de captura. Antes quedaban con dueAt=null y
             // la tarea recurrente era invisible (sin recordatorio, sin aparición en What
@@ -3073,7 +3085,16 @@ object NaturalTaskParser {
          *  ocurrencia por cada día de la lista dentro del ciclo (quincena/nómina).
          *  El 1er vencimiento lo fija el día más cercano al hoy; los siguientes los
          *  genera el motor alternando entre días. */
-        val monthlyDays: List<Int>? = null
+        val monthlyDays: List<Int>? = null,
+        /** c.341: mes nombrado explícito tras la lista de días ("reunión los días 15 y
+         *  30 de septiembre"). Antes el día-lista consumía los dígitos y `monthNamePattern`
+         *  (que exige dígito+mes) ya no casaba → el mes nombrado se ignoraba y la 1ª fecha
+         *  se anclaba al mes actual (agosto en vez de septiembre: cita en mes erróneo, P1
+         *  de datos). Aquí guardamos el mes/año nombrados para que la 1ª ocurrencia de la
+         *  lista se ancle a ese mes (paridad con `parseMonthNameDate`). Sólo afecta a la
+         *  PRIMERA fecha; las siguientes las genera `RecurrenceEngine` mensualmente. */
+        val monthlyNamedMonth: Int? = null,
+        val monthlyNamedYear: Int? = null
     )
 
     /** Captura normalizada de un anclaje mensual ORDINAL de weekday ("el primer lunes del
@@ -3406,6 +3427,26 @@ object NaturalTaskParser {
                     v.contains(Regex("""(?i)\bd[ií]as\s+\d"""))
             }
             if (days.size >= 2 && hasCadence) {
+                // c.341: "reunión los días 15 y 30 de septiembre" — el día-lista consume
+                // los dígitos, así `monthNamePattern` (que exige dígito+mes) no casa y el
+                // mes nombrado se pierde (1ª fecha anclada al mes actual → cita en mes
+                // erróneo, P1 de datos). Aquí escaneamos el texto INMEDIATAMENTE posterior
+                // al match por un mes nombrado opcional (+ año), y una cadencia opcional
+                // trasera ("de cada mes"). Ambos se incluyen en `phrases` para que se
+                // borren del título (residuo "de septiembre" eliminado). El mes/año se
+                // guardan en el RecurrenceResult para anclar la 1ª ocurrencia.
+                val named = scanTrailingNamedMonth(working, match.range.last + 1)
+                if (named != null) {
+                    phrases += match.range
+                    phrases += named.range
+                    if (named.cadenceRange != null) phrases += named.cadenceRange
+                    return RecurrenceResult(
+                        RecurrenceFrequency.MONTHLY, 1, emptyList(), phrases,
+                        monthlyDays = days,
+                        monthlyNamedMonth = named.month,
+                        monthlyNamedYear = named.year
+                    )
+                }
                 phrases += match.range
                 return RecurrenceResult(
                     RecurrenceFrequency.MONTHLY, 1, emptyList(), phrases,
@@ -4084,6 +4125,96 @@ object NaturalTaskParser {
             candidate = candidate.plusMonths(1)
         }
         return from.withDayOfMonth(minOf(target, from.month.length(from.isLeapYear)))
+    }
+
+    /**
+     * c.341 — primera ocurrencia de una LISTA de días del mes anclada a un mes/año
+     * NOMBRADOS ("reunión los días 15 y 30 de septiembre"). Paridad con
+     * `nextMonthlyDateFromList` (que ancla al mes actual) y con `parseMonthNameDate`
+     * (regla de año implícito: si la fecha ya pasó, rueda al año siguiente).
+     *
+     * Semántica:
+     *  • Mes nombrado estrictamente futuro este año → 1ª = menor día de la lista en
+     *    ese mes ("septiembre" dicho en julio → 15-sep).
+     *  • Mes nombrado = mes actual → 1ª = menor día de la lista que sea ≥ hoy (si
+     *    quedan); si no, rueda al año siguiente.
+     *  • Mes nombrado ya pasado este año (sin año explícito) → rueda al año
+     *    siguiente y toma el menor día ("mayo" dicho en julio → 15-may año próximo).
+     *  • Año explícito → se respeta literal (sin roll), normalizando días imposibles
+     *    al último día válido del mes (consistente con parseMonthNameDate).
+     */
+    private fun nextMonthlyDateFromListInMonth(
+        today: LocalDate,
+        days: List<Int>,
+        namedMonth: Int,
+        namedYear: Int?
+    ): LocalDate {
+        val sorted = days.sorted()
+        var year = namedYear ?: today.year
+        val dim = YearMonth.of(year, namedMonth).lengthOfMonth()
+        // ¿Queda algún día futuro (>= hoy) en el (year, namedMonth)?
+        val upcoming = sorted.firstOrNull { d ->
+            val dd = minOf(d, dim)
+            !LocalDate.of(year, namedMonth, dd).isBefore(today)
+        }
+        if (upcoming != null) {
+            return LocalDate.of(year, namedMonth, minOf(upcoming, dim))
+        }
+        // Ningún día futuro en el mes objetivo este año: rueda al próximo año sólo si
+        // el año era implícito (con año explícito es la fecha literal del usuario).
+        if (namedYear == null) year += 1
+        val dim2 = YearMonth.of(year, namedMonth).lengthOfMonth()
+        return LocalDate.of(year, namedMonth, minOf(sorted.first(), dim2))
+    }
+
+    /** c.341 — datos de un mes nombrado hallado tras una lista de días. */
+    private data class TrailingNamedMonth(
+        val month: Int,
+        val year: Int?,
+        /** Rango del texto "de <mes> [del <año>]" en working (para borrarlo del título). */
+        val range: IntRange,
+        /** Rango de una cadencia trasera opcional ("de cada mes"/"todos los meses"/
+         *  "quincenal") que sigue al mes nombrado, para también limpiarla del título. */
+        val cadenceRange: IntRange?
+    )
+
+    /**
+     * c.341 — escanea el texto de [working] a partir de [fromIndex] buscando un mes
+     * nombrado opcional ("de septiembre" / "del 2026") y, tras él, una cadencia
+     * opcional ("de cada mes"). Devuelve [TrailingNamedMonth] sólo si hay un mes
+     * válido; en caso contrario null (la lista de días no lleva mes explícito y se
+     * ancla al mes actual como antes).
+     *
+     * Se invoca desde el bloque `monthlyDualDayPattern` porque ese patrón consume los
+     * dígitos de la lista, lo que deja al mes nombrado sin el dígito que exige
+     * `monthNamePattern` y lo hacía invisible (P1: cita en mes erróneo).
+     */
+    private fun scanTrailingNamedMonth(working: String, fromIndex: Int): TrailingNamedMonth? {
+        val monthNames = months.keys.joinToString("|")
+        // c.341: el mes nombrado va INMEDIATAMENTE tras el match de la lista de días.
+        // OJO: `monthlyDualDayPattern` lleva un sufijo opcional `(?:\s+...)?` que puede
+        // consumir el espacio entre "30" y "de" → `fromIndex` puede caer justo en la
+        // "d" de "de", sin whitespace delantero. Por eso el patrón NO exige `\s+`
+        // inicial: usa `\b` (boundary) que casa tanto tras un espacio consumido como al
+        // inicio del texto "de <mes>". `\b` también evita falsos positivos dentro de
+        // palabras ("render" no casa). Año opcional ("del 2026"/"de 26").
+        val monthRegex = Regex("""(?i)\b(?:de|del)\s+($monthNames)(?:\s+del?\s+(\d{2,4}))?\b""")
+        val m = monthRegex.find(working, fromIndex) ?: return null
+        val monthName = m.groupValues[1].lowercase()
+        val month = months[monthName] ?: return null
+        val rawYear = m.groupValues[2].toIntOrNull()
+        val year = when {
+            rawYear == null -> null
+            rawYear < 100 -> 2000 + rawYear
+            else -> rawYear
+        }
+        // Cadencia trasera opcional tras el mes nombrado ("... de septiembre de cada
+        // mes"). Se captura para limpiarla del título; no afecta a la recurrencia (ya
+        // es MONTHLY por la lista de días). Empieza justo donde terminó el match del mes.
+        val cadenceRegex = Regex("""(?i)\s+(?:de\s+(?:cada\s+)?mes|del\s+(?:cada\s+)?mes|todos\s+los\s+meses|cada\s+quincena|quincenal(?:mente)?|todas\s+las\s+quincenas)\b""")
+        val cadenceMatch = cadenceRegex.find(working, m.range.last + 1)
+        val cadenceRange = cadenceMatch?.range
+        return TrailingNamedMonth(month, year, m.range, cadenceRange)
     }
 
     private fun String.toDayOfWeek(): DayOfWeek = weekdays[this.lowercase()] ?: DayOfWeek.MONDAY

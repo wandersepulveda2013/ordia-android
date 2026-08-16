@@ -9807,4 +9807,82 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("reunión el 1 y 15", now, zone)
         assertFalse(result.recurrence == RecurrenceFrequency.MONTHLY && result.recurrenceDays == "d:1,15")
     }
+
+    // c.341: lista de días con mes NOMBRADO. Antes el día-lista consumía los dígitos y
+    // `monthNamePattern` (que exige dígito+mes) ya no casaba → el mes nombrado se
+    // ignoraba, la 1ª fecha se anclaba al mes ACTUAL y "de septiembre" quedaba como
+    // residuo del título. P1 de datos: cita agendada en mes erróneo. Ahora la 1ª fecha
+    // se ancla al mes nombrado (paridad con parseMonthNameDate) y el título queda limpio.
+    // now = 2026-07-29 (julio).
+
+    @Test fun dualDayListWithNamedMonthAnchorsToThatMonth() {
+        // "reunión los días 15 y 30 de septiembre": septiembre es futuro desde julio →
+        // 1ª = 15-sep (menor día de la lista en el mes objetivo). Antes: 30-jul (mes
+        // actual) — cita 2 meses antes de lo pedido.
+        val result = NaturalTaskParser.parse("reunión los días 15 y 30 de septiembre", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:15,30", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dualDayListWithNamedMonthCurrentMonthPicksFutureDay() {
+        // "cobro los días 15 y 30 de agosto": agosto dicho en julio (29) → agosto es
+        // futuro → 1ª = 15-ago (menor día). Confirma que no hay confusión mes actual.
+        val result = NaturalTaskParser.parse("cobro los días 15 y 30 de agosto", now, zone)
+        assertEquals("d:15,30", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("cobro", result.title)
+    }
+
+    @Test fun dualDayListWithPastNamedMonthRollsNextYear() {
+        // "pago los días 15 y 30 de mayo": mayo ya pasó (julio) → rueda al año
+        // siguiente y toma el menor día (15-may-2027). Paridad con parseMonthNameDate.
+        val result = NaturalTaskParser.parse("pago los días 15 y 30 de mayo", now, zone)
+        assertEquals("d:15,30", result.recurrenceDays)
+        assertEquals(LocalDate.of(2027, 5, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dualDayListWithNamedMonthAndExplicitYearRespectsYear() {
+        // "cita los días 1 y 15 de marzo del 2028": año explícito → fecha literal (sin
+        // roll), 1ª = 01-mar-2028.
+        val result = NaturalTaskParser.parse("cita los días 1 y 15 de marzo del 2028", now, zone)
+        assertEquals("d:1,15", result.recurrenceDays)
+        assertEquals(LocalDate.of(2028, 3, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dualDayListWithNamedMonthCleansTitleResidue() {
+        // El mes nombrado ("de septiembre") NO debe quedar como residuo del título.
+        val result = NaturalTaskParser.parse("reunión los días 15 y 30 de septiembre", now, zone)
+        assertEquals("reunión", result.title)
+        assertFalse(result.title.contains("septiembre"))
+    }
+
+    @Test fun dualDayListWithNamedMonthAbbreviationParses() {
+        // Abreviatura informal "sep" (común al capturar): debe anclar igual que "septiembre".
+        val result = NaturalTaskParser.parse("reunión los días 15 y 30 de sep", now, zone)
+        assertEquals("d:15,30", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun dualDayListWithNamedMonthThenCadenceCleansTitle() {
+        // "los días 15 y 30 de septiembre de cada mes": mes nombrado + cadencia trasera.
+        // La 1ª fecha se ancla al mes nombrado (15-sep) y el título queda limpio (ni
+        // "de septiembre" ni "de cada mes").
+        val result = NaturalTaskParser.parse("reunión los días 15 y 30 de septiembre de cada mes", now, zone)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("d:15,30", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 9, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("reunión", result.title)
+    }
+
+    @Test fun dualDayListNamedMonthNormalizesImpossibleDay() {
+        // "el 30 y 31 de febrero": febrero no tiene 31 → se normaliza al último día
+        // válido (28-feb, año no bisiesto 2027 por roll, ya que feb-2026 pasó). 1ª =
+        // 28-feb-2027 (días clamped: 30→28, 31→28; el menor día válido futuro).
+        val result = NaturalTaskParser.parse("cita los días 30 y 31 de febrero", now, zone)
+        assertEquals("d:30,31", result.recurrenceDays)
+        // feb-2026 ya pasó → rueda a 2027; 30/31 se normalizan a 28 → 1ª = 28-feb-2027.
+        assertEquals(LocalDate.of(2027, 2, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
 }
