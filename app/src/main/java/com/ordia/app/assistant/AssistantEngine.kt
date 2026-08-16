@@ -257,8 +257,17 @@ object AssistantEngine {
             }
             "plan minimo" in query || "minimo para hoy" in query -> {
                 val minimal = WhatNowEngine.ordered(active, now).take(3)
+                // Sexto olvido (c.358): "plan mínimo" es análoga a "¿qué hago ahora?"
+                // — el usuario pide SU plan. Con plan vacío decía "Tu plan mínimo
+                // está vacío." frente a un compromiso vencido (mentira por omisión:
+                // el plan NO está vacío si hay una promesa olvidada); con tareas, no
+                // anexaba la cola. Paridad con c.357/c.356/"organiza mi día". Sin
+                // nueva pantalla: reutiliza overdueCommitmentAnswer/overdueCommitmentTail.
+                if (minimal.isEmpty() && overdueCommitments.isNotEmpty()) {
+                    return overdueCommitmentAnswer(overdueCommitments)
+                }
                 AssistantAnswer(
-                    if (minimal.isEmpty()) "Tu plan mínimo está vacío." else "Plan mínimo: " + minimal.joinToString(" · ") { it.title },
+                    if (minimal.isEmpty()) "Tu plan mínimo está vacío." else "Plan mínimo: " + minimal.joinToString(" · ") { it.title } + overdueCommitmentTail(overdueCommitments),
                     relatedTaskIds = minimal.map { it.id }
                 )
             }
