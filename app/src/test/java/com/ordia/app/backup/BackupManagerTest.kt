@@ -590,6 +590,83 @@ class BackupManagerTest {
     }
 
     @Test
+    fun nonObjectRootJsonIsRejectedWithoutTouchingData() = runBlocking {
+        val store = FakeBackupStore(otherData())
+        val result = newManager(store).importBackup("""["tasks", "notes"]""")
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("objeto JSON raíz"))
+        assertEquals("Viejo", store.current.projects.first().name)
+    }
+
+    @Test
+    fun wrongFormatFieldIsRejectedWithoutTouchingData() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val tampered = JSONObject(origin.exportJson()).apply { put("format", "otra-app") }
+
+        val store = FakeBackupStore(otherData())
+        val result = newManager(store).importBackup(rewrap(tampered))
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("no es una copia"))
+        assertEquals("Viejo", store.current.projects.first().name)
+    }
+
+    @Test
+    fun nonIntegerVersionIsRejectedWithoutTouchingData() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val tampered = rewrap(JSONObject(origin.exportJson())).let { JSONObject(it) }
+            .apply { put("version", "ocho") }
+
+        val store = FakeBackupStore(otherData())
+        val result = newManager(store).importBackup(tampered.toString(2))
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("entero"))
+        assertEquals("Viejo", store.current.projects.first().name)
+    }
+
+    @Test
+    fun nonNumericCreatedAtIsRejectedWithoutTouchingData() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val tampered = rewrap(JSONObject(origin.exportJson())).let { JSONObject(it) }
+            .apply { put("createdAt", "hoy") }
+
+        val store = FakeBackupStore(otherData())
+        val result = newManager(store).importBackup(tampered.toString(2))
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("fecha de creación"))
+        assertEquals("Viejo", store.current.projects.first().name)
+    }
+
+    @Test
+    fun collectionWithWrongTypeIsRejectedWithoutTouchingData() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val tampered = JSONObject(origin.exportJson()).apply { put("tasks", "no soy una lista") }
+
+        val store = FakeBackupStore(otherData())
+        val result = newManager(store).importBackup(rewrap(tampered))
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("tasks"))
+        assertEquals("Viejo", store.current.projects.first().name)
+    }
+
+    @Test
+    fun preferencesWithWrongTypeIsRejectedWithoutTouchingData() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val tampered = JSONObject(origin.exportJson()).apply { put("preferences", "no soy un objeto") }
+
+        val store = FakeBackupStore(otherData())
+        val result = newManager(store).importBackup(rewrap(tampered))
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("ajustes"))
+        assertEquals("Viejo", store.current.projects.first().name)
+    }
+
+    @Test
     fun corruptedChecksumIsRejected() = runBlocking {
         val origin = newManager(FakeBackupStore(sampleData()))
         val root = JSONObject(origin.exportJson())
