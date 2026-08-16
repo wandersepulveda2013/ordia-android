@@ -3547,6 +3547,11 @@ object NaturalTaskParser {
                     else -> part
                 }
             }
+            // c.382: el respaldo también normaliza el marcador aproximado "a eso de las N"
+            // (simétrico al fold de `approximateTimePatterns` en `parse`), así un standalone
+            // de hora aproximada ("a eso de la una y media" solo) muestra "a la una y media"
+            // en vez de resucitar "a eso de" crudo — consistente con c.379/c.381.
+            .let { approximateTimePatterns.fold(it) { acc, p -> p.replace(acc, "a ") } }
             .replace(Regex("""\s+"""), " ").trim(' ', ',', '.', '-')
 
         return ParsedTaskInput(

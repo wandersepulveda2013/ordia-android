@@ -9082,6 +9082,44 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    @Test fun aEsoDeLaUnaYMediaStandaloneNoDejaResiduoAEso() {
+        // c.382: standalone de hora aproximada con fracción — el respaldo debe normalizar
+        // "a eso de" → "a" (fold de approximateTimePatterns), no resucitar "a eso de" crudo.
+        val result = NaturalTaskParser.parse("a eso de la una y media", now, zone)
+        assertEquals("a la una y media", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(1, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeLaUnaYMediaDeLaTardeStandaloneNoDejaResiduoAEso() {
+        val result = NaturalTaskParser.parse("a eso de la una y media de la tarde", now, zone)
+        assertEquals("a la una y media de la tarde", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(13, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeLasNueveYMediaStandaloneNoDejaResiduoAEso() {
+        val result = NaturalTaskParser.parse("a eso de las nueve y media", now, zone)
+        assertEquals("a las nueve y media", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeLasCincoYMediaStandaloneNoDejaResiduoAEso() {
+        val result = NaturalTaskParser.parse("a eso de las 5 y media", now, zone)
+        assertEquals("a las 5 y media", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(5, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aEsoDeLaUnaYCuartoStandaloneNoDejaResiduoAEso() {
+        val result = NaturalTaskParser.parse("a eso de la una y cuarto", now, zone)
+        assertEquals("a la una y cuarto", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(1, 15), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+
     @Test fun sobreLasTresDeLaTardeResuelve15hYLimpiaTitulo() {
         val result = NaturalTaskParser.parse("reunión sobre las 3 de la tarde", now, zone)
         assertEquals("reunión", result.title)
