@@ -3802,6 +3802,36 @@ object NaturalTaskParser {
             }
         }
 
+        // Giros idiomáticos de "cada 2 semanas"/"cada 2 meses" sin cantidad numérica:
+        // "semana por medio", "mes por medio" (y con "cada"/"una"/"un"). Familia
+        // simétrica de "día por medio" (c.332 → DAILY+2): el giro "X por medio"
+        // significa intercalar cada dos períodos. "semana por medio" = cada 2 semanas,
+        // "mes por medio" = cada 2 meses. Antes caían a NONE (sin "cada") o, peor,
+        // "cada semana por medio"/"cada mes por medio" casaban en [fixedPatterns] como
+        // WEEKLY/MONTHLY interval=1 (cadencia WRONG: disparaba cada semana/mes en vez
+        // de cada dos) y dejaban "por medio" como residuo en el título — error real de
+        // planificación para pagos/medicación/rutinas quincenales o bimensuales (P1
+        // datos/recurrencia). Se mapean a WEEKLY+2 / MONTHLY+2 (plusWeeks(2)/plusMonths(2)),
+        // idéntico a "cada dos semanas"/"cada dos meses", reutilizando el flujo de
+        // intervalo. La regex admite singular y plural ("semana"/"semanas",
+        // "mes"/"meses") porque ambas son frase idiomática fija; el cuantificador
+        // opcional "cada"/"una"/"un" cubre "cada semana por medio" y "una semana por
+        // medio". Se evalúa tras ordinalDayIntervalPattern (disjunto) y ANTES de
+        // multiMonthNoun/multiMonthAdjective/fixedPatterns para que "por medio" gane
+        // sobre "cada semana" (fixedPatterns interval=1) y limpie el título completo.
+        val alternatePeriodPattern =
+            Regex("""(?i)\b(?:cada\s+|una\s+|un\s+)?(?:semanas?|mes(?:es)?)\s+por\s+medio\b""")
+        alternatePeriodPattern.find(working)?.let { match ->
+            val isMonthly = match.value.contains(Regex("""(?i)mes"""))
+            phrases += match.range
+            return RecurrenceResult(
+                if (isMonthly) RecurrenceFrequency.MONTHLY else RecurrenceFrequency.WEEKLY,
+                2,
+                emptyList(),
+                phrases
+            )
+        }
+
         // "cada quincena" / "quincenalmente" / "quincenal" (adjetivo) / "todas las
         // quincenas": cadencia quincenal cotidiana en español (nóminas, pagos,
         // reportes cada 15 días). Una quincena son 15 días (media mes), NO 14 (dos

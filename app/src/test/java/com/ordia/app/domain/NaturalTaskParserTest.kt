@@ -7093,6 +7093,62 @@ class NaturalTaskParserTest {
         assertEquals(1, result.recurrenceInterval)
     }
 
+    // --- "semana por medio" / "mes por medio" = cada 2 semanas / cada 2 meses ---
+    // Familia simétrica de "día por medio" (c.332): el giro "X por medio" significa
+    // intercalar cada dos períodos. "semana por medio" = cada 2 semanas, "mes por medio"
+    // = cada 2 meses. Antes caían a NONE → la rutina nacía sin cadencia ni fecha
+    // (recordatorio jamás disparaba, invisible en What Now: P1 rutina olvidada).
+    // Ahora WEEKLY/MONTHLY interval=2, título limpio y primera ocurrencia anclada.
+    @Test fun semanaPorMedioParsesWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Reunión semana por medio", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun cadaSemanaPorMedioParsesWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Pago cada semana por medio", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun unaSemanaPorMedioParsesWeeklyInterval2() {
+        val result = NaturalTaskParser.parse("Pago una semana por medio", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun mesPorMedioParsesMonthlyInterval2() {
+        val result = NaturalTaskParser.parse("Factura mes por medio", now, zone)
+        assertEquals("Factura", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun cadaMesPorMedioParsesMonthlyInterval2() {
+        val result = NaturalTaskParser.parse("Renta cada mes por medio", now, zone)
+        assertEquals("Renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // No-regresión: "cada semana" (SIN "por medio") sigue siendo WEEKLY interval=1.
+    // El patrón "X por medio" exige la cola "por medio", así la forma canónica de
+    // cadencia semanal simple no debe verse afectada.
+    @Test fun cadaSemanaSinPorMedioSigueWeeklyInterval1() {
+        val result = NaturalTaskParser.parse("Reunión cada semana", now, zone)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+    }
+
     // --- Hora suelta con parte del día, SIN "a las" (ciclo 62) ---
     // "Taller 9 de la tarde" debe resolver la HORA EXPLÍCITA (21:00), no la canónica de la
     // tarde (15:00). Antes el número se ignoraba y caía a 15:00/21:00/09:00/04:00, dejando
