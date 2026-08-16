@@ -495,4 +495,53 @@ class DayPlannerTest {
         assertEquals(2L, plan.blocks.first().taskId)
         assertTrue(plan.unscheduledTaskIds.isEmpty())
     }
+
+    @Test
+    fun missedStartTaskIsLabeledMissedStartNotScheduledTime() {
+        // Un compromiso cuyo hueco (startAt) ya pasó sin completarse y aún no vence
+        // entra al plan de HOY como recuperación (c.244). Antes se etiquetaba
+        // SCHEDULED_TIME ("Con hora prevista") aunque el plan lo RE-coloca en un slot
+        // a partir de ahora —incluso lo marca como conflicto MOVED_FROM_SCHEDULED_TIME—,
+        // una etiqueta deshonesta (c.427). El motivo real es MISSED_START,
+        // simétrico con [WhatNowReason.MISSED_START] ("tenía su hueco y se pasó").
+        val missedStart = TaskEntity(
+            id = 41, title = "Hueco pasado", durationMinutes = 30,
+            // startAt a las 07:00 de `date` (ya pasó: now es las 08:00).
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(7, 0), zone),
+            // vence mañana: no es overdue, no es due-today → sólo missed-start.
+            dueAt = DateRules.toEpochMillis(date.plusDays(1), LocalTime.of(18, 0), zone)
+        )
+
+        val plan = DayPlanner.build(
+            listOf(missedStart), date, 9 * 60, 18 * 60,
+            breakMinutes = 0, now = now, zone = zone
+        )
+
+        assertEquals(1, plan.blocks.size)
+        assertEquals(PlanReason.MISSED_START, plan.blocks.first().reason)
+        // El plan la reubica (su hora original pasó): sigue marcándose como
+        // conflicto de hora movida, coherente con la etiqueta de recuperación.
+        assertEquals(1, plan.conflicts.size)
+        assertEquals(41L, plan.conflicts.first().taskId)
+    }
+
+    @Test
+    fun futureScheduledTaskStillLabeledScheduledTime() {
+        // Una tarea con startAt FUTURO (hueco aún por llegar) que entra al plan
+        // por includeScheduledOnDate sigue siendo SCHEDULED_TIME: la distinción
+        // c.427 (missed-start vs hora-prevista-real) no degrada el caso normal.
+        val futureScheduled = TaskEntity(
+            id = 42, title = "Con hora futura", durationMinutes = 30,
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(15, 0), zone),
+            dueAt = DateRules.toEpochMillis(date.plusDays(1), LocalTime.of(12, 0), zone)
+        )
+
+        val plan = DayPlanner.build(
+            listOf(futureScheduled), date, 9 * 60, 18 * 60,
+            breakMinutes = 0, includeScheduledOnDate = true, now = now, zone = zone
+        )
+
+        assertEquals(1, plan.blocks.size)
+        assertEquals(PlanReason.SCHEDULED_TIME, plan.blocks.first().reason)
+    }
 }

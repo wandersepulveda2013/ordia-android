@@ -8,7 +8,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 /** Explica por qué Ordia colocó una tarea en esa posición del plan. */
-enum class PlanReason { OVERDUE, URGENT, HIGH_PRIORITY, DUE_TODAY, DUE_ON_DATE, SCHEDULED_TIME, INBOX }
+enum class PlanReason { OVERDUE, URGENT, HIGH_PRIORITY, DUE_TODAY, DUE_ON_DATE, SCHEDULED_TIME, MISSED_START, INBOX }
 
 /** Advertencia del planificador sobre cambios sobre datos previos del usuario. */
 enum class PlanConflictKind { MOVED_FROM_SCHEDULED_TIME }
@@ -215,6 +215,16 @@ object DayPlanner {
      */
     private fun planReason(task: TaskEntity, now: Long, date: LocalDate, zone: ZoneId): PlanReason = when {
         TaskRules.isOverdue(task, now) -> PlanReason.OVERDUE
+        // Un compromiso cuyo hueco (startAt) ya pasó sin completarse y aún no vence
+        // entra al plan de HOY como recuperación (c.244). Etiquetarlo aquí como
+        // SCHEDULED_TIME ("Con hora prevista") sería deshonesto: el plan NO respeta
+        // su hora original (que ya pasó), la RE-coloca en un slot a partir de ahora
+        // —hasta la señala como conflicto MOVED_FROM_SCHEDULED_TIME. El motivo real
+        // es que se le pasó el turno, simétrico con [WhatNowReason.MISSED_START]
+        // ("tenía su hueco y se pasó"). Se evalú antes que `startAt != null` para
+        // que un hueco olvidado no se enmascare de "hora prevista respetada"
+        // (consistencia etiqueta ↔ intención, misma clase que c.372/c.373).
+        TaskRules.isMissedStart(task, now) -> PlanReason.MISSED_START
         task.priority == TaskPriority.URGENT -> PlanReason.URGENT
         task.priority == TaskPriority.HIGH -> PlanReason.HIGH_PRIORITY
         task.startAt != null -> PlanReason.SCHEDULED_TIME

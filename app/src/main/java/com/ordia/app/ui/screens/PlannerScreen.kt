@@ -815,6 +815,7 @@ private fun plannerReasonLabel(reason: PlanReason): String = when (reason) {
     PlanReason.DUE_TODAY -> stringResource(R.string.planner_reason_due_today)
     PlanReason.DUE_ON_DATE -> stringResource(R.string.planner_reason_due_on_date)
     PlanReason.SCHEDULED_TIME -> stringResource(R.string.planner_reason_scheduled)
+    PlanReason.MISSED_START -> stringResource(R.string.planner_reason_missed_start)
     PlanReason.INBOX -> stringResource(R.string.planner_reason_inbox)
 }
 
