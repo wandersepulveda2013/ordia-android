@@ -136,7 +136,7 @@ object NaturalTaskParser {
         // y emite MONTHLY, y aquí se captura el ordinal para anclar el motor. Simétrico del
         // puente "de" (que consume sólo "de" y deja "cada mes"). Sin conector de cadencia la
         // alternativa NO dispara → fecha suelta (no recurrente), sin regresión.
-        """(?i)(?<!\p{L})(?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+del?\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+|pasad[oa]\s+|anterior\s+)?(?:mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante|pasad[oa]|anterior))?(?:\s+del?\s+)?)?((?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic))?(?:\s+del?\s+(\d{2,4}))?|(?=\s+(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|mensualidades?)\b))\b"""
+        """(?i)(?<!\p{L})(?:el\s+)?(antepenúltimo|antepenultimo|penúltimo|penultimo|último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+del?\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+|pasad[oa]\s+|anterior\s+)?(?:mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante|pasad[oa]|anterior))?(?:\s+del?\s+)?)?((?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic))?(?:\s+del?\s+(\d{2,4}))?|(?=\s+(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|mensualidades?)\b))\b"""
     )
 
     /**
@@ -168,7 +168,7 @@ object NaturalTaskParser {
      * semanas" (c.276 en detectWeekInterval/intervalPattern).
      */
     private val precedingCadenceOrdinalPattern = Regex(
-        """(?i)(?<!\p{L})(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|bimestral(?:mente)?|trimestral(?:mente)?|cuatrimestral(?:mente)?|semestral(?:mente)?|cada\s+(?:\d{1,3}|$writtenNumberGroup)\s*meses?|todos\s+los\s+(?:\d{1,3}|$writtenNumberGroup)\s*meses?)\s+((?:el\s+)?(último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b"""
+        """(?i)(?<!\p{L})(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|bimestral(?:mente)?|trimestral(?:mente)?|cuatrimestral(?:mente)?|semestral(?:mente)?|cada\s+(?:\d{1,3}|$writtenNumberGroup)\s*meses?|todos\s+los\s+(?:\d{1,3}|$writtenNumberGroup)\s*meses?)\s+((?:el\s+)?(antepenúltimo|antepenultimo|penúltimo|penultimo|último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b"""
     )
 
     /**
@@ -2381,6 +2381,8 @@ object NaturalTaskParser {
                 val ordWord = ordinalMonthly.ordinalWord.lowercase()
                 val ordinal = when (ordWord) {
                     "último", "ultimo" -> -1
+                    "penúltimo", "penultimo" -> -2
+                    "antepenúltimo", "antepenultimo" -> -3
                     "primer", "primero" -> 1
                     "segundo" -> 2
                     "tercer", "tercero" -> 3
@@ -4360,6 +4362,8 @@ object NaturalTaskParser {
         val weekday = capture.weekdayWord.toDayOfWeek()
         val ordinal = when (ordinalWord) {
             "último", "ultimo" -> -1
+            "penúltimo", "penultimo" -> -2
+            "antepenúltimo", "antepenultimo" -> -3
             "primer", "primero" -> 1
             "segundo" -> 2
             "tercer", "tercero" -> 3
@@ -4418,12 +4422,13 @@ object NaturalTaskParser {
         return date
     }
 
-    /** N-ésima (ordinal<0 = última) ocurrencia de [weekday] en (year, month). */
+    /** N-ésima (ordinal<0 = última, -2 = penúltima, -3 = antepenúltima) ocurrencia de [weekday] en (year, month). */
     private fun nthWeekdayInMonth(year: Int, month: Int, ordinal: Int, weekday: DayOfWeek): LocalDate =
         if (ordinal < 0) {
             LocalDate.of(year, month, 1)
                 .with(TemporalAdjusters.lastDayOfMonth())
                 .with(TemporalAdjusters.previousOrSame(weekday))
+                .minusWeeks((-ordinal - 1).toLong())
         } else {
             LocalDate.of(year, month, 1)
                 .with(TemporalAdjusters.firstInMonth(weekday))

@@ -324,6 +324,41 @@ class RecurrenceEngineTest {
         assertEquals(LocalDate.of(2026, 9, 25), DateRules.toLocalDate(next.dueAt!!, zone))
     }
 
+    @Test fun monthlyOrdinal_penultimateMonday_advancesToPenultimateMondayNextMonth() {
+        // "penúltimo lunes de cada mes": penúltimo lunes de ago 2026 = 24-ago (lunes
+        // de ago: 3,10,17,24,31 → penúltimo = 24). Próxima = penúltimo lunes de sep
+        // 2026 = 21-sep (lunes de sep: 7,14,21,28 → penúltimo = 21; NO 24-sep).
+        // Regresión c.360: antes ord=-2 era rechazado por parseOrdinalWeekday
+        // (rango -1..4) → el motor caía al día del mes y la 2ª cita derivaba a 24-sep.
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 8, 24), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Reunión penúltimo lunes",
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceDays = "-2:1" // penúltimo lunes (ISO lunes=1)
+        )
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 9, 21), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals("-2:1", next.recurrenceDays) // el anclaje ordinal se conserva
+    }
+
+    @Test fun monthlyOrdinal_antepenultimateFriday_advancesToAntepenultimateFridayNextMonth() {
+        // "antepenúltimo viernes de cada mes": antepenúltimo viernes de ago 2026 =
+        // 14-ago (viernes de ago: 7,14,21,28 → antepenúltimo = 14). Próxima =
+        // antepenúltimo viernes de sep 2026 = 11-sep (viernes de sep: 4,11,18,25 →
+        // antepenúltimo = 11; NO 14-sep). Regresión c.360.
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Cobro antepenúltimo viernes",
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceDays = "-3:5" // antepenúltimo viernes (ISO viernes=5)
+        )
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 9, 11), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals("-3:5", next.recurrenceDays)
+    }
+
     @Test fun monthlyOrdinal_interval2_advancesTwoMonths() {
         // "tercer miércoles de cada 2 meses": 3er miércoles de ago 2026 = 19-ago.
         // Próxima = 3er miércoles de OCT 2026 (intervalo 2) = 21-oct.

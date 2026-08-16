@@ -146,19 +146,20 @@ object RecurrenceEngine {
     /**
      * Codificación ordinal mensual en `recurrenceDays`: `"ord:weekday"` (formato
      * literal `"$ord:$wd"`, p. ej. `"1:1"` = 1er lunes, `"-1:5"` = último viernes),
-     * con `ord ∈ {1,2,3,4,-1}` (-1 = último) y `weekday ∈ 1..7` (ISO, 1=lunes).
-     * Devuelve `(ord, weekday)` o `null` si [value] no casa (incluido el día del
-     * mes puro, que usa `recurrenceDays` vacío). Compartido por el motor y las
-     * reglas de seguridad de backup (validación única de la codificación). El
-     * parser (`NaturalTaskParser`) emite exactamente este formato para MONTHLY
-     * ordinal; cambiarlo aquí o allí rompería el anclaje anti-deriva (c.216).
+     * con `ord ∈ {1,2,3,4,-1,-2,-3}` (-1 = último, -2 = penúltimo, -3 =
+     * antepenúltimo) y `weekday ∈ 1..7` (ISO, 1=lunes). Devuelve `(ord, weekday)`
+     * o `null` si [value] no casa (incluido el día del mes puro, que usa
+     * `recurrenceDays` vacío). Compartido por el motor y las reglas de seguridad
+     * de backup (validación única de la codificación). El parser
+     * (`NaturalTaskParser`) emite exactamente este formato para MONTHLY ordinal;
+     * cambiarlo aquí o allí rompería el anclaje anti-deriva (c.216).
      */
     fun parseOrdinalWeekday(value: String): Pair<Int, Int>? {
         val parts = value.trim().split(':')
         if (parts.size != 2) return null
         val ord = parts[0].toIntOrNull() ?: return null
         val wd = parts[1].toIntOrNull() ?: return null
-        if (ord !in -1..4 || ord == 0) return null
+        if (ord !in -3..4 || ord == 0) return null
         if (wd !in 1..7) return null
         return ord to wd
     }
@@ -248,19 +249,21 @@ object RecurrenceEngine {
     }
 
     /**
-     * Día del mes del N-ésimo (`n` 1..4) o último (`n` = -1) día de la semana
-     * `weekday` (ISO 1..7) en [ym]. Simétrico al cálculo del parser para la 1ª
-     * ocurrencia, garantizando que motor y parser acuerdan el mismo anclaje.
+     * Día del mes del N-ésimo (`n` 1..4), último (`n` = -1), penúltimo (`n` = -2)
+     * o antepenúltimo (`n` = -3) día de la semana `weekday` (ISO 1..7) en [ym].
+     * Simétrico al cálculo del parser para la 1ª ocurrencia, garantizando que
+     * motor y parser acuerdan el mismo anclaje ciclo a ciclo.
      */
     private fun nthWeekdayInMonth(ym: YearMonth, n: Int, weekday: Int): Int {
         val first = ym.atDay(1)
         val firstWd = first.dayOfWeek.value
         val offset = (weekday - firstWd + 7) % 7
-        if (n == -1) {
+        if (n < 0) {
             val lastDay = ym.lengthOfMonth()
             val lastWd = ym.atDay(lastDay).dayOfWeek.value
             val back = (lastWd - weekday + 7) % 7
-            return lastDay - back
+            // n = -1 → último; -2 → penúltimo (−1 semana); -3 → antepenúltimo (−2 semanas).
+            return lastDay - back - (-n - 1) * 7
         }
         return 1 + offset + (n - 1) * 7
     }

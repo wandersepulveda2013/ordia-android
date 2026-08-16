@@ -938,6 +938,44 @@ class NaturalTaskParserTest {
         )
     }
 
+    // c.360: "penúltimo/antepenúltimo (weekday) del mes" recurrente. Antes el
+    // regex de último-día-de-la-semana-del-mes NO capturaba penúltimo/antepenúltimo
+    // (sólo el weekday) → fecha errónea y título sucio; y aunque se capturase el
+    // ordinal, no se mapeaba a recurrenceDays (caía a '' → motor derivaba). Ahora
+    // el ordinal -2/-3 se persiste simétrico a -1.
+    @Test fun penultimoLunesDelMesParsesMonthlyOrdinalPenultimate() {
+        // now=2026-07-29. "el penúltimo lunes del mes" recurrente → penúltimo lunes
+        // de ago 2026 = 24-ago (lunes ago: 3,10,17,24,31 → penúltimo=24).
+        val result = NaturalTaskParser.parse("reunión el penúltimo lunes del mes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertEquals("-2:1", result.recurrenceDays)
+        assertNotNull(result.dueAt)
+        assertEquals(java.time.DayOfWeek.MONDAY, DateRules.toLocalDate(result.dueAt!!, zone).dayOfWeek)
+        assertEquals(LocalDate.of(2026, 8, 24), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun antepenultimoViernesDelMesParsesMonthlyOrdinalAntepenultimate() {
+        // "el antepenúltimo viernes del mes" recurrente → antepenúltimo viernes de
+        // ago 2026 = 14-ago (viernes ago: 7,14,21,28 → antepenúltimo=14).
+        val result = NaturalTaskParser.parse("cobro el antepenúltimo viernes del mes", now, zone)
+        assertEquals("cobro", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("-3:5", result.recurrenceDays)
+        assertEquals(java.time.DayOfWeek.FRIDAY, DateRules.toLocalDate(result.dueAt!!, zone).dayOfWeek)
+        assertEquals(LocalDate.of(2026, 8, 14), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun cadaMesElPenultimoLunesParsesRecurringPenultimate() {
+        // "cada mes el penúltimo lunes" (cadencia precedente) → mismo anclaje -2:1.
+        val result = NaturalTaskParser.parse("reunión cada mes el penúltimo lunes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("-2:1", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 24), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // No-regresión: las formas SIN número (N=1) siguen resolviendo interval=1.
     @Test fun todasLasSemanasSigueSiendoWeeklyInterval1() {
         val result = NaturalTaskParser.parse("Reunión todas las semanas", now, zone)
