@@ -955,8 +955,22 @@ object NaturalTaskParser {
         // "9:30pm", "3:30h pm", "3 pm h". Requiere meridiem (hora 1-12). El sufijo se
         // absorbe antes/después del meridiem para que no quede como residuo en el título.
         Regex("""(?i)\b(0?[1-9]|1[0-2])(?:(?::|h)([0-5]\d))?(?:\s*(?:horas?|hs|h))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)(?:\s*(?:horas?|hs|h))?\b"""),
-        Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+)?mediod[ií]a(?:\s+($CLOCK_FRACTION_Y))?\b"""),
-        Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+)?medianoche(?:\s+($CLOCK_FRACTION_Y))?\b""")
+        // "al mediodía"/"a la medianoche" (canónicas 12:00/00:00). Admite prefijo
+        // demostrativo opcional ("al"/"a la"/"a") Y los modificadores cotidianos de
+        // "a partir de esa hora": "pasada la medianoche"/"pasado el mediodía"/
+        // "pasada medianoche"/"pasado mediodía" y "después de la medianoche"/
+        // "después del mediodía"/"después de mediodía". Antes estos modificadores NO se
+        // consumían: el patrón casaba el "mediodía"/"medianoche" incrustado y dejaba el
+        // prefijo ("pasada la"/"pasado"/"después del"/"después de la") como residuo en
+        // el título ("llamar pasada la", "llamar pasado") → contenido capturado
+        // mutilado (P1). "medianoche"/"mediodía" son inequívocas como hora canónica, así
+        // que consumir el modificador no introduce ambigüedad (no colisiona con
+        // "el viernes pasado"=previousWeekday ni "la semana pasada"=lastPeriod: esos
+        // ponen "pasado/pasada" DESPUÉS del sustantivo; aquí va ANTES de mediodía/
+        // medianoche). El negative-lookahead de laterRelativePattern ya excluye
+        // "después del/de la N", así que "después del mediodía" no lo roba como +3h.
+        Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+|pasad[oa]\s+(?:el\s+|la\s+)?|despu[eé]s\s+(?:del\s+|de\s+la\s+|de\s+))?mediod[ií]a(?:\s+($CLOCK_FRACTION_Y))?\b"""),
+        Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+|pasad[oa]\s+(?:el\s+|la\s+)?|despu[eé]s\s+(?:del\s+|de\s+la\s+|de\s+))?medianoche(?:\s+($CLOCK_FRACTION_Y))?\b""")
     )
     /**
      * Marcadores de hora aproximada ("a eso de", "hacia", "cerca de", "alrededor de",

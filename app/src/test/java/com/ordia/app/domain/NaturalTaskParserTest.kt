@@ -3958,6 +3958,60 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- "pasada la medianoche"/"pasado el mediodía"/"después del mediodía": título limpio ---
+    // Antes estos modificadores cotidianos de "a partir de esa hora" dejaban el prefijo
+    // como residuo en el título ("llamar pasada la", "llamar pasado", "llamar después del")
+    // aunque la hora canónica (00:00/12:00) sí se resolvía: contenido capturado mutilado
+    // (P1). "medianoche"/"mediodía" son inequívocas como hora canónica, así que consumir
+    // el modificador no introduce ambigüedad. Se verifica título limpio Y hora correcta.
+    @Test fun pasadaLaMedianocheNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Llamar pasada la medianoche", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalTime.of(0, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun pasadoElMediodiaNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Llamar pasado el mediodía", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun pasadaMedianocheSinArticuloNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Desayunar pasada medianoche", now, zone)
+        assertEquals("Desayunar", result.title)
+        assertEquals(LocalTime.of(0, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun despuesDelMediodiaNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Llamar después del mediodía", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun despuesDeLaMedianocheNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Llamar después de la medianoche", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalTime.of(0, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun despuesDeMediodiaSinArticuloNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Reunión después de mediodía", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // No-regresión: "pasado"/"pasada" DESPUÉS del sustantivo (uso demostrativo) y
+    // "pasado mañana" (relativo) NO deben verse afectados por el modificador-prefijo.
+    @Test fun pasadoDespuesDeSustantivoSigueIntacto() {
+        // "el viernes pasado" = viernes anterior; "la semana pasada" = semana anterior.
+        val r1 = NaturalTaskParser.parse("el viernes pasado", now, zone)
+        assertNotNull(r1.dueAt)
+        val r2 = NaturalTaskParser.parse("la semana pasada", now, zone)
+        assertNotNull(r2.dueAt)
+        val r3 = NaturalTaskParser.parse("pasado mañana", now, zone)
+        assertNotNull(r3.dueAt)
+    }
+
     // --- "en la tarde/noche/mañana": forma caribeña/hispanoamericana ---
     // "en la tarde" no era conector reconocido de parte del día (solo "a la"/"de la"/"por la"),
     // así "hoy en la tarde" caía a 09:00 y "en la tarde" quedaba como residuo en el título.
