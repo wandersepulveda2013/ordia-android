@@ -1285,6 +1285,13 @@ object NaturalTaskParser {
         // recordatorio perdido + título mutilado). Exige sufijo inequívoco (antes/anticipación/
         // adelanto) para no robar una duración real ("reunión con 30 min" sin sufijo = duración).
         Regex("""(?i)\bcon\s+($writtenAmountPattern)\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s+(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto)\b"""),
+        // Orden invertido "con anticipación/adelanto de N unidad" (más formal:
+        // sustantivo-anticipación ANTES de la cantidad): "reunión con anticipación
+        // de 15 min", "cita con adelanto de 20 minutos". Antes NO casaba (el patrón
+        // anterior exige "con N unidad sufijo", no "con sufijo de N unidad") → caía
+        // como duración falsa + residuo "con anticipación" en el título (P1:
+        // recordatorio perdido → cita olvidada). Mismo fix que c.401, forma invertida.
+        Regex("""(?i)\bcon\s+(?:anticipaci[oó]n|adelanto)\s+de\s+($writtenAmountPattern)\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\b"""),
         // Variante sin "con": "aviso 15 min" / "alerta 10 min" / "recordatorio 20 min"
         // (sustantivo suelto, sin verbo imperativo). "recordatorio N unidad" ya lo cubre
         // el patrón de verbos de abajo, pero "aviso"/"alerta" no. Va tras "con X" para no

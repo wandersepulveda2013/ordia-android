@@ -12063,6 +12063,42 @@ class NaturalTaskParserTest {
         assertNull(result.durationMinutes)
     }
 
+    // --- Orden invertido "con anticipación/adelanto de N unidad" (c.402) ---
+    @Test fun conAnticipacionDeNMinEsRecordatorioNoDuracion() {
+        val result = NaturalTaskParser.parse("Reunión con anticipación de 15 min", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(15, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun conAnticipacionDeNMinutosEsRecordatorioSinResiduo() {
+        val result = NaturalTaskParser.parse("Cita con anticipación de 20 minutos", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(20, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun conAdelantoDeNMinutosEsRecordatorioNoDuracion() {
+        val result = NaturalTaskParser.parse("Cita con adelanto de 20 minutos", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(20, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun conAnticipacionDeNHorasEsRecordatorioSinResiduo() {
+        val result = NaturalTaskParser.parse("Reunión con anticipación de 2 horas", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun conAnticipacionDeNDiasEsRecordatorio1440() {
+        val result = NaturalTaskParser.parse("Pagar luz con anticipación de un día", now, zone)
+        assertEquals("Pagar luz", result.title)
+        assertEquals(1440, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
     // --- Falsos positivos: "aviso"/"alerta" como contenido real, no recordatorio ---
     @Test fun avisoDeLaComunidadNoEsRecordatorioNiResiduo() {
         val result = NaturalTaskParser.parse("Revisar el aviso de la comunidad", now, zone)
