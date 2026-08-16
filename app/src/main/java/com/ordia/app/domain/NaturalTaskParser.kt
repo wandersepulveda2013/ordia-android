@@ -359,6 +359,25 @@ object NaturalTaskParser {
         """(?i)\bhace\s+(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\b"""
     )
     /**
+     * Fecha relativa PASADA vaga con DIMINUTIVO coloquial: "hace un ratito",
+     * "hace un ratico", "hace un momentito". Simétrica PASADA de los diminutivos
+     * futuros de [vagueRelativePattern] ("en un ratito" → +1 h). Antes estas formas
+     * NO casaban [agoPattern] (su alternativa "un rato" no casa "ratito"), por lo que
+     * [agoPattern] robaba solo "hace un" (→ "un"=1, unidad vacía → −3 h) y dejaba
+     * "ratito"/"ratico"/"momentito" como RESIDUO en el título ("hace un ratito llamé"
+     * → título "ratito llamé"), con un vencimiento correcto en magnitud (−3 h, igual
+     * que "hace un rato") pero el título corrupto. Con este patrón se consume la frase
+     * completa (prefijo "hace" incluido) y se resuelve a now − 3 h (misma heurística
+     * honesta que "hace un rato": el diminutivo no cambia el orden de magnitud, solo
+     * matiza; así se mantiene consistente con el lado futuro donde "en un ratito"
+     * también vale +1 h). Se procesa ANTES que [agoPattern] para que este no robe
+     * parcialmente "hace un". "ratito"/"ratico"/"momentito" se listan explícitamente
+     * para que la captura sea completa y no deje sufijo "-ito" suelto.
+     */
+    private val diminutiveAgoPattern = Regex(
+        """(?i)\bhace\s+un\s+(?:ratito|ratico|momentito)\b"""
+    )
+    /**
      * Fecha relativa PASADA fraccionaria COMPUESTA: "hace una hora y media" (−90 min),
      * "hace dos horas y media" (−150), "hace una hora y cuarto" (−75), "hace 3 horas y
      * cuarto". Simétrica PASADA de [compoundFractionalRelativePattern] ("en una hora y
@@ -1900,6 +1919,13 @@ object NaturalTaskParser {
         }
         fractionalAgoMatch?.let { working = working.replaceRange(it.range, " ") }
 
+        // "hace un ratito/ratico/momentito" (diminutivo coloquial pasado) -> -3 h.
+        // Se procesa ANTES que [agoPattern] para consumir la frase completa y evitar
+        // que este robe solo "hace un" (→ -3 h) dejando "ratito" en el título.
+        val diminutiveAgoMatch = diminutiveAgoPattern.find(working)
+        val diminutiveAgoDueAt = diminutiveAgoMatch?.let { now - 3L * 60 * 60_000L }
+        diminutiveAgoMatch?.let { working = working.replaceRange(it.range, " ") }
+
         // "hace N días/semanas/...": fecha relativa PASADA. Se trata como días
         // relativos (epoch a medianoche) para combinarse con hora explícita
         // ("hace 2 días a las 10"). "hace un rato"/"hace poco" -> -3 h.
@@ -2322,8 +2348,12 @@ object NaturalTaskParser {
         // PRIMERO: son sub-hora (instante preciso now−N min) y más específicas que el
         // ago entero genérico; como se blanquean antes de [agoPattern], a lo sumo una de
         // ellas y agoDueAt están activas a la vez, pero por seguridad se prefieren aquí.
+        // diminutiveAgoDueAt ("hace un ratito") va antes que agoDueAt: se blanquea antes
+        // que [agoPattern], así a lo sumo uno de los dos está activo; se prefiere por
+        // seguridad y para que el título quede limpio (agoPattern robaría solo "hace un").
         val effectiveRelativeDueAt =
             compoundFractionalAgoDueAt ?: fractionalAndQuarterAgoDueAt ?: fractionalAgoDueAt ?:
+            diminutiveAgoDueAt ?:
             agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: vagueRelativeDueAt ?: nowDueAt ?:
             laterRelativeDueAt ?: fractionalAndQuarterRelativeDueAt ?: fractionalRelativeDueAt ?:
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:

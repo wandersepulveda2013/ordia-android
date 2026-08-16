@@ -6794,6 +6794,54 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- Diminutivos PASADOS "hace un ratito"/"hace un ratico"/"hace un momentito" (c.366) ---
+    // Espejo PASADO de los diminutivos futuros de c.365 ("en un ratito" -> +1 h). Antes
+    // [agoPattern] (alternativa "un rato") NO casaba "ratito" y robaba solo "hace un"
+    // (-> "un"=1, unidad vacía -> -3 h) dejando "ratito"/"ratico"/"momentito" como RESIDUO
+    // en el título ("hace un ratito llamé" -> título "ratito llamé"). La fecha era correcta
+    // en magnitud (-3 h) pero el título quedaba corrupto. Ahora se consume la frase completa
+    // (prefijo "hace" incluido) y se resuelve a -3 h (misma heurística que "hace un rato").
+    @Test fun haceUnRatitoLimpiaTituloSinResiduo() {
+        val result = NaturalTaskParser.parse("Llamé hace un ratito", now, zone)
+        assertEquals("Llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun haceUnRaticoLimpiaTituloSinResiduo() {
+        val result = NaturalTaskParser.parse("Llamé hace un ratico", now, zone)
+        assertEquals("Llamé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haceUnMomentitoLimpiaTituloSinResiduo() {
+        val result = NaturalTaskParser.parse("Avisé hace un momentito", now, zone)
+        assertEquals("Avisé", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haceUnRatitoAlFinalDeLaFraseLimpiaTitulo() {
+        // El diminutivo puede ir al final ("lo envié hace un ratito"): el residuo no debe
+        // quedar en el título aunque la frase venga después del verbo.
+        val result = NaturalTaskParser.parse("lo envié hace un ratito", now, zone)
+        assertEquals("lo envié", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun haceUnRatitoSoloProduceFechaPasada() {
+        // "hace un ratito" sin verbo: la fecha pasada se resuelve (-3 h). El título
+        // queda con la frase restante igual que "hace un rato"/"hace poco" solos (la
+        // app trata el input completo como título cuando no hay verbo). Lo importante
+        // es que NO queda el residuo "ratito" suelto de un match parcial de agoPattern.
+        val result = NaturalTaskParser.parse("hace un ratito", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- "a finales de semana" / "finales de semana" (= próximo sábado, fecha única) ---
     // Forma plural análoga a "finales de mes": señala un fin de semana concreto, no un
     // hábito ("lo termino a finales de semana"). Antes NO casaba "fin de semana" (singular)
