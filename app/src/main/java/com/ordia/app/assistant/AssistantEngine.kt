@@ -450,6 +450,23 @@ object AssistantEngine {
                 // así se ruta a overdueCommitmentAnswer para identificarlo y abrir
                 // Conversaciones. Sin nueva pantalla (acción existente).
                 if (overdueCommitments.isNotEmpty()) return overdueCommitmentAnswer(overdueCommitments)
+                // c.409: inicio olvidado (missed-start) cuyo hueco se pasó en un día
+                // ANTERIOR. startAt en un día previo y dueAt futuro (o sin dueAt) →
+                // no cae en el rango de hoy (isScheduledInRange) ni es vencida por
+                // dueAt (earlierOverdue), así que antes la agenda "hoy" decía "no
+                // tienes nada" frente a trabajo olvidado que debe hacer hoy. Todas
+                // las demás superficies (What Now, "¿qué olvidé?", "¿voy bien?") ya
+                // lo recuperaban; la agenda callaba el mismo olvido en la consulta más
+                // común. Lo nombramos (no routing: la consulta es de agenda).
+                val missedEmpty = mostUrgentMissedStart(active, now)
+                if (missedEmpty != null) {
+                    val minutes = TaskRules.plannedDuration(missedEmpty)
+                    return AssistantAnswer(
+                        "Para hoy no tienes tareas agendadas, pero «${missedEmpty.title}» tenía su hueco y se pasó (~$minutes min)." +
+                            overdueCommitmentTail(overdueCommitments),
+                        relatedTaskIds = listOf(missedEmpty.id)
+                    )
+                }
             }
             return AssistantAnswer("Para $label no tienes tareas agendadas.")
         }
@@ -464,12 +481,22 @@ object AssistantEngine {
         // aunque la promesa aún no sea tarea. Simétrico con "¿voy bien?" (c.354) y
         // "organiza mi día" (c.294): cola informativa, no doble señalización. Para
         // alcances futuros/pasados no se anexa (no son parte de ese día).
+        // c.409: y lo mismo con los inicios olvidados (missed-start) cuyo hueco se
+        // pasó en un día anterior (startAt previo, dueAt futuro/sin dueAt): no son
+        // ni atrasadas por dueAt ni agenda de hoy, pero son trabajo olvidado que
+        // debe hacer hoy. Aquí, al haber agenda de hoy, va como cola informativa
+        // (no se lista entre las de hoy: es "además", igual que earlierOverdue).
         val tail = if (label == "hoy") {
             val earlierOverdue = active.count { TaskRules.isOverdue(it, now) && !TaskRules.isDueToday(it, now, zone) }
             val overdueTaskTail = if (earlierOverdue > 0) {
                 " Además, tienes $earlierOverdue atrasad${if (earlierOverdue == 1) "a" else "as"} de días anteriores."
             } else ""
-            overdueTaskTail + overdueCommitmentTail(overdueCommitments)
+            val missed = mostUrgentMissedStart(active, now)
+            val missedTail = if (missed != null) {
+                val minutes = TaskRules.plannedDuration(missed)
+                " Además, «${missed.title}» tenía su hueco y se pasó (~$minutes min)."
+            } else ""
+            overdueTaskTail + missedTail + overdueCommitmentTail(overdueCommitments)
         } else ""
         val head = if (label == "hoy") "Hoy" else label.replaceFirstChar { it.uppercase() }
         return AssistantAnswer("$head: $titles.$tail", relatedTaskIds = ids)
@@ -758,10 +785,18 @@ object AssistantEngine {
         suggested: TaskEntity,
         now: Long
     ): String {
-        val missed = WhatNowEngine.ordered(active, now)
-            .firstOrNull { TaskRules.isMissedStart(it, now) && it.id != suggested.id }
-            ?: return ""
+        val missed = mostUrgentMissedStartExcluding(active, suggested.id, now) ?: return ""
         val minutes = TaskRules.plannedDuration(missed)
         return " Además, «${missed.title}» tenía su hueco y se pasó (~$minutes min)."
     }
+
+    private fun mostUrgentMissedStart(active: List<TaskEntity>, now: Long): TaskEntity? =
+        WhatNowEngine.ordered(active, now).firstOrNull { TaskRules.isMissedStart(it, now) }
+
+    private fun mostUrgentMissedStartExcluding(
+        active: List<TaskEntity>,
+        excludeId: Long,
+        now: Long
+    ): TaskEntity? =
+        WhatNowEngine.ordered(active, now).firstOrNull { TaskRules.isMissedStart(it, now) && it.id != excludeId }
 }

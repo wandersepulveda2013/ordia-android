@@ -839,6 +839,95 @@ class AssistantEngineTest {
         assertTrue("no inventa compromiso: ${answer.text}", !answer.text.contains("compromiso"))
     }
 
+    // --- c.409: "¿qué tengo hoy?" no debe callar un inicio olvidado (missed-start)
+    // cuyo hueco se pasó en un día ANTERIOR. Todas las demás superficies de
+    // recuperación (What Now, "¿qué olvidé?", "¿voy bien?") ya lo nombran; la
+    // agenda "hoy" sólo nombraba las vencidas por dueAt (earlierOverdue) y los
+    // compromisos vencidos. Un compromiso al que el usuario le dio hueco el lunes
+    // (startAt) para el viernes (dueAt) y NO lo hizo quedaba invisible el martes en
+    // "¿qué tengo hoy?" pese a ser trabajo olvidado que debe hacer hoy. Coherencia
+    // con el resto de la familia missed-start (c.202/243/247/373/407). Sólo alcance
+    // "hoy": futuro/pasado no anexa olvidos (paralelo a earlierOverdue).
+
+    @Test fun queTengoHoy_warnsMissedStartWhoseWindowPassedOnEarlierDay() {
+        // Con agenda de hoy rellena: la cola informativa avisa del inicio olvidado
+        // sin cambiar el foco de la agenda (no lo lista — es "además", paralelo al
+        // tail de atrasadas). startAt hace 2 días (día anterior), ventana terminada,
+        // sin dueAt → missed-start puro, NO vencida (no aparece como atrasada).
+        val now = 1_000_000_000_000L
+        val today = todayNoon(now)
+        val missedStart = TaskEntity(
+            id = 7, title = "Llamada de seguimiento",
+            startAt = now - 2 * 86_400_000L, // empezó hace 2 días
+            durationMinutes = 30,            // ventana terminada hace 2 días
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué tengo hoy?",
+            listOf(TaskEntity(id = 1, title = "Cita médica", dueAt = today), missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la de hoy: ${answer.text}", answer.text.contains("Cita médica"))
+        assertTrue("no calla el inicio olvidado: ${answer.text}", answer.text.contains("Llamada de seguimiento"))
+        assertTrue("describe el olvido: ${answer.text}", answer.text.contains("se pasó"))
+    }
+
+    @Test fun queTengoHoy_recoversMissedStartWhenNoAgendaAndNoOverdue() {
+        // Agenda de hoy vacía y SIN atrasadas de tarea: antes decía "Para hoy no
+        // tienes tareas agendadas." frente a un inicio olvidado — mentía por
+        // omisión sobre trabajo olvidado que debe hacer hoy. Ahora lo nombra.
+        val now = 1_000_000_000_000L
+        val missedStart = TaskEntity(
+            id = 8, title = "Reunión perdida",
+            startAt = now - 2 * 86_400_000L,
+            durationMinutes = 25,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué tengo hoy?",
+            listOf(missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("no miente 'no tienes nada': ${answer.text}", answer.text.contains("Reunión perdida"))
+    }
+
+    @Test fun queTengoHoy_doesNotMentionMissedStartInFutureScope() {
+        // "¿qué tengo mañana?" es alcance futuro: un inicio olvidado NO es parte de
+        // "lo de mañana" (igual que earlierOverdue/compromisos vencidos). Guard de
+        // coherencia: el tail de missed-start sólo aplica al alcance "hoy".
+        val now = 1_000_000_000_000L
+        val tomorrow = tomorrowNoon(now)
+        val missedStart = TaskEntity(
+            id = 9, title = "Llamada agendada",
+            startAt = now - 2 * 86_400_000L,
+            durationMinutes = 30,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué tengo mañana?",
+            listOf(TaskEntity(id = 10, title = "Reunión", dueAt = tomorrow), missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la de mañana: ${answer.text}", answer.text.contains("Reunión"))
+        assertTrue("no mezcla el olvido en el alcance futuro: ${answer.text}", !answer.text.contains("Llamada agendada"))
+    }
+
+    @Test fun queTengoHoy_doesNotInventMissedStartWhenNone() {
+        // Guard anti-falso-positivo: sin inicio olvidado, la respuesta NO debe
+        // inventar "se pasó". Una tarea de hoy sana no dispara la cola.
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "¿qué tengo hoy?",
+            listOf(TaskEntity(id = 11, title = "Cita médica", dueAt = todayNoon(now))),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("no inventa olvido sin missed-start: ${answer.text}", !answer.text.contains("se pasó"))
+    }
+
     @Test fun queTengoManana_doesNotMentionOverdueCommitmentInFutureScope() {
         // "¿qué tengo mañana?" es alcance futuro: los atrasados/compromisos
         // vencidos NO son parte de "lo de mañana". El tail de compromisos sólo
