@@ -321,8 +321,18 @@ object AssistantEngine {
             }
             query.startsWith("busca ") || query.startsWith("muestra ") || query.startsWith("pendientes con") ->
                 AssistantAnswer("Abriré la búsqueda con esa consulta.", AssistantAction.OPEN_SEARCH, clean)
+            // Octavo olvido de la familia "lie-by-omission": la consulta no casa con
+            // ninguna rama conocida y el asistente cae a su menú de capacidades. Es la
+            // superficie de mayor tránsito para un usuario confundido —y justo ahí
+            // callaba un compromiso vencido de conversación. Antes respondía "Puedo
+            // organizar tu día…" frente a una promesa olvidada: el usuario confundido
+            // no sabía qué preguntar Y no se enteraba de que debía algo. No se redirige
+            // a overdueCommitmentAnswer (secuestraría el menú de descubrimiento que el
+            // usuario necesita); se anexa la cola de conteo, paritaria con las
+            // superficies que muestran una lista (c.357/c.358/c.421). Sin nueva pantalla.
             else -> AssistantAnswer(
-                "Puedo organizar tu día, decirte qué hacer ahora, qué tienes mañana, mostrar lo vencido, resumir conversaciones, buscar pendientes o preparar un plan mínimo."
+                "Puedo organizar tu día, decirte qué hacer ahora, qué tienes mañana, mostrar lo vencido, resumir conversaciones, buscar pendientes o preparar un plan mínimo." +
+                    overdueCommitmentTail(overdueCommitments)
             )
         }
     }

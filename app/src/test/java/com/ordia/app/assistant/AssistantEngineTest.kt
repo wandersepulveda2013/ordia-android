@@ -138,6 +138,45 @@ class AssistantEngineTest {
         assertTrue("no inventa compromiso sin haberlo: ${answer.text}", !answer.text.contains("compromiso"))
     }
 
+    // --- c.422: el menú genérico (consulta no reconocida) no debe callar un
+    // compromiso vencido. Octavo olvido de la familia "lie-by-omission": el catch-all
+    // es la superficie de mayor tránsito para un usuario confundido (escribió algo que
+    // el asistente no entiende) y justo ahí callaba la promesa olvidada. Paridad con
+    // las superficies que muestran una lista (c.357/c.358/c.421): anexa la cola de
+    // conteo (no secuestra el menú de descubrimiento). Sin nueva pantalla.
+    @Test fun genericFallback_warnsOverdueCommitmentWhenConfused() {
+        // El usuario escribe algo que no casa con ninguna rama ("asdf"). Hay un
+        // compromiso vencido: antes el menú de capacidades callaba la promesa —
+        // el usuario confundido no sabía qué preguntar Y no se enteraba de que
+        // debía algo. Debe anexar la cola de conteo.
+        val now = 1_000_000_000_000L
+        val commitment = overdueCommitment(32, "te paso el presupuesto", now - 3 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "asdf qwerty",
+            emptyList(),
+            emptyList(),
+            listOf(commitment),
+            now
+        )
+        assertTrue("el menú genérico no calla el compromiso vencido: ${answer.text}",
+            answer.text.contains("compromiso"))
+        assertTrue("preserva el menú de capacidades (no secuestra): ${answer.text}",
+            answer.text.contains("organizar tu día"))
+    }
+
+    @Test fun genericFallback_doesNotInventCommitmentWhenNone() {
+        // Guard anti-falso-positivo (IA honesta): sin compromiso vencido, el menú
+        // genérico no debe inventar "compromiso".
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "asdf qwerty",
+            emptyList(), emptyList(), emptyList(),
+            now
+        )
+        assertTrue("no inventa compromiso sin haberlo: ${answer.text}",
+            !answer.text.contains("compromiso"))
+    }
+
     @Test fun whatNow_estimatesClampedDurationForZeroDurationTask() {
         val answer = AssistantEngine.answer(
             "¿Qué hago ahora?",
