@@ -32,6 +32,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -87,7 +88,7 @@ fun PlannerScreen(
     contentPadding: PaddingValues,
     onTask: (Long) -> Unit
 ) {
-    var selectedEpochDay by rememberSaveable { mutableStateOf(LocalDate.now().toEpochDay()) }
+    var selectedEpochDay by rememberSaveable { mutableLongStateOf(LocalDate.now().toEpochDay()) }
     var selectedViewName by rememberSaveable { mutableStateOf(PlannerView.DAY.name) }
     var adding by remember { mutableStateOf(false) }
     var showSuggestedPlan by remember { mutableStateOf(false) }

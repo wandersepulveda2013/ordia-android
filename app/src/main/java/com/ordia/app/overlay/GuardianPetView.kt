@@ -21,6 +21,7 @@ import kotlin.math.sin
 class GuardianPetView(context: Context) : View(context) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private val arcBounds = RectF()
     private var preferences = UserPreferences()
     private var phase = 0f
     private var animationsAllowed = true
@@ -121,7 +122,8 @@ class GuardianPetView(context: Context) : View(context) {
         if (stage.ordinal >= GuardianEngine.Stage.COMPANION.ordinal) {
             stroke.color = palette.accent
             stroke.strokeWidth = r * 0.055f
-            canvas.drawArc(RectF(cx - r * 0.62f, cy - r * 0.68f, cx + r * 0.62f, cy + r * 0.56f), 200f, 140f, false, stroke)
+            arcBounds.set(cx - r * 0.62f, cy - r * 0.68f, cx + r * 0.62f, cy + r * 0.56f)
+            canvas.drawArc(arcBounds, 200f, 140f, false, stroke)
         }
 
         repeat(3 + stage.ordinal) { index ->

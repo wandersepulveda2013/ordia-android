@@ -300,7 +300,8 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                             guardianStatus = if (started) context.getString(R.string.settings_guardian_float_active) else context.getString(R.string.settings_guardian_float_blocked)
                         } else {
                             vm.setGuardianEnabled(false)
-                            context.stopService(android.content.Intent(context, com.ordia.app.overlay.GuardianOverlayService::class.java))
+                            val stopIntent = android.content.Intent(context, com.ordia.app.overlay.GuardianOverlayService::class.java)
+                            context.stopService(stopIntent)
                             guardianStatus = context.getString(R.string.settings_guardian_float_disabled)
                         }
                     }

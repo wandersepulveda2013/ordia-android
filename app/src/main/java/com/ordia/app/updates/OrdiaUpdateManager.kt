@@ -425,7 +425,7 @@ object OrdiaUpdateManager {
             .remove(KEY_EXPECTED_SHA256)
             .remove(KEY_EXPECTED_BYTES)
             .remove(KEY_DOWNLOAD_STARTED_AT)
-            .commit()
+            .apply()
     }
 
     private fun verifiedDirectory(context: Context): File =

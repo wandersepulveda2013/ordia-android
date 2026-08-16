@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="search_palette_header_subtitle">Abre una sección o encuentra tareas, proyectos, notas y hábitos.</string>
-    <string name="search_palette_field_label">Buscar o ejecutar un comando</string>
-    <string name="search_palette_frequent">Comandos frecuentes</string>
-    <string name="search_palette_commands">Comandos</string>
+    <string name="search_palette_field_label" tools:ignore="Typos">Buscar o ejecutar un comando</string>
+    <string name="search_palette_frequent" tools:ignore="Typos">Comandos frecuentes</string>
+    <string name="search_palette_commands" tools:ignore="Typos">Comandos</string>
     <string name="search_palette_entities">Resultados</string>
     <string name="search_kind_command">COMANDO</string>
 

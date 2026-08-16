@@ -1,5 +1,6 @@
 package com.ordia.app.overlay
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -545,6 +546,7 @@ class GuardianOverlayService : Service() {
     // Suggestion card (external confirmation overlay)
     // ========================================================================
 
+    @SuppressLint("InflateParams", "ClickableViewAccessibility")
     private fun showSuggestionCard(suggestion: ExternalSuggestion) {
         if (suggestionCard != null) return
         if (quietHoursActive) return
@@ -631,13 +633,18 @@ class GuardianOverlayService : Service() {
             }
         }
 
-        card.setOnTouchListener { _, event ->
+        card.isClickable = true
+        card.setOnTouchListener { view, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_OUTSIDE -> {
                     // Touch outside closes the card
                     hideSuggestionCard()
                     controller.ignoreSuggestion(suggestion)
                     true
+                }
+                MotionEvent.ACTION_UP -> {
+                    view.performClick()
+                    false
                 }
                 else -> false
             }

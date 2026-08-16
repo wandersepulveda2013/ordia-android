@@ -6,7 +6,7 @@
     <string name="reminders_channel_name">Recordatorios</string>
     <string name="reminders_channel_description">Avisos de tareas y hábitos programados.</string>
     <string name="widget_description">Muestra tu próximo paso y el número de tareas pendientes.</string>
-    <string name="keyboard_analyzing">Analizando...</string>
+    <string name="keyboard_analyzing">Analizando…</string>
     <string name="keyboard_suggestion_add">Agregar</string>
     <string name="keyboard_suggestion_edit">Editar</string>
     <string name="keyboard_suggestion_ignore">Ignorar</string>
@@ -59,7 +59,7 @@
     <string name="guardian_action_hide">Ocultar guardián</string>
     <string name="guardian_assistant_title">Asistente Ordía</string>
     <string name="guardian_assistant_welcome">¿En qué puedo ayudarte?</string>
-    <string name="guardian_assistant_hint">Escribe tu mensaje...</string>
+    <string name="guardian_assistant_hint">Escribe tu mensaje…</string>
     <string name="guardian_assistant_ask">Preguntar</string>
     <string name="guardian_privacy_blocked">No puedo procesar esa información.</string>
     <string name="guardian_assistant_done">Hecho: %1$s\n%2$s</string>

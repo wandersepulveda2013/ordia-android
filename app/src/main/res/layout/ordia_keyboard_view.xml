@@ -2,6 +2,7 @@
 <!-- Vista completa del teclado Ordía 3 con barra de candidatos -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -46,6 +47,7 @@
         <!-- Tarjeta de sugerencia contextual -->
         <LinearLayout
             android:id="@+id/suggestion_card"
+            tools:ignore="UselessParent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -202,11 +204,9 @@
 
     <!-- Teclado QWERTY -->
     <android.inputmethodservice.KeyboardView
-        xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/keyboard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
         android:keyBackground="@drawable/ordia_keyboard_key"
         android:keyTextColor="@android:color/white"
         android:keyTextSize="18sp"

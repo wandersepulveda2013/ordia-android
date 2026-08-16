@@ -1520,7 +1520,8 @@ class OrdiaViewModel(
                         else com.ordia.app.updates.OrdiaUpdateManager.cancelSchedule(appContext)
                     }
                     if (BuildConfig.OVERLAY_ENABLED) {
-                        appContext.stopService(android.content.Intent(appContext, com.ordia.app.overlay.GuardianOverlayService::class.java))
+                        val stopIntent = android.content.Intent(appContext, com.ordia.app.overlay.GuardianOverlayService::class.java)
+                        appContext.stopService(stopIntent)
                     }
                     _backupState.value = BackupRestoreState.Success(result.message)
                     updateWidget()

@@ -51,7 +51,7 @@
         android:id="@+id/card_suggestion_source"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="10sp"
+        android:textSize="11sp"
         android:textColor="#666666"
         android:paddingBottom="10dp" />
 
@@ -60,7 +60,7 @@
         android:id="@+id/card_suggestion_confidence"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="10sp"
+        android:textSize="11sp"
         android:textColor="#555555"
         android:visibility="gone" />
 

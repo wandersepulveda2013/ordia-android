@@ -1,5 +1,6 @@
 package com.ordia.app.ime
 
+import android.annotation.SuppressLint
 import android.content.SharedPreferences
 import android.inputmethodservice.InputMethodService
 import android.inputmethodservice.Keyboard
@@ -123,6 +124,7 @@ class OrdiaKeyboardService : InputMethodService(),
     // Ciclo de vida del IME
     // ========================================================================
 
+    @SuppressLint("InflateParams")
     override fun onCreateInputView(): View {
         keyboard = Keyboard(this, R.xml.ordia_keyboard_qwerty)
         val root = layoutInflater.inflate(R.layout.ordia_keyboard_view, null) as LinearLayout
