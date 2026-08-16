@@ -956,12 +956,21 @@ object NaturalTaskParser {
 
     /**
      * Sufijo opcional NO capturante de modificador de aproximación post-hora:
-     * "más o menos", "aproximadamente", "y pico". Frases cotidianas que matizan una hora
+     * "más o menos", "aproximadamente", "y pico", "pasados", "justo". Frases cotidianas que matizan una hora
      * ya reconocida ("a las 9 más o menos", "a las nueve y pico", "reunión a las 3
      * aproximadamente"). Antes NO se consumían: el patrón casaba la hora y dejaba el
      * modificador como residuo del título ("reunión más o menos", "reunión y pico") — la
      * cita se agendaba bien pero el título quedaba mutilado con basura (P2 captura/título
      * limpio). Simétrico de [EN_PUNTO_SUFFIX].
+     *
+     * "justo" (c.428b) es de PRECISIÓN, no aproximación ("a las 7 de la tarde justo" =
+     * exactamente 19:00), pero funcionalmente es el mismo caso: sufijo post-hora a
+     * limpiar. Antes "justo" como SUFIJO no se consumía (sólo como PREFIJO: c.393/c.401
+     * reescriben "justo a las N"→"a las N"): "llamar a las 7 de la tarde justo" →
+     * título 'llamar justo' (residuo) pese a agendar 19:00. Aquí los patrones de hora ya
+     * capturaron la hora antes del sufijo, así "justo" sólo puede modificar esa hora (no
+     * hay uso de tema/cuenta tras una hora capturada: *"a las 7 justo personas" no es
+     * gramatical). No colisiona con el prefijo "justo": c.393 ya lo reescribió a "a ".
      *
      * La hora se conserva en punto (sin desplazar): "a las 9 y pico" → 09:00 (la
      * aproximación sub-hora no es modelable sin un campo de jitter; el valor útil es la
@@ -977,7 +986,7 @@ object NaturalTaskParser {
      * Estos modificadores son evidencia de reloj inequívoca (no hay "9 más o menos
      * [personas]"): se cuentan en [hasClockEvidence] para el guard anti-cuenta (c.361).
      */
-    private val APPROX_TIME_SUFFIX = """(?:\s*(?:m[aá]s\s+o\s+menos|aproximadamente|y\s+pico|pasad[ao]s?))?"""
+    private val APPROX_TIME_SUFFIX = """(?:\s*(?:m[aá]s\s+o\s+menos|aproximadamente|y\s+pico|pasad[ao]s?|justo))?"""
 
     /**
      * Resuelve la fracción sub-hora de un grupo de [timePatterns] en minutos (0..59).
@@ -1191,6 +1200,41 @@ object NaturalTaskParser {
 
     private val deLasRangeNormalizerRewriter =
         Regex("""(?i)\bde\s+las\s+(\d{1,2})(?:(?::|h)([0-5]\d))?\s*((?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s+(?:horas?|hs|h))?)\s+a\s+las\s+(\d{1,2})(?:(?::|h)([0-5]\d))?\s*((?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s+(?:horas?|hs|h))?)\b""")
+
+    /**
+     * Normaliza rangos horarios con conector "desde ... hasta/a ..." a la forma
+     * canónica "de H1 a H2 [meridiem]" que digiere [timeRangePattern] (duración
+     * M−N + hora de INICIO como dueAt, propagación de meridiem, cruce de mediodía,
+     * guard anti-cuenta). Es la forma cotidiana más natural de expresar un bloque
+     * de tiempo ("trabajo desde las 9 hasta las 11"), pero antes NO se normalizaba:
+     * [deLasRangeNormalizerRewriter] exige "de las N a las M" (conector "a" + "las"
+     * en ambos extremos) y [timeRangePattern] exige "de? H1 a H2" (no admite
+     * "desde" ni "hasta"), así que "desde las 9 hasta las 11" caía entera: el
+     * rewriter de plazo "hasta las N"→"a las N" resolvía SOLO el extremo final
+     * (11:00 como dueAt del CIERRE) y dejaba "desde las 9" como residuo del título
+     * — cita mal anclada (cierre en vez de inicio), sin duración y con título
+     * mutilado. Peor aún, "desde 9 hasta 11" (sin "las") perdía la cita entera
+     * (dueAt=null → olvido, P1). Asimetría flagrante con "de las 9 a las 11", que
+     * sí da inicio 09:00 + 120 min + título limpio. Este rewriter cierra la
+     * asimetría reutilizando TODO el flujo de rango existente.
+     *
+     * Admite "las" opcional en cada extremo y conector de cierre "hasta" (con o sin
+     * "las") o "a" (con o sin "las"), cubriendo "desde las 9 hasta las 11",
+     * "desde las 9 a las 11", "desde 9 hasta 11" y "desde las 9am hasta las 11am".
+     * Los grupos 1-6 (H1/min1/suf1, H2/min2/suf2) ocupan los MISMOS índices que
+     * [entreRangeNormalizerRewriter]/[deLasRangeNormalizerRewriter], así que
+     * [rebuildRange] los reconstruye a "de H1 a H2" sin código propio. Sólo horas
+     * NUMÉRICAS (igual que los otros dos rewriters): la validación anti-cuenta y
+     * de rango ambiguo la sigue haciendo [timeRangePattern]/[rangeMatch]
+     * (followedByCount, hasMinutesOrMeridiem, acceptAmbiguous), así que
+     * "desde 3 hasta 5 cajas" → "de 3 a 5 cajas" → rechazado.
+     *
+     * Se aplica ANTES que [deLasRangeNormalizerRewriter] y que el rewriter de plazo
+     * "hasta las N"→"a las N": así el "hasta" del rango se consume aquí entero y no
+     * se desarma en un "a las N" suelto que dejaría "desde las 9 a" como residuo.
+     */
+    private val desdeRangeNormalizerRewriter =
+        Regex("""(?i)\bdesde\s+(?:las\s+)?(\d{1,2})(?:(?::|h)([0-5]\d))?\s*((?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s+(?:horas?|hs|h))?)\s+(?:hasta\s+(?:las\s+)?|a\s+(?:las\s+)?)(\d{1,2})(?:(?::|h)([0-5]\d))?\s*((?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?(?:\s+(?:horas?|hs|h))?)\b""")
 
     /**
      * Marcadores de hora aproximada ("a eso de", "hacia", "cerca de", "alrededor de",
@@ -2037,6 +2081,7 @@ object NaturalTaskParser {
             val suf2 = m.groupValues[6].trim()
             return "de $h1$min1${if (suf1.isNotEmpty()) " $suf1" else ""} a $h2$min2${if (suf2.isNotEmpty()) " $suf2" else ""}"
         }
+        working = desdeRangeNormalizerRewriter.replace(working) { rebuildRange(it) }
         working = entreRangeNormalizerRewriter.replace(working) { rebuildRange(it) }
         working = deLasRangeNormalizerRewriter.replace(working) { rebuildRange(it) }
 

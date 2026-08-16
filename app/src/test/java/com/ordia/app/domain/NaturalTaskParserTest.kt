@@ -5291,6 +5291,56 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(14, 30), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- Rangos con conector "desde ... hasta/a ..." (c.428, P1) ---
+    // BUG: "desde las N hasta las M" (la forma cotidiana más natural de un bloque de
+    // tiempo) NO se normalizaba a la forma canónica "de N a M": el extremo final se
+    // resolvía como dueAt del CIERRE, "desde las N" quedaba como residuo del título y
+    // la duración se perdía. "desde 9 hasta 11" (sin "las") perdía la cita entera
+    // (dueAt=null → olvido). Ahora "desde...hasta/a" se reescribe a "de N a M" y
+    // reutiliza todo el flujo de rango existente (inicio como dueAt + duración real).
+    @Test fun desdeRangeConHastaParsesStartAndDuration() {
+        val result = NaturalTaskParser.parse("Trabajo desde las 9 hasta las 11", now, zone)
+        assertEquals("Trabajo", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun desdeRangeConAIsCanonicalEquivalent() {
+        val result = NaturalTaskParser.parse("Trabajo desde las 9 a las 11", now, zone)
+        assertEquals("Trabajo", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun desdeRangeBareHoursParsesStartAndDuration() {
+        // "desde 9 hasta 11" (sin "las"): antes dueAt=null (cita perdida). Ahora 09:00.
+        val result = NaturalTaskParser.parse("Trabajo desde 9 hasta 11", now, zone)
+        assertEquals("Trabajo", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun desdeRangeWithMeridiemPropagatesPmToStart() {
+        val result = NaturalTaskParser.parse("Estudiar desde las 7pm hasta las 9pm", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(19, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun desdeRangeWithTrailingDeLaTardePropagatesPmToStart() {
+        val result = NaturalTaskParser.parse("Reunión desde las 3 de la tarde hasta las 5", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(120, result.durationMinutes)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun desdeRangeDoesNotFalsePositiveOnItemCount() {
+        // Guard anti-cuenta: "desde 3 hasta 5 cajas" no debe agendar una cita.
+        val result = NaturalTaskParser.parse("Comprar desde 3 hasta 5 cajas", now, zone)
+        assertNull(result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
     // Hora suelta con meridiem (NO rango): sigue resolviéndose correctamente. El guard
     // solo actúa cuando el tiempo explícito cae DENTRO del span de un rango validado.
     @Test fun standaloneHourWithMeridiemNotAffectedByRangeGuard() {
@@ -5299,6 +5349,30 @@ class NaturalTaskParserTest {
         val r2 = NaturalTaskParser.parse("Cita 9am", now, zone)
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r2.dueAt!!, zone))
     }
+
+    // --- Sufijo "justo" tras hora (c.428b, P2 título limpio) ---
+    // BUG: "justo" como SUFIJO ("a las 7 de la tarde justo") no se consumía (sólo el
+    // PREFIJO "justo a las N" se normalizaba en c.393), así quedaba como residuo del
+    // título ('llamar justo') pese a agendar la hora correcta. Ahora el sufijo se
+    // consume y el título queda limpio. La hora se conserva en punto (igual que "y pico").
+    @Test fun justoSuffixAfterHourDoesNotLeakToTitle() {
+        val result = NaturalTaskParser.parse("Llamar a las 7 de la tarde justo", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalTime.of(19, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun justoSuffixAfterBareHourDoesNotLeakToTitle() {
+        val result = NaturalTaskParser.parse("Cita a las 9 justo", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun justoSuffixAfterMediodiaDoesNotLeakToTitle() {
+        val result = NaturalTaskParser.parse("Almuerzo al mediodía justo", now, zone)
+        assertEquals("Almuerzo", result.title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
 
     // --- Cruce del mediodía en rangos con meridiem solo al final (ciclo 79) ---
     // BUG: "de 12 a 2 de la tarde" computaba la duración con horas crudas del texto
