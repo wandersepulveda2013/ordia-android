@@ -3332,6 +3332,94 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- "media mañana/tarde/noche/madrugada" y "medio/media día" (ciclo 374) ---
+    // Formas separadas del punto medio de una parte del día. Antes NO se interpretaban
+    // como hora: la tarea caía sin dueAt (olvidada) y "media X" quedaba como residuo en
+    // el título; o "media mañana" colisionaba con el marcador de fecha "mañana" (+1 día,
+    // hora 09:00, título mutilado "revisar a media"). Asimetría con "mediodía"/
+    // "medianoche" (una palabra) que SÍ funcionaban. now = 2026-07-29 12:00.
+
+    @Test fun mediaTardeParsesMidAfternoonAndCleanTitle() {
+        val result = NaturalTaskParser.parse("Reunión a media tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(16, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun aLaMediaTardeParsesMidAfternoonAndCleanTitle() {
+        val result = NaturalTaskParser.parse("Reunión a la media tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(16, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun deMediaTardeParsesMidAfternoonAndCleanTitle() {
+        val result = NaturalTaskParser.parse("Reunión de media tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(16, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun mediaMananaParsesMidMorningAndCleanTitle() {
+        val result = NaturalTaskParser.parse("Revisar a media mañana", now, zone)
+        assertEquals("Revisar", result.title)
+        // "media mañana" NO es fecha "mañana": cae hoy (2026-07-29), no +1 día.
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mediaMananaNoColisionaConMananaComoFecha() {
+        // Sin el guard de mananaAsDate, "media mañana" se agendaba MAÑANA (30/7) a 09:00.
+        val result = NaturalTaskParser.parse("Revisar a la media mañana", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mediaNocheParsesMidnightAndCleanTitle() {
+        val result = NaturalTaskParser.parse("Llamar a media noche", now, zone)
+        assertEquals("Llamar", result.title)
+        // 00:00 ya pasó a las 12:00 → past-safe rueda a la madrugada de mañana (30/7).
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mediaNocheParidadConMedianocheUnaPalabra() {
+        // "media noche" (dos palabras) y "medianoche" (una) deben resolver igual.
+        val separada = NaturalTaskParser.parse("Llamar a la media noche", now, zone)
+        val compuesta = NaturalTaskParser.parse("Llamar a la medianoche", now, zone)
+        assertEquals("Llamar", separada.title)
+        assertEquals("Llamar", compuesta.title)
+        assertEquals(
+            DateRules.toLocalDate(compuesta.dueAt!!, zone),
+            DateRules.toLocalDate(separada.dueAt!!, zone)
+        )
+        assertEquals(
+            DateRules.toLocalTime(compuesta.dueAt, zone),
+            DateRules.toLocalTime(separada.dueAt, zone)
+        )
+    }
+
+    @Test fun medioDiaParidadConMediodiaUnaPalabra() {
+        // "a medio día" (dos palabras) y "al mediodía" (una) deben resolver igual (12:00).
+        val separada = NaturalTaskParser.parse("Almuerzo a medio día", now, zone)
+        assertEquals("Almuerzo", separada.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(separada.dueAt!!, zone))
+        assertEquals(LocalTime.NOON, DateRules.toLocalTime(separada.dueAt, zone))
+    }
+
+    @Test fun pasadaLaMediaNocheParsesMidnightAndCleanTitle() {
+        val result = NaturalTaskParser.parse("Llamar pasada la media noche", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun mediaTardeMananaCombinesMidpointAndNextDay() {
+        // "media tarde" (16:30) + "mañana" (fecha +1): ambos presentes, fecha gana.
+        val result = NaturalTaskParser.parse("Reunión media tarde mañana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(16, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- "a la una" (hora 1, femenino singular) (ciclo 94b/c) ---
     // La hora 1 se dice "a la una" (no "a las 1"). Antes no había patrón para esa
     // forma, así que "reunión a la una" caía sin dueAt y con "a la una" como residuo

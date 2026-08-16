@@ -1390,6 +1390,49 @@ object NaturalTaskParser {
     private val atardecerTime = LocalTime.of(18, 0)
 
     /**
+     * "media mañana/tarde/noche/madrugada" y "medio/media día/noche": el PUNTO MEDIO de una
+     * parte del día, forma cotidiana muy común ("reunión a media tarde", "llamar a media
+     * noche", "revisar a media mañana", "almuerzo a medio día"). Antes NO se interpretaba
+     * como hora: la tarea caía a `dueAt=null` (olvidada, invisible en What Now/planificador,
+     * sin recordatorio) y "media tarde"/"media noche" quedaba como residuo en el título; o
+     * peor, "media mañana" colisionaba con el marcador de fecha "mañana" (+1 día) y la cita
+     * se agendaba MAÑANA a 09:00 con el título mutilado ("revisar a media") — fecha Y hora
+     * Y título equivocados a la vez (P1: cita perdida + contenido degradado).
+     *
+     * Asimetría flagrante: "mediodía"/"medianoche" (una palabra) SÍ funcionaban (12:00/
+     * 00:00), pero sus formas separadas "medio día"/"media noche" NO — el almuerzo agendado
+     * "a medio día" se perdía mientras "al mediodía" sí se agendaba. Este patrón cierra esa
+     * brecha y cubre toda la familia "media <parte>".
+     *
+     * Horas: punto medio entre la canónica de la parte y el límite de la siguiente.
+     *   media mañana → 10:30 (entre 09:00 "primera hora" y 12:00 "mediodía")
+     *   media tarde  → 16:30 (entre 15:00 "tarde" y 18:00 "última hora"/"atardecer")
+     *   media noche  → 00:00 (lexicalizada = medianoche, igual que "medianoche" una palabra)
+     *   media madrugada → 03:00 (entre 00:00 y 06:00 "amanecer"; madrugada canónica=04:00)
+     *   medio/media día → 12:00 (lexicalizado = mediodía)
+     *
+     * El conector opcional (a/de/por/en + la) se consume para no dejar residuo ("a media
+     * tarde" → se borra entero, no deja "a"). "media noche"=00:00 es hora canónica
+     * inequívoca (midnight), NO contexto PM: no se añade a las PM keys (00:00 es AM, inicio
+     * del día); sólo "media tarde" aporta contexto PM (vespertino, como "tarde").
+     *
+     * Colisión con "mañana" (fecha): el patrón consume "media mañana" entero en la limpieza
+     * del título (antes del borrado genérico de "mañana"), y [mananaAsDate] excluye el
+     * prefijo "media " de su timeMarker para no tratar "media mañana" como fecha +1.
+     */
+    private val mediaPartOfDayPattern =
+        Regex("""(?i)(?:(?:\b(?:al\s+|a\s+la\s+|a\s+|de\s+la\s+|de\s+|por\s+la\s+|por\s+|en\s+la\s+|en\s+)|pasad[oa]\s+(?:el\s+|la\s+)?|despu[eé]s\s+(?:del\s+|de\s+la\s+|de\s+)))?(media|medio)\s+(ma[nñ]ana|manana|tarde|noche|madrugada|d[ií]a)\b""")
+    private val mediaPartOfDayTimes = mapOf(
+        "mañana" to LocalTime.of(10, 30),
+        "manana" to LocalTime.of(10, 30),
+        "tarde" to LocalTime.of(16, 30),
+        "noche" to LocalTime.of(0, 0),
+        "madrugada" to LocalTime.of(3, 0),
+        "día" to LocalTime.of(12, 0),
+        "dia" to LocalTime.of(12, 0)
+    )
+
+    /**
      * Hora suelta con parte del día, sin "a las" ni rango: "Taller 9 de la tarde",
      * "Cena 9 de la noche", "Cita 10 de la mañana", "Evento 9 de la madrugada". Antes la
      * hora caía a la canónica de la parte del día (15:00/21:00/09:00/04:00) ignorando el
@@ -2524,6 +2567,9 @@ object NaturalTaskParser {
         val alFinalDelDiaMatch = alFinalDelDiaPattern.find(working)
         val amanecerMatch = amanecerPattern.find(working)
         val atardecerMatch = atardecerPattern.find(working)
+        val mediaPartOfDayMatch = mediaPartOfDayPattern.find(working)
+        val mediaPartOfDayKey = mediaPartOfDayMatch?.let { it.groupValues[2].lowercase() }
+        val mediaPartOfDayTime = mediaPartOfDayKey?.let { mediaPartOfDayTimes[it] }
         // Contexto PM: una parte del día de tarde/noche (explícita "esta tarde" o suelta "a la noche")
         // aplica offset +12 a una hora sin meridiem ("esta tarde a las 4" → 16:00). Las horas
         // canónicas vespertinas "al atardecer"/"al anochecer"/"al ocaso" también aportan contexto
@@ -2534,7 +2580,8 @@ object NaturalTaskParser {
             standalonePartOfDayKey in partOfDayPmKeys ||
             compactDayPartOfDayKey in partOfDayPmKeys ||
             recurrence.partOfDayIsPm ||
-            atardecerMatch != null
+            atardecerMatch != null ||
+            mediaPartOfDayKey == "tarde"
         // True solo cuando la fecha proviene de un día de la semana suelto ("el viernes")
         // y ese día ES hoy: la cita puede ser hoy mismo si su hora aún no pasó.
         var weekdaySameDayCandidate = false
@@ -2997,6 +3044,7 @@ object NaturalTaskParser {
             ?: alFinalDelDiaMatch?.let { alFinalDelDiaTime }
             ?: amanecerMatch?.let { amanecerTime }
             ?: atardecerMatch?.let { atardecerTime }
+            ?: mediaPartOfDayTime
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
         val rawDueAt = when {
             effectiveRelativeDueAt != null && relativeIsDays && parsedTime != null ->
@@ -3026,11 +3074,19 @@ object NaturalTaskParser {
         // no de un rango): las horas sueltas ("a las 9") y de franja ambigua
         // ("9 de la mañana", cuyo día es ambiguo: registrar pasado vs. mañana) se dejan
         // en hoy para no alterar la semántica existente ni romper la ambigüedad AM/PM.
+        val isInequivocalMidpoint = mediaPartOfDayTime != null &&
+            (parsedTime == LocalTime.MIDNIGHT || parsedTime == LocalTime.NOON)
         val dueAt = when {
             weekdaySameDayCandidate && rawDueAt != null && rawDueAt < now ->
                 DateRules.toEpochMillis(date!!.plusDays(7), parsedTime ?: LocalTime.of(9, 0), zone)
+            // "media noche"/"medio día" (formas separadas de medianoche/mediodía) son
+            // canónicas inequívocas (00:00/12:00) y reciben el mismo past-safe: sin esto,
+            // "cena a media noche" capturada por la tarde caía en hoy 00:00 (pasado) y se
+            // olvidaba, mientras "cena a medianoche" (una palabra) sí se rodaba — asimetría
+            // que dejaba la forma separada al olvido (P1). Las demás "media X" (10:30/16:30/
+            // 03:00) no son midnight/noon y no ruedan, igual que las canónicas afines.
             date == null && effectiveRelativeDueAt == null && !explicitTimeIsRangeEnd &&
-                parsedTime != null && hasExplicitMeridiem &&
+                parsedTime != null && (hasExplicitMeridiem || isInequivocalMidpoint) &&
                 (parsedTime == LocalTime.MIDNIGHT || parsedTime == LocalTime.NOON) &&
                 rawDueAt != null && rawDueAt < now ->
                 DateRules.toEpochMillis(base.toLocalDate().plusDays(1), parsedTime, zone)
@@ -3228,6 +3284,7 @@ object NaturalTaskParser {
             .let { value -> alFinalDelDiaPattern.replace(value, " ") }
             .let { value -> amanecerPattern.replace(value, " ") }
             .let { value -> atardecerPattern.replace(value, " ") }
+            .let { value -> mediaPartOfDayPattern.replace(value, " ") }
             // "el día de mañana"/"el día de hoy"/"para el día de mañana": forma
             // pleonástica coloquial de "mañana"/"hoy". El borrado genérico de abajo
             // consume sólo la palabra "mañana"/"hoy" y deja el residuo "el día de"
@@ -4682,7 +4739,10 @@ object NaturalTaskParser {
      * "a las 9 de la mañana" (única aparición precedida de "la ") no se fecha.
      */
     private fun mananaAsDate(working: String): Boolean {
-        val timeMarker = Regex("""(?i)(?:de|por|a|en)\s+la\s+$|\besta\s+$""")
+        // "media mañana" (parte del día, no fecha) se excluye: el prefijo "media " indica
+        // punto medio de la mañana, no el día de mañana. Sin esto, "a media mañana" se
+        // agendaba MAÑANA (fecha +1) en vez de hoy (P1: cita en día equivocado).
+        val timeMarker = Regex("""(?i)(?:de|por|a|en)\s+la\s+$|\besta\s+$|\bmedia\s+$""")
         var idx = 0
         while (true) {
             val m = Regex("""(?i)\bma[nñ]ana\b""").find(working, idx) ?: return false
