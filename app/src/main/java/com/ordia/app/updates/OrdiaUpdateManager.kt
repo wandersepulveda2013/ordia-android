@@ -52,6 +52,11 @@ object OrdiaUpdateManager {
     private const val MAX_HTTP_REDIRECTS = 5
     private const val UPDATE_DIRECTORY = "verified-updates"
     private const val APK_MIME = "application/vnd.android.package-archive"
+    private const val HTTP_READ_TIMEOUT_MILLIS = 30_000
+    private const val HTTP_CONNECT_TIMEOUT_MILLIS = 15_000
+    /** Sentinel almacenado en KEY_DOWNLOAD_ID cuando la descarga se hizo por canal HTTP
+     *  directo (sin DownloadManager). [isManagedDownload] lo acepta como descarga válida. */
+    private const val HTTP_DOWNLOAD_SENTINEL = -2L
 
     private val validationMutex = Mutex()
     private val downloadLock = Any()
@@ -257,7 +262,8 @@ object OrdiaUpdateManager {
     /** Descarta la descarga gestionada actual sin conocer su id (usado al fallar la instalación). */
     fun discardCurrent(context: Context) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        prefs.getLong(KEY_DOWNLOAD_ID, -1L).takeIf { it > 0L }?.let { removeDownload(context, it) }
+        val storedId = prefs.getLong(KEY_DOWNLOAD_ID, -1L)
+        if (storedId > 0L) removeDownload(context, storedId)
         clearDownloadMetadata(context)
         deleteVerifiedPackages(context)
     }
@@ -292,6 +298,243 @@ object OrdiaUpdateManager {
                 validateDownloadedPackageLocked(context, id)
             }
         }
+
+    /**
+     * Valida un archivo APK ya descargado al directorio verificado, identificado por su
+     * versionCode. Canal independiente de DownloadManager: usado por la descarga HTTP
+     * directa y por la re-validación en [UpdateInstallActivity]. Reutiliza exactamente
+     * la misma validación (SHA-256, tamaño, applicationId, versionCode y firma) que el
+     * canal DownloadManager, de modo que la seguridad es idéntica cualquiera que sea el
+     * origen de los bytes.
+     */
+    suspend fun validateVerifiedFile(context: Context, code: Int): ValidationResult =
+        validationMutex.withLock {
+            withContext(Dispatchers.IO) {
+                validateVerifiedFileLocked(context, code)
+            }
+        }
+
+    private fun validateVerifiedFileLocked(context: Context, code: Int): ValidationResult {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val expectedHash = prefs.getString(KEY_EXPECTED_SHA256, null)
+            ?.takeIf(UpdateSecurityRules::isValidSha256)
+            ?: return ValidationResult.Invalid(context.getString(R.string.update_invalid_no_checksum))
+        val expectedCode = prefs.getInt(KEY_DOWNLOAD_CODE, -1)
+        val expectedBytes = prefs.getLong(KEY_EXPECTED_BYTES, -1L)
+        if (expectedCode != code) {
+            return ValidationResult.Invalid(context.getString(R.string.update_invalid_not_managed))
+        }
+        if (!UpdateSecurityRules.isReportedSizeAcceptable(expectedBytes, MAX_APK_BYTES)) {
+            return ValidationResult.Invalid(context.getString(R.string.update_invalid_no_size))
+        }
+        if (expectedCode <= BuildConfig.VERSION_CODE) {
+            return ValidationResult.Invalid(context.getString(R.string.update_invalid_old_version))
+        }
+        val verified = File(verifiedDirectory(context), "Ordia-$expectedCode.apk")
+        if (!verified.exists() || verified.length() <= 0L) {
+            return ValidationResult.Invalid(context.getString(R.string.update_invalid_cannot_open))
+        }
+        return try {
+            val actualBytes = verified.length()
+            require(actualBytes == expectedBytes) {
+                context.getString(R.string.update_invalid_size_detail, actualBytes, expectedBytes)
+            }
+            require(sha256(verified).equals(expectedHash, ignoreCase = true)) {
+                context.getString(R.string.update_invalid_sha)
+            }
+            verifyArchive(context, verified, expectedCode)
+            verified.setLastModified(System.currentTimeMillis())
+            val privateUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.update-files",
+                verified
+            )
+            ValidationResult.Valid(privateUri)
+        } catch (error: Exception) {
+            verified.delete()
+            val rawMessage = error.message.orEmpty()
+            val reason = when {
+                rawMessage == "SIGNATURE_MISMATCH" ->
+                    context.getString(R.string.update_invalid_signature_mismatch)
+                else -> rawMessage.take(180).ifBlank { context.getString(R.string.update_invalid_cannot_validate) }
+            }
+            ValidationResult.Invalid(reason)
+        }
+    }
+
+    /**
+     * Descarga la APK de una release por canal HTTP directo (HttpURLConnection siguiendo
+     * redirecciones de forma segura, el mismo mecanismo que el fetch del manifiesto) y la
+     * valida integramente. Este canal es más fiable que DownloadManager en dispositivos/OEM
+     * donde este último no sigue bien las redirecciones firmadas de GitHub a
+     * objects.githubusercontent.com y la descarga muere silenciosamente antes de pedir
+     * permiso de instalación.
+     *
+     * Escribe a un archivo temporal, calcula SHA-256 y tamaño en flujo, y solo promueve a
+     * archivo verificado si todo coincide. [onProgress] recibe (bytes, total) para la UI.
+     * Devuelve Valid(uri) si la APK quedó verificada, o Invalid(reason) si falló.
+     */
+    suspend fun downloadFileHttp(
+        context: Context,
+        release: Release,
+        onProgress: (Long, Long) -> Unit
+    ): ValidationResult = validationMutex.withLock {
+        withContext(Dispatchers.IO) {
+            downloadFileHttpLocked(context, release, onProgress)
+        }
+    }
+
+    private fun downloadFileHttpLocked(
+        context: Context,
+        release: Release,
+        onProgress: (Long, Long) -> Unit
+    ): ValidationResult {
+        if (!BuildConfig.SELF_UPDATE_ENABLED) {
+            return ValidationResult.Invalid(context.getString(R.string.update_fail_security))
+        }
+        if (!UpdateSecurityRules.isTrustedApkUrl(release.apkUrl, UpdateSecurityRules.expectedApkName(BuildConfig.UPDATE_FLAVOR)) ||
+            !UpdateSecurityRules.isValidSha256(release.sha256) ||
+            !UpdateSecurityRules.isReportedSizeAcceptable(release.apkBytes, MAX_APK_BYTES)
+        ) {
+            return ValidationResult.Invalid(context.getString(R.string.update_fail_security))
+        }
+        discardCurrentManagedDownload(context)
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putInt(KEY_DOWNLOAD_CODE, release.code)
+            .putString(KEY_EXPECTED_SHA256, release.sha256.lowercase())
+            .putLong(KEY_EXPECTED_BYTES, release.apkBytes)
+            .putLong(KEY_DOWNLOAD_STARTED_AT, System.currentTimeMillis())
+            .putLong(KEY_DOWNLOAD_ID, HTTP_DOWNLOAD_SENTINEL)
+            .commit()
+
+        val directory = verifiedDirectory(context)
+        val temporary = File(directory, "Ordia-${release.code}.apk.part")
+        val verified = File(directory, "Ordia-${release.code}.apk")
+        temporary.delete()
+        verified.delete()
+
+        return try {
+            val digest = MessageDigest.getInstance("SHA-256")
+            val total = release.apkBytes
+            streamTrustedUrlToFile(release.apkUrl, temporary, digest) { bytes ->
+                onProgress(bytes, total)
+            }
+            val actualBytes = temporary.length()
+            require(actualBytes == release.apkBytes) {
+                context.getString(R.string.update_invalid_size_detail, actualBytes, release.apkBytes)
+            }
+            require(digest.digest().toHex().equals(release.sha256, ignoreCase = true)) {
+                context.getString(R.string.update_invalid_sha)
+            }
+            if (!temporary.renameTo(verified)) {
+                temporary.copyTo(verified, overwrite = true)
+                temporary.delete()
+            }
+            verifyArchive(context, verified, release.code)
+            verified.setLastModified(System.currentTimeMillis())
+            val privateUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.update-files",
+                verified
+            )
+            ValidationResult.Valid(privateUri)
+        } catch (error: Exception) {
+            temporary.delete()
+            verified.delete()
+            ValidationResult.Invalid(httpFailureReason(context, error))
+        }
+    }
+
+    /**
+     * Clasifica un error del canal HTTP directo en un motivo legible. Los fallos de red
+     * (timeout, status HTTP, host) se reportan con [R.string.update_download_failed]
+     * para que el controller pueda reintentar con DownloadManager; los de validación
+     * (SHA/firma/tamaño) se reportan con su motivo concreto para no reintentar en vano.
+     * Pública para testeo unitario.
+     */
+    fun httpFailureReason(context: Context, error: Throwable): String {
+        return when (val cls = classifyHttpFailure(error)) {
+            HttpFailureClass.SIGNATURE -> context.getString(R.string.update_invalid_signature_mismatch)
+            HttpFailureClass.NETWORK -> context.getString(R.string.update_download_failed)
+            HttpFailureClass.VALIDATION -> (error.message.orEmpty().take(180))
+                .ifBlank { context.getString(R.string.update_invalid_cannot_validate) }
+        }
+    }
+
+    /** Clasificación pura (sin Context) del fallo del canal HTTP, para testeo unitario. */
+    enum class HttpFailureClass { SIGNATURE, NETWORK, VALIDATION }
+
+    fun classifyHttpFailure(error: Throwable): HttpFailureClass {
+        val rawMessage = error.message.orEmpty()
+        return when {
+            rawMessage == "SIGNATURE_MISMATCH" -> HttpFailureClass.SIGNATURE
+            error is java.io.IOException || rawMessage.contains("GitHub respondió") ||
+                rawMessage.contains("redirecciones", ignoreCase = true) ||
+                rawMessage.contains("confiable", ignoreCase = true) -> HttpFailureClass.NETWORK
+            else -> HttpFailureClass.VALIDATION
+        }
+    }
+
+    /**
+     * Sigue redirecciones (hasta [MAX_HTTP_REDIRECTS]) validando cada host con
+     * [UpdateSecurityRules.isTrustedNetworkUrl], y copia el cuerpo a [destination]
+     * actualizando [digest] y notificando [onProgress] con los bytes acumulados.
+     */
+    private fun streamTrustedUrlToFile(
+        url: String,
+        destination: File,
+        digest: MessageDigest,
+        onProgress: (Long) -> Unit
+    ) {
+        var currentUrl = url
+        var bytesCopied = 0L
+        repeat(MAX_HTTP_REDIRECTS + 1) { redirectCount ->
+            require(UpdateSecurityRules.isTrustedNetworkUrl(currentUrl)) { "URL de actualización no confiable." }
+            val connection = (URL(currentUrl).openConnection() as HttpURLConnection).apply {
+                connectTimeout = HTTP_CONNECT_TIMEOUT_MILLIS
+                readTimeout = HTTP_READ_TIMEOUT_MILLIS
+                requestMethod = "GET"
+                instanceFollowRedirects = false
+                setRequestProperty("Accept", APK_MIME)
+                setRequestProperty("User-Agent", "Ordia/${BuildConfig.VERSION_NAME}")
+            }
+            try {
+                val status = connection.responseCode
+                if (status in setOf(301, 302, 303, 307, 308)) {
+                    require(redirectCount < MAX_HTTP_REDIRECTS) { "GitHub devolvió demasiadas redirecciones." }
+                    val location = connection.getHeaderField("Location")
+                        ?.let { URL(URL(currentUrl), it).toString() }
+                        ?: error("GitHub devolvió una redirección sin destino.")
+                    require(UpdateSecurityRules.isTrustedNetworkUrl(location)) {
+                        "GitHub redirigió a un host no confiable."
+                    }
+                    currentUrl = location
+                    return@repeat
+                }
+                if (status !in 200..299) error("GitHub respondió $status.")
+                connection.inputStream.use { input ->
+                    destination.outputStream().buffered().use { output ->
+                        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                        while (true) {
+                            val read = input.read(buffer)
+                            if (read < 0) break
+                            bytesCopied += read
+                            require(bytesCopied <= MAX_APK_BYTES) { "La APK supera el tamaño máximo permitido." }
+                            digest.update(buffer, 0, read)
+                            output.write(buffer, 0, read)
+                            onProgress(bytesCopied)
+                        }
+                    }
+                }
+                require(bytesCopied > 0L) { "La APK descargada está vacía." }
+                return
+            } finally {
+                connection.disconnect()
+            }
+        }
+        error("No se pudo resolver la URL de actualización.")
+    }
 
     private fun validateDownloadedPackageLocked(context: Context, id: Long): ValidationResult {
         if (!isManagedDownload(context, id)) {

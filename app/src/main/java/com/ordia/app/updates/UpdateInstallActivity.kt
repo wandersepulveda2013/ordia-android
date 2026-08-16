@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
  */
 class UpdateInstallActivity : ComponentActivity() {
     private var downloadId: Long = -1L
+    private var verifiedCode: Int = -1
     private var waitingForUnknownSourcesPermission = false
     private var validatedUri: Uri? = null
     private var validationStarted = false
@@ -32,7 +33,8 @@ class UpdateInstallActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         downloadId = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1L)
-        if (downloadId <= 0L) {
+        verifiedCode = intent.getIntExtra(EXTRA_VERIFIED_CODE, -1)
+        if (verifiedCode <= 0 && downloadId <= 0L) {
             finish()
             return
         }
@@ -55,9 +57,18 @@ class UpdateInstallActivity : ComponentActivity() {
         if (validationStarted) return
         validationStarted = true
         lifecycleScope.launch(Dispatchers.IO) {
-            when (val result = OrdiaUpdateManager.validateDownloadedPackage(applicationContext, downloadId)) {
+            val result = if (verifiedCode > 0) {
+                OrdiaUpdateManager.validateVerifiedFile(applicationContext, verifiedCode)
+            } else {
+                OrdiaUpdateManager.validateDownloadedPackage(applicationContext, downloadId)
+            }
+            when (result) {
                 is OrdiaUpdateManager.ValidationResult.Invalid -> {
-                    OrdiaUpdateManager.discardDownload(applicationContext, downloadId)
+                    if (verifiedCode > 0) {
+                        OrdiaUpdateManager.discardCurrent(applicationContext)
+                    } else {
+                        OrdiaUpdateManager.discardDownload(applicationContext, downloadId)
+                    }
                     runOnUiThread {
                         Toast.makeText(this@UpdateInstallActivity, result.reason, Toast.LENGTH_LONG).show()
                         finish()
@@ -142,6 +153,7 @@ class UpdateInstallActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_DOWNLOAD_ID = "download_id"
+        const val EXTRA_VERIFIED_CODE = "verified_code"
         private const val REQUEST_INSTALL_RESULT = 3401
     }
 }

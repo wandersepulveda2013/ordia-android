@@ -21,7 +21,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import android.content.Intent
@@ -106,7 +111,21 @@ fun UpdatesScreen(contentPadding: PaddingValues) {
 @Composable
 private fun InstalledCard(lastCheck: Long) {
     val context = LocalContext.current
-    val canInstall = remember { context.packageManager.canRequestPackageInstalls() }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var canInstall by remember {
+        mutableStateOf(context.packageManager.canRequestPackageInstalls())
+    }
+    // Refresca el diagnóstico de permiso al volver de la pantalla de ajustes de Android:
+    // si el usuario concedió "instalar apps desconocidas" para Ordía, el botón desaparece.
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                canInstall = context.packageManager.canRequestPackageInstalls()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     Card {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {

@@ -43,7 +43,7 @@ object OrdiaUpdateController {
         data class Downloading(val release: Release, val bytes: Long, val total: Long) : UpdateState
 
         /** APK descargada y verificada (SHA-256 + tamaño + paquete + versión + firma). */
-        data class Ready(val release: Release, val downloadId: Long) : UpdateState
+        data class Ready(val release: Release, val verifiedCode: Int) : UpdateState
 
         data object Installing : UpdateState
 
@@ -90,61 +90,98 @@ object OrdiaUpdateController {
         }
     }
 
-    /** Inicia (o reanuda) la descarga con progreso real, cancelable y reintentable. */
+    /**
+     * Inicia (o reanuda) la descarga con progreso real, cancelable y reintentable.
+     *
+     * Usa el canal HTTP directo (HttpURLConnection siguiendo redirecciones de forma
+     * segura) como vía primaria: es más fiable que DownloadManager en dispositivos/OEM
+     * donde este último no resuelve las redirecciones firmadas de GitHub y la descarga
+     * muere antes de pedir permiso de instalación. Si el canal HTTP no está disponible
+     * o falla de forma recuperable, cae a DownloadManager como respaldo.
+     */
     fun download(context: Context, release: Release) {
         downloadJob?.cancel()
         lastRelease = release
         _state.value = UpdateState.Downloading(release, 0L, release.apkBytes)
         downloadJob = scope.launch {
             val appContext = context.applicationContext
-            val id = OrdiaUpdateManager.download(appContext, release, allowMetered = true, userInitiated = false)
-            if (id == null) {
+            // Canal HTTP directo primario.
+            val httpResult = runCatching {
+                OrdiaUpdateManager.downloadFileHttp(appContext, release) { bytes, total ->
+                    _state.value = UpdateState.Downloading(release, bytes, total)
+                }
+            }.getOrNull()
+            when (httpResult) {
+                is OrdiaUpdateManager.ValidationResult.Valid -> {
+                    _state.value = UpdateState.Ready(release, release.code)
+                    return@launch
+                }
+                is OrdiaUpdateManager.ValidationResult.Invalid -> {
+                    // Si el fallo es de validación (sha/firma/tamaño) no tiene sentido
+                    // reintentar con DownloadManager: el mismo bytes dará el mismo resultado.
+                    // Solo caemos a DownloadManager si el canal HTTP no llegó a descargar.
+                    val reason = httpResult.reason
+                    val isNetworkFailure = reason == appContext.getString(R.string.update_download_failed)
+                    if (!isNetworkFailure) {
+                        _state.value = UpdateState.Failed(reason, release)
+                        return@launch
+                    }
+                }
+                null -> Unit // cae al respaldo DownloadManager
+            }
+            // Respaldo: DownloadManager.
+            downloadViaDownloadManager(appContext, release)
+        }
+    }
+
+    private suspend fun downloadViaDownloadManager(appContext: Context, release: Release) {
+        val id = OrdiaUpdateManager.download(appContext, release, allowMetered = true, userInitiated = false)
+        if (id == null) {
+            _state.value = UpdateState.Failed(
+                appContext.getString(R.string.update_download_failed),
+                release
+            )
+            return
+        }
+        while (true) {
+            val progress = OrdiaUpdateManager.downloadProgress(appContext, id)
+            if (progress == null) {
+                OrdiaUpdateManager.discardDownload(appContext, id)
                 _state.value = UpdateState.Failed(
                     appContext.getString(R.string.update_download_failed),
                     release
                 )
-                return@launch
+                return
             }
-            while (true) {
-                val progress = OrdiaUpdateManager.downloadProgress(appContext, id)
-                if (progress == null) {
+            when (progress.status) {
+                DownloadManager.STATUS_RUNNING,
+                DownloadManager.STATUS_PENDING,
+                DownloadManager.STATUS_PAUSED -> {
+                    // STATUS_PAUSED cubre la recuperación ante pérdida de conexión:
+                    // DownloadManager reanuda solo cuando vuelve la red.
+                    _state.value = UpdateState.Downloading(release, progress.bytes, progress.total)
+                    delay(POLL_INTERVAL_MILLIS)
+                }
+                DownloadManager.STATUS_SUCCESSFUL -> {
+                    _state.value = UpdateState.Downloading(release, progress.bytes, progress.total)
+                    when (val validation = OrdiaUpdateManager.validateDownloadedPackage(appContext, id)) {
+                        is OrdiaUpdateManager.ValidationResult.Valid ->
+                            _state.value = UpdateState.Ready(release, release.code)
+                        is OrdiaUpdateManager.ValidationResult.Invalid -> {
+                            OrdiaUpdateManager.discardDownload(appContext, id)
+                            _state.value = UpdateState.Failed(validation.reason, release)
+                        }
+                    }
+                    return
+                }
+                else -> {
+                    // STATUS_FAILED permanente: se descarta y se ofrece reintentar.
                     OrdiaUpdateManager.discardDownload(appContext, id)
                     _state.value = UpdateState.Failed(
                         appContext.getString(R.string.update_download_failed),
                         release
                     )
-                    return@launch
-                }
-                when (progress.status) {
-                    DownloadManager.STATUS_RUNNING,
-                    DownloadManager.STATUS_PENDING,
-                    DownloadManager.STATUS_PAUSED -> {
-                        // STATUS_PAUSED cubre la recuperación ante pérdida de conexión:
-                        // DownloadManager reanuda solo cuando vuelve la red.
-                        _state.value = UpdateState.Downloading(release, progress.bytes, progress.total)
-                        delay(POLL_INTERVAL_MILLIS)
-                    }
-                    DownloadManager.STATUS_SUCCESSFUL -> {
-                        _state.value = UpdateState.Downloading(release, progress.bytes, progress.total)
-                        when (val validation = OrdiaUpdateManager.validateDownloadedPackage(appContext, id)) {
-                            is OrdiaUpdateManager.ValidationResult.Valid ->
-                                _state.value = UpdateState.Ready(release, id)
-                            is OrdiaUpdateManager.ValidationResult.Invalid -> {
-                                OrdiaUpdateManager.discardDownload(appContext, id)
-                                _state.value = UpdateState.Failed(validation.reason, release)
-                            }
-                        }
-                        return@launch
-                    }
-                    else -> {
-                        // STATUS_FAILED permanente: se descarta y se ofrece reintentar.
-                        OrdiaUpdateManager.discardDownload(appContext, id)
-                        _state.value = UpdateState.Failed(
-                            appContext.getString(R.string.update_download_failed),
-                            release
-                        )
-                        return@launch
-                    }
+                    return
                 }
             }
         }
@@ -169,7 +206,7 @@ object OrdiaUpdateController {
         runCatching {
             context.startActivity(
                 Intent(context, UpdateInstallActivity::class.java)
-                    .putExtra(UpdateInstallActivity.EXTRA_DOWNLOAD_ID, current.downloadId)
+                    .putExtra(UpdateInstallActivity.EXTRA_VERIFIED_CODE, current.verifiedCode)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
         }.onFailure {
