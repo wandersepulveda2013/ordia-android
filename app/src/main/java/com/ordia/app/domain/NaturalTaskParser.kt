@@ -1094,8 +1094,8 @@ object NaturalTaskParser {
         // ponen "pasado/pasada" DESPUÉS del sustantivo; aquí va ANTES de mediodía/
         // medianoche). El negative-lookahead de laterRelativePattern ya excluye
         // "después del/de la N", así que "después del mediodía" no lo roba como +3h.
-        Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+|pasad[oa]\s+(?:el\s+|la\s+)?|despu[eé]s\s+(?:del\s+|de\s+la\s+|de\s+))?mediod[ií]a(?:\s+($CLOCK_FRACTION_Y))?\b"""),
-        Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+|pasad[oa]\s+(?:el\s+|la\s+)?|despu[eé]s\s+(?:del\s+|de\s+la\s+|de\s+))?medianoche(?:\s+($CLOCK_FRACTION_Y))?\b""")
+        Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+|pasad[oa]\s+(?:el\s+|la\s+)?|despu[eé]s\s+(?:del\s+|de\s+la\s+|de\s+))?mediod[ií]a(?:\s+($CLOCK_FRACTION_Y))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
+        Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+|pasad[oa]\s+(?:el\s+|la\s+)?|despu[eé]s\s+(?:del\s+|de\s+la\s+|de\s+))?medianoche(?:\s+($CLOCK_FRACTION_Y))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b""")
     )
     /**
      * "a eso de" + parte del día: "a eso de la tarde", "a eso del mediodía", "a eso de

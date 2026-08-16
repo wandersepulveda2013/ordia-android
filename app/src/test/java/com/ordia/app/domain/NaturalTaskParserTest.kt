@@ -4419,6 +4419,42 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- mediodía/medianoche + sufijos "y pico"/"en punto"/"más o menos"/"aproximadamente" ---
+    // Los patrones standalone de mediodía/medianoche (no los "a las N") carecían de
+    // [APPROX_TIME_SUFFIX]/[EN_PUNTO_SUFFIX]: el modificador NO se consumía y dejaba residuo
+    // en el título ("Reunión y pico"/"Reunión en punto") aunque la hora canónica sí se
+    // resolvía (12:00/00:00) — asimetría con "a las 9 y pico"/"a las 9 en punto" (c.388/c.393)
+    // que sí limpiaban. "y pico" no inventa minutos: resuelve a la hora en punto (12:00/00:00).
+    @Test fun alMediodiaYPicoLimpiaTituloYResuelve12h() {
+        val result = NaturalTaskParser.parse("Reunión al mediodía y pico", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLaMedianocheYPicoLimpiaTituloYResuelve0h() {
+        val result = NaturalTaskParser.parse("Llamar a la medianoche y pico", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alMediodiaEnPuntoLimpiaTituloYResuelve12h() {
+        val result = NaturalTaskParser.parse("Reunión al mediodía en punto", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLaMedianocheMasOMenosLimpiaTituloYResuelve0h() {
+        val result = NaturalTaskParser.parse("Entregar a la medianoche más o menos", now, zone)
+        assertEquals("Entregar", result.title)
+        assertEquals(LocalTime.MIDNIGHT, DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alMediodiaAproximadamenteLimpiaTituloYResuelve12h() {
+        val result = NaturalTaskParser.parse("Almuerzo al mediodía aproximadamente", now, zone)
+        assertEquals("Almuerzo", result.title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // --- "pasada la medianoche"/"pasado el mediodía"/"después del mediodía": título limpio ---
     // Antes estos modificadores cotidianos de "a partir de esa hora" dejaban el prefijo
     // como residuo en el título ("llamar pasada la", "llamar pasado", "llamar después del")
