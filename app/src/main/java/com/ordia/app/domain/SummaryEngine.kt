@@ -60,7 +60,23 @@ data class DaySummary(
      * overdue/overdueCommitments). Cuenta solo raíces (`parentTaskId == null`),
      * igual que [overdue], para no inflar el ánimo ni el veredicto con subtareas.
      */
-    val missedStart: Int = 0
+    val missedStart: Int = 0,
+    /**
+     * "3.er olvido" de Ordía: capturas de bandeja arrinconadas (raíces activas,
+     * sin `dueAt` ni `startAt`, con ≥[TaskRules.STALE_INBOX_DAYS_THRESHOLD] días
+     * esperando —`TaskRules.isStaleInbox`). No es carga del día (no tiene fecha
+     * ni hueco, así que el planificador no la agendó ni compite por la jornada),
+     * pero callarla rompe la paridad con [overdue]/[missedStart]/
+     * [overdueCommitments] (que sí se nombran): un día con 0 vencidas y 0
+     * olvidos agendados pero 3 capturas arrinconadas leería "0 vencidas" /
+     * "El día va a tiempo" ocultando el olvido real. Es un SUBCONJUNTO de
+     * [inboxPending] (las de ≥7 días), expuesto aparte para nombrarlo
+     * honestamente sin inflar el total de bandeja. Paridad con el nudge del
+     * guardián (c.410), el asistente "¿qué hago ahora?" (c.413), la tarjeta
+     * guardián-coach (c.416) y las superficies del asistente (c.417).
+     * Fuente única de verdad: [TaskRules.isStaleInbox].
+     */
+    val staleInbox: Int = 0
 )
 
 /**
@@ -215,6 +231,15 @@ object SummaryEngine {
         // calcula arriba (suma a loadMinutes). Se expone su tamaño (raíces, ya
         // filtrado) para nombrarlo honestamente, igual que overdue/overdueCommitments.
         val missedStart = missedStartTasks.size
+        // "3.er olvido" como cola informativa: capturas de bandeja arrinconadas.
+        // No es carga del día (no tiene fecha/hueco, el planificador no la agendó),
+        // pero callarla rompería la paridad con overdue/missedStart/
+        // overdueCommitments. Es un subconjunto de inboxPending (las de ≥7 días),
+        // expuesto aparte para no inflar el total de bandeja. Raíces, igual que
+        // los demás conteos de la tarjeta.
+        val staleInbox = tasks.count { task ->
+            task.parentTaskId == null && TaskRules.isStaleInbox(task, now, zone)
+        }
 
         return DaySummary(
             completedToday = completedToday,
@@ -227,7 +252,8 @@ object SummaryEngine {
             dayLoad = dayLoad,
             deferralSuggestion = deferralSuggestion,
             overdueCommitments = overdueCommitments,
-            missedStart = missedStart
+            missedStart = missedStart,
+            staleInbox = staleInbox
         )
     }
 

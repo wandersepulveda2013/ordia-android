@@ -426,6 +426,27 @@ fun TodayScreen(
                                 .clickable { onReviewMessages() }
                         )
                     }
+                    // "3.er olvido" como cola informativa: capturas de bandeja
+                    // arrinconadas (≥7 días sin fecha ni hueco). No es carga del
+                    // día (no influye en el veredicto), pero callarla rompe la
+                    // paridad con overdue/missedStart/overdueCommitments: un día
+                    // con 0 vencidas pero 3 capturas arrinconadas leería "0
+                    // vencidas" / "El día va a tiempo" mientras una idea se pudre
+                    // en la bandeja. Es un subconjunto del badge de bandeja, nombrado
+                    // aparte para no inflar el total. Un tap abre la Bandeja para
+                    // agendarla o hacerla hoy (fricción mínima). Paridad con el nudge
+                    // (c.410), el asistente (c.413/c.417) y la tarjeta guardián-coach
+                    // (c.416).
+                    if (summary.staleInbox > 0) {
+                        Text(
+                            stringResource(R.string.today_stale_inbox, summary.staleInbox),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .padding(top = 6.dp)
+                                .clickable { onOpenInbox() }
+                        )
+                    }
                 }
             }
         }

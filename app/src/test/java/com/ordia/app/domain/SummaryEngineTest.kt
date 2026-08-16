@@ -10,6 +10,7 @@ import com.ordia.app.data.local.TaskStatus
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 
 class SummaryEngineTest {
@@ -1059,5 +1060,98 @@ class SummaryEngineTest {
         val s = SummaryEngine.summarize(tasks, now, zone)
 
         assertEquals(1, s.missedStart)
+    }
+
+    // ---------------------------------------------------------------------------
+    // c.418 — la tarjeta de resumen nombraba 3 olvidos (overdue, missedStart,
+    // overdueCommitments) PERO callaba el 3.er olvido: las capturas de bandeja
+    // arrinconadas (TaskRules.isStaleInbox, ≥7 días sin fecha ni hueco). Un día
+    // con 0 vencidas y 0 olvidos agendados pero 3 capturas arrinconadas leía
+    // "0 vencidas" / "El día va a tiempo" ocultando el olvido real. Mismísima
+    // familia de "mentir por omisión" que c.410 (nudge), c.413 (asistente "¿qué
+    // hago ahora?"), c.416 (tarjeta guardián-coach) y c.417 (asistente "¿qué
+    // tengo hoy?" / "¿voy bien?"). Aquí cerramos la asimetría en la tarjeta de
+    // resumen: DaySummary expone staleInbox (subconjunto de inboxPending, las de
+    // ≥7 días) para nombrarlo honestamente, sin inflar el total de bandeja.
+    // ---------------------------------------------------------------------------
+
+    /** Captura de bandeja arrinconada: raíz, INBOX, sin dueAt/startAt, createdAt antiguo. */
+    private fun staleCapture(id: Long, daysOld: Long, title: String = "Captura $id") = TaskEntity(
+        id = id,
+        title = title,
+        status = TaskStatus.INBOX,
+        createdAt = DateRules.toEpochMillis(today.minusDays(daysOld), LocalTime.of(9, 0), zone)
+    )
+
+    @Test
+    fun staleInbox_countsCorneredInboxCaptures() {
+        // 2 capturas de ≥7 días deben nombrarse como olvido, igual que overdue.
+        val tasks = listOf(
+            staleCapture(1, 21),
+            staleCapture(2, 8)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(0, s.overdue) // no vencidas
+        assertEquals(0, s.missedStart) // no olvidos agendados
+        assertEquals(2, s.staleInbox) // los 2 arrinconados nombrados
+    }
+
+    @Test
+    fun staleInbox_isSubsetOfInboxPendingNotInflatingTotal() {
+        // 1 arrinconada (≥7 días) + 1 fresca (<7 días) + 1 archivada. El total de
+        // bandeja es 2 (las activas INBOX), pero staleInbox es 1: nombrar el
+        // arrinconado NO infla el total de bandeja, lo precisa.
+        val tasks = listOf(
+            staleCapture(1, 14, "Arrinconada"),
+            TaskEntity(id = 2, title = "Fresca", status = TaskStatus.INBOX, createdAt = now),
+            TaskEntity(id = 3, title = "Archivada", status = TaskStatus.INBOX, archived = true, createdAt = now)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(2, s.inboxPending) // fresca + arrinconada (la archivada no cuenta)
+        assertEquals(1, s.staleInbox) // sólo la arrinconada
+    }
+
+    @Test
+    fun staleInbox_ignoresCapturesYoungerThanThreshold() {
+        // 6 días < 7 → NO es arrinconada aún (guard anti-falso-positivo).
+        val tasks = listOf(staleCapture(1, 6))
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(0, s.staleInbox)
+        assertEquals(1, s.inboxPending) // sí está en la bandeja, sólo no es "olvido"
+    }
+
+    @Test
+    fun staleInbox_doesNotAffectLoadVerdictOrOverdueTasks() {
+        // Una captura arrinconada no tiene fecha/hueco → no compite por la jornada,
+        // así que no influye en el veredicto de carga ni en overdue. Es sólo una
+        // cola informativa (paridad con overdueCommitments, que tampoco carga).
+        val tasks = listOf(staleCapture(1, 30))
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(DayLoad.LIGHT, s.dayLoad) // sin carga de hoy
+        assertEquals(0, s.overdue)
+        assertEquals(1, s.staleInbox) // pero el olvido se nombra
+    }
+
+    @Test
+    fun staleInbox_countsOnlyLogicalRootTasksNotSubtasks() {
+        // Simétrico a overdue/missedStart/subtareas: un padre arrinconado + 2
+        // subtareas arrinconadas cuenta como 1, no 3.
+        val tasks = listOf(
+            staleCapture(1, 21),
+            staleCapture(2, 21, "Sub1").copy(parentTaskId = 1),
+            staleCapture(3, 21, "Sub2").copy(parentTaskId = 1)
+        )
+
+        val s = SummaryEngine.summarize(tasks, now, zone)
+
+        assertEquals(1, s.staleInbox)
     }
 }
