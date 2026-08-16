@@ -6934,6 +6934,95 @@ class NaturalTaskParserTest {
         assertEquals(1, result.recurrenceInterval)
     }
 
+    // --- "días alternos" / "días alternativos" / "día por medio" = cada dos días ---
+    // Giros idiomáticos sin cantidad de "cada 2 días" (semánticamente idénticos a
+    // "cada otro día"/"un día sí y otro no"). Antes caían a NONE → rutina olvidada (P1).
+    // Ahora DAILY interval=2, título limpio y primera ocurrencia anclada a la captura.
+    @Test fun diasAlternosParsesDailyInterval2() {
+        val result = NaturalTaskParser.parse("Gimnasio días alternos", now, zone)
+        assertEquals("Gimnasio", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun diasAlternativosParsesDailyInterval2() {
+        val result = NaturalTaskParser.parse("Toma días alternativos", now, zone)
+        assertEquals("Toma", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun diaPorMedioParsesDailyInterval2() {
+        val result = NaturalTaskParser.parse("Gimnasio día por medio", now, zone)
+        assertEquals("Gimnasio", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun unDiaPorMedioParsesDailyInterval2() {
+        val result = NaturalTaskParser.parse("Riego un día por medio", now, zone)
+        assertEquals("Riego", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // --- "cada tercer/cuarto/quinto/sexto día" = cada N días (ordinal) ---
+    // Equivalente exacto de "cada 3/4/5/6 días" (intervalPattern sólo admite cardinales).
+    // "cada tercer día"=cada 3 días, "cada cuarto día"=cada 4, etc. Antes caían a NONE
+    // → rutina olvidada (P1). El prefijo "cada" acota a cadencia: sin él es posición, no hábito.
+    @Test fun cadaTercerDiaParsesDailyInterval3() {
+        val result = NaturalTaskParser.parse("Medicina cada tercer día", now, zone)
+        assertEquals("Medicina", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(3, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun cadaCuartoDiaParsesDailyInterval4() {
+        val result = NaturalTaskParser.parse("Tratamiento cada cuarto día", now, zone)
+        assertEquals("Tratamiento", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(4, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun cadaQuintoDiaParsesDailyInterval5() {
+        val result = NaturalTaskParser.parse("Riego cada quinto día", now, zone)
+        assertEquals("Riego", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(5, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun cadaSextoDiaParsesDailyInterval6() {
+        val result = NaturalTaskParser.parse("Descanso cada sexto día", now, zone)
+        assertEquals("Descanso", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+        assertEquals(6, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    // Falso positivo: ordinal SIN "cada" señala una posición (un día concreto), no cadencia.
+    @Test fun tercerDiaSinCadaNoEsRecurrencia() {
+        val result = NaturalTaskParser.parse("Resumen el tercer día del curso", now, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+    }
+
+    // Falso positivo: "día alterno" SINGULAR es ambiguo (un día alternativo), no hábito.
+    // Sólo el plural "días alternos" señala cadencia.
+    @Test fun diaAlternoSingularNoEsRecurrencia() {
+        val result = NaturalTaskParser.parse("Reunión el día alterno", now, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+    }
+
     // --- Hora suelta con parte del día, SIN "a las" (ciclo 62) ---
     // "Taller 9 de la tarde" debe resolver la HORA EXPLÍCITA (21:00), no la canónica de la
     // tarde (15:00). Antes el número se ignoraba y caía a 15:00/21:00/09:00/04:00, dejando

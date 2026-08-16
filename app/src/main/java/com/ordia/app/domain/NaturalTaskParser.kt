@@ -3603,6 +3603,51 @@ object NaturalTaskParser {
             return RecurrenceResult(RecurrenceFrequency.DAILY, 2, emptyList(), phrases)
         }
 
+        // Giros idiomáticos de "cada 2 días" sin cantidad numérica: "días alternos",
+        // "días alternativos", "día por medio", "un día por medio". Son las formas
+        // nativas/cotidianas de espaciar una rutina cada dos días (gimnasio, medicación,
+        // riego de plantas) — semánticamente idénticos a "cada dos días" (que sí casa en
+        // [intervalPattern]) y a "cada otro día"/"un día sí y otro no" ([everyOtherDayPattern]).
+        // Antes caían a NONE → la rutina nacía sin cadencia ni fecha (recordatorio jamás
+        // disparaba, invisible en What Now: P1 evitar olvidos/rutinas adaptables). Se
+        // mapean a DAILY+2, reutilizando todo el flujo de intervalo existente.
+        //   • Se exige PLURAL "días" para "alternos/alternativos": el singular "día alterno"
+        //     es ambiguo (un día alternativo concreto, no hábito) y se evita.
+        //   • "día por medio"/"un día por medio" es frase fija singular (idiomática).
+        //   • El "cada" inicial es opcional ("cada días alternos" es raro pero válido);
+        //     sin "cada" el plural sigue señalando hábito.
+        // Se evalúa tras everyOtherDayPattern (disjunto) y antes de fixedPatterns/quincena.
+        val alternateDaysPattern =
+            Regex("""(?i)\b(?:cada\s+)?d[ií]as\s+(?:alternos|alternativos)\b|\b(?:un\s+)?d[ií]a\s+por\s+medio\b""")
+        alternateDaysPattern.find(working)?.let { match ->
+            phrases += match.range
+            return RecurrenceResult(RecurrenceFrequency.DAILY, 2, emptyList(), phrases)
+        }
+
+        // "cada tercer/cuarto/quinto/sexto día": cadencia espaciada con ordinal, equivalente
+        // exacto de "cada 3/4/5/6 días" ([intervalPattern] sólo admite cardinales: dígitos o
+        // números escritos como "tres", NO ordinales "tercer"). "cada tercer día" = cada 3
+        // días, "cada cuarto día" = cada 4, etc. Común en medicación y rutinas (ciclos de
+        // tratamiento, riego, descanso activo). Antes caían a NONE → rutina olvidada (P1).
+        // El prefijo "cada" lo acota a cadencia: "el tercer día del curso" (sin "cada") NO
+        // casa → un ordinal que señala una posición, no una cadencia. Se mapea a DAILY+N
+        // (N = ordinal+1: tercer→3, cuarto→4, quinto→5, sexto→6), idéntico a "cada N días".
+        val ordinalDayIntervalMap = mapOf(
+            "tercer" to 3, "tercero" to 3,
+            "cuarto" to 4,
+            "quinto" to 5,
+            "sexto" to 6
+        )
+        val ordinalDayIntervalPattern =
+            Regex("""(?i)\bcada\s+(tercer(?:o)?|cuarto|quinto|sexto)\s+d[ií]a\b""")
+        ordinalDayIntervalPattern.find(working)?.let { match ->
+            val n = ordinalDayIntervalMap[match.groupValues[1].lowercase()]
+            if (n != null) {
+                phrases += match.range
+                return RecurrenceResult(RecurrenceFrequency.DAILY, n, emptyList(), phrases)
+            }
+        }
+
         // "cada quincena" / "quincenalmente" / "quincenal" (adjetivo) / "todas las
         // quincenas": cadencia quincenal cotidiana en español (nóminas, pagos,
         // reportes cada 15 días). Una quincena son 15 días (media mes), NO 14 (dos
