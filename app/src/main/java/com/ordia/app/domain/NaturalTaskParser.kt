@@ -70,6 +70,20 @@ object NaturalTaskParser {
 
     private val numericDatePattern = Regex("""\b([0-3]?\d)[/-]([01]?\d)(?:[/-](\d{2,4}))?\b""")
     private val weekdayPattern = Regex("""(?i)\b(?:el\s+|del\s+|de\s+|este\s+)?(?:pr[oó]ximo\s+|pr[oó]xima\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+que\s+viene|\s+pr[oó]ximos?|\s+pr[oó]ximas?|\s+siguientes?|\s+posterior(?:es)?)?\b""")
+
+    /**
+     * Fracción de hora sin dígitos como fragmento de regex, compartida por todos los
+     * patrones fraccionarios (duración, fecha relativa, fecha pasada, recordatorio):
+     * "media hora" (30 min), "una media hora" (30, con artículo femenino) y
+     * "(un) cuarto de hora" (15). El artículo es parte de la frase fraccionaria en
+     * español, no contenido del título: "una media hora" es tan natural como "un cuarto
+     * de hora". Antes solo se reconocía "media hora" (sin artículo), de modo que "una"
+     * sobrevivía como residuo en el título y, en fecha relativa/pasada, la frase caía a
+     * duración (c.385). Centralizar el grupo evita que un contexto admita "una" y otro
+     * no (inconsistencia que generaba residuo o clasificación errónea). (c.385)
+     */
+    private val fractionalHourGroup: String =
+        """(?:una\s+)?media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora"""
     // Reescritores de conectores direccionales-temporales (c.371/c.378). Se aplican a
     // `working` durante el parseo y TAMBIÉN al `original` crudo en el respaldo de título
     // vacío (línea `working.ifBlank { ... }`): cuando el usuario escribe SÓLO una frase
@@ -281,7 +295,7 @@ object NaturalTaskParser {
      * lo captura [reminderPatterns]).
      */
     private val fractionalRelativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\b"""
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+($fractionalHourGroup)\b"""
     )
     /**
      * Fecha relativa fraccionaria + cuarto: "en media hora y cuarto" (45 min),
@@ -293,7 +307,7 @@ object NaturalTaskParser {
      * [compoundFractionalRelativePattern] para fracciones sin número.
      */
     private val fractionalAndQuarterRelativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\s+y\s+cuarto\b"""
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+($fractionalHourGroup)\s+y\s+cuarto\b"""
     )
     /**
      * Fecha relativa fraccionaria COMPUESTA: "en una hora y media" (90 min),
@@ -359,7 +373,7 @@ object NaturalTaskParser {
      * 15 si "cuarto".
      */
     private val fractionalAndQuarterAgoPattern = Regex(
-        """(?i)\bhace\s+(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\s+y\s+cuarto\b"""
+        """(?i)\bhace\s+($fractionalHourGroup)\s+y\s+cuarto\b"""
     )
     /**
      * Fecha relativa PASADA fraccionaria sin dígitos: "hace media hora" (−30 min),
@@ -381,7 +395,7 @@ object NaturalTaskParser {
      * antes" lo captura [reminderPatterns]).
      */
     private val fractionalAgoPattern = Regex(
-        """(?i)\bhace\s+(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\b"""
+        """(?i)\bhace\s+($fractionalHourGroup)\b"""
     )
     /**
      * Fecha relativa PASADA vaga con DIMINUTIVO coloquial: "hace un ratito",
@@ -1152,8 +1166,8 @@ object NaturalTaskParser {
         // robar una duración real ("reunión media hora" sin "antes" sigue siendo
         // duración). Antes "media hora antes" era robado por la duración (30 min
         // falsos) y el recordatorio quedaba en null → la cita se olvidaba.
-        Regex("""(?i)\b(?:recuérdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
-        Regex("""(?i)\b(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\s+antes\b""")
+        Regex("""(?i)\b(?:recuérdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?($fractionalHourGroup)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
+        Regex("""(?i)\b($fractionalHourGroup)\s+antes\b""")
     )
     /**
      * Verbo de recordatorio sin cantidad explícita: "recuérdame llamar a mamá mañana",
@@ -1210,9 +1224,11 @@ object NaturalTaskParser {
      * "(un) cuarto de hora" (15 min). Los patrones de dígitos no las capturan, así que
      * quedaban como residuo en el título y `durationMinutes` era null. "cuarto" requiere
      * "hora" después para no casar "cuarto" = habitación ("limpiar el cuarto").
+     *
+     * Admite el artículo femenino "una media hora" vía [fractionalHourGroup] (c.385).
      */
     private val fractionalDurationPattern =
-        Regex("""(?i)\b(media\s+hora|(?:un\s+)?cuarto\s+(?:de\s+)?hora)\b""")
+        Regex("""(?i)\b($fractionalHourGroup)\b""")
 
     /**
      * Duración fraccionaria COMPUESTA: "2 horas y media" (150 min), "1 hora y media"
@@ -1793,10 +1809,14 @@ object NaturalTaskParser {
                 // Los patrones de cantidad+unidad exponen la unidad como grupo 2;
                 // los de fracción ("media hora") solo tienen grupo 1.
                 val unit = match.groupValues.getOrNull(2)?.lowercase().orEmpty()
-                val isFraction = amountStr == "media hora" || amountStr.contains("cuarto")
+                // Fracción "media hora" = 30, "(un) cuarto de hora" = 15. Se detecta por
+                // contenido (no por igualdad exacta) para tolerar el artículo femenino
+                // "una media hora" (c.385): antes `amountStr == "media hora"` fallaba y
+                // caía a parseWrittenNumber("una media hora") → null → recordatorio perdido.
+                val isFraction = amountStr.contains("media") || amountStr.contains("cuarto")
                 // Fracciones: media hora = 30 min, cuarto de hora = 15 min.
                 val amount = when {
-                    amountStr == "media hora" -> 30L
+                    amountStr.contains("media") -> 30L
                     amountStr.contains("cuarto") -> 15L
                     else -> parseWrittenNumber(amountStr) ?: return@let null
                 }

@@ -2012,6 +2012,73 @@ class NaturalTaskParserTest {
         assertEquals(30, result.durationMinutes)
     }
 
+    // "una media hora" es la forma con artículo de "media hora" (igual que "un cuarto de
+    // hora" admite "un"): "reunión una media hora" dejaba "una" como residuo en el título
+    // aunque la duración (30) SÍ se resolvía. El artículo es parte de la frase de duración,
+    // no contenido del título. (c.385)
+    @Test fun unaMediaHoraEsDuracionDe30MinSinResiduo() {
+        val result = NaturalTaskParser.parse("Reunión una media hora", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(30, result.durationMinutes)
+    }
+
+    @Test fun unaMediaHoraLimpiaTituloConAction() {
+        val result = NaturalTaskParser.parse("Llamada una media hora", now, zone)
+        assertEquals("Llamada", result.title)
+        assertEquals(30, result.durationMinutes)
+    }
+
+    @Test fun unaMediaHoraNoInterfiereConFechaYHora() {
+        val result = NaturalTaskParser.parse("Estudiar una media hora mañana a las 3pm", now, zone)
+        assertEquals("Estudiar", result.title)
+        assertEquals(30, result.durationMinutes)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // --- "una media hora" como fecha relativa y recordatorio (c.385) ---
+    // El artículo "una" también es parte de la frase fraccionaria en los contextos de
+    // fecha relativa y recordatorio (simétrico de "un cuarto de hora" que SÍ admite "un"):
+    // "en una media hora" debe ser fecha relativa (+30, dueAt NO nulo), NO duración; y
+    // "una media hora antes"/"recuérdame una media hora de anticipación" deben consumir
+    // "una" para no dejar residuo en el título.
+
+    @Test fun enUnaMediaHoraEsFechaRelativaNoDuracion() {
+        val result = NaturalTaskParser.parse("Reunión en una media hora", now, zone)
+        assertEquals("Reunión", result.title)
+        // Es fecha relativa: dueAt = ahora + 30 min (NO nulo), no duración.
+        assertEquals(now + 30 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun dentroDeUnaMediaHoraEsFechaRelativa() {
+        val result = NaturalTaskParser.parse("Llamar dentro de una media hora", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 30 * 60_000L, result.dueAt)
+    }
+
+    @Test fun unaMediaHoraAntesEsRecordatorioSinResiduo() {
+        val result = NaturalTaskParser.parse("Cita una media hora antes", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        // No es duración: el artículo "una media hora" se consume como recordatorio.
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun recuerdameUnaMediaHoraDeAnticipacion() {
+        val result = NaturalTaskParser.parse("Cita recuérdame una media hora de anticipación", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun haceUnaMediaHoraEsFechaPasada() {
+        val result = NaturalTaskParser.parse("Llamé hace una media hora", now, zone)
+        assertEquals("Llamé", result.title)
+        assertEquals(now - 30 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
     @Test fun cuartoDeHoraEsDuracionDe15Min() {
         val result = NaturalTaskParser.parse("Leer un cuarto de hora", now, zone)
         assertEquals("Leer", result.title)
