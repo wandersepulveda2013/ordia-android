@@ -29,6 +29,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -111,7 +112,15 @@ fun TodayScreen(
         }
     }
     val today = remember(clockNow) { LocalDate.now() }
-    val whatNow = remember(state.tasks, clockNow) { WhatNowEngine.suggest(state.tasks, clockNow) }
+    var excludedSuggestionIds by rememberSaveable { mutableStateOf(setOf<Long>()) }
+    val whatNow = remember(state.tasks, clockNow, excludedSuggestionIds) {
+        WhatNowEngine.suggest(
+            state.tasks,
+            now = clockNow,
+            projectNameOf = { id -> state.projects.firstOrNull { it.id == id }?.name },
+            excludeIds = excludedSuggestionIds
+        )
+    }
     val summary = remember(state.tasks, clockNow) { SummaryEngine.summarize(state.tasks, clockNow) }
     val guardianInsight = remember(state.tasks, state.habits, state.habitLogs, clockNow) {
         GuardianCoach.insight(state.tasks, state.habits, state.habitLogs, clockNow)
@@ -294,23 +303,57 @@ fun TodayScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
-                Row(
-                    Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(stringResource(R.string.what_now_eyebrow), style = MaterialTheme.typography.labelSmall)
-                        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        whatNow?.let {
-                            Text(
-                                it.detail,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(stringResource(R.string.what_now_eyebrow), style = MaterialTheme.typography.labelSmall)
+                            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        }
+                        if (whatNow != null) {
+                            Icon(Icons.AutoMirrored.Outlined.ArrowForward, stringResource(R.string.what_now_open))
+                        }
+                    }
+                    whatNow?.let { suggestion ->
+                        Text(
+                            suggestion.summary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            suggestion.detail,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            WhatNowAction(
+                                label = stringResource(R.string.what_now_start),
+                                onClick = { vm.startTask(suggestion.task) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            WhatNowAction(
+                                label = stringResource(R.string.what_now_done),
+                                onClick = { vm.toggleTask(suggestion.task) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            WhatNowAction(
+                                label = stringResource(R.string.what_now_later),
+                                onClick = { vm.snoozeTask(suggestion.task) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            WhatNowAction(
+                                label = stringResource(R.string.what_now_another),
+                                onClick = { excludedSuggestionIds = excludedSuggestionIds + suggestion.task.id },
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }
-                    if (whatNow != null) Icon(Icons.AutoMirrored.Outlined.ArrowForward, stringResource(R.string.what_now_open))
                 }
             }
         }
@@ -380,6 +423,26 @@ fun TodayScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun WhatNowAction(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

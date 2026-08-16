@@ -147,4 +147,77 @@ class WhatNowEngineTest {
 
         assertEquals("Urgente y sin fecha límite.", suggestion!!.detail)
     }
+
+    @Test
+    fun summary_isShortLineWithReasonPriorityAndProject() {
+        val dueToday = task(1, "Vence hoy", TaskPriority.HIGH).copy(
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(
+            listOf(dueToday),
+            now = now,
+            zone = zone,
+            projectNameOf = { "DINAFA" }
+        )
+
+        assertEquals("Vence hoy · Prioridad alta · Proyecto DINAFA", suggestion!!.summary)
+        assertEquals("DINAFA", suggestion.projectName)
+    }
+
+    @Test
+    fun summary_omitsRedundantPriorityAndMissingProject() {
+        val urgent = task(1, "Urgente", TaskPriority.URGENT)
+
+        val suggestion = WhatNowEngine.suggest(listOf(urgent), now = now, zone = zone)
+
+        assertEquals("Urgente", suggestion!!.summary)
+        assertEquals(null, suggestion.projectName)
+    }
+
+    @Test
+    fun summary_includesOverdueState() {
+        val overdue = task(1, "Atrasada").copy(dueAt = DateRules.toEpochMillis(date.minusDays(2), LocalTime.of(18, 0), zone))
+
+        val suggestion = WhatNowEngine.suggest(
+            listOf(overdue),
+            now = now,
+            zone = zone,
+            projectNameOf = { "DINAFA" }
+        )
+
+        assertEquals("Atrasada · Proyecto DINAFA", suggestion!!.summary)
+    }
+
+    @Test
+    fun excludeIdsOffersTheNextSuggestionWithoutModifyingAnything() {
+        val dueToday = task(1, "Vence hoy").copy(dueAt = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone))
+        val inbox = task(2, "De la bandeja")
+
+        val first = WhatNowEngine.suggest(listOf(dueToday, inbox), now = now, zone = zone)
+        val second = WhatNowEngine.suggest(
+            listOf(dueToday, inbox),
+            now = now,
+            zone = zone,
+            excludeIds = setOf(first!!.task.id)
+        )
+
+        assertEquals(1L, first.task.id)
+        assertEquals(2L, second!!.task.id)
+        assertEquals("De la bandeja", second.task.title)
+    }
+
+    @Test
+    fun excludeIdsReturnsNullWhenAllExcluded() {
+        val dueToday = task(1, "Vence hoy").copy(dueAt = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone))
+
+        val result = WhatNowEngine.suggest(
+            listOf(dueToday),
+            now = now,
+            zone = zone,
+            excludeIds = setOf(1L)
+        )
+
+        assertNull(result)
+    }
 }

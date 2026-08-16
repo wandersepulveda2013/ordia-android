@@ -586,6 +586,48 @@ class OrdiaViewModel(
         }
     }
 
+    /** "Empezar": marca la tarea como en curso y le fija un inicio realista. */
+    fun startTask(task: TaskEntity) {
+        viewModelScope.launch {
+            TaskMutationGate.mutex.withLock {
+                val current = taskRepository.get(task.id) ?: return@withLock
+                val now = System.currentTimeMillis()
+                val updated = current.copy(
+                    status = TaskStatus.IN_PROGRESS,
+                    startAt = current.startAt ?: now,
+                    updatedAt = now
+                )
+                taskRepository.update(updated)
+                if (updated.reminderAt != null || updated.dueAt != null) reminderScheduler.schedule(updated)
+                updateWidget()
+                _events.emit(UiEvent.TaskSaved(task.id))
+            }
+        }
+    }
+
+    /** "Después": pospone la tarea al día siguiente sin perder su vencimiento. */
+    fun snoozeTask(task: TaskEntity) {
+        viewModelScope.launch {
+            TaskMutationGate.mutex.withLock {
+                val current = taskRepository.get(task.id) ?: return@withLock
+                val now = System.currentTimeMillis()
+                val dayMillis = 86_400_000L
+                val updated = current.copy(
+                    startAt = current.startAt?.let { it + dayMillis },
+                    dueAt = current.dueAt?.let { it + dayMillis } ?: (now + dayMillis),
+                    reminderAt = current.reminderAt?.let { it + dayMillis },
+                    status = TaskStatus.PLANNED,
+                    updatedAt = now
+                )
+                taskRepository.update(updated)
+                reminderScheduler.cancel(current.id)
+                reminderScheduler.schedule(updated)
+                updateWidget()
+                _events.emit(UiEvent.TaskSaved(task.id))
+            }
+        }
+    }
+
     fun saveProject(project: ProjectEntity) {
         val clean = project.name.trim()
         if (clean.isBlank()) return

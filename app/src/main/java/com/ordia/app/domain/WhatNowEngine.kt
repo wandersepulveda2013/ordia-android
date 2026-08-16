@@ -23,7 +23,11 @@ data class WhatNowSuggestion(
     val task: TaskEntity,
     val reason: WhatNowReason,
     /** Explicación breve y dinámica de por qué toca esta tarea ahora. */
-    val detail: String
+    val detail: String,
+    /** Línea corta con el porqué, prioridad y contexto: "Vence hoy · Prioridad alta · Proyecto DINAFA". */
+    val summary: String,
+    /** Nombre del proyecto al que pertenece la tarea (si lo tiene). */
+    val projectName: String? = null
 )
 
 /**
@@ -45,10 +49,12 @@ object WhatNowEngine {
     fun suggest(
         tasks: List<TaskEntity>,
         now: Long = System.currentTimeMillis(),
-        zone: ZoneId = ZoneId.systemDefault()
+        zone: ZoneId = ZoneId.systemDefault(),
+        projectNameOf: (Long?) -> String? = { null },
+        excludeIds: Set<Long> = emptySet()
     ): WhatNowSuggestion? {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-        val candidates = tasks.filter { isCandidate(it) }
+        val candidates = tasks.filter { isCandidate(it) && it.id !in excludeIds }
         if (candidates.isEmpty()) return null
         val chosen = candidates.sortedWith(
             compareByDescending<TaskEntity> { rank(it, now, today, zone) }
@@ -58,7 +64,13 @@ object WhatNowEngine {
                 .thenBy { it.createdAt }
         ).first()
         val reason = reason(chosen, now, today, zone)
-        return WhatNowSuggestion(chosen, reason, detail(chosen, reason, now, today, zone))
+        return WhatNowSuggestion(
+            chosen,
+            reason,
+            detail(chosen, reason, now, today, zone),
+            summary(chosen, reason, projectNameOf(chosen.projectId)),
+            projectNameOf(chosen.projectId)
+        )
     }
 
     private fun isCandidate(task: TaskEntity): Boolean =
@@ -100,6 +112,29 @@ object WhatNowEngine {
         WhatNowReason.HIGH_PRIORITY -> "Alta prioridad y sin fecha límite."
         WhatNowReason.NEXT_INBOX -> "Primera en tu Bandeja."
         WhatNowReason.SCHEDULED_LATER -> task.startAt?.let { "Programada para las ${timeLabel(it, zone)}." } ?: "Programada más tarde."
+    }
+
+    /** Línea corta estilo "Vence hoy · Prioridad alta · Proyecto DINAFA". */
+    private fun summary(task: TaskEntity, reason: WhatNowReason, projectName: String?): String {
+        val reasonLabel = when (reason) {
+            WhatNowReason.IN_PROGRESS_NOW -> "En curso"
+            WhatNowReason.OVERDUE -> "Atrasada"
+            WhatNowReason.DUE_TODAY -> "Vence hoy"
+            WhatNowReason.URGENT -> "Urgente"
+            WhatNowReason.HIGH_PRIORITY -> "Alta prioridad"
+            WhatNowReason.NEXT_INBOX -> "En tu Bandeja"
+            WhatNowReason.SCHEDULED_LATER -> "Programada"
+        }
+        val priorityLabel = when {
+            task.priority == TaskPriority.URGENT && reason != WhatNowReason.URGENT -> "Prioridad urgente"
+            task.priority == TaskPriority.HIGH && reason != WhatNowReason.HIGH_PRIORITY -> "Prioridad alta"
+            else -> null
+        }
+        return buildList {
+            add(reasonLabel)
+            priorityLabel?.let(::add)
+            projectName?.let { add("Proyecto $it") }
+        }.joinToString(" · ")
     }
 
     private fun overdueDetail(task: TaskEntity, today: LocalDate, zone: ZoneId): String {

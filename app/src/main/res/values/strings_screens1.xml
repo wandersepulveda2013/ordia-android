@@ -11,6 +11,10 @@
     <string name="what_now_eyebrow">SUGERENCIA DE ORDÍA</string>
     <string name="what_now_empty">No hay nada pendiente ahora. Bien hecho.</string>
     <string name="what_now_open">Abrir</string>
+    <string name="what_now_start">Empezar</string>
+    <string name="what_now_done">Hecho</string>
+    <string name="what_now_later">Después</string>
+    <string name="what_now_another">Dame otra</string>
 
     <!-- Resumen de hoy (SummaryEngine, BLOQUE 8) -->
     <string name="summary_completed_pending">%1$d completadas · %2$d para hoy</string>
