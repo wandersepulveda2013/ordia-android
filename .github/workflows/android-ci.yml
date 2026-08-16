@@ -114,6 +114,14 @@ jobs:
           name: ordia-release-unsigned
           path: unsigned
 
+      - name: Set up Java 17
+        # apksigner/keytool require a JDK; ubuntu-latest ships one but pinning
+        # Temurin 17 makes the sign job deterministic and matches the build job.
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Inspect downloaded artifact tree
         shell: bash
         run: |
@@ -283,22 +291,21 @@ jobs:
             SIZE=$(stat -c%s "$APK")
             RELEASE_DATE=$(date +%F)
 
-            cat > "$MANIFEST" <<EOF
-            {
-              "versionCode": $VERSION_CODE,
-              "versionName": "$VERSION_NAME",
-              "apkUrl": "$APK_URL",
-              "sha256": "$SHA256",
-              "size": $SIZE,
-              "releaseDate": "$RELEASE_DATE",
-              "changelog": "Versión 3.0 de Ordía para el canal $FLAVOR: estabilidad, guardianes y actualizador automático.",
-              "mandatory": false,
-              "minSupportedVersion": 1,
-              "channel": "stable"
-            }
-            EOF
+            # Generate the per-flavor manifest with python (NOT an indented
+            # bash heredoc: a `<<EOF ... EOF` whose terminator is indented is
+            # NOT recognized by bash, which would swallow the rest of this
+            # script including the gh release create). Pass values via env.
+            MANIFEST_PATH="$MANIFEST" \
+            M_VERSION_CODE="$VERSION_CODE" \
+            M_VERSION_NAME="$VERSION_NAME" \
+            M_APK_URL="$APK_URL" \
+            M_SHA256="$SHA256" \
+            M_SIZE="$SIZE" \
+            M_RELEASE_DATE="$RELEASE_DATE" \
+            M_FLAVOR="$FLAVOR" \
+            python3 -c 'import json,os; d={"versionCode":int(os.environ["M_VERSION_CODE"]),"versionName":os.environ["M_VERSION_NAME"],"apkUrl":os.environ["M_APK_URL"],"sha256":os.environ["M_SHA256"],"size":int(os.environ["M_SIZE"]),"releaseDate":os.environ["M_RELEASE_DATE"],"changelog":"Versión 3.0 de Ordía para el canal {}: estabilidad, guardianes y actualizador automático.".format(os.environ["M_FLAVOR"]),"mandatory":False,"minSupportedVersion":1,"channel":"stable"}; open(os.environ["MANIFEST_PATH"],"w",encoding="utf-8").write(json.dumps(d,ensure_ascii=False,indent=2)+"\n")'
 
-            python3 -c "import json,sys; json.load(open('$MANIFEST'))" \
+            python3 -c "import json; json.load(open('$MANIFEST'))" \
               || { echo "Invalid JSON in $MANIFEST"; exit 1; }
             echo "Generated $MANIFEST (versionCode=$VERSION_CODE, sha256=$SHA256, size=$SIZE)"
           done
