@@ -60,8 +60,17 @@ Diseño minimalista blanco/negro con paleta de acentos elegible por el usuario.
 - El CI de `main` (`android-ci.yml`) verifica las 3 variantes, firma los APKs
   (`Ordia-3.0-{safe,full,advanced}-signed.apk`), publica `update-manifest-<flavor>.json`
   y crea la release inmutable. Requiere secrets `ORDIA_UPDATE_KEYSTORE_*`.
-- Tag format: `v{versionName}-{versionCode}` (ej: `v3.0.1-12`).
-- El update checker consulta el manifiesto por variante (no la API de GitHub).
+- Tag format CANÓNICO (contrato CI↔app, ORD-040): `v3.0.<build>-code-<versionCode>`
+  (ej: `v3.0.241-code-1300045001`). Debe pasar `UpdateSecurityRules.releaseTagPattern`
+  `^v3\.0\.\d+-code-(\d+)$`. El `<versionCode>` se comparte EXACTO entre el APK, el tag
+  y el manifiesto; lo calcula el job `verify` de forma monótona
+  (`max(1_300_000_000 + run*100 + attempt, maxPublishedVersionCode + 100)`) y lo pasa a
+  Gradle vía `ORDIA_VERSION_CODE` + artifact `release-contract.json` que consume `publish`.
+  NUNCA publicar tags como `v3.0.0-build.<run_id>`: la app instalada los rechaza.
+- Para bootstrap de la app YA instalada (flujo legacy por versionCode), el CI publica
+  además `Ordia-3.0-code-<versionCode>.apk` (copia de la APK advanced firmada) + `.sha256`.
+- El update checker consulta el manifiesto por variante (no la API de GitHub). La app
+  instalada antigua usa el flujo por tag/asset; por eso el tag y el asset legacy importan.
 
 ## 5. Definición de terminado
 
