@@ -453,3 +453,23 @@
 ### Commits
 - `fc03e4f` fix(ci): resolve real unsigned APK paths in Sign APK job
 - `69de55b` fix(ci): fix broken publish heredoc and add JDK to sign job
+
+## 2026-08-16 — Next-gen redesign (jules/next-gen-ordia)
+
+Sesión de implementación del rediseño 2026. Build + tests verificados.
+
+### Commits (esta sesión)
+- `2e7b7d3` feat(next-gen): design system, navigation, mental offload (P0)
+- `d4c9317` feat(guardians-2.0): functional guardian report + redesign
+- `72bf7e6` feat(ai-organize): reversible organize proposal as DIFF (section 9/17)
+- `0b33806` feat(command-palette): mobile command palette with fuzzy search (section 16)
+- `5ad7856` feat(briefing): daily configurable briefing engine (section 18)
+
+### Verificación
+- `:app:compilePreviewSafeDebugKotlin` — SUCCESS (solo warnings preexistentes)
+- `:app:testPreviewSafeDebugUnitTest` — BUILD SUCCESSFUL, 479 tests, 0 fail
+
+### Contratos preservados
+- applicationId sin cambios (com.ordia.app / .preview / .preview.full)
+- versionCode/contract intacto (v3.0.<build>-code-<versionCode>)
+- No se tocaron DB/migrations/updater
