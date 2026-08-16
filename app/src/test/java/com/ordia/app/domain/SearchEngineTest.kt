@@ -658,4 +658,87 @@ class SearchEngineTest {
         val results = SearchEngine.search("reunion", listOf(overdue, fresh), emptyList(), emptyList(), emptyList(), now = now)
         assertEquals(70L, results.first().id)
     }
+
+    // --- Inicio inminente / hueco olvidado: paridad con TaskRules.timeRank ---
+
+    @Test fun imminentStartRanksAboveHighInboxTask() {
+        // Paridad con "Qué hacer ahora": una cita que empieza en pocos minutos
+        // ([TaskRules.isImminentStart], rango 4 en timeRank, misma banda que una
+        // vencida) debe encabezar la búsqueda por encima de una tarea HIGH de la
+        // bandeja que NO vence ni empieza ahora. Antes urgencyRank no tenía tier
+        // para isImminentStart, así la reunión inminente NORMAL caía a urgency 7
+        // (else) y la HIGH (urgency 5) la superaba: buscar "reunión" 5 min antes
+        // de empezar mostraba primero algo de la bandeja en vez de la cita que se
+        // avecina — justo el olvido que "Qué hacer ahora" evita elevándola al
+        // rango 4. Sin nueva pantalla: solo reordena lo que ya aparece.
+        val now = System.currentTimeMillis()
+        val imminent = TaskEntity(
+            id = 80,
+            title = "Reunión equipo",
+            priority = TaskPriority.NORMAL,
+            startAt = now + 5 * 60_000L,
+            durationMinutes = 60
+        )
+        val highInbox = TaskEntity(
+            id = 81,
+            title = "Reunión equipo",
+            priority = TaskPriority.HIGH
+        )
+        val results = SearchEngine.search("reunion", listOf(imminent, highInbox), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(2, results.size)
+        assertEquals(80L, results.first().id)
+    }
+
+    @Test fun imminentStartUrgentSharesOverdueBand() {
+        // Una cita inminente URGENT comparte banda con una vencida NORMAL en
+        // timeRank (ambas rango 4; la URGENT gana por priorityScore dentro de la
+        // banda, igual que nextBestTask desempata por prioridad). La búsqueda debe
+        // reflejarlo: la inminente URGENT va antes que la vencida NORMAL. Antes la
+        // vencida NORMAL (urgency 2) superaba a la inminente URGENT (urgency 7),
+        // invirtiendo el orden que toda la app usa en "Qué hacer ahora".
+        val now = System.currentTimeMillis()
+        val imminentUrgent = TaskEntity(
+            id = 90,
+            title = "Reunión equipo",
+            priority = TaskPriority.URGENT,
+            startAt = now + 5 * 60_000L,
+            durationMinutes = 60
+        )
+        val overdueNormal = TaskEntity(
+            id = 91,
+            title = "Reunión equipo",
+            priority = TaskPriority.NORMAL,
+            dueAt = now - 3_600_000L
+        )
+        val results = SearchEngine.search("reunion", listOf(imminentUrgent, overdueNormal), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(90L, results.first().id)
+    }
+
+    @Test fun missedStartElevatedAboveFreshInboxTask() {
+        // Recuperación de tareas olvidadas: una tarea cuyo hueco planificado ya
+        // pasó sin completarse ([TaskRules.isMissedStart] — el "olvido silencioso")
+        // debe aflorar por encima de una captura fresca de la bandeja con la misma
+        // prioridad, incluso cuando el título de la fresca ordenaría antes
+        // alfabéticamente. nextBestTask desempata por isMissedStart dentro de la
+        // banda de urgencia; la búsqueda no lo hacía, así la olvidada empatataba
+        // con la fresca (urgency 7, dueAt MAX) y caía tras ella por título — el
+        // compromiso agendado que se le pasó al usuario quedaba enterrado en la
+        // búsqueda, contradiciendo el tema #1 de recuperación del producto.
+        val now = System.currentTimeMillis()
+        val missed = TaskEntity(
+            id = 100,
+            title = "Reunión equipo",
+            priority = TaskPriority.NORMAL,
+            startAt = now - 2 * 3_600_000L,
+            durationMinutes = 30
+        )
+        val fresh = TaskEntity(
+            id = 101,
+            title = "Reunión aaa",
+            priority = TaskPriority.NORMAL
+        )
+        val results = SearchEngine.search("reunion", listOf(missed, fresh), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(2, results.size)
+        assertEquals(100L, results.first().id)
+    }
 }

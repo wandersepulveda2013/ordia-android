@@ -233,7 +233,7 @@ object SearchEngine {
                     (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted, weekdayTarget = weekdayTarget, weekendTarget = weekendTarget)) &&
                     (matches(task.title, task.details, *ph, *pa, *th) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms + flaggedTerms + recurringTerms, task.title, task.details, *ph, *pa, *th))
             }.forEach {
-                add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE))
+                add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE, TaskRules.isMissedStart(it, now)))
             }
             projects.filter { !typed && !it.archived && !pureDateScope && matches(it.name, it.description) }.forEach {
                 add(Ranked(SearchResult(SearchKind.PROJECT, it.id, it.name, it.description.take(90))))
@@ -271,6 +271,7 @@ object SearchEngine {
         }.sortedWith(
             compareBy<Ranked> { if (it.result.title.foldForSearch().startsWith(normalized)) 0 else 1 }
                 .thenBy { it.urgency }
+                .thenByDescending { it.missedStart }
                 .thenBy { it.dueAt }
                 .thenBy { it.result.title.foldForSearch() }
         ).map { it.result }
@@ -289,11 +290,33 @@ object SearchEngine {
      * vencida urgente (no empezada) la superaba — la búsqueda ofrecía primero lo
      * que el usuario NO estaba haciendo. Sin pantalla nueva: solo reordena lo que
      * ya aparece. Heurística local honesta (sin IA simulada).
+     *
+     * Inicio inminente (paridad con timeRank): una cita que empieza en
+     * [TaskRules.IMMINENT_WINDOW_MINUTES] o menos ([TaskRules.isImminentStart])
+     * comparte la MISMA banda de urgencia que una vencida (rango 4 en timeRank):
+     * ambas son "actúa ya". Antes no tenía tier propio y caía a "else" (urgency
+     * 7), así una reunión a 5 min de empezar quedaba enterrada bajo tareas HIGH de
+     * la bandeja — buscarla justo cuando más se necesitaba no la mostraba primera,
+     * contradiciendo "Qué hacer ahora". Ahora: inminente URGENT empatada con
+     * vencida URGENT (tier 1); inminente (otra prioridad) empatada con vencida
+     * (tier 2). Dentro de la banda, el desempate por `dueAt` deja a la vencida
+     * (dueAt pasado) antes que la inminente sin `dueAt`, lo cual es razonable: el
+     * plazo ya volado manda y la cita aún no arranca. Es fiel a timeRank, donde
+     * ambas ocupan el rango 4 y el desempate es por prioridad.
+     *
+     * Hueco olvidado (recuperación): `isMissedStart` (un `startAt` que ya pasó
+     * sin completarse, el "olvido silencioso") NO es un tier de urgencia aquí —
+     * en [TaskRules.nextBestTask] es un desempate DENTRO de la banda, no un
+     * rango. Se refleja igual: como tiebreak `missedStart` (descendente) tras la
+     * urgencia, antes que `dueAt`. Así una olvidada NORMAL se eleva sobre una
+     * captura fresca NORMAL de la misma banda (ambas urgency 7, dueAt MAX),
+     * rescatando el compromiso agendado que se le pasó al usuario en vez de
+     * dejarlo ordenar tras ella por título. Tema #1 de recuperación del producto.
      */
     private fun urgencyRank(task: TaskEntity, now: Long): Int = when {
         TaskRules.isBeingWorkedOn(task, now) -> 0
-        TaskRules.isOverdue(task, now) && task.priority == TaskPriority.URGENT -> 1
-        TaskRules.isOverdue(task, now) -> 2
+        (TaskRules.isOverdue(task, now) || TaskRules.isImminentStart(task, now)) && task.priority == TaskPriority.URGENT -> 1
+        TaskRules.isOverdue(task, now) || TaskRules.isImminentStart(task, now) -> 2
         task.priority == TaskPriority.URGENT && TaskRules.isDueToday(task, now) -> 3
         task.priority == TaskPriority.URGENT -> 4
         task.priority == TaskPriority.HIGH -> 5
@@ -304,7 +327,8 @@ object SearchEngine {
     private data class Ranked(
         val result: SearchResult,
         val urgency: Int = 7,
-        val dueAt: Long = Long.MAX_VALUE
+        val dueAt: Long = Long.MAX_VALUE,
+        val missedStart: Boolean = false
     )
 
     private val STOP_WORDS = setOf(
