@@ -9900,3 +9900,20 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `4077acb` (c.342 remoto al arrancar). **HEAD de commiteo**: `f71fd10` (c.344, tras re-sync no destructivo stash→ff-only→pop). **HEAD final**: (commit c.345, pendiente de push).
 - **Estado**: VERIFIED (dominio JVM: 2014 tests PASS; smoke 25 OK; 0 failures). NO VERIFICADO gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); render real del texto en `AssistantScreen` en runtime Android (la lógica pura `AssistantEngine.answer` SÍ verificada en JVM vía tests + suite 2014).
 - **Próxima prioridad**: descubrimiento continuo — (i) asistente: auditar otras ramas (`forgottenIntent`, `overdueIntent`, `dayLoad`) por olvidos silenciados de forma análoga; (ii) parser/recurrencia: backlog PENDIENTE "del mes que viene/próximo" con lista multi-day (c.341b, complejidad mayor, delicate negative lookahead); (iii) áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup); (iv) verificar Android c.270-c.345 cuando haya SDK. Re-fetch antes de implementar.
+
+---
+
+## c.346 — 2026-08-16 (asistente / olvidos silenciados / superficie "¿qué olvidé?" / simetría con c.345)
+
+- **Run/ciclo**: c.346. Continuación directa de c.345 (misma familia missed-start, otra superficie).
+- **HEAD inicial**: `558bc68` (c.345, `git pull --ff-only` limpio, sin colisión).
+- **Problema seleccionado**: P2 asistente/evitar olvidos/recuperación de tareas olvidadas/consistencia entre superficies/MENOS ES MÁS. La rama `forgottenIntent`+`overdue.isNotEmpty()` de `AssistantEngine` nombra SÓLO la vencida y silenciaba el `isMissedStart` coexistente. "¿Qué olvidé?" con una vencida Y un compromiso cuyo hueco `startAt` se pasó (no vencido): ambos son olvidos, pero sólo aparecía la vencida.
+- **Causa raíz**: en `forgottenIntent`, la rama overdue nombraba la vencida top + `overdueCommitmentTail`, pero NO anexaba `missedStartTail` (el helper de c.345 sólo se usaba en WHAT_NOW). Simetría rota entre las dos superficies de recuperación.
+- **Solución**: la rama overdue+forgotten ahora anexa `missedStartTail(active, top, now)` (helper de c.345, reusado sin tocar) — nombra el `isMissedStart` más urgente DISTINTO a la vencida nombrada. Devuelve "" si no hay (incl. si la única olvidada es la propia vencida — `isMissedStart` excluye `isOverdue` en `TaskRules` l.196, sin duplicar). Simétrico con c.345 y con `overdueCommitmentTail`. Sin nueva pantalla/botón, sin IA fingida (determinista y local).
+- **Features**: ninguna nueva (recupera un olvido ya detectado, no añade superficie).
+- **Bugs**: 1 fixed (missed-start silenciado tras vencida en "¿qué olvidé?").
+- **Tests**: `bash tools/run_domain_tests.sh` → **2016 PASS** (2014 c.345 + 2 c.346), 0 failures, 42 clases; `bash tools/run_domain_checks.sh` → smoke 25 OK. RED confirmado en 1ª ejecución (1 failure: `forgottenIntent_namesMissedStartCoexistingWithOverdue`). TDD: +2 tests `@Test` (`forgottenIntent_namesMissedStartCoexistingWithOverdue`, `forgottenIntent_doesNotRepeatMissedStartWhenItIsTheOverdue`).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` (rama overdue+forgotten anexa `missedStartTail`), `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt` (+2 tests, +import `assertFalse`), `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md`.
+- **HEAD final**: (commit c.346, pendiente de push).
+- **Estado**: VERIFIED (dominio JVM: 2016 tests PASS; smoke 25 OK; 0 failures; TDD RED→GREEN). NO VERIFICADO gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); render real del texto en `AssistantScreen` en runtime Android (la lógica pura `AssistantEngine.answer` SÍ verificada en JVM).
+- **Próxima prioridad**: descubrimiento continuo — (i) asistente: auditar ramas restantes (`overdueIntent`, `dayLoad`, `resumeConversacion`) por olvidos silenciados análogos; (ii) parser/recurrencia: backlog PENDIENTE "del mes que viene/próximo" con lista multi-day (c.341b); (iii) áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup); (iv) verificar Android c.270-c.346 cuando haya SDK. Re-fetch antes de implementar.

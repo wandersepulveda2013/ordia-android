@@ -3,6 +3,7 @@ package com.ordia.app.assistant
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
@@ -401,6 +402,46 @@ class AssistantEngineTest {
         assertTrue("nombra la tarea vencida: ${answer.text}", answer.text.contains("Entrega vieja"))
         assertTrue("no calla el compromiso vencido: ${answer.text}", answer.text.contains("compromiso vencido"))
         assertEquals(AssistantAction.RUN_REPLAN, answer.action)
+    }
+
+    @Test fun forgottenIntent_namesMissedStartCoexistingWithOverdue() {
+        // "¿Qué olvidé?" con una vencida Y un missed-start DISTINTO: ambos son
+        // olvidos. Antes la rama overdue nombraba SÓLO la vencida y silenciaba
+        // el compromiso cuyo hueco pasó (no vencido) — el mismo olvido silencioso
+        // de c.345, ahora en la superficie explícita de recuperación. No debe
+        // esconder un olvido tras otro cuando el usuario pregunta por QUÉ olvidó.
+        val now = 1_000_000_000_000L
+        val overdueTask = TaskEntity(id = 1, title = "Entrega vieja", dueAt = now - 3 * 86_400_000L)
+        val missedStart = TaskEntity(
+            id = 7, title = "Reunión de seguimiento",
+            startAt = now - 60 * 60_000L, // hace 1 h
+            durationMinutes = 25,         // ventana terminó hace ~35 min → hueco pasado
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué olvidé?",
+            listOf(overdueTask, missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la vencida: ${answer.text}", answer.text.contains("Entrega vieja"))
+        assertTrue("también recupera el missed-start: ${answer.text}", answer.text.contains("Reunión de seguimiento"))
+    }
+
+    @Test fun forgottenIntent_doesNotRepeatMissedStartWhenItIsTheOverdue() {
+        // Guard anti-repetición: isMissedStart excluye a isOverdue (TaskRules l.196),
+        // así una tarea vencida nunca es missed-start. Si la única "olvidada" es la
+        // propia vencida, la cola no debe duplicar "Además, «X» se pasó" tras
+        // nombrarla como vencida. IA honesta: no infla ni repite.
+        val now = 1_000_000_000_000L
+        val overdueOnly = TaskEntity(id = 1, title = "Entrega vieja", dueAt = now - 3 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿qué olvidé?",
+            listOf(overdueOnly),
+            emptyList(), emptyList(),
+            now
+        )
+        assertFalse("no repite el olvido como cola: ${answer.text}", answer.text.contains("Además, «Entrega vieja»"))
     }
 
     @Test fun resumeConversacion_flagsOverdueCommitmentCount() {

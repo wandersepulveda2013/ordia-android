@@ -143,6 +143,7 @@ object AssistantEngine {
                         }
                         AssistantAnswer(
                             "“${top.title}” está vencida (~$minutes min) $tail" +
+                                missedStartTail(active, top, now) +
                                 overdueCommitmentTail(overdueCommitments),
                             AssistantAction.RUN_REPLAN,
                             relatedTaskIds = overdue.take(8).map { it.id }
