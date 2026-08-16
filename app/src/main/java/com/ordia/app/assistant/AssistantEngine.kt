@@ -283,7 +283,11 @@ object AssistantEngine {
         // la agenda de un día concreto pese a preguntarla. Simétrico con
         // SearchEngine.WEEKDAY_TOKENS y el parser de captura. Resolución
         // inclusiva/estricta en agendaAnswer, no aquí.
-        return "manana" in query || "hoy" in query || "semana" in query || "mes" in query ||
+        // Fin de semana ("finde"/"fin de semana"): simétrico con
+        // SearchEngine.isWeekendQuery. Va ANTES que "semana" para que la palabra
+        // "semana" de "fin de semana" NO caiga al scope de semana completa.
+        return "manana" in query || "hoy" in query || isAgendaWeekendQuery(query) ||
+            "semana" in query || "mes" in query ||
             AGENDA_WEEKDAY_TOKENS.any { it in query }
     }
 
@@ -323,6 +327,17 @@ object AssistantEngine {
             isLastMonth -> {
                 val pm = thisMonth.minusMonths(1)
                 Triple(pm.atDay(1), pm.atEndOfMonth(), "mes pasado")
+            }
+            // Fin de semana ("¿qué tengo el finde?"/"¿qué tengo el fin de
+            // semana?"): sábado+domingo del PRÓXIMO finde, SIEMPRE estricto (si hoy
+            // es sábado salta al siguiente), idéntico a SearchEngine.resolveWeekendTarget
+            // y al parser de captura (weekendPattern → nextWeekday(SATURDAY)). Va
+            // ANTES que "semana"/weekday para que "fin de semana" no caiga a
+            // "esta semana" (lun..dom) ni "sábado"/"domingo" solos al weekday.
+            // Así preguntar, buscar y capturar signifiquen lo mismo al decir "finde".
+            isAgendaWeekendQuery(query) -> {
+                val saturday = resolveAgendaWeekend(today)
+                Triple(saturday, saturday.plusDays(1), "el finde")
             }
             // Día de la semana ("¿qué tengo el viernes?"/"¿qué tengo el próximo
             // lunes?"). Resolución simétrica con SearchEngine.resolveWeekdayTarget
@@ -400,6 +415,30 @@ object AssistantEngine {
     // Modificador "próximo"/"que viene"/"siguiente"/"posterior" → estricto (salta al
     // siguiente, excluye hoy). Coincide con SearchEngine.WEEKDAY_NEXT_MODIFIERS.
     private val AGENDA_WEEKDAY_NEXT_MODIFIERS = setOf("proximo", "proximos", "proxima", "proximas", "viene", "siguiente", "siguientes", "posterior", "posteriores")
+
+    /**
+     * ¿La consulta pregunta por el fin de semana? "finde" (apócope coloquial) o
+     * "fin"+"semana" ("fin de semana"). Simétrico con [SearchEngine.isWeekendQuery]
+     * y el parser de captura (weekendPattern). La consulta ya viene normalizada
+     * por foldForSearch (sin acentos), por eso "finde" suelto también casa.
+     */
+    private fun isAgendaWeekendQuery(query: String): Boolean =
+        "finde" in query || ("fin" in query && "semana" in query)
+
+    /**
+     * Resuelve el sábado del PRÓXIMO fin de semana: SIEMPRE estricto (si hoy es
+     * sábado, salta al siguiente), idéntico a [SearchEngine.resolveWeekendTarget]
+     * y al parser de captura (weekendPattern → nextWeekday(SATURDAY)). El domingo
+     * objetivo es el día siguiente. Así "finde"/"fin de semana"/"este finde"/
+     * "próximo finde" resuelven todos al mismo fin de semana (el parser tampoco
+     * distingue "este" de "próximo" para el finde): preguntar, buscar y capturar
+     * signifiquen lo mismo al decir "finde".
+     */
+    private fun resolveAgendaWeekend(today: LocalDate): LocalDate {
+        val delta = (java.time.DayOfWeek.SATURDAY.value - today.dayOfWeek.value + 7) % 7
+        val days = if (delta == 0) 7L else delta.toLong()
+        return today.plusDays(days)
+    }
 
     /**
      * Resuelve el día calendario objetivo de un weekday en la consulta de agenda,

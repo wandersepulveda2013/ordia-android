@@ -1021,6 +1021,83 @@ class AssistantEngineTest {
         assertEquals(listOf(1L), whatNow.relatedTaskIds)
     }
 
+    // --- Fin de semana a demanda ("¿qué tengo el finde?") (c.352) ---
+    //
+    // Antes "¿qué tengo el finde?"/"¿qué tengo el fin de semana?" NO se reconocía
+    // como agenda: "finde" suelto no casaba ningún token, y "fin de semana" caía
+    // al scope de semana completa (lun..dom) por la palabra "semana" — el
+    // asistente callaba la agenda del finde o mentía mostrando toda la semana.
+    // Ahora resuelve sábado+domingo del PRÓXIMO finde (estricto), simétrico con
+    // SearchEngine.resolveWeekendTarget y el parser de captura (weekendPattern).
+    // "hoy" en el helper es 2026-07-29 (miércoles): próximo sábado = 08-01,
+    // domingo = 08-02.
+
+    @Test fun queTengoElFinde_listsTasksDueSatOrSun() {
+        // hoy miércoles 2026-07-29; próximo finde = sábado 08-01 + domingo 08-02.
+        val sabado = LocalDate.of(2026, 8, 1)
+        val domingo = LocalDate.of(2026, 8, 2)
+        val viernes = LocalDate.of(2026, 7, 31) // viernes previo, no debe mezclarse
+        val answer = agendaAnswerFor("¿qué tengo el finde?", listOf(1L to viernes, 2L to sabado, 3L to domingo))
+        assertTrue("nombra la del sábado: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("nombra la del domingo: ${answer.text}", answer.text.contains("Tarea3"))
+        assertTrue("no mezcla con el viernes previo: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L, 3L), answer.relatedTaskIds)
+    }
+
+    @Test fun queTengoElFinDeSemana_noCaeASemanaCompleta() {
+        // "fin de semana" contiene la palabra "semana": sin la rama weekend ANTES
+        // que "semana", caía a "esta semana" (lun..dom) y mezclaba tareas de entre
+        // semana. Debe listar SÓLO sábado+domingo del próximo finde.
+        val sabado = LocalDate.of(2026, 8, 1)
+        val martesProximo = LocalDate.of(2026, 8, 4) // entre semana siguiente
+        val answer = agendaAnswerFor("¿qué tengo el fin de semana?", listOf(1L to sabado, 2L to martesProximo))
+        assertTrue("nombra la del sábado del finde: ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("no mezcla con el martes siguiente: ${answer.text}", !answer.text.contains("Tarea2"))
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun finde_strictSaltaAlSiguienteCuandoHoyEsSabado() {
+        // Simetría con SearchEngine.resolveWeekendTarget y el parser: si HOY es
+        // sábado, "finde" resuelve al PRÓXIMO finde (no al de hoy que ya corre).
+        // Sin el salto estricto, devolvería la agenda del sábado actual.
+        val zone = agendaZone()
+        val hoySabado = LocalDate.of(2026, 8, 1).atTime(12, 0).atZone(zone).toInstant().toEpochMilli()
+        val esteSabado = LocalDate.of(2026, 8, 1)
+        val sabadoSiguiente = LocalDate.of(2026, 8, 8)
+        val domingoSiguiente = LocalDate.of(2026, 8, 9)
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Tarea1", dueAt = esteSabado.atTime(9, 0).atZone(zone).toInstant().toEpochMilli()),
+            TaskEntity(id = 2, title = "Tarea2", dueAt = sabadoSiguiente.atTime(9, 0).atZone(zone).toInstant().toEpochMilli()),
+            TaskEntity(id = 3, title = "Tarea3", dueAt = domingoSiguiente.atTime(9, 0).atZone(zone).toInstant().toEpochMilli())
+        )
+        val answer = AssistantEngine.answer("¿qué tengo el finde?", tasks, emptyList(), emptyList(), hoySabado, zone)
+        assertTrue("nombra el sábado del próximo finde (08-08): ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("nombra el domingo del próximo finde (08-09): ${answer.text}", answer.text.contains("Tarea3"))
+        assertTrue("no muestra el sábado de hoy: ${answer.text}", !answer.text.contains("Tarea1"))
+    }
+
+    @Test fun finde_empty_diceEseFindeHonesto() {
+        // sólo hay algo el viernes previo al finde; el finde está vacío.
+        val viernes = LocalDate.of(2026, 7, 31)
+        val answer = agendaAnswerFor("¿qué tengo el finde?", listOf(1L to viernes))
+        assertTrue("dice finde y que no hay: ${answer.text}",
+            answer.text.contains("finde") && answer.text.contains("no tienes"))
+        assertTrue("no inventa la del viernes: ${answer.text}", !answer.text.contains("Tarea1"))
+    }
+
+    @Test fun finde_noRegresanFrasesRapidas() {
+        // Añadir weekend a isAgendaQuery no debe romper "qué hago ahora" ni
+        // "plan mínimo": siguen su camino propio.
+        val now = 1_000_000_000_000L
+        val whatNow = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(TaskEntity(id = 1, title = "X", priority = TaskPriority.URGENT)),
+            emptyList(), emptyList(), now
+        )
+        assertEquals(listOf(1L), whatNow.relatedTaskIds)
+    }
+
+
     // ---- Veredicto del día a demanda ("¿voy bien?"/"¿da tiempo a todo?") ----
     //
     // Ordía YA calcula el veredicto del día (SummaryEngine.dayLoad:
