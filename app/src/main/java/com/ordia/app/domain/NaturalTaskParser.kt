@@ -1094,8 +1094,15 @@ object NaturalTaskParser {
         // ponen "pasado/pasada" DESPUÉS del sustantivo; aquí va ANTES de mediodía/
         // medianoche). El negative-lookahead de laterRelativePattern ya excluye
         // "después del/de la N", así que "después del mediodía" no lo roba como +3h.
-        Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+|pasad[oa]\s+(?:el\s+|la\s+)?|despu[eé]s\s+(?:del\s+|de\s+la\s+|de\s+))?mediod[ií]a(?:\s+($CLOCK_FRACTION_Y))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
-        Regex("""(?i)\b(?:al\s+|a\s+la\s+|a\s+|pasad[oa]\s+(?:el\s+|la\s+)?|despu[eé]s\s+(?:del\s+|de\s+la\s+|de\s+))?medianoche(?:\s+($CLOCK_FRACTION_Y))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b""")
+        // Intensificador "justo" (c.401): "justo al mediodía"/"justo a la medianoche"
+        // son formas cotidianas frecuentes (precisión temporal pura). Antes el dueAt
+        // se resolvía bien (12:00/00:00) PERO "justo" sobrevivía como residuo en el
+        // título. Simétrico de c.391 ("justo" antes de comida/sueño) y c.393
+        // ("justo a las N"). Adverbio temporal sin uso de tema/cantidad, sin
+        // ambigüedad; admite combinación con modificadores ("justo pasada la
+        // medianoche").
+        Regex("""(?i)\b(?:justo\s+)?(?:al\s+|a\s+la\s+|a\s+|pasad[oa]\s+(?:el\s+|la\s+)?|despu[eé]s\s+(?:del\s+|de\s+la\s+|de\s+))?mediod[ií]a(?:\s+($CLOCK_FRACTION_Y))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
+        Regex("""(?i)\b(?:justo\s+)?(?:al\s+|a\s+la\s+|a\s+|pasad[oa]\s+(?:el\s+|la\s+)?|despu[eé]s\s+(?:del\s+|de\s+la\s+|de\s+))?medianoche(?:\s+($CLOCK_FRACTION_Y))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b""")
     )
     /**
      * "a eso de" + parte del día: "a eso de la tarde", "a eso del mediodía", "a eso de
@@ -1532,7 +1539,12 @@ object NaturalTaskParser {
      * título. Se añade el conector "de" suelto para estas partes; no aplica a
      * "mañana" porque "de mañana" colisionaría con la fecha relativa ("mañana").
      */
-    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:(?:a\s+la|de\s+la|por\s+la|en\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada))(?:\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier))?\b""")
+    // Intensificador "justo" (c.401): "justo a la tarde/noche/mañana", "justo de
+    // madrugada" son formas cotidianas frecuentes. Antes la hora se resolvía bien
+    // (vía el conector "a la"/"de") PERO "justo" sobrevivía como residuo en el título.
+    // Simétrico de c.391 ("justo" antes de comida/sueño) y de mediodía/medianoche
+    // (c.401). Adverbio temporal puro, sin ambigüedad.
+    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:justo\s+)?(?:(?:a\s+la|de\s+la|por\s+la|en\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada))(?:\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier))?\b""")
     private val standalonePartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),

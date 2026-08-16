@@ -3749,6 +3749,45 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(16, 30), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- intensificador "justo" antes de mediodía/medianoche/parte del día (c.401) ---
+    // Simétrico de c.391 (justo + comida/sueño) y c.393 (justo a las N). El dueAt ya
+    // se resolvía, pero "justo" sobrevivía como residuo en el título.
+    @Test fun justoAlMediodiaConsumeElIntensificadorYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión justo al mediodía", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun justoALaMedianocheConsumeElIntensificadorYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("llamar justo a la medianoche", now, zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalTime.of(0, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun justoALaTardeConsumeElIntensificadorYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión justo a la tarde", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun justoALaMananaConsumeElIntensificadorYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión justo a la mañana", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun justoDeMadrugadaConsumeElIntensificadorYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("salir justo de madrugada", now, zone)
+        assertEquals("salir", result.title)
+        assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun justoPasadaLaMedianocheCombinaIntensificadorYModificador() {
+        val result = NaturalTaskParser.parse("llegar justo pasada la medianoche", now, zone)
+        assertEquals("llegar", result.title)
+        assertEquals(LocalTime.of(0, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // --- "a la una" (hora 1, femenino singular) (ciclo 94b/c) ---
     // La hora 1 se dice "a la una" (no "a las 1"). Antes no había patrón para esa
     // forma, así que "reunión a la una" caía sin dueAt y con "a la una" como residuo
