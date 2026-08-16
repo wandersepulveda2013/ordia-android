@@ -1221,17 +1221,17 @@ object NaturalTaskParser {
         Regex("""(?i)\bcasi\s+a\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
         // Prefijos de aproximación/intensificación antes de "a las/la N": "aproximadamente
         // a las 9", "más o menos a las 9", "justo a las 9", "exactamente a las 9", "recién a
-        // las 9", "apenas a las 3". Son adverbios temporales puros antes de "a las N" (no
+        // las 9", "apenas a las 3", "como a las 9". Son adverbios temporales puros antes de "a las N" (no
         // admiten lectura de cantidad: "aproximadamente a las 9 personas" no es gramatical; la
         // forma de cuenta es "aproximadamente 9 personas", sin "a las"), así que NO exigen
         // evidencia de reloj (igual que "casi"). El match incluye "aproximadamente a "/"justo a "
         // y se reescribe a "a " → "a las 9", reutilizando [timePatterns] (resolución + limpieza
         // del título). Antes estos prefijos dejaban residuo ("reunión aproximadamente",
-        // "cita justo", "reunión recién", "reunión apenas") pese a agendar la hora correcta
+        // "cita justo", "reunión recién", "reunión apenas", "reunión como") pese a agendar la hora correcta
         // (P2 captura/título limpio, espejo del sufijo "y pico"/"más o menos"/"aproximadamente"
         // de c.393). El guard anti-cuenta (c.361) sigue activo tras la reescritura: "justo a
-        // las 9 personas" → "a las 9 personas" → rechazado por followedByCountNoun.
-        Regex("""(?i)\b(?:aproximadamente|m[aá]s\s+o\s+menos|justo|exactamente|reci[eé]n|apenas)\s+a\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
+        // las 9 personas" → "a las 9 personas" → rechazado por followedByCountNoun; "como a las 9 personas" → "a las 9 personas" (c.424: "como" es la aproximación coloquial caribeña/latina = "alrededor de las N"; la forma de cuenta es "como 9 cajas", sin "a las", así que tampoco exige evidencia de reloj).
+        Regex("""(?i)\b(?:aproximadamente|m[aá]s\s+o\s+menos|justo|exactamente|reci[eé]n|apenas|como)\s+a\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
         // "pasadas las N" / "pasada la una" = un poco después de las N (aproximación
         // post-hora, análoga al sufijo "y pico"/"más o menos" de c.393 y a los prefijos
         // "casi/aproximadamente a las N" de c.393/c.395). A diferencia de "casi a las"/

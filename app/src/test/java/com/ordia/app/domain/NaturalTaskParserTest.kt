@@ -11875,47 +11875,47 @@ class NaturalTaskParserTest {
         assertEquals(null, result.dueAt)
     }
 
-    // --- Sufijo de aproximaciÃ³n "pasadas"/"pasada" post-hora (ciclo 419) ---
-    // "a las 9 pasadas" = un poco despuÃ©s de las 9: forma cotidiana simÃ©trica del PREFIJO
-    // "pasadas las 9" (que ya resolvÃ­a [aproximateTimePatterns]). Antes el sufijo NO se
-    // reconocÃ­a y, en hora en punto sin meridiem ("a las 9 pasadas"), el guard anti-cuenta
+    // --- Sufijo de aproximación "pasadas"/"pasada" post-hora (ciclo 419) ---
+    // "a las 9 pasadas" = un poco después de las 9: forma cotidiana simétrica del PREFIJO
+    // "pasadas las 9" (que ya resolvía [aproximateTimePatterns]). Antes el sufijo NO se
+    // reconocía y, en hora en punto sin meridiem ("a las 9 pasadas"), el guard anti-cuenta
     // (c.361) tomaba "pasadas" por un sustantivo plural de cantidad y RECHAZABA la cita
     // (dueAt=null y "pasadas" como residuo): la cita se OLVIDABA (P1 datos/evitar olvidos).
-    // Con meridiem ("a las 9 de la tarde pasadas") la hora sÃ­ se agendaba pero "pasadas"
-    // quedaba como residuo del tÃ­tulo. Ahora [APPROX_TIME_SUFFIX] consume "pasadas/pasada"
-    // como sufijo de aproximaciÃ³n y cuenta como evidencia de reloj en [hasClockEvidence].
+    // Con meridiem ("a las 9 de la tarde pasadas") la hora sí se agendaba pero "pasadas"
+    // quedaba como residuo del título. Ahora [APPROX_TIME_SUFFIX] consume "pasadas/pasada"
+    // como sufijo de aproximación y cuenta como evidencia de reloj en [hasClockEvidence].
 
     @Test fun aLas9PasadasLimpiaTituloYResuelve9h() {
-        val result = NaturalTaskParser.parse("ReuniÃ³n a las 9 pasadas", now, zone)
-        assertEquals("ReuniÃ³n", result.title)
+        val result = NaturalTaskParser.parse("Reunión a las 9 pasadas", now, zone)
+        assertEquals("Reunión", result.title)
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
     @Test fun aLas9DeLaTardePasadasLimpiaTituloYResuelve21h() {
-        val result = NaturalTaskParser.parse("ReuniÃ³n a las 9 de la tarde pasadas", now, zone)
-        assertEquals("ReuniÃ³n", result.title)
+        val result = NaturalTaskParser.parse("Reunión a las 9 de la tarde pasadas", now, zone)
+        assertEquals("Reunión", result.title)
         assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
     @Test fun aLaUnaPasadaLimpiaTituloYResuelve1h() {
-        val result = NaturalTaskParser.parse("ReuniÃ³n a la una pasada", now, zone)
-        assertEquals("ReuniÃ³n", result.title)
+        val result = NaturalTaskParser.parse("Reunión a la una pasada", now, zone)
+        assertEquals("Reunión", result.title)
         assertEquals(LocalTime.of(1, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
     @Test fun aLas930PasadasResuelve930() {
-        val result = NaturalTaskParser.parse("ReuniÃ³n a las 9:30 pasadas", now, zone)
-        assertEquals("ReuniÃ³n", result.title)
+        val result = NaturalTaskParser.parse("Reunión a las 9:30 pasadas", now, zone)
+        assertEquals("Reunión", result.title)
         assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
     // El guard anti-cuenta sigue activo sobre lo que siga al sufijo: "a las 9 pasadas
     // cajas" no es gramatical, pero confirma que el sufijo da evidencia de reloj (la hora
-    // sÃ­ se agenda) sin desactivar el guard para el resto del tail. No es una cita limpia:
-    // el residuo "cajas" permanece, consistente con "a las 9 mÃ¡s o menos cajas".
+    // sí se agenda) sin desactivar el guard para el resto del tail. No es una cita limpia:
+    // el residuo "cajas" permanece, consistente con "a las 9 más o menos cajas".
 
     // El uso demostrativo de "pasada" ("la semana pasada", "el viernes pasado") NO debe
-    // verse afectado: el sufijo sÃ³lo consume tras un [timePattern] que casÃ³ la hora.
+    // verse afectado: el sufijo sólo consume tras un [timePattern] que casó la hora.
 
     // --- Prefijo "casi a las/la" (ciclo 389) ---
     // "casi a las 9" = un poco antes de las 9. Es adverbio de aproximación temporal
@@ -12051,6 +12051,59 @@ class NaturalTaskParserTest {
 
     @Test fun apenasALas3CajasNoEsCita() {
         val result = NaturalTaskParser.parse("Comprar apenas a las 3 cajas", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
+    // --- "como a las/la N" (ciclo c.424) ---
+    // "como a las N" es la aproximación temporal coloquial más común en el español
+    // caribeño/latino ("reunión como a las 9" = alrededor de las 9). Antes el parser
+    // agendaba la hora correctamente PERO dejaba "como" como residuo del título
+    // ("reunión como") â mismo bug-clase de captura/título limpio que c.393/c.395/c.396
+    // ("casi"/"aproximadamente"/"recién"/"apenas" a las N). "como" es adverbio de
+    // aproximación temporal puro antes de "a las N" (no admite lectura de cantidad: la
+    // forma de cuenta es "como 9 cajas", sin "a las"), así que NO exige evidencia de
+    // reloj (igual que "casi"/"recién"). El guard anti-cuenta (c.361) sigue activo
+    // tras reescribir "como a " â "a ": "como a las 9 personas" â "a las 9 personas"
+    // â rechazado como cita. Sin nueva pantalla/botón, sin IA fingida.
+    @Test fun comoALas9LimpiaTituloYResuelve9h() {
+        val result = NaturalTaskParser.parse("Reunión como a las 9", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun comoALas9DeLaNocheLimpiaTituloYResuelve21h() {
+        val result = NaturalTaskParser.parse("Cita como a las 9 de la noche", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // "como a la una" sin meridiem sigue la resolución canónica de "a la una"
+    // (01:00 a partir del mediodía, igual que aLaUnaParsesOneOclockAndCleanTitle): el
+    // rewriter no altera la resolución, solo limpia el prefijo "como".
+    @Test fun comoALaUnaLimpiaTituloYResuelve1h() {
+        val result = NaturalTaskParser.parse("Reunión como a la una", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(1, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // El meridiem fluye a través de la reescritura: "como a la una de la tarde" → "a la
+    // una de la tarde" → 13:00.
+    @Test fun comoALaUnaDeLaTardeLimpiaTituloYResuelve13h() {
+        val result = NaturalTaskParser.parse("Reunión como a la una de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(13, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // El guard anti-cuenta sigue activo tras reescribir "como a " â "a ":
+    // "como a las 9 personas" â "a las 9 personas" â rechazado como cita.
+    @Test fun comoALas9PersonasNoEsCita() {
+        val result = NaturalTaskParser.parse("Mesa como a las 9 personas", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
+    // "como" + cantidad directa (sin "a las") no es cita: preservado.
+    @Test fun como9CajasNoEsCita() {
+        val result = NaturalTaskParser.parse("Comprar como 9 cajas", now, zone)
         assertEquals(null, result.dueAt)
     }
 
