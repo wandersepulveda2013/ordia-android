@@ -314,10 +314,17 @@ object GuardianEngine {
         val missed = missedStartAction(tasks, nowMillis)
         val hasActiveTask = tasks.any { TaskRules.isActive(it) }
         val noMomentumYet = focusMinutesToday < 15 && (habits.isEmpty() || habitsDoneToday == 0)
+        // Las colas informativas (compromiso vencido + capturas arrinconadas) se
+        // encadenan en orden de precedencia: la acción primaria es la tarea nombrada
+        // (atrasada o hueco pasado); tras ella, el 4.º olvido (compromiso vencido) y
+        // luego el 3.º (captura arrinconada), para no mentir por omisión sobre
+        // ninguno. Ver [withCommitmentTail] / [withStaleInboxTail].
         return when {
             overdue > 0 -> smallestOverdueAction(tasks, nowMillis)
                 .withCommitmentTail(overdueCommitments)
+                .withStaleInboxTail(tasks, nowMillis, zoneId)
             missed != null -> missed.withCommitmentTail(overdueCommitments)
+                .withStaleInboxTail(tasks, nowMillis, zoneId)
             overdueCommitments.isNotEmpty() -> overdueCommitmentAction(overdueCommitments)
             completedToday == 0 && hasActiveTask && noMomentumYet -> staleInboxAction(tasks, nowMillis, zoneId)
                 ?: "Completa una tarea breve para iniciar el día con impulso."
@@ -492,6 +499,38 @@ object GuardianEngine {
         val actor = worst.actor.trim()
         val who = if (actor.isEmpty()) "" else "$actor "
         return "$this Además, «${who}${worst.action}» es un compromiso vencido de una conversación."
+    }
+
+    /**
+     * Cola informativa del 3.er olvido: cuando el nudge ya nombró una tarea (atrasada
+     * o con hueco pasado) Y hay además capturas de bandeja arrinconadas
+     * ([TaskRules.isStaleInbox], ≥[TaskRules.STALE_INBOX_DAYS_THRESHOLD] días sin
+     * fecha ni hueco), estas no se callan. Cierra la asimetría con
+     * [withCommitmentTail] (4.º olvido): antes, un usuario con una tarea atrasada y
+     * seis ideas arrinconadas recibía el nudge de la atrasada y NINGUNA señal de las
+     * seis capturas olvidadas — la recuperación proactiva del stale-inbox solo
+     * disparaba cuando era la candidata #1 ([staleInboxAction]), invisible en
+     * cualquier otra rama.
+     *
+     * No nombra títulos ni pide acción concreta (la acción primaria es la tarea ya
+     * señalada): sólo informa del conteo para no mentir por omisión y empujar a
+     * revisar la bandeja, igual que la cola de compromiso sólo "informa". La tarea
+     * nombrada es mutuamente excluyente con [TaskRules.isStaleInbox] (ésta exige
+     * `dueAt == null && startAt == null`, mientras que atrasadas/huecos tienen
+     * `dueAt`/`startAt`), así que nunca se cuenta dos veces la misma.
+     */
+    private fun String.withStaleInboxTail(
+        tasks: List<TaskEntity>,
+        nowMillis: Long,
+        zoneId: ZoneId
+    ): String {
+        val count = tasks.count {
+            it.parentTaskId == null && TaskRules.isStaleInbox(it, nowMillis, zoneId)
+        }
+        if (count == 0) return this
+        val capturas = if (count == 1) "1 captura" else "$count capturas"
+        val llevan = if (count == 1) "lleva" else "llevan"
+        return "$this Además, $capturas en la bandeja $llevan una semana sin agendar."
     }
 
     private fun message(

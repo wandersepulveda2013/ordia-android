@@ -755,4 +755,113 @@ class GuardianEngineTest {
         assertFalse(result.suggestedAction.contains("enviar propuesta"))
         assertFalse(result.suggestedAction.contains("avisar a ana"))
     }
+
+    // --- suggestedAction: cola del 3.er olvido (capturas arrinconadas) ---
+    // Asimetria con la cola del 4.o olvido (compromiso vencido): antes, un usuario con una
+    // tarea atrasada Y varias ideas arrinconadas en la bandeja recibia el nudge de la
+    // atrasada y NINGUNA senal de las capturas olvidadas -- la recuperacion proactiva del
+    // stale-inbox solo disparaba cuando era la candidata #1, invisible en cualquier otra
+    // rama. Ahora la cola informa del conteo para no mentir por omision.
+
+    private fun staleCapture(id: Long, title: String) = TaskEntity(
+        id = id, title = title, createdAt = midday - 8L * 24 * 60 * 60_000L
+    )
+
+    @Test
+    fun suggestedAction_atrasadaIncluyeColaDeCapturasArrinconadas() {
+        // Una atrasada (senal primaria) + dos capturas arrinconadas sin fecha: el nudge
+        // nombra la atrasada y anade una cola con el conteo de capturas olvidadas. No las
+        // nombra (no es doble senalizacion de accion), solo informa para empujar a revisar
+        // la bandeja. Paridad con la cola de compromiso vencido.
+        val overdue = TaskEntity(
+            id = 1, title = "Factura vencida", dueAt = midday - 60 * 60_000L, durationMinutes = 20
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(overdue, staleCapture(2, "Idea A"), staleCapture(3, "Idea B")),
+            commitments = emptyList(), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("Factura vencida"))
+        assertTrue(result.suggestedAction.contains("2 capturas"))
+        assertTrue(result.suggestedAction.contains("bandeja"))
+        // No nombra los titulos de las capturas: la accion primaria sigue siendo la atrasada.
+        assertFalse(result.suggestedAction.contains("Idea A"))
+        assertFalse(result.suggestedAction.contains("Idea B"))
+    }
+
+    @Test
+    fun suggestedAction_huecoPasadoIncluyeColaDeCapturasArrinconadas() {
+        // Misma cola para la rama de hueco pasado: la captura arrinconada no se calla aunque
+        // el nudge encabece con una tarea con startAt incumplido. Singular cuando hay 1.
+        val missed = TaskEntity(
+            id = 1, title = "Llamar al banco", startAt = midday - 2 * 60 * 60_000L,
+            dueAt = midday + 2 * 24 * 60 * 60_000L, durationMinutes = 30
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(missed, staleCapture(2, "Idea unica")),
+            commitments = emptyList(), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("Llamar al banco"))
+        assertTrue(result.suggestedAction.contains("1 captura"))
+        assertTrue(result.suggestedAction.contains("bandeja"))
+    }
+
+    @Test
+    fun suggestedAction_noAnadeColaDeCapturasCuandoNoHayArrinconadas() {
+        // Una atrasada sola, sin capturas olvidadas: no se anade cola alguna. La cola es
+        // exclusivamente informativa de olvido real; sin olvido, sin ruido.
+        val overdue = TaskEntity(
+            id = 1, title = "Factura vencida", dueAt = midday - 60 * 60_000L, durationMinutes = 20
+        )
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(overdue), commitments = emptyList(),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("Factura vencida"))
+        assertFalse(result.suggestedAction.contains("capturas"))
+        assertFalse(result.suggestedAction.contains("bandeja"))
+    }
+
+    @Test
+    fun suggestedAction_capturaFrescaNoCuentaComoArrinconada() {
+        // Una captura de <7 dias NO es "olvidada": aunque haya una atrasada que encabece,
+        // la fresca no debe inflar la cola. Confirma el umbral honesto de stale-inbox.
+        val overdue = TaskEntity(
+            id = 1, title = "Factura vencida", dueAt = midday - 60 * 60_000L, durationMinutes = 20
+        )
+        val fresh = TaskEntity(id = 2, title = "Idea reciente", createdAt = midday - 2 * 86_400_000L)
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(overdue, fresh), commitments = emptyList(),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("Factura vencida"))
+        assertFalse(result.suggestedAction.contains("capturas"))
+    }
+
+    @Test
+    fun suggestedAction_colasDeCompromisoYCapturasSeEncadenan() {
+        // Ambos olvidos colaterales (compromiso vencido + capturas arrinconadas) coexisten
+        // con una tarea atrasada: la accion primaria encabeza y ambas colas se anaden, sin
+        // que ninguna se calle. Orden: tarea -> compromiso -> capturas.
+        val overdue = TaskEntity(
+            id = 1, title = "Factura vencida", dueAt = midday - 60 * 60_000L, durationMinutes = 20
+        )
+        val commitment = overdueCommitment(2, "te llamo", midday - 2 * 86_400_000L)
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(overdue, staleCapture(3, "Idea A"), staleCapture(4, "Idea B")),
+            commitments = listOf(commitment), habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+        assertTrue(result.suggestedAction.contains("Factura vencida"))
+        assertTrue(result.suggestedAction.contains("te llamo"))
+        assertTrue(result.suggestedAction.contains("2 capturas"))
+    }
 }
