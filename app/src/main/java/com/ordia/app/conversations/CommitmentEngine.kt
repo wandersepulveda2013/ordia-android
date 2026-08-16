@@ -135,10 +135,22 @@ object CommitmentEngine {
         // complemento de "te paso"/"te mando" (c.306, receptor = interlocutor). La guarda de negación
         // [hasUnnegatedCommitment] sigue aplicándose: "no te paso nada",
         // "no lo entrego" se excluyen igual que "no te llamo"/"no lo hago" (c.279).
-        // Como todo compromiso, nace como draft PENDING que el usuario revisa
-        // antes de convertir en tarea: un falso positivo se descarta, un falso
-        // negativo es un olvido real (la cuarta clase de olvido de Ordía).
-        """(?i)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|despu[eé]s\s+te\s+respondo|voy\s+a|debo|tengo\s+que|terminar[eé]|har[eé]|lo\s+hago|te\s+(?:paso|mando)|le\s+(?:paso|mando|env[ií]o)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o))\b"""
+        // c.312: el doble pronombre "se lo/la/los/las" (dativo de 3ª persona "se" +
+        // acusativo) es la forma pronominal del compromiso de 3ª persona cuando el
+        // objeto también es pronominal ("le paso el informe a María" → "se lo
+        // paso"): la regla española "le/les" → "se" ante otro pronombre hace que
+        // "se lo paso / se lo mando / se lo envío" sea la forma natural de
+        // referirse a un tercero ya mencionado. Antes el clítico "se lo" NO estaba
+        // en la alternancia, así el match caía en el "lo" pelado (3 chars después
+        // de "se") y la guarda de negación veía prefijo "se " en vez de "no " →
+        // "no se lo paso" generaba un draft espurio (bug de precisión). Al incluir
+        // "se lo" en la alternancia, el match empieza en "se" y el prefijo "no "
+        // queda visible para la guarda — mismo mecanismo que ya protege "no te lo
+        // paso" (c.306, "te lo" explícito). Como todo compromiso, nace como draft
+        // PENDING que el usuario revisa antes de convertir en tarea: un falso
+        // positivo se descarta, un falso negativo es un olvido real (la cuarta
+        // clase de olvido de Ordía).
+        """(?i)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|despu[eé]s\s+te\s+respondo|voy\s+a|debo|tengo\s+que|terminar[eé]|har[eé]|lo\s+hago|te\s+(?:paso|mando)|le\s+(?:paso|mando|env[ií]o)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o))\b"""
     )
     private val locationSignal = Regex(
         """(?i)\b(?:lugar\s*:\s*|(?:nos\s+vemos|reuni[oó]n|cita)[^.!?\n]{0,80}?\ben\s+)([\p{L}\d][\p{L}\d .,'-]{2,50})"""

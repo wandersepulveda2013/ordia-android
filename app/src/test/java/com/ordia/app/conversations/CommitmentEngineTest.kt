@@ -926,5 +926,83 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.312: el doble pronombre "se lo" (dativo de 3ª persona "se" + acusativo
+    // "lo") es la forma pronominal del compromiso de 3ª persona cuando el objeto
+    // es también pronominal ("le paso el informe a María" → "se lo paso"). La
+    // regla española "le/les" → "se" ante otro pronombre hace que "se lo paso /
+    // se lo mando / se lo envío" sean la forma natural de referirse a un tercero
+    // ya mencionado. Deben detectarse como compromisos (evitar olvidos).
+    @Test
+    fun doublePronounSeLoCommitmentsAreDetected() {
+        val positives = listOf(
+            "se lo paso a él mañana",
+            "se lo mando el lunes",
+            "se lo envío hoy",
+            "mañana se lo paso a María",
+            "se lo paso luego",
+            "después se lo paso"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "selo-pos-$text"
+            )
+            assertTrue("'se lo' + verbo 1ª persona debe generar draft: \"$text\"", result.isNotEmpty())
+        }
+    }
+
+    // c.312: bug de precisión — la guarda de negación (c.279) miraba 3 caracteres
+    // antes del inicio del match. Como el clítico "se lo" NO estaba en la
+    // alternancia, el match caía en el "lo" pelado (3 chars después de "se"), así
+    // el prefijo era "se " y la negación "no " (más atrás) se perdía → "no se lo
+    // paso" generaba un draft espurio. Al añadir "se lo" a la alternancia, el
+    // match empieza en "se" y el prefijo "no " queda visible para la guarda.
+    // Mismo mecanismo que ya protege "no te lo paso" (c.306, "te lo" explícito).
+    @Test
+    fun doublePronounSeLoCommitmentsRespectDirectNegation() {
+        val negatives = listOf(
+            "no se lo paso nada",
+            "no se lo mando el reporte",
+            "no se lo envío el correo",
+            "no se lo paso los datos",
+            "no se lo preparo",
+            "no se lo termino",
+            "no se lo entrego"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "selo-neg-$text"
+            )
+            assertEquals("una negativa con 'se lo' NO debe generar draft: \"$text\"", 0, result.size)
+        }
+    }
+
+    // c.312: precisión — "se lo" en construcciones que NO son compromiso NO debe
+    // disparar. La desinencia de 1ª persona (-o) es el desambiguador: 3ª persona
+    // ("se lo pasa", "se lo envía", "se lo lleva") y verbos no listados ("se lo
+    // di" = pasado de dar) no casan. "me lo paso bien" (idiom) queda fuera porque
+    // "me lo" no está en la alternancia (sólo te-lo/se-lo).
+    @Test
+    fun doublePronounSeLoDoesNotFlagNonCommitments() {
+        val innocent = listOf(
+            "se lo di ayer",
+            "se cayó y se lo llevó",
+            "él se lo pasa cada tarde",
+            "ella se lo envía el viernes",
+            "se lo dejé en la mesa"
+        )
+        innocent.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "selo-innocent-$text"
+            )
+            assertEquals("'se lo' no-compromiso NO debe disparar: \"$text\"", 0, result.size)
+        }
+    }
+
 
 }
