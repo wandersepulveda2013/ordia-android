@@ -1555,6 +1555,109 @@ class AssistantEngineTest {
         assertTrue("no calla las vencidas: ${answer.text}", answer.text.contains("vencida"))
     }
 
+    // ---- dayLoad + olvido silencioso (missed-start) — paridad con c.407 ----
+    //
+    // c.407 corrigió la tarjeta de resumen de TodayScreen: la carga del día se
+    // infla con el trabajo olvidado (missed-start suma a `loadMinutes`, c.247),
+    // pero la tarjeta NUNCA nombraba el olvido y caía al consejo dañino "dejar
+    // para mañana". El asistente lee ese MISMO veredicto (SummaryEngine) en
+    // "¿voy bien?"/"¿da tiempo?", pero su cola sólo nombraba vencidas y
+    // compromisos — callaba el olvido que inflaba la carga. Misma mentira por
+    // omisión, misma superficie de alto tráfico. Estos tests anclan que la cola
+    // de dayLoad ahora nombra el olvido silencioso (igual que overdue/
+    // overdueCommitment), sin inventar nada cuando no lo hay.
+
+    @Test fun dayLoad_namesMissedStartWhenLoadInflatedByForgottenWork() {
+        // 12:00 → 360 min libres. 1 tarea con hueco hoy YA pasado (start 10:00,
+        // 60 min → ventana cerró a las 11:00, ahora es olvido) sin dueAt vencido
+        // → missed-start. Su duración (60) cabe con holgura (ON_TRACK), PERO el
+        // veredicto no puede callar que hay un compromiso cuyo hueco ya pasó.
+        val now = dayAt(dayToday, 12)
+        val missed = TaskEntity(
+            id = 1, title = "Llamada de ventas",
+            startAt = dayAt(dayToday, 10),
+            durationMinutes = 60, // ventana 10:00–11:00, ya cerrada a las 12:00
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿voy bien hoy?",
+            listOf(missed),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("no calla el olvido silencioso: ${answer.text}",
+            answer.text.contains("hueco ya pasó"))
+    }
+
+    @Test fun dayLoad_missedStartUrgesRecoverNotDefer() {
+        // El consejo para un olvido es recuperarlo o reagendarlo con intención,
+        // NO posponerlo (posponer un olvido lo agrava — mostDeferrableTask ya lo
+        // excluye). La cola debe advertirlo explícitamente, igual que la tarjeta
+        // de c.407 ("no las pospongas").
+        val now = dayAt(dayToday, 12)
+        val missed = TaskEntity(
+            id = 1, title = "Reunión de equipo",
+            startAt = dayAt(dayToday, 10),
+            durationMinutes = 60,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿da tiempo a todo?",
+            listOf(missed),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("advierte no posponer el olvido: ${answer.text}",
+            answer.text.contains("no la pospongas") || answer.text.contains("no las pospongas"))
+    }
+
+    @Test fun dayLoad_doesNotInventMissedStartWhenNone() {
+        // Sin olvidos (una tarea de hoy aún no empezada no es missed-start):
+        // la cola no debe inventar "hueco ya pasó".
+        val now = dayAt(dayToday, 9)
+        val upcoming = TaskEntity(
+            id = 1, title = "Reunión futura",
+            startAt = dayAt(dayToday, 15), // empieza más tarde, no olvidada
+            durationMinutes = 60,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿voy bien hoy?",
+            listOf(upcoming),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertFalse("no inventa olvido sin missed-start: ${answer.text}",
+            answer.text.contains("hueco ya pasó"))
+    }
+
+    @Test fun dayLoad_overloadedPurelyByMissedStartNamesForgottenWork() {
+        // Caso severo (el de c.407 para la tarjeta): saturación EXCLUSIVA por
+        // olvidos. 13:00 → 300 min libres (hasta 18:00); 4 tareas con hueco hoy ya
+        // pasado (start 10:00, 120 min → ventana cerró a las 12:00, ahora olvido),
+        // sin dueAt vencido, sin tarea de hoy posponible → mostDeferrableTask=null.
+        // Antes el asistente caía a "Revisa qué posponer o quitar" callando que
+        // lo que saturaba eran 4 olvidos — consejo dañino (posponer olvido lo
+        // agrava). Ahora nombra el olvido honestamente.
+        val now = dayAt(dayToday, 13)
+        val missed = (1..4).map { i ->
+            TaskEntity(
+                id = i.toLong(), title = "Olvido $i",
+                startAt = dayAt(dayToday, 10),
+                durationMinutes = 120, // ventana 10:00–12:00, ya cerrada a las 13:00; 4×120=480 > 300 libres → OVERLOADED
+                status = com.ordia.app.data.local.TaskStatus.PLANNED
+            )
+        }
+        val answer = AssistantEngine.answer(
+            "tengo mucho que hacer",
+            missed,
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("nombra los olvidos que saturan el día: ${answer.text}",
+            answer.text.contains("hueco ya pasó") && answer.text.contains("4"))
+    }
+
     @Test fun whatNow_inProgressWindow_saysContinueNotStart_andShowsRemainingTime() {
         // Bug de honestidad: si lo que sugiere "qué hago ahora" es una tarea cuya
         // ventana startAt..fin YA está activa ([WhatNowReason.IN_PROGRESS_NOW]),

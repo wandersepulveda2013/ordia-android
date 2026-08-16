@@ -644,7 +644,9 @@ object AssistantEngine {
         // usuario con 3 vencidas cuya carga "cabe" leía "Vas bien con holgura"
         // sin saber que tenía vencidas acumuladas (mentira por omisión). La cola
         // es informativa: la acción primaria sigue siendo el veredicto/deferral.
-        val tail = overdueCountTail(overdue) + overdueCommitmentTail(overdueCommitments)
+        val tail = overdueCountTail(overdue) +
+            missedStartTail(summary.missedStart) +
+            overdueCommitmentTail(overdueCommitments)
         return when (summary.dayLoad) {
             DayLoad.LIGHT ->
                 AssistantAnswer("Tu día está despejado.$tail")
@@ -678,6 +680,32 @@ object AssistantEngine {
             overdue.isEmpty() -> ""
             overdue.size == 1 -> " Además, tienes 1 tarea vencida."
             else -> " Además, tienes ${overdue.size} tareas vencidas."
+        }
+
+    /**
+     * Cola informativa para no callar el "olvido silencioso"
+     * ([TaskRules.isMissedStart] — un compromiso al que el usuario le dio hueco
+     * `startAt` y se le pasó, sin vencer aún) en "¿voy bien?"/"¿da tiempo?".
+     * Simétrica con [overdueCountTail] y [overdueCommitmentTail]: el veredicto de
+     * carga cuenta el trabajo olvidado en `loadMinutes` (c.247) y, bajo OVERLOADED
+     * sin candidata a posponer, puede caer al genérico "Revisa qué posponer o
+     * quitar" — consejo dañino para un olvido (posponerlo lo agrava;
+     * [SummaryEngine.mostDeferrableTask] ya lo excluye de las candidatas a mover).
+     * Nombrarlo evita la mentira por omisión que c.407 corrigió en la tarjeta de
+     * resumen de TodayScreen: allí la misma carga se inflaba por olvidos pero la
+     * tarjeta callaba la causa. Aquí ocurrió lo mismo — el asistente lee el mismo
+     * `SummaryEngine` veredicto, pero su cola sólo nombraba vencidas y compromisos,
+     * no el olvido que inflaba la carga. El conteo viene de
+     * [SummaryEngine.DaySummary.missedStart] (raíces, fuente única). No añade ids:
+     * avisa, no navega (el usuario ya tiene el veredicto/deferral para actuar).
+     */
+    private fun missedStartTail(missedStart: Int): String =
+        when {
+            missedStart <= 0 -> ""
+            missedStart == 1 ->
+                " Además, tienes 1 tarea cuyo hueco ya pasó: recupérala hoy o reagéndala con intención, no la pospongas."
+            else ->
+                " Además, tienes $missedStart tareas cuyo hueco ya pasó: recupéralas hoy o reagéndalas con intención, no las pospongas."
         }
 
     /**
