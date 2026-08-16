@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -181,7 +182,7 @@ fun TodayScreen(
                 shadowElevation = 1.dp
             ) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
+                    OrdiaInput(
                         value = quickText,
                         onValueChange = { quickText = it.take(10_000) },
                         modifier = Modifier.fillMaxWidth(),
@@ -219,7 +220,7 @@ fun TodayScreen(
         if (showGuardianCard) {
             item {
                 val (container, content) = guardianToneColors(guardianInsight.tone)
-                Card(
+                OrdiaCard(
                     onClick = {
                         when (guardianInsight.kind) {
                             GuardianCoach.Kind.INBOX_CLUTTER -> onOpenInbox()
@@ -248,7 +249,7 @@ fun TodayScreen(
         }
 
         item {
-            Button(
+            OrdiaButton(
                 onClick = onOpenPlanner,
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 18.dp, vertical = 15.dp)
@@ -320,7 +321,7 @@ fun TodayScreen(
 
         item {
             val title = whatNow?.task?.title ?: stringResource(R.string.what_now_empty)
-            Card(
+            OrdiaCard(
                 onClick = { if (whatNow != null) onTask(whatNow!!.task.id) else onOpenInbox() },
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -454,7 +455,7 @@ private fun WhatNowAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedButton(
+    OrdiaOutlinedButton(
         onClick = onClick,
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)

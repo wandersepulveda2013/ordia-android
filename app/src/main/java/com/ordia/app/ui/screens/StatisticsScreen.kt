@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -86,7 +87,7 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
         }
 
         item {
-            Card(
+            OrdiaCard(
                 shape = MaterialTheme.shapes.extraLarge,
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {

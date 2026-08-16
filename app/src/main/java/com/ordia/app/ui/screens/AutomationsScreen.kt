@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -71,12 +72,12 @@ fun AutomationsScreen(vm: OrdiaViewModel, padding: PaddingValues) {
             )
         }
         item {
-            Card(
+            OrdiaCard(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
+                    OrdiaInput(
                         value = instruction,
                         onValueChange = { instruction = it.take(500) },
                         modifier = Modifier.fillMaxWidth(),
@@ -84,7 +85,7 @@ fun AutomationsScreen(vm: OrdiaViewModel, padding: PaddingValues) {
                         supportingText = { Text(stringResource(R.string.automation_instruction_hint)) },
                         minLines = 2
                     )
-                    Button(
+                    OrdiaButton(
                         onClick = {
                             vm.createAutomationFromText(instruction)
                             instruction = ""
@@ -102,7 +103,7 @@ fun AutomationsScreen(vm: OrdiaViewModel, padding: PaddingValues) {
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(AutomationRuleCatalog.templates, key = { it.key }) { template ->
-                    OutlinedButton(onClick = { vm.createAutomationTemplate(template.key) }) { Text(template.name) }
+                    OrdiaOutlinedButton(onClick = { vm.createAutomationTemplate(template.key) }) { Text(template.name) }
                 }
             }
         }
@@ -142,7 +143,7 @@ private fun AutomationRuleCard(
     onRun: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+    OrdiaCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -169,11 +170,11 @@ private fun AutomationRuleCard(
                 Text(rule.lastError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onTest, modifier = Modifier.weight(1f)) {
+                OrdiaOutlinedButton(onClick = onTest, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Outlined.Science, null)
                     Text(stringResource(R.string.automation_test), Modifier.padding(start = 6.dp))
                 }
-                Button(onClick = onRun, modifier = Modifier.weight(1f)) {
+                OrdiaButton(onClick = onRun, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Outlined.PlayArrow, null)
                     Text(stringResource(R.string.automation_run), Modifier.padding(start = 6.dp))
                 }
@@ -189,7 +190,7 @@ private fun AutomationRuleCard(
 
 @Composable
 private fun AutomationHistoryRow(log: AutomationLogEntity) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)) {
+    OrdiaCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(log.description.ifBlank { log.type }, style = MaterialTheme.typography.bodyMedium)

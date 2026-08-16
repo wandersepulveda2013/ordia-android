@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -108,7 +109,7 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
             }
         }
         Column(Modifier.fillMaxWidth()) {
-            OutlinedButton(onClick = { taskMenu = true }, modifier = Modifier.fillMaxWidth()) {
+            OrdiaOutlinedButton(onClick = { taskMenu = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(state.task(taskId ?: -1)?.title ?: stringResource(R.string.focus_choose_task), maxLines = 1)
             }
             DropdownMenu(taskMenu, { taskMenu = false }) {
@@ -121,7 +122,7 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { reset() }) { Icon(Icons.Outlined.Refresh, stringResource(R.string.focus_reset)) }
-            Button(onClick = {
+            OrdiaButton(onClick = {
                 val now = System.currentTimeMillis()
                 if (running) {
                     remainingSeconds = FocusTimerRules.remainingSeconds(deadlineAt, now)

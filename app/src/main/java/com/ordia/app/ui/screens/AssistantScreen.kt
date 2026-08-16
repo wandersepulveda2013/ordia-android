@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -83,7 +84,7 @@ fun AssistantScreen(
             }
         }
         item {
-            OutlinedTextField(
+            OrdiaInput(
                 value = input,
                 onValueChange = { input = it.take(2_000) },
                 modifier = Modifier.fillMaxWidth(),
@@ -92,17 +93,17 @@ fun AssistantScreen(
                 trailingIcon = { Icon(Icons.Outlined.AutoAwesome, null) }
             )
         }
-        item { Button(onClick = { ask(input) }, enabled = input.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.assistant_ask)) } }
+        item { OrdiaButton(onClick = { ask(input) }, enabled = input.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.assistant_ask)) } }
         latest?.let { answer ->
             item {
-                Card(Modifier.fillMaxWidth()) {
+                OrdiaCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(answer.text, style = MaterialTheme.typography.bodyLarge)
                         answer.relatedTaskIds.mapNotNull(state::task).forEach { task ->
                             AssistChip(onClick = { onTask(task.id) }, label = { Text(task.title) })
                         }
                         if (answer.action != AssistantAction.NONE) {
-                            Button(onClick = {
+                            OrdiaButton(onClick = {
                                 when (answer.action) {
                                     AssistantAction.OPEN_PLANNER -> onPlanner()
                                     AssistantAction.OPEN_CONVERSATIONS -> onConversations()

@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -85,7 +86,7 @@ fun HabitsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Paddin
                         LinearProgressIndicator(progress = { (count.toFloat() / habit.targetPerPeriod).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.habits_progress, count, habit.targetPerPeriod, state.habitStreak(habit)), style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
-                            Button(onClick = { vm.toggleHabit(habit) }) { Text(if (count >= habit.targetPerPeriod) stringResource(R.string.habits_unmark) else stringResource(R.string.habits_register)) }
+                            OrdiaButton(onClick = { vm.toggleHabit(habit) }) { Text(if (count >= habit.targetPerPeriod) stringResource(R.string.habits_unmark) else stringResource(R.string.habits_register)) }
                         }
                     }
                 }
@@ -109,7 +110,7 @@ fun HabitsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Paddin
                         }
                         if (routine.description.isNotBlank()) Text(routine.description, style = MaterialTheme.typography.bodyMedium)
                         steps.take(4).forEachIndexed { index, step -> Text("${index + 1}. ${step.title}", style = MaterialTheme.typography.bodyMedium) }
-                        OutlinedButton(onClick = { vm.runRoutine(routine) }, modifier = Modifier.fillMaxWidth()) {
+                        OrdiaOutlinedButton(onClick = { vm.runRoutine(routine) }, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Outlined.PlayArrow, null)
                             Text(stringResource(R.string.habits_run_routine), Modifier.padding(start = 6.dp))
                         }

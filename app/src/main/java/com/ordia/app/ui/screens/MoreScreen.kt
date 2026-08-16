@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -126,7 +127,7 @@ fun MoreScreen(state: OrdiaUiState, padding: PaddingValues, open: (String) -> Un
 /** Apartado agrupado: una tarjeta con filas separadas por barras divisorias. */
 @Composable
 private fun GroupedTools(entries: List<MoreEntry>, open: (String) -> Unit) {
-    Card(
+    OrdiaCard(
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))

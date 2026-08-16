@@ -27,7 +27,7 @@ fun ContextualSuggestionDialog(
         text = {
             androidx.compose.foundation.layout.Column {
                 Text(stringResource(R.string.suggestion_privacy_note))
-                OutlinedTextField(
+                OrdiaInput(
                     value = title,
                     onValueChange = { title = it.take(100) },
                     label = { Text(stringResource(R.string.external_suggestion_title_hint)) },
@@ -36,7 +36,7 @@ fun ContextualSuggestionDialog(
                 Text(stringResource(R.string.suggestion_confidence, (suggestion.confidence * 100).toInt()))
             }
         },
-        confirmButton = { Button(onClick = { onConfirm(title.trim()) }, enabled = title.isNotBlank()) { Text(stringResource(R.string.action_add)) } },
-        dismissButton = { OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.suggestion_discard)) } }
+        confirmButton = { OrdiaButton(onClick = { onConfirm(title.trim()) }, enabled = title.isNotBlank()) { Text(stringResource(R.string.action_add)) } },
+        dismissButton = { OrdiaOutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.suggestion_discard)) } }
     )
 }

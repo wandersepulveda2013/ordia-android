@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -53,7 +54,7 @@ fun ProjectsScreen(
         } else {
             items(state.projects, key = { it.id }) { project ->
                 val progress = state.projectProgress(project.id)
-                Card(onClick = { onProject(project.id) }) {
+                OrdiaCard(onClick = { onProject(project.id) }) {
                     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {

@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -85,7 +86,7 @@ fun SearchScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item { ScreenHeader(stringResource(R.string.search_header_eyebrow), stringResource(R.string.search_header_title), stringResource(R.string.search_palette_header_subtitle)) }
-        item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.search_palette_field_label)) }, singleLine = true) }
+        item { OrdiaInput(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.search_palette_field_label)) }, singleLine = true) }
         if (commands.isNotEmpty()) {
             item(key = "command-section") {
                 Text(
@@ -136,7 +137,7 @@ fun SearchScreen(
 
 @Composable
 private fun CommandCard(command: CommandPaletteEntry, onClick: () -> Unit) {
-    Card(onClick = onClick) {
+    OrdiaCard(onClick = onClick) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(command.id.icon(), contentDescription = null)
             Column(Modifier.weight(1f)) {
@@ -150,7 +151,7 @@ private fun CommandCard(command: CommandPaletteEntry, onClick: () -> Unit) {
 
 @Composable
 private fun SearchResultCard(kind: SearchKind, title: String, subtitle: String, onClick: () -> Unit) {
-    Card(onClick = onClick) {
+    OrdiaCard(onClick = onClick) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(
                 when (kind) {

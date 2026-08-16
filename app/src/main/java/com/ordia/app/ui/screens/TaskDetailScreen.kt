@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import android.content.Intent
 import android.provider.OpenableColumns
@@ -155,14 +156,14 @@ fun TaskDetailScreen(
                     Text(state.project(task.projectId)?.name ?: stringResource(R.string.task_detail_no_project), style = MaterialTheme.typography.bodyMedium)
                     Text(DateRules.formatDate(task.dueAt), style = MaterialTheme.typography.bodyMedium)
                 }
-                Button(onClick = { vm.toggleTask(task) }) { Text(if (task.completed) stringResource(R.string.task_detail_mark_pending) else stringResource(R.string.task_detail_complete)) }
+                OrdiaButton(onClick = { vm.toggleTask(task) }) { Text(if (task.completed) stringResource(R.string.task_detail_mark_pending) else stringResource(R.string.task_detail_complete)) }
             }
         }
         item { Text(stringResource(R.string.task_detail_steps), style = MaterialTheme.typography.titleLarge) }
         if (canAddSubtask) {
             item {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(subtaskText, { subtaskText = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.task_detail_add_subtask)) }, singleLine = true)
+                    OrdiaInput(subtaskText, { subtaskText = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.task_detail_add_subtask)) }, singleLine = true)
                     IconButton(onClick = { vm.addSubtask(task, subtaskText); subtaskText = "" }, enabled = subtaskText.isNotBlank()) { Icon(Icons.Outlined.Add, stringResource(R.string.task_detail_add_subtask)) }
                 }
             }

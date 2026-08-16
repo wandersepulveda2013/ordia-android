@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
@@ -99,12 +100,12 @@ fun NotesScreen(
                 }
             }
         }
-        item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.notes_search)) }, singleLine = true) }
+        item { OrdiaInput(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.notes_search)) }, singleLine = true) }
         if (notes.isEmpty()) {
             item { EmptyState(stringResource(R.string.notes_empty_title), stringResource(R.string.notes_empty_desc), stringResource(R.string.notes_create_note), onAction = { onNote(0) }) }
         } else {
             items(notes, key = { it.id }) { note ->
-                Card(onClick = { onNote(note.id) }) {
+                OrdiaCard(onClick = { onNote(note.id) }) {
                     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                         Row(Modifier.fillMaxWidth()) {
                             Text(note.title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))

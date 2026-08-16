@@ -99,7 +99,7 @@ fun ScreenHeader(
             }
         }
         if (actionLabel != null && onAction != null) {
-            Button(
+            OrdiaButton(
                 onClick = onAction,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 8.dp)
             ) {
@@ -165,7 +165,7 @@ fun StatCard(
     icon: ImageVector? = null,
     accent: Color = MaterialTheme.colorScheme.primary
 ) {
-    Card(
+    OrdiaCard(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -235,7 +235,7 @@ fun EmptyState(
             )
             if (actionLabel != null && onAction != null) {
                 Spacer(Modifier.height(2.dp))
-                Button(
+                OrdiaButton(
                     onClick = onAction,
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
@@ -353,7 +353,7 @@ fun OrdiaError(
             )
         }
         if (onRetry != null) {
-            OutlinedButton(
+            OrdiaOutlinedButton(
                 onClick = onRetry,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
@@ -466,7 +466,7 @@ fun ActionCard(
     badge: String? = null,
     accent: Color = MaterialTheme.colorScheme.primary
 ) {
-    Card(
+    OrdiaCard(
         onClick = onClick,
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
@@ -501,7 +501,7 @@ fun SectionSurface(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(
+    OrdiaCard(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -531,7 +531,7 @@ fun Modifier.ordiaWorkSurface(): Modifier {
 
 @Composable
 fun PrimaryAction(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Button(
+    OrdiaButton(
         onClick = onClick,
         modifier = modifier,
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)

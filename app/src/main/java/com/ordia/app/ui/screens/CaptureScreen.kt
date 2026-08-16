@@ -1,4 +1,5 @@
 package com.ordia.app.ui.screens
+import com.ordia.app.ui.components.*
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
@@ -168,7 +169,7 @@ fun CaptureScreen(
         }
 
         item {
-            Card(
+            OrdiaCard(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 shape = MaterialTheme.shapes.extraLarge
@@ -177,7 +178,7 @@ fun CaptureScreen(
                     Modifier.fillMaxWidth().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    OutlinedTextField(
+                    OrdiaInput(
                         value = text,
                         onValueChange = {
                             text = it.take(UniversalCaptureEngine.MAX_CONTENT_CHARS)
@@ -251,7 +252,7 @@ fun CaptureScreen(
                     }
 
                     interpretation?.let { preview ->
-                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+                        OrdiaCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
                             Column(Modifier.fillMaxWidth().padding(12.dp)) {
                                 Text(stringResource(R.string.capture_preview_title), style = MaterialTheme.typography.labelMedium)
                                 Text(captureTargetLabel(preview.target), style = MaterialTheme.typography.titleMedium)
@@ -268,7 +269,7 @@ fun CaptureScreen(
                         }
                     }
 
-                    Button(
+                    OrdiaButton(
                         onClick = {
                             vm.submitCapture(
                                 content = text,
@@ -318,7 +319,7 @@ fun CaptureScreen(
         }
         if (history.isEmpty()) {
             item {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+                OrdiaCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
                     Row(Modifier.fillMaxWidth().padding(16.dp)) {
                         Icon(Icons.Outlined.History, null)
                         Spacer(Modifier.width(12.dp))
@@ -373,7 +374,7 @@ private fun CaptureHistoryRow(
     onDiscard: () -> Unit
 ) {
     val canOpen = capture.status == CaptureStatus.PROCESSED && capture.resultId != null
-    Card(
+    OrdiaCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = canOpen, onClick = onOpen)
@@ -405,11 +406,11 @@ private fun CaptureHistoryRow(
                     style = MaterialTheme.typography.bodySmall
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onRetry, modifier = Modifier.weight(1f)) {
+                    OrdiaButton(onClick = onRetry, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Outlined.Refresh, null)
                         Text(stringResource(R.string.capture_retry), Modifier.padding(start = 6.dp))
                     }
-                    OutlinedButton(onClick = onDiscard) {
+                    OrdiaOutlinedButton(onClick = onDiscard) {
                         Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.capture_discard_failed))
                     }
                 }
