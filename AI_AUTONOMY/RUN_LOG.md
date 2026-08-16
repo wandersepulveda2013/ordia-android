@@ -348,3 +348,53 @@
 - `app/build/reports/lint-results-*.html` â†’ sin errores.
 
 ---
+
+## SESIÓN 007 — Integración del rebuild completo a main (EVOLUCIÓN FINAL, fases 28-29)
+
+- **Fecha (UTC)**: 2026-08-16
+- **Trigger**: misión EVOLUCIÓN FINAL del usuario con autorización explícita de merge + push a main
+- **Resultado**: ÉXITO
+
+### Qué se hizo
+
+1. **Análisis de divergencia**: merge-base `0059fb9e`; `origin/main` = `ba5b6eb0` (54 commits: infra de orquestación + app pre-rebuild); `jules/autonomous-ordia` = `0d5ee44` (153 commits: rebuild 3.0.0 + actualizador). Backup tag `backup/main-before-rebuild-merge-2026-08-16`.
+2. **Merge `jules/autonomous-ordia` ? `main`** con resolución manual de 36 conflictos:
+   - Código de app, `app/build.gradle.kts`, `build.gradle.kts`, `AndroidManifest.xml`, `.gitignore`, `gradlew`, `proguard-rules.pro` ? versión de la rama autónoma (rebuild autoritativo; Kotlin 2.1.0 + KAPT según ORD-036).
+   - `.github/workflows/android-ci.yml` ? versión jules (per-flavor, firma 3 APKs + manifiestos).
+   - `.github/workflows/ordia-autonomous-jules.yml` y `ordia-autonomous-merge.yml` ? versión main (regex de rama real `jules/autonomous-ordia(-{10-20 dígitos})?`, fix de status `pending` vacío; main es la producción real del scheduler).
+   - `AGENTS.md` reescrito limpio: el archivo commiteado en jules tenía marcadores `<<<<<<<` literales (residuo de un merge previo) — eliminados; refleja la convergencia main/jules.
+   - `.gitignore`: unión (conserva ignores de secretos `.env`/`secrets/` y artefactos `*.apk` de main + `app/schemas/` de jules).
+3. **Funcionalidades de main recuperadas en el rebuild** (no pierde funcionalidad):
+   - Widget: contadores "N hoy · M atrasadas" de main integrados en el refactor `updateWidgets` de jules; layout `ordia_widget.xml` + `widget_today`.
+   - Recordatorios de hábitos: `HabitReminderScheduler`/`HabitReminderWorker` (main-only) conservados y cableados: `AppContainer.habitReminderScheduler`, `HabitRepository.allNow()`, `OrdiaViewModel` (saveHabit/deleteHabit/restoreArchived/deleteArchivedPermanently/restoreBackup).
+4. **Eliminación de código superseded**: update checker viejo por API de GitHub (`com.ordia.app.update/UpdateChecker.kt`, `UpdateInstaller.kt`, `UpdateCheckerTest.kt`) — sustituido por el actualizador por manifiesto (`com.ordia.app.updates`).
+5. **Tests de main adaptados**: `TaskMutationGateTest` reescrito contra la API real del rebuild (`TaskMutationGate.mutex.withLock`, mutex global).
+
+### Verificación
+
+- `:app:compilePreviewSafeDebugKotlin :app:compilePreviewAdvancedDebugKotlin :app:compilePreviewFullDebugKotlin` ? BUILD SUCCESSFUL.
+- `:app:test{PreviewSafe,PreviewAdvanced,PreviewFull}DebugUnitTest` ? BUILD SUCCESSFUL; **2352 tests, 0 fallos** (TaskMutationGateTest 2/2, UpdateManifestParserTest 11/11, UpdateSecurityRulesTest 9/9).
+- `:app:lintPreviewSafeDebug` ? 0 errores (warnings deprecación pre-existentes, SKIP documentado).
+- Sin marcadores de conflicto en todo el árbol (`grep '<<<<<<< |=======|>>>>>>>'` en kt/kts/xml/yml/md/gradle/properties/json).
+- APK Advanced Debug: `app/build/outputs/apk/previewAdvanced/debug/app-previewAdvanced-debug.apk`, 36.919.565 bytes, SHA-256 `0E7424CEF6C6CD864D697EFE503DE2EB2A468D86DAB551BD455F6D78FECA0D51`, package `com.ordia.app.preview.advanced`, versionCode 1300000000, versionName 3.0.0-preview-advanced, minSdk 26 / target 36.
+
+### Problemas encontrados
+
+- Marcadores de conflicto commiteados en `AGENTS.md` de jules (residuo previo) ? reescrito.
+- `TaskMutationGate` de main (withLock por taskId) vs rebuild (mutex global) ? test adaptado a la API real.
+- Sin `gh` ni `adb` en el entorno ? push de main puede chocar con protección de rama (se documentará el bloqueo exacto si ocurre); sin dispositivo no hay verificación física.
+- `android-ci.yml` sign job requiere secrets `ORDIA_UPDATE_KEYSTORE_*`; si no están configurados en el repo, el job sign/publish fallará tras el push a main (documentar si ocurre).
+
+### Commits creados
+
+- `5c7f8a6d` merge: integrate jules/autonomous-ordia (rebuild 3.0 + updater) into main (en `main`).
+- (Siguiente) memoria de sesión 007 en `main` + push + fast-forward de `jules/autonomous-ordia`.
+
+### Evidencia
+
+- `app/build/test-results/*/*.xml` ? 2352 tests, 0 fallos.
+- `app/build/reports/lint-results-previewSafeDebug.html` ? 0 errores.
+- `git log --oneline main` ? `5c7f8a6d` merge.
+- APK Advanced Debug con ruta/tamaño/SHA-256 arriba.
+
+---
