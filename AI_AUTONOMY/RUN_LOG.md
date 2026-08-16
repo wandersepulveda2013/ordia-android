@@ -16,7 +16,7 @@
   - `app/src/main/java/com/ordia/app/domain/NaturalTaskParser.kt` (extensión de `multiMonthNounPattern` con rama "todos los"; comentarios c.349).
   - `app/src/test/java/com/ordia/app/domain/NaturalTaskParserTest.kt` (+5 tests TDD c.349).
   - `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
-- **HEAD inicial**: `c33d25b` (c.348). **HEAD final**: (commit c.349, pendiente de push).
+- **HEAD inicial**: `c33d25b` (c.348). **HEAD final**: `12905cb` (c.349, pushed a `openhands/autonomous-ordia`).
 - **Estado**: VERIFIED (dominio JVM: 2032 tests PASS; smoke 25 OK; 0 failures; probe PRE/POST-fix + tests confirman las 4 frases recuperadas con `recurrenceInterval` correcto y título limpio + adversarios preservados). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) parser/duración compacta `1h30` (c.327, ambigüedad — decisión de diseño); (ii) "primer lunes del mes" ordinal weekday-of-month (c.282/c.323 ya promovió "del mes" sin cadencia — verificar variantes restantes); (iii) frecuencia N-por-período ("tres veces al día") — modelo semántico distinto; (iv) áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (v) verificar Android c.270-c.349 cuando haya SDK. Re-fetch antes de implementar.
 
