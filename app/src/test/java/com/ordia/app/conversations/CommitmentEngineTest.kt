@@ -1034,7 +1034,22 @@ class CommitmentEngineTest {
             // persona moral = 3 letras + 6 dígitos + 3 homoclave (12).
             "mi RFC es GODE850101HXA",
             "RFC: ABC850101XYZ",
-            "anota el RFC COS950101MB1"
+            "anota el RFC COS950101MB1",
+            // DNI/NIE espanol (c.315): 8 digitos + letra de control (modulo 23);
+            // NIE = X/Y/Z + 7 digitos + letra. La letra debe ser valida.
+            "mi DNI es 12345678Z",
+            "DNI: 50123456Q",
+            "anota el dni 99887766P porfa",
+            "mi NIE es X1234567L",
+            "NIE: Y7654321G",
+            "apunta el nie Z9999999H",
+            // La palabra-clave "nif" tambien activa (sinonimo habitual en ES).
+            "mi NIF 12345678Z",
+            // Letras de control R y S: validas en la tabla oficial pero
+            // erroneamente excluidas por una regex previa (c.315 fix). Ahora
+            // deben bloquearse (no perder ~9% de DNIs reales por falso negativo).
+            "mi DNI es 10000010R",
+            "dni: 10000024S"
         )
         leaks.forEach { text ->
             assertTrue("PII debe bloquearse en persist: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))
@@ -1075,7 +1090,17 @@ class CommitmentEngineTest {
             "mi rfc aún no me acuerdo",
             // alfanumérico con estructura tipo-RFC pero SIN palabra-clave "rfc":
             // es una referencia/código, no un RFC.
-            "referencia GODE850101HXA"
+            "referencia GODE850101HXA",
+            // DNI/NIE: palabra-clave pelada sin valor estructurado no bloquea (c.315).
+            "tengo que renovar el DNI la semana que viene",
+            "mi nie caduca el mes que viene",
+            // 8 digitos + letra con estructura tipo-DNI pero letra INCORRECTA
+            // (12345678 -> Z, no A): no es un DNI valido, no debe bloquearse.
+            "mi DNI es 12345678A",
+            // 8 digitos + letra SIN palabra-clave "dni": referencia/codigo.
+            "pedido 12345678Z confirmado",
+            // Letra I: NO aparece en la tabla de control -> no es DNI valido.
+            "mi DNI es 12345678I"
         )
         innocent.forEach { text ->
             assertFalse("falso positivo PII en persist: \"$text\"", ConversationPrivacyPolicy.containsSensitiveContent(text))

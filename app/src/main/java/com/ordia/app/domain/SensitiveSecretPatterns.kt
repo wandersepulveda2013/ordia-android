@@ -89,7 +89,7 @@ object SensitiveSecretPatterns {
     )
 
     // ── Identificadores personales anclados por palabra-clave (c.313) ───────
-    // INE/CURP/NSS/pasaporte/licencia son PII: su fuga en texto plano es tan
+    // INE/CURP/NSS/pasaporte/licencia/RFC son PII: su fuga en texto plano es tan
     // grave como una credencial. Pero NO son detectables por valor pelado: un
     // NSS son 11 dígitos (idéntico a un teléfono o referencia), una licencia es
     // alfanumérico corto (idéntico a un código de producto). Detectarlos por
@@ -182,12 +182,19 @@ object SensitiveSecretPatterns {
                     "pasaporte" in it || "licencia" in it
                 } && passportLicenceValue.containsMatchIn(window)) return true
             if (kw.value.lowercase().contains("rfc") && rfcValue.containsMatchIn(window)) return true
+            // DNI/NIE espanol (c.315): 8 digitos + letra de control (modulo 23).
+            // La letra se calcula y valida -> el falso positivo de un valor con
+            // letra incorrecta se descarta (no es un DNI valido). Exige palabra-
+            // clave "dni"/"nie"/"nif" para no bloquear secuencias casuales.
+            if (kw.value.lowercase().let { "dni" in it || "nie" in it || "nif" in it } &&
+                dniNieValue.containsMatchIn(window) &&
+                matchesDniNieLetter(window)) return true
         }
         return false
     }
 
     private val personalIdKeyword = Regex(
-        """(?i)\b(?:curp|nss|ine|credencial\s+de\s+elector|n[uú]mero\s+de\s+seguro\s+social|seguro\s+social|pasaporte|licencia(?:\s+de\s+conducir)?|rfc)\b"""
+        """(?i)\b(?:curp|nss|ine|credencial\s+de\s+elector|n[uú]mero\s+de\s+seguro\s+social|seguro\s+social|pasaporte|licencia(?:\s+de\s+conducir)?|rfc|dni|nie|nif)\b"""
     )
     private val nssValue = Regex("""\b\d{11}\b""")
     private val curpValue = Regex("""\b[A-Z]{4}\d{6}[A-Z0-9]{6}\d{2}\b""")
@@ -198,6 +205,40 @@ object SensitiveSecretPatterns {
     // impide casar un substring dentro de un CURP (18 chars): tras 3 alfanum
     // el siguiente char de un CURP sigue siendo word-char → no hay boundary.
     private val rfcValue = Regex("""\b[A-Z&]{3,4}\d{6}[A-Z0-9]{3}\b""")
+
+    // DNI/NIE espanol (c.315). DNI: 8 digitos + letra de control. NIE:
+    // X/Y/Z + 7 digitos + letra (la X/Y/Z se reemplaza por 0/1/2 para el
+    // calculo). La letra de control se obtiene de la tabla "TRWAGMYFPDXBNJZSQVHLCKE"
+    // en la posicion (numero % 23). La validacion de la letra en
+    // matchesDniNieLetter() es el desambiguador de precision: una secuencia
+    // "12345678X" con letra incorrecta no es un DNI y no se bloquea. La regex
+    // admite cualquier letra mayuscula y deja que el modulo-23 descarte los
+    // invalidos (I, N-tilde, O, U no aparecen en la tabla).
+    private val dniNieValue = Regex("""\b(?:[XYZ]\d{7}|\d{8})[A-Z]\b""")
+    private val dniControlLetters = "TRWAGMYFPDXBNJZSQVHLCKE"
+
+    /**
+     * `true` si [window] contiene un DNI o NIE con la letra de control
+     * correcta (modulo 23 sobre la tabla oficial espanola). La validacion de
+     * la letra es el desambiguador de precision: una secuencia "12345678X"
+     * con letra incorrecta no es un DNI y no se bloquea.
+     */
+    private fun matchesDniNieLetter(window: String): Boolean {
+        return dniNieValue.findAll(window).any { match ->
+            val raw = match.value
+            val (digitsPart, letter) = if (raw[0].isDigit()) {
+                raw.dropLast(1) to raw.last()
+            } else {
+                // NIE: reemplaza X->0, Y->1, Z->2 antes de calcular.
+                val prefix = when (raw[0].uppercaseChar()) {
+                    'X' -> '0'; 'Y' -> '1'; 'Z' -> '2'; else -> raw[0]
+                }
+                (prefix + raw.substring(1, raw.length - 1)) to raw.last()
+            }
+            val number = digitsPart.toLongOrNull() ?: return@any false
+            dniControlLetters[(number % 23).toInt()] == letter.uppercaseChar()
+        }
+    }
 
     fun containsNumericSensitive(text: String): Boolean {
         if (panCandidate.findAll(text).any { c ->
