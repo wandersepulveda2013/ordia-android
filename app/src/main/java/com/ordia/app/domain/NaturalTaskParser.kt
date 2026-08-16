@@ -2897,11 +2897,33 @@ object NaturalTaskParser {
             // 8"), se CONSERVA el verbo/nombre como título honesto: antes el verbo se
             // eliminaba último → título en blanco → el respaldo `ifBlank { original }`
             // resucitaba la frase cruda completa (cadencia/hora/fecha como basura visible).
-            .let { value -> if (!hasBareReminderVerb) value
-                else bareReminderVerbPattern.replace(value, " ").takeIf { it.isNotBlank() } ?: value }
+            // `reminderVerbIsOnlyContent` marca ese caso (verb = único contenido): sirve
+            // para decidir el offset abajo, porque cuando el usuario da SÓLO el verbo +
+            // una hora ("recuérdame en 30 min", "recuérdame mañana", "recuérdame a las 5")
+            // la hora que dio ES la hora del aviso, no la hora de la cita con un nudge
+            // previo. Aplicar 30 min antes ahí hacía que el aviso se disparara hasta un
+            // día antes ("recuérdame el viernes" → aviso el jueves). Se excluyen las
+            // recurrencias ("recuérdame cada lunes a las 8"), donde la hora es de cita.
+            .let { value ->
+                if (!hasBareReminderVerb) value
+                else {
+                    val stripped = bareReminderVerbPattern.replace(value, " ")
+                        .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
+                        .replace(Regex("""\s+"""), " ")
+                        .trim(' ', ',', '.', '-')
+                    if (stripped.isNotBlank()) stripped else value
+                }
+            }
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
             .replace(Regex("""\s+"""), " ")
             .trim(' ', ',', '.', '-')
+
+        // ¿El verbo de recordatorio era el ÚNICO contenido tras limpiar la agenda?
+        // (sin recurrencia: las cadencias mantienen la hora como hora de cita).
+        val reminderVerbIsOnlyContent = hasBareReminderVerb &&
+            recurrence.frequency == RecurrenceFrequency.NONE &&
+            bareReminderVerbPattern.replace(working, " ")
+                .replace(Regex("""\s+"""), " ").trim(' ', ',', '.', '-').isBlank()
 
         val confidence = when {
             effectiveRelativeDueAt != null -> 1.0f
@@ -2919,9 +2941,17 @@ object NaturalTaskParser {
             durationMinutes = durationMinutes,
             // Si el usuario pidió un recordatorio ("recuérdame") sin cantidad y hay fecha
             // límite, se asume 30 min antes (convención del proyecto, ver CommitmentEngine).
-            // Sin dueAt no se programa reminderAt, así que no se falsifica el offset.
+            // EXCEPCIÓN: cuando el verbo es el ÚNICO contenido ("recuérdame en 30 min",
+            // "recuérdame mañana", "recuérdame a las 5", "avísame el viernes 5pm"), la hora
+            // que dio el usuario ES la hora del aviso, no la hora de una cita con nudge
+            // previo: offset 0 (el recordatorio se dispara EN dueAt). Sin dueAt no se
+            // programa reminderAt, así que no se falsifica el offset.
             reminderOffsetMinutes = reminderOffsetMinutes
-                ?: if (hasBareReminderVerb && dueAt != null) BARE_REMINDER_DEFAULT_OFFSET_MINUTES else null,
+                ?: when {
+                    hasBareReminderVerb && dueAt != null && reminderVerbIsOnlyContent -> 0
+                    hasBareReminderVerb && dueAt != null -> BARE_REMINDER_DEFAULT_OFFSET_MINUTES
+                    else -> null
+                },
             recurrence = recurrence.frequency,
             recurrenceInterval = recurrence.interval,
             // MONTHLY ordinal de weekday ("primer lunes de cada mes") → codificación

@@ -1454,7 +1454,10 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("recordatorio mañana a las 8", now, zone)
         assertEquals("recordatorio", result.title)
         assertNotNull(result.dueAt)
-        assertEquals(30, result.reminderOffsetMinutes)
+        // "recordatorio" es el sustantivo (el aviso que se programa), no una cita con
+        // nudge previo: la hora dada ES la hora del aviso → offset 0 (se dispara EN la
+        // hora), no 30 min antes. Antes se aplicaba 30 min y el aviso se adelantaba.
+        assertEquals(0, result.reminderOffsetMinutes)
     }
 
     // Sin fecha límite no se puede programar reminderAt (dueAt=null → reminderAt=null):
@@ -1471,6 +1474,47 @@ class NaturalTaskParserTest {
     @Test fun verboRecordatorioConCantidadExplicitaUsaOffsetExplicito() {
         val result = NaturalTaskParser.parse("Reunión recuérdame 2 horas antes", now, zone)
         assertEquals(120, result.reminderOffsetMinutes)
+    }
+
+    // --- Verbo de recordatorio como ÚNICO contenido + hora: la hora es del AVISO (c.318) ---
+    // Cuando el usuario escribe SÓLO el verbo de recordatorio + una hora ("recuérdame en
+    // 30 min", "recuérdame mañana", "recuérdame el viernes", "avísame a las 5"), la hora
+    // que dio ES la hora en la que quiere ser avisado, no la hora de una cita con un nudge
+    // 30 min antes. Antes se aplicaba el offset 30 por defecto y el aviso se disparaba
+    // hasta un día antes ("recuérdame el viernes" → aviso el jueves). Ahora offset=0
+    // (el recordatorio se dispara EN dueAt).
+    @Test fun recuerdameSoloConHoraRelativa_offsetCero() {
+        val result = NaturalTaskParser.parse("recuérdame en 30 min", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(0, result.reminderOffsetMinutes)
+    }
+
+    @Test fun recuerdameSoloConDia_offsetCero() {
+        val result = NaturalTaskParser.parse("recuérdame el viernes", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(0, result.reminderOffsetMinutes)
+    }
+
+    @Test fun avisameSoloConHora_offsetCero() {
+        val result = NaturalTaskParser.parse("avísame el viernes 5pm", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(0, result.reminderOffsetMinutes)
+    }
+
+    @Test fun recuerdameSoloConHoraExplicita_offsetCero() {
+        val result = NaturalTaskParser.parse("recuérdame a las 5", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(0, result.reminderOffsetMinutes)
+    }
+
+    // Contraste: cuando hay un sustantivo de acción ("recuerda llamar mañana"), el verbo
+    // NO es el único contenido → sigue aplicándose el offset 30 (la cita es "llamar",
+    // "mañana" es la fecha de la cita, el nudge va 30 min antes).
+    @Test fun recuerdameConAccionMantieneOffset30() {
+        val result = NaturalTaskParser.parse("recuerda llamar mañana", now, zone)
+        assertEquals("llamar", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(30, result.reminderOffsetMinutes)
     }
 
     @Test fun parsesDurationPhrase() {
