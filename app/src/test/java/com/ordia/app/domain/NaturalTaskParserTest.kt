@@ -233,4 +233,33 @@ class NaturalTaskParserTest {
         assertEquals(now + 60 * 60_000L, result.dueAt)
         assertEquals("Llamar a María", result.title)
     }
+
+    // --- Captura Universal 2.0: ejemplos del lenguaje natural ---
+
+    @Test fun bareDayNumberIsDayOfMonth() {
+        val result = NaturalTaskParser.parse("Pagar internet el 25", now, zone)
+        assertEquals("Pagar internet", result.title)
+        assertEquals(LocalDate.of(2026, 8, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun reminderCommandPrefixIsStrippedFromTitle() {
+        val result = NaturalTaskParser.parse("recordarme pagar internet el 25", now, zone)
+        assertEquals("pagar internet", result.title)
+        assertEquals(LocalDate.of(2026, 8, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun tomorrowCallMamaKeepsActionAndPersonalCategory() {
+        val result = NaturalTaskParser.parse("mañana llamar a mamá", now, zone)
+        assertEquals("llamar a mamá", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals("personal", result.category)
+    }
+
+    @Test fun meetingOnWeekdayWithTimeKeepsPerson() {
+        val result = NaturalTaskParser.parse("reunión con Ariel el lunes a las 9", now, zone)
+        assertEquals("reunión con Ariel", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+        assertEquals("trabajo", result.category)
+    }
 }

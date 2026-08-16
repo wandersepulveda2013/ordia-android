@@ -22,7 +22,7 @@ data class CaptureInterpretation(
 object UniversalCaptureEngine {
     private val noteCommand = Regex("""(?i)^\s*(guardar\s+esto\s+como\s+nota|nota|idea)\s*[:\-]?\s*""")
     private val taskCommand = Regex("""(?i)^\s*(crear\s+)?(una\s+)?tarea\s*[:\-]?\s*""")
-    private val reminderSignal = Regex("""(?i)\b(recu[eé]rdame|recordatorio|av[ií]same|no\s+dejes\s+que\s+olvide)\b""")
+    private val reminderSignal = Regex("""(?i)\b(recu[eé]rdame|recordarme|recordatorio|av[ií]same|hazme\s+acordar|no\s+dejes\s+que\s+olvide)\b""")
     private val taskSignal = Regex("""(?i)\b(tengo\s+que|debo|hay\s+que|llamar|enviar|comprar|pagar|terminar|entregar|responder|reuni[oó]n)\b""")
     private val eventSignal = Regex("""(?i)\b(cita|reuni[oó]n|junta|dentista|m[eé]dico|doctor|almuerzo|cena|desayuno|viaje|fiesta|concierto|entrevista|boda|aniversario|clase|curso|cumplea[nñ]os)\b""")
     private val urlOnly = Regex("""(?i)^https?://\S+$""")

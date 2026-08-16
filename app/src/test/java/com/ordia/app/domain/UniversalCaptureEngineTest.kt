@@ -66,4 +66,32 @@ class UniversalCaptureEngineTest {
         )
         assertEquals(CaptureTarget.EVENT, result.target)
     }
+
+    @Test fun notaPrefixBecomesVoiceNote() {
+        val result = UniversalCaptureEngine.interpret("nota idea para ORDÍA: captura por voz")
+        assertEquals(CaptureTarget.NOTE, result.target)
+        assertEquals("idea para ORDÍA: captura por voz", result.title)
+        assertEquals("idea para ORDÍA: captura por voz", result.body)
+    }
+
+    @Test fun recordarmeBecomesReminderWithDayOfMonth() {
+        val result = UniversalCaptureEngine.interpret("recordarme pagar internet el 25")
+        assertEquals(CaptureTarget.REMINDER, result.target)
+        assertEquals("pagar internet", result.title)
+        assertTrue("El día del mes se interpreta como fecha", result.parsedTask?.dueAt != null)
+    }
+
+    @Test fun tomorrowCallMamaRoutesToTask() {
+        val result = UniversalCaptureEngine.interpret("mañana llamar a mamá")
+        assertEquals(CaptureTarget.TASK, result.target)
+        assertEquals("llamar a mamá", result.title)
+        assertTrue(result.parsedTask?.dueAt != null)
+    }
+
+    @Test fun meetingWithPersonAndWeekdayRoutesToEvent() {
+        val result = UniversalCaptureEngine.interpret("reunión con Ariel el lunes a las 9")
+        assertEquals(CaptureTarget.EVENT, result.target)
+        assertEquals("reunión con Ariel", result.title)
+        assertTrue(result.parsedTask?.dueAt != null)
+    }
 }

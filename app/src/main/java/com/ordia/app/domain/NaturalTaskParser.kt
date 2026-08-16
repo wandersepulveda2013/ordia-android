@@ -88,7 +88,7 @@ object NaturalTaskParser {
     private val weekendPattern = Regex("""(?i)\bfin\s+de\s+semana\b""")
     private val nextWeekPattern = Regex("""(?i)\bpr[oó]xim[oa]\s+semana\b""")
     private val nextMonthPattern = Regex("""(?i)\bpr[oó]xim[oa]\s+mes\b""")
-    private val dayOfMonthPattern = Regex("""(?i)\bel\s+d[ií]a\s+(\d{1,2})\b""")
+    private val dayOfMonthPattern = Regex("""(?i)\bel\s+(?:d[ií]a\s+)?(\d{1,2})\b""")
     private val monthOnlyPattern = Regex("""(?i)\ben\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\b""")
     private val weekdayRangePattern = Regex("""(?i)\b(?:de|entre)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes)\s+a\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b""")
     private val workdaysPattern = Regex("""(?i)\b(d[ií]as\s+laborables|entre\s+semana|d[ií]as\s+h[aá]biles)\b""")
@@ -287,6 +287,8 @@ object NaturalTaskParser {
         // Limpieza de la frase para el título.
         working = working
             .replace(Regex("""(?i)\bpasado\s+mañana\b|\bmañana\b|\bhoy\b"""), " ")
+            // Prefijos de comando ("recuérdame llamar...", "recordarme pagar...") no forman parte del título.
+            .replace(Regex("""(?i)^\s*(?:recu[eé]rdame|recordarme|av[ií]same|notif[ií]came|recordatorio|hazme\s+acordar|no\s+dejes\s+que\s+olvide)\s*(?:de\s+)?\b"""), " ")
             .let { value -> weekdayPattern.replace(value, " ") }
             .let { value -> monthNamePattern.replace(value, " ") }
             .let { value -> numericDatePattern.replace(value, " ") }
