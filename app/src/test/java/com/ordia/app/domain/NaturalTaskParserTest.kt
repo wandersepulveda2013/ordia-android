@@ -9046,6 +9046,89 @@ class NaturalTaskParserTest {
         assertEquals(now, result.dueAt)
     }
 
+    // --- "ya"/"ahora"/"en un rato"/"más tarde" + HORA EXPLÍCITA: la hora gana (c.397) ---
+    // Estos anclas sub-hora imprecisos ("ya"=ahora, "en un rato"=now+1h, "más tarde"=now+3h)
+    // capturaban el dueAt ANTES que la hora explícita y la descartaban: "reunión ya a las 5
+    // de la tarde" → 12:00 (now) en vez de 17:00. El KDoc de nowPattern/laterRelativePattern
+    // declara "no debe combinarse con hora explícita", pero la implementación lo permitía.
+    // Principio (consistente con l.3367 "un tiempo explícito tiene prioridad"): una hora
+    // explícita gana sobre cualquier ancla sub-hora impreciso. El ancla impreciso sólo
+    // significa algo sin dato horario preciso. P1 datos (sagrados): el dueAt era incorrecto.
+    @Test fun yaALas5DeLaTardeResuelve17hNoNow() {
+        val result = NaturalTaskParser.parse("Reunión ya a las 5 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(17, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun yaALas9DeLaMananaResuelve9hNoNow() {
+        val result = NaturalTaskParser.parse("Reunión ya a las 9 de la mañana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun yaALas5SinMeridiemResuelve5hNoNow() {
+        // Sin meridiem, la hora es ambigua AM/PM (como "a las 5" solo): 05:00 (no now=12:00).
+        val result = NaturalTaskParser.parse("Reunión ya a las 5", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(5, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun ahoraALas5DeLaTardeResuelve17hNoNow() {
+        val result = NaturalTaskParser.parse("Reunión ahora a las 5 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(17, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun yaMismoALas5DeLaTardeResuelve17hNoNow() {
+        val result = NaturalTaskParser.parse("Reunión ya mismo a las 5 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(17, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun enUnRatoALas5DeLaTardeResuelve17hNoNowPlus1h() {
+        // "en un rato"=now+1h (13:00) debe ceder ante la hora explícita 17:00.
+        val result = NaturalTaskParser.parse("Reunión en un rato a las 5 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(17, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun masTardeALas5DeLaTardeResuelve17hNoNowPlus3h() {
+        // "más tarde"=now+3h (15:00) debe ceder ante la hora explícita 17:00.
+        val result = NaturalTaskParser.parse("Reunión más tarde a las 5 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(17, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun despuesALas5DeLaTardeResuelve17hNoNowPlus3h() {
+        // "después" (adverbio suelto, sin "de/del") = now+3h, debe ceder ante 17:00.
+        val result = NaturalTaskParser.parse("Reunión después a las 5 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(17, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // No-regresión: "ya" solo (sin hora explícita) sigue venciendo ahora (caso legítimo).
+    @Test fun yaSoloSigueVenciendoAhoraTrasFixHoraExplicita() {
+        val result = NaturalTaskParser.parse("Reunión ya", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(now, result.dueAt)
+    }
+
+    // Fecha explícita + "ya": la fecha gana sobre el ancla "ya" (mismo bug de clase: "ya"
+    // capturaba el due y descartaba "el viernes"). Viernes 31-jul, canónica 09:00.
+    @Test fun yaElViernesResuelveViernesNoNow() {
+        val result = NaturalTaskParser.parse("Reunión ya el viernes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- Residuo de determinante "este <día>" (P1, ciclo 129) ---
     // "este lunes"/"este martes"/... indican el próximo día de la semana (igual que
     // "el lunes"), pero el determinante "este" no lo consumía weekdayPattern: la fecha

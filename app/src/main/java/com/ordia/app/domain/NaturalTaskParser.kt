@@ -2802,6 +2802,15 @@ object NaturalTaskParser {
                 !unit.startsWith("min") && !unit.startsWith("hora")
             } ?: true)
 
+        // c.397 — anclas sub-hora imprecisos: "ya"/"ahora"/"ya mismo" (nowMatch), "en un
+        // rato" (vagueRelativeMatch), "más tarde"/"después" (laterRelativeMatch). No son
+        // días ni horas precisas: expresan urgencia/aproximación vaga desde `now`. Cuando
+        // coexisten con una hora o fecha explícita, éstas deben ganar (ver rawDueAt). El
+        // KDoc de nowPattern/laterRelativePattern declara "no debe combinarse con hora
+        // explícita"; esta bandera materializa esa intención en el flujo de dueAt.
+        val relativeIsSubHourImprecise =
+            nowMatch != null || vagueRelativeMatch != null || laterRelativeMatch != null
+
         // Repetición: se procesa antes que la fecha para que "cada viernes" no se lea como fecha suelta.
         // Recurrencia mensual + ocurrencia ordinal de día de la semana ("el primer lunes de
         // cada mes"): se captura el (ordinal, weekday) del match para que el motor ancle cada
@@ -3390,6 +3399,21 @@ object NaturalTaskParser {
             ?: mediaPartOfDayTime
             ?: mealSleepAnchorTime
         val effectiveDate = date ?: if (parsedTime != null) base.toLocalDate() else null
+        // c.397 — anclas sub-hora imprecisos ("ya"/"ahora"/"ya mismo" = now,
+        // "en un rato" = now+1h, "más tarde"/"después" = now+3h) capturaban el dueAt
+        // ANTES que una hora/fecha explícita y la descartaban: "reunión ya a las 5 de la
+        // tarde" → 12:00 (now) en vez de 17:00; "reunión ya el viernes" → now en vez de
+        // viernes. El KDoc de nowPattern/laterRelativePattern declara "no debe combinarse con
+        // hora explícita", pero la cascada effectiveRelativeDueAt lo permitía. Principio
+        // (consistente con l.3367 "un tiempo explícito tiene prioridad"): una hora o fecha
+        // explícita gana sobre cualquier ancla sub-hora impreciso; éste sólo significa algo
+        // sin dato horario/fecha preciso. Se anula aquí (no en la cascada original, que sigue
+        // informando confidence/past-safe vía `effectiveRelativeDueAt`) para que el `else`
+        // aplique la hora/fecha sobre hoy y el past-safe de medianoche/mediodía (que exige
+        // relativeDueAt == null) actúe igual que sin el ancla — evitando el olvido de citas.
+        val hasExplicitDateTime = parsedTime != null || date != null
+        val relativeDueAtForDueAt =
+            if (relativeIsSubHourImprecise && hasExplicitDateTime) null else effectiveRelativeDueAt
         val rawDueAt = when {
             effectiveRelativeDueAt != null && relativeIsDays && parsedTime != null ->
                 DateRules.toEpochMillis(DateRules.toLocalDate(effectiveRelativeDueAt, zone), parsedTime, zone)
@@ -3397,7 +3421,7 @@ object NaturalTaskParser {
             // hora, pero se saca la primera dosis a la superficie venciendo ahora) es el
             // último recurso: sólo aplica si NO hay otra fecha/hora resuelta. Así "cada 8
             // horas a las 3pm" usa la hora explícita, no "ahora".
-            else -> effectiveRelativeDueAt
+            else -> relativeDueAtForDueAt
                 ?: effectiveDate?.let { DateRules.toEpochMillis(it, parsedTime ?: LocalTime.of(9, 0), zone) }
                 ?: recurrence.immediateDueAt
         }
@@ -3429,7 +3453,7 @@ object NaturalTaskParser {
             // olvidaba, mientras "cena a medianoche" (una palabra) sí se rodaba — asimetría
             // que dejaba la forma separada al olvido (P1). Las demás "media X" (10:30/16:30/
             // 03:00) no son midnight/noon y no ruedan, igual que las canónicas afines.
-            date == null && effectiveRelativeDueAt == null && !explicitTimeIsRangeEnd &&
+            date == null && relativeDueAtForDueAt == null && !explicitTimeIsRangeEnd &&
                 parsedTime != null && (hasExplicitMeridiem || isInequivocalMidpoint) &&
                 (parsedTime == LocalTime.MIDNIGHT || parsedTime == LocalTime.NOON) &&
                 rawDueAt != null && rawDueAt < now ->
@@ -3441,7 +3465,7 @@ object NaturalTaskParser {
             // el recordatorio (dueAt - offset) caía en el pasado y ReminderSync.triggers lo
             // descartaba (trigger <= now → null) → cita olvidada sin aviso (P1 evitar olvidos).
             // El ancla es inequívoca (11:30/14:00/21:30…), así el rodado es seguro.
-            date == null && effectiveRelativeDueAt == null && !explicitTimeIsRangeEnd &&
+            date == null && relativeDueAtForDueAt == null && !explicitTimeIsRangeEnd &&
                 mealSleepAnchorTime != null && rawDueAt != null && rawDueAt < now ->
                 DateRules.toEpochMillis(base.toLocalDate().plusDays(1), parsedTime!!, zone)
             else -> rawDueAt
