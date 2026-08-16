@@ -1,11 +1,25 @@
 {
-  "project_files": 111,
-  "kotlin_source_files": 52,
-  "kotlin_source_lines": 6604,
-  "unit_test_files": 9,
-  "instrumentation_test_files": 2,
-  "errors": [],
-  "warnings": [
-    "gradle-wrapper.jar is absent; Android Studio or `gradle wrapper --gradle-version 8.13` must generate it before ./gradlew works"
-  ]
+  "project_files": 4423,
+  "kotlin_source_files": 150,
+  "kotlin_source_lines": 28498,
+  "unit_test_files": 50,
+  "instrumentation_test_files": 6,
+  "errors": [
+    "Mojibake token '�' in AUDITORIA_ORDIA_2026.md",
+    "Mojibake token '├' in docs/INTELLIGENCE_ARCHITECTURE_SUMMARY.md",
+    "Non UTF-8 text file: AI_AUTONOMY/RUN_LOG.md ('utf-8' codec can't decode byte 0xd3 in position 27709: invalid continuation byte)",
+    "Non UTF-8 text file: AI_AUTONOMY/DECISIONS.md ('utf-8' codec can't decode byte 0xf3 in position 9346: invalid continuation byte)",
+    "Unbalanced ) in app/src/main/java/com/ordia/app/intelligence/IntelligenceSchema.kt:39",
+    "Manifest missing android.permission.SYSTEM_ALERT_WINDOW",
+    "Manifest missing android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
+    "Manifest missing .overlay.GuardianOverlayService",
+    "Local-first release unexpectedly requests INTERNET permission",
+    "Guardian service must remain non-exported and specialUse",
+    "app/build.gradle.kts missing expected configuration: versionName = \"1.0.0\"",
+    "CI workflow missing testDebugUnitTest",
+    "CI workflow missing lintDebug",
+    "CI workflow missing tools/verify_project.py",
+    "Room database migration 1→2 is missing"
+  ],
+  "warnings": []
 }
