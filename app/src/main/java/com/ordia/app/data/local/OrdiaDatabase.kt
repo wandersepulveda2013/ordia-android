@@ -20,9 +20,17 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         RoutineStepEntity::class,
         TagEntity::class,
         TaskTagCrossRef::class,
-        AttachmentEntity::class
+        AttachmentEntity::class,
+        AutomationLogEntity::class,
+        CaptureEntity::class,
+        CaptureDraftEntity::class,
+        ConversationEntity::class,
+        CommitmentEntity::class,
+        ObservedSourceEntity::class,
+        ConsentEventEntity::class,
+        AutomationRuleEntity::class
     ],
-    version = 2,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -38,9 +46,188 @@ abstract class OrdiaDatabase : RoomDatabase() {
     abstract fun tagDao(): TagDao
     abstract fun taskTagDao(): TaskTagDao
     abstract fun attachmentDao(): AttachmentDao
+    abstract fun automationLogDao(): AutomationLogDao
+    abstract fun captureDao(): CaptureDao
+    abstract fun conversationDao(): ConversationDao
+    abstract fun observationDao(): ObservationDao
+    abstract fun automationRuleDao(): AutomationRuleDao
 
     companion object {
         @Volatile private var instance: OrdiaDatabase? = null
+
+        /**
+         * Índices para consultas frecuentes:
+         * - automation_log(type, createdAt): historial por tipo de automatización.
+         * - captures(resultId): resolución del historial de captura hacia la entidad.
+         * - notes(pinned, updatedAt): orden estable de Notas (fijadas primero, luego recientes).
+         */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_automation_log_type_createdAt ON automation_log(type, createdAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_captures_resultId ON captures(resultId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_pinned_updatedAt ON notes(pinned, updatedAt)")
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS automation_rules (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        instruction TEXT NOT NULL,
+                        trigger TEXT NOT NULL,
+                        condition TEXT NOT NULL,
+                        action TEXT NOT NULL,
+                        explanation TEXT NOT NULL,
+                        enabled INTEGER NOT NULL DEFAULT 0,
+                        frequencyMinutes INTEGER NOT NULL DEFAULT 60,
+                        maxRunsPerDay INTEGER NOT NULL DEFAULT 3,
+                        lastRunAt INTEGER,
+                        lastResult TEXT NOT NULL DEFAULT 'NEVER',
+                        lastError TEXT NOT NULL DEFAULT '',
+                        definitionHash TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_automation_rules_enabled ON automation_rules(enabled)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_automation_rules_trigger ON automation_rules(trigger)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_automation_rules_definitionHash ON automation_rules(definitionHash)")
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS observed_sources (
+                        packageName TEXT NOT NULL,
+                        displayName TEXT NOT NULL,
+                        enabled INTEGER NOT NULL DEFAULT 0,
+                        onlyCommitments INTEGER NOT NULL DEFAULT 1,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        PRIMARY KEY(packageName)
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_observed_sources_enabled ON observed_sources(enabled)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_observed_sources_updatedAt ON observed_sources(updatedAt)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS consent_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        eventType TEXT NOT NULL,
+                        sourcePackage TEXT NOT NULL DEFAULT '',
+                        occurredAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_consent_events_occurredAt ON consent_events(occurredAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_consent_events_sourcePackage ON consent_events(sourcePackage)")
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS conversations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        sourceType TEXT NOT NULL,
+                        sourcePackage TEXT NOT NULL DEFAULT '',
+                        title TEXT NOT NULL,
+                        participants TEXT NOT NULL DEFAULT '',
+                        summary TEXT NOT NULL,
+                        rawContent TEXT NOT NULL DEFAULT '',
+                        retainsOriginal INTEGER NOT NULL DEFAULT 0,
+                        contentHash TEXT NOT NULL,
+                        messageCount INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_conversations_contentHash ON conversations(contentHash)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_conversations_sourceType ON conversations(sourceType)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_conversations_createdAt ON conversations(createdAt)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS commitments (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        conversationId INTEGER NOT NULL,
+                        kind TEXT NOT NULL,
+                        owner TEXT NOT NULL,
+                        actor TEXT NOT NULL DEFAULT '',
+                        action TEXT NOT NULL,
+                        location TEXT NOT NULL DEFAULT '',
+                        dueAt INTEGER,
+                        confidence REAL NOT NULL,
+                        suggestedReminderAt INTEGER,
+                        reviewStatus TEXT NOT NULL,
+                        fingerprint TEXT NOT NULL,
+                        resultTaskId INTEGER,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        FOREIGN KEY(conversationId) REFERENCES conversations(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(resultTaskId) REFERENCES tasks(id) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_commitments_conversationId ON commitments(conversationId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_commitments_reviewStatus ON commitments(reviewStatus)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_commitments_dueAt ON commitments(dueAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_commitments_resultTaskId ON commitments(resultTaskId)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_commitments_fingerprint ON commitments(fingerprint)")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS captures (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        content TEXT NOT NULL,
+                        source TEXT NOT NULL,
+                        requestedTarget TEXT NOT NULL,
+                        resolvedTarget TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        attachmentUri TEXT NOT NULL DEFAULT '',
+                        mimeType TEXT NOT NULL DEFAULT '',
+                        fingerprint TEXT NOT NULL DEFAULT '',
+                        resultType TEXT NOT NULL DEFAULT '',
+                        resultId INTEGER,
+                        errorCode TEXT NOT NULL DEFAULT '',
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_captures_createdAt ON captures(createdAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_captures_status ON captures(status)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_captures_fingerprint ON captures(fingerprint)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS capture_drafts (
+                        slot TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        target TEXT NOT NULL,
+                        attachmentUri TEXT NOT NULL DEFAULT '',
+                        mimeType TEXT NOT NULL DEFAULT '',
+                        updatedAt INTEGER NOT NULL,
+                        PRIMARY KEY(slot)
+                    )
+                """.trimIndent())
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS automation_log (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        type TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        affectedTaskIdsJson TEXT NOT NULL DEFAULT '[]',
+                        undoPayloadJson TEXT NOT NULL DEFAULT '{}',
+                        undone INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_automation_log_undone ON automation_log(undone)")
+            }
+        }
 
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -174,7 +361,7 @@ abstract class OrdiaDatabase : RoomDatabase() {
                     OrdiaDatabase::class.java,
                     "ordia.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .build()
                     .also { instance = it }
             }

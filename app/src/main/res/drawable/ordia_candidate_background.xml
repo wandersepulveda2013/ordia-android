@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fondo de la tarjeta de candidatos del teclado Ordía -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#2A2A3E" />
+    <corners android:radius="12dp" />
+    <stroke
+        android:width="1dp"
+        android:color="#3A3A5E" />
+    <padding
+        android:top="8dp"
+        android:bottom="8dp"
+        android:left="12dp"
+        android:right="12dp" />
+</shape>

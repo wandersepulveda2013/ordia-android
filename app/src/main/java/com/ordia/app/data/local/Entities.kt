@@ -19,6 +19,44 @@ enum class HabitFrequency { DAILY, WEEKLY, MONTHLY }
 
 enum class AttachmentOwnerType { TASK, NOTE, PROJECT }
 
+enum class CaptureSource { COMPOSER, SHARE, PROCESS_TEXT, VOICE, CLIPBOARD, ATTACHMENT, KEYBOARD, WIDGET }
+
+enum class CaptureTarget { AUTO, INBOX, TASK, NOTE, REMINDER, EVENT }
+
+enum class CaptureStatus { PENDING, PROCESSED, FAILED }
+
+enum class ConversationSourceType { SHARED, IMPORTED, NOTIFICATION }
+
+enum class CommitmentKind {
+    SELF_COMMITMENT, OTHER_COMMITMENT, REQUEST, MEETING, PURCHASE, REMINDER, INFORMATION
+}
+
+enum class CommitmentOwner { SELF, OTHER, UNKNOWN }
+
+enum class CommitmentReviewStatus { PENDING, CONVERTED, DISMISSED }
+
+enum class ConsentEventType {
+    OBSERVATION_ENABLED,
+    OBSERVATION_DISABLED,
+    SOURCE_ENABLED,
+    SOURCE_DISABLED,
+    PAUSED,
+    RESUMED,
+    DATA_CLEARED,
+    PERMISSION_REVIEWED,
+    SYSTEM_PERMISSION_GRANTED,
+    SYSTEM_PERMISSION_REVOKED,
+    INTERNAL_ACCESS_REVOKED
+}
+
+enum class AutomationTrigger { MANUAL, APP_OPEN, DAILY_MORNING, DAILY_EVENING }
+
+enum class AutomationCondition { ALWAYS, HAS_INBOX_TASKS, HAS_OVERDUE_TASKS, HAS_QUICK_TASKS, HAS_PENDING_COMMITMENTS }
+
+enum class AutomationAction { PLAN_DAY, RESCHEDULE_OVERDUE, BATCH_QUICK_TASKS, REVIEW_COMMITMENTS }
+
+enum class AutomationRuleResult { NEVER, SUCCESS, SKIPPED, FAILED, TESTED }
+
 @Entity(
     tableName = "tasks",
     foreignKeys = [
@@ -86,7 +124,7 @@ data class ProjectEntity(
             onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index("projectId"), Index("pinned"), Index("archived")]
+    indices = [Index("projectId"), Index("pinned"), Index("archived"), Index(value = ["pinned", "updatedAt"])]
 )
 data class NoteEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -217,4 +255,185 @@ data class AttachmentEntity(
     val mimeType: String = "application/octet-stream",
     @ColumnInfo(defaultValue = "0") val sizeBytes: Long = 0,
     val createdAt: Long = System.currentTimeMillis()
+)
+
+/**
+ * Historial de automatizaciones del asistente (plan del día, replanificación,
+ * "qué hago ahora", rutinas). Guarda el estado previo de las tareas afectadas
+ * en JSON para poder deshacer los cambios.
+ */
+@Entity(
+    tableName = "automation_rules",
+    indices = [
+        Index("enabled"),
+        Index("trigger"),
+        Index(value = ["definitionHash"], unique = true)
+    ]
+)
+data class AutomationRuleEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val instruction: String,
+    val trigger: AutomationTrigger,
+    val condition: AutomationCondition,
+    val action: AutomationAction,
+    val explanation: String,
+    @ColumnInfo(defaultValue = "0") val enabled: Boolean = false,
+    @ColumnInfo(defaultValue = "60") val frequencyMinutes: Int = 60,
+    @ColumnInfo(defaultValue = "3") val maxRunsPerDay: Int = 3,
+    val lastRunAt: Long? = null,
+    @ColumnInfo(defaultValue = "'NEVER'") val lastResult: AutomationRuleResult = AutomationRuleResult.NEVER,
+    @ColumnInfo(defaultValue = "''") val lastError: String = "",
+    val definitionHash: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "automation_log", indices = [Index(value = ["type", "createdAt"])])
+data class AutomationLogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** Tipo de automatización: "day_plan", "reschedule", "what_now", "routine". */
+    val type: String,
+    val description: String = "",
+    /** Lista JSON de IDs de tareas afectadas. */
+    @ColumnInfo(defaultValue = "[]") val affectedTaskIdsJson: String = "[]",
+    /** Mapa JSON {taskId: snapshot previo} para deshacer. */
+    @ColumnInfo(defaultValue = "{}") val undoPayloadJson: String = "{}",
+    @ColumnInfo(defaultValue = "0") val undone: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+/**
+ * Historial duradero de la captura universal. El contenido se inserta antes
+ * de intentar transformarlo; por eso ni un fallo del analizador ni un cierre
+ * durante la conversión puede hacer desaparecer la entrada original.
+ */
+@Entity(
+    tableName = "captures",
+    indices = [Index("createdAt"), Index("status"), Index("fingerprint"), Index("resultId")]
+)
+data class CaptureEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val content: String,
+    val source: CaptureSource = CaptureSource.COMPOSER,
+    val requestedTarget: CaptureTarget = CaptureTarget.AUTO,
+    val resolvedTarget: CaptureTarget = CaptureTarget.INBOX,
+    val status: CaptureStatus = CaptureStatus.PENDING,
+    @ColumnInfo(defaultValue = "''") val attachmentUri: String = "",
+    @ColumnInfo(defaultValue = "''") val mimeType: String = "",
+    @ColumnInfo(defaultValue = "''") val fingerprint: String = "",
+    @ColumnInfo(defaultValue = "''") val resultType: String = "",
+    val resultId: Long? = null,
+    @ColumnInfo(defaultValue = "''") val errorCode: String = "",
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+/** Un único borrador principal recuperable, extensible a más slots en el futuro. */
+@Entity(tableName = "capture_drafts")
+data class CaptureDraftEntity(
+    @PrimaryKey val slot: String = PRIMARY_SLOT,
+    val content: String = "",
+    val target: CaptureTarget = CaptureTarget.AUTO,
+    @ColumnInfo(defaultValue = "''") val attachmentUri: String = "",
+    @ColumnInfo(defaultValue = "''") val mimeType: String = "",
+    val updatedAt: Long = System.currentTimeMillis()
+) {
+    companion object { const val PRIMARY_SLOT = "main" }
+}
+
+/**
+ * Conversación compartida o importada con retención explícita. En modo
+ * resumen solamente [rawContent] queda vacío: se guardan el resumen y los
+ * compromisos seleccionados, nunca el chat completo por defecto.
+ */
+@Entity(
+    tableName = "conversations",
+    indices = [
+        Index(value = ["contentHash"], unique = true),
+        Index("sourceType"),
+        Index("createdAt")
+    ]
+)
+data class ConversationEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val sourceType: ConversationSourceType,
+    @ColumnInfo(defaultValue = "''") val sourcePackage: String = "",
+    val title: String,
+    @ColumnInfo(defaultValue = "''") val participants: String = "",
+    val summary: String,
+    @ColumnInfo(defaultValue = "''") val rawContent: String = "",
+    @ColumnInfo(defaultValue = "0") val retainsOriginal: Boolean = false,
+    val contentHash: String,
+    @ColumnInfo(defaultValue = "0") val messageCount: Int = 0,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(
+    tableName = "commitments",
+    foreignKeys = [
+        ForeignKey(
+            entity = ConversationEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["conversationId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = TaskEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["resultTaskId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
+    indices = [
+        Index("conversationId"),
+        Index("reviewStatus"),
+        Index("dueAt"),
+        Index("resultTaskId"),
+        Index(value = ["fingerprint"], unique = true)
+    ]
+)
+data class CommitmentEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val conversationId: Long,
+    val kind: CommitmentKind,
+    val owner: CommitmentOwner = CommitmentOwner.UNKNOWN,
+    @ColumnInfo(defaultValue = "''") val actor: String = "",
+    val action: String,
+    @ColumnInfo(defaultValue = "''") val location: String = "",
+    val dueAt: Long? = null,
+    val confidence: Float,
+    val suggestedReminderAt: Long? = null,
+    val reviewStatus: CommitmentReviewStatus = CommitmentReviewStatus.PENDING,
+    val fingerprint: String,
+    val resultTaskId: Long? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+/** Fuente de notificaciones autorizada explícitamente por paquete. */
+@Entity(
+    tableName = "observed_sources",
+    indices = [Index("enabled"), Index("updatedAt")]
+)
+data class ObservedSourceEntity(
+    @PrimaryKey val packageName: String,
+    val displayName: String,
+    @ColumnInfo(defaultValue = "0") val enabled: Boolean = false,
+    @ColumnInfo(defaultValue = "1") val onlyCommitments: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+/** Auditoría de consentimiento sin texto de mensajes ni datos derivados. */
+@Entity(
+    tableName = "consent_events",
+    indices = [Index("occurredAt"), Index("sourcePackage")]
+)
+data class ConsentEventEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val eventType: ConsentEventType,
+    @ColumnInfo(defaultValue = "''") val sourcePackage: String = "",
+    val occurredAt: Long = System.currentTimeMillis()
 )

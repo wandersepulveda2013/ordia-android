@@ -13,6 +13,34 @@ __pycache__/
 *.keystore
 *.jks
 
+# Kotlin daemon errors
+.kotlin/
+
 # Room schema (generated)
 app/schemas/
-.kotlin/
+
+# Secrets and credentials
+.env
+.env.*
+secrets/
+**/secrets/
+local.properties
+!app/google-services.json
+
+# Build artifacts
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Ordia upgrade package (already zipped to Desktop)
+ordia-3.0-upgrade/
+
+# IDE
+*.swp
+*.swo
+*~
+
+# Auditoría: logs transitorios de builds de verificación
+logs-*.txt

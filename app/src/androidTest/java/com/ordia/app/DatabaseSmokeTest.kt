@@ -6,10 +6,21 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ordia.app.data.local.AttachmentEntity
 import com.ordia.app.data.local.AttachmentOwnerType
+import com.ordia.app.data.local.CaptureDraftEntity
+import com.ordia.app.data.local.CaptureEntity
+import com.ordia.app.data.local.CommitmentEntity
+import com.ordia.app.data.local.CommitmentKind
+import com.ordia.app.data.local.CommitmentOwner
+import com.ordia.app.data.local.ConversationEntity
+import com.ordia.app.data.local.ConversationSourceType
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.OrdiaDatabase
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.AutomationRuleEntity
+import com.ordia.app.data.local.AutomationTrigger
+import com.ordia.app.data.local.AutomationCondition
+import com.ordia.app.data.local.AutomationAction
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -49,10 +60,81 @@ class DatabaseSmokeTest {
                 sizeBytes = 12
             )
         )
+        database.captureDao().insert(CaptureEntity(content = "Texto de captura", fingerprint = "b".repeat(64)))
+        database.captureDao().upsertDraft(CaptureDraftEntity(content = "Borrador recuperable"))
+        val conversationId = database.conversationDao().insertGraph(
+            conversation = ConversationEntity(
+                sourceType = ConversationSourceType.SHARED,
+                title = "Chat de prueba",
+                summary = "Una solicitud pendiente.",
+                contentHash = "c".repeat(64),
+                messageCount = 1
+            ),
+            commitments = listOf(
+                CommitmentEntity(
+                    conversationId = 0,
+                    kind = CommitmentKind.REQUEST,
+                    owner = CommitmentOwner.SELF,
+                    action = "Enviar informe",
+                    confidence = 0.9f,
+                    fingerprint = "d".repeat(64)
+                )
+            )
+        )
+        val observedConversationId = database.conversationDao().insertGraph(
+            conversation = ConversationEntity(
+                sourceType = ConversationSourceType.NOTIFICATION,
+                sourcePackage = "com.whatsapp",
+                title = "Compromiso observado",
+                summary = "Una propuesta pendiente.",
+                contentHash = "e".repeat(64),
+                messageCount = 1
+            ),
+            commitments = listOf(
+                CommitmentEntity(
+                    conversationId = 0,
+                    kind = CommitmentKind.REQUEST,
+                    owner = CommitmentOwner.SELF,
+                    action = "Responder mañana",
+                    confidence = 0.9f,
+                    fingerprint = "f".repeat(64)
+                )
+            )
+        )
+        database.observationDao().configureSource(
+            packageName = "com.whatsapp",
+            displayName = "WhatsApp",
+            enabled = true,
+            onlyCommitments = true,
+            now = 1000L
+        )
+        database.automationRuleDao().insert(
+            AutomationRuleEntity(
+                name = "Preparar día",
+                instruction = "Cada mañana prepara mi día",
+                trigger = AutomationTrigger.DAILY_MORNING,
+                condition = AutomationCondition.HAS_INBOX_TASKS,
+                action = AutomationAction.PLAN_DAY,
+                explanation = "Plan local reversible",
+                definitionHash = "9".repeat(64)
+            )
+        )
 
         assertNotNull(database.taskDao().getById(taskId))
         assertEquals(projectId, database.taskDao().getById(taskId)?.projectId)
         assertEquals(1, database.noteDao().observeByProject(projectId).first().size)
         assertEquals(1, database.attachmentDao().observeForOwner(AttachmentOwnerType.NOTE, noteId).first().size)
+        assertEquals("Texto de captura", database.captureDao().getAllNow().single().content)
+        assertEquals("Borrador recuperable", database.captureDao().getDraftsNow().single().content)
+        assertEquals(conversationId, database.conversationDao().getCommitmentsNow().single().conversationId)
+        assertEquals("Chat de prueba", database.conversationDao().getConversation(conversationId)?.title)
+        assertEquals(true, database.observationDao().getSource("com.whatsapp")?.enabled)
+        assertEquals("com.whatsapp", database.observationDao().getConsentEventsNow().single().sourcePackage)
+        assertEquals("Preparar día", database.automationRuleDao().getAllNow().single().name)
+
+        database.conversationDao().deleteConversationsBySource(ConversationSourceType.NOTIFICATION)
+        assertEquals(null, database.conversationDao().getConversation(observedConversationId))
+        assertNotNull(database.conversationDao().getConversation(conversationId))
+        assertEquals(true, database.observationDao().getSource("com.whatsapp")?.enabled)
     }
 }

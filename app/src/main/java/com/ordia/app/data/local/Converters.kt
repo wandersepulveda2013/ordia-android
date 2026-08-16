@@ -21,6 +21,42 @@ class Converters {
     @TypeConverter fun attachmentOwnerToString(value: AttachmentOwnerType): String = value.name
     @TypeConverter fun stringToAttachmentOwner(value: String): AttachmentOwnerType = enumOrDefault(value, AttachmentOwnerType.NOTE)
 
+    @TypeConverter fun captureSourceToString(value: CaptureSource): String = value.name
+    @TypeConverter fun stringToCaptureSource(value: String): CaptureSource = enumOrDefault(value, CaptureSource.COMPOSER)
+
+    @TypeConverter fun captureTargetToString(value: CaptureTarget): String = value.name
+    @TypeConverter fun stringToCaptureTarget(value: String): CaptureTarget = enumOrDefault(value, CaptureTarget.AUTO)
+
+    @TypeConverter fun captureStatusToString(value: CaptureStatus): String = value.name
+    @TypeConverter fun stringToCaptureStatus(value: String): CaptureStatus = enumOrDefault(value, CaptureStatus.PENDING)
+
+    @TypeConverter fun conversationSourceToString(value: ConversationSourceType): String = value.name
+    @TypeConverter fun stringToConversationSource(value: String): ConversationSourceType = enumOrDefault(value, ConversationSourceType.SHARED)
+
+    @TypeConverter fun commitmentKindToString(value: CommitmentKind): String = value.name
+    @TypeConverter fun stringToCommitmentKind(value: String): CommitmentKind = enumOrDefault(value, CommitmentKind.INFORMATION)
+
+    @TypeConverter fun commitmentOwnerToString(value: CommitmentOwner): String = value.name
+    @TypeConverter fun stringToCommitmentOwner(value: String): CommitmentOwner = enumOrDefault(value, CommitmentOwner.UNKNOWN)
+
+    @TypeConverter fun commitmentStatusToString(value: CommitmentReviewStatus): String = value.name
+    @TypeConverter fun stringToCommitmentStatus(value: String): CommitmentReviewStatus = enumOrDefault(value, CommitmentReviewStatus.PENDING)
+
+    @TypeConverter fun consentEventToString(value: ConsentEventType): String = value.name
+    @TypeConverter fun stringToConsentEvent(value: String): ConsentEventType = enumOrDefault(value, ConsentEventType.OBSERVATION_DISABLED)
+
+    @TypeConverter fun automationTriggerToString(value: AutomationTrigger): String = value.name
+    @TypeConverter fun stringToAutomationTrigger(value: String): AutomationTrigger = enumOrDefault(value, AutomationTrigger.MANUAL)
+
+    @TypeConverter fun automationConditionToString(value: AutomationCondition): String = value.name
+    @TypeConverter fun stringToAutomationCondition(value: String): AutomationCondition = enumOrDefault(value, AutomationCondition.ALWAYS)
+
+    @TypeConverter fun automationActionToString(value: AutomationAction): String = value.name
+    @TypeConverter fun stringToAutomationAction(value: String): AutomationAction = enumOrDefault(value, AutomationAction.PLAN_DAY)
+
+    @TypeConverter fun automationResultToString(value: AutomationRuleResult): String = value.name
+    @TypeConverter fun stringToAutomationResult(value: String): AutomationRuleResult = enumOrDefault(value, AutomationRuleResult.NEVER)
+
     private inline fun <reified T : Enum<T>> enumOrDefault(value: String, fallback: T): T =
         runCatching { enumValueOf<T>(value) }.getOrDefault(fallback)
 }

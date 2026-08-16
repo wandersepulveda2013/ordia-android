@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -34,20 +35,6 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE parentTaskId = :parentId AND archived = 0 ORDER BY sortOrder, createdAt")
     suspend fun getSubtasks(parentId: Long): List<TaskEntity>
 
-    @Query("SELECT * FROM tasks WHERE parentTaskId = :parentId ORDER BY id")
-    suspend fun getDirectChildren(parentId: Long): List<TaskEntity>
-
-    /** IDs del subárbol completo bajo :rootId (incluye :rootId y todos los descendientes). */
-    @Query("""
-        WITH RECURSIVE descendants(id) AS (
-            SELECT id FROM tasks WHERE id = :rootId
-            UNION
-            SELECT t.id FROM tasks t INNER JOIN descendants d ON t.parentTaskId = d.id
-        )
-        SELECT id FROM descendants
-    """)
-    suspend fun collectSubtreeIds(rootId: Long): List<Long>
-
     @Query("SELECT * FROM tasks WHERE projectId = :projectId AND archived = 0 ORDER BY completed, dueAt IS NULL, dueAt")
     fun observeByProject(projectId: Long): Flow<List<TaskEntity>>
 
@@ -63,8 +50,14 @@ interface TaskDao {
     @Update
     suspend fun update(task: TaskEntity)
 
-    @Delete
-    suspend fun delete(task: TaskEntity)
+    /**
+     * Borra la tarea y todo su subárbol en una única transacción para no dejar
+     * subtareas huérfanas (misma garantía que [deleteSubtreeAndSelf]).
+     */
+    @Transaction
+    suspend fun delete(task: TaskEntity) {
+        deleteByIds(TaskTree.collectIds(task.id) { getChildIds(it) })
+    }
 
     @Query("UPDATE tasks SET archived = 1, updatedAt = :updatedAt WHERE id = :id")
     suspend fun archive(id: Long, updatedAt: Long = System.currentTimeMillis())
@@ -75,20 +68,23 @@ interface TaskDao {
     @Query("DELETE FROM tasks WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+    @Query("SELECT id FROM tasks WHERE parentTaskId = :parentId")
+    suspend fun getChildIds(parentId: Long): List<Long>
+
     @Query("DELETE FROM tasks WHERE id IN (:ids)")
     suspend fun deleteByIds(ids: List<Long>)
 
-    @Query("UPDATE tasks SET archived = 1, updatedAt = :updatedAt WHERE id IN (:ids)")
-    suspend fun archiveByIds(ids: List<Long>, updatedAt: Long = System.currentTimeMillis())
-
-    @Query("UPDATE tasks SET archived = 0, updatedAt = :updatedAt WHERE id IN (:ids)")
-    suspend fun restoreByIds(ids: List<Long>, updatedAt: Long = System.currentTimeMillis())
+    /**
+     * Borra la tarea y todo su subárbol en una única transacción (ORD-025).
+     * Sin esto, `parentTaskId` quedaba apuntando a una fila inexistente (huérfanas).
+     */
+    @Transaction
+    suspend fun deleteSubtreeAndSelf(id: Long) {
+        deleteByIds(TaskTree.collectIds(id) { getChildIds(it) })
+    }
 
     @Query("DELETE FROM tasks")
     suspend fun deleteAll()
-
-    @Query("UPDATE tasks SET sortOrder = :sortOrder, updatedAt = :updatedAt WHERE id = :id")
-    suspend fun updateSortOrder(id: Long, sortOrder: Int, updatedAt: Long = System.currentTimeMillis())
 }
 
 @Dao
@@ -390,12 +386,279 @@ interface AttachmentDao {
     @Delete
     suspend fun delete(attachment: AttachmentEntity)
 
-    @Query("DELETE FROM attachments WHERE ownerType = :ownerType AND ownerId = :ownerId")
-    suspend fun deleteForOwner(ownerType: AttachmentOwnerType, ownerId: Long)
-
-    @Query("DELETE FROM attachments WHERE ownerType = :ownerType AND ownerId IN (:ownerIds)")
-    suspend fun deleteForOwners(ownerType: AttachmentOwnerType, ownerIds: List<Long>)
-
     @Query("DELETE FROM attachments")
     suspend fun deleteAll()
+}
+
+@Dao
+interface AutomationLogDao {
+    @Query("SELECT * FROM automation_log ORDER BY id DESC LIMIT :limit")
+    fun observeRecent(limit: Int = 50): Flow<List<AutomationLogEntity>>
+
+    @Query("SELECT * FROM automation_log WHERE undone = 0 ORDER BY id DESC LIMIT 1")
+    suspend fun latestNotUndone(): AutomationLogEntity?
+
+    @Query("SELECT * FROM automation_log WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): AutomationLogEntity?
+
+    @Query("SELECT * FROM automation_log ORDER BY id")
+    suspend fun getAllNow(): List<AutomationLogEntity>
+
+    @Query("SELECT COUNT(*) FROM automation_log WHERE type = :type AND createdAt >= :since AND undone = 0")
+    suspend fun countSince(type: String, since: Long): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(log: AutomationLogEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(logs: List<AutomationLogEntity>)
+
+    @Query("UPDATE automation_log SET undone = 1 WHERE id = :id")
+    suspend fun markUndone(id: Long)
+
+    @Query("DELETE FROM automation_log")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface AutomationRuleDao {
+    @Query("SELECT * FROM automation_rules ORDER BY enabled DESC, updatedAt DESC")
+    fun observeAll(): Flow<List<AutomationRuleEntity>>
+
+    @Query("SELECT * FROM automation_rules ORDER BY id")
+    suspend fun getAllNow(): List<AutomationRuleEntity>
+
+    @Query("SELECT * FROM automation_rules WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): AutomationRuleEntity?
+
+    @Query("SELECT * FROM automation_rules WHERE trigger = :trigger AND enabled = 1 ORDER BY id")
+    suspend fun enabledFor(trigger: AutomationTrigger): List<AutomationRuleEntity>
+
+    @Query("SELECT * FROM automation_rules WHERE definitionHash = :hash LIMIT 1")
+    suspend fun findByDefinition(hash: String): AutomationRuleEntity?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(rule: AutomationRuleEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(rules: List<AutomationRuleEntity>)
+
+    @Update
+    suspend fun update(rule: AutomationRuleEntity)
+
+    @Query("DELETE FROM automation_rules WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM automation_rules")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface CaptureDao {
+    @Query("SELECT * FROM captures ORDER BY createdAt DESC LIMIT :limit")
+    fun observeRecent(limit: Int = 100): Flow<List<CaptureEntity>>
+
+    @Query("SELECT * FROM captures ORDER BY createdAt DESC")
+    suspend fun getAllNow(): List<CaptureEntity>
+
+    @Query("SELECT * FROM capture_drafts ORDER BY slot")
+    suspend fun getDraftsNow(): List<CaptureDraftEntity>
+
+    @Query("SELECT * FROM capture_drafts WHERE slot = :slot LIMIT 1")
+    fun observeDraft(slot: String = CaptureDraftEntity.PRIMARY_SLOT): Flow<CaptureDraftEntity?>
+
+    @Query("SELECT * FROM captures WHERE fingerprint = :fingerprint AND createdAt >= :since ORDER BY createdAt DESC LIMIT 1")
+    suspend fun findRecentDuplicate(fingerprint: String, since: Long): CaptureEntity?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insert(capture: CaptureEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(captures: List<CaptureEntity>): List<Long>
+
+    @Update
+    suspend fun update(capture: CaptureEntity)
+
+    @Query("DELETE FROM captures WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertDraft(draft: CaptureDraftEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDrafts(drafts: List<CaptureDraftEntity>)
+
+    @Query("DELETE FROM capture_drafts WHERE slot = :slot")
+    suspend fun deleteDraft(slot: String = CaptureDraftEntity.PRIMARY_SLOT)
+
+    @Query("DELETE FROM captures")
+    suspend fun deleteAll()
+
+    @Query("DELETE FROM capture_drafts")
+    suspend fun deleteAllDrafts()
+}
+
+@Dao
+abstract class ConversationDao {
+    @Query("SELECT * FROM conversations ORDER BY createdAt DESC")
+    abstract fun observeConversations(): Flow<List<ConversationEntity>>
+
+    @Query("SELECT * FROM commitments ORDER BY CASE reviewStatus WHEN 'PENDING' THEN 0 WHEN 'CONVERTED' THEN 1 ELSE 2 END, createdAt DESC")
+    abstract fun observeCommitments(): Flow<List<CommitmentEntity>>
+
+    @Query("SELECT * FROM commitments WHERE reviewStatus = 'PENDING' ORDER BY dueAt IS NULL, dueAt ASC, createdAt DESC")
+    abstract fun observePendingCommitments(): Flow<List<CommitmentEntity>>
+
+    @Query("SELECT * FROM conversations ORDER BY createdAt DESC")
+    abstract suspend fun getConversationsNow(): List<ConversationEntity>
+
+    @Query("SELECT * FROM commitments ORDER BY createdAt DESC")
+    abstract suspend fun getCommitmentsNow(): List<CommitmentEntity>
+
+    @Query("SELECT * FROM conversations WHERE id = :id LIMIT 1")
+    abstract suspend fun getConversation(id: Long): ConversationEntity?
+
+    @Query("SELECT * FROM conversations WHERE contentHash = :contentHash LIMIT 1")
+    abstract suspend fun findConversationByHash(contentHash: String): ConversationEntity?
+
+    @Query("SELECT * FROM commitments WHERE id = :id LIMIT 1")
+    abstract suspend fun getCommitment(id: Long): CommitmentEntity?
+
+    @Query("SELECT COUNT(*) FROM conversations WHERE sourceType = :sourceType AND createdAt >= :since")
+    abstract suspend fun countConversationsSince(sourceType: ConversationSourceType, since: Long): Int
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    protected abstract suspend fun insertConversation(conversation: ConversationEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    protected abstract suspend fun insertCommitments(commitments: List<CommitmentEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun insertConversations(conversations: List<ConversationEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun restoreCommitments(commitments: List<CommitmentEntity>): List<Long>
+
+    @Update
+    abstract suspend fun updateCommitment(commitment: CommitmentEntity)
+
+    @Transaction
+    open suspend fun insertGraph(
+        conversation: ConversationEntity,
+        commitments: List<CommitmentEntity>
+    ): Long {
+        val insertedId = insertConversation(conversation)
+        if (insertedId <= 0L) {
+            val existingId = findConversationByHash(conversation.contentHash)?.id ?: return 0L
+            return -existingId
+        }
+        if (commitments.isNotEmpty()) {
+            insertCommitments(commitments.map { it.copy(conversationId = insertedId) })
+        }
+        return insertedId
+    }
+
+    @Query("DELETE FROM conversations WHERE id = :id")
+    abstract suspend fun deleteConversation(id: Long)
+
+    @Query("DELETE FROM conversations WHERE sourceType = :sourceType")
+    abstract suspend fun deleteConversationsBySource(sourceType: ConversationSourceType)
+
+    @Query("DELETE FROM commitments")
+    abstract suspend fun deleteAllCommitments()
+
+    @Query("DELETE FROM conversations")
+    abstract suspend fun deleteAllConversations()
+
+    /** Borra compromisos y conversaciones en una única transacción. */
+    @Transaction
+    open suspend fun clearAll() {
+        deleteAllCommitments()
+        deleteAllConversations()
+    }
+}
+
+@Dao
+abstract class ObservationDao {
+    @Query("SELECT * FROM observed_sources ORDER BY enabled DESC, displayName COLLATE NOCASE")
+    abstract fun observeSources(): Flow<List<ObservedSourceEntity>>
+
+    @Query("SELECT * FROM consent_events ORDER BY occurredAt DESC, id DESC LIMIT 100")
+    abstract fun observeConsentHistory(): Flow<List<ConsentEventEntity>>
+
+    @Query("SELECT * FROM observed_sources WHERE packageName = :packageName LIMIT 1")
+    abstract suspend fun getSource(packageName: String): ObservedSourceEntity?
+
+    @Query("SELECT * FROM observed_sources ORDER BY displayName COLLATE NOCASE")
+    abstract suspend fun getSourcesNow(): List<ObservedSourceEntity>
+
+    @Query("SELECT * FROM consent_events ORDER BY occurredAt DESC, id DESC")
+    abstract suspend fun getConsentEventsNow(): List<ConsentEventEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    protected abstract suspend fun upsertSource(source: ObservedSourceEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun restoreSources(sources: List<ObservedSourceEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun restoreConsentEvents(events: List<ConsentEventEntity>)
+
+    @Insert
+    protected abstract suspend fun insertConsentEvent(event: ConsentEventEntity): Long
+
+    @Query("UPDATE observed_sources SET enabled = 0, updatedAt = :now WHERE enabled = 1")
+    abstract suspend fun disableAllSources(now: Long)
+
+    @Query("DELETE FROM consent_events WHERE id NOT IN (SELECT id FROM consent_events ORDER BY occurredAt DESC, id DESC LIMIT :keep)")
+    protected abstract suspend fun pruneConsentEvents(keep: Int)
+
+    @Transaction
+    open suspend fun configureSource(
+        packageName: String,
+        displayName: String,
+        enabled: Boolean,
+        onlyCommitments: Boolean,
+        now: Long
+    ) {
+        val existing = getSource(packageName)
+        if (existing?.enabled == enabled &&
+            existing.onlyCommitments == onlyCommitments &&
+            existing.displayName == displayName
+        ) return
+        upsertSource(
+            ObservedSourceEntity(
+                packageName = packageName,
+                displayName = displayName,
+                enabled = enabled,
+                onlyCommitments = onlyCommitments,
+                createdAt = existing?.createdAt ?: now,
+                updatedAt = now
+            )
+        )
+        insertConsentEvent(
+            ConsentEventEntity(
+                eventType = if (enabled) ConsentEventType.SOURCE_ENABLED else ConsentEventType.SOURCE_DISABLED,
+                sourcePackage = packageName,
+                occurredAt = now
+            )
+        )
+        pruneConsentEvents(200)
+    }
+
+    @Transaction
+    open suspend fun recordConsent(
+        eventType: ConsentEventType,
+        sourcePackage: String = "",
+        now: Long = System.currentTimeMillis()
+    ) {
+        insertConsentEvent(ConsentEventEntity(eventType = eventType, sourcePackage = sourcePackage, occurredAt = now))
+        pruneConsentEvents(200)
+    }
+
+    @Query("DELETE FROM consent_events")
+    abstract suspend fun deleteAllConsentEvents()
+
+    @Query("DELETE FROM observed_sources")
+    abstract suspend fun deleteAllSources()
 }

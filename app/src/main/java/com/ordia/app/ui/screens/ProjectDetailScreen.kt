@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
@@ -26,11 +26,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.ui.OrdiaUiState
@@ -53,12 +55,12 @@ fun ProjectDetailScreen(
 ) {
     val project = state.project(projectId)
     if (project == null) {
-        Column(Modifier.fillMaxSize().padding(contentPadding).padding(20.dp)) { EmptyState("Proyecto no disponible", "Puede estar archivado.", "Volver", onBack) }
+        Column(Modifier.fillMaxSize().padding(contentPadding).padding(20.dp)) { EmptyState(stringResource(R.string.project_detail_unavailable), stringResource(R.string.project_detail_unavailable_desc), stringResource(R.string.project_detail_volver), onBack) }
         return
     }
-    var editing by remember { mutableStateOf(false) }
-    var addingTask by remember { mutableStateOf(false) }
-    var addingNote by remember { mutableStateOf(false) }
+    var editing by rememberSaveable(projectId) { mutableStateOf(false) }
+    var addingTask by rememberSaveable(projectId) { mutableStateOf(false) }
+    var addingNote by rememberSaveable(projectId) { mutableStateOf(false) }
     if (editing) ProjectEditorDialog(project, { editing = false }, { vm.saveProject(it); editing = false })
     if (addingTask) TaskEditorDialog(
         projects = state.projects,
@@ -82,27 +84,27 @@ fun ProjectDetailScreen(
     ) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Volver") }
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.project_detail_volver)) }
                 Text(project.name, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-                IconButton(onClick = { editing = true }) { Icon(Icons.Outlined.Edit, "Editar proyecto") }
-                IconButton(onClick = { vm.deleteProject(project); onBack() }) { Icon(Icons.Outlined.DeleteOutline, "Archivar proyecto") }
+                IconButton(onClick = { editing = true }) { Icon(Icons.Outlined.Edit, stringResource(R.string.project_detail_edit_project)) }
+                IconButton(onClick = { vm.deleteProject(project); onBack() }) { Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.project_detail_archive_project)) }
             }
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (project.description.isNotBlank()) Text(project.description, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
-                Text("${tasks.count { it.completed }} de ${tasks.size} tareas completadas", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.project_detail_tasks_completed, tasks.count { it.completed }, tasks.size), style = MaterialTheme.typography.labelMedium)
             }
         }
-        item { SectionHeader("Tareas", action = "Añadir", onAction = { addingTask = true }) }
-        if (tasks.isEmpty()) item { Text("Este proyecto todavía no tiene tareas.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        item { SectionHeader(stringResource(R.string.project_detail_tasks_section), action = stringResource(R.string.action_add), onAction = { addingTask = true }) }
+        if (tasks.isEmpty()) item { Text(stringResource(R.string.project_detail_no_tasks), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         items(tasks, key = { it.id }) { task ->
             val subtasks = state.subtasks(task.id)
             TaskRow(task, project, subtasks.count { it.completed } to subtasks.size, { vm.toggleTask(task) }, { onTask(task.id) }, { vm.duplicateTask(task) }, { vm.deleteTask(task) })
         }
-        item { SectionHeader("Notas", action = "Añadir", onAction = { addingNote = true }) }
-        if (notes.isEmpty()) item { Text("Guarda decisiones, enlaces o contexto del proyecto.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        item { SectionHeader(stringResource(R.string.project_detail_notes_section), action = stringResource(R.string.action_add), onAction = { addingNote = true }) }
+        if (notes.isEmpty()) item { Text(stringResource(R.string.project_detail_no_notes), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         items(notes, key = { it.id }) { note ->
             OutlinedButton(onClick = { onNote(note.id) }, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
@@ -116,18 +118,19 @@ fun ProjectDetailScreen(
 
 @Composable
 private fun QuickNoteDialog(onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
-    var title by remember { mutableStateOf("") }
-    var body by remember { mutableStateOf("") }
+    var title by rememberSaveable { mutableStateOf("") }
+    var body by rememberSaveable { mutableStateOf("") }
+    val untitledLabel = stringResource(R.string.project_detail_note_untitled)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nueva nota") },
+        title = { Text(stringResource(R.string.project_detail_new_note)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Título") })
-                OutlinedTextField(body, { body = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Contenido") }, minLines = 5)
+                OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.project_detail_note_title_label)) })
+                OutlinedTextField(body, { body = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.project_detail_note_body_label)) }, minLines = 5)
             }
         },
-        confirmButton = { Button(onClick = { onSave(title.ifBlank { "Nota sin título" }, body) }) { Text("Guardar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        confirmButton = { Button(onClick = { onSave(title.ifBlank { untitledLabel }, body) }) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }

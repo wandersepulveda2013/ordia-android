@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognizerIntent
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,15 +29,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.ordia.app.OrdiaApplication
+import com.ordia.app.R
 import com.ordia.app.data.local.NoteEntity
+import com.ordia.app.data.local.CaptureEntity
+import com.ordia.app.data.local.CaptureSource
+import com.ordia.app.data.local.CaptureStatus
+import com.ordia.app.data.local.CaptureTarget
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockCodec
 import com.ordia.app.domain.NaturalTaskParser
+import com.ordia.app.domain.UniversalCaptureEngine
 import com.ordia.app.ui.theme.OrdiaTheme
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -53,8 +61,9 @@ class QuickCaptureActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setFinishOnTouchOutside(true)
         val container = (application as OrdiaApplication).container
-        val initialMode = intent.getStringExtra(EXTRA_MODE) ?: MODE_TASK
+        val initialMode = intent.getStringExtra(EXTRA_MODE) ?: MODE_AUTO
         val initialText = intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
+        val startVoice = intent.getBooleanExtra(EXTRA_START_VOICE, false)
         setContent {
             OrdiaTheme {
                 var mode by remember { mutableStateOf(initialMode) }
@@ -63,27 +72,41 @@ class QuickCaptureActivity : ComponentActivity() {
                 LaunchedEffect(voice) {
                     if (voice.isNotBlank() && voice != text) text = voice
                 }
+                LaunchedEffect(startVoice) {
+                    if (startVoice) launchVoiceRecognition()
+                }
+                val title = stringResource(R.string.quick_capture_title)
+                val subtitle = stringResource(R.string.quick_capture_subtitle)
+                val autoLabel = stringResource(R.string.quick_capture_auto)
+                val taskLabel = stringResource(R.string.suggestion_type_task)
+                val noteLabel = stringResource(R.string.quick_capture_note)
+                val taskHint = stringResource(R.string.quick_capture_task_hint)
+                val noteHint = stringResource(R.string.quick_capture_note_hint)
+                val dictateLabel = stringResource(R.string.quick_capture_dictate)
+                val quickNoteFallback = stringResource(R.string.quick_capture_fallback_title)
+                val saveLabel = stringResource(R.string.external_suggestion_save)
                 Surface(
                     modifier = Modifier.padding(16.dp),
                     shape = RoundedCornerShape(28.dp),
                     tonalElevation = 10.dp
                 ) {
                     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Text("Captura rápida", style = androidx.compose.material3.MaterialTheme.typography.headlineMedium)
+                        Text(title, style = androidx.compose.material3.MaterialTheme.typography.headlineMedium)
                         Text(
-                            "Guárdalo ahora. Ordia te ayuda a organizarlo después.",
+                            subtitle,
                             color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(selected = mode == MODE_TASK, onClick = { mode = MODE_TASK }, label = { Text("Tarea") })
-                            FilterChip(selected = mode == MODE_NOTE, onClick = { mode = MODE_NOTE }, label = { Text("Nota") })
+                            FilterChip(selected = mode == MODE_AUTO, onClick = { mode = MODE_AUTO }, label = { Text(autoLabel) })
+                            FilterChip(selected = mode == MODE_TASK, onClick = { mode = MODE_TASK }, label = { Text(taskLabel) })
+                            FilterChip(selected = mode == MODE_NOTE, onClick = { mode = MODE_NOTE }, label = { Text(noteLabel) })
                         }
                         OutlinedTextField(
                             value = text,
                             onValueChange = { text = it },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 3,
-                            label = { Text(if (mode == MODE_TASK) "¿Qué necesitas hacer?" else "¿Qué quieres guardar?") }
+                            label = { Text(if (mode == MODE_NOTE) noteHint else taskHint) }
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             OutlinedButton(
@@ -91,40 +114,99 @@ class QuickCaptureActivity : ComponentActivity() {
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Icon(Icons.Outlined.Mic, null)
-                                Text("Dictar", Modifier.padding(start = 6.dp))
+                                Text(dictateLabel, Modifier.padding(start = 6.dp))
                             }
                             Button(
                                 onClick = {
                                     val clean = text.trim()
                                     lifecycleScope.launch {
-                                        if (mode == MODE_NOTE) {
-                                            container.noteRepository.add(
-                                                NoteEntity(
-                                                    title = clean.lineSequence().firstOrNull()?.take(60).orEmpty().ifBlank { "Nota rápida" },
-                                                    body = clean,
-                                                    blocksData = NoteBlockCodec.encode(listOf(NoteBlock(text = clean)))
+                                        val requestedTarget = when (mode) {
+                                            MODE_NOTE -> CaptureTarget.NOTE
+                                            MODE_TASK -> CaptureTarget.TASK
+                                            else -> CaptureTarget.AUTO
+                                        }
+                                        val source = if (dictatedText.value.isNotBlank()) CaptureSource.VOICE else CaptureSource.COMPOSER
+                                        val interpretation = UniversalCaptureEngine.interpret(clean, requestedTarget)
+                                        val now = System.currentTimeMillis()
+                                        var capture = CaptureEntity(
+                                            content = clean,
+                                            source = source,
+                                            requestedTarget = requestedTarget,
+                                            resolvedTarget = interpretation.target,
+                                            status = CaptureStatus.PENDING,
+                                            fingerprint = UniversalCaptureEngine.fingerprint(clean),
+                                            createdAt = now,
+                                            updatedAt = now
+                                        )
+                                        runCatching {
+                                            val captureId = container.captureRepository.insert(capture)
+                                            capture = capture.copy(id = captureId)
+                                            val result = if (interpretation.target == CaptureTarget.NOTE) {
+                                                "NOTE" to container.noteRepository.add(
+                                                    NoteEntity(
+                                                        title = interpretation.title.take(60).ifBlank { quickNoteFallback },
+                                                        body = clean,
+                                                        blocksData = NoteBlockCodec.encode(listOf(NoteBlock(text = clean))),
+                                                        createdAt = now,
+                                                        updatedAt = now
+                                                    )
+                                                )
+                                            } else {
+                                                val parsed = interpretation.parsedTask ?: NaturalTaskParser.parse(clean)
+                                                val reminderAt = parsed.reminderOffsetMinutes
+                                                    ?.takeIf { parsed.dueAt != null }
+                                                    ?.let { offset -> parsed.dueAt!! - offset * 60_000L }
+                                                val task = TaskEntity(
+                                                    title = parsed.title,
+                                                    details = clean,
+                                                    dueAt = parsed.dueAt,
+                                                    reminderAt = reminderAt,
+                                                    durationMinutes = parsed.durationMinutes ?: 25,
+                                                    priority = parsed.priority,
+                                                    recurrence = parsed.recurrence,
+                                                    recurrenceInterval = parsed.recurrenceInterval,
+                                                    recurrenceDays = parsed.recurrenceDays,
+                                                    status = if (parsed.dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED,
+                                                    createdAt = now,
+                                                    updatedAt = now
+                                                )
+                                                val taskId = container.taskRepository.add(task)
+                                                if (task.dueAt != null || task.reminderAt != null) {
+                                                    container.reminderScheduler.schedule(task.copy(id = taskId))
+                                                }
+                                                "TASK" to taskId
+                                            }
+                                            container.captureRepository.update(
+                                                capture.copy(
+                                                    status = CaptureStatus.PROCESSED,
+                                                    resultType = result.first,
+                                                    resultId = result.second,
+                                                    updatedAt = System.currentTimeMillis()
                                                 )
                                             )
-                                        } else {
-                                            val parsed = NaturalTaskParser.parse(clean)
-                                            val task = TaskEntity(
-                                                title = parsed.title,
-                                                dueAt = parsed.dueAt,
-                                                priority = parsed.priority,
-                                                status = if (parsed.dueAt == null) TaskStatus.INBOX else TaskStatus.PLANNED
-                                            )
-                                            val taskId = container.taskRepository.add(task)
-                                            if (task.dueAt != null) {
-                                                container.reminderScheduler.schedule(task.copy(id = taskId))
+                                            com.ordia.app.widget.OrdiaWidgetUpdater.updateAll(this@QuickCaptureActivity)
+                                            finish()
+                                        }.onFailure { error ->
+                                            if (capture.id > 0L) {
+                                                container.captureRepository.update(
+                                                    capture.copy(
+                                                        status = CaptureStatus.FAILED,
+                                                        errorCode = error.javaClass.simpleName.take(80),
+                                                        updatedAt = System.currentTimeMillis()
+                                                    )
+                                                )
                                             }
+                                            Toast.makeText(
+                                                this@QuickCaptureActivity,
+                                                R.string.quick_capture_save_failed,
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
-                                        com.ordia.app.widget.OrdiaWidgetUpdater.updateAll(this@QuickCaptureActivity)
-                                        finish()
                                     }
                                 },
                                 enabled = text.isNotBlank(),
                                 modifier = Modifier.weight(1f)
-                            ) { Text("Guardar") }
+                            ) { Text(saveLabel) }
                         }
                     }
                 }
@@ -136,13 +218,15 @@ class QuickCaptureActivity : ComponentActivity() {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Habla para guardar en Ordia")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.quick_capture_voice_prompt))
         }
         runCatching { voiceLauncher.launch(intent) }
     }
 
     companion object {
         const val EXTRA_MODE = "capture_mode"
+        const val EXTRA_START_VOICE = "start_voice"
+        const val MODE_AUTO = "auto"
         const val MODE_TASK = "task"
         const val MODE_NOTE = "note"
     }

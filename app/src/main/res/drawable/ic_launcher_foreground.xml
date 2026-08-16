@@ -4,9 +4,9 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:fillColor="#1D1B17" android:pathData="M54,18A36,36 0,1 1,54 90A36,36 0,1 1,54 18" />
-    <path android:fillColor="#00000000" android:strokeColor="#D9BC7A" android:strokeWidth="3" android:pathData="M54,26A28,28 0,1 1,54 82A28,28 0,1 1,54 26" />
-    <path android:fillColor="#F7F3EB" android:pathData="M42,47A3.5,3.5 0,1 1,42 54A3.5,3.5 0,1 1,42 47M66,47A3.5,3.5 0,1 1,66 54A3.5,3.5 0,1 1,66 47" />
-    <path android:fillColor="#00000000" android:strokeColor="#F7F3EB" android:strokeWidth="3" android:strokeLineCap="round" android:pathData="M43,64 Q54,72 65,64" />
-    <path android:fillColor="#D9BC7A" android:pathData="M54,29A4,4 0,1 1,54 37A4,4 0,1 1,54 29" />
+    <!-- Marca original: una captura central conecta tres decisiones y termina en confirmación. -->
+    <path android:fillColor="#111111" android:pathData="M28,27h52a7,7 0,0 1,7 7v40a7,7 0,0 1,-7 7h-52a7,7 0,0 1,-7 -7v-40a7,7 0,0 1,7 -7z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M36,39A4,4 0,1 1,36 47A4,4 0,1 1,36 39M36,61A4,4 0,1 1,36 69A4,4 0,1 1,36 61M55,50A5,5 0,1 1,55 60A5,5 0,1 1,55 50" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M40,43 L49,52 M40,65 L49,58 M60,55 L70,65 L82,43" />
+    <path android:fillColor="#315EF5" android:pathData="M55,50A5,5 0,1 1,55 60A5,5 0,1 1,55 50" />
 </vector>

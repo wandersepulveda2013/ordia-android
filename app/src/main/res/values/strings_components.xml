@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- EditorDialogs.kt (ORD-029 i18n). -->
+    <string name="dialog_task_new">Nueva tarea</string>
+    <string name="dialog_task_edit">Editar tarea</string>
+    <string name="dialog_task_details">Detalles</string>
+    <string name="dialog_task_date">Fecha</string>
+    <string name="dialog_task_time">Hora</string>
+    <string name="dialog_task_clear_date">Quitar fecha</string>
+    <string name="dialog_task_minutes">Minutos</string>
+    <string name="dialog_task_reminder">Recordar 30 minutos antes</string>
+    <string name="dialog_task_important">Marcar como importante</string>
+    <string name="dialog_task_tags">Etiquetas</string>
+    <string name="dialog_task_new_tag">Nueva etiqueta</string>
+    <string name="dialog_project_new">Nuevo proyecto</string>
+    <string name="dialog_project_edit">Editar proyecto</string>
+    <string name="dialog_project_none">Sin proyecto</string>
+    <string name="dialog_habit_new">Nuevo hábito</string>
+    <string name="dialog_habit_edit">Editar hábito</string>
+    <string name="dialog_habit_title">Hábito</string>
+    <string name="dialog_habit_why">Por qué es importante</string>
+    <string name="dialog_habit_target">Meta por período</string>
+    <string name="dialog_routine_new">Nueva rutina</string>
+    <string name="dialog_routine_edit">Editar rutina</string>
+    <string name="dialog_routine_steps">Pasos, uno por línea</string>
+    <string name="dialog_field_name">Nombre</string>
+    <string name="dialog_field_description">Descripción</string>
+    <string name="dialog_priority_low">Baja</string>
+    <string name="dialog_priority_normal">Normal</string>
+    <string name="dialog_priority_high">Alta</string>
+    <string name="dialog_priority_urgent">Urgente</string>
+    <string name="dialog_recurrence_none">No repetir</string>
+    <string name="dialog_recurrence_daily">Cada día</string>
+    <string name="dialog_recurrence_weekly">Cada semana</string>
+    <string name="dialog_recurrence_monthly">Cada mes</string>
+    <string name="dialog_recurrence_yearly">Cada año</string>
+    <string name="dialog_project_status_active">Activo</string>
+    <string name="dialog_project_status_paused">En pausa</string>
+    <string name="dialog_project_status_completed">Completado</string>
+    <string name="dialog_habit_frequency_daily">Diario</string>
+    <string name="dialog_habit_frequency_weekly">Semanal</string>
+    <string name="dialog_habit_frequency_monthly">Mensual</string>
+    <string name="dialog_change_date">Cambiar fecha</string>
+    <string name="dialog_change_priority">Cambiar prioridad</string>
+    <string name="dialog_change_recurrence">Cambiar repetición</string>
+
+    <!-- TaskComponents.kt (ORD-029 i18n). -->
+    <string name="task_flagged">Marcada</string>
+    <string name="task_inbox">Bandeja</string>
+    <string name="task_more_options">Más opciones</string>
+    <string name="task_duplicate">Duplicar</string>
+    <string name="task_archive">Archivar</string>
+    <string name="task_subtask_progress">%1$d/%2$d</string>
+
+    <!-- ContextualSuggestionDialog.kt (ORD-029 i18n). -->
+    <string name="suggestion_confirm_title">¿Quieres que Ordía lo recuerde?</string>
+    <string name="suggestion_privacy_note">El análisis ocurrió en tu teléfono. Ordía no guardó la conversación original.</string>
+    <string name="suggestion_confidence">Confianza: %1$d %%</string>
+    <string name="suggestion_discard">Descartar</string>
+
+    <!-- VirtualGuardian.kt (ORD-029 i18n). -->
+    <string name="pet_guardian_description">%1$s, guardián %2$s, etapa %3$s, %4$s</string>
+
+    <!-- AppComponents.kt (ORD-029 i18n). -->
+    <string name="component_guardian_mood_calm">tranquilo</string>
+    <string name="component_guardian_mood_happy">feliz</string>
+    <string name="component_guardian_mood_focused">concentrado</string>
+    <string name="component_guardian_mood_sleepy">con sueño</string>
+    <string name="component_guardian_mood_curious">curioso</string>
+    <string name="component_guardian_mood_proud">orgulloso</string>
+    <string name="component_guardian_mood_playful">juguetón</string>
+    <string name="component_guardian_mood_concerned">preocupado</string>
+    <string name="component_guardian_description">Guardián de Ordía, estado %1$s</string>
+
+    <!-- Estados base (rediseño limpio). -->
+    <string name="component_loading">Cargando…</string>
+    <string name="component_error_title">No se pudo cargar</string>
+    <string name="component_error_retry">Reintentar</string>
+</resources>

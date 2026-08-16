@@ -1,4 +1,4 @@
-package com.ordia.app.ui.components
+﻿package com.ordia.app.ui.components
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -36,7 +35,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitFrequency
 import com.ordia.app.data.local.ProjectEntity
@@ -82,17 +85,21 @@ fun TaskEditorDialog(
     var recurrenceMenu by remember { mutableStateOf(false) }
     var chosenTags by remember(existing?.id) { mutableStateOf(selectedTagIds) }
     var newTag by remember(existing?.id) { mutableStateOf("") }
+    val reminderLabel = stringResource(R.string.dialog_task_reminder)
+    val importantLabel = stringResource(R.string.dialog_task_important)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existing == null) "Nueva tarea" else "Editar tarea") },
+        title = {
+            Text(if (existing == null) stringResource(R.string.dialog_task_new) else stringResource(R.string.dialog_task_edit))
+        },
         text = {
             Column(
                 Modifier.fillMaxWidth().heightIn(max = 620.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Título") }, singleLine = true)
-                OutlinedTextField(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Detalles") }, minLines = 2, maxLines = 4)
+                OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.external_suggestion_title_hint)) }, singleLine = true)
+                OutlinedTextField(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_task_details)) }, minLines = 2, maxLines = 4)
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
@@ -106,8 +113,8 @@ fun TaskEditorDialog(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Outlined.CalendarMonth, null)
-                        Text(dueAt?.let { DateRules.formatDate(it) } ?: "Fecha", Modifier.padding(start = 6.dp))
+                        Icon(Icons.Outlined.CalendarMonth, stringResource(R.string.dialog_change_date))
+                        Text(dueAt?.let { DateRules.formatDate(it) } ?: stringResource(R.string.dialog_task_date), Modifier.padding(start = 6.dp))
                     }
                     OutlinedButton(
                         onClick = {
@@ -119,14 +126,14 @@ fun TaskEditorDialog(
                         },
                         enabled = dueAt != null,
                         modifier = Modifier.weight(1f)
-                    ) { Text(dueAt?.let { DateRules.formatTime(it) } ?: "Hora") }
+                    ) { Text(dueAt?.let { DateRules.formatTime(it) } ?: stringResource(R.string.dialog_task_time)) }
                 }
-                if (dueAt != null) TextButton(onClick = { dueAt = null; reminderEnabled = false }) { Text("Quitar fecha") }
+                if (dueAt != null) TextButton(onClick = { dueAt = null; reminderEnabled = false }) { Text(stringResource(R.string.dialog_task_clear_date)) }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(Modifier.weight(1f)) {
                         OutlinedButton(onClick = { priorityMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                            Icon(Icons.Outlined.Flag, null)
+                            Icon(Icons.Outlined.Flag, stringResource(R.string.dialog_change_priority))
                             Text(priority.label(), Modifier.padding(start = 6.dp))
                         }
                         DropdownMenu(priorityMenu, { priorityMenu = false }) {
@@ -135,10 +142,10 @@ fun TaskEditorDialog(
                     }
                     Column(Modifier.weight(1f)) {
                         OutlinedButton(onClick = { projectMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text(projects.firstOrNull { it.id == projectId }?.name ?: "Sin proyecto")
+                            Text(projects.firstOrNull { it.id == projectId }?.name ?: stringResource(R.string.dialog_project_none))
                         }
                         DropdownMenu(projectMenu, { projectMenu = false }) {
-                            DropdownMenuItem(text = { Text("Sin proyecto") }, onClick = { projectId = null; projectMenu = false })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.dialog_project_none)) }, onClick = { projectId = null; projectMenu = false })
                             projects.forEach { project -> DropdownMenuItem(text = { Text(project.name) }, onClick = { projectId = project.id; projectMenu = false }) }
                         }
                     }
@@ -147,7 +154,7 @@ fun TaskEditorDialog(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         OutlinedButton(onClick = { recurrenceMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                            Icon(Icons.Outlined.Repeat, null)
+                            Icon(Icons.Outlined.Repeat, stringResource(R.string.dialog_change_recurrence))
                             Text(recurrence.label(), Modifier.padding(start = 6.dp))
                         }
                         DropdownMenu(recurrenceMenu, { recurrenceMenu = false }) {
@@ -158,21 +165,30 @@ fun TaskEditorDialog(
                         value = duration,
                         onValueChange = { duration = it.filter(Char::isDigit).take(3) },
                         modifier = Modifier.weight(0.7f),
-                        label = { Text("Minutos") },
+                        label = { Text(stringResource(R.string.dialog_task_minutes)) },
                         singleLine = true
                     )
                 }
 
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Recordar 30 minutos antes", Modifier.weight(1f))
-                    Switch(reminderEnabled, { reminderEnabled = it }, enabled = dueAt != null)
+                    Text(reminderLabel, Modifier.weight(1f))
+                    Switch(
+                        reminderEnabled,
+                        { reminderEnabled = it },
+                        enabled = dueAt != null,
+                        modifier = Modifier.semantics { contentDescription = reminderLabel }
+                    )
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Marcar como importante", Modifier.weight(1f))
-                    Switch(flagged, { flagged = it })
+                    Text(importantLabel, Modifier.weight(1f))
+                    Switch(
+                        flagged,
+                        { flagged = it },
+                        modifier = Modifier.semantics { contentDescription = importantLabel }
+                    )
                 }
 
-                Text("Etiquetas")
+                Text(stringResource(R.string.dialog_task_tags))
                 if (tags.isNotEmpty()) {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(tags, key = { it.id }) { tag ->
@@ -189,13 +205,13 @@ fun TaskEditorDialog(
                         value = newTag,
                         onValueChange = { newTag = it.take(30) },
                         modifier = Modifier.weight(1f),
-                        label = { Text("Nueva etiqueta") },
+                        label = { Text(stringResource(R.string.dialog_task_new_tag)) },
                         singleLine = true
                     )
                     TextButton(
                         onClick = { onAddTag(newTag); newTag = "" },
                         enabled = newTag.isNotBlank() && tags.none { it.name.equals(newTag.trim(), true) }
-                    ) { Text("Añadir") }
+                    ) { Text(stringResource(R.string.action_add)) }
                 }
             }
         },
@@ -223,9 +239,9 @@ fun TaskEditorDialog(
                     onSave(task, chosenTags)
                 },
                 enabled = title.isNotBlank()
-            ) { Text("Guardar") }
+            ) { Text(stringResource(R.string.action_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -236,64 +252,42 @@ fun ProjectEditorDialog(existing: ProjectEntity? = null, onDismiss: () -> Unit, 
     var status by remember(existing?.id) { mutableStateOf(existing?.status ?: ProjectStatus.ACTIVE) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existing == null) "Nuevo proyecto" else "Editar proyecto") },
+        title = { Text(if (existing == null) stringResource(R.string.dialog_project_new) else stringResource(R.string.dialog_project_edit)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Nombre") }, singleLine = true)
-                OutlinedTextField(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Descripción") }, minLines = 3)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_name)) }, singleLine = true)
+                OutlinedTextField(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_description)) }, minLines = 3)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ProjectStatus.entries.forEach { value -> FilterChip(selected = status == value, onClick = { status = value }, label = { Text(value.label()) }) }
                 }
             }
         },
-        confirmButton = { Button(onClick = { onSave((existing ?: ProjectEntity(name = name)).copy(name = name, description = description, status = status)) }, enabled = name.isNotBlank()) { Text("Guardar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        confirmButton = { Button(onClick = { onSave((existing ?: ProjectEntity(name = name)).copy(name = name, description = description, status = status)) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
 @Composable
 fun HabitEditorDialog(existing: HabitEntity? = null, onDismiss: () -> Unit, onSave: (HabitEntity) -> Unit) {
-    val context = LocalContext.current
     var title by remember(existing?.id) { mutableStateOf(existing?.title.orEmpty()) }
     var details by remember(existing?.id) { mutableStateOf(existing?.details.orEmpty()) }
     var frequency by remember(existing?.id) { mutableStateOf(existing?.frequency ?: HabitFrequency.DAILY) }
     var target by remember(existing?.id) { mutableStateOf((existing?.targetPerPeriod ?: 1).toString()) }
-    var reminderEnabled by remember(existing?.id) { mutableStateOf(existing?.reminderMinutes != null) }
-    var reminderMinutes by remember(existing?.id) { mutableStateOf(existing?.reminderMinutes ?: 9 * 60) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existing == null) "Nuevo hábito" else "Editar hábito") },
+        title = { Text(if (existing == null) stringResource(R.string.dialog_habit_new) else stringResource(R.string.dialog_habit_edit)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Hábito") }, singleLine = true)
-                OutlinedTextField(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Por qué es importante") }, minLines = 2)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_habit_title)) }, singleLine = true)
+                OutlinedTextField(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_habit_why)) }, minLines = 2)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     HabitFrequency.entries.forEach { value -> FilterChip(selected = frequency == value, onClick = { frequency = value }, label = { Text(value.label()) }) }
                 }
-                OutlinedTextField(target, { target = it.filter(Char::isDigit).take(2) }, modifier = Modifier.fillMaxWidth(), label = { Text("Meta por período") }, singleLine = true)
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Recordatorio diario", Modifier.weight(1f))
-                    Switch(reminderEnabled, { reminderEnabled = it })
-                }
-                if (reminderEnabled) {
-                    OutlinedButton(
-                        onClick = {
-                            val current = LocalTime.of((reminderMinutes / 60).coerceIn(0, 23), (reminderMinutes % 60).coerceIn(0, 59))
-                            android.app.TimePickerDialog(context, { _, hour, minute -> reminderMinutes = hour * 60 + minute }, current.hour, current.minute, false).show()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Outlined.Notifications, null)
-                        Text(
-                            "%02d:%02d".format(reminderMinutes / 60, reminderMinutes % 60),
-                            Modifier.padding(start = 6.dp)
-                        )
-                    }
-                }
+                OutlinedTextField(target, { target = it.filter(Char::isDigit).take(2) }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_habit_target)) }, singleLine = true)
             }
         },
-        confirmButton = { Button(onClick = { onSave((existing ?: HabitEntity(title = title)).copy(title = title, details = details, frequency = frequency, targetPerPeriod = target.toIntOrNull()?.coerceIn(1, 20) ?: 1, reminderMinutes = if (reminderEnabled) reminderMinutes else null)) }, enabled = title.isNotBlank()) { Text("Guardar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        confirmButton = { Button(onClick = { onSave((existing ?: HabitEntity(title = title)).copy(title = title, details = details, frequency = frequency, targetPerPeriod = target.toIntOrNull()?.coerceIn(1, 20) ?: 1)) }, enabled = title.isNotBlank()) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -304,39 +298,54 @@ fun RoutineEditorDialog(existing: RoutineEntity? = null, existingSteps: List<Str
     var steps by remember(existing?.id) { mutableStateOf(existingSteps.joinToString("\n")) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existing == null) "Nueva rutina" else "Editar rutina") },
+        title = { Text(if (existing == null) stringResource(R.string.dialog_routine_new) else stringResource(R.string.dialog_routine_edit)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Nombre") }, singleLine = true)
-                OutlinedTextField(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Descripción") }, minLines = 2)
-                OutlinedTextField(steps, { steps = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Pasos, uno por línea") }, minLines = 5)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_name)) }, singleLine = true)
+                OutlinedTextField(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_description)) }, minLines = 2)
+                OutlinedTextField(steps, { steps = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_routine_steps)) }, minLines = 5)
             }
         },
-        confirmButton = { Button(onClick = { onSave((existing ?: RoutineEntity(name = name)).copy(name = name, description = description), steps.lines()) }, enabled = name.isNotBlank()) { Text("Guardar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        confirmButton = { Button(onClick = { onSave((existing ?: RoutineEntity(name = name)).copy(name = name, description = description), steps.lines()) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
-private fun TaskPriority.label() = when (this) {
-    TaskPriority.LOW -> "Baja"
-    TaskPriority.NORMAL -> "Normal"
-    TaskPriority.HIGH -> "Alta"
-    TaskPriority.URGENT -> "Urgente"
-}
-private fun RecurrenceFrequency.label() = when (this) {
-    RecurrenceFrequency.NONE -> "No repetir"
-    RecurrenceFrequency.DAILY -> "Cada día"
-    RecurrenceFrequency.WEEKLY -> "Cada semana"
-    RecurrenceFrequency.MONTHLY -> "Cada mes"
-    RecurrenceFrequency.YEARLY -> "Cada año"
-}
-private fun ProjectStatus.label() = when (this) {
-    ProjectStatus.ACTIVE -> "Activo"
-    ProjectStatus.PAUSED -> "En pausa"
-    ProjectStatus.COMPLETED -> "Completado"
-}
-private fun HabitFrequency.label() = when (this) {
-    HabitFrequency.DAILY -> "Diario"
-    HabitFrequency.WEEKLY -> "Semanal"
-    HabitFrequency.MONTHLY -> "Mensual"
-}
+@Composable
+private fun TaskPriority.label(): String = stringResource(
+    when (this) {
+        TaskPriority.LOW -> R.string.dialog_priority_low
+        TaskPriority.NORMAL -> R.string.dialog_priority_normal
+        TaskPriority.HIGH -> R.string.dialog_priority_high
+        TaskPriority.URGENT -> R.string.dialog_priority_urgent
+    }
+)
+
+@Composable
+private fun RecurrenceFrequency.label(): String = stringResource(
+    when (this) {
+        RecurrenceFrequency.NONE -> R.string.dialog_recurrence_none
+        RecurrenceFrequency.DAILY -> R.string.dialog_recurrence_daily
+        RecurrenceFrequency.WEEKLY -> R.string.dialog_recurrence_weekly
+        RecurrenceFrequency.MONTHLY -> R.string.dialog_recurrence_monthly
+        RecurrenceFrequency.YEARLY -> R.string.dialog_recurrence_yearly
+    }
+)
+
+@Composable
+private fun ProjectStatus.label(): String = stringResource(
+    when (this) {
+        ProjectStatus.ACTIVE -> R.string.dialog_project_status_active
+        ProjectStatus.PAUSED -> R.string.dialog_project_status_paused
+        ProjectStatus.COMPLETED -> R.string.dialog_project_status_completed
+    }
+)
+
+@Composable
+private fun HabitFrequency.label(): String = stringResource(
+    when (this) {
+        HabitFrequency.DAILY -> R.string.dialog_habit_frequency_daily
+        HabitFrequency.WEEKLY -> R.string.dialog_habit_frequency_weekly
+        HabitFrequency.MONTHLY -> R.string.dialog_habit_frequency_monthly
+    }
+)

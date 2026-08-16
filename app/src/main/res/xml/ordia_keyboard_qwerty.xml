@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+  Teclado minimalista Ordía 3 — QWERTY español
+  Solo para captura contextual, no para escritura intensiva.
+  No almacena pulsaciones individuales ni texto completo.
+-->
+<Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
+    android:keyWidth="10%p"
+    android:keyHeight="56dp"
+    android:horizontalGap="0px"
+    android:verticalGap="4dp">
+
+    <!-- Fila 1: Q W E R T Y U I O P -->
+    <Row android:keyWidth="10%p">
+        <Key android:codes="113" android:keyLabel="q" />
+        <Key android:codes="119" android:keyLabel="w" />
+        <Key android:codes="101" android:keyLabel="e" />
+        <Key android:codes="114" android:keyLabel="r" />
+        <Key android:codes="116" android:keyLabel="t" />
+        <Key android:codes="121" android:keyLabel="y" />
+        <Key android:codes="117" android:keyLabel="u" />
+        <Key android:codes="105" android:keyLabel="i" />
+        <Key android:codes="111" android:keyLabel="o" />
+        <Key android:codes="112" android:keyLabel="p" />
+    </Row>
+
+    <!-- Fila 2: A S D F G H J K L Ñ -->
+    <Row android:keyWidth="10%p">
+        <Key android:codes="97" android:keyLabel="a" />
+        <Key android:codes="115" android:keyLabel="s" />
+        <Key android:codes="100" android:keyLabel="d" />
+        <Key android:codes="102" android:keyLabel="f" />
+        <Key android:codes="103" android:keyLabel="g" />
+        <Key android:codes="104" android:keyLabel="h" />
+        <Key android:codes="106" android:keyLabel="j" />
+        <Key android:codes="107" android:keyLabel="k" />
+        <Key android:codes="108" android:keyLabel="l" />
+        <Key android:codes="241" android:keyLabel="ñ" />
+    </Row>
+
+    <!-- Fila 3: Shift Z X C V B N M Retroceso -->
+    <Row android:keyWidth="10%p">
+        <Key android:codes="-1" android:keyLabel="⇧" android:keyEdgeFlags="left" />
+        <Key android:codes="122" android:keyLabel="z" />
+        <Key android:codes="120" android:keyLabel="x" />
+        <Key android:codes="99" android:keyLabel="c" />
+        <Key android:codes="118" android:keyLabel="v" />
+        <Key android:codes="98" android:keyLabel="b" />
+        <Key android:codes="110" android:keyLabel="n" />
+        <Key android:codes="109" android:keyLabel="m" />
+        <Key android:codes="-5" android:keyLabel="⌫" android:keyEdgeFlags="right" />
+    </Row>
+
+    <!-- Fila 4: Tecla de cambio de idioma, espacio, Enter -->
+    <Row android:keyWidth="10%p" android:rowEdgeFlags="bottom">
+        <Key android:codes="-3" android:keyLabel="ABC" android:keyWidth="15%p" />
+        <Key android:codes="32" android:keyLabel="Espacio" android:keyWidth="55%p"
+            android:isRepeatable="false" />
+        <Key android:codes="-4" android:keyLabel="↵" android:keyWidth="20%p"
+            android:keyEdgeFlags="right" />
+    </Row>
+</Keyboard>

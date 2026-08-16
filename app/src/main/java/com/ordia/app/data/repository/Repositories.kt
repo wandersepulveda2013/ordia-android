@@ -11,7 +11,6 @@ import com.ordia.app.data.local.HabitLogDao
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteDao
 import com.ordia.app.data.local.NoteEntity
-import com.ordia.app.data.local.OrdiaDatabase
 import com.ordia.app.data.local.ProjectDao
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.RoutineDao
@@ -24,42 +23,23 @@ import com.ordia.app.data.local.TaskDao
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskTagCrossRef
 import com.ordia.app.data.local.TaskTagDao
-import androidx.room.withTransaction
+import com.ordia.app.data.local.CaptureDao
+import com.ordia.app.data.local.CaptureDraftEntity
+import com.ordia.app.data.local.CaptureEntity
+import com.ordia.app.data.local.CommitmentEntity
+import com.ordia.app.data.local.ConversationDao
+import com.ordia.app.data.local.ConversationEntity
+import com.ordia.app.data.local.ConversationSourceType
+import com.ordia.app.data.local.ConsentEventEntity
+import com.ordia.app.data.local.ConsentEventType
+import com.ordia.app.data.local.ObservationDao
+import com.ordia.app.data.local.ObservedSourceEntity
+import com.ordia.app.data.local.AutomationRuleDao
+import com.ordia.app.data.local.AutomationRuleEntity
+import com.ordia.app.data.local.AutomationTrigger
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Serializa las mutaciones de una misma tarea para evitar carreras de
- * borrado/actualización concurrentes dentro de corrutinas. Usa [Mutex] de
- * kotlinx.coroutines (seguro para suspensiones).
- *
- * El bloqueo es por [taskId]: operaciones sobre tareas distintas pueden
- * ejecutarse concurrentemente. El id `0L` agrupa todas las tareas nuevas
- * (aún sin id) para evitar duplicados de creación en conflicto.
- */
-object TaskMutationGate {
-    private val mutexes = ConcurrentHashMap<Long, Mutex>()
-    private val newTaskMutex = Mutex()
-
-    private fun mutexFor(taskId: Long): Mutex =
-        if (taskId <= 0L) newTaskMutex
-        else mutexes.getOrPut(taskId) { Mutex() }
-
-    suspend fun <T> withLock(taskId: Long, block: suspend () -> T): T =
-        mutexFor(taskId).withLock { block() }
-
-    /** Bloqueo global (p. ej. para borrado de subárbol, que toca varias tareas). */
-    private val globalMutex = Mutex()
-    suspend fun <T> withLock(block: suspend () -> T): T = globalMutex.withLock { block() }
-}
-
-class TaskRepository(
-    private val dao: TaskDao,
-    private val database: OrdiaDatabase,
-    private val attachmentDao: AttachmentDao
-) {
+class TaskRepository(private val dao: TaskDao) {
     val tasks: Flow<List<TaskEntity>> = dao.observeAll()
     val archived: Flow<List<TaskEntity>> = dao.observeArchived()
     suspend fun get(id: Long): TaskEntity? = dao.getById(id)
@@ -70,94 +50,12 @@ class TaskRepository(
     suspend fun delete(task: TaskEntity) = dao.delete(task)
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun restore(id: Long) = dao.restore(id)
+    suspend fun deletePermanently(id: Long) = dao.deleteSubtreeAndSelf(id)
     suspend fun search(query: String): List<TaskEntity> = dao.search(query)
-
-    /** Reescribe el sortOrder de las subtareas de [parentId] según el orden de la lista dada. */
-    suspend fun reorderSubtasks(parentId: Long, orderedIds: List<Long>) {
-        database.withTransaction {
-            orderedIds.forEachIndexed { index, id -> dao.updateSortOrder(id, index) }
-        }
-    }
-
-    /**
-     * IDs del subárbol completo bajo [rootId] (incluye [rootId] y todos sus descendientes).
-     */
-    suspend fun subtreeIds(rootId: Long): List<Long> = dao.collectSubtreeIds(rootId)
-
-    /**
-     * Borra todo el subárbol de tareas bajo [rootId] (incluida la raíz) dentro de una transacción,
-     * limpiando también los attachments de tipo TASK asociados a esas tareas.
-     * Las referencias task_tag_cross_ref se eliminan automáticamente vía ForeignKey CASCADE.
-     * El cancelado de reminders (WorkManager) debe hacerlo el llamador, ya que el repositorio
-     * no tiene acceso al scheduler; recíbelo vía [reminderCancellation] para ejecutarlo fuera de la
-     * transacción de BD.
-     */
-    suspend fun deleteSubtreeAndSelf(
-        rootId: Long,
-        reminderCancellation: suspend (Long) -> Unit = {}
-    ): List<Long> {
-        val ids = dao.collectSubtreeIds(rootId)
-        if (ids.isEmpty()) return emptyList()
-        // Cancelar reminders fuera de la transacción de BD para no acoplar WorkManager a la Tx.
-        for (taskId in ids) reminderCancellation(taskId)
-        database.withTransaction {
-            attachmentDao.deleteForOwners(AttachmentOwnerType.TASK, ids)
-            dao.deleteByIds(ids)
-        }
-        return ids
-    }
-
-    /** Borrado permanente de una sola tarea (sin subárbol): mantiene el comportamiento legacy. */
-    suspend fun deletePermanently(id: Long) {
-        database.withTransaction {
-            attachmentDao.deleteForOwner(AttachmentOwnerType.TASK, id)
-            dao.deleteById(id)
-        }
-    }
-
-    /**
-     * Archiva todo el subárbol bajo [rootId] (incluida la raíz) dentro de una transacción.
-     * Evita dejar subtasks huérfanas (activas pero inaccesibles) y con reminders vivos.
-     * El cancelado de reminders debe hacerlo el llamador vía [reminderCancellation] (fuera de la Tx).
-     */
-    suspend fun archiveSubtreeAndSelf(
-        rootId: Long,
-        reminderCancellation: suspend (Long) -> Unit = {}
-    ): List<Long> {
-        val ids = dao.collectSubtreeIds(rootId)
-        if (ids.isEmpty()) return emptyList()
-        for (taskId in ids) reminderCancellation(taskId)
-        database.withTransaction { dao.archiveByIds(ids) }
-        return ids
-    }
-
-    /**
-     * Restaura todo el subárbol bajo [rootId] (incluida la raíz) dentro de una transacción.
-     * La (re)programación de reminders debe hacerla el llamador vía [reminderScheduler] (fuera de la Tx).
-     * Devuelve las tareas restauradas para que el llamador decida qué reminders reprogramar.
-     */
-    suspend fun restoreSubtreeAndSelf(
-        rootId: Long,
-        reminderScheduler: suspend (TaskEntity) -> Unit = {},
-        reminderCancellation: suspend (Long) -> Unit = {}
-    ): List<TaskEntity> {
-        val ids = dao.collectSubtreeIds(rootId)
-        if (ids.isEmpty()) return emptyList()
-        database.withTransaction { dao.restoreByIds(ids) }
-        val restored = dao.getAllNow().filter { it.id in ids }
-        for (task in restored) {
-            if (!task.completed && (task.reminderAt != null || task.dueAt != null)) reminderScheduler(task)
-            else reminderCancellation(task.id)
-        }
-        return restored
-    }
+    suspend fun getAllNow(): List<TaskEntity> = dao.getAllNow()
 }
 
-class ProjectRepository(
-    private val dao: ProjectDao,
-    private val database: OrdiaDatabase,
-    private val attachmentDao: AttachmentDao
-) {
+class ProjectRepository(private val dao: ProjectDao) {
     val projects: Flow<List<ProjectEntity>> = dao.observeActive()
     val archived: Flow<List<ProjectEntity>> = dao.observeArchived()
     suspend fun get(id: Long): ProjectEntity? = dao.getById(id)
@@ -166,20 +64,11 @@ class ProjectRepository(
     suspend fun delete(project: ProjectEntity) = dao.delete(project)
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun restore(id: Long) = dao.restore(id)
-    suspend fun deletePermanently(id: Long) {
-        database.withTransaction {
-            attachmentDao.deleteForOwner(AttachmentOwnerType.PROJECT, id)
-            dao.deleteById(id)
-        }
-    }
+    suspend fun deletePermanently(id: Long) = dao.deleteById(id)
     suspend fun search(query: String): List<ProjectEntity> = dao.search(query)
 }
 
-class NoteRepository(
-    private val dao: NoteDao,
-    private val database: OrdiaDatabase,
-    private val attachmentDao: AttachmentDao
-) {
+class NoteRepository(private val dao: NoteDao) {
     val notes: Flow<List<NoteEntity>> = dao.observeAll()
     val archived: Flow<List<NoteEntity>> = dao.observeArchived()
     suspend fun get(id: Long): NoteEntity? = dao.getById(id)
@@ -188,12 +77,7 @@ class NoteRepository(
     suspend fun delete(note: NoteEntity) = dao.delete(note)
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun restore(id: Long) = dao.restore(id)
-    suspend fun deletePermanently(id: Long) {
-        database.withTransaction {
-            attachmentDao.deleteForOwner(AttachmentOwnerType.NOTE, id)
-            dao.deleteById(id)
-        }
-    }
+    suspend fun deletePermanently(id: Long) = dao.deleteById(id)
     suspend fun search(query: String): List<NoteEntity> = dao.search(query)
 }
 
@@ -207,6 +91,7 @@ class HabitRepository(
         logDao.observeRange(startEpochDay, endEpochDay)
 
     suspend fun get(id: Long): HabitEntity? = habitDao.getById(id)
+    suspend fun allNow(): List<HabitEntity> = habitDao.getAllNow()
     suspend fun add(habit: HabitEntity): Long = habitDao.insert(habit)
     suspend fun update(habit: HabitEntity) = habitDao.update(habit)
     suspend fun delete(habit: HabitEntity) = habitDao.delete(habit)
@@ -261,4 +146,100 @@ class AttachmentRepository(private val dao: AttachmentDao) {
         dao.observeForOwner(type, ownerId)
     suspend fun add(attachment: AttachmentEntity): Long = dao.insert(attachment)
     suspend fun delete(attachment: AttachmentEntity) = dao.delete(attachment)
+}
+
+class CaptureRepository(private val dao: CaptureDao) {
+    val recent: Flow<List<CaptureEntity>> = dao.observeRecent()
+    val draft: Flow<CaptureDraftEntity?> = dao.observeDraft()
+
+    suspend fun insert(capture: CaptureEntity): Long = dao.insert(capture)
+    suspend fun update(capture: CaptureEntity) = dao.update(capture)
+    suspend fun delete(id: Long) = dao.deleteById(id)
+    suspend fun findRecentDuplicate(fingerprint: String, since: Long): CaptureEntity? =
+        dao.findRecentDuplicate(fingerprint, since)
+    suspend fun saveDraft(draft: CaptureDraftEntity) = dao.upsertDraft(draft)
+    suspend fun clearDraft() = dao.deleteDraft()
+}
+
+class ConversationRepository(private val dao: ConversationDao) {
+    val conversations: Flow<List<ConversationEntity>> = dao.observeConversations()
+    val commitments: Flow<List<CommitmentEntity>> = dao.observeCommitments()
+    val pendingCommitments: Flow<List<CommitmentEntity>> = dao.observePendingCommitments()
+
+    suspend fun saveGraph(conversation: ConversationEntity, commitments: List<CommitmentEntity>): Pair<Long, Boolean> {
+        val result = dao.insertGraph(conversation, commitments)
+        return when {
+            result > 0L -> result to true
+            result < 0L -> -result to false
+            else -> 0L to false
+        }
+    }
+
+    suspend fun getConversation(id: Long): ConversationEntity? = dao.getConversation(id)
+    suspend fun findByHash(contentHash: String): ConversationEntity? = dao.findConversationByHash(contentHash)
+    suspend fun countSince(sourceType: ConversationSourceType, since: Long): Int =
+        dao.countConversationsSince(sourceType, since)
+    suspend fun getCommitment(id: Long): CommitmentEntity? = dao.getCommitment(id)
+    suspend fun getCommitmentsNow(): List<CommitmentEntity> = dao.getCommitmentsNow()
+    suspend fun updateCommitment(commitment: CommitmentEntity) = dao.updateCommitment(commitment)
+    suspend fun deleteConversation(id: Long) = dao.deleteConversation(id)
+    suspend fun clearBySource(sourceType: ConversationSourceType) = dao.deleteConversationsBySource(sourceType)
+    suspend fun clearAll() = dao.clearAll()
+}
+
+class AutomationRuleRepository(
+    private val ruleDao: AutomationRuleDao,
+    private val logDao: com.ordia.app.data.local.AutomationLogDao
+) {
+    val rules: Flow<List<AutomationRuleEntity>> = ruleDao.observeAll()
+    val history: Flow<List<com.ordia.app.data.local.AutomationLogEntity>> = logDao.observeRecent(100)
+
+    suspend fun save(rule: AutomationRuleEntity): Pair<Long, Boolean> {
+        val existing = ruleDao.findByDefinition(rule.definitionHash)
+        if (existing != null) return existing.id to false
+        val id = ruleDao.insert(rule)
+        return id to (id > 0L)
+    }
+
+    suspend fun get(id: Long): AutomationRuleEntity? = ruleDao.getById(id)
+    suspend fun enabledFor(trigger: AutomationTrigger): List<AutomationRuleEntity> = ruleDao.enabledFor(trigger)
+    suspend fun allNow(): List<AutomationRuleEntity> = ruleDao.getAllNow()
+    suspend fun update(rule: AutomationRuleEntity) = ruleDao.update(rule)
+    suspend fun delete(id: Long) = ruleDao.deleteById(id)
+    suspend fun countRuns(ruleId: Long, since: Long): Int = logDao.countSince("rule:$ruleId", since)
+    suspend fun log(entry: com.ordia.app.data.local.AutomationLogEntity): Long = logDao.insert(entry)
+}
+
+class ObservationRepository(private val dao: ObservationDao) {
+    val sources: Flow<List<ObservedSourceEntity>> = dao.observeSources()
+    val consentHistory: Flow<List<ConsentEventEntity>> = dao.observeConsentHistory()
+
+    suspend fun getSource(packageName: String): ObservedSourceEntity? = dao.getSource(packageName)
+
+    suspend fun configureSource(
+        packageName: String,
+        displayName: String,
+        enabled: Boolean,
+        onlyCommitments: Boolean = true
+    ) {
+        require(PACKAGE_PATTERN.matches(packageName)) { "Paquete de origen inválido." }
+        dao.configureSource(
+            packageName = packageName,
+            displayName = displayName.trim().take(100).ifBlank { packageName },
+            enabled = enabled,
+            onlyCommitments = onlyCommitments,
+            now = System.currentTimeMillis()
+        )
+    }
+
+    suspend fun recordConsent(type: ConsentEventType, sourcePackage: String = "") {
+        require(sourcePackage.isBlank() || PACKAGE_PATTERN.matches(sourcePackage)) { "Paquete de origen inválido." }
+        dao.recordConsent(type, sourcePackage)
+    }
+
+    suspend fun disableAllSources() = dao.disableAllSources(System.currentTimeMillis())
+
+    private companion object {
+        val PACKAGE_PATTERN = Regex("^[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z][A-Za-z0-9_]*)+$")
+    }
 }

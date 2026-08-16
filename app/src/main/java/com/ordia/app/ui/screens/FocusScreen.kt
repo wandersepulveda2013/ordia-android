@@ -36,9 +36,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
 import com.ordia.app.domain.FocusClock
+import com.ordia.app.domain.FocusTimerRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.GuardianAvatar
@@ -52,17 +55,27 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
     var remainingSeconds by rememberSaveable { mutableIntStateOf(plannedMinutes * 60) }
     var running by rememberSaveable { mutableStateOf(false) }
     var startedAt by rememberSaveable { mutableLongStateOf(0L) }
+    var deadlineAt by rememberSaveable { mutableLongStateOf(0L) }
     var taskId by rememberSaveable { mutableStateOf<Long?>(state.nextTask?.id) }
     var taskMenu by remember { mutableStateOf(false) }
 
-    LaunchedEffect(running, remainingSeconds) {
-        if (running && remainingSeconds > 0) {
-            delay(1_000)
-            remainingSeconds--
-        } else if (running && remainingSeconds == 0) {
-            running = false
-            val end = System.currentTimeMillis()
-            vm.saveFocusSession(taskId, startedAt, end, plannedMinutes, true)
+    LaunchedEffect(running, deadlineAt) {
+        while (running && deadlineAt > 0L) {
+            val now = System.currentTimeMillis()
+            val next = FocusTimerRules.remainingSeconds(deadlineAt, now)
+            remainingSeconds = next
+            if (next == 0) {
+                val completedStart = startedAt
+                running = false
+                startedAt = 0L
+                deadlineAt = 0L
+                remainingSeconds = plannedMinutes * 60
+                if (completedStart > 0L) {
+                    vm.saveFocusSession(taskId, completedStart, now, plannedMinutes, true)
+                }
+                break
+            }
+            delay(250L)
         }
     }
 
@@ -71,6 +84,7 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
         plannedMinutes = minutes
         remainingSeconds = minutes * 60
         startedAt = 0L
+        deadlineAt = 0L
     }
 
     Column(
@@ -78,7 +92,7 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        ScreenHeader("UNA COSA A LA VEZ", "Enfoque", "Ordia aparta lo demás mientras trabajas.")
+        ScreenHeader(stringResource(R.string.focus_eyebrow), stringResource(R.string.focus_title), stringResource(R.string.focus_subtitle))
         Surface(
             modifier = Modifier.size(270.dp),
             shape = CircleShape,
@@ -89,30 +103,43 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     GuardianAvatar(64.dp, if (running) GuardianMood.FOCUSED else GuardianMood.CALM)
                     Text(FocusClock.format(remainingSeconds), style = MaterialTheme.typography.displayLarge)
-                    Text(if (running) "En curso" else "Listo para empezar", style = MaterialTheme.typography.labelLarge)
+                    Text(if (running) stringResource(R.string.focus_in_progress) else stringResource(R.string.focus_ready), style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
         Column(Modifier.fillMaxWidth()) {
             OutlinedButton(onClick = { taskMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(state.task(taskId ?: -1)?.title ?: "Elegir tarea (opcional)", maxLines = 1)
+                Text(state.task(taskId ?: -1)?.title ?: stringResource(R.string.focus_choose_task), maxLines = 1)
             }
             DropdownMenu(taskMenu, { taskMenu = false }) {
-                DropdownMenuItem(text = { Text("Sin tarea") }, onClick = { taskId = null; taskMenu = false })
+                DropdownMenuItem(text = { Text(stringResource(R.string.focus_no_task)) }, onClick = { taskId = null; taskMenu = false })
                 state.pendingTasks.take(20).forEach { task -> DropdownMenuItem(text = { Text(task.title) }, onClick = { taskId = task.id; taskMenu = false }) }
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(15, 25, 45, 60).forEach { minutes -> FilterChip(selected = plannedMinutes == minutes, onClick = { reset(minutes) }, label = { Text("$minutes min") }, enabled = !running) }
+            listOf(15, 25, 45, 60).forEach { minutes -> FilterChip(selected = plannedMinutes == minutes, onClick = { reset(minutes) }, label = { Text(stringResource(R.string.focus_minutes, minutes)) }, enabled = !running) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { reset() }) { Icon(Icons.Outlined.Refresh, "Reiniciar") }
+            IconButton(onClick = { reset() }) { Icon(Icons.Outlined.Refresh, stringResource(R.string.focus_reset)) }
             Button(onClick = {
-                if (!running && startedAt == 0L) startedAt = System.currentTimeMillis()
-                running = !running
+                val now = System.currentTimeMillis()
+                if (running) {
+                    remainingSeconds = FocusTimerRules.remainingSeconds(deadlineAt, now)
+                    deadlineAt = 0L
+                    running = false
+                } else if (remainingSeconds > 0) {
+                    if (startedAt == 0L) startedAt = now
+                    deadlineAt = now + remainingSeconds * 1_000L
+                    running = true
+                }
             }) {
                 Icon(if (running) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, null)
-                Text(if (running) "Pausar" else "Empezar", Modifier.padding(start = 7.dp))
+                Text(
+                    if (running) stringResource(R.string.focus_pause)
+                    else if (startedAt > 0L) stringResource(R.string.focus_resume)
+                    else stringResource(R.string.focus_start),
+                    Modifier.padding(start = 7.dp)
+                )
             }
             IconButton(
                 onClick = {
@@ -120,10 +147,10 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
                     reset()
                 },
                 enabled = startedAt > 0L
-            ) { Icon(Icons.Outlined.Stop, "Finalizar") }
+            ) { Icon(Icons.Outlined.Stop, stringResource(R.string.focus_finish)) }
         }
         Text(
-            "Al terminar se registrará el tiempo real. Las pausas no bloquean el teléfono ni leen otras aplicaciones.",
+            stringResource(R.string.focus_note),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

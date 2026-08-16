@@ -6,109 +6,100 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import com.ordia.app.data.preferences.AccentPalette
 import com.ordia.app.data.preferences.ThemeMode
 
-val OrdiaInk = Color(0xFF1D1B17)
-val OrdiaCream = Color(0xFFF7F3EB)
-val OrdiaPaper = Color(0xFFFFFCF7)
-val OrdiaGold = Color(0xFF8A682D)
-val OrdiaGoldSoft = Color(0xFFD9BC7A)
-val OrdiaSage = Color(0xFF76845F)
-val OrdiaRose = Color(0xFFA87373)
-val OrdiaLavender = Color(0xFF88759C)
-
-/** Palette of accent colors chosen by the user. Each entry holds (secondary, secondaryContainer, onSecondaryContainer) for light and dark. */
-data class AccentSwatch(
-    val lightSecondary: Color,
-    val lightSecondaryContainer: Color,
-    val lightOnSecondaryContainer: Color,
-    val darkSecondary: Color,
-    val darkSecondaryContainer: Color,
-    val darkOnSecondaryContainer: Color
-)
-
-val accentSwatches: Map<AccentPalette, AccentSwatch> = mapOf(
-    AccentPalette.GOLD to AccentSwatch(
-        OrdiaGold, Color(0xFFF2E5C9), Color(0xFF34270F),
-        OrdiaGoldSoft, Color(0xFF4C3C1C), Color(0xFFFFE8AF)
-    ),
-    AccentPalette.SAGE to AccentSwatch(
-        OrdiaSage, Color(0xFFE0E8D6), Color(0xFF1F2A14),
-        Color(0xFFB9C99F), Color(0xFF37431F), Color(0xFFDDEBC8)
-    ),
-    AccentPalette.ROSE to AccentSwatch(
-        OrdiaRose, Color(0xFFF2DADA), Color(0xFF3A1717),
-        Color(0xFFD9A3A3), Color(0xFF4A1F1F), Color(0xFFFFDADA)
-    ),
-    AccentPalette.LAVENDER to AccentSwatch(
-        OrdiaLavender, Color(0xFFE4DCEE), Color(0xFF241B33),
-        Color(0xFFB5A5CC), Color(0xFF332745), Color(0xFFE6DCF6)
-    ),
-    AccentPalette.OCEAN to AccentSwatch(
-        Color(0xFF3E6680), Color(0xFFD2E0EA), Color(0xFF0F2533),
-        Color(0xFF8FB4CC), Color(0xFF1F3A4C), Color(0xFFCFE2F0)
-    ),
-    AccentPalette.TERRACOTTA to AccentSwatch(
-        Color(0xFFB5603E), Color(0xFFF2DDD0), Color(0xFF33180C),
-        Color(0xFFD89A78), Color(0xFF4A2417), Color(0xFFF6D9C8)
-    ),
-    AccentPalette.SYSTEM to AccentSwatch(
-        OrdiaGold, Color(0xFFF2E5C9), Color(0xFF34270F),
-        OrdiaGoldSoft, Color(0xFF4C3C1C), Color(0xFFFFE8AF)
-    )
-)
+/**
+ * Identidad visual oficial de Ordía.
+ *
+ * La interfaz es deliberadamente neutra: blanco, negro y grises. El azul se
+ * reserva como un único acento de orientación y nunca domina superficies
+ * completas. Verde, ámbar y rojo se usan solo para estados semánticos.
+ */
+val OrdiaInk = Color(0xFF111111)
+val OrdiaInkSoft = Color(0xFF5F5F5F)
+val OrdiaCanvas = Color(0xFFFAFAFA)
+val OrdiaPaper = Color(0xFFFFFFFF)
+val OrdiaAccent = Color(0xFF315EF5)
+val OrdiaSuccess = Color(0xFF247A52)
+val OrdiaWarning = Color(0xFF9A6700)
+val OrdiaDanger = Color(0xFFB42318)
+val OrdiaNight = Color(0xFF0B0B0B)
 
 private val LightColors = lightColorScheme(
     primary = OrdiaInk,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFEAE2D4),
+    primaryContainer = Color(0xFFE9E9E9),
     onPrimaryContainer = OrdiaInk,
-    secondary = OrdiaGold,
+    secondary = Color(0xFF3D3D3D),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFF2E5C9),
-    onSecondaryContainer = Color(0xFF34270F),
-    tertiary = OrdiaSage,
+    secondaryContainer = Color(0xFFF0F0F0),
+    onSecondaryContainer = OrdiaInk,
+    tertiary = OrdiaSuccess,
     onTertiary = Color.White,
-    background = OrdiaCream,
+    tertiaryContainer = Color(0xFFE2F3EA),
+    onTertiaryContainer = Color(0xFF123D2C),
+    background = OrdiaCanvas,
     onBackground = OrdiaInk,
     surface = OrdiaPaper,
     onSurface = OrdiaInk,
-    surfaceVariant = Color(0xFFEDE7DC),
-    onSurfaceVariant = Color(0xFF625D55),
-    outline = Color(0xFF8C8579),
-    outlineVariant = Color(0xFFDAD1C2),
-    error = Color(0xFF9A3E3E),
-    onError = Color.White
+    surfaceVariant = Color(0xFFF2F2F2),
+    onSurfaceVariant = OrdiaInkSoft,
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF7F7F7),
+    surfaceContainer = Color(0xFFF1F1F1),
+    surfaceContainerHigh = Color(0xFFEAEAEA),
+    surfaceContainerHighest = Color(0xFFE2E2E2),
+    outline = Color(0xFF747474),
+    outlineVariant = Color(0xFFDADADA),
+    error = OrdiaDanger,
+    onError = Color.White,
+    errorContainer = Color(0xFFFDE7E5),
+    onErrorContainer = Color(0xFF5F1410),
+    inverseSurface = Color(0xFF202020),
+    inverseOnSurface = Color(0xFFF7F7F7),
+    inversePrimary = Color.White,
+    scrim = Color.Black
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFF3EDE2),
-    onPrimary = Color(0xFF1A1916),
-    primaryContainer = Color(0xFF34312B),
-    onPrimaryContainer = Color(0xFFF5EFE4),
-    secondary = OrdiaGoldSoft,
-    onSecondary = Color(0xFF33270E),
-    secondaryContainer = Color(0xFF4C3C1C),
-    onSecondaryContainer = Color(0xFFFFE8AF),
-    tertiary = Color(0xFFB9C99F),
-    onTertiary = Color(0xFF263017),
-    background = Color(0xFF141310),
-    onBackground = Color(0xFFEDE8DF),
-    surface = Color(0xFF1C1B18),
-    onSurface = Color(0xFFEDE8DF),
-    surfaceVariant = Color(0xFF2B2924),
-    onSurfaceVariant = Color(0xFFC9C2B8),
-    outline = Color(0xFF938C81),
-    outlineVariant = Color(0xFF47433D),
+    primary = Color(0xFFF4F4F4),
+    onPrimary = Color(0xFF111111),
+    primaryContainer = Color(0xFF303030),
+    onPrimaryContainer = Color(0xFFF5F5F5),
+    secondary = Color(0xFFD0D0D0),
+    onSecondary = Color(0xFF171717),
+    secondaryContainer = Color(0xFF272727),
+    onSecondaryContainer = Color(0xFFECECEC),
+    tertiary = Color(0xFF72C79D),
+    onTertiary = Color(0xFF083523),
+    tertiaryContainer = Color(0xFF174B35),
+    onTertiaryContainer = Color(0xFFDDF5E9),
+    background = OrdiaNight,
+    onBackground = Color(0xFFF0F0F0),
+    surface = Color(0xFF121212),
+    onSurface = Color(0xFFF0F0F0),
+    surfaceVariant = Color(0xFF2B2B2B),
+    onSurfaceVariant = Color(0xFFBEBEBE),
+    surfaceContainerLowest = Color(0xFF070707),
+    surfaceContainerLow = Color(0xFF151515),
+    surfaceContainer = Color(0xFF1B1B1B),
+    surfaceContainerHigh = Color(0xFF242424),
+    surfaceContainerHighest = Color(0xFF303030),
+    outline = Color(0xFF8A8A8A),
+    outlineVariant = Color(0xFF3E3E3E),
     error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005)
+    onError = Color(0xFF690005),
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Color(0xFFFFDAD6),
+    inverseSurface = Color(0xFFE7E6EE),
+    inverseOnSurface = Color(0xFF202020),
+    inversePrimary = OrdiaInk,
+    scrim = Color.Black
 )
 
 @Composable
 fun OrdiaTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
-    accentPalette: AccentPalette = AccentPalette.GOLD,
     content: @Composable () -> Unit
 ) {
     val dark = when (themeMode) {
@@ -116,31 +107,8 @@ fun OrdiaTheme(
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    val colors = if (accentPalette == AccentPalette.SYSTEM && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-        val context = androidx.compose.ui.platform.LocalContext.current
-        if (dark) androidx.compose.material3.dynamicDarkColorScheme(context)
-        else androidx.compose.material3.dynamicLightColorScheme(context)
-    } else {
-        val swatch = accentSwatches[accentPalette] ?: accentSwatches.getValue(AccentPalette.GOLD)
-        val base = if (dark) DarkColors else LightColors
-        if (dark) {
-            base.copy(
-                secondary = swatch.darkSecondary,
-                onSecondary = Color(0xFF1A1916),
-                secondaryContainer = swatch.darkSecondaryContainer,
-                onSecondaryContainer = swatch.darkOnSecondaryContainer
-            )
-        } else {
-            base.copy(
-                secondary = swatch.lightSecondary,
-                onSecondary = Color.White,
-                secondaryContainer = swatch.lightSecondaryContainer,
-                onSecondaryContainer = swatch.lightOnSecondaryContainer
-            )
-        }
-    }
     MaterialTheme(
-        colorScheme = colors,
+        colorScheme = if (dark) DarkColors else LightColors,
         typography = OrdiaTypography,
         shapes = OrdiaShapes,
         content = content

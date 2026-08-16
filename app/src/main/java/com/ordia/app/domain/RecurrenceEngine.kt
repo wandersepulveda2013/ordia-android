@@ -11,20 +11,21 @@ object RecurrenceEngine {
     fun nextOccurrence(task: TaskEntity, completedAt: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): TaskEntity? {
         if (task.recurrence == RecurrenceFrequency.NONE) return null
         val interval = task.recurrenceInterval.coerceAtLeast(1).toLong()
-        val base = task.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone) }
-            ?: Instant.ofEpochMilli(completedAt).atZone(zone)
-        val next = when (task.recurrence) {
-            RecurrenceFrequency.NONE -> return null
-            RecurrenceFrequency.DAILY -> base.plusDays(interval)
-            RecurrenceFrequency.WEEKLY -> nextWeekly(base, interval, task.recurrenceDays)
-            RecurrenceFrequency.MONTHLY -> base.plusMonths(interval)
-            RecurrenceFrequency.YEARLY -> base.plusYears(interval)
+        val base = task.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone) } ?: Instant.ofEpochMilli(completedAt).atZone(zone)
+        var next = advance(base, interval, task.recurrence, task.recurrenceDays)
+        var guard = 0
+        while (next.toInstant().toEpochMilli() <= completedAt && guard++ < 10_000) {
+            next = advance(next, interval, task.recurrence, task.recurrenceDays)
         }
+        if (next.toInstant().toEpochMilli() <= completedAt) return null
+        val nextDue = next.toInstant().toEpochMilli()
         val reminderOffset = if (task.dueAt != null && task.reminderAt != null) task.dueAt - task.reminderAt else null
+        val startOffset = if (task.dueAt != null && task.startAt != null) task.dueAt - task.startAt else null
         return task.copy(
             id = 0,
-            dueAt = next.toInstant().toEpochMilli(),
-            reminderAt = reminderOffset?.let { next.toInstant().toEpochMilli() - it },
+            startAt = startOffset?.let { nextDue - it },
+            dueAt = nextDue,
+            reminderAt = reminderOffset?.let { nextDue - it },
             status = TaskStatus.PLANNED,
             completed = false,
             completedAt = null,
@@ -33,16 +34,20 @@ object RecurrenceEngine {
         )
     }
 
+    private fun advance(base: ZonedDateTime, interval: Long, frequency: RecurrenceFrequency, days: String): ZonedDateTime = when (frequency) {
+        RecurrenceFrequency.NONE -> base
+        RecurrenceFrequency.DAILY -> base.plusDays(interval)
+        RecurrenceFrequency.WEEKLY -> nextWeekly(base, interval, days)
+        RecurrenceFrequency.MONTHLY -> base.plusMonths(interval)
+        RecurrenceFrequency.YEARLY -> base.plusYears(interval)
+    }
+
     private fun nextWeekly(base: ZonedDateTime, interval: Long, recurrenceDays: String): ZonedDateTime {
-        val days = recurrenceDays.split(',').mapNotNull { it.trim().toIntOrNull() }.filter { it in 1..7 }.sorted()
+        val days = recurrenceDays.split(',').mapNotNull { it.trim().toIntOrNull() }.filter { it in 1..7 }.distinct().sorted()
         if (days.isEmpty()) return base.plusWeeks(interval)
         val current = base.dayOfWeek.value
-        val laterThisCycle = days.firstOrNull { it > current }
-        return if (laterThisCycle != null) {
-            base.plusDays((laterThisCycle - current).toLong())
-        } else {
-            val first = days.first()
-            base.plusWeeks(interval).minusDays((base.dayOfWeek.value - first).toLong())
-        }
+        val later = days.firstOrNull { it > current }
+        return if (later != null) base.plusDays((later - current).toLong())
+        else base.plusWeeks(interval).minusDays((current - days.first()).toLong())
     }
 }

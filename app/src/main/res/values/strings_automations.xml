@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_automations">Automatizaciones</string>
+    <string name="more_automations_desc">Reglas locales, explicables y reversibles</string>
+    <string name="automations_title">Automatizaciones</string>
+    <string name="automations_subtitle">Ordía ejecuta solo reglas compatibles que tú creas y activas.</string>
+    <string name="automation_instruction_label">Describe una regla</string>
+    <string name="automation_instruction_hint">Ejemplo: Cada mañana prepara mi día</string>
+    <string name="automation_create">Crear regla</string>
+    <string name="automation_templates">Plantillas seguras</string>
+    <string name="automation_templates_desc">Empiezan desactivadas y puedes probarlas sin cambiar datos.</string>
+    <string name="automation_rules">Mis reglas</string>
+    <string name="automation_rules_desc">Cada regla muestra qué la activa, qué comprueba y qué cambia.</string>
+    <string name="automation_rules_empty">Aún no hay reglas. Crea una arriba o usa una plantilla.</string>
+    <string name="automation_history">Historial</string>
+    <string name="automation_history_desc">Pruebas, ejecuciones, errores y cambios deshechos.</string>
+    <string name="automation_history_empty">Todavía no se ha ejecutado ninguna automatización.</string>
+    <string name="automation_delete">Eliminar automatización</string>
+    <string name="automation_limits">Mínimo %1$d min entre ejecuciones · máximo %2$d al día</string>
+    <string name="automation_test">Probar</string>
+    <string name="automation_run">Ejecutar</string>
+    <string name="automation_last_result">Último resultado: %1$s</string>
+    <string name="automation_undo_latest">Deshacer el último cambio reversible</string>
+    <string name="automation_status_undone">Deshecha</string>
+    <string name="automation_status_test">Prueba</string>
+    <string name="automation_status_done">Ejecutada</string>
+</resources>

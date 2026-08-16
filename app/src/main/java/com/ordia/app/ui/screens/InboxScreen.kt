@@ -1,6 +1,7 @@
 package com.ordia.app.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,13 +13,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.ordia.app.R
+import com.ordia.app.data.local.TaskStatus
+import com.ordia.app.domain.DateRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
+import com.ordia.app.ui.components.CaptureChips
 import com.ordia.app.ui.components.EmptyState
 import com.ordia.app.ui.components.ScreenHeader
 import com.ordia.app.ui.components.TaskEditorDialog
 import com.ordia.app.ui.components.TaskRow
+import com.ordia.app.ui.components.recurrenceChipLabel
 
 @Composable
 fun InboxScreen(
@@ -40,21 +47,35 @@ fun InboxScreen(
         contentPadding = PaddingValues(20.dp, contentPadding.calculateTopPadding() + 20.dp, 20.dp, contentPadding.calculateBottomPadding() + 28.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item { ScreenHeader("CAPTURA SIN FRICCIÓN", "Bandeja", "Todo lo que todavía no tiene fecha o proyecto.", "Añadir") { adding = true } }
+        item { ScreenHeader(stringResource(R.string.inbox_header_eyebrow), stringResource(R.string.inbox_header_title), stringResource(R.string.inbox_header_subtitle), stringResource(R.string.action_add)) { adding = true } }
         if (state.inboxTasks.isEmpty()) {
-            item { EmptyState("Bandeja vacía", "Las ideas rápidas y tareas sin fecha aparecerán aquí.", "Capturar algo", onAction = { adding = true }) }
+            item { EmptyState(stringResource(R.string.inbox_empty_title), stringResource(R.string.inbox_empty_subtitle), stringResource(R.string.inbox_empty_action), onAction = { adding = true }) }
         } else {
             items(state.inboxTasks, key = { it.id }) { task ->
                 val subtasks = state.subtasks(task.id)
-                TaskRow(
-                    task = task,
-                    project = state.project(task.projectId),
-                    subtaskProgress = subtasks.count { it.completed } to subtasks.size,
-                    onToggle = { vm.toggleTask(task) },
-                    onEdit = { onTask(task.id) },
-                    onDuplicate = { vm.duplicateTask(task) },
-                    onDelete = { vm.deleteTask(task) }
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    TaskRow(
+                        task = task,
+                        project = state.project(task.projectId),
+                        subtaskProgress = subtasks.count { it.completed } to subtasks.size,
+                        onToggle = { vm.toggleTask(task) },
+                        onEdit = { onTask(task.id) },
+                        onDuplicate = { vm.duplicateTask(task) },
+                        onDelete = { vm.deleteTask(task) }
+                    )
+                    val reviewChips = buildList {
+                        task.reminderAt?.let {
+                            add(stringResource(R.string.capture_chip_reminder_abs, DateRules.formatDate(it), DateRules.formatTime(it)))
+                        }
+                        if (task.durationMinutes != 25) add(stringResource(R.string.capture_chip_duration, task.durationMinutes))
+                        recurrenceChipLabel(task.recurrence, task.recurrenceInterval, task.recurrenceDays)?.let { add(it) }
+                    }
+                    CaptureChips(
+                        chips = reviewChips,
+                        hint = if (task.status == TaskStatus.INBOX && task.dueAt != null) stringResource(R.string.inbox_task_pending_review) else null,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
             }
         }
     }

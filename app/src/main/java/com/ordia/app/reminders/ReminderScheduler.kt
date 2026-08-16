@@ -7,11 +7,13 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.ordia.app.data.local.TaskEntity
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class ReminderScheduler(context: Context) {
+class ReminderScheduler(context: Context) : com.ordia.app.backup.ReminderSchedulerPort {
     private val workManager = WorkManager.getInstance(context.applicationContext)
 
-    fun schedule(task: TaskEntity) {
+    override fun schedule(task: TaskEntity) {
         val triggerAt = task.reminderAt ?: task.dueAt ?: return
         scheduleAt(task.id, triggerAt)
     }
@@ -31,9 +33,14 @@ class ReminderScheduler(context: Context) {
         if (taskId > 0L) workManager.cancelUniqueWork(workName(taskId))
     }
 
-    /** Cancela todos los reminders pendientes (usado antes de restaurar un backup). */
     fun cancelAll() {
         workManager.cancelAllWorkByTag(TAG_REMINDERS)
+    }
+
+    /** Waits for cancellation before imported reminders are re-enqueued, avoiding a cancellation race. */
+    override suspend fun cancelAllAndAwait() = withContext(Dispatchers.IO) {
+        workManager.cancelAllWorkByTag(TAG_REMINDERS).result.get(30, TimeUnit.SECONDS)
+        Unit
     }
 
     companion object {

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="quick_settings_capture_label">Captura Ordía</string>
+    <string name="shortcut_capture_short">Capturar</string>
+    <string name="shortcut_capture_long">Capturar en Ordía</string>
+    <string name="shortcut_focus_short">Enfoque</string>
+    <string name="shortcut_focus_long">Iniciar enfoque en Ordía</string>
+</resources>
