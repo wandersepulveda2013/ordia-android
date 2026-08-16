@@ -35,6 +35,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -122,8 +123,16 @@ fun TodayScreen(
         )
     }
     val summary = remember(state.tasks, clockNow) { SummaryEngine.summarize(state.tasks, clockNow) }
-    val guardianInsight = remember(state.tasks, state.habits, state.habitLogs, clockNow) {
-        GuardianCoach.insight(state.tasks, state.habits, state.habitLogs, clockNow)
+    val pendingCommitments by vm.pendingCommitments.collectAsState(initial = emptyList())
+    val guardianInsight = remember(state.tasks, state.habits, state.habitLogs, state.projects, pendingCommitments, clockNow) {
+        GuardianCoach.insight(
+            state.tasks,
+            state.habits,
+            state.habitLogs,
+            clockNow,
+            projects = state.projects,
+            commitments = pendingCommitments
+        )
     }
     var dismissedInsights by rememberSaveable { mutableStateOf(setOf<String>()) }
     val showGuardianCard = guardianInsight.showOnHome &&
@@ -211,7 +220,14 @@ fun TodayScreen(
             item {
                 val (container, content) = guardianToneColors(guardianInsight.tone)
                 Card(
-                    onClick = { guardianInsight.taskId?.let(onTask) },
+                    onClick = {
+                        when (guardianInsight.kind) {
+                            GuardianCoach.Kind.INBOX_CLUTTER -> onOpenInbox()
+                            GuardianCoach.Kind.OVERLOAD, GuardianCoach.Kind.STALE_PROJECT -> onOpenPlanner()
+                            GuardianCoach.Kind.UPCOMING_COMMITMENT -> onReviewMessages()
+                            else -> guardianInsight.taskId?.let(onTask)
+                        }
+                    },
                     colors = CardDefaults.cardColors(containerColor = container, contentColor = content)
                 ) {
                     Row(
