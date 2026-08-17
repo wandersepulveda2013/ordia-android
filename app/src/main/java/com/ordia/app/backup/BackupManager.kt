@@ -541,6 +541,16 @@ private fun validateRelationships(data: RestoreData) {
                 else -> false
             }
             require(validResult) { "Una captura procesada referencia un resultado inexistente." }
+        } else {
+            // Invariante de estado frente a entrada no confiable: una captura
+            // solo lleva resultado cuando fue PROCESSED (OrdiaViewModel lo
+            // asigna a la vez). PENDING se crea sin resultId y FAILED nunca lo
+            // toca, así que un backup externo con resultId != null aquí es
+            // estado inconsistente que apuntaría a un resultado quizá
+            // inexistente y mentiría sobre el estado real de la captura.
+            require(capture.resultId == null) {
+                "Una captura tiene resultado sin estar procesada."
+            }
         }
     }
     data.captureDrafts.forEach { draft ->

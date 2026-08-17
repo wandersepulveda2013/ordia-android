@@ -3,6 +3,14 @@
 > Fotografía ACTUAL del estado de Ordía. No es un historial; el historial está en `RUN_LOG.md`.
 > Actualizar AL FINAL de cada sesión autónoma (reescribir, no acumular).
 
+## Ciclo c.464 — 2026-08-17 (UTC) — fix(backup): restore aceptaba capturas PENDING/FAILED con `resultId` inconsistente (entrada no confiable) — P1 datos/integridad/restore — ÁREA NO-PARSER (BackupManager)
+
+- **Estado**: VERIFIED. `bash tools/run_domain_tests.sh` → 2613 PASS (2610 c.445 + 3 nuevos), 0 failures, 45 classes; `bash tools/run_domain_checks.sh` → smoke 25 OK.
+- **Qué cambió**: `BackupManager.validate` ahora exige que una captura NO PROCESADA (`PENDING`/`FAILED`) tenga `resultId == null`. En producción, una captura solo lleva `resultId`/`resultType` cuando fue `PROCESSED` (`OrdiaViewModel.processStoredCapture` los asigna a la vez); `PENDING` se crea sin resultado y `FAILED` nunca toca `resultId`. Así que un backup externo corrupto/manipulado con `resultId != null` en estado no-PROCESSED es estado INCONSISTENTE: apuntaría a un resultado quizá inexistente y mentiría sobre el estado real de la captura. Antes pasaba la validación; ahora se rechaza con "Una captura tiene resultado sin estar procesada." Detección TDD: 2 tests RED→GREEN (PENDING con resultId, FAILED con resultId) + 1 guard de no-regresión (PENDING legítimo sin resultado sigue aceptado). No rechaza ningún backup válido de la app (verificado: el invariante refleja el modelo de estado real).
+- **HEAD**: base ff atop `46ae777` (c.445 remoto — DISJUNTO de `BackupManager`; integración stash+ff+pop, 0 conflictos, NO STALE_RUN, NO force, NO reset destructivo). Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars `/tmp/libs`, OpenJDK 21.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); integración runtime Android restore↔Room (la lógica pura `BackupManager.validate` SÍ verificada en JVM vía tests + suite 2613).
+
+
 ## Ciclo c.444 — 2026-08-17 (UTC) — fix(parser): rango de días con conector "entre...y" ("entre el 15 y el 20 de diciembre", "entre el 28 de febrero y el 1 de marzo") anclaba el vencimiento al día INICIAL y dejaba "entre [y]" como residuo del título — P1 captura/datos/evitar olvidos — ÁREA PARSER (NaturalTaskParser), familia simétrica de c.443 cross-mes
 
 - **Estado**: VERIFIED. `bash tools/run_domain_tests.sh` → 2603 PASS (2593 c.443 + 10 nuevos), 0 failures; `bash tools/run_domain_checks.sh` → smoke 25 OK.

@@ -959,6 +959,69 @@ class BackupManagerTest {
         val result = newManager(FakeBackupStore(otherData())).importBackup(backup)
         assertFalse("Una sesión con actualMinutes > duración real NO debe ser restaurable", result.success)
     }
+
+    // ---------------------------------------------------------------------
+    // c.439 — Invariante de estado de captura en restore (entrada no confiable)
+    // ---------------------------------------------------------------------
+    // En producción, una captura solo lleva `resultId`/`resultType` cuando fue
+    // PROCESSED (se asignan a la vez en OrdiaViewModel.processStoredCapture).
+    // PENDING se crea sin resultado y FAILED nunca toca `resultId` (proviene de
+    // un PENDING/FAILED previo, ambos sin resultado). Así que una captura no
+    // PROCESSED con `resultId` no nulo es estado INCONSISTENTE que solo puede
+    // venir de un backup externo corrupto/manipulado: apuntaría a un resultado
+    // quizá inexistente y mentiría sobre el estado real de la captura. El
+    // restore debe rechazarlo (datos: no confíes en input externo).
+
+    @Test
+    fun restoreRechazaCapturaPendienteConResultIdInconsistente() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val tampered = JSONObject(origin.exportJson()).apply {
+            // La captura de fixture es PROCESSED con resultId=2; la degradamos a
+            // PENDING dejando el resultId puesto: estado imposible en la app real.
+            getJSONArray("captures").getJSONObject(0).put("status", "PENDING")
+        }
+        val destinationStore = FakeBackupStore(otherData())
+
+        val result = newManager(destinationStore).importBackup(rewrap(tampered))
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("resultado sin estar procesada"))
+        assertEquals("Viejo", destinationStore.current.projects.single().name)
+    }
+
+    @Test
+    fun restoreRechazaCapturaFallidaConResultIdInconsistente() = runBlocking {
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val tampered = JSONObject(origin.exportJson()).apply {
+            getJSONArray("captures").getJSONObject(0).put("status", "FAILED")
+        }
+        val destinationStore = FakeBackupStore(otherData())
+
+        val result = newManager(destinationStore).importBackup(rewrap(tampered))
+
+        assertFalse(result.success)
+        assertTrue(result.message.contains("resultado sin estar procesada"))
+    }
+
+    @Test
+    fun restoreAceptaCapturaPendienteSinResultado() = runBlocking {
+        // Regresión: el nuevo invariante NO debe rechazar capturas PENDING
+        // legítimas (sin resultId), que son el estado normal al capturar.
+        val origin = newManager(FakeBackupStore(sampleData()))
+        val tampered = JSONObject(origin.exportJson()).apply {
+            getJSONArray("captures").getJSONObject(0).apply {
+                put("status", "PENDING")
+                put("resultType", "")
+                put("resultId", JSONObject.NULL)
+            }
+        }
+        val destinationStore = FakeBackupStore(otherData())
+
+        val result = newManager(destinationStore).importBackup(rewrap(tampered))
+
+        assertTrue(result.message, result.success)
+        assertEquals(CaptureStatus.PENDING, destinationStore.current.captures.single().status)
+    }
 }
 
 private fun UserPreferences.toTestJson(): JSONObject = JSONObject()
