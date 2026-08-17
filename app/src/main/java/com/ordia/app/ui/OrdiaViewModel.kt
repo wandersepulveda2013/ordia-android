@@ -28,6 +28,9 @@ import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteEntity
+import com.ordia.app.data.local.NoteFolderEntity
+import com.ordia.app.data.local.NoteLabelEntity
+import com.ordia.app.data.local.NoteVersionEntity
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.RoutineEntity
 import com.ordia.app.data.local.RoutineStepEntity
@@ -49,6 +52,9 @@ import com.ordia.app.data.repository.ConversationRepository
 import com.ordia.app.data.repository.FocusRepository
 import com.ordia.app.data.repository.HabitRepository
 import com.ordia.app.data.repository.NoteRepository
+import com.ordia.app.data.repository.NoteFolderRepository
+import com.ordia.app.data.repository.NoteLabelRepository
+import com.ordia.app.data.repository.NoteVersionRepository
 import com.ordia.app.data.repository.ObservationRepository
 import com.ordia.app.data.repository.ProjectRepository
 import com.ordia.app.data.repository.RoutineRepository
@@ -143,6 +149,9 @@ data class OrdiaUiState(
     val tasks: List<TaskEntity> = emptyList(),
     val projects: List<ProjectEntity> = emptyList(),
     val notes: List<NoteEntity> = emptyList(),
+    val trashedNotes: List<NoteEntity> = emptyList(),
+    val noteFolders: List<NoteFolderEntity> = emptyList(),
+    val noteLabels: List<NoteLabelEntity> = emptyList(),
     val habits: List<HabitEntity> = emptyList(),
     val habitLogs: List<HabitLogEntity> = emptyList(),
     val focusSessions: List<FocusSessionEntity> = emptyList(),
@@ -218,7 +227,10 @@ private data class ArchiveState(
     val projects: List<ProjectEntity>,
     val notes: List<NoteEntity>,
     val habits: List<HabitEntity>,
-    val routines: List<RoutineEntity>
+    val routines: List<RoutineEntity>,
+    val trashedNotes: List<NoteEntity> = emptyList(),
+    val noteFolders: List<NoteFolderEntity> = emptyList(),
+    val noteLabels: List<NoteLabelEntity> = emptyList()
 )
 
 private data class SecondaryState(
@@ -246,6 +258,9 @@ class OrdiaViewModel(
     private val taskRepository: TaskRepository,
     private val projectRepository: ProjectRepository,
     private val noteRepository: NoteRepository,
+    private val noteFolderRepository: NoteFolderRepository,
+    private val noteLabelRepository: NoteLabelRepository,
+    private val noteVersionRepository: NoteVersionRepository,
     private val habitRepository: HabitRepository,
     private val focusRepository: FocusRepository,
     private val routineRepository: RoutineRepository,
@@ -342,8 +357,22 @@ class OrdiaViewModel(
         projectRepository.archived,
         noteRepository.archived,
         habitRepository.archived,
-        routineRepository.archived
-    ) { tasks, projects, notes, habits, routines -> ArchiveState(tasks, projects, notes, habits, routines) }
+        routineRepository.archived,
+        noteRepository.trashed,
+        noteFolderRepository.folders,
+        noteLabelRepository.labels
+    ) { values ->
+        ArchiveState(
+            tasks = values[0] as List<TaskEntity>,
+            projects = values[1] as List<ProjectEntity>,
+            notes = values[2] as List<NoteEntity>,
+            habits = values[3] as List<HabitEntity>,
+            routines = values[4] as List<RoutineEntity>,
+            trashedNotes = values[5] as List<NoteEntity>,
+            noteFolders = values[6] as List<NoteFolderEntity>,
+            noteLabels = values[7] as List<NoteLabelEntity>
+        )
+    }
 
     private val logs = habitRepository.logs(
         LocalDate.now().minusDays(370).toEpochDay(),
@@ -366,6 +395,9 @@ class OrdiaViewModel(
             archivedTasks = archived.tasks,
             archivedProjects = archived.projects,
             archivedNotes = archived.notes,
+            trashedNotes = archived.trashedNotes,
+            noteFolders = archived.noteFolders,
+            noteLabels = archived.noteLabels,
             archivedHabits = archived.habits,
             archivedRoutines = archived.routines,
             attachments = secondData.attachments,
@@ -674,8 +706,9 @@ class OrdiaViewModel(
     )
 
     fun deleteNote(note: NoteEntity) = viewModelScope.launch {
-        noteRepository.archive(note.id)
-        _events.emit(UiEvent.Archived("note", note.id, appContext.getString(R.string.note_archived)))
+        // El borrado va a la Papelera: no es destructivo.
+        noteRepository.trash(note.id)
+        _events.emit(UiEvent.Message(appContext.getString(R.string.notes_delete)))
     }
 
     /** Convierte una nota en tarea de la Bandeja y archiva la nota original. */
@@ -703,8 +736,110 @@ class OrdiaViewModel(
     }
 
     fun togglePin(note: NoteEntity) = viewModelScope.launch {
-        noteRepository.update(note.copy(pinned = !note.pinned, updatedAt = System.currentTimeMillis()))
+        noteRepository.setPinned(note.id, !note.pinned)
     }
+
+    fun toggleFavorite(note: NoteEntity) = viewModelScope.launch {
+        noteRepository.setFavorite(note.id, !note.favorite)
+    }
+
+    fun setNoteFavorite(noteId: Long, favorite: Boolean) = viewModelScope.launch {
+        noteRepository.setFavorite(noteId, favorite)
+    }
+
+    fun setNoteLocked(noteId: Long, locked: Boolean) = viewModelScope.launch {
+        noteRepository.setLocked(noteId, locked)
+    }
+
+    fun setNoteColor(noteId: Long, colorHex: String) = viewModelScope.launch {
+        noteRepository.setColor(noteId, colorHex)
+    }
+
+    fun moveNoteToFolder(noteId: Long, folderId: Long?) = viewModelScope.launch {
+        noteRepository.moveToFolder(noteId, folderId)
+    }
+
+    /** Envía una nota a la papelera (no se elimina definitivamente). */
+    fun trashNote(note: NoteEntity) = viewModelScope.launch {
+        noteRepository.trash(note.id)
+        _events.emit(UiEvent.Message(appContext.getString(R.string.notes_delete)))
+    }
+
+    fun restoreNoteFromTrash(noteId: Long) = viewModelScope.launch {
+        noteRepository.untrash(noteId)
+    }
+
+    fun deleteNotePermanently(noteId: Long) = viewModelScope.launch {
+        noteRepository.deletePermanently(noteId)
+        noteVersionRepository.deleteForNote(noteId)
+    }
+
+    suspend fun searchNotes(query: String): List<NoteEntity> =
+        if (query.isBlank()) emptyList() else noteRepository.search(query.trim())
+
+    /** Crea una nota vacía y devuelve su id (para abrir el editor al instante). */
+    fun createBlankNote(onCreated: (Long) -> Unit) = viewModelScope.launch {
+        val now = System.currentTimeMillis()
+        val id = noteRepository.add(
+            NoteEntity(title = "Nota sin título", createdAt = now, updatedAt = now)
+        )
+        onCreated(id)
+    }
+
+    /** Duplica una nota (contenido incluido) sin alterar el original. */
+    fun duplicateNote(note: NoteEntity, onCreated: (Long) -> Unit = {}) = viewModelScope.launch {
+        val now = System.currentTimeMillis()
+        val copy = note.copy(id = 0L, title = "${note.title} (copia)", createdAt = now, updatedAt = now)
+        val id = noteRepository.add(copy)
+        onCreated(id)
+    }
+
+    suspend fun noteVersions(noteId: Long): List<NoteVersionEntity> =
+        noteVersionRepository.versionsForNote(noteId)
+
+    fun captureNoteVersion(note: NoteEntity, blocks: List<NoteBlock>) = viewModelScope.launch {
+        noteVersionRepository.add(
+            NoteVersionEntity(
+                noteId = note.id,
+                title = note.title,
+                blocksData = NoteBlockCodec.encode(blocks),
+                body = NoteBlockCodec.toPlainText(blocks)
+            )
+        )
+    }
+
+    fun restoreNoteVersion(version: NoteVersionEntity, onRestored: () -> Unit = {}) = viewModelScope.launch {
+        val now = System.currentTimeMillis()
+        noteRepository.update(
+            noteRepository.get(version.noteId)?.copy(
+                title = version.title,
+                blocksData = version.blocksData,
+                body = version.body,
+                updatedAt = now
+            ) ?: NoteEntity(id = version.noteId, title = version.title, body = version.body, blocksData = version.blocksData, updatedAt = now)
+        )
+        onRestored()
+    }
+
+    fun addNoteFolder(name: String, onCreated: (Long) -> Unit = {}) = viewModelScope.launch {
+        val id = noteFolderRepository.add(NoteFolderEntity(name = name.trim()))
+        onCreated(id)
+    }
+
+    fun deleteNoteFolder(id: Long) = viewModelScope.launch {
+        noteFolderRepository.deletePermanently(id)
+    }
+
+    fun assignNoteLabel(noteId: Long, name: String) = viewModelScope.launch {
+        val labelId = noteLabelRepository.getOrCreate(name)
+        noteLabelRepository.assign(noteId, labelId)
+    }
+
+    fun removeNoteLabel(noteId: Long, labelId: Long) = viewModelScope.launch {
+        noteLabelRepository.unassign(noteId, labelId)
+    }
+
+    suspend fun labelIdsForNote(noteId: Long): List<Long> = noteLabelRepository.labelIdsForNote(noteId)
 
     fun addAttachment(attachment: AttachmentEntity) = viewModelScope.launch {
         attachmentRepository.add(attachment)
@@ -1626,6 +1761,9 @@ class OrdiaViewModel(
         private val taskRepository: TaskRepository,
         private val projectRepository: ProjectRepository,
         private val noteRepository: NoteRepository,
+        private val noteFolderRepository: NoteFolderRepository,
+        private val noteLabelRepository: NoteLabelRepository,
+        private val noteVersionRepository: NoteVersionRepository,
         private val habitRepository: HabitRepository,
         private val focusRepository: FocusRepository,
         private val routineRepository: RoutineRepository,
@@ -1649,6 +1787,9 @@ class OrdiaViewModel(
             taskRepository,
             projectRepository,
             noteRepository,
+            noteFolderRepository,
+            noteLabelRepository,
+            noteVersionRepository,
             habitRepository,
             focusRepository,
             routineRepository,

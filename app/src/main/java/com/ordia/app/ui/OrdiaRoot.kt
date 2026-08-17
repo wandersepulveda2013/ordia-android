@@ -6,7 +6,11 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -50,6 +54,7 @@ import com.ordia.app.ui.components.ContextualSuggestionDialog
 import com.ordia.app.ui.navigation.Destination
 import com.ordia.app.ui.navigation.OrdiaNavigation
 import com.ordia.app.ui.screens.OnboardingScreen
+import com.ordia.app.ui.screens.NotesSplash
 import com.ordia.app.ui.theme.OrdiaTheme
 import com.ordia.app.updates.OrdiaUpdateController
 import com.ordia.app.updates.OrdiaUpdateController.UpdateState
@@ -95,6 +100,9 @@ fun OrdiaRoot(
             taskRepository = app.container.taskRepository,
             projectRepository = app.container.projectRepository,
             noteRepository = app.container.noteRepository,
+            noteFolderRepository = app.container.noteFolderRepository,
+            noteLabelRepository = app.container.noteLabelRepository,
+            noteVersionRepository = app.container.noteVersionRepository,
             habitRepository = app.container.habitRepository,
             focusRepository = app.container.focusRepository,
             routineRepository = app.container.routineRepository,
@@ -335,12 +343,24 @@ fun OrdiaRoot(
                 }
             }
         } else {
-            OrdiaNavigation(
-                navController = navController,
-                state = state,
-                viewModel = viewModel,
-                snackbarHostState = snackbarHostState
-            )
+            var splashDone by remember { mutableStateOf(false) }
+            Box(Modifier.fillMaxSize()) {
+                OrdiaNavigation(
+                    navController = navController,
+                    state = state,
+                    viewModel = viewModel,
+                    snackbarHostState = snackbarHostState
+                )
+                AnimatedVisibility(
+                    visible = !splashDone,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    if (!splashDone) {
+                        NotesSplash(onFinished = { splashDone = true })
+                    }
+                }
+            }
         }
     }
 }

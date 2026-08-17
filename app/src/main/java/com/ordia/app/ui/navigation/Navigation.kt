@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.ViewAgenda
@@ -101,7 +102,10 @@ import com.ordia.app.ui.screens.IntelligenceScreen
 import com.ordia.app.ui.screens.MentalOffloadScreen
 import com.ordia.app.ui.screens.MoreScreen
 import com.ordia.app.ui.screens.NoteEditorScreen
+import com.ordia.app.ui.screens.NotesAboutScreen
+import com.ordia.app.ui.screens.NotesHomeScreen
 import com.ordia.app.ui.screens.NotesScreen
+import com.ordia.app.ui.screens.NotesTrashScreen
 import com.ordia.app.ui.screens.OrganizeScreen
 import com.ordia.app.ui.screens.PlannerScreen
 import com.ordia.app.ui.screens.ProjectDetailScreen
@@ -148,6 +152,8 @@ sealed class Destination(val route: String, @StringRes val labelRes: Int, val ic
     data object Automations : Destination("automations", R.string.nav_automations, Icons.Outlined.AutoAwesome)
     data object Assistant : Destination("assistant", R.string.nav_assistant, Icons.Outlined.AutoAwesome)
     data object Intelligence : Destination("intelligence", R.string.nav_intelligence, Icons.Outlined.AutoAwesome)
+    data object NotesTrash : Destination("notes-trash", R.string.notes_trash_title, Icons.Outlined.Archive)
+    data object NotesAbout : Destination("notes-about", R.string.notes_about_title, Icons.Outlined.HelpOutline)
 
     companion object {
         const val TASK_ROUTE = "task/{taskId}"
@@ -222,6 +228,16 @@ private fun wideItems(mode: InterfaceMode): List<Destination> = when (mode) {
     )
 }
 
+/**
+ * Navegación de ORDÍA NOTES.
+ *
+ * El producto es ahora un bloc de notas: NO hay navegación inferior.
+ * La home es la lista de notas. El menú principal vive en ⋮ (arriba a la
+ * izquierda de la home). El resto de superficies se alcanzan desde ese menú
+ * o desde enlaces contextuales (búsqueda, etc.). Las capacidades anteriores
+ * (tareas, guardianes, calendario…) se conservan internamente y sus datos
+ * no se eliminan, pero dejan de ser navegación primaria.
+ */
 @Composable
 fun OrdiaNavigation(
     navController: NavHostController,
@@ -251,107 +267,10 @@ fun OrdiaNavigation(
             }
             .focusable()
     ) {
-        val useRail = maxWidth >= 760.dp && !state.preferences.compactNavigation
-        val entry by navController.currentBackStackEntryAsState()
-        val route = entry?.destination?.route.orEmpty()
-        val showTopLevelNavigation = route in topLevelRoutes
-
-        if (useRail && showTopLevelNavigation) {
-            Row(Modifier.fillMaxSize()) {
-                Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                    NavigationRail(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        header = {
-                            Column(Modifier.padding(top = 12.dp, bottom = 8.dp)) {
-                                GuardianAvatar(36.dp)
-                                Spacer(Modifier.height(4.dp))
-                                Text(stringResource(R.string.app_short_name), style = MaterialTheme.typography.labelMedium)
-                            }
-                        }
-                    ) {
-                        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                            wideItems(state.preferences.interfaceMode).forEach { item -> NavigationRailItem(
-                                selected = route == item.route,
-                                onClick = { navController.navigateSingle(item.route) },
-                                icon = { Icon(item.icon, stringResource(item.labelRes)) },
-                                label = { Text(stringResource(item.labelRes)) },
-                                colors = NavigationRailItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                                )
-                            ) }
-                        }
-                        NavigationRailItem(
-                            selected = route == Destination.Settings.route,
-                            onClick = { navController.navigateSingle(Destination.Settings.route) },
-                            icon = { Icon(Destination.Settings.icon, stringResource(Destination.Settings.labelRes)) },
-                            label = { Text(stringResource(Destination.Settings.labelRes)) },
-                            colors = NavigationRailItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        )
-                    }
-                }
-                Scaffold(
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
-                    containerColor = MaterialTheme.colorScheme.background,
-                    modifier = Modifier.weight(1f),
-                    floatingActionButton = {
-                        if (state.preferences.showFloatingCapture && route != Destination.Capture.route) {
-                            QuickCaptureFab()
-                        }
-                    }
-                ) { padding -> OrdiaNavHost(navController, state, viewModel, padding) }
-            }
-        } else {
-            Scaffold(
-                snackbarHost = { SnackbarHost(snackbarHostState) },
-                containerColor = MaterialTheme.colorScheme.background,
-                floatingActionButton = {
-                    if (
-                        showTopLevelNavigation &&
-                        state.preferences.showFloatingCapture &&
-                        route != Destination.Capture.route
-                    ) {
-                        QuickCaptureFab()
-                    }
-                },
-                bottomBar = {
-                    if (showTopLevelNavigation) {
-                        Column(Modifier.navigationBarsPadding()) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
-                            NavigationBar(
-                                modifier = Modifier.height(64.dp),
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                tonalElevation = 0.dp,
-                                windowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp)
-                            ) {
-                                compactItems.forEach { item ->
-                                    val selected = route == item.route || (item == Destination.More && route in compactMoreRoutes)
-                                    NavigationBarItem(
-                                        selected = selected,
-                                        onClick = { navController.navigateSingle(item.route) },
-                                        icon = { Icon(item.icon, stringResource(item.labelRes)) },
-                                        label = { Text(stringResource(item.labelRes)) },
-                                        alwaysShowLabel = true,
-                                        colors = NavigationBarItemDefaults.colors(
-                                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            ) { padding -> OrdiaNavHost(navController, state, viewModel, padding) }
-        }
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            containerColor = MaterialTheme.colorScheme.background
+        ) { padding -> OrdiaNavHost(navController, state, viewModel, padding) }
     }
 
     if (showPalette) {
@@ -359,16 +278,9 @@ fun OrdiaNavigation(
             onSelect = { commandId ->
                 showPalette = false
                 when (commandId) {
-                    "create_task" -> navController.navigateSingle(Destination.Tasks.route)
                     "create_note" -> navController.navigateSingle(Destination.Notes.route)
                     "capture" -> navController.navigateSingle(Destination.Capture.route)
-                    "mental_offload" -> navController.navigateSingle(Destination.MentalOffload.route)
                     "search" -> navController.navigateSingle(Destination.Search.route)
-                    "organize_today" -> navController.navigateSingle(Destination.Organize.route)
-                    "organize_week" -> navController.navigateSingle(Destination.Organize.route)
-                    "review_pending" -> navController.navigateSingle(Destination.Guardian.route)
-                    "open_calendar" -> navController.navigateSingle(Destination.Planner.route)
-                    "open_guardians" -> navController.navigateSingle(Destination.Guardian.route)
                     "open_settings" -> navController.navigateSingle(Destination.Settings.route)
                 }
             },
@@ -385,7 +297,7 @@ private fun OrdiaNavHost(
     padding: androidx.compose.foundation.layout.PaddingValues
 ) {
     var searchSeed by rememberSaveable { mutableStateOf("") }
-    NavHost(navController, startDestination = Destination.Today.route, modifier = Modifier.fillMaxSize()) {
+    NavHost(navController, startDestination = Destination.Notes.route, modifier = Modifier.fillMaxSize()) {
         composable(Destination.Today.route) {
             TodayScreen(
                 state,
@@ -412,7 +324,25 @@ private fun OrdiaNavHost(
         }
         composable(Destination.Planner.route) { PlannerScreen(state, vm, padding, onTask = { navController.navigate(Destination.task(it)) }) }
         composable(Destination.Projects.route) { ProjectsScreen(state, vm, padding, onProject = { navController.navigate(Destination.project(it)) }) }
-        composable(Destination.Notes.route) { NotesScreen(state, vm, padding, onNote = { navController.navigate(Destination.note(it)) }) }
+        composable(Destination.Notes.route) {
+            NotesHomeScreen(
+                state = state,
+                vm = vm,
+                padding = padding,
+                onNote = { navController.navigate(Destination.note(it)) },
+                onOpenSettings = { navController.navigateSingle(Destination.Settings.route) },
+                onOpenTrash = { navController.navigateSingle(Destination.NotesTrash.route) },
+                onOpenImport = { navController.navigateSingle(Destination.Settings.route) },
+                onOpenExport = { navController.navigateSingle(Destination.Settings.route) },
+                onOpenAbout = { navController.navigateSingle(Destination.NotesAbout.route) }
+            )
+        }
+        composable(Destination.NotesTrash.route) {
+            NotesTrashScreen(state = state, vm = vm, onBack = { navController.popBackStack() })
+        }
+        composable(Destination.NotesAbout.route) {
+            NotesAboutScreen(onBack = { navController.popBackStack() })
+        }
         composable(Destination.Habits.route) { HabitsScreen(state, vm, padding) }
         composable(Destination.Focus.route) { FocusScreen(state, vm, padding) }
         composable(Destination.Guardian.route) {
