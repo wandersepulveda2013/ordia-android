@@ -526,6 +526,16 @@ object CommitmentEngine {
     // verbos de acción pura (termino/entrego/...), que raramente son sustantivos
     // y cuyos positivos nunca llevan determinante inmediatamente antes.
     private val determiners = setOf("el", "la", "los", "las", "un", "una", "unos", "unas")
+    // c.525: preposiciones introductoras de objeto/tema genitivo. Varias formas del
+    // presente pelado son tambien SUSTANTIVOS homonimos (pago/aviso/envio/mando/
+    // paso/arreglo): "ajuste para pago del alquiler", "presupuesto para envio del
+    // paquete", "config para aviso del equipo". La guarda de determinantes c.512
+    // cubria "el pago" PERO NO "para pago" (preposicion sin determinante). Aqui el
+    // verbo pelado es el OBJETO/TEMA del genitivo, no la accion; el compromiso real
+    // es ajustar/presupuestar/configurar. Simetrico a la familia c.519/c.523/c.524.
+    private val genitivePrepositions = setOf(
+        "para", "por", "de", "del", "sobre", "tras", "en", "hasta", "hacia", "segun"
+    )
     private fun hasUnnegatedBarePresentCommitment(text: String): Boolean =
         barePresentCommitmentSignal.findAll(text).any { m ->
             val start = m.range.first
@@ -536,6 +546,7 @@ object CommitmentEngine {
                 ?.lowercase(Locale.ROOT)
                 .orEmpty()
             prevWord != "no" && prevWord !in cliticPronouns && prevWord !in determiners
+                && prevWord !in genitivePrepositions
         }
 
     fun extract(

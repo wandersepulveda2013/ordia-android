@@ -618,6 +618,53 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.525: precisión — simétrico a la familia anti-objeto-genitivo (c.519 meeting,
+    // c.523 purchase, c.524 reminder). Los verbos pelados pago/aviso/envio/mando/
+    // paso/arreglo son también SUSTANTIVOS homónimos; cuando una preposición
+    // genitiva (para/por/de/sobre/tras/en...) los precede SIN determinante, son el
+    // OBJETO/TEMA del genitivo, no la acción: "ajuste para pago del alquiler",
+    // "presupuesto para envio del paquete", "config para aviso del equipo". La
+    // guarda de determinantes c.512 cubría "el pago" PERO NO "para pago". Probe JVM
+    // POST-fix: 5/5 genitivos suprimidos, 3/3 positivos preservados.
+    @Test
+    fun barePresentCommitmentNounAsGenitiveObjectIsSuppressed() {
+        val genitives = listOf(
+            "ajuste para pago del alquiler el viernes",
+            "presupuesto para envio del paquete manana",
+            "config para aviso del equipo el lunes",
+            "acuerdo para pago del credito el lunes",
+            "plan para entrega del informe el lunes"
+        )
+        genitives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c525-gen-$text"
+            )
+            assertTrue(
+                "\"$text\" (verbo pelado como sustantivo-objeto de genitivo) NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+        // Positivos reales: el verbo pelado como ACCIÓN (sin preposición genitiva previa).
+        val positives = listOf(
+            "pago la factura manana",
+            "envio el paquete el viernes",
+            "aviso al equipo el lunes"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c525-pos-$text"
+            )
+            assertTrue(
+                "\"$text\" (verbo pelado de acción) debe generar draft SELF_COMMITMENT",
+                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
 
     // c.514: cierra la asimetría CON-clítico de pago/respondo/aviso/confirmo.
     // c.512 los añadió a la rama PELADA pero NO a la con-clítico, así que las
