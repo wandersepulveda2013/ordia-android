@@ -6561,6 +6561,88 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- Genitivo temporal huérfano antes de HORA / canónica (mediodía/medianoche) ---
+    // El conector "de/del/de la" que introduce una hora o canónica temporal
+    // ("cita de 3 pm", "reunión del mediodía", "comida de medianoche",
+    // "reunión de la medianoche") sobrevivía como residuo al final del título
+    // aunque la hora sí se agendaba: el token temporal se borraba pero la
+    // preposición genitiva que lo introducía quedaba pegada. Simétrico del
+    // genitivo de período (c.490/c.491), de fecha de mes (c.448) y de día
+    // relativo, pero para horas/canónicas sueltas. P1: título irreconocible
+    // en captura ultrarrápida.
+
+    @Test fun genitivoDeHoraAmPm_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Cita de 3 pm", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeHoraBareAm_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Cita de 9am", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeHoraConMinutos_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Cita de 3:30", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(3, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDelMediodia_noDejaResiduoDel() {
+        val result = NaturalTaskParser.parse("Reunión del mediodía", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeMedianoche_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Reunión de medianoche", now, zone)
+        assertEquals("Reunión", result.title)
+    }
+
+    @Test fun genitivoDeLaMedianoche_noDejaResiduoDeLa() {
+        val result = NaturalTaskParser.parse("Reunión de la medianoche", now, zone)
+        assertEquals("Reunión", result.title)
+    }
+
+    @Test fun genitivoDelMediodiaYMedia_noDejaResiduoDel() {
+        val result = NaturalTaskParser.parse("Reunión del mediodía y media", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(12, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeTardeConContenidoPrevio_noTocaDeDeContenido() {
+        // "reunión de equipo de 3 pm": el "de equipo" es contenido legítimo
+        // (NO al final tras borrar "de 3 pm"); sólo el "de" final huérfano se elimina.
+        val result = NaturalTaskParser.parse("Reunión de equipo de 3 pm", now, zone)
+        assertEquals("Reunión de equipo", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // --- Contra-regresión: "de" final sin agenda es contenido legítimo ---
+    // Sin dueAt (no se resolvió hora/fecha), el "de/del" final NO se toca:
+    // "nota de", "reunión de equipo" (sin hora), "foto de la semana santa".
+
+    @Test fun deFinalSinAgenda_conservaDeComoContenido() {
+        val result = NaturalTaskParser.parse("Nota de", now, zone)
+        assertEquals("Nota de", result.title)
+        assertEquals(null, result.dueAt)
+    }
+
+    @Test fun deContenidoSinAgenda_noSeElimina() {
+        val result = NaturalTaskParser.parse("Reunión de equipo", now, zone)
+        assertEquals("Reunión de equipo", result.title)
+        assertEquals(null, result.dueAt)
+    }
+
+    @Test fun genitivoDeRango_noTocaConectorDeRango() {
+        // El conector "de" inicial de un rango "de 9am a 11am" lo consume
+        // timeRangePattern; el paso de genitivo huérfano no debe tocarlo.
+        val result = NaturalTaskParser.parse("Clase de 9am a 11am", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(120, result.durationMinutes)
+    }
+
     // --- "entrante": sinónimo caribeño de "que viene"/"próximo" ---
     // La app usa America/Santo_Domingo como zona canónica; "la semana entrante",
     // "el mes entrante", "el año entrante" son cotidianísimos en el español

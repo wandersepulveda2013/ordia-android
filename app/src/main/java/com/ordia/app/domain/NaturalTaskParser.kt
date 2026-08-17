@@ -4708,6 +4708,27 @@ object NaturalTaskParser {
                     if (stripped.isNotBlank()) stripped else value
                 }
             }
+            .let { value ->
+                // Genitivo temporal huérfano: "cita de 3 pm", "reunión del mediodía",
+                // "comida de medianoche", "reunión de la medianoche". Las horas/canónicas
+                // (timePatterns, mediodía/medianoche, reloj HH:MM, am/pm) se borran arriba
+                // PERO la preposición genitiva "de/del/de la" que las introducía sobrevive
+                // como residuo al final del título — contenido capturado degradado (P1:
+                // el usuario ve "reunión del" en vez de "reunión"). Simétrico del consumo
+                // de genitivo de los patrones de hora con "de la tarde" y del genitivo de
+                // día relativo (más abajo), pero aquí el token temporal ya fue borrado, así
+                // que se elimina el conector huérfano que quedó al final. Sólo cuando se
+                // resolvió una hora/fecha (dueAt != null): sin agenda, "de" final puede ser
+                // contenido legítimo ("nota de"). El conector de rango "de 9 a 11" ya lo
+                // consumió timeRangePattern (su prefijo opcional "de"), así que aquí no
+                // queda "de" en esos casos y el paso es no-op (no rompe los tests de rango).
+                // Anclado al final (con espacios) para no tocar "de" legítimo seguido de
+                // contenido ("reunión de equipo a las 5" → tras borrar "a las 5" queda "de
+                // equipo", "de" NO está al final → se conserva). c.493.
+                if (dueAt != null)
+                    value.replace(Regex("""(?i)\s*(?:de\s+la|del|de)\s*$"""), " ")
+                else value
+            }
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
             .replace(Regex("""\s+"""), " ")
             .trim(' ', ',', '.', '-')
