@@ -493,7 +493,8 @@ object NaturalTaskParser {
         """(?i)(?<!\p{L})(?:en\s+(?:los|el|las|la)?\s+)?(?:a\s+)?(?:el|la|los|las)?\s*(?:semanas?|mes(?:es)?|a[nñ]os?|trimestres?|bimestres?|semestres?|quincenas?)\s+(?:que\s+viene[n]?|que\s+entra[n]?|pr[oó]ximos?|pr[oó]ximas?|entrante[s]?)\b|(?<!\p{L})(?:en\s+(?:los|el|las|la)?\s+)?(?:a\s+)?(?:el|la|los|las)?\s*(?:pr[oó]ximos?|pr[oó]ximas?)\s+(?:semanas?|mes(?:es)?|a[nñ]os?|trimestres?|bimestres?|semestres?|quincenas?)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
     )
     /**
-     * "el 15 del mes que viene" / "el 15 del próximo mes" / "el 15 del mes próximo":
+     * "el 15 del mes que viene" / "el 15 del próximo mes" / "el 15 del mes próximo" /
+     * "alquiler del 15 del mes que viene" / "pago del 20 del mes que viene":
      * día N del mes SIGUIENTE. Es un compromiso mensual anclado a un día concreto
      * (vencimiento, cobro, cita). Antes, nextPeriodPattern capturaba "mes que viene"
      * y descartaba el día explícito (→ +30d desde hoy, fecha errónea) y dejaba "el 15
@@ -502,9 +503,16 @@ object NaturalTaskParser {
      * resuelve como día (epoch medianoche) para combinarse con hora explícita
      * ("el 15 del mes que viene a las 10"). El día imposible (p. ej. 31 de feb)
      * se ajusta al último día válido del mes objetivo.
+     * c.479: el introductor del día también admite el artículo genitivo "del"
+     * ("alquiler del 15", "pago del 20", "cita del 15") — forma habitual de
+     * vencimientos/cobros en español. Sin esto, el día no casaba y nextPeriodPattern
+     * robaba "del mes que viene" como +30d genérico (fecha errónea) dejando el día
+     * como residuo corrupto en el título (p. ej. "alquiler del 15 del"). El
+     * cualificador "mes que viene/próximo/entrante" sigue siendo obligatorio, así
+     * que no se inventan fechas para un "del 15" aislado sin mes relativo.
      */
     private val nextMonthDayPattern = Regex(
-        """(?i)\b(?:el\s+(?:d[ií]a\s+)?|d[ií]a\s+)(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b"""
+        """(?i)\b(?:el\s+(?:d[ií]a\s+)?|del\s+(?:d[ií]a\s+)?|d[ií]a\s+)(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b"""
     )
     /**
      * Orden inverso del anterior: "el mes que viene el 5" / "el mes que viene el

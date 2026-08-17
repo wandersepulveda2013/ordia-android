@@ -6437,6 +6437,51 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "del N del mes que viene": forma genitiva (vencimientos/cobros) ---
+    // En español los vencimientos usan el artículo genitivo "del" para introducir el
+    // día ("alquiler del 15", "pago del 20"). Antes nextMonthDayPattern solo admitía
+    // "el N", así que el día no casaba y nextPeriodPattern robaba "del mes que viene"
+    // como +30d genérico (→ 2026-08-28, fecha errónea) dejando el residuo corrupto
+    // "alquiler del 15 del" en el título. Ahora se ancla al día N del mes siguiente.
+
+    @Test fun delNDelMesQueVieneResuelveDiaNDelMesSiguiente() {
+        val result = NaturalTaskParser.parse("Alquiler del 15 del mes que viene", now, zone)
+        assertEquals("Alquiler", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun delNDelMesProximoResuelveDiaNDelMesSiguiente() {
+        val result = NaturalTaskParser.parse("Alquiler del 15 del mes próximo", now, zone)
+        assertEquals("Alquiler", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun delNDelMesEntranteResuelveDiaNDelMesSiguiente() {
+        val result = NaturalTaskParser.parse("Alquiler del 15 del mes entrante", now, zone)
+        assertEquals("Alquiler", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun delNDelMesQueVieneRespetaDiaDistinto() {
+        // "pago del 20": día distinto del 15 para confirmar que se lee del grupo.
+        val result = NaturalTaskParser.parse("Pago del 20 del mes que viene", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun delNDelMesQueVieneRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Alquiler del 15 del mes que viene a las 10", now, zone)
+        assertEquals("Alquiler", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun delNDelMesQueVieneHaceClampDiaImposible() {
+        // Desde 29/07 el mes que viene es agosto (31 días): el 31 existe y se respeta.
+        val result = NaturalTaskParser.parse("Alquiler del 31 del mes que viene", now, zone)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- Orden inverso: "el mes que viene el N" / "el mes que viene el día N" ---
     // Misma semántica que la forma directa pero con el período ANTES del día. Antes
     // nextPeriodPattern robaba "el mes que viene" como +30d (2026-08-28) ignorando el
