@@ -76,6 +76,7 @@ import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.Title
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -194,6 +195,22 @@ fun NoteEditorScreen(
     var audioOpen by remember { mutableStateOf(false) }
     var drawingOpen by remember { mutableStateOf(false) }
     var linkNoteOpen by remember { mutableStateOf(false) }
+    var lockedGate by remember { mutableStateOf(false) }
+
+    val locked = existing?.locked == true
+    val keyguardManager = remember { context.getSystemService(android.content.Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager }
+
+    val credentialLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            lockedGate = false
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(existing?.id, locked) {
+        lockedGate = locked
+    }
 
     val findMatches = remember(title, blocks, findQuery) {
         if (findQuery.isBlank()) emptyList()
@@ -579,6 +596,39 @@ fun NoteEditorScreen(
                 )
             }
 
+            if (lockedGate) {
+                Box(
+                    Modifier.weight(1f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Outlined.Lock,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            stringResource(R.string.notes_locked_message),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Button(onClick = {
+                            val km = keyguardManager
+                            if (km != null && km.isDeviceSecure) {
+                                val intent = km.createConfirmDeviceCredentialIntent(
+                                    context.getString(R.string.app_name),
+                                    context.getString(R.string.notes_locked_message)
+                                )
+                                credentialLauncher.launch(intent)
+                            } else {
+                                lockedGate = false
+                            }
+                        }) { Text(stringResource(R.string.notes_unlock)) }
+                    }
+                }
+            } else {
             LazyColumn(
                 Modifier.weight(1f).fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
@@ -654,6 +704,7 @@ fun NoteEditorScreen(
                     }
                 }
             }
+            } // else (not lockedGate)
         }
     }
 
