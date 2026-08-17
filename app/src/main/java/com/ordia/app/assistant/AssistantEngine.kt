@@ -4,6 +4,7 @@ import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.domain.CommitmentRules
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayLoad
@@ -367,6 +368,27 @@ object AssistantEngine {
                     else -> AssistantAnswer("No tienes compromisos pendientes de conversaciones.")
                 }
             }
+            // Décimo olvido de la familia "lie-by-omission": recuperar el LOGRO.
+            // "¿Qué hice hoy?"/"¿qué completé?"/"¿qué terminé?"/"¿qué hice ayer?" —
+            // la forma cotidiana de pedir recordar lo conseguido — caía al menú
+            // genérico: con una tarea completada hace una hora respondía "Puedo
+            // organizar tu día…", callando el logro que el usuario pidió recuperar.
+            // Ordía YA calcula "completadas hoy" ([TaskRules.completedTodayCount],
+            // fuente única de verdad para el resumen, el guardián y el insight) y lo
+            // muestra en la tarjeta, pero el asistente —la superficie de diálogo—
+            // no lo exponía. La recuperación del logro importa tanto como la del
+            // olvido: ver lo conseguido es el retroalimentación honesta que sostiene
+            // el ánimo y evita rehacer trabajo creído pendiente. Reusa el MISMO
+            // predicado canónico que completedTodayCount (raíces, completed,
+            // !archived, !CANCELLED, completedAt==fecha) y lo extiende a "ayer"
+            // (mismo predicado, fecha = hoy-1). Lista los títulos ordenados por
+            // completedAt desc (lo más reciente primero) y nombra hasta 3 + recuento
+            // del resto. No infla con subtareas (raíces, igual que completedToday/
+            // overdue) ni con archivadas/canceladas. Determinista y local, sin IA
+            // fingida. No colisiona con la agenda ("que tengo"/"hay algo" — aquí
+            // "que hice/complete/termine") ni con olvidos ("olvid"/"vencid") ni con
+            // compromisos ("prometi"/"compromiso"). Sin nueva pantalla ni botón.
+            isCompletedRecapIntent(query) -> completedAnswer(query, tasks, now, zone)
             // Octavo olvido de la familia "lie-by-omission": la consulta no casa con
             // ninguna rama conocida y el asistente cae a su menú de capacidades. Es la
             // superficie de mayor tránsito para un usuario confundido —y justo ahí
@@ -380,6 +402,77 @@ object AssistantEngine {
                 "Puedo organizar tu día, decirte qué hacer ahora, qué tienes mañana, mostrar lo vencido, resumir conversaciones, buscar pendientes o preparar un plan mínimo." +
                     overdueCommitmentTail(overdueCommitments)
             )
+        }
+    }
+
+    /**
+     * Detecta la intención de "recap" de logros: "¿qué hice hoy?",
+     * "¿qué completé/terminé hoy?", "¿qué hice ayer?". Tokens sin acento (ya
+     * normalizados por `foldForSearch`). Excluye deliberadamente el verbo
+     * *tener* (agenda) y *deber/faltar* (pendientes) para no secuestrar esas
+     * ramas. El token "hice" solo casa con recap (no aparece en agenda ni en
+     * olvidos ni en compromisos), por lo que es seguro.
+     */
+    private fun isCompletedRecapIntent(query: String): Boolean {
+        val isRecapVerb =
+            "que hice" in query || "que complete" in query ||
+                "que termine" in query || "que acabe" in query ||
+                "que complete" in query || "que completado" in query ||
+                "hice hoy" in query || "complete hoy" in query ||
+                "termine hoy" in query || "acabe hoy" in query ||
+                "completado hoy" in query
+        // "hice ayer" se trata aparte para forzar la fecha de ayer aunque falte
+        // el verbo recap explícito ("¿qué hice ayer?" trae "hice" + "ayer").
+        return isRecapVerb || "hice ayer" in query
+    }
+
+    /**
+     * Respuesta de logro para "¿qué hice hoy?"/"¿qué hice ayer?". Reusa el
+     * MISMO predicado canónico que `TaskRules.completedTodayCount` (raíces,
+     * `status==COMPLETED`, `!archived`, `!CANCELLED`, `completedAt` cae en la
+     * fecha), extendido a "ayer" (fecha = hoy-1). No es una segunda fuente de
+     * verdad: aplica el mismo filtro canónico en otra fecha. Lista los títulos
+     * ordenados por `completedAt` desc (lo más reciente primero) y nombra hasta
+     * 3; el resto se resume como recuento. Sin nueva pantalla ni botón: la
+     * superficie del asistente ya existe. Determinista y local (sin IA fingida).
+     */
+    private fun completedAnswer(
+        query: String,
+        tasks: List<TaskEntity>,
+        now: Long,
+        zone: ZoneId
+    ): AssistantAnswer {
+        val today = DateRules.toLocalDate(now, zone)
+        val target = if ("ayer" in query) today.minusDays(1) else today
+        val day = if ("ayer" in query) "Ayer" else "Hoy"
+        val done = tasks
+            .asSequence()
+            .filter { it.parentTaskId == null }
+            .filter { it.status == TaskStatus.COMPLETED }
+            .filterNot { it.archived }
+            .filterNot { it.status == TaskStatus.CANCELLED }
+            .mapNotNull { t ->
+                val at = t.completedAt ?: return@mapNotNull null
+                if (DateRules.toLocalDate(at, zone) == target) t else null
+            }
+            .sortedByDescending { it.completedAt ?: 0L }
+            .toList()
+        return when {
+            done.isEmpty() -> AssistantAnswer(
+                "$day no has completado tareas todavía.",
+                AssistantAction.NONE
+            )
+            done.size <= 3 -> AssistantAnswer(
+                "$day completaste ${done.size}: " + done.joinToString(", ") { "«${it.title}»" } + ".",
+                AssistantAction.NONE
+            )
+            else -> {
+                val shown = done.take(3).joinToString(", ") { "«${it.title}»" }
+                AssistantAnswer(
+                    "$day completaste ${done.size}: $shown y ${done.size - 3} más.",
+                    AssistantAction.NONE
+                )
+            }
         }
     }
 

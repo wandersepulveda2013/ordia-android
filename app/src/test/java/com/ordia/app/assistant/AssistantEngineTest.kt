@@ -2759,4 +2759,102 @@ class AssistantEngineTest {
         assertTrue("no inventa capturas olvidadas: ${answer.text}",
             !answer.text.contains("captura"))
     }
+
+    // --- Recap de logros: "¿qué hice hoy?"/"¿qué completé hoy?"/"¿qué hice ayer?" ---
+    // Antes estas consultas cotidianas caían al menú genérico ("Puedo organizar tu
+    // día…") incluso con tareas completadas hace minutos: el asistente callaba el
+    // logro que el usuario pidió recuperar. Ahora lista los títulos (raíces, mismo
+    // predicado canónico que TaskRules.completedTodayCount) ordenados por completedAt
+    // desc. Determinista y local (sin IA fingida), sin nueva pantalla.
+
+    private fun completedTask(id: Long, title: String, completedAt: Long): TaskEntity =
+        TaskEntity(
+            id = id, title = title, completed = true,
+            status = com.ordia.app.data.local.TaskStatus.COMPLETED,
+            completedAt = completedAt, parentTaskId = null
+        )
+
+    @Test fun completedRecap_today_namesCompletedTasks() {
+        val now = dayAt(dayToday, 15)
+        val done = listOf(
+            completedTask(1, "Revisar propuesta", dayAt(dayToday, 10)),
+            completedTask(2, "Enviar factura", dayAt(dayToday, 14))
+        )
+        val answer = AssistantEngine.answer("¿qué hice hoy?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("menciona el logro: ${answer.text}", answer.text.contains("Hoy completaste 2"))
+        assertTrue("nombra los títulos: ${answer.text}",
+            answer.text.contains("Revisar propuesta") && answer.text.contains("Enviar factura"))
+        assertEquals(AssistantAction.NONE, answer.action)
+    }
+
+    @Test fun completedRecap_acceptsSynonyms() {
+        val now = dayAt(dayToday, 15)
+        val done = listOf(completedTask(1, "Llamar cliente", dayAt(dayToday, 11)))
+        for (q in listOf("¿qué completé hoy?", "¿qué terminé hoy?", "¿qué completado hoy?")) {
+            val answer = AssistantEngine.answer(q, done, emptyList(), emptyList(), now, dayZone)
+            assertTrue("[$q] nombra el logro: ${answer.text}", answer.text.contains("completaste"))
+        }
+    }
+
+    @Test fun completedRecap_noneToday_saysSoHonestly() {
+        val now = dayAt(dayToday, 15)
+        val answer = AssistantEngine.answer("¿qué hice hoy?", emptyList(), emptyList(), emptyList(), now, dayZone)
+        assertTrue("dice que no hay: ${answer.text}", answer.text.contains("no has completado"))
+        assertFalse("no inventa logros: ${answer.text}", answer.text.contains("«"))
+    }
+
+    @Test fun completedRecap_moreThanThree_summarizesRest() {
+        val now = dayAt(dayToday, 18)
+        val done = (1..5).map { completedTask(it.toLong(), "Tarea $it", dayAt(dayToday, 8 + it)) }
+        val answer = AssistantEngine.answer("¿qué completé hoy?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("cuenta 5: ${answer.text}", answer.text.contains("completaste 5"))
+        assertTrue("resume el resto: ${answer.text}", answer.text.contains("y 2 más"))
+        // Orden desc por completedAt: los 3 más recientes (5,4,3) se nombran.
+        assertTrue("nombra los 3 más recientes: ${answer.text}",
+            answer.text.contains("Tarea 5") && answer.text.contains("Tarea 3"))
+        assertFalse("no nombra el más antiguo: ${answer.text}", answer.text.contains("Tarea 1"))
+    }
+
+    @Test fun completedRecap_yesterday_listsYesterdayNotToday() {
+        val now = dayAt(dayToday, 9)
+        val yesterday = dayToday.minusDays(1)
+        val done = listOf(
+            completedTask(1, "De ayer", dayAt(yesterday, 16)),
+            completedTask(2, "De hoy", dayAt(dayToday, 8))
+        )
+        val answer = AssistantEngine.answer("¿qué hice ayer?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("dice Ayer: ${answer.text}", answer.text.startsWith("Ayer"))
+        assertTrue("nombra la de ayer: ${answer.text}", answer.text.contains("De ayer"))
+        assertFalse("no nombra la de hoy: ${answer.text}", answer.text.contains("De hoy"))
+    }
+
+    @Test fun completedRecap_excludesSubtasksArchivedCancelled() {
+        // Solo raíces, no archivadas, no canceladas: mismo predicado canónico que
+        // TaskRules.completedTodayCount. Subtareas completadas no inflan el recap.
+        val now = dayAt(dayToday, 15)
+        val root = completedTask(1, "Raíz", dayAt(dayToday, 10))
+        val subtask = completedTask(2, "Subtarea", dayAt(dayToday, 11)).copy(parentTaskId = 1)
+        val archived = completedTask(3, "Archivada", dayAt(dayToday, 12)).copy(archived = true)
+        val cancelled = TaskEntity(
+            id = 4, title = "Cancelada", completed = true,
+            status = com.ordia.app.data.local.TaskStatus.CANCELLED,
+            completedAt = dayAt(dayToday, 13), parentTaskId = null
+        )
+        val done = listOf(root, subtask, archived, cancelled)
+        val answer = AssistantEngine.answer("¿qué hice hoy?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("cuenta solo 1 raíz: ${answer.text}", answer.text.contains("completaste 1"))
+        assertTrue("nombra solo la raíz: ${answer.text}", answer.text.contains("Raíz"))
+        assertFalse("no cuenta subtarea: ${answer.text}", answer.text.contains("Subtarea"))
+        assertFalse("no cuenta archivada: ${answer.text}", answer.text.contains("Archivada"))
+        assertFalse("no cuenta cancelada: ${answer.text}", answer.text.contains("Cancelada"))
+    }
+
+    @Test fun completedRecap_doesNotHijackAgendaQuery() {
+        // "¿qué tengo hoy?" es agenda, NO recap. La rama nueva no debe secuestrarla.
+        val now = dayAt(dayToday, 15)
+        val pending = TaskEntity(id = 1, title = "Pendiente", dueAt = dayAt(dayToday, 18))
+        val done = completedTask(2, "Hecha", dayAt(dayToday, 9))
+        val answer = AssistantEngine.answer("¿qué tengo hoy?", listOf(pending, done), emptyList(), emptyList(), now, dayZone)
+        assertFalse("no responde recap a agenda: ${answer.text}", answer.text.contains("completaste"))
+    }
 }
