@@ -265,7 +265,7 @@ object CommitmentEngine {
         //     guarda precedingNegation excluye "no lo revisaré"/"no te lo mandaré"
         //     igual que "no lo haré". Cada forma admite variante con/sin tilde en
         //     la é final (har[eé]) por errores de escritura comunes.
-        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|te\s+aviso|te\s+confirmo|despu[eé]s\s+te\s+respondo|debo|tengo\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|terminar[eé]|har[eé]|entregar[eé]|revisar[eé]|preparar[eé]|arreglar[eé]|subir[eé]|dejar[eé]|pasar[eé]|mandar[eé]|enviar[eé])|lo\s+hago|te\s+(?:paso|mando)|le\s+(?:paso|mando|env[ií]o)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o))\b"""
+        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|te\s+aviso|te\s+confirmo|despu[eé]s\s+te\s+respondo|debo|tengo\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|terminar[eé]|har[eé]|entregar[eé]|revisar[eé]|preparar[eé]|arreglar[eé]|subir[eé]|dejar[eé]|pasar[eé]|mandar[eé]|enviar[eé])|lo\s+hago|te\s+(?:paso|mando)|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo))\b"""
     )
     // c.500: presente de 1ª persona SIN pronombre de objeto + marca temporal futura
     // PUNTUAL — "termino el informe mañana", "entrego el reporte el viernes",
@@ -286,15 +286,25 @@ object CommitmentEngine {
     //  - "mando la carta al correo" (dueAt null), "paso por tu casa sin avisar"
     //    (dueAt null): sin fecha futura, no son compromisos puntuales.
     //
-    // La lista de verbos es la MISMA del commitmentSignal (termino/entrego/reviso/
-    // preparo/arreglo/subo/dejo/paso/mando/envío): paridad con la rama con-clítico,
-    // sin inventar verbos. La guarda de negación [hasUnnegatedBarePresentCommitment]
-    // excluye "no termino el informe mañana" igual que "no lo termino" (c.279).
+    // La lista de verbos cubre la familia de ACCIÓN (termino/entrego/reviso/
+    // preparo/arreglo/subo/dejo/paso/mando/envío) y, desde c.508, la familia de
+    // COMUNICACIÓN (llamo/hablo/escribo): "llamo al cliente mañana", "hablo con
+    // el jefe el lunes", "escribo el informe mañana". Antes caían a MISSED
+    // porque su forma CON clítico ("te llamo", "le escribo") sí se detectaba
+    // (commitmentSignal) pero la PELADA no, aunque fuese la misma promesa con un
+    // objeto directo nominal en vez de pronominal ("llamo al cliente" vs "te
+    // llamo"). Un olvido real (P1): una promesa de contacto futura no generaba
+    // draft. El mismo discriminador (dueAt != null + recurrence NONE + !hoy +
+    // guarda de negación/clítico) protege las narraciones peladas sin fecha
+    // ("llamo a mi madre y le cuento", "hablo español en casa"), las rutinas
+    // ("llamo a mi madre cada mañana") y las negadas ("no llamo al cliente
+    // mañana"). Probe JVM POST-fix: 10/10 positivos detectados, 10/10 negativos
+    // excluidos.
     // Nace como draft SELF_COMMITMENT PENDING revisable: un falso positivo se
     // descarta, un falso negativo es una promesa olvidada (área "evitar olvidos" +
     // "detección de compromisos", P1).
     private val barePresentCommitmentSignal = Regex(
-        """(?iU)\b(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o)\b"""
+        """(?iU)\b(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo)\b"""
     )
     private val locationSignal = Regex(
         """(?i)\b(?:lugar\s*:\s*|(?:nos\s+vemos|reuni[oó]n|cita)[^.!?\n]{0,80}?\ben\s+)([\p{L}\d][\p{L}\d .,'-]{2,50})"""

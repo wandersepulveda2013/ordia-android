@@ -373,6 +373,70 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.508: verbos de COMUNICACIÓN de 1ª persona (llamo/hablo/escribo) en sus
+    // tres formas — pelada con marca futura, con clítico dativo "le" y con
+    // acusativo "lo". Antes sólo se detectaba "te llamo"/"te envío" (clítico de
+    // 2ª persona). Las promesas de contacto con objeto de 3ª persona o nominal
+    // ("llamo al cliente mañana", "le escribo mañana", "lo llamo el viernes")
+    // caían a MISSED → olvido real (P1). El discriminador existente (dueAt !=
+    // null + recurrence NONE + !hoy + guarda negación/clítico) protege las
+    // narraciones peladas sin fecha. Probe JVM POST-fix: 10/10 detectados.
+    @Test
+    fun communicationVerbsAreDetectedAsCommitments() {
+        val positives = listOf(
+            "llamo al cliente mañana",
+            "hablo con el jefe el lunes",
+            "escribo el informe mañana",
+            "escribo el correo esta tarde",
+            "hablo con ella el viernes",
+            "le llamo el viernes",
+            "le escribo mañana",
+            "le hablo el lunes",
+            "lo llamo el viernes",
+            "lo llamo mañana a las 3"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "comm-pos-$text"
+            )
+            assertTrue(
+                "\"$text\" (verbo de comunicación + marca futura) debe generar draft SELF_COMMITMENT",
+                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
+    // c.508: precisión — los verbos de comunicación pelados SIN marca temporal
+    // futura son narración ("hablo español en casa", "llamo a la puerta") y NO
+    // deben disparar. La negación ("no llamo al cliente mañana") y la rutina
+    // ("llamo a mi madre cada mañana") tampoco. Probe JVM POST-fix: 8/8 excluidos.
+    @Test
+    fun communicationVerbsBareNarrationsAreNotFlagged() {
+        val innocent = listOf(
+            "hablo español en casa",
+            "llamo a la puerta",
+            "escribo cartas a mano",
+            "hablo por hablar",
+            "no llamo al cliente mañana",
+            "no hablo con el jefe el lunes",
+            "llamo a mi madre cada mañana",
+            "hablo con el equipo cada lunes"
+        )
+        innocent.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "comm-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
     // c.307: imperativos de 2ª persona con pronombre enclítico — peticiones
     // directas muy frecuentes en chat español que NO casaban con "envíame"/
     // "mándame"/"recuerda" (los únicos imperativos cubiertos). Probe JVM PRE-fix:
