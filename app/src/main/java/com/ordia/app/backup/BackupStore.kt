@@ -42,6 +42,10 @@ class RoomBackupStore(private val database: OrdiaDatabase) : BackupStore {
             database.focusSessionDao().deleteAll()
             database.habitLogDao().deleteAll()
             database.habitDao().deleteAll()
+            database.noteVersionDao().deleteAll()
+            database.noteLabelCrossRefDao().deleteAll()
+            database.noteLabelDao().deleteAll()
+            database.noteFolderDao().deleteAll()
             database.noteDao().deleteAll()
             database.taskDao().deleteAll()
             database.projectDao().deleteAll()
@@ -49,6 +53,10 @@ class RoomBackupStore(private val database: OrdiaDatabase) : BackupStore {
             database.projectDao().insertAll(data.projects)
             database.taskDao().insertAll(data.tasks)
             database.noteDao().insertAll(data.notes)
+            database.noteFolderDao().insertAll(data.noteFolders)
+            database.noteLabelDao().insertAll(data.noteLabels)
+            database.noteLabelCrossRefDao().insertAll(data.noteLabelCrossRefs)
+            database.noteVersionDao().insertAll(data.noteVersions)
             database.habitDao().insertAll(data.habits)
             database.habitLogDao().insertAll(data.habitLogs)
             database.focusSessionDao().insertAll(data.focusSessions)
@@ -72,6 +80,10 @@ class RoomBackupStore(private val database: OrdiaDatabase) : BackupStore {
         projects = database.projectDao().getAllNow(),
         tasks = database.taskDao().getAllNow(),
         notes = database.noteDao().getAllNow(),
+        noteFolders = database.noteFolderDao().getAllNow(),
+        noteLabels = database.noteLabelDao().getAllNow(),
+        noteLabelCrossRefs = database.noteLabelCrossRefDao().getAllNow(),
+        noteVersions = database.noteVersionDao().getAllNow(),
         habits = database.habitDao().getAllNow(),
         habitLogs = database.habitLogDao().getAllNow(),
         focusSessions = database.focusSessionDao().getAllNow(),

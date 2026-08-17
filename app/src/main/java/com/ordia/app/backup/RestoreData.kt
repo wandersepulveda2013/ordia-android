@@ -11,6 +11,10 @@ import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteEntity
+import com.ordia.app.data.local.NoteFolderEntity
+import com.ordia.app.data.local.NoteLabelCrossRef
+import com.ordia.app.data.local.NoteLabelEntity
+import com.ordia.app.data.local.NoteVersionEntity
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.RoutineEntity
 import com.ordia.app.data.local.RoutineStepEntity
@@ -30,6 +34,10 @@ data class RestoreData(
     val projects: List<ProjectEntity> = emptyList(),
     val tasks: List<TaskEntity> = emptyList(),
     val notes: List<NoteEntity> = emptyList(),
+    val noteFolders: List<NoteFolderEntity> = emptyList(),
+    val noteLabels: List<NoteLabelEntity> = emptyList(),
+    val noteLabelCrossRefs: List<NoteLabelCrossRef> = emptyList(),
+    val noteVersions: List<NoteVersionEntity> = emptyList(),
     val habits: List<HabitEntity> = emptyList(),
     val habitLogs: List<HabitLogEntity> = emptyList(),
     val focusSessions: List<FocusSessionEntity> = emptyList(),
@@ -49,6 +57,7 @@ data class RestoreData(
 ) {
     val totalCount: Int
         get() = projects.size + tasks.size + notes.size + habits.size + habitLogs.size +
+            noteFolders.size + noteLabels.size + noteLabelCrossRefs.size + noteVersions.size + habits.size + habitLogs.size +
             focusSessions.size + routines.size + routineSteps.size + tags.size +
             taskTags.size + attachments.size + captures.size + captureDrafts.size +
             conversations.size + commitments.size + observedSources.size + consentEvents.size +
@@ -59,6 +68,10 @@ data class RestoreData(
         projects.size == other.projects.size &&
             tasks.size == other.tasks.size &&
             notes.size == other.notes.size &&
+            noteFolders.size == other.noteFolders.size &&
+            noteLabels.size == other.noteLabels.size &&
+            noteLabelCrossRefs.size == other.noteLabelCrossRefs.size &&
+            noteVersions.size == other.noteVersions.size &&
             habits.size == other.habits.size &&
             habitLogs.size == other.habitLogs.size &&
             focusSessions.size == other.focusSessions.size &&
@@ -81,6 +94,10 @@ data class RestoreData(
         projects.toSet() == other.projects.toSet() &&
             tasks.toSet() == other.tasks.toSet() &&
             notes.toSet() == other.notes.toSet() &&
+            noteFolders.toSet() == other.noteFolders.toSet() &&
+            noteLabels.toSet() == other.noteLabels.toSet() &&
+            noteLabelCrossRefs.toSet() == other.noteLabelCrossRefs.toSet() &&
+            noteVersions.toSet() == other.noteVersions.toSet() &&
             habits.toSet() == other.habits.toSet() &&
             habitLogs.toSet() == other.habitLogs.toSet() &&
             focusSessions.toSet() == other.focusSessions.toSet() &&

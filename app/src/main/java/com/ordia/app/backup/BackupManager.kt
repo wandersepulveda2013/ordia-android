@@ -20,6 +20,10 @@ import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.HabitFrequency
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteEntity
+import com.ordia.app.data.local.NoteFolderEntity
+import com.ordia.app.data.local.NoteLabelCrossRef
+import com.ordia.app.data.local.NoteLabelEntity
+import com.ordia.app.data.local.NoteVersionEntity
 import com.ordia.app.data.local.ObservedSourceEntity
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.ProjectStatus
@@ -95,6 +99,10 @@ class BackupManager(
         root.put("projects", JSONArray().apply { current.projects.forEach { put(it.toJson()) } })
         root.put("tasks", JSONArray().apply { current.tasks.forEach { put(it.toJson()) } })
         root.put("notes", JSONArray().apply { current.notes.forEach { put(it.toJson()) } })
+        root.put("noteFolders", JSONArray().apply { current.noteFolders.forEach { put(it.toJson()) } })
+        root.put("noteLabels", JSONArray().apply { current.noteLabels.forEach { put(it.toJson()) } })
+        root.put("noteLabelCrossRefs", JSONArray().apply { current.noteLabelCrossRefs.forEach { put(it.toJson()) } })
+        root.put("noteVersions", JSONArray().apply { current.noteVersions.forEach { put(it.toJson()) } })
         root.put("habits", JSONArray().apply { current.habits.forEach { put(it.toJson()) } })
         root.put("habitLogs", JSONArray().apply { current.habitLogs.forEach { put(it.toJson()) } })
         root.put("focusSessions", JSONArray().apply { current.focusSessions.forEach { put(it.toJson()) } })
@@ -320,6 +328,18 @@ class BackupManager(
             projects = root.requiredArray("projects").validatedMap("projects") { it.toProject() },
             tasks = root.requiredArray("tasks").validatedMap("tasks") { it.toTask() },
             notes = root.requiredArray("notes").validatedMap("notes") { it.toNote() },
+            noteFolders = if (version >= 9) {
+                root.requiredArray("noteFolders").validatedMap("noteFolders") { it.toNoteFolder() }
+            } else emptyList(),
+            noteLabels = if (version >= 9) {
+                root.requiredArray("noteLabels").validatedMap("noteLabels") { it.toNoteLabel() }
+            } else emptyList(),
+            noteLabelCrossRefs = if (version >= 9) {
+                root.requiredArray("noteLabelCrossRefs").validatedMap("noteLabelCrossRefs") { it.toNoteLabelCrossRef() }
+            } else emptyList(),
+            noteVersions = if (version >= 9) {
+                root.requiredArray("noteVersions").validatedMap("noteVersions") { it.toNoteVersion() }
+            } else emptyList(),
             habits = root.requiredArray("habits").validatedMap("habits") { it.toHabit() },
             habitLogs = root.requiredArray("habitLogs").validatedMap("habitLogs") { it.toHabitLog() },
             focusSessions = root.requiredArray("focusSessions").validatedMap("focusSessions") { it.toFocusSession() },
@@ -408,6 +428,9 @@ private fun validateRelationships(data: RestoreData) {
     val projectIds = requirePositiveUnique("Proyectos", data.projects.map { it.id })
     val taskIds = requirePositiveUnique("Tareas", data.tasks.map { it.id })
     val noteIds = requirePositiveUnique("Notas", data.notes.map { it.id })
+    val noteFolderIds = requirePositiveUnique("Carpetas de notas", data.noteFolders.map { it.id })
+    val noteLabelIds = requirePositiveUnique("Etiquetas de notas", data.noteLabels.map { it.id })
+    requirePositiveUnique("Versiones de notas", data.noteVersions.map { it.id })
     val habitIds = requirePositiveUnique("Hábitos", data.habits.map { it.id })
     requirePositiveUnique("Sesiones", data.focusSessions.map { it.id })
     val routineIds = requirePositiveUnique("Rutinas", data.routines.map { it.id })
@@ -425,6 +448,18 @@ private fun validateRelationships(data: RestoreData) {
         "La copia contiene fuentes observadas duplicadas."
     }
     require(data.tags.map { it.name }.toSet().size == data.tags.size) { "La copia contiene etiquetas duplicadas." }
+    require(data.noteFolders.map { it.name }.toSet().size == data.noteFolders.size) {
+        "La copia contiene carpetas de notas duplicadas."
+    }
+    require(data.noteLabels.map { it.name }.toSet().size == data.noteLabels.size) {
+        "La copia contiene etiquetas de notas duplicadas."
+    }
+    require(!BackupSecurityRules.hasParentCycle(data.noteFolders.associate { it.id to it.parentFolderId })) {
+        "La copia contiene un ciclo entre carpetas de notas."
+    }
+    require(!BackupSecurityRules.hasDuplicatePairs(data.noteLabelCrossRefs.map { it.noteId to it.labelId })) {
+        "La copia contiene relaciones nota-etiqueta duplicadas."
+    }
     require(data.captureDrafts.map { it.slot }.toSet().size == data.captureDrafts.size) {
         "La copia contiene borradores de captura duplicados."
     }
@@ -462,7 +497,28 @@ private fun validateRelationships(data: RestoreData) {
     data.projects.forEach { project -> require(project.createdAt <= project.updatedAt) { "Un proyecto fue actualizado antes de ser creado." } }
     data.notes.forEach { note ->
         require(note.projectId == null || note.projectId in projectIds) { "Una nota referencia un proyecto inexistente." }
+        require(note.folderId == null || note.folderId in noteFolderIds) { "Una nota referencia una carpeta inexistente." }
         require(note.createdAt <= note.updatedAt) { "Una nota fue actualizada antes de ser creada." }
+        require(note.trashedAt == null || note.trashed) { "Una nota con fecha de borrado no está marcada como eliminada." }
+    }
+    data.noteFolders.forEach { folder ->
+        require(folder.parentFolderId == null || folder.parentFolderId in noteFolderIds) {
+            "Una carpeta de notas referencia un padre inexistente."
+        }
+        require(folder.parentFolderId == null || folder.parentFolderId != folder.id) {
+            "Una carpeta de notas es su propio padre."
+        }
+        require(folder.createdAt <= folder.updatedAt) { "Una carpeta fue actualizada antes de ser creada." }
+    }
+    data.noteLabelCrossRefs.forEach { ref ->
+        require(ref.noteId in noteIds) { "Una relación nota-etiqueta referencia una nota inexistente." }
+        require(ref.labelId in noteLabelIds) { "Una relación nota-etiqueta referencia una etiqueta inexistente." }
+    }
+    data.noteVersions.forEach { version ->
+        require(version.noteId in noteIds) { "Una versión referencia una nota inexistente." }
+        require(version.createdAt in 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS) {
+            "Una versión contiene una fecha inválida."
+        }
     }
     data.habits.forEach { habit ->
         require(habit.createdAt <= habit.updatedAt) { "Un hábito fue actualizado antes de ser creado." }
@@ -726,6 +782,18 @@ private fun JSONObject.color(name: String, fallback: String): String {
     return value
 }
 
+/**
+ * Color opcional: la cadena vacía significa "sin color" (notes y carpetas
+ * pueden no tener color asignado). Acepta "" o un hex válido.
+ */
+private fun JSONObject.optionalColor(name: String, fallback: String): String {
+    val value = text(name, 9, fallback)
+    require(value.isEmpty() || Regex("^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$").matches(value)) {
+        "$name no contiene un color válido."
+    }
+    return value
+}
+
 private fun JSONObject.attachmentUri(): String {
     val value = requiredText("uri", 20_000)
     val parsed = runCatching { URI(value) }.getOrNull() ?: error("El URI de un adjunto no es válido.")
@@ -771,12 +839,42 @@ private fun JSONObject.toTask() = TaskEntity(
 )
 
 private fun NoteEntity.toJson() = JSONObject().put("id", id).put("title", title).put("body", body).put("blocksData", blocksData)
-    .putNullable("projectId", projectId).put("pinned", pinned).put("archived", archived).put("createdAt", createdAt).put("updatedAt", updatedAt)
+    .putNullable("projectId", projectId).putNullable("folderId", folderId).put("pinned", pinned).put("favorite", favorite)
+    .put("locked", locked).put("colorHex", colorHex).put("archived", archived).put("trashed", trashed)
+    .putNullable("trashedAt", trashedAt).put("createdAt", createdAt).put("updatedAt", updatedAt)
 private fun JSONObject.toNote() = NoteEntity(
     id = requiredLong("id"), title = requiredText("title", 2_000), body = text("body", 500_000),
     blocksData = text("blocksData", 1_000_000), projectId = longOrNull("projectId"),
-    pinned = booleanValue("pinned", false), archived = booleanValue("archived", false),
+    folderId = longOrNull("folderId"), pinned = booleanValue("pinned", false),
+    favorite = booleanValue("favorite", false), locked = booleanValue("locked", false),
+    colorHex = optionalColor("colorHex", ""), archived = booleanValue("archived", false),
+    trashed = booleanValue("trashed", false), trashedAt = epochMillisOrNull("trashedAt"),
     createdAt = longValue("createdAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS), updatedAt = longValue("updatedAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
+)
+
+private fun NoteFolderEntity.toJson() = JSONObject().put("id", id).put("name", name).put("colorHex", colorHex)
+    .putNullable("parentFolderId", parentFolderId).put("createdAt", createdAt).put("updatedAt", updatedAt)
+private fun JSONObject.toNoteFolder() = NoteFolderEntity(
+    id = requiredLong("id"), name = requiredText("name", 500), colorHex = optionalColor("colorHex", ""),
+    parentFolderId = longOrNull("parentFolderId"),
+    createdAt = longValue("createdAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS),
+    updatedAt = longValue("updatedAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
+)
+
+private fun NoteLabelEntity.toJson() = JSONObject().put("id", id).put("name", name).put("colorHex", colorHex)
+private fun JSONObject.toNoteLabel() = NoteLabelEntity(
+    id = requiredLong("id"), name = requiredText("name", 500), colorHex = color("colorHex", "#9A8F7F")
+)
+
+private fun NoteLabelCrossRef.toJson() = JSONObject().put("noteId", noteId).put("labelId", labelId)
+private fun JSONObject.toNoteLabelCrossRef() = NoteLabelCrossRef(requiredLong("noteId"), requiredLong("labelId"))
+
+private fun NoteVersionEntity.toJson() = JSONObject().put("id", id).put("noteId", noteId).put("title", title)
+    .put("blocksData", blocksData).put("body", body).put("createdAt", createdAt)
+private fun JSONObject.toNoteVersion() = NoteVersionEntity(
+    id = requiredLong("id"), noteId = requiredLong("noteId"), title = requiredText("title", 2_000),
+    blocksData = text("blocksData", 1_000_000), body = text("body", 500_000),
+    createdAt = longValue("createdAt", System.currentTimeMillis(), 0L..BackupSecurityRules.MAX_SAFE_EPOCH_MILLIS)
 )
 
 private fun HabitEntity.toJson() = JSONObject().put("id", id).put("title", title).put("details", details).put("frequency", frequency.name)

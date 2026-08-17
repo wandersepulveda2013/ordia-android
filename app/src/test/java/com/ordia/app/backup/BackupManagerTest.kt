@@ -521,7 +521,7 @@ class BackupManagerTest {
     @Test
     fun futureVersionMessageWarnsAboutNewerOrdia() = runBlocking {
         val origin = newManager(FakeBackupStore(sampleData()))
-        val tampered = rewrap(JSONObject(origin.exportJson()), version = 9)
+        val tampered = rewrap(JSONObject(origin.exportJson()), version = 10)
 
         val store = FakeBackupStore(otherData())
         val result = newManager(store).importBackup(tampered)

@@ -122,9 +122,26 @@ data class ProjectEntity(
             parentColumns = ["id"],
             childColumns = ["projectId"],
             onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = NoteFolderEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["folderId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index("projectId"), Index("pinned"), Index("archived"), Index(value = ["pinned", "updatedAt"])]
+    indices = [
+        Index("projectId"),
+        Index("folderId"),
+        Index("pinned"),
+        Index("favorite"),
+        Index("locked"),
+        Index("archived"),
+        Index("trashed"),
+        Index("colorHex"),
+        Index(value = ["pinned", "updatedAt"]),
+        Index(value = ["trashed", "updatedAt"])
+    ]
 )
 data class NoteEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -132,10 +149,98 @@ data class NoteEntity(
     val body: String = "",
     @ColumnInfo(defaultValue = "''") val blocksData: String = "",
     val projectId: Long? = null,
+    val folderId: Long? = null,
     val pinned: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val favorite: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val locked: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val colorHex: String = "",
     @ColumnInfo(defaultValue = "0") val archived: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val trashed: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val trashedAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
+)
+
+/**
+ * Carpetas de notas. Jerarquía simple de un nivel vía [parentFolderId]; el
+ * usuario puede vivir sin carpetas indefinidamente (ninguna es obligatoria).
+ */
+@Entity(
+    tableName = "note_folders",
+    foreignKeys = [
+        ForeignKey(
+            entity = NoteFolderEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["parentFolderId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
+    indices = [Index("parentFolderId"), Index(value = ["name"], unique = true)]
+)
+data class NoteFolderEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    @ColumnInfo(defaultValue = "''") val colorHex: String = "",
+    val parentFolderId: Long? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+/**
+ * Etiquetas de notas (distintas de las etiquetas de tareas). Múltiples por nota.
+ */
+@Entity(tableName = "note_labels", indices = [Index(value = ["name"], unique = true)])
+data class NoteLabelEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    @ColumnInfo(defaultValue = "'#9A8F7F'") val colorHex: String = "#9A8F7F"
+)
+
+@Entity(
+    tableName = "note_label_cross_ref",
+    primaryKeys = ["noteId", "labelId"],
+    foreignKeys = [
+        ForeignKey(
+            entity = NoteEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["noteId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = NoteLabelEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["labelId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("noteId"), Index("labelId")]
+)
+data class NoteLabelCrossRef(val noteId: Long, val labelId: Long)
+
+/**
+ * Instantáneas de historial de versiones de una nota. Se guardan con debounce
+ * (no en cada pulsación): el repositorio decide cuándo materializar una versión.
+ * [blocksData] es una copia completa del documento en ese momento.
+ */
+@Entity(
+    tableName = "note_versions",
+    foreignKeys = [
+        ForeignKey(
+            entity = NoteEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["noteId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("noteId"), Index("createdAt")]
+)
+data class NoteVersionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val noteId: Long,
+    val title: String,
+    @ColumnInfo(defaultValue = "''") val blocksData: String = "",
+    @ColumnInfo(defaultValue = "''") val body: String = "",
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "habits", indices = [Index("archived")])

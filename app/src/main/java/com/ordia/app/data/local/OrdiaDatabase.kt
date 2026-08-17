@@ -13,6 +13,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TaskEntity::class,
         ProjectEntity::class,
         NoteEntity::class,
+        NoteFolderEntity::class,
+        NoteLabelEntity::class,
+        NoteLabelCrossRef::class,
+        NoteVersionEntity::class,
         HabitEntity::class,
         HabitLogEntity::class,
         FocusSessionEntity::class,
@@ -30,7 +34,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ConsentEventEntity::class,
         AutomationRuleEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -38,6 +42,10 @@ abstract class OrdiaDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
     abstract fun projectDao(): ProjectDao
     abstract fun noteDao(): NoteDao
+    abstract fun noteFolderDao(): NoteFolderDao
+    abstract fun noteLabelDao(): NoteLabelDao
+    abstract fun noteLabelCrossRefDao(): NoteLabelCrossRefDao
+    abstract fun noteVersionDao(): NoteVersionDao
     abstract fun habitDao(): HabitDao
     abstract fun habitLogDao(): HabitLogDao
     abstract fun focusSessionDao(): FocusSessionDao
@@ -66,6 +74,112 @@ abstract class OrdiaDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_automation_log_type_createdAt ON automation_log(type, createdAt)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_captures_resultId ON captures(resultId)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_pinned_updatedAt ON notes(pinned, updatedAt)")
+            }
+        }
+
+        /**
+         * Migración 8 → 9: reconstrucción de ORDÍA como bloc de notas avanzado.
+         *
+         * NO toca ni pierde ningún dato preexistente: las notas, tareas y demás
+         * colecciones se conservan íntegras. Solamente enriquece `notes` con
+         * nuevas columnas (con defaults seguros) y crea las tablas auxiliares
+         * del nuevo modelo (carpetas, etiquetas de nota, historial de versiones).
+         *
+         * Como `notes` gana una nueva FK hacia `note_folders`, se reconstruye la
+         * tabla preservando filas y valores existentes (estrategia recomendada
+         * por Room cuando se añaden FKs/índices sobre una tabla ya poblada).
+         */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Tablas auxiliares del nuevo modelo de notas.
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS note_folders (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        colorHex TEXT NOT NULL DEFAULT '',
+                        parentFolderId INTEGER,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        FOREIGN KEY(parentFolderId) REFERENCES note_folders(id) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_note_folders_parentFolderId ON note_folders(parentFolderId)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_note_folders_name ON note_folders(name)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS note_labels (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        colorHex TEXT NOT NULL DEFAULT '#9A8F7F'
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_note_labels_name ON note_labels(name)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS note_label_cross_ref (
+                        noteId INTEGER NOT NULL,
+                        labelId INTEGER NOT NULL,
+                        PRIMARY KEY(noteId, labelId),
+                        FOREIGN KEY(noteId) REFERENCES notes(id) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(labelId) REFERENCES note_labels(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_note_label_cross_ref_noteId ON note_label_cross_ref(noteId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_note_label_cross_ref_labelId ON note_label_cross_ref(labelId)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS note_versions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        noteId INTEGER NOT NULL,
+                        title TEXT NOT NULL,
+                        blocksData TEXT NOT NULL DEFAULT '',
+                        body TEXT NOT NULL DEFAULT '',
+                        createdAt INTEGER NOT NULL,
+                        FOREIGN KEY(noteId) REFERENCES notes(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_note_versions_noteId ON note_versions(noteId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_note_versions_createdAt ON note_versions(createdAt)")
+
+                // Reconstruir `notes` con las nuevas columnas + FK hacia note_folders.
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS notes_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        title TEXT NOT NULL,
+                        body TEXT NOT NULL,
+                        blocksData TEXT NOT NULL DEFAULT '',
+                        projectId INTEGER,
+                        folderId INTEGER,
+                        pinned INTEGER NOT NULL DEFAULT 0,
+                        favorite INTEGER NOT NULL DEFAULT 0,
+                        locked INTEGER NOT NULL DEFAULT 0,
+                        colorHex TEXT NOT NULL DEFAULT '',
+                        archived INTEGER NOT NULL DEFAULT 0,
+                        trashed INTEGER NOT NULL DEFAULT 0,
+                        trashedAt INTEGER,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        FOREIGN KEY(projectId) REFERENCES projects(id) ON UPDATE NO ACTION ON DELETE SET NULL,
+                        FOREIGN KEY(folderId) REFERENCES note_folders(id) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO notes_new (id, title, body, blocksData, projectId, folderId, pinned, favorite, locked, colorHex, archived, trashed, trashedAt, createdAt, updatedAt)
+                    SELECT id, title, body, blocksData, projectId, NULL, pinned, 0, 0, '', archived, 0, NULL, createdAt, updatedAt FROM notes
+                """.trimIndent())
+                // Índices de la nueva tabla, idénticos a los declarados en la entidad.
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_new_projectId ON notes_new(projectId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_new_folderId ON notes_new(folderId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_new_pinned ON notes_new(pinned)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_new_favorite ON notes_new(favorite)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_new_locked ON notes_new(locked)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_new_archived ON notes_new(archived)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_new_trashed ON notes_new(trashed)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_new_colorHex ON notes_new(colorHex)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_new_pinned_updatedAt ON notes_new(pinned, updatedAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_new_trashed_updatedAt ON notes_new(trashed, updatedAt)")
+                db.execSQL("DROP TABLE notes")
+                db.execSQL("ALTER TABLE notes_new RENAME TO notes")
             }
         }
 
@@ -361,7 +475,7 @@ abstract class OrdiaDatabase : RoomDatabase() {
                     OrdiaDatabase::class.java,
                     "ordia.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .build()
                     .also { instance = it }
             }

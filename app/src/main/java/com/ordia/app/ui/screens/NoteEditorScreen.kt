@@ -310,18 +310,20 @@ private fun formatBytes(context: Context, bytes: Long): String = when {
 
 private fun NoteBlockType.labelRes(): Int = when (this) {
     NoteBlockType.PARAGRAPH -> R.string.note_editor_block_paragraph
-    NoteBlockType.HEADING -> R.string.note_editor_block_heading
+    NoteBlockType.HEADING, NoteBlockType.HEADING_2, NoteBlockType.HEADING_3, NoteBlockType.SUBTITLE -> R.string.note_editor_block_heading
     NoteBlockType.CHECKLIST -> R.string.note_editor_block_checklist
     NoteBlockType.QUOTE -> R.string.note_editor_block_quote
     NoteBlockType.BULLET -> R.string.note_editor_block_bullet
     NoteBlockType.NUMBERED -> R.string.note_editor_block_numbered
     NoteBlockType.DIVIDER -> R.string.note_editor_block_divider
+    else -> R.string.note_editor_block_paragraph
 }
 private fun NoteBlockType.icon() = when (this) {
     NoteBlockType.PARAGRAPH -> Icons.Outlined.Add
-    NoteBlockType.HEADING -> Icons.Outlined.Title
+    NoteBlockType.HEADING, NoteBlockType.HEADING_2, NoteBlockType.HEADING_3, NoteBlockType.SUBTITLE -> Icons.Outlined.Title
     NoteBlockType.CHECKLIST -> Icons.Outlined.CheckBox
     NoteBlockType.QUOTE -> Icons.Outlined.FormatQuote
     NoteBlockType.BULLET, NoteBlockType.NUMBERED -> Icons.AutoMirrored.Outlined.FormatListBulleted
     NoteBlockType.DIVIDER -> Icons.Outlined.HorizontalRule
+    else -> Icons.Outlined.Add
 }

@@ -19,6 +19,9 @@ import com.ordia.app.data.repository.CaptureRepository
 import com.ordia.app.data.repository.ConversationRepository
 import com.ordia.app.data.repository.HabitRepository
 import com.ordia.app.data.repository.NoteRepository
+import com.ordia.app.data.repository.NoteFolderRepository
+import com.ordia.app.data.repository.NoteLabelRepository
+import com.ordia.app.data.repository.NoteVersionRepository
 import com.ordia.app.data.repository.ObservationRepository
 import com.ordia.app.data.repository.ProjectRepository
 import com.ordia.app.data.repository.RoutineRepository
@@ -36,6 +39,9 @@ class AppContainer(context: Context) {
     val taskRepository = TaskRepository(database.taskDao())
     val projectRepository = ProjectRepository(database.projectDao())
     val noteRepository = NoteRepository(database.noteDao())
+    val noteFolderRepository = NoteFolderRepository(database.noteFolderDao())
+    val noteLabelRepository = NoteLabelRepository(database.noteLabelDao(), database.noteLabelCrossRefDao())
+    val noteVersionRepository = NoteVersionRepository(database.noteVersionDao())
     val habitRepository = HabitRepository(database.habitDao(), database.habitLogDao())
     val focusRepository = FocusRepository(database.focusSessionDao())
     val routineRepository = RoutineRepository(database.routineDao(), database.routineStepDao())
