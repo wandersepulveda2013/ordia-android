@@ -111,12 +111,34 @@ object CommitmentEngine {
     private val meetingNounSignal = Regex(
         """(?i)\b(?:reuni[oó]n|cita|encuentro)\b"""
     )
-    // Objeto genitivo: "de/del/por/para" + determinante opcional + sustantivo de
+    // Objeto genitivo: preposicion + determinante opcional + sustantivo de
     // reunion. El rango cubre la preposicion, el determinante y el sustantivo.
+    // c.522: +sobre|tras (c.519 cerro de/del/por/para pero "informe sobre la
+    // reunion", "acta tras la reunion", "notas sobre la cita" seguian disparando
+    // falso MEETING: el sustantivo es el OBJETO/TEMA del genitivo, no el compromiso).
     private val meetingNounAsObject = Regex(
-        """(?i)(?:de|del|por|para)\s+(?:el|la|los|las|un|una|unos|unas)?\s*(?:reuni[oó]n|cita|encuentro)\b"""
+        """(?i)(?:de|del|por|para|sobre|tras)\s+(?:el|la|los|las|un|una|unos|unas)?\s*(?:reuni[oó]n|cita|encuentro)\b"""
     )
-    private val purchaseSignal = Regex("""(?i)\b(?:comprar|compra|traer|conseguir|mercado|supermercado)\b""")
+    // c.523: split purchaseSignal en verbo (siempre activo) + sustantivo con
+    // guarda anti-objeto-genitivo (simetrico a meetingSignal c.519). Antes,
+    // compra|mercado|supermercado casaban como sustantivo en cualquier posicion
+    // -> falso PURCHASE cuando el sustantivo es el OBJETO de un genitivo: "ahorro
+    // para la compra del coche", "presupuesto para el supermercado", "gasto en el
+    // mercado". El compromiso real es ahorrar/presupuestar/gastar, no comprar; el
+    // sustantivo de compra es el tema, no la accion. Los infinitivos
+    // comprar/traer/conseguir son verbos inequivocos y se mantienen sin guarda.
+    // "compra" (verbo imperativo "compra pan" / sustantivo "la compra") va al
+    // sustantivo con guarda: "compra pan" (sin preposicion) NO es genitivo -> PURCHASE
+    // (correcto); "para la compra del coche" (genitivo) -> suprimido. Residual
+    // conocido: "el mercado de valores subio" (sustantivo como sujeto de
+    // afirmacion de hecho, no genitivo-objeto) sigue disparando PURCHASE; misma
+    // clase de residual intencional que "la reunion el lunes" en c.519.
+    private val purchaseVerbSignal = Regex("""(?i)\b(?:comprar|traer|conseguir)\b""")
+    private val purchaseNounSignal = Regex("""(?i)\b(?:compra|mercado|supermercado)\b""")
+    // Objeto genitivo: preposicion + determinante opcional + sustantivo de compra.
+    private val purchaseNounAsObject = Regex(
+        """(?i)(?:de|del|por|para|sobre|tras|en)\s+(?:el|la|los|las|un|una|unos|unas)?\s*(?:compra|mercado|supermercado)\b"""
+    )
     private val reminderSignal = Regex("""(?i)\b(?:recu[eé]rdame|recordatorio|av[ií]same|no\s+dejes\s+que\s+olvide)\b""")
     // c.309: peticiones en indicativo de 2ª persona ("me pasas el informe?",
     // "me llamas luego?", "me envías el archivo mañana", "me lo mandas?").
@@ -406,6 +428,15 @@ object CommitmentEngine {
         }
     }
 
+    // c.523: simetrico a hasMeetingNounAsSubject. Solo cuenta un sustantivo de
+    // compra como PURCHASE si al menos una ocurrencia NO es objeto genitivo.
+    private fun hasPurchaseNounAsSubject(text: String): Boolean {
+        val objects = purchaseNounAsObject.findAll(text).map { it.range.first..it.range.last }.toList()
+        return purchaseNounSignal.findAll(text).any { noun ->
+            objects.none { obj -> noun.range.first in obj }
+        }
+    }
+
 
     // c.309: la negación antes de un indicativo de 2ª persona ("no me pasas
     // nada", "no me llamas nunca", "no me lo envías") es una queja/acusación,
@@ -500,7 +531,7 @@ object CommitmentEngine {
         if (text.length < 4) return null
         val isRequest = requestSignal.containsMatchIn(text) || hasUnnegatedIndicativeRequest(text)
         val isMeeting = meetingVerbSignal.containsMatchIn(text) || hasMeetingNounAsSubject(text)
-        val isPurchase = purchaseSignal.containsMatchIn(text)
+        val isPurchase = purchaseVerbSignal.containsMatchIn(text) || hasPurchaseNounAsSubject(text)
         val isReminder = reminderSignal.containsMatchIn(text)
         // "no te llamo"/"no me encargo"/"no lo hago" son NEGATIVAS (rechazos), no
         // compromisos: excluir las frases de compromiso directamente negadas. Ojo:

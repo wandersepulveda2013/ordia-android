@@ -92,6 +92,9 @@ class CommitmentEngineTest {
     // no deben clasificarse como MEETING: el compromiso real es avisar/pagar/
     // resumir, no reunirse. Solo cuenta como MEETING cuando el sustantivo es
     // sujeto/evento ("la reunión es mañana", "tenemos cita", "encuentro con").
+    // c.522: ampliación con preposiciones "sobre"/"tras" ("informe sobre la
+    // reunión", "acta tras la reunión", "notas sobre la cita"): mismo patrón
+    // genitivo, antes escapaban de la guarda c.519 (solo cubría de/del/por/para).
     @Test
     fun suppressesMeetingWhenNounIsGenitiveObject() {
         // Sujetos/eventos reales: siguen siendo MEETING.
@@ -113,7 +116,11 @@ class CommitmentEngineTest {
             "Me llegó un aviso de la reunión de ayer",
             "El acta de la reunión del lunes",
             "Resumen de la reunión del miércoles",
-            "Cobro por la reunión del lunes"
+            "Cobro por la reunión del lunes",
+            // c.522: sobre/tras
+            "Informe sobre la reunión el lunes",
+            "Acta tras la reunión de ayer",
+            "Notas sobre la cita de mañana"
         )
         for (text in notMeetings) {
             val res = CommitmentEngine.extract(
@@ -122,6 +129,45 @@ class CommitmentEngineTest {
             assertTrue(
                 "no debería clasificarse como MEETING: $text",
                 res.none { it.kind == CommitmentKind.MEETING }
+            )
+        }
+    }
+
+    // c.523: los sustantivos de compra (compra/mercado/supermercado) que son el
+    // OBJETO de un genitivo ("ahorro para la compra del coche", "presupuesto para
+    // el supermercado", "gasto en el mercado") no deben clasificarse como PURCHASE:
+    // el compromiso real es ahorrar/presupuestar/gastar, no comprar. Los infinitivos
+    // comprar/traer/conseguir son verbos inequívocos y siempre disparan PURCHASE.
+    @Test
+    fun suppressesPurchaseWhenNounIsGenitiveObject() {
+        // Verbos/acciones reales: siguen siendo PURCHASE.
+        val purchases = listOf(
+            "Comprar pan mañana",
+            "Traer mercado el sábado",
+            "Tengo que conseguir las entradas"
+        )
+        for (text in purchases) {
+            val res = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)), selfParticipant = "Yo", scopeHash = "pur-pos"
+            )
+            assertTrue(
+                "debería ser PURCHASE: $text",
+                res.isNotEmpty() && res[0].kind == CommitmentKind.PURCHASE
+            )
+        }
+        // Objetos genitivos: NO deben nacer como PURCHASE.
+        val notPurchases = listOf(
+            "Ahorro para la compra del coche el viernes",
+            "Presupuesto para el supermercado de la boda",
+            "Gasto en el mercado de valores fue alto"
+        )
+        for (text in notPurchases) {
+            val res = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)), selfParticipant = "Yo", scopeHash = "pur-neg"
+            )
+            assertTrue(
+                "no debería clasificarse como PURCHASE: $text",
+                res.none { it.kind == CommitmentKind.PURCHASE }
             )
         }
     }
