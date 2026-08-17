@@ -175,4 +175,30 @@ class NoteBlockCodecTest {
         )
         assertEquals("HolaMundo", block.plainText)
     }
+
+    @Test fun toMarkdownRendersHeadingsListsChecklistTableAndCode() {
+        val blocks = listOf(
+            NoteBlock(type = NoteBlockType.HEADING, text = "Título"),
+            NoteBlock(type = NoteBlockType.BULLET, text = "Viñeta"),
+            NoteBlock(type = NoteBlockType.CHECKLIST, text = "Hecha", checked = true),
+            NoteBlock(type = NoteBlockType.CHECKLIST, text = "Pendiente", checked = false),
+            NoteBlock(type = NoteBlockType.QUOTE, text = "Cita"),
+            NoteBlock(type = NoteBlockType.CODE, text = "val x = 1"),
+            NoteBlock(type = NoteBlockType.DIVIDER),
+            NoteBlock(type = NoteBlockType.TABLE, tableRows = listOf(listOf("A", "B"), listOf("1", "2")))
+        )
+
+        val md = NoteBlockCodec.toMarkdown(blocks)
+
+        assertTrue(md.contains("# Título"))
+        assertTrue(md.contains("- Viñeta"))
+        assertTrue(md.contains("- [x] Hecha"))
+        assertTrue(md.contains("- [ ] Pendiente"))
+        assertTrue(md.contains("> Cita"))
+        assertTrue(md.contains("```\nval x = 1\n```"))
+        assertTrue(md.contains("---"))
+        assertTrue(md.contains("| A | B |"))
+        assertTrue(md.contains("| --- | --- |"))
+        assertTrue(md.contains("| 1 | 2 |"))
+    }
 }

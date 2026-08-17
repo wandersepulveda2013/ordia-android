@@ -205,4 +205,41 @@ object NoteBlockCodec {
             NoteBlockType.PARAGRAPH -> block.plainText
         }
     }
+
+    /** Convierte los bloques a Markdown razonable (títulos, listas, tablas, código, citas). */
+    fun toMarkdown(blocks: List<NoteBlock>): String = buildString {
+        blocks.forEachIndexed { index, block ->
+            if (index > 0) append("\n")
+            when (block.type) {
+                NoteBlockType.HEADING -> { append("# ").append(block.plainText) }
+                NoteBlockType.HEADING_2 -> { append("## ").append(block.plainText) }
+                NoteBlockType.HEADING_3 -> { append("### ").append(block.plainText) }
+                NoteBlockType.SUBTITLE -> { append("#### ").append(block.plainText) }
+                NoteBlockType.CHECKLIST -> { append("- [").append(if (block.checked) "x" else " ").append("] ").append(block.plainText) }
+                NoteBlockType.BULLET -> { append("- ").append(block.plainText) }
+                NoteBlockType.NUMBERED -> { append("${index + 1}. ").append(block.plainText) }
+                NoteBlockType.QUOTE -> { append("> ").append(block.plainText) }
+                NoteBlockType.DIVIDER -> { append("---") }
+                NoteBlockType.CODE -> { append("```\n").append(block.plainText).append("\n```") }
+                NoteBlockType.IMAGE -> { append("![${block.attachmentName}](${block.attachmentUri})") }
+                NoteBlockType.FILE -> { append("[📄 ${block.attachmentName}](${block.attachmentUri})") }
+                NoteBlockType.AUDIO -> { append("[🔊 ${block.attachmentName}](${block.attachmentUri})") }
+                NoteBlockType.DRAWING -> { append("[🎨 dibujo]") }
+                NoteBlockType.HANDWRITING -> { append("[✍ escritura a mano]") }
+                NoteBlockType.SCANNER -> { append("[📄 ${block.attachmentName}](${block.attachmentUri})") }
+                NoteBlockType.TABLE -> {
+                    if (block.tableRows.isNotEmpty()) {
+                        val header = block.tableRows.first()
+                        append("| ").append(header.joinToString(" | ")).append(" |")
+                        append("\n| ").append(header.joinToString(" | ") { "---" }).append(" |")
+                        block.tableRows.drop(1).forEach { row ->
+                            append("\n| ").append(row.joinToString(" | ")).append(" |")
+                        }
+                    }
+                }
+                NoteBlockType.LINK -> { append("[${block.linkTitle.ifBlank { block.attachmentUri }}](${block.attachmentUri})") }
+                NoteBlockType.PARAGRAPH -> append(block.plainText)
+            }
+        }
+    }
 }

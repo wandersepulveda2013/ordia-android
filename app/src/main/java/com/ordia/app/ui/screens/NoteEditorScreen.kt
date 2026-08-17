@@ -506,6 +506,7 @@ fun NoteEditorScreen(
                                 expanded = overflowOpen,
                                 onDismiss = { overflowOpen = false },
                                 note = existing,
+                                blocks = blocks,
                                 vm = vm,
                                 context = context,
                                 onInfo = { overflowOpen = false; infoOpen = true },
@@ -762,6 +763,7 @@ private fun EditorOverflowMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
     note: NoteEntity?,
+    blocks: List<NoteBlock>,
     vm: OrdiaViewModel,
     context: android.content.Context,
     onInfo: () -> Unit,
@@ -799,7 +801,7 @@ private fun EditorOverflowMenu(
                         putExtra(Intent.EXTRA_SUBJECT, n.title)
                         putExtra(Intent.EXTRA_TEXT, buildString {
                             if (n.title.isNotBlank()) append(n.title).append("\n\n")
-                            append(n.body)
+                            append(NoteBlockCodec.toPlainText(blocks))
                         })
                     }
                     val chooser = Intent.createChooser(send, null)
@@ -815,7 +817,7 @@ private fun EditorOverflowMenu(
                 note?.let { n ->
                     val md = buildString {
                         if (n.title.isNotBlank()) append("# ").append(n.title).append("\n\n")
-                        append(n.body)
+                        append(NoteBlockCodec.toMarkdown(blocks))
                     }
                     val send = Intent(Intent.ACTION_SEND).apply {
                         type = "text/markdown"
