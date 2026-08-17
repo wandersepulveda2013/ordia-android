@@ -1350,6 +1350,89 @@ class AssistantEngineTest {
         assertEquals(listOf(1L), whatNow.relatedTaskIds)
     }
 
+    // --- Weekday en plural ("¿qué tengo los viernes?") (c.429) ---
+    //
+    // Los weekday españoles son invariables en plural ("los viernes" = mismo
+    // vocablo). Antes "¿qué tengo los viernes?" casaba el token suelto y
+    // devolvía SOLO el próximo viernes — el usuario que pregunta por el patrón
+    // recurrente no veía sus compromisos de los viernes siguientes (uno
+    // quincenal caía siempre invisible) y podía olvidar lo que vino a
+    // planificar. Ahora resuelve un rango de los próximos 4 viernes, reusando la
+    // maquinaria de rango existente — sin nueva pantalla ni botón. "hoy" en el
+    // helper es 2026-07-29 (miércoles): próximos viernes = 07-31, 08-07,
+    // 08-14, 08-21.
+
+    @Test fun queTengoLosViernes_listaCuatroViernesInclusoQuincenal() {
+        // Un compromiso quincenal cae en el 2.º viernes (08-07): antes era
+        // invisible porque sólo se mostraba el próximo viernes (07-31).
+        val viernes1 = LocalDate.of(2026, 7, 31)
+        val viernes2 = LocalDate.of(2026, 8, 7) // quincenal
+        val jueves = LocalDate.of(2026, 7, 30) // no debe mezclarse
+        val answer = agendaAnswerFor("¿qué tengo los viernes?", listOf(1L to viernes1, 2L to viernes2, 3L to jueves))
+        assertTrue("nombra el viernes 07-31: ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("nombra el viernes quincenal 08-07: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla el jueves: ${answer.text}", !answer.text.contains("Tarea3"))
+        assertTrue("etiqueta honesta plural: ${answer.text}", answer.text.contains("próximos viernes"))
+        assertEquals(listOf(1L, 2L), answer.relatedTaskIds)
+    }
+
+    @Test fun queTengoLosViernes_noMezclaViernesFueraDelHorizonte() {
+        // El 5.º viernes (08-28) está fuera del horizonte de 4 semanas: no se
+        // lista. Límite honesto, no infinito.
+        val viernes1 = LocalDate.of(2026, 7, 31)
+        val viernes5 = LocalDate.of(2026, 8, 28) // 5.º viernes
+        val answer = agendaAnswerFor("¿qué tengo los viernes?", listOf(1L to viernes1, 2L to viernes5))
+        assertTrue("nombra el 1.º viernes: ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("no lista el 5.º viernes (fuera de horizonte): ${answer.text}", !answer.text.contains("Tarea2"))
+    }
+
+    @Test fun queTengoLosViernes_empty_diceLosProximosViernesHonesto() {
+        // Sólo hay algo el jueves; ningún viernes en el horizonte.
+        val jueves = LocalDate.of(2026, 7, 30)
+        val answer = agendaAnswerFor("¿qué tengo los viernes?", listOf(1L to jueves))
+        assertTrue("dice los próximos viernes y que no hay: ${answer.text}",
+            answer.text.contains("próximos viernes") && answer.text.contains("no tienes"))
+        assertTrue("no inventa la del jueves: ${answer.text}", !answer.text.contains("Tarea1"))
+    }
+
+    @Test fun queTengoLosProximosViernes_rangoPluralConModificadorEstricto() {
+        // "los próximos viernes" conserva el rango plural (no se colapsa a un
+        // solo día) y el modificador estricto no rompe el horizonte: como hoy es
+        // miércoles, el viernes inminente (07-31) encabeza y el siguiente (08-07)
+        // también aparece. El caso estricto real (hoy=viernes → salta al siguiente)
+        // no se ejercita aquí porque el helper fija hoy=miércoles; se cubre por
+        // simetría con resolveAgendaWeekday (misma fórmula delta/strict).
+        val viernesInminente = LocalDate.of(2026, 7, 31)
+        val viernesSiguiente = LocalDate.of(2026, 8, 7)
+        val answer = agendaAnswerFor("¿qué tengo los próximos viernes?", listOf(1L to viernesInminente, 2L to viernesSiguiente))
+        assertTrue("nombra el viernes inminente: ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("nombra también el siguiente (rango plural): ${answer.text}", answer.text.contains("Tarea2"))
+        assertEquals(listOf(1L, 2L), answer.relatedTaskIds)
+    }
+
+    @Test fun queTengoLosMiercoles_inclusivo_incluyeHoy() {
+        // Hoy es miércoles 2026-07-29: "los miércoles" inclusivo incluye hoy
+        // (delta==0, sin modificador estricto) → el rango empieza HOY. El 1.º de los
+        // 4 miércoles es hoy; los siguientes 08-05, 08-12, 08-19.
+        val hoy = LocalDate.of(2026, 7, 29)
+        val tercerMiercoles = LocalDate.of(2026, 8, 12)
+        val answer = agendaAnswerFor("¿qué tengo los miércoles?", listOf(1L to hoy, 2L to tercerMiercoles))
+        assertTrue("incluye hoy (1.º miércoles): ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("incluye el 3.º miércoles (08-12): ${answer.text}", answer.text.contains("Tarea2"))
+        assertEquals(listOf(1L, 2L), answer.relatedTaskIds)
+    }
+
+    @Test fun elViernes_singularSigueSiendoUnSoloDia() {
+        // Regresión: el singular "el viernes" NO debe convertirse en rango
+        // plural. Sigue devolviendo SOLO el próximo viernes.
+        val viernes1 = LocalDate.of(2026, 7, 31)
+        val viernes2 = LocalDate.of(2026, 8, 7)
+        val answer = agendaAnswerFor("¿qué tengo el viernes?", listOf(1L to viernes1, 2L to viernes2))
+        assertTrue("singular nombra sólo el próximo viernes: ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("singular NO lista el 2.º viernes: ${answer.text}", !answer.text.contains("Tarea2"))
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+    }
+
     // --- Fin de semana a demanda ("¿qué tengo el finde?") (c.352) ---
     //
     // Antes "¿qué tengo el finde?"/"¿qué tengo el fin de semana?" NO se reconocía
