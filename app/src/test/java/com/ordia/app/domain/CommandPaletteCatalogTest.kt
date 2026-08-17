@@ -37,4 +37,36 @@ class CommandPaletteCatalogTest {
     fun unknownQuery_doesNotInventACommand() {
         assertTrue(CommandPaletteCatalog.search("crear una entidad inexistente").isEmpty())
     }
+
+    @Test
+    fun conversationsCommand_recoversViaItsEverydayAliases() {
+        // El 4o. olvido (compromisos vencidos de chat) vivia fuera del comando
+        // rapido: estas busquedas devolvia []. Ahora todas abren Conversaciones.
+        val aliases = listOf("conversaciones", "conversacion", "compromisos", "compromiso", "chat", "chats", "mensajes", "mensaje")
+        aliases.forEach { query ->
+            assertEquals(
+                "la consulta '$query' debe abrir Conversaciones",
+                CommandPaletteId.CONVERSATIONS,
+                CommandPaletteCatalog.search(query).single().id
+            )
+        }
+    }
+
+    @Test
+    fun conversationsCommand_normalizesAccentsAndCase() {
+        assertEquals(CommandPaletteId.CONVERSATIONS, CommandPaletteCatalog.search("CONVERSACIONES").single().id)
+        assertEquals(CommandPaletteId.CONVERSATIONS, CommandPaletteCatalog.search("  Mensajes!  ").single().id)
+    }
+
+    @Test
+    fun conversationsCommand_isNotFrequent_andDoesNotBreakFrequentOrder() {
+        // Sin frequentRank, no aparece en la lista de comandos frecuentes (query vacia),
+        // pero SI es navegable al escribir su alias. Conserva el orden de los frecuentes.
+        val frequent = CommandPaletteCatalog.search("   ").map { it.id }
+        assertEquals(
+            listOf(CommandPaletteId.CAPTURE, CommandPaletteId.TODAY, CommandPaletteId.CALENDAR, CommandPaletteId.NOTES, CommandPaletteId.FOCUS),
+            frequent
+        )
+        assertTrue(frequent.none { it == CommandPaletteId.CONVERSATIONS })
+    }
 }

@@ -108,6 +108,7 @@ fun SearchScreen(
                         CommandPaletteId.SETTINGS -> onSettings()
                         CommandPaletteId.PRIVACY -> onPrivacy()
                         CommandPaletteId.INTELLIGENCE -> onIntelligence()
+                        CommandPaletteId.CONVERSATIONS -> onConversations()
                     }
                 }
             }
@@ -186,6 +187,7 @@ private fun CommandPaletteId.icon() = when (this) {
     CommandPaletteId.SETTINGS -> Icons.Outlined.Settings
     CommandPaletteId.PRIVACY -> Icons.Outlined.Security
     CommandPaletteId.INTELLIGENCE -> Icons.Outlined.AutoAwesome
+    CommandPaletteId.CONVERSATIONS -> Icons.Outlined.ChatBubbleOutline
 }
 
 @Composable
@@ -200,6 +202,7 @@ private fun CommandPaletteId.title(): String = stringResource(when (this) {
     CommandPaletteId.SETTINGS -> R.string.search_command_settings
     CommandPaletteId.PRIVACY -> R.string.search_command_privacy
     CommandPaletteId.INTELLIGENCE -> R.string.search_command_intelligence
+    CommandPaletteId.CONVERSATIONS -> R.string.search_command_conversations
 })
 
 @Composable
@@ -214,6 +217,7 @@ private fun CommandPaletteId.description(): String = stringResource(when (this) 
     CommandPaletteId.SETTINGS -> R.string.search_command_settings_desc
     CommandPaletteId.PRIVACY -> R.string.search_command_privacy_desc
     CommandPaletteId.INTELLIGENCE -> R.string.search_command_intelligence_desc
+    CommandPaletteId.CONVERSATIONS -> R.string.search_command_conversations_desc
 })
 
 @Composable

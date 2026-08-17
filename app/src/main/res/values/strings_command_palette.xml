@@ -27,4 +27,6 @@
     <string name="search_command_privacy_desc">Revisar la privacidad de la inteligencia local</string>
     <string name="search_command_intelligence">Inteligencia</string>
     <string name="search_command_intelligence_desc">Ver el modo y estado de la inteligencia local</string>
+    <string name="search_command_conversations">Conversaciones</string>
+    <string name="search_command_conversations_desc">Revisar compromisos extraídos de chats</string>
 </resources>

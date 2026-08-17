@@ -10,7 +10,8 @@ enum class CommandPaletteId {
     AUTOMATIONS,
     SETTINGS,
     PRIVACY,
-    INTELLIGENCE
+    INTELLIGENCE,
+    CONVERSATIONS
 }
 
 data class CommandPaletteEntry(
@@ -66,6 +67,20 @@ object CommandPaletteCatalog {
         CommandPaletteEntry(
             CommandPaletteId.INTELLIGENCE,
             setOf("inteligencia", "inteligencia local", "ia", "modelo local", "asistente local")
+        ),
+        // Conversaciones es el destino del 4o. olvido de Ordia: los compromisos
+        // vencidos extraidos de chats (PENDING, dueAt pasado). El guardian, el
+        // asistente, el resumen, el coach y la busqueda universal lo nombran en
+        // TODAS las demas superficies de recuperacion, pero el comando rapido (la
+        // navegacion por excelencia) lo excluia: escribir
+        // "conversaciones"/"compromisos"/"chat"/"mensajes" devolvia [] y el
+        // usuario debia recordar donde viven sus promesas para actuar sobre un
+        // olvido. El callback onConversations ya existia en SearchScreen (lo usan
+        // los resultados SearchKind.CONVERSATION/COMMITMENT); aqui solo se expone
+        // como comando de navegacion. Sin nueva pantalla ni boton.
+        CommandPaletteEntry(
+            CommandPaletteId.CONVERSATIONS,
+            setOf("conversaciones", "conversacion", "compromisos", "compromiso", "chat", "chats", "mensajes", "mensaje")
         )
     )
 
