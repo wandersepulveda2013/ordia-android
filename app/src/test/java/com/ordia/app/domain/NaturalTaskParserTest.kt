@@ -8489,6 +8489,76 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- c.511: calificador de LÍMITE ("a finales/principios/mediados [de la/esta]? quincena") ---
+    // El español usa los mismos calificadores de límite coloquial sobre la quincena
+    // (cobros/nóminas quincenales: "cobrar a finales de esta quincena", "pago a principios
+    // de la próxima quincena"). Los patrones de quincena resolvían la fecha (hito/periodo
+    // próximo) pero casaban solo "quincena" y dejaban "a finales/principios/mediados" como
+    // residuo de título. La fecha NO cambia (ya resolvía el hito correcto); el cambio solo
+    // limpia el título consumiendo el calificador entero. hoy = 2026-07-29 (≥ 15):
+    // "esta/la quincena" → fin de mes (31/7); "próxima/que viene" → +15d (13/8).
+
+    @Test fun aFinalesDeEstaQuincenaLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a finales de esta quincena", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinalesDeLaQuincenaLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a finales de la quincena", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinalesDeQuincenaLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a finales de quincena", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aPrincipiosDeEstaQuincenaLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a principios de esta quincena", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aMediadosDeEstaQuincenaLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a mediados de esta quincena", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aPrincipiosDeLaProximaQuincenaLimpiaTitulo() {
+        // "próxima quincena" la resuelve nextPeriodPattern (+15d): 2026-07-29 + 15d = 2026-08-13.
+        val result = NaturalTaskParser.parse("Cita a principios de la proxima quincena", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aPrincipiosDeLaQuincenaQueVieneLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a principios de la quincena que viene", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aMediadosDeLaQuincenaQueVieneLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a mediados de la quincena que viene", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finalesDeEstaQuincenaSinAInicialLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita finales de esta quincena", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun principiosDeLaProximaQuincenaSinAInicialLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita principios de la proxima quincena", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "fines de semana" (plural) como recurrencia WEEKLY sábado+domingo ---
     // "cada fines de semana" / "los findes" expresa una tarea que se repite sábado Y
     // domingo. Antes "fines de semana" no coincidía con el patrón singular "fin de

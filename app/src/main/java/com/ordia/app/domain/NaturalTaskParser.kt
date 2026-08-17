@@ -997,6 +997,35 @@ object NaturalTaskParser {
         return if (distributive != null) IntRange(distributive.range.first, range.last) else range
     }
 
+    // c.511 — paralelo a [strippedPeriodRange]/[strippedRecurrenceRange], pero para
+    // el calificador de LÍMITE ("a finales/principios/mediados [de la/esta/del]?")
+    // que precede a una QUINCENA. Los patrones de quincena (quincenaPattern,
+    // nextPeriodPattern con "quincena", quincenaPattern sobre "quincena pasada")
+    // resuelven bien la fecha (hito del 15 / fin de mes / +15d), pero casan solo la
+    // palabra "quincena" (o "próxima quincena") sin tragarse el calificador de
+    // límite coloquial que la precede. Así "cobrar a finales de esta quincena" →
+    // fecha correcta pero título "cobrar a finales de esta" (residuo). Igual que en
+    // semana/mes/año (c.506, endOfMonth…), el español usa los mismos calificadores
+    // de límite sobre la quincena (cobros/nóminas quincenales). Se extiende el
+    // rango del match hacia atrás para consumir ese calificador junto con la frase,
+    // evitando el residuo. Sólo se invoca cuando la quincena SÍ casó (ya resuelve
+    // fecha): nunca consume "finales/mediados/principios" de contenido legítimo. La
+    // "a" distributiva inicial ("a finales…") se incluye opcionalmente (?<!\S evita
+    // comer la "a" final de palabras como "Auditoría").
+    private fun strippedQuincenaLimitRange(working: String, range: IntRange): IntRange {
+        var start = range.first
+        while (start - 1 >= 0 && working[start - 1].isWhitespace()) start--
+        val pre = working.substring(0, start)
+        val limitQualifier = Regex(
+            """(?i)(?<!\S)(?:a\s+)?(?:finales|principios|comienzos|inicios|mediados|mediado|mitad)(?:\s+de(?:\s+(?:la|las|esta|este|del|de))?)?\s*$"""
+        ).find(pre)
+        // Si hay calificador de límite, se consume entero (incluye "de la/esta/del").
+        // Si no, se delega a [strippedPeriodRange] para consumir el genitivo simple
+        // "de/del" (caso "pago de la quincena", sin calificador de límite).
+        return if (limitQualifier != null) IntRange(limitQualifier.range.first, range.last)
+        else strippedPeriodRange(working, range)
+    }
+
     /**
      * "<día> <mes>" SIN conector "de" ("Reunión 22 ago", "Entregar 1 oct",
      * "Renovar suscripción 1 sept", "Cita 20 agosto"): la forma abreviada y
@@ -3623,7 +3652,15 @@ object NaturalTaskParser {
             }
             now + days * 24 * 60 * 60_000L
         }
-        effectiveNextPeriodMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
+        effectiveNextPeriodMatch?.let { m ->
+            // c.511: si el período es "quincena", el calificador de límite coloquial
+            // ("a finales/principios/mediados de la/esta") que la precede quedaría como
+            // residuo en el título (la fecha se resuelve bien como +15d). Se usa el
+            // helper específico; para los demás períodos, [strippedPeriodRange] basta.
+            val r = if ("quincena" in m.value.lowercase()) strippedQuincenaLimitRange(working, m.range)
+            else strippedPeriodRange(working, m.range)
+            working = working.replaceRange(r, " ")
+        }
 
         // "quincena": hito financiero/laboreal en español (cobro/nómina/pago). La
         // quincena son dos hitos mensuales: el día 15 (primera quincena) y el fin de
@@ -3675,7 +3712,7 @@ object NaturalTaskParser {
             }
             DateRules.toEpochMillis(target, LocalTime.of(9, 0), zone)
         }
-        quincenaMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
+        quincenaMatch?.let { working = working.replaceRange(strippedQuincenaLimitRange(working, it.range), " ") }
 
         // La fecha relativa (relativePattern) tiene prioridad; luego los límites de mes
         // ("fin de mes"/"mediados de mes"); "esta semana"; "principios/mediados de semana";
