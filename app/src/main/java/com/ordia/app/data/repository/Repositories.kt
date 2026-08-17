@@ -209,6 +209,10 @@ class AttachmentRepository(private val dao: AttachmentDao) {
         dao.observeForOwner(type, ownerId)
     suspend fun add(attachment: AttachmentEntity): Long = dao.insert(attachment)
     suspend fun delete(attachment: AttachmentEntity) = dao.delete(attachment)
+    suspend fun getForOwnerNow(type: AttachmentOwnerType, ownerId: Long): List<AttachmentEntity> =
+        dao.getForOwnerNow(type, ownerId)
+    suspend fun deleteForOwner(type: AttachmentOwnerType, ownerId: Long) =
+        dao.deleteForOwner(type, ownerId)
 }
 
 class CaptureRepository(private val dao: CaptureDao) {

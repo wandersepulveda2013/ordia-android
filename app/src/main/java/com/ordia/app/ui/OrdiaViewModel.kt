@@ -68,6 +68,7 @@ import com.ordia.app.domain.LearningEngine
 import com.ordia.app.domain.LearningProfile
 import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockCodec
+import com.ordia.app.media.NoteMediaStore
 import com.ordia.app.domain.NoteTaskConverter
 import com.ordia.app.domain.NoteBlockType
 import com.ordia.app.domain.NaturalTaskParser
@@ -770,6 +771,18 @@ class OrdiaViewModel(
     }
 
     fun deleteNotePermanently(noteId: Long) = viewModelScope.launch {
+        // Garbage collection: borra archivos multimedia privados de los adjuntos
+        // de la nota antes de eliminar la fila, para no dejar huérfanos.
+        val atts = attachmentRepository.getForOwnerNow(AttachmentOwnerType.NOTE, noteId)
+        atts.forEach { att -> NoteMediaStore.delete(att.uri) }
+        // También limpia rutas embebidas en bloques (attachmentUri) si la nota
+        // las almacenó como rutas absolutas privadas.
+        noteRepository.get(noteId)?.let { note ->
+            NoteBlockCodec.decode(note.blocksData, note.body).forEach { block ->
+                NoteMediaStore.delete(block.attachmentUri)
+            }
+        }
+        attachmentRepository.deleteForOwner(AttachmentOwnerType.NOTE, noteId)
         noteRepository.deletePermanently(noteId)
         noteVersionRepository.deleteForNote(noteId)
     }
@@ -847,6 +860,7 @@ class OrdiaViewModel(
     }
 
     fun deleteAttachment(attachment: AttachmentEntity) = viewModelScope.launch {
+        NoteMediaStore.delete(attachment.uri)
         attachmentRepository.delete(attachment)
         _events.emit(UiEvent.Message(appContext.getString(R.string.attachment_removed)))
     }

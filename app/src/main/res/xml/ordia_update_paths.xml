@@ -3,4 +3,7 @@
     <files-path
         name="verified_updates"
         path="verified-updates/" />
+    <files-path
+        name="notes_media"
+        path="notes-media/" />
 </paths>

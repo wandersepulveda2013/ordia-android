@@ -526,6 +526,12 @@ interface AttachmentDao {
     @Query("SELECT * FROM attachments WHERE ownerType = :ownerType AND ownerId = :ownerId ORDER BY createdAt DESC")
     fun observeForOwner(ownerType: AttachmentOwnerType, ownerId: Long): Flow<List<AttachmentEntity>>
 
+    @Query("SELECT * FROM attachments WHERE ownerType = :ownerType AND ownerId = :ownerId")
+    suspend fun getForOwnerNow(ownerType: AttachmentOwnerType, ownerId: Long): List<AttachmentEntity>
+
+    @Query("DELETE FROM attachments WHERE ownerType = :ownerType AND ownerId = :ownerId")
+    suspend fun deleteForOwner(ownerType: AttachmentOwnerType, ownerId: Long)
+
     @Query("SELECT * FROM attachments ORDER BY createdAt DESC")
     suspend fun getAllNow(): List<AttachmentEntity>
 
