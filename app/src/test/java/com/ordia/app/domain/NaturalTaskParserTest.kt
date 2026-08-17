@@ -8149,6 +8149,75 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // c.488: variantes "finales de la semana" / "al final de la semana" (sin "que viene")
+    // antes caían a dueAt=null + frase íntegra como residuo en el título → vencimiento
+    // olvidado (P1). Ahora resuelven al domingo de esta semana (próximo domingo).
+    // now = 2026-07-29 (miércoles) -> domingo de esta semana = 2026-08-02.
+
+    @Test fun finalesDeLaSemanaResuelveProximoDomingo() {
+        val result = NaturalTaskParser.parse("Reunión finales de la semana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinalesDeLaSemanaResuelveProximoDomingo() {
+        val result = NaturalTaskParser.parse("Reunión a finales de la semana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun alFinalDeLaSemanaResuelveProximoDomingo() {
+        val result = NaturalTaskParser.parse("Reunión al final de la semana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // c.488: "... fin de la semana que viene" antes casaba como "fin de la semana" (esta
+    // semana) y el modificador "que viene" se perdía silenciosamente → fecha errónea
+    // (domingo de esta semana en vez del domingo de la semana próxima). Ahora el
+    // modificador "que viene" suma +7d, simétrico a "esta semana que viene".
+
+    @Test fun finDeLaSemanaQueVieneResuelveDomingoSemanaProxima() {
+        val result = NaturalTaskParser.parse("Reunión fin de la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 9), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinalesDeLaSemanaQueVieneResuelveDomingoSemanaProxima() {
+        val result = NaturalTaskParser.parse("Reunión a finales de la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 9), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinDeLaSemanaQueVieneResuelveDomingoSemanaProxima() {
+        val result = NaturalTaskParser.parse("Reunión a fin de la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 9), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun alFinalDeLaSemanaQueVieneResuelveDomingoSemanaProxima() {
+        val result = NaturalTaskParser.parse("Reunión al final de la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 9), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // c.488: "fin de la semana que viene" no debe dejar residuo ("que viene" ya no
+    // sobrevive porque el patrón lo consume entero).
+
+    @Test fun finDeLaSemanaQueVieneNoDejaResiduoEnTitulo() {
+        val result = NaturalTaskParser.parse("Reunión a finales de la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+    }
+
+    // c.488: con hora explícita, el plazo blando +7d debe respetar la hora.
+
+    @Test fun finDeLaSemanaQueVieneRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Reunión a finales de la semana que viene a las 18", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 9), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- "principios de semana": plazo blando al lunes más cercano (hoy/futuro) ---
     // Antes caía a dueAt=null (olvido) o, con hora, a HOY por error. Ahora -> lunes.
     // now = 2026-07-29 (miércoles) -> "principios de semana" = lunes 2026-08-03.
