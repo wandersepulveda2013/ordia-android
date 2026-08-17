@@ -1677,15 +1677,15 @@ object NaturalTaskParser {
     private val primeraHoraTime = LocalTime.of(9, 0)
 
     /**
-     * "a última hora" (opcionalmente "de la mañana/tarde/noche/madrugada"): fin de
-     * jornada ~18:00. Simétrica de "a primera hora". Antes no se interpretaba como hora
+     * "a última hora"/"a último momento" (opcionalmente "de la mañana/tarde/noche/madrugada"):
+     * fin de jornada ~18:00. Simétrica de "a primera hora". Antes no se interpretaba como hora
      * canónica: caía al default 09:00 (agenda errónea) y "a última hora" quedaba como
      * residuo en el título. Como es hora de respaldo, no fuerza contexto PM; si hay una
      * parte del día explícita ("de la tarde"), ésta tiene prioridad en la resolución y el
      * patrón solo limpia "a última hora" (la parte del día la limpia su propio patrón).
      */
     private val ultimaHoraPattern =
-        Regex("""(?i)(?:justo\s+)?(?<![a-záéíóúñ])(?:a\s+)?[uú]ltimas?\s+horas?(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?\b""")
+        Regex("""(?i)(?:justo\s+)?(?<![a-záéíóúñ])(?:a\s+)?[uú]ltim[ao]s?\s+(?:horas?|momento)(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?\b""")
     private val ultimaHoraTime = LocalTime.of(18, 0)
 
     /**
@@ -1699,8 +1699,21 @@ object NaturalTaskParser {
      * el patrón solo limpia "al final del día".
      */
     private val alFinalDelDiaPattern =
-        Regex("""(?i)(?:justo\s+)?al\s+final\s+(?:del\s+d[ií]a|de\s+la\s+jornada|de\s+los\s+d[ií]as)\b""")
+        Regex("""(?i)(?:justo\s+)?(?:al\s+final|al\s+fin|a\s+fin)\s+(?:del\s+d[ií]a|de\s+la\s+jornada|de\s+los\s+d[ií]as|de\s+d[ií]a)\b""")
     private val alFinalDelDiaTime = LocalTime.of(18, 0)
+
+    /**
+     * "temprano"/"muy temprano" como modificador de franja tras una parte del día o
+     * fecha relativa ya resuelta ("mañana temprano", "por la mañana temprano",
+     * "esta tarde temprano"): la dueAt se calcula correctamente, pero el adverbio
+     * sobrevivía como residuo en el título ("reunión mañana temprano" → "reunión
+     * temprano"). NO asigna hora por sí solo: "temprano" suelto es ambiguo y puede ser
+     * contenido legítimo ("llegué temprano"); por eso sólo se aplica en la cascada de
+     * limpieza del título cuando YA se agendó algo (dueAt != null), evitando degradar
+     * notas sin valor de agenda.
+     */
+    private val earlyModifierPattern =
+        Regex("""(?i)\b(?:muy\s+)?temprano\b""")
 
     /**
      * "al amanecer"/"al alba"/"al despuntar el día": salida del sol, forma cotidiana de
@@ -3083,9 +3096,15 @@ object NaturalTaskParser {
         // "antes de/después de + comida/sueño": hora canónica de respaldo (ver mealSleepAnchorPattern).
         val mealSleepAnchorMatch = mealSleepAnchorPattern.find(working)
         val mealSleepAnchorTime = mealSleepAnchorMatch?.let {
+            // El patrón casa "después" (con tilde) y "despues" (sin tilde, forma
+            // cotidiana al escribir rápido en móvil), pero las claves del map
+            // [mealSleepAnchorTimes] usan "después". Sin esta normalización,
+            // "despues del almuerzo"/"despues de comer" caseaban el patrón pero el
+            // lookup devolvía null → dueAt=null (cita recordatoria olvidada, P1).
             val mod = it.groupValues[1].lowercase()
+            val modKey = if (mod.startsWith("despu")) "después" else mod
             val anchor = it.groupValues[2].lowercase()
-            mealSleepAnchorTimes[anchor]?.get(mod)
+            mealSleepAnchorTimes[anchor]?.get(modKey)
         }
         // Contexto PM: una parte del día de tarde/noche (explícita "esta tarde" o suelta "a la noche")
         // aplica offset +12 a una hora sin meridiem ("esta tarde a las 4" → 16:00). Las horas
@@ -3836,6 +3855,14 @@ object NaturalTaskParser {
             // ("cita antes del almuerzo"→"cita almuerzo"); ahora se consume junto con el
             // ancla, como las demás horas canónicas (amanecer, atardecer, media X).
             .let { value -> mealSleepAnchorPattern.replace(value, " ") }
+            // "temprano"/"muy temprano" como modificador de franja: sólo se borra cuando
+            // YA se agendó algo (dueAt != null: parte del día, fecha relativa, hora
+            // canónica u hora explícita). "temprano" suelto sin agenda puede ser contenido
+            // legítimo ("llegué temprano"), así que no se toca si no hay valor que
+            // justifique limpiarlo (evita degradar notas). Cuando sí hay agenda, el
+            // adverbio es residuo ("mañana temprano"→"reunión temprano") y se consume
+            // como los demás modificadores de franja.
+            .let { value -> if (dueAt != null) earlyModifierPattern.replace(value, " ") else value }
             // "el día de mañana"/"el día de hoy"/"para el día de mañana": forma
             // pleonástica coloquial de "mañana"/"hoy". El borrado genérico de abajo
             // consume sólo la palabra "mañana"/"hoy" y deja el residuo "el día de"

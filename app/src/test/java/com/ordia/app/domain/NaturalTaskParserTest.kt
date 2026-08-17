@@ -3557,6 +3557,30 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- "después" sin tilde ("despues") en anclas de comida/sueño: forma cotidiana al
+    // escribir rápido en móvil. Antes el patrón caseaba "despues del almuerzo" pero el
+    // lookup de hora devolvía null (las claves del map usan "después") → dueAt=null (cita
+    // recordatoria olvidada, P1). c.426: normalización del modificador.
+
+    @Test fun despuesSinTildeDelAlmuerzoInterpretaHoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión despues del almuerzo", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun despuesSinTildeDeComerEsSinonimoDeAlmuerzo() {
+        val result = NaturalTaskParser.parse("Medicina despues de comer", now, zone)
+        assertEquals("Medicina", result.title)
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun despuesSinTildeDeLaCenaInterpretaHoraYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Llamada despues de la cena", now, zone)
+        assertEquals("Llamada", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     @Test fun antesDeLaCenaParsesEarlyEvening() {
         val result = NaturalTaskParser.parse("Cita antes de la cena", now, zone)
         assertEquals("Cita", result.title)
@@ -8957,6 +8981,97 @@ class NaturalTaskParserTest {
         // jornada. No debe asignar 18:00 ni borrar nada.
         val result = NaturalTaskParser.parse("Reunión fase final del proyecto", now, zone)
         assertEquals("Reunión fase final del proyecto", result.title)
+        assertEquals(null, result.dueAt)
+    }
+
+    // --- Variantes cotidianas de fin de jornada: "a fin de día/dia", "al fin del
+    // día/dia" (sin "final"). Antes estas formas abreviadas no casaban el patrón de
+    // "al final del día" → dueAt=null (tarea SIN vencimiento → olvidada, invisible en
+    // What Now/planificador, sin recordatorio) y la frase quedaba como residuo en el
+    // título. c.426: el patrón ahora acepta "al fin"/"a fin" + "del día"/"de día".
+
+    @Test fun aFinDeDiaInterpretaFinJornadaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión a fin de día", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinDeDiaSinTildeTambienFunciona() {
+        val result = NaturalTaskParser.parse("Reunión a fin de dia", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alFinDelDiaInterpretaFinJornadaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión al fin del día", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alFinDelDiaSinTildeTambienFunciona() {
+        val result = NaturalTaskParser.parse("Reunión al fin del dia", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinDeDiaNoColisionaConFinDeMes() {
+        // "a fin de mes" es un concepto distinto (fin de mes calendárico), no fin de
+        // jornada 18:00. Debe seguir resolviéndose por su propio patrón de fecha.
+        val result = NaturalTaskParser.parse("Reunión a fin de mes", now, zone)
+        assertEquals("Reunión", result.title)
+        // No debe ser 18:00 de hoy; fin de mes es otra fecha.
+        assertNotEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // --- "a último momento" (sinónimo masculino de "a última hora"). Antes el patrón
+    // de "a última hora" exigía el adjetivo en femenino ("última") y no casaba la
+    // forma masculina "último momento" → dueAt=null (tarea SIN vencimiento →
+    // olvidada) y la frase quedaba como residuo en el título. c.426: el patrón ahora
+    // acepta "último momento" (masculino) además de "última hora(s)" (femenino).
+
+    @Test fun aUltimoMomentoInterpretaFinJornadaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión a último momento", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aUltimoMomentoSinTildeTambienFunciona() {
+        val result = NaturalTaskParser.parse("Reunión a ultimo momento", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // --- "temprano"/"muy temprano" como modificador de franja tras agenda ya resuelta
+    // ("mañana temprano", "por la mañana temprano", "esta tarde temprano"): la dueAt se
+    // calculaba bien, pero el adverbio sobrevivía como residuo en el título. c.426:
+    // se limpia sólo cuando dueAt != null. "temprano" suelto (sin agenda) es contenido
+    // legítimo ("llegué temprano") y NO se toca.
+
+    @Test fun mananaTempranoLimpiaResiduoTempranoDelTitulo() {
+        val result = NaturalTaskParser.parse("Reunión mañana temprano", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun porLaMananaTempranoLimpiaResiduoTempranoDelTitulo() {
+        val result = NaturalTaskParser.parse("Reunión por la mañana temprano", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun muyTempranoTrasAgendaSeLimpiaDelTitulo() {
+        val result = NaturalTaskParser.parse("Reunión mañana muy temprano", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun tempranoSueltoSinAgendaNoSeBorraNiAgenda() {
+        // "temprano" sin agenda es contenido legítimo: no se asigna dueAt ni se borra.
+        val result = NaturalTaskParser.parse("Llegué temprano", now, zone)
+        assertEquals("Llegué temprano", result.title)
         assertEquals(null, result.dueAt)
     }
 
