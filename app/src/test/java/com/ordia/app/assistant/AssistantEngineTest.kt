@@ -1386,6 +1386,19 @@ class AssistantEngineTest {
         assertTrue("no lista el 5.º viernes (fuera de horizonte): ${answer.text}", !answer.text.contains("Tarea2"))
     }
 
+    @Test fun queTengoLosViernes_noMezclaOtroDiaDentroDelHorizonte() {
+        // Un miércoles (08-05) cae DENTRO del horizonte de 4 semanas pero NO es
+        // viernes: el rango plural CONTINUO [07-31..08-21] lo incluía por error
+        // (mentía por exceso: mostraba trabajo de otro día bajo "los viernes").
+        // El plural debe resolver sólo los viernes del horizonte, no todo el
+        // intervalo calendario. Regresión de c.433 (que usaba rango continuo).
+        val viernes1 = LocalDate.of(2026, 7, 31)
+        val miercolesDentro = LocalDate.of(2026, 8, 5) // miércoles dentro del horizonte
+        val answer = agendaAnswerFor("¿qué tengo los viernes?", listOf(1L to viernes1, 2L to miercolesDentro))
+        assertTrue("nombra el viernes 07-31: ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("no mezcla un miércoles del horizonte: ${answer.text}", !answer.text.contains("Tarea2"))
+    }
+
     @Test fun queTengoLosViernes_empty_diceLosProximosViernesHonesto() {
         // Sólo hay algo el jueves; ningún viernes en el horizonte.
         val jueves = LocalDate.of(2026, 7, 30)

@@ -396,12 +396,14 @@ object AssistantEngine {
             "pasado" in query || "pasados" in query ||
             "ultima" in query || "ultimas" in query || "ultimo" in query || "ultimos" in query)
         val weekdayTarget = resolveAgendaWeekday(query, today)
-        // Plural ("¿qué tengo los viernes?"): rango recurrente de los próximos N
-        // viernes en vez de sólo el siguiente. Se calcula antes del `when` para
+        // Plural ("¿qué tengo los viernes?"): las N fechas EXACTAS del weekday
+        // objetivo en vez de sólo la siguiente. Se calcula antes del `when` para
         // poder ramificar antes que el weekday singular (la consulta plural también
-        // casaría el token suelto y devolvería un único día). Ver
-        // [pluralWeekdayRange].
-        val pluralRange = pluralWeekdayRange(query, today)
+        // casaría el token suelto y devolvería un único día). La membresía se
+        // evalúa por las fechas discretas (no un intervalo continuo): evita mezclar
+        // otro día de la semana que caiga dentro del horizonte. Ver
+        // [pluralWeekdayDates] y [isScheduledInDates].
+        val pluralDates = pluralWeekdayDates(query, today)
         val (start, end, label) = when {
             "pasado manana" in query -> Triple(today.plusDays(2), today.plusDays(2), "pasado mañana")
             "manana" in query -> Triple(today.plusDays(1), today.plusDays(1), "mañana")
@@ -450,9 +452,10 @@ object AssistantEngine {
             // token). Inclusivo salvo modificador "próximo"/"que viene" (salta hoy
             // si hoy es ese día), simétrico con el singular. Etiqueta honesta:
             // "los próximos viernes" (no afirma ver TODOS los viernes para siempre).
-            pluralRange != null -> {
-                val (s, e) = pluralRange
-                Triple(s, e, pluralWeekdayLabel(query))
+            pluralDates != null -> {
+                // start..end = primera..última fecha objetivo (para la franja
+                // horaria, que sólo aplica a tareas ya confirmadas en estas fechas).
+                Triple(pluralDates.first(), pluralDates.last(), pluralWeekdayLabel(query))
             }
             // Día de la semana ("¿qué tengo el viernes?"/"¿qué tengo el próximo
             // lunes?"). Resolución simétrica con SearchEngine.resolveWeekdayTarget
@@ -491,7 +494,11 @@ object AssistantEngine {
         // horaria (band) se resuelve con la marca que cae en el rango, prefiriendo
         // `startAt` (simétrico con PlannerCalendar.timestampOnDate), así "¿qué tengo
         // esta tarde?" muestra un slot de hoy 15:00 aunque venza más tarde.
-        val due = ranked.filter { isScheduledInRange(it, start, end, zone) && (band == null || isInHourBand(it, band, start, end, zone)) }
+        val due = ranked.filter {
+            val dateOk = if (pluralDates != null) isScheduledInDates(it, pluralDates, zone)
+                else isScheduledInRange(it, start, end, zone)
+            dateOk && (band == null || isInHourBand(it, band, start, end, zone))
+        }
         if (due.isEmpty()) {
             // "¿Qué tengo hoy?" no debe decir "no tienes nada" mientras el usuario
             // arrastra atrasadas de días anteriores: eso es exactamente lo que tiene
@@ -709,27 +716,52 @@ object AssistantEngine {
     private const val PLURAL_WEEKDAY_HORIZON_WEEKS = 4
 
     /**
-     * Rango de los próximos N weekday para una consulta en PLURAL ("los viernes",
-     * "los próximos lunes"). Los weekday españoles son invariables en plural, así
-     * el plural se detecta por el determinante "los " antecediendo al token
-     * (foldForSearch ya minificó y quitó acentos). Se permite texto entre ambos
-     * ("los próximos viernes", "los días lunes") porque el modificador de
-     * strictness puede intercalarse. Devuelve `(start, end)` donde `start` es la
-     * próxima ocurrencia (inclusiva: incluye hoy si hoy es ese día) salvo con
-     * modificador "próximo"/"que viene" (estricto: salta hoy), y `end` =
-     * `start` + (N-1) semanas — de modo que el rango contiene exactamente N
-     * weekday consecutivos. Simétrico con [resolveAgendaWeekday] (misma semántica
-     * inclusivo/estricto). Devuelve null si la consulta no es un weekday en plural.
+     * Fechas concretas de los próximos N weekday para una consulta en PLURAL
+     * ("los viernes", "los próximos lunes"). Los weekday españoles son
+     * invariables en plural, así el plural se detecta por el determinante "los "
+     * antecediendo al token (foldForSearch ya minificó y quitó acentos). Se
+     * permite texto entre ambos ("los próximos viernes", "los días lunes")
+     * porque el modificador de strictness puede intercalarse.
+     *
+     * Devuelve la LISTA EXACTA de los N días de la semana objetivo (no un
+     * intervalo calendario continuo). Antes se devolvía un rango continuo
+     * `start..end` de ~4 semanas y la pertenencia se evaluaba con
+     * [isScheduledInRange] sobre ese intervalo, lo que incluía por error
+     * tareas de OTRO día de la semana que caían dentro del intervalo
+     * (p. ej. un miércoles aparecía bajo "los viernes"). Devolver sólo los
+     * weekday objetivo y filtar por membresía discreta ([isScheduledInDates])
+     * corrige el exceso: "los viernes" muestra sólo lo agendado esos viernes.
+     *
+     * La primera fecha es la próxima ocurrencia (inclusiva: incluye hoy si hoy
+     * es ese día) salvo con modificador "próximo"/"que viene" (estricto: salta
+     * hoy); las restantes suman 1 semana cada una — N weekday consecutivos.
+     * Simétrico con [resolveAgendaWeekday] (misma semántica inclusivo/estricto).
+     * Devuelve null si la consulta no es un weekday en plural.
      */
-    private fun pluralWeekdayRange(query: String, today: LocalDate): Pair<LocalDate, LocalDate>? {
+    private fun pluralWeekdayDates(query: String, today: LocalDate): List<LocalDate>? {
         val token = AGENDA_WEEKDAY_TOKENS.firstOrNull { Regex("\\blos\\b.*\\b$it\\b").containsMatchIn(query) } ?: return null
         val target = AGENDA_WEEKDAY_BY_TOKEN[token] ?: return null
         val strict = AGENDA_WEEKDAY_NEXT_MODIFIERS.any { it in query }
         val delta = (target.value - today.dayOfWeek.value + 7) % 7
         val days = if (strict) (if (delta == 0) 7 else delta).toLong() else delta.toLong()
         val start = today.plusDays(days)
-        val end = start.plusWeeks((PLURAL_WEEKDAY_HORIZON_WEEKS - 1).toLong())
-        return start to end
+        return (0 until PLURAL_WEEKDAY_HORIZON_WEEKS).map { start.plusWeeks(it.toLong()) }
+    }
+
+    /**
+     * Pertenencia por MEMBRESÍA DISCRETA: una tarea pertenece al plural de
+     * weekday ("los viernes") si su `startAt` o `dueAt` cae en uno de los días
+     * objetivo exactos, NO en cualquier día del intervalo calendario. Así un
+     * compromiso quincenal (su `dueAt` es uno de esos viernes) aparece, pero una
+     * tarea de otro día de la semana dentro del horizonte se excluye.
+     * Simétrico con [isScheduledInRange] (rango continuo) usado por los demás
+     * alcances (hoy/semana/mes/finde/weekday singular).
+     */
+    private fun isScheduledInDates(task: TaskEntity, dates: List<LocalDate>, zone: ZoneId): Boolean {
+        val set = dates.toHashSet()
+        val due = task.dueAt?.let { DateRules.toLocalDate(it, zone) }
+        val stt = task.startAt?.let { DateRules.toLocalDate(it, zone) }
+        return (due != null && due in set) || (stt != null && stt in set)
     }
 
     /** Etiqueta honesta del weekday en plural: "los próximos viernes". */
