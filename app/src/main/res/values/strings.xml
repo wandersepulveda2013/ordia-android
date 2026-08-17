@@ -186,6 +186,7 @@
     <string name="notes_history_close">Cerrar</string>
     <string name="notes_history_empty">No hay versiones guardadas.</string>
     <string name="notes_history_restore">Restaurar</string>
+    <string name="notes_find_hint">Buscar en la nota…</string>
     <string name="notes_lock">Bloquear</string>
     <string name="notes_unlock">Desbloquear</string>
     <string name="notes_delete">Eliminar</string>

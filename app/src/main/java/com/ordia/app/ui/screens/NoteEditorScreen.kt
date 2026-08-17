@@ -25,12 +25,16 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.automirrored.outlined.Redo
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckBox
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.FormatBold
@@ -48,6 +52,7 @@ import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.TextFields
@@ -159,6 +164,29 @@ fun NoteEditorScreen(
     var infoOpen by remember { mutableStateOf(false) }
     var historyOpen by remember { mutableStateOf(false) }
     var focusMode by remember { mutableStateOf(false) }
+    var findOpen by remember { mutableStateOf(false) }
+    var findQuery by remember { mutableStateOf("") }
+    var findIndex by remember { mutableStateOf(0) }
+
+    val findMatches = remember(title, blocks, findQuery) {
+        if (findQuery.isBlank()) emptyList()
+        else {
+            val q = findQuery.lowercase()
+            val out = ArrayList<Pair<Int, Int>>()
+            if (title.lowercase().contains(q)) out.add(-1 to title.lowercase().indexOf(q))
+            blocks.forEachIndexed { i, b ->
+                val t = b.plainText.lowercase()
+                var from = 0
+                while (true) {
+                    val pos = t.indexOf(q, from)
+                    if (pos < 0) break
+                    out.add(i to pos)
+                    from = pos + q.length
+                }
+            }
+            out
+        }
+    }
 
     val undoStack = remember { mutableStateListOf<Pair<String, List<NoteBlock>>>() }
     val redoStack = remember { mutableStateListOf<Pair<String, List<NoteBlock>>>() }
@@ -333,6 +361,9 @@ fun NoteEditorScreen(
                         IconButton(onClick = { focusMode = true }) {
                             Icon(Icons.Outlined.Bolt, stringResource(R.string.notes_editor_focus_mode))
                         }
+                        IconButton(onClick = { findOpen = !findOpen; findQuery = ""; findIndex = 0 }) {
+                            Icon(Icons.Outlined.Search, stringResource(R.string.notes_search_hint))
+                        }
                         IconButton(
                             onClick = { existing?.let { vm.toggleFavorite(it) } },
                             enabled = existing != null
@@ -365,6 +396,18 @@ fun NoteEditorScreen(
                         navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                         actionIconContentColor = MaterialTheme.colorScheme.onBackground
                     )
+                )
+            }
+
+            if (findOpen) {
+                FindBar(
+                    query = findQuery,
+                    onQuery = { findQuery = it; findIndex = 0 },
+                    index = findIndex,
+                    total = findMatches.size,
+                    onPrev = { if (findMatches.isNotEmpty()) findIndex = (findIndex - 1).mod(findMatches.size) },
+                    onNext = { if (findMatches.isNotEmpty()) findIndex = (findIndex + 1).mod(findMatches.size) },
+                    onClose = { findOpen = false; findQuery = ""; findIndex = 0 }
                 )
             }
 
@@ -835,6 +878,49 @@ private fun InfoDialog(note: NoteEntity, onDismiss: () -> Unit) {
             }
         }
     )
+}
+
+@Composable
+private fun FindBar(
+    query: String,
+    onQuery: (String) -> Unit,
+    index: Int,
+    total: Int,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    onClose: () -> Unit
+) {
+    Surface(tonalElevation = 2.dp, color = MaterialTheme.colorScheme.surface) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQuery,
+                modifier = Modifier.weight(1f),
+                placeholder = { Text(stringResource(R.string.notes_find_hint), fontSize = 13.sp) },
+                leadingIcon = { Icon(Icons.Outlined.Search, null, modifier = Modifier.size(18.dp)) },
+                singleLine = true,
+                shape = RoundedCornerShape(24.dp)
+            )
+            Text(
+                if (total > 0) "${index + 1}/$total" else "0/0",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+            IconButton(onClick = onPrev, enabled = total > 0) {
+                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, null)
+            }
+            IconButton(onClick = onNext, enabled = total > 0) {
+                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null)
+            }
+            IconButton(onClick = onClose) {
+                Icon(Icons.Outlined.Close, null)
+            }
+        }
+    }
 }
 
 @Composable
