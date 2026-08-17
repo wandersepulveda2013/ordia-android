@@ -2872,6 +2872,78 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // c.474: "avísame 2 horas antes de la reunión" (recordatorio con cantidad +
+    // genitivo "antes de <contenido>") captura el offset correctamente PERO dejaba
+    // el conector "de" huérfano en el título como 'de la reunión'. La unidad léxica
+    // es "antes de": el blanqueo del recordatorio debe consumir el "de"/"del" del
+    // contenido que se avisa, no dejarlo colgado. Cotidiano en español ("recuérdame
+    // 30 min antes de la cita", "avísame 1 hora antes de la presentación").
+    @Test fun recordatorioConAntesDeContenidoLimpiaConectorDe() {
+        val result = NaturalTaskParser.parse("avisame 2 horas antes de la reunion del viernes a las 3", now, zone)
+        assertEquals("la reunion", result.title)
+        assertEquals(120, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun recordatorioConAntesDeContenidoLimpiaConectorDeSinFecha() {
+        val result = NaturalTaskParser.parse("recuerdame 30 min antes de la llamada con juan", now, zone)
+        assertEquals("la llamada con juan", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun recordatorioConAntesDeContenidoSustantivadoLimpia() {
+        // "reunión con aviso 15 min antes de la salida": la forma sustantivada
+        // ("con aviso N antes") también arrastra el "de" del genitivo.
+        val result = NaturalTaskParser.parse("reunion con aviso 15 min antes de la salida", now, zone)
+        assertEquals("reunion la salida", result.title)
+        assertEquals(15, result.reminderOffsetMinutes)
+    }
+
+    // Anti-regresión: "antes de" como conector de plazo/acción SIN recordatorio no
+    // debe producir títulos rotos. "antes de" sin cantidad no casa reminderPatterns,
+    // así que el conector se gestiona por la limpieza existente (c.4342).
+    @Test fun antesDeSinRecordatorioNoRompeTitulo() {
+        val result = NaturalTaskParser.parse("leer el informe antes de la reunion a las 4", now, zone)
+        // El contenido (la reunión) sigue presente; "antes de" se gestiona por
+        // la rama existente. Solo verificamos que NO quede 'de la reunion' huérfano
+        // por el lado del recordatorio (no aplica: sin cantidad, sin offset).
+        assertEquals(null, result.reminderOffsetMinutes)
+        assertTrue(result.title, result.title.contains("reunion"))
+    }
+
+    // Anti-regresion critica: plazo puro "antes del N" (sin cantidad+unidad de
+    // recordatorio) NO debe ser afectado por c.474: no casa reminderPatterns, asi
+    // que su "del" sigue gestionado por la limpieza existente (c.4342) y la fecha
+    // se resuelve por monthNameDate. Verifica que no rompimos los plazos.
+    @Test fun antesDelPlazoPuroNoAfectadoPorC474() {
+        val r1 = NaturalTaskParser.parse("pagar antes del 15 de agosto", now, zone)
+        assertEquals("pagar", r1.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(r1.dueAt!!, zone))
+        val r2 = NaturalTaskParser.parse("presentar informe antes del 30 de septiembre", now, zone)
+        assertEquals("presentar informe", r2.title)
+    }
+
+    // c.474: "de anticipacion/de adelanto" tambien termina en token-antes y arrastra
+    // el genitivo "de <contenido>" ("recuerdame 15 min de anticipacion de la cita").
+    @Test fun recordatorioAnticipacionDeContenidoLimpia() {
+        val result = NaturalTaskParser.parse("recuerdame 15 min de anticipacion de la cita", now, zone)
+        assertEquals(15, result.reminderOffsetMinutes)
+        assertFalse(result.title, result.title.contains("de la cita"))
+    }
+
+    // c.475: el patron verbal CON cantidad usaba "recuerdame" literal con tilde,
+    // mientras el patron sin cantidad aceptaba tilde opcional. "recuerdame" sin
+    // tilde (forma cotidiana) NO casaba el patron con cantidad -> el recordatorio
+    // NUNCA se programaba (la cita se olvidaba pese a pedirse expresamente, P1).
+    @Test fun recuerdameSinTildeConCantidadProgramaRecordatorio() {
+        val r1 = NaturalTaskParser.parse("recuerdame 30 min antes de la reunion", now, zone)
+        assertEquals(30, r1.reminderOffsetMinutes)
+        val r2 = NaturalTaskParser.parse("recuerdame media hora antes de la cita", now, zone)
+        assertEquals(30, r2.reminderOffsetMinutes)
+        val r3 = NaturalTaskParser.parse("recuerdame 2 horas antes de la cita", now, zone)
+        assertEquals(120, r3.reminderOffsetMinutes)
+    }
+
     @Test fun monthNameDateBeforeTodayRollsToNextYear() {
         val result = NaturalTaskParser.parse("Llamar al dentista el 5 de julio", now, zone)
         assertEquals("Llamar al dentista", result.title)
@@ -12747,20 +12819,20 @@ class NaturalTaskParserTest {
     // verse afectado: el sufijo sólo consume tras un [timePattern] que casó la hora.
 
     // --- Sufijo de aproximación y artículo "las" en hora suelta con parte del día (c.425) ---
-    // [standaloneHourPartOfDayPattern] ("N de la noche", forma de captura rÃ¡pida sin "a las")
-    // NO incluÃ­a [APPROX_TIME_SUFFIX] ni admitÃ­a el artÃ­culo "las", a diferencia de
-    // [timePatterns] ("a las N"). Esto dejaba dos huecos asimÃ©tricos: (1) los modificadores
-    // "mÃ¡s o menos"/"y pico"/"pasadas"/"aproximadamente" se limpiaban con "a las 9 pasadas"
-    // (c.419) PERO dejaban residuo en "9 de la noche pasadas" ("reuniÃ³n pasadas"); (2) la
-    // forma cotidiana "reuniÃ³n las 9 de la noche" (artÃ­culo sin "a") dejaba "las" como
-    // residuo ("reuniÃ³n las"). Ambos: cita bien fechada pero tÃ­tulo mutilado (P1 captura/
-    // tÃ­tulo limpio). Ahora el patrÃ³n incluye $APPROX_TIME_SUFFIX y `(?:las\s+)?`, simÃ©trico
+    // [standaloneHourPartOfDayPattern] ("N de la noche", forma de captura rápida sin "a las")
+    // NO incluía [APPROX_TIME_SUFFIX] ni admitía el artículo "las", a diferencia de
+    // [timePatterns] ("a las N"). Esto dejaba dos huecos asimétricos: (1) los modificadores
+    // "más o menos"/"y pico"/"pasadas"/"aproximadamente" se limpiaban con "a las 9 pasadas"
+    // (c.419) PERO dejaban residuo en "9 de la noche pasadas" ("reunión pasadas"); (2) la
+    // forma cotidiana "reunión las 9 de la noche" (artículo sin "a") dejaba "las" como
+    // residuo ("reunión las"). Ambos: cita bien fechada pero título mutilado (P1 captura/
+    // título limpio). Ahora el patrón incluye $APPROX_TIME_SUFFIX y `(?:las\s+)?`, simétrico
     // de [timePatterns]. El lookahead anti-"de <mes>" y la exigencia de "de la <parte>"
     // siguen filtrando cuentas ("las 9 cajas" no casa: no hay "de la noche/tarde/...").
 
     @Test fun nueveDeLaNocheMasOMenosLimpiaTituloYResuelve21h() {
-        val result = NaturalTaskParser.parse("ReuniÃ³n 9 de la noche mas o menos", now, zone)
-        assertEquals("ReuniÃ³n", result.title)
+        val result = NaturalTaskParser.parse("Reunión 9 de la noche mas o menos", now, zone)
+        assertEquals("Reunión", result.title)
         assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
@@ -12783,14 +12855,14 @@ class NaturalTaskParserTest {
     }
 
     @Test fun nueveYMediaDeLaNocheMasOMenosLimpiaTituloYResuelve2130() {
-        val result = NaturalTaskParser.parse("ReuniÃ³n 9 y media de la noche mas o menos", now, zone)
-        assertEquals("ReuniÃ³n", result.title)
+        val result = NaturalTaskParser.parse("Reunión 9 y media de la noche mas o menos", now, zone)
+        assertEquals("Reunión", result.title)
         assertEquals(LocalTime.of(21, 30), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
     @Test fun lasNueveDeLaNocheLimpiaTituloYResuelve21h() {
-        val result = NaturalTaskParser.parse("ReuniÃ³n las 9 de la noche", now, zone)
-        assertEquals("ReuniÃ³n", result.title)
+        val result = NaturalTaskParser.parse("Reunión las 9 de la noche", now, zone)
+        assertEquals("Reunión", result.title)
         assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
@@ -12807,21 +12879,21 @@ class NaturalTaskParserTest {
     }
 
     // Guard anti-cuenta: "las 9 cajas" NO debe falsificarse como cita (no hay "de la
-    // <parte>", asÃ­ el patrÃ³n autÃ³nomo no casa y el guard anti-cuenta retiene el tÃ­tulo).
+    // <parte>", así el patrón autónomo no casa y el guard anti-cuenta retiene el título).
     @Test fun lasNueveCajasNoSeFalsificaComoCita() {
         val result = NaturalTaskParser.parse("Comprar las 9 cajas de leche", now, zone)
         assertEquals("Comprar las 9 cajas de leche", result.title)
         assertNull(result.dueAt)
     }
 
-    // --- Genitivo "de" antes de hora suelta con parte del dÃ­a (c.448) ---
-    // En espaÃ±ol, la preposiciÃ³n "de" que introduce un complemento de hora en estilo
-    // genitivo ("cita DE las 5", "reuniÃ³n DE 9 de la noche") es cotidiana y muy frecuente
-    // en captura rÃ¡pida. Antes, [standaloneHourPartOfDayStripPattern] sÃ³lo casaba "N de la
-    // <parte>" empezando en el nÃºmero, dejando el "de" anterior como residuo pegado al
-    // tÃ­tulo ("cita de"). La cita se agendaba bien, pero el tÃ­tulo quedaba mutilado (P1
-    // captura/tÃ­tulo limpio). Ahora el patrÃ³n consume opcionalmente el "de" precedente
-    // (prefijo `(?:\bde\s+)?`), simÃ©trico del fix de "del"/"de" en fechas de nombre de mes.
+    // --- Genitivo "de" antes de hora suelta con parte del día (c.448) ---
+    // En español, la preposición "de" que introduce un complemento de hora en estilo
+    // genitivo ("cita DE las 5", "reunión DE 9 de la noche") es cotidiana y muy frecuente
+    // en captura rápida. Antes, [standaloneHourPartOfDayStripPattern] sólo casaba "N de la
+    // <parte>" empezando en el número, dejando el "de" anterior como residuo pegado al
+    // título ("cita de"). La cita se agendaba bien, pero el título quedaba mutilado (P1
+    // captura/título limpio). Ahora el patrón consume opcionalmente el "de" precedente
+    // (prefijo `(?:\bde\s+)?`), simétrico del fix de "del"/"de" en fechas de nombre de mes.
     // El guard anti-"de <mes>" (lookahead) sigue filtrando "de 5 de diciembre".
 
     @Test fun citaDe5DeLaTardeConsumeDeYLimpiaTitulo() {
@@ -12831,8 +12903,8 @@ class NaturalTaskParserTest {
     }
 
     @Test fun reunionDe9DeLaNocheConsumeDeYResuelve21h() {
-        val result = NaturalTaskParser.parse("reuniÃ³n de 9 de la noche", now, zone)
-        assertEquals("reuniÃ³n", result.title)
+        val result = NaturalTaskParser.parse("reunión de 9 de la noche", now, zone)
+        assertEquals("reunión", result.title)
         assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
@@ -12843,19 +12915,19 @@ class NaturalTaskParserTest {
     }
 
     @Test fun citaDe5PersonasDeLaTardeNoRobaContenidoNiResiduoDe() {
-        // AquÃ­ el "de 5 personas" NO es hora: el patrÃ³n NO casa "5 ... de la tarde" (hay
-        // "personas" entre el nÃºmero y "de la tarde"), asÃ­ que NO se roba "5 personas" del
-        // tÃ­tulo. En cambio, "de la tarde" sÃ­ casa como parte-del-dÃ­a suelta y resuelve la
-        // hora canÃ³nica de tarde (15:00), dejando "cita de 5 personas" como contenido.
-        // Confirma que el fix NO introdujo sobre-consumo del nÃºmero en contexto de cantidad.
+        // Aquí el "de 5 personas" NO es hora: el patrón NO casa "5 ... de la tarde" (hay
+        // "personas" entre el número y "de la tarde"), así que NO se roba "5 personas" del
+        // título. En cambio, "de la tarde" sí casa como parte-del-día suelta y resuelve la
+        // hora canónica de tarde (15:00), dejando "cita de 5 personas" como contenido.
+        // Confirma que el fix NO introdujo sobre-consumo del número en contexto de cantidad.
         val result = NaturalTaskParser.parse("cita de 5 personas de la tarde", now, zone)
         assertEquals("cita de 5 personas", result.title)
         assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
     @Test fun llamadaDe9DeLaMananaConsumeDeYResuelve9h() {
-        // "manana" (sin Ã±) es aceptado por el patrÃ³n `ma[nÃ±]ana`; se usa ASCII para evitar
-        // problemas de codificaciÃ³n en el string del test. El "de" genitivo se consume.
+        // "manana" (sin ñ) es aceptado por el patrón `ma[nñ]ana`; se usa ASCII para evitar
+        // problemas de codificación en el string del test. El "de" genitivo se consume.
         val result = NaturalTaskParser.parse("llamar de 9 de la manana", now, zone)
         assertEquals("llamar", result.title)
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))

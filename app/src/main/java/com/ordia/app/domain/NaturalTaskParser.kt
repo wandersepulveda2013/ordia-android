@@ -1587,7 +1587,7 @@ object NaturalTaskParser {
         // el patrón de verbos de abajo, pero "aviso"/"alerta" no. Va tras "con X" para no
         // robar el "con" del patrón anterior.
         Regex("""(?i)\b(?:aviso|alerta|recordatorio)(?:\s+de)?\s+($writtenAmountPattern)\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)(?:\s+(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto))?\b"""),
-        Regex("""(?i)\b(?:recuérdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?($writtenAmountPattern)\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
+        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?($writtenAmountPattern)\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
         // "N min/hora antes": debe aceptar las mismas abreviaturas que la duración
         // (min, hora) para que "30 min antes" sea recordatorio y no caiga como duración.
         Regex("""(?i)\b($writtenAmountPattern)\s*(minutos?|min|horas?|hora|d[ií]as?|d[ií]a)\s+antes\b"""),
@@ -1597,7 +1597,7 @@ object NaturalTaskParser {
         // robar una duración real ("reunión media hora" sin "antes" sigue siendo
         // duración). Antes "media hora antes" era robado por la duración (30 min
         // falsos) y el recordatorio quedaba en null → la cita se olvidaba.
-        Regex("""(?i)\b(?:recuérdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?($fractionalHourGroup)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
+        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordatorio)\s*(?:con\s+)?($fractionalHourGroup)\s*(?:de\s+anticipaci[oó]n|antes|de\s+adelanto|adelanto|de)?\b"""),
         Regex("""(?i)\b($fractionalHourGroup)\s+antes\b""")
     )
     /**
@@ -2581,10 +2581,34 @@ object NaturalTaskParser {
         // SOLO el rango del match (no `replace(it.value, ...)` global), que corrompería
         // el título si el token aparece como subcadena de una palabra de contenido
         // (p. ej. token "quincena" dentro de "quincenal", "semana" en "semanal").
+        //
+        // c.474: cuando el match termina en "antes"/"anticipación"/"adelanto" (formas
+        // con cantidad: "2 horas antes", "15 min de anticipación"), va seguido casi
+        // siempre de un genitivo "de <contenido>" que indica QUÉ se avisa
+        // ("avísame 2 horas antes de la reunión", "recuérdame 30 min antes de la
+        // cita"). La unidad léxica es "antes de": blanquear solo "antes" deja el
+        // conector "de" huérfano y el título queda corrupto ('de la reunión'). Aquí
+        // se extiende el rango a blanquear para consumir también el "de"/"del"
+        // inmediatamente posterior. Es seguro: un match de reminderPatterns exige
+        // cantidad+unidad, así que "antes del 30" (plazo puro, sin cantidad) NO casa
+        // aquí — su "del" sigue gestionado por la limpieza de "antes del" (c.4342).
+        // Solo se consume un único "de"/"del" para no devorar preposiciones de
+        // contenido más allá del genitivo del aviso.
         reminderPatterns.forEach { pattern ->
-            val ranges = pattern.findAll(working).map { it.range }.toList()
-            for (r in ranges.sortedByDescending { it.first }) {
-                working = working.replaceRange(r, " ")
+            val matches = pattern.findAll(working).toList()
+            for (m in matches.sortedByDescending { it.range.first }) {
+                var end = m.range.last + 1
+                val matched = m.value
+                val endsInAntesToken = Regex("""(?i)(antes|anticipaci[oó]n|adelanto)\s*$""").containsMatchIn(matched)
+                if (endsInAntesToken && end <= working.lastIndex) {
+                    val afterTail = working.substring(end)
+                    val leadWs = afterTail.takeWhile { it.isWhitespace() }.length
+                    val deMatch = Regex("""(?i)^de(?:l|la|los|las)?\b""").find(afterTail.substring(leadWs))
+                    if (deMatch != null) {
+                        end += leadWs + deMatch.range.last + 1
+                    }
+                }
+                working = working.replaceRange(m.range.first, end, " ")
             }
         }
 
