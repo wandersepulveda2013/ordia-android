@@ -2154,4 +2154,56 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.528: la rama PRESENTE-CON-CLITICO de commitmentSignal era ASIMETRICA en
+    // numero, igual que la presente pelada (c.526) y la futura (c.527). Detectaba
+    // "lo termino"/"te llamo"/"le paso"/"lo hago" (1ª persona SINGULAR) pero NO
+    // "lo terminamos"/"te llamamos"/"le pasamos"/"lo hacemos" (1ª persona PLURAL)
+    // -> olvido de compromisos compartidos con receptor explicito (P1). Probe JVM
+    // PRE-fix: 11/11 MISSED. Este test los fija como regresion.
+    @Test
+    fun presentCliticPluralCommitmentsAreDetected() {
+        val positives = listOf(
+            "lo terminamos el viernes", "lo revisamos manana",
+            "lo entregamos el lunes", "la preparamos para el miercoles",
+            "te lo mandamos manana", "se lo enviamos el lunes",
+            "le pasamos el reporte el viernes", "le llamamos manana",
+            "te llamamos manana", "te enviamos la propuesta esta semana",
+            "lo hacemos hoy"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c528-pos-$text"
+            )
+            assertTrue(
+                "\"$text\" (presente-clitico plural) debe generar draft SELF_COMMITMENT",
+                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
+    // c.528: precision simetrica. Los presentes-clitico plurales negados se
+    // excluyen igual que los singulares ("no lo terminamos" ~ "no lo termino").
+    // Probe JVM POST-fix: excluidos.
+    @Test
+    fun presentCliticPluralCommitmentsRespectNegation() {
+        val negatives = listOf(
+            "no lo terminamos el viernes", "no te llamamos manana",
+            "no le pasamos el reporte", "no se lo enviamos",
+            "no lo hacemos hoy", "no te lo mandamos manana"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c528-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" (negacion de presente-clitico plural) NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
 }

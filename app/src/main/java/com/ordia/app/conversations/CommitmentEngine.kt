@@ -378,7 +378,28 @@ object CommitmentEngine {
         // con el singular: "vamos a la playa" se comporta igual que "voy a la
         // playa" (comportamiento preexistente de la perífrasis, no nuevo). Probe
         // JVM POST-fix: 6/6 positivos detectados, 4/4 negaciones excluidas.
-        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo)|despu[eé]s\s+te\s+respondo|debo|tengo\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|vamos\s+a|terminar[eé]|terminaremos|har[eé]|haremos|entregar[eé]|entregaremos|revisar[eé]|revisaremos|preparar[eé]|prepararemos|arreglar[eé]|arreglaremos|subir[eé]|subiremos|dejar[eé]|dejaremos|pasar[eé]|pasaremos|mandar[eé]|mandaremos|enviar[eé]|enviaremos)|lo\s+hago|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago))\b"""
+        // c.528: asimetría de NUMERO en la rama PRESENTE-CON-CLÍTICO de
+        // commitmentSignal, espejo de c.526 (presente pelado plural) y c.527
+        // (futuro plural). commitmentSignal detectaba las 3 ramas de presente con
+        // clítico en 1ª persona SINGULAR ("lo termino"/"te llamo"/"le paso"/
+        // "lo hago") PERO NO sus plurales ("lo terminamos"/"te llamamos"/
+        // "le pasamos"/"lo hacemos") → olvido de compromisos COMPARTIDOS con
+        // receptor explícito ("te llamamos mañana", "le pasamos el reporte el
+        // viernes", "lo terminamos el viernes"), la forma natural de una promesa
+        // conjunta dirigida a alguien. Se alinean los plurales (-amos) de los 3
+        // grupos con clítico: `te` (llamamos/enviamos/respondemos/avisamos/
+        // confirmamos/pasamos/mandamos/pagamos/hablamos/escribimos), `le`
+        // (pasamos/mandamos/enviamos/llamamos/hablamos/escribimos/respondemos/
+        // avisamos/confirmamos/pagamos) y OD/doble (terminamos/entregamos/
+        // revisamos/preparamos/arreglamos/subimos/dejamos/pasamos/mandamos/
+        // enviamos/llamamos/hablamos/escribimos/pagamos) + `lo hacemos`. La guarda
+        // precedingNegation excluye "no lo terminamos"/"no te llamamos" igual que
+        // "no lo termino"/"no te llamo". Precisión simétrica: "lo terminamos" sin
+        // fecha se comporta igual que "lo termino" (presente-clítico dispara sin
+        // exigir dueAt, comportamiento preexistente). Probe JVM POST-fix: 11/11
+        // positivos detectados, 3/3 negaciones excluidas, controles singulares
+        // intactos.
+        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo|llamamos|enviamos|respondemos|avisamos|confirmamos|pasamos|mandamos|pagamos|hablamos|escribimos)|despu[eé]s\s+te\s+respondo|debo|tengo\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|vamos\s+a|terminar[eé]|terminaremos|har[eé]|haremos|entregar[eé]|entregaremos|revisar[eé]|revisaremos|preparar[eé]|prepararemos|arreglar[eé]|arreglaremos|subir[eé]|subiremos|dejar[eé]|dejaremos|pasar[eé]|pasaremos|mandar[eé]|mandaremos|enviar[eé]|enviaremos)|lo\s+hago|lo\s+hacemos|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|pagamos))\b"""
     )
     // c.500: presente de 1ª persona SIN pronombre de objeto + marca temporal futura
     // PUNTUAL — "termino el informe mañana", "entrego el reporte el viernes",
