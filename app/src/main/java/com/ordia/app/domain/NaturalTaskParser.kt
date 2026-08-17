@@ -853,6 +853,30 @@ object NaturalTaskParser {
     // fecha numérica completa se perdía y el vencimiento caía en el mes equivocado.
 
     /**
+     * "el lunes 24" / "el martes 25" / "pago el viernes 28": día de la semana SEGUIDO de
+     * un número de día del mes suelto, SIN nombre de mes. Forma cotidiana que confirma el
+     * weekday y precisa el día ("la reunión es el lunes 24"). Antes weekdayPattern capturaba
+     * "el lunes" y el "24" sobrevivía como residuo del título ("reunión 24") — contenido
+     * capturado degradado (P1 título limpio). Además, cuando el próximo lunes NO caía en 24
+     * (p. ej. "el lunes 25" dicho cuando el próximo lunes es el 24), la fecha se anclaba al
+     * weekday ignorando el número explícito → cita en día erróneo (P1 datos/fechas correctas).
+     * El número explícito es más específico que el weekday suelto (igual que "el lunes 24 de
+     * septiembre" ancla al 24/9 sin importar en qué weekday caiga). Así que aquí se resuelve
+     * al día N del mes (vía [nextMonthlyDate]) y se consume "el lunes 24" entero del título.
+     *
+     * Guards anti-falso-positivo:
+     * - Lookahead `(?!\s*(?:[/\-]|\bdel?\b))`: NO casa si tras el número sigue un separador
+     *   de fecha (`/`/`-` → numericDate/rango) o la preposición `de`/`del` (→ mes nombrado
+     *   "de septiembre", recurrencia "de cada mes", mes relativo "del mes que viene"). Esos
+     *   los resuelven patrones más específicos ANTES en el `when`; aquí sólo se ancla la forma
+     *   SIN mes. Así "el lunes 24 de septiembre" cae a monthNameDate (fecha+mes correcto) y
+     *   "el lunes 24 del mes que viene" cae a nextMonthDayPattern, sin doble resolución.
+     * - Exige el número INMEDIATAMENTE tras el weekday: "reunión 24" (número tras un
+     *   sustantivo, sin weekday) no se toca — contenido legítimo ("reunión 24" de un comité).
+     */
+    private val weekdayDayPattern = Regex("""(?i)\b(?:el\s+|del\s+|de\s+|este\s+)?(?:pr[oó]ximo\s+|pr[oó]xima\s+)?(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+(\d{1,2})(?!\s*(?:[/\-]|\bdel?\b))\b""")
+
+    /**
      * Sufijos ordinales numéricos del español ("1ro"/"1ero", "2do", "3er"/"3ero", "4to", "5to",
      * "7mo", "8vo", "9no", "10mo" y los símbolos "1º"/"2ª") escritos pegados al dígito y
      * seguidos del conector de fecha " de ". Son marcadores de fecha cotidianísimos en LATAM ("pago
@@ -3689,6 +3713,17 @@ object NaturalTaskParser {
                 nextMonthlyDate(base.toLocalDate(), day)
             }
         }
+        // "el lunes 24": weekday + número de día del mes suelto (sin mes). El número
+        // explícito es más específico que el weekday suelto, así que ancla al día N del
+        // mes (igual que "el lunes 24 de septiembre" ancla al 24/9). Va DESPUÉS de
+        // monthNameDate/numericDateMatch (cuyos guards del lookahead negativo dejan fuera
+        // las formas CON mes) y se resuelve ANTES del weekdayMatch suelto en el `when`.
+        val weekdayDayMatch = weekdayDayPattern.find(working)
+        val weekdayDayDate = weekdayDayMatch?.let { m ->
+            m.groupValues[2].toIntOrNull()?.takeIf { it in 1..31 }?.let { day ->
+                nextMonthlyDate(base.toLocalDate(), day)
+            }
+        }
         val partOfDayMatch = partOfDayPattern.find(working)
         val partOfDayTime = partOfDayMatch?.let { partOfDayTimes[it.groupValues[1].lowercase()] }
         val standalonePartOfDayMatch = standalonePartOfDayPattern.find(working)
@@ -3840,6 +3875,10 @@ object NaturalTaskParser {
             // suelta usamos nextWeekdayOrSame (incluye hoy) y diferimos al final del
             // parseo el descarte de "hoy si la hora ya pasó" → ahí se rueda +7 días.
             // Sin esto, una cita de hoy con hora futura se perdía una semana entera.
+            // "el lunes 24": weekday + día del mes explícito. Va ANTES del weekday suelto:
+            // el número es más específico y ancla al día N del mes (no al próximo lunes),
+            // evitando cita en día erróneo y residuo "24" en el título.
+            weekdayDayDate != null -> weekdayDayDate
             weekdayMatch != null -> {
                 val target = weekdayMatch.groupValues[1].toDayOfWeek()
                 // "jueves que viene"/"jueves próximos"/"próximo jueves": el usuario pide
@@ -4518,6 +4557,11 @@ object NaturalTaskParser {
             // conector junto con el día relativo. "para" ya lo limpia el paso posterior (para
             // mañana/para el). El \b impide coincidir dentro de palabras como "desde"→ no aplica.
             .replace(Regex("""(?i)(?:\b(?:de|del|desde)\s+)?(?:antepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b)"""), " ")
+            // "el lunes 24": consume el weekday + el número de día JUNTOS para que el "24"
+            // no quede como residuo del título. Va ANTES que weekdayPattern.replace (que
+            // sólo borraría "el lunes"). Guard `dueAt != null`: no inventa fecha si no se
+            // resolvió (p. ej. forma con mes nombrado, excluida por el lookahead del patrón).
+            .let { value -> if (weekdayDayMatch != null && dueAt != null) weekdayDayPattern.replace(value, " ") else value }
             .let { value -> weekdayPattern.replace(value, " ") }
             .let { value -> weekendPattern.replace(value, " ") }
             // "que viene" queda como residuo cuando la fecha asociada (fin de
