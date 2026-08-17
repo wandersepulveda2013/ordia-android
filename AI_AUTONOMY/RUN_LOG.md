@@ -1,5 +1,18 @@
-## Run c.479 — 2026-08-17 (UTC) — fix(parser/fechas+título): forma genitiva "del N del mes que viene/próximo/entrante" (vencimientos/cobros: "alquiler del 15 del mes que viene", "pago del 20 del mes que viene", "cita del 15 del mes entrante") NO se anclaba al día N del mes siguiente → fecha errónea +30d + título corrupto "del N del" — P1 datos/fechas correctas/título limpio/evitar olvidos/captura ultrarrápida — ÁREA PARSER (NaturalTaskParser), `nextMonthDayPattern`, continuación directa de c.347/c.449
+## Run c.482 — 2026-08-17 (UTC) — feat(asistente): "dame un plan"/"quiero un plan"/"necesito un plan" (formas declarativa/imperativa de pedir planificación) caían al MENÚ GENÉRICO en vez de abrir el planificador (OPEN_PLANNER) — P2 UX/inteligencia/evitar fricción/MENOS ES MÁS — ÁREA NO-PARSER (AssistantEngine.isPlannerIntent), continuación directa de c.477
 
+- **Run/ciclo**: c.482 (rama `openhands/autonomous-ordia`). HEAD inicial = `7317c48` (c.480 remoto — separador decimal `3.30`). Al sincronizar el remoto había avanzado a `4adad81` (1 commit concurrente: c.481 parser `delDayOfMonth`). Integración NO destructiva vía `git rebase origin/openhands/autonomous-ordia`: .kt+tests auto-merge limpio (regiones DISJUNTAS: c.481 remoto toca `NaturalTaskParser.kt` l.817/3617/3815/4489; c.482 mío toca `AssistantEngine.kt` `isPlannerIntent`), conflicto SÓLO en `CURRENT_STATE.md` resuelto conservando AMBAS entradas. Renumerado c.481→c.482 por colisión de cycle-ID con el run remoto c.481 (parser). NO STALE_RUN, NO force, NO reset --hard, NO clean destructivo, NO toques a `main`. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars `/tmp/libs`, OpenJDK 21. Auth git con `github_token`.
+- **Problema seleccionado (P2 UX / IA honesta / evitar fricción / MENOS ES MÁS — asistente, familia planner phrasing natural)**: continuación directa de c.477, que cerró los imperativos ("prepárame/hazme/ármame/prepara un plan", "organiza/planifica/arma mi día") PERO dejó FUERA a propósito las formas MÁS declarativas/imperativas "quiero un plan"/"necesito un plan"/"dame un plan" — las más naturales en habla espontánea. c.477 las excluyó por riesgo de falso-positivo por subcadena: "un plan" es prefijo de "un planteamiento"/"un plan estratégico" y el reconocimiento era por `in` (substring sin word-boundary). Estas frases caían al MENÚ GENÉRICO (que incluso anuncia "preparar un plan mínimo" como capacidad — la ironía de c.477 persistía para el phrasing más natural).
+- **Causa raíz**: `isPlannerIntent` era una disyunción cerrada de substrings verbales. "dame un plan" (imperativo, seguro como substring) y "quiero/necesito un plan" (declarativo, ambiguo por subcadena) no estaban en la lista.
+- **Solución (mínima, sin nueva pantalla/botón, sin IA fingida)**: en `AssistantEngine.kt`, `isPlannerIntent` se añaden `"dame un plan"/"dame el plan"` como substrings (imperativo, paralelo seguro a "hazme un plan", sin riesgo de subcadena) y una nueva propiedad `DECLARATIVE_PLAN_REQUEST = Regex("""\b(quiero|necesito)\s+(un|el)\s+plan\s*[.!?]*$""")` consultada con `containsMatchIn(query)`. La regex está **anclada al FINAL** del enunciado (con puntuación terminal opcional) → NO roba frases legítimas de plan-documento ("quiero un plan estratégico para mañana" → NONE). La guarda superior `if ("plan minimo" in query) return false` (c.477) sigue excluyendo "quiero un plan mínimo" (→ lista de 3). Determinista (substring + regex sobre `foldForSearch`), sin random, sin IA fingida. Reusa toda la maquinaria del planner existente (respuesta con conteo honesto de pendientes/vencidas + `AssistantAction.OPEN_PLANNER`).
+- **Bugs**: 0 nuevos. Fix: los 3 phrasings ahora abren el planificador con conteo honesto; "quiero un plan estratégico" sigue NONE (no se falsifica); "quiero un plan mínimo" sigue siendo la lista de 3.
+- **Features**: 0 nuevas pantallas/botones. Mejora del asistente existente (reconocimiento de phrasing natural, misma superficie).
+- **Tests**: `bash tools/run_domain_tests.sh` (sobre base `4adad81` remota c.481 parser fusionada + mi fix) → **2735 PASS** (2722 base c.480 + 8 c.481 remoto parser `delDayOfMonth` + 5 nuevos c.482 míos en `AssistantEngineTest.kt`: `dameUnPlan_opensPlanner` ["dame un plan" → OPEN_PLANNER], `quieroUnPlan_opensPlanner` ["quiero un plan" +1 tarea → OPEN_PLANNER+"1 tarea pendiente"], `necesitoUnPlan_opensPlanner` ["necesito un plan" → OPEN_PLANNER], `quieroUnPlanNoAbreSiHayCalificador` [anti-falso-positivo: "quiero un plan estratégico para mañana" → NONE], `quieroUnPlanMinimo_doesNotStealPlanMinimo` [guard: "quiero un plan mínimo" → relatedTaskIds, NO OPEN_PLANNER]), 0 failures, 46 classes (Time: 1.815s); `bash tools/run_domain_checks.sh` → smoke 25 OK. TDD RED→GREEN confirmado pre-fix (sobre base c.480 aislada): 3 positivos fallaban en NONE (`expected:<OPEN_PLANNER> but was:<NONE>`); los 2 anti-falso-positivo/guard ya pasaban (confirmando que la regex anclada no roba frases). Tras rebase sobre `4adad81` (c.481 parser), suite completa re-ejecutada: 2735 PASS, 0 failures — confirmado que el fix del parser remoto y el mío son compatibles (regiones .kt DISJUNTAS). Sin tests reducidos/eliminados, sin regresión (familia planner c.477/c.2700 intacta; plan-mínimo c.358 intacta; dayLoad/olvido/agenda/search intactos; familia parser `delDayOfMonth` c.481 remota intacta). Probe JVM (`/tmp/ProbeDiscover.kt` + `run_probe.sh`, fuente real `AssistantEngine` recompilada kotlinc) confirmó los hallazgos. Probe temporal NO commiteado (workspace /tmp). **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); la lógica pura `AssistantEngine.isPlannerIntent`/`answer` SÍ verificada en JVM vía tests + suite 2735 + probe.
+- **Hallazgos adicionales (probe c.482)**: "veinte para las 8"→07:40, "veinticinco para las 9"→08:35, "cuarenta para las 10"→09:20 YA funcionan — la nota residual de c.478 que sugería que no funcionaban era INCORRECTA (`CLOCK_FRACTION_MAP` ya incluye veinte/veinticinco/cuarenta/treinta y cinco). No se requiere trabajo ahí (evitado trabajo falso). Quedan ABIERTOS en BACKLOG: (1) "a las 3.5" (un solo dígito decimal, genuinamente ambiguo, requiere decisión humana); (2) entity-lookup del asistente ("¿a qué hora tengo la reunión?"→ dato puntual, feature mayor de búsqueda universal); (3) veredicto de capacidad en DaySummary (requiere decisión de arquitectura).
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` (`isPlannerIntent` +2 substrings imperativos + regex `DECLARATIVE_PLAN_REQUEST` + KDoc); `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt` (+5 tests TDD); `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md` (entrada c.482, BACKLOG c.477 marcado RESUELTO c.482).
+- **HEAD inicial**: `7317c48` (c.480). Remoto avanzó a `4adad81` (c.481 parser concurrente). Integración NO destructiva vía rebase. NO force, NO reset destructivo, NO clean destructivo. **HEAD final**: commit c.482 (pendiente de push).
+- **Próxima prioridad**: la oportunidad de mayor impacto pendiente es el entity-lookup del asistente (BACKLOG ABIERTO c.477: "¿a qué hora tengo la reunión?"/"¿cuándo pago la luz?" → recuperar el dato puntual de una tarea existente). Requiere decisión de arquitectura (entity-lookup por subcadena de título + rama "a qué hora/cuándo/dónde + <sustantivo>" + extracción honesta del campo). Es la feature mayor de "búsqueda universal"/recuperación de info sin nueva pantalla. Evaluación + TDD con guardas anti-ambigüedad en ciclo futuro si se confirma.
+
+## Run c.479 — 2026-08-17 (UTC) — fix(parser/fechas+título): forma genitiva "del N del mes que viene/próximo/entrante" (vencimientos/cobros: "alquiler del 15 del mes que viene", "pago del 20 del mes que viene", "cita del 15 del mes entrante") NO se anclaba al día N del mes siguiente → fecha errónea +30d + título corrupto "del N del" — P1 datos/fechas correctas/título limpio/evitar olvidos/captura ultrarrápida — ÁREA PARSER (NaturalTaskParser), `nextMonthDayPattern`, continuación directa de c.347/c.449
 - **Run/ciclo**: c.479 (rama `openhands/autonomous-ordia`). HEAD inicial = `b36e91b` (c.476 remoto — "ponme un aviso"/"dame un recordatorio"); al sincronizar el remoto había avanzado a `3a63f52` (2 commits concurrentes: c.477 planificación `6b99151` + c.478 cuarto-para-las-N `3a63f52`). Integración NO destructiva `git stash` → `git pull --ff-only` → `git stash pop`: .kt+tests auto-merge limpio (regiones DISJUNTAS: c.476 toca `bareReminderVerbPattern` l.1642; c.478 toca `prefixedNegativeFractionPattern` l.1548; c.479 toca `nextMonthDayPattern` l.514), conflictos SÓLO en `.md` resueltos conservando TODAS las entradas. Renumerado c.477→c.479 por DOBLE colisión de cycle-ID con runs remotos c.477 (planificación) y c.478 (cuarto-para-las-N). NO STALE_RUN. NO force, NO reset --hard, NO clean destructivo, NO toques a `main`. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars `/tmp/libs`, OpenJDK 21. Auth git con `GITHUB_TOKEN`.
 - **Problema seleccionado (P1 datos / fechas correctas / título limpio / evitar olvidos / captura ultrarrápida — parser, `nextMonthDayPattern`)**: continuación directa de la familia de "título limpio"+"fechas correctas" de c.347 (multi-day "los días 15 y 30 del mes que viene") y c.449 (genitivo recurrente "renta del 15 de cada mes"). Faltaba la forma SINGULAR con genitivo "del" + mes relativo: "alquiler del 15 del mes que viene", "pago del 20 del mes que viene", "cita del 15 del mes entrante". Estas frases cotidianas de vencimientos/cobros NO se anclaban al día N del mes siguiente → fecha errónea (+30d desde hoy) Y título corrupto ("alquiler del 15 del"). Compromiso mensual anclado a día concreto nacía con fecha equivocada + título irreconocible → recordatorio en día erróneo o tarea confundida en What Now/planificador.
 - **Causa raíz**: `nextMonthDayPattern` (c.~344) sólo admitía como introductor del día `el`/`día` ("el 15 del mes que viene"). El artículo genitivo `del` que introduce el día tras un sustantivo de pago/cobro ("alquiler del 15") NO casaba → el día explícito no se consumía → `nextPeriodPattern` robaba "del mes que viene" como +30d genérico desde hoy (fecha errónea) y el día quedaba como residuo corrupto en el título ("alquiler del 15 del").
@@ -128,7 +141,6 @@
 - **HEAD inicial**: `b44b65a` (c.448) / base actualizada `974f58a` (c.465 remoto) vía stash+ff+pop. NO force, NO reset destructivo, NO clean destructivo. **HEAD final**: commit c.449 (pendiente de push).
 - **Estado**: VERIFIED (dominio JVM: 2643 PASS; smoke 25 OK; 0 failures; 6 tests confirman el fix + no-regresión sin genitivo + respeto del "del" de contenido). NO VERIFICADO Android/gradle/lint/assemble/UI.
 - **Próxima prioridad**: descubrimiento continuo — (i) parser: cobertura de cadencia "de todos los meses" y "del 15 mensual" (bugs de cobertura hallados en c.449, fecha anclada a hoy incorrecta); (ii) hallazgos pendientes: `entre el 3 de unidades y el 5` (c.465 cerró la fuga de extremo, revaluar), "reunión el lunes 24" residuo "24", "cita de 5 de la tarde" residuo "de"; (iii) áreas no auditadas (context/onboarding/navegación/accesibilidad/rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
-
 
 ## Run c.465 — 2026-08-17 (UTC) — fix(parser): rango "entre el N de <NO-mes> y el M" filtraba el cierre "el M" como fecha ESPURIA (día suelto inventado) con título roto — P1 datos/evitar olvidos/IA honesta — ÁREA PARSER (NaturalTaskParser), guarda anti-fuga de extremo en `dayOfMonthPattern`
 
@@ -336,7 +348,6 @@
 - **HEAD inicial**: `45825c2` (c.429). Rebase atop `816f3cb` (c.432). NO force, NO reset destructivo, NO clean destructivo. **HEAD final**: commit c.434 (pendiente de push).
 - **Estado**: VERIFIED (dominio JVM: 2545 tests PASS; smoke 25 OK; 0 failures; 4 tests confirman los 2 fixes + 2 guards anti-infinitivo). NO VERIFICADO Android/gradle/lint/assemble/UI.
 - **Próxima prioridad**: continuar auditoría no-parser: (a) revisar gap análogo de pretérito/3ª persona en OVERDUE_TOKENS/FLAGGED_TOKENS/RECURRING_TOKENS; (b) áreas no-auditadas aún (context/onboarding/navegación/accesibilidad/rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
-
 
 ## Run c.432 — 2026-08-16 (UTC) — fix(parser): conector "después de las N <parte>" sobrevivía como residuo en el título ("llegar después de") — cita bien fechada pero título mutilado — P1 captura/título limpio — ÁREA PARSER (NaturalTaskParser), simétrico a "antes de"/c.424 y "hasta"/c.134
 
@@ -633,7 +644,6 @@
 - **Estado**: VERIFIED (dominio JVM: 2423 tests PASS; smoke 25 OK; 0 failures; 4 tests confirman conteo missedStart + subtask-no-infla + pure-overload-null-suggestion). NO VERIFICADO Android/gradle/lint/assemble/UI (render TodayScreen Compose).
 - **Próxima prioridad**: descubrimiento continuo — (i) verificar con Android SDK el render UI de las 2 strings nuevas en TodayScreen (caso saturado-por-olvidos + cola informativa); (ii) áreas no-parser: contexto, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales, captura ultrarrápida, inbox inteligente, detección de compromisos. Re-fetch antes de implementar.
 
-
 ## Run c.407-h1 — 2026-08-16 (UTC) — docs(autonomy): corrección de precisión factual del bloque c.406 en CURRENT_STATE (base/test-count/HEAD) — ÁREA MEMORIA (integridad)
 
 - **Run/ciclo**: 407-h1 (rama `openhands/autonomous-ordia`; sesión paralela de corrección factual de memoria). HEAD inicial = `ee13c1b` (c.406 propio, pushed). Al preparar el push se descubrió avance remoto `71d6988` (c.402-h1, +5 tests de hardening parser) integrado NO destructivamente: `git stash` + `git merge --ff-only origin` (→`71d6988`) + `git stash pop`; conflicto SÓLO en `RUN_LOG.md` resuelto conservando AMBAS. Al re-push se descubrió NUEVO avance remoto `0dda849` (c.407 feature: missed-start en tarjeta de resumen, +4 tests) integrado vía `git rebase origin` (NO force); conflicto SÓLO en bloques c.407 duplicados de CURRENT_STATE/RUN_LOG, resuelto conservando AMBAS (feature c.407 primero; docs c.407-h1 después). NO STALE_RUN, NO force, NO reset destructivo. Entorno JVM (sin Android SDK): kotlinc 2.1.20, OpenJDK 21. `bash tools/run_domain_tests.sh` -> **2427 PASS** (base `da41092` c.408 tras rebase anti-colisión; incluye c.407 feature 4 + c.402-h1 5 hardening + c.405 9 + c.408 feature 3; mi c.407-h1 sólo docs, sin cambios de código propios), 0 failures, 45 classes; `bash tools/run_domain_checks.sh` -> smoke 25 OK.
@@ -778,7 +788,6 @@
 - **Estado**: VERIFIED (dominio JVM: 2348 tests PASS; smoke 25 OK; 0 failures; 6 tests confirman el consumo de "recién"/"apenas" sin residuo + preservación de usos adjetivales + no-regresión del guard anti-cuenta; probe fuente real 19 frases). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) parser: c.397+ bug P1 "ya a las N" produce dueAt=now en vez de hora explícita (requiere análisis de jerarquía ancla-hora vs ancla-now, TDD sobre prioridad hora-explícita > ancla-now); (ii) auditoría no-parser: contexto, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales; (iii) verificar Android c.270-c.396 cuando haya SDK. Re-fetch antes de implementar.
 
-
 ## Run c.393 — 2026-08-16 (UTC) — fix(parser): sufijos de aproximación post-hora ("y pico"/"más o menos"/"aproximadamente") + prefijo "casi a las" no se consumían — título mutilado con residuo horario (c.393) — P2 captura/título limpio — ÁREA PARSER
 
 - **Run/ciclo**: 393 (rama `openhands/autonomous-ordia`). HEAD inicial = `13830d4` (c.389 "en punto") al comenzar. `git fetch origin openhands/autonomous-ordia` reveló `13830d4..f1a1cc2` (c.390 "siesta" pushed por run concurrente durante la sesión) — divergencia, base obsoleta. Procedimiento NO destructivo: `git stash` (mi trabajo no commiteado sobre `13830d4`), `git merge --ff-only origin/openhands/autonomous-ordia` → `f1a1cc2`, `git stash pop` → auto-merge limpio (sin conflictos; áreas disjuntas `APPROX_TIME_SUFFIX`/`approximateTimePatterns` "casi" vs `mealSleepAnchorPattern` "siesta" de c.390), NO STALE_RUN (cambios preservados, no descartados). Tras commitear, DOS runs concurrentes más publicaron: `1dc9deb` (c.391 "justo"+comida/sueño/siesta) y `1492c97` (c.392 "justo"+anclas canónicos sol/jornada). Rebasé dos veces sobre ellos (código disjunto: yo toco `timePatterns`/`APPROX_TIME_SUFFIX`/`hasClockEvidence`/`approximateTimePatterns`; ellos tocan `mealSleepAnchorPattern` y patrones canónicos — auto-merge limpio), renumerando mi ciclo c.391→c.392→c.393 para evitar colisión de numeración. NO force, NO reset destructivo, NO clean destructivo. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars en `/tmp/libs`, OpenJDK 21. Baseline tras stash pop = 2316 PASS (c.390 2297 + 12 nuevos). Test env parser: `now=2026-07-29 12:00 America/Santo_Domingo` (miércoles).
@@ -843,7 +852,6 @@
 ---
 
 # RUN_LOG — Ordía
-
 
 ## Run c.383 — 2026-08-16 (UTC) — fix(search): urgencia de búsqueda alinea bandas con timeRank (dueToday sobre prioridad pura) — P2 consistencia entre superficies/búsqueda universal — ÁREA NO-PARSER
 
@@ -1046,7 +1054,6 @@
 - **Estado**: VERIFIED (dominio JVM: 2064 tests PASS; smoke 25 OK; 0 failures; tests confirman parte del día como agenda + modificador de franja + simetría con `SearchEngine.scopeBand` + no-regresión). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) asistente: auditar `resumeConversacion` y `overdueIntent` por asimetrías análogas; (ii) asistente: weekday plural ("¿qué tengo los viernes?"=recurrencia, P3 PENDIENTE — requiere decisión de modelo semántico); (iii) asistente: parte del día con "semana"/"mes" ("¿qué tengo la semana en la tarde?" — composición no cubierta, baja frecuencia); (iv) parser/recurrencia: backlog PENDIENTE "primer lunes del mes"; (v) áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (vi) verificar Android c.270-c.355 cuando haya SDK. Re-fetch antes de implementar.
 
-
 ## Run c.354 — 2026-08-16 (UTC) — fix(asistente): "¿voy bien?"/"¿da tiempo?" ya no calla vencidas ni compromisos vencidos (dayLoad era la outlier de olvidos) — P1 asistente/evitar olvidos/recuperación/consistencia entre superficies/IA honesta/MENOS ES MÁS
 
 - **HEAD inicial**: `7752e16` (c.352; al fetch detecté que el remoto avanzó a `89c1a32` c.353 SearchEngine — re-sync no destructivo).
@@ -1061,7 +1068,6 @@
 - **Próxima prioridad**: descubrimiento continuo — áreas no-asistente (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento, workers/backup); o el weekday plural P3 (c.351) si se decide el modelo semántico. Re-fetch antes de implementar.
 - **HEAD final**: (commit c.354, pendiente de push; tras push = remoto `openhands/autonomous-ordia`).
 - **Estado**: VERIFIED (lógica pura en JVM: 2058 tests PASS, 0 failures, smoke 25 OK; Android runtime NO VERIFICADO).
-
 
 ## Run c.353 — 2026-08-16 (UTC) — fix(search): paridad urgencyRank↔timeRank — isImminentStart + isMissedStart — P2 búsqueda/consistencia entre superficies/evitar olvidos/recuperación de tareas olvidadas/MENOS ES MÁS (área NO-parser)
 
@@ -1102,7 +1108,6 @@
 - **HEAD final**: `61c4d4a` (commit c.352, pendiente push; tras push = remoto `openhands/autonomous-ordia`).
 - **Estado**: VERIFIED (lógica pura en JVM; Android runtime NO VERIFICADO).
 
-
 ## Run c.350 — 2026-08-16 (UTC) — feat(parser): "semana por medio" + lista de días → WEEKLY interval=2 (caso disjunto del combo day-list) — P1 recurrencia/rutinas adaptables/evitar olvidos/MENOS ES MÁS
 
 - **Run/ciclo**: 350 (rama `openhands/autonomous-ordia`). HEAD inicial = `cb3856d` (c.349 docs, `git pull --ff-only` limpio tras detectar que c.348 `c33d25b` remoto ya resolvió las formas AISLADAS de "semana/mes por medio" vía `alternatePeriodPattern`). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21. Test env parser: `now=2026-07-29`, `zone=America/Santo_Domingo`.
@@ -1140,7 +1145,6 @@
 - **Estado**: VERIFIED (dominio JVM: 2032 tests PASS; smoke 25 OK; 0 failures; probe PRE/POST-fix + tests confirman las 4 frases recuperadas con `recurrenceInterval` correcto y título limpio + adversarios preservados). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) parser/duración compacta `1h30` (c.327, ambigüedad — decisión de diseño); (ii) "primer lunes del mes" ordinal weekday-of-month (c.282/c.323 ya promovió "del mes" sin cadencia — verificar variantes restantes); (iii) frecuencia N-por-período ("tres veces al día") — modelo semántico distinto; (iv) áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (v) verificar Android c.270-c.349 cuando haya SDK. Re-fetch antes de implementar.
 
-
 ## Run c.348 — 2026-08-16 (UTC) — fix(parser): "semana por medio"/"mes por medio" → NONE y "cada semana/mes por medio" → interval WRONG (1 en vez de 2) — P1 recurrencia/datos (sagrados)/evitar olvidos (familia simétrica c.332 "día por medio")
 
 - **Run/ciclo**: 348 (rama `openhands/autonomous-ordia`). HEAD inicial = `277fd82` (c.347, `git pull --ff-only origin openhands/autonomous-ordia` limpio, sin colisión). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21. Test env parser: `now=2026-07-29`, `zone=America/Santo_Domingo`. Discovery probe `/tmp/probe_cad/ProbeCad.kt` (fuente real `NaturalTaskParser` recompilada, ~40 frases de cadencia, now=2024-08-19 America/Santo_Domingo) heredado del run previo, ejecutado al inicio.
@@ -1161,7 +1165,6 @@
 - **HEAD inicial**: `277fd82` (c.347). **HEAD final**: (commit c.348, pendiente de push).
 - **Estado**: VERIFIED (dominio JVM: 2027 tests PASS; smoke 25 OK; 0 failures; probe PRE/POST-fix + tests confirman la recuperación de las 5 frases perdidas con `recurrenceInterval` correcto y título limpio). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) **P2 follow-up c.348 BACKLOG**: "todos los bimestres/trimestres/semestres" → NONE (extender `multiMonthNounPattern`, bajo riesgo); (ii) parser/duración compacta `1h30` (c.327, ambigüedad — decisión de diseño); (iii) "primer lunes del mes" ordinal weekday-of-month (c.282, complejidad mayor); (iv) frecuencia N-por-período ("tres veces al día") — modelo semántico distinto; (v) áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (vi) verificar Android c.270-c.348 cuando haya SDK. Re-fetch antes de implementar.
-
 
 ## Run c.332 — 2026-08-16 (UTC) — feat(parser): giros idiomáticos de "cada N días" sin cantidad ("días alternos", "día por medio", "cada tercer día") → DAILY+interval — P1 recurrencia/rutinas adaptables/evitar olvidos (continuación familia c.276/c.321)
 
@@ -1314,7 +1317,6 @@
 - **Estado**: VERIFIED (dominio JVM: 1915 tests PASS; smoke 25 OK; 0 failures; regresión confirma que el fix de R/S es real). FIXED en runtime Android pendiente de verificación con Android SDK (no disponible en este entorno).
 - **Próxima prioridad**: (i) más identificadores personales por región (ej. CUIT argentino, CPF brasileño, DNI peruano, IBAN español/con checksum) — misma arquitectura palabra-clave+valor (y checksum cuando exista); (ii) cerrar familia PII: clabes/cuentas bancarias con palabra-clave "cuenta"/"clabe"/"tarjeta" (c.303 ya valida PAN/CLABE por checksum); (iii) reauditar `CommitmentDueWorker` "overdue batch" (T1, aparcado) — buscar evidencia de lote real vs scheduling individual; (iv) descubrimiento continuo en áreas no-parser (onboarding, navegación, accesibilidad, rendimiento).
 - **Anti-loops/anti-colisión**: base `8e04037` (c.314) = MISMO archivo `SensitiveSecretPatterns.kt`+test — continuación directa, no disjunta. Sin colisión (no hubo push de otro run entre fetch y commit; HEAD local == HEAD remoto al iniciar).
-
 
 ## Run c.314 — 2026-08-16 (UTC) — fix(privacidad): RFC mexicano (Registro Federal de Contribuyentes) bloqueado por AMBOS gates vía palabra-clave acompañante — P0-adjacent privacidad/datos (sagrados) — continuación inmediata de c.313
 
@@ -1713,7 +1715,6 @@
 - **Estado**: VERIFIED (dominio JVM: 1799 PASS; RED del bug confirmado pre-fix vía probe; combo probe + no-regresión probe verde). NO VERIFICADO Android.
 - **Próxima prioridad**: descubrimiento continuo — (i) seguir auditando el parser por paridad léxica residual (otros determinantes de cadencia: "de dos en dos semanas", "alternar cada dos", "una semana sí y otra no" ya cubierto c.97; evaluar "todas las N quincenas" / "todos los N años" con ordinal); (ii) auditar `RecurrenceEngine` por rendijas simétricas (advance con interval alto, mes con menos días, DST); (iii) áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (iv) verificar Android de los fixes parser c.271-c.276 cuando haya SDK. Re-fetch antes de implementar.
 
-
 ## Ciclo 273 — 2026-08-15 (UTC) — fix(parser): recurrencia ordinal con cadencia PRECEDENTE PLURIMENSUAL ("trimestral el primer lunes"/"cada dos meses el último viernes") ya captura el ordinal (antes `days=''` → 2ª cita trimestral derivaba a otro weekday) ni deja residuo "el primer" — P1 "datos (sagrados)"/"evitar olvidos" — continuación directa de c.271
 
 - **Run/ciclo**: 273 (rama `openhands/autonomous-ordia`). HEAD inicial = `9904e1c` (c.271 pushed). `git pull --ff-only` limpio al arrancar. **Colisión con run paralelo detectada al hacer el pre-commit `git fetch`**: un run paralelo pusheó 2 commits `7c7b910`+`fc5bbeb` (c.272 "este mes/este año" — fix ORTOGONAL, área distinta del parser) → mi base quedó 2 behind. **Integración NO destructiva**: renombré mi numeración c.272→**c.273** (el run paralelo tomó c.272 primero), commit local, `git rebase origin/openhands/autonomous-ordia` (replay sobre `fc5bbeb`). Los `.kt` son DISJUNTOS (mi `precedingCadenceOrdinalPattern` vs su área "este mes/este año") → auto-merge; los `.md` (BACKLOG/CURRENT_STATE/RUN_LOG) conflictaron por NUMERACIÓN (ambos runs se auto-numeraron c.272) → resueltos a mano conservando AMBOS (su c.272 + el mío renumerado c.273). No force push, no reset --hard, no trabajo de otro agente sobrescrito. No STALE_RUN. Entorno JVM: kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21. Sin Android SDK.
@@ -1745,7 +1746,6 @@
 - **HEAD inicial**: `b813e64` (c.264, al arrancar) / `9ba46c9` (base remota sincronizada post-merge tras ff-only). **HEAD final**: `7c7b910` (c.272, pusheado FF sobre `9904e1c` c.271 recurrencia). PUSH OK.
 - **Estado**: VERIFIED (dominio JVM: 1771 PASS — incluye tests remotos c.267 guardian + c.268 planificación + c.269 SearchEngine finde `bf08c3d` + c.270 what-now + c.271 recurrencia `9904e1c`; RED del bug confirmado pre-fix; auto-merge limpio del parser con c.265/c.266/c.267/c.268/c.269 + probe de no-colisión). NO VERIFICADO Android.
 - **Próxima prioridad**: descubrimiento continuo — (i) OPEN P3 "a las 3.5" decimal-hour (notación `H.MM`/`H,M` como hora de reloj, BACKLOG); (ii) OPEN P2 "bisemanal" ambiguo; (iii) OPEN P2/P3 residuos de título pre-existentes ("el primer" suelto RESUELTO c.271; queda "a las 3.5" decimal-hour); (iv) decisión `TaskStatus.CANCELLED` UI (BACKLOG P2, requiere Android/UI); (v) verificar Android del fix c.264 (toggle/un-complete + undoLastAutomation con Room real) cuando haya SDK; (vi) verificar Android del helper c.266 `RecurrenceSpawn` (compilación + 4 caminos spawn con Room real) cuando haya SDK; (vii) seguir auditando `WhatNowEngine`/`GuardianCoach`/`SearchEngine`/`RecurrenceEngine` por rendijas simétricas residuales; (viii) posibles sinónimos de "este mes/año" ("del mes en curso"/"del presente año"/"de este mismo mes" — evaluar necesidad real antes de añadir, evitar feature bloat); (ix) áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (x) auditar OTROS orquestadores Android con copias duplicadas que puedan divergir (patrón simétrico al de c.266). Re-fetch antes de implementar.
-
 
 ## Ciclo 271 — 2026-08-15 (UTC) — fix(parser): recurrencia ordinal con cadencia PRECEDENTE ("cada mes el primer lunes") ya no deriva ni deja residuo "el primer"; "cada \<unidad>" intervalo-1 ya no filtra al título — P1 "rutinas adaptables"/"datos (sagrados)"/"evitar olvidos"/"captura ultrarrápida"
 
@@ -1792,7 +1792,6 @@
 - **Colisión de base / NUMERACIÓN (rebaseos sucesivos)**: al finalizar cada rebaseo, un re-fetch detectó que OTRO run paralelo había avanzado el remoto. **Integración NO destructiva**: `git stash push` → `git pull --ff-only` a `9ba46c9` → `git stash pop`. Código DISJUNTO → pop limpio en código (auto-merge sin conflicto). Los 3 `.md` colisionaron por NUMERACIÓN; resueltos con `git checkout HEAD -- {BACKLOG,CURRENT_STATE,RUN_LOG}.md` + re-aplicación fresca renumerada a **c.269**. Re-verificado: **1758 PASS**, smoke 25 OK. Sin STALE_RUN. Renumeración: c.265 → c.266 → c.267 → c.268 → c.269 (este run). Región de trabajo DISJUNTA `SearchEngine` (enum + `resolveWeekendTarget` + rama `taskMatchesDateScope.WEEKEND`), tests append-style.
 - **Estado**: VERIFIED (dominio JVM: **1758 domain tests PASS** — 1749 base remota `9ba46c9` + 9 míos; smoke 25 OK; 0 failures; RED del bug confirmado pre-fix `finDeSemana_doesNotFallToThisWeek`). **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room (sin Android SDK).
 - **Próxima prioridad**: descubrimiento continuo — (i) OPEN P2 "bisemanal" ambiguo (parser); (ii) OPEN P2/P3 residuos de título; (iii) decisión `TaskStatus.CANCELLED` UI (requiere Android/UI); (iv) verificación Android del fix c.264/c.266/c.267/c.268 cuando haya SDK; (v) auditar rendija simétrica "mañana" (parte-del-día vs `TOMORROW`) en `SearchEngine`; (vi) áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
-
 
 ## Ciclo 265 — 2026-08-15 (UTC) — fix(parser): "fin de mes de \<mes>" ya no da fecha WRONG (mes en curso) ni deja residuo; "al final de \<mes>" singular resuelto — P1 datos-integridad "datos (sagrados)"/"evitar olvidos"
 
@@ -1976,7 +1975,6 @@
 
 - **Próxima prioridad**: descubrimiento continuo — (i) decisión `TaskStatus.CANCELLED` UI (BACKLOG P2, requiere Android/UI); (ii) "9h30" compacto sin "a las" (gap NhMM, P3); (iii) "a las 3.5" decimal-hour residue (BACKLOG P3); (iv) "diez y media" bare sin "a las" (BACKLOG P3); (v) "a la una de la tarde y media" (fracción tras meridiem, bajo valor); (vi) seguir auditando áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar para evitar colisión con runs paralelos.
 
-
 ## Ciclo 246 — 2026-08-15 (UTC) — fix(plan/día): el planificador del día recupera el "olvido silencioso" (compromiso agendado cuyo hueco pasó y aún no vence) en el plan de hoy — cierra la rendija simétrica a c.243 en la superficie proactiva — P2 "evitar olvidos"/"recuperación de tareas olvidadas"/"consistencia entre superficies"/"MENOS ES MÁS"
 
 - **Run/ciclo**: 246 (rama `openhands/autonomous-ordia`). HEAD inicial = `e7f8de6` (c.243 guardián missed-start insight card). Base sincronizada al iniciar: `git pull --ff-only` limpio, 0 ahead/0 behind. Entorno JVM: kotlinc 2.1.20 (`/tmp/kotlinc-home/kotlinc/bin/kotlinc`), jars en `/tmp/libs`, OpenJDK 21. **Colisión de NUMERACIÓN** con runs paralelos c.244 (asistente day-load `AssistantEngine*`/`AssistantScreen*`, commit `7f68fab`→`a5a55fa`→`d4d9826`) y c.245 (parser sufijo "9h pm" `NaturalTaskParser*`, commit `55399dd`), ambos pusheados primero: al re-fetch pre-commit el remoto avanzó `e7f8de6`→`d4d9826` (+3); mi base quedó 0 ahead/3 behind (trabajo sin commitear, sin divergencia de código) → **NO STALE_RUN**. Integrada vía **stash→ff-only→pop** (no destructivo, sin force push/reset --hard): código DISJUNTO (yo `DayPlanner.kt`/`DayPlannerTest.kt`, el asistente `AssistantEngine.kt`/`AssistantScreen.kt`/strings) → auto-merge limpio sin conflictos; `.md` renumerados a c.245. Re-fetch final: remoto avanzó `d4d9826`→`55399dd` (+1, c.245-parser) → segunda integración stash→ff-only→pop; conflictos SÓLO en `.md` aditivos (CURRENT_STATE/RUN_LOG) resueltos tomando base remota y re-insertando mi entrada; código `DayPlanner*` auto-mergió limpio (DISJUNTO del parser). Renumerada a **c.246** (c.244 y c.245 ya tomadas por runs paralelos pusheados primero). Descubrimiento: continuación DIRECTA de c.243 — la tarjeta de insight del guardián ya recupera missed-start, pero al auditar la simetría entre superficies se halló que `DayPlanner.build` (el plan proactivo "planifica tu día") tenía la MISMA rendija que c.243 cerró en el guardián: recuperaba vencidas (`overdueByDate`) pero no missed-start puro (startAt pasado + dueAt futuro/nulo). El guardián/What Now/asistente recuperaban el olvido; el plan lo esperaba a su vencimiento.
@@ -2039,7 +2037,6 @@
 - **Estado**: VERIFIED (dominio JVM: **1602 domain tests PASS** — 1594 base c.244-asistente + 8 míos; smoke 25 OK; 0 failures; RED confirmado pre-fix vía probe). **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); integración parser↔UI captura en runtime Android.
 
 - **Próxima prioridad**: descubrimiento continuo — (i) decisión `TaskStatus.CANCELLED` UI (BACKLOG P2, requiere Android/UI); (ii) "a la una de la tarde y media" (fracción tras meridiem, forma inhabitual, bajo valor); (iii) "de 9h a 11h" rango con sufijo "h" por extremo (`timeRangePattern` separado, pre-existente); (iv) "9h30" compacto sin "a las" (gap NhMM, P3); (v) "a las 3.5" decimal-hour residue (BACKLOG P3); (vi) "diez y media" bare sin "a las" (BACKLOG P3); (vii) seguir auditando áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
-
 
 ## Ciclo 243 — 2026-08-15 (UTC) — fix(guardián): la tarjeta de insight ya recupera el "olvido silencioso" (compromiso agendado cuyo hueco pasó) como "RECUPERA EL CONTROL" — cierra la asimetría entre superficies de recuperación — P2 "evitar olvidos"/"recuperación de tareas olvidadas"/"consistencia entre superficies"/"inteligencia honesta"/"MENOS ES MÁS"
 
@@ -2270,7 +2267,6 @@
 - **AI_AUTONOMY actualizado**: BACKLOG (nueva fila c.226 + anotadas 3 entradas c.213/214/222 como "RESUELTO c.226"), CURRENT_STATE (entrada c.226), RUN_LOG (esta entrada).
 
 - **Estado**: VERIFIED (dominio JVM). `bash tools/run_domain_tests.sh` → 1490 PASS, 0 failures; smoke 25 OK. NO VERIFICADO gradle/lint/assemble/Android/UI/Room (sin Android SDK). Integración pending: commit + push a `openhands/autonomous-ordia`. Próxima prioridad: descubrimiento continuo — (i) decisión `TaskStatus.CANCELLED` UI (BACKLOG P2, requiere Android/UI); (ii) clonar etiquetas de subtareas en recurrencia (P3, requiere Android/UI); (iii) aclarar `nextWeekly` multi-semana (ambiguo, no bug); (iv) seguir auditando áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
-
 
 ## Ciclo 223 — 2026-08-15 (UTC) — fix(recurrencia): completar una tarea recurrente con subtareas ya NO pierde el checklist — la próxima ocurrencia clona sus subtasks — P1 "evitar olvidos"/"datos (sagrados)"/"rutinas adaptables"
 
@@ -3050,7 +3046,6 @@
 - **Estado**: FIXED → VERIFIED (dominio JVM: **1258 domain tests PASS** en base fusionada con c.181+c.181b — 1242 base + 16 nuevos; smoke 25 OK).
 - **Próxima prioridad**: descubrimiento continuo — (i) "último/tercer día HÁBIL del mes" (P3, hallazgo c.181, requiere lógica de fines de semana); (ii) decisión de producto sobre `TaskStatus.CANCELLED` inalcanzable desde la UI (BACKLOG P2 — requiere entorno Android/UI o decisión humana); (iii) áreas NO-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento); (iv) variante BARE "diez y media" (P3, requiere decisión de diseño sobre umbral de falso positivo); (v) "a las 3.5" (P3, hora decimal). Re-fetch antes de implementar para evitar colisión con runs paralelos.
 
-
 ## Ciclo 181 — 2026-08-14 (UTC) — fix(datos): SubtaskRules trata una subtarea CANCELLED como resuelta (ya no bloquea el autocompletado del padre ni fuerza su reapertura) (P1 fiabilidad de datos / consistencia CANCELLED, no-parser)
 
 - **Run/ciclo**: 181 (rama `openhands/autonomous-ordia`). HEAD inicial = `aac9f67` (c.180, "último viernes del mes"). Base sincronizada al arrancar (`git fetch` + `git pull --ff-only` limpio; `openhands/autonomous-ordia` = `aac9f67`). **Colisión con un run paralelo detectada y resuelta sin fuerza antes de commitear:** al terminar de implementar, `git fetch origin openhands/autonomous-ordia` reveló que una ejecución paralela había pusheado `e03f412` (un commit de merge de docs que añade 20 líneas a `RUN_LOG.md` — trabajo ortogonal: doc-only vs mi fix `SubtaskRules`). Se integró vía **stash→ff-only→pop** (no destructivo): `git stash` → `git merge --ff-only origin/openhands/autonomous-ordia` (avanza a `e03f412`) → `git stash pop` — auto-merge limpio SIN conflictos (mi entrada c.181 se inserta ARRIBA del encabezado c.180; el run paralelo añadió una viñeta DENTRO del bloque c.180 — regiones distintas). Base efectiva final: `e03f412`. Sin force push, sin reset destructivo, sin tocar `main`.
@@ -3540,7 +3535,6 @@
 - **Estado**: FIXED → VERIFIED (dominio JVM: 873 tests, 0 failures). Integración Android NO VERIFICADA.
 - **Próxima prioridad**: descubrimiento continuo en áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento, backup/restore con DAOs reales); auditoría de `AutomationEngine.runRule` (persistencia/log/deshacer) queda NO VERIFICADA sin Android SDK.
 
-
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ## Ciclo 129 (run 2) - 2026-08-14 (UTC) - fix(parser): 4 residuos de título que mutilaban la captura ("este lunes"/"en la tarde de hoy"/"a la semana que viene"/"ahorita mismo") + feat(parser): "al amanecer" hora canónica (P1 integridad de datos / captura olvidada)
@@ -4000,7 +3994,6 @@
 - Descubrimiento continuo: auditar `RecurrenceEngine.nextOccurrence` edge cases (fin de mes mensual → día 31/febrero, año bisiesto), `GuardianCoach` detección de vencidas importantes, `SummaryService`, captura ultrarrápida.
 - Parser: múltiples marcadores temporales en una frase; rango que setee `startAt`/`dueAt` además de duración.
 
-
 ## Ciclo 58 - 2026-08-13 (UTC) - fix(parser): fracción sub-hora "y media"/"y cuarto" + conector "en la tarde"
 
 - **Run/ciclo**: 58 (rama `openhands/autonomous-ordia`). **STALE_BASE detectado y reconciliado**: el HEAD inicial local era `5e6cea8` (c.52) pero el remoto ya estaba en `053e7ff` (c.57) — 4 ciclos paralelos (53–57: What-Now prioridad, intervalo+días, partOfDay DAILY, subtarea-autocomplete desde notificación, número escrito) aterrizaron mientras se trabajaba. Reconciliación no destructiva: `git stash` del trabajo local → `merge --ff-only origin/openhands/autonomous-ordia` (a `053e7ff`) → `stash pop`. Los cambios de **código** (parser + tests) se auto-mergearon limpiamente sobre la base nueva (áreas ortogonales: mi fix toca `timePatterns`/`standalonePartOfDayPattern`/`mananaAsDate`; los c.55–57 tocaron `parseRecurrence`/`RecurrenceResult`/`ReminderActionReceiver`); los **docs** en conflicto (`CURRENT_STATE`, `RUN_LOG`) se restauraron desde HEAD remoto y se reescribieron como c.58. Sin force push, sin reset --hard, sin sobrescribir trabajo válido.
@@ -4024,7 +4017,6 @@
 - P2 ABIERTO: rango horario con minutos/meridiem en ambos extremos ("clase de 9:30 a 11", "de 9am a 11am") — `timeRangePattern` deja residuo y no calcula duración.
 - Descubrimiento continuo: auditar `RecurrenceEngine.nextOccurrence` edge cases (fin de mes mensual → día 31/febrero, año bisiesto), `GuardianCoach` detección de vencidas importantes, `SummaryService`, captura ultrarrápida.
 - Parser: múltiples marcadores temporales en una frase.
-
 
 ## Ciclo 57 - 2026-08-13 (UTC) - fix(parser): intervalo de recurrencia con número escrito ("cada dos semanas")
 
@@ -4162,7 +4154,6 @@
 - Parser: manejo robusto de múltiples marcadores temporales en una frase.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
 
-
 ## Ciclo 50 - 2026-08-13 (UTC) - parser: "de aquí a N"/"de acá a N" prefijo relativo coloquial
 
 - **HEAD inicial**: `8950d07` (synced tras primer pull; remoto `bf3579d`→`8950d07`).
@@ -4197,7 +4188,6 @@
   "en un rato", "esta noche"/"anoche" relativas; recurrencias "cada otros N ..."; nominativos
   "el próximo lunes" vs "lunes que viene") y otras áreas (rutinas, recordatorios, What Now,
   backup/restore, concurrencia workers).
-
 
 ---
 ## Ciclo 49 - 2026-08-13 (UTC) - search ranking accionable (urgencia sobre orden alfabético)
@@ -4243,7 +4233,6 @@
 - **Archivos modificados**: `WhatNowEngine.kt`, `TodayScreen.kt`, `strings_screens1.xml`, `WhatNowEngineTest.kt`, `CURRENT_STATE.md`, `RUN_LOG.md`.
 - **Commits**: (pendiente de push).
 - **HEAD final**: (pendiente).
-
 
 ---
 ## Ciclo 42 (cont. 2) - 2026-08-13 (UTC) - día de semana suelto hoy con hora futura vence hoy
@@ -4360,7 +4349,6 @@
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
 
 ---
-
 
 ## SESIÓN 000 — Bootstrap del sistema autónomo
 
@@ -5732,7 +5720,6 @@ constantes `MIN_PLAN_MINUTES=10`, `MAX_PLAN_MINUTES=180`. Usada por
   GuardianCoach, OnboardingCompleter, PlannerCalendar, CommandPaletteCatalog,
   TaskMutationGate, QuietHours. Buscar oportunidades de producto reales (P1 datos > P2).
 
-
 ---
 
 ## Ciclo 20 — Unidad 3 (Rutinas — duplicados al re-disparar tras completar)
@@ -5906,7 +5893,6 @@ preserva el patrón `primeraHoraPattern`).
   (dueAt=null, sin soporte de fin de semana), "mañana a primera hora". Validar
   combinaciones con recurrencia. Buscar P1 datos/recordatorios en workers/backup.
 
-
 ---
 
 ---
@@ -5958,7 +5944,6 @@ La rama autónoma además NO disparaba CI (solo main/jules).
 - Tras configurar los GitHub Secrets de firma, la primera push a la rama debe
   producir una Release instalable. Verificar end-to-end cuando existan secretos.
 - Volver al ciclo normal de Evolution (auditar/implementar features de Ordía).
-
 
 ---
 
@@ -6092,7 +6077,6 @@ Se generó un keystore con keytool y se documentó el flujo de 1 comando en
   Tras ello, un push vacío produce la primera APK instalable + auto-actualizable.
 - Tras verificar end-to-end (instalar N, publicar N+1, comprobar que Ordía lo detecta),
   cerrar ORD-UPD como VERIFIED.
-
 
 ---
 
@@ -6256,7 +6240,6 @@ Continuar evolución autónoma P2 visible. La MISIÓN exige CONTINUAR, no detene
 
 ### Siguiente
 - Continuar: próxima mejora P2 visible. No detenerse.
-
 
 ---
 
@@ -6533,7 +6516,6 @@ próximo sábado. Frase cotidísima → tarea mal fechada + título corrupto (P1
 - Continuar ciclo interminable. Candidatos parser: "antier"; "próximos días" (decidir default);
   "próximo trimestre". P1 adjuntos URI externo si hay sesión dedicada.
 
-
 ## Ciclo 32 — NaturalTaskParser: "próximos días" (+3d) — 2026-08-13T13:3Z
 
 ### Objetivo
@@ -6741,7 +6723,6 @@ planificador/What Now). La aritmética `now + millis` no calculaba “último d�
 - Continuar ciclo interminable. Candidatos parser: “esta semana”, “principios de mes”.
   P1 adjuntos URI externo si hay sesión dedicada.
 
-
 ---
 
 ## 2026-08-13 — Ciclo 32 (cont.4): adjuntos copiados a almacenamiento interno (P1 persistencia)
@@ -6808,7 +6789,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 ### Siguiente
 - Continuar ciclo interminable. Migración lazy de adjuntos legacy si se evalúa segura;
   si no, parser "esta semana"/"principios de mes". P2/P3 rendimiento/UX.
-
 
 ---
 
@@ -7032,7 +7012,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Continuar ciclo de parser: "próxima quincena" (+15d), manejo robusto de múltiples marcadores temporales en una frase.
 - P1 adjuntos: migración lazy de adjuntos legacy (evaluar seguridad primero).
 - P2/P3: derivedStateOf/keys en LazyColumns grandes; BackHandler; contraste onSurfaceVariant.
-
 
 ## Ciclo 42 - 2026-08-13 (UTC) - feat: rango horario sin "horas" (ambas < 13)
 
@@ -7311,7 +7290,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Evaluar `PlanEngine`/replanificación: si OVERLOADED recurrente varios días, sugerir redistribuir (no solo nombrar UNA tarea).
 - Descubrimiento continuo: búsqueda universal; `DayPlanner` respetar pausas/existente; detección de compromisos en notas; múltiples marcadores temporales en una frase; acción rápida "posponer con un toque" (evaluar fricción vs complejidad visible).
 
-
 ## Ciclo 66 - 2026-08-13 (UTC) - feat(summary): sugerencia concreta de tarea a posponer cuando el día está saturado
 
 - **Run/ciclo**: 66 (continúa directamente sobre c.65; HEAD inicial `aa65608` (c.67 monthNameMatch aterrizado en paralelo; base reconstruida tras merge; original c.65 `970b6c8`)).
@@ -7490,7 +7468,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
 - Descubrimiento continuo: búsqueda universal; rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; onboarding.
 
-
 ## Ciclo 72 - 2026-08-13 (UTC) - fix(parser): "jueves que viene" dicho en jueves → próxima semana (no HOY)
 
 - **Run/ciclo**: 72 (renumerado desde c.70 tras colision con run paralelo `59c0cb6` que tomo c.70). Fix P1 integridad de agenda (día objetivo futuro agendado en el día equivocado). El bug fue identificado en el run anterior (probe JVM 28 casos); este run lo aterriza con tests unitarios + memoria + commit.
@@ -7541,7 +7518,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - `RecurrenceEngine.nextOccurrence` auditoría: fin de mes mensual → 31/feb, año bisiesto.
 - `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
 - Descubrimiento continuo: búsqueda universal; rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; onboarding.
-
 
 ## Ciclo 75 — Parser — límites mensuales con "mes que viene"/"próximo" + "antepasado mañana"
 
@@ -7669,7 +7645,6 @@ a un permiso persistente frágil y silencioso ante fallos.
   → 9:00); hoy no lo hace y deja la frase en el título. Verificar necesidad antes de implementar.
 - Descubrimiento continuo: rutinas adaptables; detección de compromisos en notas; captura ultrarrápida.
 - `PlanEngine`/replanización más amplia: si OVERLOADED recurrente, sugerir redistribuir la semana.
-
 
 ## Ciclo 86 — Búsqueda + Inteligencia — fix "esta semana" en domingo + consolidar `timeRank` DRY
 
@@ -7865,7 +7840,6 @@ a un permiso persistente frágil y silencioso ante fallos.
   - Descubrimiento continuo: rutinas adaptables; detección de compromisos en notas;
     captura ultrarrápida; `PlanEngine`/replanización si OVERLOADED recurrente.
 
-
 ## Ciclo 89 — 2026-08-14
 
 - **Rama**: `openhands/autonomous-ordia`
@@ -7883,7 +7857,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: `6afcb0b` (push OK a `openhands/autonomous-ordia` por confirmar).
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: Auditoría de acentos del parser COMPLETADA. Descubrimiento funcional: rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; `SearchEngine` date-scope "parte del día"/"este mes" (P3 anti-feature-bloat); `PlanEngine`/replanización si OVERLOADED recurrente.
-
 
 ## Ciclo 90 — 2026-08-14
 
@@ -7955,7 +7928,6 @@ a un permiso persistente frágil y silencioso ante fallos.
   no cubiertos ("a fin de mes" con prefijo ya OK; "cierre de mes"; "vence el mes");
   `RecurrenceEngine` edge cases; detección de compromisos en notas; `PlanEngine`/replanización
   si OVERLOADED recurrente.
-
 
 ## Ciclo 92 — 2026-08-14
 
@@ -8239,7 +8211,6 @@ a un permiso persistente frágil y silencioso ante fallos.
   `RecurrenceEngine` edge cases; replanificación si OVERLOADED recurrente; auditoría de
   captura/búsqueda/What Now para nuevas oportunidades de producto.
 
-
 ---
 
 ## Ciclo 99 — 2026-08-14
@@ -8468,7 +8439,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 
 ---
 
-
 ## Ciclo 105 — 2026-08-14 — GuardianCoach: edad de "olvidada" por días de calendario (DST-safe) + auditoría `\b`-acento del parser completada (P1 recuperación)
 
 - **Branch**: `openhands/autonomous-ordia`.
@@ -8527,7 +8497,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 
 ---
 
-
 ## Ciclo 105 (run B) — 2026-08-14 — Parser: familia vaga "un momento"/"al rato"/"pasado un rato"
 
 - **HEAD inicial**: `07a1f31` (tras docs c.104).
@@ -8560,7 +8529,6 @@ a un permiso persistente frágil y silencioso ante fallos.
   ("enseguida"/"ahora mismo" semántica "ahora"; "más rato"/"más tarde" vagos) y otras áreas
   (recuperación de tareas olvidadas, What Now, contexto).
 
-
 ---
 
 ## Ciclo 106 — 2026-08-14 — Parser: "enseguida"/"en seguida" (adverbio de inmediatez) + resolución de colisión con ejecución paralela
@@ -8578,7 +8546,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: descubrimiento continuo de frases cotidianas del parser ("ahora mismo"/"en cualquier momento" semántica "ahora"; "más rato"/"más tarde" vagos) y otras áreas (recuperación de tareas olvidadas, What Now, contexto, inbox inteligente).
 
-
 ---
 
 ## Ciclo 107 — 2026-08-14 — Parser: "ahora" inmediato ("ahora mismo"/"ahorita"/"lo antes posible"…) → dueAt=now + resolución de colisión con c.106 paralelo
@@ -8595,7 +8562,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: `2f5b418`.
 - **Estado**: FIXED → VERIFIED (dominio JVM); STALE_RUN reconstruido de forma segura y no destructiva.
 - **Próxima prioridad**: descubrimiento continuo — "más tarde"/"más rato"/"en cualquier momento" (vago futuro sin hora, ¿+3h?¿hoy tarde?), "tan pronto como sea posible"/"cuanto antes mejor"; otras áreas: recuperación de tareas olvidadas (What Now/Guardián), inbox inteligente, contexto, onboarding.
-
 
 ## Ciclo 108 — 2026-08-14 — Parser: "más tarde"/"más rato"/"después" (vago futuro) → dueAt=now+3h (P1 captura/agenda)
 
@@ -8744,7 +8710,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: auditar el resto de `working.replace(it.value, ...)` en `NaturalTaskParser.kt` por el mismo patrón de corrupción; salir del parser hacia recuperación de tareas olvidadas / contexto / onboarding.
 
-
 ## Ciclo 116 — 2026-08-14 — Parser: fracciones sub-hora negativas "a las N menos cuarto/cinco/diez/veinte/veinticinco" (analógico de reloj)
 
 - **HEAD inicial**: `51360e38d2a4669d1e6c1af6a54594fa4b60c734` (c.114, base sincronizada con `origin/openhands/autonomous-ordia`, ff-only limpio).
@@ -8778,7 +8743,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: FIXED → VERIFIED (dominio JVM).
 - **Próxima prioridad**: salir del parser hacia la prioridad de memoria (auditar WhatNowEngine/GuardianEngine y recuperación de tareas olvidadas); gap OPEN restante del c.113: "una semana y media"/"un mes y medio" (+0.5 de la unidad) — evaluar frecuencia real (anti-feature-bloat) antes de implementar.
 
-
 ## Ciclo 119 — 2026-08-14 — Parser: "y media/medio" en plazos de día/semana/mes/año (media unidad más)
 
 - **Run/ciclo**: 119 (rama `openhands/autonomous-ordia`). Base inicialmente en `51360e38` (c.117 local), pero al `git fetch` para push el remoto había avanzado 2 commits por un run paralelo (c.118 P0 crash duración `7a9dfc2` + docs `b98d574`). Mi commit `61307b1` no estaba publicado → rebase seguro y no destructivo sobre `b98d574`. Auto-merge OK en `NaturalTaskParser.kt` (el fix P0 del c.118 tocó el bloque de borrado de duración, región distinta a mi edición de `relativePattern`) y `NaturalTaskParserTest.kt`; único conflicto en `CURRENT_STATE.md` (ambos runs añadieron entrada c.118 al inicio) resuelto renumerando la mía a c.119 y conservando ambas. STALE_RUN=false (base actualizada de forma no destructiva).
@@ -8797,7 +8761,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: (tras commit de este run).
 - **Estado**: FIXED → VERIFIED (dominio JVM, estado combinado post-rebase: 800 tests).
 - **Próxima prioridad**: cerrados los 3 gaps P2 del probe c.113 (al final del día=c.117, a las N menos cuarto=c.116, y media de día/semana/mes/año=c.119). Salir del parser hacia la prioridad de memoria: auditar WhatNowEngine/GuardianEngine y recuperación de tareas olvidadas, contexto, onboarding; buscar nuevas oportunidades de producto (menos fricción, más potencia real).
-
 
 ## Ciclo 122 — 2026-08-14 — Search: búsqueda por parte del día (tarde/noche/madrugada) de HOY (P2 búsqueda universal/recuperación)
 
@@ -8822,7 +8785,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: `476eb7a` (fix "día N" sin artículo; tras commit, push pendiente).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 815 tests combinados tras merge con c.121 guardián).
 - **Próxima prioridad**: por fin salir del parser/search hacia la prioridad de memoria pendiente desde c.117: auditar `WhatNowEngine.kt`/`GuardianEngine.kt` (bugs reales de scoring/exclusión/contexto, consistencia `WhatNowEngine.reason()` vs `TaskRules.timeRank()`), recuperación de tareas olvidadas (vencidas importantes, "What Now" más útil), contexto, onboarding; buscar nuevas oportunidades de producto (menos fricción, más potencia real).
-
 
 ## Ciclo 124 — 2026-08-14 — Auditoría VERIFICADA (WhatNow/Guardian) + guards de regresión del codec de restauración (P0 datos)
 
@@ -9019,7 +8981,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: FIXED → VERIFIED (dominio JVM: 932 tests, 0 failures).
 - **Próxima prioridad**: continuar auditoría de motores no-parser restantes y descubrimiento continuo en producto (What Now, Guardián, contexto, onboarding, navegación, accesibilidad, rendimiento).
 
-
 ## Ciclo 131 (run 2) - 2026-08-14 (UTC) - feat(parser): ordinales de fecha "1ro/2do/3er/1º" + "día N de este mes" (P2 captura olvidada + integridad de título)
 
 - **Run/ciclo**: 131 (rama `openhands/autonomous-ordia`). Base sincronizada: `git fetch origin openhands/autonomous-ordia` OK; `git pull --ff-only` limpio. HEAD inicial = `26f4be6` (c.130 "hora aproximada"). Sin divergencia; trabajo sobre HEAD remoto actualizado.
@@ -9151,7 +9112,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: FIXED → VERIFIED (dominio JVM: 1016 tests, 0 failures; smoke 25 OK).
 - **Próxima prioridad**: descubrimiento continuo — más gaps léxicos del parser y áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); follow-up OPEN c.141 "completadas + scope presente" (P2 baja-media); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA.
 
-
 ## Ciclo 143 (run paralelo B) - 2026-08-14 (UTC) - STALE_RUN: follow-up c.141 ya resuelto por run paralelo (cf4fd9c)
 
 - **Run/ciclo**: 143 (rama `openhands/autonomous-ordia`, run paralelo B). Base local inicial = `bb8f0a0` (c.142 memoria). Al finalizar mi implementación y hacer `git fetch` antes del push, el remoto ya había avanzado a `cf4fd9c` — **otro run paralelo (c.143, run A) resolvió el mismo follow-up OPEN c.141** ("completadas hoy/esta semana devuelven vacío").
@@ -9206,7 +9166,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: VERIFIED (infraestructura + separación arquitectónica; 36 tests antes NO VERIFICADOS ahora PASS; reconciliación segura con c.147-A sin colisión).
 - **Próxima prioridad**: descubrimiento continuo — con backup ya verificable, añadir tests de round-trip de campos específicos (recurrencia/adjuntos/compromisos) para detectar pérdida silenciosa de campos individuales; áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); re-fetch antes de implementar para evitar colisión con runs paralelos.
 
-
 ## Ciclo 148 - 2026-08-14 (UTC) - fix(parser): "el N del M" (día N del mes M numérico) → mes equivocado + título sucio (P1)
 
 - **Run/ciclo**: 148 (rama `openhands/autonomous-ordia`). Base local inicial = `21da45d` (c.146 docs, último que tenía en local al arrancar). Al finalizar la implementación y hacer `git fetch` antes del commit, el remoto había avanzado a `dd1dd3f` (c.147 "antes del N") y luego a `2f897b9` (c.147-B: refactor backup `RoomBackupStore` + 36 tests backup). **STALE inicial detectado** (mi base estaba varios commits atrás). Procedimiento anti-colisión seguro (en dos rondas): `git stash` → `git pull --ff-only` → `git stash pop` (auto-merge limpio del código: mi fix toca preprocesamiento+`dayOfMonthNumericMonthPattern`, los fixes remotos c.147 tocan `beforeDeadlineDayPattern`+cascada y c.147-B toca paquete `backup/` — áreas distintas, sin conflicto). Único conflicto: `AI_AUTONOMY/CURRENT_STATE.md` (ambos añadimos entrada al inicio del bloque "Estado") — resuelto a mano manteniendo ambas entradas (c.148 primero, c.147+c.147-B después). HEAD inicial efectivo (post-sync) = `2f897b9`.
@@ -9219,7 +9178,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `21da45d` (local) → `2f897b9` (post-sync). **HEAD final**: pendiente de push.
 - **Estado**: FIXED → VERIFIED (dominio JVM: 1076 tests, 0 failures; smoke 25 OK).
 - **Próxima prioridad**: descubrimiento continuo — más gaps léxicos del parser (recurrencias numéricas "el N del M de cada mes" — caso ambiguo preexistente, baja prioridad); áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA. Evitar colisión: re-fetch antes de implementar.
-
 
 ## Ciclo 148 (run 2) - 2026-08-14 (UTC) - fix(parser): "el martes siguiente"/"el lunes posterior" dejaban residuo en el título y no forzaban +7 (P2)
 
@@ -9400,7 +9358,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `56fae25`. **HEAD final**: `fc5901b` (push OK a `openhands/autonomous-ordia`: `24b7103..fc5901b`; merge no destructivo con run paralelo c.160 GuardianEngine — código ortogonal, conflictos sólo en docs de autonomía resueltos manteniendo ambas entradas).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 1142 tests post-merge — 1136 c.159 + 4 GuardianEngine c.160 + 3 míos c.161 —, 0 failures; smoke 25 OK).
 - **Próxima prioridad**: descubrimiento continuo — oportunidades no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento); auditoría workers/backup/restore con DAOs reales: `backup/` ya verificado en JVM (c.147-B); gaps léxicos del parser ("pago mensual" requiere desambiguador, ABIERTO P2; "a las 3.5" ABIERTO P3). Re-fetch antes de implementar para evitar colisión con runs paralelos.
-
 
 ## Run c.162 — 2026-08-14 (UTC)
 
@@ -9596,7 +9553,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: FIXED → VERIFIED (dominio JVM: **1227 domain tests PASS** en base fusionada `9131a48` — 1210 c.178 + 7 míos + 10 c.179-paralelo decimal/captura; smoke 25 OK; 0 failures; sin regresión).
 - **Próxima prioridad**: descubrimiento continuo — (i) **"último `<día>` de `<mes nombre>`"** ("último viernes de septiembre"→mes incorrecto, P2 ABIERTO en BACKLOG, hallazgo c.179-paralelo — extensión natural de este fix); (ii) decisión de producto sobre `TaskStatus.CANCELLED` inalcanzable desde la UI (BACKLOG P2); (iii) áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento); (iv) gaps léxicos del parser restantes ("a las 3.5" P3; "diez y media" bare P3 — "1.5/2,5 horas" decimal ya FIXED c.179-paralelo). Re-fetch antes de implementar para evitar colisión con runs paralelos.
 
-
 ## Run c.178 — 2026-08-14 (UTC)
 
 - **Run/ciclo**: 178 (rama `openhands/autonomous-ordia`). Renumerado de 177 (un run paralelo tomó c.177, commit `0509f02` "cuartos plurales como duración"). HEAD inicial = `4f961b6` (c.174, estado del remoto al arrancar). Tras implementar sobre `18d21ed`, `git fetch origin openhands/autonomous-ordia` reveló DOS oleadas de commits paralelos: (1) c.173 `TaskRules.isActive` `7c2a41a` + c.175 duración "2 horas y media" `18d21ed` + c.176 adjetivo de recurrencia en título `69243ef`; (2) c.177 cuartos plurales como duración `0509f02`. Rebases no destructivos (stash→`pull --ff-only`→pop, luego `rebase` de mi commit sobre el HEAD remoto actualizado). Código ortogonal (recurrencia `parseRecurrence` everyOtherDay vs duración `durationMinutes` vs predicado activo `TaskRules.isActive` vs limpieza de título `recurrenceAdjectiveLeakPattern` vs cuartos de duración `multiQuarterDurationPattern`), auto-merge limpio en `.kt` y tests; conflictos SÓLO en `AI_AUTONOMY` docs (numeración/posición) resueltos manualmente conservando todas las entradas. Sin force push, sin reset destructivo, historial compartido intacto. HEAD inicial efectivo `4f961b6`; base tras merge `0509f02`.
@@ -9630,7 +9586,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: FIXED → VERIFIED (dominio JVM: 1203 tests en base fusionada con c.176, 0 failures; smoke 25 OK). Falso positivo de "cuartos=habitaciones" detectado por probe y corregido (exigencia de "de hora") antes de commitear.
 - **Próxima prioridad**: descubrimiento continuo — (i) duración decimal "1.5 horas"/"2,5 horas" (P3, familia fraccional-decimal, duración absurda 300 + título sucio); (ii) "diez y media" sin "a las" (P3, ambigüedad con cantidades); (iii) decisión de producto sobre `TaskStatus.CANCELLED` inalcanzable desde la UI (BACKLOG P2); (iv) áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento). Re-fetch antes de implementar para evitar colisión con runs paralelos.
 
-
 ## Run c.195 — 2026-08-14 (UTC)
 
 - **Run/ciclo**: 195 (rama `openhands/autonomous-ordia`). HEAD inicial = `80d8cb5` (c.192 STALE_RUN docs). Al terminar, `git fetch origin openhands/autonomous-ordia` reveló 2 commits paralelos (`bdd6607` c.193 planificación startAt>dueAt, `51eb537` c.194 editor startAt>dueAt) — mi base quedó 2 commits detrás. Integración no destructiva: stash→`git pull --ff-only origin openhands/autonomous-ordia`→pop. Código ORTOGONAL a los runs paralelos (`SearchEngine`/`SearchScreen`/strings vs `TaskRules`/`AutomationActionPlanner`/`OrdiaViewModel`, archivos disjuntos), auto-merge limpio SIN conflictos. Sin force push, sin reset destructivo, historial compartido intacto. HEAD inicial efectivo `80d8cb5`; base tras merge `51eb537`.
@@ -9646,7 +9601,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `80d8cb5` (c.192). **HEAD final**: (tras commit + push).
 - **Estado**: FIXED → VERIFIED (dominio JVM: **1312 domain tests PASS** en base fusionada `51eb537` — 1306 c.194 + 6 míos; smoke 25 OK; 0 failures; sin regresión).
 - **Próxima prioridad**: descubrimiento continuo — (i) auditar si quedan atributos irrecuperables por búsqueda (etiquetas, notas vinculadas a tareas); (ii) áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento); (iii) decisión de producto sobre `TaskStatus.CANCELLED` inalcanzable desde la UI (BACKLOG P2 — requiere Android/UI); (iv) gaps léxicos del parser restantes (P3). Re-fetch antes de implementar para evitar colisión con runs paralelos.
-
 
 ## Run c.197 — 2026-08-14 (UTC)
 
@@ -9853,7 +9807,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: (tras commit + push a `origin/openhands/autonomous-ordia`).
 - **Estado**: VERIFIED (dominio JVM: **1500 domain tests PASS**, 0 failures; smoke 25 OK; RED confirmado pre-fix; sin regresión). **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); integración `deferToNextDay`↔UI de posponer en runtime Android (regla de dominio puro verificada; el cableado UI ya invoca `TaskRules.deferToNextDay` sin transformar el resultado — sin tocar UI).
 - **Próxima prioridad**: descubrimiento continuo — (i) decisión `TaskStatus.CANCELLED` UI (BACKLOG P2, requiere Android/UI); (ii) clonar etiquetas de subtareas en recurrencia (P3, requiere Android/UI); (iii) aclarar `nextWeekly` multi-semana (ambiguo, no bug); (iv) seguir auditando áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
-
 
 ---
 
@@ -10094,7 +10047,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: VERIFIED (dominio JVM: **1640 domain tests PASS** — 1623 base c.251 integrada + 17 míos; smoke 25 OK; 0 failures; RED confirmado vía probe JVM pre-fix forma B). **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room (sin Android SDK); integración parser↔UI en runtime Android.
 - **Próxima prioridad**: descubrimiento continuo — (i) OPEN P2 hora compacta "NhMM" autónoma (`a las 9h30`/`reunión 9h30`→null) — simétrico de c.235/c.239/c.251; (ii) decisión `TaskStatus.CANCELLED` UI (BACKLOG P2, requiere Android/UI); (iii) gaps léxicos del parser P3 ("a las 3.5", "diez y media" bare); (iv) auditar `WhatNowEngine`/`SearchEngine`/`RecurrenceEngine` por rendijas simétricas residuales; (v) seguir auditando áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
 
-
 ## Run c.253 — 2026-08-15 (UTC) — fix(parser): "inicio(s) de mes/semana/año" y "inicios de [mes]" NO se reconocían como límites de fecha (paridad léxica con "principios") — P1 "captura ultrarrápida"/"evitar olvidos"/"datos (sagrados)"
 
 - **Run/ciclo**: 253 (rama `openhands/autonomous-ordia`). HEAD inicial = `21480fb` (c.249 docs RUN_LOG). Base sincronizada al iniciar, pero remoto avanzó durante el trabajo (ver colisión). Entorno JVM: kotlinc 2.1.20, jars en /tmp/libs, OpenJDK 21.
@@ -10112,7 +10064,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `21480fb` (c.249 docs). **HEAD final**: pendiente de push (commit c.253 sobre base `fea95a9`).
 - **Estado**: VERIFIED (dominio JVM: **1654 domain tests PASS** — 1640 base c.252 + 14 míos; smoke 25 OK; 0 failures; RED confirmado vía probe JVM pre-fix). **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room (sin Android SDK); integración parser↔UI en runtime Android.
 - **Próxima prioridad**: descubrimiento continuo — (i) OPEN P2 residuo "de <mes>" tras `startOfMonthPattern` (descubierto c.253, pre-existente, simétrico); (ii) OPEN P2 hora compacta "NhMM" autónoma (`a las 9h30`→null, heredado c.251/252); (iii) decisión `TaskStatus.CANCELLED` UI (BACKLOG P2, requiere Android/UI); (iv) gaps léxicos del parser P3 ("a las 3.5", "diez y media" bare); (v) seguir auditando áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
-
 
 ## Run c.256 — 2026-08-15 (UTC) — fix(parser): recurrencia mensual ordinal SIN el puente "de" ("el primer lunes cada mes" / "todos los meses" / "mensual") — P1 "rutinas adaptables"/"datos (sagrados)"/"evitar olvidos"
 
@@ -10599,7 +10550,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: VERIFIED (dominio JVM: 1869 tests PASS; smoke 25 OK; 0 failures). NO VERIFICADO Android.
 - **Próxima prioridad**: descubrimiento continuo — (i) la familia del "4º olvido" está COMPLETA en las 5 superficies estructuradas (asistente a demanda, nudge guardián, tarjeta insight, planificación, resumen del día). No queda superficie estructurada que los calle. Próximo: ¿existe un worker push que AVISE al vencerse (notificación push proactiva al vencerse el `dueAt` de un compromiso PENDING)? Auditar `ReminderScheduler`/workers para compromisos; (ii) privacidad (continuación c.287→c.295): causa raíz PERMANENTE = dos listas de patrones mantenidas a mano; evaluar unificar en objeto compartido en `domain`; auditar OTROS contenidos sensibles (INE/pasaporte/licencia); (iii) textos del asistente que ignoran el `reason`/estado (familia c.285); (iv) consistencia de predicados dispersos; (v) áreas no-parser sin auditar (onboarding, navegación, accesibilidad, rendimiento, workers/backup); (vi) verificar Android de c.270-c.297 cuando haya SDK; (vii) parser residual sólo si aparece rendija P0/P1 clara. Re-fetch antes de implementar.
 
-
 ## Run c.301 — 2026-08-15 (UTC) — fix(context): corrige corrupción UTF-8 en ContextPrivacyFilter.kt — P2 integridad/fiabilidad/archivos
 
 - **Run/ciclo**: 301 (rama `openhands/autonomous-ordia`). HEAD inicial = `e3bb89e` (c.300). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21.
@@ -10616,7 +10566,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `e3bb89e` (c.300). **HEAD final**: `c9d2f22` (c.301, tras rebase sobre `e3bb89e`).
 - **Estado**: VERIFIED (dominio JVM: 1874 tests PASS; smoke 25 OK; 0 failures; encoding UTF-8 válido verificado por escaneo de bytes + decode). NO VERIFICADO Android/gradle/lint.
 - **Próxima prioridad**: descubrimiento continuo — (i) **auditoría UTF-8 global**: escanear TODOS los archivos `.kt`/`.xml`/`.md` del repo en busca de bytes sueltos >=0x80 (corrupción Latin-1 similar a la de c.301); si aparece más corrupción, fix batch byte-a-byte; (ii) privacidad (continuación c.287→c.300): la causa raíz estructural está cerrada (fuente única c.299); queda auditar OTROS contenidos sensibles (INE/pasaporte/licencia) y verificar Android; (iii) textos del asistente que ignoran el `reason`/estado (familia c.285); (iv) consistencia de predicados dispersos; (v) áreas no-parser sin auditar (onboarding, navegación, accesibilidad, rendimiento, workers/backup); (vi) verificar Android de c.270-c.301 cuando haya SDK; (vii) ¿existe un worker push que AVISE al vencerse un compromiso PENDING? (continuación c.297). Re-fetch antes de implementar.
-
 
 ## Run c.302 — 2026-08-15 (UTC) — fix(privacidad): añade 4 categorías SaaS de credenciales a la fuente única (SendGrid, Square, Twilio, PubNub) — P0 privacidad/seguridad/datos (sagrados) (continuación c.299→c.300)
 
@@ -10635,7 +10584,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: VERIFIED (dominio JVM: 1874 tests PASS; smoke 25 OK; 0 failures; probe JVM PRE/POST-fix confirmó la fuga y el fix). NO VERIFICADO Android.
 - **Próxima prioridad**: descubrimiento continuo — (i) **privacidad (continuación c.287→c.302)**: la fuente única `SensitiveSecretPatterns` (c.299) ya cubre 20 categorías de credenciales. Queda auditar OTROS contenidos sensibles NO-credenciales (INE/pasaporte/licencia/NSS, números de tarjeta de crédito PAN) que escaparían a AMBOS gates — evaluar falsos positivos antes de añadir; (ii) **auditoría UTF-8 global** (continuación c.301): escanear TODOS los archivos `.kt`/`.xml`/`.md` del repo en busca de bytes sueltos >=0x80; (iii) ¿existe un worker push que AVISE al vencerse un compromiso PENDING? (continuación c.297 — la familia del "4º olvido" está completa en las 5 superficies estructuradas, queda la notificación proactiva al vencerse); (iv) textos del asistente que ignoran el `reason`/estado (familia c.285); (v) consistencia de predicados dispersos; (vi) áreas no-parser sin auditar (onboarding, navegación, accesibilidad, rendimiento, workers/backup); (vii) verificar Android de c.270-c.302 cuando haya SDK. Re-fetch antes de implementar.
 
-
 ## Run c.303 — 2026-08-15 (UTC) — fix(privacidad): centraliza PAN/CLABE en la fuente única (checksum Luhn/3-7-1), elimina falsos positivos del gate de persistencia y la duplicación del gate de lectura — P2 privacidad/fiabilidad/datos (sagrados)/MENOS ES MÁS (continuación c.299→c.302)
 
 - **Run/ciclo**: 303 (rama `openhands/autonomous-ordia`). HEAD inicial = `a3f9e49` (c.302). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21. Sin colisión de run paralelo durante este run (base `a3f9e49` == remoto al iniciar).
@@ -10652,7 +10600,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `a3f9e49` (c.302). **HEAD final**: (commit c.303 sobre `a3f9e49`).
 - **Estado**: VERIFIED (dominio JVM: 1875 tests PASS; smoke 25 OK; 0 failures; probe JVM PRE/POST-fix confirmó la divergencia y el fix). NO VERIFICADO Android/gradle/lint.
 - **Próxima prioridad**: descubrimiento continuo — (i) **privacidad (continuación c.287→c.303)**: la fuente única `SensitiveSecretPatterns` ya cubre credenciales (20 categorías) + PAN/CLABE (checksum). Queda auditar OTROS identificadores personales NO-credenciales (INE/pasaporte/licencia/NSS/CURP) — evaluar falsos positivos antes de añadir; nota: un identificador sin checksum (como NSS 11 dígitos o CURP 18 alfanum) es más propenso a falsos positivos que PAN/CLABE; considerar requerir palabra-clave acompañante ("mi INE", "CURP:") en vez de patrón puro; (ii) **auditoría UTF-8 global** (continuación c.301): escanear TODOS los archivos `.kt`/`.xml`/`.md` del repo en busca de bytes sueltos >=0x80; (iii) ¿existe un worker push que AVISE al vencerse un compromiso PENDING? (continuación c.297 — la familia del "4º olvido" está completa en las 5 superficies estructuradas, queda la notificación proactiva al vencerse); (iv) textos del asistente que ignoran el `reason`/estado (familia c.285); (v) consistencia de predicados dispersos; (vi) áreas no-parser sin auditar (onboarding, navegación, accesibilidad, rendimiento, workers/backup); (vii) verificar Android de c.270-c.303 cuando haya SDK. Re-fetch antes de implementar.
-
 
 ## Run c.304 — 2026-08-15 (UTC) — feat(recordatorios): notificación push proactiva al vencer un compromiso PENDING — P1 evitar olvidos/recordatorios/compromisos (continuación c.297, canal push del "4º olvido")
 
@@ -10688,7 +10635,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `a664cf0` (c.303). **HEAD final**: `1d93a9a`.
 - **Estado**: VERIFIED (dominio JVM: 1881 tests PASS; smoke 25 OK; 0 failures). NO VERIFICADO Android/gradle/lint (Worker real, WorkManager, notificación).
 - **Próxima prioridad**: descubrimiento continuo — (i) **privacidad (continuación c.287→c.303)**: la fuente única `SensitiveSecretPatterns` ya cubre credenciales (20 categorías) + PAN/CLABE (checksum). Queda auditar identificadores personales NO-credenciales (INE/pasaporte/licencia/NSS/CURP) — requerir palabra-clave acompañante para reducir falsos positivos; (ii) **auditoría UTF-8 global** (continuación c.301): escanear TODOS los archivos `.kt`/`.xml`/`.md` en busca de bytes sueltos >=0x80; (iii) **compromisos (continuación c.304)**: el `CommitmentDueWorker` reprograma a `nextEndMillis` en horas silenciosas, pero NO acumula notificaciones perdidas mientras durmió (si vencieron varias promesas durante la noche, al salir del silencio sólo avisa la reprogramada, no todas) — evaluar si conviene un barrido "overdue batch" al fin del silencio; (iv) textos del asistente que ignoran `reason`/estado (familia c.285); (v) consistencia de predicados dispersos; (vi) áreas no-parser sin auditar (onboarding, navegación, accesibilidad, rendimiento); (vii) verificar Android de c.270-c.304 cuando haya SDK. Re-fetch antes de implementar.
-
 
 ## Run c.305 — 2026-08-15 (UTC) — fix(recordatorios): past-safe al convertir compromiso→tarea (cierra la familia c.164/183/187/188/189 en la conversión del 4.º olvido c.286→c.304) — P1 datos/recordatorios/evitar olvidos
 
@@ -10758,7 +10704,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: VERIFIED (dominio JVM: 1894 tests PASS; smoke 25 OK; 0 failures; probe PRE/POST-fix confirma 11/11 recall + tradeoff de precisión documentado). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) **compromisos (continuación)**: 2ª persona indicativo ("¿me lo pasas?", "me lo envías?") → OTHER_COMMITMENT; evaluar precisión; (ii) **compromisos (continuación c.304)**: barrido "overdue batch" al fin de horas silenciosas; (iii) **privacidad (continuación c.287→c.303)**: identificadores personales NO-credenciales (INE/pasaporte/CURP/NSS); (iv) auditar precisión de los FPs de citación (posible guarda verbo-de-dicción "dice/dijo X" si FPs reales aparecen); (v) textos del asistente que ignoran `reason`/estado (familia c.285); (vi) áreas no-parser sin auditar (onboarding, navegación, accesibilidad, rendimiento); (vii) verificar Android de c.270-c.307 cuando haya SDK. Re-fetch antes de implementar.
 
-
 ## Run c.319 — 2026-08-16 (UTC) — fix(recordatorios): offset 0 cuando el verbo de recordatorio es el ÚNICO contenido + hora ("recuérdame en 30 min", "recuérdame el viernes", "avísame a las 5"…) — P1 recordatorios/captura/datos (sagrados)/evitar olvidos
 
 - **Run/ciclo**: 319 (rama `openhands/autonomous-ordia`). HEAD inicial = `424c3b7` (c.318 compromisos de run paralelo). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21. Base sincronizada (`git pull --ff-only` limpio, sin colisión).
@@ -10779,7 +10724,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `424c3b7` (c.318 compromisos de run paralelo). **HEAD final**: (commit c.319, pendiente de push). Colisión de NUMERACIÓN con run paralelo c.318 (CommitmentEngine): integrada vía stash→ff-only→pop (no destructivo, código DISJUNTO NaturalTaskParser vs CommitmentEngine, conflictos sólo en .md aditivos resueltos conservando AMBAS entradas); renumerada c.318→c.319.
 - **Estado**: VERIFIED (dominio JVM: 1921 tests PASS; smoke 25 OK; 0 failures; probe PRE/POST-fix + tests confirman offset 0 en verb-only+hora, 30 preservado en verb+acción y recurrencias, 120 preservado en offset explícito). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) **privacidad (continuación c.287→c.315)**: más identificadores personales regionales (CIF español, CPF brasileño, CUIT argentino) — requerir palabra-clave + checksum; (ii) **compromisos (continuación c.304)**: barrido "overdue batch" al fin de horas silenciosas; (iii) **parser (continuación familia léxica)**: auditar más formas de recordatorio/captura; (iv) auditar `reminderOffsetMinutes`→`reminderAt` en runtime Android cuando haya SDK; (v) áreas no-parser sin auditar (onboarding, navegación, accesibilidad, rendimiento, workers/backup). Re-fetch antes de implementar.
-
 
 ## Run c.320 — 2026-08-16 (UTC) — feat(parser+recurrencia): mensual con varios días del mes ("el 1 y 15 de cada mes", "cobro los días 15 y 30 de cada mes") — P1 datos (sagrados)/evitar olvidos/rutinas adaptables/captura ultrarrápida
 
@@ -10802,7 +10746,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: VERIFIED (dominio JVM: 1934 tests PASS; smoke 25 OK; 0 failures; 8 tests cubren parser dual-day + motor alternancia/salto-mes-corto + backup acepta/rechaza). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) **parser/recurrencia (continuación c.320)**: extender a >2 días ("el 1, 15 y 30 de cada mes") si aparece demanda real (por ahora >2 cae al de un solo día, decisión deliberada); auditar "cada quincena los días 1 y 15" (combinación quincena+dual-day); (ii) **parser (continuación familia léxica)**: auditar más formas de captura/recordatorio; (iii) **privacidad (continuación c.287→c.315)**: más identificadores personales regionales (CIF español, CPF brasileño, CUIT argentino) — requerir palabra-clave + checksum; (iv) **compromisos (continuación c.304)**: barrido "overdue batch" al fin de horas silenciosas; (v) áreas no-parser sin auditar (onboarding, navegación, accesibilidad, rendimiento, workers/backup); (vi) verificar Android de c.270-c.320 cuando haya SDK. Re-fetch antes de implementar.
 
-
 ## Run c.321 — 2026-08-16 (UTC) — fix(parser+recurrencia): mensual con N días del mes + sinónimos léxicos ("el 1, 15 y 30 de cada mes", "el 1 y el 15 de cada mes", "el 1 y 15 todos los meses") — P1 datos (sagrados)/evitar olvidos (continuación directa c.320)
 
 - **Run/ciclo**: 321 (rama `openhands/autonomous-ordia`). HEAD inicial = `aa5682e` (c.320, ya push). Entorno JVM (sin Android SDK): kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21.
@@ -10824,7 +10767,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `aa5682e` (c.320). **HEAD final**: (commit c.321, pendiente de push). Base sincronizada: `git pull --ff-only origin openhands/autonomous-ordia` limpio (aa5682e ya estaba al día).
 - **Estado**: VERIFIED (dominio JVM: 1937 tests PASS; smoke 25 OK; 0 failures; 3 tests cubren N días + artículo repetido + sinónimo). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) **parser/recurrencia**: "cada quincena los días 1 y 15" (combinación cadencia+dual-day, diferido este run); (ii) **parser (continuación familia léxica)**: auditar más formas de captura/recordatorio/vencimiento; (iii) **privacidad (continuación c.287→c.316)**: más identificadores personales regionales (CIF español, CPF brasileño, CUIT argentino) — palabra-clave + checksum; (iv) **compromisos (continuación c.304)**: barrido "overdue batch" al fin de horas silenciosas; (v) áreas no-parser sin auditar (onboarding, navegación, accesibilidad, rendimiento, workers/backup); (vi) verificar Android de c.270-c.321 cuando haya SDK. Re-fetch antes de implementar.
-
 
 ## Run c.322 — 2026-08-16 (UTC) — fix(parser+recurrencia): ordinal weekday "del mes" SIN cadencia explícita → rutina mensual olvidada (P1 datos (sagrados)/evitar olvidos) — cierra BACKLOG c.318
 
@@ -10870,7 +10812,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: (commit c.323, pendiente de push).
 - **Estado**: VERIFIED (dominio JVM: 1951 tests PASS; smoke 25 OK; probe JVM directo sobre HEAD remoto). NO VERIFICADO Android/gradle/lint/assemble/UI/Room.
 - **Próxima prioridad**: descubrimiento continuo — parser/recurrencia ("cada quincena los días 1 y 15" diferido c.321; más formas ordinales "penúltimo lunes", "cada 2º lunes"); parser familia léxica; privacidad (CIF/CPF/CUIT, c.287→c.316); compromisos batch; áreas no-parser; verificar Android c.270-c.323 cuando haya SDK. Re-fetch antes de implementar.
-
 
 ## Ciclo c.324 — 2026-08-16 (parser: "pago quincenal los días 1 y 15" → MONTHLY d:1,15, no DAILY x15)
 
@@ -10935,7 +10876,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: (commit c.325, pendiente de push tras resolver colisión con c.324-parser remoto).
 - **Estado**: VERIFIED (dominio JVM: 1963 tests PASS (1958 c.324-parser + 5 míos, base combinada tras rebase); smoke 25 OK; 0 failures). NO VERIFICADO Android/gradle/lint/assemble/UI/Room.
 - **Próxima prioridad**: descubrimiento continuo — (i) **planificador/automatización (continuación)**: auditar `GuardianEngine`/`ReminderSync`/`What Now`/`SubtaskRules` por otras rutas que muten recurrentes; (ii) parser/recurrencia ("cada quincena los días 1 y 15" diferido c.321; más formas ordinales); (iii) privacidad (CIF/CPF/CUIT, c.287→c.316); (iv) áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup); (v) verificar Android c.270-c.324 cuando haya SDK. Re-fetch antes de implementar.
-
 
 ## Ciclo c.326 — 2026-08-16 (privacidad: CPF/CNPJ (Brasil) + CUIT/CUIL (Argentina) con checksum mod-11)
 
@@ -11022,7 +10962,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `3ef9fbe` (c.330 remoto al arrancar). **HEAD de commiteo**: `0a1233e` (c.341, tras 2 re-syncs no destructivos stash->ff-only->pop). **HEAD final**: `f645ff1` (c.342, pushed a `origin/openhands/autonomous-ordia`).
 - **Estado**: VERIFIED (dominio JVM: 2001 tests PASS; smoke 25 OK; 0 failures; probe PRE 8 MISSED / POST 18 DETECT + 13/13 EXCLUDED). NO VERIFICADO Android/gradle/lint/assemble/UI/Room con DAOs reales (sin Android SDK); integración runtime Android del `CommitmentEngine.extract` en importación de chat (la lógica pura de detección SÍ verificada en JVM vía tests + suite 2001 + probe fuente real recompilada).
 - **Próxima prioridad**: descubrimiento continuo — (i) captura/compromisos: la familia presente+futuro+c.329/330 (pendiente/falta/queda por) ya cubre las formas léxicas más comunes; evaluar condicional "si tengo tiempo lo reviso" (hipotético, NO compromiso — alto riesgo de falso positivo, probable aplazar), "a ver si lo termino" (dubitativo, ambiguo); (ii) parser/recurrencia (sinónimos de cadencia "bimensual", formas ordinales restantes más allá de c.332); (iii) planificador/automatización (auditar `GuardianEngine`/`ReminderSync`/`What Now` por otras rutas que muten recurrentes); (iv) áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup); (v) verificar Android c.270-c.342 cuando haya SDK. Re-fetch antes de implementar.
-
 
 ## Ciclo c.344 — 2026-08-16 (parser/recurrencia: "cada N <weekday>" → frecuencia o intervalo equivocados)
 
@@ -11207,7 +11146,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: VERIFIED (dominio JVM: 2097 tests PASS; smoke 25 OK; 0 failures; probe 26 frases + 6 tests confirman los 5 FPs rechazados + 15 legit preservadas + no-regresión). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) P2 seguimiento: preservar "a las N" en el título cuando es cantidad (no recortar); (ii) parser: continuar auditoría léxica por familias (duraciones, meridiem abreviados, "hace N días/semanas", "dentro de N", ordinales negativos "el penúltimo"); (iii) áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (iv) verificar Android c.270-c.361 cuando haya SDK. Re-fetch antes de implementar.
 
-
 ## Ciclo 362 — 2026-08-16
 
 - **Run/ciclo**: c.362 (continuación del desarrollo autónomo continuo de Ordía, rama `openhands/autonomous-ordia`). HEAD inicial = `27b91e7` (c.360 pushed). `git pull --ff-only origin openhands/autonomous-ordia` limpio al empezar (árbol == `27b91e7`, sin divergencia). Durante el run, al finalizar la implementación + tests, un `git fetch` reveló que el remoto avanzó `27b91e7`→`00e85fa` (c.361 concurrente: anti-falso-positivo "a las N personas"). **STALE_RUN detectado pero reconciliado de forma NO destructiva**: stash→ff-merge(`00e85fa`)→stash-pop limpio, código DISJUNTO dentro de `NaturalTaskParser.kt` (c.361 concurrente: `countNounFollowerPattern`+`explicitTimeData` l.~2533 y `rangeMatch` l.~2691; c.362 mío: `paraTimeIntroPattern` l.~922 — secciones NO solapadas), auto-merge limpio, sin conflictos. Renumerado c.361→c.362 por colisión de numeración con c.361 concurrente ya pushed. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars en `/tmp/libs`, OpenJDK 21. Test env parser: `today=2026-07-29` (miércoles 12:00), `zone=America/Santo_Domingo`.
@@ -11222,7 +11160,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `27b91e7` (c.360, al inicio del run). Re-sync NO destructivo atop c.361 concurrente `00e85fa`: stash→ff-merge→pop, código DISJUNTO, auto-merge limpio, sin conflictos, NO STALE_RUN (reconciliado), renumerado c.361→c.362 por colisión de numeración con c.361 concurrente ya pushed. NO force, NO reset destructivo, NO clean destructivo. **HEAD final**: commit c.362 (pendiente de push).
 - **Estado**: VERIFIED (dominio JVM: 2101 tests PASS; smoke 25 OK; 0 failures; probe 6/6 + 4 tests confirman título limpio en forma compacta + no-regresión forma CON espacio + guarda c.361 concurrente intacta en árbol combinado). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) parser: continuar auditoría léxica por familias (meridiem abreviados sin punto "pm"/"am" ya cubiertos; evaluar "3p.m." con punto doble, "3 P.M." mayúsculas — `(?i)` ya cubre mayúsculas; "hace N días/semanas", "dentro de N", ordinales negativos "el penúltimo"); (ii) P2 seguimiento c.361: preservar "a las N" en el título cuando es cantidad (no recortar); (iii) áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (iv) verificar Android c.270-c.362 cuando haya SDK. Re-fetch antes de implementar.
-
 
 ## Ciclo 363 — 2026-08-16
 
@@ -11255,7 +11192,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `00e85fa` (c.361). **HEAD final**: commit c.364 (pendiente de push).
 - **Estado**: VERIFIED (dominio JVM: 2107 tests PASS; smoke 25 OK; 0 failures; probe 25 frases + 11 tests confirman los casos pasados fraccionarios resueltos + no-regresión de la familia futura y los `hace N días/semanas/un rato` existentes). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) parser: variantes de "hace" con hora explícita ("hace media hora a las 11:30" — combinar fraccionaria PASADA con hora); "hace una hora y cuarto" ya cubierto; evaluar "hace un par de horas", "hace un par de minutos", "hace un rato y medio"; (ii) áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (iii) P2 seguimiento c.361: preservar "a las N" en el título cuando es cantidad (no recortar); (iv) verificar Android c.270-c.364 cuando haya SDK. Re-fetch antes de implementar.
-
 
 ## Ciclo 366 — 2026-08-16
 
@@ -11319,7 +11255,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: descubrimiento continuo — (i) What Now: paridad etiqueta↔ranking ahora alineada para motivos principales (c.372 scheduledLater, c.373 dueToday>missedStart); auditar solapamiento IMMINENT_START vs MISSED_START y SCHEDULED_LATER+dueToday en reason(); (ii) áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (iii) verificar Android c.270-c.373 cuando haya SDK. Re-fetch antes de implementar.
 ---
 
-
 ## Ciclo 375 — 2026-08-16
 
 - **Run/ciclo**: c.376 (renumerado de c.374 por colisión de NUMERACIÓN con run remoto concurrente `59cab37` c.374-backup, código DISJUNTO `NaturalTaskParser` vs `BackupManager`/`ReminderSync`; rebase atop `59cab37`: auto-merge limpio de los `.kt` (DISJUNTOS), conflictos SÓLO en `.md` resueltos conservando ambas entradas + renumerando la mía a c.376; NO STALE_RUN). Rama `openhands/autonomous-ordia`. HEAD inicial = `28af0a5` (c.373, ya pusheado). Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars en `/tmp/libs`, OpenJDK 21. Test env parser: `now=2026-07-29 12:00 America/Santo_Domingo` (miércoles).
@@ -11351,7 +11286,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: descubrimiento continuo — (i) parser: auditar otras formas de rango/residuo (¿"del viernes al domingo"? ya cubierto por `weekdayPairRangePattern`; ¿"reunión de lunes hasta viernes" con "hasta"?; ¿"al próximo viernes"/"al viernes que viene" ya cubiertos por el rewriter?); (ii) áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (iii) verificar Android c.270-c.378 cuando haya SDK. Re-fetch antes de implementar.
 ---
 
-
 ## Run c.379 — 2026-08-16 (UTC) — fix(parser): respaldo de título vacío — frase de agenda sola sin residuo "al"/"de aquí al" — P2 captura/título limpio — continuación c.378
 
 - **Run/ciclo**: 379 (rama `openhands/autonomous-ordia`). HEAD inicial = `eb5d575` (c.378 docs, push `80995a3`). `git fetch origin openhands/autonomous-ordia` + `git pull --ff-only` limpio, sin divergencia, NO STALE_RUN. NO force, NO reset destructivo, NO clean destructivo. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars en `/tmp/libs`, OpenJDK 21. Test env parser: `now=2026-07-29 America/Santo_Domingo` (miércoles).
@@ -11368,7 +11302,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: descubrimiento continuo — (i) parser: auditar "reunión de lunes hasta viernes" (forma "hasta" deja residuo "hasta" + anclaje INICIO, evaluar); ¿"a eso de la X" deja residuo "a eso"?; (ii) What Now: paridad etiqueta↔ranking IMMINENT_START vs MISSED_START y SCHEDULED_LATER+dueToday en reason(); (iii) áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (iv) verificar Android c.270-c.379 cuando haya SDK. Re-fetch antes de implementar.
 ---
 
-
 ## Run c.381 — 2026-08-16 (UTC) — fix(parser): "a eso de" + parte del día sin residuo "a eso" — P1 captura/datos (sagrados)/título limpio — continuación c.380 próxima-prioridad
 
 - **Run/ciclo**: 381 (rama `openhands/autonomous-ordia`). HEAD inicial = `2d3d614` (c.380 pushed). `git fetch origin openhands/autonomous-ordia` + `git pull --ff-only` limpio, sin divergencia, NO STALE_RUN. NO force, NO reset destructivo, NO clean destructivo. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars en `/tmp/libs`, OpenJDK 21. Test env parser: `now=2026-07-29 America/Santo_Domingo` (miércoles).
@@ -11384,7 +11317,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: VERIFIED (dominio JVM: 2238 tests PASS; smoke 25 OK; 0 failures; 9 tests confirman la familia "a eso de" + parte del día sin residuo + no-regresión). NO VERIFICADO Android/gradle/lint/assemble.
 - **Próxima prioridad**: descubrimiento continuo — (i) parser: ¿"a eso de" + hora escrita sin "las" ("a eso de nueve")?; ¿"a eso de" + fracción ("a eso de la una y media")? — evaluar; (ii) What Now: paridad etiqueta↔ranking IMMINENT_START vs MISSED_START (c.372/c.373 alinearon dueToday/missedStart, revisar imminentStart); (iii) áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (iv) verificar Android c.270-c.381 cuando haya SDK. Re-fetch antes de implementar.
 ---
-
 
 ## Run c.382 — 2026-08-16 (UTC) — fix(parser): respaldo standalone "a eso de" + hora con fracción sin residuo (c.382) — P2 captura/título limpio — continuación c.381
 
@@ -11592,7 +11524,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: descubrimiento continuo — (i) parser: anclas cotidianas menos frecuentes con residuo ("al filo del mediodía", "primero de la mañana" — evaluar riesgo de colisión antes de implementar); (ii) auditoría no-parser: contexto, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales; (iii) SearchEngine: consolidar `urgencyRank` sobre `timeRank` (refactor mayor, evaluar); (iv) hora explícita en PASADO (cuestión ortogonal, decisión de producto documentada en l.3454); (v) verificar Android c.270-c.400 cuando haya SDK. Re-fetch antes de implementar.
 ---
 
-
 ## Run c.408 — 2026-08-16 (UTC) — fix(assistant): “tengo algo”/“hay algo” no se reconocían como consulta de agenda → asistente callaba la agenda pese a preguntarla (c.408) — P1 agenda a demanda/recuperación de información importante/evitar olvidos/IA honesta/consistencia entre superficies — ÁREA NO-PARSER (Asistente)
 
 - **Run/ciclo**: 408 (rama `openhands/autonomous-ordia`). HEAD inicial = `655e97d` (c.405 remoto, en workspace al iniciar). `git fetch origin openhands/autonomous-ordia` reveló avance remoto `655e97d..0dda849` (3 commits concurrentes: `ee13c1b` c.406 doc-eval, `71d6988` c.402-h1 test hardening, `0dda849` c.407 SummaryEngine missed-start card). Integración NO destructiva: `git stash` (mi trabajo: AssistantEngine + tests) → `git pull --ff-only origin` (→`0dda849`) → `git stash pop` (auto-merge limpio, regiones DISJUNTAS: `AssistantEngine.kt`/`AssistantEngineTest.kt` agenda léxica vs `SummaryEngine.kt`/`TodayScreen.kt`/`strings_screens1.xml`/`SummaryEngineTest.kt` de c.407 + `NaturalTaskParserTest.kt` hardening de c.406). NO STALE_RUN. NO force, NO reset --hard, NO clean destructivo, NO toques a `main`. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars en `/tmp/libs`, OpenJDK 21. `bash tools/run_domain_tests.sh` -> baseline 2424 OK (c.407 remoto). Test env parser: `now=2026-07-29 12:00 America/Santo_Domingo` (miércoles).
@@ -11637,7 +11568,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `33db013` (c.407-h2, re-sincronizado tras push c.409). NO force, NO reset destructivo, NO clean destructivo. **HEAD final**: commit c.410 (pendiente de push).
 - **Estado**: VERIFIED (dominio JVM: 2432 tests PASS; smoke 25 OK; 0 failures; 1 test confirma que la rama de compromiso vencido ahora nombra también el conteo de capturas arrinconadas sin nombrar sus títulos). NO VERIFICADO Android/gradle/lint/assemble/UI.
 - **Próxima prioridad**: descubrimiento continuo en áreas NO-parser — GuardianCoach (mensajes/coach), WhatNowEngine (heurísticas de priorización), AssistantEngine (más formas léxicas), context/onboarding/navegación/accesibilidad/rendimiento, workers/backup con DAOs reales. Re-fetch antes de implementar.
-
 
 ## Run c.411 — 2026-08-16 (UTC) — docs(autonomy): ciclo de evaluación/descubrimiento — verificación reproducible (probe JVM fuente real) de 2 áreas P1 datos-sagrados/evitar-olvidos (RecurrenceEngine + parser weekday "este/próximo/que viene") — ambas maduras y deliberadas, 0 cambios de código (sin bug seguro que arreglar sin tocar DECISIONS c.200)
 
@@ -11686,7 +11616,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `4266841` (c.410 remoto, sincronizado). NO force, NO reset destructivo, NO clean destructivo. **HEAD final**: commit c.413 (pendiente de push).
 - **Estado**: VERIFIED (dominio JVM: 2437 tests PASS; smoke 25 OK; 0 failures; 5 tests confirman que la cola nombra el conteo de capturas arrinconadas sin nombrar títulos, concordancia gramatical singular/plural, no se cuenta a sí misma, no lo inventa sin haberlo (<7 días), y coexiste con las colas de vencidas/missed-start/compromisos). NO VERIFICADO Android/gradle/lint/assemble/UI.
 - **Próxima prioridad**: descubrimiento continuo en áreas NO-parser — GuardianCoach (mensajes/coach), WhatNowEngine (heurísticas de priorización), AssistantEngine (más formas léxicas de agenda/intención), context/onboarding/navegación/accesibilidad/rendimiento, workers/backup con DAOs reales. Re-fetch antes de implementar.
-
 
 ## Run c.435 — 2026-08-17 (UTC) — fix(parser): conector "a partir de" + anclaje de HORA sobrevivía como residuo en el título ("cita a partir de") — cita bien fechada pero título mutilado — P1 captura/título limpio/evitar olvidos — ÁREA PARSER (NaturalTaskParser), simétrico a "antes de"/c.424 y "después de"/c.432
 
@@ -11792,8 +11721,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: VERIFIED (dominio JVM: 2650 PASS; smoke 25 OK; 0 failures; 2 tests confirman fecha correcta + título limpio + no-regresión weekday suelto/ordinales/contenido). NO VERIFICADO Android/gradle/lint/assemble/UI.
 - **Próxima prioridad**: descubrimiento continuo — (i) parser: subcaso "lunes 24" SIN mes (residuo "24", ambiguo) — distinguir residuo de contenido con TDD; (ii) auditar otras parejas "fecha concreta vs ancla vago" en la cascada `when` de `date`; (iii) áreas no auditadas (context/onboarding/navegación/accesibilidad/rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
 
-
-
 ## Run c.469 — 2026-08-17 (UTC) — fix(parser): "reunión el lunes 24/9" (weekday + fecha numérica N/M) anclaba la fecha al weekday (hoy) y al mes erróneo en vez del 24/9 — P1 datos/fechas correctas/evitar olvidos — ÁREA PARSER (NaturalTaskParser), prioridad de resolución de fecha (numericDateMatch vs weekdayMatch)
 
 - **Run/ciclo**: c.469 (rama `openhands/autonomous-ordia`). HEAD inicial = `245bd90` (c.467 remoto). Remoto avanzó 2 commits concurrentes (`9669231` c.468-mensual cadencia + `2f7be30` docs). Integración NO destructiva: `git stash` (mi WIP) → `git pull --ff-only` (avanza atop `2f7be30`) → `git stash pop` (auto-merge limpio salvo `.md` estado, resuelto a mano) → rebase atop `2f7be30` NO destructivo. Renumerado c.468→c.469 por colisión de cycle-ID con run concurrente (c.468 cadencia mensual, región DISJUNTA `monthlyDayPattern` vs prioridad de fecha). NO STALE_RUN, NO force, NO reset --hard, NO clean destructivo, NO toques a `main`. NO force, NO reset --hard, NO clean destructivo, NO toques a `main`. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars en `/tmp/libs`, OpenJDK 21. Auth git con `GITHUB_TOKEN`.
@@ -11869,7 +11796,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `8f7f1d1` (c.474/c.475). Remoto avanzó DOS veces durante el run: `b36e91b` (c.476-ponme/dame) luego `6b99151` (c.477-sinónimos planificación). Doble integración NO destructiva `git pull --rebase`. NO force, NO reset destructivo, NO clean destructivo. **HEAD final**: commit c.478 (pendiente de push; tras `git rebase --continue` + `git push`).
 - **Estado**: VERIFIED (dominio JVM: 2711 PASS; smoke 25 OK; 0 failures; 8 tests confirman el fix + 2 anti-cuenta). NO VERIFICADO Android/gradle/lint/assemble/UI.
 - **Próxima prioridad**: descubrimiento continuo — (i) parser: ampliar fracciones negativas antepuestas ("veinte para las 8"=7:40, "veinticinco para las 9"=8:35) si surge necesidad real (requiere extender `CLOCK_FRACTION_ALT`/`CLOCK_FRACTION_MAP`); (ii) subcaso "lunes 24" SIN mes (residuo "24", ambiguo, BACKLOG); (iii) áreas no auditadas (context/onboarding/navegación/accesibilidad/rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
-
 
 ## Run c.480 — 2026-08-17 (UTC) — fix(parser): "a las 3.30"/"a las 3,30" (punto/coma decimal como separador de minutos, notación de reloj cotidiana) NO se reconocían → hora agendada EN PUNTO (03:00 en vez de 03:30) + residuo ".30"/",30" en el título — P1 captura/datos (sagrados)/título limpio — ÁREA PARSER (NaturalTaskParser), familia hora explícita `:MM`
 

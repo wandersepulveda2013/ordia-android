@@ -968,8 +968,19 @@ object AssistantEngine {
             "armame un plan" in query || "armame el plan" in query ||
             "preparame un plan" in query || "preparame el plan" in query ||
             "prepara un plan" in query || "preparar un plan" in query ||
-            "hazme un plan" in query || "hazme el plan" in query
+            "hazme un plan" in query || "hazme el plan" in query ||
+            "dame un plan" in query || "dame el plan" in query ||
+            DECLARATIVE_PLAN_REQUEST.containsMatchIn(query)
     }
+
+    // Formas declarativas ("quiero/necesito un plan"): a diferencia de las
+    // imperativas, "un plan" puede ser sujeto de un plan-documento ("quiero un
+    // plan estratégico para mañana"). Se exige "un/el plan" al FINAL del
+    // enunciado (sin calificador posterior) para no robar esas frases
+    // legítimas. La guarda superior `"plan minimo" !in query` ya excluye la
+    // lista de 3, así esta regex no la roba.
+    private val DECLARATIVE_PLAN_REQUEST =
+        Regex("""\b(quiero|necesito)\s+(un|el)\s+plan\s*[.!?]*$""")
 
     private fun dayLoadAnswer(
         tasks: List<TaskEntity>,

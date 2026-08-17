@@ -2800,6 +2800,65 @@ class AssistantEngineTest {
         assertNotEquals(AssistantAction.OPEN_PLANNER, answer.action)
     }
 
+    @Test fun dameUnPlan_opensPlanner() {
+        // "dame un plan" es la forma imperativa cotidiana más natural de pedir
+        // planificación (paralela a "dame un resumen"), pero caía al mensaje
+        // genérico. Paridad con "organiza mi día" → OPEN_PLANNER.
+        val answer = AssistantEngine.answer(
+            "dame un plan",
+            emptyList(), emptyList(), emptyList()
+        )
+        assertEquals(AssistantAction.OPEN_PLANNER, answer.action)
+    }
+
+    @Test fun quieroUnPlan_opensPlanner() {
+        // "quiero un plan": forma declarativa natural. Debe abrir el planificador
+        // como las formas imperativas, no caer al menú genérico.
+        val task = TaskEntity(id = 1, title = "Revisar correo")
+        val answer = AssistantEngine.answer(
+            "quiero un plan",
+            listOf(task), emptyList(), emptyList()
+        )
+        assertEquals(AssistantAction.OPEN_PLANNER, answer.action)
+        assertTrue("cuenta la tarea pendiente: ${answer.text}", answer.text.contains("1 tarea pendiente"))
+    }
+
+    @Test fun necesitoUnPlan_opensPlanner() {
+        // "necesito un plan": variante declarativa, paridad con "quiero un plan".
+        val answer = AssistantEngine.answer(
+            "necesito un plan",
+            emptyList(), emptyList(), emptyList()
+        )
+        assertEquals(AssistantAction.OPEN_PLANNER, answer.action)
+    }
+
+    @Test fun quieroUnPlanNoAbreSiHayCalificador() {
+        // Guard anti-falso-positivo: "quiero un plan estratégico" se refiere a un
+        // documento/plan específico, no a abrir el planificador. La rama
+        // declarativa exige "un plan" al final del enunciado (sin calificador
+        // posterior), así no roba esta frase legítima.
+        val answer = AssistantEngine.answer(
+            "quiero un plan estrategico para mañana",
+            emptyList(), emptyList(), emptyList()
+        )
+        assertNotEquals(AssistantAction.OPEN_PLANNER, answer.action)
+    }
+
+    @Test fun quieroUnPlanMinimo_doesNotStealPlanMinimo() {
+        // Guard anti-falso-positivo: aunque "quiero un plan" ahora abre el
+        // planificador, "quiero un plan mínimo" debe seguir siendo la lista de 3
+        // (relatedTaskIds), no el planificador. La guarda `"plan minimo" !in query`
+        // evita el robo de rama (paridad con preparameUnPlanMinimo).
+        val task = TaskEntity(id = 1, title = "Algo")
+        val answer = AssistantEngine.answer(
+            "quiero un plan minimo",
+            listOf(task), emptyList(), emptyList()
+        )
+        assertTrue("plan mínimo sigue listando la tarea: ${answer.text}",
+            answer.relatedTaskIds.contains(1L))
+        assertNotEquals(AssistantAction.OPEN_PLANNER, answer.action)
+    }
+
     @Test fun dayLoad_doesNotInventStaleInboxWhenRecent() {
         // Guard anti-falso-positivo: una captura reciente (< 7 días) no debe
         // disparar la cola. Sin ideas arrinconadas, el veredicto calla el 3.er olvido.
