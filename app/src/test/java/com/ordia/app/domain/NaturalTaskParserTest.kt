@@ -1851,6 +1851,50 @@ class NaturalTaskParserTest {
         assertEquals(30, result.reminderOffsetMinutes)
     }
 
+    // --- "mándame/envíame + sustantivo de aviso" (c.471) ---
+    // "mándame un recordatorio"/"envíame una alerta" son peticiones explícitas de aviso,
+    // tan cotidianas como "recuérdame". Antes NO se reconocían: el verbo sobrevivía como
+    // residuo del título y reminderOffset=null (el recordatorio NUNCA se programaba pese a
+    // pedirse expresamente → olvido). A diferencia de "recuérdame" (inequívoco), estos
+    // verbos son de acción por sí solos ("envíame un correo"), así que solo cuentan como
+    // aviso cuando van seguidos de un sustantivo de aviso (recordatorio/alerta/aviso/
+    // notificación). El clítico `-me` + sustantivo de aviso los vuelve inequívocos.
+    @Test fun mandameRecordatorioConDueAplicaOffset30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("mandame un recordatorio mañana a las 9", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun enviameAlertaConDueAplicaOffset30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("enviame una alerta el viernes a las 10", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun mandameAvisoConDueAplicaOffset30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("mandame un aviso pasado mañana a las 8", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun enviameNotificacionConDueAplicaOffset30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("enviame una notificacion el lunes a las 7 am", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    // Sin sustantivo de aviso, el verbo es de acción (no aviso): NO debe falsificar
+    // recordatorio. "envíame un correo" es contenido real, no petición de aviso.
+    @Test fun enviameCorreoSinSustantivoDeAvisoNoProgramaRecordatorio() {
+        val result = NaturalTaskParser.parse("enviame un correo a juan mañana a las 9", now, zone)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
+    @Test fun mandameDocumentoSinSustantivoDeAvisoNoProgramaRecordatorio() {
+        val result = NaturalTaskParser.parse("mandame el documento el viernes", now, zone)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
     // --- Verbo de recordatorio como ÚNICO contenido (ciclo 230) ---
     // Cuando el usuario escribe SÓLO el recordatorio + frases de agenda ("recordatorio
     // cada 2 días a las 8", "recuérdame cada lunes a las 8"), no hay un sustantivo de

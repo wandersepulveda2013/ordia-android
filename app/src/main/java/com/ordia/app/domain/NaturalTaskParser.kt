@@ -1620,9 +1620,20 @@ object NaturalTaskParser {
      * "acordarse de mí" salvo tras preposición, caso que el lookbehind de
      * `recordatorio` no aplica aquí; el infinitivo con clítico de objeto indirecto
      * "recordarme X" = "que se me recuerde X", intención de aviso pura).
+     *
+     * c.471: los imperativos "mándame"/"envíame" + sustantivo de aviso
+     * ("mándame un recordatorio", "envíame una alerta") son peticiones explícitas de
+     * aviso tan cotidianas como "recuérdame", PERO a diferencia de "recuérdame" estos
+     * verbos son de ACCIÓN por sí solos ("envíame un correo", "mándame el documento").
+     * Por eso solo cuentan como aviso cuando van seguidos de un sustantivo de aviso
+     * (recordatorio/alerta/aviso/notificación), exigido con un `(?=...)` que NO consume
+     * el sustantivo (este queda como título honesto, igual que en "recuérdame un
+     * recordatorio"). Antes NO se reconocían: el verbo sobrevivía como residuo del
+     * título y reminderOffset=null (el recordatorio NUNCA se programaba pese a
+     * pedirse expresamente → olvido).
      */
     private val bareReminderVerbPattern =
-        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordarme|avisarme|notificarme|acordarme(?:\s+de\b)?|no\s+dejes\s+que\s+olvide|no\s+(?:se\s+te\s+|te\s+|me\s+|le\s+)?olvides?(?:\s+de\b)?(?:\s+que\b)?|acu[eé]rdate(?:\s+de\b)?|recuerda|(?<!(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus|nuestros?|nuestras?|estes?|estas?|esos?|esas?|aquella?)\s)recordatorio)\b""")
+        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordarme|avisarme|notificarme|acordarme(?:\s+de\b)?|no\s+dejes\s+que\s+olvide|no\s+(?:se\s+te\s+|te\s+|me\s+|le\s+)?olvides?(?:\s+de\b)?(?:\s+que\b)?|acu[eé]rdate(?:\s+de\b)?|recuerda|(?:m[aá]ndame|env[ií]ame)(?=\s+(?:un(?:a|os|as)?\s+)?(?:recordatorio|alerta|aviso|notificaci[oó]n)\b)|(?<!(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus|nuestros?|nuestras?|estes?|estas?|esos?|esas?|aquella?)\s)recordatorio)\b""")
     private const val BARE_REMINDER_DEFAULT_OFFSET_MINUTES = 30
     private val durationPatterns = listOf(
         Regex("""(?i)\((\d{1,3}(?:[.,]\d+)?)\s*(minutos?|min|horas?|hora)\)"""),
