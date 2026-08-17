@@ -93,8 +93,28 @@ object CommitmentEngine {
         // un falso negativo es una petición olvidada).
         """(?i)\b(?:env[ií]ame|m[aá]ndame|no\s+olvides|recuerda|recu[eé]rdame|por\s+favor|puedes|podr[ií]as|necesito\s+que|p[aá]same|ll[aá]mame|escr[ií]beme|h[aá]blame|conf[ií]rmame|d[ií]melo|p[aá]samelo|m[aá]ndamelo)\b"""
     )
-    private val meetingSignal = Regex(
-        """(?i)\b(?:nos\s+vemos|reuni[oó]n|cita|quedamos|encuentro|ser[aá]\s+a\s+las)\b"""
+    // c.519: split meetingSignal en verbo (siempre encendido) + sustantivo con
+    // guarda anti-objeto-genitivo. Antes, reunion|cita|encuentro casaba en
+    // cualquier posicion -> falso MEETING cuando el sustantivo era el OBJETO de
+    // un genitivo ("aviso de la reunion", "acta de la reunion", "factura de la
+    // cita", "resumen de la reunion", "cobro por la reunion"): el compromiso real
+    // es avisar/pagar/resumir, no reunirse, pero nacia como draft MEETING.
+    // nos vemos / quedamos / sera a las son verbos de reunion inequivocos y se
+    // mantienen sin guarda. Los sustantivos solo cuentan como MEETING cuando hay
+    // al menos una ocurrencia que NO es objeto genitivo (es sujeto/evento:
+    // "la reunion es manana", "tenemos cita el miercoles", "encuentro con el
+    // cliente"). Java regex lookbehind es fixed-length, asi que la deteccion de
+    // objeto se hace comparando rangos en hasMeetingNounAsSubject.
+    private val meetingVerbSignal = Regex(
+        """(?i)\b(?:nos\s+vemos|quedamos|ser[aá]\s+a\s+las)\b"""
+    )
+    private val meetingNounSignal = Regex(
+        """(?i)\b(?:reuni[oó]n|cita|encuentro)\b"""
+    )
+    // Objeto genitivo: "de/del/por/para" + determinante opcional + sustantivo de
+    // reunion. El rango cubre la preposicion, el determinante y el sustantivo.
+    private val meetingNounAsObject = Regex(
+        """(?i)(?:de|del|por|para)\s+(?:el|la|los|las|un|una|unos|unas)?\s*(?:reuni[oó]n|cita|encuentro)\b"""
     )
     private val purchaseSignal = Regex("""(?i)\b(?:comprar|compra|traer|conseguir|mercado|supermercado)\b""")
     private val reminderSignal = Regex("""(?i)\b(?:recu[eé]rdame|recordatorio|av[ií]same|no\s+dejes\s+que\s+olvide)\b""")
@@ -375,6 +395,17 @@ object CommitmentEngine {
             val prefix = text.substring(maxOf(0, start - 3), start)
             !precedingNegation.containsMatchIn(prefix)
         }
+    // c.519: un sustantivo de reunion (reunion/cita/encuentro) cuenta como
+    // MEETING solo si al menos una ocurrencia NO es objeto genitivo
+    // (de/del/por/para + det opcional). "aviso de la reunion" -> objeto,
+    // suprimido; "la reunion es manana" -> sujeto, MEETING.
+    private fun hasMeetingNounAsSubject(text: String): Boolean {
+        val objects = meetingNounAsObject.findAll(text).map { it.range.first..it.range.last }.toList()
+        return meetingNounSignal.findAll(text).any { noun ->
+            objects.none { obj -> noun.range.first in obj }
+        }
+    }
+
 
     // c.309: la negación antes de un indicativo de 2ª persona ("no me pasas
     // nada", "no me llamas nunca", "no me lo envías") es una queja/acusación,
@@ -468,7 +499,7 @@ object CommitmentEngine {
         val text = message.text.trim().replace(Regex("\\s+"), " ").take(MAX_ACTION_CHARS)
         if (text.length < 4) return null
         val isRequest = requestSignal.containsMatchIn(text) || hasUnnegatedIndicativeRequest(text)
-        val isMeeting = meetingSignal.containsMatchIn(text)
+        val isMeeting = meetingVerbSignal.containsMatchIn(text) || hasMeetingNounAsSubject(text)
         val isPurchase = purchaseSignal.containsMatchIn(text)
         val isReminder = reminderSignal.containsMatchIn(text)
         // "no te llamo"/"no me encargo"/"no lo hago" son NEGATIVAS (rechazos), no

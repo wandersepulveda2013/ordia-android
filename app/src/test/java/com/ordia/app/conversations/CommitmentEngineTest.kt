@@ -86,6 +86,46 @@ class CommitmentEngineTest {
         assertTrue(result[1].location.contains("oficina", ignoreCase = true))
     }
 
+    // c.519: los sustantivos de reunión (reunión/cita/encuentro) que son el
+    // OBJETO de un genitivo ("aviso de la reunión", "acta de la reunión",
+    // "factura de la cita", "resumen de la reunión", "cobro por la reunión")
+    // no deben clasificarse como MEETING: el compromiso real es avisar/pagar/
+    // resumir, no reunirse. Solo cuenta como MEETING cuando el sustantivo es
+    // sujeto/evento ("la reunión es mañana", "tenemos cita", "encuentro con").
+    @Test
+    fun suppressesMeetingWhenNounIsGenitiveObject() {
+        // Sujetos/eventos reales: siguen siendo MEETING.
+        val meetings = listOf(
+            "La reunión es mañana a las 10",
+            "Tenemos cita el miércoles",
+            "Encuentro con el cliente el jueves",
+            "Quedamos el viernes a las 6"
+        )
+        for (text in meetings) {
+            val res = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)), selfParticipant = "Yo", scopeHash = "mtg-pos"
+            )
+            assertTrue("debería ser MEETING: $text", res.isNotEmpty() && res[0].kind == CommitmentKind.MEETING)
+        }
+        // Objetos genitivos: NO deben nacer como MEETING.
+        val notMeetings = listOf(
+            "Un aviso de la reunión el lunes",
+            "Me llegó un aviso de la reunión de ayer",
+            "El acta de la reunión del lunes",
+            "Resumen de la reunión del miércoles",
+            "Cobro por la reunión del lunes"
+        )
+        for (text in notMeetings) {
+            val res = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)), selfParticipant = "Yo", scopeHash = "mtg-neg"
+            )
+            assertTrue(
+                "no debería clasificarse como MEETING: $text",
+                res.none { it.kind == CommitmentKind.MEETING }
+            )
+        }
+    }
+
     @Test
     fun blocksVerificationCodesBeforeExtraction() {
         val text = "Tu código de verificación es 482913. No olvides guardarlo"
