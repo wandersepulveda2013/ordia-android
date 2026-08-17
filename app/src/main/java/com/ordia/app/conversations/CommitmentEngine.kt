@@ -519,7 +519,26 @@ object CommitmentEngine {
         // guarda precedingNegation excluye "no me toca a mí" (no me corresponde)
         // igual que "no me encargo". Determinista (regex), sin random, sin IA
         // fingida.
-        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|me\s+toca\s+(?:$pendingActionInfinitives)|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo|llamamos|enviamos|respondemos|avisamos|confirmamos|pasamos|mandamos|pagamos|hablamos|escribimos)|despu[eé]s\s+te\s+respondo|(?:debo|debemos)|(?:tengo|tenemos)\s+que|(?:hagamos|terminemos|entreguemos|revisemos|preparemos|arreglemos|subamos|dejemos|pasemos|mandemos|enviemos|llamemos|hablemos|escribamos|paguemos)|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+|te\s+|le\s+)?(?:voy\s+a|vamos\s+a|terminar[eé]|terminaremos|har[eé]|haremos|entregar[eé]|entregaremos|revisar[eé]|revisaremos|preparar[eé]|prepararemos|arreglar[eé]|arreglaremos|subir[eé]|subiremos|dejar[eé]|dejaremos|pasar[eé]|pasaremos|mandar[eé]|mandaremos|enviar[eé]|enviaremos|llamar[eé]|llamaremos|hablar[eé]|hablaremos|escribir[eé]|escribiremos|avisar[eé]|avisaremos|notificar[eé]|notificaremos|dir[eé]|diremos)|lo\s+hago|lo\s+hacemos|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|pagamos))\b"""
+        // c.537: "notificar" pelado y con-clítico (presente, singular y plural) era
+        // la única forma de promesa de comunicación que caía a MISSED. El futuro
+        // (notificaré/notificaremos) ya estaba en c.534, y el resto de la familia de
+        // comunicación (llamar/hablar/escribir/responder/avisar/confirmar/pagar) ya
+        // cubría sus 4 formas (pelado+con-clítico, sing+plur, c.508/c.512/c.514/c.518/
+        // c.526/c.528), pero "notificar" solo existía como FUTURO. Así "notifico al
+        // equipo el viernes", "le notifico al cliente el lunes", "notificamos al
+        // jefe mañana", "te notificamos el lunes" — promesas cotidianas de avisar
+        // formalmente — se perdían (probe JVM PRE-fix: 9/9 MISSED). Se añaden
+        // notifico/notificamos a las TRES ramas presentes: barePresentCommitmentSignal
+        // (pelado con fecha), y los grupos `te`/`le`/OD de commitmentSignal
+        // (con-clítico). "notifico" como sustantivo es rarísimo (la guarda de
+        // determinante [determiners] de c.512 lo protege igual que a pago/aviso por
+        // si acaso). La guarda precedingNegation excluye "no notifico"/"no le
+        // notifico"/"no te notificamos" igual que "no aviso"/"no le aviso". Determinista
+        // (regex), sin random, sin IA fingida. "decir" (digo/decimos) se deja para
+        // otro ciclo: su lexema irregular y la frecuencia de mandatos indirectos
+        // ("le digo que venga mañana" = mandato al 3º, no promesa) exigen análisis de
+        // precisión aparte. Probe JVM POST-fix: 9/9 positivos, 7/7 negativos.
+        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|me\s+toca\s+(?:$pendingActionInfinitives)|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo|notifico|llamamos|enviamos|respondemos|avisamos|confirmamos|pasamos|mandamos|pagamos|hablamos|escribimos|notificamos)|despu[eé]s\s+te\s+respondo|(?:debo|debemos)|(?:tengo|tenemos)\s+que|(?:hagamos|terminemos|entreguemos|revisemos|preparemos|arreglemos|subamos|dejemos|pasemos|mandemos|enviemos|llamemos|hablemos|escribamos|paguemos)|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+|te\s+|le\s+)?(?:voy\s+a|vamos\s+a|terminar[eé]|terminaremos|har[eé]|haremos|entregar[eé]|entregaremos|revisar[eé]|revisaremos|preparar[eé]|prepararemos|arreglar[eé]|arreglaremos|subir[eé]|subiremos|dejar[eé]|dejaremos|pasar[eé]|pasaremos|mandar[eé]|mandaremos|enviar[eé]|enviaremos|llamar[eé]|llamaremos|hablar[eé]|hablaremos|escribir[eé]|escribiremos|avisar[eé]|avisaremos|notificar[eé]|notificaremos|dir[eé]|diremos)|lo\s+hago|lo\s+hacemos|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|notifico|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos|notificamos)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago|notifico|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|pagamos|notificamos))\b"""
 
     )
     // c.500: presente de 1ª persona SIN pronombre de objeto + marca temporal futura
@@ -581,7 +600,7 @@ object CommitmentEngine {
     // clítico/prep genitiva previos). "enviamos" no tiene variante acentual (el
     // singular usaba env[ií]o para "envio"/"envío"). Probe JVM POST-fix: 7/7.
     private val barePresentCommitmentSignal = Regex(
-        """(?iU)\b(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos)\b"""
+        """(?iU)\b(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|notifico|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos|notificamos)\b"""
     )
     private val locationSignal = Regex(
         """(?i)\b(?:lugar\s*:\s*|(?:nos\s+vemos|reuni[oó]n|cita)[^.!?\n]{0,80}?\ben\s+)([\p{L}\d][\p{L}\d .,'-]{2,50})"""

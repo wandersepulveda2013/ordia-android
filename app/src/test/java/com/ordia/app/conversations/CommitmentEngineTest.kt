@@ -954,6 +954,83 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.537: presente de "notificar" (pelado y con-clítico, singular y plural) —
+    // la única forma de promesa de comunicación que caía a MISSED. El futuro
+    // (notificaré/notificaremos) ya estaba (c.534) y el resto de la familia de
+    // comunicación (llamar/hablar/escribir/responder/avisar/confirmar/pagar) cubría
+    // sus 4 formas, pero "notificar" solo existía como futuro. Probe JVM PRE-fix:
+    // 9/9 MISSED. Nace como draft SELF/OTHER PENDING revisable.
+    @Test
+    fun detectsBarePresentNotifyCommitment() {
+        val positives = listOf(
+            "notifico al equipo el viernes",
+            "notifico al jefe mañana",
+            "notifico al cliente el lunes"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "notify-bare-$text"
+            )
+            assertTrue("presente pelado de notificar DEBE detectarse como compromiso: \"$text\"", result.isNotEmpty())
+        }
+    }
+
+    @Test
+    fun detectsCliticPresentNotifyCommitment() {
+        val positives = listOf(
+            "le notifico al equipo el viernes",
+            "te notifico el lunes",
+            "le notificamos al equipo el viernes",
+            "te notificamos el lunes"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "notify-clitic-$text"
+            )
+            assertTrue("presente con-clítico de notificar DEBE detectarse como compromiso: \"$text\"", result.isNotEmpty())
+        }
+    }
+
+    @Test
+    fun detectsPluralBarePresentNotifyCommitment() {
+        val positives = listOf(
+            "notificamos al equipo el viernes",
+            "notificamos al jefe mañana"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "notify-plur-bare-$text"
+            )
+            assertTrue("presente plural pelado de notificar DEBE detectarse como compromiso: \"$text\"", result.isNotEmpty())
+        }
+    }
+
+    @Test
+    fun barePresentNotifyRespectsNegationAndNoDate() {
+        val negatives = listOf(
+            "no notifico al equipo el viernes",
+            "no le notifico al equipo el viernes",
+            "el notifico del equipo",          // sustantivo + determinante
+            "notifico al equipo cada lunes",   // rutina (recurrence)
+            "notifico al equipo",              // pelado sin fecha -> no draft
+            "notificamos al equipo"            // pelado sin fecha -> no draft
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "notify-neg-$text"
+            )
+            assertEquals("precisión notificar pelado: NO debe disparar: \"$text\"", 0, result.size)
+        }
+    }
+
     // c.309: peticiones en indicativo de 2ª persona — la forma MÁS frecuente de
     // pedir algo en chat español ("me pasas el informe?", "me llamas luego?",
     // "me envías el archivo mañana", "me lo mandas?"). En mensajería se pregunta
