@@ -6660,6 +6660,62 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // "la otra semana" / "otra semana" son sinónimos cotidianos de "la próxima
+    // semana" en español. Antes caían a dueAt=null + frase completa como título
+    // (vencimiento olvidado, P1). Ahora resuelven +7d como el resto de períodos
+    // próximos. El lookahead negativo evita que "otra semana pasada" (contenido,
+    // no fecha futura) se consuma como fecha.
+    @Test fun otraSemanaParsesDueAt() {
+        val result = NaturalTaskParser.parse("Reunión la otra semana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun otraSemanaSinArticuloParsesDueAt() {
+        val result = NaturalTaskParser.parse("Reunión otra semana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun otraSemanaNoSeConsumeComoFuturoCuandoEsPasada() {
+        // "otra semana pasada" es contenido referido al pasado, no una fecha futura.
+        // nextPeriodPattern (futuro, +7d) NO debe consumirla: el lookahead negativo lo
+        // impide. "semana pasada" si es una fecha legitima (lastPeriodPattern), asi
+        // que el vencimiento es pasado (no +7d futuro). Garantiza que "otra" no
+        // promueva una frase pasada a vencimiento futuro.
+        val result = NaturalTaskParser.parse("Resumen otra semana pasada", now, zone)
+        assertNotEquals(LocalDate.of(2026, 8, 5), result.dueAt?.let { DateRules.toLocalDate(it, zone) })
+    }
+
+    // "la semana siguiente" / "el mes siguiente" / "el año siguiente" son sinónimos
+    // de "que viene"/"próximo". Antes caían a dueAt=null + residuo (P1). Ahora
+    // resuelven +1 período. No colisiona con weekdayPattern ("el martes siguiente",
+    // que exige weekday) ni con dayAfterPattern ("el día siguiente", que exige "día").
+    @Test fun semanaSiguienteParsesDueAt() {
+        val result = NaturalTaskParser.parse("Cita la semana siguiente", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mesSiguienteParsesDueAt() {
+        val result = NaturalTaskParser.parse("Pago el mes siguiente", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun anioSiguienteParsesDueAt() {
+        val result = NaturalTaskParser.parse("Renovación el año siguiente", now, zone)
+        assertEquals("Renovación", result.title)
+        assertEquals(LocalDate.of(2027, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun semanaSiguienteRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Cita la semana siguiente a las 10", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     @Test fun mesQueVieneRespetaHoraExplicita() {
         val result = NaturalTaskParser.parse("Pagar el mes que viene a las 10", now, zone)
         assertEquals("Pagar", result.title)

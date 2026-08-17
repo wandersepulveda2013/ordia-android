@@ -522,7 +522,7 @@ object NaturalTaskParser {
      * quede "en" como residuo en el título.
      */
     private val nextPeriodPattern = Regex(
-        """(?i)(?<!\p{L})(?:en\s+(?:los|el|las|la)?\s+)?(?:a\s+)?(?:el|la|los|las)?\s*(?:semanas?|mes(?:es)?|a[nñ]os?|trimestres?|bimestres?|semestres?|quincenas?)\s+(?:que\s+viene[n]?|que\s+entra[n]?|pr[oó]ximos?|pr[oó]ximas?|entrante[s]?)\b|(?<!\p{L})(?:en\s+(?:los|el|las|la)?\s+)?(?:a\s+)?(?:el|la|los|las)?\s*(?:pr[oó]ximos?|pr[oó]ximas?)\s+(?:semanas?|mes(?:es)?|a[nñ]os?|trimestres?|bimestres?|semestres?|quincenas?)\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
+        """(?i)(?<!\p{L})(?:en\s+(?:los|el|las|la)?\s+)?(?:a\s+)?(?:el|la|los|las)?\s*(?:semanas?|mes(?:es)?|a[nñ]os?|trimestres?|bimestres?|semestres?|quincenas?)\s+(?:que\s+viene[n]?|que\s+entra[n]?|pr[oó]ximos?|pr[oó]ximas?|entrante[s]?|siguientes?)\b|(?<!\p{L})(?:en\s+(?:los|el|las|la)?\s+)?(?:a\s+)?(?:el|la|los|las)?\s*(?:pr[oó]ximos?|pr[oó]ximas?|otr[oa]s?)\s+(?:semanas?|mes(?:es)?|a[nñ]os?|trimestres?|bimestres?|semestres?|quincenas?)(?!\s+(?:pasad[oa]s?|anteriore?s?))\b|(?:en\s+(?:los|el|las)?\s+)?pr[oó]ximos?\s+d[ií]as\b"""
     )
     /**
      * "el 15 del mes que viene" / "el 15 del próximo mes" / "el 15 del mes próximo" /
