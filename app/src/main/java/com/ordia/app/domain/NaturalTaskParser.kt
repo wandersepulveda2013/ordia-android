@@ -999,7 +999,7 @@ object NaturalTaskParser {
      * Nombres de hora escritos en español (dos..veintiuno), ordenados de mayor a menor
      * longitud para que la alternación regex no se quede con un prefijo ("tres" dentro de
      * "trece"). Se excluye "un/una/uno" (la hora 1 se dice "a la una", con otro conector).
-     * Reutilizado por [timePatterns] (a las N) y [standaloneHourPartOfDayPattern] (N de la
+     * Reutilizado por [timePatterns] (a las N) y [standaloneHourPartOfDayStripPattern] (N de la
      * tarde) para que las horas escritas —cotidianas en español— se resuelvan en vez de
      * caer como residuo del título o agendarse a la hora canónica de la parte del día.
      */
@@ -2057,8 +2057,17 @@ object NaturalTaskParser {
      * cuentas ("las 9 cajas" no casa: no hay "de la noche/tarde/..."), así no se
      * falsifica como cita.
      */
-    private val standaloneHourPartOfDayPattern =
-        Regex("""(?i)(?<![:\d])(?:las\s+)?(\d{1,2}|$WRITTEN_HOUR_ALT)(?:(?::|h)([0-5]\d))?(?:\s+($CLOCK_FRACTION_Y))?\s+de\s+la\s+(tarde|noche|madrugada|ma[nñ]ana|manana)(?!\s+de\s+(?!hoy\b|ma[nñ]ana\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b)[a-záéíóúüñ])(?:\s+($CLOCK_FRACTION_Y))?$APPROX_TIME_SUFFIX\b""")
+    // Hora suelta con parte del día ("N de la tarde"/"N de la noche"): resuelve la hora
+    // absoluta con su meridiem Y, en la limpieza del título, consume también la preposición
+    // "de" que introduce la hora ("cita de 5 de la tarde" → "cita"). El prefijo opcional
+    // no capturador `(?:\bde\s+)?` cumple ambas funciones: no altera los grupos de
+    // resolución (hora/min/fracción/parte) y permite que replaceRange borre el genitivo
+    // junto con la hora, evitando el residuo "de" (`title='cita de'`). El lookbehind
+    // `(?<![:\d])` (antes del prefijo) evita casar dígitos pegados; el prefijo sólo casa
+    // "de" inmediatamente antes de la hora, no contenido intermedio ("de 5 personas de la
+    // tarde" no se confunde: el patrón casa "5 de la tarde" empezando en "5").
+    private val standaloneHourPartOfDayStripPattern =
+        Regex("""(?i)(?<![:\d])(?:\bde\s+)?(?:las\s+)?(\d{1,2}|$WRITTEN_HOUR_ALT)(?:(?::|h)([0-5]\d))?(?:\s+($CLOCK_FRACTION_Y))?\s+de\s+la\s+(tarde|noche|madrugada|ma[nñ]ana|manana)(?!\s+de\s+(?!hoy\b|ma[nñ]ana\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b)[a-záéíóúüñ])(?:\s+($CLOCK_FRACTION_Y))?$APPROX_TIME_SUFFIX\b""")
 
     private fun resolveStandaloneHourPartOfDay(match: MatchResult): LocalTime? {
         val h = parseHour(match.groupValues[1]) ?: return null
@@ -3903,8 +3912,12 @@ object NaturalTaskParser {
         // timePatterns/timeRangePattern (que se corren primero y dejan "9:30 de la tarde"
         // resuelto); aquí se captura solo lo que sobrevive: la hora simple.
         val standaloneHourPartOfDayMatch =
-            if (explicitTime == null) standaloneHourPartOfDayPattern.find(working) else null
+            if (explicitTime == null) standaloneHourPartOfDayStripPattern.find(working) else null
         val standaloneHourPartOfDayTime = standaloneHourPartOfDayMatch?.let { resolveStandaloneHourPartOfDay(it) }
+        // El propio patrón (standaloneHourPartOfDayStripPattern) ya incluye el prefijo opcional
+        // "de", así replaceRange consume el genitivo junto con la hora ("cita de 5 de la tarde"
+        // → "cita"); el prefijo no capturador no altera los grupos de hora/parte que usa
+        // resolveStandaloneHourPartOfDay.
         standaloneHourPartOfDayMatch?.let { working = working.replaceRange(it.range, " ") }
         // Un tiempo explícito tiene prioridad sobre la hora canónica de la parte del día.
         // Si la hora explícita vino sin meridiem (p.ej. "a las 4") y hay contexto PM de

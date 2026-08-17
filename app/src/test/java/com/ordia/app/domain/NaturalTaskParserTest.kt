@@ -12554,6 +12554,54 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    // --- Genitivo "de" antes de hora suelta con parte del dÃ­a (c.448) ---
+    // En espaÃ±ol, la preposiciÃ³n "de" que introduce un complemento de hora en estilo
+    // genitivo ("cita DE las 5", "reuniÃ³n DE 9 de la noche") es cotidiana y muy frecuente
+    // en captura rÃ¡pida. Antes, [standaloneHourPartOfDayStripPattern] sÃ³lo casaba "N de la
+    // <parte>" empezando en el nÃºmero, dejando el "de" anterior como residuo pegado al
+    // tÃ­tulo ("cita de"). La cita se agendaba bien, pero el tÃ­tulo quedaba mutilado (P1
+    // captura/tÃ­tulo limpio). Ahora el patrÃ³n consume opcionalmente el "de" precedente
+    // (prefijo `(?:\bde\s+)?`), simÃ©trico del fix de "del"/"de" en fechas de nombre de mes.
+    // El guard anti-"de <mes>" (lookahead) sigue filtrando "de 5 de diciembre".
+
+    @Test fun citaDe5DeLaTardeConsumeDeYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("cita de 5 de la tarde", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalTime.of(17, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun reunionDe9DeLaNocheConsumeDeYResuelve21h() {
+        val result = NaturalTaskParser.parse("reuniÃ³n de 9 de la noche", now, zone)
+        assertEquals("reuniÃ³n", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun claseDe3YMediaDeLaTardeConsumeDeYResuelve1530() {
+        val result = NaturalTaskParser.parse("clase de 3 y media de la tarde", now, zone)
+        assertEquals("clase", result.title)
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun citaDe5PersonasDeLaTardeNoRobaContenidoNiResiduoDe() {
+        // AquÃ­ el "de 5 personas" NO es hora: el patrÃ³n NO casa "5 ... de la tarde" (hay
+        // "personas" entre el nÃºmero y "de la tarde"), asÃ­ que NO se roba "5 personas" del
+        // tÃ­tulo. En cambio, "de la tarde" sÃ­ casa como parte-del-dÃ­a suelta y resuelve la
+        // hora canÃ³nica de tarde (15:00), dejando "cita de 5 personas" como contenido.
+        // Confirma que el fix NO introdujo sobre-consumo del nÃºmero en contexto de cantidad.
+        val result = NaturalTaskParser.parse("cita de 5 personas de la tarde", now, zone)
+        assertEquals("cita de 5 personas", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun llamadaDe9DeLaMananaConsumeDeYResuelve9h() {
+        // "manana" (sin Ã±) es aceptado por el patrÃ³n `ma[nÃ±]ana`; se usa ASCII para evitar
+        // problemas de codificaciÃ³n en el string del test. El "de" genitivo se consume.
+        val result = NaturalTaskParser.parse("llamar de 9 de la manana", now, zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+
     // --- Prefijo "casi a las/la" (ciclo 389) ---
     // "casi a las 9" = un poco antes de las 9. Es adverbio de aproximación temporal
     // puro (no admite lectura de cantidad: "casi a las 9 personas" no es gramatical),
