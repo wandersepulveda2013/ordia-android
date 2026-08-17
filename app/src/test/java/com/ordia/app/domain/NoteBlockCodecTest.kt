@@ -236,4 +236,20 @@ class NoteBlockCodecTest {
         assertEquals(NoteBlockType.PARAGRAPH, blocks[8].type)
         assertEquals("Párrafo normal.", blocks[8].text)
     }
+
+    @Test fun toHtmlProducesValidDocumentWithEscapedText() {
+        val blocks = listOf(
+            NoteBlock(type = NoteBlockType.HEADING, text = "Título <script>"),
+            NoteBlock(type = NoteBlockType.PARAGRAPH, text = "A & B"),
+            NoteBlock(type = NoteBlockType.CHECKLIST, text = "Hecho", checked = true),
+            NoteBlock(type = NoteBlockType.DIVIDER)
+        )
+        val html = NoteBlockCodec.toHtml(blocks, "Mi nota")
+        assertTrue(html.startsWith("<!DOCTYPE html>"))
+        assertTrue(html.contains("<title>Mi nota</title>"))
+        assertTrue(html.contains("&lt;script&gt;"))
+        assertTrue(html.contains("A &amp; B"))
+        assertTrue(html.contains("checked"))
+        assertTrue(html.contains("<hr>"))
+    }
 }

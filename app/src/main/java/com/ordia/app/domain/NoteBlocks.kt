@@ -243,6 +243,58 @@ object NoteBlockCodec {
         }
     }
 
+    /** Escapa HTML básico para evitar inyección accidental al exportar. */
+    private fun htmlEscape(text: String): String = text
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+
+    /** Convierte los bloques a un documento HTML autónomo y razonable. */
+    fun toHtml(blocks: List<NoteBlock>, title: String = ""): String = buildString {
+        append("<!DOCTYPE html><html><head><meta charset=\"utf-8\">")
+        if (title.isNotBlank()) append("<title>").append(htmlEscape(title)).append("</title>")
+        append("<style>body{font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;line-height:1.5;color:#1a1a1a}h1,h2,h3{line-height:1.25}blockquote{border-left:3px solid #ccc;margin:0;padding-left:12px;color:#555}code{background:#f4f4f4;padding:2px 4px;border-radius:4px}pre{background:#f4f4f4;padding:12px;border-radius:8px;overflow:auto}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px 10px}hr{border:none;border-top:1px solid #ccc}</style>")
+        append("</head><body>")
+        if (title.isNotBlank()) append("<h1>").append(htmlEscape(title)).append("</h1>")
+        blocks.forEach { block ->
+            val text = htmlEscape(block.plainText)
+            when (block.type) {
+                NoteBlockType.HEADING -> append("<h1>").append(text).append("</h1>")
+                NoteBlockType.HEADING_2 -> append("<h2>").append(text).append("</h2>")
+                NoteBlockType.HEADING_3 -> append("<h3>").append(text).append("</h3>")
+                NoteBlockType.SUBTITLE -> append("<h4>").append(text).append("</h4>")
+                NoteBlockType.CHECKLIST -> {
+                    val box = if (block.checked) "checked" else ""
+                    append("<div><input type=\"checkbox\" $box disabled> ").append(text).append("</div>")
+                }
+                NoteBlockType.BULLET -> append("<ul><li>").append(text).append("</li></ul>")
+                NoteBlockType.NUMBERED -> append("<ol><li>").append(text).append("</li></ol>")
+                NoteBlockType.QUOTE -> append("<blockquote>").append(text).append("</blockquote>")
+                NoteBlockType.DIVIDER -> append("<hr>")
+                NoteBlockType.CODE -> append("<pre><code>").append(text).append("</code></pre>")
+                NoteBlockType.IMAGE -> append("<p><img src=\"").append(block.attachmentUri).append("\" alt=\"").append(htmlEscape(block.attachmentName)).append("\"></p>")
+                NoteBlockType.FILE, NoteBlockType.SCANNER -> append("<p>📄 <a href=\"").append(block.attachmentUri).append("\">").append(htmlEscape(block.attachmentName)).append("</a></p>")
+                NoteBlockType.AUDIO -> append("<p>🔊 <a href=\"").append(block.attachmentUri).append("\">").append(htmlEscape(block.attachmentName)).append("</a></p>")
+                NoteBlockType.DRAWING -> append("<p>🎨 dibujo</p>")
+                NoteBlockType.HANDWRITING -> append("<p>✍ escritura a mano</p>")
+                NoteBlockType.TABLE -> {
+                    if (block.tableRows.isNotEmpty()) {
+                        append("<table>")
+                        block.tableRows.forEachIndexed { idx, row ->
+                            append("<tr>")
+                            row.forEach { cell -> append(if (idx == 0) "<th>" else "<td>").append(htmlEscape(cell)).append(if (idx == 0) "</th>" else "</td>") }
+                            append("</tr>")
+                        }
+                        append("</table>")
+                    }
+                }
+                NoteBlockType.LINK -> append("<p><a href=\"").append(block.attachmentUri).append("\">").append(htmlEscape(block.linkTitle.ifBlank { block.attachmentUri })).append("</a></p>")
+                NoteBlockType.PARAGRAPH -> if (text.isNotBlank()) append("<p>").append(text).append("</p>")
+            }
+        }
+        append("</body></html>")
+    }
+
     /**
      * Importa Markdown a bloques. Soporta: títulos (numerales), checklist (- [x] / - [ ]),
      * viñetas (- o asterisco), numeradas (N.), citas (>), código fence (tres backticks),

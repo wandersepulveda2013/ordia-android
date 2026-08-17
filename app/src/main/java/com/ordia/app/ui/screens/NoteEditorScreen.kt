@@ -45,6 +45,7 @@ import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Description
@@ -866,6 +867,25 @@ private fun EditorOverflowMenu(
                         type = "text/markdown"
                         putExtra(Intent.EXTRA_SUBJECT, n.title.ifBlank { "nota" })
                         putExtra(Intent.EXTRA_TEXT, md)
+                    }
+                    runCatching {
+                        context.startActivity(Intent.createChooser(send, null).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                    }
+                }
+            }
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.notes_export_html)) },
+            leadingIcon = { Icon(Icons.Outlined.Code, null) },
+            onClick = {
+                note?.let { n ->
+                    val html = NoteBlockCodec.toHtml(blocks, n.title)
+                    val send = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/html"
+                        putExtra(Intent.EXTRA_SUBJECT, n.title.ifBlank { "nota" })
+                        putExtra(Intent.EXTRA_TEXT, html)
                     }
                     runCatching {
                         context.startActivity(Intent.createChooser(send, null).apply {
