@@ -2071,6 +2071,14 @@ object NaturalTaskParser {
         "sept" to 9, "oct" to 10, "nov" to 11, "dic" to 12
     )
 
+    /** Nombre canónico de cada mes (1..12) para inferir el mes de CIERRE en rangos
+     *  de día suelto que cruzan de mes ("del 31 de diciembre al 2" → cierre en enero). */
+    private val monthNameByIndex = mapOf(
+        1 to "enero", 2 to "febrero", 3 to "marzo", 4 to "abril",
+        5 to "mayo", 6 to "junio", 7 to "julio", 8 to "agosto",
+        9 to "septiembre", 10 to "octubre", 11 to "noviembre", 12 to "diciembre"
+    )
+
     private val categories = listOf(
         "trabajo" to listOf("reunión", "reunion", "informe", "reporte", "cliente", "contrato", "presentación", "presentacion", "entregar", "proyecto", "oficina", "correo", "email", "junta", "gerente", "jefe"),
         "compras" to listOf("comprar", "compra", "supermercado", "mercado", "farmacia", "tienda", "recados", "mandado", "leche", "víveres", "viveres"),
@@ -2088,6 +2096,41 @@ object NaturalTaskParser {
      */
     private val explicitCategoryPattern =
         Regex("""(?i)[#@](${categories.joinToString("|") { Regex.escape(it.first) }})\b""")
+
+    /**
+     * Reescritura compartida de los rangos "del D1 de MES [del A1] al D2" /
+     * "entre el D1 de MES [del A1] y el D2" (día de CIERRE suelto, sin mes).
+     * Ancla al CIERRE reescribiendo a "el D2 de <mesCierre> [del <añoCierre>]"
+     * para reutilizar TODO el flujo [monthNamePattern]. El mes de CIERRE se
+     * infiere: si D2 >= D1 el cierre es el mismo mes de inicio; si D2 < D1 el
+     * rango cruza al mes SIGUIENTE ("del 31 de diciembre al 2" → "el 2 de
+     * enero"), con roll de año cuando el paso diciembre→enero y el año venía
+     * explícito. Sin año explícito, [monthNamePattern] aplica su roll anual.
+     * Exige mes de inicio válido contra `months` (no agenda contenido).
+     */
+    private fun rewriteStartMonthBareEndDayRange(
+        m: MatchResult, startDayIdx: Int, monthIdx: Int, yearIdx: Int, endDayIdx: Int
+    ): CharSequence {
+        val monthTok = m.groupValues[monthIdx].lowercase()
+        val startMonthNum = months[monthTok] ?: return m.value
+        val startDay = m.groupValues[startDayIdx].trim().toIntOrNull() ?: return m.value
+        val endDay = m.groupValues[endDayIdx].trim()
+        val endDayNum = endDay.toIntOrNull() ?: return m.value
+        val year = m.groupValues[yearIdx].trim()
+
+        val crossMonth = endDayNum < startDay
+        val (endMonthName, endYear) = if (crossMonth) {
+            val next = if (startMonthNum == 12) 1 else startMonthNum + 1
+            val rolledYear = if (year.isNotEmpty() && startMonthNum == 12) {
+                (year.toIntOrNull()?.plus(1))?.toString() ?: year
+            } else year
+            (monthNameByIndex[next] ?: monthTok) to rolledYear
+        } else {
+            monthTok to year
+        }
+        return if (endYear.isNotEmpty()) "el $endDay de $endMonthName del $endYear"
+        else "el $endDay de $endMonthName"
+    }
 
     fun parse(text: String, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): ParsedTaskInput {
         val base = Instant.ofEpochMilli(now).atZone(zone)
@@ -2196,24 +2239,17 @@ object NaturalTaskParser {
         // Rango con mes en el extremo INICIAL y día de CIERRE suelto: "del 15 de diciembre
         // al 20", "entre el 15 de diciembre y el 20", "del 31 de diciembre al 2". Va DESPUÉS
         // de crossMonth/dayRange (ésos exigen mes en la posición del cierre) y ANTES de
-        // monthNamePattern para anclar al CIERRE reescribiendo a "el D2 de MES [del A1]".
-        // Exige mes de inicio válido contra `months`; el lookahead de cierre evita tragarse
-        // la forma cross-mes (cierre con su propio mes). Conector "entre...y" primero.
+        // monthNamePattern para anclar al CIERRE reescribiendo a "el D2 de <mesCierre>
+        // [del <añoCierre>]". El mes de CIERRE: si D2 >= D1 es el mismo mes ("del 15 de
+        // diciembre al 20" → 20 de diciembre); si D2 < D1 el cierre cruza al mes SIGUIENTE
+        // ("del 31 de diciembre al 2" → 2 de enero), con roll de año si diciembre→enero y
+        // el año era explícito. Exige mes de inicio válido contra `months`; el lookahead de
+        // cierre evita tragarse la forma cross-mes (cierre con su propio mes). "entre...y" primero.
         working = entreStartMonthBareEndDayRangePattern.replace(working) { m ->
-            val monthTok = m.groupValues[2].lowercase()
-            if (monthTok !in months) return@replace m.value
-            val endDay = m.groupValues[4]
-            val year = m.groupValues[3].trim()
-            if (year.isNotEmpty()) "el $endDay de $monthTok del $year"
-            else "el $endDay de $monthTok"
+            rewriteStartMonthBareEndDayRange(m, startDayIdx = 1, monthIdx = 2, yearIdx = 3, endDayIdx = 4)
         }
         working = startMonthBareEndDayRangePattern.replace(working) { m ->
-            val monthTok = m.groupValues[2].lowercase()
-            if (monthTok !in months) return@replace m.value
-            val endDay = m.groupValues[4]
-            val year = m.groupValues[3].trim()
-            if (year.isNotEmpty()) "el $endDay de $monthTok del $year"
-            else "el $endDay de $monthTok"
+            rewriteStartMonthBareEndDayRange(m, startDayIdx = 1, monthIdx = 2, yearIdx = 3, endDayIdx = 4)
         }
 
         // Rango de días de la SEMANA como evento único ("del martes al jueves") → "el jueves"

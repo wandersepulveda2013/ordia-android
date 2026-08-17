@@ -305,4 +305,62 @@ class NaturalTaskParserDayRangeTest {
         val r = parse("feria del 3 de unidades al 5")
         assertNull("sin mes válido no debe agendar fecha falsa", r.dueAt)
     }
+
+    // --- c.446-regression: día de CIERRE suelto con D2 < D1 cruza al mes SIGUIENTE ---
+    // Antes el cierre caía en el MISMO mes ("del 31 de diciembre al 2" → 2 de diciembre),
+    // quedando ANTES que la apertura (31). El cierre correcto es el mes siguiente (enero).
+    // Sin año explícito, monthNamePattern aplica su roll anual desde `now` (2026-08-17).
+
+    @Test fun rangoMesInicioDiaCierreSueltoCruzaMesSiguiente() {
+        assertEquals(
+            LocalDate.of(2027, 1, 2),
+            dueDate("feria del 31 de diciembre al 2")
+        )
+    }
+
+    @Test fun rangoMesInicioDiaCierreSueltoCruzaMesSiguienteEntre() {
+        assertEquals(
+            LocalDate.of(2027, 1, 2),
+            dueDate("feria entre el 31 de diciembre y el 2")
+        )
+    }
+
+    @Test fun rangoMesInicioDiaCierreSueltoCruzaFebreroAMarzo() {
+        assertEquals(
+            LocalDate.of(2027, 3, 2),
+            dueDate("feria del 28 de febrero al 2")
+        )
+    }
+
+    @Test fun rangoMesInicioDiaCierreSueltoCruzaEneroAFebrero() {
+        assertEquals(
+            LocalDate.of(2027, 2, 3),
+            dueDate("feria del 30 de enero al 3")
+        )
+    }
+
+    @Test fun rangoMesInicioDiaCierreSueltoCruzaMesAnioExplicito() {
+        // Año explícito + cruce diciembre→enero: el cierre rola al año siguiente.
+        assertEquals(
+            LocalDate.of(2027, 1, 2),
+            dueDate("feria del 31 de diciembre del 2026 al 2")
+        )
+    }
+
+    @Test fun rangoMesInicioDiaCierreSueltoCruzaMesRespetaHora() {
+        val r = parse("feria del 31 de diciembre al 2 a las 9")
+        assertEquals("feria", r.title.trim())
+        val dt = r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone) }
+        assertNotNull("debe producir vencimiento", dt)
+        assertEquals(LocalDate.of(2027, 1, 2), dt!!.toLocalDate())
+        assertEquals(9, dt.hour)
+    }
+
+    @Test fun rangoMesInicioDiaCierreSueltoMismoMesCuandoD2Mayor() {
+        // D2 >= D1 → mismo mes (no debe regresar a la rama cross-mes).
+        assertEquals(
+            LocalDate.of(2026, 12, 20),
+            dueDate("feria del 15 de diciembre al 20")
+        )
+    }
 }
