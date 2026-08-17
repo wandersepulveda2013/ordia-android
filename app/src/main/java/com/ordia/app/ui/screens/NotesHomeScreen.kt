@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -74,6 +75,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -450,16 +452,37 @@ private fun NoteCard(
     val date = remember(note.updatedAt) {
         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(note.updatedAt))
     }
+    val cardColor = remember(note.colorHex) {
+        note.colorHex.takeIf { it.isNotBlank() }?.let {
+            runCatching { android.graphics.Color.parseColor(it) }.getOrNull()
+        }
+    }
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = if (cardColor != null) {
+            androidx.compose.ui.graphics.Color(cardColor).copy(alpha = 0.35f)
+                .compositeOver(MaterialTheme.colorScheme.surface)
+        } else MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp
     ) {
         val pad = if (mode == NoteViewMode.COMPACT) 8.dp else 14.dp
-        Column(Modifier.padding(pad)) {
+        Row(Modifier.padding(pad)) {
+            if (cardColor != null) {
+                Box(
+                    Modifier
+                        .width(4.dp)
+                        .height(36.dp)
+                        .background(
+                            androidx.compose.ui.graphics.Color(cardColor),
+                            RoundedCornerShape(2.dp)
+                        )
+                )
+                Spacer(Modifier.width(10.dp))
+            }
+            Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
                     val title = note.title.ifBlank { excerpt.take(60) }
@@ -502,8 +525,9 @@ private fun NoteCard(
                 Spacer(Modifier.height(6.dp))
                 Text(date, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-        }
-    }
+            } // Column
+        } // Row
+    } // Surface
 }
 
 @Composable

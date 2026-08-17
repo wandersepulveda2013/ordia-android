@@ -7,6 +7,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -58,6 +60,7 @@ import androidx.compose.material.icons.outlined.FormatUnderlined
 import androidx.compose.material.icons.outlined.HorizontalRule
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Lock
@@ -71,6 +74,7 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.Title
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -808,6 +812,7 @@ private fun EditorOverflowMenu(
     onHistory: () -> Unit,
     onDelete: () -> Unit
 ) {
+    var colorPickerOpen by remember { mutableStateOf(false) }
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         DropdownMenuItem(
             text = { Text(stringResource(R.string.notes_pin)) },
@@ -880,6 +885,11 @@ private fun EditorOverflowMenu(
             leadingIcon = { Icon(Icons.Outlined.History, null) },
             onClick = onHistory
         )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.notes_color)) },
+            leadingIcon = { Icon(Icons.Outlined.Palette, null) },
+            onClick = { colorPickerOpen = true }
+        )
         HorizontalDivider()
         DropdownMenuItem(
             text = { Text(stringResource(R.string.notes_delete)) },
@@ -887,6 +897,73 @@ private fun EditorOverflowMenu(
             onClick = onDelete
         )
     }
+    if (colorPickerOpen) {
+        NoteColorPickerDialog(
+            current = note?.colorHex ?: "",
+            onPick = { hex ->
+                note?.let { vm.setNoteColor(it.id, hex) }
+                colorPickerOpen = false
+            },
+            onDismiss = { colorPickerOpen = false }
+        )
+    }
+}
+
+private val NOTE_COLOR_PALETTE = listOf(
+    "" to "Ninguno",
+    "#FBF3E2" to "Arena",
+    "#F3E9F7" to "Lila",
+    "#E7F1F6" to "Cielo",
+    "#EAF3E8" to "Menta",
+    "#FCE9E4" to "Coral",
+    "#F7F0E0" to "Vainilla",
+    "#EDEDED" to "Grafito claro"
+)
+
+@Composable
+private fun NoteColorPickerDialog(
+    current: String,
+    onPick: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {},
+        title = { Text(stringResource(R.string.notes_color)) },
+        text = {
+            Column {
+                NOTE_COLOR_PALETTE.forEach { (hex, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onPick(hex) }
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(
+                                    if (hex.isEmpty()) MaterialTheme.colorScheme.surfaceVariant
+                                    else androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(hex)),
+                                    androidx.compose.foundation.shape.CircleShape
+                                )
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline,
+                                    androidx.compose.foundation.shape.CircleShape
+                                )
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            label + if (hex == current) "  ✓" else "",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        }
+    )
 }
 
 @Composable
