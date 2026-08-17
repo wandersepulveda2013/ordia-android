@@ -1031,6 +1031,71 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.540: presente de "decir" (digo/decimos) — la forma de promesa de
+    // comunicación que c.537 dejaba explícitamente para análisis de precisión
+    // por la frecuencia de mandatos indirectos al 3º ("le digo que venga
+    // mañana"). Se integra solo en las TRES ramas con-clítico de
+    // commitmentSignal (grupo `te`, grupo `le`, grupo OD pronominal) con guarda
+    // anti-mandato-3º `(?!\s+que\b)`. La forma PELADA se excluye a propósito
+    // (mayor ambigüedad de mandato sin clítico). Probe JVM PRE-fix: 7/7 MISSED.
+    @Test
+    fun detectsCliticPresentSayCommitment() {
+        val positives = listOf(
+            "te lo digo mañana",
+            "te lo digo el viernes",
+            "le digo al cliente el viernes",
+            "se lo digo el lunes",
+            "te lo decimos el viernes",
+            "le decimos el lunes",
+            "te digo el resultado mañana"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "say-clitic-$text"
+            )
+            assertTrue("presente con-clítico de decir DEBE detectarse como compromiso: \"$text\"", result.isNotEmpty())
+        }
+    }
+
+    @Test
+    fun cliticPresentSayExcludesIndirectCommand() {
+        // Precisión: "le/te digo que + subjuntivo" es MANDATO al 3º, NO promesa.
+        // La guarda (?!\s+que\b) lo excluye (cae a MISSED, no falso positivo).
+        val negatives = listOf(
+            "le digo que venga mañana",
+            "le digo que llame el viernes",
+            "te digo que venga mañana",
+            "le decimos que venga el lunes"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "say-neg-$text"
+            )
+            assertEquals("precisión decir: mandato indirecto NO debe disparar como compromiso: \"$text\"", 0, result.size)
+        }
+    }
+
+    @Test
+    fun cliticPresentSayRespectsNegation() {
+        val negatives = listOf(
+            "no te lo digo nunca",
+            "no le digo nada al cliente",
+            "no se lo decimos el lunes"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "say-neg2-$text"
+            )
+            assertEquals("precisión decir: negación NO debe disparar: \"$text\"", 0, result.size)
+        }
+    }
+
     // c.538: subjuntivo de 2ª persona con objeto nominal + fecha — MANDATO
     // INDIRECTO elíptico ("que revises el contrato mañana"). 5ª forma de la
     // familia de peticiones directas. La guarda exige "que" al inicio de la

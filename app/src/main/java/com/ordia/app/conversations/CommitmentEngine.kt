@@ -559,11 +559,30 @@ object CommitmentEngine {
         // determinante [determiners] de c.512 lo protege igual que a pago/aviso por
         // si acaso). La guarda precedingNegation excluye "no notifico"/"no le
         // notifico"/"no te notificamos" igual que "no aviso"/"no le aviso". Determinista
-        // (regex), sin random, sin IA fingida. "decir" (digo/decimos) se deja para
-        // otro ciclo: su lexema irregular y la frecuencia de mandatos indirectos
-        // ("le digo que venga mañana" = mandato al 3º, no promesa) exigen análisis de
-        // precisión aparte. Probe JVM POST-fix: 9/9 positivos, 7/7 negativos.
-        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|me\s+toca\s+(?:$pendingActionInfinitives)|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo|notifico|llamamos|enviamos|respondemos|avisamos|confirmamos|pasamos|mandamos|pagamos|hablamos|escribimos|notificamos)|despu[eé]s\s+te\s+respondo|(?:debo|debemos)|(?:tengo|tenemos)\s+que|(?:hagamos|terminemos|entreguemos|revisemos|preparemos|arreglemos|subamos|dejemos|pasemos|mandemos|enviemos|llamemos|hablemos|escribamos|paguemos)|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+|te\s+|le\s+)?(?:voy\s+a|vamos\s+a|terminar[eé]|terminaremos|har[eé]|haremos|entregar[eé]|entregaremos|revisar[eé]|revisaremos|preparar[eé]|prepararemos|arreglar[eé]|arreglaremos|subir[eé]|subiremos|dejar[eé]|dejaremos|pasar[eé]|pasaremos|mandar[eé]|mandaremos|enviar[eé]|enviaremos|llamar[eé]|llamaremos|hablar[eé]|hablaremos|escribir[eé]|escribiremos|avisar[eé]|avisaremos|notificar[eé]|notificaremos|dir[eé]|diremos)|lo\s+hago|lo\s+hacemos|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|notifico|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos|notificamos)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago|notifico|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|pagamos|notificamos))\b"""
+        // (regex), sin random, sin IA fingida. Probe JVM POST-fix: 9/9 positivos, 7/7 negativos.
+        // c.540: "decir" (digo/decimos) en presente, que c.537 dejaba explícitamente
+        // para análisis de precisión por la frecuencia de mandatos indirectos al 3º
+        // ("le digo que venga mañana" = mandato al tercero, NO promesa del usuario),
+        // se integra ahora con guarda de precisión. Se añade digo/decimos a las TRES
+        // ramas con-clítico de commitmentSignal: grupo `te` ("te digo el resultado
+        // mañana"), grupo `le` ("le digo al cliente el viernes") y grupo OD pronominal
+        // ("te lo digo mañana", "se lo digo el lunes", "te lo decimos el viernes"). La
+        // guarda anti-mandato-3º es un negative-lookahead `(?!\s+que\b)` aplicado SOLO
+        // a los grupos `te`/`le` (donde puede seguir una subordinada "que + subjuntivo"):
+        // "le digo que venga mañana" falla el lookahead (cae a MISSED, no falso
+        // positivo) mientras "le digo al cliente el viernes" pasa (no hay "que"). El
+        // grupo OD NO lleva la guarda porque con OD pronominal ("te lo digo") la
+        // subordinada mandato no es gramatical ("te lo digo que venga" no se dice) y
+        // la guarda sería redundante. La forma PELADA ("digo el resultado mañana",
+        // sin clítico) NO se añade a barePresentCommitmentSignal a propósito: su
+        // riesgo de mandato ("digo que venga mañana") sin clítico es mayor y la forma
+        // natural es con clítico ("te digo"); la exclusión de la pelada ambigua es
+        // preferible al falso positivo. "digo" como sustantivo es rarísimo (la guarda
+        // de negación precedingNegation excluye "no te lo digo nunca"). Determinista
+        // (regex + lookahead), sin random, sin IA fingida. Probe JVM POST-fix:
+        // 7/7 positivos SELF_COMMITMENT, 4/4 negativos OK (incluido "le digo que venga
+        // mañana" correctamente excluido).
+        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|me\s+toca\s+(?:$pendingActionInfinitives)|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo|notifico|digo(?!\s+que\b)|decimos(?!\s+que\b)|llamamos|enviamos|respondemos|avisamos|confirmamos|pasamos|mandamos|pagamos|hablamos|escribimos|notificamos)|despu[eé]s\s+te\s+respondo|(?:debo|debemos)|(?:tengo|tenemos)\s+que|(?:hagamos|terminemos|entreguemos|revisemos|preparemos|arreglemos|subamos|dejemos|pasemos|mandemos|enviemos|llamemos|hablemos|escribamos|paguemos)|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+|te\s+|le\s+)?(?:voy\s+a|vamos\s+a|terminar[eé]|terminaremos|har[eé]|haremos|entregar[eé]|entregaremos|revisar[eé]|revisaremos|preparar[eé]|prepararemos|arreglar[eé]|arreglaremos|subir[eé]|subiremos|dejar[eé]|dejaremos|pasar[eé]|pasaremos|mandar[eé]|mandaremos|enviar[eé]|enviaremos|llamar[eé]|llamaremos|hablar[eé]|hablaremos|escribir[eé]|escribiremos|avisar[eé]|avisaremos|notificar[eé]|notificaremos|dir[eé]|diremos)|lo\s+hago|lo\s+hacemos|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|notifico|digo(?!\s+que\b)|decimos(?!\s+que\b)|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos|notificamos)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago|notifico|digo|decimos|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|pagamos|notificamos))\b"""
 
     )
     // c.500: presente de 1ª persona SIN pronombre de objeto + marca temporal futura
