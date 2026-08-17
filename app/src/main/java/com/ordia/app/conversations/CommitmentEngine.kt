@@ -411,8 +411,17 @@ object CommitmentEngine {
     // Nace como draft SELF_COMMITMENT PENDING revisable: un falso positivo se
     // descarta, un falso negativo es una promesa olvidada (área "evitar olvidos" +
     // "detección de compromisos", P1).
+    // c.526: asimetría de número. c.500/c.512 añadieron la 1ª persona SINGULAR
+    // del presente pelado (termino/entrego/.../pago) con marca temporal futura,
+    // pero la 1ª persona PLURAL ("terminamos/entregamos/.../pagamos el viernes")
+    // — un compromiso compartido cotidiano — caía a MISSED → olvido de una
+    // promesa real. Se añaden las conjugaciones plurales del MISMO conjunto de
+    // verbos ya admitido en singular; reutilizan el mismo discriminador
+    // (dueAt futuro + !hoy + recurrencia NONE + no negado + sin determinante/
+    // clítico/prep genitiva previos). "enviamos" no tiene variante acentual (el
+    // singular usaba env[ií]o para "envio"/"envío"). Probe JVM POST-fix: 7/7.
     private val barePresentCommitmentSignal = Regex(
-        """(?iU)\b(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago)\b"""
+        """(?iU)\b(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos)\b"""
     )
     private val locationSignal = Regex(
         """(?i)\b(?:lugar\s*:\s*|(?:nos\s+vemos|reuni[oó]n|cita)[^.!?\n]{0,80}?\ben\s+)([\p{L}\d][\p{L}\d .,'-]{2,50})"""

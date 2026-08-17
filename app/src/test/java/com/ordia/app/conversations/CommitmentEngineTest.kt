@@ -665,6 +665,65 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.526: cierra la asimetría de número del presente pelado. c.500/c.512
+    // detectaban la 1ª persona SINGULAR ("termino/entrego/.../pago") con marca
+    // temporal futura, pero la 1ª persona PLURAL ("terminamos/entregamos/.../
+    // pagamos el viernes") — un compromiso cotidiano compartido ("lo hacemos
+    // juntos el viernes") — caía a MISSED → olvido de una promesa real. Las
+    // formas plurales son conjugaciones del MISMO conjunto de verbos ya admitido
+    // en singular; reutilizan el mismo discriminador (dueAt futuro + !hoy +
+    // recurrencia NONE + no negado + sin determinante/clítico/prep genitiva
+    // previos). Como en c.500, el discriminador es la marca temporal, no el
+    // verbo aislado: "terminamos el informe manana" (compromiso) vs
+    // "revisamos el correo cada manana" (rutina, dueAt + DAILY). Probe JVM
+    // POST-fix: 7/7 detectados como SELF_COMMITMENT con dueAt futuro.
+    @Test
+    fun barePresentPluralVerbsWithFutureMarkerAreDetected() {
+        val positives = listOf(
+            "terminamos el informe manana",
+            "entregamos el reporte el viernes",
+            "enviamos la propuesta esta semana",
+            "subimos el archivo en un rato",
+            "preparamos la presentacion para el lunes",
+            "revisamos el contrato manana",
+            "pagamos el alquiler el viernes"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c526-pos-$text"
+            )
+            assertTrue(
+                "\"$text\" (presente plural + marca futura) debe generar draft SELF_COMMITMENT",
+                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
+    // c.526: precisión simétrica a c.500/c.512. El presente plural sin marca
+    // temporal futura (dueAt null), en rutina (DAILY), con "hoy" (ambiguo), o
+    // negado, NO debe generar draft. Probe JVM POST-fix: 4/4 excluidos.
+    @Test
+    fun barePresentPluralVerbsAreNotFlaggedWithoutFutureMarker() {
+        val innocent = listOf(
+            "revisamos el correo cada manana",
+            "pedimos pizza",
+            "terminamos el informe hoy",
+            "no pagamos el alquiler el viernes"
+        )
+        innocent.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c526-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
 
     // c.514: cierra la asimetría CON-clítico de pago/respondo/aviso/confirmo.
     // c.512 los añadió a la rama PELADA pero NO a la con-clítico, así que las
