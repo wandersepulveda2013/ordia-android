@@ -1446,6 +1446,43 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // Cobertura de cadencia mensual: "del N de todos los meses", "del N todos los
+    // meses", "del N mensual", "del N mensualmente" son formas cotidianas de los
+    // compromisos periódicos más frecuentes (renta/pago/factura/cuota). Antes estas
+    // cadencias NO casaban monthlyDayPattern (que sólo admitía "de/del mes"/"de cada
+    // mes"), así el día N caía sin anclaje → el vencimiento se programaba HOY
+    // (incorrecto) y la recurrencia MONTHLY nacía SIN saber qué día repetir
+    // (recurrenceDays='' → el motor derivaba al día de captura). Un compromiso
+    // periódico nacía con fecha Y recurrencia incorrectas. Simétrico de "del N de
+    // cada mes": la cadencia se reconoce y ancla al día N del mes.
+    @Test fun rentaDel15DeTodosLosMesesAnclaAlDia15() {
+        val result = NaturalTaskParser.parse("renta del 15 de todos los meses", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun rentaDel15TodosLosMesesAnclaAlDia15() {
+        val result = NaturalTaskParser.parse("renta del 15 todos los meses", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun rentaDel15MensualAnclaAlDia15() {
+        val result = NaturalTaskParser.parse("renta del 15 mensual", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun pagoDel30MensualmenteAnclaAlDia30() {
+        val result = NaturalTaskParser.parse("pago del 30 mensualmente", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // Adjetivo de recurrencia + frase anclada coexistentes: "pago mensual el 15 de
     // cada mes". El adjetivo "mensual" expresa la cadencia (ya dicha por "el 15 de
     // cada mes") y NO es contenido; antes filtraba al título ("pago mensual") porque

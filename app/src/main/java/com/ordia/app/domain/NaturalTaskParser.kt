@@ -4926,8 +4926,16 @@ object NaturalTaskParser {
         // introductor de la fecha mensual ("renta del 15 de cada mes") para que no
         // quede como residuo del título. Simétrico de c.448; el "del" de contenido se
         // respeta porque el prefijo es opcional y único ("cuenta del banco del 15...").
+        // c.467: la CADENCIA se amplía más allá de "de/del mes"/"de cada mes" para
+        // cubrir las formas cotidianas de los compromisos periódicos más frecuentes
+        // (renta/pago/factura/cuota): "de todos los meses", "todos los meses",
+        // "mensual", "mensualmente". Antes estas NO casaban → el día N caía sin
+        // anclaje y el vencimiento se programaba HOY (incorrecto) con recurrencia
+        // MONTHLY sin saber qué día repetir. El lookahead negativo (sólo en la rama
+        // "mes") descarta "del mes actual/entrante/próximo/que viene" (fecha única, no
+        // recurrente); las formas "todos los meses"/"mensual" no tienen esa ambigüedad.
         val monthlyDayPattern =
-            Regex("""(?i)\b(?:\bdel?\s+)?(?:cada|el|los)?\s*(?:d[ií]a\s+)?(\d{1,2})\s+(?:de|del)\s+(?:cada\s+)?mes(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))""")
+            Regex("""(?i)\b(?:\bdel?\s+)?(?:cada|el|los)?\s*(?:d[ií]a\s+)?(\d{1,2})\s+(?:(?:de|del)\s+(?:cada\s+)?mes(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))|(?:de\s+)?todos\s+los\s+meses|mensual(?:mente|idades)?)""")
         monthlyDayPattern.find(working)?.let { match ->
             val day = match.groupValues[1].toIntOrNull()?.coerceIn(1, 31) ?: return@let
             phrases += match.range
