@@ -157,8 +157,14 @@ object AssistantEngine {
                 }
             }
             isAgendaQuery(query) -> agendaAnswer(query, active, overdueCommitments, now, zone)
-            "que olvide" in query || "olvidado" in query || "vencid" in query -> {
+            "que olvide" in query || "olvidado" in query || "atrasad" in query || "vencid" in query -> {
                 // Partición honesta: "vencid" pregunta por vencidas (dueAt pasado);
+                // "atrasad" es el sinónimo cotidiano de "overdue" en español — la
+                // palabra MÁS natural — y pregunta por lo mismo pero la rama sólo
+                // reconocía "vencid", así "¿qué tengo atrasado?"/"atrasadas" caía al
+                // menú genérico sin recuperar la vencida más urgente. Como
+                // "olvidado", "atrasad" es intención de recuperación (nombra la
+                // vencida más urgente y ofrece reprogramar), no un conteo frío.
                 // "qué olvidé"/"olvidado" pregunta por olvidos, y un compromiso
                 // agendado cuyo hueco pasó (TaskRules.isMissedStart — el "olvido
                 // silencioso") ES un olvido aunque el plazo aún no vuele. Antes esto
@@ -166,7 +172,7 @@ object AssistantEngine {
                 // se pasó: mentía por omisión en la superficie de recuperación. Cierra
                 // la simetría con What Now (c.203) y el guardián (c.201), reusando
                 // WhatNowEngine.ordered para elegir el olvido más urgente.
-                val forgottenIntent = "que olvide" in query || "olvidado" in query
+                val forgottenIntent = "que olvide" in query || "olvidado" in query || "atrasad" in query
                 if (overdue.isNotEmpty()) {
                     if (forgottenIntent) {
                         // "¿Qué olvidé?" pide recuperar QUÉ se pasó, no un conteo frío.

@@ -360,6 +360,54 @@ class AssistantEngineTest {
         assertTrue("no inventa olvidos: ${answer.text}", answer.text.contains("No tienes tareas vencidas") || answer.text.contains("olvidad"))
     }
 
+    // c.438: "¿qué tengo atrasado?" / "atrasadas" — la palabra más natural en
+    // español para "overdue" — caía al MENÚ GENÉRICO en vez de la rama de
+    // recuperación (que nombra la vencida más urgente y ofrece reprogramar).
+    // La rama sólo reconocía "vencid"; "atrasad" es disjunto y se perdía.
+    @Test fun atrasado_recoversMostUrgentOverdueTask() {
+        val now = 1_000_000_000_000L
+        val overdue = TaskEntity(id = 7, title = "Pagar factura", dueAt = now - 3 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿qué tengo atrasado?",
+            listOf(overdue),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la atrasada: ${answer.text}", answer.text.contains("Pagar factura"))
+        assertEquals("ofrece reprogramar como la rama de olvido: ${answer.action}", AssistantAction.RUN_REPLAN, answer.action)
+    }
+
+    @Test fun atrasadas_recoversOverdueCount() {
+        // Plural "atrasadas" también es intención de recuperación: nombra/enumera,
+        // no cae al menú genérico.
+        val now = 1_000_000_000_000L
+        val a = TaskEntity(id = 1, title = "Atrasada A", dueAt = now - 2 * 86_400_000L)
+        val b = TaskEntity(id = 2, title = "Atrasada B", dueAt = now - 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "atrasadas",
+            listOf(a, b),
+            emptyList(), emptyList(),
+            now
+        )
+        assertFalse("no cae al menú genérico: ${answer.text}", answer.text.contains("Puedo organizar tu día"))
+        assertEquals(AssistantAction.RUN_REPLAN, answer.action)
+    }
+
+    @Test fun atrasado_doesNotInventWhenNothingOverdue() {
+        // Guard IA-honesta: sin vencidas, "atrasado" no inventa olvidos.
+        val now = 1_000_000_000_000L
+        val plain = TaskEntity(id = 1, title = "Normal sin fecha")
+        val answer = AssistantEngine.answer(
+            "atrasado",
+            listOf(plain),
+            emptyList(), emptyList(),
+            now
+        )
+        assertFalse("no inventa atrasos: ${answer.text}", answer.text.contains("Pagar factura"))
+        assertTrue("dice honestamente que no hay: ${answer.text}",
+            answer.text.contains("No tienes tareas vencidas") || answer.text.contains("olvidad"))
+    }
+
     @Test fun forgottenIntent_recoversStaleInboxCaptureWhenNoOverdueOrMissedStart() {
         // "¿Qué olvidé?" debe recuperar la captura arrinconada en la bandeja SIN
         // fecha, igual que el guardián (c.201): una idea capturada hace semanas y
