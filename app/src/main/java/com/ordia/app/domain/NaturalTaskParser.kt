@@ -1526,10 +1526,11 @@ object NaturalTaskParser {
     )
     /**
      * Verbo de recordatorio sin cantidad explícita: "recuérdame llamar a mamá mañana",
-     * "avísame pagar la luz el viernes", "no dejes que olvide...". El usuario pide un
-     * recordatorio pero no dice cuánto antes; antes el verbo quedaba como residuo en el
-     * título y NO se programaba ningún recordatorio (la cita se olvidaba aunque el
-     * usuario lo hubiera pedido expresamente). Aquí se detecta la intención para:
+     * "avísame pagar la luz el viernes", "no dejes que olvide...", "recordarme llamar
+     * al dentista mañana". El usuario pide un recordatorio pero no dice cuánto antes;
+     * antes el verbo quedaba como residuo en el título y NO se programaba ningún
+     * recordatorio (la cita se olvidaba aunque el usuario lo hubiera pedido
+     * expresamente). Aquí se detecta la intención para:
      * (a) limpiar el verbo del título y (b) aplicar un offset de respaldo (30 min)
      * cuando hay fecha límite — sin dueAt no se puede programar reminderAt, así que no
      * se falsifica nada. Simétrico con `UniversalCaptureEngine.reminderSignal`.
@@ -1541,9 +1542,21 @@ object NaturalTaskParser {
      * blanquearse (lo mutilaba a "leer el del profesor"). El negative lookbehind
      * permite `recordatorio` solo al inicio o tras puntuación/conector, no tras
      * determinante. Los verbos imperativos (recuérdame/avísame/...) son inequívocos.
+     *
+     * c.447: los INFINITIVOS con clítico de 1ª/2ª persona ("recordarme",
+     * "avisarme", "notificarme", "acordarme de") son la forma cotidiana de pedir un
+     * recordatorio en infinitivo ("recordarme llamar al dentista mañana a las 9"),
+     * simétrica al imperativo "recuérdame". Antes NO se reconocían: el verbo
+     * sobrevivía como residuo en el título ("recordarme llamar al dentista") y el
+     * recordatorio NUNCA se programaba (la cita se olvidaba pese a pedirse
+     * expresamente). El clítico `-me`/`-te` los vuelve inequívocos como petición de
+     * aviso (no son sustantivos ni verbos de contenido: "recordarme" no significa
+     * "acordarse de mí" salvo tras preposición, caso que el lookbehind de
+     * `recordatorio` no aplica aquí; el infinitivo con clítico de objeto indirecto
+     * "recordarme X" = "que se me recuerde X", intención de aviso pura).
      */
     private val bareReminderVerbPattern =
-        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|no\s+dejes\s+que\s+olvide|no\s+(?:se\s+te\s+|te\s+|me\s+|le\s+)?olvides?(?:\s+de\b)?(?:\s+que\b)?|acu[eé]rdate(?:\s+de\b)?|recuerda|(?<!(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus|nuestros?|nuestras?|estes?|estas?|esos?|esas?|aquella?)\s)recordatorio)\b""")
+        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordarme|avisarme|notificarme|acordarme(?:\s+de\b)?|no\s+dejes\s+que\s+olvide|no\s+(?:se\s+te\s+|te\s+|me\s+|le\s+)?olvides?(?:\s+de\b)?(?:\s+que\b)?|acu[eé]rdate(?:\s+de\b)?|recuerda|(?<!(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus|nuestros?|nuestras?|estes?|estas?|esos?|esas?|aquella?)\s)recordatorio)\b""")
     private const val BARE_REMINDER_DEFAULT_OFFSET_MINUTES = 30
     private val durationPatterns = listOf(
         Regex("""(?i)\((\d{1,3}(?:[.,]\d+)?)\s*(minutos?|min|horas?|hora)\)"""),

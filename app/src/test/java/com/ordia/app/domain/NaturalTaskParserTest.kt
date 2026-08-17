@@ -1646,6 +1646,38 @@ class NaturalTaskParserTest {
         assertEquals(30, result.reminderOffsetMinutes)
     }
 
+    // --- Infinitivos de recordatorio con clítico (c.447) ---
+    // "recordarme"/"avisarme"/"notificarme"/"acordarme de" son la forma cotidiana en
+    // infinitivo de pedir un recordatorio ("recordarme llamar al dentista mañana"),
+    // simétrica al imperativo "recuérdame". Antes NO se reconocían: el verbo quedaba
+    // como residuo en el título y el recordatorio NUNCA se programaba (la cita se
+    // olvidaba pese a pedirse expresamente, P1). Ahora se limpia el verbo y se aplica
+    // el offset de respaldo (30 min) cuando hay fecha límite.
+    @Test fun infinitivoRecordarmeConDueAplicaOffset30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("recordarme llamar al dentista mañana a las 9", now, zone)
+        assertEquals("llamar al dentista", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun infinitivoAvisarmeConDueAplicaOffset30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("avisarme pagar la luz el viernes", now, zone)
+        assertEquals("pagar la luz", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun infinitivoNotificarmeConDueAplicaOffset30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("notificarme enviar el reporte el lunes a las 10", now, zone)
+        assertEquals("enviar el reporte", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun infinitivoAcordarmeDeConDueAplicaOffset30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("acordarme de llamar a mi hermana el sábado", now, zone)
+        assertEquals("llamar a mi hermana", result.title)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
     @Test fun verboNoDejesQueOlvideConDueAplicaOffset30() {
         val result = NaturalTaskParser.parse("no dejes que olvide llamar al doctor mañana", now, zone)
         assertEquals("llamar al doctor", result.title)
