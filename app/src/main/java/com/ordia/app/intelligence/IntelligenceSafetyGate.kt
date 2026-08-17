@@ -28,6 +28,11 @@ object IntelligenceSafetyGate {
 
     private const val TAG = "IntelligenceSafetyGate"
 
+    /** "pin"/"nip" como palabra aislada (limite \b), no como subcadena de
+     *  "pintar"/"pintura"/"pines"/"snippet" (c.509). `lower` ya esta en
+     *  minusculas al evaluarse. */
+    private val PIN_NIP_WORD = Regex("""\b(pin|nip)\b""")
+
     /**
      * Patrones de contenido bloqueado: modera el tema del que la inteligencia
      * puede ocuparse. Son legítimamente específicos de esta puerta (no forman
@@ -114,8 +119,12 @@ object IntelligenceSafetyGate {
         if (lower.contains("código") && Regex("""\d{4,8}""").containsMatchIn(lower)) {
             return true
         }
-        // PIN / NIP
-        if ((lower.contains("pin") || lower.contains("nip")) && Regex("""\d{4,6}""").containsMatchIn(lower)) {
+        // PIN / NIP: limite de palabra \b(pin|nip)\b para no casar dentro de
+        // "pintar"/"pintura"/"pines"/"snippet" (falso positivo que bloqueaba
+        // tareas de pintura legitimas cuando aparecia un numero de 4-6 digitos,
+        // c.509). El valor sigue siendo cualquier \d{4,6} en el texto, como la
+        // rama de "codigo" OTP.
+        if (PIN_NIP_WORD.containsMatchIn(lower) && Regex("""\d{4,6}""").containsMatchIn(lower)) {
             return true
         }
         return false

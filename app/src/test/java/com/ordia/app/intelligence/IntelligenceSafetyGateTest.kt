@@ -76,6 +76,32 @@ class IntelligenceSafetyGateTest {
         assertEquals(true, blocked("mi pin es 1234"))
     }
 
+    // --- Falsos positivos de "pin"/"nip" como SUBSTRING (c.509) ---
+    // `contains("pin")` casaba dentro de "pintar"/"pintura"/"pines" y, combinado
+    // con cualquier numero de 4-6 digitos en el texto, bloqueaba tareas de
+    // pintura legitimas. `contains("nip")` analogo. La deteccion ahora exige el
+    // limite de palabra \b(pin|nip)\b.
+
+    @Test
+    fun pintarConNumeroNoSeBloqueaPorSubstringPin() {
+        assertEquals(false, blocked("pintar la sala 1234"))
+    }
+
+    @Test
+    fun pinturaConNumeroNoSeBloqueaPorSubstringPin() {
+        assertEquals(false, blocked("comprar pintura 2021"))
+    }
+
+    @Test
+    fun pinesComoTornillosConNumeroNoSeBloquea() {
+        assertEquals(false, blocked("comprar 4 pines para la mesa 1234"))
+    }
+
+    @Test
+    fun nipComoSubstringNoFalsificaBloqueo() {
+        assertEquals(false, blocked("enviar el snippet 5555 al equipo"))
+    }
+
     @Test
     fun otpConValorSeBloquea() {
         assertEquals(true, blocked("el código de seguridad es 482917"))
