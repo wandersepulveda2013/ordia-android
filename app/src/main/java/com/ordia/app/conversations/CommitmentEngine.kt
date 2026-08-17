@@ -2,6 +2,7 @@ package com.ordia.app.conversations
 
 import com.ordia.app.data.local.CommitmentKind
 import com.ordia.app.data.local.CommitmentOwner
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.domain.NaturalTaskParser
 import com.ordia.app.domain.ReminderRules
 import com.ordia.app.domain.SensitiveSecretPatterns
@@ -266,9 +267,42 @@ object CommitmentEngine {
         //     la é final (har[eé]) por errores de escritura comunes.
         """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|te\s+aviso|te\s+confirmo|despu[eé]s\s+te\s+respondo|debo|tengo\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|terminar[eé]|har[eé]|entregar[eé]|revisar[eé]|preparar[eé]|arreglar[eé]|subir[eé]|dejar[eé]|pasar[eé]|mandar[eé]|enviar[eé])|lo\s+hago|te\s+(?:paso|mando)|le\s+(?:paso|mando|env[ií]o)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o))\b"""
     )
+    // c.500: presente de 1ª persona SIN pronombre de objeto + marca temporal futura
+    // PUNTUAL — "termino el informe mañana", "entrego el reporte el viernes",
+    // "envío la propuesta esta semana", "reviso el contrato mañana", "mando el
+    // correo esta tarde". Es la forma MÁS cotidiana de promesa en chat español:
+    // presente + fecha, sin clítico. Antes caía a MISSED (probe JVM PRE-fix 8/8):
+    // commitmentSignal exige clítico ("lo termino") o futuro ("terminaré") por
+    // precisión — un verbo pelado ("termino") es ambiguo ("termino la frase"). La
+    // ambigüedad se resuelve con la MARCA TEMPORAL FUTURA PUNTUAL: "termino el
+    // informe mañana" con una fecha puntual es un compromiso, no una narración.
+    //
+    // La marca temporal se delega al [NaturalTaskParser]: sólo casa cuando
+    // `parsed.dueAt != null && parsed.recurrence == NONE`. Esto excluye:
+    //  - Rutinas ("reviso el correo cada mañana" → recurrence DAILY): el "cada"
+    //    es hábito, no promesa puntual, y el test barePresentVerbs... lo protege.
+    //  - Narraciones sin fecha ("termino la frase y me voy" → dueAt null): el
+    //    test barePresentVerbs... las protege.
+    //  - "mando la carta al correo" (dueAt null), "paso por tu casa sin avisar"
+    //    (dueAt null): sin fecha futura, no son compromisos puntuales.
+    //
+    // La lista de verbos es la MISMA del commitmentSignal (termino/entrego/reviso/
+    // preparo/arreglo/subo/dejo/paso/mando/envío): paridad con la rama con-clítico,
+    // sin inventar verbos. La guarda de negación [hasUnnegatedBarePresentCommitment]
+    // excluye "no termino el informe mañana" igual que "no lo termino" (c.279).
+    // Nace como draft SELF_COMMITMENT PENDING revisable: un falso positivo se
+    // descarta, un falso negativo es una promesa olvidada (área "evitar olvidos" +
+    // "detección de compromisos", P1).
+    private val barePresentCommitmentSignal = Regex(
+        """(?iU)\b(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o)\b"""
+    )
     private val locationSignal = Regex(
         """(?i)\b(?:lugar\s*:\s*|(?:nos\s+vemos|reuni[oó]n|cita)[^.!?\n]{0,80}?\ben\s+)([\p{L}\d][\p{L}\d .,'-]{2,50})"""
     )
+    // c.500: "hoy" como marcador temporal es ambiguo en presente pelado ("envío el
+    // paquete hoy" puede ser acción en curso). Se excluye del presente pelado; la
+    // rama con-clítico lo tolera. Word-boundary para no casar "hoya"/"hoyuelo".
+    private val todayMarker = Regex("""(?i)\bhoy\b""")
     // "no te llamo"/"no me encargo"/"no lo hago" son NEGATIVAS (rechazos), no
     // compromisos. Hay compromiso solo si alguna frase de compromiso aparece SIN
     // "no " inmediatamente antes. Así "no tengo tiempo, lo hago manana" sigue
@@ -319,6 +353,32 @@ object CommitmentEngine {
             !precedingNegation.containsMatchIn(prefix)
         }
 
+    // c.500: guarda para el presente pelado con fecha. Excluye dos formas:
+    //  (a) NEGACIÓN: "no termino el informe mañana" es un rechazo. La palabra
+    //      inmediatamente anterior al verbo es "no".
+    //  (b) CLÍTICO: "no lo termino hoy" / "lo termino mañana" llevan pronombre de
+    //      objeto (lo/la/los/las/te/se/le/me/nos/os) antes del verbo. Esos los
+    //      resuelve la rama con-clítico (commitmentSignal); el presente PELADO no
+    //      debe pisarlos. Sin esta guarda, "no lo termino hoy" (negado, con
+    //      clítico) generaba un draft espurio: el "no " queda tapado por el "lo "
+    //      y la ventana de 3 chars no lo veía (regresión c.500 detectada por
+    //      presentTenseCommitmentFormsRespectDirectNegation). La marca temporal
+    //      futura puntual (dueAt != null && recurrence NONE && !hoy) se comprueba
+    //      en [detect]; esta función sólo responde "¿hay un verbo pelado de promesa
+    //      no negado y sin clítico?".
+    private val cliticPronouns = setOf("lo", "la", "los", "las", "te", "se", "le", "me", "nos", "os")
+    private fun hasUnnegatedBarePresentCommitment(text: String): Boolean =
+        barePresentCommitmentSignal.findAll(text).any { m ->
+            val start = m.range.first
+            val prevWord = text.substring(maxOf(0, start - 8), start)
+                .trim()
+                .split(Regex("\\s+"))
+                .lastOrNull()
+                ?.lowercase(Locale.ROOT)
+                .orEmpty()
+            prevWord != "no" && prevWord !in cliticPronouns
+        }
+
     fun extract(
         messages: List<ChatMessage>,
         selfParticipant: String? = null,
@@ -348,7 +408,28 @@ object CommitmentEngine {
         val isCommitment = hasUnnegatedCommitment(text)
         val isUserObligation = hasUnnegatedUserObligation(text)
         val isPendingObligation = hasUnnegatedPendingObligation(text)
-        if (!isRequest && !isMeeting && !isPurchase && !isReminder && !isCommitment && !isUserObligation && !isPendingObligation) return null
+        // c.500: presente pelado de 1ª persona con marca temporal futura PUNTUAL.
+        // El parser decide si hay fecha futura (dueAt != null) y NO es rutina
+        // (recurrence == NONE). El verbo pelado debe estar no-negado. Así
+        // "termino el informe mañana" (dueAt set, NONE) se detecta, pero
+        // "reviso el correo cada mañana" (recurrence DAILY) y "mando la carta al
+        // correo" (dueAt null) no: el discriminador es la marca temporal, no el
+        // verbo aislado (ver probe JVM PRE-fix arriba). Se excluye "hoy" (c.310):
+        // presente + "hoy" es ambiguo (puede ser acción en curso, "envío el paquete
+        // hoy"); los marcadores estrictamente futuros (mañana, el viernes, esta
+        // semana, esta tarde, en un rato) sí indican un plan/compromiso. La rama
+        // con-clítico ("lo subo al repo hoy") tolera "hoy" porque el clítico añade
+        // señal de intención; el presente pelado, no.
+        val parsed = NaturalTaskParser.parse(text)
+        val dueAt = parsed.dueAt
+        val mentionsToday = todayMarker.containsMatchIn(text)
+        val isBarePresentCommitment =
+            !isCommitment &&
+                hasUnnegatedBarePresentCommitment(text) &&
+                dueAt != null &&
+                !mentionsToday &&
+                parsed.recurrence == RecurrenceFrequency.NONE
+        if (!isRequest && !isMeeting && !isPurchase && !isReminder && !isCommitment && !isUserObligation && !isPendingObligation && !isBarePresentCommitment) return null
 
         val sender = message.sender.orEmpty().trim().take(80)
         val owner = when {
@@ -363,6 +444,10 @@ object CommitmentEngine {
             // DEL USUARIO (él reconoce su propia deuda abierta), independientemente
             // del remitente. Se ancla a SELF igual que isUserObligation.
             isPendingObligation -> CommitmentOwner.SELF
+            // c.500: presente pelado con fecha futura es un compromiso DEL
+            // USUARIO (1ª persona: "termino el informe mañana"). Se ancla a SELF
+            // igual que isCommitment, sin depender del remitente.
+            isBarePresentCommitment -> CommitmentOwner.SELF
             sender.isNotBlank() && self != null && sender.lowercase(Locale.ROOT) == self -> CommitmentOwner.SELF
             sender.isNotBlank() && self != null -> CommitmentOwner.OTHER
             sender.isNotBlank() -> CommitmentOwner.UNKNOWN
@@ -382,11 +467,9 @@ object CommitmentEngine {
             owner == CommitmentOwner.OTHER -> CommitmentKind.OTHER_COMMITMENT
             else -> CommitmentKind.SELF_COMMITMENT
         }
-        val parsed = NaturalTaskParser.parse(text)
-        val dueAt = parsed.dueAt
         val confidence = (
             0.67f +
-                (if (isCommitment || isRequest || isUserObligation) 0.12f else 0f) +
+                (if (isCommitment || isRequest || isUserObligation || isBarePresentCommitment) 0.12f else 0f) +
                 (if (dueAt != null) 0.11f else 0f) +
                 (if (sender.isNotBlank()) 0.05f else 0f)
             ).coerceAtMost(0.97f)

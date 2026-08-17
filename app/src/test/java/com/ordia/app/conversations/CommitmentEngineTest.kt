@@ -293,6 +293,86 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.500: el presente pelado de 1ª persona CON marca temporal futura PUNTUAL
+    // (dueAt != null + recurrence NONE) SI es un compromiso y debe detectarse.
+    // Antes, estos 8 casos eran MISSED porque el verbo no lleva pronombre de
+    // objeto. El discriminador es la marca temporal futura, no el verbo aislado:
+    // "termino el informe manana" (compromiso) vs "mando la carta al correo"
+    // (narracion, dueAt null). Probe JVM POST-fix: 8/8 detectados.
+    @Test
+    fun barePresentVerbsWithFutureMarkerAreDetected() {
+        val positives = listOf(
+            "termino el informe manana",
+            "entrego el reporte el viernes",
+            "envio la propuesta esta semana",
+            "subo el archivo en un rato",
+            "preparo la presentacion para el lunes",
+            "reviso el contrato manana",
+            "paso el documento el miercoles",
+            "mando el correo esta tarde"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "pres-fut-pos-$text"
+            )
+            assertTrue(
+                "\"$text\" (presente + marca futura) debe generar draft SELF_COMMITMENT",
+                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
+    // c.500: la negacion ("no termino el informe manana") debe seguir excluida
+    // via hasUnnegatedBarePresentCommitment. Probe JVM POST-fix: 5/5 excluidos.
+    @Test
+    fun barePresentCommitmentsRespectNegation() {
+        val negatives = listOf(
+            "no termino el informe manana",
+            "no envio la propuesta esta semana",
+            "no reviso el contrato manana",
+            "no paso el documento el miercoles",
+            "no mando el correo esta tarde"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "pres-fut-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" (negacion de presente + marca futura) NO debe generar draft",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
+    // c.500: el presente pelado con marca temporal pero recurrencia (rutina)
+    // NO debe disparar. "reviso el correo cada manana" tiene dueAt pero
+    // recurrence=DAILY; es una rutina, no un compromiso puntual. Probe JVM
+    // POST-fix: 4/4 NO detectados.
+    @Test
+    fun barePresentRoutinesAreNotFlagged() {
+        val routines = listOf(
+            "reviso el correo cada manana",
+            "mando el reporte cada lunes",
+            "reviso el contrato cada semana",
+            "paso el documento todos los dias"
+        )
+        routines.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "pres-fut-routine-$text"
+            )
+            assertTrue(
+                "\"$text\" (rutina recurrente) NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
     // c.307: imperativos de 2ª persona con pronombre enclítico — peticiones
     // directas muy frecuentes en chat español que NO casaban con "envíame"/
     // "mándame"/"recuerda" (los únicos imperativos cubiertos). Probe JVM PRE-fix:
