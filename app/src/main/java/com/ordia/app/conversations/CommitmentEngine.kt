@@ -139,7 +139,24 @@ object CommitmentEngine {
     private val purchaseNounAsObject = Regex(
         """(?i)(?:de|del|por|para|sobre|tras|en)\s+(?:el|la|los|las|un|una|unos|unas)?\s*(?:compra|mercado|supermercado)\b"""
     )
-    private val reminderSignal = Regex("""(?i)\b(?:recu[eé]rdame|recordatorio|av[ií]same|no\s+dejes\s+que\s+olvide)\b""")
+    // c.524: split reminderSignal en verbo (siempre activo) + sustantivo con
+    // guarda anti-objeto-genitivo (simetrico a meetingSignal c.519 y purchaseSignal
+    // c.523). Antes, recordatorio casaba como sustantivo en cualquier posicion
+    // -> falso REMINDER cuando el sustantivo es el OBJETO de un genitivo: "ajuste
+    // para el recordatorio de la cita", "config del recordatorio", "notas sobre el
+    // recordatorio", "pago por el recordatorio". El compromiso real es
+    // ajustar/configurar/anotar/pagar, no fijar un recordatorio; el sustantivo es
+    // el tema, no la accion. Las formas verbales recu[eé]rdame/av[ií]same/
+    // no dejes que olvide son inequivocas y se mantienen sin guarda. "recordatorio
+    // para mañana" (sin genitivo) NO es objeto -> REMINDER (correcto). Residual
+    // conocido: "el recordatorio sonaba a las 9" (sujeto de afirmacion de hecho)
+    // sigue disparando REMINDER; misma clase de residual que c.519/c.523.
+    private val reminderVerbSignal = Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|no\s+dejes\s+que\s+olvide)\b""")
+    private val reminderNounSignal = Regex("""(?i)\brecordatorio\b""")
+    // Objeto genitivo: preposicion + determinante opcional + recordatorio.
+    private val reminderNounAsObject = Regex(
+        """(?i)(?:de|del|por|para|sobre|tras|en)\s+(?:el|la|los|las|un|una|unos|unas)?\s*recordatorio\b"""
+    )
     // c.309: peticiones en indicativo de 2ª persona ("me pasas el informe?",
     // "me llamas luego?", "me envías el archivo mañana", "me lo mandas?").
     // Son la forma MÁS frecuente de pedir algo en chat español — más naturales
@@ -438,6 +455,16 @@ object CommitmentEngine {
     }
 
 
+    // c.524: simetrico a hasPurchaseNounAsSubject. Solo cuenta un sustantivo
+    // recordatorio como REMINDER si al menos una ocurrencia NO es objeto genitivo.
+    private fun hasReminderNounAsSubject(text: String): Boolean {
+        val objects = reminderNounAsObject.findAll(text).map { it.range.first..it.range.last }.toList()
+        return reminderNounSignal.findAll(text).any { noun ->
+            objects.none { obj -> noun.range.first in obj }
+        }
+    }
+
+
     // c.309: la negación antes de un indicativo de 2ª persona ("no me pasas
     // nada", "no me llamas nunca", "no me lo envías") es una queja/acusación,
     // no una petición — se excluye. Reusa el mismo precedingNegation que
@@ -532,7 +559,7 @@ object CommitmentEngine {
         val isRequest = requestSignal.containsMatchIn(text) || hasUnnegatedIndicativeRequest(text)
         val isMeeting = meetingVerbSignal.containsMatchIn(text) || hasMeetingNounAsSubject(text)
         val isPurchase = purchaseVerbSignal.containsMatchIn(text) || hasPurchaseNounAsSubject(text)
-        val isReminder = reminderSignal.containsMatchIn(text)
+        val isReminder = reminderVerbSignal.containsMatchIn(text) || hasReminderNounAsSubject(text)
         // "no te llamo"/"no me encargo"/"no lo hago" son NEGATIVAS (rechazos), no
         // compromisos: excluir las frases de compromiso directamente negadas. Ojo:
         // NO se aplica a request/reminder, donde la negacion es idiomatica y POSITIVA

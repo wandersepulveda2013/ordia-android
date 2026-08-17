@@ -173,6 +173,41 @@ class CommitmentEngineTest {
     }
 
     @Test
+    fun suppressesReminderWhenNounIsGenitiveObject() {
+        // Verbos/acciones reales: siguen siendo REMINDER.
+        val reminders = listOf(
+            "Avísame del pago el lunes",
+            "Recordatorio para mañana a las 9",
+            "No dejes que olvide el cumpleaños de Ana"
+        )
+        for (text in reminders) {
+            val res = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)), selfParticipant = "Yo", scopeHash = "rem-pos"
+            )
+            assertTrue(
+                "debería detectar REMINDER: $text",
+                res.any { it.kind == CommitmentKind.REMINDER }
+            )
+        }
+        // Objetos genitivos: NO deben nacer como REMINDER.
+        val notReminders = listOf(
+            "Ajuste para el recordatorio de la cita el lunes",
+            "Config del recordatorio de mañana",
+            "Notas sobre el recordatorio del equipo",
+            "Pago por el recordatorio del cliente"
+        )
+        for (text in notReminders) {
+            val res = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)), selfParticipant = "Yo", scopeHash = "rem-neg"
+            )
+            assertTrue(
+                "no debería clasificarse como REMINDER: $text",
+                res.none { it.kind == CommitmentKind.REMINDER }
+            )
+        }
+    }
+
+    @Test
     fun blocksVerificationCodesBeforeExtraction() {
         val text = "Tu código de verificación es 482913. No olvides guardarlo"
 
