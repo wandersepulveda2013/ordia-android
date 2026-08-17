@@ -759,7 +759,20 @@ object NaturalTaskParser {
     // como recurrencia falsa dejando "actual" como residuo (P1: compromiso único del
     // mes en curso perdido + título sucio). Véase el lookahead negativo allá que rechaza
     // esos mismos calificadores para que no caigan a recurrencia.
-    private val dayOfMonthPattern = Regex("""(?i)\b(?:el\s+(?:d[ií]a\s+)?|d[ií]a\s+)(\d{1,2})(?![/-])(?:\s+del?\s+(?:mes\s+actual|presente\s+mes|este\s+(?:mismo\s+)?mes|mes))?\b(?!\s*del?\s+[a-záéíóúüñ])""")
+    //
+    // Los dos lookbehinds negativos de longitud FIJA (?<!\bentre\s) y (?<!\by\s) impiden
+    // agendar un "el N" que sea extremo de un rango numérico SIN mes válido ("feria entre
+    // el 3 de unidades y el 5", "comprar 3 cajas entre el 5 y el 10"). Esos rangos son
+    // ambiguos (no se sabe el mes) y los patrones de rango los dejan intactos a propósito
+    // para no inventar fechas; sin esta guarda el extremo "el N" caía aquí como día suelto
+    // y se programaba una fecha espuria (p. ej. 5 de septiembre) con el título roto
+    // ("...entre ... y"). "entre el N" (inicio de rango, nunca fecha válida por sí sola)
+    // y "y el N" (cierre de rango) quedan excluidos. No afecta a "X y el 5 de diciembre"
+    // (lo resuelve monthNamePattern, que exige "de <mes>", y por tanto no pasa por aquí)
+    // ni a "reunión el 5" (sin conector de rango previo). Longitud fija obligatoria: un
+    // lookbehind variable con "\s+" rompe el anclado de \b y permitía casar "el N" dentro
+    // de "del N"/"antes del N" (regresión en congreso del 20 al 25 / antes del 30).
+    private val dayOfMonthPattern = Regex("""(?i)(?<!\bentre\s)(?<!\by\s)\b(?:el\s+(?:d[ií]a\s+)?|d[ií]a\s+)(\d{1,2})(?![/-])(?:\s+del?\s+(?:mes\s+actual|presente\s+mes|este\s+(?:mismo\s+)?mes|mes))?\b(?!\s*del?\s+[a-záéíóúüñ])""")
     // "antes del 30"/"antes de 15": plazo (deadline) expresado como día del mes suelto,
     // SIN nombre de mes. Antes el día suelto "30" no casaba dayOfMonthPattern (éste exige
     // "el"/"día") ni monthNamePattern (éste exige "de <mes>"), así que el conector "antes

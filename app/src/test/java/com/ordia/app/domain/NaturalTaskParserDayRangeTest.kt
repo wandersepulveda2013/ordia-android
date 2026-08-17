@@ -63,6 +63,21 @@ class NaturalTaskParserDayRangeTest {
         assertEquals("congreso del 20 al 25", r.title.trim())
     }
 
+    @Test fun rangoEntreSinMesNoInventaFechaEnExtremos() {
+        // "entre el N de <X> y el M" / "entre el N y el M" sin mes válido: los patrones de
+        // rango los dejan intactos (no hay ancla de mes real) pero, sin la guarda de
+        // dayOfMonthPattern, el extremo "el M" caía como día suelto y se programaba una
+        // fecha espuria (p. ej. 5 de septiembre) dejando el título roto ("...entre ... y").
+        // Regresión P1: vencimiento falso + contenido mutilado.
+        val r1 = parse("feria entre el 3 de unidades y el 5")
+        assertNull("mes cualificador inválido (unidades) no inventa fecha en el cierre", r1.dueAt)
+        assertEquals("feria entre el 3 de unidades y el 5", r1.title.trim())
+
+        val r2 = parse("comprar 3 cajas entre el 5 y el 10")
+        assertNull("rango entre..y sin mes no inventa fecha en ningún extremo", r2.dueAt)
+        assertEquals("comprar 3 cajas entre el 5 y el 10", r2.title.trim())
+    }
+
     @Test fun rangoPreservaContenidoDespuesDeLaFecha() {
         val r = parse("feria del 1 al 5 de octubre en madrid")
         assertTrue("el contenido 'madrid' debe sobrevivir", r.title.contains("madrid", ignoreCase = true))
