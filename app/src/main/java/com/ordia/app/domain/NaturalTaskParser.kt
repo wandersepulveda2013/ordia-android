@@ -874,9 +874,18 @@ object NaturalTaskParser {
      * si el token no es un mes, se deja intacto. El día inicial se descarta a
      * propósito: Ordía ancla el vencimiento al CIERRE del rango (último día),
      * coherente con cómo ya resolvía el día final cuando lo capturaba parcial.
+     *
+     * El conector de INICIO admite "del"/"de" y también "desde [el]": "desde el
+     * 15 al 20 de diciembre" / "desde el 15 hasta el 20 de diciembre" es la misma
+     * forma cotidiana que "del 15 al 20". Antes "desde" no casaba: el extremo
+     * final ("20 de diciembre") era anclado por `monthNamePattern` al CIERRE
+     * (fecha correcta), pero "desde el 15" sobrevivía como residuo del título
+     * ("congreso desde", contenido mutilado, P1 captura). Simétrico del conector
+     * de CIERRE "hasta [el]" ya admitido. No colisiona con el rewriter de HORA
+     * `desdeRangeNormalizerRewriter` (éste exige mes/día, aquél dígitos de hora).
      */
     private val dayRangePattern = Regex(
-        """(?i)\b(?:del?\s+)?(\d{1,2})(?![/-])\s+(?:al|hasta(?:\s+el)?)\s+(\d{1,2})(?![/-])""" +
+        """(?i)\b(?:(?:del?|desde\s+el?)\s+)?(\d{1,2})(?![/-])\s+(?:al|hasta(?:\s+el)?)\s+(\d{1,2})(?![/-])""" +
             """(?:\s+del?\s+((?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?))|""" +
             """\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?)?\b"""
     )
@@ -901,7 +910,7 @@ object NaturalTaskParser {
      * exige un solo mes al final tras "al N") y antes de [bareDayMonthPattern].
      */
     private val crossMonthDayRangePattern = Regex(
-        """(?i)\b(?:del?\s+)?(\d{1,2})(?![/-])\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?""" +
+        """(?i)\b(?:(?:del?|desde\s+el?)\s+)?(\d{1,2})(?![/-])\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?""" +
             """\s+(?:al|hasta(?:\s+el)?)\s+(\d{1,2})(?![/-])\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b"""
     )
 
@@ -957,7 +966,7 @@ object NaturalTaskParser {
      * `months` (no agenda contenido "del 3 de unidades al 5").
      */
     private val startMonthBareEndDayRangePattern = Regex(
-        """(?i)\b(?:del?\s+)?(\d{1,2})(?![/-])\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?""" +
+        """(?i)\b(?:(?:del?|desde\s+el?)\s+)?(\d{1,2})(?![/-])\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?""" +
             """\s+(?:al|hasta(?:\s+el)?)\s+(\d{1,2})(?![/-])(?!\s+del?\s+[a-záéíóúüñ])"""
     )
     private val entreStartMonthBareEndDayRangePattern = Regex(
@@ -992,7 +1001,7 @@ object NaturalTaskParser {
      * ni con "hasta las 5" (hora).
      */
     private val weekdayPairRangePattern = Regex(
-        """(?i)\bdel\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+(?:al|hasta(?:\s+el)?)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""
+        """(?i)\b(?:del|desde\s+el)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+(?:al|hasta(?:\s+el)?)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b"""
     )
 
     /**

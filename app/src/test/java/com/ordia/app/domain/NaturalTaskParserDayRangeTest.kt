@@ -117,6 +117,65 @@ class NaturalTaskParserDayRangeTest {
         assertFalse("el título no debe contener el día inicial 10", title.contains("10"))
     }
 
+    // c.449: "desde" como conector de inicio de rango de fechas, simétrico a "del".
+    // Antes "desde el 15 hasta el 20 de diciembre" agendaba el cierre correctamente
+    // PERO dejaba "desde" como residuo pegado al título ("viaje desde", contenido
+    // mutilado, P1 captura/datos). dayRangePattern / crossMonthDayRangePattern /
+    // startMonthBareEndDayRangePattern / weekdayPairRangePattern ahora admiten el
+    // prefijo opcional "desde" (y "desde el") y lo limpian del título.
+
+    @Test fun rangoDesdeHastaAnclaAlCierreYlimpiaTitulo() {
+        val r = parse("vacaciones desde el 15 hasta el 20 de diciembre")
+        assertEquals("vacaciones", r.title.trim())
+        assertEquals(LocalDate.of(2026, 12, 20), r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() })
+    }
+
+    @Test fun rangoDesdeHastaNoDejaResiduoDesde() {
+        val title = parse("curso desde el 10 hasta el 14 de marzo").title
+        assertFalse("el título no debe contener residuo 'desde'", title.contains("desde"))
+        assertFalse("el título no debe contener el día inicial 10", title.contains("10"))
+    }
+
+    @Test fun rangoDesdeAlAnclaAlCierreYlimpiaTitulo() {
+        // Forma contracta "desde el N al M de <mes>" (cierre con "al").
+        val r = parse("feria desde el 15 al 20 de diciembre")
+        assertEquals("feria", r.title.trim())
+        assertEquals(LocalDate.of(2026, 12, 20), r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() })
+    }
+
+    @Test fun rangoDesdeHastaCruzandoMesAnclaAlCierre() {
+        val r = parse("taller desde el 28 de febrero hasta el 1 de marzo")
+        assertEquals("taller", r.title.trim())
+        assertEquals(LocalDate.of(2027, 3, 1), dueDate("taller desde el 28 de febrero hasta el 1 de marzo"))
+    }
+
+    @Test fun rangoDesdeAlCruzandoMesAnclaAlCierre() {
+        val r = parse("viaje desde el 28 de septiembre al 3 de octubre")
+        assertEquals("viaje", r.title.trim())
+        assertEquals(LocalDate.of(2026, 10, 3), dueDate("viaje desde el 28 de septiembre al 3 de octubre"))
+    }
+
+    @Test fun rangoDesdeHastaConAnioExplicito() {
+        val r = parse("viaje desde el 3 hasta el 8 de enero del 2027")
+        assertEquals("viaje", r.title.trim())
+        assertEquals(LocalDate.of(2027, 1, 8), r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() })
+    }
+
+    @Test fun rangoDesdeHastaRespetaHoraExplicita() {
+        val r = parse("curso desde el 10 al 14 de marzo a las 9")
+        assertEquals("curso", r.title.trim())
+        val dt = r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone) }
+        assertNotNull("debe producir vencimiento", dt)
+        assertEquals(LocalDate.of(2027, 3, 14), dt!!.toLocalDate())
+        assertEquals(9, dt.hour)
+    }
+
+    @Test fun rangoDesdeHastaPreservaContenidoDespuesDeLaFecha() {
+        val r = parse("feria desde el 1 al 5 de octubre en madrid")
+        assertTrue("el contenido 'madrid' debe sobrevivir", r.title.contains("madrid", ignoreCase = true))
+        assertFalse("no debe quedar residuo 'desde'", r.title.contains("desde"))
+    }
+
     // Rangos que cruzan de mes (o de año): "del 28 de febrero al 1 de marzo".
     // Antes el [dayRangePattern] sólo casaba la forma "del N al M de <mesÚnico>"
     // (un solo mes al final); al llevar cada extremo su propio mes, no casaba, cada
@@ -175,6 +234,28 @@ class NaturalTaskParserDayRangeTest {
         val dt = r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone) }
         assertNotNull("debe producir vencimiento", dt)
         assertEquals(LocalDate.of(2026, 8, 20), dt!!.toLocalDate())
+    }
+
+    @Test fun rangoWeekdayDesdeHastaAnclaAlCierreYlimpiaTitulo() {
+        // "desde el lunes hasta el viernes": mismo rango inclusivo con conector de
+        // inicio "desde el". Antes dejaba "reunión desde" como residuo (contenido
+        // mutilado, P1 captura). Simétrico de "del lunes hasta el viernes".
+        val r = parse("reunión desde el lunes hasta el viernes")
+        assertEquals("reunión", r.title.trim())
+        assertFalse("no debe quedar residuo 'desde'", r.title.contains("desde"))
+        val dt = r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone) }
+        assertNotNull("debe producir vencimiento", dt)
+        assertEquals(LocalDate.of(2026, 8, 21), dt!!.toLocalDate())
+    }
+
+    @Test fun rangoWeekdayDesdeAlAnclaAlCierreYlimpiaTitulo() {
+        // "desde el lunes al viernes": cierre con "al" en vez de "hasta".
+        val r = parse("curso desde el lunes al viernes")
+        assertEquals("curso", r.title.trim())
+        assertFalse("no debe quedar residuo 'desde'", r.title.contains("desde"))
+        val dt = r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone) }
+        assertNotNull("debe producir vencimiento", dt)
+        assertEquals(LocalDate.of(2026, 8, 21), dt!!.toLocalDate())
     }
 
     @Test fun semanaLaboralHastaEsRecurrente() {
