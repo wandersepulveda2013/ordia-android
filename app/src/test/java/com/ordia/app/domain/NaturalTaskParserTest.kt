@@ -2415,6 +2415,64 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(10, 30), DateRules.toLocalTime(r.dueAt!!, zone))
     }
 
+    // c.532 — el conector de plazo "hasta" + "las N <sustantivo plural de cantidad>" es una
+    // CUENTA (límite "hasta las 5 cajas" = un máximo de 5 cajas), NO una cita. Antes el rewrite
+    // "hasta las N"→"a las N" disparaba SIEMPRE sin mirar el tail: el número y el sustantivo sí
+    // se preservaban (vía timeMatchIsCountNoun c.514) PERO el conector "hasta" se corrompía a
+    // "a", perdiendo el sentido de límite ("entregar hasta las 5 cajas" → "entregar a las 5
+    // cajas": contenido capturado degradado, P1 título limpio). Ahora el rewrite de HORA de
+    // "hasta" aplica el mismo guard anti-cuenta que aPartirDe/desde (c.442): preserva "hasta
+    // las N" íntegro. Simétrico de "enviar a las 5 cajas" (count) y consistente con el baseline.
+    @Test fun hastaLasNPluralPreservaConectorComoCuenta() {
+        val r = NaturalTaskParser.parse("entregar hasta las 5 cajas", now, zone)
+        assertNull("una cuenta con 'hasta' no debe agendar una cita falsa", r.dueAt)
+        assertEquals("el conector 'hasta' debe conservarse como límite de cantidad",
+            "entregar hasta las 5 cajas", r.title)
+    }
+
+    @Test fun hastaLasNPersonasPreservaConectorComoCuenta() {
+        val r = NaturalTaskParser.parse("llevar hasta las 10 personas", now, zone)
+        assertNull(r.dueAt)
+        assertEquals("llevar hasta las 10 personas", r.title)
+    }
+
+    // "hasta las N <plural> a las M" — la cuenta (hasta) se preserva y la cita real (a las M)
+    // se agenda. Simétrico de "enviar a las 5 invitaciones a las 9" (c.514).
+    @Test fun hastaLasNPluralMasCitaRealPreservaConectorYAgendaHora() {
+        val r = NaturalTaskParser.parse("entregar hasta las 5 cajas a las 9", now, zone)
+        assertNotNull("la cita real 'a las 9' no debe olvidarse tras una cuenta con 'hasta'", r.dueAt)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r.dueAt!!, zone))
+        assertEquals("entregar hasta las 5 cajas", r.title)
+    }
+
+    // El guard del rewrite de "hasta" NO debe comerse las horas reales: las horas CON evidencia
+    // de reloj (meridiem, :MM, fracción "y media", sufijo "horas", parte del día) o al final
+    // siguen reescribiéndose "hasta las N"→"a las N" y resolviéndose como cita. Sin regresión.
+    @Test fun hastaLasNConEvidenciaSigueSiendoCita() {
+        val r1 = NaturalTaskParser.parse("trabajar hasta las 5 de la tarde", now, zone)
+        assertNotNull(r1.dueAt)
+        assertEquals(LocalTime.of(17, 0), DateRules.toLocalTime(r1.dueAt!!, zone))
+        val r2 = NaturalTaskParser.parse("trabajar hasta las 5 pm", now, zone)
+        assertNotNull(r2.dueAt)
+        assertEquals(LocalTime.of(17, 0), DateRules.toLocalTime(r2.dueAt!!, zone))
+        val r3 = NaturalTaskParser.parse("trabajar hasta las 5:30", now, zone)
+        assertNotNull(r3.dueAt)
+        assertEquals(LocalTime.of(5, 30), DateRules.toLocalTime(r3.dueAt!!, zone))
+        val r4 = NaturalTaskParser.parse("trabajar hasta las 5 y media", now, zone)
+        assertNotNull(r4.dueAt)
+        assertEquals(LocalTime.of(5, 30), DateRules.toLocalTime(r4.dueAt!!, zone))
+        // "horas" es unidad horaria (evidencia de reloj), no sustantivo de cantidad → cita.
+        val r5 = NaturalTaskParser.parse("trabajar hasta las 5 horas", now, zone)
+        assertNotNull(r5.dueAt)
+        assertEquals(LocalTime.of(5, 0), DateRules.toLocalTime(r5.dueAt!!, zone))
+    }
+
+    @Test fun hastaLasNEnPuntoSigueSiendoCita() {
+        val r = NaturalTaskParser.parse("trabajar hasta las 5", now, zone)
+        assertNotNull("'hasta las 5' al final es cita 05:00", r.dueAt)
+        assertEquals(LocalTime.of(5, 0), DateRules.toLocalTime(r.dueAt!!, zone))
+    }
+
     // Singular tras "a las N" NO es cuenta (no hay concordancia plural "las N <plural>"):
     // "reunión a las 9 hola" sigue siendo cita a las 9:00 con "hola" en el título.
     @Test fun aLasNSingularNoSeFiltra() {

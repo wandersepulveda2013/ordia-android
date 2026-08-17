@@ -1392,6 +1392,40 @@ object NaturalTaskParser {
     // las 5 invitaciones a las 9"), se rechazaba y NO se buscaba el siguiente → la cita
     // real "a las 9" se olvidaba (dueAt=null), y además el número "5" se borraba del
     // título (pérdida de cantidad). `source` es el texto completo (para calcular el tail).
+    // c.532 — ¿el tail tras "hasta las N"/"hasta la una|\d" (consumido por el rewrite de
+    // HORA de "hasta") es una CUENTA ("hasta las 5 cajas") y no una cita? Predicado
+    // reutilizable para el guard anti-cuenta simétrico de aPartirDe/desde (c.442). A
+    // diferencia de [timeMatchIsCountNoun] (que opera sobre un match de [timePatterns] ya
+    // resuelto con sus grupos de meridiem/fracción), aquí el rewrite de "hasta" corre ANTES
+    // de [timePatterns] y sólo ha consumido "hasta las N" (sin grupos), así que la
+    // evidencia de reloj debe inferirse del tail. Es CUENTA cuando:
+    //   1. NO hay evidencia de reloj inmediata tras la hora (`:MM`, meridiem am/pm, parte
+    //      del día "de la tarde", fracción "y media"/"menos cuarto", unidad "horas/hs/h",
+    //      "en punto"), Y
+    //   2. el tail arranca con un sustantivo plural de cantidad (>=3 letras terminadas en
+    //      's', p. ej. cajas/personas/habitaciones/invitaciones/entradas/ventas) que NO sea
+    //      la unidad horaria "horas/hs/h".
+    // Consistente con el baseline "a las N <plural>" de [timeMatchIsCountNoun] (c.514):
+    // "hasta las 5 cajas"→count (preserva "hasta"); "hasta las 5 horas"→cita (la unidad
+    // "horas" es evidencia de reloj); "hasta las 5 pm"/"hasta las 5:30"/"hasta las 5 y
+    // media"/"hasta las 5" (fin)→cita (reescritura normal a "a las N").
+    private fun hastaHourTailIsCountNoun(tail: String): Boolean {
+        val t = tail.lowercase()
+        // 2. ¿Arranca con un sustantivo plural (>=3 letras, termina en 's')?
+        val pluralNoun = Regex("""(?i)^\s*[a-záéíóúñ]{3,}s\b""").containsMatchIn(t)
+        if (!pluralNoun) return false
+        // 1. ¿Ese plural es evidencia de reloj (unidad horaria u otra evidencia inmediata)?
+        //    "horas"/"hs"/"h" solas = unidad horaria → cita, no cuenta. \bhoras?\b no casa
+        //    "habitaciones" (h-a-b..., no h-o-r-a) y \bh\b exige límite tras la 'h', así que
+        //    "habitaciones" (sigue 'a') no casa → cuenta (consistente con "a las 5
+        //    habitaciones" de c.514). El resto de evidencia (:MM, meridiem, parte del día,
+        //    fracción, "en punto") se admite ADYACENTE (`\s*`) igual que [timePatterns].
+        val clockEvidenceAtStart = Regex(
+            """(?i)^\s*(?::|\bhoras?\b|\bhs\b|\bh\b|a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|del\s+mediod[ií]a|en\s+punto|y\s+(?:media|cuarto|pico)|menos\s+cuarto)"""
+        ).containsMatchIn(t)
+        return !clockEvidenceAtStart
+    }
+
     private fun timeMatchIsCountNoun(match: MatchResult, source: String): Boolean {
         val mv = match.value.lowercase()
         val hasClockEvidence = mv.contains(":") || mv.contains("h") ||
@@ -2930,15 +2964,39 @@ object NaturalTaskParser {
         //    el conector "a"); así la hora se resuelve Y se limpia del título de golpe.
         //  · FECHA: "hasta el viernes"/"hasta fin de mes"/"hasta mañana"/"hasta dentro de
         //    3 días" → se borra "hasta " dejando la fecha intacta para su patrón.
+        // c.532: el lookahead negativo `(?!(?:las\s+\d{1,2}|la\s+(?:una|\d)))` excluye los
+        // anclajes de HORA, que ya los procesa (y guarda contra cuentas) el rewrite de
+        // HORA anterior. Sin esta exclusión, la rama `\d{1,2}\b` de FECHA (pensada para
+        // "hasta el 15", día de mes) casaba también "hasta las 5" (hora) y, tras el guard
+        // anti-cuenta que PRESERVA "hasta las 5 cajas", re-stripaba "hasta" → "entregar
+        // las 5 cajas" (perdía el límite). Ahora la rama de FECHA sólo toca fechas.
         // El lookahead restringe a marcadores temporales reales para preservar "hasta" como
         // límite de acción ("trabajar hasta terminar", "leer hasta la página 50"): allí no
         // hay marcador → no se toca. "final" NO es marcador (sí "fin de"): el lookahead
         // exige "fin(?:es)?\s+de", no "fin" suelto.
+        // c.532: guard anti-cuenta en la rama de HORA, simétrico de aPartirDe/desde (c.442)
+        // y de [timeMatchIsCountNoun] (c.514). "hasta las 5 cajas"/"hasta las 10 personas"
+        // es una CUENTA (límite de cantidad "hasta"), NO una cita: antes este rewrite
+        // disparaba SIEMPRE ("hasta las N"→"a las N") sin mirar el tail, así que "entregar
+        // hasta las 5 cajas" perdía el sentido de límite y quedaba "entregar a las 5
+        // cajas" (el número y el sustantivo sí se preservaban vía [timeMatchIsCountNoun]
+        // downstream, PERO el conector "hasta" se corrompía a "a": contenido capturado
+        // degradado, P1 título limpio). Ahora se consume "hasta las N"/"hasta la una|\d"
+        // (grupo 1) y se reescribe a "a $1" SÓLO cuando NO es cuenta: si lo que sigue al
+        // "las N" en punto es un sustantivo plural de cantidad (cajas/personas/habitaciones/
+        // invitaciones) que NO sea la unidad horaria "horas/hs/h", se preserva "hasta las
+        // N" íntegro. Las horas CON evidencia de reloj (:MM, meridiem, parte del día,
+        // fracción "y media", sufijo "horas/hs/h", "en punto") o al final de frase siguen
+        // reescribiéndose como antes (consistente con el baseline "a las N <plural>" de
+        // c.514: "hasta las 5 horas"→"a las 5 horas"→05:00; "hasta las 5 cajas"→count).
         working = working
-            .replace(Regex("""(?i)\bhasta\s+(?=(?:las\s+\d|la\s+(?:una|\d)))"""), "a ")
+            .replace(Regex("""(?i)\bhasta\s+(las\s+\d{1,2}|la\s+(?:una|\d))""")) { m ->
+                val tail = working.substring(m.range.last + 1)
+                if (hastaHourTailIsCountNoun(tail)) m.value else "a ${m.groupValues[1]}"
+            }
             .replace(
                 Regex(
-                    """(?i)\bhasta\s+(?=(?:el|la|los|las)\s+(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|primer|primero|segundo|tercer|tercero|cuarto|[uú]ltim[oa]?|semana|mes(?:es)?|a[ñn]os?|\d{1,2}\b)|fin(?:es)?\s+de\b|ma[nñ]ana\b|hoy\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b|dentro\s+de\b|en\s+(?:\d|un|una|unos|unas))""",
+                    """(?i)\bhasta\s+(?!(?:las\s+\d{1,2}|la\s+(?:una|\d)))(?=(?:el|la|los|las)\s+(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|primer|primero|segundo|tercer|tercero|cuarto|[uú]ltim[oa]?|semana|mes(?:es)?|a[ñn]os?|\d{1,2}\b)|fin(?:es)?\s+de\b|ma[nñ]ana\b|hoy\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b|dentro\s+de\b|en\s+(?:\d|un|una|unos|unas))""",
                 ),
                 " ",
             )
