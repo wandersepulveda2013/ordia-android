@@ -154,6 +154,8 @@
     <string name="notes_view_compact">Compacta</string>
     <string name="notes_view_gallery">Galería</string>
     <string name="notes_view_titles">Solo títulos</string>
+    <string name="notes_view_label">Vista</string>
+    <string name="notes_sort_label">Orden</string>
     <string name="notes_sort_modified">Última modificación</string>
     <string name="notes_sort_created">Creación más reciente</string>
     <string name="notes_sort_oldest">Más antiguas</string>

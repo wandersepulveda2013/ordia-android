@@ -138,7 +138,6 @@ fun NotesHomeScreen(
     }
 
     val activeList = searchResults ?: state.notes
-    val pinned = activeList.filter { it.pinned && !it.favorite.let { _ -> false } }.filter { it.pinned }
     val pinnedNotes = activeList.filter { it.pinned }
     val regularNotes = activeList.filter { !it.pinned }
     val filteredRegular = applyFilter(regularNotes, filter)
@@ -232,12 +231,13 @@ fun NotesHomeScreen(
                 shape = RoundedCornerShape(28.dp)
             )
 
-            // --- Controles discretos: filtros ---
+            // --- Controles discretos: filtros + vista/orden ---
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 NoteFilter.entries.filter { it != NoteFilter.NONE }.forEach { f ->
                     FilterChip(
@@ -246,6 +246,7 @@ fun NotesHomeScreen(
                         label = { Text(stringResource(f.labelRes), fontSize = 12.sp) }
                     )
                 }
+                ViewSortControl(view = view, sort = sort, onView = { view = it }, onSort = { sort = it })
             }
 
             // --- Contenido ---
@@ -392,6 +393,70 @@ private fun NoteCard(
         }
     }
 }
+
+@Composable
+private fun ViewSortControl(
+    view: NoteViewMode,
+    sort: NoteSortMode,
+    onView: (NoteViewMode) -> Unit,
+    onSort: (NoteSortMode) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        FilterChip(
+            selected = false,
+            onClick = { expanded = true },
+            label = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.ViewAgenda, null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.size(4.dp))
+                    Text(stringResource(sort.labelRes), fontSize = 12.sp)
+                }
+            }
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            // Vista
+            Text(
+                stringResource(R.string.notes_view_label),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 2.dp)
+            )
+            NoteViewMode.entries.forEach { v ->
+                DropdownMenuItem(
+                    text = { Text(viewNameRes(v)) },
+                    leadingIcon = { if (view == v) Icon(Icons.Outlined.PushPin, null) else null },
+                    onClick = { onView(v) }
+                )
+            }
+            // Orden
+            Text(
+                stringResource(R.string.notes_sort_label),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 2.dp)
+            )
+            NoteSortMode.entries.forEach { s ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(s.labelRes)) },
+                    leadingIcon = { if (sort == s) Icon(Icons.Outlined.PushPin, null) else null },
+                    onClick = { onSort(s) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun viewNameRes(mode: NoteViewMode): String = stringResource(when (mode) {
+    NoteViewMode.CARDS -> R.string.notes_view_cards
+    NoteViewMode.LIST -> R.string.notes_view_list
+    NoteViewMode.COMPACT -> R.string.notes_view_compact
+    NoteViewMode.GALLERY -> R.string.notes_view_gallery
+    NoteViewMode.TITLES -> R.string.notes_view_titles
+})
 
 private fun applyFilter(notes: List<NoteEntity>, filter: NoteFilter): List<NoteEntity> = when (filter) {
     NoteFilter.NONE -> notes
