@@ -10008,6 +10008,98 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "desde" + anclaje de HORA (c.436) ---
+    // Simétrico a "a partir de" (c.435). "desde las N"/"desde la parte-del-día"/"desde el
+    // mediodía/amanecer/..." significa "a partir de esa hora". Antes la hora SÍ se
+    // resolvía para "las N" y "la parte-del-día" PERO "desde" sobrevivía como residuo en el
+    // título ("cita desde", "reunión desde el"). Peor: las partes-del-día con artículo "el"
+    // ("desde el mediodía/amanecer/atardecer/anochecer") NO se agendaban (dueAt=null → tarea
+    // olvidada, P1 datos/captura) porque el rewriter no admitía el prefijo "el". Ahora el
+    // cuerpo del rewriter es idéntico al de "a partir de" (variantes ASCII incluidas) con el
+    // prefijo "desde (?:el )?".
+    @Test fun desdeLasTresDeLaTardeResuelve15hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("cita desde las 3 de la tarde", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun desdeLasCatorceResuelve14hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("enviar desde las 14", now, zone)
+        assertEquals("enviar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(14, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun desdeLaTardeResuelve15hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("pintar desde la tarde", now, zone)
+        assertEquals("pintar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun desdeElMediodiaResuelve12hYLimpiaTitulo() {
+        // Antes: dueAt=null (no agendaba) y título "reunión desde el". Ahora agenda y limpia.
+        val result = NaturalTaskParser.parse("reunión desde el mediodía", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun desdeElMediodiaAsciiResuelve12hYLimpiaTitulo() {
+        // Variante ASCII ("mediodia" sin tilde): antes el rewriter sólo admitía "mediodía"
+        // con í acentuada → esta forma cotidiana caía a dueAt=null. Ahora alineado al
+        // cuerpo de "a partir de" (mediod[ií]a) agenda y limpia.
+        val result = NaturalTaskParser.parse("reunión desde el mediodia", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun desdeElAmanecerResuelve6hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("caminar desde el amanecer", now, zone)
+        assertEquals("caminar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(6, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun desdeElAtardecerResuelve18hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("correr desde el atardecer", now, zone)
+        assertEquals("correr", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun desdeElAnochecerResuelve18hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("leer desde el anochecer", now, zone)
+        assertEquals("leer", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun desdeLasTresDeLaTardeStandaloneNoDejaResiduoDesde() {
+        // Frase de agenda sin acción: el respaldo de título no debe resucitar "desde" crudo;
+        // se normaliza al conector canónico ("a las 3 de la tarde").
+        val result = NaturalTaskParser.parse("desde las 3 de la tarde", now, zone)
+        assertEquals("a las 3 de la tarde", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun desdeElMediodiaStandaloneNoDejaResiduoDesde() {
+        val result = NaturalTaskParser.parse("desde el mediodía", now, zone)
+        assertEquals("al mediodía", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun desdeLasNueveDeLaNocheEscritaResuelve21hYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("reunión desde las nueve de la noche", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- "a eso de" + hora DESNUDA (sin "las") (c.386) ---
     // "a eso de" es adverbio temporal puro, así que admite hora en punto sin "las" como la
     // forma "a eso de las N". Antes estas variantes cotidianas ("a eso de nueve", "a eso de

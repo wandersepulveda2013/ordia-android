@@ -1202,6 +1202,27 @@ object NaturalTaskParser {
         Regex("""(?i)\ba\s+partir\s+d(?:e|el)\s+(?:(las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)[0-5]\d)?(?:\s*(?:horas?|hs|h))?)|(la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada|medianoche))|(mediod[ií]a|amanecer|alba|atardecer|anochecer|ocaso|despuntar\s+(?:el\s+|la\s+|de\s+la\s+|del\s+)?(?:alba|d[ií]a)|clarear|aclarar|ponerse\s+(?:el\s+sol|del\s+sol)))""")
 
     /**
+     * Normaliza el conector de inicio de franja "desde" + anclaje temporal de HORA
+     * ("desde las 3 de la tarde", "desde la mañana", "desde el mediodía/amanecer/
+     * atardecer") a la forma canónica ("a las"/"a la"/"al") ANTES del fold de
+     * [approximateTimePatterns] y del resto del flujo, para reutilizar TODO el mecanismo
+     * de hora/parte-del-día existente (resolución + limpieza) sin dejar "desde" como
+     * residuo en el título. Simétrico de [aPartirDeRewriter] ("a partir de") y de la
+     * familia "antes de"/"después de"/"hasta". Sólo anclajes de HORA (no fechas de
+     * calendario "desde el viernes"/"desde mañana": "desde mañana" ya la resuelve
+     * [datePatterns] como fecha, y "desde el viernes" es un rango de FECHA, no de
+     * hora). Los grupos 1/2/3 son las tres formas de anclaje ("las N", "la X", "X");
+     * se emite el conector según cuál case.
+     *
+     * IMPORTANTE: se aplica DESPUÉS de [desdeRangeNormalizerRewriter] (rangos
+     * "desde las H1 hasta las H2") para no desarmarlos. Asimismo el lookahead exige
+     * anclaje de HORA, no fecha de calendario, así "desde el proyecto"/"desde las 3 cajas"
+     * (tema/cantidad) no se tocan.
+     */
+    private val desdeRewriter =
+        Regex("""(?i)\bdesde\s+(?:el\s+)?(?:(las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)[0-5]\d)?(?:\s*(?:horas?|hs|h))?)|(la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada|medianoche))|(mediod[ií]a|amanecer|alba|atardecer|anochecer|ocaso|despuntar\s+(?:el\s+|la\s+|de\s+la\s+|del\s+)?(?:alba|d[ií]a)|clarear|aclarar|ponerse\s+(?:el\s+sol|del\s+sol)))""")
+
+    /**
      * Normaliza rangos horarios expresados con "entre...y" o con "las" en cada extremo
      * a la forma canónica "de H1 a H2 [meridiem]" que SÍ digiere [timeRangePattern]
      * (duración M−N + hora de INICIO como dueAt, con propagación de meridiem, cruce de
@@ -2146,6 +2167,28 @@ object NaturalTaskParser {
         working = desdeRangeNormalizerRewriter.replace(working) { rebuildRange(it) }
         working = entreRangeNormalizerRewriter.replace(working) { rebuildRange(it) }
         working = deLasRangeNormalizerRewriter.replace(working) { rebuildRange(it) }
+
+        // c.436: "desde" + anclaje de HORA ("desde las 3 de la tarde", "desde la
+        // mañana", "desde el mediodía/amanecer/atardecer") se reescribe al conector
+        // canónico ("a las"/"a la"/"al") ANTES del fold de [approximateTimePatterns]
+        // y del resto del flujo, para reutilizar TODO el mecanismo de hora/parte-del-día
+        // existente (resolución + limpieza) sin dejar "desde" como residuo en el título.
+        // Simétrico de [aPartirDeRewriter]. Se aplica DESPUÉS de los normalizadores de
+        // rango ([desdeRangeNormalizerRewriter]/[deLasRangeNormalizerRewriter]) para no
+        // desarmar "desde las 9 hasta las 11". Sólo anclajes de HORA: el regex exige
+        // "las N"/"la X"/parte-del-día, así "desde el viernes"/"desde mañana" (fecha) y
+        // "desde el proyecto"/"desde las 3 cajas" (tema/cantidad) no se tocan. Grupos
+        // 1/2/3 = "las N"/"la X"/"X"; se emite el conector según cuál case.
+        working = desdeRewriter.replace(working) { m ->
+            val las = m.groupValues[1]
+            val la = m.groupValues[2]
+            val bare = m.groupValues[3]
+            when {
+                las.isNotEmpty() -> "a $las"
+                la.isNotEmpty() -> "a $la"
+                else -> "al $bare"
+            }
+        }
 
         working = approximateTimePatterns.fold(working) { acc, p -> p.replace(acc, "a ") }
 
@@ -4024,6 +4067,20 @@ object NaturalTaskParser {
             // ("a partir de las 3 de la tarde" solo) muestra "a las 3 de la tarde" en
             // vez de resucitar "a partir de" crudo — consistente con c.424/c.432.
             .replace(aPartirDeRewriter) { m ->
+                val las = m.groupValues[1]
+                val la = m.groupValues[2]
+                val bare = m.groupValues[3]
+                when {
+                    las.isNotEmpty() -> "a $las"
+                    la.isNotEmpty() -> "a $la"
+                    else -> "al $bare"
+                }
+            }
+            // c.436: el respaldo también normaliza "desde" + anclaje de hora
+            // (simétrico al rewriter en `parse`), así un standalone de franja
+            // ("desde las 3 de la tarde" solo) muestra "a las 3 de la tarde" en
+            // vez de resucitar "desde" crudo — consistente con c.424/c.432/c.435.
+            .replace(desdeRewriter) { m ->
                 val las = m.groupValues[1]
                 val la = m.groupValues[2]
                 val bare = m.groupValues[3]
