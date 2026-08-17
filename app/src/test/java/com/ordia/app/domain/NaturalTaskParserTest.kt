@@ -10859,6 +10859,74 @@ class NaturalTaskParserTest {
         assertNotEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "al inicio del día" / "al inicio de la jornada" (sinónimo de "a primera hora").
+    // Asimetría flagrante con "al final del día"=18:00 (c.2247): el fin de jornada SÍ se
+    // interpretaba como hora canónica, pero el inicio de jornada NO — "al inicio del día"
+    // dejaba la tarea SIN dueAt (olvidada, invisible en What Now/planificador, sin
+    // recordatorio) y la frase quedaba como residuo en el título. Ahora resuelve a 09:00
+    // (inicio de jornada, simétrico de "a primera hora") y limpia el título. Exige el
+    // conector "al "/"a " + "día/jornada" para no colisionar con "al inicio del proyecto"
+    // ni "fase inicial del día".
+
+    @Test fun alInicioDelDiaInterpretaInicioJornadaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión al inicio del día", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alInicioDelDiaSinTildeTambienFunciona() {
+        val result = NaturalTaskParser.parse("Reunión al inicio del dia", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alInicioDeLaJornadaFunciona() {
+        val result = NaturalTaskParser.parse("Empezar al inicio de la jornada", now, zone)
+        assertEquals("Empezar", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alInicioDelDiaConFechaRelativaCombinaBien() {
+        val result = NaturalTaskParser.parse("Llamar mañana al inicio del día", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alInicioDelDiaNoEsFalsoPositivoEnFraseDistinta() {
+        // "al inicio del proyecto": "inicio" sin "día/jornada" no es inicio de jornada.
+        // No debe asignar 09:00 ni borrar nada.
+        val result = NaturalTaskParser.parse("Reunión al inicio del proyecto", now, zone)
+        assertEquals("Reunión al inicio del proyecto", result.title)
+        assertEquals(null, result.dueAt)
+    }
+
+    // --- "a primera hora del día": el patrón de "a primera hora" casaba y resolvía 09:00,
+    // PERO su sufijo opcional sólo admitía "de la mañana/madrugada", no "del día", así que
+    // "del día" sobrevivía como residuo en el título ("Reunión del día"). Ahora el sufijo
+    // también consume "del día/día/días/jornada" (simétrico a como alFinalDelDiaPattern
+    // cubre esas variantes), dejando el título limpio.
+
+    @Test fun primeraHoraDelDiaLimpiaResiduoDelDiaDelTitulo() {
+        val result = NaturalTaskParser.parse("Reunión a primera hora del día", now, zone)
+        assertEquals("Reunión", result.title)
+        assertFalse(result.title.contains("día", ignoreCase = true))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun primerasHorasDelDiaLimpiaResiduoDelTitulo() {
+        val result = NaturalTaskParser.parse("Reunión a primeras horas del día", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun primeraHoraDeLaJornadaLimpiaResiduoDelTitulo() {
+        val result = NaturalTaskParser.parse("Reunión a primera hora de la jornada", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // --- "a último momento" (sinónimo masculino de "a última hora"). Antes el patrón
     // de "a última hora" exigía el adjetivo en femenino ("última") y no casaba la
     // forma masculina "último momento" → dueAt=null (tarea SIN vencimiento →

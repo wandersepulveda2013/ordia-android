@@ -2219,8 +2219,22 @@ object NaturalTaskParser {
      * (no un reloj explícito), no fuerza contexto PM.
      */
     private val primeraHoraPattern =
-        Regex("""(?i)(?:justo\s+)?\b(?:a\s+)?(?:primeras?\s+horas?|primer\s+momento)(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|madrugada))?\b""")
+        Regex("""(?i)(?:justo\s+)?\b(?:a\s+)?(?:primeras?\s+horas?|primer\s+momento)(?:\s+(?:de\s+la\s+(?:ma[nñ]ana|manana|madrugada)|del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a))?\b""")
     private val primeraHoraTime = LocalTime.of(9, 0)
+
+    /**
+     * "al inicio del día/días"/"al inicio de la jornada": sinónimo cotidiano de
+     * "a primera hora" (inicio de jornada ~09:00). Simétrico de [alFinalDelDiaPattern]
+     * (fin de jornada 18:00): antes el FIN de jornada SÍ se interpretaba como hora
+     * canónica, pero el INICIO NO — "al inicio del día" dejaba la tarea SIN `dueAt`
+     * (olvidada, invisible en What Now/planificador, sin recordatorio) y la frase
+     * quedaba como residuo en el título. Exige el conector "al "/"a " + "día/jornada"
+     * para no colisionar con "al inicio del proyecto" ni "fase inicial del día".
+     * Como [primeraHoraTime], es hora de respaldo: si hay una hora/parte del día
+     * explícita, ésta tiene prioridad y el patrón solo limpia "al inicio del día".
+     */
+    private val alInicioDelDiaPattern =
+        Regex("""(?i)(?:justo\s+)?(?:al\s+inicio|a\s+inicio)\s+(?:del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a)\b""")
 
     /**
      * "a última hora"/"a último momento" (opcionalmente "de la mañana/tarde/noche/madrugada"):
@@ -4038,6 +4052,7 @@ object NaturalTaskParser {
         val primeraHoraMatch = primeraHoraPattern.find(working)
         val ultimaHoraMatch = ultimaHoraPattern.find(working)
         val alFinalDelDiaMatch = alFinalDelDiaPattern.find(working)
+        val alInicioDelDiaMatch = alInicioDelDiaPattern.find(working)
         val amanecerMatch = amanecerPattern.find(working)
         val atardecerMatch = atardecerPattern.find(working)
         val mediaPartOfDayMatch = mediaPartOfDayPattern.find(working)
@@ -4558,6 +4573,7 @@ object NaturalTaskParser {
             ?: compactDayPartOfDayTime
             ?: recurrence.partOfDayTime
             ?: primeraHoraMatch?.let { primeraHoraTime }
+            ?: alInicioDelDiaMatch?.let { primeraHoraTime }
             ?: ultimaHoraMatch?.let { ultimaHoraTime }
             ?: alFinalDelDiaMatch?.let { alFinalDelDiaTime }
             ?: amanecerMatch?.let { amanecerTime }
@@ -4841,6 +4857,7 @@ object NaturalTaskParser {
             .let { value -> primeraHoraPattern.replace(value, " ") }
             .let { value -> ultimaHoraPattern.replace(value, " ") }
             .let { value -> alFinalDelDiaPattern.replace(value, " ") }
+            .let { value -> alInicioDelDiaPattern.replace(value, " ") }
             .let { value -> amanecerPattern.replace(value, " ") }
             .let { value -> atardecerPattern.replace(value, " ") }
             .let { value -> mediaPartOfDayPattern.replace(value, " ") }
