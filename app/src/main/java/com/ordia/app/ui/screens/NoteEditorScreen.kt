@@ -607,7 +607,13 @@ fun NoteEditorScreen(
     }
 
     if (infoOpen && existing != null) {
-        InfoDialog(note = existing, onDismiss = { infoOpen = false })
+        InfoDialog(
+            note = existing,
+            blocks = blocks,
+            vm = vm,
+            onOpenNote = onOpenNote,
+            onDismiss = { infoOpen = false }
+        )
     }
 
     if (historyOpen && existing != null) {
@@ -1141,10 +1147,25 @@ private fun AttachmentRow(
 }
 
 @Composable
-private fun InfoDialog(note: NoteEntity, onDismiss: () -> Unit) {
+private fun InfoDialog(
+    note: NoteEntity,
+    blocks: List<NoteBlock>,
+    vm: OrdiaViewModel,
+    onOpenNote: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
     val created = java.text.DateFormat.getDateTimeInstance().format(java.util.Date(note.createdAt))
     val modified = java.text.DateFormat.getDateTimeInstance().format(java.util.Date(note.updatedAt))
-    val words = note.body.split(Regex("\\s+")).filter { it.isNotBlank() }.size
+    val fullText = remember(blocks) { blocks.joinToString("\n") { it.plainText } + "\n" + note.title }
+    val words = remember(fullText) { fullText.split(Regex("\\s+")).filter { it.isNotBlank() }.size }
+    val chars = fullText.length
+    val attachments = remember(blocks) { blocks.count { it.attachmentUri.isNotBlank() } }
+
+    var backlinks by remember(note.id) { mutableStateOf<List<NoteEntity>>(emptyList()) }
+    LaunchedEffect(note.id) {
+        backlinks = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { vm.backlinksTo(note.id) }
+    }
+
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
@@ -1154,7 +1175,22 @@ private fun InfoDialog(note: NoteEntity, onDismiss: () -> Unit) {
                 Text(stringResource(R.string.notes_info_created, created))
                 Text(stringResource(R.string.notes_info_modified, modified))
                 Text(stringResource(R.string.notes_info_words, words))
-                Text(stringResource(R.string.notes_info_chars, note.body.length))
+                Text(stringResource(R.string.notes_info_chars, chars))
+                Text(stringResource(R.string.notes_info_attachments, attachments))
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.notes_info_backlinks, backlinks.size),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                backlinks.take(5).forEach { bl ->
+                    Text(
+                        "• ${bl.title.ifBlank { bl.body.take(40) }}",
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .padding(start = 8.dp, top = 2.dp)
+                            .clickable { onOpenNote(bl.id) }
+                    )
+                }
             }
         }
     )

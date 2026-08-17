@@ -797,6 +797,14 @@ class OrdiaViewModel(
             .sortedByDescending { it.updatedAt }
             .take(limit)
 
+    /** Notas que enlazan a [noteId] internamente (bloque LINK con 'note:<id>'). */
+    suspend fun backlinksTo(noteId: Long): List<NoteEntity> {
+        if (noteId <= 0L) return emptyList()
+        val needle = "note:$noteId"
+        return noteRepository.getAllNow()
+            .filter { !it.trashed && it.id != noteId && it.blocksData.contains(needle) }
+    }
+
     /** Crea una nota vacía y devuelve su id (para abrir el editor al instante). */
     fun createBlankNote(onCreated: (Long) -> Unit) = viewModelScope.launch {
         val now = System.currentTimeMillis()

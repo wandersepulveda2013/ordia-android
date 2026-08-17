@@ -200,6 +200,8 @@
     <string name="notes_info_modified">Modificada %1$s</string>
     <string name="notes_info_words">%1$d palabras</string>
     <string name="notes_info_chars">%1$d caracteres</string>
+    <string name="notes_info_attachments">%1$d adjuntos</string>
+    <string name="notes_info_backlinks">Mencionada en %1$d notas</string>
     <string name="notes_editor_title_hint">Título opcional</string>
     <string name="notes_editor_save_saving">Guardando…</string>
     <string name="notes_editor_save_saved">Guardado</string>
