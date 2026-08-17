@@ -2396,4 +2396,70 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.534: extensión natural de c.533. Tres verbos de comunicación más en FUTURO
+    // seguían cayendo a MISSED: AVISARÉ (avisar[eé]/avisaremos), NOTIFICARÉ
+    // (notificar[eé]/notificaremos) y DIRÉ (dir[eé]/diremos — irregular: decir->dir-).
+    // c.533 cubría llamar/hablar/escribir, pero avisar/notificar/decir (su sinónimos
+    // naturales de contacto: "le diré la respuesta"/"te avisaré"/"le notificaré el
+    // viernes") no. Cobertura singular y plural, con clítico (te/le/lo/se lo) y pelado
+    // con objeto nominal. Cierre de la asimetría de lexema del futuro de comunicación.
+    // Probe JVM PRE-fix: 12/12 MISSED (3 verbos nuevos + controles c.533); POST-fix: 12/12 SELF_COMMITMENT.
+    @Test
+    fun detectsFutureCommunicationVerbsAvisarNotificarDecir() {
+        val positives = listOf(
+            "lo diré mañana",
+            "le diré al cliente mañana",
+            "te lo diré el lunes",
+            "se lo diré el viernes",
+            "le diré la respuesta mañana",
+            "le avisaré mañana",
+            "te avisaré el lunes",
+            "le notificaré el viernes",
+            "te notificaré el lunes",
+            "lo diremos mañana",
+            "le avisaremos mañana",
+            "le notificaremos el viernes"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c534-pos-$text"
+            )
+            assertEquals(
+                "\"$text\" (futuro avisar/notificar/decir) debe generar draft SELF_COMMITMENT",
+                1, result.size
+            )
+            assertEquals(
+                "debe ser SELF_COMMITMENT: \"$text\"",
+                CommitmentKind.SELF_COMMITMENT, result[0].kind
+            )
+        }
+    }
+
+    // c.534: precisión simétrica. "no te avisaré"/"no le notificaré"/"no te lo diré"
+    // son NEGACIONES (rechazos), igual que "no te avisar" (presente). La guarda
+    // precedingNegation las excluye.
+    // Probe JVM POST-fix: 4/4 excluidas.
+    @Test
+    fun futureAvisarNotificarDecirRespectDirectNegation() {
+        val negatives = listOf(
+            "no le avisaré mañana",
+            "no te avisaré el lunes",
+            "no le notificaré el viernes",
+            "no te lo diré el lunes"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c534-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" (negación de futuro avisar/notificar/decir) NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
 }
