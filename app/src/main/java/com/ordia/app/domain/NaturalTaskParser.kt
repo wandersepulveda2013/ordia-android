@@ -949,9 +949,11 @@ object NaturalTaskParser {
 
     // Genitivo temporal que introduce una frase temporal que resuelve fecha
     // ("la semana pasada", "el mes que viene", "finales de la semana",
-    // "principios de la semana", "fin de semana"): "balance de la semana pasada",
+    // "principios de la semana", "fin de semana", "fin de mes", "fin de año",
+    // "mediados de mes de octubre"): "balance de la semana pasada",
     // "informe del mes pasado", "resumen de finales de la semana",
-    // "foto de fin de semana". El conector "de"/"del" es siempre el modificador de
+    // "foto de fin de semana", "cierre de fin de mes", "plan del fin de año",
+    // "balance de cada fin de mes". El conector "de"/"del" es siempre el modificador de
     // posesión temporal del contenido, no contenido en sí (la frase temporal que
     // le sigue resuelve una fecha, así que es inequívocamente temporal).
     // Extiende el rango del match hacia atrás para consumir ese conector junto con la
@@ -959,8 +961,9 @@ object NaturalTaskParser {
     // monthNameStripPattern (c.448) y el genitivo de día relativo (l.4579).
     // No consume "de" cuando la frase NO casa (no resuelve fecha): "menú de la
     // semana" (sin "pasada/que viene") no activa lastPeriod/nextPeriodPattern, y
-    // "de la semana santa" no activa thisWeek/startOfWeek/midOfWeek/weekend → este
-    // método no se invoca → el conector "de" permanece legítimamente como contenido.
+    // "de la semana santa" no activa thisWeek/startOfWeek/midOfWeek/weekend, y
+    // "cierre del mes" (sin "fin/mediados/principios") no activa endOfMonthPattern
+    // → este método no se invoca → el conector "de" permanece legítimamente como contenido.
     private fun strippedPeriodRange(working: String, range: IntRange): IntRange {
         var start = range.first
         while (start - 1 >= 0 && working[start - 1].isWhitespace()) start--
@@ -3279,7 +3282,12 @@ object NaturalTaskParser {
             val cadaInBoundaryMatch = Regex("""(?i)\bcada\b|\btodos\s+los\b""").containsMatchIn(boundaryWinner.value)
             val hasNamedMonth = months[boundaryWinner.groupValues[1].lowercase()] != null
             if (cadaPrefix != null) {
-                working = working.replaceRange(cadaPrefix.range.first..boundaryWinner.range.last, " ")
+                // c.492: el genitivo "de/del" antes del prefijo "cada"/"todos los" introduce
+                // el límite temporal ("Balance de cada fin de mes") y debe consumirse junto
+                // al límite, igual que en la rama sin "cada". Sin esto, el título queda con
+                // residuo "de" ("Balance de").
+                val combined = strippedPeriodRange(working, cadaPrefix.range.first..boundaryWinner.range.last)
+                working = working.replaceRange(combined, " ")
                 if (hasNamedMonth) null
                 else when (boundaryKind) {
                     "end" -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList(), monthlyLastDay = true)
@@ -3288,17 +3296,18 @@ object NaturalTaskParser {
             } else if (cadaInBoundaryMatch) {
                 // El "cada"/"todos los" va dentro del match (tras "de/del"): se borra sólo
                 // el rango del match (que ya incluye la palabra de cadencia) — no hay prefijo
-                // externo que extender. Misma promoción que la rama del prefijo.
-                working = working.replaceRange(boundaryWinner.range, " ")
+                // externo que extender. Misma promoción que la rama del prefijo. c.492:
+                // strippedPeriodRange consume el genitivo "de/del" externo si lo hay.
+                working = working.replaceRange(strippedPeriodRange(working, boundaryWinner.range), " ")
                 if (hasNamedMonth) null
                 else when (boundaryKind) {
                     "end" -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList(), monthlyLastDay = true)
                     else -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList())
                 }
             } else {
-                endOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
-                midOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
-                startOfMonthEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+                endOfMonthEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
+                midOfMonthEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
+                startOfMonthEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
                 null
             }
         } else null
@@ -3317,7 +3326,7 @@ object NaturalTaskParser {
         // "mediados de semana"/"fin de año" no son límites mensuales y deben caer a
         // su handler original.
         if (monthBoundaryNameMonthNum != null) {
-            monthBoundaryNameEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+            monthBoundaryNameEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
         }
 
         // "fin de año" / "mediados de año" / "principios de año": vencimientos anuales
@@ -3343,9 +3352,9 @@ object NaturalTaskParser {
             }
             else -> null
         }
-        endOfYearEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
-        midOfYearEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
-        startOfYearEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+        endOfYearEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
+        midOfYearEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
+        startOfYearEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
 
         // "este mes" / "este año": plazo blando = fin del mes/año en curso. Se procesa
         // tras los límites anuales/mensuales (que ya consumieron "fin/mediados/... de

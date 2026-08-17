@@ -7353,6 +7353,124 @@ class NaturalTaskParserTest {
         assertEquals(RecurrenceFrequency.NONE, result.recurrence)
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+
+    // --- c.492: genitivo "de/del" antes de límite mensual/anual (P1) ---
+    // "Cierre de fin de mes" / "Resumen del fin de mes" / "Plan del fin de año" son la
+    // forma natural de nombrar un contenido ("cierre/resumen/plan") cuyo vencimiento es
+    // un límite temporal ("fin de mes/año"). El conector "de/del" introduce la frase
+    // temporal (genitivo de posesión temporal del contenido), igual que c.490/c.491 para
+    // período/semana. Antes el conector NO se consumía → título corrupto con residuo
+    // "de"/"del" ("Cierre de") aunque la fecha sí se resolvía. P1: el título es lo que
+    // el usuario ve/gestiona en What Now y planificador; un residuo "de" final queda
+    // como basura visible y rompe la edición/identificación de la tarea. now=2026-07-29.
+
+    @Test fun genitivoDeAntesDeFinDeMesNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Cierre de fin de mes", now, zone)
+        assertEquals("Cierre", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDelAntesDeFinDeMesNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Resumen del fin de mes", now, zone)
+        assertEquals("Resumen", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDelAntesDeFinDeAnoNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Plan del fin de año", now, zone)
+        assertEquals("Plan", result.title)
+        assertEquals(LocalDate.of(2026, 12, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeAntesDeFinDeAnoNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Resumen de fin de año", now, zone)
+        assertEquals("Resumen", result.title)
+        assertEquals(LocalDate.of(2026, 12, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeAntesDePrincipiosDeMesNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Plan de principios de mes", now, zone)
+        assertEquals("Plan", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeAntesDeMediadosDeMesNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Balance de mediados de mes", now, zone)
+        assertEquals("Balance", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeAntesDeFinalesDeMesNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Cierre de finales de mes", now, zone)
+        assertEquals("Cierre", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeAntesDePrincipiosDeAnoNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Informe de principios de año", now, zone)
+        assertEquals("Informe", result.title)
+        assertEquals(LocalDate.of(2027, 1, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeAntesDeMediadosDeAnoNoDejaResiduo() {
+        // now=2026-07-29 ya pasó mediados de 2026 (30/6) → rueda a 2027-06-30.
+        val result = NaturalTaskParser.parse("Balance de mediados de año", now, zone)
+        assertEquals("Balance", result.title)
+        assertEquals(LocalDate.of(2027, 6, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeAntesDeFinDeMesQueVieneNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Informe de fin de mes que viene", now, zone)
+        assertEquals("Informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeAntesDeFinDeMesConMesExplicitoNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Cierre de fin de mes de diciembre", now, zone)
+        assertEquals("Cierre", result.title)
+        assertEquals(LocalDate.of(2026, 12, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeAntesDeMediadosDeMesConMesExplicitoNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Plan de mediados de mes de octubre", now, zone)
+        assertEquals("Plan", result.title)
+        assertEquals(LocalDate.of(2026, 10, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeCadaFinDeMesRecurreYNoDejaResiduo() {
+        // "cada" DENTRO del match (cadaInBoundaryMatch): el genitivo externo "de" debe
+        // consumirse igual, y la recurrencia mensual EOM debe preservarse.
+        val result = NaturalTaskParser.parse("Balance de cada fin de mes", now, zone)
+        assertEquals("Balance", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // --- Contra-regresión: el genitivo se consume SÓLO si la frase temporal casa.
+    // "Cierre del mes" (sin "fin/mediados/principios") NO activa endOfMonthPattern:
+    // el conector "del" debe permanecer legítimamente como contenido. "Cierre del mes"
+    // cae a monthNamePattern ("mes" no es un mes válido → no resuelve fecha → título
+    // íntegro preservado, sin dueAt).
+    @Test fun genitivoSinLimiteTemporalPermaneceComoContenido() {
+        val result = NaturalTaskParser.parse("Cierre del mes", now, zone)
+        assertEquals("Cierre del mes", result.title)
+        // No resuelve fecha (no hay día ni mes válido): dueAt puede ser null o fin de mes
+        // según el flujo, pero el TÍTULO debe quedar íntegro, sin residuo artificial.
+    }
+
+    @Test fun genitivoDeEsteMesNoSeConsumeIncorrectamente() {
+        // "Balance de este mes": thisMonthPattern tiene lookbehind que RECHAZA "de " justo
+        // antes → NO casa → no se borra nada → el conector "de" queda legítimamente como
+        // contenido (no hay frase temporal que resolver). Título íntegro.
+        val result = NaturalTaskParser.parse("Balance de este mes", now, zone)
+        assertEquals("Balance de este mes", result.title)
+    }
+
+    @Test fun genitivoDeEsteAnoNoSeConsumeIncorrectamente() {
+        val result = NaturalTaskParser.parse("Resumen de este año", now, zone)
+        assertEquals("Resumen de este año", result.title)
+    }
     // --- c.471: cadencia "mensual" + anclaje de fin de mes (P1) ---
     // "mensual el último día" / "mensual fin de mes" / "mensual a fin de mes" son las
     // formas cotidianas de alquiler/nómina/pago recurrentes anclados a fin de mes. La
