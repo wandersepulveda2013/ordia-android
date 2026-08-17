@@ -6875,6 +6875,65 @@ class NaturalTaskParserTest {
         assertEquals(RecurrenceFrequency.NONE, result.recurrence)
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
+    // --- c.471: cadencia "mensual" + anclaje de fin de mes (P1) ---
+    // "mensual el último día" / "mensual fin de mes" / "mensual a fin de mes" son las
+    // formas cotidianas de alquiler/nómina/pago recurrentes anclados a fin de mes. La
+    // cadencia "mensual" actúa como "cada mes" y el límite fija el día. Antes había DOS
+    // fallos ligados: (1) "el último día" SIN "de/del mes" no casaba en endOfMonthPattern
+    // → dueAt caía al día de captura (vencimiento incorrecto), recurrencia MONTHLY sin
+    // anclaje y "el último día" sobrevivía como residuo del título; (2) "mensual fin de
+    // mes" / "mensual el último día del mes" SÍ fijaban dueAt a fin de mes, pero la
+    // recurrencia se emitía SIN monthlyLastDay (vía fixedPatterns, sin EOM) → al
+    // completar la 1ª cita, nextMonthly conservaba base.dayOfMonth=31 y SALTABA los meses
+    // cortos (septiembre, abril...), desplazando silenciosamente la rutina. Fix unificado:
+    // cuando la cadencia mensual explícita ("mensual"/"cada mes"/"todos los meses")
+    // coexiste con un límite de fin de mes, la recurrencia se promueve a MONTHLY+EOM
+    // (anclaje al último día REAL del mes objetivo, no omite meses cortos) y el límite
+    //"último día" se reconoce también sin "de mes" bajo cadencia (evita el falso positivo
+    // "reunión el último día del congreso", que NO lleva cadencia). now=2026-07-29 → fin
+    // de mes en curso = 7/31.
+
+    @Test fun mensualUltimoDiaSinDeMesGeneraRecurrenciaMensualEOM() {
+        val result = NaturalTaskParser.parse("pago mensual el último día", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mensualFinDeMesGeneraRecurrenciaMensualEOM() {
+        val result = NaturalTaskParser.parse("renta mensual fin de mes", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mensualAFinDeMesGeneraRecurrenciaMensualEOM() {
+        val result = NaturalTaskParser.parse("factura mensual a fin de mes", now, zone)
+        assertEquals("factura", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mensualUltimoDiaDelMesGeneraRecurrenciaMensualEOM() {
+        val result = NaturalTaskParser.parse("nómina mensual el último día del mes", now, zone)
+        assertEquals("nómina", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Anti-falso-positivo: sin cadencia mensual, "el último día" NO se ancla a fin de mes
+    // (no es un límite mensual sino parte del contexto semántico). Antes quedaba en el
+    // título (correcto); debe seguir así tras el fix (la guard de cadencia lo impide).
+    @Test fun ultimoDiaSinCadenciaMensualNoSeAnclaAFinDeMes() {
+        val result = NaturalTaskParser.parse("reunión el último día del congreso", now, zone)
+        assertEquals("reunión el último día del congreso", result.title)
+        assertNull(result.dueAt)
+    }
+
 
     // --- límites mensuales con modificador "mes que viene"/"próximo" ---
     // Antes el patrón terminaba en "mes" e ignoraba el calificador → un vencimiento

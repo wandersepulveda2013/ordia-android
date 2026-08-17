@@ -616,6 +616,16 @@ object NaturalTaskParser {
     private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(?:fin(?:al|ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
     private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
     private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?|inicios?)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
+    // c.471: "el último día" SIN "de/del mes" bajo cadencia mensual explícita
+    // (alquiler/nómina "pago mensual el último día"). El patrón anterior exige
+    // "de mes", así que esta forma cotidiana no se reconocía: el límite no se borraba
+    // (quedaba en el título), dueAt caía al día de captura y la recurrencia MONTHLY
+    // venía sin anclaje. El lookahead negativo evita casar "el último día del mes"
+    // (ya cubierto por endOfMonthPattern) o "...del <sustantivo>" ("el último día
+    // del congreso"); la guard de cadencia (evaluada en uso) impide anclar "el último
+    // día" cuando NO hay "mensual"/"cada mes"/"todos los meses" (p. ej. "reunión el
+    // último día del congreso" no es un límite mensual).
+    private val endOfMonthNoMesPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?el\s+[uú]ltim[oa]\s+d[ií]a\b(?!\s+(?:de|del)\s+(?:mes|meses))(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
     /**
      * Prefijo "cada" inmediatamente antes de un límite mensual ("cada fin de mes",
      * "cada mediados de mes", "cada principios de mes"): convierte el vencimiento
@@ -2959,9 +2969,17 @@ object NaturalTaskParser {
         // (alquiler, tarjeta, servicios). Se borran ANTES del período próximo para que
         // la subcadena "mes" no active "mes que viene". Se trata como días relativos
         // (epoch a medianoche) para combinarse con hora explícita ("fin de mes a las 18").
-        val endOfMonthEarlyMatch = endOfMonthPattern.find(working)
+        var endOfMonthEarlyMatch = endOfMonthPattern.find(working)
         val midOfMonthEarlyMatch = midOfMonthPattern.find(working)
         val startOfMonthEarlyMatch = startOfMonthPattern.find(working)
+        // c.471: si NO se reconoció un límite "fin de mes" canónico (requiere "de mes")
+        // pero hay cadencia mensual explícita, "el último día" suelto se trata como
+        // límite de fin de mes (mismo flujo que endOfMonthPattern: borra, fija dueAt a EOM
+        // y boundaryKind="end" para que la recurrencia se promueva a MONTHLY+EOM).
+        val hasMonthlyCadence = Regex("""(?i)\bmensual(?:es|mente)?\b|\bcada\s+mes\b|\btodos\s+los\s+meses\b""").containsMatchIn(working)
+        if (endOfMonthEarlyMatch == null && hasMonthlyCadence) {
+            endOfMonthNoMesPattern.find(working)?.let { endOfMonthEarlyMatch = it }
+        }
         // Límite mensual ganador (fin > mediados > principios) y su "tipo": sirve para
         // detectar el prefijo "cada" (recurrencia) y extender su borrado en un solo paso.
         val boundaryWinner: MatchResult? = endOfMonthEarlyMatch ?: midOfMonthEarlyMatch ?: startOfMonthEarlyMatch
@@ -3446,8 +3464,21 @@ object NaturalTaskParser {
             }
             // "cada fin/mediados/principios de mes" (c.257): si no quedó otra recurrencia
             // explícita, el límite mensual se promueve a recurrencia MONTHLY anclada.
-            if (withOrdinal.frequency == RecurrenceFrequency.NONE && cadaBoundaryRecurrence != null) cadaBoundaryRecurrence
-            else withOrdinal
+            // c.471: cadencia mensual explícita ("mensual"/"cada mes") + límite de fin de
+            // mes ("fin de mes"/"el último día[ del mes]"). Sin este, la recurrencia
+            // MONTHLY venía de fixedPatterns SIN monthlyLastDay: nextMonthly conservaba
+            // base.dayOfMonth=31 y SALTABA los meses cortos (septiembre, abril, junio,
+            // noviembre), desplazando silenciosamente la rutina de alquiler/nómina. Aquí
+            // se adopta el anclaje EOM del límite cuando coincide el boundaryKind=="end"
+            // y no hay anclaje ordinal de weekday (que tiene su propia codificación).
+            val promotedEom = if (
+                withOrdinal.frequency == RecurrenceFrequency.MONTHLY &&
+                !withOrdinal.monthlyLastDay &&
+                withOrdinal.monthlyOrdinalWeekday == null &&
+                boundaryKind == "end"
+            ) withOrdinal.copy(monthlyLastDay = true) else withOrdinal
+            if (promotedEom.frequency == RecurrenceFrequency.NONE && cadaBoundaryRecurrence != null) cadaBoundaryRecurrence
+            else promotedEom
         }
         recurrence.phraseRanges.sortedByDescending { it.first }.forEach { range ->
             working = working.substring(0, range.first) + " " + working.substring(range.last + 1)
