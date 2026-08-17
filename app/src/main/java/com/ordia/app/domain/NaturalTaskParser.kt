@@ -856,6 +856,30 @@ object NaturalTaskParser {
     )
 
     /**
+     * Rango de días que CRUZA de mes (o de año): "del 28 de febrero al 1 de marzo",
+     * "del 31 de diciembre al 2 de enero", "del 28 de dic del 2026 al 3 de ene del 2027".
+     * A diferencia de [dayRangePattern] (un solo mes compartido al final, "del 15 al 20
+     * de diciembre"), aquí CADA extremo lleva su propio mes. Antes este rango NO casaba:
+     * caía separado, el extremo inicial ("28 de febrero") lo consumía [monthNamePattern]
+     * ANCLANDO el vencimiento al día de INICIO en vez del CIERRE (1 de marzo), y los
+     * conectores "del al" sobrevivían como residuo del título ("feria del al"). Pérdida
+     * del dato temporal real de eventos que cruzan mes/año (ferias, congresos, viajes
+     * de fin de mes): la fecha recordada era la de apertura, no la de cierre.
+     *
+     * Se ancla al CIERRE reescribiendo a "el <díaCierre> de <mesCierre> [del <añoCierre>]"
+     * para reutilizar TODO el flujo [monthNamePattern] (roll de año, clamp de día,
+     * acoplamiento con hora, limpieza del título). El año del cierre: si viene explícito
+     * en el extremo de cierre se usa ése; si no, se hereda el del extremo de apertura
+     * (mismo año del evento); si ninguno, se omite y [monthNamePattern] aplica su roll.
+     * Va ANTES que [dayRangePattern] (no colisiona: éste exige dos tokens de mes, aquél
+     * exige un solo mes al final tras "al N") y antes de [bareDayMonthPattern].
+     */
+    private val crossMonthDayRangePattern = Regex(
+        """(?i)\b(?:del?\s+)?(\d{1,2})(?![/-])\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?""" +
+            """\s+(?:al|hasta(?:\s+el)?)\s+(\d{1,2})(?![/-])\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b"""
+    )
+
+    /**
      * Rango de días de la semana como evento ÚNICO ("taller del martes al jueves",
      * "reunión del lunes al viernes", "curso del miércoles al viernes"). Simétrico de
      * [dayRangePattern] (c.377, "del 15 al 20 de diciembre"→"el 20"): el rango
@@ -2046,6 +2070,24 @@ object NaturalTaskParser {
         // que bareDayMonthPattern/monthNamePattern para que éstos vean sólo el día final
         // y no dejen "del 15 al" como residuo. Exige mes válido o cualificador relativo
         // ("del mes que viene"); si no, se deja intacto (no se inventan fechas de contenido).
+
+        // PRIMERO el rango que CRUZA de mes ("del 28 de febrero al 1 de marzo"): cada
+        // extremo lleva su propio mes, forma que [dayRangePattern] no casa. Se ancla al
+        // CIERRE y reescribe a "el <cierre> de <mesCierre> [del <año>]" para reutilizar
+        // monthNamePattern. Sólo si AMBOS tokens son meses válidos (valida contra `months`)
+        // para no agendar contenido ("del 3 al 5 de unidades y de piezas"). El año del
+        // cierre: explícito del cierre si lo hay; si no, el de apertura; si ninguno, se
+        // omite y monthNamePattern aplica su roll anual.
+        working = crossMonthDayRangePattern.replace(working) { m ->
+            val startMonthTok = m.groupValues[2].lowercase()
+            val endMonthTok = m.groupValues[5].lowercase()
+            if (startMonthTok !in months || endMonthTok !in months) return@replace m.value
+            val endDay = m.groupValues[4]
+            val endYear = m.groupValues[6].trim().ifBlank { m.groupValues[3].trim() }
+            if (endYear.isNotEmpty()) "el $endDay de $endMonthTok del $endYear"
+            else "el $endDay de $endMonthTok"
+        }
+
         working = dayRangePattern.replace(working) { m ->
             val relQualifier = m.groupValues[3].trim()
             val monthTok = m.groupValues[4].trim().lowercase()

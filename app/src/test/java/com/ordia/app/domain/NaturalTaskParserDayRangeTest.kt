@@ -102,6 +102,48 @@ class NaturalTaskParserDayRangeTest {
         assertFalse("el título no debe contener el día inicial 10", title.contains("10"))
     }
 
+    // Rangos que cruzan de mes (o de año): "del 28 de febrero al 1 de marzo".
+    // Antes el [dayRangePattern] sólo casaba la forma "del N al M de <mesÚnico>"
+    // (un solo mes al final); al llevar cada extremo su propio mes, no casaba, cada
+    // fecha caía separada y el vencimiento se anclaba al día INICIAL (28 de febrero)
+    // en vez del CIERRE (1 de marzo), perdiendo la fecha real del compromiso y
+    // dejando "del al" como residuo del título. Se ancla al CIERRE (P1 captura/datos).
+
+    @Test fun rangoCruzandoMesAnclaAlCierre() {
+        val r = parse("feria del 28 de febrero al 1 de marzo")
+        assertEquals("feria", r.title.trim())
+        // 1 de marzo de 2026 ya pasó (now=2026-08-17) -> rueda al año siguiente.
+        assertEquals(LocalDate.of(2027, 3, 1), dueDate("feria del 28 de febrero al 1 de marzo"))
+    }
+
+    @Test fun rangoCruzandoMesNoDejaResiduoDelAl() {
+        val title = parse("feria del 28 de febrero al 1 de marzo").title
+        assertFalse("el título no debe contener residuo 'al'", title.contains(" al"))
+        assertFalse("el título no debe contener el día inicial 28", title.contains("28"))
+    }
+
+    @Test fun rangoCruzandoAnioAnclaAlCierre() {
+        val r = parse("conferencia del 31 de diciembre al 2 de enero")
+        assertEquals("conferencia", r.title.trim())
+        assertEquals(LocalDate.of(2027, 1, 2), dueDate("conferencia del 31 de diciembre al 2 de enero"))
+    }
+
+    @Test fun rangoCruzandoMesRespetaHoraExplicita() {
+        val r = parse("trabajo del 31 de enero al 1 de febrero a las 9")
+        assertEquals("trabajo", r.title.trim())
+        val dt = r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone) }
+        assertNotNull("debe producir vencimiento", dt)
+        // 1 de febrero ya pasó este año (now=2026-08-17) -> rueda al año siguiente.
+        assertEquals(LocalDate.of(2027, 2, 1), dt!!.toLocalDate())
+        assertEquals(9, dt.hour)
+    }
+
+    @Test fun rangoCruzandoMesConAnioExplicito() {
+        val r = parse("viaje del 28 de diciembre del 2026 al 3 de enero del 2027")
+        assertEquals("viaje", r.title.trim())
+        assertEquals(LocalDate.of(2027, 1, 3), r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() })
+    }
+
     @Test fun rangoWeekdayHastaAnclaAlCierreYlimpiaTitulo() {
         // "del lunes hasta el viernes": evento único anclado al cierre (viernes).
         val r = parse("reunión del lunes hasta el viernes")
