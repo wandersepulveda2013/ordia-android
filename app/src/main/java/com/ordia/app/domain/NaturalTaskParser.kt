@@ -973,6 +973,30 @@ object NaturalTaskParser {
         return if (genitive != null) IntRange(genitive.range.first, range.last) else range
     }
 
+    // c.495 — paralelo a [strippedPeriodRange] (que consume el genitivo "de/del"
+    // ante una FRASE DE FECHA), pero para la "a" distributiva coloquial ante una
+    // FRASE DE CADENCIA ("a cada día", "a cada semana", "a cada lunes", "a cada
+    // mañana"). En español hablado "a <recurrencia>" equivale a "cada/los
+    // <recurrencia>" ("meditar a cada día" = "meditar cada día", "reunión a cada
+    // lunes" = "reunión cada lunes"). Los patrones de cadencia casan la frase SIN
+    // la "a" inicial (cada día/semana/mes/año/lunes/mañana…), así que ésta quedaba
+    // como residuo literal en el título ("Meditar a"). Se extiende el rango del
+    // match hacia atrás para consumir esa "a" junto con la frase, evitando el
+    // residuo. Igual que con el genitivo: sólo consume "a" cuando la frase SÍ es
+    // cadencia (ya casada por parseRecurrence); nunca se invoca sobre contenido.
+    // "a diario"/"a fines de semana" ya traen su "a" DENTRO del match, así que aquí
+    // no se encuentra otra "a" detrás (sólo espacio/título): no se duplica.
+    private fun strippedRecurrenceRange(working: String, range: IntRange): IntRange {
+        var start = range.first
+        while (start - 1 >= 0 && working[start - 1].isWhitespace()) start--
+        val pre = working.substring(0, start)
+        // (?<!\S) exige que la "a" sea palabra suelta (precedida de espacio o inicio):
+        // NO basta con \b porque Java trata las vocales acentuadas (í, á…) como
+        // NO-palabra, así "Auditoría" dejaba su "a" final consumida falsamente.
+        val distributive = Regex("""(?i)(?<!\S)a\s*$""").find(pre)
+        return if (distributive != null) IntRange(distributive.range.first, range.last) else range
+    }
+
     /**
      * "<día> <mes>" SIN conector "de" ("Reunión 22 ago", "Entregar 1 oct",
      * "Renovar suscripción 1 sept", "Cita 20 agosto"): la forma abreviada y
@@ -3751,16 +3775,28 @@ object NaturalTaskParser {
             if (promotedEom.frequency == RecurrenceFrequency.NONE && cadaBoundaryRecurrence != null) cadaBoundaryRecurrence
             else promotedEom
         }
-        // c.495: strippedPeriodRange consume el genitivo "de/del" externo inmediatamente
-        // anterior a una frase de recurrencia ("Resumen de cada mes", "Balance de todos
-        // los meses", "Cobro de cada quincena", "Informe de cada bimestre"). Sin esto, el
-        // conector sobrevivía como residuo del título ("Resumen de"). Simétrico de todos
-        // los sitios de período (fin de mes, la quincena...) que ya usan este helper. El
-        // "de/del" de contenido ("reunión del equipo cada mes") se respeta: no hay genitivo
-        // inmediatamente antes de la frase de recurrencia.
+        // c.495 (remoto): strippedPeriodRange consume el genitivo "de/del" externo
+        // inmediatamente anterior a una frase de recurrencia ("Resumen de cada mes",
+        // "Balance de todos los meses", "Cobro de cada quincena", "Informe de cada
+        // bimestre"). Sin esto, el conector sobrevivía como residuo del título
+        // ("Resumen de"). Simétrico de todos los sitios de período (fin de mes, la
+        // quincena...) que ya usan este helper. El "de/del" de contenido ("reunión
+        // del equipo cada mes") se respeta: no hay genitivo inmediatamente antes de
+        // la frase de recurrencia.
+        // c.496 (este run): strippedRecurrenceRange consume además la "a"
+        // distributiva coloquial que antecede a CUALQUIER cadencia ("Meditar a cada
+        // día" → "Meditar a", "Reunión a cada mes" → "Reunión a"). c.494 lo parcheó
+        // sólo para fin de semana; aquí se generaliza a todas las familias de cadencia.
+        // Se aplican ambos helpers en cadena: una frase de recurrencia puede ir
+        // precedida de "de/del" (genitivo) O de "a" (distributiva) — primero se consume
+        // el genitivo y, sobre el resultado, la "a". Ambos Sólo actúan cuando YA se casó
+        // una cadencia real; "a cada reunión"/"reunión del equipo cada mes" no se tocan.
+        // "a diario"/"a fines de semana" ya incluyen su "a" dentro del match → no se
+        // duplica. Orden descendente (se borra de atrás adelante para no desplazar índices).
         recurrence.phraseRanges.sortedByDescending { it.first }.forEach { range ->
-            val stripped = strippedPeriodRange(working, range)
-            working = working.substring(0, stripped.first) + " " + working.substring(stripped.last + 1)
+            val genitiveStripped = strippedPeriodRange(working, range)
+            val fullyStripped = strippedRecurrenceRange(working, genitiveStripped)
+            working = working.substring(0, fullyStripped.first) + " " + working.substring(range.last + 1)
         }
 
         val weekdayMatch = weekdayPattern.find(working)

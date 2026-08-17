@@ -6336,6 +6336,61 @@ class NaturalTaskParserTest {
         assertEquals("6,7", result.recurrenceDays)
     }
 
+    // --- c.495: "a" distributiva GENERALIZADA ante cualquier cadencia ---
+    // La sonda mostró que el residuo "a" de c.494 NO era exclusivo de fin de semana: la
+    // misma "a" coloquial ante "cada día/semana/mes/año/lunes/mañana" dejaba el título
+    // sucio ("Meditar a", "Reporte a", "Reunión a", "Estudio a"). En vez de parchear
+    // patrón por patrón, se consume en un único punto: la limpieza de phraseRanges de
+    // recurrencia extiende cada rango hacia atrás para tragarse la "a" que antecede
+    // (paralelo al genitivo "de/del" de strippedPeriodRange). Así cubre de una vez
+    // diaria, semanal, mensual, anual, por weekday y por parte del día.
+    @Test fun aCadaDiaNoDejaResiduoAEnTitulo() {
+        val result = NaturalTaskParser.parse("Meditar a cada día", now, zone)
+        assertEquals("Meditar", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+    }
+
+    @Test fun aCadaSemanaNoDejaResiduoAEnTitulo() {
+        val result = NaturalTaskParser.parse("Reporte a cada semana", now, zone)
+        assertEquals("Reporte", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+    }
+
+    @Test fun aCadaMesNoDejaResiduoAEnTitulo() {
+        val result = NaturalTaskParser.parse("Reunión a cada mes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+    }
+
+    @Test fun aCadaAnoNoDejaResiduoAEnTitulo() {
+        val result = NaturalTaskParser.parse("Chequeo a cada año", now, zone)
+        assertEquals("Chequeo", result.title)
+        assertEquals(RecurrenceFrequency.YEARLY, result.recurrence)
+    }
+
+    @Test fun aCadaLunesNoDejaResiduoAEnTitulo() {
+        val result = NaturalTaskParser.parse("Fútbol a cada lunes", now, zone)
+        assertEquals("Fútbol", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1", result.recurrenceDays)
+    }
+
+    @Test fun aCadaMananaNoDejaResiduoAEnTitulo() {
+        val result = NaturalTaskParser.parse("Estudio a cada mañana", now, zone)
+        assertEquals("Estudio", result.title)
+        assertEquals(RecurrenceFrequency.DAILY, result.recurrence)
+    }
+
+    // Caso negativo: la "a" que NO antecede a una cadencia se preserva. "Ir a la
+    // reunión cada lunes" → "a la reunión" es parte del título; solo "cada lunes" es
+    // recurrencia. La "a" que sobrevive aquí NO está pegada a la cadencia.
+    @Test fun aDestinoNoRecurrenciaConservaAEnTitulo() {
+        val result = NaturalTaskParser.parse("Ir a la oficina cada lunes", now, zone)
+        assertEquals("Ir a la oficina", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1", result.recurrenceDays)
+    }
+
     // --- Fechas relativas en semanas/meses ---
     // "en una semana"/"en un mes" son de las formas más comunes en español y antes
     // quedaban SIN fecha (dueAt=null) → la tarea se olvidaba (sin recordatorio). now=2026-07-29.
@@ -9704,6 +9759,16 @@ class NaturalTaskParserTest {
         assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
         assertEquals(2, result.recurrenceInterval)
         assertNotNull(result.dueAt)
+    }
+
+    // c.495 regresión: Java trata las vocales acentuadas como NO-palabra, así un primer
+    // intento con \b consumía la "a" final de "Auditoría"/"Día"/"Garantía" cuando una
+    // cadencia seguía. La "a" distributiva sólo casa como palabra suelta (precedida de
+    // espacio/inicio). "Día" termina en "a" tras una vocal acentuada: guarda-runner.
+    @Test fun tituloTerminadoEnAConAcentoNoPierdeAFinal() {
+        val result = NaturalTaskParser.parse("Día cada semana", now, zone)
+        assertEquals("Día", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
     }
 
     // Forma plural "semanas por medio" (giro habitual en LATAM): misma semántica que
