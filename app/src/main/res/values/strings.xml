@@ -163,6 +163,10 @@
     <string name="notes_sort_pinned">Fijadas primero</string>
     <string name="notes_sort_favorite">Favoritas primero</string>
     <string name="notes_filter_favorites">Favoritas</string>
+    <string name="notes_view">Vista</string>
+    <string name="notes_sort">Ordenar</string>
+    <string name="notes_pinned_section">Fijadas</string>
+    <string name="notes_others_section">Otras</string>
     <string name="notes_filter_pinned">Fijadas</string>
     <string name="notes_filter_images">Con imágenes</string>
     <string name="notes_filter_audio">Con audio</string>
