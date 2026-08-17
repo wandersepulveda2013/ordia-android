@@ -2204,22 +2204,27 @@ object NaturalTaskParser {
                 ),
                 " ",
             )
-            // Conector de plazo "antes de/del" + fecha/hora: simétrico a "hasta"/c.134. La
+            // Conector de plazo "antes/después de/del" + fecha/hora: simétrico a "hasta"/c.134. La
             // fecha subyacente se resuelve bien, pero el conector sobrevivía como residuo en
-            // el título ("enviar antes", "llamar las") porque el patrón de fecha consumía la
-            // fecha antes del borrado tardío de "antes del" (que además exige "de" y no casa
-            // con el "antes" huérfano). Se procesa aquí, ANTES que los patrones de fecha.
-            //  · HORA: "antes de las 5 de la tarde" → "a las 5 de la tarde" (timePatterns
-            //    exige "a"). Se exige meridio/parte del día tras la hora para NO tocar la
-            //    forma ambigua "antes de las 5" (5am/5pm): esa queda sin resolver, igual que
-            //    antes (sin regresión), en vez de fijar un 05:00 pasado y engañoso.
+            // el título ("enviar antes", "llamar las", "llegar después de") porque el patrón de
+            // fecha/hora consumía la fecha ANTES del borrado tardío del conector. Se procesa aquí,
+            // ANTES que los patrones de fecha/hora.
+            //  · HORA: "antes/después de las 5 de la tarde" → "a las 5 de la tarde" (timePatterns
+            //    exige "a"). "después" ancla al inicio honesto de esa franja (igual que
+            //    "después del almuerzo"→14:00): anclar a la hora dicha es la mejor estimación,
+            //    no precisión fingida. Se exige meridio/parte del día tras la hora para NO tocar
+            //    la forma ambigua "antes/después de las 5" (5am/5pm): esa queda sin resolver,
+            //    igual que antes (sin regresión), en vez de fijar un 05:00 pasado y engañoso.
             //  · FECHA: "antes del viernes"/"antes de mañana" → se borra "antes del?/de "
             //    dejando el día (weekdayPattern admite weekday suelto). Se EXCLUYE \d (día del
             //    mes): "antes del 30" lo resuelve beforeDeadlineDayPattern y "antes del 15 de
             //    agosto" monthNameDate (ambos ya limpios); tocarlos aquí los rompería.
+            //    "después" sólo se trata en HORA (meridio presente): "después del viernes"
+            //    (semántica difusa de inicio, no plazo) se deja intacto para no fingir un
+            //    vencimiento; su residuo se limpia cuando la hora ya se resolvió (caso HORA).
             .replace(
                 Regex(
-                    """(?i)\bantes\s+de\s+(?=(?:las\s+\d{1,2}|la\s+una)\b\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a))""",
+                    """(?i)\b(?:antes|despu[eé]s)\s+de\s+(?=(?:las\s+\d{1,2}|la\s+una)\b\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a))""",
                 ),
                 "a ",
             )

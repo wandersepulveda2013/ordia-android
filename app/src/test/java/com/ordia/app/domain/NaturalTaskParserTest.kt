@@ -11322,6 +11322,30 @@ class NaturalTaskParserTest {
         assertEquals(null, result.dueAt)
     }
 
+    // --- ciclo 428: conector "después de" simétrico a "antes de" (sólo con meridio) ---
+    // El conector "después de las N <parte>" sobrevivía como residuo en el título
+    // ("llegar después"). Ahora se normaliza a "a" para que timePatterns lo resuelva
+    // y el título quede limpio. "después" ancla al inicio honesto de la franja dicha.
+    @Test fun despuesDeLasHoraConMeridianoLimpiaTituloYResuelveHora() {
+        val result = NaturalTaskParser.parse("llegar después de las 8 de la noche", now, zone)
+        assertEquals("llegar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun despuesDeLasTardeLimpiaTituloYResuelveHora() {
+        val result = NaturalTaskParser.parse("reunir después de las 5 de la tarde", now, zone)
+        assertEquals("reunir", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(17, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // "después de las 5" (sin meridio) es ambiguo: NO se inventa vencimiento (sin regresión).
+    @Test fun despuesDeLasHoraSinMeridioNoInventaVencimiento() {
+        val result = NaturalTaskParser.parse("reunir después de las 5", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
     // --- ciclo 240: "<día> <mes>" sin conector "de" (forma abreviada de captura) ---
 
     @Test fun bareDayMonthAbbrConHoraResuelveDiaYMesCorrectos() {
