@@ -291,7 +291,17 @@ object CommitmentEngine {
         // y "el pago"/"un aviso" (determinante) NO casa aquí (lo protege la guarda
         // `determiners` de bare, no esta). Probe JVM POST-fix: 10/10 positivos
         // detectados, 6/6 negativos (negaciones + sustantivo "el pago") excluidos.
-        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago)|despu[eé]s\s+te\s+respondo|debo|tengo\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|terminar[eé]|har[eé]|entregar[eé]|revisar[eé]|preparar[eé]|arreglar[eé]|subir[eé]|dejar[eé]|pasar[eé]|mandar[eé]|enviar[eé])|lo\s+hago|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago))\b"""
+        // c.518: cierra la ASIMETRÍA CON-clítico de "te escribo"/"te hablo". El
+        // grupo `te` tenía llamo|envío|respondo|aviso|confirmo|paso|mando|pago pero
+        // NO hablo ni escribo (que SÍ estaban en el grupo `le` y en el de objeto
+        // directo). Así "te escribo mañana"/"te hablo el lunes" — promesas de
+        // contacto cotidianas — caían a MISSED aunque "le escribo mañana"/"lo
+        // escribo mañana"/"te llamo mañana" sí se detectasen. Se añaden hablo|
+        // escribo al grupo `te`, completando la simetría con `le` y OD. La guarda
+        // precedingNegation excluye "no te escribo"/"no te hablo" igual que "no te
+        // llamo". Probe JVM PRE-fix: 2 MISSED; POST-fix: 6/6 detectados, 4/4
+        // negaciones excluidas.
+        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo)|despu[eé]s\s+te\s+respondo|debo|tengo\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|terminar[eé]|har[eé]|entregar[eé]|revisar[eé]|preparar[eé]|arreglar[eé]|subir[eé]|dejar[eé]|pasar[eé]|mandar[eé]|enviar[eé])|lo\s+hago|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago))\b"""
     )
     // c.500: presente de 1ª persona SIN pronombre de objeto + marca temporal futura
     // PUNTUAL — "termino el informe mañana", "entrego el reporte el viernes",

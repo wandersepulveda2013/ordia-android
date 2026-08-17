@@ -555,6 +555,60 @@ class CommitmentEngineTest {
             )
         }
     }
+
+    // c.518: cierra la ASIMETRÍA CON-clítico de "te escribo"/"te hablo". El grupo
+    // `te` de commitmentSignal tenía llamo|envío|respondo|aviso|confirmo|paso|
+    // mando|pago pero NO hablo ni escribo (que SÍ estaban en el grupo `le` y en
+    // el grupo de objeto directo). Así "te escribo mañana"/"te hablo el lunes"
+    // — promesas cotidianas de contacto — caían a MISSED aunque "le escribo
+    // mañana"/"lo escribo mañana"/"te llamo mañana" sí se detectasen. La guarda
+    // de negación precedenteNegation excluye "no te escribo"/"no te hablo" igual
+    // que "no te llamo". Probe JVM PRE-fix: 2 MISSED; POST-fix: detectados.
+    @Test
+    fun escriboHabloWithTeCliticAreDetectedAsCommitments() {
+        val positives = listOf(
+            "te escribo mañana",
+            "te hablo el lunes",
+            "te escribo el viernes",
+            "te hablo esta tarde",
+            "te escribo el correo mañana",
+            "te hablo con el jefe el lunes"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c518-pos-$text"
+            )
+            assertTrue(
+                "\"$text\" (te escribo/te hablo + marca futura) debe generar draft SELF_COMMITMENT",
+                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
+    // c.518: precisión — "no te escribo"/"no te hablo" son RECHAZOS, no
+    // compromisos, y deben excluirse igual que "no te llamo"/"no te pago".
+    @Test
+    fun cliticEscriboHabloNegationsAreNotFlagged() {
+        val innocent = listOf(
+            "no te escribo mañana",
+            "no te hablo el lunes",
+            "no te escribo nada",
+            "no te hablo más"
+        )
+        innocent.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c518-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
     // c.307: imperativos de 2ª persona con pronombre enclítico — peticiones
     // directas muy frecuentes en chat español que NO casaban con "envíame"/
     // "mándame"/"recuerda" (los únicos imperativos cubiertos). Probe JVM PRE-fix:
