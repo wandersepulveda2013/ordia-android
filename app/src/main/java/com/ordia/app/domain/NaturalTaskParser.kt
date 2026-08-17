@@ -3629,7 +3629,7 @@ object NaturalTaskParser {
             }
             DateRules.toEpochMillis(target, LocalTime.of(9, 0), zone)
         }
-        quincenaMatch?.let { working = working.replaceRange(it.range, " ") }
+        quincenaMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
 
         // La fecha relativa (relativePattern) tiene prioridad; luego los límites de mes
         // ("fin de mes"/"mediados de mes"); "esta semana"; "principios/mediados de semana";
@@ -3751,8 +3751,16 @@ object NaturalTaskParser {
             if (promotedEom.frequency == RecurrenceFrequency.NONE && cadaBoundaryRecurrence != null) cadaBoundaryRecurrence
             else promotedEom
         }
+        // c.495: strippedPeriodRange consume el genitivo "de/del" externo inmediatamente
+        // anterior a una frase de recurrencia ("Resumen de cada mes", "Balance de todos
+        // los meses", "Cobro de cada quincena", "Informe de cada bimestre"). Sin esto, el
+        // conector sobrevivía como residuo del título ("Resumen de"). Simétrico de todos
+        // los sitios de período (fin de mes, la quincena...) que ya usan este helper. El
+        // "de/del" de contenido ("reunión del equipo cada mes") se respeta: no hay genitivo
+        // inmediatamente antes de la frase de recurrencia.
         recurrence.phraseRanges.sortedByDescending { it.first }.forEach { range ->
-            working = working.substring(0, range.first) + " " + working.substring(range.last + 1)
+            val stripped = strippedPeriodRange(working, range)
+            working = working.substring(0, stripped.first) + " " + working.substring(stripped.last + 1)
         }
 
         val weekdayMatch = weekdayPattern.find(working)

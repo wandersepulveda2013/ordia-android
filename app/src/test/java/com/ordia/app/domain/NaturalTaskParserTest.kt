@@ -1632,6 +1632,66 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // c.493: Genitivo "de/del" externo introductor de una FRASE DE RECURRENCIA pura
+    // (sin día anclado): "Resumen de cada mes", "Balance de todos los meses",
+    // "Cobro de cada mes". La frase la detectan fixedPatterns (no monthlyDayPattern,
+    // que exige un día N), así que el genitivo no se consumía por la lógica de anclaje
+    // y sobrevivía como residuo colgante del título ("Resumen de"). El genitivo
+    // introduce el modificador temporal, no el contenido. Simétrico de los fixes de
+    // genitivo para fechas ancladas (c.448/c.316) y de todos los sitios de período
+    // (fin de mes, la quincena). Aquí se cubre la limpieza vía el loop de phraseRanges.
+    @Test fun genitiveBeforeCadaMesIsCleaned() {
+        val result = NaturalTaskParser.parse("Resumen de cada mes", now, zone)
+        assertEquals("Resumen", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+    }
+
+    @Test fun genitiveBeforeTodosLosMesesIsCleaned() {
+        val result = NaturalTaskParser.parse("Balance de todos los meses", now, zone)
+        assertEquals("Balance", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+    }
+
+    @Test fun genitiveBeforeCadaBimestreIsCleaned() {
+        val result = NaturalTaskParser.parse("Cobro de cada bimestre", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+    }
+
+    @Test fun genitiveBeforeCadaSemestreIsCleaned() {
+        val result = NaturalTaskParser.parse("Nomina de cada semestre", now, zone)
+        assertEquals("Nomina", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(6, result.recurrenceInterval)
+    }
+
+    @Test fun genitiveBeforeCadaQuincenaIsCleaned() {
+        val result = NaturalTaskParser.parse("Resumen de cada quincena", now, zone)
+        assertEquals("Resumen", result.title)
+    }
+
+    @Test fun genitiveBeforeFinDeQuincenaIsCleaned() {
+        val result = NaturalTaskParser.parse("Pago de fin de quincena", now, zone)
+        assertEquals("Pago", result.title)
+    }
+
+    // No-regresión: el genitivo de CONTENIDO antes de una frase de recurrencia se
+    // respeta. "reunión del equipo cada mes" → "reunión del equipo" (no "reunión"):
+    // el "del" introduce el equipo (contenido), no la recurrencia. La limpieza sólo
+    // consume el conector inmediatamente anterior a la frase temporal.
+    @Test fun contentGenitiveBeforeRecurrenceIsPreserved() {
+        val result = NaturalTaskParser.parse("reunión del equipo cada mes", now, zone)
+        assertEquals("reunión del equipo", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+    }
+
+    @Test fun contentGenitiveDelBancoBeforeRecurrenceIsPreserved() {
+        val result = NaturalTaskParser.parse("cuenta del banco cada mes", now, zone)
+        assertEquals("cuenta del banco", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+    }
+
     // "cada N del mes" (sin "de" entre "cada" y el día) es la forma cotidiana del
     // vencimiento mensual ("renta cada 1 del mes"). Antes el prefijo "cada" NO se
     // consumía y quedaba pegado al título ("renta cada"), ensuciando el texto de una
