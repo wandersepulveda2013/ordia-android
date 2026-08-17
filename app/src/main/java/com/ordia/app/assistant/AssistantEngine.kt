@@ -801,6 +801,8 @@ object AssistantEngine {
     private fun isDayLoadQuery(query: String): Boolean =
         "voy bien" in query || "voy mal" in query ||
             "da tiempo" in query || "me da tiempo" in query ||
+            "cuanto tiempo me queda" in query || "cuanto tiempo libre" in query ||
+            "cuanto me queda" in query || "tengo tiempo libre" in query ||
             "tengo mucho que hacer" in query ||
             "cabe todo" in query || "cabe el dia" in query || "cabe hoy" in query ||
             "alcanzara" in query || "alcanzare" in query || "da alcance" in query ||

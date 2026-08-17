@@ -1804,6 +1804,80 @@ class AssistantEngineTest {
         assertEquals(listOf(1L), answer.relatedTaskIds)
     }
 
+    // ---- phrasing natural de "¿cuánto tiempo me queda?" — paridad con "¿voy bien?" ----
+    //
+    // "¿cuánto tiempo me queda?"/"¿cuánto tiempo libre tengo?"/"¿cuánto me queda?"/
+    // "¿tengo tiempo libre?" son LAS preguntas de planificación más naturales para
+    // pedir el veredicto de carga del día. Antes caían al menú genérico (la
+    // superficie dayLoad sólo reconocía "voy bien"/"da tiempo"/"cabe todo"/...).
+    // Como "da tiempo" es subcadena de "queda tiempo", "me queda tiempo" SÍ
+    // funcionaba por accidente — pero la forma más común con "cuánto tiempo" no.
+    // Verifican que ahora dan el mismo veredicto honesto (con sus colas), sin
+    // nueva pantalla/botón: reusan dayLoadAnswer.
+    @Test fun dayLoad_cuantoTiempoMeQueda_daVeredicto() {
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿cuánto tiempo me queda?",
+            listOf(TaskEntity(id = 1, title = "A", dueAt = dayAt(dayToday, 11), durationMinutes = 45)),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("da un veredicto de carga, no el menú genérico: ${answer.text}",
+            answer.text.contains("holgura") || answer.text.contains("despejado") ||
+                answer.text.contains("lleno") || answer.text.contains("no da tiempo"))
+    }
+
+    @Test fun dayLoad_cuantoTiempoLibre_daVeredicto() {
+        val now = dayAt(dayToday, 12)
+        val answer = AssistantEngine.answer(
+            "¿cuánto tiempo libre tengo?",
+            listOf(
+                TaskEntity(id = 1, title = "Hoy", dueAt = dayAt(dayToday, 17), durationMinutes = 60),
+                TaskEntity(id = 2, title = "V1", dueAt = dayAt(dayToday.minusDays(1), 9), durationMinutes = 120),
+                TaskEntity(id = 3, title = "V2", dueAt = dayAt(dayToday.minusDays(2), 9), durationMinutes = 120)
+            ),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("da un veredicto de carga, no el menú genérico: ${answer.text}",
+            answer.text.contains("holgura") || answer.text.contains("despejado") ||
+                answer.text.contains("lleno") || answer.text.contains("no da tiempo"))
+    }
+
+    @Test fun dayLoad_cuantoMeQueda_daVeredicto() {
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿cuánto me queda?",
+            emptyList(), emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("día despejado sin trabajo: ${answer.text}", answer.text.contains("despejado"))
+    }
+
+    @Test fun dayLoad_tengoTiempoLibre_daVeredicto() {
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿tengo tiempo libre?",
+            listOf(TaskEntity(id = 1, title = "A", dueAt = dayAt(dayToday, 11), durationMinutes = 45)),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("da un veredicto de carga, no el menú genérico: ${answer.text}",
+            answer.text.contains("holgura") || answer.text.contains("despejado") ||
+                answer.text.contains("lleno") || answer.text.contains("no da tiempo"))
+    }
+
+    // Guard anti-colisión: "tengo tiempo" suelto (sin "libre"/"cuánto") NO es
+    // veredicto de carga inequívoco ("¿tengo tiempo para X?" pide capacidad para
+    // una tarea concreta, no el panorama del día) → se deja fuera para no robar
+    // otras intenciones. Sólo la forma "tengo tiempo libre" activa el veredicto.
+    @Test fun dayLoad_tengoTiempoSoloNoEsVeredictoForzado() {
+        val answer = AssistantEngine.answer("tengo tiempo", emptyList(), emptyList(), emptyList())
+        // Sin "libre": cae al menú genérico (no se fuerza veredicto ambiguo).
+        assertTrue("no se inventa un veredicto para 'tengo tiempo' ambiguo: ${answer.text}",
+            answer.text.contains("Puedo organizar"))
+    }
+
     // ---- dayLoad + olvidos silenciados (simetría con el resto del asistente) ----
     //
     // "¿voy bien?"/"¿da tiempo?" es la OUTLIER del asistente: las demás superficies
