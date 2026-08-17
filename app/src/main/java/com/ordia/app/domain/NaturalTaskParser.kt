@@ -1384,6 +1384,30 @@ object NaturalTaskParser {
     private val countNounFollowerPattern =
         Regex("""(?i)^\s*(?:,|\.|;|:|!|\?|y\b|o\b|con\b|de\b|del\b|en\b|para\b|hasta\b|desde\b|luego\b|después\b|despues\b|pero\b|porque\b|por\b|sin\b|sobre\b|a\b|al\b|el\b|la\b|los\b|las\b|un\b|una\b|mañana\b|manana\b|hoy\b|ayer\b|anteayer\b|lunes\b|martes\b|miércoles\b|miercoles\b|jueves\b|viernes\b|sábado\b|sabado\b|domingo\b|$)""")
 
+    // c.514 — ¿un match de [timePatterns] es en realidad una CUENTA ("a las 3 cajas"),
+    // no una cita? Reúne el guard anti-cuenta (c.361) en un predicado reutilizable para
+    // que la SELECCIÓN de la hora (saltar al siguiente match válido) y la LIMPIEZA del
+    // título (preservar el número cuando es cuenta) compartan la misma definición. Antes
+    // el guard vivía sólo en `explicitTimeData`: si el PRIMER match era cuenta ("enviar a
+    // las 5 invitaciones a las 9"), se rechazaba y NO se buscaba el siguiente → la cita
+    // real "a las 9" se olvidaba (dueAt=null), y además el número "5" se borraba del
+    // título (pérdida de cantidad). `source` es el texto completo (para calcular el tail).
+    private fun timeMatchIsCountNoun(match: MatchResult, source: String): Boolean {
+        val mv = match.value.lowercase()
+        val hasClockEvidence = mv.contains(":") || mv.contains("h") ||
+            mv.contains("en punto") ||
+            mv.contains("más o menos") || mv.contains("mas o menos") || mv.contains("aproximadamente") ||
+            mv.contains("y pico") || mv.contains("pasada") ||
+            match.groupValues.getOrNull(2)?.isNotBlank() == true ||
+            match.groupValues.getOrNull(3)?.let { it.lowercase().startsWith("y ") || it.lowercase().startsWith("menos ") } == true ||
+            match.groupValues.getOrNull(4)?.isNotBlank() == true ||
+            match.groupValues.getOrNull(5)?.isNotBlank() == true
+        if (hasClockEvidence) return false
+        val tail = source.substring(match.range.last + 1)
+        return !countNounFollowerPattern.containsMatchIn(tail) &&
+            Regex("""(?i)^\s*[a-záéíóúñ]{3,}s\b""").containsMatchIn(tail)
+    }
+
     private val timePatterns = listOf(
         // "a la una": la hora 1 se dice en femenino singular ("a la una", no "a las 1"),
         // con conector "a la" en vez de "a las". Quedaba sin resolver por el
@@ -4163,7 +4187,16 @@ object NaturalTaskParser {
             else -> null
         }
 
-        val timeMatch = timePatterns.asSequence().mapNotNull { it.find(working) }.minByOrNull { it.range.first }
+        // c.514: el primer match de [timePatterns] puede ser una CUENTA ("a las 3 cajas"),
+        // no una cita. Antes se tomaba el primer match sin más y el guard anti-cuenta lo
+        // rechazaba DENTRO de `explicitTimeData` (return@let null) sin buscar el siguiente:
+        // "enviar a las 5 invitaciones a las 9" → el primer match "a las 5" era cuenta,
+        // se rechazaba, y la cita real "a las 9" se OLVIDABA (dueAt=null). Ahora se salta
+        // todo match que sea cuenta hasta encontrar el primero que SÍ es una cita.
+        val timeMatch = timePatterns.asSequence()
+            .flatMap { pattern -> pattern.findAll(working) }
+            .filterNot { timeMatchIsCountNoun(it, working) }
+            .minByOrNull { it.range.first }
         val explicitTimeData = timeMatch?.let { match ->
             val mv = match.value.lowercase()
             // ANTI FALSO POSITIVO (c.361): "a las 10 personas"/"a la una personas" en
@@ -4181,18 +4214,10 @@ object NaturalTaskParser {
             // conserva en el título): el.quantity reading exige concordancia plural "las N
             // <plural>". Simétrico del lookahead de evidencia de reloj de "hacia/sobre/
             // para"; aquí la hora en punto SÍ se admite salvo tras sustantivo plural.
-            val hasClockEvidence = mv.contains(":") || mv.contains("h") || // :MM o sufijo horas/hs/h
-                mv.contains("en punto") || // "a las 9 en punto": evidencia de reloj inequívoca
-                mv.contains("más o menos") || mv.contains("mas o menos") || mv.contains("aproximadamente") || mv.contains("y pico") || mv.contains("pasada") || // aproximación post-hora ("a las 9 pasadas")
-                match.groupValues.getOrNull(2)?.isNotBlank() == true || // :MM (grupo 2)
-                match.groupValues.getOrNull(3)?.let { it.lowercase().startsWith("y ") || it.lowercase().startsWith("menos ") } == true || // fracción
-                match.groupValues.getOrNull(4)?.isNotBlank() == true || // meridiem
-                match.groupValues.getOrNull(5)?.isNotBlank() == true    // fracción post-meridiem
-            val tail = working.substring(match.range.last + 1)
-            val followedByCountNoun = !hasClockEvidence &&
-                !countNounFollowerPattern.containsMatchIn(tail) &&
-                Regex("""(?i)^\s*[a-záéíóúñ]{3,}s\b""").containsMatchIn(tail)
-            if (followedByCountNoun) return@let null
+            // c.514: la lógica del guard se centralizó en [timeMatchIsCountNoun] y la
+            // selección de `timeMatch` ya filtra las cuentas, así que este check es ahora
+            // defensa en profundidad (un match-cuenta no debería llegar aquí).
+            if (timeMatchIsCountNoun(match, working)) return@let null
             when {
                 // "a la una del mediodía" captura hora (grupo 1 = "una") + meridiem "del
                 // mediodía": NO debe caer a NOON, sino resolver 1pm (13:00) en la rama
@@ -4712,7 +4737,22 @@ object NaturalTaskParser {
             // no-op cuando el adjetivo mismo fue el detector (ya borrado vía phraseRanges).
             .let { value -> if (recurrence.frequency != RecurrenceFrequency.NONE) recurrenceAdjectiveLeakPattern.replace(value, " ") else value }
             .let { value -> partOfDayPattern.replace(value, " ") }
-            .let { value -> timePatterns.fold(value) { acc, pattern -> pattern.replace(acc, " ") } }
+            // c.514 — preserva las horas que son CUENTAS ("a las 3 cajas"): el número es
+            // cantidad, no hora, así que NO debe borrarse del título. Antes el fold borraba
+            // TODO match de timePatterns sin distinción, mutilando "llamar a las 3 cajas" →
+            // "llamar cajas" (se perdía la cantidad). Ahora, por cada match, si es cuenta se
+            // conserva intacto y si es cita real se blanquea como siempre. `replace(value) {}`
+            // con lambda recibe el MatchResult sobre el texto actual de `acc`, permitiendo
+            // consultar el tail justo detrás del match para aplicar [timeMatchIsCountNoun].
+            .let { value ->
+                var acc = value
+                for (pattern in timePatterns) {
+                    acc = pattern.replace(acc) { m ->
+                        if (timeMatchIsCountNoun(m, acc)) m.value else " "
+                    }
+                }
+                acc
+            }
             .let { value -> standalonePartOfDayPattern.replace(value, " ") }
             .let { value -> compactDayPartOfDayPattern.replace(value, " ") }
             .let { value -> primeraHoraPattern.replace(value, " ") }

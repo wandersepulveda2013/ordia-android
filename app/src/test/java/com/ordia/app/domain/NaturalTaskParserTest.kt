@@ -2366,6 +2366,41 @@ class NaturalTaskParserTest {
         assertNull("'a la una personas' es cuenta, no cita a la 1:00", r.dueAt)
     }
 
+    // c.514 — cuando "a las N" es una CUENTA (sustantivo plural tras hora en punto sin
+    // evidencia de reloj), el número N es una CANTIDAD, no una hora: debe conservarse en el
+    // título. Antes la limpieza del título borraba TODO match de timePatterns, así que
+    // "llamar a las 3 cajas" → "llamar cajas" (se perdía la cantidad 3). Esto es pérdida de
+    // datos del usuario.
+    @Test fun cuentaConservaNumeroEnTitulo() {
+        val r = NaturalTaskParser.parse("llamar a las 3 cajas", now, zone)
+        assertNull("una cuenta no debe agendar una cita falsa", r.dueAt)
+        assertEquals("la cantidad 3 debe conservarse en el título", "llamar a las 3 cajas", r.title)
+    }
+
+    @Test fun cuentaConservaNumeroEnTituloLlantas() {
+        val r = NaturalTaskParser.parse("revisar a las 3 llantas", now, zone)
+        assertNull(r.dueAt)
+        assertEquals("revisar a las 3 llantas", r.title)
+    }
+
+    // c.514 (olvido de cita) — si el PRIMER match de timePatterns es una cuenta, el parser
+    // debe saltar al SIGUIENTE match válido en vez de descartar toda hora. Antes el guard
+    // anti-cuenta rechazaba el primer match y NO buscaba el siguiente: "enviar a las 5
+    // invitaciones a las 9" → dueAt=null, la cita real a las 9 se OLVIDABA.
+    @Test fun citaTrasCuentaNoSeOlvida() {
+        val r = NaturalTaskParser.parse("enviar a las 5 invitaciones a las 9", now, zone)
+        assertNotNull("la cita real 'a las 9' no debe olvidarse tras una cuenta", r.dueAt)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(r.dueAt!!, zone))
+        assertEquals("la cantidad 5 debe conservarse en el título", "enviar a las 5 invitaciones", r.title)
+    }
+
+    @Test fun citaTrasCuentaPreservaCantidadYAgendaHoraReal() {
+        val r = NaturalTaskParser.parse("reunión a las 3 cajas a las 5", now, zone)
+        assertNotNull("la cita real 'a las 5' no debe olvidarse", r.dueAt)
+        assertEquals(LocalTime.of(5, 0), DateRules.toLocalTime(r.dueAt!!, zone))
+        assertEquals("reunión a las 3 cajas", r.title)
+    }
+
     // Las horas CON evidencia de reloj (meridiem, :MM, fracción, sufijo horas/hs/h) siguen
     // siendo cita aunque siga un sustantivo plural: la evidencia desambigua.
     @Test fun aLasNConMeridiemSiempreEsCitaAunqueSigaPlural() {
