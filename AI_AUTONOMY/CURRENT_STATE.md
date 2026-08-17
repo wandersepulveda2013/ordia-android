@@ -3,6 +3,13 @@
 > Fotografía ACTUAL del estado de Ordía. No es un historial; el historial está en `RUN_LOG.md`.
 > Actualizar AL FINAL de cada sesión autónoma (reescribir, no acumular).
 
+## Ciclo c.437 — 2026-08-17 (UTC) — feat(assistant): "¿cuánto tiempo me queda?" caía al menú genérico en vez del veredicto de carga (dayLoadAnswer) — P2 asistente/planificación — ÁREA NO-PARSER (AssistantEngine)
+
+- **Estado**: VERIFIED. `bash tools/run_domain_tests.sh` → 2562 PASS, 0 failures; smoke 25 OK.
+- **Qué cambió**: `isDayLoadQuery` amplía frases reconocidas: +"cuanto tiempo me queda", +"cuanto tiempo libre", +"cuanto me queda", +"tengo tiempo libre". Estas formulaciones —las más naturales para pedir el panorama de carga del día— caían al menú genérico. Reusan `dayLoadAnswer` (veredicto honesto + colas de vencidas/olvidos/compromisos), sin nueva pantalla/botón. "tengo tiempo" suelto se deja fuera (ambiguo: "¿tengo tiempo para X?" pide capacidad para una tarea, no el panorama) — guard anti-colisión. "me queda tiempo" ya funcionaba por accidente ("da tiempo" es subcadena de "queda tiempo"); la forma común con "cuánto tiempo" no.
+- **HEAD**: `c31e453` (atop `4ea1b6c`=c.436 remoto). Integración NO destructiva (stash+ff+pop atop c.436, regiones DISJUNTAS).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Nota numeración**: el mensaje del commit dice "c.435" (colisión no detectada a tiempo: el remoto ya había tomado c.435=parser y c.436=asistente-plural). Ciclo real = c.437. No se reescribió el commit ya pusheado (anti force-push).
 ## Ciclo c.436 — 2026-08-16 (UTC) — fix(assistant): bug en PROPIO c.433 — plural "los viernes" usaba rango CONTINUO → sobre-inclusión (un miércoles del horizonte aparecía bajo "los viernes") — P1 asistente/agenda/IA honesta — ÁREA NO-PARSER (AssistantEngine)
 
 - **Estado**: VERIFIED. `bash tools/run_domain_tests.sh` → 2557 PASS, 0 failures (base ff `a035fb1` = c.434+c.435 remotos DISJUNTOS); smoke 25 OK.
