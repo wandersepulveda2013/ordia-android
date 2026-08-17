@@ -55,9 +55,12 @@ object CommitmentRules {
      *   superficies de recuperación (asistente, nudge, insight, resumen,
      *   planificador) ya la señalan. Armar un aviso pasado es ruido (se dispara
      *   al instante) y `ReminderSync.triggers` lo descartaría de todos modos.
-     * - `dueAt` futuro + `suggestedReminderAt` futuro → se conserva (respeta el
-     *   offset explícito que extrajo el parser de la conversación, igual que el
-     *   editor conserva el offset cuando el vencimiento no cambia, c.183).
+     * - `dueAt` futuro + `suggestedReminderAt` futuro Y anterior al vencimiento → se
+     *   conserva (respeta el offset explícito que extrajo el parser de la conversación,
+     *   igual que el editor conserva el offset cuando el vencimiento no cambia, c.183).
+     *   Si el aviso sugerido es posterior al vencimiento (offset mal inferido o fecha
+     *   acortada), se descarta: un recordatorio después del plazo es absurdo y rompe el
+     *   invariante `reminder < dueAt` de [ReminderRules], cayendo al default nunca-pasado.
      * - `dueAt` futuro + `suggestedReminderAt` pasado o ausente →
      *   [ReminderRules.defaultReminderAt] ("30 min antes" o recortado nunca-pasado):
      *   no se conserva un aviso inútil/pasado; simétrico con la rama "translated
@@ -78,9 +81,17 @@ object CommitmentRules {
         }
         // Vencido (o justo ahora): la tarea nace atrasada, no se arma un aviso pasado.
         if (dueAt <= now) return null
-        // Vencimiento futuro: conserva el offset del usuario si aún es futuro.
-        if (suggested != null && suggested > now) return suggested
-        // Sin offset útil: default adaptativo nunca-pasado (fuente única).
+        // Vencimiento futuro: conserva el offset del usuario si es futuro Y ANTERIOR al
+        // vencimiento. Un recordatorio posterior al plazo es absurdo (avisa después de
+        // vencida) y rompe el contrato de [ReminderRules], donde reminder < dueAt es un
+        // invariante (ver [defaultReminderAt]/[ReminderRules.resolveReminderAt], ambas
+        // garantizan reminder < dueAt). El offset sugerido lo extrae el parser de la
+        // conversación y puede quedar >= dueAt por una fecha acortada o un offset mal
+        // inferido; aquí se sanea igual que la rama "translated pasado" del editor cae al
+        // default nunca-pasado. Conserva la paridad past-safe de c.286-c.303.
+        if (suggested != null && suggested > now && suggested < dueAt) return suggested
+        // Sin offset útil (ausente, pasado, o posterior al vencimiento): default
+        // adaptativo nunca-pasado y siempre anterior al vencimiento (fuente única).
         return ReminderRules.defaultReminderAt(dueAt, now)
     }
 }

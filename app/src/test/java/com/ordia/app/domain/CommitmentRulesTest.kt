@@ -141,6 +141,42 @@ class CommitmentRulesTest {
         )
     }
 
+    @Test fun reminderForConvertedTask_futureCommitmentWithSuggestedAfterDueFallsToDefault() {
+        // Aviso sugerido POSTERIOR al vencimiento (offset mal inferido o fecha acortada):
+        // un recordatorio después del plazo es absurdo (avisa cuando ya venció) y rompe el
+        // invariante `reminder < dueAt` de ReminderRules (defaultReminderAt/resolveReminderAt
+        // lo garantizan). Se descarta y cae al default nunca-pasado, igual que la rama
+        // "translated pasado" del editor. Mismo borde donde ahora<due<suggested.
+        val future = commitmentWithReminder(
+            1,
+            dueAt = now + hour,
+            suggestedReminderAt = now + 2 * hour // posterior al vencimiento
+        )
+        val result = CommitmentRules.reminderForConvertedTask(future, now)
+        assertNotNull(result)
+        assertTrue("el aviso nunca es pasado", result!! > now)
+        assertTrue("el aviso precede al vencimiento (no avisa tras vencer)", result < now + hour)
+        assertEquals(
+            ReminderRules.defaultReminderAt(now + hour, now),
+            result
+        )
+    }
+
+    @Test fun reminderForConvertedTask_futureCommitmentWithSuggestedEqualToDueFallsToDefault() {
+        // Aviso sugerido EXACTAMENTE en el vencimiento: tampoco es "antes" del plazo.
+        // La rama conservadora exige `suggested < dueAt` (estricto), igual que
+        // defaultReminderAt garantiza un lead > 0. Cae al default nunca-pasado.
+        val future = commitmentWithReminder(
+            1,
+            dueAt = now + hour,
+            suggestedReminderAt = now + hour // igual al vencimiento, no es "antes"
+        )
+        val result = CommitmentRules.reminderForConvertedTask(future, now)
+        assertNotNull(result)
+        assertTrue("el aviso nunca es pasado", result!! > now)
+        assertTrue("el aviso precede estrictamente al vencimiento", result < now + hour)
+    }
+
     @Test fun reminderForConvertedTask_futureCommitmentWithPastSuggestedFallsToNeverPastDefault() {
         // Compromiso creado hace tiempo cuyo vencimiento aún es futuro pero cuyo aviso
         // sugerido ya pasó: no se conserva un aviso inútil/pasado; cae al default
