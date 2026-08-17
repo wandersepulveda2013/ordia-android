@@ -1392,6 +1392,60 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // Genitivo "del"/"de" introductor de la fecha mensual ("renta del 15 de cada mes"):
+    // antes monthlyDayPattern casaba "15 de cada mes" PERO NO consumía el "del"/"de"
+    // inmediatamente anterior, que sobrevivía como residuo del título ("renta del"). El
+    // genitivo introduce el MODIFICADOR TEMPORAL, no el contenido; dejarlo degrada la
+    // captura de los compromisos periódicos más cotidianos (renta/pago/factura/cuota).
+    // Simétrico del fix c.448 para fechas con nombre de mes.
+    @Test fun rentaDel15DeCadaMesLimpiaGenitivoDel() {
+        val result = NaturalTaskParser.parse("renta del 15 de cada mes", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun pagoDel30DeCadaMesLimpiaGenitivoDel() {
+        val result = NaturalTaskParser.parse("pago del 30 de cada mes", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun rentaDel15DelMesLimpiaGenitivoDel() {
+        val result = NaturalTaskParser.parse("renta del 15 del mes", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "de" (sin contracción) como genitivo introductor: forma menos frecuente pero
+    // válida ("cuota de 5 de cada mes").
+    @Test fun cuotaDe5DeCadaMesLimpiaGenitivoDe() {
+        val result = NaturalTaskParser.parse("cuota de 5 de cada mes", now, zone)
+        assertEquals("cuota", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // El genitivo se consume sólo cuando introduce la fecha mensual: el "del" de
+    // contenido ("cuenta del banco del 15 de cada mes") se respeta y sólo se limpia el
+    // "del" que introduce el día.
+    @Test fun cuentaDelBancoDel15DeCadaMesConservaContenido() {
+        val result = NaturalTaskParser.parse("cuenta del banco del 15 de cada mes", now, zone)
+        assertEquals("cuenta del banco", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // No-regresión: la forma SIN genitivo ("el 15 de cada mes") sigue igual.
+    @Test fun el15DeCadaMesSinGenitivoSigueLimpio() {
+        val result = NaturalTaskParser.parse("Pagar la cuenta el 15 de cada mes", now, zone)
+        assertEquals("Pagar la cuenta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // Adjetivo de recurrencia + frase anclada coexistentes: "pago mensual el 15 de
     // cada mes". El adjetivo "mensual" expresa la cadencia (ya dicha por "el 15 de
     // cada mes") y NO es contenido; antes filtraba al título ("pago mensual") porque

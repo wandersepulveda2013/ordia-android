@@ -4892,8 +4892,12 @@ object NaturalTaskParser {
                 )
             }
         }
+        // Prefijo opcional no capturador que consume el genitivo "del"/"de"
+        // introductor de la fecha mensual ("renta del 15 de cada mes") para que no
+        // quede como residuo del título. Simétrico de c.448; el "del" de contenido se
+        // respeta porque el prefijo es opcional y único ("cuenta del banco del 15...").
         val monthlyDayPattern =
-            Regex("""(?i)\b(?:cada|el|los)?\s*(?:d[ií]a\s+)?(\d{1,2})\s+(?:de|del)\s+(?:cada\s+)?mes(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))""")
+            Regex("""(?i)\b(?:\bdel?\s+)?(?:cada|el|los)?\s*(?:d[ií]a\s+)?(\d{1,2})\s+(?:de|del)\s+(?:cada\s+)?mes(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))""")
         monthlyDayPattern.find(working)?.let { match ->
             val day = match.groupValues[1].toIntOrNull()?.coerceIn(1, 31) ?: return@let
             phrases += match.range
