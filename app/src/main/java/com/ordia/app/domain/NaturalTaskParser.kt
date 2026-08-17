@@ -1173,6 +1173,35 @@ object NaturalTaskParser {
         Regex("""(?i)\ba\s+eso\s+de\s+(?=(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)[0-5]\d)?(?:\s*(?:horas?|hs|h))?(?:\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\b)""")
 
     /**
+     * "a partir de" + anclaje temporal cotidiano: "a partir de las 3 de la tarde",
+     * "a partir de la mañana/tarde/noche/madrugada/medianoche", "a partir del mediodía/
+     * amanecer/atardecer/anochecer/ocaso/alba". Significa "desde esa hora en adelante"
+     * (inicio de franja): el usuario que escribe "cita a partir de las 3 de la tarde"
+     * quiere que empiece a las 3.
+     *
+     * Antes estas formas NO se normalizaban: la hora/fecha SÍ se resolvía vía
+     * [timePatterns]/[standalonePartOfDayPattern]/[amanecerPattern]/[atardecerPattern]
+     * PERO "a partir de" sobrevivía como residuo en el título ("cita a partir de",
+     * "almuerzo a partir del", "reunión a partir de la") → cita bien fechada pero
+     * título mutilado (P1 captura/título limpio). Misma familia que c.424 ("antes de")
+     * y c.432 ("después de"), que también dejaban el conector como residuo.
+     *
+     * Aquí se reescribe al conector canónico que cada patrón downstream espera,
+     * reutilizando TODO el flujo existente (resolución + limpieza) sin nueva rama de
+     * resolución. Es adverbio temporal puro cuando va seguido de un anclaje de hora
+     * inequívoco. El lookahead restringe a anclajes temporales para NO tocar usos de
+     * tema/proyecto ("a partir de los datos", "a partir del informe") ni fechas de
+     * calendario ("a partir del viernes", "a partir de mañana"), que son rangos de
+     * FECHA (no de hora) y cuyo conector no debe reescribirse aquí. Grupo 1 captura el
+     * anclaje para emitir el conector correcto:
+     *   "las N..." → "a las N..." ([timePatterns]),
+     *   "la mañana/tarde/noche/madrugada/medianoche" → "a la X" ([standalonePartOfDayPattern]/[timePatterns]),
+     *   "el mediodía/amanecer/atardecer/anochecer/ocaso/alba/..." → "al X" ([timePatterns]/[amanecerPattern]/[atardecerPattern]).
+     */
+    private val aPartirDeRewriter =
+        Regex("""(?i)\ba\s+partir\s+d(?:e|el)\s+(?:(las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)[0-5]\d)?(?:\s*(?:horas?|hs|h))?)|(la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada|medianoche))|(mediod[ií]a|amanecer|alba|atardecer|anochecer|ocaso|despuntar\s+(?:el\s+|la\s+|de\s+la\s+|del\s+)?(?:alba|d[ií]a)|clarear|aclarar|ponerse\s+(?:el\s+sol|del\s+sol)))""")
+
+    /**
      * Normaliza rangos horarios expresados con "entre...y" o con "las" en cada extremo
      * a la forma canónica "de H1 a H2 [meridiem]" que SÍ digiere [timeRangePattern]
      * (duración M−N + hora de INICIO como dueAt, con propagación de meridiem, cruce de
@@ -2077,6 +2106,26 @@ object NaturalTaskParser {
         // [approximateTimePatterns]: "a eso de las N" no casa aquí (viene "las", no hora
         // desnuda) y lo normaliza el fold. Véase [aEsoDeBareHourRewriter].
         working = aEsoDeBareHourRewriter.replace(working, "a las ")
+
+        // "a partir de" + anclaje temporal de HORA ("a partir de las 3 de la tarde",
+        // "a partir de la mañana", "a partir del mediodía/amanecer/atardecer"): se
+        // reescribe al conector canónico ("a las"/"a la"/"al") ANTES del fold de
+        // [approximateTimePatterns] y del resto del flujo, para que reutilice TODO el
+        // mecanismo de hora/parte-del-día existente (resolución + limpieza) sin dejar
+        // "a partir de" como residuo en el título. Sólo anclajes de HORA (no fechas de
+        // calendario "a partir del viernes"): véase [aPartirDeRewriter]. Los grupos
+        // 1/2/3 son las tres formas de anclaje ("las N", "la X", "X"); se emite el
+        // conector según cuál case.
+        working = aPartirDeRewriter.replace(working) { m ->
+            val las = m.groupValues[1]
+            val la = m.groupValues[2]
+            val bare = m.groupValues[3]
+            when {
+                las.isNotEmpty() -> "a $las"
+                la.isNotEmpty() -> "a $la"
+                else -> "al $bare"
+            }
+        }
 
         // Normaliza rangos "entre [las] H1 y [las] H2 [meridiem]" y "de las H1 a las H2
         // [meridiem]" a la forma canónica "de H1 a H2 [meridiem]" ANTES de [timeRangePattern]
@@ -3968,6 +4017,20 @@ object NaturalTaskParser {
                     part.startsWith("del mediod") -> "al mediodía"
                     part.startsWith("de la ") -> "a la " + part.substring(6)
                     else -> part
+                }
+            }
+            // c.435: el respaldo también normaliza "a partir de" + anclaje de hora
+            // (simétrico al rewriter en `parse`), así un standalone de franja
+            // ("a partir de las 3 de la tarde" solo) muestra "a las 3 de la tarde" en
+            // vez de resucitar "a partir de" crudo — consistente con c.424/c.432.
+            .replace(aPartirDeRewriter) { m ->
+                val las = m.groupValues[1]
+                val la = m.groupValues[2]
+                val bare = m.groupValues[3]
+                when {
+                    las.isNotEmpty() -> "a $las"
+                    la.isNotEmpty() -> "a $la"
+                    else -> "al $bare"
                 }
             }
             // c.382: el respaldo también normaliza el marcador aproximado "a eso de las N"
