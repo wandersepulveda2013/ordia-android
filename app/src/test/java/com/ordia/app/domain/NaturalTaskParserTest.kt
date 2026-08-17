@@ -6493,6 +6493,74 @@ class NaturalTaskParserTest {
         assertEquals("Foto de la semana santa", result.title)
     }
 
+    // --- Genitivo temporal "de/del" antes de frases de semana NO periódicas: "finales
+    // de la semana", "principios de la semana", "mediados de la semana", "fin de
+    // semana" (c.491). Misma clase de residuo que c.490, pero en las familias
+    // thisWeek/startOfWeek/midOfWeek/weekend (no en lastPeriod/nextPeriod). El fix
+    // extiende strippedPeriodRange a esos 4 sitios de borrado temporal. ---
+    // Contra-regresión incluida: "foto de la semana santa" y "menú de la semana"
+    // (sin marcador) conservan su "de" (la frase NO casa → no resuelve fecha).
+
+    @Test fun genitivoDeFinalesDeLaSemana_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Balance de finales de la semana", now, zone)
+        assertEquals("Balance", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeFinDeLaSemana_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Informe de fin de la semana", now, zone)
+        assertEquals("Informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeFinDeLaSemanaQueViene_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Resumen de fin de la semana que viene", now, zone)
+        assertEquals("Resumen", result.title)
+        assertEquals(LocalDate.of(2026, 8, 9), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDePrincipiosDeLaSemana_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Plan de principios de la semana", now, zone)
+        assertEquals("Plan", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDePrincipiosDeLaSemanaQueViene_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Informe de principios de la semana que viene", now, zone)
+        assertEquals("Informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeMediadosDeLaSemana_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Resumen de mediados de la semana", now, zone)
+        assertEquals("Resumen", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeMediadosDeLaSemanaQueViene_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Informe de mediados de la semana que viene", now, zone)
+        assertEquals("Informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeFinDeSemana_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Foto de fin de semana", now, zone)
+        assertEquals("Foto", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDelFinDeSemana_noDejaResiduoDel() {
+        val result = NaturalTaskParser.parse("Resumen del fin de semana", now, zone)
+        assertEquals("Resumen", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeEstaSemana_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Balance de esta semana", now, zone)
+        assertEquals("Balance", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "entrante": sinónimo caribeño de "que viene"/"próximo" ---
     // La app usa America/Santo_Domingo como zona canónica; "la semana entrante",
     // "el mes entrante", "el año entrante" son cotidianísimos en el español

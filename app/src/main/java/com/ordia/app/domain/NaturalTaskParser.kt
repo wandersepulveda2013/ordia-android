@@ -947,17 +947,20 @@ object NaturalTaskParser {
             if (word != null) "$word${m.groupValues[2]}" else m.value
         }
 
-    // Genitivo temporal que introduce una frase de período relativo ("la semana
-    // pasada", "el mes que viene"): "balance de la semana pasada", "informe del
-    // mes pasado", "plan de la semana que viene". El conector "de"/"del" es siempre
-    // el modificador de posesión temporal del contenido, no contenido en sí (la frase
-    // de período que le sigue resuelve una fecha, así que es inequívocamente temporal).
+    // Genitivo temporal que introduce una frase temporal que resuelve fecha
+    // ("la semana pasada", "el mes que viene", "finales de la semana",
+    // "principios de la semana", "fin de semana"): "balance de la semana pasada",
+    // "informe del mes pasado", "resumen de finales de la semana",
+    // "foto de fin de semana". El conector "de"/"del" es siempre el modificador de
+    // posesión temporal del contenido, no contenido en sí (la frase temporal que
+    // le sigue resuelve una fecha, así que es inequívocamente temporal).
     // Extiende el rango del match hacia atrás para consumir ese conector junto con la
-    // frase, evitando el residuo "de"/"del" en el título. Paridad con monthNameStripPattern
-    // (c.448) y el genitivo de día relativo (l.4579), pero para períodos relativos.
-    // No consume "de" en "menú de la semana" (sin "pasada/que viene" → la frase de
-    // período NO casó lastPeriod/nextPeriodPattern → este método no se invoca): el
-    // conector "de" permanece legítimamente como contenido del título.
+    // frase, evitando el residuo "de"/"del" en el título. Paridad con
+    // monthNameStripPattern (c.448) y el genitivo de día relativo (l.4579).
+    // No consume "de" cuando la frase NO casa (no resuelve fecha): "menú de la
+    // semana" (sin "pasada/que viene") no activa lastPeriod/nextPeriodPattern, y
+    // "de la semana santa" no activa thisWeek/startOfWeek/midOfWeek/weekend → este
+    // método no se invoca → el conector "de" permanece legítimamente como contenido.
     private fun strippedPeriodRange(working: String, range: IntRange): IntRange {
         var start = range.first
         while (start - 1 >= 0 && working[start - 1].isWhitespace()) start--
@@ -3025,7 +3028,7 @@ object NaturalTaskParser {
         // (que dejaría el residuo «fin de» en el título). El match se conserva para la
         // resolución de fecha posterior (weekendMatch != null).
         val weekendEarlyMatch = weekendPattern.find(working)
-        weekendEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+        weekendEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
         // "el último viernes del mes" / "el primer lunes de agosto" / "el tercer viernes del mes
         // que viene" / "el último viernes del mes pasado": weekday ORDINAL del mes. Se detecta
         // y borra ANTES que lastPeriodPattern y previousWeekdayReversedPattern para que el
@@ -3376,7 +3379,7 @@ object NaturalTaskParser {
             val sunday = if ("que viene" in it.value.lowercase()) baseSunday.plusWeeks(1) else baseSunday
             DateRules.toEpochMillis(sunday, LocalTime.of(9, 0), zone)
         }
-        thisWeekEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+        thisWeekEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
 
         // "principios de semana": el lunes más cercano en hoy/futuro. Se borra ANTES
         // del período próximo para que "semana" no active "semana que viene".
@@ -3397,7 +3400,7 @@ object NaturalTaskParser {
             }
             DateRules.toEpochMillis(monday, LocalTime.of(9, 0), zone)
         }
-        startOfWeekEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+        startOfWeekEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
 
         // "mediados de semana": el miércoles más cercano en hoy/futuro. Se borra ANTES
         // del período próximo para que "semana" no active "semana que viene".
@@ -3418,7 +3421,7 @@ object NaturalTaskParser {
             }
             DateRules.toEpochMillis(wednesday, LocalTime.of(9, 0), zone)
         }
-        midOfWeekEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
+        midOfWeekEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
 
         // "el 15 del mes que viene": día N del mes siguiente. Se procesa ANTES que
         // nextPeriodPattern para consumir la frase completa (día + "mes que viene")
