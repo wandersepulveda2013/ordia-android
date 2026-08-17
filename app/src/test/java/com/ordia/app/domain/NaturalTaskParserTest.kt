@@ -12018,6 +12018,52 @@ class NaturalTaskParserTest {
         assertEquals("trabajar durante la reunión", r2.title)
     }
 
+    // --- "después" + fecha de calendario (c.548) ---
+    // "después" es conector de plazo ("después del lunes"/"después de mañana"/
+    // "después del 15"/"después de la semana que viene"/"después de fin de mes").
+    // Al resolver y borrar la fecha, "después" quedaba huérfano al final del título
+    // ("revisar después"), degradando la captura ultrarrápida. Asimetría flagrante con
+    // "antes" ("enviar antes del viernes" → 'enviar', limpio c.497): el limpiador de
+    // conector huérfano cubría "antes"/"antes del"/"hasta" PERO NO "después". Se
+    // consume SOLO cuando se resolvió fecha (dueAt != null): sin agenda, "después de
+    // la reunión" es contenido legítimo y NO se toca. End-anchored: "después" NO al
+    // final se conserva.
+    @Test fun despuesDelLunesLimpiaTituloSinDejarDespues() {
+        // 2026-07-29 es miércoles; "después del lunes" → próximo lunes 2026-08-03.
+        val result = NaturalTaskParser.parse("revisar después del lunes", now, zone)
+        assertEquals("revisar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun despuesDelViernesLimpiaTituloSinDejarDespues() {
+        // "después del viernes" → próximo viernes 2026-07-31.
+        val result = NaturalTaskParser.parse("entregar después del viernes", now, zone)
+        assertEquals("entregar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun despuesDeMananaLimpiaTituloSinDejarDespues() {
+        // "después de mañana" → 2026-07-30.
+        val result = NaturalTaskParser.parse("cobrar después de mañana", now, zone)
+        assertEquals("cobrar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun despuesDel15LimpiaTituloSinDejarDespues() {
+        // "después del 15" → próximo día 15 = 2026-08-15.
+        val result = NaturalTaskParser.parse("pagar después del 15", now, zone)
+        assertEquals("pagar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun despuesNoTocaContenidoLegitimoSinAgenda() {
+        // Sin fecha resuelta, "después de la reunión" es contenido legítimo y NO se
+        // borra ("reunión" no es fecha/hora de calendario).
+        val result = NaturalTaskParser.parse("revisar después de la reunión", now, zone)
+        assertEquals("revisar después de la reunión", result.title)
+        assertNull(result.dueAt)
+    }
+
     // --- "desde" + anclaje de HORA (c.436) ---
     // Simétrico a "a partir de" (c.435). "desde las N"/"desde la parte-del-día"/"desde el
     // mediodía/amanecer/..." significa "a partir de esa hora". Antes la hora SÍ se

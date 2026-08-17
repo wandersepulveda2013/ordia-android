@@ -5026,11 +5026,14 @@ object NaturalTaskParser {
                 // al resolver y borrar fecha/hora quedaban huérfanos al final
                 // ("entregar hacia", "estudiar durante"). Mismo guard dueAt != null:
                 // sin agenda son contenido legítimo ("trabajar durante la semana").
+                // c.548: "después" es el mismo caso ("después del lunes" -> "revisar
+                // después"), simétrico a "antes" (c.497) que SÍ se limpiaba. Sin agenda
+                // "después de la reunión" se conserva (contenido legítimo).
                 // End-anchored: "caminar hacia el parque el sábado" (hacia NO al
                 // final) se conserva. "durante" puede llevar artículo rezagado
                 // ("durante la mañana" -> tras consumir "mañana" queda "durante la").
                 if (dueAt != null)
-                    value.replace(Regex("""(?i)\s*(?:(?:hacia|durante)(?:\s+(?:la|el|los|las|del|de))?|a\s+partir(?:\s+d(?:e|el))?|desde|de\s+la|del|\bde)\s*$"""), " ")
+                    value.replace(Regex("""(?i)\s*(?:después|(?:hacia|durante)(?:\s+(?:la|el|los|las|del|de))?|a\s+partir(?:\s+d(?:e|el))?|desde|de\s+la|del|\bde)\s*$"""), " ")
                 else value
             }
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
