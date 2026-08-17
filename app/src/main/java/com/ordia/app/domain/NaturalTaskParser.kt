@@ -1673,7 +1673,7 @@ object NaturalTaskParser {
      * (no un reloj explícito), no fuerza contexto PM.
      */
     private val primeraHoraPattern =
-        Regex("""(?i)(?:justo\s+)?\b(?:a\s+)?primeras?\s+horas?(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|madrugada))?\b""")
+        Regex("""(?i)(?:justo\s+)?\b(?:a\s+)?(?:primeras?\s+horas?|primer\s+momento)(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|madrugada))?\b""")
     private val primeraHoraTime = LocalTime.of(9, 0)
 
     /**
@@ -1699,7 +1699,7 @@ object NaturalTaskParser {
      * el patrón solo limpia "al final del día".
      */
     private val alFinalDelDiaPattern =
-        Regex("""(?i)(?:justo\s+)?(?:al\s+final|al\s+fin|a\s+fin)\s+(?:del\s+d[ií]a|de\s+la\s+jornada|de\s+los\s+d[ií]as|de\s+d[ií]a)\b""")
+        Regex("""(?i)(?:justo\s+)?(?:al\s+final|al\s+fin|a\s+fin)\s+(?:del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a)\b""")
     private val alFinalDelDiaTime = LocalTime.of(18, 0)
 
     /**

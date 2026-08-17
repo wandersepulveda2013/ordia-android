@@ -12667,4 +12667,91 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Reunión entre 3 y 5 cajas", now, zone)
         assertEquals(null, result.dueAt)
     }
+
+    // --- "a fin de jornada" / "al final de jornada" (sin artículo "la"): misma familia
+    // que c.429 "a fin de día". El patrón exigía "de la jornada" → la forma
+    // cotidiana "de jornada" (sin "la") no casaba → dueAt=null (tarea olvidada) +
+    // residuo. c.430: "de (la)? jornada" ahora admite ambas formas. Guard anti-colisión
+    // con "a fin de mes/semana/año" intacto (palabra "jornada" vs "mes/semana/año").
+
+    @Test fun aFinDeJornadaInterpretaFinJornadaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión a fin de jornada", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alFinalDeJornadaInterpretaFinJornadaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión al final de jornada", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinDeLaJornadaSigueFuncionando() {
+        // Forma con artículo "la" (regresión guard): sigue resolviendo 18:00.
+        val result = NaturalTaskParser.parse("Reunión a fin de la jornada", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun alFinalDeLaJornadaSigueFuncionando() {
+        val result = NaturalTaskParser.parse("Reunión al final de la jornada", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinDeJornadaNoColisionaConFinDeMes() {
+        // "a fin de mes" sigue siendo fecha de fin de mes calendárico, NO 18:00 de hoy.
+        val result = NaturalTaskParser.parse("Reunión a fin de mes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertNotEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinDeJornadaNoColisionaConFinDeSemana() {
+        val result = NaturalTaskParser.parse("Reunión a fin de semana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertNotEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+
+    // --- "a primer momento" / "primer momento" (espejo masculino de "a primera hora"):
+    // inicio de jornada ~09:00. c.431: simátrico del fix c.429 "a Último momento".
+    // Antes el patrón "primera hora" exigía el adjetivo en femenino ("primera") y no
+    // casaba la forma masculina "primer momento" → dueAt=null (tarea SIN vencimiento
+    // → olvidada) + residuo. Guard: "a primero de mes" (ordinal, no "primer momento")
+    // y "primer cliente"/"primer día del mes" (sin "momento") no se ven afectados.
+
+    @Test fun aPrimerMomentoInterpretaInicioJornadaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión a primer momento", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun primerMomentoSinAInterpretaInicioJornadaYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión primer momento", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aPrimerMomentoDeLaMananaCombinaFranja() {
+        val result = NaturalTaskParser.parse("Reunión a primer momento de la mañana", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aPrimerMomentoNoColisionaConAPrimeroDeMes() {
+        // "a primero de mes" es fecha (día 1 del mes), NO 09:00 de hoy.
+        val result = NaturalTaskParser.parse("Reunión a primero de mes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertNotEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun primerClienteNoEsAnclaHoraria() {
+        // Contenido legítimo, no debe interpretarse como hora.
+        val result = NaturalTaskParser.parse("Reunión primer cliente", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
 }
