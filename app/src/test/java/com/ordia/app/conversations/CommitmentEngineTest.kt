@@ -437,7 +437,7 @@ class CommitmentEngineTest {
         }
     }
 
-    // c.510: cierra la asimetría clítico/pelado de tres verbos de comunicación
+    // c.512: cierra la asimetría clítico/pelado de tres verbos de comunicación
     // (respondo/aviso/confirmo) — commitmentSignal ya detectaba "te respondo"/
     // "te aviso"/"te confirmo", pero la forma pelada con objeto nominal
     // ("respondo el correo mañana", "aviso al equipo el lunes", "confirmo la
@@ -467,7 +467,7 @@ class CommitmentEngineTest {
         }
     }
 
-    // c.510: precisión — "pago" y "aviso" son también SUSTANTIVOS frecuentes
+    // c.512: precisión — "pago" y "aviso" son también SUSTANTIVOS frecuentes
     // ("el pago de la factura", "un aviso del corte"). Con determinante anterior
     // NO deben generar draft SELF_COMMITMENT (la guarda de determinantes lo
     // evita). La negación ("no pago la factura mañana") y la rutina

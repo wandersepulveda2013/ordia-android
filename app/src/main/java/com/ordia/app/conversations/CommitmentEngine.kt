@@ -300,7 +300,7 @@ object CommitmentEngine {
     // ("llamo a mi madre cada mañana") y las negadas ("no llamo al cliente
     // mañana"). Probe JVM POST-fix: 10/10 positivos detectados, 10/10 negativos
     // excluidos.
-    // c.510: cierra la ASIMETRÍA restante entre las formas CON clítico y PELADA
+    // c.512: cierra la ASIMETRÍA restante entre las formas CON clítico y PELADA
     // de tres verbos de comunicación (respondo/aviso/confirmo) y añade "pago".
     // commitmentSignal ya detectaba "te respondo"/"te aviso"/"te confirmo"
     // (clítico de 2ª persona), pero la forma PELADA con objeto nominal
@@ -390,7 +390,7 @@ object CommitmentEngine {
     //      en [detect]; esta función sólo responde "¿hay un verbo pelado de promesa
     //      no negado y sin clítico?".
     private val cliticPronouns = setOf("lo", "la", "los", "las", "te", "se", "le", "me", "nos", "os")
-    // c.510: determinantes que preceden a un SUSTANTIVO homógrafo de un verbo de
+    // c.512: determinantes que preceden a un SUSTANTIVO homógrafo de un verbo de
     // 1ª persona. "pago" (verbo "pago la factura") y "aviso" (verbo "aviso al
     // equipo") son también sustantivos frecuentes ("el pago de la factura", "un
     // aviso de la reunión"). Sin esta guarda, "el pago de la factura mañana"
