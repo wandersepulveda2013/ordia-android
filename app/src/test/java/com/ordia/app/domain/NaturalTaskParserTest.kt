@@ -8335,6 +8335,63 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // c.489: "... principios/mediados de la semana que viene" antes casaban como
+    // "principios/mediados de la semana" (esta semana) y el modificador "que viene" se
+    // perdía silenciosamente → fecha errónea (lunes/miércoles de esta semana en vez del
+    // de la semana próxima). Simétrico al fix c.488 para "finales de la semana que viene".
+    // now = 2026-07-29 (miércoles) -> semana próxima: lunes 2026-08-03, miércoles 2026-08-05.
+
+    @Test fun principiosDeLaSemanaQueVieneResuelveLunesSemanaProxima() {
+        val result = NaturalTaskParser.parse("Reunión principios de la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aPrincipiosDeLaSemanaQueVieneResuelveLunesSemanaProxima() {
+        val result = NaturalTaskParser.parse("Reunión a principios de la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun iniciosDeLaSemanaQueVieneSinonimoDePrincipios() {
+        val result = NaturalTaskParser.parse("Reunión a inicios de la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mediadosDeLaSemanaQueVieneResuelveMiercolesSemanaProxima() {
+        val result = NaturalTaskParser.parse("Reunión mediados de la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aMediadosDeLaSemanaQueVieneResuelveMiercolesSemanaProxima() {
+        val result = NaturalTaskParser.parse("Reunión a mediados de la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun mitadDeLaSemanaQueVieneSinonimoDeMediados() {
+        val result = NaturalTaskParser.parse("Reunión a mitad de la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // c.489: el modificador "que viene" no debe dejar residuo en el título (el patrón lo
+    // consume entero) y la hora explícita debe respetarse sobre el día desplazado.
+
+    @Test fun principiosDeLaSemanaQueVieneNoDejaResiduoEnTitulo() {
+        val result = NaturalTaskParser.parse("Reunión a principios de la semana que viene", now, zone)
+        assertEquals("Reunión", result.title)
+    }
+
+    @Test fun mediadosDeLaSemanaQueVieneRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("Reunión a mediados de la semana que viene a las 18", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- "hace N días/semanas/meses/años" y "la semana/el mes/el año pasado" ---
     // El usuario registra una tarea ya vencida ("pagué hace 2 días", "revisé el
     // informe la semana pasada"). Antes estas formas quedaban SIN fecha y con la frase

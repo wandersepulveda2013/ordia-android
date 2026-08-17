@@ -781,15 +781,23 @@ object NaturalTaskParser {
      * es lunes, hoy; si es martes-domingo, el lunes de la semana siguiente. Como plazo
      * blando nunca se fecha en pasado. Se detecta y borra ANTES del período próximo para
      * que "semana" no active "semana que viene".
+     *
+     * c.489: admite el modificador opcional "que viene" (simétrico a thisWeekPattern).
+     * "principios de la semana que viene" → lunes de la SEMANA PRÓXIMA; sin él,
+     * al lunes más cercano en hoy/futuro de esta semana.
      */
-    private val startOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|inicios?)\s+(?:de\s+la\s+|de\s+|del\s+)semana\b""")
+    private val startOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|inicios?)\s+(?:de\s+la\s+|de\s+|del\s+)semana(?:\s+que\s+viene)?\b""")
     /**
      * "mediados de semana" / "a mediados de semana" → miércoles más cercano en HOY o
      * futuro. Análogo a "principios de semana" (lunes) y "mediados de mes" (día 15).
      * Se detecta y borra ANTES del período próximo para que "semana" no active
      * "semana que viene".
+     *
+     * c.489: admite el modificador opcional "que viene" (simétrico a thisWeekPattern).
+     * "mediados de la semana que viene" → miércoles de la SEMANA PRÓXIMA; sin él,
+     * al miércoles más cercano en hoy/futuro de esta semana.
      */
-    private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+la\s+|de\s+|del\s+)semana\b""")
+    private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+la\s+|de\s+|del\s+)semana(?:\s+que\s+viene)?\b""")
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(?:d[ií]a\s+)?(\d{1,2}|$writtenNumberGroup|primero)\s+de\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
     // Variante de monthNamePattern para la limpieza del título: añade un prefijo
     // opcional no capturador `(?:\bdel?\s+)?` para consumir la preposición genitiva
@@ -3352,20 +3360,42 @@ object NaturalTaskParser {
 
         // "principios de semana": el lunes más cercano en hoy/futuro. Se borra ANTES
         // del período próximo para que "semana" no active "semana que viene".
+        // c.489: si el match trae "que viene", se ancla al lunes de la SEMANA PRÓXIMA.
+        // No se puede usar nextOrSame(MON)+7d: si hoy NO es lunes, nextOrSame(MON) ya salta
+        // al lunes de la semana próxima (el de esta semana ya pasó), y +7d saltaría una
+        // semana de más. previousOrSame(MON).plusWeeks(1) da el lunes de la semana próxima
+        // sin depender del día de hoy. Sin "que viene", nextOrSame(MON) (hoy/futuro).
         val startOfWeekEarlyMatch = startOfWeekPattern.find(working)
         val startOfWeekDueAt = startOfWeekEarlyMatch?.let {
-            val monday = base.toLocalDate()
-                .with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY))
+            val monday = if ("que viene" in it.value.lowercase()) {
+                base.toLocalDate()
+                    .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                    .plusWeeks(1)
+            } else {
+                base.toLocalDate()
+                    .with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY))
+            }
             DateRules.toEpochMillis(monday, LocalTime.of(9, 0), zone)
         }
         startOfWeekEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
 
         // "mediados de semana": el miércoles más cercano en hoy/futuro. Se borra ANTES
         // del período próximo para que "semana" no active "semana que viene".
+        // c.489: si el match trae "que viene", se ancla al miércoles de la SEMANA PRÓXIMA
+        // = (lunes de la semana próxima) + 2 días. Misma razón que startOfWeek: usar
+        // nextOrSame(WED)+7d saltaría de más cuando hoy no es miércoles. Sin "que viene",
+        // nextOrSame(WED) (hoy/futuro).
         val midOfWeekEarlyMatch = midOfWeekPattern.find(working)
         val midOfWeekDueAt = midOfWeekEarlyMatch?.let {
-            val wednesday = base.toLocalDate()
-                .with(TemporalAdjusters.nextOrSame(DayOfWeek.WEDNESDAY))
+            val wednesday = if ("que viene" in it.value.lowercase()) {
+                base.toLocalDate()
+                    .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                    .plusWeeks(1)
+                    .plusDays(2)
+            } else {
+                base.toLocalDate()
+                    .with(TemporalAdjusters.nextOrSame(DayOfWeek.WEDNESDAY))
+            }
             DateRules.toEpochMillis(wednesday, LocalTime.of(9, 0), zone)
         }
         midOfWeekEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
