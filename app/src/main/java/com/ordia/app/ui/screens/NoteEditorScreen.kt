@@ -497,7 +497,7 @@ fun NoteEditorScreen(
                         ctrl && k == Key.Z -> { undo(); true }
                         ctrl && ev.isShiftPressed && k == Key.Z -> { redo(); true }
                         ctrl && k == Key.Y -> { redo(); true }
-                        ctrl && k == Key.F -> { /* find-in-note: abre búsqueda interna */ false }
+                        ctrl && k == Key.F -> { findOpen = !findOpen; findQuery = ""; findIndex = 0; true }
                         else -> false
                     }
                 }
