@@ -3034,6 +3034,45 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 10, 12), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // c.498: "hasta el" / "antes del" ante un SUSTANTIVO DE CONTENIDO se mutilaban
+    // (igual que "para el" en c.497). El paso de limpieza incondicional borraba el
+    // conector sin distinguir si lo seguía un ancla temporal (ya consumida) o contenido.
+    // "Estudiar hasta el examen" → "Estudiar examen" (P1: integridad de datos). Ahora el
+    // borrado del conector sólo ocurre al FINAL del título (fecha ya consumida); ante
+    // contenido se conserva íntegro.
+    @Test fun hastaElAntesSustantivoContenidoSeConserva() {
+        val r1 = NaturalTaskParser.parse("Estudiar hasta el examen", now, zone)
+        assertEquals("Estudiar hasta el examen", r1.title)
+        assertNull(r1.dueAt)
+        val r2 = NaturalTaskParser.parse("Preparar antes del examen", now, zone)
+        assertEquals("Preparar antes del examen", r2.title)
+        assertNull(r2.dueAt)
+        val r3 = NaturalTaskParser.parse("Leer hasta el capitulo 5", now, zone)
+        assertEquals("Leer hasta el capitulo 5", r3.title)
+        assertNull(r3.dueAt)
+        val r4 = NaturalTaskParser.parse("Trabajar hasta el final del proyecto", now, zone)
+        assertEquals("Trabajar hasta el final del proyecto", r4.title)
+        assertNull(r4.dueAt)
+    }
+
+    // c.498 no-regresión: los plazos temporales con "hasta el"/"antes del" siguen
+    // resolviéndose y limpiando el conector huérfano (la fecha se consume, el conector
+    // queda al final del título y se elimina).
+    @Test fun hastaElAntesAnclaTemporalSigueResolviendoYLimpia() {
+        val r1 = NaturalTaskParser.parse("Entregar hasta el viernes", now, zone)
+        assertEquals("Entregar", r1.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(r1.dueAt!!, zone))
+        val r2 = NaturalTaskParser.parse("Pagar antes del viernes", now, zone)
+        assertEquals("Pagar", r2.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(r2.dueAt!!, zone))
+        val r3 = NaturalTaskParser.parse("Cobrar hasta el 20 de septiembre", now, zone)
+        assertEquals("Cobrar", r3.title)
+        assertEquals(LocalDate.of(2026, 9, 20), DateRules.toLocalDate(r3.dueAt!!, zone))
+        val r4 = NaturalTaskParser.parse("pagar antes del 15 de agosto", now, zone)
+        assertEquals("pagar", r4.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(r4.dueAt!!, zone))
+    }
+
     // Cuando hay DOS "del" y sólo el último introduce la fecha ("reporte del proyecto
     // del 15 de agosto"), el primer "del" (contenido) se conserva y el segundo (fecha)
     // se consume.

@@ -4725,17 +4725,20 @@ object NaturalTaskParser {
             // su conector "antes del" lo borra el paso siguiente.
             .let { value -> beforeDeadlineDayPattern.replace(value, " ") }
             // Conectores de plazo/residuo temporal huérfanos que sobreviven tras consumir
-            // la fecha/hora: "antes del" (plazo sin día, p. ej. "pago antes del" tras
-            // borrar "30"), "para mañana" (propósito→fecha relativa ya consumida) y
-            // "hasta el" (límite de fecha ya consumido). NOTA (c.497): antes este paso
-            // también borraba "\bpara\s+el\b", pero a esa altura del pipeline cualquier
-            // "el <ancla temporal>" ya fue consumido por sus patrones, de modo que el
-            // "para el" REMANENTE sólo aparece ante un SUSTANTIVO DE CONTENIDO
-            // ("Estudiar para el examen", "regalo para el cumpleaños") y borrarlo
-            // mutilaba el título (P1: integridad de datos). El residuo "para" que deja
-            // "Reunión para el lunes" (weekdayPattern consumió "el lunes") se elimina
-            // más abajo con la limpieza de conector huérfano al final del título.
-            .replace(Regex("""(?i)\bantes\s+del?\b|\bpara\s+ma[nñ]ana\b|\bhasta\s+el\b"""), " ")
+            // la fecha/hora: "para mañana" (propósito→fecha relativa ya consumida).
+            // NOTA (c.497): aquí antes se borraba "\bpara\s+el\b", y (c.498) también
+            // "\bantes\s+del?\b" y "\bhasta\s+el\b", INCONDICIONALMENTE. A esa altura del
+            // pipeline cualquier "el <ancla temporal>" / "antes del <fecha>" / "hasta el
+            // <fecha>" ya fue consumido por sus patrones (weekday, monthNameStrip,
+            // beforeDeadlineDay, etc.), de modo que el "antes del"/"hasta el"/"para el"
+            // REMANENTE sólo aparece ante un SUSTANTIVO DE CONTENIDO ("Estudiar hasta el
+            // examen", "Preparar antes del examen", "Estudiar para el examen") y borrarlo
+            // mutilaba el título (P1: integridad de datos). El residuo de conector que SÍ
+            // queda huérfano al FINAL del título (la fecha ya se consumió, p. ej. "pagar
+            // antes del" tras borrar "15 de agosto") lo elimina la limpieza de conector
+            // huérfano al final del título (más abajo, simétrica a la de "para"/"el" de
+            // c.497 y al genitivo de c.493).
+            .replace(Regex("""(?i)\bpara\s+ma[nñ]ana\b"""), " ")
             // El verbo de recordatorio sin cantidad ("recuérdame", "avísame",
             // "no dejes que olvide") expresa intención de aviso, no contenido; se
             // elimina del título. Se hace aquí (tras consumir fechas/horas) para no
@@ -4783,6 +4786,17 @@ object NaturalTaskParser {
                     value.replace(Regex("""(?i)\s*(?:de\s+la|del|de)\s*$"""), " ")
                 else value
             }
+            .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
+            // Conector de plazo/residuo temporal huérfano al FINAL del título (la fecha ya
+            // se consumió arriba): "pagar antes del" (tras borrar "15 de agosto"),
+            // "cobrar hasta el" (raro: el lookahead de "hasta " consume la mayoría),
+            // "enviar hasta". Simétrico a la limpieza de "para"/"el" (c.497) y al
+            // genitivo (c.493). END-ANCHORED: "antes del examen" / "hasta el examen" NO
+            // están al final (los sigue el sustantivo de contenido) → se conservan
+            // íntegros (P1: integridad de datos). Sólo se borra el conector VIUDO tras
+            // consumirse su fecha. "antes del" debe ir antes que "antes" en la
+            // alternación para no dejar un "del" suelto.
+            .replace(Regex("""(?i)\s*\b(?:antes\s+del?|hasta\s+el|antes|hasta)\b\s*$"""), " ")
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
             .replace(Regex("""\s+"""), " ")
             .trim(' ', ',', '.', '-')
