@@ -497,6 +497,64 @@ class CommitmentEngineTest {
         }
     }
 
+
+    // c.514: cierra la asimetría CON-clítico de pago/respondo/aviso/confirmo.
+    // c.512 los añadió a la rama PELADA pero NO a la con-clítico, así que las
+    // formas pronominales ("te pago"/"le pago"/"te lo pago"/"le respondo"/
+    // "le aviso"/"le confirmo") caían a MISSED aunque la pelada se detectase.
+    // Probe JVM POST-fix: 10/10 detectados como SELF_COMMITMENT con dueAt futuro.
+    @Test
+    fun pagoRespondoAvisoConfirmoWithCliticAreDetectedAsCommitments() {
+        val positives = listOf(
+            "te pago la deuda mañana",
+            "le pago el alquiler el viernes",
+            "te lo pago el lunes",
+            "te pago mañana",
+            "le respondo al cliente el lunes",
+            "le aviso al equipo el viernes",
+            "le confirmo la reserva mañana",
+            "te respondo el correo mañana",
+            "te aviso el viernes",
+            "te confirmo la reserva mañana"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c514-pos-$text"
+            )
+            assertTrue(
+                "\"$text\" (verbo con clítico + marca futura) debe generar draft SELF_COMMITMENT",
+                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
+    // c.514: precisión — las negaciones con clítico ("no te pago"/"no le respondo"/
+    // "no te lo pago"/"no te confirmo") son RECHAZOS, no compromisos, y deben
+    // excluirse igual que "no te llamo". El sustantivo "el pago" (con determinante,
+    // sin pronombre) tampoco casa la rama con-clítico. Probe JVM POST-fix: 5/5.
+    @Test
+    fun cliticPagoRespondoNegationsAndNounAreNotFlagged() {
+        val innocent = listOf(
+            "no te pago mañana",
+            "no le pago el viernes",
+            "no le respondo al cliente",
+            "no te confirmo nada",
+            "el pago de la factura mañana"
+        )
+        innocent.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c514-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
     // c.307: imperativos de 2ª persona con pronombre enclítico — peticiones
     // directas muy frecuentes en chat español que NO casaban con "envíame"/
     // "mándame"/"recuerda" (los únicos imperativos cubiertos). Probe JVM PRE-fix:

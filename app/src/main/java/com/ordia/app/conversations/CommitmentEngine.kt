@@ -265,7 +265,33 @@ object CommitmentEngine {
         //     guarda precedingNegation excluye "no lo revisaré"/"no te lo mandaré"
         //     igual que "no lo haré". Cada forma admite variante con/sin tilde en
         //     la é final (har[eé]) por errores de escritura comunes.
-        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+llamo|te\s+env[ií]o|te\s+respondo|te\s+aviso|te\s+confirmo|despu[eé]s\s+te\s+respondo|debo|tengo\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|terminar[eé]|har[eé]|entregar[eé]|revisar[eé]|preparar[eé]|arreglar[eé]|subir[eé]|dejar[eé]|pasar[eé]|mandar[eé]|enviar[eé])|lo\s+hago|te\s+(?:paso|mando)|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo))\b"""
+        //
+        // c.514: cierra la ASIMETRÍA CON-CLÍTICO de los verbos añadidos en c.512
+        // (pago/respondo/aviso/confirmo). c.512 los añadió a la rama PELADA
+        // (barePresentCommitmentSignal), pero NO a esta rama con-clítico → la
+        // forma pronominal ("te pago"/"le pago"/"te lo pago"/"le respondo"/
+        // "le aviso"/"le confirmo") caía a MISSED aunque la pelada ("pago la
+        // factura mañana") sí se detectase. Es la asimetría INVERSA de c.508/c.512:
+        // estas son las formas MÁS explícitas de promesa de pago/contacto en
+        // español ("te pago la deuda mañana", "le respondo al cliente el lunes").
+        // Cambios (un commit c.514):
+        //  (1) El grupo `te` se consolida en `te\s+(?:llamo|envío|respondo|aviso|
+        //      confirmo|paso|mando|pago)` — añade `pago` y unifica los `te`
+        //      dispersos (antes `te llamo|te envío|te respondo|te aviso|te confirmo`
+        //      + `te (?:paso|mando)` separados). Sin cambio de cobertura salvo pago.
+        //  (2) El grupo `le` añade respondo|aviso|confirmo|pago: "le respondo al
+        //      cliente el lunes", "le aviso al equipo el viernes", "le confirmo la
+        //      reserva", "le pago el alquiler el viernes". Antes sólo paso/mando/
+        //      envío/llamo/hablo/escribo.
+        //  (3) El grupo de objeto directo (lo|la|...|te lo|...) añade `pago` para
+        //      "te lo pago"/"lo pago" (promesa de saldar una deuda concreta).
+        // La guarda precedingNegation excluye "no te pago"/"no le respondo"/"no te
+        // lo pago" igual que "no te llamo". Precisión: "pago"/"aviso" son también
+        // sustantivos, pero la rama con-clítico exige pronombre (te/le/lo) antes,
+        // y "el pago"/"un aviso" (determinante) NO casa aquí (lo protege la guarda
+        // `determiners` de bare, no esta). Probe JVM POST-fix: 10/10 positivos
+        // detectados, 6/6 negativos (negaciones + sustantivo "el pago") excluidos.
+        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago)|despu[eé]s\s+te\s+respondo|debo|tengo\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|terminar[eé]|har[eé]|entregar[eé]|revisar[eé]|preparar[eé]|arreglar[eé]|subir[eé]|dejar[eé]|pasar[eé]|mandar[eé]|enviar[eé])|lo\s+hago|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago))\b"""
     )
     // c.500: presente de 1ª persona SIN pronombre de objeto + marca temporal futura
     // PUNTUAL — "termino el informe mañana", "entrego el reporte el viernes",
