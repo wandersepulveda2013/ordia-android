@@ -373,14 +373,27 @@ object SearchEngine {
     // tanto el hueco pasado como la captura olvidada, asistente "¿qué olvidé?")
     // llevado a la superficie de búsqueda universal, sin nueva pantalla. Los tres
     // predicados son disjuntos por construcción, así que la unión no duplica.
-    // Detección por palabra exacta (participio, no el infinitivo "olvidar" ni
-    // el sustantivo "olvido") para no activarse con "olvidar hacer X".
-    private val MISSED_TOKENS = setOf("olvidada", "olvidadas", "olvidado", "olvidados")
+    // Detección por palabra exacta: el participio (no el infinitivo "olvidar"
+    // ni el sustantivo "olvido") para no activarse con "olvidar hacer X"; y la
+    // 1ª persona del pretérito "olvidé" (plegada por foldForSearch a "olvide"),
+    // la forma más natural de buscar "¿qué olvidé?". Sin ella, buscar "olvidé"
+    // no activaba la recuperación y devolvía vacío pese a haber tareas
+    // olvidadas, contradiciendo el tema #1 del producto. "olvide" no aparece
+    // en "olvidar hacer X", así que el guard se mantiene.
+    private val MISSED_TOKENS = setOf("olvidada", "olvidadas", "olvidado", "olvidados", "olvide")
     // Formas del participio "completado/hecho/terminado/finalizado/acabado" (no el
-    // infinitivo "completar"/"terminar"). Detectadas por palabra exacta.
+    // infinitivo "completar"/"terminar") más la 1ª persona del pretérito
+    // "completé"→"complete" y "hice" (de hacer), las frases MÁS naturales para
+    // preguntar "¿qué completé?"/"¿qué hice?". Sin ellas, esas búsquedas
+    // devolvían VACÍO pese a haber tareas terminadas: la recuperación de trabajo
+    // hecho — el espejo del tema #1 (lo olvidado) — quedaba ciega con la
+    // phrasing más común. "complete" no es el infinitivo "completar" (acción
+    // por hacer) ni colisiona como subcadena ("hechizo" no es "hice"): la
+    // detección es por PALABRA exacta, así que el guard de infinitivo se
+    // mantiene y "Completar formulario" (pendiente) NO se devolverá como hecha.
     private val COMPLETED_TOKENS = setOf(
-        "completada", "completadas", "completado", "completados",
-        "hecha", "hechas", "hecho", "hechos",
+        "completada", "completadas", "completado", "completados", "complete",
+        "hecha", "hechas", "hecho", "hechos", "hice",
         "terminada", "terminadas", "terminado", "terminados",
         "finalizada", "finalizadas", "finalizado", "finalizados",
         "acabada", "acabadas", "acabado", "acabados"

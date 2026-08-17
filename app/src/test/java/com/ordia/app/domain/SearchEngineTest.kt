@@ -256,6 +256,40 @@ class SearchEngineTest {
         assertEquals(setOf(1L), ids)
     }
 
+    // --- "completé"/"hice" (1ª persona del pretérito) activan la recuperación
+    // COMPLETED ---
+    // El participio "completadas"/"hecho" ya activaba el scope COMPLETED, pero las
+    // formas MÁS naturales de preguntar por lo hecho — "completé" (→ "complete" vía
+    // foldForSearch) y "hice" — no estaban en COMPLETED_TOKENS. Buscar "¿qué
+    // completé?"/"¿qué hice?" devolvía VACÍO pese a haber tareas terminadas: la
+    // recuperación del trabajo completado quedaba ciega con la phrasing más común,
+    // espejo exacto del hueco de "olvidé". Aquí se prueba que ahora recuperan una
+    // tarea terminada que una pendiente NO es.
+    @Test fun completé_y_hice_activateCompletedRecovery() {
+        val now = System.currentTimeMillis()
+        val done = TaskEntity(id = 10, title = "Reunión equipo", priority = TaskPriority.NORMAL, completed = true, completedAt = now)
+        val pending = TaskEntity(id = 11, title = "Reunión equipo", priority = TaskPriority.NORMAL)
+        // "completé" (con tilde, entrada natural) y su forma plegada "complete".
+        val withAccent = SearchEngine.search("completé", listOf(done, pending), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(setOf(10L), withAccent.map { it.id }.toSet())
+        val folded = SearchEngine.search("complete", listOf(done, pending), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(setOf(10L), folded.map { it.id }.toSet())
+        // "hice" (1ª persona de hacer) recupera lo hecho.
+        val hice = SearchEngine.search("hice", listOf(done, pending), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(setOf(10L), hice.map { it.id }.toSet())
+    }
+
+    // Guard simétrico al de "olvidar"/"completar": el infinitivo "hacer" NO activa
+    // el scope COMPLETED, para que una tarea titulada "Hacer la compra" (pendiente)
+    // no se devuelva como si ya estuviera hecha. Añadir "hice" (1ª persona, no
+    // infinitivo) preserva este guard.
+    @Test fun hacer_doesNotActivateCompletedRecovery_guard() {
+        val now = System.currentTimeMillis()
+        val done = TaskEntity(id = 10, title = "Reunión equipo", priority = TaskPriority.NORMAL, completed = true, completedAt = now)
+        val results = SearchEngine.search("hacer", listOf(done), emptyList(), emptyList(), emptyList(), now = now)
+        assertTrue(results.isEmpty())
+    }
+
     @Test fun substringAltaInsideAnotherWord_isNotPriorityFilter() {
         // "exaltar" contiene la subcadena "alta", pero NO es intención de
         // prioridad: la detección es por PALABRA, no por subcadena. Una query
@@ -832,5 +866,54 @@ class SearchEngineTest {
         val results = SearchEngine.search("reunion", listOf(missed, fresh), emptyList(), emptyList(), emptyList(), now = now)
         assertEquals(2, results.size)
         assertEquals(100L, results.first().id)
+    }
+
+    // --- "olvidé" (1ª persona del pretérito) activa la recuperación MISSED ---
+    // Las formas de participio ("olvidadas"/"olvidados") ya activaban el scope
+    // MISSED, pero la forma MÁS natural de buscar lo olvidado — "olvidé", que
+    // foldForSearch pliega a "olvide" — no estaba en MISSED_TOKENS. El resultado
+    // era que buscar "olvidé" devolvía VACÍO pese a haber tareas olvidadas
+    // (hueco pasado, vencida o bandeja arrinconada): el tema #1 de recuperación
+    // del producto quedaba ciego con la phrasing más común. Aquí se prueba que
+    // "olvidé" ahora recupera una missed-start que una captura fresca NO es.
+    @Test fun olvidé_activatesMissedRecovery() {
+        val now = System.currentTimeMillis()
+        val missed = TaskEntity(
+            id = 100,
+            title = "Reunión equipo",
+            priority = TaskPriority.NORMAL,
+            startAt = now - 2 * 3_600_000L,
+            durationMinutes = 30
+        )
+        val fresh = TaskEntity(
+            id = 101,
+            title = "Reunión aaa",
+            priority = TaskPriority.NORMAL
+        )
+        // Forma con tilde (entrada natural del usuario).
+        val withAccent = SearchEngine.search("olvidé", listOf(missed, fresh), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(1, withAccent.size)
+        assertEquals(100L, withAccent.first().id)
+        // Forma sin tilde (plegada por foldForSearch): mismo resultado.
+        val folded = SearchEngine.search("olvide", listOf(missed, fresh), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(1, folded.size)
+        assertEquals(100L, folded.first().id)
+    }
+
+    // Guard documentado: el infinitivo "olvidar" y el sustantivo "olvido" NO
+    // activan el scope MISSED, para no disparar la recuperación con un título de
+    // tarea tipo "olvidar hacer X". Añadir "olvide" (1ª persona, no infinitivo)
+    // preserva este guard: "olvidar" sigue sin recuperar tareas olvidadas.
+    @Test fun olvidar_doesNotActivateMissedRecovery_guard() {
+        val now = System.currentTimeMillis()
+        val missed = TaskEntity(
+            id = 100,
+            title = "Reunión equipo",
+            priority = TaskPriority.NORMAL,
+            startAt = now - 2 * 3_600_000L,
+            durationMinutes = 30
+        )
+        val results = SearchEngine.search("olvidar", listOf(missed), emptyList(), emptyList(), emptyList(), now = now)
+        assertTrue(results.isEmpty())
     }
 }

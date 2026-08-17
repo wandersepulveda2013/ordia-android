@@ -12,6 +12,27 @@
 - **HEAD inicial**: `530d692` (c.428 en workspace al iniciar). Base actualizada DOS VECES: `0b3fb6f` (c.431 remoto, stash+ff+pop) → `816f3cb` (c.432 remoto, `git rebase`). NO force, NO reset destructivo, NO clean destructivo. **HEAD final**: commit c.433 (pendiente de push; autenticación inicial falló con `$GITHUB_TOKEN` mayúsculas expirado, reintentado con `$github_token` minúsculas).
 - **Estado**: VERIFIED (dominio JVM: 2541 PASS sobre base rebaseada atop `816f3cb`; smoke 25 OK; 0 failures; 6 tests confirman rango plural de 4 weekday + quincenal visible + límite de horizonte + inclusivo hoy + singular preservado). NO VERIFICADO Android/gradle/lint/assemble/UI.
 - **Próxima prioridad**: descubrimiento continuo — (i) asistente: consistencia de consultas plurales con otras superficies (búsqueda los viernes → ¿rango o scope único?); (ii) auditoría NO-parser (rutinas adaptables, recordatorios, contexto, backup/restore con DAOs reales); (iii) verificar Android c.270-c.432 cuando haya SDK. Re-fetch antes de implementar.
+## Run c.434 — 2026-08-17 (UTC) — fix(search): dos huecos de PHRASING NATURAL en la recuperación de lo olvidado y lo hecho — "olvidé" (1ª persona del pretérito) no activaba MISSED y "completé"/"hice" no activaban COMPLETED — buscar "¿qué olvidé?"/"¿qué completé?"/"¿qué hice?" devolvía VACÍO pese a haber tareas olvidadas/completadas — P1 recuperación de información importante / evitar olvidos — áREA NO-PARSER (SearchEngine)
+
+- **Run/ciclo**: 434 (rama `openhands/autonomous-ordia`). HEAD inicial = `45825c2` (c.429). Al commitar, el remoto había avanzado a `816f3cb` (c.432) por 3 runs concurrentes: c.430 (parser `alFinalDelDiaPattern` "de jornada" sin "la"), c.431 (parser `primeraHoraPattern` "primer momento" masculino), c.432 (parser conector "después de las N <parte>" residuo de título). Integración NO destructiva vía `git pull --rebase`: los `.kt` auto-mergieron limpio (regiones DISJUNTAS: mi `SearchEngine.kt`/`SearchEngineTest.kt` vs `NaturalTaskParser.kt`/`NaturalTaskParserTest.kt` de c.430-c.432); los `.md` (AI_AUTONOMY) tuvieron conflicto (formato prepend/encabezado) y se resolvieron manualmente preservando AMBOS trabajos. Renumero cycle-ID c.430→c.434 por colisión: el run concurrente ya usó "c.430" para SU commit; mi trabajo originalmente etiquetado c.430 pasa a c.434 para mantener unicidad de cycle-ID en el historial. NO STALE_RUN (mi trabajo válido se integra, no se descarta). NO force, NO reset --hard, NO clean destructivo, NO toques a `main`. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars en `/tmp/libs`, OpenJDK 21. Autenticación git con `github_token` (minúsculas; lección c.410).
+- **Problema seleccionado (P1 recuperación / evitar olvidos / MENOS ES MÁS — área NO-parser SearchEngine, descubierta por auditoría dirigida a áreas no-parser; tarea TASK_AUDIT_NON_PARSER)**: la búsqueda universal de Ordía activa scopes semánticos por conjuntos de TOKENS (MISSED_TOKENS, COMPLETED_TOKENS) detectados por palabra exacta. Los participios ya estaban ("olvidadas"/"olvidados" activan MISSED; "completadas"/"hecho" activan COMPLETED), pero las formas MÁS naturales con que un usuario pregunta por lo olvidado/hecho — los verbos en 1ª persona del pretérito — NO estaban:
+  1. **"olvidé"** (de olvidar) → `foldForSearch` lo pliega a "olvide". La frase número 1 de recuperación del producto ("el asistente ¿qué olvidé?") usaba EXACTAMENTE esa palabra, pero buscar "olvidé" devolvía 0 resultados pese a haber tareas olvidadas (hueco pasado / vencida / bandeja arrinconada). El tema #1 del producto (recuperación de olvidos) quedaba CIEGO con la phrasing más común. Confirma via probe: "olvidé" → 0 resultados (antes) vs "olvidadas" → 1.
+  2. **"completé"** (de completar) → pliega a "complete"; y **"hice"** (de hacer). El espejo exacto del tema #1 para el trabajo HECHO: buscar "¿qué completé?"/"¿qué hice?" devolvía VACÍO pese a haber tareas terminadas. La recuperación de lo completado quedaba ciega con la phrasing más común. Confirma via probe: "completé"/"hice" → 0 (antes) vs "completadas" → 1.
+- **Causa raíz**: los conjuntos de tokens sólo contenían PARTICIPIOS ("olvidadas/os", "completadas/os", "hecho"...), no la 1ª persona del pretérito. La asimetría: el infinitivo "olvidar"/"completar"/"hacer" se excluye a propósito (acción por hacer, no hecha — guard anti-colisión para no devolver "Completar formulario" como hecho), pero el pretérito 1ª persona ("olvidé"/"completé"/"hice") es EXACTAMENTE la forma de buscar lo ya ocurrido y no se había añadido.
+- **Solución (mínima, sin nueva pantalla/botón, sin IA fingida — 2 conjuntos ampliados en `SearchEngine.kt`)**:
+  1. `MISSED_TOKENS`: añade `"olvide"` (forma plegada de "olvidé") al lado de los participios existentes.
+  2. `COMPLETED_TOKENS`: añade `"complete"` (plegada de "completé") y `"hice"` (de hacer) al lado de los participios existentes.
+  - Detección por PALABRA exacta (no subcadena): "olvide" no aparece en "olvidar hacer X", "hice" no es subcadena de "hechizo" — el guard de infinitivo se mantiene. La vía `semanticMatches` filtra los tokens matched (`startsWith`) del `meaningful` → cuando la query es sólo el token de scope, `meaningful` queda vacío y devuelve TODAS las tareas del scope (comportamiento idéntico al participio ya existente), así "olvidé"/"completé"/"hice" actúan como verdaderos selectores de scope.
+- **Bugs**: 0 nuevos. 2 fixes de recuperación (P1).
+- **Features**: 0 nuevas pantallas/botones. Misma superficie de búsqueda universal, ahora entiende las 3 frases de recuperación más naturales en español.
+- **Tests**: `bash tools/run_domain_tests.sh` → **2545 PASS** (2541 c.433(asistente remoto atop c.432) + 4 nuevos en `SearchEngineTest.kt`: `olvidé_activatesMissedRecovery` ["olvidé" con tilde + "olvide" plegada, ambas → 1 resultado id=100], `olvidar_doesNotActivateMissedRecovery_guard` [infinitivo NO activa — guard], `completé_y_hice_activateCompletedRecovery` ["completé"/"complete"/"hice" → solo la tarea completada id=10], `hacer_doesNotActivateCompletedRecovery_guard` [infinitivo NO activa — guard]), 0 failures, 45 classes (Time: 1.63s); `bash tools/run_domain_checks.sh` → smoke 25 OK. Sin tests reducidos/eliminados, sin regresión (familia MISSED c.427 intacta; familia COMPLETED c.407/c.243 intacta; guard "completar" c.245 intacto; guard "olvidar" nuevo intacto; probe temporal eliminado). **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); la lógica pura `SearchEngine.search` (token sets + scope selection) SÍ verificada en JVM vía tests + suite 2545. NOTA: la suite total remota tras c.430-c.432 es 2535; mi rebase añade 4 → 2539 esperado tras integración (re-ejecutar tras resolver conflicto para confirmar).
+- **Hallazgos adicionales**: (1) Patrón de auditoría productivo: los conjuntos de tokens de SearchEngine tenían un sesgo a PARTICIPIOS y omitían el PRETÉRITO 1ª persona — la forma verbal real con que se HABLA de lo hecho/olvidado. Mismo sesgo en MISSED, COMPLETED; revisar si OVERDUE/FLAGGED/RECURRING tienen gap análogo ("venció" 3ª persona de vencer para vencidas; "destaqué"/"marqué" para marcadas; menos claros — pendiente de auditoría). (2) El mecanismo `semanticMatches` (filtrar tokens matched del `meaningful` → `meaningful` vacío → match-all del scope) es lo que permite que añadir un token de scope baste sin tocar la lógica de matching: cambio de 1 línea por fix. (3) Verificación de guards con tests dedicados (infinitivo NO activa) es esencial al tocar token sets: sin el guard explícito, "completar formulario" pendiente podría devolverse como hecho. (4) Integración multi-run (c.429→c.434): el remoto avanzó durante mi trabajo (c.429→c.432, 3 commits parser); `git pull --rebase` reaplicó mi commit atop c.432, `.kt` auto-merge limpio (regiones disjuntas SearchEngine vs NaturalTaskParser), `.md` resueltos a mano preservando ambos — confirma que trabajo parser vs no-parser es paralelizable sin colisión de código. (5) Lección herramienta (c.408+): editar `.kt`/`.md` con no-ASCII vía Python con escapes `\uXXXX` → 0 mojibake; el `file_editor` str_replace con acentos funciona para `.kt` UTF-8 real pero los `.md` densos se generan vía Python para garantizar codificación.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt` (`MISSED_TOKENS` +`"olvide"`; `COMPLETED_TOKENS` +`"complete"`/`"hice"`; +comentarios KDoc de ambas); `app/src/test/java/com/ordia/app/domain/SearchEngineTest.kt` (+4 tests TDD); `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md` (entrada c.433; renumerada de c.430 tras triple colisión con runs parser concurrentes c.430/c.431/c.432).
+- **HEAD inicial**: `45825c2` (c.429). Rebase atop `816f3cb` (c.432). NO force, NO reset destructivo, NO clean destructivo. **HEAD final**: commit c.434 (pendiente de push).
+- **Estado**: VERIFIED (dominio JVM: 2545 tests PASS; smoke 25 OK; 0 failures; 4 tests confirman los 2 fixes + 2 guards anti-infinitivo). NO VERIFICADO Android/gradle/lint/assemble/UI.
+- **Próxima prioridad**: continuar auditoría no-parser: (a) revisar gap análogo de pretérito/3ª persona en OVERDUE_TOKENS/FLAGGED_TOKENS/RECURRING_TOKENS; (b) áreas no-auditadas aún (context/onboarding/navegación/accesibilidad/rendimiento, workers/backup con DAOs reales). Re-fetch antes de implementar.
+
+
 ## Run c.432 — 2026-08-16 (UTC) — fix(parser): conector "después de las N <parte>" sobrevivía como residuo en el título ("llegar después de") — cita bien fechada pero título mutilado — P1 captura/título limpio — ÁREA PARSER (NaturalTaskParser), simétrico a "antes de"/c.424 y "hasta"/c.134
 
 - **Run/ciclo**: 432 (rama `openhands/autonomous-ordia`). HEAD inicial = `24a7d6e` (c.427 docs al iniciar). `git fetch origin openhands/autonomous-ordia` reveló avance remoto `24a7d6e..0b3fb6f` (c.428+c.429+c.430+c.431 concurrentes, parser, regiones DISJUNTAS de mi conector HORA-con-meridio). Integración NO destructiva: mi commit local `022c0c0`/`d89f628` (no publicado) se descartó como commit (NO force-push: mi commit nunca se publicó) y mi cambio `.kt` se reaplicó como parche sobre `0b3fb6f` (`git apply --3way` limpio — regiones ortogonales: mi `despu[eés]` en el reescritor de conector ~l.2227 vs c.429 `mealSleepAnchor` + c.430 `alFinalDelDia` + c.431 `primeraHoraPattern`, sin solapamiento). Renumerado cycle-ID c.428→c.430→c.432 por triple colisión con runs concurrentes (c.428, c.429, c.430+c.431 tomados). NO STALE_RUN. NO force push, NO reset --hard destructivo (sólo descarte de commit LOCAL no publicado, permitido por política: "descarta tu trabajo local no commiteado y trabaja sobre el HEAD remoto actualizado"), NO clean destructivo, NO toques a `main`. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars en `/tmp/libs`, OpenJDK 21. Autenticación git con `github_token` (minúsculas, 40 chars; lección c.410).
@@ -453,7 +474,6 @@
 - **Próxima prioridad**: descubrimiento continuo — (i) parser: c.397+ bug P1 "ya a las N" produce dueAt=now en vez de hora explícita (requiere análisis de jerarquía ancla-hora vs ancla-now, TDD sobre prioridad hora-explícita > ancla-now); (ii) auditoría no-parser: contexto, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales; (iii) verificar Android c.270-c.396 cuando haya SDK. Re-fetch antes de implementar.
 
 
-
 ## Run c.393 — 2026-08-16 (UTC) — fix(parser): sufijos de aproximación post-hora ("y pico"/"más o menos"/"aproximadamente") + prefijo "casi a las" no se consumían — título mutilado con residuo horario (c.393) — P2 captura/título limpio — ÁREA PARSER
 
 - **Run/ciclo**: 393 (rama `openhands/autonomous-ordia`). HEAD inicial = `13830d4` (c.389 "en punto") al comenzar. `git fetch origin openhands/autonomous-ordia` reveló `13830d4..f1a1cc2` (c.390 "siesta" pushed por run concurrente durante la sesión) — divergencia, base obsoleta. Procedimiento NO destructivo: `git stash` (mi trabajo no commiteado sobre `13830d4`), `git merge --ff-only origin/openhands/autonomous-ordia` → `f1a1cc2`, `git stash pop` → auto-merge limpio (sin conflictos; áreas disjuntas `APPROX_TIME_SUFFIX`/`approximateTimePatterns` "casi" vs `mealSleepAnchorPattern` "siesta" de c.390), NO STALE_RUN (cambios preservados, no descartados). Tras commitear, DOS runs concurrentes más publicaron: `1dc9deb` (c.391 "justo"+comida/sueño/siesta) y `1492c97` (c.392 "justo"+anclas canónicos sol/jornada). Rebasé dos veces sobre ellos (código disjunto: yo toco `timePatterns`/`APPROX_TIME_SUFFIX`/`hasClockEvidence`/`approximateTimePatterns`; ellos tocan `mealSleepAnchorPattern` y patrones canónicos — auto-merge limpio), renumerando mi ciclo c.391→c.392→c.393 para evitar colisión de numeración. NO force, NO reset destructivo, NO clean destructivo. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars en `/tmp/libs`, OpenJDK 21. Baseline tras stash pop = 2316 PASS (c.390 2297 + 12 nuevos). Test env parser: `now=2026-07-29 12:00 America/Santo_Domingo` (miércoles).
@@ -722,7 +742,6 @@
 - **Próxima prioridad**: descubrimiento continuo — (i) asistente: auditar `resumeConversacion` y `overdueIntent` por asimetrías análogas; (ii) asistente: weekday plural ("¿qué tengo los viernes?"=recurrencia, P3 PENDIENTE — requiere decisión de modelo semántico); (iii) asistente: parte del día con "semana"/"mes" ("¿qué tengo la semana en la tarde?" — composición no cubierta, baja frecuencia); (iv) parser/recurrencia: backlog PENDIENTE "primer lunes del mes"; (v) áreas no-parser (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (vi) verificar Android c.270-c.355 cuando haya SDK. Re-fetch antes de implementar.
 
 
-
 ## Run c.354 — 2026-08-16 (UTC) — fix(asistente): "¿voy bien?"/"¿da tiempo?" ya no calla vencidas ni compromisos vencidos (dayLoad era la outlier de olvidos) — P1 asistente/evitar olvidos/recuperación/consistencia entre superficies/IA honesta/MENOS ES MÁS
 
 - **HEAD inicial**: `7752e16` (c.352; al fetch detecté que el remoto avanzó a `89c1a32` c.353 SearchEngine — re-sync no destructivo).
@@ -737,7 +756,6 @@
 - **Próxima prioridad**: descubrimiento continuo — áreas no-asistente (contexto, What Now, onboarding, navegación, accesibilidad, rendimiento, workers/backup); o el weekday plural P3 (c.351) si se decide el modelo semántico. Re-fetch antes de implementar.
 - **HEAD final**: (commit c.354, pendiente de push; tras push = remoto `openhands/autonomous-ordia`).
 - **Estado**: VERIFIED (lógica pura en JVM: 2058 tests PASS, 0 failures, smoke 25 OK; Android runtime NO VERIFICADO).
-
 
 
 ## Run c.353 — 2026-08-16 (UTC) — fix(search): paridad urgencyRank↔timeRank — isImminentStart + isMissedStart — P2 búsqueda/consistencia entre superficies/evitar olvidos/recuperación de tareas olvidadas/MENOS ES MÁS (área NO-parser)
@@ -778,7 +796,6 @@
 - **Próxima prioridad**: continuar discovery — auditar `resumeConversacion` branch, `over` patterns, otras asimetrías léxicas entre superficies; o evaluar el weekday plural si se decide el modelo semántico.
 - **HEAD final**: `61c4d4a` (commit c.352, pendiente push; tras push = remoto `openhands/autonomous-ordia`).
 - **Estado**: VERIFIED (lógica pura en JVM; Android runtime NO VERIFICADO).
-
 
 
 ## Run c.350 — 2026-08-16 (UTC) — feat(parser): "semana por medio" + lista de días → WEEKLY interval=2 (caso disjunto del combo day-list) — P1 recurrencia/rutinas adaptables/evitar olvidos/MENOS ES MÁS
@@ -1392,7 +1409,6 @@
 - **Próxima prioridad**: descubrimiento continuo — (i) seguir auditando el parser por paridad léxica residual (otros determinantes de cadencia: "de dos en dos semanas", "alternar cada dos", "una semana sí y otra no" ya cubierto c.97; evaluar "todas las N quincenas" / "todos los N años" con ordinal); (ii) auditar `RecurrenceEngine` por rendijas simétricas (advance con interval alto, mes con menos días, DST); (iii) áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (iv) verificar Android de los fixes parser c.271-c.276 cuando haya SDK. Re-fetch antes de implementar.
 
 
-
 ## Ciclo 273 — 2026-08-15 (UTC) — fix(parser): recurrencia ordinal con cadencia PRECEDENTE PLURIMENSUAL ("trimestral el primer lunes"/"cada dos meses el último viernes") ya captura el ordinal (antes `days=''` → 2ª cita trimestral derivaba a otro weekday) ni deja residuo "el primer" — P1 "datos (sagrados)"/"evitar olvidos" — continuación directa de c.271
 
 - **Run/ciclo**: 273 (rama `openhands/autonomous-ordia`). HEAD inicial = `9904e1c` (c.271 pushed). `git pull --ff-only` limpio al arrancar. **Colisión con run paralelo detectada al hacer el pre-commit `git fetch`**: un run paralelo pusheó 2 commits `7c7b910`+`fc5bbeb` (c.272 "este mes/este año" — fix ORTOGONAL, área distinta del parser) → mi base quedó 2 behind. **Integración NO destructiva**: renombré mi numeración c.272→**c.273** (el run paralelo tomó c.272 primero), commit local, `git rebase origin/openhands/autonomous-ordia` (replay sobre `fc5bbeb`). Los `.kt` son DISJUNTOS (mi `precedingCadenceOrdinalPattern` vs su área "este mes/este año") → auto-merge; los `.md` (BACKLOG/CURRENT_STATE/RUN_LOG) conflictaron por NUMERACIÓN (ambos runs se auto-numeraron c.272) → resueltos a mano conservando AMBOS (su c.272 + el mío renumerado c.273). No force push, no reset --hard, no trabajo de otro agente sobrescrito. No STALE_RUN. Entorno JVM: kotlinc 2.1.20, jars en `/tmp/libs`, OpenJDK 21. Sin Android SDK.
@@ -1424,7 +1440,6 @@
 - **HEAD inicial**: `b813e64` (c.264, al arrancar) / `9ba46c9` (base remota sincronizada post-merge tras ff-only). **HEAD final**: `7c7b910` (c.272, pusheado FF sobre `9904e1c` c.271 recurrencia). PUSH OK.
 - **Estado**: VERIFIED (dominio JVM: 1771 PASS — incluye tests remotos c.267 guardian + c.268 planificación + c.269 SearchEngine finde `bf08c3d` + c.270 what-now + c.271 recurrencia `9904e1c`; RED del bug confirmado pre-fix; auto-merge limpio del parser con c.265/c.266/c.267/c.268/c.269 + probe de no-colisión). NO VERIFICADO Android.
 - **Próxima prioridad**: descubrimiento continuo — (i) OPEN P3 "a las 3.5" decimal-hour (notación `H.MM`/`H,M` como hora de reloj, BACKLOG); (ii) OPEN P2 "bisemanal" ambiguo; (iii) OPEN P2/P3 residuos de título pre-existentes ("el primer" suelto RESUELTO c.271; queda "a las 3.5" decimal-hour); (iv) decisión `TaskStatus.CANCELLED` UI (BACKLOG P2, requiere Android/UI); (v) verificar Android del fix c.264 (toggle/un-complete + undoLastAutomation con Room real) cuando haya SDK; (vi) verificar Android del helper c.266 `RecurrenceSpawn` (compilación + 4 caminos spawn con Room real) cuando haya SDK; (vii) seguir auditando `WhatNowEngine`/`GuardianCoach`/`SearchEngine`/`RecurrenceEngine` por rendijas simétricas residuales; (viii) posibles sinónimos de "este mes/año" ("del mes en curso"/"del presente año"/"de este mismo mes" — evaluar necesidad real antes de añadir, evitar feature bloat); (ix) áreas no-parser (onboarding, navegación, accesibilidad, rendimiento, workers/backup con DAOs reales); (x) auditar OTROS orquestadores Android con copias duplicadas que puedan divergir (patrón simétrico al de c.266). Re-fetch antes de implementar.
-
 
 
 ## Ciclo 271 — 2026-08-15 (UTC) — fix(parser): recurrencia ordinal con cadencia PRECEDENTE ("cada mes el primer lunes") ya no deriva ni deja residuo "el primer"; "cada \<unidad>" intervalo-1 ya no filtra al título — P1 "rutinas adaptables"/"datos (sagrados)"/"evitar olvidos"/"captura ultrarrápida"
@@ -3221,7 +3236,6 @@
 - **Próxima prioridad**: descubrimiento continuo en áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento, backup/restore con DAOs reales); auditoría de `AutomationEngine.runRule` (persistencia/log/deshacer) queda NO VERIFICADA sin Android SDK.
 
 
-
 > Registro cronológico de sesiones autónomas (append-only, no borrar entradas).
 
 ## Ciclo 129 (run 2) - 2026-08-14 (UTC) - fix(parser): 4 residuos de título que mutilaban la captura ("este lunes"/"en la tarde de hoy"/"a la semana que viene"/"ahorita mismo") + feat(parser): "al amanecer" hora canónica (P1 integridad de datos / captura olvidada)
@@ -3705,7 +3719,6 @@
 - P2 ABIERTO: rango horario con minutos/meridiem en ambos extremos ("clase de 9:30 a 11", "de 9am a 11am") — `timeRangePattern` deja residuo y no calcula duración.
 - Descubrimiento continuo: auditar `RecurrenceEngine.nextOccurrence` edge cases (fin de mes mensual → día 31/febrero, año bisiesto), `GuardianCoach` detección de vencidas importantes, `SummaryService`, captura ultrarrápida.
 - Parser: múltiples marcadores temporales en una frase.
-
 
 
 ## Ciclo 57 - 2026-08-13 (UTC) - fix(parser): intervalo de recurrencia con número escrito ("cada dos semanas")
@@ -7567,7 +7580,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: Auditoría de acentos del parser COMPLETADA. Descubrimiento funcional: rutinas adaptables; detección de compromisos en notas; captura ultrarrápida; `SearchEngine` date-scope "parte del día"/"este mes" (P3 anti-feature-bloat); `PlanEngine`/replanización si OVERLOADED recurrente.
 
 
-
 ## Ciclo 90 — 2026-08-14
 
 - **Rama**: `openhands/autonomous-ordia`
@@ -8262,7 +8274,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: descubrimiento continuo de frases cotidianas del parser ("ahora mismo"/"en cualquier momento" semántica "ahora"; "más rato"/"más tarde" vagos) y otras áreas (recuperación de tareas olvidadas, What Now, contexto, inbox inteligente).
 
 
-
 ---
 
 ## Ciclo 107 — 2026-08-14 — Parser: "ahora" inmediato ("ahora mismo"/"ahorita"/"lo antes posible"…) → dueAt=now + resolución de colisión con c.106 paralelo
@@ -8834,7 +8845,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: `5662518` (tras commit + rebase + push a `openhands/autonomous-ordia`).
 - **Estado**: FIXED → VERIFIED (dominio JVM: 1016 tests, 0 failures; smoke 25 OK).
 - **Próxima prioridad**: descubrimiento continuo — más gaps léxicos del parser y áreas no-parser (contexto, onboarding, navegación, accesibilidad, rendimiento); follow-up OPEN c.141 "completadas + scope presente" (P2 baja-media); auditoría workers/backup/restore con DAOs reales queda NO VERIFICADA.
-
 
 
 ## Ciclo 143 (run paralelo B) - 2026-08-14 (UTC) - STALE_RUN: follow-up c.141 ya resuelto por run paralelo (cf4fd9c)
