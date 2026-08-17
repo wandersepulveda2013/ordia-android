@@ -7902,6 +7902,78 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- Rangos de weekdays generalizados (cualquier par, no sólo Lun-Vie) ---
+    // Antes el patrón de rango sólo casaba el par literal "lunes ... viernes";
+    // cualquier otro par ("de martes a jueves", "de miércoles a viernes", "de
+    // domingo a jueves") caía a dayListPattern, que capturaba SOLO el día inicial
+    // (1 elemento, no recurrencia) y dejaba el día de cierre como residuo del
+    // título ("Gimnasio a") y la rutina se perdía en silencio (P1: hábito olvidado).
+    // Ahora el rango se expande inclusivo hacia adelante (con wraparound si inicio
+    // > cierre). Las formas CON artículo ("del martes al jueves") siguen siendo
+    // evento único (curso/conferencia) y NO se ven afectadas. c.487.
+    @Test fun rangoWeekdayMarJueEsRecurrenciaInclusiva() {
+        val result = NaturalTaskParser.parse("Gimnasio de martes a jueves", now, zone)
+        assertEquals("Gimnasio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("2,3,4", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun rangoWeekdayMieVieEsRecurrenciaInclusiva() {
+        val result = NaturalTaskParser.parse("Estudio de miercoles a viernes", now, zone)
+        assertEquals("Estudio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("3,4,5", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun rangoWeekdayDomJueEsRecurrenciaConWraparound() {
+        // "de domingo a jueves" cruza el límite de semana: dom(7),lun..jue(4).
+        val result = NaturalTaskParser.parse("Clase de domingo a jueves", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("7,1,2,3,4", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun rangoWeekdayLunSabIncluyeFinDeSemana() {
+        val result = NaturalTaskParser.parse("Curso de lunes a sabado", now, zone)
+        assertEquals("Curso", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,2,3,4,5,6", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun rangoWeekdayVieLunWraparoundFinDeSemana() {
+        // "de viernes a lunes" = vie,sáb,dom,lun (rutina de fin de semana extendido).
+        val result = NaturalTaskParser.parse("Futbol de viernes a lunes", now, zone)
+        assertEquals("Futbol", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("5,6,7,1", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun rangoEntreMartesJuevesEsRangoNoLista() {
+        // "entre martes y jueves" antes caía a dayListPattern como lista {2,4} (rutina
+        // mutilada: faltaba el miércoles); ahora es el rango inclusivo {2,3,4}.
+        val result = NaturalTaskParser.parse("Natacion entre martes y jueves", now, zone)
+        assertEquals("Natacion", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("2,3,4", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun rangoWeekdayConArticuloSigueSiendoEventoUnico() {
+        // "del martes al jueves" (con artículo) sigue siendo evento único anclado al
+        // cierre (jueves 30-07), NO recurrencia. Regresión de seguridad: la
+        // generalización del rango no convierte un curso/conferencia de varios días
+        // en hábito semanal.
+        val result = NaturalTaskParser.parse("curso del martes al jueves", now, zone)
+        assertEquals("curso", result.title.trim())
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun entreSemanaRespetaHoraExplicita() {
         val result = NaturalTaskParser.parse("Clase entre semana a las 7", now, zone)
         assertEquals("Clase", result.title)

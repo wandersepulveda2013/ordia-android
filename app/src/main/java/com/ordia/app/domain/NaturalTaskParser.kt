@@ -4942,14 +4942,34 @@ object NaturalTaskParser {
         // "hasta" como conector de cierre (c.380): "de lunes hasta viernes" es la misma
         // semana laboral. La normalización de plazo "hasta el viernes" (c.134) no toca
         // "hasta viernes" (exige artículo), así llega intacto aquí. Simétrico a "a".
+        // Rango de weekdays GENERALIZADO a cualquier par de días (no sólo Lun-Vie)
+        // con conectores de rango sin artículo: "de martes a jueves", "los lunes a
+        // viernes", "lunes hasta viernes", "entre martes y jueves". Antes sólo casaba
+        // el par literal "lunes ... viernes"; cualquier otro par (mar-jue, mié-vie,
+        // dom-jue) caía a dayListPattern, que capturaba SOLO el día inicial como lista
+        // de un elemento y el día de cierre sobrevivía como residuo del título
+        // ("reunión a") y la rutina se perdía (P1: hábito olvidado, sin recurrencia).
+        // Se expande al rango inclusivo hacia adelante (con wraparound cuando el día
+        // de inicio > cierre: "de viernes a lunes" = vie,sáb,dom,lun = 5,6,7,1).
+        //
+        // NO casa las formas CON artículo ("del martes al jueves", "desde el lunes al
+        // viernes"): "del"/"al" no casan con "de "/"a " (límites de palabra + espacio),
+        // así que esos rangos siguen siendo evento único anclado al cierre (curso,
+        // conferencia de varios días). c.487.
         val weekdayRangePattern =
-            Regex("""(?i)\b(?:(?:los\s+|de\s+)?lunes\s+(?:a|hasta)\s+viernes|entre\s+lunes\s+(?:a|y|hasta)\s+viernes)\b""")
+            Regex("""(?i)\b(?:(?:los\s+|de\s+)?(?<w1>lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+(?:a|hasta)\s+(?<w2>lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)|entre\s+(?<w3>lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+(?:a|y|hasta)\s+(?<w4>lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b""")
         val weekdayRangeMatch = weekdayRangePattern.find(working)
         if (weekdayRangeMatch != null) {
+            val start = (weekdayRangeMatch.groups["w1"] ?: weekdayRangeMatch.groups["w3"])!!.value
+            val end = (weekdayRangeMatch.groups["w2"] ?: weekdayRangeMatch.groups["w4"])!!.value
+            val s = start.toDayOfWeekOrNull()!!.value
+            val e = end.toDayOfWeekOrNull()!!.value
+            val days = if (s <= e) (s..e).toList()
+                else (s..7).toList() + (1..e).toList()
             phrases += weekdayRangeMatch.range
             val interval = detectWeekInterval()
             if (interval != null) phrases += interval.second
-            return RecurrenceResult(RecurrenceFrequency.WEEKLY, interval?.first ?: 1, listOf(1, 2, 3, 4, 5), phrases)
+            return RecurrenceResult(RecurrenceFrequency.WEEKLY, interval?.first ?: 1, days, phrases)
         }
 
         // "cada dos lunes" / "todos los dos martes" / "cada tres jueves": cadencia
