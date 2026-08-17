@@ -176,6 +176,33 @@ object CommitmentEngine {
     private val indicativeRequestSignal = Regex(
         """(?i)\bme\s+(?:(?:lo|la|los|las)\s+)?(?:pasas|env[ií]as|mandas|llamas|escribes|avisas|confirmas|dices|das|alcanzas|dejas)\b"""
     )
+    // c.536: imperativos de 2ª persona con OBJETO NOMINAL DETERMINADO —
+    // peticiones directas sin pronombre enclítico: "envía el reporte el viernes",
+    // "revisa el contrato", "entrega el informe el lunes", "paga la factura",
+    // "firma el contrato", "manda el archivo", "sube el documento",
+    // "prepara el informe". requestSignal (c.307) exige enclítico "me"/"melo";
+    // indicativeRequestSignal (c.309) exige "me" + desinencia -as. Estos pelados
+    // con objeto NINGUNO cubren: son la forma MÁS directa de ordenar algo sobre
+    // un documento/cosa en chat laboral español. Probe JVM PRE-fix: 12/12 MISSED.
+    //
+    // Desambiguación 2ª (imperativo) vs 3ª persona (presente indicativo): en los
+    // verbos cubiertos son HOMÓGRAFAS (envía/envía, revisa/revisa, paga/paga,
+    // firma/firma, entrega/entrega, manda/manda, sube/sube, prepara/prepara).
+    // Por eso NO basta la forma verbal aislada: se exige (a) un DETERMINANTE
+    // (el/la/los/las/este/esta/esos...) + sustantivo como objeto, y (b) una
+    // guarda anti-sujeto-3ª-persona: si la palabra inmediatamente ANTERIOR al
+    // verbo es un pronombre sujeto (él/ella/ellos/ellas/eso/esa/esos/esas) o un
+    // cuantificador narrativo (esto/eso/esto es…), se trata de narración en 3ª
+    // persona ("él revisa el contrato"), no de mandato, y se excluye. Residual
+    // intencional y descartable (mismo género que c.519/c.523/c.524): un nombre
+    // propio antepuesto ("María envía el reporte el viernes") es narración en
+    // 3ª persona presente que sigue disparando REQUEST — nace como draft PENDING
+    // revisable, un falso positivo se descarta, un falso negativo es una petición
+    // olvidada. La guarda de negación excluye "no revisa el contrato" (narración
+    // negada / no es mandato). Determinista (regex), sin random, sin IA fingida.
+    private val imperativeObjectRequestSignal = Regex(
+        """(?iU)\b(?:env[ií]a|revisa|entrega|paga|firma|manda|sube|prepara|completa|confirma|responde|agenda|programa)\s+(?:el|la|los|las|un|una|unos|unas|este|esta|estos|estas|ese|esa|esos|esas|mi|tu|su)\s+(\p{L}{2,})"""
+    )
     // c.329/c.535: lista curada de infinitivos de acción reusada por
     // [pendingObligationSignal] (c.329), [commitmentSignal] ("me toca", c.535) y
     // [userObligationSignal] ("te toca", c.535). Se restringe a verbos reales de
@@ -620,6 +647,49 @@ object CommitmentEngine {
             !precedingNegation.containsMatchIn(prefix)
         }
 
+    // c.536: el verbo imperativo pelado es HOMÓGRAFO del presente de 3ª persona
+    // ("él revisa el contrato" = narración). Para distinguir mandato (2ª) de
+    // narración (3ª), se excluye cuando la palabra inmediatamente ANTERIOR al
+    // verbo es un pronombre/elemento que introduce un SUJETO de 3ª persona
+    // (él/ella/ellos/ellas/eso/esa/esos/esas/esto/este/esta). "el" sin tilde se
+    // incluye porque ante un verbo solo puede ser pronombre sujeto de 3ª persona
+    // ("el revisa el contrato"), nunca determinante (el determinante va antes
+    // de un sustantivo, no antes del verbo). "él revisa el contrato" → narración;
+    // "revisa el contrato" → mandato. La guarda de negación precedente excluye
+    // "no revisa el contrato" (narración negada).
+    private val thirdPersonSubjectMarkers = setOf(
+        "él", "el", "ella", "ellos", "ellas", "ello",
+        "eso", "esa", "esos", "esas", "este", "esta", "estos", "estas", "esto"
+    )
+    // c.536: el grupo 1 del patrón captura el sustantivo-objeto. Si es un
+    // marcador temporal (lunes..domingo, mañana, tarde, noche, semana, mes, año,
+    // hora, rato) NO es objeto directo sino complemento temporal ("envía el
+    // viernes"), que aparece en narraciones 3ª persona ("ella se lo envía el
+    // viernes") — excluirlo cierra ese falso positivo sin perder las peticiones
+    // con objeto real ("envía el reporte el viernes" sigue casando: el grupo 1
+    // captura "reporte", no "viernes").
+    private val temporalObjectMarkers = setOf(
+        "lunes", "martes", "miércoles", "miercoles", "jueves",
+        "viernes", "sábado", "sabado", "domingo",
+        "mañana", "manana", "tarde", "noche", "semana",
+        "mes", "año", "ano", "hora", "rato", "día", "dia"
+    )
+    private fun hasUnnegatedImperativeObjectRequest(text: String): Boolean =
+        imperativeObjectRequestSignal.findAll(text).any { m ->
+            val start = m.range.first
+            val prefix = text.substring(maxOf(0, start - 3), start)
+            if (precedingNegation.containsMatchIn(prefix)) return@any false
+            val prevWord = text.substring(maxOf(0, start - 14), start)
+                .trim()
+                .split(Regex("\\s+"))
+                .lastOrNull()
+                ?.lowercase(Locale.ROOT)
+                .orEmpty()
+            if (prevWord in thirdPersonSubjectMarkers) return@any false
+            val obj = m.groupValues.getOrNull(1)?.lowercase(Locale.ROOT).orEmpty()
+            obj !in temporalObjectMarkers
+        }
+
     // c.316: "no tienes que" es AUSENCIA de obligación ("no tienes que
     // preocuparte", "no tienes que venir") — se excluye igual que "no tengo
     // que". La guarda sólo protege la 2ª persona dirigida al usuario.
@@ -709,7 +779,7 @@ object CommitmentEngine {
     private fun detect(message: ChatMessage, self: String?, scopeHash: String): CommitmentDraft? {
         val text = message.text.trim().replace(Regex("\\s+"), " ").take(MAX_ACTION_CHARS)
         if (text.length < 4) return null
-        val isRequest = requestSignal.containsMatchIn(text) || hasUnnegatedIndicativeRequest(text)
+        val isRequest = requestSignal.containsMatchIn(text) || hasUnnegatedIndicativeRequest(text) || hasUnnegatedImperativeObjectRequest(text)
         val isMeeting = meetingVerbSignal.containsMatchIn(text) || hasMeetingNounAsSubject(text)
         val isPurchase = purchaseVerbSignal.containsMatchIn(text) || hasPurchaseNounAsSubject(text)
         val isReminder = reminderVerbSignal.containsMatchIn(text) || hasReminderNounAsSubject(text)

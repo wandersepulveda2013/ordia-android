@@ -888,6 +888,72 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.536: imperativos de 2ª persona con OBJETO NOMINAL DETERMINADO — peticiones
+    // directas sin pronombre enclítico: "envía el reporte el viernes", "revisa el
+    // contrato", "entrega el informe el lunes", "paga la factura", "firma el
+    // contrato", "manda el archivo", "sube el documento", "prepara el informe".
+    // Son la forma MÁS directa de ordenar algo sobre un documento/cosa en chat
+    // laboral español y NO casaban con requestSignal (c.307, exige enclítico) ni
+    // indicativeRequestSignal (c.309, exige "me" + -as). Probe JVM PRE-fix:
+    // 12/12 MISSED. El objeto determinado (el/la/.../mi/tu/su + sustantivo) es el
+    // desambiguador frente al verbo pelado (c.307-bare). Nace como draft REQUEST
+    // PENDING revisable.
+    @Test
+    fun detectsImperativeRequestsWithNominalObject() {
+        val positives = listOf(
+            "envía el reporte el viernes",
+            "revisa el contrato mañana",
+            "entrega el informe el lunes",
+            "paga la factura el viernes",
+            "firma el contrato el lunes",
+            "manda el archivo el viernes",
+            "sube el documento el lunes",
+            "prepara el informe el viernes",
+            "envía el reporte",
+            "revisa el contrato",
+            "completa el formulario",
+            "confirma la reserva",
+            "responde el correo",
+            "agenda la reunión",
+            "programa la entrega"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "imp-obj-$text"
+            )
+            assertTrue("imperativo con objeto nominal DEBE detectarse como petición: \"$text\"", result.isNotEmpty())
+            assertEquals(CommitmentKind.REQUEST, result[0].kind)
+        }
+    }
+
+    @Test
+    fun imperativeObjectRequestsRespectNegationAndThirdPersonSubject() {
+        // Precisión: el verbo imperativo pelado es HOMÓGRAFO del presente de 3ª
+        // persona ("él revisa el contrato" = narración). Se excluye vía (a)
+        // negación precedente ("no revisa el contrato" = narración negada) y (b)
+        // pronombre sujeto de 3ª persona inmediatamente anterior ("él revisa",
+        // "ella se lo envía el viernes"). El sustantivo-objeto NO puede ser un
+        // marcador temporal ("envía el viernes" = complemento temporal de
+        // narración 3ª, no objeto directo de mandato).
+        val negatives = listOf(
+            "no revisa el contrato",
+            "él revisa el contrato",
+            "el revisa el contrato",
+            "ella se lo envía el viernes",
+            "el se lo envia el viernes"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "imp-obj-neg-$text"
+            )
+            assertEquals("narración/negación 3ª persona NO debe disparar: \"$text\"", 0, result.size)
+        }
+    }
+
     // c.309: peticiones en indicativo de 2ª persona — la forma MÁS frecuente de
     // pedir algo en chat español ("me pasas el informe?", "me llamas luego?",
     // "me envías el archivo mañana", "me lo mandas?"). En mensajería se pregunta
