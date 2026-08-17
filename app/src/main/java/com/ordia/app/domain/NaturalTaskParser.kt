@@ -3538,40 +3538,14 @@ object NaturalTaskParser {
             // mes es más específica que un weekday suelto, por lo que gana aquí. Los ordinales
             // ("el primer lunes de agosto") se resuelven antes vía [ordinalMonthly].
             monthNameDate != null -> monthNameDate
-            // "el viernes a las 18" escrito el propio viernes ANTES de esa hora debe
-            // vencer HOY (la reunión es hoy), no la semana siguiente. nextWeekday
-            // siempre salta +7 cuando hoy es el día objetivo (lo reutilizan las
-            // recurrencias, que necesitan ese "próximo" estricto). Para la fecha
-            // suelta usamos nextWeekdayOrSame (incluye hoy) y diferimos al final del
-            // parseo el descarte de "hoy si la hora ya pasó" → ahí se rueda +7 días.
-            // Sin esto, una cita de hoy con hora futura se perdía una semana entera.
-            weekdayMatch != null -> {
-                val target = weekdayMatch.groupValues[1].toDayOfWeek()
-                // "jueves que viene"/"jueves próximos"/"próximo jueves": el usuario pide
-                // explícitamente la PRÓXIMA ocurrencia, aunque hoy sea ese día. Antes, dicho
-                // un jueves, "jueves que viene" caía en HOY (tarea agendada el día equivocado;
-                // P1). Con modificador "próximo"/"que viene" forzamos +7 (nextWeekday estricto);
-                // sin él, el día suelto "el jueves" dicho en jueves puede seguir siendo hoy.
-                val mv = weekdayMatch.value.lowercase()
-                // "próximo"/"proximo" (con o sin tilde) y "que viene" significan la PRÓXIMA
-                // ocurrencia. La escritura sin tilde ("proximo viernes") es habitual en móvil;
-                // antes solo se detectaba la forma acentuada y la cita caía en HOY (P1). Se
-                // alinea con monthBaseForBoundary (que ya aceptaba ambas formas).
-                val nextExplicit = mv.contains("que viene") || mv.contains("próxim") || mv.contains("proxim") ||
-                    mv.contains("siguiente") || mv.contains("posterior")
-                weekdaySameDayCandidate = !nextExplicit && base.toLocalDate().dayOfWeek == target
-                if (nextExplicit) nextWeekday(base.toLocalDate(), target)
-                else nextWeekdayOrSame(base.toLocalDate(), target)
-            }
-            // "antes del 30": plazo como día del mes suelto (sin nombre de mes, que ya
-            // se resolvió arriba como monthNameDate). Debe ir ANTES de dayOfMonthDate
-            // ("el 15"), que exige el artículo "el"/"día" y no casa "antes del 30".
-            beforeDeadlineDayDate != null -> beforeDeadlineDayDate
-            // "reunión el 15 a las 10": día del mes suelto. Ancla al día N de este mes, o
-            // del siguiente si ese día ya pasó (hoy > N). La hora se combina luego; si
-            // cae en pasado (mismo día, hora ya transcurrida) la cita queda como vencida
-            // (honesto: ya ocurrió), consistente con el resto del parser.
-            dayOfMonthDate != null -> dayOfMonthDate
+            // Fecha numérica con mes explícito ("24/9", "24/09", "30/10") tiene prioridad
+            // sobre un día de la semana suelto ("lunes"): cuando ambos aparecen juntos
+            // ("reunión el lunes 24/9") el usuario especifica una fecha concreta y nombra el
+            // weekday como confirmación, igual que "el lunes 24 de septiembre" (c.467).
+            // Antes weekdayMatch se evaluaba ANTES → anclaba al lunes más cercano (hoy) y
+            // "24/9" se borraba del título sin fijar la fecha, dejando la cita en un día/mes
+            // equivocado (P1: cita perdida en mes erróneo). Una fecha completa con mes
+            // numérico es más específica que un weekday suelto, por lo que gana aquí.
             numericDateMatch != null -> {
                 val day = numericDateMatch.groupValues[1].toIntOrNull()
                 val month = numericDateMatch.groupValues[2].toIntOrNull()
@@ -3610,6 +3584,40 @@ object NaturalTaskParser {
                     }
                 }
             }
+            // "el viernes a las 18" escrito el propio viernes ANTES de esa hora debe
+            // vencer HOY (la reunión es hoy), no la semana siguiente. nextWeekday
+            // siempre salta +7 cuando hoy es el día objetivo (lo reutilizan las
+            // recurrencias, que necesitan ese "próximo" estricto). Para la fecha
+            // suelta usamos nextWeekdayOrSame (incluye hoy) y diferimos al final del
+            // parseo el descarte de "hoy si la hora ya pasó" → ahí se rueda +7 días.
+            // Sin esto, una cita de hoy con hora futura se perdía una semana entera.
+            weekdayMatch != null -> {
+                val target = weekdayMatch.groupValues[1].toDayOfWeek()
+                // "jueves que viene"/"jueves próximos"/"próximo jueves": el usuario pide
+                // explícitamente la PRÓXIMA ocurrencia, aunque hoy sea ese día. Antes, dicho
+                // un jueves, "jueves que viene" caía en HOY (tarea agendada el día equivocado;
+                // P1). Con modificador "próximo"/"que viene" forzamos +7 (nextWeekday estricto);
+                // sin él, el día suelto "el jueves" dicho en jueves puede seguir siendo hoy.
+                val mv = weekdayMatch.value.lowercase()
+                // "próximo"/"proximo" (con o sin tilde) y "que viene" significan la PRÓXIMA
+                // ocurrencia. La escritura sin tilde ("proximo viernes") es habitual en móvil;
+                // antes solo se detectaba la forma acentuada y la cita caía en HOY (P1). Se
+                // alinea con monthBaseForBoundary (que ya aceptaba ambas formas).
+                val nextExplicit = mv.contains("que viene") || mv.contains("próxim") || mv.contains("proxim") ||
+                    mv.contains("siguiente") || mv.contains("posterior")
+                weekdaySameDayCandidate = !nextExplicit && base.toLocalDate().dayOfWeek == target
+                if (nextExplicit) nextWeekday(base.toLocalDate(), target)
+                else nextWeekdayOrSame(base.toLocalDate(), target)
+            }
+            // "antes del 30": plazo como día del mes suelto (sin nombre de mes, que ya
+            // se resolvió arriba como monthNameDate). Debe ir ANTES de dayOfMonthDate
+            // ("el 15"), que exige el artículo "el"/"día" y no casa "antes del 30".
+            beforeDeadlineDayDate != null -> beforeDeadlineDayDate
+            // "reunión el 15 a las 10": día del mes suelto. Ancla al día N de este mes, o
+            // del siguiente si ese día ya pasó (hoy > N). La hora se combina luego; si
+            // cae en pasado (mismo día, hora ya transcurrida) la cita queda como vencida
+            // (honesto: ya ocurrió), consistente con el resto del parser.
+            dayOfMonthDate != null -> dayOfMonthDate
             // Repetición semanal con días explícitos: primera ocurrencia futura.
             recurrence.frequency == RecurrenceFrequency.WEEKLY && recurrence.days.isNotEmpty() -> recurrence.days
                 .mapNotNull { it.toDayOfWeekOrNull() }

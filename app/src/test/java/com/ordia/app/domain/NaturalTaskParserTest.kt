@@ -11310,6 +11310,29 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, ZoneId.of("America/Santiago")))
     }
 
+    // --- Weekday + fecha numérica (P1: fecha equivocada, análogo a c.467 pero forma N/M) ---
+    // "reunión el lunes 24/9": el weekday califica/repite una fecha numérica concreta. Antes
+    // weekdayMatch ganaba sobre numericDateMatch → anclaba al lunes más cercano (hoy) y "24/9"
+    // se borraba del título sin fijar la fecha, luego la lógica past-safe la empujaba a un día
+    // equivocado de este mes (P1: cita agendada en mes erróneo). Ahora la fecha completa con
+    // mes numérico gana. now = 2026-08-17 (lunes); 24/9/2026 es jueves (futuro).
+    @Test fun weekdayConFechaNumericaResuelveLaFechaNumerica() {
+        val zone = ZoneId.of("America/Santiago")
+        val now = DateRules.toEpochMillis(LocalDate.of(2026, 8, 17), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("reunión el lunes 24/9", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 9, 24), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun weekdayConFechaNumericaYHoraNoDejaResiduo() {
+        val zone = ZoneId.of("America/Santiago")
+        val now = DateRules.toEpochMillis(LocalDate.of(2026, 8, 17), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("asamblea el miércoles 30/10 a las 9", now, zone)
+        assertEquals("asamblea", result.title)
+        assertEquals(LocalDate.of(2026, 10, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- Recurrencia mensual ordinal sembrada en el pasado (P1: no olvidar la 1ª ocurrencia) ---
     // "el primer lunes de cada mes" dicho DESPUÉS de que el primer lunes del mes ya pasó sembraba
     // la cadencia en el pasado → vencida al instante + recordatorio descartado → 1ª cita olvidada.
