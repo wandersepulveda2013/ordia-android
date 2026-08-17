@@ -802,6 +802,19 @@ object NaturalTaskParser {
     // queda con el día suelto, que es justo el gap. "antes del 30" → plazo el día 30
     // (canónica 09:00, igual que "el 15" suelto).
     private val beforeDeadlineDayPattern = Regex("""(?i)\bantes\s+del?\s+(\d{1,2})\b(?!\s*del?\s+[a-záéíóúüñ])""")
+    // "pago del 15" / "cita del 20": día del mes suelto introducido por el artículo contracto
+    // "del" (= de + el), forma cotidiana de vencimiento. Antes NO se reconocía: dayOfMonthPattern
+    // exige "el"/"día" y su lookbehind evita casar dentro de "del N", así que "pago del 15"
+    // caía a dueAt=null y "del 15" sobrevivía como residuo del título → vencimiento olvidado
+    // (P1: la tarea nace sin fecha, recordatorio jamás dispara, invisible en What Now/plan).
+    // Se ancla igual que "el 15" (nextMonthlyDate: día N de este mes, o del siguiente si ya pasó).
+    // Guardas para no sombrear otros patrones:
+    //  - (?<!antes\s): "antes del 30" lo resuelve beforeDeadlineDayPattern (va antes en `when`).
+    //  - (?!\s+(?:al|hasta)): no capturar el extremo inicial de un rango "del 20 al 25"
+    //    (sin mes válido → sigue sin inventar fecha, test rangoSinMesNoInventaFecha).
+    //  - lookahead final (?!\s*del?\s+[a-záéíóúüñ]): "del 15 de septiembre"/"del 15 de cada mes"
+    //    los resuelven monthNamePattern/parseRecurrence; no se ancla el día suelto.
+    private val delDayOfMonthPattern = Regex("""(?i)(?<!\bantes\s)\bdel\s+(\d{1,2})(?![/-])(?!\s+(?:al|hasta))\b(?!\s*del?\s+[a-záéíóúüñ])""")
     // Lookahead (?![/-]) tras el dígito: rechaza "el 25/12" para que NO se ancle al
     // día-suelto del mes (25 de agosto) y caiga a numericDatePattern (25/12 → diciembre).
     // Sin esto, dayOfMonthPattern ("el 25") casaba ANTES que numericDatePattern → la
@@ -3604,6 +3617,16 @@ object NaturalTaskParser {
                 nextMonthlyDate(base.toLocalDate(), day)
             }
         }
+        // "pago del 15" / "cita del 20": día del mes suelto con artículo contracto "del".
+        // Se resuelve DESPUÉS de dayOfMonthDate (que exige "el"/"día") y tras todos los
+        // patrones de mes/rango/recurrencia (que el lookahead del patrón ya descarta). Va
+        // DESPUÉS de dayOfMonthDate para que "el 15" gane cuando ambas formas coexistan.
+        val delDayOfMonthMatch = delDayOfMonthPattern.find(working)
+        val delDayOfMonthDate = delDayOfMonthMatch?.let { m ->
+            m.groupValues[1].toIntOrNull()?.takeIf { it in 1..31 }?.let { day ->
+                nextMonthlyDate(base.toLocalDate(), day)
+            }
+        }
         // "antes del 30": día del mes suelto como plazo. Se resuelve ANTES que
         // dayOfMonthDate (que exige "el"/"día") para que el día suelto no caiga al vacío.
         val beforeDeadlineDayMatch = beforeDeadlineDayPattern.find(working)
@@ -3790,6 +3813,9 @@ object NaturalTaskParser {
             // cae en pasado (mismo día, hora ya transcurrida) la cita queda como vencida
             // (honesto: ya ocurrió), consistente con el resto del parser.
             dayOfMonthDate != null -> dayOfMonthDate
+            // "pago del 15": día del mes suelto con "del". Va tras dayOfMonthDate y tras los
+            // patrones de rango/recurrencia/mes-nombrado (descartados por guardas del patrón).
+            delDayOfMonthDate != null -> delDayOfMonthDate
             // Repetición semanal con días explícitos: primera ocurrencia futura.
             recurrence.frequency == RecurrenceFrequency.WEEKLY && recurrence.days.isNotEmpty() -> recurrence.days
                 .mapNotNull { it.toDayOfWeekOrNull() }
@@ -4463,6 +4489,13 @@ object NaturalTaskParser {
             .let { value -> numericDatePattern.replace(value, " ") }
             // "el 15" suelto ya consumido como fecha; se borra el residuo del título.
             .let { value -> dayOfMonthPattern.replace(value, " ") }
+            // "pago del 15": día del mes con "del" ya consumido como fecha; se borra el
+            // residuo del título. El patrón incluye sus guardas (no casa rangos "del 20
+            // al 25" ni "del 15 de septiembre"/"del 15 de cada mes", que ya se borraron
+            // arriba vía sus patrones propios); aquí sólo queda el día suelto que ancló
+            // fecha. Lookbehind del patrón (no "antes del") ya excluye el plazo, cuyo
+            // conector lo borra el paso siguiente.
+            .let { value -> if (delDayOfMonthMatch != null && dueAt != null) delDayOfMonthPattern.replace(value, " ") else value }
             // "antes del 30": se consume la frase COMPLETA (conector + día) para que
             // no quede el "30" como residuo en el título. La fecha ya se resolvió arriba.
             // Los casos con mes ("antes del 30 de agosto") no casan aquí (lookahead) y
