@@ -4680,8 +4680,7 @@ object NaturalTaskParser {
             // partida temporal en español). Antes el borrado de "mañana"/"hoy"/etc. como palabra
             // suelta dejaba el conector como residuo en el título ("llamar de", "reunión desde"
             // en vez de "llamar"/"reunión") — contenido capturado degradado (P1). Se consume el
-            // conector junto con el día relativo. "para" ya lo limpia el paso posterior (para
-            // mañana/para el). El \b impide coincidir dentro de palabras como "desde"→ no aplica.
+            // conector junto con el día relativo. El \b impide coincidir dentro de palabras como "desde"→ no aplica.
             .replace(Regex("""(?i)(?:\b(?:de|del|desde)\s+)?(?:antepasad[oa]\s+ma[nñ]ana\b|\bpasado\s+ma[nñ]ana\b|\bma[nñ]ana\b|\bhoy\b|\banteayer\b|\bantier\b|\bayer\b)"""), " ")
             // "el lunes 24": consume el weekday + el número de día JUNTOS para que el "24"
             // no quede como residuo del título. Va ANTES que weekdayPattern.replace (que
@@ -4725,7 +4724,18 @@ object NaturalTaskParser {
             // Los casos con mes ("antes del 30 de agosto") no casan aquí (lookahead) y
             // su conector "antes del" lo borra el paso siguiente.
             .let { value -> beforeDeadlineDayPattern.replace(value, " ") }
-            .replace(Regex("""(?i)\bantes\s+del?\b|\bpara\s+el\b|\bpara\s+ma[nñ]ana\b|\bhasta\s+el\b"""), " ")
+            // Conectores de plazo/residuo temporal huérfanos que sobreviven tras consumir
+            // la fecha/hora: "antes del" (plazo sin día, p. ej. "pago antes del" tras
+            // borrar "30"), "para mañana" (propósito→fecha relativa ya consumida) y
+            // "hasta el" (límite de fecha ya consumido). NOTA (c.497): antes este paso
+            // también borraba "\bpara\s+el\b", pero a esa altura del pipeline cualquier
+            // "el <ancla temporal>" ya fue consumido por sus patrones, de modo que el
+            // "para el" REMANENTE sólo aparece ante un SUSTANTIVO DE CONTENIDO
+            // ("Estudiar para el examen", "regalo para el cumpleaños") y borrarlo
+            // mutilaba el título (P1: integridad de datos). El residuo "para" que deja
+            // "Reunión para el lunes" (weekdayPattern consumió "el lunes") se elimina
+            // más abajo con la limpieza de conector huérfano al final del título.
+            .replace(Regex("""(?i)\bantes\s+del?\b|\bpara\s+ma[nñ]ana\b|\bhasta\s+el\b"""), " ")
             // El verbo de recordatorio sin cantidad ("recuérdame", "avísame",
             // "no dejes que olvide") expresa intención de aviso, no contenido; se
             // elimina del título. Se hace aquí (tras consumir fechas/horas) para no

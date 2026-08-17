@@ -2651,6 +2651,38 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // c.497: "para el" ante un SUSTANTIVO DE CONTENIDO (no un ancla temporal) es
+    // destinatario/propósito y debe conservarse íntegro en el título. Antes el paso de
+    // limpieza borraba "para el" incondicionalmente y mutilaba títulos
+    // ("Estudiar para el examen" → "Estudiar examen"). P1: integridad de datos.
+    @Test fun paraElAnteSustantivoDeContenidoSeConserva() {
+        val result = NaturalTaskParser.parse("Estudiar para el examen", now, zone)
+        assertEquals("Estudiar para el examen", result.title)
+    }
+
+    @Test fun paraElAnteContenidoConFechaSeConserva() {
+        val result = NaturalTaskParser.parse("Estudiar para el examen el 20", now, zone)
+        assertEquals("Estudiar para el examen", result.title)
+        assertEquals(LocalDate.of(2026, 8, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun paraElAnteContenidoCumpleanosSeConserva() {
+        val result = NaturalTaskParser.parse("Comprar regalo para el cumpleaños", now, zone)
+        assertEquals("Comprar regalo para el cumpleaños", result.title)
+    }
+
+    @Test fun paraElAnteAnclaTemporalSeEliminaComoResiduo() {
+        val result = NaturalTaskParser.parse("Reunión para el lunes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun paraElAnteAnclaTemporalConContenidoPrevioSeConserva() {
+        val result = NaturalTaskParser.parse("Preparar para el lunes el examen", now, zone)
+        assertEquals("Preparar para el examen", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // La fecha relativa "en 2 horas y media" ya se resuelve como vencimiento (no duración):
     // el patrón compuesto de duración NO debe robarla cuando va con prefijo "en".
     @Test fun relativaCompuestaNoSeLeeComoDuracion() {
@@ -2816,7 +2848,7 @@ class NaturalTaskParserTest {
 
     @Test fun decimalHorasLimpiaResiduoYConservaResto() {
         val result = NaturalTaskParser.parse("Estudiar 1.5 horas para el examen", now, zone)
-        assertEquals("Estudiar examen", result.title)
+        assertEquals("Estudiar para el examen", result.title)
         assertEquals(90, result.durationMinutes)
     }
 
@@ -2992,9 +3024,13 @@ class NaturalTaskParserTest {
     // El genitivo "del" que introduce una fecha de nombre de mes debe consumirse con la
     // fecha y no sobrevivir como residuo en el título. Antes "concierto del 12 de
     // octubre" dejaba "concierto del"; ahora deja "concierto" (contenido limpio).
+    // "para el concierto" es contenido (destinatario/propósito), NO residuo temporal:
+    // el conector "para el" sólo se elimina ante un ancla temporal ya consumida
+    // ("para el lunes"); aquí "el concierto" es un sustantivo de contenido y se
+    // conserva íntegro (c.497).
     @Test fun genitivoDelAntesDeFechaDeMesSeConsumeDelTitulo() {
         val result = NaturalTaskParser.parse("comprar entradas para el concierto del 12 de octubre", now, zone)
-        assertEquals("comprar entradas concierto", result.title)
+        assertEquals("comprar entradas para el concierto", result.title)
         assertEquals(LocalDate.of(2026, 10, 12), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
