@@ -2154,53 +2154,61 @@ class CommitmentEngineTest {
         }
     }
 
-    // c.528: la rama PRESENTE-CON-CLITICO de commitmentSignal era ASIMETRICA en
-    // numero, igual que la presente pelada (c.526) y la futura (c.527). Detectaba
-    // "lo termino"/"te llamo"/"le paso"/"lo hago" (1ª persona SINGULAR) pero NO
-    // "lo terminamos"/"te llamamos"/"le pasamos"/"lo hacemos" (1ª persona PLURAL)
-    // -> olvido de compromisos compartidos con receptor explicito (P1). Probe JVM
-    // PRE-fix: 11/11 MISSED. Este test los fija como regresion.
+    // c.529: asimetría de número en la rama "tengo que" de commitmentSignal,
+    // espejo de c.526/c.527/c.528. Detectaba "tengo que entregar el informe"
+    // (singular) pero NO "tenemos que entregar el informe" (1ª persona PLURAL)
+    // -> olvido de un compromiso COMPARTIDO cotidiano (P1). La forma plural de
+    // la perífrasis de obligación "tenemos que" + infinitivo es la forma natural
+    // de obligación conjunta en chat español. Probe JVM PRE-fix: 5/5 MISSED.
     @Test
-    fun presentCliticPluralCommitmentsAreDetected() {
+    fun detectsTenemosQueSharedObligationPlural() {
         val positives = listOf(
-            "lo terminamos el viernes", "lo revisamos manana",
-            "lo entregamos el lunes", "la preparamos para el miercoles",
-            "te lo mandamos manana", "se lo enviamos el lunes",
-            "le pasamos el reporte el viernes", "le llamamos manana",
-            "te llamamos manana", "te enviamos la propuesta esta semana",
-            "lo hacemos hoy"
+            "tenemos que entregar el informe el viernes",
+            "tenemos que firmar el contrato el lunes",
+            "tenemos que pagar la renta manana",
+            "tenemos que revisar el documento esta semana",
+            "tenemos que mandar la propuesta hoy"
         )
         positives.forEach { text ->
             val result = CommitmentEngine.extract(
                 listOf(ChatMessage("Yo", text)),
                 selfParticipant = "Yo",
-                scopeHash = "c528-pos-$text"
+                scopeHash = "c529-pos-$text"
             )
-            assertTrue(
-                "\"$text\" (presente-clitico plural) debe generar draft SELF_COMMITMENT",
-                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            assertEquals(
+                "\"$text\" (tenemos que + infinitivo) debe generar draft SELF_COMMITMENT",
+                1, result.size
+            )
+            assertEquals(
+                "la obligación compartida es DEL usuario: \"$text\"",
+                CommitmentOwner.SELF, result[0].owner
+            )
+            assertEquals(
+                "debe ser SELF_COMMITMENT: \"$text\"",
+                CommitmentKind.SELF_COMMITMENT, result[0].kind
             )
         }
     }
 
-    // c.528: precision simetrica. Los presentes-clitico plurales negados se
-    // excluyen igual que los singulares ("no lo terminamos" ~ "no lo termino").
-    // Probe JVM POST-fix: excluidos.
+    // c.529: precisión simétrica. "no tenemos que" es AUSENCIA de obligación
+    // ("no tenemos que preocuparnos", "no tenemos que entregar el informe"),
+    // igual que "no tengo que". La guarda precedingNegation la excluye.
+    // Probe JVM POST-fix: 2/2 excluidas.
     @Test
-    fun presentCliticPluralCommitmentsRespectNegation() {
+    fun tenemosQueRespectsDirectNegation() {
         val negatives = listOf(
-            "no lo terminamos el viernes", "no te llamamos manana",
-            "no le pasamos el reporte", "no se lo enviamos",
-            "no lo hacemos hoy", "no te lo mandamos manana"
+            "no tenemos que entregar el informe",
+            "no tenemos que preocuparnos",
+            "no tenemos que venir manana"
         )
         negatives.forEach { text ->
             val result = CommitmentEngine.extract(
                 listOf(ChatMessage("Yo", text)),
                 selfParticipant = "Yo",
-                scopeHash = "c528-neg-$text"
+                scopeHash = "c529-neg-$text"
             )
             assertTrue(
-                "\"$text\" (negacion de presente-clitico plural) NO debe generar draft SELF_COMMITMENT",
+                "\"$text\" (negación de tenemos que) NO debe generar draft SELF_COMMITMENT",
                 result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
             )
         }

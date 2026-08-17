@@ -399,7 +399,21 @@ object CommitmentEngine {
         // exigir dueAt, comportamiento preexistente). Probe JVM POST-fix: 11/11
         // positivos detectados, 3/3 negaciones excluidas, controles singulares
         // intactos.
-        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo|llamamos|enviamos|respondemos|avisamos|confirmamos|pasamos|mandamos|pagamos|hablamos|escribimos)|despu[eé]s\s+te\s+respondo|debo|tengo\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|vamos\s+a|terminar[eé]|terminaremos|har[eé]|haremos|entregar[eé]|entregaremos|revisar[eé]|revisaremos|preparar[eé]|prepararemos|arreglar[eé]|arreglaremos|subir[eé]|subiremos|dejar[eé]|dejaremos|pasar[eé]|pasaremos|mandar[eé]|mandaremos|enviar[eé]|enviaremos)|lo\s+hago|lo\s+hacemos|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|pagamos))\b"""
+        // c.529: asimetría de número en la rama "tengo que" de commitmentSignal,
+        // espejo de c.526/c.527/c.528 en las demás ramas. commitmentSignal
+        // detectaba "tengo que entregar el informe" (1ª SINGULAR) pero NO
+        // "tenemos que entregar el informe" (1ª PLURAL) → olvido de un compromiso
+        // COMPARTIDO cotidiano ("tenemos que firmar el contrato el lunes",
+        // "tenemos que pagar la renta", "tenemos que revisar el documento esta
+        // semana"), la forma natural de obligación conjunta en chat español (P1,
+        // evitar olvidos). Se añade `tenemos` junto a `tengo` en la rama
+        // `(?:tengo|tenemos)\s+que`. La guarda precedingNegation excluye "no
+        // tenemos que entregar"/"no tenemos que preocuparnos" igual que "no tengo
+        // que". Precisión simétrica: "tenemos que" se comporta igual que "tengo
+        // que" (rama dispara sin exigir dueAt, comportamiento preexistente de la
+        // perífrasis de obligación). Probe JVM PRE-fix: 5/5 MISSED; POST-fix:
+        // 5/5 detectados, 2/2 negaciones excluidas, controles singulares intactos.
+        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo|llamamos|enviamos|respondemos|avisamos|confirmamos|pasamos|mandamos|pagamos|hablamos|escribimos)|despu[eé]s\s+te\s+respondo|debo|(?:tengo|tenemos)\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|vamos\s+a|terminar[eé]|terminaremos|har[eé]|haremos|entregar[eé]|entregaremos|revisar[eé]|revisaremos|preparar[eé]|prepararemos|arreglar[eé]|arreglaremos|subir[eé]|subiremos|dejar[eé]|dejaremos|pasar[eé]|pasaremos|mandar[eé]|mandaremos|enviar[eé]|enviaremos)|lo\s+hago|lo\s+hacemos|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|pagamos))\b"""
     )
     // c.500: presente de 1ª persona SIN pronombre de objeto + marca temporal futura
     // PUNTUAL — "termino el informe mañana", "entrego el reporte el viernes",
