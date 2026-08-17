@@ -32,12 +32,15 @@ import androidx.compose.material.icons.automirrored.outlined.Redo
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.DocumentScanner
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FormatBold
 import androidx.compose.material.icons.outlined.FormatClear
 import androidx.compose.material.icons.outlined.FormatItalic
@@ -51,7 +54,9 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Share
@@ -105,6 +110,8 @@ import com.ordia.app.data.local.AttachmentOwnerType
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockCodec
+import com.ordia.app.media.NoteImageLoader
+import com.ordia.app.media.NoteMediaStore
 import com.ordia.app.domain.NoteBlockType
 import com.ordia.app.domain.NoteSpan
 import com.ordia.app.ui.OrdiaUiState
@@ -168,6 +175,8 @@ fun NoteEditorScreen(
     var findOpen by remember { mutableStateOf(false) }
     var findQuery by remember { mutableStateOf("") }
     var findIndex by remember { mutableStateOf(0) }
+    var scannerOpen by remember { mutableStateOf(false) }
+    var ocrOpen by remember { mutableStateOf(false) }
 
     val findMatches = remember(title, blocks, findQuery) {
         if (findQuery.isBlank()) emptyList()
@@ -240,54 +249,135 @@ fun NoteEditorScreen(
 
     val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-            var displayName = uri.lastPathSegment ?: "imagen"
-            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
-                if (c.moveToFirst()) {
-                    val i = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (i >= 0) displayName = c.getString(i) ?: displayName
-                }
-            }
-            blocks.add(
-                NoteBlock(
-                    type = NoteBlockType.IMAGE,
-                    attachmentUri = uri.toString(),
-                    attachmentName = displayName,
-                    mimeType = context.contentResolver.getType(uri) ?: "image/*"
+            // Importa a almacenamiento privado: la nota no depende de que el
+            // documento original siga accesible (persiste tras cerrar/reabrir).
+            val path = NoteMediaStore.importImage(context, uri)
+            val displayName = NoteMediaStore.queryDisplayName(context.contentResolver, uri) ?: "imagen"
+            if (path != null) {
+                blocks.add(
+                    NoteBlock(
+                        type = NoteBlockType.IMAGE,
+                        attachmentUri = path,
+                        attachmentName = displayName,
+                        mimeType = context.contentResolver.getType(uri) ?: "image/*"
+                    )
                 )
-            )
-            dirty = true
+                dirty = true
+            }
         }
+    }
+
+    // --- Cámara real ---
+    // URI temporal (FileProvider) donde la app de cámara escribe la foto.
+    var cameraOutUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
+    fun hasMeaningfulContent(): Boolean =
+        title.isNotBlank() || blocks.any { it.text.isNotBlank() || it.attachmentUri.isNotBlank() || it.type == NoteBlockType.DIVIDER }
+
+    val takePicture = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { saved ->
+        val uri = cameraOutUri
+        if (saved && uri != null) {
+            // Importa la captura a almacenamiento privado y normaliza orientación.
+            val path = NoteMediaStore.importImage(context, uri)
+            if (path != null) {
+                blocks.add(
+                    NoteBlock(
+                        type = NoteBlockType.IMAGE,
+                        attachmentUri = path,
+                        attachmentName = "Foto ${java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.US).format(java.util.Date())}",
+                        mimeType = "image/jpeg"
+                    )
+                )
+                dirty = true
+            }
+            // Limpia el archivo temporal de cámara si es distinto del importado.
+            runCatching {
+                val tmpFile = java.io.File(uri.path ?: "")
+                if (tmpFile.exists() && tmpFile.absolutePath != path) tmpFile.delete()
+            }
+        }
+        cameraOutUri = null
+    }
+
+    fun launchCameraInternal() {
+        val dir = java.io.File(context.filesDir, "notes-media").apply { mkdirs() }
+        val tmp = java.io.File(dir, "cam-${System.currentTimeMillis()}.jpg")
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.update-files",
+            tmp
+        )
+        cameraOutUri = uri
+        takePicture.launch(uri)
+    }
+
+    val requestCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) launchCameraInternal()
+    }
+
+    fun launchCamera() {
+        if (currentId <= 0L && !hasMeaningfulContent()) {
+            saveCurrent { launchCameraInternal() }
+        } else {
+            launchCameraInternal()
+        }
+    }
+
+    // --- Escáner y OCR: comparten un picker de imagen ---
+    var scannerSourceUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var ocrSourceUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
+    val pickScanImage = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            scannerSourceUri = uri
+            scannerOpen = true
+        }
+    }
+    val pickOcrImage = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            ocrSourceUri = uri
+            ocrOpen = true
+        }
+    }
+
+    fun launchScanner() {
+        if (currentId <= 0L && !hasMeaningfulContent()) saveCurrent { pickScanImage.launch(arrayOf("image/*")) }
+        else pickScanImage.launch(arrayOf("image/*"))
+    }
+    fun launchOcr() {
+        if (currentId <= 0L && !hasMeaningfulContent()) saveCurrent { pickOcrImage.launch(arrayOf("image/*")) }
+        else pickOcrImage.launch(arrayOf("image/*"))
     }
 
     val pickFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null && currentId > 0L) {
-            runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-            var displayName = uri.lastPathSegment ?: defaultAttachmentName
-            var sizeBytes = 0L
-            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-                    if (nameIndex >= 0) displayName = cursor.getString(nameIndex) ?: displayName
-                    if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) sizeBytes = cursor.getLong(sizeIndex)
+            val path = NoteMediaStore.importStream(context, uri)
+            if (path != null) {
+                var displayName = NoteMediaStore.queryDisplayName(context.contentResolver, uri) ?: defaultAttachmentName
+                var sizeBytes = 0L
+                context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                        if (nameIndex >= 0) cursor.getString(nameIndex)?.let { displayName = it }
+                        if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) sizeBytes = cursor.getLong(sizeIndex)
+                    }
                 }
-            }
-            vm.addAttachment(
-                AttachmentEntity(
-                    ownerType = AttachmentOwnerType.NOTE,
-                    ownerId = currentId,
-                    uri = uri.toString(),
-                    displayName = displayName,
-                    mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream",
-                    sizeBytes = sizeBytes
+                val mime = context.contentResolver.getType(uri) ?: "application/octet-stream"
+                val finalSize = if (sizeBytes > 0) sizeBytes else java.io.File(path).length()
+                vm.addAttachment(
+                    AttachmentEntity(
+                        ownerType = AttachmentOwnerType.NOTE,
+                        ownerId = currentId,
+                        uri = path,
+                        displayName = displayName,
+                        mimeType = mime,
+                        sizeBytes = finalSize
+                    )
                 )
-            )
+            }
         }
     }
-
-    fun hasMeaningfulContent(): Boolean =
-        title.isNotBlank() || blocks.any { it.text.isNotBlank() || it.attachmentUri.isNotBlank() || it.type == NoteBlockType.DIVIDER }
 
     fun saveAndBack() {
         if (currentId > 0L || hasMeaningfulContent()) saveCurrent()
@@ -491,7 +581,13 @@ fun NoteEditorScreen(
                         else -> addBlock(type)
                     }
                 },
-                onAttachFile = { insertOpen = false; attachFile() }
+                onAttachFile = { insertOpen = false; attachFile() },
+                onCamera = { insertOpen = false; launchCamera() },
+                onScanner = { insertOpen = false; launchScanner() },
+                onOcr = { insertOpen = false; launchOcr() },
+                onAudio = { insertOpen = false },
+                onDrawing = { insertOpen = false },
+                onHandwriting = { insertOpen = false }
             )
         }
     }
@@ -508,6 +604,41 @@ fun NoteEditorScreen(
             onRestored = {
                 historyOpen = false
                 onBack()
+            }
+        )
+    }
+
+    if (scannerOpen && scannerSourceUri != null) {
+        ScannerDialog(
+            context = context,
+            sourceUri = scannerSourceUri!!,
+            onDismiss = { scannerOpen = false; scannerSourceUri = null },
+            onInsert = { path ->
+                scannerOpen = false
+                scannerSourceUri = null
+                blocks.add(
+                    NoteBlock(
+                        type = NoteBlockType.IMAGE,
+                        attachmentUri = path,
+                        attachmentName = "Documento escaneado",
+                        mimeType = "image/jpeg"
+                    )
+                )
+                dirty = true
+            }
+        )
+    }
+
+    if (ocrOpen && ocrSourceUri != null) {
+        OcrDialog(
+            context = context,
+            sourceUri = ocrSourceUri!!,
+            onDismiss = { ocrOpen = false; ocrSourceUri = null },
+            onInsertText = { text ->
+                ocrOpen = false
+                ocrSourceUri = null
+                blocks.add(NoteBlock(type = NoteBlockType.PARAGRAPH, text = text))
+                dirty = true
             }
         )
     }
@@ -639,7 +770,13 @@ private fun EditorBottomBar(
 @Composable
 private fun InsertSheetContent(
     onPick: (NoteBlockType) -> Unit,
-    onAttachFile: () -> Unit
+    onAttachFile: () -> Unit,
+    onCamera: () -> Unit,
+    onScanner: () -> Unit,
+    onOcr: () -> Unit,
+    onAudio: () -> Unit,
+    onDrawing: () -> Unit,
+    onHandwriting: () -> Unit
 ) {
     val unavailable = stringResource(R.string.notes_editor_feature_unavailable)
     LazyColumn(
@@ -661,12 +798,13 @@ private fun InsertSheetContent(
         item { InsertItem(stringResource(R.string.notes_editor_insert_image), Icons.Outlined.Image) { onPick(NoteBlockType.IMAGE) } }
         item { InsertItem(stringResource(R.string.notes_editor_insert_file), Icons.Outlined.Add) { onAttachFile() } }
         item { InsertItem(stringResource(R.string.notes_editor_insert_link), Icons.Outlined.Link) { onPick(NoteBlockType.LINK) } }
-        item { InsertSection("Avanzado (próximamente)") }
-        item { InsertItem(stringResource(R.string.notes_editor_insert_camera), Icons.Outlined.Image) { /* honest: no implementado */ } }
-        item { InsertItem(stringResource(R.string.notes_editor_insert_scanner), Icons.Outlined.Image) { /* honest */ } }
-        item { InsertItem(stringResource(R.string.notes_editor_insert_audio), Icons.Outlined.Add) { /* honest */ } }
-        item { InsertItem(stringResource(R.string.notes_editor_insert_drawing), Icons.Outlined.TextFields) { /* honest */ } }
-        item { InsertItem(stringResource(R.string.notes_editor_insert_handwriting), Icons.Outlined.TextFields) { /* honest */ } }
+        item { InsertItem(stringResource(R.string.notes_editor_insert_camera), Icons.Outlined.PhotoCamera) { onCamera() } }
+        item { InsertItem(stringResource(R.string.notes_editor_insert_scanner), Icons.Outlined.DocumentScanner) { onScanner() } }
+        item { InsertItem(stringResource(R.string.notes_editor_insert_ocr), Icons.Outlined.TextFields) { onOcr() } }
+        item { InsertSection("Próximamente") }
+        item { InsertItem(stringResource(R.string.notes_editor_insert_audio), Icons.Outlined.Mic) { onAudio() } }
+        item { InsertItem(stringResource(R.string.notes_editor_insert_drawing), Icons.Outlined.Brush) { onDrawing() } }
+        item { InsertItem(stringResource(R.string.notes_editor_insert_handwriting), Icons.Outlined.Edit) { onHandwriting() } }
         item { Spacer(Modifier.height(16.dp)) }
     }
 }
@@ -730,9 +868,7 @@ private fun BlockRow(
                     val ctx = LocalContext.current
                     val bitmap = remember(uriStr) {
                         runCatching {
-                            android.graphics.ImageDecoder.decodeBitmap(
-                                android.graphics.ImageDecoder.createSource(ctx.contentResolver, android.net.Uri.parse(uriStr))
-                            ) { decoder, _, _ -> decoder.setMutableRequired(false) }
+                            NoteImageLoader.load(ctx, uriStr)
                         }.getOrNull()
                     }
                     bitmap?.let {
