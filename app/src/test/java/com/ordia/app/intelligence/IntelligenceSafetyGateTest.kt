@@ -246,4 +246,39 @@ class IntelligenceSafetyGateTest {
     fun codigoDeAreaSinTildeNoSeBloquea() {
         assertEquals(false, blocked("llamar al codigo de area 555 del proveedor"))
     }
+
+    // --- Falsos negativos de tildes: CONTENIDO bloqueado sin acento (c.519) ---
+    // Continuacion directa de c.516 (que cerro credenciales sin tilde pero no
+    // toco el contenido bloqueado). El gate de inteligencia solo tenia las
+    // regex de drogas/insultos con tilde (cocaina/estupido/imbecil/eroti/
+    // narcotrafico en su forma acentuada), asi que escritas SIN tilde - forma
+    // casual extremadamente comun en movil - escapaban al proveedor de IA.
+    // Asimetria frente al gate de lectura (ContextPrivacyFilter), que si cubre
+    // ambas formas. La normalizacion (unaccent) en evaluate cierra la brecha
+    // sin duplicar literales.
+    // Probe JVM PRE-fix: 5/5 PASS (no bloqueaba); POST-fix: 5/5 BLOCK.
+    @Test
+    fun drogaCocainaSinTildeSeBloquea() {
+        assertEquals(true, blocked("vende cocaina barata en la zona"))
+    }
+
+    @Test
+    fun drogaHeroinaSinTildeSeBloquea() {
+        assertEquals(true, blocked("trae heroina pura para el viernes"))
+    }
+
+    @Test
+    fun insultoEstupidoSinTildeSeBloquea() {
+        assertEquals(true, blocked("eres un estupido por no entenderlo"))
+    }
+
+    @Test
+    fun insultoImbecilSinTildeSeBloquea() {
+        assertEquals(true, blocked("que imbecil eres a veces"))
+    }
+
+    @Test
+    fun narcotraficoSinTildeSeBloquea() {
+        assertEquals(true, blocked("hay narcotrafico en la frontera"))
+    }
 }

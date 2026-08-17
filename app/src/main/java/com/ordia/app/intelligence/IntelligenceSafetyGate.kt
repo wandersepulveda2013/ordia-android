@@ -60,14 +60,16 @@ object IntelligenceSafetyGate {
      * parte de [SensitiveSecretPatterns], que solo detecta secretos).
      */
     private val BLOCKED_CONTENT_PATTERNS = listOf(
-        // Contenido sexual explícito
-        Regex("""\b(sexo|sexual|desnud|porno|xxx|eróti|culos|tetas|pene|vagina|orgasmo|masturb)""", RegexOption.IGNORE_CASE),
+        // Contenido sexual explícito (formas con/sin tilde: el español casual de
+        // móvil escribe sin acentos con enorme frecuencia — c.519, continuación de
+        // c.516, cierra la asimetría con el gate de lectura ContextPrivacyFilter).
+        Regex("""\b(sexo|sexual|desnud|porno|xxx|eróti|eroti|culos|tetas|pene|vagina|orgasmo|masturb)""", RegexOption.IGNORE_CASE),
         // Violencia y amenazas
         Regex("""\b(matar|asesinar|violar|secuestr|bomba|amenaza|escopeta|pistola|cuchill)""", RegexOption.IGNORE_CASE),
-        // Drogas ilegales
-        Regex("""\b(droga|cocaína|heroína|marihuana|metanfetamina|narcotráfico)""", RegexOption.IGNORE_CASE),
-        // Insultos graves
-        Regex("""\b(pendejo|estúpido|imbécil|malparido|hijueputa)""", RegexOption.IGNORE_CASE)
+        // Drogas ilegales (con/sin tilde)
+        Regex("""\b(droga|cocaína|cocaina|heroína|heroina|marihuana|metanfetamina|narcotráfico|narcotrafico)""", RegexOption.IGNORE_CASE),
+        // Insultos graves (con/sin tilde)
+        Regex("""\b(pendejo|estúpido|estupido|imbécil|imbecil|malparido|hijueputa)""", RegexOption.IGNORE_CASE)
     )
 
     /**
