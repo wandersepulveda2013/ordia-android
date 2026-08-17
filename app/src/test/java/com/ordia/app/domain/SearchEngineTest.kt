@@ -1,5 +1,9 @@
 package com.ordia.app.domain
 
+import com.ordia.app.data.local.CommitmentEntity
+import com.ordia.app.data.local.CommitmentKind
+import com.ordia.app.data.local.CommitmentOwner
+import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.ProjectEntity
@@ -990,5 +994,116 @@ class SearchEngineTest {
         val results = SearchEngine.search("anteayer", listOf(completedTask), emptyList(), emptyList(), emptyList(), now = now)
         assertEquals(1, results.size)
         assertEquals(220L, results.first().id)
+    }
+
+    // --- Recuperacion del 4. olvido en la busqueda universal ---
+    // Un compromiso (promesa de conversacion) vencido y PENDING es informacion
+    // critica: algo que alguien (o yo) prometio y cuyo plazo ya expiro. El
+    // producto lo nombra en TODAS las superficies de recuperacion (asistente
+    // "que olvide?", guardian, resumen, planificador) PERO la busqueda universal
+    // lo EXCLUIA: "vencidas"/"atrasadas"/"olvidadas" son `pureDateScope` (sin
+    // palabras de contenido), y el filtro `!pureDateScope` suprimia los compromisos;
+    // con texto, "vencidas" no casa con `action`/`actor`/`location`. Asi un
+    // compromiso vencido era IRRECUPERABLE salvo tecleando literalmente la accion
+    // o el actor - justo el olvido que la busqueda deberia rescatar. Ahora, al
+    // scope OVERDUE/MISSED, un compromiso vencido entra por
+    // [CommitmentRules.isOverduePending], honrando la fuente unica de verdad, sin
+    // exigir coincidencia lexica (igual que una tarea vencida entra por scope sin
+    // que su titulo diga "vencida"). Sinonimos deben ser consistentes entre si.
+
+    private fun overduePendingCommitment(now: Long): CommitmentEntity = CommitmentEntity(
+        id = 300,
+        conversationId = 100,
+        kind = CommitmentKind.OTHER_COMMITMENT,
+        owner = CommitmentOwner.OTHER,
+        actor = "Maria",
+        action = "llamar",
+        dueAt = now - 24 * 3_600_000L, // vencido hace 1 dia
+        confidence = 0.9f,
+        reviewStatus = CommitmentReviewStatus.PENDING,
+        fingerprint = "fp-vencida"
+    )
+
+    @Test fun vencidas_recoversOverduePendingCommitment() {
+        val now = System.currentTimeMillis()
+        val results = SearchEngine.search(
+            "vencidas", emptyList(), emptyList(), emptyList(), emptyList(),
+            commitments = listOf(overduePendingCommitment(now)), now = now
+        )
+        assertEquals(1, results.size)
+        assertEquals(SearchKind.COMMITMENT, results.first().kind)
+        assertEquals(300L, results.first().id)
+    }
+
+    @Test fun vencidos_recoversOverduePendingCommitment() {
+        val now = System.currentTimeMillis()
+        val results = SearchEngine.search(
+            "vencidos", emptyList(), emptyList(), emptyList(), emptyList(),
+            commitments = listOf(overduePendingCommitment(now)), now = now
+        )
+        assertEquals(1, results.size)
+        assertEquals(SearchKind.COMMITMENT, results.first().kind)
+    }
+
+    @Test fun olvidadas_recoversOverduePendingCommitment() {
+        val now = System.currentTimeMillis()
+        val results = SearchEngine.search(
+            "olvidadas", emptyList(), emptyList(), emptyList(), emptyList(),
+            commitments = listOf(overduePendingCommitment(now)), now = now
+        )
+        assertEquals(1, results.size)
+        assertEquals(SearchKind.COMMITMENT, results.first().kind)
+    }
+
+    @Test fun atrasadas_recoversOverduePendingCommitment() {
+        val now = System.currentTimeMillis()
+        val results = SearchEngine.search(
+            "atrasadas", emptyList(), emptyList(), emptyList(), emptyList(),
+            commitments = listOf(overduePendingCommitment(now)), now = now
+        )
+        assertEquals(1, results.size)
+        assertEquals(SearchKind.COMMITMENT, results.first().kind)
+    }
+
+    // "vencidas" no arrastra compromisos NO vencidos (futuros o sin fecha): el scope
+    // OVERDUE solo abre el guard para los que `isOverduePending` confirma. Un
+    // compromiso futuro (dueAt > now) o sin dueAt PENDING no es "lo vencido".
+    @Test fun vencidas_doesNotRecoverNonOverdueCommitment() {
+        val now = System.currentTimeMillis()
+        val futureCommitment = CommitmentEntity(
+            id = 301, conversationId = 100, kind = CommitmentKind.OTHER_COMMITMENT,
+            owner = CommitmentOwner.OTHER, actor = "Maria", action = "llamar",
+            dueAt = now + 24 * 3_600_000L, confidence = 0.9f,
+            reviewStatus = CommitmentReviewStatus.PENDING, fingerprint = "fp-futura"
+        )
+        val noDueCommitment = CommitmentEntity(
+            id = 302, conversationId = 100, kind = CommitmentKind.OTHER_COMMITMENT,
+            owner = CommitmentOwner.OTHER, actor = "Luis", action = "enviar",
+            dueAt = null, confidence = 0.9f,
+            reviewStatus = CommitmentReviewStatus.PENDING, fingerprint = "fp-sinfecha"
+        )
+        val results = SearchEngine.search(
+            "vencidas", emptyList(), emptyList(), emptyList(), emptyList(),
+            commitments = listOf(futureCommitment, noDueCommitment), now = now
+        )
+        assertTrue(results.none { it.kind == SearchKind.COMMITMENT })
+    }
+
+    // "vencidas" no recupera compromisos ya CONVERTED o DISMISSED: la fuente unica
+    // de verdad [CommitmentRules.isOverduePending] exige PENDING. Un compromiso
+    // convertido en tarea o descartado ya no es un "olvido" pendiente.
+    @Test fun vencidas_doesNotRecoverConvertedOrDismissedOverdueCommitments() {
+        val now = System.currentTimeMillis()
+        val converted = overduePendingCommitment(now).copy(
+            id = 310, reviewStatus = CommitmentReviewStatus.CONVERTED, fingerprint = "fp-conv"
+        )
+        val dismissed = overduePendingCommitment(now).copy(
+            id = 311, reviewStatus = CommitmentReviewStatus.DISMISSED, fingerprint = "fp-dism"
+        )
+        val results = SearchEngine.search(
+            "vencidas", emptyList(), emptyList(), emptyList(), emptyList(),
+            commitments = listOf(converted, dismissed), now = now
+        )
+        assertTrue(results.none { it.kind == SearchKind.COMMITMENT })
     }
 }

@@ -262,9 +262,44 @@ object SearchEngine {
             conversations.filter { (!typed || wantsMessages) && !pureDateScope && (matches(it.title, it.summary, it.participants) || semanticMatches(MESSAGE_TERMS, it.title, it.summary, it.participants)) }
                 .forEach { add(Ranked(SearchResult(SearchKind.CONVERSATION, it.id, it.title, it.summary.take(90)))) }
             commitments.filter {
-                (!typed || wantsCommitments || wantsMessages) && !pureDateScope &&
+                // Recuperacion del 4. olvido de Ordia en la busqueda universal: una
+                // promesa vencida extraida de una conversacion
+                // ([CommitmentRules.isOverduePending] - PENDING con `dueAt` pasado)
+                // es el espejo simetrico de las tareas vencidas/olvidadas, y el
+                // producto se esfuerza en nombrarla en TODAS las demas superficies
+                // de recuperacion (asistente "que olvide?", nudge del guardian, cola
+                // del resumen, tarjeta de insight, planificador). PERO la busqueda
+                // universal -la superficie de recuperacion por excelencia- la
+                // EXCLUIA: al escribir "vencidas"/"atrasadas"/"olvidadas" el scope
+                // resolvia a OVERDUE/MISSED y, al ser `pureDateScope` (sin palabras
+                // de contenido), el filtro `!pureDateScope` suprimia los compromisos;
+                // y con texto, "vencidas" no casa con `action`/`actor`/`location`.
+                // Asi un compromiso vencido ("te llamo el viernes", ya pasado) era
+                // IRRECUPERABLE salvo que el usuario tecleara literalmente el actor
+                // o la accion - justo el olvido que la busqueda deberia rescatar.
+                //
+                // Honra la fuente unica de verdad: cuando el scope es OVERDUE o
+                // MISSED (los "olvidos" de Ordia), un compromiso vencido entra SIN
+                // exigir coincidencia lexica, igual que una tarea vencida entra por
+                // `taskMatchesDateScope` sin que su titulo diga "vencida". Se mantiene
+                // el filtro de `PENDING` para "pendiente". Para los demas scopes
+                // (o sin scope) se conserva el comportamiento previo: coincidencia
+                // lexica o `pureDateScope` la excluye (un compromiso sin vencer no es
+                // informacion "de hoy"/"esta semana" hasta que el usuario lo convierte).
+                val overdueRecovery = (dateScope == DateScope.OVERDUE || dateScope == DateScope.MISSED) &&
+                    CommitmentRules.isOverduePending(it, now)
+                // Nota sobre `typed`: "vencid" activa `wantsTasks` -> `typed`=true, lo
+                // que suprimiria los compromisos por el guard `!typed || ...`. PERO la
+                // intencion transversal de "vencidas" es ver LO VENCIDO, y un
+                // compromiso vencido ES lo vencido del 4. olvido: el scope OVERDUE ya
+                // captura ese intent, asi que la recuperacion `overdueRecovery` abre el
+                // guard `typed` igual que abre `pureDateScope`. Asi "vencidas" recupera
+                // tanto la tarea vencida como la promesa vencida - la busqueda honra el
+                // concepto "lo vencido" en todas sus clases de olvido, no solo las tareas.
+                (!typed || wantsCommitments || wantsMessages || overdueRecovery) &&
+                    (!pureDateScope || overdueRecovery) &&
                     (!normalized.contains("pendiente") || it.reviewStatus == CommitmentReviewStatus.PENDING) &&
-                    (matches(it.action, it.actor, it.location) || semanticMatches(COMMITMENT_TERMS, it.action, it.actor, it.location))
+                    (overdueRecovery || matches(it.action, it.actor, it.location) || semanticMatches(COMMITMENT_TERMS, it.action, it.actor, it.location))
             }.forEach { add(Ranked(SearchResult(SearchKind.COMMITMENT, it.id, it.action, it.actor.take(90)))) }
             automations.filter { (!typed || wantsAutomations) && !pureDateScope && matches(it.name, it.instruction, it.explanation) }
                 .forEach { add(Ranked(SearchResult(SearchKind.AUTOMATION, it.id, it.name, it.explanation.take(90)))) }
