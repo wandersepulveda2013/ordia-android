@@ -178,6 +178,57 @@ class AssistantEngineTest {
             !answer.text.contains("compromiso"))
     }
 
+    @Test fun queMeComprometi_nombraCompromisoVencidoMasUrgente() {
+        // "¿qué me comprometí?" — la forma cotidiana de pedir recordar lo
+        // prometido — antes caía al menú genérico. Con un compromiso vencido debe
+        // nombrarlo (no callarlo) y abrir Conversaciones, igual que la cola de
+        // olvidos/vencidas.
+        val now = 1_000_000_000_000L
+        val overdue = overdueCommitment(40, "te paso el presupuesto", now - 3 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿Qué me comprometí?",
+            emptyList(), emptyList(), listOf(overdue),
+            now
+        )
+        assertTrue("nombra la promesa vencida: ${answer.text}", answer.text.contains("te paso el presupuesto"))
+        assertEquals("abre Conversaciones para convertir/descartar: ${answer.text}",
+            AssistantAction.OPEN_CONVERSATIONS, answer.action)
+    }
+
+    @Test fun quePrometi_listaPendientesNoVencidos() {
+        // "¿qué prometí?" con compromisos pendientes PERO no vencidos: antes el
+        // menú genérico no los mencionaba. Debe dar el conteo y abrir
+        // Conversaciones (no inventa "vencido" si no lo hay).
+        val now = 1_000_000_000_000L
+        // dueAt futuro → pendiente pero NO vencido
+        val futuro = now + 2 * 86_400_000L
+        val pendientes = listOf(
+            overdueCommitment(41, "enviar el informe", futuro),
+            overdueCommitment(42, "llamar a ana", futuro)
+        )
+        val answer = AssistantEngine.answer(
+            "¿Qué prometí?",
+            emptyList(), emptyList(), pendientes,
+            now
+        )
+        assertTrue("da el conteo de pendientes: ${answer.text}", answer.text.contains("2 compromisos pendientes"))
+        assertEquals("abre Conversaciones: ${answer.text}", AssistantAction.OPEN_CONVERSATIONS, answer.action)
+        assertTrue("no inventa 'vencido' si no lo hay: ${answer.text}", !answer.text.contains("vencido"))
+    }
+
+    @Test fun quePrometi_honestoCuandoNoHayCompromisos() {
+        // Guard IA-honesta: sin compromisos pendientes ni vencidos, "¿qué prometí?"
+        // dice "no tienes compromisos pendientes" — no inventa, no cae al menú.
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "¿Qué prometí?",
+            emptyList(), emptyList(), emptyList(),
+            now
+        )
+        assertTrue("mensaje honesto sin compromisos: ${answer.text}",
+            answer.text.contains("No tienes compromisos pendientes"))
+    }
+
     @Test fun whatNow_estimatesClampedDurationForZeroDurationTask() {
         val answer = AssistantEngine.answer(
             "¿Qué hago ahora?",

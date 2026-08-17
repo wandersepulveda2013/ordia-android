@@ -340,6 +340,33 @@ object AssistantEngine {
             }
             query.startsWith("busca ") || query.startsWith("muestra ") || query.startsWith("pendientes con") ->
                 AssistantAnswer("Abriré la búsqueda con esa consulta.", AssistantAction.OPEN_SEARCH, clean)
+            // Noveno olvido de la familia "lie-by-omission" / recuperación de
+            // compromisos: "¿qué me comprometí?"/"¿qué prometí?" — la forma
+            // COTIDIANA de pedir recordar lo prometido en una conversación — no
+            // contiene "compromiso" (la rama de compromisos sin fecha exigía ese
+            // sustantivo) ni casa con olvidos/vencidas (esas hablan de tareas, no
+            // de promesas). Caía al menú genérico: con un compromiso vencido
+            // respondía "Puedo organizar tu día… (N vencidos)" — nombra el conteo
+            // pero NO cuál es la promesa olvidada; SIN vencidos, no mencionaba los
+            // pendientes en absoluto. El usuario que pregunta "¿qué prometí?" para
+            // recuperar una promesa olvidada perdía la recuperación. Se rutea a la
+            // misma maquinaria existente: overdueCommitmentAnswer (nombra la
+            // promesa vencida más urgente + OPEN_CONVERSATIONS) cuando hay vencidos;
+            // conteo de pendientes + OPEN_CONVERSATIONS cuando sólo hay pendientes
+            // no vencidos; mensaje honesto cuando no hay ninguno. "me comprometi"
+            // cubre "¿qué me comprometí?"/"me comprometí a…"; "que prometi" cubre
+            // "¿qué prometí?". No se añade "compromiso" suelto (ya existe su rama
+            // específica sin fecha). Sin nueva pantalla/botón, sin IA fingida.
+            "me comprometi" in query || "que prometi" in query -> {
+                when {
+                    overdueCommitments.isNotEmpty() -> overdueCommitmentAnswer(overdueCommitments)
+                    pendingCommitments.isNotEmpty() -> AssistantAnswer(
+                        "Tienes ${pendingCommitments.size} compromisos pendientes de conversaciones por revisar.",
+                        AssistantAction.OPEN_CONVERSATIONS
+                    )
+                    else -> AssistantAnswer("No tienes compromisos pendientes de conversaciones.")
+                }
+            }
             // Octavo olvido de la familia "lie-by-omission": la consulta no casa con
             // ninguna rama conocida y el asistente cae a su menú de capacidades. Es la
             // superficie de mayor tránsito para un usuario confundido —y justo ahí
