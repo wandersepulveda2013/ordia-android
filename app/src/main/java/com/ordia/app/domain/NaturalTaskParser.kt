@@ -477,10 +477,20 @@ object NaturalTaskParser {
      * este patrón se procesa ANTES que previousWeekdayPattern, "el mes anterior" se
      * captura aquí (período) en vez de caer a "el <mes> anterior" (mes no es día →
      * null). "anterior" es siempre pasado, sin ambigüedad futura como "próximo".
+     *
+     * "la quincena pasada/anterior" (c.512): simétrico a semana/mes/año. La quincena
+     * (15 días) es un período cotidiano en español (cobros/nóminas quincenales) y
+     * "la quincena pasada" / "de la quincena anterior" son formas habituales para
+     * registrar una tarea vencida del período previo. Antes estas formas caían a
+     * `quincenaPattern` (próximo hito FUTURO) y dejaban "pasada"/"anterior" como
+     * residuo del título: fecha equivocada (futura en vez de pasada) + título sucio.
+     * Al capturarlas aquí (procesado ANTES que nextPeriodPattern/quincenaPattern)
+     * se resuelven a hoy−15d y se borran limpias, igual que "...semana/mes/año".
      */
     private val lastPeriodPattern = Regex(
-        """(?i)\b(?:la\s+semana|el\s+mes|el\s+a[n\u00f1]o)\s+(?:pasad[oa]|anterior)\b|\bsemana\s+(?:pasada|anterior)\b|\bmes\s+(?:pasado|anterior)\b|\ba[n\u00f1]o\s+(?:pasado|anterior)\b"""
+        """(?i)\b(?:la\s+semana|el\s+mes|el\s+a[n\u00f1]o|la\s+quincena)\s+(?:pasad[oa]|anterior)\b|\bsemana\s+(?:pasada|anterior)\b|\bmes\s+(?:pasado|anterior)\b|\ba[n\u00f1]o\s+(?:pasado|anterior)\b|\bquincena\s+(?:pasada|anterior)\b"""
     )
+
     /**
      * Período próximo ("la semana que viene", "el mes que viene", "el año que
      * viene", "próximo mes", "la próxima semana", "la semana entrante"):
@@ -3131,6 +3141,7 @@ object NaturalTaskParser {
             val text = m.value.lowercase()
             val days = when {
                 "semana" in text -> 7L
+                "quincena" in text -> 15L
                 "mes" in text -> 30L
                 "año" in text -> 365L
                 else -> 7L

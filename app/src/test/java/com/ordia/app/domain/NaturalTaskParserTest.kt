@@ -6762,6 +6762,34 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2025, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // c.512 — "la quincena pasada/anterior": simétrico a semana/mes/año. Antes caía a
+    // quincenaPattern (próximo hito FUTURO, 2026-07-31) y dejaba "pasada"/"anterior"
+    // como residuo del título. Ahora se resuelve a hoy−15d (2026-07-14) y se borra limpia,
+    // igual que "...semana/mes/año pasado". El genitivo "de/del" se consume también.
+    @Test fun laQuincenaPasada_resuelvePasadoYNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Cobro la quincena pasada", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 7, 14), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun quincenaAnterior_resuelvePasadoYNoDejaResiduo() {
+        val result = NaturalTaskParser.parse("Revisión de la quincena anterior", now, zone)
+        assertEquals("Revisión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 14), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeLaQuincenaPasada_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Pago de la quincena pasada", now, zone)
+        assertEquals("Pago", result.title)
+        assertEquals(LocalDate.of(2026, 7, 14), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDeLaQuincenaAnterior_noDejaResiduoDe() {
+        val result = NaturalTaskParser.parse("Balance de la quincena anterior", now, zone)
+        assertEquals("Balance", result.title)
+        assertEquals(LocalDate.of(2026, 7, 14), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun genitivoDeLaSemanaQueViene_noDejaResiduoDe() {
         val result = NaturalTaskParser.parse("Plan de la semana que viene", now, zone)
         assertEquals("Plan", result.title)
@@ -11223,8 +11251,15 @@ class NaturalTaskParserTest {
     // parser no debe borrar la segunda ocurrencia. Antes usaba
     // working.replace(it.value, " ") (global, literal) y la eliminaba.
     @Test fun tokenRepetidoComoContenidoNoSeBorraGlobalmente_quincena() {
+        // c.512: "quincena pasada" es ahora frase temporal (hoy-15d), asi que la
+        // segunda ocurrencia SI se consume como fecha (no es contenido residual como
+        // antes). La primera "quincena" (hito) tambien casa y se borra. El invariant que
+        // este test vigila (no borrar globalmente con replace literal) lo cubre el caso
+        // _semanaPasada (mismo token repetido, solo se borra la primera). Aqui se afirma
+        // el nuevo comportamiento correcto: titulo limpio y vencimiento = quincena pasada.
         val result = NaturalTaskParser.parse("Revisar quincena y otra quincena pasada", now, zone)
-        assertEquals("Revisar y otra quincena pasada", result.title)
+        assertEquals("Revisar y otra", result.title)
+        assertEquals(LocalDate.of(2026, 7, 14), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
     @Test fun tokenRepetidoComoContenidoNoSeBorraGlobalmente_semanaPasada() {
