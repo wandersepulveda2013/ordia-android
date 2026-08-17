@@ -2163,7 +2163,14 @@ object NaturalTaskParser {
     // (vía el conector "a la"/"de") PERO "justo" sobrevivía como residuo en el título.
     // Simétrico de c.391 ("justo" antes de comida/sueño) y de mediodía/medianoche
     // (c.401). Adverbio temporal puro, sin ambigüedad.
-    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:justo\s+)?(?:(?:a\s+la|de\s+la|por\s+la|en\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada))(?:\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier))?\b""")
+    //
+    // c.550: conector "durante la" para tarde/noche/madrugada ("trabajar durante la
+    // tarde"), tan natural como "trabajar a la tarde" (que SÍ funcionaba). Antes estas
+    // frases caían a dueAt=null (tarea olvidada) y la frase entera quedaba como residuo
+    // en el título. Se EXCLUYE "mañana" de este conector (simétrico al conector "de",
+    // que también la excluye): "durante la mañana" es ambigua (parte del día vs. fecha
+    // "mañana") y ya resuelve vía la fecha relativa; no se altera su comportamiento.
+    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:justo\s+)?(?:(?:a\s+la|de\s+la|por\s+la|en\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada)|durante\s+la\s+(tarde|noche|madrugada))(?:\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier))?\b""")
     private val standalonePartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),
@@ -2237,15 +2244,21 @@ object NaturalTaskParser {
         Regex("""(?i)(?:justo\s+)?(?:al\s+inicio|a\s+inicio)\s+(?:del\s+d[ií]a|de\s+(?:la\s+)?jornada|de\s+los\s+d[ií]as|de\s+d[ií]a)\b""")
 
     /**
-     * "a última hora"/"a último momento" (opcionalmente "de la mañana/tarde/noche/madrugada"):
-     * fin de jornada ~18:00. Simétrica de "a primera hora". Antes no se interpretaba como hora
-     * canónica: caía al default 09:00 (agenda errónea) y "a última hora" quedaba como
-     * residuo en el título. Como es hora de respaldo, no fuerza contexto PM; si hay una
-     * parte del día explícita ("de la tarde"), ésta tiene prioridad en la resolución y el
-     * patrón solo limpia "a última hora" (la parte del día la limpia su propio patrón).
+     * "a última hora"/"a último momento" (opcionalmente "de la mañana/tarde/noche/madrugada"
+     * o "del día/días/jornada"): fin de jornada ~18:00. Simétrica de "a primera hora".
+     * Antes no se interpretaba como hora canónica: caía al default 09:00 (agenda errónea)
+     * y "a última hora" quedaba como residuo en el título. Como es hora de respaldo, no
+     * fuerza contexto PM; si hay una parte del día explícita ("de la tarde"), ésta tiene
+     * prioridad en la resolución y el patrón solo limpia "a última hora" (la parte del día
+     * la limpia su propio patrón).
+     *
+     * El sufijo "del día/días/jornada" se añadió en c.548 para cerrar la asimetría con
+     * [primeraHoraPattern] (c.546): "a primera hora del día" limpiaba el título pero
+     * "a última hora del día" dejaba "del día"/"de la jornada" como residuo aunque la
+     * hora canónica (18:00) sí se resolvía. Mismo cierre de jornada que "al final del día".
      */
     private val ultimaHoraPattern =
-        Regex("""(?i)(?:justo\s+)?(?<![a-záéíóúñ])(?:a\s+)?[uú]ltim[ao]s?\s+(?:horas?|momento)(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada))?\b""")
+        Regex("""(?i)(?:justo\s+)?(?<![a-záéíóúñ])(?:a\s+)?[uú]ltim[ao]s?\s+(?:horas?|momento)(?:\s+de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|\s+del\s+d[ií]a|\s+de\s+(?:la\s+)?jornada|\s+de\s+los\s+d[ií]as|\s+de\s+d[ií]a)?\b""")
     private val ultimaHoraTime = LocalTime.of(18, 0)
 
     /**
@@ -2281,13 +2294,15 @@ object NaturalTaskParser {
      * quedaba SIN `dueAt` (olvidada, invisible en What Now/planificador, sin recordatorio) y
      * la frase quedaba como residuo en el título. Distinta de "madrugada" (04:00, franja
      * nocturna) y de "a primera hora" (09:00, inicio de jornada): el amanecer es la primera
-     * luz, intermedia. Exige el conector "al " para no colisionar con "hoy amanece lloviendo"
-     * (verbo) ni con "un amanecer hermoso" (sustantivo poético sin valor de agenda). Hora de
-     * respaldo: si hay una parte del día/hora explícita, ésta tiene prioridad y el patrón
-     * solo limpia "al amanecer".
+     * luz, intermedia. Exige conector ("al" o, desde c.549, "hacia el/la"/"hacia") para no
+     * colisionar con "hoy amanece lloviendo" (verbo) ni con "un amanecer hermoso" (sustantivo
+     * poético sin valor de agenda). El conector sigue siendo OBLIGATORIO: no se hace opcional
+     * (eso reabriría la colisión); sólo se amplía qué conectores válidos se admiten, igual que
+     * mediodía ya acepta "hacia el mediodía"/"hacia mediodía". Hora de respaldo: si hay una
+     * parte del día/hora explícita, ésta tiene prioridad y el patrón solo limpia "al amanecer".
      */
     private val amanecerPattern =
-        Regex("""(?i)(?:justo\s+)?al\s+(?:amanecer|alba|despuntar\s+(?:el|la|de\s+la|del)\s+(?:alba|d[ií]a)|clarear|aclarar)\b""")
+        Regex("""(?i)(?:justo\s+)?(?:al\s+|hacia\s+(?:el\s+|la\s+)?)(?:amanecer|alba|despuntar\s+(?:el|la|de\s+la|del)\s+(?:alba|d[ií]a)|clarear|aclarar)\b""")
     private val amanecerTime = LocalTime.of(6, 0)
 
     /**
@@ -2299,13 +2314,16 @@ object NaturalTaskParser {
      * [amanecerPattern] (06:00) que SÍ funcionaba: el amanecer se agendaba y el atardecer se
      * perdía. Hora de respaldo 18:00 (tarde tardía / ocaso, canónica ya usada por "a última
      * hora"/"al final del día"): en el trópico la puesta de sol ronda las ~18:30-19:00, y 18:00
-     * es la canónica vespertina establecida, sin falsa precisión. Exige el conector "al " para
-     * no colisionar con el verbo ("atardece lloviendo") ni con el sustantivo suelto ("un
-     * atardecer hermoso"). Como las demás horas canónicas, es hora de respaldo: si hay una hora
-     * explícita, ésta gana y el patrón solo limpia "al atardecer".
+     * es la canónica vespertina establecida, sin falsa precisión. Exige conector ("al" o, desde
+     * c.549, "hacia el/la"/"hacia") para no colisionar con el verbo ("atardece lloviendo") ni
+     * con el sustantivo suelto ("un atardecer hermoso"). El conector sigue siendo OBLIGATORIO
+     * (no se hace opcional: reabriría la colisión); sólo se amplía qué conectores válidos se
+     * admiten, igual que mediodía acepta "hacia el mediodía". Como las demás horas canónicas,
+     * es hora de respaldo: si hay una hora explícita, ésta gana y el patrón solo limpia
+     * "al atardecer".
      */
     private val atardecerPattern =
-        Regex("""(?i)(?:justo\s+)?al\s+(?:atardecer|anochecer|ocaso|ponerse\s+(?:el\s+sol|del\s+sol))\b""")
+        Regex("""(?i)(?:justo\s+)?(?:al\s+|hacia\s+(?:el\s+|la\s+)?)(?:atardecer|anochecer|ocaso|ponerse\s+(?:el\s+sol|del\s+sol))\b""")
     private val atardecerTime = LocalTime.of(18, 0)
 
     /**
@@ -4043,7 +4061,7 @@ object NaturalTaskParser {
         val partOfDayTime = partOfDayMatch?.let { partOfDayTimes[it.groupValues[1].lowercase()] }
         val standalonePartOfDayMatch = standalonePartOfDayPattern.find(working)
         val standalonePartOfDayKey = standalonePartOfDayMatch?.let {
-            (it.groupValues[1].ifBlank { it.groupValues[2] }).lowercase().ifEmpty { null }
+            (it.groupValues[1].ifBlank { it.groupValues[2] }.ifBlank { it.groupValues[3] }).lowercase().ifEmpty { null }
         }
         val standalonePartOfDayTime = standalonePartOfDayKey?.let { standalonePartOfDayTimes[it] }
         val compactDayPartOfDayMatch = compactDayPartOfDayPattern.find(working)

@@ -10772,6 +10772,31 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // "a última hora del día/días/jornada": sufijo de cierre de jornada, simétrico
+    // del de "a primera hora del día/días/jornada" (c.546). Antes el patrón de
+    // última hora SÓLO admitía "de la (mañana|tarde|noche|madrugada)", así que
+    // "a última hora del día" resolvía la hora canónica (18:00) pero dejaba
+    // "del día"/"de la jornada" como residuo en el título. c.548: extensión de
+    // sufijo simétrica para cerrar la asimetría mañana/tarde.
+    @Test fun ultimaHoraDelDiaLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Revisar a última hora del día", now, zone)
+        assertEquals("Revisar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun ultimaHoraDeLaJornadaLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Revisar a última hora de la jornada", now, zone)
+        assertEquals("Revisar", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimasHorasDelDiaLimpiaTituloFormaPlural() {
+        val result = NaturalTaskParser.parse("Revisar a últimas horas del día", now, zone)
+        assertEquals("Revisar", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // --- "al final del día" / "al final de la jornada" (sinónimo de "a última hora") ---
     // Antes estas frases cotidianas de fin de jornada no casaban ningún patrón →
     // dueAt=null (tarea SIN vencimiento → olvidada) y la frase quedaba como residuo
@@ -11034,6 +11059,32 @@ class NaturalTaskParserTest {
         assertEquals(null, result.dueAt)
     }
 
+    // c.549 — "hacia el amanecer"/"hacia amanecer": forma aproximada del amanecer (igual que
+    // "hacia el mediodía" ya funcionaba). Antes el patrón exigía "al" literal, así que la
+    // variante con "hacia" no casaba → dueAt=null (tarea olvidada) y "hacia el amanecer"
+    // quedaba como residuo en el título. Asimetría con mediodía (que admite "hacia el"/"hacia").
+    // Se añade "hacia el/la" como conector alternativo EXPLÍCITO (no se hace opcional "al":
+    // eso reabriría la colisión con "un amanecer hermoso"/"hoy amanece"). El conector sigue
+    // siendo obligatorio; sólo se amplía cuáles conectores válidos admitir.
+    @Test fun haciaElAmanecerResuelveYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Caminar hacia el amanecer", now, zone)
+        assertEquals("Caminar", result.title)
+        assertEquals(LocalTime.of(6, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun haciaAmanecerSinArticuloResuelveYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Salir hacia amanecer", now, zone)
+        assertEquals("Salir", result.title)
+        assertEquals(LocalTime.of(6, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun haciaElAlbaResuelveYLimpiaTitulo() {
+        // "al alba" es sinónimo de "al amanecer" dentro del mismo patrón.
+        val result = NaturalTaskParser.parse("Caminar hacia el alba", now, zone)
+        assertEquals("Caminar", result.title)
+        assertEquals(LocalTime.of(6, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // --- "al atardecer" / "al anochecer" / "al ocaso": contraparte vespertina del amanecer ---
 
     @Test fun alAtardecerInterpretaOcasoYLimpiaTitulo() {
@@ -11081,6 +11132,29 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("Ver el atardecer", now, zone)
         assertEquals("Ver el atardecer", result.title)
         assertEquals(null, result.dueAt)
+    }
+
+    // c.549 — "hacia el atardecer"/"hacia el anochecer"/"hacia el ocaso": forma aproximada
+    // del ocaso. Simétrico de "hacia el amanecer" y de "hacia el mediodía" (que ya funcionaba).
+    // Antes quedaban sin dueAt y con residuo. Mismo enfoque: "hacia el/la" como conector
+    // alternativo explícito, manteniendo el conector obligatorio (sin reabrir colisión con
+    // "un atardecer hermoso").
+    @Test fun haciaElAtardecerResuelveYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Caminar hacia el atardecer", now, zone)
+        assertEquals("Caminar", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun haciaElAnochecerResuelveYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Reunión hacia el anochecer", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun haciaElOcasoResuelveYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pasear hacia el ocaso", now, zone)
+        assertEquals("Pasear", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
     // --- "a mediodía" / "a medianoche" sin contracción "al" limpian el conector del título ---
@@ -11999,6 +12073,40 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("descansar durante la mañana", now, zone)
         assertEquals("descansar", result.title)
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // c.550 — "durante la tarde/noche/madrugada": ancla temporal cotidiana ("trabajar durante
+    // la tarde") tan natural como "trabajar a la tarde" (que SÍ funciona). Antes el patrón
+    // standalonePartOfDayPattern NO admitía el conector "durante la", así que estas frases
+    // caían a dueAt=null (tarea olvidada, invisible en What Now/planificador) y la frase
+    // entera quedaba como residuo en el título. Asimetría con "a la/en la/de la/por la tarde"
+    // (15:00) y con "durante la mañana" (que resolvía vía "mañana"=fecha). Se añade "durante
+    // la" como conector para tarde/noche/madrugada, EXCLUYENDO "mañana" (simétrico al
+    // conector "de", que también la excluye): "durante la mañana" es ambigua (parte del día
+    // vs. fecha "mañana") y ya resuelve vía la fecha; no se altera su comportamiento.
+    @Test fun duranteLaTardeResuelveYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("trabajar durante la tarde", now, zone)
+        assertEquals("trabajar", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun duranteLaNocheResuelveYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("estudiar durante la noche", now, zone)
+        assertEquals("estudiar", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun duranteLaMadrugadaResuelveYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("descansar durante la madrugada", now, zone)
+        assertEquals("descansar", result.title)
+        assertEquals(LocalTime.of(4, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun duranteLaNoTocaContenidoLegitimoSinParteDelDia() {
+        // "durante la" sin parte del día canónica es contenido legítimo: NO debe agendarse.
+        val result = NaturalTaskParser.parse("trabajar durante la reunión", now, zone)
+        assertEquals("trabajar durante la reunión", result.title)
+        assertEquals(null, result.dueAt)
     }
 
     @Test fun haciaDuranteNoTocanContenidoLegitimoSinAgenda() {
