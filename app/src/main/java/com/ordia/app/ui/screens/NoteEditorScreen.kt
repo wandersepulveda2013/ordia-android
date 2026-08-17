@@ -8,6 +8,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -463,7 +470,38 @@ fun NoteEditorScreen(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0)
     ) { inner ->
-        Column(Modifier.fillMaxSize().padding(inner)) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(inner)
+                .onPreviewKeyEvent { ev ->
+                    if (ev.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
+                    val ctrl = ev.isCtrlPressed
+                    val k = ev.key
+                    when {
+                        ctrl && k == Key.B -> {
+                            val idx = blocks.indexOfLast { it.type == NoteBlockType.PARAGRAPH || it.type == NoteBlockType.HEADING || it.type == NoteBlockType.HEADING_2 || it.type == NoteBlockType.HEADING_3 || it.type == NoteBlockType.SUBTITLE }
+                            if (idx >= 0) toggleSpanFormat(idx) { s -> s.copy(bold = !s.bold) }
+                            true
+                        }
+                        ctrl && k == Key.I -> {
+                            val idx = blocks.indexOfLast { it.type == NoteBlockType.PARAGRAPH || it.type == NoteBlockType.HEADING || it.type == NoteBlockType.HEADING_2 || it.type == NoteBlockType.HEADING_3 || it.type == NoteBlockType.SUBTITLE }
+                            if (idx >= 0) toggleSpanFormat(idx) { s -> s.copy(italic = !s.italic) }
+                            true
+                        }
+                        ctrl && k == Key.U -> {
+                            val idx = blocks.indexOfLast { it.type == NoteBlockType.PARAGRAPH || it.type == NoteBlockType.HEADING || it.type == NoteBlockType.HEADING_2 || it.type == NoteBlockType.HEADING_3 || it.type == NoteBlockType.SUBTITLE }
+                            if (idx >= 0) toggleSpanFormat(idx) { s -> s.copy(underline = !s.underline) }
+                            true
+                        }
+                        ctrl && k == Key.Z -> { undo(); true }
+                        ctrl && ev.isShiftPressed && k == Key.Z -> { redo(); true }
+                        ctrl && k == Key.Y -> { redo(); true }
+                        ctrl && k == Key.F -> { /* find-in-note: abre búsqueda interna */ false }
+                        else -> false
+                    }
+                }
+        ) {
             if (!focusMode) {
                 TopAppBar(
                     title = {
