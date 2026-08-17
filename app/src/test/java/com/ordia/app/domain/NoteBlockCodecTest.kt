@@ -252,4 +252,20 @@ class NoteBlockCodecTest {
         assertTrue(html.contains("checked"))
         assertTrue(html.contains("<hr>"))
     }
+
+    @Test fun parseHtmlExtractsHeadingsListsAndCode() {
+        val html = """
+            <h1>Título</h1>
+            <p>Párrafo con <b>negrita</b> y &amp; símbolo</p>
+            <ul><li>Uno</li><li>Dos</li></ul>
+            <hr>
+            <pre><code>val x = 1</code></pre>
+        """.trimIndent()
+        val blocks = NoteBlockCodec.parseHtml(html)
+        assertTrue(blocks.any { it.type == NoteBlockType.HEADING && it.text == "Título" })
+        assertTrue(blocks.any { it.type == NoteBlockType.PARAGRAPH && it.text.contains("negrita") && it.text.contains("& símbolo") })
+        assertTrue(blocks.any { it.type == NoteBlockType.BULLET && it.text == "Uno" })
+        assertTrue(blocks.any { it.type == NoteBlockType.DIVIDER })
+        assertTrue(blocks.any { it.type == NoteBlockType.CODE && it.text.contains("val x = 1") })
+    }
 }

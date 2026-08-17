@@ -349,4 +349,78 @@ object NoteBlockCodec {
         }
         return result
     }
+
+    /**
+     * Importa HTML a bloques de forma tolerante. Extrae encabezados (h1-h4),
+     * listas (ul/ol), citas, divisores, bloques de código y párrafos.
+     * No intenta renderizar tablas ni multimedia; esos elementos se dejan
+     * como texto plano razonable. Diseñado para HTML simple exportado por
+     * blocs de notas, no como un parser HTML completo.
+     */
+    fun parseHtml(html: String): List<NoteBlock> {
+        val result = mutableListOf<NoteBlock>()
+        // Normalizar y separar por etiquetas de bloque en líneas.
+        val normalized = html
+            .replace("(?i)<br\\s*/?>".toRegex(), "\n")
+            .replace("(?i)</p>".toRegex(), "\n")
+            .replace("(?i)</li>".toRegex(), "\n")
+            .replace("(?i)</h[1-6]>".toRegex(), "\n")
+            .replace("(?i)<hr\\s*/?>".toRegex(), "\n---\n")
+            .replace("(?i)<pre[^>]*>".toRegex(), "\n```\n")
+            .replace("(?i)</pre>".toRegex(), "\n```\n")
+        val lines = normalized.split("\n")
+        var inCode = false
+        val codeBuf = StringBuilder()
+        for (raw in lines) {
+            val tag = raw.trim()
+            if (tag.isEmpty()) continue
+            if (inCode) {
+                if (tag.startsWith("```")) {
+                    result.add(NoteBlock(type = NoteBlockType.CODE, text = codeBuf.toString().trimEnd()))
+                    codeBuf.clear()
+                    inCode = false
+                } else {
+                    codeBuf.append(stripTags(raw)).append("\n")
+                }
+                continue
+            }
+            when {
+                tag.startsWith("```") -> { inCode = true; codeBuf.clear() }
+                tag == "---" -> result.add(NoteBlock(type = NoteBlockType.DIVIDER))
+                tag.matches("(?i)^<h1[^>]*>.*".toRegex()) ->
+                    result.add(NoteBlock(type = NoteBlockType.HEADING, text = stripTags(tag).trim()))
+                tag.matches("(?i)^<h2[^>]*>.*".toRegex()) ->
+                    result.add(NoteBlock(type = NoteBlockType.HEADING_2, text = stripTags(tag).trim()))
+                tag.matches("(?i)^<h3[^>]*>.*".toRegex()) ->
+                    result.add(NoteBlock(type = NoteBlockType.HEADING_3, text = stripTags(tag).trim()))
+                tag.matches("(?i)^<h[456][^>]*>.*".toRegex()) ->
+                    result.add(NoteBlock(type = NoteBlockType.SUBTITLE, text = stripTags(tag).trim()))
+                tag.matches("(?i)^<blockquote[^>]*>.*".toRegex()) ->
+                    result.add(NoteBlock(type = NoteBlockType.QUOTE, text = stripTags(tag).trim()))
+                tag.matches("(?i)^<ul[^>]*>.*".toRegex()) ||
+                    tag.matches("(?i)^<li[^>]*>.*".toRegex()) ->
+                    result.add(NoteBlock(type = NoteBlockType.BULLET, text = stripTags(tag).trim()))
+                tag.matches("(?i)^<ol[^>]*>.*".toRegex()) ->
+                    result.add(NoteBlock(type = NoteBlockType.NUMBERED, text = stripTags(tag).trim()))
+                else -> {
+                    val text = stripTags(tag).trim()
+                    if (text.isNotEmpty()) result.add(NoteBlock(type = NoteBlockType.PARAGRAPH, text = text))
+                }
+            }
+        }
+        return result
+    }
+
+    /** Elimina etiquetas HTML y decodifica entidades básicas. */
+    private fun stripTags(text: String): String {
+        return text
+            .replace("<[^>]*>".toRegex(), "")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'")
+            .replace("&nbsp;", " ")
+            .trim()
+    }
 }

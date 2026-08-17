@@ -158,7 +158,12 @@ fun NotesHomeScreen(
             runCatching {
                 context.contentResolver.openInputStream(uri)?.use { stream ->
                     val content = stream.readBytes().toString(Charsets.UTF_8)
-                    vm.importMarkdownNote(content, onCreated = onNote)
+                    val mime = context.contentResolver.getType(uri) ?: ""
+                    if (mime.contains("html") || uri.toString().endsWith(".html", true)) {
+                        vm.importHtmlNote(content, onCreated = onNote)
+                    } else {
+                        vm.importMarkdownNote(content, onCreated = onNote)
+                    }
                 }
             }.onFailure {
                 snackbarHostState.showSnackbar(context.getString(R.string.notes_import_failed))
@@ -245,7 +250,7 @@ fun NotesHomeScreen(
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.notes_menu_import)) },
                                 leadingIcon = { Icon(Icons.Outlined.Download, null) },
-                                onClick = { menuExpanded = false; importMarkdownLauncher.launch(arrayOf("text/markdown", "text/plain", "application/octet-stream")) }
+                                onClick = { menuExpanded = false; importMarkdownLauncher.launch(arrayOf("text/markdown", "text/plain", "text/html", "application/octet-stream")) }
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.notes_menu_export)) },

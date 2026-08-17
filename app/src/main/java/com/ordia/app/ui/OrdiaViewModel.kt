@@ -841,6 +841,24 @@ class OrdiaViewModel(
         onCreated(id)
     }
 
+    /** Importa contenido HTML a una nota nueva (fase de importación). */
+    fun importHtmlNote(content: String, onCreated: (Long) -> Unit = {}) = viewModelScope.launch {
+        val blocks = NoteBlockCodec.parseHtml(content)
+        val title = blocks.firstOrNull { it.type == NoteBlockType.HEADING }?.text?.ifBlank { null }
+            ?: appContext.getString(R.string.notes_imported_note_title)
+        val now = System.currentTimeMillis()
+        val id = noteRepository.add(
+            NoteEntity(
+                title = title,
+                blocksData = NoteBlockCodec.encode(blocks),
+                body = NoteBlockCodec.toPlainText(blocks),
+                createdAt = now,
+                updatedAt = now
+            )
+        )
+        onCreated(id)
+    }
+
     /** Crea una nota nueva con varias imágenes compartidas (SEND_MULTIPLE). */
     fun createNoteFromImageUris(uris: List<String>, onCreated: (Long) -> Unit = {}) = viewModelScope.launch {
         val blocks = uris.mapNotNull { uriStr ->
