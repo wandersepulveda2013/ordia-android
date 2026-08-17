@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FormatBold
 import androidx.compose.material.icons.outlined.FormatClear
 import androidx.compose.material.icons.outlined.FormatItalic
@@ -384,6 +385,7 @@ fun NoteEditorScreen(
                                 onDismiss = { overflowOpen = false },
                                 note = existing,
                                 vm = vm,
+                                context = context,
                                 onInfo = { overflowOpen = false; infoOpen = true },
                                 onHistory = { overflowOpen = false; historyOpen = true },
                                 onDelete = { overflowOpen = false; existing?.let { vm.trashNote(it); onBack() } }
@@ -517,6 +519,7 @@ private fun EditorOverflowMenu(
     onDismiss: () -> Unit,
     note: NoteEntity?,
     vm: OrdiaViewModel,
+    context: android.content.Context,
     onInfo: () -> Unit,
     onHistory: () -> Unit,
     onDelete: () -> Unit
@@ -547,14 +550,39 @@ private fun EditorOverflowMenu(
             leadingIcon = { Icon(Icons.Outlined.Share, null) },
             onClick = {
                 note?.let { n ->
-                    val ctx = (vm as Any).let { android.app.Application() }
                     val send = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, n.title + "\n\n" + n.body)
+                        putExtra(Intent.EXTRA_SUBJECT, n.title)
+                        putExtra(Intent.EXTRA_TEXT, buildString {
+                            if (n.title.isNotBlank()) append(n.title).append("\n\n")
+                            append(n.body)
+                        })
                     }
-                    val intent = Intent.createChooser(send, null)
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    runCatching { ctx.startActivity(intent) }
+                    val chooser = Intent.createChooser(send, null)
+                    chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    runCatching { context.startActivity(chooser) }
+                }
+            }
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.notes_export_markdown)) },
+            leadingIcon = { Icon(Icons.Outlined.Description, null) },
+            onClick = {
+                note?.let { n ->
+                    val md = buildString {
+                        if (n.title.isNotBlank()) append("# ").append(n.title).append("\n\n")
+                        append(n.body)
+                    }
+                    val send = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/markdown"
+                        putExtra(Intent.EXTRA_SUBJECT, n.title.ifBlank { "nota" })
+                        putExtra(Intent.EXTRA_TEXT, md)
+                    }
+                    runCatching {
+                        context.startActivity(Intent.createChooser(send, null).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                    }
                 }
             }
         )

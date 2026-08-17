@@ -178,6 +178,7 @@
     <string name="notes_unfavorite">Quitar de favoritas</string>
     <string name="notes_duplicate">Duplicar</string>
     <string name="notes_share">Compartir</string>
+    <string name="notes_export_markdown">Exportar como Markdown</string>
     <string name="notes_export_note">Exportar</string>
     <string name="notes_move">Mover</string>
     <string name="notes_labels">Etiquetas</string>
