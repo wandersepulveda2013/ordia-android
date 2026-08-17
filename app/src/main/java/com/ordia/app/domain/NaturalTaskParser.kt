@@ -947,6 +947,26 @@ object NaturalTaskParser {
             if (word != null) "$word${m.groupValues[2]}" else m.value
         }
 
+    // Genitivo temporal que introduce una frase de período relativo ("la semana
+    // pasada", "el mes que viene"): "balance de la semana pasada", "informe del
+    // mes pasado", "plan de la semana que viene". El conector "de"/"del" es siempre
+    // el modificador de posesión temporal del contenido, no contenido en sí (la frase
+    // de período que le sigue resuelve una fecha, así que es inequívocamente temporal).
+    // Extiende el rango del match hacia atrás para consumir ese conector junto con la
+    // frase, evitando el residuo "de"/"del" en el título. Paridad con monthNameStripPattern
+    // (c.448) y el genitivo de día relativo (l.4579), pero para períodos relativos.
+    // No consume "de" en "menú de la semana" (sin "pasada/que viene" → la frase de
+    // período NO casó lastPeriod/nextPeriodPattern → este método no se invoca): el
+    // conector "de" permanece legítimamente como contenido del título.
+    private fun strippedPeriodRange(working: String, range: IntRange): IntRange {
+        var start = range.first
+        while (start - 1 >= 0 && working[start - 1].isWhitespace()) start--
+        // "del" (de+el) o "de"; se toleran mayúsculas iniciales (inicio de frase).
+        val pre = working.substring(0, start)
+        val genitive = Regex("""(?i)\b(?:del|de)\s*$""").find(pre)
+        return if (genitive != null) IntRange(genitive.range.first, range.last) else range
+    }
+
     /**
      * "<día> <mes>" SIN conector "de" ("Reunión 22 ago", "Entregar 1 oct",
      * "Renovar suscripción 1 sept", "Cita 20 agosto"): la forma abreviada y
@@ -3050,7 +3070,7 @@ object NaturalTaskParser {
             }
             now - days * 24 * 60 * 60_000L
         }
-        lastPeriodMatch?.let { working = working.replaceRange(it.range, " ") }
+        lastPeriodMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
         // Captura ordinal-mensual unificada (cualquiera de las dos formas). La directa pone
         // ordinal en grupo 1 y weekday en grupo 2; la precedente los pone en 2 y 3 (su grupo 1
         // es el span "el primer lunes"). Se normalizan a campos comunes para anclar el motor.
@@ -3545,7 +3565,7 @@ object NaturalTaskParser {
             }
             now + days * 24 * 60 * 60_000L
         }
-        effectiveNextPeriodMatch?.let { working = working.replaceRange(it.range, " ") }
+        effectiveNextPeriodMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
 
         // "quincena": hito financiero/laboreal en español (cobro/nómina/pago). La
         // quincena son dos hitos mensuales: el día 15 (primera quincena) y el fin de
