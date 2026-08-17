@@ -41,6 +41,15 @@ object IntelligenceSafetyGate {
         RegexOption.IGNORE_CASE
     )
 
+    /** Usos de "clave" que NO son credenciales: metafóricos ("la clave del éxito"),
+     *  de juego/acertijo ("la clave del juego"), o musicales ("clave musical",
+     *  "clave de sol/fa/do"). Evita bloquear "la clave del éxito es practicar 100
+     *  veces" o "recordar la clave de sol del acertijo 123" (c.512). */
+    private val CLAVE_NO_CREDENCIAL = Regex(
+        """clave\s+(del?\s+(?:é|e)xito|del?\s+juego|musical|de\s+(?:sol|fa|do|re|mi|la|si))""",
+        RegexOption.IGNORE_CASE
+    )
+
     /**
      * Patrones de contenido bloqueado: modera el tema del que la inteligencia
      * puede ocuparse. Son legítimamente específicos de esta puerta (no forman
@@ -155,6 +164,10 @@ object IntelligenceSafetyGate {
         for (kw in keywords) {
             val idx = lower.indexOf(kw)
             if (idx < 0) continue
+            // "clave" tiene usos no-credenciales ("la clave del éxito", "clave
+            // musical", "clave de sol"). Si el contexto inmediato es uno de esos,
+            // no es una credencial aunque haya un número cerca (c.512).
+            if (kw == "clave" && CLAVE_NO_CREDENCIAL.containsMatchIn(lower)) continue
             val window = lower.substring(idx + kw.length).take(40)
             if (valueAfter.containsMatchIn(window) || tokenAfter.containsMatchIn(window)) return true
         }

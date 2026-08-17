@@ -139,6 +139,53 @@ class IntelligenceSafetyGateTest {
         assertEquals(true, blocked("mi contraseña es secreta123"))
     }
 
+    // --- Falsos positivos de "clave" no-credencial + número (c.512) ---
+    // "clave" tiene sentidos no-credenciales: metafórico ("la clave del éxito"),
+    // de juego/acertijo ("la clave del juego") y musical ("clave musical",
+    // "clave de sol/fa/do"). `credentialKeywordWithValue` los trataba como
+    // credencial porque "clave" + un número de 3+ dígitos en la ventana de 40
+    // chars bastaba para bloquear, descartando captura legítima.
+
+    @Test
+    fun claveDelExitoConNumeroNoSeBloquea() {
+        assertEquals(false, blocked("la clave del éxito es practicar 100 veces"))
+    }
+
+    @Test
+    fun claveDelExitoSinAcentoConNumeroNoSeBloquea() {
+        assertEquals(false, blocked("la clave del exito es practicar 100 veces"))
+    }
+
+    @Test
+    fun claveDelJuegoConNumeroNoSeBloquea() {
+        assertEquals(false, blocked("la clave del juego es llegar a 500 puntos"))
+    }
+
+    @Test
+    fun claveMusicalConNumeroNoSeBloquea() {
+        assertEquals(false, blocked("recordar la clave musical de la obra 305"))
+    }
+
+    @Test
+    fun claveDeSolConNumeroNoSeBloquea() {
+        assertEquals(false, blocked("estudiar la clave de sol del acertijo 123"))
+    }
+
+    @Test
+    fun claveCredencialDeAccesoSeBloquea() {
+        assertEquals(true, blocked("mi clave de acceso es 4829"))
+    }
+
+    @Test
+    fun claveCredencialWifiSeBloquea() {
+        assertEquals(true, blocked("la clave del wifi es 1234567890"))
+    }
+
+    @Test
+    fun claveBancariaSeBloquea() {
+        assertEquals(true, blocked("clave bancaria 4567"))
+    }
+
     // --- Moderación temática (permanece) ---
 
     @Test
