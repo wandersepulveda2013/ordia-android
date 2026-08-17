@@ -426,7 +426,27 @@ object CommitmentEngine {
         // comporta igual que "debo" (rama dispara sin exigir dueAt, comportamiento
         // preexistente de la perífrasis). Probe JVM PRE-fix: 5/5 MISSED; POST-fix:
         // 5/5 detectados, 2/2 negaciones excluidas, controles singulares intactos.
-        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo|llamamos|enviamos|respondemos|avisamos|confirmamos|pasamos|mandamos|pagamos|hablamos|escribimos)|despu[eé]s\s+te\s+respondo|(?:debo|debemos)|(?:tengo|tenemos)\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|vamos\s+a|terminar[eé]|terminaremos|har[eé]|haremos|entregar[eé]|entregaremos|revisar[eé]|revisaremos|preparar[eé]|prepararemos|arreglar[eé]|arreglaremos|subir[eé]|subiremos|dejar[eé]|dejaremos|pasar[eé]|pasaremos|mandar[eé]|mandaremos|enviar[eé]|enviaremos)|lo\s+hago|lo\s+hacemos|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|pagamos))\b"""
+        //
+        // c.531: NUEVA clase de detección — IMPERATIVOS de 1ª persona PLURAL
+        // (exhortativos "vamos a hacer X" morfológicamente compactos): "hagamos
+        // el informe"/"terminemos el reporte"/"revisemos el contrato"/"preparemos
+        // la propuesta"/"entreguemos el documento"/"llamemos al cliente"/"mandemos
+        // el correo"/"enviemos la propuesta" caían a MISSED → olvido de un
+        // compromiso COMPARTIDO cotidiano (P1 evitar olvidos). NO es un espejo
+        // de número (no existe imperativo de 1ª persona singular en español:
+        // "hago" es indicativo): es una forma verbal DISTINTA, la natural para
+        // proponer una acción conjunta en chat ("hagamos el informe el viernes"
+        // = "vamos a hacer el informe"). Morfología real: hacer→hagamos
+        // (irregular), -ar→-emos (con -gu- para conservar /g/ ante -e:
+        // entregar→entreguemos, pagar→paguemos), -er/-ir→-amos (escribir→
+        // escribamos, subir→subamos). Se añaden las formas del MISMO conjunto
+        // verbal ya admitido en indicativo/futuro (c.278/c.305/c.526-c.530). La
+        // guarda precedingNegation excluye "no hagamos"/"no terminemos" igual
+        // que "no hacemos"/"no terminamos". Precisión simétrica: el exhortativo
+        // dispara sin clítico previo (la forma lleva la intención en el morfema
+        // -emos, no en un pronombre objeto precedente), igual que "vamos a".
+        // Determinista (regex), sin random, sin IA fingida.
+        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo|llamamos|enviamos|respondemos|avisamos|confirmamos|pasamos|mandamos|pagamos|hablamos|escribimos)|despu[eé]s\s+te\s+respondo|(?:debo|debemos)|(?:tengo|tenemos)\s+que|(?:hagamos|terminemos|entreguemos|revisemos|preparemos|arreglemos|subamos|dejemos|pasemos|mandemos|enviemos|llamemos|hablemos|escribamos|paguemos)|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|vamos\s+a|terminar[eé]|terminaremos|har[eé]|haremos|entregar[eé]|entregaremos|revisar[eé]|revisaremos|preparar[eé]|prepararemos|arreglar[eé]|arreglaremos|subir[eé]|subiremos|dejar[eé]|dejaremos|pasar[eé]|pasaremos|mandar[eé]|mandaremos|enviar[eé]|enviaremos)|lo\s+hago|lo\s+hacemos|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|pagamos))\b"""
     )
     // c.500: presente de 1ª persona SIN pronombre de objeto + marca temporal futura
     // PUNTUAL — "termino el informe mañana", "entrego el reporte el viernes",

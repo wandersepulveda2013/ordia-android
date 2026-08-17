@@ -2276,4 +2276,52 @@ class CommitmentEngineTest {
         }
     }
 
+    @Test
+    fun detectsFirstPersonPluralImperativesAsCommitments() {
+        // c.531: imperativos de 1ª persona PLURAL (exhortativos "hagamos"/
+        // "terminemos"/"revisemos"/... ) = compromiso COMPARTIDO cotidiano.
+        // Nueva clase de detección (no existe imperativo de 1ª persona singular).
+        val positives = listOf(
+            "hagamos el informe el viernes",
+            "terminemos el reporte manana",
+            "revisemos el contrato el lunes",
+            "preparemos la propuesta esta semana",
+            "entreguemos el documento hoy",
+            "llamemos al cliente manana",
+            "mandemos el correo esta tarde",
+            "enviemos la propuesta el lunes"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c531-pos-$text"
+            )
+            assertTrue(
+                "\"$text\" (imperativo plural) debe generar draft SELF_COMMITMENT",
+                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
+    @Test
+    fun firstPersonPluralImperativesRespectDirectNegation() {
+        val negatives = listOf(
+            "no hagamos el informe",
+            "no terminemos el reporte",
+            "no revisemos el contrato"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c531-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" (negación de imperativo plural) NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
 }
