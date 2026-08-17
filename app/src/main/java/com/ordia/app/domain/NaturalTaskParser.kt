@@ -5203,8 +5203,14 @@ object NaturalTaskParser {
         // singular con "este/el" señala UN fin de semana concreto, no un habito
         // recurrente. "cada final de semana" (variante regional) se admite aquí como
         // hábito semanal, simétrico a "cada fin de semana".
+        // c.494: la preposición distributiva "a" (= "los", "cada") sobrevivía al
+        // título ("Gimnasio a fines de semana" → "Gimnasio a"). Paralelo al genitivo
+        // "de/del" de c.493: el "a" coloquial ante recurrencia de fin de semana
+        // ("a fines de semana", "a los findes", "a cada fin de semana") se consume
+        // aquí como prefijo opcional para que el título quede limpio. Solo casa la
+        // "a" cuando va seguida de fin de semana/findes; no toca "a" aislada.
         val weekendRecurrencePattern =
-            Regex("""(?i)\b(?:cada\s+)?(?:los\s+)?fines\s+de\s+semana\b|\b(?:cada\s+)?(?:los\s+)?findes?\b|\bcada\s+(?:fin|final)\s+de\s+semana\b""")
+            Regex("""(?i)\b(?:a\s+)?(?:cada\s+)?(?:los\s+)?fines\s+de\s+semana\b|\b(?:a\s+)?(?:cada\s+)?(?:los\s+)?findes?\b|\b(?:a\s+)?cada\s+(?:fin|final)\s+de\s+semana\b""")
         weekendRecurrencePattern.find(working)?.let { match ->
             phrases += match.range
             val interval = detectWeekInterval()

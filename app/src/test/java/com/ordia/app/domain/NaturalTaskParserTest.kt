@@ -6232,6 +6232,50 @@ class NaturalTaskParserTest {
         assertEquals("6,7", result.recurrenceDays)
     }
 
+    // --- c.494: preposición distributiva "a" (= "los"/"cada") antes de fin de semana ---
+    // El "a" coloquial ante recurrencia de fin de semana ("a fines de semana", "a los
+    // findes", "a cada fin de semana") sobrevivía pegado al título ("Gimnasio a"). P1 de
+    // calidad de captura: un hábito real nacía con basura visible. Paralelo al genitivo
+    // "de/del" de c.493. La "a" solo se consume cuando antecede al token de fin de semana;
+    // "Ir a la playa los findes" conserva "a la playa" intacto (caso negativo abajo).
+    @Test fun aFinesDeSemanaNoDejaResiduoAEnTitulo() {
+        val result = NaturalTaskParser.parse("Gimnasio a fines de semana", now, zone)
+        assertEquals("Gimnasio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
+    @Test fun aLosFindesNoDejaResiduoAEnTitulo() {
+        val result = NaturalTaskParser.parse("Correr a los findes", now, zone)
+        assertEquals("Correr", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
+    @Test fun aCadaFinDeSemanaNoDejaResiduoAEnTitulo() {
+        val result = NaturalTaskParser.parse("Limpiar a cada fin de semana", now, zone)
+        assertEquals("Limpiar", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
+    // Caso negativo: la "a" que NO antecede al token de fin de semana se preserva.
+    // "Ir a la playa los findes" → "a la playa" es parte del título; solo "los findes"
+    // es recurrencia. La "a" distributiva solo casa pegada a "fines/findes/cada fin".
+    @Test fun aLaPlayaFindesConservaADeDestinoEnTitulo() {
+        val result = NaturalTaskParser.parse("Ir a la playa los findes", now, zone)
+        assertEquals("Ir a la playa", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
+    @Test fun aPerrosFinesDeSemanaConservaADeObjetoEnTitulo() {
+        val result = NaturalTaskParser.parse("Pasear a perros fines de semana", now, zone)
+        assertEquals("Pasear a perros", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
     // --- Fechas relativas en semanas/meses ---
     // "en una semana"/"en un mes" son de las formas más comunes en español y antes
     // quedaban SIN fecha (dueAt=null) → la tarea se olvidaba (sin recordatorio). now=2026-07-29.
