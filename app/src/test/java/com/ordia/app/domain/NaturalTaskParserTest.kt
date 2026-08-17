@@ -148,6 +148,59 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // Abreviaturas de días ("lun mie vie") deben tratarse idéntico al nombre
+    // completo ("lunes miércoles viernes"). Al capturar rutinas por teclado/voz
+    // es la forma más común y antes se perdía: rutina semanal sin recurrencia ni
+    // fecha (P1: se olvidaba). La expansión léxica hace que el resto del pipeline
+    // la procese igual que la forma completa. "mar" se excluye (colisión con
+    // marzo: ver [weekdayAbbrevRewriter]).
+    @Test fun parsesAbbrevWeekdayListSpaceSeparated() {
+        val result = NaturalTaskParser.parse("Gimnasio lun mie vie", now, zone)
+        assertEquals("Gimnasio", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3,5", result.recurrenceDays)
+    }
+
+    @Test fun parsesAbbrevWeekdayListCommaSeparated() {
+        val result = NaturalTaskParser.parse("Clase lun, mie, vie", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3,5", result.recurrenceDays)
+    }
+
+    @Test fun parsesAbbrevWeekdayListWithY() {
+        val result = NaturalTaskParser.parse("Fútbol sab y dom", now, zone)
+        assertEquals("Fútbol", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("6,7", result.recurrenceDays)
+    }
+
+    @Test fun parsesAbbrevWeekdayWithTrailingDot() {
+        val result = NaturalTaskParser.parse("Clase lun. mie. vie.", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3,5", result.recurrenceDays)
+    }
+
+    // La abreviatura "mié" (con tilde) también debe expandirse, y NUNCA debe
+    // tocar "miércoles" completo (regresión: el \b ASCII trató "é" como no-palabra
+    // y "mié" casaba dentro de "miércoles" → "miércolesrcoles").
+    @Test fun abbrevExpansionDoesNotCorruptFullWeekday() {
+        val result = NaturalTaskParser.parse("Regar plantas los lunes miércoles y viernes", now, zone)
+        assertEquals("Regar plantas", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3,5", result.recurrenceDays)
+    }
+
+    // "mar" NO debe expandirse a martes: colisiona con la abreviatura de mes
+    // marzo ("pago el 5 de mar"). La fecha de marzo debe preservarse intacta.
+    // "now" = 29-jul-2026, así que el 5 de marzo siguiente cae en 2027.
+    @Test fun abbrevMarIsMarchNotTuesday() {
+        val result = NaturalTaskParser.parse("Pago el 5 de mar", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2027, 3, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // El separador opcional NO debe robar texto que no es un día: "los lunes con el
     // comité" captura solo "lunes" y conserva "con el comité" en el título.
     @Test fun dayListStopsAtNonDayWord() {

@@ -94,6 +94,38 @@ object NaturalTaskParser {
     private val deAquiConnectorRewriter = Regex("""(?i)\bde\s+aqu[íi]\s+al\b|\bde\s+ac[aá]\s+al\b""")
     private val deAquiToRewriter = Regex("""(?i)\bde\s+aqu[íi]\s+a\b|\bde\s+ac[aá]\s+a\b""")
     private val alWeekdayRewriter = Regex("""(?i)\bal(\s+(?:pr[oó]xim[oa]\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b""")
+    /**
+     * Abreviaturas de días de la semana → nombre completo ("lun"→"lunes",
+     * "mie"→"miércoles", "jue"→"jueves", "vie"→"viernes", "sab/sáb"→"sábado",
+     * "dom"→"domingo"). Al capturar rutinas es cotidiano escribir los días
+     * abreviados ("gimnasio lun mie vie", "clase lun-mie-vie", "fútbol sab y
+     * dom"). Antes estas formas NO casaban con [dayListPattern]/[weekdayPattern]
+     * (que sólo admiten el nombre completo) → la rutina quedaba como tarea ÚNICA
+     * sin fecha ni recurrencia (P1: la rutina semanal se olvidaba, sin
+     * recordatorio ni visibilidad en el planificador), pese a ser la misma
+     * intención que "lunes miércoles viernes" (que sí funcionaba). Expandir las
+     * abreviaturas a nombre completo al inicio del pipeline hace que todo el
+     * razonamiento posterior (lista de días, rango Lun-Vie, "próximo lunes",
+     * ordinales mensuales, etc.) las trate idéntico al nombre completo, sin
+     * añadir lógica de recurrencia nueva ni falsos positivos más allá de los que
+     * el nombre completo ya produce.
+     *
+     * "mar" (martes) se EXCLUYE deliberadamente: colisiona con la abreviatura de
+     * mes "mar" (marzo) ya admitida en [months] ("pago el 5 de mar" = 5 de marzo).
+     * Expandirla a martes rompería fechas como "5 de mar" y, a la inversa, dejarla
+     * como mes haría fallar "clase mar jue". Por simetría con `months` (que ya
+     * trata "mar" como marzo), se conserva esa convención; quien escriba martes
+     * abreviado puede usar "martes" completo o "lun mar mie" no casa (queda como
+     * antes). Es una concesión de seguridad razonable: el coste de un falso
+     * positivo (fecha de marzo corrompida) supera al de no reconocer "mar"=martes.
+     *
+     * El punto opcional final ("lun.", "mie.") es la forma escrita habitual al
+     * abreviar; se admite y se descarta. Límites de palabra (\b) evitan tocar
+     * subcadenas dentro de otra palabra ("alunizar", "adomicilio").
+     */
+    private val weekdayAbbrevRewriter = Regex(
+        """(?i)(?<![a-záéíóúüñ])(lun|mi[eé]|jue|vie|s[aá]b|dom)\.?(?![a-záéíóúüñ])"""
+    )
     /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado.
      *  Acepta también "finales de semana" (plural análogo a "finales de mes") y la
      *  variante regional latinoamericana "final de semana" (singular, común en
@@ -2220,6 +2252,19 @@ object NaturalTaskParser {
         "domingo" to DayOfWeek.SUNDAY
     )
 
+    /** Abreviatura → nombre canónico del día (sin "mar"/martes: colisión con
+     *  marzo; ver [weekdayAbbrevRewriter]). */
+    private val weekdayAbbrevToFull = mapOf(
+        "lun" to "lunes",
+        "mie" to "miércoles",
+        "mié" to "miércoles",
+        "jue" to "jueves",
+        "vie" to "viernes",
+        "sab" to "sábado",
+        "sáb" to "sábado",
+        "dom" to "domingo"
+    )
+
     private val months = mapOf(
         "enero" to 1, "febrero" to 2, "marzo" to 3, "abril" to 4,
         "mayo" to 5, "junio" to 6, "julio" to 7, "agosto" to 8,
@@ -2882,6 +2927,15 @@ object NaturalTaskParser {
         working = working
             .replace(deAquiConnectorRewriter, "el")
             .replace(deAquiToRewriter, " ")
+        // Abreviaturas de días ("lun mie vie", "sab y dom", "lun-mie-vie") → nombre
+        // completo, ANTES de cualquier emparejamiento de fecha/día, para que todas las
+        // ramas posteriores (dayListPattern, weekdayPattern, rangos, ordinales…) las
+        // traten idéntico al nombre completo. La expansión es puramente léxica y no
+        // inventa recurrencia: la decide el mismo razonamiento que para "lunes". Ver
+        // [weekdayAbbrevRewriter] para la exclusión de "mar".
+        working = working.replace(weekdayAbbrevRewriter) { m ->
+            weekdayAbbrevToFull[m.groupValues[1].lowercase()] ?: m.value
+        }
         // Contracción direccional-temporal "al" + día de la semana SUELTA
         // ("reunión al viernes", "llamar al sábado", "salida al domingo"): "al" = "a" + "el"
         // (contracción), es un introductor temporal tan cotidiano como "el viernes", pero
