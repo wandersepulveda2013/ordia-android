@@ -22,10 +22,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -33,6 +38,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +56,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.ordia.app.R
+import com.ordia.app.media.AudioFormat
+import com.ordia.app.media.AudioPlayer
+import com.ordia.app.media.AudioRecorder
 import com.ordia.app.media.DocumentScanner
 import com.ordia.app.media.NoteMediaStore
 import com.ordia.app.media.OcrRunner
@@ -307,3 +316,167 @@ private fun closestPoint(
 
 @Composable
 private fun stringRes(id: Int): String = androidx.compose.ui.res.stringResource(id)
+
+/**
+ * Diálogo de grabación de audio. Graba a almacenamiento privado (m4a/AAC),
+ * muestra duración en vivo y al confirmar devuelve la ruta del archivo.
+ */
+@Composable
+internal fun AudioRecorderDialog(
+    onDismiss: () -> Unit,
+    onInsert: (path: String, durationMs: Long) -> Unit
+) {
+    val context = LocalContext.current
+    var recording by remember { mutableStateOf(false) }
+    var elapsedMs by remember { mutableStateOf(0L) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var finalPath by remember { mutableStateOf<String?>(null) }
+    var finalDuration by remember { mutableStateOf(0L) }
+
+    LaunchedEffect(recording) {
+        while (recording) {
+            kotlinx.coroutines.delay(100)
+            elapsedMs += 100
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            tonalElevation = 6.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(stringRes(R.string.notes_editor_audio_title), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    AudioFormat.format(if (finalPath != null) finalDuration else elapsedMs),
+                    style = MaterialTheme.typography.displaySmall
+                )
+                Spacer(Modifier.height(20.dp))
+                if (finalPath == null) {
+                    if (recording) {
+                        Button(onClick = {
+                            recording = false
+                            val path = AudioRecorder.stop()
+                            if (path != null) {
+                                finalPath = path
+                                finalDuration = AudioRecorder.durationMs(path)
+                            } else {
+                                error = context.getString(R.string.notes_editor_audio_failed)
+                            }
+                        }) { Text(stringRes(R.string.notes_editor_audio_stop)) }
+                    } else {
+                        Button(onClick = {
+                            error = null
+                            elapsedMs = 0
+                            val path = AudioRecorder.start(context)
+                            if (path != null) recording = true
+                            else error = context.getString(R.string.notes_editor_audio_mic_failed)
+                        }) { Text(stringRes(R.string.notes_editor_audio_record)) }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    if (recording) {
+                        TextButton(onClick = {
+                            recording = false
+                            AudioRecorder.cancel()
+                            onDismiss()
+                        }) { Text(stringRes(R.string.notes_editor_audio_cancel)) }
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = {
+                            // Descarta y permite regrabar.
+                            finalPath?.let { runCatching { java.io.File(it).delete() } }
+                            finalPath = null; finalDuration = 0; elapsedMs = 0
+                        }) { Text(stringRes(R.string.notes_editor_audio_redo)) }
+                        Button(onClick = {
+                            onInsert(finalPath!!, finalDuration)
+                        }) { Text(stringRes(R.string.notes_editor_audio_insert)) }
+                    }
+                }
+                error?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 12.dp))
+                }
+            }
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            if (recording) AudioRecorder.cancel()
+        }
+    }
+}
+
+/**
+ * Vista de un bloque AUDIO: reproductor con play/pause, seek, velocidad.
+ */
+@Composable
+internal fun AudioBlockView(name: String, path: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val player = remember(path) { AudioPlayer() }
+    var loaded by remember(path) { mutableStateOf(false) }
+    var duration by remember(path) { mutableStateOf(0L) }
+    var position by remember(path) { mutableStateOf(0L) }
+    var playing by remember(path) { mutableStateOf(false) }
+    var speed by remember(path) { mutableStateOf(1f) }
+
+    LaunchedEffect(path) {
+        player.load(path) { d -> duration = d; loaded = true }
+    }
+    LaunchedEffect(playing, path) {
+        while (playing) {
+            position = player.positionMs().toLong()
+            kotlinx.coroutines.delay(100)
+        }
+    }
+    DisposableEffect(path) {
+        onDispose { player.release() }
+    }
+
+    Surface(
+        tonalElevation = 2.dp,
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = {
+                    if (player.isPlaying) { player.pause(); playing = false }
+                    else { player.play(); playing = true }
+                }) {
+                    Icon(
+                        if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                        contentDescription = if (playing) "Pausar" else "Reproducir"
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(name.ifBlank { "Audio" }, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                    Spacer(Modifier.height(6.dp))
+                    androidx.compose.material3.LinearProgressIndicator(
+                        progress = {
+                            val d = duration.toFloat()
+                            if (d > 0f) (position.toFloat() / d).coerceIn(0f, 1f) else 0f
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(AudioFormat.format(position), style = MaterialTheme.typography.labelSmall)
+                        Text(AudioFormat.format(duration), style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(0.5f, 1f, 1.5f, 2f).forEach { s ->
+                    FilterChip(
+                        selected = speed == s,
+                        onClick = { speed = s; player.setSpeed(s) },
+                        label = { Text("${s}x") }
+                    )
+                }
+            }
+        }
+    }
+}

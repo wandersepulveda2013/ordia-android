@@ -177,6 +177,8 @@ fun NoteEditorScreen(
     var findIndex by remember { mutableStateOf(0) }
     var scannerOpen by remember { mutableStateOf(false) }
     var ocrOpen by remember { mutableStateOf(false) }
+    var audioOpen by remember { mutableStateOf(false) }
+    var drawingOpen by remember { mutableStateOf(false) }
 
     val findMatches = remember(title, blocks, findQuery) {
         if (findQuery.isBlank()) emptyList()
@@ -347,6 +349,14 @@ fun NoteEditorScreen(
     fun launchOcr() {
         if (currentId <= 0L && !hasMeaningfulContent()) saveCurrent { pickOcrImage.launch(arrayOf("image/*")) }
         else pickOcrImage.launch(arrayOf("image/*"))
+    }
+
+    val requestAudio = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) audioOpen = true
+    }
+    fun launchAudio() {
+        // RECORD_AUDIO solo está declarado en previewAdvanced/previewFull.
+        requestAudio.launch(android.Manifest.permission.RECORD_AUDIO)
     }
 
     val pickFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -585,9 +595,9 @@ fun NoteEditorScreen(
                 onCamera = { insertOpen = false; launchCamera() },
                 onScanner = { insertOpen = false; launchScanner() },
                 onOcr = { insertOpen = false; launchOcr() },
-                onAudio = { insertOpen = false },
-                onDrawing = { insertOpen = false },
-                onHandwriting = { insertOpen = false }
+                onAudio = { insertOpen = false; launchAudio() },
+                onDrawing = { insertOpen = false; drawingOpen = true },
+                onHandwriting = { insertOpen = false; drawingOpen = true }
             )
         }
     }
@@ -638,6 +648,42 @@ fun NoteEditorScreen(
                 ocrOpen = false
                 ocrSourceUri = null
                 blocks.add(NoteBlock(type = NoteBlockType.PARAGRAPH, text = text))
+                dirty = true
+            }
+        )
+    }
+
+    if (audioOpen) {
+        AudioRecorderDialog(
+            onDismiss = { audioOpen = false },
+            onInsert = { path, _ ->
+                audioOpen = false
+                blocks.add(
+                    NoteBlock(
+                        type = NoteBlockType.AUDIO,
+                        attachmentUri = path,
+                        attachmentName = "Audio ${java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.US).format(java.util.Date())}",
+                        mimeType = "audio/mp4"
+                    )
+                )
+                dirty = true
+            }
+        )
+    }
+
+    if (drawingOpen) {
+        DrawingDialog(
+            onDismiss = { drawingOpen = false },
+            onInsert = { path ->
+                drawingOpen = false
+                blocks.add(
+                    NoteBlock(
+                        type = NoteBlockType.DRAWING,
+                        attachmentUri = path,
+                        attachmentName = "Dibujo ${java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.US).format(java.util.Date())}",
+                        mimeType = "image/png"
+                    )
+                )
                 dirty = true
             }
         )
@@ -878,6 +924,28 @@ private fun BlockRow(
                             modifier = Modifier.fillMaxWidth().heightInMax(280.dp)
                         )
                     } ?: Text("🖼 ${block.attachmentName}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        NoteBlockType.AUDIO -> {
+            block.attachmentUri.takeIf { it.isNotBlank() }?.let { path ->
+                AudioBlockView(name = block.attachmentName, path = path, modifier = Modifier.fillMaxWidth())
+            }
+        }
+        NoteBlockType.DRAWING, NoteBlockType.HANDWRITING -> {
+            Column(Modifier.fillMaxWidth()) {
+                block.attachmentUri.takeIf { it.isNotBlank() }?.let { uriStr ->
+                    val ctx = LocalContext.current
+                    val bitmap = remember(uriStr) {
+                        runCatching { NoteImageLoader.load(ctx, uriStr) }.getOrNull()
+                    }
+                    bitmap?.let {
+                        androidx.compose.foundation.Image(
+                            bitmap = it.asImageBitmap(),
+                            contentDescription = block.attachmentName,
+                            modifier = Modifier.fillMaxWidth().heightInMax(360.dp)
+                        )
+                    } ?: Text("✏️ ${block.attachmentName}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

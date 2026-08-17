@@ -240,6 +240,14 @@
     <string name="notes_editor_ocr_new_note">Nota nueva</string>
     <string name="notes_editor_camera_denied">Ordía necesita permiso de cámara para tomar fotos.</string>
     <string name="notes_editor_camera_unavailable">Esta variante de Ordía no incluye cámara.</string>
+    <string name="notes_editor_audio_title">Grabar audio</string>
+    <string name="notes_editor_audio_record">Grabar</string>
+    <string name="notes_editor_audio_stop">Detener</string>
+    <string name="notes_editor_audio_cancel">Cancelar</string>
+    <string name="notes_editor_audio_redo">Regrabar</string>
+    <string name="notes_editor_audio_insert">Insertar</string>
+    <string name="notes_editor_audio_failed">No se pudo guardar la grabación.</string>
+    <string name="notes_editor_audio_mic_failed">No se pudo acceder al micrófono. Revisa el permiso de micrófono.</string>
     <string name="notes_editor_insert_file">Archivo</string>
     <string name="notes_editor_insert_link">Hipervínculo</string>
     <string name="notes_editor_insert_drawing">Dibujo</string>
