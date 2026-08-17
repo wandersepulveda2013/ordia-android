@@ -178,4 +178,79 @@ class NaturalTaskParserDayRangeTest {
         val r = parse("entregar hasta el viernes")
         assertFalse("no debe dejar residuo 'hasta'", r.title.contains("hasta"))
     }
+
+    // Rangos con conector "entre...y" (c.444): misma intención que "del ... al ..."
+    // pero con conector cotidiano alternativo. Antes NO se reconocían: [monthNamePattern]
+    // consumía el extremo INICIAL y anclaba el vencimiento al día de APERTURA en vez del
+    // CIERRE, y "entre ... y ..." sobrevivía como residuo del título ("feria entre y").
+    // Misma clase de bug que c.443 cross-mes, conector distinto. Se ancla al CIERRE.
+
+    @Test fun rangoEntreYMismoMesAnclaAlCierre() {
+        val r = parse("feria entre el 15 y el 20 de diciembre")
+        assertEquals("feria", r.title.trim())
+        assertEquals(LocalDate.of(2026, 12, 20), dueDate("feria entre el 15 y el 20 de diciembre"))
+    }
+
+    @Test fun rangoEntreYMismoMesNoDejaResiduoEntre() {
+        val title = parse("feria entre el 15 y el 20 de diciembre").title
+        assertFalse("el título no debe contener residuo 'entre'", title.contains("entre"))
+        assertFalse("el título no debe contener el día inicial 15", title.contains("15"))
+    }
+
+    @Test fun rangoEntreYCrossMesAnclaAlCierre() {
+        val r = parse("feria entre el 28 de febrero y el 1 de marzo")
+        assertEquals("feria", r.title.trim())
+        assertEquals(LocalDate.of(2027, 3, 1), dueDate("feria entre el 28 de febrero y el 1 de marzo"))
+    }
+
+    @Test fun rangoEntreYCrossMesNoDejaResiduoEntreY() {
+        val title = parse("feria entre el 28 de febrero y el 1 de marzo").title
+        assertFalse("el título no debe contener residuo 'entre'", title.contains("entre"))
+        assertFalse("el título no debe contener residuo 'y' suelto", title.contains(" y "))
+    }
+
+    @Test fun rangoEntreYCrossAnioAnclaAlCierre() {
+        val r = parse("reunión entre el 15 de diciembre y el 5 de enero")
+        assertEquals("reunión", r.title.trim())
+        assertEquals(LocalDate.of(2027, 1, 5), dueDate("reunión entre el 15 de diciembre y el 5 de enero"))
+    }
+
+    @Test fun rangoEntreYConAnioExplicitoAnclaAlCierre() {
+        val r = parse("feria entre el 5 de enero de 2027 y el 10 de febrero de 2027")
+        assertEquals("feria", r.title.trim())
+        assertEquals(LocalDate.of(2027, 2, 10), r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() })
+    }
+
+    @Test fun rangoEntreYRespetaHoraExplicita() {
+        val r = parse("feria entre el 28 de febrero y el 1 de marzo a las 9")
+        assertEquals("feria", r.title.trim())
+        val dt = r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone) }
+        assertNotNull("debe producir vencimiento", dt)
+        assertEquals(LocalDate.of(2027, 3, 1), dt!!.toLocalDate())
+        assertEquals(9, dt.hour)
+    }
+
+    @Test fun rangoEntreYMesRelativoAnclaAlCierre() {
+        // "entre el 20 y el 25 del mes que viene": mismo mes relativo al final.
+        val r = parse("reunión entre el 20 y el 25 del mes que viene")
+        assertEquals("reunión", r.title.trim())
+        assertEquals(LocalDate.of(2026, 9, 25), dueDate("reunión entre el 20 y el 25 del mes que viene"))
+    }
+
+    @Test fun rangoEntreYNoAgendaContenidoNoMes() {
+        // "entre 3 y 5 cajas" no es rango de fecha (sin mes): no agenda nada falso.
+        // Protección de contenido: los conectores no deben inventar fechas.
+        val r = parse("comprar entre 3 y 5 cajas")
+        assertNull("sin mes no debe agendar fecha falsa", r.dueAt)
+    }
+
+    @Test fun rangoEntreYRangoHoraNoSeAfecta() {
+        // "entre las 3 y las 5 de la tarde" es rango de HORA, no de fecha. El rewriter
+        // de hora (entreRangeNormalizerRewriter) corre antes y NO debe ser roto por los
+        // nuevos patrones de fecha. Regresión de no-colisión.
+        val r = parse("reunión entre las 3 y las 5 de la tarde")
+        // Rango horario produce vencimiento hoy (3-5pm) o se trata como bloque de tiempo;
+        // lo importante: el título no contiene "entre" como residuo.
+        assertFalse("el título no debe dejar residuo 'entre'", r.title.contains("entre"))
+    }
 }

@@ -1,3 +1,18 @@
+## Run c.444 — 2026-08-17 (UTC) — fix(parser): rango de días con conector "entre...y" anclaba al día INICIAL y dejaba "entre [y]" como residuo del título
+
+- **Run/ciclo**: c.444 (rama `openhands/autonomous-ordia`). HEAD inicial = `5671494` (c.443 remoto cross-mes). Remoto sin cambios durante el run. NO STALE_RUN.
+- **Problema seleccionado (P1 captura / datos sagrados / evitar olvidos — parser, hallazgo de auditoría del ciclo previo c.443)**: los rangos de días con conector "entre...y" ("entre el 15 y el 20 de diciembre", "entre el 28 de febrero y el 1 de marzo", "entre el 5 de enero de 2027 y el 10 de febrero de 2027") NO se reconocían como rango de FECHA. `entreRangeNormalizerRewriter` (c.259) sólo cubre rangos de HORA; los rangos de FECHA con "entre...y" caían a `monthNamePattern`, que consumía el extremo INICIAL y anclaba el vencimiento a la APERTURA en vez del CIERRE, mientras "entre ... y ..." sobrevivía como residuo del título (`title='feria entre'`, `title='feria entre y'`). Misma clase de bug que c.443 cross-mes ("del ... al ..."), conector cotidiano alternativo distinto.
+- **Causa raíz**: ausencia de patrones que reconozcan "entre D1 de MES1 y D2 de MES2" (cross-mes) y "entre D1 y D2 de MES" (mismo mes). Al no casar, los extremos se procesaban independientemente y el día INICIAL ganaba el anclaje, dejando el conector como residuo.
+- **Solución (mínima, sin nueva pantalla/botón, sin IA fingida)**: dos nuevos patrones en `NaturalTaskParser.kt`: (1) `entreCrossMonthDayRangePattern` casa `entre el? D1 de MES1 [del? A1] y el? D2 de MES2 [del? A2]` (cada extremo con su mes) → reescribe a `el D2 de MES2 [del A2]`; (2) `entreDayRangePattern` casa `entre el? D1 y el? D2 [de MES [del A1]]` o `... del <relativo>` (un solo mes al final o cualificador relativo) → reescribe a `el D2 de MES [del A1]` o `el D2 del <relativo>`. Ambos van ANTES de `crossMonthDayRangePattern`/`dayRangePattern`/`monthNamePattern`, anclan al CIERRE y reutilizan todo el flujo `monthNamePattern`. Exigen mes válido contra `months` o cualificador relativo; si no, se dejan intactos (no inventan fechas de contenido). No colisionan con `entreRangeNormalizerRewriter` (rangos de HORA: aquél exige dígitos sin "de MES").
+- **Tests**: `bash tools/run_domain_tests.sh` → **2603 PASS** (2593 c.443 + 10 nuevos), 0 failures, 45 classes; `bash tools/run_domain_checks.sh` → smoke 25 OK. +10 tests TDD en `NaturalTaskParserDayRangeTest.kt`. Sin tests reducidos/eliminados, sin regresión (rango single-mes c.376 intacto; cross-mes c.443 intacto; weekday pair/rango c.378 intacto; rango HORA c.259 intacto; `monthNamePattern` intacto; rango "hasta" c.443 intacto).
+- **Cambios**: `NaturalTaskParser.kt` (+`entreCrossMonthDayRangePattern`, +`entreDayRangePattern` y sus bloques `.replace` en `parse()`), `NaturalTaskParserDayRangeTest.kt` (+10 tests), `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md`.
+- **Commits**: commit c.444 (pendiente de push).
+- **HEAD final**: pendiente push.
+- **Próxima prioridad**: continuar auditoría parser (rangos "del ... hasta el ..." cross-mes; conectores "desde el ... hasta el ..." cross-mes; rangos con año sólo en un extremo) y áreas What Now / rutinas / búsqueda.
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); la lógica pura `NaturalTaskParser.parse` SÍ verificada en JVM vía tests + suite 2603 + probe.
+
+---
+
 ## Run c.443 — 2026-08-17 (UTC) — fix(parser): rango cross-mes/año anclaba al día inicial y dejaba residuo "del al"
 
 - **Run/ciclo**: c.443 (rama `openhands/autonomous-ordia`). HEAD inicial = `c732f95` (remoto c.442 "desde"+cantidad). Renumerado cycle-ID c.438→c.443 por doble colisión con runs concurrentes.

@@ -880,6 +880,41 @@ object NaturalTaskParser {
     )
 
     /**
+     * Rango de días con conector "entre...y" que CRUZA de mes (o de año):
+     * "entre el 28 de febrero y el 1 de marzo", "entre el 31 de diciembre y el 2 de enero".
+     * Forma de rango cotidiana alternativa a "del ... al ..." (c.443 cross-mes). Antes NO
+     * se reconocía: [monthNamePattern] consumía el extremo INICIAL y anclaba el vencimiento
+     * al día de APERTURA en vez del CIERRE, y "entre ... y ..." sobrevivía como residuo del
+     * título ("feria entre y"). Misma clase de bug que c.443, conector distinto. Se ancla al
+     * CIERRE reescribiendo a "el <díaCierre> de <mesCierre> [del <añoCierre>]" para reutilizar
+     * TODO el flujo [monthNamePattern]. Va ANTES que [entreDayRangePattern] (mismo mes) y de
+     * [crossMonthDayRangePattern]/[dayRangePattern]; no colisiona con [entreRangeNormalizerRewriter]
+     * (rangos de HORA: aquél exige dígitos de hora sin "de MES"). Exige AMBOS tokens de mes
+     * válidos contra `months` (no agenda contenido). El año del cierre: explícito si lo trae;
+     * si no, hereda el de apertura; si ninguno, se omite y [monthNamePattern] aplica su roll.
+     */
+    private val entreCrossMonthDayRangePattern = Regex(
+        """(?i)\bentre\s+el?\s+(\d{1,2})(?![/-])\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?""" +
+            """\s+y\s+el?\s+(\d{1,2})(?![/-])\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b"""
+    )
+
+    /**
+     * Rango de días con conector "entre...y" y UN solo mes compartido al final:
+     * "entre el 15 y el 20 de diciembre". Simétrico de [dayRangePattern] (c.376, "del 15 al 20
+     * de diciembre") pero con conector "entre...y". Antes NO se reconocía: anclaba al día
+     * INICIAL y dejaba "entre" como residuo del título ("feria entre"). Se ancla al CIERRE
+     * reescribiendo a "el <díaCierre> de <mes> [del <año>]". Va después de
+     * [entreCrossMonthDayRangePattern] (éste exige DOS meses, aquél UNO al final) y antes de
+     * [dayRangePattern]. Admite el cualificador relativo "del mes que viene"/"próximos meses"
+     * como [dayRangePattern]. Exige mes válido o cualificador relativo; si no, se deja intacto.
+     */
+    private val entreDayRangePattern = Regex(
+        """(?i)\bentre\s+el?\s+(\d{1,2})(?![/-])\s+y\s+el?\s+(\d{1,2})(?![/-])""" +
+            """(?:\s+del?\s+((?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?))|""" +
+            """\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?)?\b"""
+    )
+
+    /**
      * Rango de días de la semana como evento ÚNICO ("taller del martes al jueves",
      * "reunión del lunes al viernes", "curso del miércoles al viernes"). Simétrico de
      * [dayRangePattern] (c.377, "del 15 al 20 de diciembre"→"el 20"): el rango
@@ -2070,6 +2105,36 @@ object NaturalTaskParser {
         // que bareDayMonthPattern/monthNamePattern para que éstos vean sólo el día final
         // y no dejen "del 15 al" como residuo. Exige mes válido o cualificador relativo
         // ("del mes que viene"); si no, se deja intacto (no se inventan fechas de contenido).
+
+        // ANTES los rangos con conector "entre...y" (c.444): misma intención que "del ... al
+        // ..." pero con conector cotidiano alternativo. Van primero porque "entre ... y ..." no
+        // casa en dayRangePattern/crossMonthDayRangePattern (que exigen "al"/"hasta") y caía a
+        // monthNamePattern anclando al día INICIAL + residuo "entre [y]" en el título. Primero
+        // el que CRUZA de mes (cada extremo con su mes), luego el de un solo mes al final.
+        working = entreCrossMonthDayRangePattern.replace(working) { m ->
+            val startMonthTok = m.groupValues[2].lowercase()
+            val endMonthTok = m.groupValues[5].lowercase()
+            if (startMonthTok !in months || endMonthTok !in months) return@replace m.value
+            val endDay = m.groupValues[4]
+            val endYear = m.groupValues[6].trim().ifBlank { m.groupValues[3].trim() }
+            if (endYear.isNotEmpty()) "el $endDay de $endMonthTok del $endYear"
+            else "el $endDay de $endMonthTok"
+        }
+
+        working = entreDayRangePattern.replace(working) { m ->
+            val relQualifier = m.groupValues[3].trim()
+            val monthTok = m.groupValues[4].trim().lowercase()
+            when {
+                relQualifier.isNotEmpty() -> "el ${m.groupValues[2]} del $relQualifier"
+                monthTok.isNotEmpty() && monthTok in months -> {
+                    val endDay = m.groupValues[2]
+                    val year = m.groupValues[5].trim()
+                    if (year.isNotEmpty()) "el $endDay de $monthTok del $year"
+                    else "el $endDay de $monthTok"
+                }
+                else -> m.value
+            }
+        }
 
         // PRIMERO el rango que CRUZA de mes ("del 28 de febrero al 1 de marzo"): cada
         // extremo lleva su propio mes, forma que [dayRangePattern] no casa. Se ancla al
