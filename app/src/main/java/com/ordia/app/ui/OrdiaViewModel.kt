@@ -1,6 +1,7 @@
 ﻿package com.ordia.app.ui
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -831,6 +832,34 @@ class OrdiaViewModel(
         val id = noteRepository.add(
             NoteEntity(
                 title = title,
+                blocksData = NoteBlockCodec.encode(blocks),
+                body = NoteBlockCodec.toPlainText(blocks),
+                createdAt = now,
+                updatedAt = now
+            )
+        )
+        onCreated(id)
+    }
+
+    /** Crea una nota nueva con varias imágenes compartidas (SEND_MULTIPLE). */
+    fun createNoteFromImageUris(uris: List<String>, onCreated: (Long) -> Unit = {}) = viewModelScope.launch {
+        val blocks = uris.mapNotNull { uriStr ->
+            val uri = Uri.parse(uriStr)
+            val path = NoteMediaStore.importImage(appContext, uri)
+                ?: return@mapNotNull null
+            val mime = appContext.contentResolver.getType(uri) ?: "image/jpeg"
+            NoteBlock(
+                type = NoteBlockType.IMAGE,
+                attachmentUri = path,
+                mimeType = mime,
+                attachmentName = uri.lastPathSegment ?: "imagen"
+            )
+        }
+        if (blocks.isEmpty()) { return@launch }
+        val now = System.currentTimeMillis()
+        val id = noteRepository.add(
+            NoteEntity(
+                title = appContext.getString(R.string.notes_imported_note_title),
                 blocksData = NoteBlockCodec.encode(blocks),
                 body = NoteBlockCodec.toPlainText(blocks),
                 createdAt = now,

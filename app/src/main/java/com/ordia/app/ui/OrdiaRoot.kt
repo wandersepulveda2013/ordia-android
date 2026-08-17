@@ -87,9 +87,11 @@ fun OrdiaRoot(
     incomingText: String? = null,
     incomingAttachmentUri: String? = null,
     incomingMimeType: String? = null,
+    incomingImageUris: List<String> = emptyList(),
     requestedDestination: String? = null,
     requestedTaskId: Long? = null,
     onIncomingTextConsumed: () -> Unit = {},
+    onIncomingImageUrisConsumed: () -> Unit = {},
     onNavigationRequestConsumed: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -150,6 +152,13 @@ fun OrdiaRoot(
 
     LaunchedEffect(guardianDerivedExperience) {
         app.container.preferencesRepository.syncGuardianExperience(guardianDerivedExperience)
+    }
+
+    LaunchedEffect(incomingImageUris) {
+        if (incomingImageUris.isNotEmpty()) {
+            viewModel.createNoteFromImageUris(incomingImageUris)
+            onIncomingImageUrisConsumed()
+        }
     }
 
     LaunchedEffect(incomingText, incomingAttachmentUri, incomingMimeType) {
