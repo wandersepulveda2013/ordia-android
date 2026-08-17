@@ -2214,4 +2214,66 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.530: asimetría de número en la rama "debo" de commitmentSignal, quinto
+    // y último miembro de la familia c.526/c.527/c.528/c.529. Detectaba
+    // "debo entregar el informe" (1ª SINGULAR de la perífrasis "debo") pero NO
+    // "debemos entregar el informe" (1ª PLURAL) → olvido de un compromiso
+    // COMPARTIDO cotidiano ("debemos firmar el contrato el lunes", "debemos
+    // pagar la renta", "debemos revisar el documento esta semana"), la forma
+    // natural de obligación conjunta en chat español (P1). Probe JVM PRE-fix:
+    // 5/5 MISSED.
+    @Test
+    fun detectsDebemosSharedObligationPlural() {
+        val positives = listOf(
+            "debemos entregar el informe el viernes",
+            "debemos firmar el contrato el lunes",
+            "debemos pagar la renta manana",
+            "debemos revisar el documento esta semana",
+            "debemos mandar la propuesta hoy"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c530-pos-$text"
+            )
+            assertEquals(
+                "\"$text\" (debemos + infinitivo) debe generar draft SELF_COMMITMENT",
+                1, result.size
+            )
+            assertEquals(
+                "la obligación compartida es DEL usuario: \"$text\"",
+                CommitmentOwner.SELF, result[0].owner
+            )
+            assertEquals(
+                "debe ser SELF_COMMITMENT: \"$text\"",
+                CommitmentKind.SELF_COMMITMENT, result[0].kind
+            )
+        }
+    }
+
+    // c.530: precisión simétrica. "no debemos" es AUSENCIA de obligación
+    // ("no debemos entregar el informe", "no debemos preocuparnos"), igual que
+    // "no debo". La guarda precedingNegation la excluye.
+    // Probe JVM POST-fix: 2/2 excluidas.
+    @Test
+    fun debemosRespectsDirectNegation() {
+        val negatives = listOf(
+            "no debemos entregar el informe",
+            "no debemos preocuparnos",
+            "no debemos venir manana"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c530-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" (negación de debemos) NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
 }
