@@ -44,6 +44,7 @@ import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.domain.NoteBlock
 import com.ordia.app.domain.NoteBlockCodec
 import com.ordia.app.domain.NaturalTaskParser
+import com.ordia.app.domain.ReminderRules
 import com.ordia.app.domain.UniversalCaptureEngine
 import com.ordia.app.ui.theme.OrdiaTheme
 import kotlinx.coroutines.launch
@@ -147,9 +148,13 @@ class QuickCaptureActivity : ComponentActivity() {
                                                 )
                                             } else {
                                                 val parsed = interpretation.parsedTask ?: NaturalTaskParser.parse(clean)
+                                                // Past-safe: offset literal en pasado (plazo corto) → default
+                                                // adaptativo; evita que ReminderSync silencie el aviso (olvido).
                                                 val reminderAt = parsed.reminderOffsetMinutes
                                                     ?.takeIf { parsed.dueAt != null }
-                                                    ?.let { offset -> parsed.dueAt!! - offset * 60_000L }
+                                                    ?.let { offset ->
+                                                        ReminderRules.reminderAtFromOffset(parsed.dueAt!!, offset, now)
+                                                    }
                                                 val task = TaskEntity(
                                                     title = parsed.title,
                                                     details = clean,

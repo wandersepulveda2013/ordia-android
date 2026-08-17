@@ -112,6 +112,42 @@ object ReminderRules {
     }
 
     /**
+     * Resuelve el [TaskEntity.reminderAt] para una tarea capturada con un offset de
+     * recordatorio explícito extraído por el parser (p. ej. "recuérdame llamar en
+     * 10 min" → offset 30 min por defecto; "avísame 2 horas antes" → 120 min).
+     *
+     * Antes, la capa de captura calculaba el recordatorio como
+     * `dueAt - offsetMin * 60_000` de forma directa. Eso es past-safe sólo cuando
+     * el vencimiento está lejos: con un plazo corto (p. ej. vence en 10 min y
+     * offset 30 min) el instante cae 20 min EN EL PASADO. [ReminderSync.triggers]
+     * descarta los disparos pasados (trigger <= now → null), así que el aviso
+     * NUNCA se agendaba y la cita de plazo corto se olvidaba silenciosamente —
+     * justo cuando más falta hace para no olvidar.
+     *
+     * Esta función reúne la misma garantía que [resolveReminderAt]/
+     * [defaultReminderAt] (nunca un recordatorio en el pasado): si el offset
+     * literal queda estrictamente después de `now`, se conserva íntegro (respeta la
+     * preferencia explícita del usuario y el offset que [RecurrenceEngine]
+     * reutiliza en ocurrencias futuras); si cae en el pasado o en `now`, cae al
+     * default adaptativo [defaultReminderAt] (antelación recortada que sigue
+     * precediendo al vencimiento), o `null` cuando ni el mínimo cabe. Fuente
+     * única de la regla para las 3 rutas de captura (captura ultrarrápida,
+     * captura desde overlay y creación desde interpretación).
+     *
+     * Determinista, sin random, sin IA fingida.
+     *
+     * @param dueAt vencimiento de la tarea (no null).
+     * @param offsetMinutes minutos de antelación pedidos (>= 1).
+     * @param now instante de captura (por defecto [System.currentTimeMillis]).
+     * @return timestamp del recordatorio, o null si no cabe antelación útil.
+     */
+    fun reminderAtFromOffset(dueAt: Long, offsetMinutes: Int, now: Long = System.currentTimeMillis()): Long? {
+        require(offsetMinutes >= 0) { "offsetMinutes must be non-negative" }
+        val literal = dueAt - offsetMinutes.toLong() * 60_000L
+        return if (literal > now) literal else defaultReminderAt(dueAt, now)
+    }
+
+    /**
      * Recordatorio por defecto cuando el usuario no dejó un offset explícito (tarea
      * nueva o recordatorio recién activado). Idealmente [DEFAULT_REMINDER_OFFSET_MS]
      * ("30 min antes"). Pero si ese instante YA pasó —vencimiento a menos de 30 min

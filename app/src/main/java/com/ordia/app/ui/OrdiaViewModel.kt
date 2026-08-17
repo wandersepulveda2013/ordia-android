@@ -71,6 +71,7 @@ import com.ordia.app.domain.OnboardingCompleter
 import com.ordia.app.domain.ParsedTaskInput
 import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.domain.RecurrenceEngine
+import com.ordia.app.domain.ReminderRules
 import com.ordia.app.domain.ReminderSync
 import com.ordia.app.domain.RoutineRules
 import com.ordia.app.domain.SubtaskRules
@@ -425,9 +426,12 @@ class OrdiaViewModel(
      * duración, repetición) se conservan.
      */
     fun addParsedTask(parsed: ParsedTaskInput) {
+        // Past-safe: si el offset literal cae en el pasado (plazo corto), ReminderRules
+        // cae al default adaptativo en lugar de silenciar el aviso (ReminderSync
+        // descarta los disparos pasados). Ver ReminderRules.reminderAtFromOffset.
         val reminderAt = parsed.reminderOffsetMinutes
             ?.takeIf { parsed.dueAt != null }
-            ?.let { offset -> parsed.dueAt!! - offset * 60_000L }
+            ?.let { offset -> ReminderRules.reminderAtFromOffset(parsed.dueAt!!, offset) }
         val status = when {
             parsed.confidence < 0.5f -> TaskStatus.INBOX
             parsed.dueAt == null -> TaskStatus.INBOX
@@ -1300,16 +1304,18 @@ class OrdiaViewModel(
         mimeType: String
     ): Long {
         val parsed = interpretation.parsedTask ?: NaturalTaskParser.parse(interpretation.title)
+        val now = System.currentTimeMillis()
+        // Past-safe: offset literal que cae en el pasado (plazo corto) → default
+        // adaptativo, en lugar de un aviso que ReminderSync descarta (olvido).
         val reminderAt = parsed.reminderOffsetMinutes
             ?.takeIf { parsed.dueAt != null }
-            ?.let { offset -> parsed.dueAt!! - offset * 60_000L }
+            ?.let { offset -> ReminderRules.reminderAtFromOffset(parsed.dueAt!!, offset, now) }
             ?: parsed.dueAt.takeIf { interpretation.target == CaptureTarget.REMINDER }
         val status = when {
             interpretation.target == CaptureTarget.INBOX -> TaskStatus.INBOX
             parsed.confidence < 0.5f || parsed.dueAt == null -> TaskStatus.INBOX
             else -> TaskStatus.PLANNED
         }
-        val now = System.currentTimeMillis()
         val task = TaskEntity(
             title = parsed.title.trim().ifBlank { appContext.getString(R.string.capture_untitled_task) },
             details = original,

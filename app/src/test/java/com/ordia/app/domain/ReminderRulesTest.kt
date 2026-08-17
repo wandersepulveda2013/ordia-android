@@ -7,6 +7,7 @@ import com.ordia.app.data.local.TaskStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
@@ -352,5 +353,97 @@ class ReminderRulesTest {
 
         assertEquals(newDue - offset, reminder) // offset conservado, no default
         assertTrue(reminder!! > now)
+    }
+
+    // ---- reminderAtFromOffset: captura (offset explícito del parser) nunca en el pasado ----
+
+    /**
+     * Bug P1 "evitar olvidos": la captura rápida de un plazo corto
+     * ("recuérdame llamar al dentista en 10 min") calculaba el recordatorio como
+     * `dueAt - offsetMin`. Con el offset por defecto de 30 min y un vencimiento a
+     * 10 min, eso caía 20 min EN EL PASADO. [ReminderSync.triggers] descarta los
+     * disparos pasados (trigger <= now), así que el recordatorio NUNCA se agendaba
+     * → la cita de plazo corto se olvidaba, justo cuando más falta hace el aviso.
+     * Paritario con [defaultReminderAt]/[resolveReminderAt], que ya son past-safe:
+     * cuando el offset literal cae en el pasado, se cae al default adaptativo
+     * (nunca pasado) en lugar de silenciar el aviso.
+     */
+    @Test
+    fun reminderAtFromOffset_shortDeadlineWithLargeOffset_neverPast() {
+        val now = 1_700_000_000_000L
+        val due = now + 10 * 60_000L // vence en 10 min
+        val offsetMin = 30 // offset por defecto del parser
+
+        val reminder = ReminderRules.reminderAtFromOffset(due, offsetMin, now)
+
+        assertNotNull(reminder)
+        assertTrue("el recordatorio no debe quedar en el pasado", reminder!! > now)
+        assertTrue("el recordatorio debe preceder al vencimiento", reminder < due)
+        // Cae al default adaptativo (mitad del tiempo restante = 5 min antes).
+        assertEquals(ReminderRules.defaultReminderAt(due, now), reminder)
+    }
+
+    @Test
+    fun reminderAtFromOffset_farDeadlineKeepsLiteralOffset() {
+        val now = 1_700_000_000_000L
+        val due = now + 3 * 60 * 60_000L // 3 h: "30 min antes" sigue siendo futuro
+        val offsetMin = 30
+
+        val reminder = ReminderRules.reminderAtFromOffset(due, offsetMin, now)
+
+        // El offset literal se conserva íntegro cuando cabe en el futuro.
+        assertEquals(due - offsetMin * 60_000L, reminder)
+    }
+
+    @Test
+    fun reminderAtFromOffset_customLargeOffsetKeptWhenFuture() {
+        val now = 1_700_000_000_000L
+        val due = now + 5 * 60 * 60_000L // 5 h
+        val offsetMin = 120 // "2 horas antes" → 3 h desde ahora (futuro)
+
+        val reminder = ReminderRules.reminderAtFromOffset(due, offsetMin, now)
+
+        assertEquals(due - offsetMin * 60_000L, reminder)
+    }
+
+    @Test
+    fun reminderAtFromOffset_customLargeOffsetClampedWhenPast() {
+        val now = 1_700_000_000_000L
+        val due = now + 60 * 60_000L // 1 h: "2 h antes" = 1 h en el PASADO
+        val offsetMin = 120
+
+        val reminder = ReminderRules.reminderAtFromOffset(due, offsetMin, now)
+
+        assertNotNull(reminder)
+        assertTrue(reminder!! > now)
+        assertTrue(reminder < due)
+        assertEquals(ReminderRules.defaultReminderAt(due, now), reminder)
+    }
+
+    @Test
+    fun reminderAtFromOffset_tooShortForAnyLead_returnsNull() {
+        val now = 1_700_000_000_000L
+        val due = now + 30_000L // 30 s: ni el mínimo de antelación cabe
+        val offsetMin = 30
+
+        assertNull(ReminderRules.reminderAtFromOffset(due, offsetMin, now))
+    }
+
+    /**
+     * Caso umbral: el offset literal cae EXACTAMENTE en `now`. Un recordatorio
+     * "ya" (trigger <= now) lo descarta ReminderSync → se cae al default
+     * adaptativo para preservar un aviso útil.
+     */
+    @Test
+    fun reminderAtFromOffset_literalAtNow_fallsBackToAdaptiveDefault() {
+        val now = 1_700_000_000_000L
+        val due = now + 30 * 60_000L // 30 min: offset 30 min = exactamente ahora
+        val offsetMin = 30
+
+        val reminder = ReminderRules.reminderAtFromOffset(due, offsetMin, now)
+
+        assertNotNull(reminder)
+        assertTrue(reminder!! > now)
+        assertEquals(ReminderRules.defaultReminderAt(due, now), reminder)
     }
 }
