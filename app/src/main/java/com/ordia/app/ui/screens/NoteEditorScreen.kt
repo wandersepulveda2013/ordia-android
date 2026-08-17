@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.FormatUnderlined
 import androidx.compose.material.icons.outlined.HorizontalRule
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreVert
@@ -102,6 +103,7 @@ import com.ordia.app.domain.NoteBlockType
 import com.ordia.app.domain.NoteSpan
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
+import kotlinx.coroutines.launch
 
 /**
  * Editor de notas de ORDÍA.
@@ -132,11 +134,30 @@ fun NoteEditorScreen(
         }
     }
 
+    // Captura una versión de apertura (snapshot inicial) para el historial,
+    // una sola vez por carga de nota y solo si la nota ya tiene contenido.
+    androidx.compose.runtime.LaunchedEffect(noteId) {
+        val initial = state.note(noteId)
+        if (initial != null && (initial.title.isNotBlank() || initial.body.isNotBlank())) {
+            // Evita duplicar snapshots consecutivos idénticos.
+            val versions = vm.noteVersions(noteId)
+            val latest = versions.maxByOrNull { it.createdAt }
+            val same = latest != null &&
+                latest.title == initial.title &&
+                latest.blocksData == initial.blocksData &&
+                latest.body == initial.body
+            if (!same) {
+                vm.captureNoteVersion(initial, NoteBlockCodec.decode(initial.blocksData, initial.body))
+            }
+        }
+    }
+
     var dirty by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     var overflowOpen by remember { mutableStateOf(false) }
     var insertOpen by remember { mutableStateOf(false) }
     var infoOpen by remember { mutableStateOf(false) }
+    var historyOpen by remember { mutableStateOf(false) }
     var focusMode by remember { mutableStateOf(false) }
 
     val undoStack = remember { mutableStateListOf<Pair<String, List<NoteBlock>>>() }
@@ -333,6 +354,7 @@ fun NoteEditorScreen(
                                 note = existing,
                                 vm = vm,
                                 onInfo = { overflowOpen = false; infoOpen = true },
+                                onHistory = { overflowOpen = false; historyOpen = true },
                                 onDelete = { overflowOpen = false; existing?.let { vm.trashNote(it); onBack() } }
                             )
                         }
@@ -432,6 +454,18 @@ fun NoteEditorScreen(
     if (infoOpen && existing != null) {
         InfoDialog(note = existing, onDismiss = { infoOpen = false })
     }
+
+    if (historyOpen && existing != null) {
+        HistoryDialog(
+            noteId = existing.id,
+            vm = vm,
+            onDismiss = { historyOpen = false },
+            onRestored = {
+                historyOpen = false
+                onBack()
+            }
+        )
+    }
 }
 
 @Composable
@@ -441,6 +475,7 @@ private fun EditorOverflowMenu(
     note: NoteEntity?,
     vm: OrdiaViewModel,
     onInfo: () -> Unit,
+    onHistory: () -> Unit,
     onDelete: () -> Unit
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
@@ -484,6 +519,11 @@ private fun EditorOverflowMenu(
             text = { Text(stringResource(R.string.notes_info)) },
             leadingIcon = { Icon(Icons.Outlined.Info, null) },
             onClick = onInfo
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.notes_history)) },
+            leadingIcon = { Icon(Icons.Outlined.History, null) },
+            onClick = onHistory
         )
         HorizontalDivider()
         DropdownMenuItem(
@@ -792,6 +832,44 @@ private fun InfoDialog(note: NoteEntity, onDismiss: () -> Unit) {
                 Text(stringResource(R.string.notes_info_modified, modified))
                 Text(stringResource(R.string.notes_info_words, words))
                 Text(stringResource(R.string.notes_info_chars, note.body.length))
+            }
+        }
+    )
+}
+
+@Composable
+private fun HistoryDialog(
+    noteId: Long,
+    vm: OrdiaViewModel,
+    onDismiss: () -> Unit,
+    onRestored: () -> Unit
+) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var versions by remember { mutableStateOf<List<com.ordia.app.data.local.NoteVersionEntity>>(emptyList()) }
+    androidx.compose.runtime.LaunchedEffect(noteId) {
+        versions = vm.noteVersions(noteId)
+    }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.notes_history_close)) } },
+        title = { Text(stringResource(R.string.notes_history)) },
+        text = {
+            if (versions.isEmpty()) {
+                Text(stringResource(R.string.notes_history_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    versions.sortedByDescending { it.createdAt }.forEach { v ->
+                        val date = java.text.DateFormat.getDateTimeInstance().format(java.util.Date(v.createdAt))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(date, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                            TextButton(onClick = {
+                                scope.launch {
+                                    vm.restoreNoteVersion(v) { onRestored() }
+                                }
+                            }) { Text(stringResource(R.string.notes_history_restore)) }
+                        }
+                    }
+                }
             }
         }
     )
