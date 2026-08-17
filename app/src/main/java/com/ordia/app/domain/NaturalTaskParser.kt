@@ -1546,6 +1546,32 @@ object NaturalTaskParser {
     private val paraTimeIntroPattern =
         Regex("""(?i)\bpara\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)[0-5]\d|\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS)|\s*(?:horas?|hs|h)\b)|la\s+una(?:(?::|h)[0-5]\d|\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)|\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS)))""")
     /**
+     * Fracción negativa ANTEPUESTA caribeña/latinoamericana: "cuarto para las 8",
+     * "cinco para las 9", "diez para las 3" (forma regional de "a las 8 menos cuarto").
+     * Grupo 1 = palabra de fracción (canonizada por [CLOCK_FRACTION_ALT], ordenada para
+     * que "tres cuartos"/"veinticinco" ganen a prefijos); grupos 2/3/4 = "las N" /
+     * "la una" / "N" (uno de los tres). El lookahead implícito en la captura de la hora
+     * exige hora válida inmediatamente tras "para las/la", igual que [paraTimeIntroPattern],
+     * para no tocar "cinco para las niñas" (destinatario) ni "diez para las 10 personas"
+     * (cuenta). La reescritura a "a las N menos <fracción>" reutiliza TODO el flujo de
+     * hora explícita (resolución AM/PM, wrap 24 h, limpieza del título). Simétrico del
+     * "menos cuarto" pospuesto (ciclo 114) y de paraTimeIntroPattern. Véase su uso en
+     * [parse] (antes de paraTimeIntroPattern).
+     */
+    private val prefixedNegativeFractionPattern =
+        Regex("""(?i)\b($CLOCK_FRACTION_ALT)\s+para\s+(?:las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)|la\s+(una)|([01]?\d|2[0-4]))""")
+    /**
+     * Continuador seguro tras la hora en [prefixedNegativeFractionPattern]: conjuncion,
+     * puntuacion, palabra temporal, fin de cadena O evidencia de reloj (meridiem/parte
+     * del dia). Simetrico del lookahead de [paraTimeIntroPattern] (que exige evidencia
+     * de reloj) pero aqui la fraccion va antes, asi que el meridiem "pm"/"de la tarde"
+     * aparece DESPUES de la hora y debe aceptarse como continuador legitimo (no es
+     * sustantivo de cuenta). Rechaza "diez para las 10 cajas" (sustantivo tras hora
+     * sin evidencia de reloj).
+     */
+    private val prefixedFractionFollowerPattern =
+        Regex("""(?i)^\s*(?:,|\.|;|:|!|\?|y\b|o\b|con\b|de\b|del\b|en\b|para\b|hasta\b|desde\b|luego\b|después\b|despues\b|pero\b|porque\b|por\b|sin\b|sobre\b|a\b|al\b|el\b|la\b|los\b|las\b|un\b|una\b|mañana\b|manana\b|hoy\b|ayer\b|anteayer\b|lunes\b|martes\b|miércoles\b|miercoles\b|jueves\b|viernes\b|sábado\b|sabado\b|domingo\b|a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+manana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a|horas?|hs|h\b|$)""")
+    /**
      * Cantidad del recordatorio: dígitos o número escrito en español (simétrico con
      * la fecha relativa "en dos horas"). Antes solo se aceptaban dígitos, así que
      * "recuérdame una hora antes" / "dos horas antes" / "treinta minutos antes"
@@ -2519,6 +2545,39 @@ object NaturalTaskParser {
         }
 
         working = approximateTimePatterns.fold(working) { acc, p -> p.replace(acc, "a ") }
+
+        // Fracción negativa ANTEPUESTA caribeña/latinoamericana: "cuarto para las 8",
+        // "cinco para las 9", "diez para las 3" (forma regional de "a las 8 menos cuarto").
+        // La fracción va ANTES del introductor "para", patrón que ni [timePatterns]
+        // (la espera DESPUÉS de la hora) ni [paraTimeIntroPattern] (su lookahead exige
+        // evidencia de reloj tras la hora) reconocen: caía a dueAt=null (cita olvidada)
+        // y "cuarto para las 8" sobrevivía como residuo en el título. Se normaliza a la
+        // forma resuelta "a las N menos <fracción>" ANTES de paraTimeIntroPattern, así
+        // reutiliza TODO el flujo de hora explícita (resolución AM/PM, wrap 24 h,
+        // limpieza del título). El lookahead exige hora válida inmediatamente tras
+        // "para las/la" (igual que paraTimeIntroPattern) para no tocar "cinco para las
+        // niñas" (destinatario) ni "diez para las 10 personas" (cuenta). El `$1` es la
+        // palabra de fracción (ya canonizada por CLOCK_FRACTION_ALT); se reintroduce
+        // como "menos $1" para que resolveClockFraction la reste con wrap 24 h.
+        working = prefixedNegativeFractionPattern.replace(working) { m ->
+            val frac = m.groupValues[1]
+            val las = m.groupValues[2] // hora tras "para las"
+            val una = m.groupValues[3] // "una" tras "para la"
+            val bare = m.groupValues[4] // hora desnuda tras "para" (sin artículo)
+            // Guard anti-cuenta: si lo que sigue a la hora NO es un continuador seguro
+            // (conjuncion/puntuacion/palabra temporal/fin) NI evidencia de reloj (meridiem/
+            // parte del dia), es un sustantivo de cantidad ("diez para las 10 cajas") y NO
+            // se reescribe. A diferencia de paraTimeIntroPattern, aqui el meridiem va
+            // DESPUES de la hora y debe aceptarse como continuador legitimo.
+            val tail = working.substring(m.range.last + 1)
+            if (!prefixedFractionFollowerPattern.containsMatchIn(tail)) return@replace m.value
+            val intro = when {
+                las.isNotEmpty() -> "a las $las"
+                una.isNotEmpty() -> "a la $una"
+                else -> "a las $bare"
+            }
+            "$intro menos $frac"
+        }
 
         // Introductor de hora directo "para las/la" → "a las/la" (simétrico de los marcadores
         // aproximados de arriba, pero con hora exacta). Reutiliza TODO el flujo de hora

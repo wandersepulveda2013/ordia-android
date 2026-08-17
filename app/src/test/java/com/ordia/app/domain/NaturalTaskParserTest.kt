@@ -4787,6 +4787,68 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(12, 45), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- "cuarto/cinco/diez para las N" (forma caribeña/latinoamericana, ciclo 476) ---
+    // Simétrico regional de "a las N menos cuarto": en el Caribe/LatAm la fracción
+    // negativa se antepone al introductor ("cuarto para las 8" = 7:45, "cinco para
+    // las 8" = 7:55). Antes la fracción iba DESPUÉS ("a las 8 menos cuarto"), forma
+    // peninsular: la forma antepuesta caía a dueAt=null (cita olvidada) y "cuarto
+    // para las 8" sobrevivía como residuo en el título. Se normaliza a la forma
+    // resuelta "a las N menos <fracción>" reutilizando TODO el flujo de hora explícita
+    // (resolución AM/PM, wrap 24 h, limpieza del título), igual que paraTimeIntroPattern.
+    @Test fun cuartoParaLas8Es7_45YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita cuarto para las 8", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(7, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun cincoParaLas9Es8_55YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Llamar cinco para las 9", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalTime.of(8, 55), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun diezParaLas3Es2_50YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita diez para las 3", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(2, 50), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun cuartoParaLaUnaWrapA12_45() {
+        // 1:00 menos cuarto hace wrap a 0:45 (00:45), no a 0:45 negativo.
+        val result = NaturalTaskParser.parse("Cita cuarto para la una", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(0, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun cuartoParaLas3DeLaTardeAplicaPm() {
+        val result = NaturalTaskParser.parse("Cita cuarto para las 3 de la tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(14, 45), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun cuartoParaLas8PmEs19_45YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita cuarto para las 8 pm", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(19, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun diezParaLas10PersonasNoEsHora() {
+        // "diez" es cantidad de personas, no fracción de reloj: no debe reescribirse
+        // ni asignarse dueAt. El guard rechaza el sustantivo "personas" tras la hora.
+        val result = NaturalTaskParser.parse("Reservar diez para las 10 personas", now, zone)
+        assertNull(result.dueAt)
+        assertEquals("Reservar diez para las 10 personas", result.title)
+    }
+
+    @Test fun cuartoParaLas8SinEvidenciaDeRelojNoToca() {
+        // Sin meridiem/parte del día ni continuador seguro tras la hora: el guard
+        // deja la frase intacta si lo siguiente es texto plano ambiguo (no reloj).
+        // Aquí "cuarto para las 8 cena" -> "cena" no es continuador ni reloj -> no reescribe.
+        val result = NaturalTaskParser.parse("Cita cuarto para las 8 cena", now, zone)
+        assertNull(result.dueAt)
+    }
+
     @Test fun yMediaConDeLaMadrugadaEsAm() {
         val result = NaturalTaskParser.parse("Cita a las 4 y media de la madrugada", now, zone)
         assertEquals("Cita", result.title)
