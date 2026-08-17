@@ -11252,6 +11252,27 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, ZoneId.of("America/Santiago")))
     }
 
+    // --- Weekday + día de mes nombrado (P1: fecha equivocada) ---
+    // "reunión el lunes 24 de septiembre": el weekday ("lunes") califica/repite una fecha
+    // concreta (24 de septiembre). Antes weekdayMatch ganaba la resolución de fecha sobre
+    // monthNameDate → anclaba al lunes más cercano (hoy) y "24 de septiembre" se borraba del
+    // título sin fijar la fecha → cita agendada en día equivocado (P1: cita perdida). Ahora
+    // la fecha con mes nombrado gana. now = 2026-08-14 (viernes); 24/9/2026 es jueves (futuro).
+    @Test fun weekdayConDiaMesNombradoResuelveLaFechaConMes() {
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.NOON, ZoneId.of("America/Santiago"))
+        val result = NaturalTaskParser.parse("reunión el lunes 24 de septiembre", agoNow, ZoneId.of("America/Santiago"))
+        assertEquals("reunión", result.title)
+        assertEquals(LocalDate.of(2026, 9, 24), DateRules.toLocalDate(result.dueAt!!, ZoneId.of("America/Santiago")))
+    }
+
+    @Test fun weekdayConDiaMesNombradoYHoraNoDejaResiduo() {
+        val agoNow = DateRules.toEpochMillis(LocalDate.of(2026, 8, 14), LocalTime.NOON, ZoneId.of("America/Santiago"))
+        val result = NaturalTaskParser.parse("asamblea el miércoles 30 de octubre a las 15", agoNow, ZoneId.of("America/Santiago"))
+        assertEquals("asamblea", result.title)
+        assertEquals(LocalDate.of(2026, 10, 30), DateRules.toLocalDate(result.dueAt!!, ZoneId.of("America/Santiago")))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt, ZoneId.of("America/Santiago")))
+    }
+
     // --- Recurrencia mensual ordinal sembrada en el pasado (P1: no olvidar la 1ª ocurrencia) ---
     // "el primer lunes de cada mes" dicho DESPUÉS de que el primer lunes del mes ya pasó sembraba
     // la cadencia en el pasado → vencida al instante + recordatorio descartado → 1ª cita olvidada.

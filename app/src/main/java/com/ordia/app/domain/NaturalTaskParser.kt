@@ -3520,6 +3520,15 @@ object NaturalTaskParser {
             previousWeekdayReversedMatch != null && previousWeekdayReversedMatch.groupValues[1].toDayOfWeekOrNull() != null ->
                 previousWeekday(base.toLocalDate(), previousWeekdayReversedMatch.groupValues[1].toDayOfWeek())
             weekendMatch != null -> nextWeekday(base.toLocalDate(), DayOfWeek.SATURDAY)
+            // Fecha con mes NOMBRADO ("24 de septiembre") tiene prioridad sobre un día de la
+            // semana suelto ("lunes"): cuando ambos aparecen juntos ("reunión el lunes 24 de
+            // septiembre") el usuario especifica una fecha concreta y nombra el weekday como
+            // confirmación. Antes weekdayMatch (línea siguiente) se evaluaba ANTES → anclaba al
+            // lunes más cercano (hoy) y "24 de septiembre" se borraba del título sin fijar la
+            // fecha → cita agendada en día equivocado (P1: cita perdida). Una fecha completa con
+            // mes es más específica que un weekday suelto, por lo que gana aquí. Los ordinales
+            // ("el primer lunes de agosto") se resuelven antes vía [ordinalMonthly].
+            monthNameDate != null -> monthNameDate
             // "el viernes a las 18" escrito el propio viernes ANTES de esa hora debe
             // vencer HOY (la reunión es hoy), no la semana siguiente. nextWeekday
             // siempre salta +7 cuando hoy es el día objetivo (lo reutilizan las
@@ -3545,7 +3554,6 @@ object NaturalTaskParser {
                 if (nextExplicit) nextWeekday(base.toLocalDate(), target)
                 else nextWeekdayOrSame(base.toLocalDate(), target)
             }
-            monthNameDate != null -> monthNameDate
             // "antes del 30": plazo como día del mes suelto (sin nombre de mes, que ya
             // se resolvió arriba como monthNameDate). Debe ir ANTES de dayOfMonthDate
             // ("el 15"), que exige el artículo "el"/"día" y no casa "antes del 30".
