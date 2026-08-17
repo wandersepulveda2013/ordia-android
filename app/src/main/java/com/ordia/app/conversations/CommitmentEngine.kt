@@ -203,6 +203,31 @@ object CommitmentEngine {
     private val imperativeObjectRequestSignal = Regex(
         """(?iU)\b(?:env[ií]a|revisa|entrega|paga|firma|manda|sube|prepara|completa|confirma|responde|agenda|programa)\s+(?:el|la|los|las|un|una|unos|unas|este|esta|estos|estas|ese|esa|esos|esas|mi|tu|su)\s+(\p{L}{2,})"""
     )
+    // c.538: subjuntivo de 2ª persona con objeto nominal + fecha — MANDATO
+    // INDIRECTO elíptico ("que revises el contrato mañana", "que confirmes la
+    // reserva el viernes", "que pagues la factura", "que firmes el contrato",
+    // "que envíes el reporte", "que entregues el informe"). Es la 5ª forma de la
+    // familia de peticiones directas (c.306/c.307/c.309/c.536): el hablante
+    // antepone "que" al subjuntivo de 2ª persona para ordenar al oyente. La
+    // marca "que" + desinencia -es/-as distingue claramente la 2ª persona del
+    // imperativo (c.536: envía/revisa) y del presente indicativo (c.309: pasas).
+    // PRECISION CRÍTICA: el subjuntivo español aparece también tras verbos
+    // matriz de deseo/expectativa/negación ("espero que revises", "no quiero que
+    // revises", "me gustaría que confirmes", "dudo que termine", "ojalá que
+    // llueva"). Estos NO son mandatos. La guarda natural: el MANDATO elíptico
+    // pone "que" al INICIO de la frase (sin verbo matriz previo); los de deseo
+    // tienen el verbo matriz ANTES del "que". Se exige que el "que" no esté
+    // precedido por ninguna palabra (inicio de texto o tras puntuación . ! ? ;
+    // \n). Así "espero que revises" (que precedido de "espero") queda fuera
+    // automáticamente sin enumerar verbos matriz. "que tengas buen viaje" (fórmula
+    // de cortesía sin objeto determinado ni fecha) no casa por el patrón (exige
+    // determinante+sustantivo). Probe JVM PRE-fix: 6/6 MISSED; negativos 8/8 OK.
+    // "que hagamos/llamemos" (1ª plural) ya cae por la rama plural de
+    // commitmentSignal; no se toca. Determinista (regex), sin random, sin IA
+    // fingida. Nace como draft REQUEST PENDING revisable.
+    private val subjunctiveRequestSignal = Regex(
+        """(?iU)(?:^|[.!?;\n]\s*)que\s+(?:revises|confirmes|env[ií]es|pagues|firmes|entregues|mandes|subas|prepares|completes|respondas|agendes|programes|revisemos|confirmemos|enviemos|paguemos|firmemos|entreguemos|mandemos|subamos|preparemos|completemos|respondamos|agendemos|programemos)\s+(?:el|la|los|las|un|una|unos|unas|este|esta|estos|estas|ese|esa|esos|esas|mi|tu|su)\s+(\p{L}{2,})"""
+    )
     // c.329/c.535: lista curada de infinitivos de acción reusada por
     // [pendingObligationSignal] (c.329), [commitmentSignal] ("me toca", c.535) y
     // [userObligationSignal] ("te toca", c.535). Se restringe a verbos reales de
@@ -709,6 +734,23 @@ object CommitmentEngine {
             obj !in temporalObjectMarkers
         }
 
+    // c.538: el patrón [subjunctiveRequestSignal] ya exige "que" al inicio de la
+    // frase (ver su doc), de modo que los verbos matriz de deseo/expectativa
+    // ("espero que revises", "no quiero que revises") no pueden casar: el "que"
+    // queda precedido por el verbo matriz y la marca de inicio falla. La guarda
+    // de negación precedente descarta el raro caso "no, que revises..." (coma
+    // narrativa). El grupo 1 (sustantivo-objeto) se filtra contra
+    // [temporalObjectMarkers] igual que en c.536 ("que revises el viernes" =
+    // complemento temporal, no objeto directo).
+    private fun hasUnnegatedSubjunctiveRequest(text: String): Boolean =
+        subjunctiveRequestSignal.findAll(text).any { m ->
+            val start = m.range.first
+            val prefix = text.substring(maxOf(0, start - 3), start)
+            if (precedingNegation.containsMatchIn(prefix)) return@any false
+            val obj = m.groupValues.getOrNull(1)?.lowercase(Locale.ROOT).orEmpty()
+            obj !in temporalObjectMarkers
+        }
+
     // c.316: "no tienes que" es AUSENCIA de obligación ("no tienes que
     // preocuparte", "no tienes que venir") — se excluye igual que "no tengo
     // que". La guarda sólo protege la 2ª persona dirigida al usuario.
@@ -798,7 +840,7 @@ object CommitmentEngine {
     private fun detect(message: ChatMessage, self: String?, scopeHash: String): CommitmentDraft? {
         val text = message.text.trim().replace(Regex("\\s+"), " ").take(MAX_ACTION_CHARS)
         if (text.length < 4) return null
-        val isRequest = requestSignal.containsMatchIn(text) || hasUnnegatedIndicativeRequest(text) || hasUnnegatedImperativeObjectRequest(text)
+        val isRequest = requestSignal.containsMatchIn(text) || hasUnnegatedIndicativeRequest(text) || hasUnnegatedImperativeObjectRequest(text) || hasUnnegatedSubjunctiveRequest(text)
         val isMeeting = meetingVerbSignal.containsMatchIn(text) || hasMeetingNounAsSubject(text)
         val isPurchase = purchaseVerbSignal.containsMatchIn(text) || hasPurchaseNounAsSubject(text)
         val isReminder = reminderVerbSignal.containsMatchIn(text) || hasReminderNounAsSubject(text)

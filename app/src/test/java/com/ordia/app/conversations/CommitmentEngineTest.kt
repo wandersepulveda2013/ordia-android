@@ -1031,6 +1031,74 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.538: subjuntivo de 2ª persona con objeto nominal + fecha — MANDATO
+    // INDIRECTO elíptico ("que revises el contrato mañana"). 5ª forma de la
+    // familia de peticiones directas. La guarda exige "que" al inicio de la
+    // frase, excluyendo los verbos matriz de deseo/expectativa ("espero que
+    // revises", "no quiero que revises"). Probe JVM PRE-fix: 6/6 MISSED.
+    @Test
+    fun detectsSubjunctiveObjectRequest() {
+        val positives = listOf(
+            "que revises el contrato mañana",
+            "que confirmes la reserva el viernes",
+            "que envíes el reporte el lunes",
+            "que pagues la factura el viernes",
+            "que firmes el contrato el lunes",
+            "que entregues el informe mañana"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "subj-req-$text"
+            )
+            assertTrue("subjuntivo 2ª persona con objeto DEBE detectarse como REQUEST: \"$text\"", result.isNotEmpty())
+            assertEquals("subjuntivo 2ª persona DEBE ser REQUEST: \"$text\"",
+                CommitmentKind.REQUEST, result.first().kind)
+        }
+    }
+
+    @Test
+    fun detectsSubjunctivePluralObjectRequest() {
+        // 1ª plural: "que preparemos/agendemos el informe el lunes"
+        val positives = listOf(
+            "que preparemos el informe el lunes",
+            "que agendemos la reunión el viernes"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "subj-plur-req-$text"
+            )
+            assertTrue("subjuntivo 1ª plural con objeto DEBE detectarse como REQUEST: \"$text\"", result.isNotEmpty())
+        }
+    }
+
+    @Test
+    fun subjunctiveRequestRespectsMatrixVerbAndCourtesy() {
+        // Precisión: verbos matriz de deso/expectativa/negación ANTES del "que"
+        // NO son mandatos. El "que" precedido de palabra falla la marca de inicio.
+        val negatives = listOf(
+            "espero que revises el contrato mañana",
+            "no quiero que revises el contrato",
+            "me gustaría que confirmes la reserva el viernes",
+            "dudo que termine el informe mañana",
+            "no creo que pagues la factura el viernes",
+            "ojalá que llueva mañana",
+            "que tengas buen viaje",            // cortesía, sin objeto+fecha
+            "espero que venga el lunes"          // expectativa, no mandato
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "subj-req-neg-$text"
+            )
+            assertEquals("precisión subjuntivo: NO debe disparar (verbo matriz/cortesía): \"$text\"", 0, result.size)
+        }
+    }
+
     // c.309: peticiones en indicativo de 2ª persona — la forma MÁS frecuente de
     // pedir algo en chat español ("me pasas el informe?", "me llamas luego?",
     // "me envías el archivo mañana", "me lo mandas?"). En mensajería se pregunta
