@@ -162,6 +162,13 @@
     <string name="notes_sort_alpha">Alfabético</string>
     <string name="notes_sort_pinned">Fijadas primero</string>
     <string name="notes_sort_favorite">Favoritas primero</string>
+    <string name="notes_group_label">Agrupar</string>
+    <string name="notes_group_none">Sin agrupar</string>
+    <string name="notes_group_folder">Carpeta</string>
+    <string name="notes_group_tag">Etiqueta</string>
+    <string name="notes_group_date">Fecha</string>
+    <string name="notes_group_favorite">Favoritas</string>
+    <string name="notes_group_type">Tipo</string>
     <string name="notes_filter_favorites">Favoritas</string>
     <string name="notes_view">Vista</string>
     <string name="notes_sort">Ordenar</string>

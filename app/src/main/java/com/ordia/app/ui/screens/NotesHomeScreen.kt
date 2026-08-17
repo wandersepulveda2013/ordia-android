@@ -82,6 +82,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ordia.app.R
 import com.ordia.app.data.local.NoteEntity
+import com.ordia.app.data.local.NoteFolderEntity
 import com.ordia.app.domain.NoteBlockCodec
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
@@ -101,6 +102,15 @@ enum class NoteFilter(val labelRes: Int) {
 }
 
 enum class NoteViewMode { CARDS, LIST, COMPACT, GALLERY, TITLES }
+
+enum class NoteGroupMode(val labelRes: Int) {
+    NONE(R.string.notes_group_none),
+    FOLDER(R.string.notes_group_folder),
+    TAG(R.string.notes_group_tag),
+    DATE(R.string.notes_group_date),
+    FAVORITE(R.string.notes_group_favorite),
+    TYPE(R.string.notes_group_type)
+}
 
 enum class NoteSortMode(val labelRes: Int) {
     MODIFIED(R.string.notes_sort_modified),
@@ -152,6 +162,7 @@ fun NotesHomeScreen(
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(NoteFilter.NONE) }
     var sort by remember { mutableStateOf(NoteSortMode.MODIFIED) }
+    var group by remember { mutableStateOf(NoteGroupMode.NONE) }
     var view by remember { mutableStateOf(NoteViewMode.CARDS) }
     var menuExpanded by remember { mutableStateOf(false) }
     var searchResults by remember { mutableStateOf<List<NoteEntity>?>(null) }
@@ -188,6 +199,11 @@ fun NotesHomeScreen(
     val sortedPinned = applySort(filteredPinned, sort)
 
     val listToRender = if (filter != NoteFilter.NONE) sortedRegular else sortedRegular
+
+    // Agrupación (solo aplica a la lista regular; las fijadas mantienen su sección).
+    val grouped: List<Pair<String, List<NoteEntity>>> = if (group != NoteGroupMode.NONE) {
+        groupNotes(sortedRegular, group, state.noteFolders)
+    } else emptyList()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -289,7 +305,7 @@ fun NotesHomeScreen(
                         label = { Text(stringResource(f.labelRes), fontSize = 12.sp) }
                     )
                 }
-                ViewSortControl(view = view, sort = sort, onView = { view = it }, onSort = { sort = it })
+                ViewSortControl(view = view, sort = sort, group = group, onView = { view = it }, onSort = { sort = it }, onGroup = { group = it })
             }
 
             // --- Contenido ---
@@ -318,12 +334,21 @@ fun NotesHomeScreen(
                         }
                     }
                     item {
-                        if (sortedPinned.isNotEmpty() && filter == NoteFilter.NONE) {
+                        if (sortedPinned.isNotEmpty() && filter == NoteFilter.NONE && group == NoteGroupMode.NONE) {
                             SectionHeader(stringResource(R.string.notes_section_all))
                         }
                     }
-                    items(listToRender, key = { it.id }) { note ->
-                        SwipeToDeleteNoteCard(note, view, onClick = { onNote(note.id) }, onDelete = { deleteWithUndo(note) })
+                    if (grouped.isNotEmpty()) {
+                        grouped.forEach { (header, notes) ->
+                            item(key = "g-$header") { SectionHeader(header) }
+                            items(notes, key = { it.id }) { note ->
+                                SwipeToDeleteNoteCard(note, view, onClick = { onNote(note.id) }, onDelete = { deleteWithUndo(note) })
+                            }
+                        }
+                    } else {
+                        items(listToRender, key = { it.id }) { note ->
+                            SwipeToDeleteNoteCard(note, view, onClick = { onNote(note.id) }, onDelete = { deleteWithUndo(note) })
+                        }
                     }
                     item { Spacer(Modifier.height(80.dp)) }
                 }
@@ -485,8 +510,10 @@ private fun NoteCard(
 private fun ViewSortControl(
     view: NoteViewMode,
     sort: NoteSortMode,
+    group: NoteGroupMode,
     onView: (NoteViewMode) -> Unit,
-    onSort: (NoteSortMode) -> Unit
+    onSort: (NoteSortMode) -> Unit,
+    onGroup: (NoteGroupMode) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
@@ -532,6 +559,21 @@ private fun ViewSortControl(
                     onClick = { onSort(s) }
                 )
             }
+            // Agrupar
+            Text(
+                stringResource(R.string.notes_group_label),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 2.dp)
+            )
+            NoteGroupMode.entries.forEach { g ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(g.labelRes)) },
+                    leadingIcon = { if (group == g) Icon(Icons.Outlined.PushPin, null) else null },
+                    onClick = { onGroup(g) }
+                )
+            }
         }
     }
 }
@@ -553,6 +595,51 @@ private fun applyFilter(notes: List<NoteEntity>, filter: NoteFilter): List<NoteE
     NoteFilter.IMAGES -> notes.filter { hasAttachmentKind(it, "IMAGE") }
     NoteFilter.AUDIO -> notes.filter { hasAttachmentKind(it, "AUDIO") }
     NoteFilter.CHECKLIST -> notes.filter { hasChecklist(it) }
+}
+
+private fun groupNotes(
+    notes: List<NoteEntity>,
+    mode: NoteGroupMode,
+    folders: List<NoteFolderEntity>
+): List<Pair<String, List<NoteEntity>>> {
+    val dayFmt = java.text.SimpleDateFormat("EEE d MMM", java.util.Locale.getDefault())
+    return when (mode) {
+        NoteGroupMode.FOLDER -> {
+            val byId = folders.associateBy { it.id }
+            notes.groupBy { it.folderId }
+                .toList()
+                .sortedBy { (key, _) -> key ?: Long.MAX_VALUE }
+                .map { (folderId, group) ->
+                    val name = folderId?.let { byId[it]?.name } ?: ""
+                    (name.ifBlank { "Sin carpeta" }) to group
+                }
+        }
+        NoteGroupMode.FAVORITE -> listOf(
+            "Favoritas" to notes.filter { it.favorite },
+            "Otras" to notes.filter { !it.favorite }
+        ).filter { it.second.isNotEmpty() }
+        NoteGroupMode.TYPE -> listOf(
+            "Fijadas" to notes.filter { it.pinned },
+            "Bloqueadas" to notes.filter { it.locked },
+            "Notas" to notes.filter { !it.pinned && !it.locked }
+        ).filter { it.second.isNotEmpty() }
+        NoteGroupMode.DATE -> {
+            val now = System.currentTimeMillis()
+            val dayMs = 24 * 60 * 60 * 1000L
+            notes.groupBy { n ->
+                val diff = now - n.updatedAt
+                when {
+                    diff < dayMs && dayFmt.format(java.util.Date(n.updatedAt)) == dayFmt.format(java.util.Date(now)) -> "Hoy"
+                    diff < 2 * dayMs -> "Ayer"
+                    diff < 7 * dayMs -> "Esta semana"
+                    diff < 30 * dayMs -> "Este mes"
+                    else -> dayFmt.format(java.util.Date(n.updatedAt))
+                }
+            }.toList()
+        }
+        NoteGroupMode.TAG -> listOf("Sin etiqueta" to notes)
+        NoteGroupMode.NONE -> emptyList()
+    }
 }
 
 private fun hasAttachmentKind(note: NoteEntity, kind: String): Boolean {
