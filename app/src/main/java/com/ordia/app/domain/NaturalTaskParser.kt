@@ -806,6 +806,37 @@ object NaturalTaskParser {
     private val ordinalSuffixPattern = Regex("""(?i)\b(\d{1,2})(?:ero|ro|do|er|to|mo|vo|no|º|ª)(\s+del?\s+)""")
 
     /**
+     * Ordinales numéricos ANTES de un día de la semana ("el 3er viernes del mes",
+     * "el 1er lunes de cada mes", "el 2do martes del mes"): forma cotidiana de
+     * referirse a la N-ésima ocurrencia mensual de un weekday. Antes los patrones
+     * ordinales-mensuales ([lastWeekdayOfMonthPattern]/[precedingCadenceOrdinalPattern])
+     * sólo reconocían la forma ESCRITA ("tercer/primer/segundo/cuarto"), así que la
+     * numérica perdía el ordinal: la recurrencia mensual NO se anclaba (MONTHLY al
+     * día del mes → deriva silenciosa del weekday, o rec=NONE) y el título quedaba
+     * corrupto con el residuo "el 3er del mes". Se normaliza a su palabra canónica
+     * SÓLO cuando va seguida de un día de la semana (contexto inequívoco de
+     * ordinal-weekday), reutilizando TODO el flujo mensual existente. Así "ver el
+     * 3er capítulo" o "comprar 2do piso" (contenido) no se tocan. Se limita a 1-4
+     * (todo mes tiene ≥4 de cada weekday; "5to" es raro y el motor no lo mapea).
+     */
+    private val ordinalBeforeWeekdayPattern = Regex(
+        """(?i)\b(\d{1,2})(?:ero|ro|er|do|to|ra|da|ta)(\s+(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b)"""
+    )
+
+    private fun normalizeOrdinalBeforeWeekday(input: String): String =
+        ordinalBeforeWeekdayPattern.replace(input) { m ->
+            val n = m.groupValues[1].toIntOrNull()
+            val word = when (n) {
+                1 -> "primer"
+                2 -> "segundo"
+                3 -> "tercer"
+                4 -> "cuarto"
+                else -> null
+            }
+            if (word != null) "$word${m.groupValues[2]}" else m.value
+        }
+
+    /**
      * "<día> <mes>" SIN conector "de" ("Reunión 22 ago", "Entregar 1 oct",
      * "Renovar suscripción 1 sept", "Cita 20 agosto"): la forma abreviada y
      * cotidiana de capturar una fecha sin teclear "de". Antes NINGÚN patrón la
@@ -2224,6 +2255,7 @@ object NaturalTaskParser {
         // su dígito base para que los patrones de fecha (que exigen \d seguido de espacio)
         // los reconozcan. Solo en contexto de fecha (" de ") para no tocar contenido.
         working = ordinalSuffixPattern.replace(working) { m -> m.groupValues[1] + m.groupValues[2] }
+        working = normalizeOrdinalBeforeWeekday(working)
 
         // Rango de días multi-evento ("del 15 al 20 de diciembre") → "el 20 de diciembre":
         // reutiliza TODO el flujo monthNamePattern (fecha + limpieza del título). Va ANTES

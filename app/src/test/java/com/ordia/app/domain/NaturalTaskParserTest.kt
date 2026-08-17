@@ -1015,6 +1015,82 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), due)
     }
 
+    // P1 evitar-olvidos: ordinales NUMÉRICOS antes de un weekday ("el 3er viernes
+    // del mes", "el 1er lunes de cada mes"). Antes los patrones ordinales-mensuales
+    // sólo reconocían la forma escrita ("tercer/primer"), así que la numérica NO
+    // anclaba la recurrencia mensual al weekday (rec=NONE o MONTHLY al día del mes
+    // → deriva silenciosa del weekday) y el título quedaba corrupto con el residuo
+    // "el 3er del mes". Se pre-normaliza el ordinal numérico a su palabra canónica
+    // sólo cuando va seguido de un día de la semana (contexto inequívoco), reutilizando
+    // todo el flujo mensual existente. Formas masculinas (3er/1er/2do/4to) y femeninas
+    // (3ra/1ra/2da/4ta).
+    @Test fun ordinalNumericoTercerViernesDelMesAnclaMonthlyWeekday() {
+        val result = NaturalTaskParser.parse("reunión el 3er viernes del mes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("3:5", result.recurrenceDays)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(java.time.DayOfWeek.FRIDAY, due.dayOfWeek)
+        // 3er viernes de julio = 2026-07-17 (ya pasó con now=2026-07-29) → avanza a
+        // 3er viernes de agosto = 2026-08-21, nunca en pasado.
+        assertEquals(LocalDate.of(2026, 8, 21), due)
+    }
+
+    @Test fun ordinalNumericoFemeninoTercerViernesDelMesAnclaMonthlyWeekday() {
+        val result = NaturalTaskParser.parse("reunión el 3ra viernes del mes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("3:5", result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 8, 21), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ordinalNumericoPrimerLunesDeCadaMesAnclaMonthlyWeekday() {
+        val result = NaturalTaskParser.parse("renta el 1er lunes de cada mes", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("1:1", result.recurrenceDays)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(java.time.DayOfWeek.MONDAY, due.dayOfWeek)
+        // 1er lunes de julio = 2026-07-06 (ya pasó) → 1er lunes de agosto = 2026-08-03.
+        assertEquals(LocalDate.of(2026, 8, 3), due)
+    }
+
+    @Test fun ordinalNumericoSegundoMartesDeCadaMesAnclaMonthlyWeekday() {
+        val result = NaturalTaskParser.parse("cita el 2do martes de cada mes", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("2:2", result.recurrenceDays)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(java.time.DayOfWeek.TUESDAY, due.dayOfWeek)
+        // 2do martes de julio = 2026-07-14 (ya pasó) → 2do martes de agosto = 2026-08-11.
+        assertEquals(LocalDate.of(2026, 8, 11), due)
+    }
+
+    @Test fun ordinalNumericoCuartoJuevesDelMesAnclaMonthlyWeekday() {
+        val result = NaturalTaskParser.parse("pago el 4to jueves del mes", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("4:4", result.recurrenceDays)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(java.time.DayOfWeek.THURSDAY, due.dayOfWeek)
+        // 4to jueves de julio = 2026-07-23 (ya pasó) → 4to jueves de agosto = 2026-08-27.
+        assertEquals(LocalDate.of(2026, 8, 27), due)
+    }
+
+    // No-regresión: ordinal numérico NO seguido de día de la semana es contenido, no
+    // se normaliza ("ver el 3er capítulo", "comprar 2do piso") — no debe producir
+    // fecha/recurrencia espurias ni alterar el título.
+    @Test fun ordinalNumericoSinWeekdayEsContenidoSinTocar() {
+        val r1 = NaturalTaskParser.parse("ver el 3er capítulo", now, zone)
+        assertEquals("ver el 3er capítulo", r1.title)
+        assertEquals(RecurrenceFrequency.NONE, r1.recurrence)
+        assertNull(r1.dueAt)
+        val r2 = NaturalTaskParser.parse("comprar 2do piso", now, zone)
+        assertEquals("comprar 2do piso", r2.title)
+        assertEquals(RecurrenceFrequency.NONE, r2.recurrence)
+        assertNull(r2.dueAt)
+    }
+
     // No-regresión: mes nombrado NO se promueve a MONTHLY (fecha única en mes concreto).
     @Test fun primerLunesDeAgostoSigueSiendoFechaUnicaNoRecurrente() {
         val result = NaturalTaskParser.parse("cita el primer lunes de agosto", now, zone)
