@@ -6534,6 +6534,51 @@ class NaturalTaskParserTest {
         assertEquals("6,7", result.recurrenceDays)
     }
 
+    // --- c.542: formas de PASADO del fin de semana ---
+    // "el fin de semana pasado"/"el finde pasado"/"el fin de semana que pasó"/
+    // "el pasado fin de semana"/"el fin de semana anterior" deben resolver al sábado
+    // ANTERIOR (tarea vencida honesta, visible en What Now/vencidas), no al PRÓXIMO
+    // sábado (futuro). Bug P1: una tarea claramente pasada se fechaba en el futuro y
+    // se ocultaba de la vista de vencidas. Simétrico a "el sábado pasado" (cuya rama
+    // previousWeekday ya existía). now=2026-07-29 (miércoles) → sábado pasado 2026-07-25.
+    @Test fun elFinDeSemanaPasadoProgramaSabadoAnteriorYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Revisar informe el fin de semana pasado", now, zone)
+        assertEquals("Revisar informe", result.title)
+        assertEquals(LocalDate.of(2026, 7, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elFinDeSemanaQuePasoProgramaSabadoAnteriorYLimpiaTitulo() {
+        // "que pasó" (con y sin tilde) coloquial = fin de semana pasado.
+        val result = NaturalTaskParser.parse("Revisar informe el fin de semana que pasó", now, zone)
+        assertEquals("Revisar informe", result.title)
+        assertEquals(LocalDate.of(2026, 7, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elFinDeSemanaQuePasoSinTildeProgramaSabadoAnterior() {
+        val result = NaturalTaskParser.parse("Revisar informe el fin de semana que paso", now, zone)
+        assertEquals("Revisar informe", result.title)
+        assertEquals(LocalDate.of(2026, 7, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elFindePasadoProgramaSabadoAnteriorYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cine el finde pasado", now, zone)
+        assertEquals("Cine", result.title)
+        assertEquals(LocalDate.of(2026, 7, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elPasadoFinDeSemanaProgramaSabadoAnteriorYLimpiaTitulo() {
+        // Modificador reverso (prefijo): "el pasado fin de semana".
+        val result = NaturalTaskParser.parse("Cita el pasado fin de semana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun elFinDeSemanaAnteriorProgramaSabadoAnteriorYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Llamada el fin de semana anterior", now, zone)
+        assertEquals("Llamada", result.title)
+        assertEquals(LocalDate.of(2026, 7, 25), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- c.495: "a" distributiva GENERALIZADA ante cualquier cadencia ---
     // La sonda mostró que el residuo "a" de c.494 NO era exclusivo de fin de semana: la
     // misma "a" coloquial ante "cada día/semana/mes/año/lunes/mañana" dejaba el título

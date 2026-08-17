@@ -141,7 +141,30 @@ object NaturalTaskParser {
      *  "final de semana" se añade aquí (no en parseRecurrence) porque es sinónimo de
      *  UN fin de semana concreto, igual que "fin de semana"; sin esto la tarea queda
      *  SIN fecha (P1: olvidada, invisible en What Now). */
-    private val weekendPattern = Regex("""(?i)\b(?<!cada\s)(?<!los\s)(?:a\s+)?(?:este\s+|el\s+|pr[oó]ximo\s+)?(?:fin|final|finales)\s+de\s+semana\b|\b(?:a\s+)?(?:este\s+|el\s+|pr[oó]ximo\s+)?(?<!cada\s)(?<!los\s)finde\b""")
+    private val weekendPastModifier = """(?:pasad[oa]|anterior|últim[oa]|ultim[oa])"""
+    // Nota: el \b va DESPUÉS de "semana"/"finde" (antes del modificador opcional final), no al
+    // final del grupo opcional. Con \b al final, el retroceso ASCII (\b no considera 'ó' como
+    // carácter de palabra) hace que "que pasó" NO se capture: el motor suelta el grupo opcional
+    // para satisfacer \b tras "semana", dejando "que pasó" como residuo y fechando el PRÓXIMO
+    // sábado (futuro) en lugar del pasado. Por eso el modificador final va sin \b posterior.
+    private val weekendPattern = Regex(
+        """(?i)\b(?<!cada\s)(?<!los\s)(?:a\s+)?(?:este\s+|el\s+|pr[oó]ximo\s+)?(?:(?:$weekendPastModifier)\s+)?(?:fin|final|finales)\s+de\s+semana\b(?:\s+(?:$weekendPastModifier|que\s+pas[oó]))?""" +
+            """|\b(?:a\s+)?(?:este\s+|el\s+|pr[oó]ximo\s+)?(?:(?:$weekendPastModifier)\s+)?(?<!cada\s)(?<!los\s)finde\b(?:\s+(?:$weekendPastModifier|que\s+pas[oó]))?"""
+    )
+    /** `true` si el match de [weekendPattern] señala el fin de semana PASADO
+     *  ("el fin de semana pasado"/"el pasado fin de semana"/"finde anterior"/
+     *  "el fin de semana que pasó") en vez del próximo. Simétrico a previousWeekday:
+     *  resuelve al sábado anterior para una tarea vencida honesta, no al próximo
+     *  sábado (fecha futura errónea). Antes "el fin de semana pasado" caía a
+     *  weekendPattern sin capturar "pasado", se fechaba en el PRÓXIMO sábado y
+     *  "pasado" sobrevivía como residuo en el título (P1: fecha olvidada +
+     *  título corrupto, a diferencia de "el sábado pasado" que sí iba al pasado). */
+    private fun weekendMatchIsPast(m: MatchResult): Boolean {
+        val t = m.value.lowercase()
+        return !t.contains("próxim") && !t.contains("proxim") &&
+            (t.contains("pasad") || t.contains("anterior") ||
+                t.contains("últim") || t.contains("ultim") || t.contains("que pas"))
+    }
     /**
      * "el jueves pasado" / "el último lunes" / "el martes anterior": última ocurrencia
      * PASADA de ese día de la semana. El usuario reconoce que la tarea está vencida
@@ -4090,7 +4113,9 @@ object NaturalTaskParser {
                 previousWeekday(base.toLocalDate(), previousWeekdayMatch.groupValues[1].toDayOfWeek())
             previousWeekdayReversedMatch != null && previousWeekdayReversedMatch.groupValues[1].toDayOfWeekOrNull() != null ->
                 previousWeekday(base.toLocalDate(), previousWeekdayReversedMatch.groupValues[1].toDayOfWeek())
-            weekendMatch != null -> nextWeekday(base.toLocalDate(), DayOfWeek.SATURDAY)
+            weekendMatch != null ->
+                if (weekendMatchIsPast(weekendMatch)) previousWeekday(base.toLocalDate(), DayOfWeek.SATURDAY)
+                else nextWeekday(base.toLocalDate(), DayOfWeek.SATURDAY)
             // Fecha con mes NOMBRADO ("24 de septiembre") tiene prioridad sobre un día de la
             // semana suelto ("lunes"): cuando ambos aparecen juntos ("reunión el lunes 24 de
             // septiembre") el usuario especifica una fecha concreta y nombra el weekday como
