@@ -197,4 +197,53 @@ class IntelligenceSafetyGateTest {
     fun textoVacioSeBloquea() {
         assertEquals(true, blocked("   "))
     }
+
+    // --- Falsos negativos de tildes: OTP/credenciales sin acento (c.516) ---
+    // En español escrito casualmente (móvil, sin autocorrector de tildes)
+    // "codigo"/"contrasena" sin tilde son formas extremadamente comunes. El gate
+    // anterior solo casaba la forma con tilde ("código"/"contraseña"), así que
+    // un OTP como "mi codigo de verificacion es 1234" NO se bloqueaba y el
+    // secreto se procesaba/persistía en texto plano (fuga de privacidad).
+
+    @Test
+    fun otpCodigoSinTildeSeBloquea() {
+        assertEquals(true, blocked("mi codigo de verificacion es 1234"))
+    }
+
+    @Test
+    fun otpCodigoSeguridadSinTildeSeBloquea() {
+        assertEquals(true, blocked("el codigo de seguridad es 482917"))
+    }
+
+    @Test
+    fun otpCodigoPorSmsSinTildeSeBloquea() {
+        assertEquals(true, blocked("recibi el codigo 4321 por sms"))
+    }
+
+    @Test
+    fun codigoDeAccesoSinTildeSeBloquea() {
+        assertEquals(true, blocked("codigo de acceso 998877"))
+    }
+
+    @Test
+    fun contrasenaConValorSinTildeSeBloquea() {
+        assertEquals(true, blocked("mi contrasena es secreta123"))
+    }
+
+    @Test
+    fun claveCredencialSinTildeSeBloquea() {
+        assertEquals(true, blocked("mi clave de acceso es 4829"))
+    }
+
+    // Los falsos positivos de "código" no-OTP también escritos sin tilde siguen
+    // sin bloquearse (c.510 sobre texto normalizado).
+    @Test
+    fun codigoPostalSinTildeNoSeBloquea() {
+        assertEquals(false, blocked("enviar paquete al codigo postal 12345"))
+    }
+
+    @Test
+    fun codigoDeAreaSinTildeNoSeBloquea() {
+        assertEquals(false, blocked("llamar al codigo de area 555 del proveedor"))
+    }
 }

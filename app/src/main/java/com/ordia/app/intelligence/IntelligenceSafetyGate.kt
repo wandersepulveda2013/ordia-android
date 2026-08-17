@@ -2,6 +2,7 @@ package com.ordia.app.intelligence
 
 import android.util.Log
 import com.ordia.app.domain.SensitiveSecretPatterns
+import java.text.Normalizer
 
 /**
  * Puerta de seguridad que se ejecuta ANTES de cualquier proveedor de inteligencia.
@@ -35,18 +36,21 @@ object IntelligenceSafetyGate {
 
     /** Tipos de "código" cuyo número es un identificador público, no un OTP/secret.
      *  Evita bloquear "código postal 12345", "código de barras 1234567",
-     *  "código QR de la factura 2024001", "código de área 555", etc. (c.510). */
+     *  "código QR de la factura 2024001", "código de área 555", etc. (c.510).
+     *  Se evalúa sobre texto normalizado sin tildes (ver [unaccent]) para que
+     *  las formas sin acento ("codigo postal 12345") sigan excluyéndose (c.516). */
     private val CODIGO_NO_SECRETO = Regex(
-        """código\s+(postal|de\s+barras|qr|de\s+área|de\s+fuente|de\s+producto|de\s+cliente|de\s+artículo)""",
+        """codigo\s+(postal|de\s+barras|qr|de\s+area|de\s+fuente|de\s+producto|de\s+cliente|de\s+articulo)""",
         RegexOption.IGNORE_CASE
     )
 
     /** Usos de "clave" que NO son credenciales: metafóricos ("la clave del éxito"),
      *  de juego/acertijo ("la clave del juego"), o musicales ("clave musical",
      *  "clave de sol/fa/do"). Evita bloquear "la clave del éxito es practicar 100
-     *  veces" o "recordar la clave de sol del acertijo 123" (c.512). */
+     *  veces" o "recordar la clave de sol del acertijo 123" (c.512). Se evalúa
+     *  sobre texto normalizado sin tildes (ver [unaccent]) (c.516). */
     private val CLAVE_NO_CREDENCIAL = Regex(
-        """clave\s+(del?\s+(?:é|e)xito|del?\s+juego|musical|de\s+(?:sol|fa|do|re|mi|la|si))""",
+        """clave\s+(del?\s+exito|del?\s+juego|musical|de\s+(?:sol|fa|do|re|mi|la|si))""",
         RegexOption.IGNORE_CASE
     )
 
@@ -125,11 +129,17 @@ object IntelligenceSafetyGate {
     }
 
     private fun containsCredentials(text: String): Boolean {
-        val lower = text.lowercase()
+        // Normaliza tildes: en español escrito de forma casual (móvil, sin
+        // autocorrector de acentos) "codigo"/"contrasena" sin tilde son formas
+        // extremadamente comunes. Sin esta normalización, un OTP como "mi codigo
+        // de verificacion es 1234" o "la contrasena es secreta123" NO se bloqueaba
+        // y el secreto se persistía/procesaba en texto plano (c.516).
+        val lower = unaccent(text.lowercase())
         // Contraseñas: palabra clave + valor adyacente (evita bloquear
         // "recuérdame cambiar mi contraseña" sin valor real, que el gate
-        // canónico también deja pasar).
-        if (credentialKeywordWithValue(lower, listOf("contraseña", "password", "pwd", "clave"))) {
+        // canónico también deja pasar). Formas sin tilde para casar el texto
+        // normalizado.
+        if (credentialKeywordWithValue(lower, listOf("contrasena", "password", "pwd", "clave"))) {
             return true
         }
         // OTP / códigos de verificación. Se exige "código" + un valor numérico
@@ -138,7 +148,7 @@ object IntelligenceSafetyGate {
         // su número es un identificador público, no un OTP. Sin esta exclusión,
         // tareas como "envía el paquete al código postal 12345" o "imprime el código
         // QR de la factura 2024001" se bloqueaban injustamente (c.510).
-        if (lower.contains("código") &&
+        if (lower.contains("codigo") &&
             !CODIGO_NO_SECRETO.containsMatchIn(lower) &&
             Regex("""\d{4,8}""").containsMatchIn(lower)
         ) {
@@ -154,6 +164,11 @@ object IntelligenceSafetyGate {
         }
         return false
     }
+
+    /** Quita marcas diacríticas (tildes/diacríticos) para comparación tolerante
+     *  a acentos en la detección de credenciales (c.516). */
+    private fun unaccent(s: String): String =
+        Normalizer.normalize(s, Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "")
 
     /** Palabra clave de credencial seguida (en una ventana corta) de un valor: separador
      *  explícito (`:`/`=`) o un token numérico (\d{3,}). Evita bloquear frases sin valor
