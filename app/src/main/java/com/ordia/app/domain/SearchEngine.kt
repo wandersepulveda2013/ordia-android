@@ -68,7 +68,7 @@ object SearchEngine {
         val wantsTasks = "tarea" in normalized || "pendiente" in normalized || "vencid" in normalized
         val wantsNotes = "nota" in normalized
         val wantsMessages = "mensaje" in normalized || "conversacion" in normalized || "chat" in normalized
-        val wantsCommitments = "compromiso" in normalized
+        val wantsCommitments = "compromiso" in normalized || "pendient" in normalized
         val wantsAutomations = "automatiz" in normalized || "regla" in normalized
         val typed = wantsTasks || wantsNotes || wantsMessages || wantsCommitments || wantsAutomations
         // "alta prioridad"/"prioridad alta" → exactamente HIGH; "baja

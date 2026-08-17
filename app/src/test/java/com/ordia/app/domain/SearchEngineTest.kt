@@ -16,6 +16,7 @@ import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.data.local.TaskTagCrossRef
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -1105,5 +1106,95 @@ class SearchEngineTest {
             commitments = listOf(converted, dismissed), now = now
         )
         assertTrue(results.none { it.kind == SearchKind.COMMITMENT })
+    }
+
+    // "pendientes" recupera los compromisos PENDING sin importar su fecha: un
+    // compromiso PENDIENTE es, por definicion, "pendiente" (de revisar/convertir).
+    // Antes de este fix "pendientes" EXCLUIA toda promesa: "pendient" no activaba
+    // `wantsCommitments` (solo "compromiso" lo hacia), asi que el guard `!typed`
+    // (activado por "pendiente"->wantsTasks) suprimia los compromisos por completo
+    // - justo el olvido que la busqueda deberia rescatar. Simetrico a como una
+    // tarea no completada entra al buscar "pendiente" sin que su titulo lo diga.
+    // Recupera futuros, sin fecha y vencidos por igual: todos son "pendientes de
+    // revisar". Honra el 4. olvido de Ordia en la superficie por excelencia.
+    @Test fun pendientes_recoversAllPendingCommitments() {
+        val now = System.currentTimeMillis()
+        val overdue = CommitmentEntity(
+            id = 320, conversationId = 100, kind = CommitmentKind.OTHER_COMMITMENT,
+            owner = CommitmentOwner.OTHER, actor = "Maria", action = "llamar",
+            dueAt = now - 24 * 3_600_000L, confidence = 0.9f,
+            reviewStatus = CommitmentReviewStatus.PENDING, fingerprint = "fp-ven"
+        )
+        val future = CommitmentEntity(
+            id = 321, conversationId = 100, kind = CommitmentKind.OTHER_COMMITMENT,
+            owner = CommitmentOwner.OTHER, actor = "Luis", action = "enviar",
+            dueAt = now + 24 * 3_600_000L, confidence = 0.9f,
+            reviewStatus = CommitmentReviewStatus.PENDING, fingerprint = "fp-fut"
+        )
+        val noDate = CommitmentEntity(
+            id = 322, conversationId = 100, kind = CommitmentKind.OTHER_COMMITMENT,
+            owner = CommitmentOwner.OTHER, actor = "Socio", action = "pensar oferta",
+            dueAt = null, confidence = 0.9f,
+            reviewStatus = CommitmentReviewStatus.PENDING, fingerprint = "fp-nodate"
+        )
+        val results = SearchEngine.search(
+            "pendientes", emptyList(), emptyList(), emptyList(), emptyList(),
+            commitments = listOf(overdue, future, noDate), now = now
+        )
+        assertEquals(3, results.size)
+        assertEquals(setOf(320L, 321L, 322L), results.map { it.id }.toSet())
+        results.forEach { assertEquals(SearchKind.COMMITMENT, it.kind) }
+    }
+
+    // "pendientes" NO recupera compromisos CONVERTED o DISMISSED: ya no son
+    // "pendientes". Un compromiso convertido en tarea o descartado dejo de ser un
+    // pendiente de revisar - igual que una tarea completada no aparece al buscar
+    // "pendiente". Coherencia con [CommitmentRules.isOverduePending] (que exige
+    // PENDING) y con el filtro de tareas `!task.completed`.
+    @Test fun pendientes_doesNotRecoverConvertedOrDismissedCommitments() {
+        val now = System.currentTimeMillis()
+        val converted = CommitmentEntity(
+            id = 330, conversationId = 100, kind = CommitmentKind.OTHER_COMMITMENT,
+            owner = CommitmentOwner.OTHER, actor = "Maria", action = "llamar",
+            dueAt = now - 24 * 3_600_000L, confidence = 0.9f,
+            reviewStatus = CommitmentReviewStatus.CONVERTED, resultTaskId = 999L,
+            fingerprint = "fp-conv"
+        )
+        val dismissed = CommitmentEntity(
+            id = 331, conversationId = 100, kind = CommitmentKind.OTHER_COMMITMENT,
+            owner = CommitmentOwner.OTHER, actor = "Luis", action = "enviar",
+            dueAt = now + 24 * 3_600_000L, confidence = 0.9f,
+            reviewStatus = CommitmentReviewStatus.DISMISSED, fingerprint = "fp-dism"
+        )
+        val results = SearchEngine.search(
+            "pendientes", emptyList(), emptyList(), emptyList(), emptyList(),
+            commitments = listOf(converted, dismissed), now = now
+        )
+        assertTrue(results.none { it.kind == SearchKind.COMMITMENT })
+    }
+
+    // "pendientes" sigue recuperando las tareas no completadas (su comportamiento
+    // original) ADEMAS de los compromisos PENDING: una sola query recupera TODO lo
+    // pendiente en todas las clases de olvido. Menos friccion, mas potencia: el
+    // usuario no tiene que saber si "eso que falta" es una tarea o una promesa.
+    @Test fun pendientes_recoversPendingTasksAndPendingCommitments() {
+        val now = System.currentTimeMillis()
+        val pendingTask = TaskEntity(id = 1, title = "Llamar al dentista", status = TaskStatus.PLANNED, completed = false)
+        val completedTask = TaskEntity(id = 2, title = "Comprar pan", status = TaskStatus.COMPLETED, completed = true)
+        val commitment = CommitmentEntity(
+            id = 340, conversationId = 100, kind = CommitmentKind.OTHER_COMMITMENT,
+            owner = CommitmentOwner.OTHER, actor = "Maria", action = "enviar proposal",
+            dueAt = null, confidence = 0.9f,
+            reviewStatus = CommitmentReviewStatus.PENDING, fingerprint = "fp-pend"
+        )
+        val results = SearchEngine.search(
+            "pendientes", listOf(pendingTask, completedTask), emptyList(), emptyList(),
+            emptyList(), commitments = listOf(commitment), now = now
+        )
+        val taskIds = results.filter { it.kind == SearchKind.TASK }.map { it.id }
+        val commitmentIds = results.filter { it.kind == SearchKind.COMMITMENT }.map { it.id }
+        assertTrue(pendingTask.id in taskIds)
+        assertFalse(completedTask.id in taskIds)
+        assertEquals(listOf(340L), commitmentIds)
     }
 }
