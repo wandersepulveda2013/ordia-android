@@ -83,7 +83,20 @@ object AssistantEngine {
             // funcionando). No colisiona con agenda: ésta usa "tengo"/"hay"/"para".
             "que hago ahora" in query || "que hago" in query ||
                 "siguiente accion" in query || "que sigue" in query ||
-                "que me toca" in query -> {
+                "que me toca" in query ||
+                // "¿qué tengo que hacer?"/"¿qué me falta por hacer?" son las formas
+                // más cotidianas de preguntar por la siguiente tarea — semánticamente
+                // idénticas a "¿qué hago ahora?"/"¿qué me toca?" — pero, al no
+                // contener "hago"/"toca"/"sigue", caían al menú genérico: el usuario
+                // preguntaba por su siguiente acción y el asistente respondía con una
+                // lista de lo que "puede" hacer en vez de sugerirle cuál. Se rutean a
+                // What Now con la MISMA protección que evita robarle la agenda a las
+                // variantes con timeframe: "¿qué tengo que hacer mañana?" sigue
+                // resolviéndose como agenda (isAgendaQuery se evalúa antes, dentro del
+                // &&, y al ser true niega la rama). "que me falta" se incluye porque
+                // "¿qué me falta por hacer?" nombra exactamente lo pendiente. No se
+                // añaden verbos sueltos (paridad con whatNow_verbsAloneAreNotWhatNow).
+                (("que tengo que hacer" in query || "que me falta" in query) && !isAgendaQuery(query)) -> {
                 val suggestion = WhatNowEngine.suggest(active, now)
                 if (suggestion == null) {
                     // Quinto olvido de Ordía (c.357): sin tareas pendientes PERO con

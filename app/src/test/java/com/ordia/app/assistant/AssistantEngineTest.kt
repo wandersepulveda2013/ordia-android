@@ -822,6 +822,33 @@ class AssistantEngineTest {
         assertEquals("¿qué me toca? debe sugerir la tarea urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
     }
 
+    @Test fun whatNow_recognizesQueTengoQueHacer() {
+        // "¿qué tengo que hacer?" — la forma más cotidiana de preguntar por la
+        // siguiente tarea — antes caía al menú genérico por no contener
+        // "hago"/"toca"/"sigue". Debe sugerir la tarea urgente, igual que "qué hago".
+        val answer = AssistantEngine.answer("¿Qué tengo que hacer?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿qué tengo que hacer? debe sugerir la urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun whatNow_recognizesQueMeFaltaPorHacer() {
+        // "¿qué me falta por hacer?" nombra exactamente lo pendiente; antes caía al
+        // menú genérico. Debe sugerir la tarea urgente.
+        val answer = AssistantEngine.answer("¿Qué me falta por hacer?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿qué me falta por hacer? debe sugerir la urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun whatNow_queTengoQueHacer_conTimeframeVaAAgendaNoWhatNow() {
+        // "¿qué tengo que hacer mañana?" lleva timeframe: la agenda debe ganar
+        // sobre la rama What Now. Con una tarea con dueAt mañana, agenda debe
+        // listarla; sin relatedTaskIds genéricos de "menú".
+        val manana = System.currentTimeMillis() + 25 * 60 * 60 * 1000L
+        val tareaManana = TaskEntity(id = 5, title = "Entrega", priority = TaskPriority.URGENT, dueAt = manana)
+        val answer = AssistantEngine.answer("¿qué tengo que hacer mañana?", listOf(tareaManana), emptyList(), emptyList())
+        // agenda lista la tarea del día; el menú genérico diría "Puedo organizar...".
+        assertFalse("con timeframe va a agenda, no a menú genérico: ${answer.text}",
+            answer.text.contains("Puedo organizar"))
+    }
+
     @Test fun whatNow_recognizesBareQueHago() {
         // La forma desnuda "¿qué hago?" (sin "ahora") antes no se reconocía.
         val answer = AssistantEngine.answer("¿Qué hago?", whatNowUrgent, emptyList(), emptyList())
