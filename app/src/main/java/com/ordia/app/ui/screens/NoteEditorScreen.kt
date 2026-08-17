@@ -551,6 +551,18 @@ fun NoteEditorScreen(
                     )
                 }
                 itemsIndexed(blocks, key = { _, block -> block.id }) { index, block ->
+                    if (block.type == NoteBlockType.CHECKLIST && (index == 0 || blocks[index - 1].type != NoteBlockType.CHECKLIST)) {
+                        ChecklistGroupHeader(
+                            blocks = blocks,
+                            startIndex = index,
+                            onMarkAll = { checked ->
+                                val groupEnd = checklistGroupEnd(blocks, index)
+                                for (i in index..groupEnd) {
+                                    updateBlock(i, blocks[i].copy(checked = checked))
+                                }
+                            }
+                        )
+                    }
                     BlockRow(
                         index = index,
                         block = block,
@@ -1374,3 +1386,43 @@ private fun formatBytes(context: android.content.Context, bytes: Long): String =
 
 private fun Modifier.heightInMax(max: androidx.compose.ui.unit.Dp): Modifier =
     this.then(Modifier.heightIn(max = max))
+
+/** Índice del último bloque de un grupo contiguo de checklists que empieza en [startIndex]. */
+private fun checklistGroupEnd(blocks: List<NoteBlock>, startIndex: Int): Int {
+    var i = startIndex
+    while (i + 1 < blocks.size && blocks[i + 1].type == NoteBlockType.CHECKLIST) i++
+    return i
+}
+
+@Composable
+private fun ChecklistGroupHeader(
+    blocks: List<NoteBlock>,
+    startIndex: Int,
+    onMarkAll: (Boolean) -> Unit
+) {
+    val end = checklistGroupEnd(blocks, startIndex)
+    val group = blocks.subList(startIndex, end + 1)
+    val done = group.count { it.checked }
+    val total = group.size
+    val allChecked = done == total && total > 0
+    Row(
+        Modifier.fillMaxWidth().padding(start = 4.dp, top = 6.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            "$done / $total",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        TextButton(
+            onClick = { onMarkAll(!allChecked) },
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+        ) {
+            Text(
+                if (allChecked) stringResource(R.string.notes_checklist_uncheck_all) else stringResource(R.string.notes_checklist_check_all),
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
+    }
+}
