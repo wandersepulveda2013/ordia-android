@@ -1215,7 +1215,7 @@ object NaturalTaskParser {
         // de la fracción/meridiem (simétrico del reloj "HH:MMh pm" de c.235 y del
         // "a las N" de aquí): así "a la una horas y media" y "a la una h pm" consumen
         // el sufijo completo en vez de dejar fracción/meridiem como residuo en el título.
-        Regex("""(?i)\ba\s+la\s+(una)(?:(?::|h)([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
+        Regex("""(?i)\ba\s+la\s+(una)(?:(?::|h|[.,])([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
         // Sufijo opcional "(horas?|hs|h)" tras la hora para consumir "a las 9 horas"/
         // "a las 9h" completo: antes "horas" quedaba como residuo en el titulo y, peor,
         // "9 horas" era robado como duracion (540 min falsos). Es NO capturante (no
@@ -1238,7 +1238,7 @@ object NaturalTaskParser {
         // hora más común en español). Sin ella, el `\b` final no casa (entre "5" y "h"
         // no hay límite de palabra) → dueAt perdido + "a las 15h" como residuo. El `\b`
         // tras "h" deja intacta la "h" de "hola"/"hello". Simétrico al reloj "HH:MMh".
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h|[.,])([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
         // Hora de reloj autónoma "HH:MM [h/hs/horas] [am/pm]" en AMBOS órdenes. El sufijo
         // de unidad "h/hs/horas" puede ir ANTES ("3:30h pm") o DESPUÉS ("3:30 pm h") del
         // meridiem: se permite en las dos posiciones (no capturante) para absorberlo

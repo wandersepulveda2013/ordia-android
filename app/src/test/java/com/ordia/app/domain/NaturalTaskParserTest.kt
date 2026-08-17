@@ -4867,6 +4867,51 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 30), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- "a las N.MM" / "a las N,MM": punto/coma decimal como separador de minutos (c.479) ---
+    // "a las 3.30"/"a las 3,30" antes NO se reconocían como hora con minutos: el grupo `:MM`
+    // de [timePatterns] sólo admitía ":" o "h" como separador. El "3" casaba como hora en
+    // punto (03:00) y el ".30"/",30" quedaba como residuo en el título ("Cita .30"/"Cita ,30"):
+    // la cita se agendaba 30 min antes y el contenido capturado quedaba mutilado (P1
+    // captura/título limpio/datos). El punto/coma es la notación decimal de reloj cotidiana
+    // ("3.30" = 3:30) distinta de la cadencia fraccionaria "cada N horas y media" (c.260) y
+    // de la duración decimal "1.5 horas" (c.2793, que exige unidad "horas"). Aquí el
+    // separador va tras una hora en notación "a las N", así que es inequívoco. Sólo se admite
+    // con DOS dígitos `[0-5]\d` (no "3.5" de un dígito: ese caso es genuinamente ambiguo —
+    // ¿minuto 05 o decimal .5=30min?— y queda ABIERTO; el patrón ya exige dos dígitos, así
+    // que no hace falta guard extra). El `.` se añade SÓLO al patrón "a las N"/"a la una"
+    // (con introductor), NO al patrón autónomo de reloj "HH:MM" suelto: así "2.50 kg" (cantidad
+    // con dos decimales) no se roba como hora 02:50 porque no lleva "a las".
+
+    @Test fun aLas3_30ConPuntoEs3_30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las 3.30", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(3, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas3_30ConComaEs3_30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las 3,30", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(3, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas3_30DeLaTardeConPuntoEs15_30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las 3.30 de la tarde", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas9_15ConPuntoEs9_15YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las 9.15", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(9, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun aLas3_30PmConPuntoEs15_30YLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Cita a las 3.30 pm", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(15, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // --- "y <minutos escritos>"/"y tres cuartos": minutos sub-hora cotidianos (ciclo 181) ---
     // "a las once y veinte"/"a las diez y tres cuartos"/"a las 9 y cuarenta y cinco" antes NO
     // se reconocían: el grupo 3 de [timePatterns] sólo admitía "y media"/"y cuarto", así que
