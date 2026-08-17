@@ -108,4 +108,55 @@ class NaturalTaskParserWeekdayDayTest {
         val fecha = Instant.ofEpochMilli(r.dueAt!!).atZone(zone).toLocalDate()
         assertEquals(LocalDate.of(2026, 8, 24), fecha)
     }
+
+    // c.486: "el lunes 24 del mes que viene" — el lookahead negativo de weekdayDayPattern
+    // (c.484) difiere esta forma a nextMonthDayPattern, pero éste no aceptaba un weekday
+    // entre "el" y el día. La frase caía a nextPeriodPattern (+30d genérico = 16/09) y el
+    // "24 del" sobrevivía como residuo corrupto del título ("reunión 24 del"): fecha
+    // errónea + título degradado (P1 datos/fechas). Ahora nextMonthDayPattern acepta el
+    // weekday opcional y ancla al día N del mes siguiente consumiendo la frase completa.
+    @Test fun weekdayDiaDelMesQueVieneAnclaDiaMesSiguiente() {
+        val r = NaturalTaskParser.parse("reunión el lunes 24 del mes que viene", now, zone)
+        assertNotNull(r.dueAt)
+        assertEquals("reunión", r.title.trim())
+        val fecha = Instant.ofEpochMilli(r.dueAt!!).atZone(zone).toLocalDate()
+        assertEquals(LocalDate.of(2026, 9, 24), fecha)
+    }
+
+    @Test fun weekdayDiaDelMesQueVieneConHora() {
+        val r = NaturalTaskParser.parse("pago el viernes 28 del mes que viene a las 10", now, zone)
+        assertNotNull(r.dueAt)
+        assertEquals("pago", r.title.trim())
+        val zdt = Instant.ofEpochMilli(r.dueAt!!).atZone(zone)
+        assertEquals(LocalDate.of(2026, 9, 28), zdt.toLocalDate())
+        assertEquals(10, zdt.hour)
+    }
+
+    @Test fun weekdayDiaDelMesProximoAnclaMesSiguiente() {
+        // Variante "del mes próximo" (sinónimo de "mes que viene").
+        val r = NaturalTaskParser.parse("cita el martes 15 del mes próximo", now, zone)
+        assertNotNull(r.dueAt)
+        assertEquals("cita", r.title.trim())
+        val fecha = Instant.ofEpochMilli(r.dueAt!!).atZone(zone).toLocalDate()
+        assertEquals(LocalDate.of(2026, 9, 15), fecha)
+    }
+
+    @Test fun weekdayDiaDelMesQueVieneConClampDiaImposible() {
+        // Día 31 en un mes de 30 días (septiembre) → clamp al 30 (consistente con
+        // nextMonthDayPattern sin weekday).
+        val r = NaturalTaskParser.parse("reunión el lunes 31 del mes que viene", now, zone)
+        assertNotNull(r.dueAt)
+        assertEquals("reunión", r.title.trim())
+        val fecha = Instant.ofEpochMilli(r.dueAt!!).atZone(zone).toLocalDate()
+        assertEquals(LocalDate.of(2026, 9, 30), fecha)
+    }
+
+    @Test fun mesQueVieneWeekdayDiaFormaInversaAnclaMesSiguiente() {
+        // Forma inversa: "el mes que viene el lunes 5" (período ANTES del día).
+        val r = NaturalTaskParser.parse("cita el mes que viene el lunes 5", now, zone)
+        assertNotNull(r.dueAt)
+        assertEquals("cita", r.title.trim())
+        val fecha = Instant.ofEpochMilli(r.dueAt!!).atZone(zone).toLocalDate()
+        assertEquals(LocalDate.of(2026, 9, 5), fecha)
+    }
 }

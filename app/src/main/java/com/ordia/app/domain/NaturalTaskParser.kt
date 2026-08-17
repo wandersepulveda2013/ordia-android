@@ -544,7 +544,7 @@ object NaturalTaskParser {
      * que no se inventan fechas para un "del 15" aislado sin mes relativo.
      */
     private val nextMonthDayPattern = Regex(
-        """(?i)\b(?:el\s+(?:d[ií]a\s+)?|del\s+(?:d[ií]a\s+)?|d[ií]a\s+)(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b"""
+        """(?i)\b(?:el\s+(?:(?:d[ií]a\s+)?|(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+)?|del\s+(?:(?:d[ií]a\s+)?|(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+)?|d[ií]a\s+)(\d{1,2})\s+(?:del?\s+)?(?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\b"""
     )
     /**
      * Orden inverso del anterior: "el mes que viene el 5" / "el mes que viene el
@@ -557,7 +557,7 @@ object NaturalTaskParser {
      * la frase completa.
      */
     private val nextMonthDayReversePattern = Regex(
-        """(?i)\b(?:el\s+)?(?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\s+el\s+(?:d[ií]a\s+)?(\d{1,2})\b"""
+        """(?i)\b(?:el\s+)?(?:mes\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante)|pr[oó]ximos?\s+mes|mes\s+pr[oó]ximos?)\s+el\s+(?:(?:d[ií]a\s+)?|(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+)?(\d{1,2})\b"""
     )
     /**
      * "el próximo 15" / "próximo 15" / "el próximo día 15": día N del mes SIGUIENTE
