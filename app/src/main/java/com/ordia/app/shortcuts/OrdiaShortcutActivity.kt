@@ -14,6 +14,12 @@ class OrdiaShortcutActivity : Activity() {
             ShortcutRoute.CAPTURE -> Intent(this, QuickCaptureActivity::class.java)
             ShortcutRoute.FOCUS -> Intent(this, MainActivity::class.java)
                 .putExtra(MainActivity.EXTRA_DESTINATION, MainActivity.OPEN_FOCUS)
+            ShortcutRoute.NEW_NOTE -> Intent(this, MainActivity::class.java)
+                .putExtra(MainActivity.EXTRA_DESTINATION, MainActivity.OPEN_NEW_NOTE)
+            ShortcutRoute.SCANNER -> Intent(this, MainActivity::class.java)
+                .putExtra(MainActivity.EXTRA_DESTINATION, MainActivity.OPEN_SCANNER)
+            ShortcutRoute.VOICE_NOTE -> Intent(this, MainActivity::class.java)
+                .putExtra(MainActivity.EXTRA_DESTINATION, MainActivity.OPEN_VOICE_NOTE)
             null -> null
         }
         destination?.addFlags(

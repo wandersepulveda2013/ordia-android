@@ -5,4 +5,10 @@
     <string name="shortcut_capture_long">Capturar en Ordía</string>
     <string name="shortcut_focus_short">Enfoque</string>
     <string name="shortcut_focus_long">Iniciar enfoque en Ordía</string>
+    <string name="shortcut_new_note_short">Nota</string>
+    <string name="shortcut_new_note_long">Nueva nota en Ordía</string>
+    <string name="shortcut_scanner_short">Escanear</string>
+    <string name="shortcut_scanner_long">Escanear documento en Ordía</string>
+    <string name="shortcut_voice_note_short">Voz</string>
+    <string name="shortcut_voice_note_long">Nueva nota de voz en Ordía</string>
 </resources>

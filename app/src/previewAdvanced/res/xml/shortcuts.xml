@@ -22,4 +22,37 @@
             android:targetPackage="com.ordia.app.preview.advanced"
             android:targetClass="com.ordia.app.shortcuts.OrdiaShortcutActivity" />
     </shortcut>
+    <shortcut
+        android:shortcutId="new_note"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_capture"
+        android:shortcutShortLabel="@string/shortcut_new_note_short"
+        android:shortcutLongLabel="@string/shortcut_new_note_long">
+        <intent
+            android:action="com.ordia.app.action.SHORTCUT_NEW_NOTE"
+            android:targetPackage="com.ordia.app.preview.advanced"
+            android:targetClass="com.ordia.app.shortcuts.OrdiaShortcutActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="scanner"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_capture"
+        android:shortcutShortLabel="@string/shortcut_scanner_short"
+        android:shortcutLongLabel="@string/shortcut_scanner_long">
+        <intent
+            android:action="com.ordia.app.action.SHORTCUT_SCANNER"
+            android:targetPackage="com.ordia.app.preview.advanced"
+            android:targetClass="com.ordia.app.shortcuts.OrdiaShortcutActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="voice_note"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_capture"
+        android:shortcutShortLabel="@string/shortcut_voice_note_short"
+        android:shortcutLongLabel="@string/shortcut_voice_note_long">
+        <intent
+            android:action="com.ordia.app.action.SHORTCUT_VOICE_NOTE"
+            android:targetPackage="com.ordia.app.preview.advanced"
+            android:targetClass="com.ordia.app.shortcuts.OrdiaShortcutActivity" />
+    </shortcut>
 </shortcuts>

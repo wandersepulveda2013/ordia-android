@@ -232,6 +232,18 @@ fun OrdiaRoot(
             requestedDestination == "settings" -> navController.navigate(Destination.Settings.route)
             requestedDestination == "contextual" -> navController.navigate(Destination.Conversations.route)
             requestedDestination == "conversations" -> navController.navigate(Destination.Conversations.route)
+            requestedDestination == "new_note" -> {
+                navController.navigate(Destination.Notes.route)
+                viewModel.createBlankNote(onCreated = { navController.navigate(Destination.note(it)) })
+            }
+            requestedDestination == "scanner" -> {
+                navController.navigate(Destination.Notes.route)
+                viewModel.createBlankNote(onCreated = { navController.navigate(Destination.note(it)) })
+            }
+            requestedDestination == "voice_note" -> {
+                navController.navigate(Destination.Notes.route)
+                viewModel.createBlankNote(onCreated = { navController.navigate(Destination.note(it)) })
+            }
         }
         if (requestedDestination != null || requestedTaskId != null) onNavigationRequestConsumed()
     }

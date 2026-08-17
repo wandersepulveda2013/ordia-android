@@ -126,6 +126,9 @@ class MainActivity : ComponentActivity() {
         const val OPEN_SETTINGS = "settings"
         const val OPEN_CONTEXTUAL = "contextual"
         const val OPEN_CONVERSATIONS = "conversations"
+        const val OPEN_NEW_NOTE = "new_note"
+        const val OPEN_SCANNER = "scanner"
+        const val OPEN_VOICE_NOTE = "voice_note"
         private const val MAX_SHARED_TEXT_CHARS = 100_000
     }
 }
