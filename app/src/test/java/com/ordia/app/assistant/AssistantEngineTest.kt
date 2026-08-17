@@ -2744,6 +2744,62 @@ class AssistantEngineTest {
         assertNotEquals(AssistantAction.OPEN_PLANNER, answer.action)
     }
 
+    @Test fun preparameUnPlan_opensPlanner() {
+        // "prepárame un plan" es la forma cotidiana de pedir planificación, pero
+        // caía al mensaje genérico (que incluso anuncia "preparar un plan" como
+        // capacidad). Paridad con "organiza mi día" → OPEN_PLANNER.
+        val task = TaskEntity(id = 1, title = "Revisar correo")
+        val answer = AssistantEngine.answer(
+            "preparame un plan",
+            listOf(task), emptyList(), emptyList()
+        )
+        assertEquals(AssistantAction.OPEN_PLANNER, answer.action)
+        assertTrue("cuenta la tarea pendiente: ${answer.text}", answer.text.contains("1 tarea pendiente"))
+    }
+
+    @Test fun hazmeUnPlan_opensPlanner() {
+        // Sinónimo coloquial de planificación.
+        val answer = AssistantEngine.answer(
+            "hazme un plan",
+            emptyList(), emptyList(), emptyList()
+        )
+        assertEquals(AssistantAction.OPEN_PLANNER, answer.action)
+    }
+
+    @Test fun ordenaMiDia_opensPlanner() {
+        // "ordena mi día": variante verbal natural de planificación.
+        val answer = AssistantEngine.answer(
+            "ordena mi dia",
+            emptyList(), emptyList(), emptyList()
+        )
+        assertEquals(AssistantAction.OPEN_PLANNER, answer.action)
+    }
+
+    @Test fun planificameMiDia_opensPlanner() {
+        // Forma reflexiva/imperativa "planifícame mi día": variante natural que
+        // antes caía al mensaje genérico. Paridad con "planifica mi día".
+        val answer = AssistantEngine.answer(
+            "planificame mi dia",
+            emptyList(), emptyList(), emptyList()
+        )
+        assertEquals(AssistantAction.OPEN_PLANNER, answer.action)
+    }
+
+    @Test fun preparameUnPlanMinimo_doesNotStealPlanMinimo() {
+        // Guard anti-falso-positivo: aunque "preparame un plan" ahora abre el
+        // planificador, "prepárame un plan mínimo" debe seguir siendo la lista
+        // de 3 (relatedTaskIds), no el planificador. La guarda `"plan minimo" !in query`
+        // evita el robo de rama.
+        val task = TaskEntity(id = 1, title = "Algo")
+        val answer = AssistantEngine.answer(
+            "preparame un plan minimo",
+            listOf(task), emptyList(), emptyList()
+        )
+        assertTrue("plan mínimo sigue listando la tarea: ${answer.text}",
+            answer.relatedTaskIds.contains(1L))
+        assertNotEquals(AssistantAction.OPEN_PLANNER, answer.action)
+    }
+
     @Test fun dayLoad_doesNotInventStaleInboxWhenRecent() {
         // Guard anti-falso-positivo: una captura reciente (< 7 días) no debe
         // disparar la cola. Sin ideas arrinconadas, el veredicto calla el 3.er olvido.

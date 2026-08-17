@@ -951,14 +951,25 @@ object AssistantEngine {
      * Intención de planificación: abre el planificador. "organiza mi día" y sus
      * sinónimos cotidianos. La query ya viene normalizada (sin acentos, minúsculas).
      * Excluye "plan mínimo" (lista de 3) porque se resuelve en su propia rama más
-     * abajo; aquí no colisiona porque se exige un verbo + "día"/"plan".
+     * abajo; aquí no colisiona porque se exige un verbo + "día"/"plan", y las
+     * formas con sustantivo "plan" llevan guarda `"plan minimo" !in query` para
+     * no robar la rama de la lista de 3 (paridad con [planificaDoesNotStealPlanMinimo]).
      */
-    private fun isPlannerIntent(query: String): Boolean =
-        "organiza mi dia" in query || "organizar mi dia" in query || "organiza el dia" in query ||
+    private fun isPlannerIntent(query: String): Boolean {
+        if ("plan minimo" in query) return false
+        return "organiza mi dia" in query || "organizar mi dia" in query || "organiza el dia" in query ||
             "planifica mi dia" in query || "planificar mi dia" in query ||
             "planifica el dia" in query || "planificar el dia" in query ||
+            "planificame mi dia" in query || "planificame el dia" in query ||
+            "planea mi dia" in query || "planea el dia" in query ||
+            "ordena mi dia" in query || "ordena el dia" in query ||
             "arma mi dia" in query || "armar mi dia" in query ||
-            "arma el plan" in query || "armar el plan" in query
+            "arma el plan" in query || "armar el plan" in query ||
+            "armame un plan" in query || "armame el plan" in query ||
+            "preparame un plan" in query || "preparame el plan" in query ||
+            "prepara un plan" in query || "preparar un plan" in query ||
+            "hazme un plan" in query || "hazme el plan" in query
+    }
 
     private fun dayLoadAnswer(
         tasks: List<TaskEntity>,
