@@ -221,6 +221,7 @@
     <string name="notes_editor_insert_checklist">Checklist</string>
     <string name="notes_editor_insert_table">Tabla</string>
     <string name="notes_editor_insert_image">Imagen</string>
+    <string name="notes_editor_insert_gallery">Galería</string>
     <string name="notes_editor_insert_camera">Cámara</string>
     <string name="notes_editor_insert_scanner">Escanear documento</string>
     <string name="notes_editor_insert_ocr">Extraer texto (OCR)</string>

@@ -57,6 +57,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Share
@@ -269,6 +270,25 @@ fun NoteEditorScreen(
                 dirty = true
             }
         }
+    }
+
+    // --- Galería multi-imagen (FASE 25) ---
+    val pickImages = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        uris.forEach { uri ->
+            val path = NoteMediaStore.importImage(context, uri)
+            val displayName = NoteMediaStore.queryDisplayName(context.contentResolver, uri) ?: "imagen"
+            if (path != null) {
+                blocks.add(
+                    NoteBlock(
+                        type = NoteBlockType.IMAGE,
+                        attachmentUri = path,
+                        attachmentName = displayName,
+                        mimeType = context.contentResolver.getType(uri) ?: "image/*"
+                    )
+                )
+            }
+        }
+        if (uris.isNotEmpty()) dirty = true
     }
 
     // --- Cámara real ---
@@ -601,7 +621,12 @@ fun NoteEditorScreen(
                 onAudio = { insertOpen = false; launchAudio() },
                 onDrawing = { insertOpen = false; drawingOpen = true },
                 onHandwriting = { insertOpen = false; drawingOpen = true },
-                onLinkNote = { insertOpen = false; linkNoteOpen = true }
+                onLinkNote = { insertOpen = false; linkNoteOpen = true },
+                onGallery = {
+                    insertOpen = false
+                    if (currentId > 0L) pickImages.launch(arrayOf("image/*"))
+                    else saveCurrent { pickImages.launch(arrayOf("image/*")) }
+                }
             )
         }
     }
@@ -852,7 +877,8 @@ private fun InsertSheetContent(
     onAudio: () -> Unit,
     onDrawing: () -> Unit,
     onHandwriting: () -> Unit,
-    onLinkNote: () -> Unit
+    onLinkNote: () -> Unit,
+    onGallery: () -> Unit
 ) {
     val unavailable = stringResource(R.string.notes_editor_feature_unavailable)
     LazyColumn(
@@ -872,6 +898,7 @@ private fun InsertSheetContent(
         item { InsertSection("Contenido") }
         item { InsertItem(stringResource(R.string.notes_editor_insert_table), Icons.Outlined.Add) { onPick(NoteBlockType.TABLE) } }
         item { InsertItem(stringResource(R.string.notes_editor_insert_image), Icons.Outlined.Image) { onPick(NoteBlockType.IMAGE) } }
+        item { InsertItem(stringResource(R.string.notes_editor_insert_gallery), Icons.Outlined.PhotoLibrary) { onGallery() } }
         item { InsertItem(stringResource(R.string.notes_editor_insert_file), Icons.Outlined.Add) { onAttachFile() } }
         item { InsertItem(stringResource(R.string.notes_editor_insert_link), Icons.Outlined.Link) { onPick(NoteBlockType.LINK) } }
         item { InsertItem(stringResource(R.string.notes_editor_insert_link_note), Icons.Outlined.Link) { onLinkNote() } }
