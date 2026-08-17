@@ -2324,4 +2324,76 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.533: el FUTURO de comunicación (llamaré/hablaré/escribiré + plurales
+    // llamaremos/hablaremos/escribiremos) era la única forma de promesa de contacto
+    // que caía a MISSED: el presente con clítico ("te llamo"/"le escribo") y el
+    // presente pelado ("llamo al cliente mañana") ya se detectaban (c.508/c.518/
+    // c.500), y el futuro de acción ("lo terminaré"/"lo llamaremos") también, pero
+    // el futuro de comunicación no. Cobertura singular y plural, con clítico (te/le/
+    // lo) y pelado con objeto nominal ("llamaré al cliente mañana").
+    // Probe JVM PRE-fix: 17/17 MISSED.
+    @Test
+    fun detectsFutureCommunicationVerbsSingularAndPlural() {
+        val positives = listOf(
+            "lo llamaré el viernes",
+            "le llamaré mañana",
+            "te llamaré el lunes",
+            "le escribiré mañana",
+            "te escribiré el lunes",
+            "le hablaré el viernes",
+            "te hablaré el lunes",
+            "llamaré al cliente mañana",
+            "hablaré con el jefe el lunes",
+            "escribiré el informe mañana",
+            "lo llamaremos el viernes",
+            "le escribiremos mañana",
+            "te llamaremos el lunes",
+            "lo escribiremos el lunes",
+            "llamaremos al cliente mañana",
+            "hablaremos con el jefe el lunes",
+            "escribiremos el informe mañana"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c533-pos-$text"
+            )
+            assertEquals(
+                "\"$text\" (futuro de comunicación) debe generar draft SELF_COMMITMENT",
+                1, result.size
+            )
+            assertEquals(
+                "debe ser SELF_COMMITMENT: \"$text\"",
+                CommitmentKind.SELF_COMMITMENT, result[0].kind
+            )
+        }
+    }
+
+    // c.533: precisión simétrica. "no te llamaré"/"no le escribiré"/"no lo llamaremos"
+    // son NEGACIONES (rechazos de contacto), igual que "no te llamo". La guarda
+    // precedingNegation las excluye.
+    // Probe JVM POST-fix: 5/5 excluidas.
+    @Test
+    fun futureCommunicationVerbsRespectDirectNegation() {
+        val negatives = listOf(
+            "no lo llamaré el viernes",
+            "no le llamaré mañana",
+            "no te llamaré el lunes",
+            "no lo llamaremos el viernes",
+            "no le escribiremos mañana"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c533-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" (negación de futuro de comunicación) NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
 }
