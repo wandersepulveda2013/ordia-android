@@ -4782,8 +4782,26 @@ object NaturalTaskParser {
                 // Anclado al final (con espacios) para no tocar "de" legítimo seguido de
                 // contenido ("reunión de equipo a las 5" → tras borrar "a las 5" queda "de
                 // equipo", "de" NO está al final → se conserva). c.493.
+                //
+                // El `\b` antes de `de` evita recortar el sufijo "de" de palabras que
+                // terminan en "de" pero NO son la preposición: "desde" ("vacaciones desde
+                // el lunes" → al borrar weekday+artículo queda "vacaciones desde", y sin
+                // `\b` el "de" final se recortaba dejando "vacaciones des", P1 título
+                // corrupto) y "adrede" ("cita adrede mañana" → "cita adre"). c.499.
+                //
+                // "desde" como conector de INICIO temporal ("vacaciones desde el lunes",
+                // "trabajo desde esta semana"): el rewriter desdeRewriter sólo normaliza
+                // "desde" + HORA/parte-del-día (no fechas de calendario), así que al
+                // resolver y borrar la fecha, "desde" queda como conector huérfano al
+                // final ("vacaciones desde"). Se consume aquí —misma lógica que el
+                // genitivo "de": sólo cuando se resolvió fecha (dueAt != null), porque
+                // "desde" sin agenda es contenido legítimo ("nadar desde temprano",
+                // "llamar desde casa", "reunión desde el equipo"). Como "desde" termina
+                // en "de", se prueba ANTES que `\bde` para consumirlo entero (si no,
+                // `\bde` no casaría por el límite y "desde" sobreviviría como orphan).
+                // c.499.
                 if (dueAt != null)
-                    value.replace(Regex("""(?i)\s*(?:de\s+la|del|de)\s*$"""), " ")
+                    value.replace(Regex("""(?i)\s*(?:desde|de\s+la|del|\bde)\s*$"""), " ")
                 else value
             }
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")

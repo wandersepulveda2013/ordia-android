@@ -14562,4 +14562,51 @@ class NaturalTaskParserTest {
         assertEquals(null, result.dueAt)
     }
 
+    // c.499: el genitivo huérfano final `de\s*$` no debía recortar el sufijo "de"
+    // de palabras terminadas en "de" que NO son la preposición ("desde", "adrede").
+    // Antes "vacaciones desde el lunes" → al borrar weekday+artículo quedaba
+    // "vacaciones desde" y el "de" final se recortaba dejando "vacaciones des"
+    // (P1: título corrupto, fecha correcta). El `\b` evita el recorte del sufijo y
+    // además se consume el conector de inicio "desde" como orphan cuando se resolvió
+    // fecha. "adrede" (contenido) se conserva intacto.
+    @Test fun desdeElLunesLimpiaTituloSinRecortarSufijoDe() {
+        val result = NaturalTaskParser.parse("Vacaciones desde el lunes", now, zone)
+        assertEquals("Vacaciones", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun desdeMananaLimpiaTituloSinResiduo() {
+        val result = NaturalTaskParser.parse("Curso desde mañana", now, zone)
+        assertEquals("Curso", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun desdeEstaSemanaLimpiaTituloSinResiduo() {
+        val result = NaturalTaskParser.parse("Trabajo desde esta semana", now, zone)
+        assertEquals("Trabajo", result.title)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun adredeMananaConservaContenidoYResuelveFecha() {
+        // "adrede" es contenido, NO conector temporal: el sufijo "de" no debe
+        // recortarse. La fecha "mañana" sí se resuelve.
+        val result = NaturalTaskParser.parse("Cita adrede mañana", now, zone)
+        assertEquals("Cita adrede", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun desdeSinAgendaEsContenidoLegitimo() {
+        // "desde" sin fecha resuelta es contenido: NO debe consumirse como orphan.
+        val result = NaturalTaskParser.parse("Nadar desde temprano", now, zone)
+        assertEquals("Nadar desde temprano", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun desdeElEquipoSinFechaNoEsOrphan() {
+        // "el equipo" no resuelve fecha → "desde" permanece como contenido legítimo.
+        val result = NaturalTaskParser.parse("Reunión desde el equipo", now, zone)
+        assertEquals("Reunión desde el equipo", result.title)
+        assertNull(result.dueAt)
+    }
+
 }
