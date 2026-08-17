@@ -33,6 +33,14 @@ object IntelligenceSafetyGate {
      *  minusculas al evaluarse. */
     private val PIN_NIP_WORD = Regex("""\b(pin|nip)\b""")
 
+    /** Tipos de "código" cuyo número es un identificador público, no un OTP/secret.
+     *  Evita bloquear "código postal 12345", "código de barras 1234567",
+     *  "código QR de la factura 2024001", "código de área 555", etc. (c.510). */
+    private val CODIGO_NO_SECRETO = Regex(
+        """código\s+(postal|de\s+barras|qr|de\s+área|de\s+fuente|de\s+producto|de\s+cliente|de\s+artículo)""",
+        RegexOption.IGNORE_CASE
+    )
+
     /**
      * Patrones de contenido bloqueado: modera el tema del que la inteligencia
      * puede ocuparse. Son legítimamente específicos de esta puerta (no forman
@@ -115,8 +123,16 @@ object IntelligenceSafetyGate {
         if (credentialKeywordWithValue(lower, listOf("contraseña", "password", "pwd", "clave"))) {
             return true
         }
-        // OTP / códigos de verificación
-        if (lower.contains("código") && Regex("""\d{4,8}""").containsMatchIn(lower)) {
+        // OTP / códigos de verificación. Se exige "código" + un valor numérico
+        // corto (4-8 dígitos), pero se excluyen los tipos de "código" que NO son
+        // secretos (postal, de barras, QR, de área, de fuente, de producto, de factura):
+        // su número es un identificador público, no un OTP. Sin esta exclusión,
+        // tareas como "envía el paquete al código postal 12345" o "imprime el código
+        // QR de la factura 2024001" se bloqueaban injustamente (c.510).
+        if (lower.contains("código") &&
+            !CODIGO_NO_SECRETO.containsMatchIn(lower) &&
+            Regex("""\d{4,8}""").containsMatchIn(lower)
+        ) {
             return true
         }
         // PIN / NIP: limite de palabra \b(pin|nip)\b para no casar dentro de

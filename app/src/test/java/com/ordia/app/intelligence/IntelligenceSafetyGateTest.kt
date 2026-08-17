@@ -107,6 +107,33 @@ class IntelligenceSafetyGateTest {
         assertEquals(true, blocked("el código de seguridad es 482917"))
     }
 
+    // --- Falsos positivos de "código" + número que NO es OTP (c.510) ---
+
+    @Test
+    fun codigoPostalConNumeroNoSeBloquea() {
+        assertEquals(false, blocked("enviar paquete al código postal 12345"))
+    }
+
+    @Test
+    fun codigoDeBarrasConNumeroNoSeBloquea() {
+        assertEquals(false, blocked("registrar el código de barras del producto 1234567"))
+    }
+
+    @Test
+    fun codigoQrConNumeroNoSeBloquea() {
+        assertEquals(false, blocked("imprimir el código QR de la factura 2024001"))
+    }
+
+    @Test
+    fun codigoDeAreaConNumeroNoSeBloquea() {
+        assertEquals(false, blocked("llamar al código de área 555 del proveedor"))
+    }
+
+    @Test
+    fun codigoOtpPorSmsSeBloquea() {
+        assertEquals(true, blocked("recibí el código 4321 por SMS"))
+    }
+
     @Test
     fun contrasenaConValorSeBloquea() {
         assertEquals(true, blocked("mi contraseña es secreta123"))
