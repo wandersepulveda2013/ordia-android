@@ -564,7 +564,8 @@ fun NoteEditorScreen(
                         onToggleStrike = { toggleSpanFormat(index) { s -> s.copy(strikethrough = !s.strikethrough) } },
                         onToggleHighlight = { toggleSpanFormat(index) { s -> s.copy(highlight = !s.highlight) } },
                         onClearFormat = { clearFormat(index) },
-                        onOpenNote = onOpenNote
+                        onOpenNote = onOpenNote,
+                        onSlash = { insertOpen = true }
                     )
                 }
                 if (attachments.isNotEmpty()) {
@@ -959,7 +960,8 @@ private fun BlockRow(
     onToggleStrike: () -> Unit,
     onToggleHighlight: () -> Unit,
     onClearFormat: () -> Unit,
-    onOpenNote: (Long) -> Unit
+    onOpenNote: (Long) -> Unit,
+    onSlash: () -> Unit
 ) {
     when (block.type) {
         NoteBlockType.DIVIDER -> {
@@ -1046,7 +1048,15 @@ private fun BlockRow(
                 }
                 OutlinedTextField(
                     value = block.text,
-                    onValueChange = { onChange(block.copy(text = it)) },
+                    onValueChange = { newText ->
+                        // Slash command: si el bloque estaba vacío y el usuario escribe '/',
+                        // abrir el panel Insertar (atajo avanzado, no obligatorio).
+                        if (block.text.isEmpty() && newText == "/") {
+                            onSlash()
+                        } else {
+                            onChange(block.copy(text = newText))
+                        }
+                    },
                     modifier = Modifier.weight(1f),
                     placeholder = { Text(placeholderFor(block.type), color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     minLines = 1,
