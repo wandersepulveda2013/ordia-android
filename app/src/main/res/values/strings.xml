@@ -250,6 +250,11 @@
     <string name="notes_editor_audio_mic_failed">No se pudo acceder al micrófono. Revisa el permiso de micrófono.</string>
     <string name="notes_editor_insert_file">Archivo</string>
     <string name="notes_editor_insert_link">Hipervínculo</string>
+    <string name="notes_editor_insert_link_note">Enlace a nota</string>
+    <string name="notes_editor_link_note_title">Enlazar nota</string>
+    <string name="notes_editor_link_note_search">Buscar nota…</string>
+    <string name="notes_editor_link_note_empty">No hay notas. Escribe para buscar.</string>
+    <string name="notes_editor_link_note_cancel">Cancelar</string>
     <string name="notes_editor_insert_drawing">Dibujo</string>
     <string name="notes_editor_insert_handwriting">Escritura a mano</string>
     <string name="notes_editor_feature_unavailable">%1$s llegará próximamente a Ordía.</string>

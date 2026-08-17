@@ -790,6 +790,13 @@ class OrdiaViewModel(
     suspend fun searchNotes(query: String): List<NoteEntity> =
         if (query.isBlank()) emptyList() else noteRepository.search(query.trim())
 
+    /** Notas recientes no eliminadas, para el selector de enlaces internos `[[`. */
+    suspend fun recentNotes(limit: Int = 30, excludeId: Long = 0L): List<NoteEntity> =
+        noteRepository.getAllNow()
+            .filter { !it.trashed && it.id != excludeId }
+            .sortedByDescending { it.updatedAt }
+            .take(limit)
+
     /** Crea una nota vacía y devuelve su id (para abrir el editor al instante). */
     fun createBlankNote(onCreated: (Long) -> Unit) = viewModelScope.launch {
         val now = System.currentTimeMillis()

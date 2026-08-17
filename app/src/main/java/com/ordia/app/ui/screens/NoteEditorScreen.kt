@@ -133,7 +133,8 @@ fun NoteEditorScreen(
     noteId: Long,
     contentPadding: PaddingValues,
     onBack: () -> Unit,
-    onTask: (Long) -> Unit
+    onTask: (Long) -> Unit,
+    onOpenNote: (Long) -> Unit
 ) {
     val context = LocalContext.current
     val defaultAttachmentName = stringResource(R.string.note_editor_default_filename)
@@ -179,6 +180,7 @@ fun NoteEditorScreen(
     var ocrOpen by remember { mutableStateOf(false) }
     var audioOpen by remember { mutableStateOf(false) }
     var drawingOpen by remember { mutableStateOf(false) }
+    var linkNoteOpen by remember { mutableStateOf(false) }
 
     val findMatches = remember(title, blocks, findQuery) {
         if (findQuery.isBlank()) emptyList()
@@ -541,7 +543,8 @@ fun NoteEditorScreen(
                         onToggleUnderline = { toggleSpanFormat(index) { s -> s.copy(underline = !s.underline) } },
                         onToggleStrike = { toggleSpanFormat(index) { s -> s.copy(strikethrough = !s.strikethrough) } },
                         onToggleHighlight = { toggleSpanFormat(index) { s -> s.copy(highlight = !s.highlight) } },
-                        onClearFormat = { clearFormat(index) }
+                        onClearFormat = { clearFormat(index) },
+                        onOpenNote = onOpenNote
                     )
                 }
                 if (attachments.isNotEmpty()) {
@@ -597,7 +600,8 @@ fun NoteEditorScreen(
                 onOcr = { insertOpen = false; launchOcr() },
                 onAudio = { insertOpen = false; launchAudio() },
                 onDrawing = { insertOpen = false; drawingOpen = true },
-                onHandwriting = { insertOpen = false; drawingOpen = true }
+                onHandwriting = { insertOpen = false; drawingOpen = true },
+                onLinkNote = { insertOpen = false; linkNoteOpen = true }
             )
         }
     }
@@ -682,6 +686,25 @@ fun NoteEditorScreen(
                         attachmentUri = path,
                         attachmentName = "Dibujo ${java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.US).format(java.util.Date())}",
                         mimeType = "image/png"
+                    )
+                )
+                dirty = true
+            }
+        )
+    }
+
+    if (linkNoteOpen) {
+        NoteLinkPickerDialog(
+            vm = vm,
+            excludeId = currentId,
+            onDismiss = { linkNoteOpen = false },
+            onPick = { targetId, targetTitle ->
+                linkNoteOpen = false
+                blocks.add(
+                    NoteBlock(
+                        type = NoteBlockType.LINK,
+                        attachmentUri = "note:$targetId",
+                        linkTitle = targetTitle
                     )
                 )
                 dirty = true
@@ -822,7 +845,8 @@ private fun InsertSheetContent(
     onOcr: () -> Unit,
     onAudio: () -> Unit,
     onDrawing: () -> Unit,
-    onHandwriting: () -> Unit
+    onHandwriting: () -> Unit,
+    onLinkNote: () -> Unit
 ) {
     val unavailable = stringResource(R.string.notes_editor_feature_unavailable)
     LazyColumn(
@@ -844,6 +868,7 @@ private fun InsertSheetContent(
         item { InsertItem(stringResource(R.string.notes_editor_insert_image), Icons.Outlined.Image) { onPick(NoteBlockType.IMAGE) } }
         item { InsertItem(stringResource(R.string.notes_editor_insert_file), Icons.Outlined.Add) { onAttachFile() } }
         item { InsertItem(stringResource(R.string.notes_editor_insert_link), Icons.Outlined.Link) { onPick(NoteBlockType.LINK) } }
+        item { InsertItem(stringResource(R.string.notes_editor_insert_link_note), Icons.Outlined.Link) { onLinkNote() } }
         item { InsertItem(stringResource(R.string.notes_editor_insert_camera), Icons.Outlined.PhotoCamera) { onCamera() } }
         item { InsertItem(stringResource(R.string.notes_editor_insert_scanner), Icons.Outlined.DocumentScanner) { onScanner() } }
         item { InsertItem(stringResource(R.string.notes_editor_insert_ocr), Icons.Outlined.TextFields) { onOcr() } }
@@ -900,7 +925,8 @@ private fun BlockRow(
     onToggleUnderline: () -> Unit,
     onToggleStrike: () -> Unit,
     onToggleHighlight: () -> Unit,
-    onClearFormat: () -> Unit
+    onClearFormat: () -> Unit,
+    onOpenNote: (Long) -> Unit
 ) {
     when (block.type) {
         NoteBlockType.DIVIDER -> {
@@ -951,6 +977,28 @@ private fun BlockRow(
         }
         NoteBlockType.TABLE -> {
             TableBlockView(block = block, onChange = onChange)
+        }
+        NoteBlockType.LINK -> {
+            val uri = block.attachmentUri
+            val isInternal = uri.startsWith("note:")
+            Surface(
+                onClick = {
+                    val targetId = uri.removePrefix("note:").toLongOrNull()
+                    if (isInternal && targetId != null) onOpenNote(targetId)
+                },
+                enabled = isInternal,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Link, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        block.linkTitle.ifBlank { uri },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isInternal) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
         }
         else -> {
             val isChecklist = block.type == NoteBlockType.CHECKLIST
