@@ -195,6 +195,9 @@
     <string name="notes_lock">Bloquear</string>
     <string name="notes_unlock">Desbloquear</string>
     <string name="notes_delete">Eliminar</string>
+    <string name="notes_undo">Deshacer</string>
+    <string name="notes_deleted_snackbar">\"%1$s\" movida a la papelera</string>
+    <string name="notes_deleted_snackbar_untitled">Nota sin título</string>
     <string name="notes_trash_title">Papelera</string>
     <string name="notes_trash_empty">La papelera está vacía.</string>
     <string name="notes_trash_restore">Restaurar</string>
