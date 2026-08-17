@@ -224,6 +224,8 @@
     <string name="notes_editor_insert_checklist">Checklist</string>
     <string name="notes_checklist_check_all">Marcar todo</string>
     <string name="notes_checklist_uncheck_all">Desmarcar todo</string>
+    <string name="notes_imported_note_title">Nota importada</string>
+    <string name="notes_import_failed">No pudimos importar este archivo.</string>
     <string name="notes_editor_insert_table">Tabla</string>
     <string name="notes_table_add_row">+ fila</string>
     <string name="notes_table_add_col">+ columna</string>

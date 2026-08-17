@@ -822,6 +822,24 @@ class OrdiaViewModel(
         onCreated(id)
     }
 
+    /** Importa un archivo Markdown como nota nueva. Devuelve el id de la nota creada. */
+    fun importMarkdownNote(content: String, onCreated: (Long) -> Unit = {}) = viewModelScope.launch {
+        val blocks = NoteBlockCodec.parseMarkdown(content)
+        val title = blocks.firstOrNull { it.type == NoteBlockType.HEADING }?.text?.ifBlank { null }
+            ?: appContext.getString(R.string.notes_imported_note_title)
+        val now = System.currentTimeMillis()
+        val id = noteRepository.add(
+            NoteEntity(
+                title = title,
+                blocksData = NoteBlockCodec.encode(blocks),
+                body = NoteBlockCodec.toPlainText(blocks),
+                createdAt = now,
+                updatedAt = now
+            )
+        )
+        onCreated(id)
+    }
+
     suspend fun noteVersions(noteId: Long): List<NoteVersionEntity> =
         noteVersionRepository.versionsForNote(noteId)
 

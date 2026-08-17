@@ -242,4 +242,59 @@ object NoteBlockCodec {
             }
         }
     }
+
+    /**
+     * Importa Markdown a bloques. Soporta: títulos (numerales), checklist (- [x] / - [ ]),
+     * viñetas (- o asterisco), numeradas (N.), citas (>), código fence (tres backticks),
+     * separadores (tres guiones) y párrafos. Es tolerante: lo que no reconoce queda como párrafo.
+     */
+    fun parseMarkdown(markdown: String): List<NoteBlock> {
+        val lines = markdown.replace("\r\n", "\n").split("\n")
+        val result = mutableListOf<NoteBlock>()
+        var i = 0
+        while (i < lines.size) {
+            val raw = lines[i]
+            val line = raw.trimEnd()
+            val trimmed = line.trim()
+            if (trimmed.isEmpty()) { i++; continue }
+            when {
+                trimmed.startsWith("```") -> {
+                    val sb = StringBuilder()
+                    i++
+                    while (i < lines.size && !lines[i].trim().startsWith("```")) {
+                        sb.append(lines[i]).append("\n")
+                        i++
+                    }
+                    if (i < lines.size) i++ // cerrar fence
+                    result.add(NoteBlock(type = NoteBlockType.CODE, text = sb.toString().trimEnd { it == '\n' }))
+                    continue
+                }
+                trimmed.matches(Regex("^#{4}\\s+.*")) ->
+                    result.add(NoteBlock(type = NoteBlockType.SUBTITLE, text = trimmed.removePrefix("####").trim()))
+                trimmed.matches(Regex("^###\\s+.*")) ->
+                    result.add(NoteBlock(type = NoteBlockType.HEADING_3, text = trimmed.removePrefix("###").trim()))
+                trimmed.matches(Regex("^##\\s+.*")) ->
+                    result.add(NoteBlock(type = NoteBlockType.HEADING_2, text = trimmed.removePrefix("##").trim()))
+                trimmed.matches(Regex("^#\\s+.*")) ->
+                    result.add(NoteBlock(type = NoteBlockType.HEADING, text = trimmed.removePrefix("#").trim()))
+                trimmed.matches(Regex("^-\\s+\\[[xX ]]\\s+.*")) -> {
+                    val checked = trimmed.substringAfter("[").firstOrNull()?.equals('x', ignoreCase = true) == true
+                    val text = trimmed.substringAfter("]").trim()
+                    result.add(NoteBlock(type = NoteBlockType.CHECKLIST, text = text, checked = checked))
+                }
+                trimmed.matches(Regex("^[-*]\\s+.*")) ->
+                    result.add(NoteBlock(type = NoteBlockType.BULLET, text = trimmed.dropWhile { it == '-' || it == '*' }.trim()))
+                trimmed.matches(Regex("^\\d+\\.\\s+.*")) ->
+                    result.add(NoteBlock(type = NoteBlockType.NUMBERED, text = trimmed.substringAfter(".").trim()))
+                trimmed.startsWith(">") ->
+                    result.add(NoteBlock(type = NoteBlockType.QUOTE, text = trimmed.removePrefix(">").trim()))
+                trimmed.matches(Regex("^(---|\\*\\*\\*|___)$")) ->
+                    result.add(NoteBlock(type = NoteBlockType.DIVIDER))
+                else ->
+                    result.add(NoteBlock(type = NoteBlockType.PARAGRAPH, text = line))
+            }
+            i++
+        }
+        return result
+    }
 }

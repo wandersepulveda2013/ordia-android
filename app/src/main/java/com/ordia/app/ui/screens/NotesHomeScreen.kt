@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.outlined.Add
@@ -132,6 +134,21 @@ fun NotesHomeScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val importMarkdownLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    val content = stream.readBytes().toString(Charsets.UTF_8)
+                    vm.importMarkdownNote(content, onCreated = onNote)
+                }
+            }.onFailure {
+                snackbarHostState.showSnackbar(context.getString(R.string.notes_import_failed))
+            }
+        }
+    }
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(NoteFilter.NONE) }
     var sort by remember { mutableStateOf(NoteSortMode.MODIFIED) }
@@ -206,7 +223,7 @@ fun NotesHomeScreen(
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.notes_menu_import)) },
                                 leadingIcon = { Icon(Icons.Outlined.Download, null) },
-                                onClick = { menuExpanded = false; onOpenImport() }
+                                onClick = { menuExpanded = false; importMarkdownLauncher.launch(arrayOf("text/markdown", "text/plain", "application/octet-stream")) }
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.notes_menu_export)) },

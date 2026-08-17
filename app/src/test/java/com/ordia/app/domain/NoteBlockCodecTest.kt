@@ -1,6 +1,7 @@
 package com.ordia.app.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -200,5 +201,39 @@ class NoteBlockCodecTest {
         assertTrue(md.contains("| A | B |"))
         assertTrue(md.contains("| --- | --- |"))
         assertTrue(md.contains("| 1 | 2 |"))
+    }
+
+    @Test fun parseMarkdownRoundTripsHeadingsListsChecklistCodeDivider() {
+        val md = """
+            # Título principal
+            ## Subsección
+            - Viñeta uno
+            - [x] Hecha
+            - [ ] Pendiente
+            > Una cita
+            ```kotlin
+            val x = 1
+            ```
+            ---
+            Párrafo normal.
+        """.trimIndent()
+
+        val blocks = NoteBlockCodec.parseMarkdown(md)
+
+        assertEquals(NoteBlockType.HEADING, blocks[0].type)
+        assertEquals("Título principal", blocks[0].text)
+        assertEquals(NoteBlockType.HEADING_2, blocks[1].type)
+        assertEquals(NoteBlockType.BULLET, blocks[2].type)
+        assertEquals("Viñeta uno", blocks[2].text)
+        assertEquals(NoteBlockType.CHECKLIST, blocks[3].type)
+        assertTrue(blocks[3].checked)
+        assertEquals(NoteBlockType.CHECKLIST, blocks[4].type)
+        assertFalse(blocks[4].checked)
+        assertEquals(NoteBlockType.QUOTE, blocks[5].type)
+        assertEquals(NoteBlockType.CODE, blocks[6].type)
+        assertTrue(blocks[6].text.contains("val x = 1"))
+        assertEquals(NoteBlockType.DIVIDER, blocks[7].type)
+        assertEquals(NoteBlockType.PARAGRAPH, blocks[8].type)
+        assertEquals("Párrafo normal.", blocks[8].text)
     }
 }
