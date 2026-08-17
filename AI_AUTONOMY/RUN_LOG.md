@@ -12450,3 +12450,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `a294d3c` (c.518, local == remoto). **HEAD final**: commit c.520 (pendiente de push).
 - **Estado**: VERIFIED (dominio JVM: 2956 PASS; smoke 25 OK; 0 failures; 5 tests confirman el fix + probe fuente real confirmo el bug PRE-fix y el fix POST-fix). **NO VERIFICADO** Android/gradle/lint/assemble/UI (sin Android SDK).
 - **Proxima prioridad**: descubrimiento continuo - (i) bug preexistente `meetingSignal` falso MEETING en "un aviso de la reunion el lunes" (P1, tarea separada); (ii) diversificar fuera de intelligence: automation/context/backup/workers (areas menos cubiertas); (iii) auditar otros gates por asimetrias de tilde residuales; (iv) workers/backup/restore con DAOs reales (NO VERIFICABLE en JVM pura). Re-fetch antes de implementar.
+
+
+---
+
+## Ciclo c.521 (STALE_RUN) - 2026-08-17 (UTC) - colision detectada: run local c.519 duplicaba c.519 remoto ya pushed
+
+- **Run/ciclo**: c.521 (intento de run local, marcado STALE_RUN por colision con run remoto concurrente).
+- **HEAD inicial**: `a294d3c` (c.518 remoto al iniciar). `git pull --ff-only` limpio al arrancar. Trabajo local: probe + fix de `CommitmentEngine.meetingSignal` falso MEETING en nouns genitivos (helper `hasUnnegatedMeeting` + guarda `genitiveArticle` + 2 tests TDD). Probe POST-fix: 25 casos correctos (5/5 genitivos NO MEETING, 8/8 nuclei MEETING, verbales MEETING). Suite local 2952 PASS, smoke 25 OK. Commit local `992db07` creado.
+- **Colision**: al hacer `git push origin openhands/autonomous-ordia` el remoto RECHAZO (non-fast-forward). `git fetch` revelo que un run remoto concurrente ya habia pushed: `445c5d2` fix(conversations) meetingSignal genitivos c.519 (MISMO bug, MISMA area, solucion equivalente: split `meetingVerbSignal`/`meetingNounSignal` + `hasMeetingNounAsSubject`) + `ede31ab` fix(intelligence) IntelligenceSafetyGate contenido sin tilde c.520. Mi commit local `992db07` era un DUPLICADO del c.519 remoto.
+- **Accion (NO destructiva, conforme a reglas anti-colision)**: `git reset --soft origin/openhands/autonomous-ordia` -> `git reset --mixed origin/openhands/autonomous-ordia` -> `git checkout -- .` para descartar mi trabajo local duplicado SIN `reset --hard` ni `git clean`. Working tree limpio sobre `ede31ab` (HEAD remoto). NO force push, NO sobreescritura del trabajo valido del otro run. Mi solucion era equivalente y correcta, pero el run remoto gano la carrera; se respeta su trabajo.
+- **Evidencia**: `git log --oneline origin/openhands/autonomous-ordia` muestra `ede31ab` (c.520) > `445c5d2` (c.519) > `a294d3c` (c.518). Mi commit `992db07` descartado (no pushed). Baseline remoto `ede31ab` verificada: `bash tools/run_domain_tests.sh` -> **2956 PASS**, 0 failures, 47 classes (Time: 1.885s); smoke 25 OK.
+- **Leccion**: el bug `meetingSignal` genitivo ya estaba en BACKLOG como PENDIENTE (c.514) y fue tomado por un run concurrente. Antes de dedicar un run entero a un item PENDIENTE del BACKLOG, re-fetchear y confirmar que nadie mas lo tomo. El trabajo local fue util (probe + fix correctos) pero redundante.
+- **HEAD final**: `ede31ab` (c.520 remoto; sin cambios locales). Estado: STALE_RUN (colision resuelta sin dano; mi trabajo descartado por ser duplicado). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **Proxima prioridad**: diversificar fuera de conversations/intelligence (areas saturadas por runs recientes c.514-c.520): automation/context/backup/workers/search/What Now. Re-fetch antes de implementar.
