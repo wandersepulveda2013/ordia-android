@@ -1641,9 +1641,16 @@ object NaturalTaskParser {
      * recordatorio"). Antes NO se reconocían: el verbo sobrevivía como residuo del
      * título y reminderOffset=null (el recordatorio NUNCA se programaba pese a
      * pedirse expresamente → olvido).
+     *
+     * c.476 extiende el mismo patrón a "ponme"/"dame" ("ponme un aviso para la reunión
+     * del viernes", "dame un recordatorio de pagar la luz"): tan cotidianos como
+     * "mándame/envíame" pero igualmente verbos de acción por sí solos ("dame el
+     * documento", "ponme el libro"), por lo que solo cuentan como aviso con el
+     * sustantivo vía lookahead. Sin él, el recordatorio nunca se programaba pese a
+     * pedirse expresamente con fecha → olvido silencioso.
      */
     private val bareReminderVerbPattern =
-        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordarme|avisarme|notificarme|acordarme(?:\s+de\b)?|no\s+dejes\s+que\s+olvide|no\s+(?:se\s+te\s+|te\s+|me\s+|le\s+)?olvides?(?:\s+de\b)?(?:\s+que\b)?|acu[eé]rdate(?:\s+de\b)?|recuerda|(?:m[aá]ndame|env[ií]ame)(?=\s+(?:un(?:a|os|as)?\s+)?(?:recordatorio|alerta|aviso|notificaci[oó]n)\b)|(?<!(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus|nuestros?|nuestras?|estes?|estas?|esos?|esas?|aquella?)\s)recordatorio)\b""")
+        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordarme|avisarme|notificarme|acordarme(?:\s+de\b)?|no\s+dejes\s+que\s+olvide|no\s+(?:se\s+te\s+|te\s+|me\s+|le\s+)?olvides?(?:\s+de\b)?(?:\s+que\b)?|acu[eé]rdate(?:\s+de\b)?|recuerda|(?:m[aá]ndame|env[ií]ame|p[oó]nme|dame)(?=\s+(?:un(?:a|os|as)?\s+)?(?:recordatorio|alerta|aviso|notificaci[oó]n)\b)|(?<!(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus|nuestros?|nuestras?|estes?|estas?|esos?|esas?|aquella?)\s)recordatorio)\b""")
     private const val BARE_REMINDER_DEFAULT_OFFSET_MINUTES = 30
     private val durationPatterns = listOf(
         Regex("""(?i)\((\d{1,3}(?:[.,]\d+)?)\s*(minutos?|min|horas?|hora)\)"""),

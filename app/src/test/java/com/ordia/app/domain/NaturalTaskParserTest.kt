@@ -1883,6 +1883,49 @@ class NaturalTaskParserTest {
         assertEquals(30, result.reminderOffsetMinutes)
     }
 
+    // --- "ponme/dame + sustantivo de aviso" (c.476) ---
+    // "ponme un aviso"/"dame un recordatorio" son peticiones explícitas de aviso tan
+    // cotidianas como "mándame/envíame" (c.471), pero NO se reconocían: el verbo
+    // sobrevivía como residuo del título y, con fecha, reminderOffset=null (el
+    // recordatorio NUNCA se programaba pese a pedirse expresamente → olvido). Mismo
+    // patrón que c.471: solo cuentan como aviso con sustantivo (aviso/recordatorio/
+    // alerta/notificación) vía lookahead, porque "dame"/"ponme" son verbos de acción
+    // por sí solos ("dame el documento", "ponme el libro").
+    @Test fun ponmeAvisoConDueAplicaOffset30() {
+        val result = NaturalTaskParser.parse("ponme un aviso el viernes a las 10", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun dameRecordatorioConDueAplicaOffset30() {
+        val result = NaturalTaskParser.parse("dame un recordatorio mañana a las 9", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun dameAlertaConDueAplicaOffset30() {
+        val result = NaturalTaskParser.parse("dame una alerta pasado mañana a las 8", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    @Test fun ponmeNotificacionConDueAplicaOffset30() {
+        val result = NaturalTaskParser.parse("ponme una notificacion el lunes a las 7 am", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals(30, result.reminderOffsetMinutes)
+    }
+
+    // Sin sustantivo de aviso, "dame"/"ponme" son de acción: NO debe falsificar aviso.
+    @Test fun dameDocumentoSinSustantivoDeAvisoNoProgramaRecordatorio() {
+        val result = NaturalTaskParser.parse("dame el documento el viernes", now, zone)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
+    @Test fun ponmeLibroSinSustantivoDeAvisoNoProgramaRecordatorio() {
+        val result = NaturalTaskParser.parse("ponme el libro mañana a las 9", now, zone)
+        assertNull(result.reminderOffsetMinutes)
+    }
+
     // Sin sustantivo de aviso, el verbo es de acción (no aviso): NO debe falsificar
     // recordatorio. "envíame un correo" es contenido real, no petición de aviso.
     @Test fun enviameCorreoSinSustantivoDeAvisoNoProgramaRecordatorio() {
