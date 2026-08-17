@@ -11850,6 +11850,44 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "a partir de" + FECHA de calendario (c.544) ---
+    // Simétrico al fix de "desde" + fecha (c.499). aPartirDeRewriter sólo reescribe
+    // "a partir de" + HORA/parte-del-día (no fechas de calendario), así que al resolver
+    // y borrar la fecha el conector "a partir de/del" quedaba huérfano y el limpiador
+    // final recortaba sólo su "de", dejando "a partir" como residuo del título
+    // ("fumar menos a partir de mañana" → "fumar menos a partir", P1 título degradado).
+    // Ahora se consume la frase entera cuando se resolvió fecha.
+    @Test fun aPartirDeMananaLimpiaTituloSinDejarAPartir() {
+        val result = NaturalTaskParser.parse("fumar menos a partir de mañana", now, zone)
+        assertEquals("fumar menos", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aPartirDelViernesLimpiaTituloSinDejarAPartir() {
+        // 2026-07-29 es miércoles; "el viernes" → 2026-07-31.
+        val result = NaturalTaskParser.parse("dieta a partir del viernes", now, zone)
+        assertEquals("dieta", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aPartirDel1DeSeptiembreLimpiaTituloSinDejarAPartir() {
+        val result = NaturalTaskParser.parse("ahorrar a partir del 1 de septiembre", now, zone)
+        assertEquals("ahorrar", result.title)
+        assertEquals(LocalDate.of(2026, 9, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aPartirDeHoyLimpiaTituloSinDejarAPartir() {
+        val result = NaturalTaskParser.parse("fumar menos a partir de hoy", now, zone)
+        assertEquals("fumar menos", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aPartirDeFechaNoTocaContenidoLegitimoSinAgenda() {
+        // Sin fecha resuelta, "a partir de" es contenido legítimo y NO se borra.
+        val result = NaturalTaskParser.parse("decisión a partir de los datos")
+        assertEquals("decisión a partir de los datos", result.title)
+    }
+
     // --- "desde" + anclaje de HORA (c.436) ---
     // Simétrico a "a partir de" (c.435). "desde las N"/"desde la parte-del-día"/"desde el
     // mediodía/amanecer/..." significa "a partir de esa hora". Antes la hora SÍ se

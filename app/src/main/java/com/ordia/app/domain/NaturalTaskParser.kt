@@ -4993,8 +4993,20 @@ object NaturalTaskParser {
                 // en "de", se prueba ANTES que `\bde` para consumirlo entero (si no,
                 // `\bde` no casaría por el límite y "desde" sobreviviría como orphan).
                 // c.499.
+                //
+                // Simétrico para "a partir de/del" + FECHA de calendario ("fumar menos
+                // a partir de mañana", "dieta a partir del viernes", "ahorrar a partir
+                // del 1 de septiembre"): aPartirDeRewriter sólo reescribe "a partir de"
+                // + HORA/parte-del-día (no fechas), así que al resolver y borrar la fecha
+                // el conector queda huérfano al final ("fumar menos a partir de").
+                // Antes la limpieza sólo consumía "desde"/"del"/"de", así que "a partir
+                // de" recortaba sólo su "de" final y dejaba "a partir" como residuo
+                // (título degradado, P1 captura). Se consume la frase entera, ANTES que
+                // las demás alternativas (contiene "de", si no iría primero el motor
+                // casaría sólo "de"). Mismo guard dueAt != null: sin agenda, "a partir
+                // de" es contenido legítimo ("decisión a partir de los datos").
                 if (dueAt != null)
-                    value.replace(Regex("""(?i)\s*(?:desde|de\s+la|del|\bde)\s*$"""), " ")
+                    value.replace(Regex("""(?i)\s*(?:a\s+partir(?:\s+d(?:e|el))?|desde|de\s+la|del|\bde)\s*$"""), " ")
                 else value
             }
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
