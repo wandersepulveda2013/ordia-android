@@ -176,6 +176,15 @@ object CommitmentEngine {
     private val indicativeRequestSignal = Regex(
         """(?i)\bme\s+(?:(?:lo|la|los|las)\s+)?(?:pasas|env[ií]as|mandas|llamas|escribes|avisas|confirmas|dices|das|alcanzas|dejas)\b"""
     )
+    // c.329/c.535: lista curada de infinitivos de acción reusada por
+    // [pendingObligationSignal] (c.329), [commitmentSignal] ("me toca", c.535) y
+    // [userObligationSignal] ("te toca", c.535). Se restringe a verbos reales de
+    // gestión/seguimiento (no al sufijo -ar/-er/-ir, que casa con sustantivos
+    // comunes como "lugar"/"azúcar"/"hogar" → falsos positivos). Definida al
+    // principio para que las señales que la interpolan estén ya inicializadas.
+    private val pendingActionInfinitives =
+        "enviar|confirmar|revisar|llamar|mandar|pagar|firmar|responder|hacer|terminar|entregar|preparar|subir|dejar|pasar|arreglar|completar|agendar|programar|contactar|avisar|recordar|cobrar|facturar|presentar"
+
     // c.316: obligación DIRIGIDA AL USUARIO por un tercero en 2ª persona —
     // "tienes que firmar el contrato el lunes", "tienes que pagar la renta",
     // "tienes que entregar el reporte". Es la forma más natural en español de
@@ -191,7 +200,21 @@ object CommitmentEngine {
     // draft SELF_COMMITMENT PENDING revisable: un falso positivo se descarta,
     // un falso negativo es una obligación olvidada (área "evitar olvidos" +
     // "detección de compromisos").
-    private val userObligationSignal = Regex("""(?i)\btienes\s+que\b""")
+    //
+    // c.535: "te toca" + infinitivo de acción — obligación por TURNO dirigida al
+    // usuario ("te toca presentar el informe el viernes", "te toca pagar la
+    // ronda", "te toca revisar el contrato"). Es el espejo de 2ª persona de
+    // "me toca" (commitmentSignal, misma c.535): el giro impersonal "tocar a
+    // uno" expresa a quién le corresponde una tarea, y la persona del clítico
+    // (te=oyente/usuario) marca al obligado, igual que "tienes que" (c.316).
+    // Antes caía a MISSED (probe JVM PRE-fix: 2/2). Se ancla a owner=SELF (la
+    // obligación es DEL usuario) igual que "tienes que". Reusa
+    // [pendingActionInfinitives] para mantener precisión alta (lista curada de
+    // verbos de acción; evita que "te toca el turno"/"te toca la lotería"
+    // —sin infinitivo— disparen). La guarda precedingNegation excluye
+    // "no te toca a ti" (no te corresponde) igual que "no tienes que".
+    // Determinista (regex), sin random, sin IA fingida.
+    private val userObligationSignal = Regex("""(?iU)\b(?:tienes\s+que|te\s+toca\s+(?:$pendingActionInfinitives))\b""")
 
     // c.329: obligaciones PENDIENTES — la clase de compromiso más común en un
     // seguimiento de chat donde el usuario reconoce algo que le quedó por hacer:
@@ -237,8 +260,6 @@ object CommitmentEngine {
     // PENDING revisable: un falso positivo se descarta, un falso negativo es
     // una obligación olvidada (área "evitar olvidos" + "detección de
     // compromisos").
-    private val pendingActionInfinitives =
-        "enviar|confirmar|revisar|llamar|mandar|pagar|firmar|responder|hacer|terminar|entregar|preparar|subir|dejar|pasar|arreglar|completar|agendar|programar|contactar|avisar|recordar|cobrar|facturar"
     private val pendingObligationSignal = Regex(
         """(?i)\b(?:(?:tengo|tienes|tenemos)\s+pendientes?\b|(?:me|te|le|nos|les)\s+qued(?:an?|o|ó|aron)\s+pendientes?\b|qued[ao]\s+pendiente\b|(?:tengo|tienes|tenemos)\s+por\s+(?:$pendingActionInfinitives)\b|(?:me|te|le|nos|les)\s+faltan?\s+(?:$pendingActionInfinitives)\b|(?:me|te|le|nos|les)\s+(?:faltan?|qued(?:an?|o|ó|aron))\s+por\s+(?:$pendingActionInfinitives)\b)\b"""
     )
@@ -446,6 +467,7 @@ object CommitmentEngine {
         // dispara sin clítico previo (la forma lleva la intención en el morfema
         // -emos, no en un pronombre objeto precedente), igual que "vamos a".
         // Determinista (regex), sin random, sin IA fingida.
+
         // c.533: el FUTURO de comunicación (llamaré/hablaré/escribiré + plurales
         // llamaremos/hablaremos/escribiremos) era la única forma de promesa de contacto
         // que caía a MISSED: el presente con clítico ("te llamo"/"le escribo") y el
@@ -454,7 +476,24 @@ object CommitmentEngine {
         // el futuro de comunicación no. Cobertura singular y plural, con clítico (te/le/
         // lo) y pelado con objeto nominal ("llamaré al cliente mañana").
         // Probe JVM PRE-fix: 17/17 MISSED.
-        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo|llamamos|enviamos|respondemos|avisamos|confirmamos|pasamos|mandamos|pagamos|hablamos|escribimos)|despu[eé]s\s+te\s+respondo|(?:debo|debemos)|(?:tengo|tenemos)\s+que|(?:hagamos|terminemos|entreguemos|revisemos|preparemos|arreglemos|subamos|dejemos|pasemos|mandemos|enviemos|llamemos|hablemos|escribamos|paguemos)|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+|te\s+|le\s+)?(?:voy\s+a|vamos\s+a|terminar[eé]|terminaremos|har[eé]|haremos|entregar[eé]|entregaremos|revisar[eé]|revisaremos|preparar[eé]|prepararemos|arreglar[eé]|arreglaremos|subir[eé]|subiremos|dejar[eé]|dejaremos|pasar[eé]|pasaremos|mandar[eé]|mandaremos|enviar[eé]|enviaremos|llamar[eé]|llamaremos|hablar[eé]|hablaremos|escribir[eé]|escribiremos|avisar[eé]|avisaremos|notificar[eé]|notificaremos|dir[eé]|diremos)|lo\s+hago|lo\s+hacemos|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|pagamos))\b"""
+        //
+        // c.535: "me toca" + infinitivo de acción — obligación por TURNO del
+        // propio hablante ("me toca presentar el informe el viernes", "me toca
+        // pagar la ronda", "me toca revisar el contrato"). Es el espejo de 1ª
+        // persona de "te toca" (userObligationSignal, misma c.535): el giro
+        // impersonal "tocar a uno" expresa a quién le corresponde una tarea, y la
+        // persona del clítico (me=hablante) marca al obligado. Antes caía a
+        // MISSED (probe JVM PRE-fix: 2/2). A diferencia de "te toca" (anclado a
+        // SELF por ser 2ª persona=oyente), "me toca" es 1ª persona=hablante, así
+        // su dueño se rutea por el REMITENTE (igual que "me encargo"/"tengo que":
+        // si lo dice el usuario → SELF, si lo dice otro → OTHER). Reusa
+        // [pendingActionInfinitives] para mantener precisión alta (evita que "me
+        // toca el turno"/"me toca la lotería" —sin infinitivo— disparen). La
+        // guarda precedingNegation excluye "no me toca a mí" (no me corresponde)
+        // igual que "no me encargo". Determinista (regex), sin random, sin IA
+        // fingida.
+        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|me\s+toca\s+(?:$pendingActionInfinitives)|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo|llamamos|enviamos|respondemos|avisamos|confirmamos|pasamos|mandamos|pagamos|hablamos|escribimos)|despu[eé]s\s+te\s+respondo|(?:debo|debemos)|(?:tengo|tenemos)\s+que|(?:hagamos|terminemos|entreguemos|revisemos|preparemos|arreglemos|subamos|dejemos|pasemos|mandemos|enviemos|llamemos|hablemos|escribamos|paguemos)|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+|te\s+|le\s+)?(?:voy\s+a|vamos\s+a|terminar[eé]|terminaremos|har[eé]|haremos|entregar[eé]|entregaremos|revisar[eé]|revisaremos|preparar[eé]|prepararemos|arreglar[eé]|arreglaremos|subir[eé]|subiremos|dejar[eé]|dejaremos|pasar[eé]|pasaremos|mandar[eé]|mandaremos|enviar[eé]|enviaremos|llamar[eé]|llamaremos|hablar[eé]|hablaremos|escribir[eé]|escribiremos|avisar[eé]|avisaremos|notificar[eé]|notificaremos|dir[eé]|diremos)|lo\s+hago|lo\s+hacemos|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|respondemos|avisamos|confirmamos|pagamos)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago|terminamos|entregamos|revisamos|preparamos|arreglamos|subimos|dejamos|pasamos|mandamos|enviamos|llamamos|hablamos|escribimos|pagamos))\b"""
+
     )
     // c.500: presente de 1ª persona SIN pronombre de objeto + marca temporal futura
     // PUNTUAL — "termino el informe mañana", "entrego el reporte el viernes",

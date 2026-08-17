@@ -2462,4 +2462,106 @@ class CommitmentEngineTest {
         }
     }
 
+
+// c.535: "me toca"/"te toca" + infinitivo de acción. Giro impersonal "tocar a
+    // uno" expresa a quién le corresponde una tarea. "te toca" (2ª=oyente) ancla a
+    // SELF (obligación del usuario); "me toca" (1ª=hablante) se rutea por remitente.
+    // Precisión: requiere infinitivo de [pendingActionInfinitives] para no disparar
+    // con "me toca el turno"/"me toca la lotería". Negación excluida.
+    @Test
+    fun detectsTeTocaAsUserObligationSelf() {
+        val positives = listOf(
+            "te toca presentar el informe el viernes",
+            "te toca pagar la ronda",
+            "te toca revisar el contrato",
+            "te toca enviar el reporte manana"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("él", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c535-te-pos-$text"
+            )
+            assertTrue(
+                "\"$text\" (te toca) debe generar draft SELF_COMMITMENT (obligación del usuario)",
+                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
+    @Test
+    fun detectsMeTocaRoutedBySender() {
+        // "me toca" dicho por OTRO → obligación del otro (OTHER_COMMITMENT).
+        val otherPositive = listOf(
+            "me toca presentar el informe el viernes",
+            "me toca revisar el contrato",
+            "me toca pagar la ronda"
+        )
+        otherPositive.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("él", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c535-me-other-$text"
+            )
+            assertTrue(
+                "\"$text\" (me toca, dicho por otro) debe generar OTHER_COMMITMENT",
+                result.any { it.kind == CommitmentKind.OTHER_COMMITMENT && it.owner == CommitmentOwner.OTHER }
+            )
+        }
+        // "me toca" dicho por el USUARIO → obligación propia (SELF_COMMITMENT).
+        val selfPositive = listOf(
+            "me toca presentar el informe el viernes",
+            "me toca pagar la ronda"
+        )
+        selfPositive.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c535-me-self-$text"
+            )
+            assertTrue(
+                "\"$text\" (me toca, dicho por usuario) debe generar SELF_COMMITMENT",
+                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
+    @Test
+    fun tocaRespectsPrecisionAndNegation() {
+        // Sin infinitivo de acción: NO debe disparar (precisión alta).
+        val nonActions = listOf(
+            "me toca el turno",
+            "me toca la loteria",
+            "te toca el turno"
+        )
+        nonActions.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("él", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c535-prec-$text"
+            )
+            assertTrue(
+                "\"$text\" (sin infinitivo) NO debe generar draft",
+                result.none { it.kind != null }
+            )
+        }
+        // Negación directa: NO debe disparar.
+        val negatives = listOf(
+            "no me toca a mi revisar el contrato",
+            "no te toca pagar a ti"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("él", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c535-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" (negación de toca) NO debe generar draft",
+                result.none { it.kind != null }
+            )
+        }
+    }
+
+
 }
