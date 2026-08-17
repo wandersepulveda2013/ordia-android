@@ -2141,6 +2141,17 @@ object NaturalTaskParser {
             val las = m.groupValues[1]
             val la = m.groupValues[2]
             val bare = m.groupValues[3]
+            // Guard anti-cuenta (c.442): cuando el anclaje es "las N" en punto sin
+            // evidencia de reloj, lo que sigue puede ser un SUSTANTIVO de cantidad
+            // ("a partir de las 3 cajas") y no una cita. Reutiliza [countNounFollowerPattern]
+            // (mismo guard que "a las N" en punto, c.361): si el tail NO es un
+            // continuador seguro, es una cuenta y NO se reescribe (preserva "a partir de
+            // las 3" integro en el titulo en vez de mutilarlo a "cajas"). Las anclas
+            // "la X"/parte-del-dia no admiten lectura de cantidad, solo "las N".
+            if (las.isNotEmpty()) {
+                val tail = working.substring(m.range.last + 1)
+                if (!countNounFollowerPattern.containsMatchIn(tail)) return@replace m.value
+            }
             when {
                 las.isNotEmpty() -> "a $las"
                 la.isNotEmpty() -> "a $la"
@@ -2177,12 +2188,21 @@ object NaturalTaskParser {
         // rango ([desdeRangeNormalizerRewriter]/[deLasRangeNormalizerRewriter]) para no
         // desarmar "desde las 9 hasta las 11". Sólo anclajes de HORA: el regex exige
         // "las N"/"la X"/parte-del-día, así "desde el viernes"/"desde mañana" (fecha) y
-        // "desde el proyecto"/"desde las 3 cajas" (tema/cantidad) no se tocan. Grupos
-        // 1/2/3 = "las N"/"la X"/"X"; se emite el conector según cuál case.
+        // "desde el proyecto" (tema) no se tocan. Para "las N" en punto sin evidencia de
+        // reloj se aplica el guard anti-cuenta [countNounFollowerPattern] (c.442): así
+        // "desde las 3 cajas" (cantidad) preserva el "3" en el título en vez de
+        // mutilarlo a "cajas". Grupos 1/2/3 = "las N"/"la X"/"X"; se emite el conector.
         working = desdeRewriter.replace(working) { m ->
             val las = m.groupValues[1]
             val la = m.groupValues[2]
             val bare = m.groupValues[3]
+            // Guard anti-cuenta (c.442): simétrico de [aPartirDeRewriter]. Si el anclaje
+            // es "las N" en punto y lo que sigue es un sustantivo de cantidad
+            // ("desde las 3 cajas"), NO se reescribe (preserva el número en el título).
+            if (las.isNotEmpty()) {
+                val tail = working.substring(m.range.last + 1)
+                if (!countNounFollowerPattern.containsMatchIn(tail)) return@replace m.value
+            }
             when {
                 las.isNotEmpty() -> "a $las"
                 la.isNotEmpty() -> "a $la"
@@ -4050,7 +4070,11 @@ object NaturalTaskParser {
         // SÓLO una frase de agenda sin acción), se usa el `original` PERO con los mismos
         // reescritores de conectores aplicados (c.371/c.378), así el respaldo no resucita
         // "al"/"de aquí al" crudos como título visible ("al viernes"→"el viernes").
-        val titleFallback = original
+        // Los reescritores de anclaje de hora (c.435/c.436) llevan aquí el mismo guard
+        // anti-cuenta (c.442) que en `parse`: si el anclaje "las N" en punto va seguido
+        // de un sustantivo de cantidad, NO se reescribe (preserva el número en el título).
+        // Pasos con variable intermedia `tf` para que el guard inspeccione el tail exacto.
+        var tf = original
             .replace(deAquiConnectorRewriter, "el")
             .replace(deAquiToRewriter, " ")
             .replace(alWeekdayRewriter) { m -> "el${m.groupValues[1]}" }
@@ -4062,38 +4086,47 @@ object NaturalTaskParser {
                     else -> part
                 }
             }
-            // c.435: el respaldo también normaliza "a partir de" + anclaje de hora
-            // (simétrico al rewriter en `parse`), así un standalone de franja
-            // ("a partir de las 3 de la tarde" solo) muestra "a las 3 de la tarde" en
-            // vez de resucitar "a partir de" crudo — consistente con c.424/c.432.
-            .replace(aPartirDeRewriter) { m ->
-                val las = m.groupValues[1]
-                val la = m.groupValues[2]
-                val bare = m.groupValues[3]
-                when {
-                    las.isNotEmpty() -> "a $las"
-                    la.isNotEmpty() -> "a $la"
-                    else -> "al $bare"
-                }
+        // c.435: respaldo normaliza "a partir de" + anclaje de hora (simétrico al
+        // rewriter en `parse`): un standalone de franja ("a partir de las 3 de la tarde"
+        // solo) muestra "a las 3 de la tarde" en vez de resucitar "a partir de" crudo.
+        // Guard anti-cuenta (c.442): si el anclaje "las N" en punto va seguido de un
+        // sustantivo de cantidad ("a partir de las 3 cajas"), NO se reescribe (preserva
+        // el número en el título). Pasos con variable intermedia para inspeccionar el tail.
+        tf = aPartirDeRewriter.replace(tf) { m ->
+            val las = m.groupValues[1]
+            val la = m.groupValues[2]
+            val bare = m.groupValues[3]
+            if (las.isNotEmpty()) {
+                val tail = tf.substring(m.range.last + 1)
+                if (!countNounFollowerPattern.containsMatchIn(tail)) return@replace m.value
             }
-            // c.436: el respaldo también normaliza "desde" + anclaje de hora
-            // (simétrico al rewriter en `parse`), así un standalone de franja
-            // ("desde las 3 de la tarde" solo) muestra "a las 3 de la tarde" en
-            // vez de resucitar "desde" crudo — consistente con c.424/c.432/c.435.
-            .replace(desdeRewriter) { m ->
-                val las = m.groupValues[1]
-                val la = m.groupValues[2]
-                val bare = m.groupValues[3]
-                when {
-                    las.isNotEmpty() -> "a $las"
-                    la.isNotEmpty() -> "a $la"
-                    else -> "al $bare"
-                }
+            when {
+                las.isNotEmpty() -> "a $las"
+                la.isNotEmpty() -> "a $la"
+                else -> "al $bare"
             }
-            // c.382: el respaldo también normaliza el marcador aproximado "a eso de las N"
-            // (simétrico al fold de `approximateTimePatterns` en `parse`), así un standalone
-            // de hora aproximada ("a eso de la una y media" solo) muestra "a la una y media"
-            // en vez de resucitar "a eso de" crudo — consistente con c.379/c.381.
+        }
+        // c.436: respaldo normaliza "desde" + anclaje de hora (simétrico al rewriter en
+        // `parse`). Mismo guard anti-cuenta (c.442) que arriba.
+        tf = desdeRewriter.replace(tf) { m ->
+            val las = m.groupValues[1]
+            val la = m.groupValues[2]
+            val bare = m.groupValues[3]
+            if (las.isNotEmpty()) {
+                val tail = tf.substring(m.range.last + 1)
+                if (!countNounFollowerPattern.containsMatchIn(tail)) return@replace m.value
+            }
+            when {
+                las.isNotEmpty() -> "a $las"
+                la.isNotEmpty() -> "a $la"
+                else -> "al $bare"
+            }
+        }
+        val titleFallback = tf
+            // c.382: respaldo normaliza el marcador aproximado "a eso de las N"
+            // (simétrico al fold de `approximateTimePatterns` en `parse`): un standalone
+            // de hora aproximada ("a eso de la una y media" solo) muestra "a la una y
+            // media" en vez de resucitar "a eso de" crudo. Consistente con c.379/c.381.
             .let { approximateTimePatterns.fold(it) { acc, p -> p.replace(acc, "a ") } }
             .replace(Regex("""\s+"""), " ").trim(' ', ',', '.', '-')
 

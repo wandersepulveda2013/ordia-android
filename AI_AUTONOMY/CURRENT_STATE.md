@@ -3,7 +3,17 @@
 > Fotografía ACTUAL del estado de Ordía. No es un historial; el historial está en `RUN_LOG.md`.
 > Actualizar AL FINAL de cada sesión autónoma (reescribir, no acumular).
 
+## Ciclo c.442 — 2026-08-17 (UTC) — fix(parser): "desde"/"a partir de" + "las N" + sustantivo de cantidad ("comprar desde las 3 cajas") reescribía "las N" como hora en punto (3:00) y ELIMINABA el número del título → pérdida de la cantidad (P1 datos/captura/título limpio) — ÁREA PARSER (NaturalTaskParser), guard anti-cuenta simétrico de c.361
+
+- **Estado**: VERIFIED. `bash tools/run_domain_tests.sh` → 2585 PASS (2579 c.440 + 6 nuevos), 0 failures; `bash tools/run_domain_checks.sh` → smoke 25 OK.
+- **Qué cambió**: los reescritores c.435/c.436 ("a partir de"/"desde" + anclaje de HORA) y el respaldo de título trataban "las N" en punto SIEMPRE como hora. Así "comprar desde las 3 cajas" se reescribía "desde las 3" → "a las 3", el "3" se agendaba como 3:00 Y se borraba del título, dejando "comprar cajas" (el usuario perdía la cantidad 3). Se añade el guard [countNounFollowerPattern] (mismo patrón que c.361 para "a las N") en DOS sitios: `desdeRewriter.replace()` en `parse()` y el bloque `titleFallback`. Cuando el tail tras "las N" es un sustantivo de cantidad (cajas/personas/kilos/...), se devuelve el match sin reescribir → el "las N" se PRESERVA íntegro en el título y NO se agenda hora. Determinista, sin random, sin IA fingida. Sin nueva pantalla/botón.
+- **HEAD**: `429d68e` (atop `fef679e` c.441 remoto, DISJUNTO en `.kt`; `.md` resueltos conservando ambas entradas c.441+c.442; NO force, NO reset destructivo).
+- **NO VERIFICADO**: gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK); la lógica pura `NaturalTaskParser.parse` SÍ verificada en JVM vía tests + suite 2585.
+
+
 ## Ciclo c.441 — 2026-08-17 (UTC) — fix(assistant): “¿qué me comprometí?”/“¿qué prometí?” (la forma COTIDIANA de pedir recordar lo prometido) caían al MENÚ GENÉRICO en vez de recuperar los compromisos pendientes/vencidos — P2 asistente/IA honesta/evitar olvidos/MENOS ES MÁS — ÁREA NO-PARSER (AssistantEngine)
+
+## Ciclo c.440 — 2026-08-17 (UTC) — fix(assistant): “¿qué tengo que hacer?”/“¿qué me falta por hacer?” (las formas MÁS cotidianas de pedir la siguiente tarea) caían al MENÚ GENÉRICO en vez de sugerir What Now — P2 asistente/IA honesta/MENOS ES MÁS — ÁREA NO-PARSER (AssistantEngine)
 
 - **Estado**: VERIFIED. `bash tools/run_domain_tests.sh` → 2582 PASS (2579 c.440 + 3 nuevos), 0 failures; smoke 25 OK.
 - **Qué cambió**: “¿qué me comprometí?”/“¿qué prometí?” —la forma cotidiana de recuperar lo prometido en una conversación— NO contenían “compromiso” (la rama de compromisos sin fecha exigía ese sustantivo) ni casaban con olvidos/vencidas (esas hablan de tareas, no de promesas) → caían al MENÚ GENÉRICO. Con un compromiso vencido respondía “Puedo organizar tu día… (N vencidos)” (nombraba el CONTEO pero NO cuál era la promesa olvidada); sin vencidos, no mencionaba los pendientes en absoluto → el usuario perdía la recuperación de su promesa olvidada. Se añade una rama `"me comprometi" in query || "que prometi" in query` que reusa la maquinaria existente: `overdueCommitmentAnswer` (nombra la promesa vencida más urgente + `OPEN_CONVERSATIONS`) cuando hay vencidos; conteo de pendientes + `OPEN_CONVERSATIONS` cuando sólo hay pendientes no vencidos; mensaje honesto “No tienes compromisos pendientes” cuando no hay ninguno. Sin nueva pantalla/botón, sin IA fingida (heurística léxica determinista, misma familia “lie-by-omission” que c.357/c.416).

@@ -10100,6 +10100,57 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // --- "desde"/"a partir de" + "las N" + SUSTANTIVO DE CANTIDAD (c.442) ---
+    // REGRESIÓN DE PÉRDIDA DE DATOS: antes los reescritores c.435/c.436 (y el fallback de
+    // título) trataban "las 3" siempre como hora en punto, así que "comprar desde las 3 cajas"
+    // se reescribía "desde las 3" → "a las 3", el "3" se agendaba como 3:00 y se ELIMINABA del
+    // título, dejando "comprar cajas" (el usuario perdía la cantidad 3). El guard
+    // [countNounFollowerPattern] (mismo que "a las N" en punto, c.361) ahora bloquea la
+    // reescritura cuando el tail tras "las N" es un sustantivo de cantidad: el "las N"
+    // nunca se agenda y se PRESERVA íntegro en el título.
+    @Test fun desdeLasNConSustantivoCantidadPreservaNumeroEnTitulo() {
+        val result = NaturalTaskParser.parse("comprar desde las 3 cajas", now, zone)
+        assertEquals("comprar desde las 3 cajas", result.title)
+        // No debe agendar hora: "3 cajas" no es una cita.
+        assertNull(result.dueAt)
+    }
+
+    @Test fun aPartirDeLasNConSustantivoCantidadPreservaNumeroEnTitulo() {
+        val result = NaturalTaskParser.parse("comprar a partir de las 3 cajas", now, zone)
+        assertEquals("comprar a partir de las 3 cajas", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun desdeLasNConSustantivoCantidadCompuestoPreservaNumeroEnTitulo() {
+        val result = NaturalTaskParser.parse("desde las 3 cajas de leche", now, zone)
+        assertEquals("desde las 3 cajas de leche", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun desdeLasNConSustantivoCantidadStandalonePreservaNumeroEnTitulo() {
+        // Frase de agenda sin acción: el respaldo de título (c.435/c.436 + fallback) también
+        // lleva el guard, así que NO resucita "a las 3 cajas" ni pierde el número.
+        val result = NaturalTaskParser.parse("desde las 3 cajas", now, zone)
+        assertEquals("desde las 3 cajas", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun desdeLasNConSustantivoCantidadPersonasPreservaNumeroEnTitulo() {
+        val result = NaturalTaskParser.parse("reunión desde las 10 personas del equipo", now, zone)
+        assertEquals("reunión desde las 10 personas del equipo", result.title)
+        assertNull(result.dueAt)
+    }
+
+    // Contraparte: el guard NO debe afectar a las horas reales con "las N" en punto
+    // (continuador seguro: coma, fin de frase, "y"/"o"/"hasta"). Cubierto por los tests
+    // c.435/c.436 de arriba; este es un ancla de no-regresión explícita.
+    @Test fun desdeLasNEnPuntoConComaSigueAgendandoHora() {
+        val result = NaturalTaskParser.parse("desde las 3, llegar temprano", now, zone)
+        assertEquals("llegar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(3, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
     // --- "a eso de" + hora DESNUDA (sin "las") (c.386) ---
     // "a eso de" es adverbio temporal puro, así que admite hora en punto sin "las" como la
     // forma "a eso de las N". Antes estas variantes cotidianas ("a eso de nueve", "a eso de
