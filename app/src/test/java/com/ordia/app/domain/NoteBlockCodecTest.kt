@@ -103,6 +103,21 @@ class NoteBlockCodecTest {
         assertEquals(listOf(listOf("A", "B"), listOf("1", "2")), decoded[0].tableRows)
     }
 
+    @Test fun tableHeaderFlagRoundTrips() {
+        val blocks = listOf(
+            NoteBlock(
+                type = NoteBlockType.TABLE,
+                tableRows = listOf(listOf("A", "B")),
+                tableHeader = true
+            )
+        )
+
+        val decoded = NoteBlockCodec.decode(NoteBlockCodec.encode(blocks))
+
+        assertEquals(NoteBlockType.TABLE, decoded[0].type)
+        assertTrue(decoded[0].tableHeader)
+    }
+
     @Test fun headingAndCodeTypesRoundTrip() {
         val blocks = listOf(
             NoteBlock(type = NoteBlockType.HEADING_2, text = "Sección"),

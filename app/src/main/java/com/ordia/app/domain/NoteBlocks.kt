@@ -57,6 +57,7 @@ data class NoteBlock(
     val mimeType: String = "",
     val language: String = "",
     val tableRows: List<List<String>> = emptyList(),
+    val tableHeader: Boolean = false,
     val linkTitle: String = "",
     val linkDomain: String = "",
     val indent: Int = 0
@@ -105,6 +106,7 @@ object NoteBlockCodec {
                         }
                     })
                 }
+                if (block.tableHeader) put("tableHeader", true)
                 put("linkTitle", block.linkTitle)
                 put("linkDomain", block.linkDomain)
                 put("blockIndent", block.indent)
@@ -172,6 +174,7 @@ object NoteBlockCodec {
                                     }
                                 }
                             } else emptyList(),
+                            tableHeader = item.optBoolean("tableHeader", false),
                             linkTitle = item.optString("linkTitle"),
                             linkDomain = item.optString("linkDomain"),
                             indent = item.optInt("blockIndent", 0)

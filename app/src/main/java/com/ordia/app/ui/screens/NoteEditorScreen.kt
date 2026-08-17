@@ -1109,8 +1109,11 @@ private fun FormatBar(
 
 @Composable
 private fun TableBlockView(block: NoteBlock, onChange: (NoteBlock) -> Unit) {
+    val context = LocalContext.current
     var rows = block.tableRows
     if (rows.isEmpty()) rows = listOf(List(2) { "" }, List(2) { "" })
+    val headerRow = block.tableHeader
+
     Column(Modifier.fillMaxWidth()) {
         rows.forEachIndexed { r, row ->
             Row(Modifier.fillMaxWidth()) {
@@ -1118,32 +1121,54 @@ private fun TableBlockView(block: NoteBlock, onChange: (NoteBlock) -> Unit) {
                     OutlinedTextField(
                         value = cell,
                         onValueChange = { newCell ->
-                            val newRows: List<List<String>> = rows.mapIndexed { ri, row ->
-                                if (ri == r) row.mapIndexed { ci, cell -> if (ci == c) newCell else cell }
-                                else row
+                            val newRows: List<List<String>> = rows.mapIndexed { ri, rr ->
+                                if (ri == r) rr.mapIndexed { ci, _ -> if (ci == c) newCell else rr[ci] }
+                                else rr
                             }
                             onChange(block.copy(tableRows = newRows))
                         },
                         modifier = Modifier.weight(1f),
-                        textStyle = MaterialTheme.typography.bodyMedium,
+                        textStyle = if (headerRow && r == 0) MaterialTheme.typography.labelLarge else MaterialTheme.typography.bodyMedium,
                         singleLine = true
                     )
                 }
             }
         }
-        Row {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TextButton(onClick = {
                 val cols = rows.firstOrNull()?.size ?: 2
-                val newRow: List<String> = List(cols) { "" }
-                val newRows: List<List<String>> = rows.toMutableList().apply { add(newRow) }.toList()
-                onChange(block.copy(tableRows = newRows))
-            }) { Text("+ fila") }
+                onChange(block.copy(tableRows = rows + List(1) { List(cols) { "" } }))
+            }) { Text(stringResource(R.string.notes_table_add_row)) }
             TextButton(onClick = {
-                val newRows: List<List<String>> = rows.map { it + "" }
-                onChange(block.copy(tableRows = newRows))
-            }) { Text("+ columna") }
+                onChange(block.copy(tableRows = rows.map { it + "" }))
+            }) { Text(stringResource(R.string.notes_table_add_col)) }
+            TextButton(onClick = {
+                if (rows.size > 1) onChange(block.copy(tableRows = rows.dropLast(1)))
+            }) { Text(stringResource(R.string.notes_table_del_row)) }
+            TextButton(onClick = {
+                if ((rows.firstOrNull()?.size ?: 0) > 1) onChange(block.copy(tableRows = rows.map { it.dropLast(1) }))
+            }) { Text(stringResource(R.string.notes_table_del_col)) }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            TextButton(onClick = { onChange(block.copy(tableHeader = !headerRow)) }) {
+                Text(if (headerRow) stringResource(R.string.notes_table_header_off) else stringResource(R.string.notes_table_header_on))
+            }
+            TextButton(onClick = {
+                val csv = rows.joinToString("\n") { row -> row.joinToString(",") { escapeCsv(it) } }
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/csv"
+                    putExtra(Intent.EXTRA_TEXT, csv)
+                }
+                runCatching { context.startActivity(Intent.createChooser(intent, "CSV")) }
+            }) { Text(stringResource(R.string.notes_table_export_csv)) }
         }
     }
+}
+
+private fun escapeCsv(field: String): String {
+    return if (field.contains(',') || field.contains('"') || field.contains('\n')) {
+        "\"" + field.replace("\"", "\"\"") + "\""
+    } else field
 }
 
 @Composable
