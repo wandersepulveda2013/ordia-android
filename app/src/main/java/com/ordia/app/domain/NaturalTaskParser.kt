@@ -5022,8 +5022,15 @@ object NaturalTaskParser {
                 // las demás alternativas (contiene "de", si no iría primero el motor
                 // casaría sólo "de"). Mismo guard dueAt != null: sin agenda, "a partir
                 // de" es contenido legítimo ("decisión a partir de los datos").
+                // c.546: "hacia" y "durante" NO se reescriben a conector canónico;
+                // al resolver y borrar fecha/hora quedaban huérfanos al final
+                // ("entregar hacia", "estudiar durante"). Mismo guard dueAt != null:
+                // sin agenda son contenido legítimo ("trabajar durante la semana").
+                // End-anchored: "caminar hacia el parque el sábado" (hacia NO al
+                // final) se conserva. "durante" puede llevar artículo rezagado
+                // ("durante la mañana" -> tras consumir "mañana" queda "durante la").
                 if (dueAt != null)
-                    value.replace(Regex("""(?i)\s*(?:a\s+partir(?:\s+d(?:e|el))?|desde|de\s+la|del|\bde)\s*$"""), " ")
+                    value.replace(Regex("""(?i)\s*(?:(?:hacia|durante)(?:\s+(?:la|el|los|las|del|de))?|a\s+partir(?:\s+d(?:e|el))?|desde|de\s+la|del|\bde)\s*$"""), " ")
                 else value
             }
             .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")

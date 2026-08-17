@@ -11955,6 +11955,68 @@ class NaturalTaskParserTest {
         val result = NaturalTaskParser.parse("decisión a partir de los datos")
         assertEquals("decisión a partir de los datos", result.title)
     }
+    // --- "hacia"/"durante" + FECHA/HORA (c.546) ---
+    // Simétrico al fix de "desde"/"a partir de" + fecha (c.499/c.544). "hacia" y
+    // "durante" son conectores temporales que NO se reescriben a un conector canónico;
+    // al resolver y borrar la fecha/hora quedaban huérfanos al final del título
+    // ("entregar hacia", "estudiar durante", "descansar durante la"), degradando la
+    // entrada de mayor valor (captura ultrarrápida). Se consumen SOLO cuando se
+    // resolvió fecha (dueAt != null): sin agenda son contenido legítimo ("trabajar
+    // durante la semana", "leer durante las vacaciones"). "durante" puede llevar
+    // artículo rezagado ("durante la mañana" → tras consumir "mañana" queda "durante
+    // la") que también se limpia. End-anchored: "caminar hacia el parque el sábado"
+    // (hacia NO al final, es contenido) se conserva íntegro.
+    @Test fun haciaElViernesLimpiaTituloSinDejarHacia() {
+        // 2026-07-29 es miércoles; "el viernes" → 2026-07-31.
+        val result = NaturalTaskParser.parse("entregar hacia el viernes", now, zone)
+        assertEquals("entregar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun haciaElMediodiaLimpiaTituloSinDejarHacia() {
+        val result = NaturalTaskParser.parse("llegar hacia el mediodía", now, zone)
+        assertEquals("llegar", result.title)
+        assertEquals(LocalTime.of(12, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun haciaMananaLimpiaTituloSinDejarHacia() {
+        // "mañana" fecha relativa → 2026-07-30.
+        val result = NaturalTaskParser.parse("revisar hacia mañana", now, zone)
+        assertEquals("revisar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun duranteElFinDeSemanaLimpiaTituloSinDejarDurante() {
+        // "el fin de semana" → próximo sábado 2026-08-01.
+        val result = NaturalTaskParser.parse("estudiar durante el fin de semana", now, zone)
+        assertEquals("estudiar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun duranteLaMananaLimpiaTituloConArticuloRezagado() {
+        // "la mañana" (parte del día) se resuelve PERO "la" queda rezagada tras
+        // "durante": "descansar durante la" → debe limpiar "durante la" completo.
+        val result = NaturalTaskParser.parse("descansar durante la mañana", now, zone)
+        assertEquals("descansar", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun haciaDuranteNoTocanContenidoLegitimoSinAgenda() {
+        // Sin fecha resuelta, "hacia"/"durante" son contenido legítimo y NO se borran.
+        val r1 = NaturalTaskParser.parse("trabajar durante la semana", now, zone)
+        assertEquals("trabajar durante la semana", r1.title)
+        val r2 = NaturalTaskParser.parse("leer durante las vacaciones", now, zone)
+        assertEquals("leer durante las vacaciones", r2.title)
+    }
+
+    @Test fun haciaDurantePreservanContenidoNoAlFinal() {
+        // "hacia"/"durante" seguidos de sustantivo de contenido (NO al final) se
+        // conservan íntegros aunque haya agenda: el conector es parte del contenido.
+        val r1 = NaturalTaskParser.parse("caminar hacia el parque el sábado", now, zone)
+        assertEquals("caminar hacia el parque", r1.title)
+        val r2 = NaturalTaskParser.parse("trabajar durante la reunión el lunes", now, zone)
+        assertEquals("trabajar durante la reunión", r2.title)
+    }
 
     // --- "desde" + anclaje de HORA (c.436) ---
     // Simétrico a "a partir de" (c.435). "desde las N"/"desde la parte-del-día"/"desde el
