@@ -2651,6 +2651,36 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // c.501: prefijo "durante"/"por" + cantidad en DÍGITOS + fracción. Antes
+    // [compoundFractionalDurationPattern] no admitía el prefijo, de modo que en
+    // "durante 1 hora y media" el [durationPatterns] simple casaba "durante 1 hora"
+    // (desde la posición 0) y el compuesto solo "1 hora y media" (posición 8); el
+    // tie-break por posición elegía el simple → 60 min en vez de 90 y "y media"
+    // quedaba como residuo en el título. El prefijo ahora es no capturante y opcional.
+    @Test fun duranteDigitosHoraYMediaEsDuracion90() {
+        val result = NaturalTaskParser.parse("Descansar durante 1 hora y media", now, zone)
+        assertEquals("Descansar", result.title)
+        assertEquals(90, result.durationMinutes)
+    }
+
+    @Test fun porDigitosHorasYMediaEsDuracion150() {
+        val result = NaturalTaskParser.parse("Descansar por 2 horas y media", now, zone)
+        assertEquals("Descansar", result.title)
+        assertEquals(150, result.durationMinutes)
+    }
+
+    @Test fun duranteDigitosHoraYCuartoEsDuracion75() {
+        val result = NaturalTaskParser.parse("Descansar durante 1 hora y cuarto", now, zone)
+        assertEquals("Descansar", result.title)
+        assertEquals(75, result.durationMinutes)
+    }
+
+    @Test fun duranteDigitosHoraYTresCuartosEsDuracion105() {
+        val result = NaturalTaskParser.parse("Descansar durante 1 hora y tres cuartos", now, zone)
+        assertEquals("Descansar", result.title)
+        assertEquals(105, result.durationMinutes)
+    }
+
     // c.497: "para el" ante un SUSTANTIVO DE CONTENIDO (no un ancla temporal) es
     // destinatario/propósito y debe conservarse íntegro en el título. Antes el paso de
     // limpieza borraba "para el" incondicionalmente y mutilaba títulos

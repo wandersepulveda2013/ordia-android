@@ -1896,9 +1896,17 @@ object NaturalTaskParser {
      * solo la parte entera (→ 120) y dejaba "y tres cuartos" como residuo en el título
      * ("Estudiar y tres cuartos"), con duración subestimada. amount×60 + (45 si "tres
      * cuartos" | 30 si "dos cuartos" o "media" | 15 si "cuarto").
+     *
+     * Admite el prefijo opcional "durante"/"por" (no capturante): sin él, en
+     * "durante 1 hora y media" el [durationPatterns] simple casaba "durante 1 hora"
+     * (desde la posición 0) y este patrón solo casaba "1 hora y media" (desde la
+     * posición 8), de modo que el tie-break compound.range.first <= durationMatch.range.first
+     * (8 <= 0) fallaba y ganaba el simple → 60 min en vez de 90, con "y media" como
+     * residuo en el título. Con el prefijo, este patrón casa desde la misma posición 0
+     * y la rama compuesta prevalece, capturando la fracción completa. (c.501)
      */
     private val compoundFractionalDurationPattern =
-        Regex("""(?i)\b($writtenAmountPattern)\s*horas?\s+y\s+(tres\s+cuartos|dos\s+cuartos|media|un\s+cuarto|cuarto)\b""")
+        Regex("""(?i)\b(?:durante\s+|por\s+)?($writtenAmountPattern)\s*horas?\s+y\s+(tres\s+cuartos|dos\s+cuartos|media|un\s+cuarto|cuarto)\b""")
 
     /**
      * Duración multi-cuarto SIN número de horas, simétrica de
