@@ -179,6 +179,10 @@
     <string name="notes_filter_audio">Con audio</string>
     <string name="notes_filter_checklist">Con checklist</string>
     <string name="notes_filter_locked">Bloqueadas</string>
+    <string name="notes_filter_unorganized">Sin organizar</string>
+    <string name="notes_filter_edited_today">Editadas hoy</string>
+    <string name="notes_filter_this_week">Esta semana</string>
+    <string name="notes_filter_documents">Con documentos</string>
     <string name="notes_card_pinned">Fijada</string>
     <string name="notes_card_favorite">Favorita</string>
     <string name="notes_card_locked">Bloqueada</string>

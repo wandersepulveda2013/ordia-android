@@ -100,7 +100,11 @@ enum class NoteFilter(val labelRes: Int) {
     IMAGES(R.string.notes_filter_images),
     AUDIO(R.string.notes_filter_audio),
     CHECKLIST(R.string.notes_filter_checklist),
-    LOCKED(R.string.notes_filter_locked)
+    LOCKED(R.string.notes_filter_locked),
+    UNORGANIZED(R.string.notes_filter_unorganized),
+    EDITED_TODAY(R.string.notes_filter_edited_today),
+    THIS_WEEK(R.string.notes_filter_this_week),
+    WITH_DOCS(R.string.notes_filter_documents)
 }
 
 enum class NoteViewMode { CARDS, LIST, COMPACT, GALLERY, TITLES }
@@ -619,6 +623,18 @@ private fun applyFilter(notes: List<NoteEntity>, filter: NoteFilter): List<NoteE
     NoteFilter.IMAGES -> notes.filter { hasAttachmentKind(it, "IMAGE") }
     NoteFilter.AUDIO -> notes.filter { hasAttachmentKind(it, "AUDIO") }
     NoteFilter.CHECKLIST -> notes.filter { hasChecklist(it) }
+    NoteFilter.UNORGANIZED -> notes.filter { it.folderId == null }
+    NoteFilter.EDITED_TODAY -> {
+        val dayMs = 24 * 60 * 60 * 1000L
+        val now = System.currentTimeMillis()
+        notes.filter { now - it.updatedAt < dayMs }
+    }
+    NoteFilter.THIS_WEEK -> {
+        val weekMs = 7 * 24 * 60 * 60 * 1000L
+        val now = System.currentTimeMillis()
+        notes.filter { now - it.updatedAt < weekMs }
+    }
+    NoteFilter.WITH_DOCS -> notes.filter { hasAttachmentKind(it, "DOCUMENT") }
 }
 
 private fun groupNotes(
