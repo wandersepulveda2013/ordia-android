@@ -437,6 +437,66 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.510: cierra la asimetría clítico/pelado de tres verbos de comunicación
+    // (respondo/aviso/confirmo) — commitmentSignal ya detectaba "te respondo"/
+    // "te aviso"/"te confirmo", pero la forma pelada con objeto nominal
+    // ("respondo el correo mañana", "aviso al equipo el lunes", "confirmo la
+    // reserva el viernes") caía a MISSED → olvido de una promesa cotidiana.
+    // Añade además "pago", ausente de toda rama: "pago la factura mañana" es un
+    // compromiso fuerte (promesa de pago) que se perdía. Probe JVM POST-fix:
+    // 5/5 detectados como SELF_COMMITMENT con dueAt futuro.
+    @Test
+    fun respondAvisoConfirmoPagoBareVerbsAreDetectedAsCommitments() {
+        val positives = listOf(
+            "respondo el correo mañana",
+            "aviso al equipo el lunes",
+            "confirmo la reserva el viernes",
+            "pago la factura mañana",
+            "pago el alquiler el viernes"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c510-pos-$text"
+            )
+            assertTrue(
+                "\"$text\" (verbo pelado de comunicación/pago + marca futura) debe generar draft SELF_COMMITMENT",
+                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
+    // c.510: precisión — "pago" y "aviso" son también SUSTANTIVOS frecuentes
+    // ("el pago de la factura", "un aviso del corte"). Con determinante anterior
+    // NO deben generar draft SELF_COMMITMENT (la guarda de determinantes lo
+    // evita). La negación ("no pago la factura mañana") y la rutina
+    // ("pago el alquiler cada mes") tampoco. Probe JVM POST-fix: 8/8 excluidos.
+    @Test
+    fun pagoAvisoNounsAndNegationsAreNotFlagged() {
+        val innocent = listOf(
+            "el pago de la factura mañana",
+            "el aviso del corte mañana",
+            "no pago la factura mañana",
+            "no respondo el correo mañana",
+            "no confirmo la reserva el viernes",
+            "pago el alquiler cada mes",
+            "aviso a mi madre cada lunes",
+            "respondo correos todo el dia"
+        )
+        innocent.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c510-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
     // c.307: imperativos de 2ª persona con pronombre enclítico — peticiones
     // directas muy frecuentes en chat español que NO casaban con "envíame"/
     // "mándame"/"recuerda" (los únicos imperativos cubiertos). Probe JVM PRE-fix:

@@ -300,11 +300,24 @@ object CommitmentEngine {
     // ("llamo a mi madre cada mañana") y las negadas ("no llamo al cliente
     // mañana"). Probe JVM POST-fix: 10/10 positivos detectados, 10/10 negativos
     // excluidos.
+    // c.510: cierra la ASIMETRÍA restante entre las formas CON clítico y PELADA
+    // de tres verbos de comunicación (respondo/aviso/confirmo) y añade "pago".
+    // commitmentSignal ya detectaba "te respondo"/"te aviso"/"te confirmo"
+    // (clítico de 2ª persona), pero la forma PELADA con objeto nominal
+    // ("respondo el correo mañana", "aviso al equipo el lunes", "confirmo la
+    // reserva el viernes") caía a MISSED → olvido de una promesa cotidiana de
+    // responder/avisar/confirmar. "pago" no estaba en NINGUNA rama: "pago la
+    // factura mañana" / "pago el alquiler el viernes" (promesa de pago, compromiso
+    // fuerte) se perdía. Como "pago" y "aviso" son también SUSTANTIVOS frecuentes
+    // ("el pago de la factura", "un aviso"), la guarda de determinante
+    // [determiners] en hasUnnegatedBarePresentCommitment evita el falso positivo:
+    // "el pago de la factura mañana" (sustantivo) NO genera draft, "pago la
+    // factura mañana" (verbo) sí.
     // Nace como draft SELF_COMMITMENT PENDING revisable: un falso positivo se
     // descarta, un falso negativo es una promesa olvidada (área "evitar olvidos" +
     // "detección de compromisos", P1).
     private val barePresentCommitmentSignal = Regex(
-        """(?iU)\b(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo)\b"""
+        """(?iU)\b(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago)\b"""
     )
     private val locationSignal = Regex(
         """(?i)\b(?:lugar\s*:\s*|(?:nos\s+vemos|reuni[oó]n|cita)[^.!?\n]{0,80}?\ben\s+)([\p{L}\d][\p{L}\d .,'-]{2,50})"""
@@ -377,6 +390,17 @@ object CommitmentEngine {
     //      en [detect]; esta función sólo responde "¿hay un verbo pelado de promesa
     //      no negado y sin clítico?".
     private val cliticPronouns = setOf("lo", "la", "los", "las", "te", "se", "le", "me", "nos", "os")
+    // c.510: determinantes que preceden a un SUSTANTIVO homógrafo de un verbo de
+    // 1ª persona. "pago" (verbo "pago la factura") y "aviso" (verbo "aviso al
+    // equipo") son también sustantivos frecuentes ("el pago de la factura", "un
+    // aviso de la reunión"). Sin esta guarda, "el pago de la factura mañana"
+    // (sustantivo + dueAt futuro) generaba un draft espurio: el parser pone
+    // dueAt=mañana y el verbo pelado casaba. Excluir el determinante anterior
+    // resuelve la ambigüedad sin tocar los compromisos legítimos (que arrancan
+    // en el verbo: "pago la factura mañana", prevWord vacío). No afecta a los
+    // verbos de acción pura (termino/entrego/...), que raramente son sustantivos
+    // y cuyos positivos nunca llevan determinante inmediatamente antes.
+    private val determiners = setOf("el", "la", "los", "las", "un", "una", "unos", "unas")
     private fun hasUnnegatedBarePresentCommitment(text: String): Boolean =
         barePresentCommitmentSignal.findAll(text).any { m ->
             val start = m.range.first
@@ -386,7 +410,7 @@ object CommitmentEngine {
                 .lastOrNull()
                 ?.lowercase(Locale.ROOT)
                 .orEmpty()
-            prevWord != "no" && prevWord !in cliticPronouns
+            prevWord != "no" && prevWord !in cliticPronouns && prevWord !in determiners
         }
 
     fun extract(
