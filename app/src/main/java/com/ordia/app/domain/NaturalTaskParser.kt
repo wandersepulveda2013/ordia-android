@@ -915,6 +915,31 @@ object NaturalTaskParser {
     )
 
     /**
+     * Rango "del D1 de MES [del A1] al D2" / "entre el D1 de MES [del A1] y el D2":
+     * el mes va en el extremo INICIAL y el CIERRE es un día SUELTO (sin mes). Forma
+     * cotidiana real ("feria del 15 de diciembre al 20", "feria entre el 15 de diciembre
+     * y el 20"). Antes NO casaba: [crossMonthDayRangePattern] exige mes en AMBOS extremos,
+     * [dayRangePattern]/[entreDayRangePattern] exigen el mes al FINAL. Al no casar, el
+     * extremo inicial ("15 de diciembre") lo consumía [monthNamePattern] ANCLANDO el
+     * vencimiento al día de APERTURA en vez del CIERRE, y los conectores sobrevivían como
+     * residuo del título ("feria del al 20", "feria entre y"). Se ancla al CIERRE
+     * reescribiendo a "el D2 de MES [del A1]" para reutilizar TODO el flujo [monthNamePattern].
+     * El `(?!\s+del?\s+[a-záéíóúüñ])` tras D2 evita tragarse un cierre con su propio mes
+     * (forma cross-mes), que ya resuelve [crossMonthDayRangePattern]/[entreCrossMonthDayRangePattern].
+     * Va DESPUÉS de los patrones de DOS meses y de mes-al-final (no colisiona: ésos exigen
+     * mes en la posición donde aquí el cierre es SUELTO). Exige mes de inicio válido contra
+     * `months` (no agenda contenido "del 3 de unidades al 5").
+     */
+    private val startMonthBareEndDayRangePattern = Regex(
+        """(?i)\b(?:del?\s+)?(\d{1,2})(?![/-])\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?""" +
+            """\s+(?:al|hasta(?:\s+el)?)\s+(\d{1,2})(?![/-])(?!\s+del?\s+[a-záéíóúüñ])"""
+    )
+    private val entreStartMonthBareEndDayRangePattern = Regex(
+        """(?i)\bentre\s+el?\s+(\d{1,2})(?![/-])\s+del?\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?""" +
+            """\s+y\s+el?\s+(\d{1,2})(?![/-])(?!\s+del?\s+[a-záéíóúüñ])"""
+    )
+
+    /**
      * Rango de días de la semana como evento ÚNICO ("taller del martes al jueves",
      * "reunión del lunes al viernes", "curso del miércoles al viernes"). Simétrico de
      * [dayRangePattern] (c.377, "del 15 al 20 de diciembre"→"el 20"): el rango
@@ -2166,6 +2191,29 @@ object NaturalTaskParser {
                 }
                 else -> m.value
             }
+        }
+
+        // Rango con mes en el extremo INICIAL y día de CIERRE suelto: "del 15 de diciembre
+        // al 20", "entre el 15 de diciembre y el 20", "del 31 de diciembre al 2". Va DESPUÉS
+        // de crossMonth/dayRange (ésos exigen mes en la posición del cierre) y ANTES de
+        // monthNamePattern para anclar al CIERRE reescribiendo a "el D2 de MES [del A1]".
+        // Exige mes de inicio válido contra `months`; el lookahead de cierre evita tragarse
+        // la forma cross-mes (cierre con su propio mes). Conector "entre...y" primero.
+        working = entreStartMonthBareEndDayRangePattern.replace(working) { m ->
+            val monthTok = m.groupValues[2].lowercase()
+            if (monthTok !in months) return@replace m.value
+            val endDay = m.groupValues[4]
+            val year = m.groupValues[3].trim()
+            if (year.isNotEmpty()) "el $endDay de $monthTok del $year"
+            else "el $endDay de $monthTok"
+        }
+        working = startMonthBareEndDayRangePattern.replace(working) { m ->
+            val monthTok = m.groupValues[2].lowercase()
+            if (monthTok !in months) return@replace m.value
+            val endDay = m.groupValues[4]
+            val year = m.groupValues[3].trim()
+            if (year.isNotEmpty()) "el $endDay de $monthTok del $year"
+            else "el $endDay de $monthTok"
         }
 
         // Rango de días de la SEMANA como evento único ("del martes al jueves") → "el jueves"

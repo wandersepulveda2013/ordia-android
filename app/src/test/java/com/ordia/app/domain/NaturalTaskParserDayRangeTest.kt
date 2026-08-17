@@ -253,4 +253,56 @@ class NaturalTaskParserDayRangeTest {
         // lo importante: el título no contiene "entre" como residuo.
         assertFalse("el título no debe dejar residuo 'entre'", r.title.contains("entre"))
     }
+
+    // Rangos con mes en el extremo INICIAL y día de CIERRE suelto (c.445): "del 15 de
+    // diciembre al 20", "entre el 15 de diciembre y el 20". Antes NO casaban: crossMonth
+    // exige mes en ambos lados, dayRange exige mes al final. Caían a monthNamePattern que
+    // anclaba al INICIAL y dejaba "del al 20"/"entre y" como residuo del título.
+
+    @Test fun rangoMesInicioDiaCierreSueltoAnclaAlCierre() {
+        val r = parse("feria del 15 de diciembre al 20")
+        assertEquals("feria", r.title.trim())
+        assertEquals(LocalDate.of(2026, 12, 20), dueDate("feria del 15 de diciembre al 20"))
+    }
+
+    @Test fun rangoMesInicioDiaCierreSueltoNoDejaResiduo() {
+        val title = parse("feria del 15 de diciembre al 20").title
+        assertFalse("el título no debe contener residuo 'del'", title.contains("del"))
+        assertFalse("el título no debe contener el día inicial 15", title.contains("15"))
+    }
+
+    @Test fun rangoEntreMesInicioDiaCierreSueltoAnclaAlCierre() {
+        val r = parse("feria entre el 15 de diciembre y el 20")
+        assertEquals("feria", r.title.trim())
+        assertEquals(LocalDate.of(2026, 12, 20), dueDate("feria entre el 15 de diciembre y el 20"))
+    }
+
+    @Test fun rangoMesInicioDiaCierreSueltoRespetaHoraExplicita() {
+        val r = parse("feria del 15 de diciembre al 20 a las 9")
+        assertEquals("feria", r.title.trim())
+        val dt = r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone) }
+        assertNotNull("debe producir vencimiento", dt)
+        assertEquals(LocalDate.of(2026, 12, 20), dt!!.toLocalDate())
+        assertEquals(9, dt.hour)
+    }
+
+    @Test fun rangoMesInicioConAnioExplicitoDiaCierreSuelto() {
+        val r = parse("feria del 15 de diciembre del 2026 al 20")
+        assertEquals("feria", r.title.trim())
+        assertEquals(LocalDate.of(2026, 12, 20), r.dueAt?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() })
+    }
+
+    @Test fun rangoMesInicioDiaCierreSueltoNoColisionaConCrossMes() {
+        // "del 15 de diciembre al 20 de enero" tiene mes en el CIERRE → cross-mes c.443.
+        // El nuevo patrón bare-end NO debe robarlo (lookahead lo evita): ancla al 20 de enero.
+        val r = parse("feria del 15 de diciembre al 20 de enero")
+        assertEquals("feria", r.title.trim())
+        assertEquals(LocalDate.of(2027, 1, 20), dueDate("feria del 15 de diciembre al 20 de enero"))
+    }
+
+    @Test fun rangoMesInicioDiaCierreSueltoNoAgendaContenidoNoMes() {
+        // "del 3 de unidades al 5" no es rango de fecha (mes inválido): no agenda nada falso.
+        val r = parse("feria del 3 de unidades al 5")
+        assertNull("sin mes válido no debe agendar fecha falsa", r.dueAt)
+    }
 }
