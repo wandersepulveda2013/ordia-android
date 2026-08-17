@@ -360,7 +360,25 @@ object CommitmentEngine {
         // precedingNegation excluye "no te escribo"/"no te hablo" igual que "no te
         // llamo". Probe JVM PRE-fix: 2 MISSED; POST-fix: 6/6 detectados, 4/4
         // negaciones excluidas.
-        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo)|despu[eé]s\s+te\s+respondo|debo|tengo\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|terminar[eé]|har[eé]|entregar[eé]|revisar[eé]|preparar[eé]|arreglar[eé]|subir[eé]|dejar[eé]|pasar[eé]|mandar[eé]|enviar[eé])|lo\s+hago|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago))\b"""
+        // c.527: asimetría de número en la rama FUTURA, espejo de c.526 en la
+        // presente pelada. commitmentSignal detectaba "lo terminaré"/"terminaré"/
+        // "lo voy a revisar" (1ª persona SINGULAR) pero NO "lo terminaremos"/
+        // "terminaremos"/"lo revisaremos"/"te lo mandaremos"/"se lo enviaremos"/
+        // "vamos a terminar" (1ª persona PLURAL) → olvido de compromisos
+        // COMPARTIDOS ("lo terminaremos el viernes", "te lo mandaremos mañana"),
+        // la forma natural de una promesa conjunta en chat español (P1, evitar
+        // olvidos). Se alinean los 11 futuros plurales con los singulares
+        // (terminaremos/haremos/entregaremos/revisaremos/prepararemos/
+        // arreglaremos/subiremos/dejaremos/pasaremos/mandaremos/enviaremos) y
+        // se añade "vamos a" como plural de "voy a". El clítico opcional
+        // precedente cubre "lo revisaremos"/"te lo mandaremos"/"se lo
+        // enviaremos" igual que "lo revisaré"/"te lo mandaré"; la guarda
+        // precedingNegation excluye "no lo terminaremos"/"no lo vamos a revisar"
+        // igual que "no lo terminaré"/"no lo voy a revisar". Precisión simétrica
+        // con el singular: "vamos a la playa" se comporta igual que "voy a la
+        // playa" (comportamiento preexistente de la perífrasis, no nuevo). Probe
+        // JVM POST-fix: 6/6 positivos detectados, 4/4 negaciones excluidas.
+        """(?iU)\b(?:(?:yo\s+)?me\s+(?:encargo|ocupo)|me\s+comprometo|te\s+(?:llamo|env[ií]o|respondo|aviso|confirmo|paso|mando|pago|hablo|escribo)|despu[eé]s\s+te\s+respondo|debo|tengo\s+que|(?:lo\s+|la\s+|los\s+|las\s+|te\s+lo\s+|te\s+la\s+|te\s+los\s+|te\s+las\s+|se\s+lo\s+|se\s+la\s+|se\s+los\s+|se\s+las\s+)?(?:voy\s+a|vamos\s+a|terminar[eé]|terminaremos|har[eé]|haremos|entregar[eé]|entregaremos|revisar[eé]|revisaremos|preparar[eé]|prepararemos|arreglar[eé]|arreglaremos|subir[eé]|subiremos|dejar[eé]|dejaremos|pasar[eé]|pasaremos|mandar[eé]|mandaremos|enviar[eé]|enviaremos)|lo\s+hago|le\s+(?:paso|mando|env[ií]o|llamo|hablo|escribo|respondo|aviso|confirmo|pago)|(?:lo|la|los|las|te\s+lo|te\s+la|te\s+los|te\s+las|se\s+lo|se\s+la|se\s+los|se\s+las)\s+(?:termino|entrego|reviso|preparo|arreglo|subo|dejo|paso|mando|env[ií]o|llamo|hablo|escribo|pago))\b"""
     )
     // c.500: presente de 1ª persona SIN pronombre de objeto + marca temporal futura
     // PUNTUAL — "termino el informe mañana", "entrego el reporte el viernes",

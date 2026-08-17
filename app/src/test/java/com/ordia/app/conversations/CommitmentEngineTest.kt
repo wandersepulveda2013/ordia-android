@@ -2099,4 +2099,59 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.527: la rama futura de commitmentSignal era ASIMETRICA en numero, igual
+    // que barePresentCommitmentSignal lo era en c.526. Detectaba "lo terminare"
+    // (singular) y "voy a terminar" pero NO "lo terminaremos"/"terminaremos"/
+    // "lo revisaremos"/"te lo mandaremos"/"se lo enviaremos"/"vamos a terminar"
+    // (1ª persona PLURAL) -> olvido de compromisos compartidos (P1). Probe JVM
+    // PRE-fix: 12/12 MISSED. Este test los fija como regresion.
+    @Test
+    fun futureTensePluralCommitmentsAreDetected() {
+        val positives = listOf(
+            "lo terminaremos el viernes", "lo revisaremos manana",
+            "lo prepararemos para el lunes", "lo entregaremos el viernes",
+            "lo arreglaremos manana", "lo subiremos en un rato",
+            "te lo mandaremos manana", "se lo enviaremos el lunes",
+            "lo pasaremos manana", "lo dejaremos el viernes",
+            "terminaremos el informe manana", "revisaremos el contrato manana",
+            "vamos a terminar el informe manana", "lo vamos a revisar manana",
+            "lo haremos hoy", "haremos el informe el lunes"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c527-pos-$text"
+            )
+            assertTrue(
+                "\"$text\" (futuro plural) debe generar draft SELF_COMMITMENT",
+                result.any { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
+    // c.527: precision simetrica. Los futuros plurales negados se excluyen igual
+    // que los singulares ("no lo terminaremos" ~ "no lo terminare"). Probe JVM
+    // POST-fix: excluidos.
+    @Test
+    fun futureTensePluralCommitmentsRespectNegation() {
+        val negatives = listOf(
+            "no lo terminaremos el viernes", "no terminaremos el informe manana",
+            "no lo revisaremos", "no te lo mandaremos",
+            "no se lo enviaremos", "no lo vamos a revisar",
+            "no vamos a terminar nada", "no lo haremos"
+        )
+        negatives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Yo", text)),
+                selfParticipant = "Yo",
+                scopeHash = "c527-neg-$text"
+            )
+            assertTrue(
+                "\"$text\" (negacion de futuro plural) NO debe generar draft SELF_COMMITMENT",
+                result.none { it.kind == CommitmentKind.SELF_COMMITMENT && it.owner == CommitmentOwner.SELF }
+            )
+        }
+    }
+
 }
