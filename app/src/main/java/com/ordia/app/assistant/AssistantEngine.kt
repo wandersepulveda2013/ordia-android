@@ -16,6 +16,7 @@ import com.ordia.app.domain.WhatNowReason
 import com.ordia.app.domain.foldForSearch
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 
 enum class AssistantAction { NONE, OPEN_PLANNER, OPEN_CONVERSATIONS, RUN_REPLAN, CREATE_NOTE, OPEN_SEARCH }
@@ -389,6 +390,15 @@ object AssistantEngine {
             // "que hice/complete/termine") ni con olvidos ("olvid"/"vencid") ni con
             // compromisos ("prometi"/"compromiso"). Sin nueva pantalla ni botón.
             isCompletedRecapIntent(query) -> completedAnswer(query, tasks, now, zone)
+            // Búsqueda puntual de una entidad conocida: «a qué hora tengo la reunión»,
+            // «cuándo pago la luz», «dónde es la cita». El dato EXISTE entre las tareas
+            // del usuario, la consulta es directa, pero caía al MENÚ GENÉRICO («Puedo
+            // organizar tu día…»): se preguntaba por algo concreto que el asistente ya
+            // sabía y se respondía con una lista de capacidades. Recuperación de
+            // información, no nueva pantalla: reusa DateRules y la coincidencia
+            // normalizada de SearchEngine. Va tras agenda/what-now/recap (éstas se
+            // evalúan antes y describen conjuntos, no una entidad concreta).
+            isEntityLookupQuery(query) -> entityLookupAnswer(query, active, now, zone)
             // Octavo olvido de la familia "lie-by-omission": la consulta no casa con
             // ninguna rama conocida y el asistente cae a su menú de capacidades. Es la
             // superficie de mayor tránsito para un usuario confundido —y justo ahí
@@ -485,6 +495,131 @@ object AssistantEngine {
      * (mismo `WhatNowEngine.ordered`). Sin nueva pantalla: la superficie del
      * asistente ya existe. Determinista y local (sin IA fingida).
      */
+    /**
+     * Búsqueda puntual de una entidad conocida: «a qué hora tengo/pago <X>?,
+     * «cuándo tengo/pago <X>?, «dónde tengo <X>?. El usuario nombra una tarea
+     * concreta cuyo dato (hora/fecha) ya vive en su lista; antes caía al menú
+     * genérico pese a ser una consulta directa. Recuperación de información: el
+     * asistente CONOCE la respuesta, no la inventa. Tokens sin acento (ya
+     * normalizados por foldForSearch). Excluye el verbo «hacer» (what-now) y los
+     * tiempo-scopes de agenda («hoy»/«mañana»/«semana»/«mes»/«finde») para no
+     * secuestrar esas ramas, que se evalúan antes y describen conjuntos, no una
+     * entidad puntual con verbo de consulta (a qué hora / cuándo / dónde).
+     */
+    private fun isEntityLookupQuery(query: String): Boolean {
+        val isWhenTime = "a que hora" in query || "cuando" in query || "que dia" in query || "que fecha" in query
+        val isWhere = "donde" in query
+        if (!(isWhenTime || isWhere)) return false
+        // Evita capturar agenda («¿qué tengo mañana?»/«…esta semana?») y what-now
+        // («¿qué hago ahora?»): esos scopes describen conjuntos y ya se rutean arriba.
+        if (isAgendaQuery(query)) return false
+        if ("que hago" in query || "que hago ahora" in query) return false
+        return true
+    }
+
+    /**
+     * Responde la hora/fecha de la entidad preguntada, buscando coincidencia por
+     * título (normalizada con foldForSearch, misma fuente que SearchEngine).
+     * Honestidad: si hay varias coincidencias las nombra para desambiguar (no
+     * elige una a ciegas); si no encuentra ninguna lo dice (no inventa). La marca
+     * de reloj sale de startAt si existe, si no de dueAt; un vencimiento a
+     * medianoche significa «solo fecha, sin hora» —no se muestra «00:00» como si
+     * fuese una hora real. Reusa DateRules.formatTime/formatDate (fuente única
+     * compartida con la UI y las notificaciones). Determinista y local.
+     */
+    private fun entityLookupAnswer(
+        query: String,
+        tasks: List<TaskEntity>,
+        now: Long,
+        zone: ZoneId
+    ): AssistantAnswer {
+        val needle = extractEntityNeedle(query) ?: return AssistantAnswer(
+            "No encuentro a qué te refieres. Prueba «a qué hora tengo la reunión» o «cuándo pago la luz»."
+        )
+        val matches = tasks.filter { it.title.foldForSearch().contains(needle) }
+        if (matches.isEmpty()) {
+            return AssistantAnswer("No encuentro nada que sea «$needle» entre tus tareas.")
+        }
+        if (matches.size > 1) {
+            val titles = matches.take(3).joinToString(", ") { "«${it.title}»" }
+            val extra = if (matches.size > 3) " y ${matches.size - 3} más" else ""
+            return AssistantAnswer(
+                "Tienes varias que pueden serlo: $titles$extra. ¿Cuál de ellas?",
+                relatedTaskIds = matches.take(3).map { it.id }
+            )
+        }
+        val task = matches.single()
+        val isTimeQuery = "a que hora" in query
+        // Marca de reloj: startAt prioritario (slot agendado); si no, dueAt. Si
+        // ninguno tiene hora útil, se dice «sin hora fija» en vez de fingir.
+        val clock = task.startAt ?: task.dueAt
+        val hasClockTime = clock != null && !isMidnight(clock, zone)
+        return when {
+            isTimeQuery && hasClockTime -> AssistantAnswer(
+                "«${task.title}» está a las ${DateRules.formatTime(clock)}.",
+                relatedTaskIds = listOf(task.id)
+            )
+            isTimeQuery -> AssistantAnswer(
+                "«${task.title}» no tiene una hora fija; está para el ${DateRules.formatDate(task.dueAt ?: task.startAt)}.",
+                relatedTaskIds = listOf(task.id)
+            )
+            else -> {
+                val dateRef = task.dueAt ?: task.startAt
+                if (dateRef != null) {
+                    val whenText = if (task.startAt != null && hasClockTime) {
+                        "el ${DateRules.formatDate(task.startAt)} a las ${DateRules.formatTime(task.startAt)}"
+                    } else {
+                        "el ${DateRules.formatDate(dateRef)}"
+                    }
+                    AssistantAnswer("«${task.title}» está $whenText.", relatedTaskIds = listOf(task.id))
+                } else {
+                    AssistantAnswer(
+                        "«${task.title}» no tiene fecha asignada todavía.",
+                        relatedTaskIds = listOf(task.id)
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Extrae el término de la entidad del enunciado de consulta (lo que sigue al
+     * verbo). foldForSearch NO quita signos («¿», «?», «¡»), solo acentos/case,
+     * así que el enunciado puede venir como «¿a que hora tengo la reunion?».
+     * Se localiza el marcador (no exige startsWith), se descartan signos y se
+     * recorta puntuación final. Mantiene el orden de markers (más específicos
+     * primero) para que «a que hora tengo la» se case antes que «a que hora ».
+     */
+    private fun extractEntityNeedle(query: String): String? {
+        val markers = listOf(
+            "a que hora tengo el ", "a que hora tengo la ", "a que hora tengo ",
+            "a que hora es el ", "a que hora es la ", "a que hora es ",
+            "a que hora ",
+            "cuando tengo el ", "cuando tengo la ", "cuando tengo ",
+            "cuando pago el ", "cuando pago la ", "cuando pago ",
+            "cuando ",
+            "que dia tengo ", "que dia es ", "que dia ",
+            "que fecha tengo ", "que fecha es ", "que fecha ",
+            "donde tengo el ", "donde tengo la ", "donde tengo ",
+            "donde es el ", "donde es la ", "donde es ", "donde "
+        )
+        for (m in markers) {
+            val idx = query.indexOf(m)
+            if (idx >= 0) {
+                val rest = query.substring(idx + m.length)
+                    .trim(' ', '¡', '¿', '?', '.', ',', '!', ':')
+                    .trim()
+                return rest.takeIf { it.isNotBlank() }
+            }
+        }
+        return null
+    }
+
+    private fun isMidnight(epochMillis: Long, zone: ZoneId): Boolean {
+        val t = Instant.ofEpochMilli(epochMillis).atZone(zone).toLocalTime()
+        return t == LocalTime.MIDNIGHT
+    }
+
     private fun isAgendaQuery(query: String): Boolean {
         if (!("que tengo" in query || "tengo para" in query || "que hay" in query ||
                 "tengo algo" in query || "hay algo" in query)) return false

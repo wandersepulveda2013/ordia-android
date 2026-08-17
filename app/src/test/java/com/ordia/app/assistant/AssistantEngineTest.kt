@@ -2,6 +2,7 @@ package com.ordia.app.assistant
 
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
+import com.ordia.app.domain.DateRules
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -2972,4 +2973,126 @@ class AssistantEngineTest {
         val answer = AssistantEngine.answer("¿qué tengo hoy?", listOf(pending, done), emptyList(), emptyList(), now, dayZone)
         assertFalse("no responde recap a agenda: ${answer.text}", answer.text.contains("completaste"))
     }
+
+    @Test fun entityLookup_aQueHoraTengo_respondeHoraDelStartAt() {
+        // «¿a qué hora tengo la reunión?» con un slot agendado (startAt 11:00 Sto.Dgo).
+        val now = dayAt(dayToday, 9)
+        val start = dayAt(dayToday, 11)
+        val reunion = TaskEntity(
+            id = 1, title = "Reunión de equipo",
+            startAt = start, dueAt = dayAt(dayToday, 12),
+            durationMinutes = 60, status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿a qué hora tengo la reunión?",
+            listOf(reunion), emptyList(), emptyList(), now, dayZone
+        )
+        val expected = DateRules.formatTime(start)
+        assertFalse("no cae al menú genérico: ${answer.text}", answer.text.contains("Puedo organizar"))
+        assertTrue("nombra la tarea: ${answer.text}", answer.text.contains("Reunión de equipo"))
+        assertTrue("da la hora ($expected): ${answer.text}", answer.text.contains(expected))
+        assertEquals("relaciona la tarea: ${answer.relatedTaskIds}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun entityLookup_aQueHoraEs_respondeHoraDelDueAtSinStartAt() {
+        // Sin startAt: la hora del vencimiento es la única marca de reloj.
+        val now = dayAt(dayToday, 9)
+        val due = dayAt(dayToday, 15) + 30 * 60_000L
+        val cita = TaskEntity(id = 2, title = "Cita médica", dueAt = due)
+        val answer = AssistantEngine.answer(
+            "¿a qué hora es la cita médica?",
+            listOf(cita), emptyList(), emptyList(), now, dayZone
+        )
+        val expected = DateRules.formatTime(due)
+        assertFalse("no cae al menú: ${answer.text}", answer.text.contains("Puedo organizar"))
+        assertTrue("nombra la cita: ${answer.text}", answer.text.contains("Cita médica"))
+        assertTrue("da la hora ($expected): ${answer.text}", answer.text.contains(expected))
+    }
+
+    @Test fun entityLookup_aQueHora_tareaSoloFecha_diceSinHoraFija() {
+        // dueAt a medianoche = solo fecha, no hora de reloj: honesto, no inventa «00:00».
+        val now = dayAt(dayToday, 9)
+        val soloFecha = TaskEntity(id = 3, title = "Entrega informe", dueAt = dayToday.atTime(0, 0).atZone(dayZone).toInstant().toEpochMilli())
+        val answer = AssistantEngine.answer(
+            "¿a qué hora tengo la entrega?",
+            listOf(soloFecha), emptyList(), emptyList(), now, dayZone
+        )
+        assertFalse("no cae al menú: ${answer.text}", answer.text.contains("Puedo organizar"))
+        assertTrue("avisa sin hora fija: ${answer.text}", answer.text.contains("hora fija"))
+        assertFalse("no inventa medianoche: ${answer.text}", answer.text.contains("00:00"))
+    }
+
+    @Test fun entityLookup_cuandoPago_respondeFecha() {
+        // «¿cuándo pago la luz?» → fecha del vencimiento.
+        val now = dayAt(dayToday, 9)
+        val due = dayAt(LocalDate.of(2026, 9, 15), 12)
+        val luz = TaskEntity(id = 4, title = "Pagar luz", dueAt = due)
+        val answer = AssistantEngine.answer(
+            "¿cuándo pago la luz?",
+            listOf(luz), emptyList(), emptyList(), now, dayZone
+        )
+        val expected = DateRules.formatDate(due)
+        assertFalse("no cae al menú: ${answer.text}", answer.text.contains("Puedo organizar"))
+        assertTrue("nombra la tarea: ${answer.text}", answer.text.contains("Pagar luz"))
+        assertTrue("da la fecha ($expected): ${answer.text}", answer.text.contains(expected))
+    }
+
+    @Test fun entityLookup_multiplesCoincidencias_pideDisambiguar() {
+        // Dos tareas con «reunión»: no elige a ciegas, nombra ambas para desambiguar.
+        val now = dayAt(dayToday, 9)
+        val r1 = TaskEntity(id = 10, title = "Reunión de equipo", startAt = dayAt(dayToday, 11))
+        val r2 = TaskEntity(id = 11, title = "Reunión con cliente", startAt = dayAt(dayToday, 16))
+        val answer = AssistantEngine.answer(
+            "¿a qué hora tengo la reunión?",
+            listOf(r1, r2), emptyList(), emptyList(), now, dayZone
+        )
+        assertFalse("no cae al menú: ${answer.text}", answer.text.contains("Puedo organizar"))
+        assertTrue("pide desambiguar: ${answer.text}", answer.text.contains("varias"))
+        assertTrue("nombra la primera: ${answer.text}", answer.text.contains("Reunión de equipo"))
+        assertTrue("nombra la segunda: ${answer.text}", answer.text.contains("Reunión con cliente"))
+    }
+
+    @Test fun entityLookup_noEncuentra_noInventa() {
+        // La entidad preguntada no existe entre las tareas: honesto, no inventa.
+        val now = dayAt(dayToday, 9)
+        val otra = TaskEntity(id = 20, title = "Comprar pan", dueAt = dayAt(dayToday, 18))
+        val answer = AssistantEngine.answer(
+            "¿a qué hora tengo la reunión?",
+            listOf(otra), emptyList(), emptyList(), now, dayZone
+        )
+        assertFalse("no cae al menú: ${answer.text}", answer.text.contains("Puedo organizar"))
+        assertTrue("dice que no la encuentra: ${answer.text}", answer.text.contains("No encuentro"))
+        assertFalse("no inventa una hora: ${answer.text}", answer.text.contains("está a las"))
+    }
+
+    @Test fun entityLookup_noRobaAgendaNiWhatNow() {
+        // «¿qué tengo mañana?» (agenda) y «¿qué hago ahora?» (what-now) siguen
+        // ruteándose a sus ramas, no a la búsqueda de entidad.
+        val now = dayAt(dayToday, 9)
+        val reunion = TaskEntity(id = 1, title = "Reunión de equipo", startAt = dayAt(dayToday, 11))
+        val agendaAnswer = AssistantEngine.answer(
+            "¿qué tengo mañana?",
+            listOf(reunion), emptyList(), emptyList(), now, dayZone
+        )
+        assertFalse("agenda no dice «no encuentro»: ${agendaAnswer.text}", agendaAnswer.text.contains("No encuentro"))
+        val whatNowAnswer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(reunion), emptyList(), emptyList(), now, dayZone
+        )
+        assertFalse("what-now no dice «no encuentro»: ${whatNowAnswer.text}", whatNowAnswer.text.contains("No encuentro"))
+    }
+
+    @Test fun entityLookup_dondeEs_nombraEntidad() {
+        // «¿dónde es la cita?» cae a la rama de búsqueda (no al menú genérico) y
+        // nombra la entidad encontrada; no fabrica un lugar, solo la identifica.
+        val now = dayAt(dayToday, 9)
+        val cita = TaskEntity(id = 30, title = "Cita médica", dueAt = dayAt(dayToday, 15))
+        val answer = AssistantEngine.answer(
+            "¿dónde es la cita médica?",
+            listOf(cita), emptyList(), emptyList(), now, dayZone
+        )
+        assertFalse("no cae al menú: ${answer.text}", answer.text.contains("Puedo organizar"))
+        assertTrue("nombra la cita: ${answer.text}", answer.text.contains("Cita médica"))
+    }
+
 }
