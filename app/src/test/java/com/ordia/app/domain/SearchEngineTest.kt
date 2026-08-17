@@ -916,4 +916,79 @@ class SearchEngineTest {
         val results = SearchEngine.search("olvidar", listOf(missed), emptyList(), emptyList(), emptyList(), now = now)
         assertTrue(results.isEmpty())
     }
+
+    // --- "anteayer"/"antier": paridad de búsqueda con la captura ---
+    // El parser de captura resuelve "anteayer"/"antier" a base.minusDays(2)
+    // (NaturalTaskParserTest "anteayer/antier"). La búsqueda ya honraba la
+    // simetría futura con DAY_AFTER_TOMORROW ("pasado mañana"), pero NO la pasada:
+    // una tarea capturada como "reunión antier" (dueAt = hace 2 días) era
+    // IRRECUPERABLE al buscar "antier"/"anteayer" salvo que su título contuviera
+    // literalmente la palabra. Ahora buscar y capturar significan lo mismo en
+    // ambos sentidos del calendario. Detección por palabra exacta (no subcadena):
+    // "anteayer" no casa con "ayer" como palabra, así que "anteayer" no cae a
+    // YESTERDAY; el scope DAY_BEFORE_YESTERDAY es el único que se activa.
+    @Test fun anteayer_recoversTaskDueTwoDaysAgoByDateScope() {
+        val now = System.currentTimeMillis()
+        val twoDaysAgo = now - 2 * 24 * 3_600_000L
+        // El título NO contiene "anteayer": la recuperación es por fecha, no por texto.
+        val task = TaskEntity(
+            id = 200,
+            title = "Reunión equipo",
+            priority = TaskPriority.NORMAL,
+            dueAt = twoDaysAgo
+        )
+        val results = SearchEngine.search("anteayer", listOf(task), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(1, results.size)
+        assertEquals(200L, results.first().id)
+    }
+
+    // "antier" = variante coloquial hispanoamericana (MX/CA/parts SA) de "anteayer":
+    // el parser la admite con la misma resolución; la búsqueda debe ser simétrica.
+    @Test fun antier_recoversTaskDueTwoDaysAgoByDateScope() {
+        val now = System.currentTimeMillis()
+        val twoDaysAgo = now - 2 * 24 * 3_600_000L
+        val task = TaskEntity(
+            id = 201,
+            title = "Cita médica",
+            priority = TaskPriority.NORMAL,
+            dueAt = twoDaysAgo
+        )
+        val results = SearchEngine.search("antier", listOf(task), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(1, results.size)
+        assertEquals(201L, results.first().id)
+    }
+
+    // "anteayer" no arrastra tareas de hoy ni de ayer: el scope se ancla al día
+    // exacto hace 2 días, igual que "ayer" se ancla a hace 1 y "hoy" a hoy.
+    @Test fun anteayer_excludesTodayAndYesterdayTasks() {
+        val now = System.currentTimeMillis()
+        val yesterday = now - 24 * 3_600_000L
+        val twoDaysAgo = now - 2 * 24 * 3_600_000L
+        val today = TaskEntity(id = 210, title = "Cita hoy", priority = TaskPriority.NORMAL, dueAt = now)
+        val yesterdayTask = TaskEntity(id = 211, title = "Cita ayer", priority = TaskPriority.NORMAL, dueAt = yesterday)
+        val twoDaysAgoTask = TaskEntity(id = 212, title = "Cita", priority = TaskPriority.NORMAL, dueAt = twoDaysAgo)
+        val results = SearchEngine.search("anteayer", listOf(today, yesterdayTask, twoDaysAgoTask), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(1, results.size)
+        assertEquals(212L, results.first().id)
+    }
+
+    // "anteayer" recupera también tareas completadas (es un scope PASADO, como
+    // "ayer"/"semana pasada"/"mes pasado"): su propósito es revisar qué había en
+    // ese día, incluido lo ya terminado. Es la lectura natural de "qué hice
+    // anteayer". Las canceladas se excluyen siempre (no son información útil).
+    @Test fun anteayer_recoversCompletedTaskAnchoredTwoDaysAgo() {
+        val now = System.currentTimeMillis()
+        val twoDaysAgo = now - 2 * 24 * 3_600_000L
+        val completedTask = TaskEntity(
+            id = 220,
+            title = "Enviar correo",
+            priority = TaskPriority.NORMAL,
+            dueAt = twoDaysAgo,
+            status = TaskStatus.COMPLETED,
+            completedAt = twoDaysAgo
+        )
+        val results = SearchEngine.search("anteayer", listOf(completedTask), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(1, results.size)
+        assertEquals(220L, results.first().id)
+    }
 }

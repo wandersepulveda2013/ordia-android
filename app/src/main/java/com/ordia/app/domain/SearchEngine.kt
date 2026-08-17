@@ -42,7 +42,7 @@ enum class SearchKind { TASK, PROJECT, NOTE, HABIT, ROUTINE, CONVERSATION, COMMI
  * resuelve al próximo sábado estricto (sábado+domingo), nunca cae a THIS_WEEK
  * aunque contenga la palabra "semana".
  */
-private enum class DateScope { YESTERDAY, TODAY, TOMORROW, DAY_AFTER_TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, THIS_MONTH, NEXT_MONTH, LAST_MONTH, OVERDUE, MISSED, UNDATED, TARDE, NOCHE, MADRUGADA, WEEKDAY, WEEKEND }
+private enum class DateScope { DAY_BEFORE_YESTERDAY, YESTERDAY, TODAY, TOMORROW, DAY_AFTER_TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, THIS_MONTH, NEXT_MONTH, LAST_MONTH, OVERDUE, MISSED, UNDATED, TARDE, NOCHE, MADRUGADA, WEEKDAY, WEEKEND }
 
 data class SearchResult(val kind: SearchKind, val id: Long, val title: String, val subtitle: String)
 
@@ -434,6 +434,20 @@ object SearchEngine {
     private val TODAY_TOKENS = setOf("hoy")
     private val TOMORROW_TOKENS = setOf("manana")
     private val YESTERDAY_TOKENS = setOf("ayer")
+    // "anteayer"/"antier" = el día antes de ayer. El parser de captura resuelve
+    // ambos a base.minusDays(2) ([NaturalTaskParser], con tests en
+    // NaturalTaskParserTest "anteayer/antier"), igual que "pasado mañana" resuelve
+    // a base.plusDays(2). La búsqueda universal ya honraba la simetría futura con
+    // DAY_AFTER_TOMORROW ("pasado mañana"), pero NO la simétrica pasada: una tarea
+    // capturada como "reunión antier" (dueAt = hace 2 días) era IRRECUPERABLE al
+    // buscar "antier"/"anteayer" salvo que su título contuviera literalmente la
+    // palabra. Esto rompía el principio del archivo ("buscar y capturar
+    // signifiquen lo mismo"). "antier" es la variante coloquial hispanoamericana
+    // (MX/CA/parts SA) de "anteayer"; se admite la forma compacta con parte del
+    // día ("anteayer tarde"), que el parser también admite. Detección por palabra
+    // exacta: "anteayer" no contiene a "ayer" como palabra (es un único token),
+    // así que no colisiona con YESTERDAY; tampoco con ningún otro scope.
+    private val DAY_BEFORE_YESTERDAY_TOKENS = setOf("anteayer", "antier")
     private val WEEK_TOKENS = setOf("semana")
     // Modificadores que señalan "semana que viene"/"próxima semana": cuando
     // acompañan a "semana" el scope pasa de THIS_WEEK a NEXT_WEEK.
@@ -536,6 +550,13 @@ object SearchEngine {
         "pasado" in words && TOMORROW_TOKENS.any { it in words } -> DateScope.DAY_AFTER_TOMORROW
         TOMORROW_TOKENS.any { it in words } -> DateScope.TOMORROW
         YESTERDAY_TOKENS.any { it in words } -> DateScope.YESTERDAY
+        // "anteayer"/"antier" = día antes de ayer (simétrico de "pasado mañana" =
+        // DAY_AFTER_TOMORROW). Se evalúa después de YESTERDAY por coherencia
+        // visual con el par futuro (DAY_AFTER_TOMORROW va antes de TOMORROW), pero
+        // el orden es indiferente: "anteayer"/"antier" son tokens únicos que no
+        // colisionan con "ayer" (detección por palabra exacta). Resolución a hace
+        // 2 días en [taskMatchesDateScope]/[anchorMatchesScope].
+        DAY_BEFORE_YESTERDAY_TOKENS.any { it in words } -> DateScope.DAY_BEFORE_YESTERDAY
         // Día de la semana suelto o con modificador. Se evalúa antes que las partes
         // del día para que "sábado" (y "viernes tarde") se resuelvan al día de la
         // semana y no a la franja de hoy; "tarde"/"noche" solas siguen llegando aquí
@@ -570,7 +591,7 @@ object SearchEngine {
     }
 
     private fun dateScopeTokens(words: List<String>): Set<String> =
-        words.filter { it in OVERDUE_TOKENS || it in MISSED_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in MONTH_TOKENS || it in NEXT_MONTH_TOKENS || it in LAST_MONTH_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS || it in WEEKDAY_TOKENS || it in WEEKDAY_NEXT_MODIFIERS || it in WEEKEND_TOKENS || (isWeekendQuery(words) && (it in WEEKEND_HEAD_TOKENS || it == "semana")) }.toSet()
+        words.filter { it in OVERDUE_TOKENS || it in MISSED_TOKENS || it in TODAY_TOKENS || it in TOMORROW_TOKENS || it in YESTERDAY_TOKENS || it in DAY_BEFORE_YESTERDAY_TOKENS || it in WEEK_TOKENS || it in NEXT_WEEK_TOKENS || it in LAST_WEEK_TOKENS || it in MONTH_TOKENS || it in NEXT_MONTH_TOKENS || it in LAST_MONTH_TOKENS || it in DATE_MODIFIERS || (it == "sin" && UNDATED_HINTS.any { hint -> hint in words }) || it in UNDATED_HINTS || it in LATE_AFTERNOON_TOKENS || it in NIGHT_TOKENS || it in EARLY_MORNING_TOKENS || it in WEEKDAY_TOKENS || it in WEEKDAY_NEXT_MODIFIERS || it in WEEKEND_TOKENS || (isWeekendQuery(words) && (it in WEEKEND_HEAD_TOKENS || it == "semana")) }.toSet()
 
     /**
      * Resuelve el día calendario objetivo de un scope WEEKDAY desde la consulta
@@ -688,7 +709,7 @@ object SearchEngine {
         // tareas ya completadas: su propósito es revisar qué había en ese período.
         // Para los scopes presentes/futuros se excluyen completadas. Las canceladas
         // se excluyen siempre (no son información útil de un período pasado).
-        val pastScope = scope == DateScope.YESTERDAY || scope == DateScope.LAST_WEEK || scope == DateScope.LAST_MONTH
+        val pastScope = scope == DateScope.DAY_BEFORE_YESTERDAY || scope == DateScope.YESTERDAY || scope == DateScope.LAST_WEEK || scope == DateScope.LAST_MONTH
         if (task.status == TaskStatus.CANCELLED) return false
         // Cuando el usuario busca "completadas <scope presente>" el anclaje pasa a
         // completedAt (cuándo la terminó) y NO se excluyen completadas: la lectura
@@ -749,6 +770,7 @@ object SearchEngine {
             return date == today && zoned.hour in partOfDay
         }
         return when (scope) {
+            DateScope.DAY_BEFORE_YESTERDAY -> date == today.minusDays(2)
             DateScope.YESTERDAY -> date == today.minusDays(1)
             DateScope.TODAY -> date == today
             DateScope.TOMORROW -> date == today.plusDays(1)
