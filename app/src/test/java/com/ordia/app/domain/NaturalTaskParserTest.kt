@@ -8896,6 +8896,58 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // c.506: "a finales/principios/mediados de esta semana" y "... de la proxima semana"
+    // antes dejaban el calificador ("a finales de" / "a principios de") como residuo en el
+    // título porque los patrones de límite de semana no aceptaban determinante intermedio
+    // ("esta"/"proxima"). Ahora consumen la frase completa y anclan correctamente.
+    // now = 2026-07-29 (miércoles). Domingo de esta semana = 2026-08-02; de la próxima =
+    // 2026-08-09. Lunes de la semana próxima (previousOrSame(MON)+1sem) = 2026-08-03.
+    // Miércoles más cercano en hoy/futuro = 2026-07-29 (hoy); miércoles próxima = 2026-08-05.
+
+    @Test fun aFinalesDeEstaSemanaLimpiaTituloYAnclaDomingoEstaSemana() {
+        val result = NaturalTaskParser.parse("Cita a finales de esta semana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinalesDeLaProximaSemanaLimpiaTituloYAnclaDomingoProxima() {
+        val result = NaturalTaskParser.parse("Cita a finales de la proxima semana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 9), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aFinalesDeLaProximaSemanaConTildeLimpiaTituloYAnclaDomingoProxima() {
+        val result = NaturalTaskParser.parse("Cita a finales de la próxima semana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 9), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aPrincipiosDeEstaSemanaLimpiaTituloYAnclaLunesEstaSemana() {
+        // hoy = miércoles 2026-07-29 -> el lunes de esta semana ya pasó -> lunes siguiente 2026-08-03.
+        val result = NaturalTaskParser.parse("Cita a principios de esta semana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aPrincipiosDeLaProximaSemanaLimpiaTituloYAnclaLunesProxima() {
+        val result = NaturalTaskParser.parse("Cita a principios de la proxima semana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 3), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aMediadosDeEstaSemanaLimpiaTituloYAnclaMiercolesEstaSemana() {
+        // hoy = miércoles 2026-07-29 -> miércoles más cercano en hoy/futuro = hoy.
+        val result = NaturalTaskParser.parse("Cita a mediados de esta semana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aMediadosDeLaProximaSemanaLimpiaTituloYAnclaMiercolesProxima() {
+        val result = NaturalTaskParser.parse("Cita a mediados de la proxima semana", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "principios de semana": plazo blando al lunes más cercano (hoy/futuro) ---
     // Antes caía a dueAt=null (olvido) o, con hora, a HOY por error. Ahora -> lunes.
     // now = 2026-07-29 (miércoles) -> "principios de semana" = lunes 2026-08-03.

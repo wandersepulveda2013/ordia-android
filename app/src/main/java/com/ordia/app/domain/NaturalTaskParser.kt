@@ -771,7 +771,7 @@ object NaturalTaskParser {
      * para que "la semana que viene" no se robe el +7d genérico dejando "a finales
      * de" como residuo.
      */
-    private val thisWeekPattern = Regex("""(?i)\b(?:esta\s+semana(?:\s+que\s+viene)?|(?:a\s+|al\s+)?(?:fin|fines|final|finales)\s+de\s+la\s+semana(?:\s+que\s+viene)?)\b""")
+    private val thisWeekPattern = Regex("""(?i)\b(?:esta\s+semana(?:\s+que\s+viene)?|(?:a\s+|al\s+)?(?:fin|fines|final|finales)\s+de\s+(?:la\s+(?:pr[oó]xim[oa]\s+)?semana|esta\s+semana)(?:\s+que\s+viene)?)\b""")
     /**
      * "principios de semana" / "a principios de semana": plazo blando de "a inicios de
      * la semana" (el lunes). Frases cotidianas ("lo termino a principios de semana") que
@@ -786,7 +786,7 @@ object NaturalTaskParser {
      * "principios de la semana que viene" → lunes de la SEMANA PRÓXIMA; sin él,
      * al lunes más cercano en hoy/futuro de esta semana.
      */
-    private val startOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|inicios?)\s+(?:de\s+la\s+|de\s+|del\s+)semana(?:\s+que\s+viene)?\b""")
+    private val startOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|inicios?)\s+(?:de\s+la\s+|de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?semana(?:\s+que\s+viene)?\b""")
     /**
      * "mediados de semana" / "a mediados de semana" → miércoles más cercano en HOY o
      * futuro. Análogo a "principios de semana" (lunes) y "mediados de mes" (día 15).
@@ -797,7 +797,7 @@ object NaturalTaskParser {
      * "mediados de la semana que viene" → miércoles de la SEMANA PRÓXIMA; sin él,
      * al miércoles más cercano en hoy/futuro de esta semana.
      */
-    private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+la\s+|de\s+|del\s+)semana(?:\s+que\s+viene)?\b""")
+    private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+la\s+|de\s+|del\s+)(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?semana(?:\s+que\s+viene)?\b""")
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(?:d[ií]a\s+)?(\d{1,2}|$writtenNumberGroup|primero)\s+de\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
     // Variante de monthNamePattern para la limpieza del título: añade un prefijo
     // opcional no capturador `(?:\bdel?\s+)?` para consumir la preposición genitiva
@@ -3406,22 +3406,6 @@ object NaturalTaskParser {
             DateRules.toEpochMillis(lastDay, LocalTime.of(9, 0), zone)
         }
         thisYearEarlyMatch?.let { working = working.replaceRange(it.range, " ") }
-
-        // "esta semana" / "esta semana que viene" / "fin de la semana" (con o sin
-        // "que viene"): fin de la semana (próximo domingo, ISO lunes→domingo). Se
-        // borra ANTES del período próximo para que "semana" no active "semana que
-        // viene" y para limpiar "esta semana que viene" / "fin de la semana que viene".
-        // c.488: si el match trae "que viene", se ancla al domingo de la SEMANA PRÓXIMA
-        // (+7d); sin él, al domingo de esta semana.
-        val thisWeekEarlyMatch = thisWeekPattern.find(working)
-        val thisWeekDueAt = thisWeekEarlyMatch?.let {
-            val baseSunday = base.toLocalDate()
-                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
-            val sunday = if ("que viene" in it.value.lowercase()) baseSunday.plusWeeks(1) else baseSunday
-            DateRules.toEpochMillis(sunday, LocalTime.of(9, 0), zone)
-        }
-        thisWeekEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
-
         // "principios de semana": el lunes más cercano en hoy/futuro. Se borra ANTES
         // del período próximo para que "semana" no active "semana que viene".
         // c.489: si el match trae "que viene", se ancla al lunes de la SEMANA PRÓXIMA.
@@ -3429,9 +3413,15 @@ object NaturalTaskParser {
         // al lunes de la semana próxima (el de esta semana ya pasó), y +7d saltaría una
         // semana de más. previousOrSame(MON).plusWeeks(1) da el lunes de la semana próxima
         // sin depender del día de hoy. Sin "que viene", nextOrSame(MON) (hoy/futuro).
+        // c.506: se procesa ANTES que thisWeekPattern para que "a principios de esta
+        // semana" no sea robado por la alternativa "esta semana" de ese patrón, lo que
+        // dejaba "a principios de" como residuo en el título.
         val startOfWeekEarlyMatch = startOfWeekPattern.find(working)
         val startOfWeekDueAt = startOfWeekEarlyMatch?.let {
-            val monday = if ("que viene" in it.value.lowercase()) {
+            // c.506: "proxim[oa]" ancla a la semana proxima, igual que "que viene".
+            val nextWeek = "que viene" in it.value.lowercase() ||
+                Regex("(?i)pr[oó]xim").containsMatchIn(it.value)
+            val monday = if (nextWeek) {
                 base.toLocalDate()
                     .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                     .plusWeeks(1)
@@ -3451,7 +3441,10 @@ object NaturalTaskParser {
         // nextOrSame(WED) (hoy/futuro).
         val midOfWeekEarlyMatch = midOfWeekPattern.find(working)
         val midOfWeekDueAt = midOfWeekEarlyMatch?.let {
-            val wednesday = if ("que viene" in it.value.lowercase()) {
+            // c.506: "proxim[oa]" ancla a la semana proxima, igual que "que viene".
+            val nextWeek = "que viene" in it.value.lowercase() ||
+                Regex("(?i)pr[oó]xim").containsMatchIn(it.value)
+            val wednesday = if (nextWeek) {
                 base.toLocalDate()
                     .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                     .plusWeeks(1)
@@ -3463,6 +3456,27 @@ object NaturalTaskParser {
             DateRules.toEpochMillis(wednesday, LocalTime.of(9, 0), zone)
         }
         midOfWeekEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
+
+        // "esta semana" / "esta semana que viene" / "fin de la semana" (con o sin
+        // "que viene"): fin de la semana (próximo domingo, ISO lunes→domingo). Se
+        // borra ANTES del período próximo para que "semana" no active "semana que
+        // viene" y para limpiar "esta semana que viene" / "fin de la semana que viene".
+        // c.488: si el match trae "que viene", se ancla al domingo de la SEMANA PRÓXIMA
+        // (+7d); sin él, al domingo de esta semana.
+        val thisWeekEarlyMatch = thisWeekPattern.find(working)
+        val thisWeekDueAt = thisWeekEarlyMatch?.let {
+            val baseSunday = base.toLocalDate()
+                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
+            // c.506: "a finales de la proxima semana" / "a finales de la semana que
+            // viene" anclan al domingo de la SEMANA PROXIMA. Antes estas formas con
+            // determinante ("esta"/"proxima") no casaban y dejaban "a finales de" como
+            // residuo en el titulo (c.506). Se trata "proxim[oa]" igual que "que viene".
+            val nextWeek = "que viene" in it.value.lowercase() ||
+                Regex("(?i)pr[oó]xim").containsMatchIn(it.value)
+            val sunday = if (nextWeek) baseSunday.plusWeeks(1) else baseSunday
+            DateRules.toEpochMillis(sunday, LocalTime.of(9, 0), zone)
+        }
+        thisWeekEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
 
         // "el 15 del mes que viene": día N del mes siguiente. Se procesa ANTES que
         // nextPeriodPattern para consumir la frase completa (día + "mes que viene")
