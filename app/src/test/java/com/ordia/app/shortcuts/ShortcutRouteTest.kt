@@ -9,6 +9,9 @@ class ShortcutRouteTest {
     fun knownActionsMapOnlyToRealRoutes() {
         assertEquals(ShortcutRoute.CAPTURE, ShortcutRoute.fromAction(ACTION_SHORTCUT_CAPTURE))
         assertEquals(ShortcutRoute.FOCUS, ShortcutRoute.fromAction(ACTION_SHORTCUT_FOCUS))
+        assertEquals(ShortcutRoute.NEW_NOTE, ShortcutRoute.fromAction(ACTION_SHORTCUT_NEW_NOTE))
+        assertEquals(ShortcutRoute.SCANNER, ShortcutRoute.fromAction(ACTION_SHORTCUT_SCANNER))
+        assertEquals(ShortcutRoute.VOICE_NOTE, ShortcutRoute.fromAction(ACTION_SHORTCUT_VOICE_NOTE))
     }
 
     @Test

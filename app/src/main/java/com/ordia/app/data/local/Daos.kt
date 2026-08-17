@@ -131,11 +131,22 @@ interface ProjectDao {
 
 @Dao
 interface NoteDao {
-    @Query("SELECT * FROM notes WHERE archived = 0 ORDER BY pinned DESC, updatedAt DESC")
+    /** Notas visibles en Home: no archivadas ni en papelera. Fijadas primero. */
+    @Query("SELECT * FROM notes WHERE archived = 0 AND trashed = 0 ORDER BY pinned DESC, favorite DESC, updatedAt DESC")
     fun observeAll(): Flow<List<NoteEntity>>
 
-    @Query("SELECT * FROM notes WHERE archived = 1 ORDER BY updatedAt DESC")
+    /** Papelera: notas marcadas como trashed, ordenadas por momento de borrado. */
+    @Query("SELECT * FROM notes WHERE trashed = 1 ORDER BY trashedAt DESC, updatedAt DESC")
+    fun observeTrashed(): Flow<List<NoteEntity>>
+
+    @Query("SELECT * FROM notes WHERE archived = 1 AND trashed = 0 ORDER BY updatedAt DESC")
     fun observeArchived(): Flow<List<NoteEntity>>
+
+    @Query("SELECT * FROM notes WHERE archived = 0 AND trashed = 0 AND favorite = 1 ORDER BY pinned DESC, updatedAt DESC")
+    fun observeFavorites(): Flow<List<NoteEntity>>
+
+    @Query("SELECT * FROM notes WHERE archived = 0 AND trashed = 0 AND folderId = :folderId ORDER BY pinned DESC, updatedAt DESC")
+    fun observeByFolder(folderId: Long): Flow<List<NoteEntity>>
 
     @Query("SELECT * FROM notes ORDER BY updatedAt DESC")
     suspend fun getAllNow(): List<NoteEntity>
@@ -143,10 +154,13 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): NoteEntity?
 
-    @Query("SELECT * FROM notes WHERE projectId = :projectId AND archived = 0 ORDER BY pinned DESC, updatedAt DESC")
+    @Query("SELECT * FROM notes WHERE id = :id LIMIT 1")
+    fun observeById(id: Long): Flow<NoteEntity?>
+
+    @Query("SELECT * FROM notes WHERE projectId = :projectId AND archived = 0 AND trashed = 0 ORDER BY pinned DESC, updatedAt DESC")
     fun observeByProject(projectId: Long): Flow<List<NoteEntity>>
 
-    @Query("SELECT * FROM notes WHERE archived = 0 AND (title LIKE '%' || :query || '%' OR body LIKE '%' || :query || '%') ORDER BY updatedAt DESC LIMIT :limit")
+    @Query("SELECT * FROM notes WHERE archived = 0 AND trashed = 0 AND (title LIKE '%' || :query || '%' OR body LIKE '%' || :query || '%' OR blocksData LIKE '%' || :query || '%') ORDER BY updatedAt DESC LIMIT :limit")
     suspend fun search(query: String, limit: Int = 50): List<NoteEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -167,11 +181,149 @@ interface NoteDao {
     @Query("UPDATE notes SET archived = 0, updatedAt = :updatedAt WHERE id = :id")
     suspend fun restore(id: Long, updatedAt: Long = System.currentTimeMillis())
 
+    @Query("UPDATE notes SET trashed = 1, trashedAt = :trashedAt, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun trash(id: Long, trashedAt: Long = System.currentTimeMillis(), updatedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE notes SET trashed = 0, trashedAt = NULL, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun untrash(id: Long, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE notes SET pinned = :pinned, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun setPinned(id: Long, pinned: Boolean, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE notes SET favorite = :favorite, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun setFavorite(id: Long, favorite: Boolean, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE notes SET locked = :locked, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun setLocked(id: Long, locked: Boolean, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE notes SET colorHex = :colorHex, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun setColor(id: Long, colorHex: String, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE notes SET folderId = :folderId, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun moveToFolder(id: Long, folderId: Long?, updatedAt: Long = System.currentTimeMillis())
+
     @Query("DELETE FROM notes WHERE id = :id")
     suspend fun deleteById(id: Long)
 
     @Query("DELETE FROM notes")
     suspend fun deleteAll()
+
+    @Query("DELETE FROM notes WHERE trashed = 1 AND trashedAt IS NOT NULL AND trashedAt < :olderThan")
+    suspend fun pruneOldTrashed(olderThan: Long): Int
+}
+
+@Dao
+interface NoteFolderDao {
+    @Query("SELECT * FROM note_folders ORDER BY name COLLATE NOCASE")
+    fun observeAll(): Flow<List<NoteFolderEntity>>
+
+    @Query("SELECT * FROM note_folders WHERE parentFolderId IS :parentId ORDER BY name COLLATE NOCASE")
+    fun observeByParent(parentId: Long?): Flow<List<NoteFolderEntity>>
+
+    @Query("SELECT * FROM note_folders ORDER BY name COLLATE NOCASE")
+    suspend fun getAllNow(): List<NoteFolderEntity>
+
+    @Query("SELECT * FROM note_folders WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): NoteFolderEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(folder: NoteFolderEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(folders: List<NoteFolderEntity>): List<Long>
+
+    @Update
+    suspend fun update(folder: NoteFolderEntity)
+
+    @Query("DELETE FROM note_folders WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM note_folders")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface NoteLabelDao {
+    @Query("SELECT * FROM note_labels ORDER BY name COLLATE NOCASE")
+    fun observeAll(): Flow<List<NoteLabelEntity>>
+
+    @Query("SELECT * FROM note_labels ORDER BY name COLLATE NOCASE")
+    suspend fun getAllNow(): List<NoteLabelEntity>
+
+    @Query("SELECT * FROM note_labels WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): NoteLabelEntity?
+
+    @Query("SELECT * FROM note_labels WHERE name = :name LIMIT 1")
+    suspend fun getByName(name: String): NoteLabelEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(label: NoteLabelEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(labels: List<NoteLabelEntity>): List<Long>
+
+    @Query("DELETE FROM note_labels WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM note_labels")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface NoteLabelCrossRefDao {
+    @Query("SELECT * FROM note_label_cross_ref WHERE noteId = :noteId")
+    suspend fun labelsForNote(noteId: Long): List<NoteLabelCrossRef>
+
+    @Query("SELECT * FROM note_label_cross_ref")
+    suspend fun getAllNow(): List<NoteLabelCrossRef>
+
+    @Query("SELECT noteId FROM note_label_cross_ref WHERE labelId = :labelId")
+    suspend fun noteIdsForLabel(labelId: Long): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(ref: NoteLabelCrossRef)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(refs: List<NoteLabelCrossRef>)
+
+    @Query("DELETE FROM note_label_cross_ref WHERE noteId = :noteId AND labelId = :labelId")
+    suspend fun delete(noteId: Long, labelId: Long)
+
+    @Query("DELETE FROM note_label_cross_ref WHERE noteId = :noteId")
+    suspend fun clearForNote(noteId: Long)
+
+    @Query("DELETE FROM note_label_cross_ref")
+    suspend fun deleteAll()
+}
+
+@Dao
+interface NoteVersionDao {
+    @Query("SELECT * FROM note_versions WHERE noteId = :noteId ORDER BY createdAt DESC LIMIT :limit")
+    suspend fun versionsForNote(noteId: Long, limit: Int = 50): List<NoteVersionEntity>
+
+    @Query("SELECT * FROM note_versions ORDER BY createdAt DESC")
+    suspend fun getAllNow(): List<NoteVersionEntity>
+
+    @Query("SELECT * FROM note_versions ORDER BY createdAt DESC")
+    fun observeAll(): Flow<List<NoteVersionEntity>>
+
+    @Insert
+    suspend fun insert(version: NoteVersionEntity): Long
+
+    @Insert
+    suspend fun insertAll(versions: List<NoteVersionEntity>): List<Long>
+
+    @Query("DELETE FROM note_versions WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM note_versions WHERE noteId = :noteId")
+    suspend fun deleteForNote(noteId: Long)
+
+    @Query("DELETE FROM note_versions")
+    suspend fun deleteAll()
+
+    @Query("DELETE FROM note_versions WHERE noteId = :noteId AND createdAt < :olderThan")
+    suspend fun pruneOldVersions(noteId: Long, olderThan: Long): Int
 }
 
 @Dao
@@ -373,6 +525,12 @@ interface AttachmentDao {
 
     @Query("SELECT * FROM attachments WHERE ownerType = :ownerType AND ownerId = :ownerId ORDER BY createdAt DESC")
     fun observeForOwner(ownerType: AttachmentOwnerType, ownerId: Long): Flow<List<AttachmentEntity>>
+
+    @Query("SELECT * FROM attachments WHERE ownerType = :ownerType AND ownerId = :ownerId")
+    suspend fun getForOwnerNow(ownerType: AttachmentOwnerType, ownerId: Long): List<AttachmentEntity>
+
+    @Query("DELETE FROM attachments WHERE ownerType = :ownerType AND ownerId = :ownerId")
+    suspend fun deleteForOwner(ownerType: AttachmentOwnerType, ownerId: Long)
 
     @Query("SELECT * FROM attachments ORDER BY createdAt DESC")
     suspend fun getAllNow(): List<AttachmentEntity>

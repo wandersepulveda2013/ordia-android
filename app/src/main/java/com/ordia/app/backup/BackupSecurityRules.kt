@@ -12,7 +12,7 @@ object BackupSecurityRules {
     const val MAX_TOTAL_ITEMS = 250_000
     const val MAX_JSON_DEPTH = 64
     const val MAX_SAFE_EPOCH_MILLIS = 32_503_680_000_000L // 3000-01-01 UTC
-    const val CURRENT_EXPORT_VERSION = 8
+    const val CURRENT_EXPORT_VERSION = 9
 
     /** Versión del formato de copia con checksum SHA-256 obligatorio. */
     const val CHECKSUM_VERSION = 4
@@ -24,14 +24,17 @@ object BackupSecurityRules {
     val captureCollections = legacyCollections + setOf("captures", "captureDrafts")
     val conversationCollections = captureCollections + setOf("conversations", "commitments")
     val observationCollections = conversationCollections + setOf("observedSources", "consentEvents")
-    val requiredCollections = observationCollections + setOf("automationRules", "automationLogs")
+    val automationCollections = observationCollections + setOf("automationRules", "automationLogs")
+    val notesRebuildCollections = automationCollections + setOf("noteFolders", "noteLabels", "noteLabelCrossRefs", "noteVersions")
+    val requiredCollections = notesRebuildCollections
 
     fun supportsVersion(version: Int): Boolean = version in 2..CURRENT_EXPORT_VERSION
     fun inputSizeAllowed(utf8Bytes: Int): Boolean = utf8Bytes in 2..MAX_UTF8_BYTES
     fun collectionSizeAllowed(size: Int): Boolean = size in 0..MAX_ITEMS_PER_COLLECTION
     fun totalSizeAllowed(size: Int): Boolean = size in 0..MAX_TOTAL_ITEMS
     fun requiredCollectionsFor(version: Int): Set<String> = when {
-        version >= 8 -> requiredCollections
+        version >= 9 -> notesRebuildCollections
+        version >= 8 -> automationCollections
         version >= 7 -> observationCollections
         version >= 6 -> conversationCollections
         version >= 5 -> captureCollections

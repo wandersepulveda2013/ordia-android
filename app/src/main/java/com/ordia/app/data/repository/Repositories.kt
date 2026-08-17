@@ -11,6 +11,14 @@ import com.ordia.app.data.local.HabitLogDao
 import com.ordia.app.data.local.HabitLogEntity
 import com.ordia.app.data.local.NoteDao
 import com.ordia.app.data.local.NoteEntity
+import com.ordia.app.data.local.NoteFolderDao
+import com.ordia.app.data.local.NoteFolderEntity
+import com.ordia.app.data.local.NoteLabelCrossRef
+import com.ordia.app.data.local.NoteLabelCrossRefDao
+import com.ordia.app.data.local.NoteLabelDao
+import com.ordia.app.data.local.NoteLabelEntity
+import com.ordia.app.data.local.NoteVersionDao
+import com.ordia.app.data.local.NoteVersionEntity
 import com.ordia.app.data.local.ProjectDao
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.RoutineDao
@@ -71,14 +79,69 @@ class ProjectRepository(private val dao: ProjectDao) {
 class NoteRepository(private val dao: NoteDao) {
     val notes: Flow<List<NoteEntity>> = dao.observeAll()
     val archived: Flow<List<NoteEntity>> = dao.observeArchived()
+    val trashed: Flow<List<NoteEntity>> = dao.observeTrashed()
+    val favorites: Flow<List<NoteEntity>> = dao.observeFavorites()
     suspend fun get(id: Long): NoteEntity? = dao.getById(id)
+    fun observeById(id: Long): Flow<NoteEntity?> = dao.observeById(id)
+    fun observeByFolder(folderId: Long): Flow<List<NoteEntity>> = dao.observeByFolder(folderId)
     suspend fun add(note: NoteEntity): Long = dao.insert(note)
     suspend fun update(note: NoteEntity) = dao.update(note)
     suspend fun delete(note: NoteEntity) = dao.delete(note)
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun restore(id: Long) = dao.restore(id)
+    suspend fun trash(id: Long) = dao.trash(id)
+    suspend fun untrash(id: Long) = dao.untrash(id)
     suspend fun deletePermanently(id: Long) = dao.deleteById(id)
+    suspend fun setPinned(id: Long, pinned: Boolean) = dao.setPinned(id, pinned)
+    suspend fun setFavorite(id: Long, favorite: Boolean) = dao.setFavorite(id, favorite)
+    suspend fun setLocked(id: Long, locked: Boolean) = dao.setLocked(id, locked)
+    suspend fun setColor(id: Long, colorHex: String) = dao.setColor(id, colorHex)
+    suspend fun moveToFolder(id: Long, folderId: Long?) = dao.moveToFolder(id, folderId)
+    suspend fun pruneOldTrashed(olderThan: Long): Int = dao.pruneOldTrashed(olderThan)
     suspend fun search(query: String): List<NoteEntity> = dao.search(query)
+    suspend fun getAllNow(): List<NoteEntity> = dao.getAllNow()
+}
+
+class NoteFolderRepository(private val dao: NoteFolderDao) {
+    val folders: Flow<List<NoteFolderEntity>> = dao.observeAll()
+    suspend fun get(id: Long): NoteFolderEntity? = dao.getById(id)
+    suspend fun add(folder: NoteFolderEntity): Long = dao.insert(folder)
+    suspend fun update(folder: NoteFolderEntity) = dao.update(folder)
+    suspend fun deletePermanently(id: Long) = dao.deleteById(id)
+    suspend fun getAllNow(): List<NoteFolderEntity> = dao.getAllNow()
+}
+
+class NoteLabelRepository(
+    private val labelDao: NoteLabelDao,
+    private val crossRefDao: NoteLabelCrossRefDao
+) {
+    val labels: Flow<List<NoteLabelEntity>> = labelDao.observeAll()
+    suspend fun get(id: Long): NoteLabelEntity? = labelDao.getById(id)
+    suspend fun getOrCreate(name: String): Long {
+        val trimmed = name.trim()
+        require(trimmed.isNotBlank()) { "El nombre de la etiqueta no puede estar vacío." }
+        labelDao.getByName(trimmed)?.let { return it.id }
+        return labelDao.insert(NoteLabelEntity(name = trimmed))
+    }
+    suspend fun add(label: NoteLabelEntity): Long = labelDao.insert(label)
+    suspend fun deletePermanently(id: Long) = labelDao.deleteById(id)
+    suspend fun assign(noteId: Long, labelId: Long) = crossRefDao.insert(NoteLabelCrossRef(noteId, labelId))
+    suspend fun unassign(noteId: Long, labelId: Long) = crossRefDao.delete(noteId, labelId)
+    suspend fun clearForNote(noteId: Long) = crossRefDao.clearForNote(noteId)
+    suspend fun labelIdsForNote(noteId: Long): List<Long> =
+        crossRefDao.labelsForNote(noteId).map { it.labelId }
+    suspend fun noteIdsForLabel(labelId: Long): List<Long> = crossRefDao.noteIdsForLabel(labelId)
+    suspend fun getAllNow(): List<NoteLabelEntity> = labelDao.getAllNow()
+}
+
+class NoteVersionRepository(private val dao: NoteVersionDao) {
+    suspend fun versionsForNote(noteId: Long, limit: Int = 50): List<NoteVersionEntity> =
+        dao.versionsForNote(noteId, limit)
+    suspend fun add(version: NoteVersionEntity): Long = dao.insert(version)
+    suspend fun deleteById(id: Long) = dao.deleteById(id)
+    suspend fun deleteForNote(noteId: Long) = dao.deleteForNote(noteId)
+    suspend fun pruneOldVersions(noteId: Long, olderThan: Long): Int = dao.pruneOldVersions(noteId, olderThan)
+    suspend fun getAllNow(): List<NoteVersionEntity> = dao.getAllNow()
 }
 
 class HabitRepository(
@@ -146,6 +209,10 @@ class AttachmentRepository(private val dao: AttachmentDao) {
         dao.observeForOwner(type, ownerId)
     suspend fun add(attachment: AttachmentEntity): Long = dao.insert(attachment)
     suspend fun delete(attachment: AttachmentEntity) = dao.delete(attachment)
+    suspend fun getForOwnerNow(type: AttachmentOwnerType, ownerId: Long): List<AttachmentEntity> =
+        dao.getForOwnerNow(type, ownerId)
+    suspend fun deleteForOwner(type: AttachmentOwnerType, ownerId: Long) =
+        dao.deleteForOwner(type, ownerId)
 }
 
 class CaptureRepository(private val dao: CaptureDao) {

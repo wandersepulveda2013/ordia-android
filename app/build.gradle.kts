@@ -183,6 +183,12 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.2.1")
     implementation("androidx.work:work-runtime-ktx:2.11.2")
+    implementation("androidx.exifinterface:exifinterface:1.4.1")
+
+    // OCR on-device (ML Kit text recognition, modelo latino empaquetado → 100% offline).
+    // Solo en variantes avanzadas: previewSafe se mantiene mínimo y sin capacidades sensibles.
+    "previewAdvancedImplementation"("com.google.mlkit:text-recognition:16.0.1")
+    "previewFullImplementation"("com.google.mlkit:text-recognition:16.0.1")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")

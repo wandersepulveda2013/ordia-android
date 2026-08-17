@@ -17,6 +17,7 @@ class MainActivity : ComponentActivity() {
     private val incomingText = androidx.compose.runtime.mutableStateOf<String?>(null)
     private val incomingAttachmentUri = androidx.compose.runtime.mutableStateOf<String?>(null)
     private val incomingMimeType = androidx.compose.runtime.mutableStateOf<String?>(null)
+    private val incomingImageUris = androidx.compose.runtime.mutableStateOf<List<String>>(emptyList())
     private val requestedDestination = androidx.compose.runtime.mutableStateOf<String?>(null)
     private val requestedTaskId = androidx.compose.runtime.mutableStateOf<Long?>(null)
 
@@ -29,12 +30,16 @@ class MainActivity : ComponentActivity() {
                 incomingText = incomingText.value,
                 incomingAttachmentUri = incomingAttachmentUri.value,
                 incomingMimeType = incomingMimeType.value,
+                incomingImageUris = incomingImageUris.value,
                 requestedDestination = requestedDestination.value,
                 requestedTaskId = requestedTaskId.value,
                 onIncomingTextConsumed = {
                     incomingText.value = null
                     incomingAttachmentUri.value = null
                     incomingMimeType.value = null
+                },
+                onIncomingImageUrisConsumed = {
+                    incomingImageUris.value = emptyList()
                 },
                 onNavigationRequestConsumed = {
                     requestedDestination.value = null
@@ -58,6 +63,13 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
         when (intent.action) {
+            Intent.ACTION_SEND_MULTIPLE -> {
+                @Suppress("DEPRECATION")
+                val streams = intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+                incomingImageUris.value = streams?.map { it.toString() } ?: emptyList()
+                intent.removeExtra(Intent.EXTRA_STREAM)
+                intent.action = null
+            }
             Intent.ACTION_SEND -> {
                 incomingText.value = intent.getStringExtra(Intent.EXTRA_TEXT)?.take(MAX_SHARED_TEXT_CHARS)
                 @Suppress("DEPRECATION")
@@ -114,6 +126,9 @@ class MainActivity : ComponentActivity() {
         const val OPEN_SETTINGS = "settings"
         const val OPEN_CONTEXTUAL = "contextual"
         const val OPEN_CONVERSATIONS = "conversations"
+        const val OPEN_NEW_NOTE = "new_note"
+        const val OPEN_SCANNER = "scanner"
+        const val OPEN_VOICE_NOTE = "voice_note"
         private const val MAX_SHARED_TEXT_CHARS = 100_000
     }
 }

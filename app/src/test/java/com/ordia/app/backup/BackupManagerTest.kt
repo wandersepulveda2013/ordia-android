@@ -332,6 +332,37 @@ class BackupManagerTest {
     }
 
     @Test
+    fun notesRebuildFieldsSurviveBackupRoundTrip() = runBlocking {
+        val richNote = NoteEntity(
+            id = 3, title = "Nota rica", body = "cuerpo", blocksData = "[]",
+            folderId = 7L, pinned = true, favorite = true, locked = true,
+            colorHex = "#AABBCC", trashed = true, trashedAt = 5555L,
+            createdAt = 1000L, updatedAt = 2000L
+        )
+        val folder = com.ordia.app.data.local.NoteFolderEntity(
+            id = 7L, name = "Carpeta", createdAt = 1000L, updatedAt = 1000L
+        )
+        val data = sampleData().copy(notes = listOf(richNote), noteFolders = listOf(folder))
+        val origin = newManager(FakeBackupStore(data))
+        val backup = origin.exportJson()
+
+        val destinationStore = FakeBackupStore(otherData())
+        val destination = newManager(destinationStore, journal = journalFile())
+        val result = destination.importBackup(backup) {}
+        assertTrue(result.message, result.success)
+
+        val restored = destinationStore.current.notes.single()
+        assertEquals("Nota rica", restored.title)
+        assertEquals(7L, restored.folderId)
+        assertTrue(restored.pinned)
+        assertTrue(restored.favorite)
+        assertTrue(restored.locked)
+        assertEquals("#AABBCC", restored.colorHex)
+        assertTrue(restored.trashed)
+        assertEquals(5555L, restored.trashedAt)
+    }
+
+    @Test
     fun emptyExportAndImportRoundTripSucceeds() = runBlocking {
         val origin = newManager(FakeBackupStore())
         val backup = origin.exportJson()
@@ -521,7 +552,7 @@ class BackupManagerTest {
     @Test
     fun futureVersionMessageWarnsAboutNewerOrdia() = runBlocking {
         val origin = newManager(FakeBackupStore(sampleData()))
-        val tampered = rewrap(JSONObject(origin.exportJson()), version = 9)
+        val tampered = rewrap(JSONObject(origin.exportJson()), version = 10)
 
         val store = FakeBackupStore(otherData())
         val result = newManager(store).importBackup(tampered)

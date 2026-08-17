@@ -58,3 +58,40 @@ Sesión 007 — **Merge del rebuild completo a `main`** (fases 28-29 de EVOLUCI�
 ## Estado CI
 
 - `android-ci.yml` (versión per-flavor del rebuild) activo en `main` y en la rama autónoma; verify corre en push/PR hacia ambas; sign+publish solo en push a `main`, publicando `Ordia-3.0-{safe,full,advanced}-signed.apk` + `update-manifest-<flavor>.json` + release inmutable con 9 assets.
+
+## Rebuild Notes — multimedia (rama jules/notes-rebuild)
+
+Estado del trabajo de conversión de placeholders multimedia a implementaciones reales.
+
+### Cámara (FASE 5)
+- `ActivityResultContracts.TakePicture` con URI temporal en `filesDir/notes-media` vía FileProvider (`${applicationId}.update-files`).
+- Importa la captura a almacenamiento privado (`NoteMediaStore.importImage`), normaliza EXIF de orientación, elimina el temporal si es distinto.
+- Solicita permiso `CAMERA` (declarado solo en previewAdvanced/previewFull; previewSafe sin capacidades sensibles).
+- Inserta como bloque `IMAGE`. Botón "Cámara" activo en el panel Insertar del editor.
+
+### Escáner de documentos (FASE 6) — sin OpenCV
+- `DocumentScanner` (puro Android Graphics):
+  - Corrección de perspectiva por 4 puntos ajustables (warping bilineal por filas con `getPixels`/`setPixels`).
+  - Rotación por múltiplos de 90°.
+  - Modos: AUTO (realce de contraste), GRIS (saturación 0), B/N (ColorMatrix umbral). Tamaño de salida limitado a 2400px.
+- `ScannerDialog`: preview con 4 asas arrastrables, rotar, modos, insertar como bloque `IMAGE` (JPEG en almacenamiento privado).
+- Disponible en las 3 variantes (no requiere permisos especiales más allá de los de imagen/cámara).
+
+### OCR (FASE 6) — 100% offline
+- `OcrRunner` usa **ML Kit text-recognition** (modelo latino empaquetado en el APK → sin descarga, sin red).
+- Dependencia `com.google.mlkit:text-recognition:16.0.1` añadida **solo** a previewAdvanced/previewFull (`previewAdvancedImplementation`/`previewFullImplementation`). previewSafe **no** incluye ML Kit (mantiene APK mínimo y sin capacidades sensibles).
+- Acceso por **reflexión** (`OcrRunner.isAvailable` detecta la clase en runtime): el código común compila en previewSafe sin referenciar ML Kit; en previewSafe, OCR reporta "no disponible" de forma honesta.
+- `OcrDialog`: reconoce → muestra texto editable → inserta como bloque `PARAGRAPH` o copia al portapapeles. No hay opción "Nota nueva" todavía (requiere callback de navegación; se añadirá después).
+- **Privacidad**: el reconocimiento ocurre on-device; no se envía voz/imagen/texto a servicios remotos. No se loguea contenido.
+
+### Verificación
+- `:app:compilePreviewSafeDebugKotlin` → BUILD SUCCESSFUL.
+- `:app:compilePreviewAdvancedDebugKotlin` → BUILD SUCCESSFUL.
+- `:app:testPreviewSafeDebugUnitTest` y `:app:testPreviewAdvancedDebugUnitTest` → BUILD SUCCESSFUL (505 tests, 0 fallos en la variante de tests compartidos).
+- No se modificó applicationId, identidad de firma, versionCode, updater, manifiesto de actualización ni contrato de release tag (`v3.0.<build>-code-<versionCode>`).
+
+### Pendiente multimedia
+- Audio (grabación + waveform + transcripción on-device si hay SpeechRecognizer) — FASE 8.
+- Dibujo / escritura a mano (Canvas Compose + stylus) — FASE 7.
+- Enlaces internos entre notas (`[[`) — FASE 9.
+- Historial eficiente, bloqueo biométrico de notas — FASE 10.
