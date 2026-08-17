@@ -2622,6 +2622,45 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    // El genitivo "del" que introduce una fecha de nombre de mes debe consumirse con la
+    // fecha y no sobrevivir como residuo en el título. Antes "concierto del 12 de
+    // octubre" dejaba "concierto del"; ahora deja "concierto" (contenido limpio).
+    @Test fun genitivoDelAntesDeFechaDeMesSeConsumeDelTitulo() {
+        val result = NaturalTaskParser.parse("comprar entradas para el concierto del 12 de octubre", now, zone)
+        assertEquals("comprar entradas concierto", result.title)
+        assertEquals(LocalDate.of(2026, 10, 12), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // Cuando hay DOS "del" y sólo el último introduce la fecha ("reporte del proyecto
+    // del 15 de agosto"), el primer "del" (contenido) se conserva y el segundo (fecha)
+    // se consume.
+    @Test fun genitivoDelDeFechaNoConsumeDelAnteriorDeContenido() {
+        val result = NaturalTaskParser.parse("enviar el reporte del proyecto del 15 de agosto", now, zone)
+        assertEquals("enviar el reporte del proyecto", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun genitivoDelEnCadenaDeServicioYLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("pagar la factura del servicio del 20 de septiembre", now, zone)
+        assertEquals("pagar la factura del servicio", result.title)
+        assertEquals(LocalDate.of(2026, 9, 20), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // El conector de plazo "antes del <fecha>" no debe romperse: el "del" de "antes del"
+    // se reserva para beforeDeadlineDayPattern / limpieza "antes del", y la fecha se
+    // resuelve vía monthNameDate sin dejar "antes" huérfano.
+    @Test fun antesDelConMesNoDejaAntesHuerfano() {
+        val result = NaturalTaskParser.parse("pagar antes del 15 de agosto", now, zone)
+        assertEquals("pagar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun antesDelConMesYContenidoNoDejaAntesHuerfano() {
+        val result = NaturalTaskParser.parse("enviar el reporte antes del 5 de agosto", now, zone)
+        assertEquals("enviar el reporte", result.title)
+        assertEquals(LocalDate.of(2026, 8, 5), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun monthNameDateBeforeTodayRollsToNextYear() {
         val result = NaturalTaskParser.parse("Llamar al dentista el 5 de julio", now, zone)
         assertEquals("Llamar al dentista", result.title)

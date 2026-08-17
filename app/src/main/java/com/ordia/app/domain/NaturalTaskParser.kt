@@ -725,6 +725,19 @@ object NaturalTaskParser {
      */
     private val midOfWeekPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+la\s+|de\s+|del\s+)semana\b""")
     private val monthNamePattern = Regex("""(?i)\b(?:el\s+)?(?:d[ií]a\s+)?(\d{1,2}|$writtenNumberGroup|primero)\s+de\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
+    // Variante de monthNamePattern para la limpieza del título: añade un prefijo
+    // opcional no capturador `(?:\bdel?\s+)?` para consumir la preposición genitiva
+    // "del"/"de" que introduce la fecha ("concierto del 12 de octubre"). Comparte los
+    // mismos grupos de captura (día/mes/año) que monthNamePattern, así la validación
+    // de mes del paso de limpieza decide el borrado igual que antes. NO se usa para la
+    // RESOLUCIÓN de fecha (monthNamePattern): allí el prefijo sería irrelevante y podría
+    // desplazar el inicio del match sin beneficio.
+    // El lookbehind `(?<!\bantes\s)` impide consumir el "del" del conector de plazo
+    // "antes del <fecha>": ese "del" lo necesita `beforeDeadlineDayPattern` (caso
+    // "antes del 30") y el paso `.replace(... antes del? ...)` (caso "antes del 5 de
+    // agosto"). Sin el lookbehind, mi strip se llevaría el "del" y dejaría un "antes"
+    // huérfano como residuo en el título.
+    private val monthNameStripPattern = Regex("""(?i)(?<!\bantes\s)(?:\bdel?\s+)?\b(?:el\s+)?(?:d[ií]a\s+)?(\d{1,2}|$writtenNumberGroup|primero)\s+de\s+([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
     // Día del mes suelto con artículo: "reunión el 15", "cita el 20 a las 18",
     // "entregar el 5 del mes". Antes "el 15" no casa con numericDatePattern (que exige
     // DD/MM con mes) y quedaba como residuo en el título; la hora suelta ("a las 10") se
@@ -4210,7 +4223,16 @@ object NaturalTaskParser {
             .replace(Regex("""(?i)\bque\s+viene\b"""), " ")
             // Solo se elimina la fecha "5 de marzo" si el mes es válido: así "9 de la"
             // (en "a las 9 de la tarde") no se destruye y deja restos en el título.
-            .replace(monthNamePattern) { m ->
+            // Se consume también la preposición genitiva "del"/"de" inmediatamente
+            // anterior cuando la fecha es válida: "concierto del 12 de octubre",
+            // "reporte del proyecto del 15 de agosto" → el "del" que introduce la fecha
+            // es parte del modificador temporal, no del título. Sin esto el conector
+            // sobrevivía como residuo ("concierto del", "reporte del proyecto del") —
+            // contenido capturado degradado. El prefijo es OPCIONAL y no capturador, así
+            // los grupos de monthNamePattern (día/mes/año) no cambian y la validación de
+            // mes sigue gobernando el borrado: "9 de la" (mes inválido) se conserva y,
+            // con él, su "de" precedente ("a las 9 de la tarde" no se mutila).
+            .replace(monthNameStripPattern) { m ->
                 if (months.any { (name, _) ->
                         m.groupValues[2].equals(name, ignoreCase = true)
                     }) " " else m.value
