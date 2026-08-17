@@ -90,3 +90,25 @@ Una tarea está terminada cuando:
 El sistema autónomo es experimental. Supervisa `jules/autonomous-ordia` periódicamente.
 Cualquier sesión sospechosa se puede detener desactivando `ORDIA_AUTONOMY_ENABLED`
 (ver `AI_AUTONOMY/SUPERVISION.md`).
+
+---
+
+## ORDÍA NOTES REBUILD (2026-08-17) — bloc de notas avanzado
+
+Misión maestra: reconstruir ORDÍA como un bloc de notas radicalmente simple por fuera y potente por dentro. La UX visible se reconstruye; los datos y capacidades anteriores se conservan (no se borran tablas/objetos).
+
+- Rama de trabajo: jules/notes-rebuild (NO es jules/autonomous-ordia).
+- Start destination: Destination.Notes (la home es la lista de notas).
+- Sin navegación inferior ni rail: el menú principal es ⋮ arriba a la izquierda.
+- DB versión 9 con MIGRATION_8_9 (notes +folderId/favorite/locked/colorHex/trashed/trashedAt; nuevas tablas note_folders, note_labels, note_label_cross_ref, note_versions). Backup versión 9.
+- Modelo de bloques: com.ordia.app.domain.NoteBlock + NoteBlockCodec (JSON). Párrafo, headings H1/H2/H3/subtítulo, cita, código, separador, viñetas, numeradas, checklist, tabla, imagen, archivo, link, audio, dibujo, escritura, escáner. Spans en línea (bold/italic/underline/strike/highlight/color/link).
+- Editor: NoteEditorScreen — top bar (←/estado-guardado/focus/☆/⋮), título opcional, bloques sin borde, insert sheet categorizado, undo/redo, autosave 800ms.
+- Splash: NotesSplash (animación de trazo, respeta reduced-motion).
+- Tests: 505 unitarios pasan. Instrumented: NotesMigrationTest (8→9).
+
+### Estado honesto de capacidades (no simular)
+- REALES: texto, headings, cita, código, separador, listas, checklist, tabla, imagen (galería), archivo (attach), favorita, fijada, bloquear, duplicar, papelera, búsqueda, vistas/orden, autosave, undo/redo, info, share texto.
+- RESERVADAS (bloque existe, UI muestra "próximamente", NO simular): cámara, escáner/OCR, audio/transcripción, dibujo, escritura a mano.
+
+### Regla de oro
+Una función medio hecha se marca como no disponible antes que fingirse lista (AGENTS §3).
