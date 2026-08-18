@@ -26,14 +26,20 @@ import org.junit.Test
  */
 class ContentModerationTest {
 
-    // Reglas canónicas del gate de inteligencia (c.582). Se replican aquí para
-    // testear el algoritmo sin depender de los filtros de secreto del gate.
+    // Reglas canónicas del gate de inteligencia (c.582 + c.630). Se replican aquí
+    // para testear el algoritmo sin depender de los filtros de secreto del gate.
+    // c.630 separa las raíces flexionadas (desnud/eroti/masturb) de las palabras
+    // completas: aquéllas usan `\b` inicial sin `\b` final (ver ContentModeration).
     private val sexual = ContentModeration.ModerationRule(
-        stem = Regex("""\b(sexo|sexual|desnud|porno|xxx|eroti|culos|tetas|pene|vagina|orgasmo|masturb)\b"""),
+        stem = Regex("""\b(sexo|sexual|porno|xxx|culos|tetas|pene|vagina|orgasmo)\b"""),
         contain = listOf(
             Regex("""\b(cita con el ur[oó]logo|cita con la ginec[oó]loga?)\b[^.]*\bpene\b"""),
             Regex("""\b(revisi[oó]n de|revisar la|revisar el|examen de la|examen del)[^.]*\b(pene|vagina)\b""")
         ),
+        proximity = Regex("""\b(ur[oó]logo|ginec[oó]log[oa]|sex[oó]logo|prostate|m[ée]dico|cl[íi]nica|farmac[ée]utic[oa])\b""")
+    )
+    private val sexualStems = ContentModeration.ModerationRule(
+        stem = Regex("""\b(desnud|eroti|masturb)"""),
         proximity = Regex("""\b(ur[oó]logo|ginec[oó]log[oa]|sex[oó]logo|prostate|m[ée]dico|cl[íi]nica|farmac[ée]utic[oa])\b""")
     )
     private val violencia = ContentModeration.ModerationRule(
@@ -53,6 +59,7 @@ class ContentModerationTest {
     )
 
     private fun sexualHarmful(text: String) = ContentModeration.isHarmful(text, sexual)
+    private fun sexualStemHarmful(text: String) = ContentModeration.isHarmful(text, sexualStems)
     private fun violentHarmful(text: String) = ContentModeration.isHarmful(text, violencia)
     private fun drugHarmful(text: String) = ContentModeration.isHarmful(text, drogas)
 
@@ -144,6 +151,26 @@ class ContentModerationTest {
     @Test fun peneAislado_esDanino() {
         // Sin contexto médico que lo cubra.
         assertTrue(sexualHarmful("envíame una foto de tu pene"))
+    }
+
+    // ── Stems rotos por `\b` final (c.630): desnud/eroti/masturb no casaban
+    //    desnudo/erotico/masturbacion (transición word→word). Ahora sí. ──
+
+    @Test fun fotosDeDesnudos_esDanino() {
+        // PRE-fix RED: `\bdesnud\b` no casa "desnudos" → PASABA (contenido explícito no bloqueado).
+        assertTrue(sexualStemHarmful("ver fotos de desnudos en el móvil"))
+    }
+
+    @Test fun contenidoErotico_esDanino() {
+        assertTrue(sexualStemHarmful("buscar contenido erotico en la red"))
+    }
+
+    @Test fun masturbacion_esDanina() {
+        assertTrue(sexualStemHarmful("videos de masturbacion diaria"))
+    }
+
+    @Test fun chicasDesnudas_esDanino() {
+        assertTrue(sexualStemHarmful("chicas desnudas en la cam"))
     }
 
     @Test fun drogaSinContextoMedico_esDanina() {

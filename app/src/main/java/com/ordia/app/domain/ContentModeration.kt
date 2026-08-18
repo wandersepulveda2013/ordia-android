@@ -98,16 +98,29 @@ object ContentModeration {
      * gate de IA ni a la decisión de crear una sugerencia de tarea.
      */
     val THEMATIC_RULES: List<ModerationRule> = listOf(
-        // Contenido sexual explícito. "sexo"/"sexual"/"porno"/"xxx"/"desnud"
-        // rara vez aparecen en tareas legítimas y son palabras completas, así
-        // que se casan sin exención. Las raíces anatómicas (pene/vagina) SÍ se
-        // eximen en contexto médico (cita con el urólogo/ginecólogo por...).
+        // Contenido sexual explícito. "sexo"/"sexual"/"porno"/"xxx"/"culos"/"tetas"/"pene"/"vagina"/"orgasmo"
+        // son PALABRAS COMPLETAS que rara vez aparecen en tareas legítimas, así que se
+        // casan con `\b` a ambos lados para no alcanzar prefijos accidentales (p.ej. "pene"
+        // en "Penélope" — `pene` requiere límite final). Las raíces anatómicas (pene/vagina)
+        // SÍ se eximen en contexto médico (cita con el urólogo/ginecólogo por...).
         ModerationRule(
-            stem = Regex("""\b(sexo|sexual|desnud|porno|xxx|eroti|culos|tetas|pene|vagina|orgasmo|masturb)\b"""),
+            stem = Regex("""\b(sexo|sexual|porno|xxx|culos|tetas|pene|vagina|orgasmo)\b"""),
             contain = listOf(
                 Regex("""\b(cita con el ur[oó]logo|cita con la ginec[oó]loga?)\b[^.]*\bpene\b"""),
                 Regex("""\b(revisi[oó]n de|revisar la|revisar el|examen de la|examen del)[^.]*\b(pene|vagina)\b""")
             ),
+            proximity = Regex("""\b(ur[oó]logo|ginec[oó]log[oa]|sex[oó]logo|prostate|m[ée]dico|cl[íi]nica|farmac[ée]utic[oa])\b""")
+        ),
+        // Raíces de palabras flexionadas (c.630): "desnud"/"eroti"/"masturb" NUNCA aparecen
+        // aisladas en español — existen como "desnudo/desnuda/desnudos/desnudarse",
+        // "erotico/erotica/eroticos", "masturbacion/masturbarse". Antes compartían la
+        // regex de arriba con `\b` FINAL, lo que las MATABA: "desnud" seguido de 'o' es
+        // word→word (sin límite) → "desnudos"/"contenido erotico"/"masturbacion" PASABAN
+        // el gate (contenido explícito no bloqueado, P0 privacidad/gate). Fix: su propia
+        // regla con `\b` INICIAL pero SIN `\b` final, así casa la raíz y sus flexiones.
+        // Misma exención médica por proximidad que las palabras anatómicas (paridad).
+        ModerationRule(
+            stem = Regex("""\b(desnud|eroti|masturb)"""),
             proximity = Regex("""\b(ur[oó]logo|ginec[oó]log[oa]|sex[oó]logo|prostate|m[ée]dico|cl[íi]nica|farmac[ée]utic[oa])\b""")
         ),
         // Violencia y amenazas. Las raíces tienen sentidos legítimos muy
