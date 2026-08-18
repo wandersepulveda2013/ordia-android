@@ -534,8 +534,8 @@ class ContextIntentEngineDateTimeTest {
         assertEquals("'esta madrugada' = 04:00", 4, hour)
     }
 
-// --- Past-safe: midpoints canónicos en el pasado se ruedan a +1 día (c.590) ---
-    // Regresión c.590: extractDateTime carecía del past-safe de medianoche/mediodía
+// --- Past-safe: midpoints canónicos en el pasado se ruedan a +1 día (c.593) ---
+    // Regresión c.593: extractDateTime carecía del past-safe de medianoche/mediodía
     // del NaturalTaskParser (l.4706-4711). Una captura contextual "reunión a las 12 de
     // la noche" (medianoche) tomada a cualquier hora del día caía en hoy 00:00 (pasado)
     // → recordatorio (dueAt-offset) <= now → ReminderSync lo descarta → cita olvidada
@@ -574,6 +574,17 @@ class ContextIntentEngineDateTimeTest {
         assertEquals("'a medianoche' ya pasada se rueda a mañana", manana, dDue)
     }
 
+    // --- Fracciones sub-hora "y media"/"y cuarto"/"menos cuarto"/"y N" ---
+    // Brecha de paridad parser↔context (c.594). NaturalTaskParser resuelve la rama
+    // positiva "y media" (+30), "y cuarto" (+15), "y tres cuartos"/"y cuarenta y
+    // cinco" (+45), "y N" (+N) y la negativa "menos cuarto" (−15), "menos N" (−N)
+    // vía [CLOCK_FRACTION_Y]/[CLOCK_FRACTION_MENOS] (líneas ~1307-1397), aplicando
+    // la fracción a la hora numérica Y a las canónicas mediodía/medianoche (grupo 1
+    // de sus patrones). Antes ContextIntentEngine.extractDateTime SÓLO leía minutos
+    // del `:MM` (group 3 del [timePattern]): "a las 3 y media de la tarde" caía en
+    // 15:00 (no 15:30), "al mediodía y media" en 12:00 (no 12:30). Un ContextEvent
+    // de captura se agendaba hasta 30 min mal → recordatorio desplazado (evitar
+    // olvidos, P1). c.594 cierra la brecha con paridad de palabras→minutos.
 
     // --- Fechas pasadas relativas: paridad con NaturalTaskParser (l.4164-4165) ---
     // "ayer"/"anteayer"/"antier" son fechas PASADAS explícitas. Antes
@@ -622,5 +633,65 @@ class ContextIntentEngineDateTimeTest {
         val z = ZoneId.systemDefault()
         val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
         assertEquals("'ayer a las 4' sigue siendo ayer", LocalDate.now(z).minusDays(1), dDue)
+    }
+
+    @Test
+    fun aLasTresYMediaDeLaTarde_es15_30() {
+        val due = ContextIntentEngine.extractDateTime("reunión a las 3 y media de la tarde")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z)
+        assertEquals("'3 y media de la tarde' = 15:00 (PM)", 15, dt.hour)
+        assertEquals("'3 y media de la tarde' = 15:30 (media)", 30, dt.minute)
+    }
+
+    @Test
+    fun aLasNueveYCuarto_es9_15() {
+        val due = ContextIntentEngine.extractDateTime("reunión a las 9 y cuarto")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z)
+        assertEquals("'9 y cuarto' = 09:00", 9, dt.hour)
+        assertEquals("'9 y cuarto' = 09:15 (cuarto)", 15, dt.minute)
+    }
+
+    @Test
+    fun aLasOnceYVeinte_es11_20() {
+        val due = ContextIntentEngine.extractDateTime("reunión a las 11 y veinte")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z)
+        assertEquals("'11 y veinte' = 11:00", 11, dt.hour)
+        assertEquals("'11 y veinte' = 11:20", 20, dt.minute)
+    }
+
+    @Test
+    fun aLasDiezMenosCuarto_es9_45() {
+        val due = ContextIntentEngine.extractDateTime("reunión a las 10 menos cuarto")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z)
+        assertEquals("'10 menos cuarto' = 09:00 (wrap)", 9, dt.hour)
+        assertEquals("'10 menos cuarto' = 09:45", 45, dt.minute)
+    }
+
+    @Test
+    fun alMediodiaYMedia_es12_30() {
+        val due = ContextIntentEngine.extractDateTime("reunión al mediodía y media")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z)
+        assertEquals("'al mediodía y media' = 12:00", 12, dt.hour)
+        assertEquals("'al mediodía y media' = 12:30 (media)", 30, dt.minute)
+    }
+
+    @Test
+    fun aMedianocheYCuarto_es0_15() {
+        val due = ContextIntentEngine.extractDateTime("entrega a medianoche y cuarto")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z)
+        assertEquals("'a medianoche y cuarto' = 00:00", 0, dt.hour)
+        assertEquals("'a medianoche y cuarto' = 00:15 (cuarto)", 15, dt.minute)
     }
 }

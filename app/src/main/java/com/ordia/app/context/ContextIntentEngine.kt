@@ -539,13 +539,17 @@ object ContextIntentEngine {
         // descartaba en silencio, dejando SIN hora una cita que sí la mencionaba más
         // adelante. Se itera hasta el primer match con pista horaria válida.
         val timePattern = Regex(
-            """(a\s+las?|a\s+la|para\s+las?|para\s+la)?\s*(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?|am|pm|de la mañana|de la tarde|de la noche|de la madrugada|del día)?""",
+            """(a\s+las?|a\s+la|para\s+las?|para\s+la)?\s*(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?|am|pm|de la mañana|de la tarde|de la noche|de la madrugada|del día)?\s*(y\s+(?:media|treinta|cuarto|tres cuartos|cuarenta y cinco|veinticinco|veinte|diez|cinco|\d{1,2})|menos\s+(?:cuarto|quince|cinco|diez|veinte|veinticinco|\d{1,2}))?(?:\s*(a\.?m\.?|p\.?m\.?|am|pm|de la mañana|de la tarde|de la noche|de la madrugada|del día))?""",
             RegexOption.IGNORE_CASE
         )
         val timeMatch = timePattern.findAll(lower).firstOrNull { m ->
+            // La fracción (grupo 5) por sí sola NO es pista horaria: "comprar 2 y
+            // media kilos" casaría como 2:30. Se exige el prefijo "a las", el `:MM`,
+            // un meridiano antes (grupo 4) o después (grupo 6) de la fracción.
             val hasTimeCue = m.groupValues[1].isNotBlank() ||
                 m.groupValues[3].isNotBlank() ||
-                m.groupValues[4].isNotBlank()
+                m.groupValues[4].isNotBlank() ||
+                m.groupValues[6].isNotBlank()
             if (!hasTimeCue) return@firstOrNull false
             val hour = m.groupValues[2].toIntOrNull() ?: return@firstOrNull false
             val minute = m.groupValues[3].toIntOrNull() ?: 0
@@ -554,7 +558,7 @@ object ContextIntentEngine {
         if (timeMatch != null) {
             val hour = timeMatch.groupValues[2].toIntOrNull()
             val minute = timeMatch.groupValues[3].toIntOrNull() ?: 0
-            val suffix = timeMatch.groupValues[4].lowercase()
+            val suffix = (timeMatch.groupValues[4].ifBlank { timeMatch.groupValues[6] }).lowercase()
             if (hour != null && hour in 0..23 && minute in 0..59) {
                 var adjustedHour = hour
                 if (suffix.contains("pm") || suffix.contains("tarde") || suffix.contains("noche")) {
@@ -567,14 +571,33 @@ object ContextIntentEngine {
                 } else if (suffix.contains("am") || suffix.contains("mañana") || suffix.contains("madrugada")) {
                     if (hour == 12) adjustedHour = 0
                 }
-                targetTime = LocalTime.of(adjustedHour, minute)
+                // Fracción sub-hora "y media"/"y cuarto"/"menos cuarto"/... (c.594,
+                // paridad con NaturalTaskParser CLOCK_FRACTION_MAP). Sólo si NO hubo
+                // `:MM` explícito: una hora con dos puntos (15:30) ya fijó sus minutos
+                // y no admite fracción hablada adicional. El wrap de 24 h de la rama
+                // "menos" es simétrico al del parser.
+                val fraction = resolveClockFraction(timeMatch.groupValues[5])
+                val effectiveHour: Int
+                val effectiveMinute: Int
+                if (fraction != null && timeMatch.groupValues[3].isBlank()) {
+                    val totalMin = adjustedHour * 60 + minute + fraction
+                    val wrapped = ((totalMin % 1440) + 1440) % 1440
+                    effectiveHour = wrapped / 60
+                    effectiveMinute = wrapped % 60
+                } else {
+                    effectiveHour = adjustedHour
+                    effectiveMinute = minute
+                }
+                targetTime = LocalTime.of(effectiveHour, effectiveMinute)
                 // Marca el midpoint canonico cuando un meridiem explicito resuelve
                 // a medianoche (00:00) o mediodia (12:00): solo esos dos son
                 // inequivocos y admiten past-safe (a una hora numerica como "a las
                 // 9" el ruido de +1 es ambiguo: podria ser hoy si no ha llegado).
                 // Paridad con el guard del parser (isInequivocalMidpoint, l.4706).
-                if (minute == 0 && adjustedHour == 0) canonicalMidpoint = LocalTime.MIDNIGHT
-                else if (minute == 0 && adjustedHour == 12 &&
+                // Una fraccion (c.594) vuelve el punto no-inequivoco: NO se marca.
+                if (fraction == null && effectiveMinute == 0 && effectiveHour == 0) {
+                    canonicalMidpoint = LocalTime.MIDNIGHT
+                } else if (fraction == null && effectiveMinute == 0 && effectiveHour == 12 &&
                     (suffix.contains("pm") || suffix.contains("tarde"))) {
                     canonicalMidpoint = LocalTime.NOON
                 }
@@ -598,14 +621,35 @@ object ContextIntentEngine {
         if (targetTime == null) {
             val hasMedianoche = lower.contains("medianoche")
             val hasMediodia = lower.contains("mediodía") || lower.contains("mediodia")
+            // Fracción sub-hora sobre las canónicas (c.591, paridad con el
+            // grupo 1 de los patrones mediodía/medianoche del parser): "al mediodía
+            // y media" → 12:30, "a medianoche y cuarto" → 00:15. Se reutiliza el
+            // mismo resolver de la rama numérica; aquí la fracción siempre es
+            // positiva (no se dice "medianoche menos cuarto").
             when {
                 hasMedianoche -> {
-                    targetTime = LocalTime.of(0, 0)
-                    canonicalMidpoint = LocalTime.MIDNIGHT
+                    // Fracción sub-hora sobre la canónica (c.594, paridad con el
+                    // grupo 1 de los patrones mediodía/medianoche del parser): "a
+                    // medianoche y cuarto" → 00:15. Aquí la fracción siempre es
+                    // positiva (no se dice "medianoche menos cuarto"). Una fracción
+                    // vuelve el punto no-inequivoco: NO se marca canonicalMidpoint
+                    // (sin past-safe) — paridad con isInequivocalMidpoint (sólo 00:00/12:00).
+                    val f = resolveClockFraction(lower)
+                    if (f != null && f >= 0) {
+                        targetTime = LocalTime.of(0, 0).plusMinutes(f.toLong())
+                    } else {
+                        targetTime = LocalTime.of(0, 0)
+                        canonicalMidpoint = LocalTime.MIDNIGHT
+                    }
                 }
                 hasMediodia -> {
-                    targetTime = LocalTime.of(12, 0)
-                    canonicalMidpoint = LocalTime.NOON
+                    val f = resolveClockFraction(lower)
+                    if (f != null && f >= 0) {
+                        targetTime = LocalTime.of(12, 0).plusMinutes(f.toLong())
+                    } else {
+                        targetTime = LocalTime.of(12, 0)
+                        canonicalMidpoint = LocalTime.NOON
+                    }
                 }
             }
         }
@@ -633,6 +677,49 @@ object ContextIntentEngine {
             .atZone(java.time.ZoneId.systemDefault())
             .toInstant()
             .toEpochMilli()
+    }
+
+    /**
+     * Resuelve la fracción sub-hora cotidiana del español en minutos con signo
+     * (c.591, paridad con NaturalTaskParser.resolveClockFraction / CLOCK_FRACTION_MAP).
+     *
+     * Acepta la frase completa tal cual la captura el grupo 5 del [timePattern]
+     * ("y media", "menos cuarto", "y tres cuartos", "y 20") o, en el caso de las
+     * horas canónicas mediodía/medianoche, el texto [lower] entero (busca la
+     * primera aparición de "y media"/"y cuarto"/...). Rama positiva suma minutos
+     * ("y media" → +30); rama negativa resta ("menos cuarto" → −15). Devuelve
+     * `null` si [raw] no contiene ninguna fracción reconocida, para que el
+     * llamador deje la hora en punto.
+     *
+     * No usa azar ni heurísticas opacas: es un mapa fijo de palabras→minutos,
+     * idéntico al del parser para que una cita capturada por el motor de contexto
+     * y una creada a mano en el parser resuelvan el mismo vencimiento.
+     */
+    private val CLOCK_FRACTION_MAP = listOf(
+        "tres cuartos" to 45, "cuarenta y cinco" to 45, "cincuenta y cinco" to 55,
+        "treinta y cinco" to 35, "veinticinco" to 25, "media" to 30, "treinta" to 30,
+        "cuarto" to 15, "quince" to 15, "cuarenta" to 40, "cincuenta" to 50,
+        "veinte" to 20, "diez" to 10, "cinco" to 5
+    )
+    private val CLOCK_FRACTION_PHRASE = Regex(
+        """y\s+(?:tres cuartos|cuarenta y cinco|cincuenta y cinco|treinta y cinco|veinticinco|media|treinta|cuarto|quince|cuarenta|cincuenta|veinte|diez|cinco|\d{1,2})|menos\s+(?:cuarto|quince|cinco|diez|veinte|veinticinco|\d{1,2})""",
+        RegexOption.IGNORE_CASE
+    )
+    private fun resolveClockFraction(raw: String): Int? {
+        val s = raw.trim().lowercase().replace("ñ", "n").replace("í", "i")
+        // Si [raw] es la frase exacta (grupo 5 del [timePattern]): "y media", "menos cuarto".
+        if (s.startsWith("y ") || s.startsWith("menos ")) {
+            val positive = s.startsWith("y ")
+            val body = s.removePrefix("y ").removePrefix("menos ")
+            val m = CLOCK_FRACTION_MAP.firstOrNull { body == it.first }?.second
+                ?: body.toIntOrNull()?.takeIf { it in 0..59 }
+            return m?.let { if (positive) it else -it }
+        }
+        // Si [raw] es texto completo (caso mediodí a/medianoche: se pasa [lower]):
+        // primera aparición de "y media"/"menos cuarto"/... en el texto.
+        val m = CLOCK_FRACTION_PHRASE.find(s) ?: return null
+        val gs = m.value.trim().lowercase()
+        return resolveClockFraction(gs)
     }
 
     private fun hasDateReference(lower: String): Boolean {
