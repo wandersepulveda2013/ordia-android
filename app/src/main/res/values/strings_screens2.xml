@@ -227,4 +227,18 @@
     <string name="planner_empty_day_desc">No hay tareas planificadas para esta fecha.</string>
     <string name="planner_add_task">Añadir tarea</string>
     <string name="planner_no_date_desc">Arrastra mentalmente menos: decide solo una fecha</string>
+    <!--
+      Accesibilidad de la celda del calendario mensual (c.590): antes la celda
+      era `clickable` sin `contentDescription`, así que TalkBack la anunciaba
+      como un botón sin contexto (día, hoy, selección, nº de tareas). Se consolida
+      en una sola descripción legible para que el lector de pantalla enuncie de
+      un golpe todo lo que la vista transmite. `semantics(mergeDescendants=true)`
+      reúne la celda en un nodo y el `contentDescription` reemplaza el texto
+      disperso de los Text hijos (número del día y badge de tareas).
+    -->
+    <string name="planner_day_cell_today">Hoy, %1$s</string>
+    <string name="planner_day_cell_selected">Seleccionado, %1$s</string>
+    <string name="planner_day_cell_tasks">, %1$d tareas</string>
+    <string name="planner_day_cell_one_task">, 1 tarea</string>
+    <string name="planner_day_cell_select">Toca para seleccionar</string>
 </resources>

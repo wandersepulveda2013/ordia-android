@@ -39,8 +39,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -572,6 +574,7 @@ private fun MonthGrid(
                         selected = day.date == selectedDate,
                         today = day.date == today,
                         onClick = { onSelect(day.date) },
+                        locale = locale,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -587,6 +590,7 @@ private fun MonthDayCell(
     selected: Boolean,
     today: Boolean,
     onClick: () -> Unit,
+    locale: Locale,
     modifier: Modifier = Modifier
 ) {
     val container = when {
@@ -604,8 +608,29 @@ private fun MonthDayCell(
         today -> MaterialTheme.colorScheme.secondary
         else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
     }
+    // Descripción de accesibilidad consolidada (c.590): TalkBack enuncia el día,
+    // si es hoy / está seleccionado y cuántas tareas tiene, en un solo golpe.
+    // `mergeDescendants = true` reúne la celda en un nodo y el `contentDescription`
+    // explícito reemplaza el texto disperso de los hijos (número del día y badge),
+    // evitando anuncios redundantes. Mismo patrón que VirtualGuardian/AppComponents.
+    val dateLabel = fullDate(day.date, locale)
+    val stateLabel = when {
+        today -> stringResource(R.string.planner_day_cell_today, dateLabel)
+        selected -> stringResource(R.string.planner_day_cell_selected, dateLabel)
+        else -> dateLabel
+    }
+    val tasksLabel = when (taskCount) {
+        0 -> ""
+        1 -> stringResource(R.string.planner_day_cell_one_task)
+        else -> stringResource(R.string.planner_day_cell_tasks, taskCount)
+    }
+    val a11y = stateLabel + tasksLabel + ". " + stringResource(R.string.planner_day_cell_select)
     Surface(
-        modifier = modifier.padding(1.dp).aspectRatio(0.8f).clickable(role = Role.Button, onClick = onClick),
+        modifier = modifier
+            .padding(1.dp)
+            .aspectRatio(0.8f)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = a11y },
         shape = MaterialTheme.shapes.small,
         color = container,
         contentColor = content,
