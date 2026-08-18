@@ -190,13 +190,17 @@ object ContextIntentEngine {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
-        // Piso simétrico para imperativos de REUNIÓN inequívocos (c.626):
-        // "reunión con/de/del <grupo>" al INICIO es una reunión clara con
-        // independencia de pistas temporales. Sin este piso, "reunión con el
-        // equipo" quedaba en 0.32 (< [MINIMUM_CONFIDENCE]) y se DESCARTABA. El guard
-        // `^... \s+(con|de|del)\s+\w` exige imperativo afirmativo al inicio +
-        // preposición + grupo real: así "no reunión con el equipo" (negación) y
-        // "reunión" sola (eco de chat) no activan el piso (c.616 anti-overreach).
+        // Piso simétrico para imperativos de REUNIÓN inequívocos (c.626, c.647):
+        // "reunión con/de/del <grupo>" es una reunión clara con independencia
+        // de pistas temporales. Sin este piso, "reunión con el equipo" quedaba
+        // en 0.32 (< [MINIMUM_CONFIDENCE]) y se DESCARTABA. c.647 quitó el ancla
+        // `^` original: "mañana reunión con el equipo"/"hoy reunión de proyecto"
+        // se descartaban (olvido silencioso P1) porque el bono temporal no
+        // compensa la base baja. El guard `\b(?<!no )` exige imperativo
+        // afirmativo en cualquier posición + preposición + grupo real, y bloquea
+        // la negación inmediata ("no reunión con el equipo"/"mañana no reunión
+        // con el equipo" → lookbehind falla) (c.616 anti-overreach). Mismo
+        // defecto de clase que c.643 (HOUSEHOLD).
         if (kind == ContextIntentKind.MEETING && hasStrongMeetingImperative(lower)) {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
@@ -242,47 +246,55 @@ object ContextIntentEngine {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
-        // Piso para imperativos de ejercicio inequívocos (c.639): "correr 5k"/
-        // "entrenar piernas"/"hacer yoga"/"ir al gimnasio" al INICIO son
-        // actividades físicas claras con independencia de pistas temporales. Sin
-        // este piso, "correr 5k"/"entrenar piernas"/"hacer yoga" quedaban en
-        // ~0.12–0.27 (< [MINIMUM_CONFIDENCE]) y se DESCARTABAN: el usuario
-        // capturaba un entrenamiento real y Ordía lo olvidaba (P1). Sólo "ir al
-        // gimnasio" pasaba (0.59, patrón específico). El guard `^<verbo>\s+\w`
-        // (o `^ir al gimnasio`) exige imperativo AFIRMATIVO al inicio: así "no
-        // correr hoy"/"no entrenar" (negación) y "correr" aislado NO activan el
-        // piso (c.616 anti-overreach).
+        // Piso para imperativos de ejercicio inequívocos (c.639, c.647): "correr
+        // 5k"/"entrenar piernas"/"hacer yoga"/"ir al gimnasio" son actividades
+        // físicas claras con independencia de pistas temporales. Sin este piso,
+        // "correr 5k"/"entrenar piernas"/"hacer yoga" quedaban en ~0.12–0.27
+        // (< [MINIMUM_CONFIDENCE]) y se DESCARTABAN. Sólo "ir al gimnasio"
+        // pasaba (0.59, patrón específico). c.647 quitó el ancla `^` original:
+        // "mañana correr 5k"/"hoy entrenar piernas" se descartaban (olvido
+        // silencioso P1) porque el bono temporal no compensa la base baja. El
+        // guard `\b(?<!no )` exige afirmativo en cualquier posición y bloquea
+        // la negación inmediata ("no correr hoy"/"mañana no entrenar" →
+        // lookbehind falla) (c.616 anti-overreach). Mismo defecto de clase que
+        // c.643 (HOUSEHOLD).
         if (kind == ContextIntentKind.EXERCISE && hasStrongExerciseImperative(lower)) {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
-        // Piso para imperativos de diligencia inequívocos (c.639): "ir al banco"/
-        // "ir a correos"/"recoger el paquete"/"devolver el libro" al INICIO son
+        // Piso para imperativos de diligencia inequívocos (c.639, c.647): "ir al
+        // banco"/"ir a correos"/"recoger el paquete"/"devolver el libro" son
         // trámites claros con independencia de pistas temporales. Sin este piso
-        // quedaban en ~0.12 (< [MINIMUM_CONFIDENCE]) y se DESCARTABAN: una
-        // notificación "ir al banco a pagar el impuesto" nacía NULL y Ordía
-        // olvidaba el trámite (P1; los trámites tienen fechas tope y coste por
-        // olvido, como los pagos). El guard `^ir a(l| la| los| las)?
-        // <destino>|^recoger\s+\w|^devolver\s+\w` exige imperativo AFIRMATIVO al
-        // inicio + objeto/destino real: así "no ir al banco" (negación) y "ir"
-        // aislado NO activan el piso (c.616 anti-overreach). El destino se acota
-        // a lugares de trámite (banco/correos/oficina/sucursal/ayuntamiento/
-        // notaría) para no colisionar con SHOPPING ("ir a la farmacia") ni con
-        // VISIT ("ir a casa de mamá"), que ya clasifican bien por su vía propia.
+        // quedaban en ~0.12 (< [MINIMUM_CONFIDENCE]) y se DESCARTABAN. c.647
+        // quitó el ancla `^` original: "mañana ir al banco"/"hoy recoger el
+        // paquete" se descartaban (olvido silencioso P1; los trámites tienen
+        // fechas tope y coste por olvido, como los pagos) porque el bono temporal
+        // no compensa la base baja. El guard `\b(?<!no )` exige afirmativo en
+        // cualquier posición y bloquea la negación inmediata ("no ir al banco"/
+        // "mañana no recoger el paquete" → lookbehind falla) (c.616
+        // anti-overreach). El destino se acota a lugares de trámite para no
+        // colisionar con SHOPPING ("ir a la farmacia") ni VISIT ("ir a casa de
+        // mamá"), que ya clasifican bien por su vía propia. Mismo defecto de
+        // clase que c.643 (HOUSEHOLD).
         if (kind == ContextIntentKind.ERRAND && hasStrongErrandImperative(lower)) {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
-        // Piso para imperativos de estudio inequívocos (c.639): "estudiar para el
-        // examen"/"repasar la lección"/"preparar el examen" al INICIO son sesiones
-        // de estudio claras con independencia de pistas temporales. Sin este piso,
-        // "repasar la lección"/"preparar el examen" quedaban en ~0.24–0.37
+        // Piso para imperativos de estudio inequívocos (c.639, c.647): "estudiar
+        // para el examen"/"repasar la lección"/"preparar el examen" son sesiones
+        // de estudio claras con independencia de pistas temporales. Sin este
+        // piso, "repasar la lección"/"preparar el examen" quedaban en ~0.24–0.37
         // (< [MINIMUM_CONFIDENCE]) y se DESCARTABAN, aunque su intención es
         // inequívoca (P1: olvidar repasar antes de un examen tiene coste real).
-        // "estudiar para el examen" ya pasaba (0.49). El guard exige imperativo
-        // AFIRMATIVO al inicio + objeto real; "preparar" se acota a "examen"
-        // para no colisionar con HOUSEHOLD ("preparar la cena") ni TASK
-        // ("preparar la reunión"). "no estudiar"/"no repasar" (negación) no activa.
+        // "estudiar para el examen" ya pasaba (0.49). c.647 quitó el ancla `^`
+        // original: "mañana repasar la lección"/"hoy preparar el examen" se
+        // descartaban (olvido silencioso P1) porque el bono temporal no
+        // compensa la base baja para "repasar"/"preparar". El guard `\b(?<!no )`
+        // exige afirmativo en cualquier posición y bloquea la negación
+        // inmediata ("no estudiar"/"mañana no repasar" → lookbehind falla)
+        // (c.616 anti-overreach). "preparar" se acota a "examen" para no
+        // colisionar con HOUSEHOLD ("preparar la cena") ni TASK ("preparar la
+        // reunión"). Mismo defecto de clase que c.643 (HOUSEHOLD).
         if (kind == ContextIntentKind.STUDY && hasStrongStudyImperative(lower)) {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
@@ -318,14 +330,28 @@ object ContextIntentEngine {
         Regex("""^comprar\s+\w""").containsMatchIn(lower)
 
     /**
-     * Imperativos de reunión inequívocos (c.626). Coincide con el anclaje de
-     * [extractTitle] para MEETING: "reunión (con|de|del) <grupo>" al INICIO. El
-     * ancla `^` + `\s+(con|de|del)\s+\w` exige imperativo afirmativo inicial +
-     * preposición + grupo real, así "no reunión con el equipo" (negación) y
-     * "reunión" sola (eco de chat) no activan el piso (c.616 anti-overreach).
+     * Imperativos de reunión inequívocos (c.626, c.647). Coincide con el anclaje de
+     * [extractTitle] para MEETING: "reunión (con|de|del) <grupo>". El `\b` +
+     * `\s+(con|de|del)\s+\w` exige imperativo afirmativo + preposición + grupo
+     * real en cualquier posición; el lookbehind `(?<!no )` bloquea la negación
+     * inmediata.
+     *
+     * c.647 cerró un olvido silencioso: el ancla `^` original de c.626 exigía la
+     * "reunión" al INICIO, así TODO imperativo de reunión con prefijo temporal
+     * ("mañana reunión con el equipo"/"hoy reunión de proyecto") se descartaba —
+     * el supuesto "ya supera el umbral vía [extractDateTime]" era FALSO: el bono
+     * temporal no eleva la confianza por encima de [MINIMUM_CONFIDENCE] (base
+     * ~0.37 + bono 0.1 = 0.47 SIN piso... pero la base SIN piso cae a 0.32 por
+     * penalización de ambigüedad de "reunión" sola, así el bono no compensa).
+     * Quitar el ancla `^` admite prefijo temporal, reunión al inicio y reunión
+     * en mitad ("después reunión con el equipo"), todos legítimos. La negación
+     * sigue bloqueada: "no reunión con el equipo" y "mañana no reunión con el
+     * equipo" (`no ` precede a "reunión" → lookbehind falla) NO activan el piso
+     * (c.616 anti-overreach). Mismo defecto de clase que c.643 (HOUSEHOLD).
+     * Determinista (regex), sin IA fingida.
      */
     private fun hasStrongMeetingImperative(lower: String): Boolean =
-        Regex("""^reunión\s+(con|de|del)\s+\w""").containsMatchIn(lower)
+        Regex("""\b(?<!no )reunión\s+(con|de|del)\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de pago inequívocos (c.630). Coincide con el anclaje de
@@ -361,37 +387,73 @@ object ContextIntentEngine {
         Regex("""\b(?<!no )(limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar)\s+\w""").containsMatchIn(lower)
 
     /**
-     * Imperativos de ejercicio inequívocos (c.639). Verbos de actividad física al
-     * INICIO + objeto, o "ir al gimnasio"/"hacer yoga/pesas/deporte". El ancla
-     * `^` exige afirmativo inicial; así "no correr hoy"/"no entrenar" (negación)
-     * y "correr" aislado no activan el piso (c.616 anti-overreach).
+     * Imperativos de ejercicio inequívocos (c.639, c.647). Verbos de actividad
+     * física + objeto, o "ir al gimnasio"/"hacer yoga/pesas/deporte". El `\b` +
+     * lookbehind `(?<!no )` exige afirmativo en cualquier posición y bloquea la
+     * negación inmediata.
+     *
+     * c.647 cerró un olvido silencioso: el ancla `^` original de c.639 exigía el
+     * verbo al INICIO, así TODO imperativo de ejercicio con prefijo temporal
+     * ("mañana correr 5k"/"hoy entrenar piernas") se descartaba — el supuesto
+     * "ya supera el umbral vía [extractDateTime]" era FALSO: el bono temporal
+     * no eleva la confianza por encima de [MINIMUM_CONFIDENCE] para "correr"/
+     * "entrenar" (base ~0.27 + bono 0.1 = 0.37 < 0.45). Sólo "ir al gimnasio"
+     * pasaba (0.59, vía patrón específico). Quitar el ancla `^` admite prefijo
+     * temporal y verbo en mitad. La negación sigue bloqueada: "no correr hoy"/
+     * "mañana no entrenar" (`no ` precede al verbo → lookbehind falla) NO
+     * activan el piso (c.616 anti-overreach). Mismo defecto de clase que c.643
+     * (HOUSEHOLD). Determinista (regex), sin IA fingida.
      */
     private fun hasStrongExerciseImperative(lower: String): Boolean =
-        Regex("""^(correr|entrenar|nataci[oó]n|pesas)\s+\w""").containsMatchIn(lower) ||
-            Regex("""^ir\s+al\s+gimnasio""").containsMatchIn(lower) ||
-            Regex("""^hacer\s+(yoga|pesas|deporte)\b""").containsMatchIn(lower)
+        Regex("""\b(?<!no )(correr|entrenar|nataci[oó]n|pesas)\s+\w""").containsMatchIn(lower) ||
+            Regex("""\b(?<!no )ir\s+al\s+gimnasio""").containsMatchIn(lower) ||
+            Regex("""\b(?<!no )hacer\s+(yoga|pesas|deporte)\b""").containsMatchIn(lower)
 
     /**
-     * Imperativos de diligencia inequívocos (c.639). "ir a(l| la) <destino de
-     * trámite>" al INICIO, o "recoger/devolver <objeto>". El destino se acota a
+     * Imperativos de diligencia inequívocos (c.639, c.647). "ir a(l| la) <destino
+     * de trámite>", o "recoger/devolver/retirar <objeto>". El destino se acota a
      * lugares de trámite para no colisionar con SHOPPING (farmacia) ni VISIT
-     * (casa de). El ancla `^` exige afirmativo inicial; así "no ir al banco"
-     * (negación) e "ir" aislado no activan el piso (c.616 anti-overreach).
+     * (casa de). El `\b` + lookbehind `(?<!no )` exige afirmativo en cualquier
+     * posición y bloquea la negación inmediata.
+     *
+     * c.647 cerró un olvido silencioso: el ancla `^` original de c.639 exigía el
+     * imperativo al INICIO, así TODO trámite con prefijo temporal ("mañana ir al
+     * banco"/"hoy recoger el paquete") se descartaba — el supuesto "ya supera
+     * el umbral vía [extractDateTime]" era FALSO: el bono temporal no eleva la
+     * confianza por encima de [MINIMUM_CONFIDENCE] (base ~0.12 + bono 0.1 =
+     * 0.22 < 0.45). Quitar el ancla `^` admite prefijo temporal. La negación
+     * sigue bloqueada: "no ir al banco"/"mañana no recoger el paquete" (`no `
+     * precede al verbo → lookbehind falla) NO activan el piso (c.616
+     * anti-overreach). Mismo defecto de clase que c.643 (HOUSEHOLD).
+     * Determinista (regex), sin IA fingida.
      */
     private fun hasStrongErrandImperative(lower: String): Boolean =
-        Regex("""^ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b""").containsMatchIn(lower) ||
-            Regex("""^(recoger|devolver|retirar)\s+\w""").containsMatchIn(lower)
+        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b""").containsMatchIn(lower) ||
+            Regex("""\b(?<!no )(recoger|devolver|retirar)\s+\w""").containsMatchIn(lower)
 
     /**
-     * Imperativos de estudio inequívocos (c.639). "estudiar <X>"/"repasar <X>"
-     * al INICIO, o "preparar el/la/un/una examen". "preparar" se acota a
+     * Imperativos de estudio inequívocos (c.639, c.647). "estudiar <X>"/
+     * "repasar <X>", o "preparar el/la/un/una examen". "preparar" se acota a
      * "examen" para no colisionar con HOUSEHOLD ("preparar la cena") ni TASK.
-     * El ancla `^` exige afirmativo inicial; así "no estudiar"/"no repasar"
-     * (negación) no activan el piso (c.616 anti-overreach).
+     * El `\b` + lookbehind `(?<!no )` exige afirmativo en cualquier posición y
+     * bloquea la negación inmediata.
+     *
+     * c.647 cerró un olvido silencioso: el ancla `^` original de c.639 exigía el
+     * verbo al INICIO, así TODO repaso con prefijo temporal ("mañana repasar la
+     * lección"/"hoy preparar el examen") se descartaba — el supuesto "ya supera
+     * el umbral vía [extractDateTime]" era FALSO para "repasar"/"preparar": el
+     * bono temporal no eleva la confianza por encima de [MINIMUM_CONFIDENCE]
+     * (base ~0.37 + bono 0.1 = 0.47 SIN piso, pero la base SIN piso cae por
+     * penalización de ambigüedad, así el bono no compensa para "repasar"). Sólo
+     * "estudiar para el examen" pasaba (0.49). Quitar el ancla `^` admite
+     * prefijo temporal. La negación sigue bloqueada: "no estudiar"/"mañana no
+     * repasar" (`no ` precede al verbo → lookbehind falla) NO activan el piso
+     * (c.616 anti-overreach). Mismo defecto de clase que c.643 (HOUSEHOLD).
+     * Determinista (regex), sin IA fingida.
      */
     private fun hasStrongStudyImperative(lower: String): Boolean =
-        Regex("""^(estudiar|repasar)\s+\w""").containsMatchIn(lower) ||
-            Regex("""^preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b""").containsMatchIn(lower)
+        Regex("""\b(?<!no )(estudiar|repasar)\s+\w""").containsMatchIn(lower) ||
+            Regex("""\b(?<!no )preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b""").containsMatchIn(lower)
 
     /**
      * Patrones específicos por tipo de intención.

@@ -186,4 +186,96 @@ class ContextIntentEngineHouseholdExerciseErrandStudyFloorTest {
         assertNotNull(intent)
         assertEquals(ContextIntentKind.MEETING, intent!!.kind)
     }
+
+    // --- c.647: olvido silencioso con prefijo temporal ---
+    // El ancla `^` original descartaba todo imperativo con prefijo temporal
+    // ("mañana correr 5k"/"mañana ir al banco"/"mañana repasar la lección"/
+    // "mañana reunión con el equipo") porque la "reunión"/"correr"/"ir"/
+    // "repasar" no estaba al INICIO. El bono temporal NO compensaba la base
+    // baja, así el caso se DESCARTABA (NULL): el usuario capturaba una
+    // intención real y Ordía la olvidaba (P1). c.647 quitó el ancla `^` y
+    // añadió el lookbehind `(?<!no )` (negación inmediata sigue bloqueada).
+    // Estos tests fijan la regresión: el caso con prefijo temporal debe
+    // capturarse, y la negación incrustada con prefijo temporal no.
+
+    @Test
+    fun c647_exerciseCorrerConPrefijoTemporalSeCaptura() {
+        val intent = analyze("mañana correr 5k")
+        assertNotNull("'mañana correr 5k' es ejercicio legítimo con ancla temporal, no debe descartarse (c.647)", intent)
+        assertEquals(ContextIntentKind.EXERCISE, intent!!.kind)
+    }
+
+    @Test
+    fun c647_errandIrAlBancoConPrefijoTemporalSeCaptura() {
+        val intent = analyze("mañana ir al banco")
+        assertNotNull("'mañana ir al banco' es trámite legítimo con ancla temporal, no debe descartarse (c.647)", intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+    }
+
+    @Test
+    fun c647_errandRecogerPaqueteConPrefijoTemporalSeCaptura() {
+        val intent = analyze("hoy recoger el paquete")
+        assertNotNull("'hoy recoger el paquete' es trámite legítimo con ancla temporal, no debe descartarse (c.647)", intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+    }
+
+    @Test
+    fun c647_studyRepasarLeccionConPrefijoTemporalSeCaptura() {
+        val intent = analyze("mañana repasar la lección")
+        assertNotNull("'mañana repasar la lección' es estudio legítimo con ancla temporal, no debe descartarse (c.647)", intent)
+        assertEquals(ContextIntentKind.STUDY, intent!!.kind)
+    }
+
+    @Test
+    fun c647_studyPrepararExamenConPrefijoTemporalSeCaptura() {
+        val intent = analyze("hoy preparar el examen")
+        assertNotNull("'hoy preparar el examen' es estudio legítimo con ancla temporal, no debe descartarse (c.647)", intent)
+        assertEquals(ContextIntentKind.STUDY, intent!!.kind)
+    }
+
+    @Test
+    fun c647_meetingReunionConEquipoConPrefijoTemporalSeCaptura() {
+        val intent = analyze("mañana reunión con el equipo")
+        assertNotNull("'mañana reunión con el equipo' es reunión legítima con ancla temporal, no debe descartarse (c.647)", intent)
+        assertEquals(ContextIntentKind.MEETING, intent!!.kind)
+    }
+
+    @Test
+    fun c647_meetingReunionDeProyectoConPrefijoTemporalSeCaptura() {
+        val intent = analyze("hoy reunión de proyecto")
+        assertNotNull("'hoy reunión de proyecto' es reunión legítima con ancla temporal, no debe descartarse (c.647)", intent)
+        assertEquals(ContextIntentKind.MEETING, intent!!.kind)
+    }
+
+    // --- c.647: negación incrustada con prefijo temporal sigue bloqueada ---
+    // El lookbehind `(?<!no )` bloquea la negación inmediata incluso con
+    // prefijo temporal delante: "mañana no correr 5k"/"mañana no ir al banco"
+    // NO deben capturarse (c.616 anti-overreach: capturar lo opuesto a la
+    // intención del usuario es peor que no capturar nada).
+
+    @Test
+    fun c647_negacionIncrustadaExerciseNoSeCaptura() {
+        val intent = analyze("mañana no correr 5k")
+        assertNull("'mañana no correr 5k' (negación incrustada) no debe capturarse como EXERCISE (c.616/c.647)", intent)
+    }
+
+    @Test
+    fun c647_negacionIncrustadaErrandNoSeCaptura() {
+        val intent = analyze("mañana no ir al banco")
+        assertNull("'mañana no ir al banco' (negación incrustada) no debe capturarse como ERRAND (c.616/c.647)", intent)
+    }
+
+    @Test
+    fun c647_negacionIncrustadaMeetingNoSeCaptura() {
+        val intent = analyze("mañana no reunión con el equipo")
+        assertNull("'mañana no reunión con el equipo' (negación incrustada) no debe capturarse como MEETING (c.616/c.647)", intent)
+    }
+
+    // Nota c.648 (overreach via bono temporal, NO arreglado por c.647): el caso
+    // "mañana no repasar la lección" SÍ se captura (0.49) porque la keyword
+    // "lección" + el bono temporal elevan el score por encima de
+    // [MINIMUM_CONFIDENCE] SIN necesidad del piso (el lookbehind del piso
+    // bloquea correctamente, pero el bono bypassa el piso). Mismo mecanismo que
+    // el overreach de SHOPPING/PAYMENT. Es un defecto de clase distinto (c.648),
+    // registrado en BACKLOG, fuera del alcance de c.647 (olvido silencioso).
 }
