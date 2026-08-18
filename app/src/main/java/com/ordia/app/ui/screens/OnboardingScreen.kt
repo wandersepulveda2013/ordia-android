@@ -24,11 +24,11 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.automirrored.outlined.Notes
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.ordia.app.ui.components.OrdiaOutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -131,14 +131,14 @@ fun OnboardingScreen(
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                 if (page > 0) {
-                    OutlinedButton(
+                    OrdiaOutlinedButton(
                         onClick = { page-- },
                         enabled = !finishing,
                         modifier = Modifier.weight(1f)
                     ) { Text(stringResource(R.string.onboarding_back)) }
                     Spacer(Modifier.width(10.dp))
                 }
-                Button(
+                OrdiaButton(
                     onClick = {
                         if (page < 2) page++ else if (!finishing) onFinish()
                     },

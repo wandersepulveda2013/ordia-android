@@ -18,7 +18,7 @@ import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -190,7 +190,7 @@ fun TasksScreen(
         }
 
         item {
-            OutlinedTextField(
+            OrdiaInput(
                 value = query,
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),

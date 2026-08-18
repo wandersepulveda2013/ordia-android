@@ -31,15 +31,15 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaOutlinedButton
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -176,7 +176,7 @@ fun ConversationsScreen(
             onDismissRequest = { showPaste = false },
             title = { Text(stringResource(R.string.conversation_paste_title)) },
             text = {
-                OutlinedTextField(
+                OrdiaInput(
                     value = pasteText,
                     onValueChange = { pasteText = it.take(MAX_SAVEABLE_PASTE_CHARS) },
                     modifier = Modifier.fillMaxWidth(),
@@ -310,11 +310,11 @@ fun ConversationsScreen(
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { picker.launch(arrayOf("text/*", "application/json")) }) {
+                OrdiaButton(onClick = { picker.launch(arrayOf("text/*", "application/json")) }) {
                     Icon(Icons.Outlined.FileOpen, null)
                     Text(stringResource(R.string.conversation_import), Modifier.padding(start = 8.dp))
                 }
-                OutlinedButton(onClick = {
+                OrdiaOutlinedButton(onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     pasteText = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
                     showPaste = true
@@ -467,13 +467,13 @@ private fun ObservationControlCard(
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 item {
-                    OutlinedButton(onClick = onPermission) {
+                    OrdiaOutlinedButton(onClick = onPermission) {
                         Icon(Icons.AutoMirrored.Outlined.OpenInNew, null)
                         Text(stringResource(R.string.observation_permission), Modifier.padding(start = 6.dp))
                     }
                 }
                 item {
-                    OutlinedButton(onClick = if (runtime.paused) onResume else onPause, enabled = runtime.enabled) {
+                    OrdiaOutlinedButton(onClick = if (runtime.paused) onResume else onPause, enabled = runtime.enabled) {
                         Icon(if (runtime.paused) Icons.Outlined.PlayArrow else Icons.Outlined.Pause, null)
                         Text(
                             stringResource(
@@ -484,7 +484,7 @@ private fun ObservationControlCard(
                     }
                 }
             }
-            OutlinedButton(onClick = onClear, modifier = Modifier.fillMaxWidth()) {
+            OrdiaOutlinedButton(onClick = onClear, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.observation_clear_data))
             }
             TextButton(onClick = onStop, modifier = Modifier.fillMaxWidth(), enabled = runtime.enabled) {
@@ -663,8 +663,8 @@ private fun ConversationPreviewCard(
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onSave) { Text(stringResource(R.string.conversation_save_review)) }
-                OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
+                OrdiaButton(onClick = onSave) { Text(stringResource(R.string.conversation_save_review)) }
+                OrdiaOutlinedButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
             }
         }
     }
@@ -703,11 +703,11 @@ private fun CommitmentCard(
                 Text(stringResource(R.string.commitment_location, commitment.location), style = MaterialTheme.typography.bodySmall)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onConvert) {
+                OrdiaButton(onClick = onConvert) {
                     Icon(Icons.Outlined.AddTask, null)
                     Text(stringResource(R.string.commitment_create_task), Modifier.padding(start = 6.dp))
                 }
-                OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.commitment_discard)) }
+                OrdiaOutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.commitment_discard)) }
             }
         }
     }

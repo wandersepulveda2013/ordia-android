@@ -26,7 +26,7 @@ import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -85,7 +85,7 @@ fun SearchScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item { ScreenHeader(stringResource(R.string.search_header_eyebrow), stringResource(R.string.search_header_title), stringResource(R.string.search_palette_header_subtitle)) }
-        item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.search_palette_field_label)) }, singleLine = true) }
+        item { OrdiaInput(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.search_palette_field_label)) }, singleLine = true) }
         if (commands.isNotEmpty()) {
             item(key = "command-section") {
                 Text(

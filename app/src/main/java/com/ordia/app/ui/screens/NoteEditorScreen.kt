@@ -32,14 +32,14 @@ import androidx.compose.material.icons.outlined.HorizontalRule
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.Title
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -171,7 +171,7 @@ fun NoteEditorScreen(
                 enabled = existing != null
             ) { Icon(Icons.AutoMirrored.Outlined.ArrowForward, stringResource(R.string.note_editor_convert_task)) }
             TextButton(onClick = { existing?.let { vm.deleteNote(it); onBack() } }, enabled = existing != null) { Text(stringResource(R.string.note_editor_archive)) }
-            Button(onClick = { saveAndBack() }) {
+            OrdiaButton(onClick = { saveAndBack() }) {
                 Icon(Icons.Outlined.Save, null)
                 Text(stringResource(R.string.action_save), Modifier.padding(start = 6.dp))
             }
@@ -182,7 +182,7 @@ fun NoteEditorScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item {
-                OutlinedTextField(
+                OrdiaInput(
                     value = title,
                     onValueChange = { title = it; dirty = true },
                     modifier = Modifier.fillMaxWidth(),
@@ -235,7 +235,7 @@ fun NoteEditorScreen(
             }
             item {
                 Column {
-                    Button(onClick = { addMenu = true }) {
+                    OrdiaButton(onClick = { addMenu = true }) {
                         Icon(Icons.Outlined.Add, null)
                         Text(stringResource(R.string.note_editor_add_block), Modifier.padding(start = 6.dp))
                     }
@@ -284,7 +284,7 @@ private fun NoteBlockEditor(
                 Text(stringResource(R.string.note_editor_block_divider), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            OutlinedTextField(
+            OrdiaInput(
                 value = block.text,
                 onValueChange = { onChange(block.copy(text = it)) },
                 modifier = Modifier.weight(1f),

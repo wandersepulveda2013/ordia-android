@@ -24,15 +24,15 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Timer
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaOutlinedButton
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -218,7 +218,7 @@ fun TodayScreen(
                 shadowElevation = 1.dp
             ) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
+                    OrdiaInput(
                         value = quickText,
                         onValueChange = { quickText = it.take(10_000) },
                         modifier = Modifier.fillMaxWidth(),
@@ -285,7 +285,7 @@ fun TodayScreen(
         }
 
         item {
-            Button(
+            OrdiaButton(
                 onClick = onOpenPlanner,
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 18.dp, vertical = 15.dp)
@@ -491,7 +491,7 @@ private fun WhatNowAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedButton(
+    OrdiaOutlinedButton(
         onClick = onClick,
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
@@ -587,7 +587,7 @@ private fun OrdiaBrandHeader(
                 color = OrdiaAccent,
                 letterSpacing = (-0.5).sp
             )
-            OutlinedButton(
+            OrdiaOutlinedButton(
                 onClick = onNew,
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
             ) {

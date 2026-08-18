@@ -22,14 +22,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.ordia.app.ui.components.OrdiaOutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -99,7 +99,7 @@ fun ScreenHeader(
             }
         }
         if (actionLabel != null && onAction != null) {
-            Button(
+            OrdiaButton(
                 onClick = onAction,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 8.dp)
             ) {
@@ -235,7 +235,7 @@ fun EmptyState(
             )
             if (actionLabel != null && onAction != null) {
                 Spacer(Modifier.height(2.dp))
-                Button(
+                OrdiaButton(
                     onClick = onAction,
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
@@ -353,7 +353,7 @@ fun OrdiaError(
             )
         }
         if (onRetry != null) {
-            OutlinedButton(
+            OrdiaOutlinedButton(
                 onClick = onRetry,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
@@ -531,10 +531,10 @@ fun Modifier.ordiaWorkSurface(): Modifier {
 
 @Composable
 fun PrimaryAction(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Button(
+    OrdiaButton(
         onClick = onClick,
         modifier = modifier,
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        containerColor = MaterialTheme.colorScheme.primary
     ) {
         Text(label)
     }

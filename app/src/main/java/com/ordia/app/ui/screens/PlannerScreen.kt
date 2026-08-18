@@ -19,14 +19,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.ordia.app.ui.components.OrdiaOutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -730,14 +730,14 @@ private fun AutoPlanCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                OutlinedButton(onClick = onToggleDetails, enabled = plan.blocks.isNotEmpty()) {
+                OrdiaOutlinedButton(onClick = onToggleDetails, enabled = plan.blocks.isNotEmpty()) {
                     Text(
                         if (showDetails) stringResource(R.string.planner_hide)
                         else stringResource(R.string.planner_view)
                     )
                 }
             }
-            OutlinedButton(onClick = onReplan, modifier = Modifier.fillMaxWidth()) {
+            OrdiaOutlinedButton(onClick = onReplan, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.planner_replan))
             }
             if (showDetails) {
@@ -778,7 +778,7 @@ private fun AutoPlanCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Button(onClick = onApply, modifier = Modifier.fillMaxWidth()) {
+                OrdiaButton(onClick = onApply, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         if (selectedBlockIds.isEmpty()) stringResource(R.string.planner_apply)
                         else stringResource(R.string.planner_apply_selection, selectedBlockIds.size)

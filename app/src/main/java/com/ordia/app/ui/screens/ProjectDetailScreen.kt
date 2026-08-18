@@ -14,13 +14,13 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaOutlinedButton
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -106,7 +106,7 @@ fun ProjectDetailScreen(
         item { SectionHeader(stringResource(R.string.project_detail_notes_section), action = stringResource(R.string.action_add), onAction = { addingNote = true }) }
         if (notes.isEmpty()) item { Text(stringResource(R.string.project_detail_no_notes), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         items(notes, key = { it.id }) { note ->
-            OutlinedButton(onClick = { onNote(note.id) }, modifier = Modifier.fillMaxWidth()) {
+            OrdiaOutlinedButton(onClick = { onNote(note.id) }, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
                     Text(note.title, style = MaterialTheme.typography.titleMedium)
                     Text(note.body.take(100), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -126,11 +126,11 @@ private fun QuickNoteDialog(onDismiss: () -> Unit, onSave: (String, String) -> U
         title = { Text(stringResource(R.string.project_detail_new_note)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.project_detail_note_title_label)) })
-                OutlinedTextField(body, { body = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.project_detail_note_body_label)) }, minLines = 5)
+                OrdiaInput(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.project_detail_note_title_label)) })
+                OrdiaInput(body, { body = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.project_detail_note_body_label)) }, minLines = 5)
             }
         },
-        confirmButton = { Button(onClick = { onSave(title.ifBlank { untitledLabel }, body) }) { Text(stringResource(R.string.action_save)) } },
+        confirmButton = { OrdiaButton(onClick = { onSave(title.ifBlank { untitledLabel }, body) }) { Text(stringResource(R.string.action_save)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }

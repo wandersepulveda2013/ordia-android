@@ -17,14 +17,14 @@ import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaOutlinedButton
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -270,7 +270,7 @@ fun GuardianScreen(
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(GuardianEngine.Interaction.entries) { interaction ->
-                    Button(onClick = { scope.launch { repository.interactGuardian(interaction) } }) {
+                    OrdiaButton(onClick = { scope.launch { repository.interactGuardian(interaction) } }) {
                         Text(stringResource(interaction.labelRes()))
                     }
                 }
@@ -293,14 +293,14 @@ fun GuardianScreen(
         item {
             Card {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
+                    OrdiaInput(
                         value = name,
                         onValueChange = { name = it.take(24) },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text(stringResource(R.string.guardian_screen_name_label)) },
                         singleLine = true
                     )
-                    OutlinedButton(
+                    OrdiaOutlinedButton(
                         onClick = { scope.launch { repository.setGuardianName(name) } },
                         enabled = name.isNotBlank(),
                         modifier = Modifier.fillMaxWidth()
@@ -400,7 +400,7 @@ private fun Guardian2Card(card: GuardianCard) {
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(onClick = {}) {
+                OrdiaOutlinedButton(onClick = {}) {
                     Text(card.actionLabel)
                 }
             }
