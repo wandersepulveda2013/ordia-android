@@ -147,8 +147,29 @@ object ContextIntentEngine {
         // Penalización por ambigüedad
         score -= scoreAmbiguityPenalty(lower, kind)
 
+        // Piso de confianza para imperativos de tarea inequívocos (c.613): un
+        // texto que arranca con "recuérdame/no olvides/tengo que/hay que" + verbo
+        // es una tarea clara con independencia de si menciona fecha/hora. Sin este
+        // piso, la mera ausencia de pistas temporales mantenía la confianza bajo
+        // [MINIMUM_CONFIDENCE] y descartaba silenciosamente tareas legítimas
+        // ("no olvides revisar el secuestro de DNS", "tengo que hacer el modelo
+        // de amenaza", "hay que limpiar la pistola de agua"). El contenido dañino
+        // genuino ya fue bloqueado en el paso 1 ([ContextPrivacyFilter]) o en el
+        // paso 3 (insultos), por lo que llegar aquí es contenido permitido.
+        if (kind == ContextIntentKind.TASK && hasStrongTaskImperative(lower)) {
+            score = maxOf(score, MINIMUM_CONFIDENCE)
+        }
+
         return score.coerceIn(0f, 1f)
     }
+
+    /**
+     * Imperativos de tarea inequívocos (c.613). Coincide con los anclajes de
+     * [extractTitle] para TASK. "recuérdame/no olvides" exigen verbo; "tengo
+     * que/hay que" ya incluyen la cópula en el patrón.
+     */
+    private fun hasStrongTaskImperative(lower: String): Boolean =
+        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que)\s+\w""").containsMatchIn(lower)
 
     /**
      * Patrones específicos por tipo de intención.
@@ -305,21 +326,21 @@ object ContextIntentEngine {
 
     /**
      * Verifica contenido explícitamente bloqueado.
+     *
+     * Las categorías temáticas sexual/violencia/drogas se delegan al paso 1
+     * ([ContextPrivacyFilter.shouldBlock], que aplica [ContentModeration.isHarmful]
+     * con exenciones de colocación/proximidad — c.582, paridad con
+     * [com.ordia.app.intelligence.IntelligenceSafetyGate]). Duplicar aquí esos
+     * patrones con regex primitivos `\b(...)\b` SIN exenciones descartaba
+     * silenciosamente tareas legítimas ("matar el proceso", "bomba de agua",
+     * "droga en la farmacia", "modelo de amenaza", "pistola de agua",
+     * "secuestro de DNS") que el paso 1 ya dejó pasar (c.613). Aquí sólo queda
+     * la categoría que [ContextPrivacyFilter] NO cubre: insultos graves (paridad
+     * con [com.ordia.app.intelligence.IntelligenceSafetyGate]). El contenido
+     * temático genuinamente dañino sigue bloqueado por el paso 1.
      */
     private fun containsBlockedContent(lower: String): Boolean {
-        // Contenido sexual
-        if (Regex("""\b(sexo|sexual|desnud|porno|xxx|eróti|intimidad|culos|tetas|pene|vagina|orgasmo|masturb)""").containsMatchIn(lower)) {
-            return true
-        }
-        // Violencia y amenazas
-        if (Regex("""\b(matar|asesinar|violar|secuestr|bomba|amenaza|escopeta|pistola|cuchill)""").containsMatchIn(lower)) {
-            return true
-        }
-        // Drogas
-        if (Regex("""\b(droga|cocaína|marihuana|heroína|metanfetamina|narcotráfico|porro|weed)""").containsMatchIn(lower)) {
-            return true
-        }
-        // Insultos graves
+        // Insultos graves (categoría no cubierta por ContextPrivacyFilter).
         if (Regex("""\b(pendejo|estúpido|imbécil|idiota|malparido|hijueputa|culero)""").containsMatchIn(lower)) {
             return true
         }
