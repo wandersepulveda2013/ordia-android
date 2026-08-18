@@ -4,7 +4,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PROBE="${1:?uso: run_probe.sh <probe.kt>}"
-KOTLINC=/tmp/kotlinc-home/kotlinc/bin/kotlinc
+KOTLINC=$([ -x /tmp/kotlinc-home/bin/kotlinc ] && echo /tmp/kotlinc-home/bin/kotlinc || ([ -x /tmp/kotlinc-home/kotlinc/bin/kotlinc ] && echo /tmp/kotlinc-home/kotlinc/bin/kotlinc || command -v kotlinc))
 LIBS=/tmp/libs
 CP="$LIBS/json-20231013.jar:$LIBS/junit-4.13.2.jar:$LIBS/hamcrest-core-1.3.jar:$LIBS/kotlin-stdlib-2.1.20.jar:$LIBS/kotlinx-coroutines-core-1.10.2.jar:$LIBS/kotlinx-coroutines-core-jvm-1.10.2.jar:$LIBS/kotlinx-coroutines-test-1.10.2.jar:$LIBS/kotlinx-coroutines-test-jvm-1.10.2.jar"
 DOMAIN_MAIN="$ROOT/app/src/main/java/com/ordia/app/domain"
