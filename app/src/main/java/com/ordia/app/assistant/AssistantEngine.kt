@@ -195,7 +195,18 @@ object AssistantEngine {
                     // antes de tu próxima cita"). Si sobra tiempo de sobra, calla: el
                     // silencio es honesto (no hay decisión difícil). Determinista y local
                     // (no IA fingida): compara dos números ya calculados.
-                    val gapPhrase = nextCommitmentGapPhrase(suggestion.minutesUntilNextCommitment, minutes)
+                    val gapPhrase = nextCommitmentGapPhrase(
+                        suggestion.minutesUntilNextCommitment,
+                        minutes,
+                        // Alternativa accionable (c.557): si la sugerida NO cabe
+                        // antes de la próxima cita PERO existe otra tarea raíz
+                        // activa que SÍ cabe (y es arrancable ahora), el asistente
+                        // la nombra para convertir el aviso pasivo en una micro-
+                        // decisión productiva. Reusa [WhatNowEngine.ordered] (fuente
+                        // única) para elegir la mejor que cabe. Null si no hay ninguna
+                        // → el aviso de c.552 queda intacto (no se inventa nada).
+                        fittingAlternativeBeforeCommitment(active, suggestion.task.id, suggestion.minutesUntilNextCommitment, now)
+                    )
                     AssistantAnswer(
                         "$lead “${suggestion.task.title}”: $why. $timePhrase.$gapPhrase$tail",
                         relatedTaskIds = listOf(suggestion.task.id)
@@ -1475,12 +1486,63 @@ object AssistantEngine {
      * El prefijo " " integra la frase al mismo nivel que [timePhrase] (antes del
      * tail de olvidos, que lleva su propio " Además,").
      */
-    private fun nextCommitmentGapPhrase(gapMinutes: Int?, taskMinutes: Int): String {
+    private fun nextCommitmentGapPhrase(gapMinutes: Int?, taskMinutes: Int, alternative: TaskEntity?): String {
         val gap = gapMinutes ?: return ""
         return when {
-            taskMinutes > gap -> " Ojo: tu próxima cita es en ~$gap min."
+            taskMinutes > gap -> {
+                // Alternativa accionable (c.557): la sugerida no cabe antes de la
+                // cita, pero hay otra tarea que SÍ cabe y es arrancable ahora →
+                // se nombra para que el usuario aproveche el hueco en vez de
+                // arrancar algo que la cita interrumpirá. Sin alternativa, el
+                // aviso simple de c.552 (no se inventa una opción que no existe).
+                if (alternative != null) {
+                    val altMin = TaskRules.plannedDuration(alternative)
+                    " Ojo: tu próxima cita es en ~$gap min; antes cabe “${alternative.title}” (~$altMin min)."
+                } else {
+                    " Ojo: tu próxima cita es en ~$gap min."
+                }
+            }
             taskMinutes * 2 > gap -> " Te alcanza antes de tu próxima cita."
             else -> ""
+        }
+    }
+
+    /**
+     * Mejor tarea raíz activa que cabe en el hueco hasta la próxima cita y es
+     * arrancable AHORA, distinta de [suggestedId]. Inteligencia contextual
+     * honesta (c.557): convierte el aviso "no cabe" de c.552 en una
+     * micro-decisión productiva ("antes cabe X") cuando existe algo
+     * genuinamente realizable, sin nueva pantalla/botón.
+     *
+     * Reusa [WhatNowEngine.ordered] (fuente única de verdad del ranking) y
+     * toma la PRIMERA que cumple:
+     * - distinta de la sugerida (no repetir lo que ya encabeza la respuesta);
+     * - que el usuario NO está ejecutando ahora ([TaskRules.isBeingWorkedOn]
+     *   —no sugerir lo que ya hace, ni pisar el trabajo activo—);
+     * - arrancable ahora: sin `startAt` futuro (una tarea con hueco propio no
+     *   es "haz esto ahora", respeta la planificación del usuario; simétrico
+     *   con [TaskRules.isScheduledLater] que hunde esas tareas en What Now);
+     * - que cabe: [TaskRules.plannedDuration] ≤ [gapMinutes] (acotado a
+     *   [MIN_PLAN_MINUTES, MAX_PLAN_MINUTES], así una tarea de duración
+     *   desconocida no se promete "cabe en 10 min" con datos inventados).
+     *
+     * Determinista y local (no IA fingida, sin random): filtro + primera del
+     * orden canónico. Null cuando [gapMinutes] no es útil (≤0) o nada cumple
+     * → el llamador mantiene el aviso simple de c.552.
+     */
+    private fun fittingAlternativeBeforeCommitment(
+        active: List<TaskEntity>,
+        suggestedId: Long,
+        gapMinutes: Int?,
+        now: Long
+    ): TaskEntity? {
+        val gap = gapMinutes ?: return null
+        if (gap <= 0) return null
+        return WhatNowEngine.ordered(active, now).firstOrNull { t ->
+            t.id != suggestedId &&
+                !TaskRules.isBeingWorkedOn(t, now) &&
+                (t.startAt == null || t.startAt <= now) &&
+                TaskRules.plannedDuration(t) <= gap
         }
     }
 }

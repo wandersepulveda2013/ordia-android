@@ -3298,6 +3298,135 @@ class AssistantEngineTest {
         assertTrue("sigue dando la sugerencia: ${answer.text}", answer.text.lowercase().contains("empieza por"))
     }
 
+    // --- c.557: "¿qué hago ahora?" — cuando la sugerida NO cabe antes de la
+    // próxima cita PERO existe otra tarea que SÍ cabe, el asistente la nombra
+    // como alternativa accionable ("antes cabe «X»"). Inteligencia contextual
+    // honesta (no IA fingida): convierte el aviso pasivo en una micro-decisión
+    // productiva, sin nueva pantalla/botón. Reusa WhatNowEngine.ordered (fuente
+    // única) para elegir la mejor tarea que cabe. Sólo dispara cuando hay algo
+    // que genuinamente cabe (plannedDuration <= gap); si no, mantiene el aviso
+    // simple de c.552 (no inventa una alternativa que no existe).
+    @Test fun whatNow_suggestsFittingAlternativeBeforeCommitment() {
+        // Sugerida: urgente de 40 min. Próxima cita en 30 min (no cabe). Hay una
+        // tarea rápida de 10 min (cabría) de menor prioridad → el asistente la
+        // nombra ("antes cabe «Responder»") en vez de sólo avisar.
+        val now = 1_000_000_000_000L
+        val urgente = TaskEntity(
+            id = 1, title = "Informe",
+            durationMinutes = 40,
+            priority = TaskPriority.URGENT
+        )
+        val rapida = TaskEntity(
+            id = 3, title = "Responder",
+            durationMinutes = 10,
+            priority = TaskPriority.NORMAL
+        )
+        val reunion = TaskEntity(
+            id = 2, title = "Reunión",
+            startAt = now + 30 * 60_000L, // >15 min: no inminente → la urgente es la sugerida
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(urgente, rapida, reunion), emptyList(), emptyList(), now
+        )
+        assertTrue("avisa la cita: ${answer.text}", answer.text.lowercase().contains("tu próxima cita es en ~30 min"))
+        assertTrue("nombra la alternativa que cabe: ${answer.text}", answer.text.contains("Responder"))
+        assertTrue("frase de 'antes cabe': ${answer.text}", answer.text.lowercase().contains("antes cabe"))
+    }
+
+    @Test fun whatNow_noAlternativeWhenNothingFitsBeforeCommitment() {
+        // Sugerida: urgente de 40 min. Próxima cita en 30 min (no cabe). La única
+        // otra tarea activa también dura 40 min (no cabe en 30) → NO se inventa
+        // una alternativa; el asistente mantiene el aviso simple de c.552.
+        val now = 1_000_000_000_000L
+        val urgente = TaskEntity(
+            id = 1, title = "Informe",
+            durationMinutes = 40,
+            priority = TaskPriority.URGENT
+        )
+        val otra = TaskEntity(
+            id = 3, title = "Propuesta",
+            durationMinutes = 40,
+            priority = TaskPriority.NORMAL
+        )
+        val reunion = TaskEntity(
+            id = 2, title = "Reunión",
+            startAt = now + 30 * 60_000L,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(urgente, otra, reunion), emptyList(), emptyList(), now
+        )
+        assertTrue("avisa la cita: ${answer.text}", answer.text.lowercase().contains("tu próxima cita es en ~30 min"))
+        assertFalse("no inventa alternativa que no cabe: ${answer.text}", answer.text.contains("Propuesta"))
+        assertFalse("no frasea 'antes cabe' sin alternativa: ${answer.text}", answer.text.lowercase().contains("antes cabe"))
+    }
+
+    @Test fun whatNow_alternativeExcludesScheduledLaterTask() {
+        // La alternativa NO debe ser una tarea con startAt futuro (tiene su
+        // propio hueco): aunque su duración quepa en el gap, no es algo que el
+        // usuario pueda arrancar AHORA. Aquí la "rápida" (10 min) tiene startAt
+        // futuro (+200) → aunque cabría en 30 min, se excluye; queda el aviso
+        // simple sin "antes cabe".
+        val now = 1_000_000_000_000L
+        val urgente = TaskEntity(
+            id = 1, title = "Informe",
+            durationMinutes = 40,
+            priority = TaskPriority.URGENT
+        )
+        val rapidaProgramada = TaskEntity(
+            id = 3, title = "Responder",
+            durationMinutes = 10,
+            priority = TaskPriority.NORMAL,
+            startAt = now + 200 * 60_000L, // futuro: tiene su propio hueco
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val reunion = TaskEntity(
+            id = 2, title = "Reunión",
+            startAt = now + 30 * 60_000L, // próxima cita (30 < 200)
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(urgente, rapidaProgramada, reunion), emptyList(), emptyList(), now
+        )
+        assertTrue("avisa la cita: ${answer.text}", answer.text.lowercase().contains("tu próxima cita es en ~30 min"))
+        assertFalse("no ofrece una tarea con hueco propio: ${answer.text}", answer.text.lowercase().contains("antes cabe"))
+        assertFalse("no nombra la programada como alternativa: ${answer.text}", answer.text.contains("Responder"))
+    }
+
+    @Test fun whatNow_noAlternativeWhenSuggestedFitsSnugly() {
+        // Guard de regresión (c.557): la alternativa sólo se ofrece en la rama
+        // "no cabe" (taskMinutes > gap). Si la sugerida CABE aunque sea justo
+        // (25 en 40 → snug), el asistente confirma "te alcanza" y NO introduce
+        // "antes cabe" aunque exista una rápida de 10 min: la sugerida ya es la
+        // decisión correcta y añadir una alternativa sería ruido contradictorio.
+        val now = 1_000_000_000_000L
+        val urgente = TaskEntity(
+            id = 1, title = "Informe",
+            durationMinutes = 25,
+            priority = TaskPriority.URGENT
+        )
+        val rapida = TaskEntity(
+            id = 3, title = "Responder",
+            durationMinutes = 10,
+            priority = TaskPriority.NORMAL
+        )
+        val reunion = TaskEntity(
+            id = 2, title = "Reunión",
+            startAt = now + 40 * 60_000L,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(urgente, rapida, reunion), emptyList(), emptyList(), now
+        )
+        assertTrue("confirma que alcanza: ${answer.text}", answer.text.lowercase().contains("te alcanza antes de tu próxima cita"))
+        assertFalse("no ofrece alternativa cuando la sugerida ya cabe: ${answer.text}", answer.text.lowercase().contains("antes cabe"))
+    }
+
     // ---- Panorama del día a demanda ("¿resumen del día?"/"¿cuántas tengo hoy?") ----
     //
     // El asistente respondía al veredicto ("¿voy bien?") y a la lista de agenda
