@@ -299,6 +299,73 @@ class GuardianEngineTest {
     }
 
     @Test
+    fun suggestedActionColaDeAtrasadasSenalaUrgentesRestantes() {
+        // "Detección de vencidas importantes": cuando varias de las atrasadas
+        // restantes son URGENTES, la cola no las camufla tras un conteo plano:
+        // señala cuántas son críticas para que el usuario no olvide el atraso
+        // urgente tras resolver la primera. La elegida es la urgente de mayor
+        // prioridad (smallestOverdueAction), así que urgentCount son las
+        // RESTANTES (3 urgentes → 2 urgentes restantes tras la nombrada).
+        val past = midday - 86_400_000L
+        val u1 = TaskEntity(id = 1, title = "U1", dueAt = past, durationMinutes = 30, priority = TaskPriority.URGENT)
+        val u2 = TaskEntity(id = 2, title = "U2", dueAt = past, durationMinutes = 30, priority = TaskPriority.URGENT)
+        val u3 = TaskEntity(id = 3, title = "U3", dueAt = past, durationMinutes = 30, priority = TaskPriority.URGENT)
+        val normal = TaskEntity(id = 4, title = "Normal", dueAt = past, durationMinutes = 30)
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(u1, u2, u3, normal),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        // 4 atrasadas nombrables → 3 restantes, de las cuales 2 son urgentes.
+        assertTrue(result.suggestedAction.contains("3 tareas más atrasadas"))
+        assertTrue(result.suggestedAction.contains("2 urgentes"))
+    }
+
+    @Test
+    fun suggestedActionColaDeAtrasadasNoSenalaUrgentesSiSoloQuedaLaNombrada() {
+        // Contra-regresión: con un único atrasado urgente (la propia nombrada),
+        // no hay atraso urgente RESTANTE → la cola no debe añadir "(N urgentes)".
+        // urgentCount = (total urgente 1) − 1 = 0.
+        val past = midday - 86_400_000L
+        val urgent = TaskEntity(id = 1, title = "Única urgente", dueAt = past, durationMinutes = 30, priority = TaskPriority.URGENT)
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(urgent),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        assertTrue(result.suggestedAction.contains("Única urgente"))
+        assertFalse(result.suggestedAction.contains("tareas más atrasadas"))
+        assertFalse(result.suggestedAction.contains("urgentes"))
+    }
+
+    @Test
+    fun suggestedActionColaDeAtrasadasNoSenalaUrgentesCuandoElRestoNoEsUrgente() {
+        // Contra-regresión: la elegida es urgente, pero las atrasadas restantes
+        // NO lo son → la cola cuenta las restantes SIN marcado de urgentes.
+        val past = midday - 86_400_000L
+        val urgent = TaskEntity(id = 1, title = "Urgente", dueAt = past, durationMinutes = 30, priority = TaskPriority.URGENT)
+        val a = TaskEntity(id = 2, title = "A", dueAt = past, durationMinutes = 30)
+        val b = TaskEntity(id = 3, title = "B", dueAt = past, durationMinutes = 30)
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(urgent, a, b),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        // 2 restantes no urgentes → cola sin "(N urgentes)".
+        assertTrue(result.suggestedAction.contains("2 tareas más atrasadas"))
+        assertFalse(result.suggestedAction.contains("urgentes"))
+    }
+
+    @Test
     fun suggestedActionColaDeAtrasadasExcluyeLasEnCurso() {
         // Una atrasada "en curso" (startAt ya empezó, dentro de su ventana) NO es un
         // olvido a recuperar: la cola de "otras atrasadas" debe excluirla, igual que

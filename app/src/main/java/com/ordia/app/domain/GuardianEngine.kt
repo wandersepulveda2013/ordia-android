@@ -327,9 +327,19 @@ object GuardianEngine {
                     // Cuántas atrasadas nombrables quedan tras la elegida (excluye
                     // "en curso" vía [actionableOverdueTasks]). Evita el olvido del
                     // resto del atraso: [withOverdueTail] no nombra títulos.
-                    val otherOverdue = actionableOverdueTasks(tasks, nowMillis).size - 1
+                    val actionable = actionableOverdueTasks(tasks, nowMillis)
+                    val otherOverdue = actionable.size - 1
+                    // "Vencida importante": de las atrasadas restantes, ¿cuántas son
+                    // URGENTES? La elegida ya es la urgente de mayor prioridad (ver
+                    // [smallestOverdueAction]), así que el atraso urgente RESTANTE es
+                    // (total urgente − 1) acotado a 0. Sin esto, varias atrasadas
+                    // urgentes se ocultaban tras un conteo plano: el nudge nombraba UNA
+                    // y el resto del atraso crítico quedaba indistinguible del atraso
+                    // banal. [withOverdueTail] lo señaliza sin abrir una 2.ª acción.
+                    val urgentOther =
+                        (actionable.count { it.priority == TaskPriority.URGENT } - 1).coerceAtLeast(0)
                     overdueAction
-                        .withOverdueTail(otherOverdue)
+                        .withOverdueTail(otherOverdue, urgentOther)
                         .withCommitmentTail(overdueCommitments)
                         .withStaleInboxTail(tasks, nowMillis, zoneId)
                 }
@@ -598,11 +608,23 @@ object GuardianEngine {
      * que la selección vía [actionableOverdueTasks]— porque una atrasada que el
      * usuario ya está haciendo no es un olvido a recuperar. Cuando sólo hay una,
      * no se añade nada (otherCount == 0): no decir "0 más".
+     *
+     * "Vencida importante" en la cola (c.621): además del conteo, señala cuántas
+     * de las atrasadas restantes son URGENTES ([urgentCount]). Sin esto, un usuario
+     * con la nombrada (urgente) MÁS otras 3 atrasadas urgentes leía "3 tareas más
+     * atrasadas" sin distinguir que las 3 eran críticas: el atraso urgente quedaba
+     * camuflado tras un conteo plano, justo cuando "detección de vencidas
+     * importantes" más ayuda hace. La elegida ya es urgente si hay alguna urgente
+     * (ver [smallestOverdueAction]); [urgentCount] son las urgentes RESTANTES, así
+     * que nunca se cuenta la nombrada dos veces. Determinista, sin random, sin IA
+     * fingida: sólo hace visible la prioridad que la tarea ya porta.
      */
-    private fun String.withOverdueTail(otherCount: Int): String {
+    private fun String.withOverdueTail(otherCount: Int, urgentCount: Int = 0): String {
         if (otherCount <= 0) return this
         val tareas = if (otherCount == 1) "1 tarea más atrasada" else "$otherCount tareas más atrasadas"
-        return "$this Además, tienes $tareas."
+        if (urgentCount <= 0) return "$this Además, tienes $tareas."
+        val urgentes = if (urgentCount == 1) "1 urgente" else "$urgentCount urgentes"
+        return "$this Además, tienes $tareas ($urgentes)."
     }
 
     private fun message(
