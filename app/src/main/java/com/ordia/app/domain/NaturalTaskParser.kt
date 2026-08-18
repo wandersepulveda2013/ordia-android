@@ -5771,6 +5771,38 @@ object NaturalTaskParser {
                 )
             }
         }
+        // c.583 — rutina anual anclada a una fecha de calendario concreta con "cada":
+        // "renovar suscripción cada 1 de enero", "pago cada 15 de marzo",
+        // "renovar suscripción anual cada 1 de enero". La palabra "cada" expresa la
+        // recurrencia y el día+mes nombrado fija el anclaje anual (aniversario,
+        // renovación, cumpleaños). Antes la rama MONTHLY "cada N" (línea siguiente)
+        // reclamaba "cada 1" y devolvía MONTHLY + due=1 de septiembre: ignoraba el mes
+        // nombrado (el dígito se consumía y monthNameDate se quedaba sin casar) Y la
+        // eventual señal "anual" nunca llegaba a fixedPatterns (MONTHLY retornaba antes).
+        // La rutina anual nacía MENSUAL (12× más frecuente) en el mes equivocado (P1:
+        // recordatorio erróneo, fecha olvidada). Aquí se reclama como YEARLY dejando el
+        // día+mes intactos en el rango de frase (sólo se consume el token "cada") para
+        // que [monthNamePattern] resuelva la fecha (con su roll anual y saneo de día),
+        // igual que ya ocurre con "el 1 de enero" / "anual el 1 de enero". El día admite
+        // dígitos o número escrito ("cada quince de marzo"); el mes debe ser nombrado
+        // (NO "cada 1 de cada mes" ni "cada 1 del mes" — ésos siguen siendo MONTHLY:
+        // aquí no casan porque exigen un mes del calendario, no la palabra "mes").
+        Regex(
+            """(?i)\bcada\s+(\d{1,2}|$writtenNumberGroup)\s+(?:de|del)\s+$monthNameGroup""" +
+                """(?:\s+del?\s+\d{2,4})?\b"""
+        ).find(working)?.let { match ->
+            val rawDay = match.groupValues[1]
+            val day = rawDay.toIntOrNull() ?: parseWrittenNumber(rawDay)?.toInt()
+            if (day != null && day in 1..31) {
+                // Se consume SÓLO el token "cada" del rango de frase: el "N de <mes>"
+                // debe permanecer en `working` para que monthNamePattern lo resuelva y
+                // monthNameStripPattern lo borre del título. "anual"/"anualmente" que
+                // acompañen se limpian vía recurrenceAdjectiveLeakPattern.
+                phrases += match.range.first..(match.range.first + 3)
+                return RecurrenceResult(RecurrenceFrequency.YEARLY, 1, emptyList(), phrases)
+            }
+        }
+
         // Prefijo opcional no capturador que consume el genitivo "del"/"de"
         // introductor de la fecha mensual ("renta del 15 de cada mes") para que no
         // quede como residuo del título. Simétrico de c.448; el "del" de contenido se

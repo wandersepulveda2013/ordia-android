@@ -1444,6 +1444,40 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // c.583 — rutina anual anclada a una fecha de calendario concreta con "cada":
+    // "renovar suscripción anual cada 1 de enero" / "pago anual cada 15 de marzo".
+    // Antes la rama MONTHLY "cada N" (día-del-mes) reclamaba "cada 1" y devolvía
+    // MONTHLY + due=1 de septiembre (ignoraba "enero" y "anual"): la rutina anual
+    // nacía MENSUAL (12× más frecuente) y anclada al mes equivocado (P1: recordatorio
+    // erróneo, fecha olvidada). Con señal YEARLY explícita + día+mes nombrado, la
+    // recurrencia debe ser YEARLY anclada a ese día/mes (1 de enero, 15 de marzo).
+    @Test fun anualCadaDiaDeMesNombradoParsesYearlyAnchoredToThatDate() {
+        val result = NaturalTaskParser.parse("Renovar suscripción anual cada 1 de enero", now, zone)
+        assertEquals(RecurrenceFrequency.YEARLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertEquals(LocalDate.of(2027, 1, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun anualCadaDiaDeMesNombradoMidYearDateParsesYearlyAnchored() {
+        val result = NaturalTaskParser.parse("Pago anual cada 15 de marzo", now, zone)
+        assertEquals(RecurrenceFrequency.YEARLY, result.recurrence)
+        assertEquals(LocalDate.of(2027, 3, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // "cada 1 de enero" (con "cada" pero sin "anual") es una repetición anual cotidiana
+    // (aniversario, cumpleaños, renovación): la palabra "cada" expresa la recurrencia y
+    // la fecha de calendario fija el anclaje. Antes caía a MONTHLY + 1 de septiembre.
+    @Test fun cadaDiaDeMesNombradoParsesYearlyAnchoredToThatDate() {
+        val result = NaturalTaskParser.parse("Renovar suscripción cada 1 de enero", now, zone)
+        assertEquals(RecurrenceFrequency.YEARLY, result.recurrence)
+        assertEquals(LocalDate.of(2027, 1, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun cadaDiaDeMesNombradoCleansMonthFromTitle() {
+        val result = NaturalTaskParser.parse("Renovar suscripción cada 1 de enero", now, zone)
+        assertEquals("Renovar suscripción", result.title)
+    }
+
     @Test fun intervalRecurrenceWithExplicitDateKeepsExplicitDate() {
         // "cada 2 semanas el viernes": la fecha explícita tiene prioridad sobre el anclaje.
         val result = NaturalTaskParser.parse("Lavar el coche cada 2 semanas el viernes", now, zone)
