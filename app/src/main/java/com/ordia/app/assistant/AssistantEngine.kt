@@ -1100,7 +1100,8 @@ object AssistantEngine {
             "tengo mucho que hacer" in query ||
             "cabe todo" in query || "cabe el dia" in query || "cabe hoy" in query ||
             "alcanzara" in query || "alcanzare" in query || "da alcance" in query ||
-            "estoy saturad" in query
+            "estoy saturad" in query ||
+            COMO_VOY.containsMatchIn(query)
 
     /**
      * Detecta la intención de PANORAMA del día: el recuento (hechas/pendientes/
@@ -1165,6 +1166,14 @@ object AssistantEngine {
     // lista de 3, así esta regex no la roba.
     private val DECLARATIVE_PLAN_REQUEST =
         Regex("""\b(quiero|necesito)\s+(un|el)\s+plan\s*[.!?]*$""")
+
+    // "¿cómo voy?" / "¿cómo voy hoy?" — la forma cotidiana por excelencia de pedir
+    // el panorama del día. Casar "como voy" como subcadena robaría "¿cómo voy a
+    // llegar/pagar/hacer?" (pide el MODO de lograr algo, no el panorama), así se
+    // exige límite de palabra y se descarta lo seguido de " a" (infinitivo). La
+    // query ya viene normalizada (sin acentos). Paridad con el guard de "tengo
+    // tiempo" suelto (capacidad para una tarea concreta, no veredicto del día).
+    private val COMO_VOY = Regex("""\bcomo\s+voy\b(?!\s+a\b)""")
 
     private fun dayLoadAnswer(
         tasks: List<TaskEntity>,

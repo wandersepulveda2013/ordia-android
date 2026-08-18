@@ -2005,6 +2005,47 @@ class AssistantEngineTest {
             answer.text.contains("Puedo organizar"))
     }
 
+    // "¿cómo voy?" / "¿cómo voy hoy?" — la forma cotidiana por excelencia de
+    // preguntar cómo va el día. Antes sólo "voy bien"/"voy mal" (veredicto
+    // afirmado) la activaban: "¿cómo voy?" caía al menú genérico justo cuando
+    // el usuario pide el panorama. Reusa dayLoadAnswer; sin nueva pantalla.
+    @Test fun dayLoad_comoVoy_daVeredicto() {
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿cómo voy?",
+            listOf(TaskEntity(id = 1, title = "A", dueAt = dayAt(dayToday, 11), durationMinutes = 45)),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("da un veredicto de carga, no el menú genérico: ${answer.text}",
+            answer.text.contains("holgura") || answer.text.contains("despejado") ||
+                answer.text.contains("lleno") || answer.text.contains("no da tiempo"))
+    }
+
+    @Test fun dayLoad_comoVoyHoy_daVeredicto() {
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿cómo voy hoy?",
+            listOf(TaskEntity(id = 1, title = "A", dueAt = dayAt(dayToday, 11), durationMinutes = 45)),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("da un veredicto de carga, no el menú genérico: ${answer.text}",
+            answer.text.contains("holgura") || answer.text.contains("despejado") ||
+                answer.text.contains("lleno") || answer.text.contains("no da tiempo"))
+    }
+
+    // Guard anti-colisión: "¿cómo voy a ...?" ("cómo voy a llegar/pagar/hacer")
+    // NO pide el panorama del día — pide el modo de lograr algo. La regex de
+    // isDayLoadQuery excluye "como voy" seguido de " a" para no robar esa
+    // intención. Paridad con el guard de "tengo tiempo" suelto.
+    @Test fun dayLoad_comoVoyA_noEsVeredictoForzado() {
+        val answer = AssistantEngine.answer("¿cómo voy a llegar?", emptyList(), emptyList(), emptyList())
+        assertFalse("no se inventa un veredicto para 'cómo voy a ...': ${answer.text}",
+            answer.text.contains("despejado") || answer.text.contains("holgura") ||
+                answer.text.contains("lleno") || answer.text.contains("no da tiempo"))
+    }
+
     // ---- dayLoad + olvidos silenciados (simetría con el resto del asistente) ----
     //
     // "¿voy bien?"/"¿da tiempo?" es la OUTLIER del asistente: las demás superficies
