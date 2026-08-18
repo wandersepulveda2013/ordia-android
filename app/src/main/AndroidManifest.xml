@@ -1,42 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-
-    <!-- Backups desactivados por diseño (ver app/lint.xml → DataExtractionRules):
-         allowBackup=false gobierna API 26-30; dataExtractionRules (exclusión total,
-         res/xml/data_extraction_rules.xml) gobierna API 31+. -->
+    <!-- Bloc de notas local-first. Sin red, sin permisos especiales. -->
     <application
         android:name=".OrdiaApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:usesCleartextTraffic="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Ordia">
-
-        <activity
-            android:name=".overlay.QuickCaptureActivity"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:launchMode="singleTop"
-            android:theme="@style/Theme.Ordia.QuickCapture" />
-
-        <!-- Trampolín interno para shortcuts: su taskAffinity aislado evita que
-             los flags obligatorios del launcher limpien la tarea de Ordía. -->
-        <activity
-            android:name=".shortcuts.OrdiaShortcutActivity"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:noHistory="true"
-            android:taskAffinity=""
-            android:theme="@style/Theme.Ordia.Shortcut" />
 
         <activity
             android:name=".MainActivity"
@@ -46,64 +20,8 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="*/*" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.PROCESS_TEXT" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
-            </intent-filter>
-            <meta-data
-                android:name="android.app.shortcuts"
-                android:resource="@xml/shortcuts" />
         </activity>
 
-        <service
-            android:name=".quicksettings.OrdiaCaptureTileService"
-            android:exported="true"
-            android:icon="@drawable/ic_ordia"
-            android:label="@string/quick_settings_capture_label"
-            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
-            <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE" />
-            </intent-filter>
-        </service>
-
-        <receiver
-            android:name=".reminders.ReminderActionReceiver"
-            android:exported="false" />
-
-        <!-- Re-sincroniza recordatorios al cambiar hora, fecha o zona horaria.
-             exported=false: solo el sistema puede emitir estas broadcast protegidas
-             (TIME_SET/TIMEZONE_CHANGED/DATE_CHANGED); ninguna app de terceros
-             puede disparar el resync. No usa BOOT_COMPLETED para no añadir
-             permisos: WorkManager restaura sus trabajos tras reinicio. -->
-        <receiver
-            android:name=".reminders.ReminderResyncReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
-                <action android:name="android.intent.action.TIME_SET" />
-                <action android:name="android.intent.action.DATE_CHANGED" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name=".widget.OrdiaWidgetProvider"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/ordia_widget_info" />
-        </receiver>
-
-        <!-- Infraestructura de auto-actualización (presente en TODAS las variantes):
-             permite que Ordía se actualice a sí misma desde su canal estable oficial. -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.update-files"
@@ -111,26 +29,8 @@
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/ordia_update_paths" />
+                android:resource="@xml/file_paths" />
         </provider>
-
-        <activity
-            android:name=".updates.UpdateInstallActivity"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:theme="@style/Theme.Ordia.QuickCapture" />
-
-        <receiver
-            android:name=".updates.UpdateDownloadReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name=".updates.UpdateInstallResultReceiver"
-            android:exported="false" />
 
     </application>
 </manifest>

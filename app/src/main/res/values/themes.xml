@@ -4,28 +4,8 @@
         <item name="android:fontFamily">sans</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">#FAFAFA</item>
+        <item name="android:navigationBarColor">#F7F4EE</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowNoTitle">true</item>
-    </style>
-
-    <style name="Theme.Ordia.QuickCapture" parent="android:style/Theme.Material.Light.Dialog.NoActionBar">
-        <item name="android:fontFamily">sans</item>
-        <item name="android:windowIsTranslucent">true</item>
-        <item name="android:windowCloseOnTouchOutside">true</item>
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:colorAccent">#111111</item>
-    </style>
-
-    <!-- Estilo para botones de la barra de candidatos del teclado -->
-    <style name="OrdiaCandidateButton" parent="android:style/Widget.Material.Button">
-        <item name="android:background">#111111</item>
-        <item name="android:textColor">#FFFFFF</item>
-        <item name="android:textSize">13sp</item>
-        <item name="android:padding">4dp</item>
-        <item name="android:minHeight">0dp</item>
-        <item name="android:minWidth">0dp</item>
-        <item name="android:gravity">center</item>
-        <item name="android:fontFamily">sans</item>
     </style>
 </resources>

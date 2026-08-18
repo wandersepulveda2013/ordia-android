@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="Theme.Ordia.Shortcut" parent="android:style/Theme.Translucent.NoTitleBar">
-        <item name="android:windowDisablePreview">true</item>
-        <item name="android:windowNoDisplay">true</item>
-    </style>
-</resources>

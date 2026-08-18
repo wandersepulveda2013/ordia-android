@@ -190,6 +190,10 @@ dependencies {
     // fuera del dispositivo y el flujo de backup (BackupManager) está construido
     // sobre JSONObject/JSONArray. Solo se usa en src/test (~72 KB).
     testImplementation("org.json:json:20231013")
+    testImplementation("androidx.test:core-ktx:1.6.1")
+    testImplementation("androidx.test.ext:junit:1.2.1")
+    testImplementation("androidx.room:room-testing:2.8.4")
+    testImplementation("org.robolectric:robolectric:4.14.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:core-ktx:1.6.1")
     androidTestImplementation("androidx.room:room-testing:2.8.4")
