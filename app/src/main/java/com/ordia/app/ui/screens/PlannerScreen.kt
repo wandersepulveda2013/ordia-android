@@ -90,6 +90,14 @@ fun PlannerScreen(
     onTask: (Long) -> Unit
 ) {
     var selectedEpochDay by rememberSaveable { mutableStateOf(LocalDate.now().toEpochDay()) }
+    // Anclaje y desplazamiento absoluto para la navegación mensual. Sin esto,
+    // navegar meses sobre la fecha YA clampeada del mes intermedio pierde el día
+    // original: 31-ene → 28-feb → 28-mar (el 31 se pierde al cruzar feb). Con
+    // anclaje, el cálculo parte siempre del día que el usuario eligió, así
+    // 31-ene +2 → 31-mar (contrato verificado en PlannerCalendarTest). El
+    // desplazamiento es absoluto desde el anclaje, no relativo mes a mes.
+    var monthAnchorEpochDay by rememberSaveable { mutableStateOf(LocalDate.now().toEpochDay()) }
+    var monthOffset by rememberSaveable { mutableStateOf(0) }
     var selectedViewName by rememberSaveable { mutableStateOf(PlannerView.DAY.name) }
     var adding by remember { mutableStateOf(false) }
     var showSuggestedPlan by remember { mutableStateOf(false) }
@@ -140,6 +148,28 @@ fun PlannerScreen(
 
     fun selectDate(date: LocalDate) {
         selectedEpochDay = date.toEpochDay()
+        // Elegir un día concreto (tap en la grilla, día de la semana, hoy, día
+        // nuevo) rearma el anclaje mensual: el día elegido es el nuevo punto
+        // de referencia y el desplazamiento absoluto vuelve a 0. Así, al volver
+        // a la vista mensual la navegación conserva ese día (no el que hubiera
+        // quedado clampeado de una navegación anterior).
+        monthAnchorEpochDay = date.toEpochDay()
+        monthOffset = 0
+    }
+
+    /**
+     * Avanza/retrocede el mes desde el ANCLAJE por un desplazamiento absoluto
+     * (no desde la fecha ya clampeada), preservando el día del anclaje cuando
+     * el mes objetivo lo permita. Contrato verificable en
+     * `PlannerCalendar.shiftMonthPreservingDay(anchor, offset)` (JVM). A
+     * diferencia de [selectDate], NO rearma el anclaje: actualiza solo el día
+     * seleccionado para que el desplazamiento absoluto se acumule navegando
+     * mes a mes sin perder el día original al cruzar meses cortos.
+     */
+    fun navigateMonth(delta: Int) {
+        monthOffset += delta
+        val anchor = LocalDate.ofEpochDay(monthAnchorEpochDay)
+        selectedEpochDay = PlannerCalendar.shiftMonthPreservingDay(anchor, monthOffset.toLong()).toEpochDay()
     }
 
     LaunchedEffect(selectedDate) {
@@ -190,24 +220,18 @@ fun PlannerScreen(
                 previousDescription = previousPeriodDescription(selectedView),
                 nextDescription = nextPeriodDescription(selectedView),
                 onPrevious = {
-                    selectDate(
-                        when (selectedView) {
-                            PlannerView.DAY -> selectedDate.minusDays(1)
-                            PlannerView.WEEK -> selectedDate.minusWeeks(1)
-                            PlannerView.MONTH, PlannerView.AGENDA ->
-                                PlannerCalendar.shiftMonthPreservingDay(selectedDate, -1)
-                        }
-                    )
+                    when (selectedView) {
+                        PlannerView.DAY -> selectDate(selectedDate.minusDays(1))
+                        PlannerView.WEEK -> selectDate(selectedDate.minusWeeks(1))
+                        PlannerView.MONTH, PlannerView.AGENDA -> navigateMonth(-1)
+                    }
                 },
                 onNext = {
-                    selectDate(
-                        when (selectedView) {
-                            PlannerView.DAY -> selectedDate.plusDays(1)
-                            PlannerView.WEEK -> selectedDate.plusWeeks(1)
-                            PlannerView.MONTH, PlannerView.AGENDA ->
-                                PlannerCalendar.shiftMonthPreservingDay(selectedDate, 1)
-                        }
-                    )
+                    when (selectedView) {
+                        PlannerView.DAY -> selectDate(selectedDate.plusDays(1))
+                        PlannerView.WEEK -> selectDate(selectedDate.plusWeeks(1))
+                        PlannerView.MONTH, PlannerView.AGENDA -> navigateMonth(1)
+                    }
                 },
                 onToday = { selectDate(LocalDate.now()) }
             )

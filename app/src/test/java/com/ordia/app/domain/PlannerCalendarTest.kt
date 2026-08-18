@@ -102,4 +102,56 @@ class PlannerCalendarTest {
         assertEquals(DayOfWeek.SATURDAY, week.last().dayOfWeek)
         assertTrue(date in week)
     }
+
+    // ── Contrato de navegación mensual estable (anclaje + desplazamiento absoluto) ──
+    // La UI de planificación NO debe aplicar shiftMonthPreservingDay sobre la fecha
+    // YA clampeada del mes intermedio: perdería el día original al cruzar un mes
+    // corto. Debe llevar el anclaje (el día que el usuario eligió) + un desplazamiento
+    // absoluto, y calcular el objetivo desde el anclaje. Estos tests fijan ese
+    // contrato verificable en JVM para que el cableado Compose (NO VERIFICADO) se
+    // apoye en una fuente de verdad probada.
+
+    @Test
+    fun absoluteMonthOffsetPreservesHighDayAcrossShortMonth() {
+        // 31-ene +2 meses (absoluto) → 31-mar: el mes intermedio (feb, 28 días) NO
+        // degrada el día si el cálculo parte del anclaje original.
+        val anchor = LocalDate.of(2026, 1, 31)
+
+        assertEquals(
+            LocalDate.of(2026, 3, 31),
+            PlannerCalendar.shiftMonthPreservingDay(anchor, 2)
+        )
+    }
+
+    @Test
+    fun relativeClampLosesDayButAbsoluteAnchorRecoversIt() {
+        // Contraste que justifica el fix de UI: el camino RELATIVO (clampear mes a
+        // mes desde la fecha ya clampeada) pierde el 31; el camino ABSOLUTO lo recupera.
+        val anchor = LocalDate.of(2026, 1, 31)
+        val feb = PlannerCalendar.shiftMonthPreservingDay(anchor, 1)   // 28-feb (clampeado)
+
+        // Relativo (lo que hace la UI hoy, bug): 28-feb +1 → 28-mar (día perdido)
+        assertEquals(LocalDate.of(2026, 3, 28), PlannerCalendar.shiftMonthPreservingDay(feb, 1))
+        // Absoluto (lo que la UI debe hacer): ancla +2 → 31-mar (recupera el 31)
+        assertEquals(LocalDate.of(2026, 3, 31), PlannerCalendar.shiftMonthPreservingDay(anchor, 2))
+    }
+
+    @Test
+    fun absoluteMonthOffsetPreservesEndOfMonthAcrossTwoShortMonths() {
+        // 30-ene → +2 (feb 28 / mar 30) → +3 (abr 30). Y 31-mar → +1 (abr 30, clampeado).
+        val anchor = LocalDate.of(2026, 1, 31)
+
+        assertEquals(LocalDate.of(2026, 2, 28), PlannerCalendar.shiftMonthPreservingDay(anchor, 1))
+        assertEquals(LocalDate.of(2026, 3, 31), PlannerCalendar.shiftMonthPreservingDay(anchor, 2))
+        assertEquals(LocalDate.of(2026, 4, 30), PlannerCalendar.shiftMonthPreservingDay(anchor, 3))
+        assertEquals(LocalDate.of(2026, 5, 31), PlannerCalendar.shiftMonthPreservingDay(anchor, 4))
+    }
+
+    @Test
+    fun absoluteMonthOffsetBackwardPreservesHighDayAcrossShortMonth() {
+        // 31-mar -2 (absoluto) → 31-ene, aunque feb intermedio tenga 28 días.
+        val anchor = LocalDate.of(2026, 3, 31)
+
+        assertEquals(LocalDate.of(2026, 1, 31), PlannerCalendar.shiftMonthPreservingDay(anchor, -2))
+    }
 }
