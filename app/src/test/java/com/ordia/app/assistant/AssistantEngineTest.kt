@@ -3198,6 +3198,42 @@ class AssistantEngineTest {
         assertTrue("cuenta 1: ${answer.text}", answer.text.contains("completaste 1"))
     }
 
+    @Test fun completedRecap_ultimoDiaDeLaSemana_notTreatedAsLastWeek() {
+        // Guard anti-falso-positivo de PARIDAD con la búsqueda: "el último día de
+        // la semana" habla del último DÍA de ESTA semana (p.ej. el domingo), NO de
+        // la semana pasada. SearchEngine deliberadamente EXCLUYE "ultimo"/
+        // "ultimos" de LAST_WEEK_TOKENS justo para no secuestrar esta frase hacia
+        // "semana pasada" (la semana es femenina: "última semana" sí es pasado;
+        // "último día de la semana" no). El asistente (c.611) usaba un superset
+        // único PAST_PERIOD_MODIFIERS para semana Y mes, así que "último" casaba
+        // en la rama de semana y la mentía por omisión: etiquetaba "La semana
+        // pasada" y excluía la tarea completada esta semana que el usuario pedía.
+        // Ahora la rama de semana usa el MISMO set que SearchEngine.LAST_WEEK
+        // (sin ultimo/ultimos) y la frase cae a "Esta semana", como la búsqueda.
+        val now = dayAt(dayToday, 15) // mié 2026-07-29 → esta semana 07-27..08-02
+        val thisWednesday = LocalDate.of(2026, 7, 29)
+        val done = listOf(completedTask(1, "Cerrado hoy", dayAt(thisWednesday, 9)))
+        val answer = AssistantEngine.answer("¿qué completé el último día de la semana?", done, emptyList(), emptyList(), now, dayZone)
+        assertFalse("no miente 'La semana pasada': ${answer.text}", answer.text.startsWith("La semana pasada"))
+        assertTrue("es esta semana: ${answer.text}", answer.text.startsWith("Esta semana"))
+        assertTrue("cuenta la de esta semana: ${answer.text}", answer.text.contains("completaste 1"))
+        assertTrue("nombra el logro: ${answer.text}", answer.text.contains("Cerrado hoy"))
+    }
+
+    @Test fun completedRecap_lastMonth_acceptsUltimoVariant() {
+        // Paridad con SearchEngine.LAST_MONTH: "el último mes" (plegado a
+        // "ultimo") SÍ es pasado — el mes es masculino, así que "último" es el
+        // modificador natural (a diferencia de la semana, donde "último día de
+        // la semana" no lo es). Se cubre que el split por período no rompa la
+        // rama masculina del mes.
+        val now = dayAt(dayToday, 15) // 2026-07-29 → mes pasado = junio
+        val done = listOf(completedTask(1, "Logro de junio", dayAt(LocalDate.of(2026, 6, 15), 9)))
+        val answer = AssistantEngine.answer("¿qué completé el último mes?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("etiqueta mes pasado: ${answer.text}", answer.text.startsWith("El mes pasado"))
+        assertTrue("cuenta 1: ${answer.text}", answer.text.contains("completaste 1"))
+        assertTrue("nombra el logro: ${answer.text}", answer.text.contains("Logro de junio"))
+    }
+
     @Test fun entityLookup_aQueHoraTengo_respondeHoraDelStartAt() {
         // «¿a qué hora tengo la reunión?» con un slot agendado (startAt 11:00 Sto.Dgo).
         val now = dayAt(dayToday, 9)

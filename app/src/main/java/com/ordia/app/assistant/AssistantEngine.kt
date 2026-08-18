@@ -511,8 +511,16 @@ object AssistantEngine {
         // Los modificadores de pasado ("pasada"/"última"…) se evalúan ANTES que el
         // "semana"/"mes" puro: "la semana pasada" debe ir al período anterior, no al
         // en curso (simétrico a SearchEngine LAST_WEEK/LAST_MONTH).
-        val pastWeek = "semana" in query && PAST_PERIOD_MODIFIERS.any { it in query }
-        val pastMonth = "mes" in query && PAST_PERIOD_MODIFIERS.any { it in query }
+        // Split por período, NO un superset único: la semana es femenina
+        // ("última semana" = pasado) pero "último día de la semana" NO lo es
+        // (habla del último DÍA de ESTA semana), así que "ultimo"/"ultimos" se
+        // excluyen de la rama de semana — exactamente como
+        // SearchEngine.LAST_WEEK_TOKENS, que los excluye a propósito. El mes sí
+        // los admite ("el último mes"), igual que SearchEngine.LAST_MONTH_TOKENS.
+        // Sin este split el asistente y la búsqueda discrepaban: "el último día
+        // de la semana" caía a "La semana pasada" y silenciaba el logro de hoy.
+        val pastWeek = "semana" in query && LAST_WEEK_RECAP_MODIFIERS.any { it in query }
+        val pastMonth = "mes" in query && LAST_MONTH_RECAP_MODIFIERS.any { it in query }
         val (label, inRange) = when {
             pastWeek -> {
                 val (s, e) = DateRules.calendarLastWeekRange(today)
@@ -1009,11 +1017,17 @@ object AssistantEngine {
     private val AGENDA_WEEKDAY_NEXT_MODIFIERS = setOf("proximo", "proximos", "proxima", "proximas", "viene", "siguiente", "siguientes", "posterior", "posteriores")
 
     // Modificadores de pasado para el recap de logros: "la semana pasada"/"el
-    // mes pasado"/"la última semana"/"el último mes". Coincide con
-    // SearchEngine.LAST_WEEK_TOKENS/LAST_MONTH_TOKENS, de modo que el recap del
-    // asistente y la búsqueda interpreten "semana pasada"/"mes pasado" igual: el
-    // asistente ya no cae a "esta semana" (mentira por omisión del logro previo).
-    private val PAST_PERIOD_MODIFIERS = setOf("pasada", "pasadas", "pasado", "pasados", "ultima", "ultimas", "ultimo", "ultimos")
+    // mes pasado"/"la última semana"/"el último mes". Espejo EXACTO por período
+    // de SearchEngine.LAST_WEEK_TOKENS/LAST_MONTH_TOKENS, de modo que el recap
+    // del asistente y la búsqueda interpreten "semana pasada"/"mes pasado" igual
+    // y nunca discrepen. La semana EXCLUYE "ultimo"/"ultimos" (la semana es
+    // femenina: "última semana" sí es pasado, pero "último día de la semana" no
+    // — habla del último día de ESTA semana); el mes los ADMITE (es masculino:
+    // "el último mes"). Sin este split por período, "el último día de la semana"
+    // caía a "La semana pasada" y silenciaba el logro de hoy (mentira por
+    // omisión introducida en c.611 por usar un superset único).
+    private val LAST_WEEK_RECAP_MODIFIERS = setOf("pasada", "pasadas", "pasado", "pasados", "ultima", "ultimas")
+    private val LAST_MONTH_RECAP_MODIFIERS = setOf("pasada", "pasadas", "pasado", "pasados", "ultima", "ultimas", "ultimo", "ultimos")
 
     /**
      * ¿La consulta pregunta por el fin de semana? "finde" (apócope coloquial) o
