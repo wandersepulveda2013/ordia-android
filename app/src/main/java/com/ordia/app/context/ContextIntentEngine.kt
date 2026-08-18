@@ -339,16 +339,26 @@ object ContextIntentEngine {
         Regex("""^pagar\s+\w""").containsMatchIn(lower)
 
     /**
-     * Imperativos de hogar inequívocos (c.638). Coincide con los verbos de
+     * Imperativos de hogar inequívocos (c.638, c.643). Coincide con los verbos de
      * [scoreSpecificPatterns] para HOUSEHOLD y el anclaje de [extractTitle]:
-     * "limpiar/lavar/cocinar/ordenar/arreglar/planchar/reparar <objeto>" al
-     * INICIO. El ancla `^` + `\s+\w` exige imperativo afirmativo inicial + objeto
-     * real: así "no limpiar la cocina" (negación, capta lo opuesto a la intención
-     * del usuario), "mañana no limpiar la cocina" (negación incrustada) y "limpiar"
-     * aislado (muletilla) NO activan el piso (c.616 anti-overreach).
+     * "<verbo> <objeto>". El `\b` + `\s+\w` exige verbo + objeto real en
+     * cualquier posición; el lookbehind `(?<!no )` bloquea la negación inmediata.
+     *
+     * c.643 cerró un olvido silencioso: el ancla `^` original de c.638 exigía el
+     * verbo al INICIO, así TODO imperativo del hogar con prefijo temporal
+     * ("mañana limpiar la cocina"/"hoy barrer el patio"/"el lunes regar las
+     * plantas") se descartaba — el supuesto "ya superan el umbral vía
+     * [extractDateTime]" era FALSO: el bono temporal no eleva la confianza por
+     * encima de [MINIMUM_CONFIDENCE] para ninguno de los 13 verbos. Quitar el
+     * ancla `^` admite prefijo temporal, verbo al inicio y verbo en mitad
+     * ("voy a limpiar la cocina"), todos legítimos. La negación sigue
+     * bloqueada: "no limpiar la cocina" y "mañana no limpiar la cocina"
+     * (`no ` precede al verbo → lookbehind falla) NO activan el piso
+     * (c.616 anti-overreach). El verbo aislado ("limpiar") sigue sin activar:
+     * exige `\s+\w` (objeto real). Determinista (regex), sin IA fingida.
      */
     private fun hasStrongHouseholdImperative(lower: String): Boolean =
-        Regex("""^(limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar)\s+\w""").containsMatchIn(lower)
+        Regex("""\b(?<!no )(limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar)\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de ejercicio inequívocos (c.639). Verbos de actividad física al
