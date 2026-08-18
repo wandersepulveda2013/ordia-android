@@ -278,14 +278,27 @@ object SensitiveSecretPatterns {
         """(?i)\b(?:curp|nss|ine|credencial\s+de\s+elector|n[uú]mero\s+de\s+seguro\s+social|seguro\s+social|pasaporte|licencia(?:\s+de\s+conducir)?|rfc|dni|nie|nif|cpf|cnpj|cuit|cuil|rut)\b"""
     )
     private val nssValue = Regex("""\b\d{11}\b""")
-    private val curpValue = Regex("""\b[A-Z]{4}\d{6}[A-Z0-9]{6}\d{2}\b""")
-    private val ineValue = Regex("""\b[A-Z0-9]{12,18}\b""")
-    private val passportLicenceValue = Regex("""\b[A-Z0-9]{6,12}\b""")
+    // c.569: las regex de VALOR de PII son case-insensitive, igual que la
+    // palabra-clave (`(?i)`) y que el IBAN (c.317). En chat casual un CURP/RFC/
+    // DNI/pasaporte se escribe a menudo en minúsculas ("mi curp es
+    // gome850101hdfrrn09") y antes escapaba, persistiéndose en texto plano.
+    // El anclaje por palabra-clave + la estructura/checksum siguen filtrando
+    // falsos positivos; IGNORE_CASE solo cierra la vía de escape en minúsculas
+    // (simétrica con la mayúscula). matchesDniNieLetter() ya uppercasea la
+    // letra para el módulo-23, así que la letra en minúscula es válida.
+    private val curpValue = Regex("""\b[A-Z]{4}\d{6}[A-Z0-9]{6}\d{2}\b""", RegexOption.IGNORE_CASE)
+    // INE/pasaporte/licencia: el lookahead `(?=[A-Za-z0-9]*\d)` exige al menos
+    // un dígito dentro del token, para que IGNORE_CASE no haga casar palabras
+    // puramente alfabéticas del español ("viernes", "próximasemana") tras la
+    // palabra-clave. Todo INE/pasaporte/licencia real lleva dígitos, así que no
+    // pierde cobertura y sí elimina falsos positivos conversacionales.
+    private val ineValue = Regex("""\b(?=[A-Za-z0-9]*\d)[A-Z0-9]{12,18}\b""", RegexOption.IGNORE_CASE)
+    private val passportLicenceValue = Regex("""\b(?=[A-Za-z0-9]*\d)[A-Z0-9]{6,12}\b""", RegexOption.IGNORE_CASE)
     // RFC mexicano: persona moral = 3 letras + 6 dígitos + 3 homoclave (12);
     // persona física = 4 letras + 6 dígitos + 3 homoclave (13). El `\b` final
     // impide casar un substring dentro de un CURP (18 chars): tras 3 alfanum
     // el siguiente char de un CURP sigue siendo word-char → no hay boundary.
-    private val rfcValue = Regex("""\b[A-Z&]{3,4}\d{6}[A-Z0-9]{3}\b""")
+    private val rfcValue = Regex("""\b[A-Z&]{3,4}\d{6}[A-Z0-9]{3}\b""", RegexOption.IGNORE_CASE)
 
     // DNI/NIE espanol (c.315). DNI: 8 digitos + letra de control. NIE:
     // X/Y/Z + 7 digitos + letra (la X/Y/Z se reemplaza por 0/1/2 para el
@@ -294,8 +307,9 @@ object SensitiveSecretPatterns {
     // matchesDniNieLetter() es el desambiguador de precision: una secuencia
     // "12345678X" con letra incorrecta no es un DNI y no se bloquea. La regex
     // admite cualquier letra mayuscula y deja que el modulo-23 descarte los
-    // invalidos (I, N-tilde, O, U no aparecen en la tabla).
-    private val dniNieValue = Regex("""\b(?:[XYZ]\d{7}|\d{8})[A-Z]\b""")
+    // invalidos (I, N-tilde, O, U no aparecen en la tabla). c.569: IGNORE_CASE
+    // para que una letra en minuscula (chat casual "12345678z") no escape.
+    private val dniNieValue = Regex("""\b(?:[XYZ]\d{7}|\d{8})[A-Z]\b""", RegexOption.IGNORE_CASE)
     private val dniControlLetters = "TRWAGMYFPDXBNJZSQVHLCKE"
 
     /**
