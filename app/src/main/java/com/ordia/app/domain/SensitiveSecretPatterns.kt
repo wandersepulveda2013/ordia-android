@@ -47,8 +47,13 @@ object SensitiveSecretPatterns {
         Regex("""\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"""),
         // Google API key (AIza + 35 base64url).
         Regex("""\bAIza[0-9A-Za-z_-]{35}\b"""),
-        // Slack tokens (xoxa- app / xoxb- bot / xoxp- user + 20+).
-        Regex("""\bxox[abp]-[0-9A-Za-z-]{20,}\b"""),
+        // Slack tokens (xoxa- app / xoxb- bot / xoxp- user / xoxe- exchange /
+        // xoxr- refresh + 20+). c.625: xoxe (exchange) y xoxr (refresh) son las
+        // credenciales de la rotación de tokens OAuth de Slack (2023+): un refresh
+        // filtrado permite acuñar tokens de acceso nuevos, así que son tan
+        // sensibles como xoxb/xoxp/xoxa. El patrón legacy `xox[abp]-` los dejaba
+        // escapar y se persistían en texto plano.
+        Regex("""\bxox[abper]-[0-9A-Za-z-]{20,}\b"""),
         // GitHub PATs (ghp/gho/ghu/ghs/ghr/github_pat + 20+).
         Regex("""\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{20,}\b"""),
         // GitLab PATs (glpat- + 20+).

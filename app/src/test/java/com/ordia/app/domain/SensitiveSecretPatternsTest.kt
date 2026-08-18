@@ -167,6 +167,24 @@ class SensitiveSecretPatternsTest {
         ) })
     }
 
+    // ── Slack tokens de rotación OAuth (c.625) ──────────────────────────────
+    // xoxe- (exchange) y xoxr- (refresh) son credenciales reales de la rotación
+    // de tokens de Slack (2023+): un refresh filtrado permite acuñar tokens de
+    // acceso nuevos. El patrón legacy `xox[abp]-` (bot/user/app) NO los cubría,
+    // así que se persistían en texto plano. Paridad con el resto de credenciales.
+
+    @Test fun slackExchangeTokenIsBlocked() {
+        assertTrue(SensitiveSecretPatterns.patterns.any { it.containsMatchIn(
+            "token xoxe-1234567890123-abcdefghijklmnopqrstuvwxyz"
+        ) })
+    }
+
+    @Test fun slackRefreshTokenIsBlocked() {
+        assertTrue(SensitiveSecretPatterns.patterns.any { it.containsMatchIn(
+            "refresh xoxr-1234567890123-abcdefghijklmnopqrstuvwxyz"
+        ) })
+    }
+
     @Test fun innocuousTextIsNotBlocked() {
         // Frase legítima sin credencial ni PII: no debe disparar ningún gate.
         assertFalse(SensitiveSecretPatterns.containsPersonalIdentifier("comprar pan y leche mañana"))
