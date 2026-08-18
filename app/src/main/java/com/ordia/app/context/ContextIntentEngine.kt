@@ -221,6 +221,27 @@ object ContextIntentEngine {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
+        // Piso simétrico para imperativos de HOGAR inequívocos (c.638): "limpiar/
+        // lavar/cocinar/ordenar/arreglar/planchar/reparar <objeto>" al INICIO es una
+        // tarea del hogar clara con independencia de pistas temporales. Sin este
+        // piso, "limpiar la cocina"/"lavar los platos"/"cocinar la cena"/"arreglar
+        // el grifo"/"planchar las camisas" quedaban en 0.27 (< [MINIMUM_CONFIDENCE])
+        // y se DESCARTABAN: el usuario capturaba una tarea del hogar real y Ordía
+        // la olvidaba. La vía manual ([UniversalCaptureEngine]) SÍ promovía estos
+        // verbos a TASK (c.583), así que la asimetría pasiva↔manual era una rendija
+        // de olvido P1, misma clase que c.626 (compra) y c.630 (pago). El contenido
+        // dañino genuino ya fue bloqueado en el paso 1 ([ContextPrivacyFilter]) o
+        // en el paso 3 (insultos), así que llegar aquí es contenido permitido. El
+        // ancla `^` + `\s+\w` exige imperativo AFIRMATIVO al inicio + objeto real:
+        // así "no limpiar la cocina" (negación, capta lo opuesto a la intención del
+        // usuario), "mañana no limpiar la cocina" (negación incrustada) y "limpiar"
+        // aislado (muletilla) NO activan el piso (c.616 anti-overreach). Los casos
+        // afirmativos con ancla temporal ("mañana limpiar la cocina") ya superan
+        // el umbral vía [extractDateTime].
+        if (kind == ContextIntentKind.HOUSEHOLD && hasStrongHouseholdImperative(lower)) {
+            score = maxOf(score, MINIMUM_CONFIDENCE)
+        }
+
         return score.coerceIn(0f, 1f)
     }
 
@@ -272,6 +293,18 @@ object ContextIntentEngine {
      */
     private fun hasStrongPaymentImperative(lower: String): Boolean =
         Regex("""^pagar\s+\w""").containsMatchIn(lower)
+
+    /**
+     * Imperativos de hogar inequívocos (c.638). Coincide con los verbos de
+     * [scoreSpecificPatterns] para HOUSEHOLD y el anclaje de [extractTitle]:
+     * "limpiar/lavar/cocinar/ordenar/arreglar/planchar/reparar <objeto>" al
+     * INICIO. El ancla `^` + `\s+\w` exige imperativo afirmativo inicial + objeto
+     * real: así "no limpiar la cocina" (negación, capta lo opuesto a la intención
+     * del usuario), "mañana no limpiar la cocina" (negación incrustada) y "limpiar"
+     * aislado (muletilla) NO activan el piso (c.616 anti-overreach).
+     */
+    private fun hasStrongHouseholdImperative(lower: String): Boolean =
+        Regex("""^(limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar)\s+\w""").containsMatchIn(lower)
 
     /**
      * Patrones específicos por tipo de intención.
@@ -535,7 +568,9 @@ object ContextIntentEngine {
                 null
             }
             ContextIntentKind.HOUSEHOLD -> {
-                val match = Regex("""(limpiar|ordenar|cocinar|lavar|arreglar|reparar) (.+)""", RegexOption.IGNORE_CASE).find(original)
+                // Verbos alineados con [hasStrongHouseholdImperative] (c.638) para que
+                // el piso no capture un verbo cuyo título luego no se forme limpio.
+                val match = Regex("""(limpiar|ordenar|cocinar|lavar|arreglar|planchar|reparar) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return "${capitalizeFirst(match.groupValues[1])} ${match.groupValues[2]}"
                 null
             }
