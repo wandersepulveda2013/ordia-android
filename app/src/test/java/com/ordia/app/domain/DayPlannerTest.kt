@@ -526,6 +526,62 @@ class DayPlannerTest {
     }
 
     @Test
+    fun fixedCommitmentReservesItsSlotWorkIsScheduledAroundNotOnTop() {
+        // Un compromiso FIJO del día (reunión con `startAt` hoy y SIN `dueAt`) no es
+        // candidato del plan (no vence hoy, no está en bandeja, su hueco es futuro):
+        // el planificador no debe reasignarlo, PERO tampoco debe agendar trabajo
+        // ENCIMA de su hora. Antes el cursor avanzaba linealmente y colocaba la
+        // siguiente tarea solapando la reunión, produciendo un plan irrealizable
+        // que, al aplicar (PLAN_DAY/UI), pisaba el compromiso agendado. La
+        // inteligencia honesta: el plan respeta el hueco fijo y rodea la reunión.
+        val today = LocalDate.of(2026, 7, 29)
+        val now = DateRules.toEpochMillis(today, LocalTime.of(8, 0), zone)
+        val meeting = TaskEntity(
+            id = 1, title = "Reunión 11:00", durationMinutes = 60,
+            startAt = DateRules.toEpochMillis(today, LocalTime.of(11, 0), zone)
+        )
+        // 150 min: 9:00-11:30 SOLAPA la reunión de 11:00 → debe desplazarse.
+        val work = TaskEntity(id = 2, title = "Trabajo", durationMinutes = 150, priority = TaskPriority.URGENT)
+
+        val plan = DayPlanner.build(
+            listOf(meeting, work), today, 9 * 60, 18 * 60,
+            breakMinutes = 0, now = now, zone = zone
+        )
+
+        // El trabajo (urgente) arranca a las 9:00; su bloque de 150 min llegaría
+        // hasta las 11:30, solapando la reunión de 11:00. No debe pisarla: se
+        // desplaza al fin de la reunión (12:00-14:30).
+        val workBlock = plan.blocks.first { it.taskId == 2L }
+        assertEquals(12 * 60, workBlock.startMinute)
+        assertEquals(12 * 60 + 150, workBlock.endMinute)
+        // La reunión no genera bloque (es fija, no candidata): sólo el trabajo.
+        assertEquals(1, plan.blocks.size)
+    }
+
+    @Test
+    fun workFitsBeforeFixedCommitmentIsNotPushed() {
+        // Si el trabajo CABE antes de la reunión, se coloca ahí sin desplazarse:
+        // el plan respeta el compromiso pero no inventa huecos innecesarios.
+        val today = LocalDate.of(2026, 7, 29)
+        val now = DateRules.toEpochMillis(today, LocalTime.of(8, 0), zone)
+        val meeting = TaskEntity(
+            id = 1, title = "Reunión 11:00", durationMinutes = 60,
+            startAt = DateRules.toEpochMillis(today, LocalTime.of(11, 0), zone)
+        )
+        val work = TaskEntity(id = 2, title = "Trabajo corto", durationMinutes = 90, priority = TaskPriority.URGENT)
+
+        val plan = DayPlanner.build(
+            listOf(meeting, work), today, 9 * 60, 18 * 60,
+            breakMinutes = 0, now = now, zone = zone
+        )
+
+        val workBlock = plan.blocks.first { it.taskId == 2L }
+        // 9:00-10:30 cabe antes de la reunión de 11:00: se queda ahí.
+        assertEquals(9 * 60, workBlock.startMinute)
+        assertEquals(10 * 60 + 30, workBlock.endMinute)
+    }
+
+    @Test
     fun futureScheduledTaskStillLabeledScheduledTime() {
         // Una tarea con startAt FUTURO (hueco aún por llegar) que entra al plan
         // por includeScheduledOnDate sigue siendo SCHEDULED_TIME: la distinción

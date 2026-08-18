@@ -142,6 +142,39 @@ object DayPlanner {
             .toList()
 
         val tasksById = candidates.associateBy { it.id }
+        val candidateIds = candidates.mapTo(HashSet()) { it.id }
+        // Compromisos FIJOS del día: tareas con `startAt` en `date` que el plan NO
+        // reasigna (no son candidatas). El planificador no debe moverlas, PERO
+        // tampoco debe agendar trabajo ENCIMA de su hora: un plan que coloca una
+        // tarea de 2 h a las 10:00 solapando una reunión de 11:00 es irrealizable y,
+        // al aplicarlo (PLAN_DAY/UI), pisaba el compromiso agendado. Aquí se
+        // registran como intervalos ocupados para que el cursor los RODEE.
+        //
+        // Sólo las NO candidatas: una tarea agendada hoy que SÍ es candidata (vence
+        // hoy / includeScheduledOnDate / missed-start recuperable) la RE-coloca el
+        // plan y se marca como conflicto MOVED_FROM_SCHEDULED_TIME, así su hora
+        // original no se reserva (se libera para reubicarla). Las fijas (pura
+        // reunión sin vencimiento, o recurrente sagrada) se quedan en su slot: su
+        // hora sí bloquea el cursor. Raíces y recurrentes, igual que el filtro de
+        // candidatas; la duración ocupada es [plannedDuration] (misma fuente que el
+        // resto del plan). El fin se acota al día: una reunión que se alarga pasada
+        // la jornada bloquea hasta dayEnd, no más allá. (c.556)
+        val busyIntervals = tasks.asSequence()
+            .filter { TaskRules.isActive(it) && it.parentTaskId == null }
+            .filter { it.id !in candidateIds }
+            .mapNotNull { task ->
+                val start = task.startAt ?: return@mapNotNull null
+                val startZ = Instant.ofEpochMilli(start).atZone(zone)
+                if (startZ.toLocalDate() != date) return@mapNotNull null
+                val startMinute = startZ.hour * 60 + startZ.minute
+                if (startMinute >= dayEndMinute) return@mapNotNull null
+                val endMinute = minOf(dayEndMinute, startMinute + TaskRules.plannedDuration(task))
+                if (endMinute <= effectiveStart) return@mapNotNull null
+                startMinute to endMinute
+            }
+            .sortedBy { it.first }
+            .toList()
+
         val blocks = mutableListOf<Block>()
         val unscheduled = mutableListOf<Long>()
         // Si el inicio efectivo cae en o después del fin del día, ya no hay ventana
@@ -156,8 +189,19 @@ object DayPlanner {
                 // c.240 de SummaryEngine). Para el resto equivale a plannedDuration.
                 val duration = TaskRules.remainingPlanMinutes(task, now)
                 val gap = if (blocks.isEmpty()) 0 else breakMinutes
-                val proposedStart = cursor + gap
-                val proposedEnd = proposedStart + duration
+                // Resuelve solapes con compromisos fijos: si el bloque propuesto cae
+                // encima de una reunión, se desplaza al fin de esa reunión y se
+                // recomprueba (puede haber varios fijos seguidos). Si tras saltar no
+                // cabe en el día, la tarea queda no agendada. No añade hueco extra:
+                // el break es entre bloques de trabajo, no transición evento→tarea.
+                var proposedStart = cursor + gap
+                var proposedEnd = proposedStart + duration
+                while (true) {
+                    val hit = busyIntervals.firstOrNull { it.first < proposedEnd && it.second > proposedStart }
+                    if (hit == null) break
+                    proposedStart = hit.second
+                    proposedEnd = proposedStart + duration
+                }
                 if (proposedEnd <= dayEndMinute) {
                     blocks += Block(
                         taskId = task.id,
