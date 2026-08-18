@@ -816,7 +816,8 @@ class SearchEngineDateScopeTest {
             tasks = listOf(task),
             projects = listOf(ProjectEntity(id = 2, name = "Proyecto lunes")),
             notes = listOf(NoteEntity(id = 3, title = "Nota lunes", body = "")),
-            habits = emptyList()
+            habits = emptyList(),
+            now = t0
         )
         val kinds = results.map { it.kind }.toSet()
         assertEquals(setOf(SearchKind.TASK), kinds)

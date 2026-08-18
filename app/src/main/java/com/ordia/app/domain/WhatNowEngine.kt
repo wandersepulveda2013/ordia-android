@@ -22,7 +22,23 @@ enum class WhatNowReason {
 /** Resultado de "¿Qué hago ahora?": la tarea más importante para este momento. */
 data class WhatNowSuggestion(
     val task: TaskEntity,
-    val reason: WhatNowReason
+    val reason: WhatNowReason,
+    /**
+     * Minutos aproximados hasta la SIGUIENTE cita agendada (la tarea raíz
+     * activa con `startAt` futuro más próxima que NO es la sugerida). Null
+     * cuando no hay ninguna, o cuando la propia sugerencia es esa cita (ya
+     * empieza enseguida / está en curso: no aportaría nada repetirlo).
+     *
+     * Contexto honesto y determinista (no IA): "¿qué hago ahora?" gana una
+     * segunda pista —"te quedan ~20 min hasta tu reunión de las 15:00"— para
+     * que el usuario elija una tarea que QUEPA en ese hueco en vez de arrancar
+     * algo que la cita interrumpirá. Potencia sin nueva pantalla/botón: la
+     * tarjeta ya existe, sólo añade una línea secundaria cuando de verdad
+     * ayuda (hay un compromiso cercano y no es la sugerida). Se acota a un
+     * horizonte razonable para no invitar a planificar lejos desde "ahora".
+     * Fuente única de verdad: `startAt` de las propias tareas activas.
+     */
+    val minutesUntilNextCommitment: Int? = null
 )
 
 /**
@@ -43,13 +59,16 @@ data class WhatNowSuggestion(
  */
 object WhatNowEngine {
 
+    /** Horizonte (min) hasta el que se muestra "te quedan N min hasta tu próxima cita". */
+    private const val NEXT_COMMITMENT_WINDOW_MINUTES = 4 * 60
+
     fun suggest(
         tasks: List<TaskEntity>,
         now: Long = System.currentTimeMillis(),
         zone: ZoneId = ZoneId.systemDefault()
     ): WhatNowSuggestion? {
         val chosen = ordered(tasks, now, zone).firstOrNull() ?: return null
-        return WhatNowSuggestion(chosen, reason(chosen, now, zone))
+        return WhatNowSuggestion(chosen, reason(chosen, now, zone), minutesUntilNextCommitment(tasks, chosen, now))
     }
 
     /**
@@ -139,4 +158,31 @@ object WhatNowEngine {
 
     private fun isScheduledLater(task: TaskEntity, now: Long): Boolean =
         task.startAt != null && task.startAt > now
+
+    /**
+     * Minutos hasta la siguiente cita agendada (raíz activa con `startAt`
+     * futuro) que NO sea [suggested]. Devuelve null si no hay ninguna en los
+     * próximos [NEXT_COMMITMENT_WINDOW_MINUTES], o si la única cita cercana es
+     * la propia [suggested] (ya es la sugerencia: repetir "te queda X hasta
+     * ella" no aporta nada). Raíces, igual que [ordered]/[isCandidate]: las
+     * subtareas anidadas no son "citas" del usuario. Determinista, sin random.
+     */
+    private fun minutesUntilNextCommitment(
+        tasks: List<TaskEntity>,
+        suggested: TaskEntity,
+        now: Long
+    ): Int? {
+        val nextStart = tasks
+            .asSequence()
+            .filter { TaskRules.isActive(it) && it.parentTaskId == null && it.id != suggested.id }
+            .mapNotNull { it.startAt }
+            .filter { it > now }
+            .minOrNull()
+            ?: return null
+        val minutes = ((nextStart - now) / 60_000L).toInt()
+        // Redondea a múltiplo de 5 min: la cifra es orientativa ("≈N min"),
+        // no un cronómetro exacto; evitar precisión falsa es más honesto.
+        val rounded = (minutes / 5) * 5
+        return if (rounded in 1..NEXT_COMMITMENT_WINDOW_MINUTES) rounded else null
+    }
 }

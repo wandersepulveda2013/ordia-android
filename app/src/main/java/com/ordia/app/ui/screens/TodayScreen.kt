@@ -286,8 +286,12 @@ fun TodayScreen(
                         Text(stringResource(R.string.what_now_eyebrow), style = MaterialTheme.typography.labelSmall)
                         Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         whatNow?.let {
+                            val reason = whatNowReasonLabel(it.reason)
+                            val ctx = it.minutesUntilNextCommitment?.let { m ->
+                                stringResource(R.string.what_now_next_commitment, m)
+                            }
                             Text(
-                                whatNowReasonLabel(it.reason),
+                                if (ctx == null) reason else "$reason · $ctx",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

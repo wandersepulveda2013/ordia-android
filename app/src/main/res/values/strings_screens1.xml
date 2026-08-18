@@ -21,6 +21,8 @@
     <string name="what_now_reason_scheduled_later">Programada para más tarde</string>
     <string name="what_now_empty">No hay nada pendiente ahora. Bien hecho.</string>
     <string name="what_now_open">Abrir</string>
+    <!-- Contexto honesto de "¿qué hago ahora?": hueco hasta la próxima cita. -->
+    <string name="what_now_next_commitment">Te quedan ≈%1$d min hasta tu próxima cita</string>
 
     <!-- Resumen de hoy (SummaryEngine, BLOQUE 8) -->
     <string name="summary_completed_pending">%1$d completadas · %2$d para hoy</string>

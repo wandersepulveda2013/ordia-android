@@ -595,4 +595,151 @@ class WhatNowEngineTest {
         assertTrue(label.contains("bandeja"))
     }
 
+    // --- c.551: contexto "te quedan ~N min hasta tu próxima cita" ---
+
+    /**
+     * Cuando lo sugerido es una tarea del inbox y hay una cita agendada a 20 min,
+     * What Now aporta el contexto: 20 min (redondeado a 5) hasta esa cita.
+     * Ayuda a elegir una tarea que quepa en el hueco en vez de arrancar algo
+     * que la cita interrumpirá. Determinista, no IA.
+     */
+    @Test
+    fun contextMinutesUntilNextCommitmentWhenFutureCitationExists() {
+        val inbox = task(1, "Idea").copy(createdAt = now)
+        val meeting = task(2, "Reunión").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 20), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(inbox, meeting), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(20, suggestion.minutesUntilNextCommitment)
+    }
+
+    /** Sin ninguna cita futura, no hay contexto que aportar → null (sin ruido). */
+    @Test
+    fun contextMinutesUntilNextCommitmentNullWhenNoFutureStart() {
+        // Una atrasada (rank 4) gana la sugerencia; no aporta startAt futuro →
+        // no hay "próxima cita" → null. Lo que se verifica es el contexto, no quién gana.
+        val urgent = task(1, "Urgente", TaskPriority.URGENT)
+        val overdue = task(2, "Atrasada")
+            .copy(dueAt = DateRules.toEpochMillis(date.minusDays(1), LocalTime.of(18, 0), zone))
+
+        val suggestion = WhatNowEngine.suggest(listOf(urgent, overdue), now = now, zone = zone)
+
+        assertNull(suggestion!!.minutesUntilNextCommitment)
+    }
+
+    /**
+     * Si la propia sugerencia ES la cita más cercana (p. ej. inminente/programada
+     * y no hay nada más urgente que la eleve a primera), no se repite "te queda
+     * X hasta ella": null. La sugerencia ya es esa cita.
+     */
+    @Test
+    fun contextMinutesNullWhenSuggestedTaskIsTheNextCommitment() {
+        val meeting = task(1, "Reunión").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 20), zone)
+        )
+        // Sin inbox/urgente que la supere: la cita programada para HOY temprano
+        // es la candidata (startAt futuro cercano). No hay OTRA cita, y aunque la
+        // hubiera, la sugerida se excluye de su propio conteo.
+        val suggestion = WhatNowEngine.suggest(listOf(meeting), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertNull(suggestion.minutesUntilNextCommitment)
+    }
+
+    /** Entre varias citas futuras, queda la MÁS próxima (mínimo startAt). */
+    @Test
+    fun contextMinutesUsesSoonestFutureCommitment() {
+        // Urgente sin fechas (rank 2) gana la sugerencia; dos citas programadas
+        // (rank -1, "más tarde") compiten como "próxima cita" → gana la cercana.
+        val urgent = task(1, "Urgente", TaskPriority.URGENT)
+        val soon = task(2, "Próxima").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 30), zone)
+        )
+        val later = task(3, "Lejana").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(11, 30), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(urgent, soon, later), now = now, zone = zone)
+
+        // Sugerencia = urgente (rank superior); contexto = cita más cercana (30 min).
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(30, suggestion.minutesUntilNextCommitment)
+    }
+
+    /**
+     * Las subtareas (parentTaskId != null) NO son "citas" del usuario: aunque
+     * tengan startAt futuro, no deben contar como próxima cita (paridad con
+     * [isCandidate]/ordered, que sólo consideran raíces). Aquí la única cita
+     * "futura" es una subtarea → null.
+     */
+    @Test
+    fun contextMinutesIgnoresSubtasksAsCommitments() {
+        val inbox = task(1, "Idea").copy(createdAt = now)
+        val subtask = task(2, "Subtarea cita").copy(
+            parentTaskId = 99L,
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 20), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(inbox, subtask), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertNull(suggestion.minutesUntilNextCommitment)
+    }
+
+    /**
+     * Fuera del horizonte útil (más de 4 h) no se muestra: desde "¿qué hago
+     * ahora?" una cita dentro de 5 h no cambia la decisión inmediata y sólo
+     * añadiría ruido → null. Evita invitar a planificar lejos desde esta tarjeta.
+     */
+    @Test
+    fun contextMinutesNullBeyondUsefulHorizon() {
+        val inbox = task(1, "Idea").copy(createdAt = now)
+        val farMeeting = task(2, "Reunión lejana").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(15, 30), zone) // 5h30
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(inbox, farMeeting), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertNull(suggestion.minutesUntilNextCommitment)
+    }
+
+    /**
+     * Redondeo honesto a múltiplo de 5: 22 min reales → 20. La cifra es
+     * orientativa ("≈N min"), no un cronómetro; la precisión falsa molesta.
+     */
+    @Test
+    fun contextMinutesRoundedToFiveForHonesty() {
+        val inbox = task(1, "Idea").copy(createdAt = now)
+        val meeting = task(2, "Reunión").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 22), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(inbox, meeting), now = now, zone = zone)
+
+        assertEquals(20, suggestion!!.minutesUntilNextCommitment)
+    }
+
+    /**
+     * Una cita en el pasado (startAt ya ocurrido, p. ej. missed-start) NO es
+     * "próxima cita": ya empezó. No debe contar → aquí la única startAt es
+     * pasada, así que null (la tarea missed-start puede ser la sugerida, pero
+     * su hueco ya pasó y no aporta "te queda X hasta ella").
+     */
+    @Test
+    fun contextMinutesExcludesPastStartAt() {
+        val missed = task(1, "Se me pasó").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(8, 0), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(missed), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertNull(suggestion.minutesUntilNextCommitment)
+    }
+
 }
