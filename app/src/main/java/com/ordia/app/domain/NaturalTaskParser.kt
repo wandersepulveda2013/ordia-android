@@ -4967,6 +4967,23 @@ object NaturalTaskParser {
             // huérfano al final del título (más abajo, simétrica a la de "para"/"el" de
             // c.497 y al genitivo de c.493).
             .replace(Regex("""(?i)\bpara\s+ma[nñ]ana\b"""), " ")
+            // c.574: modismos adverbiales de prioridad "primero que nada" / "antes que
+            // nada" ("first of all / first thing") son puro énfasis, SIN semántica de
+            // fecha/hora ni de contenido: sobrevivían íntegros como residuo del título
+            // en TODA posición ("reunión mañana primero que nada" → "reunión primero que
+            // nada", "primero que nada pagar la luz" → título entero contaminado con el
+            // modismo de prefijo, "reunión antes que nada mañana" → "reunión antes que
+            // nada"). Muy cotidianos en español; degradan la captura del título (P1:
+            // título limpio / captura ultrarrápida). Se eliminan INCONDICIONALMENTE (no
+            // llevan fecha ni hora, así que no interfieren con el parseo y no requieren
+            // el guard `dueAt != null` de los conectores huérfanos). El "que nada" los
+            // delimita sin ambigüedad: NO se toca "primero de mes" (fecha = día 1, ya
+            // resuelto arriba), "primer lunes del mes" (ordinal+weekday), "lo primero
+            // que haré" / "lo primero de la lista" ("lo primero" = contenido legítimo,
+            // sin "que nada") ni "para empezar" (ambiguo: idiomático sólo ante verbo,
+            // contenido ante sustantivo: "para empezar el proyecto"). \b y la secuencia
+            // literal "que nada" evitan colisiones con subcadenas legítimas.
+            .replace(Regex("""(?i)\b(?:primero|antes)\s+que\s+nada\b"""), " ")
             // El verbo de recordatorio sin cantidad ("recuérdame", "avísame",
             // "no dejes que olvide") expresa intención de aviso, no contenido; se
             // elimina del título. Se hace aquí (tras consumir fechas/horas) para no
