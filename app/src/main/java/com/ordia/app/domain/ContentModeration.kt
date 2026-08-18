@@ -158,7 +158,16 @@ object ContentModeration {
                 Regex("""\bmatar\s+(el|la|los|las|un|una)?\s*(proceso|hilo|servicio|servidor|demonio|sesi[oó]n|tarea|job|zombie)\b"""),
                 Regex("""\bmatar\s+(el|la|los|las)\s+(hambre|tiempo|ganas|aburrimiento|sed|sue[nñ]o|rabia|enojo|ansiedad|estr[eé]s|dolor|cansa(?:d|c)io|curiosidad)\b"""),
                 Regex("""\bviolar(?:on|[éeo]|a|as|an)?\s+(la|el|una|un|las|los)?\s*(pol[ií]tica|contrato|licencia|restricci[oó]n|norma|ley|clausula|cl[áa]usula|t[ée]rminos?)\b"""),
-                Regex("""\b(modelo|m[oó]delo)\s+de\s+amenaza\b"""),
+                // c.645: `amenazas?` (plural opcional) sin `\b` final tras la 'a'.
+                // PRE-fix el contain `\b...amenaza\b` mataba el PLURAL "amenazas"
+                // (forma ESTÁNDAR de ingeniería de seguridad: "modelo de amenazas",
+                // "modelo de amenazas STRIDE") → "hacer el modelo de amenazas del
+                // API" se false-bloqueaba (P1 captura técnica legítima rechazada).
+                // Mismo anti-patrón de clase que c.641/c.642/c.644 (`\b` final mata la
+                // flexión de número), aquí en el eje singular/plural del sustantivo.
+                // `amenazas?` casa ambas formas; "modelo de amenazas" es
+                // inherentemente técnico, sin lectura dañina que disimular.
+                Regex("""\b(modelo|m[oó]delo)\s+de\s+amenazas?\b"""),
                 Regex("""\bamenaza(?:s)?\s+(de)?\s*(de\s+integridad|de\s+seguridad|de\s+modelo)\b"""),
                 Regex("""\b(bomba[ns]?|pistola[ns]?|escopeta[ns]?)\s+de\s+agua\b"""),
                 Regex("""\b(matar|asesinar)\s+(un|el)\s+proceso\b""")

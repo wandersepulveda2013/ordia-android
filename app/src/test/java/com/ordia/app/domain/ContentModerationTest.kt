@@ -48,7 +48,8 @@ class ContentModerationTest {
             Regex("""\bmatar\s+(el|la|los|las|un|una)?\s*(proceso|hilo|servicio|servidor|demonio|sesi[oó]n|tarea|job|zombie)\b"""),
             Regex("""\bmatar\s+(el|la|los|las)\s+(hambre|tiempo|ganas|aburrimiento|sed|sue[nñ]o|rabia|enojo|ansiedad|estr[eé]s|dolor|cansa(?:d|c)io|curiosidad)\b"""),
             Regex("""\bviolar(?:on|[éeo]|a|as|an)?\s+(la|el|una|un|las|los)?\s*(pol[ií]tica|contrato|licencia|restricci[oó]n|norma|ley|clausula|cl[áa]usula|t[ée]rminos?)\b"""),
-            Regex("""\b(modelo|m[oó]delo)\s+de\s+amenaza\b"""),
+            // c.645: `amenazas?` (plural opcional) — espeja a producción.
+            Regex("""\b(modelo|m[oó]delo)\s+de\s+amenazas?\b"""),
             Regex("""\bamenaza(?:s)?\s+(de)?\s*(de\s+integridad|de\s+seguridad|de\s+modelo)\b"""),
             Regex("""\b(bomba[ns]?|pistola[ns]?|escopeta[ns]?)\s+de\s+agua\b"""),
             Regex("""\b(matar|asesinar)\s+(un|el)\s+proceso\b""")
@@ -123,6 +124,27 @@ class ContentModerationTest {
 
     @Test fun modeloDeAmenaza_noEsDanino() {
         assertFalse(violentHarmful("hacer el modelo de amenaza del nuevo módulo"))
+    }
+
+    // c.645: PRE-fix el contain `\b...amenaza\b` mataba el PLURAL "amenazas"
+    // (forma estándar de ingeniería de seguridad). La captura de esa nota
+    // técnica legítima se rechazaba (falso-positivo P1 datos).
+    @Test fun modeloDeAmenazas_plural_noEsDanino() {
+        assertFalse(violentHarmful("hacer el modelo de amenazas del API"))
+    }
+
+    @Test fun modeloDeAmenazas_stride_noEsDanino() {
+        assertFalse(violentHarmful("el modelo de amenazas STRIDE del módulo"))
+    }
+
+    @Test fun modeloDeAmenazasDelSistema_noEsDanino() {
+        assertFalse(violentHarmful("actualizar el modelo de amenazas del sistema"))
+    }
+
+    // c.645 guardia anti-falso-negativo: "amenazas" como amenaza REAL sigue
+    // bloqueada cuando NO va tras "modelo de" (el contain solo cubre ese rango).
+    @Test fun amenazasDeMuerte_sigueDanino() {
+        assertTrue(violentHarmful("te voy a hacer amenazas de muerte"))
     }
 
     @Test fun bombaDeAgua_noEsDanino() {
