@@ -69,4 +69,52 @@ class HabitRulesTest {
         )
         assertEquals(2, HabitRules.currentStreak(habit, logs, today))
     }
+
+    @Test fun isCompleted_trueWhenCountMeetsTarget() {
+        assertTrue(HabitRules.isCompleted(3, 3))
+        assertTrue(HabitRules.isCompleted(5, 3))
+    }
+
+    @Test fun isCompleted_falseBelowTarget() {
+        assertFalse(HabitRules.isCompleted(2, 3))
+        assertFalse(HabitRules.isCompleted(0, 1))
+    }
+
+    @Test fun isCompleted_treatsZeroOrNegativeTargetAsOne() {
+        // Un habito sin meta (target 0) no debe ser "siempre cumplado":
+        // coherente con el default de Room (targetPerPeriod = 1).
+        assertFalse(HabitRules.isCompleted(0, 0))
+        assertTrue(HabitRules.isCompleted(1, 0))
+    }
+
+    @Test fun nextToggleCount_incrementsBelowTarget() {
+        // 0 -> 1, 1 -> 2, 2 -> 3 (aun no cumplido: suma uno)
+        assertEquals(1, HabitRules.nextToggleCount(0, 3))
+        assertEquals(2, HabitRules.nextToggleCount(1, 3))
+        assertEquals(3, HabitRules.nextToggleCount(2, 3))
+    }
+
+    @Test fun nextToggleCount_decrementsWhenAtOrAboveTargetInsteadOfResetToZero() {
+        // Bug PRE-fix: al desmarcar con target > 1 se hacia removeLog -> 0,
+        // perdiendo TODO el progreso (8 vasos -> 0). Ahora resta un registro.
+        assertEquals(7, HabitRules.nextToggleCount(8, 8))
+        assertEquals(7, HabitRules.nextToggleCount(8, 3)) // por encima de la meta tambien resta
+    }
+
+    @Test fun nextToggleCount_targetOneDecrementsToZeroLikeRemoveLog() {
+        // Para target = 1, la resta equivale a 0 (mismo efecto que borrar el
+        // registro del dia): sin regresion respecto al comportamiento anterior.
+        assertEquals(0, HabitRules.nextToggleCount(1, 1))
+    }
+
+    @Test fun nextToggleCount_staysConsistentWithIsCompleted() {
+        // Tras desmarcar desde "cumplido", el conteo ya no cumple la meta: no hay
+        // inconsistencia con currentStreak (que usa count >= target).
+        val target = 5
+        val afterUnmark = HabitRules.nextToggleCount(target, target)
+        assertFalse(HabitRules.isCompleted(afterUnmark, target))
+        // Y al registrar de vuelta, vuelve a cumplirse.
+        val afterRemark = HabitRules.nextToggleCount(afterUnmark, target)
+        assertTrue(HabitRules.isCompleted(afterRemark, target))
+    }
 }

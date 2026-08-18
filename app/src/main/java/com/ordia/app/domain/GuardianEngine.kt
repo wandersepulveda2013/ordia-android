@@ -103,7 +103,7 @@ object GuardianEngine {
             .filter { DateRules.toLocalDate(it.startedAt, zoneId) == today }
             .sumOf { it.actualMinutes.coerceIn(0, MAX_FOCUS_MINUTES_PER_SESSION) }
         val habitsDoneToday = habits.count { habit ->
-            HabitRules.countFor(habitLogs, habit.id, today) >= habit.targetPerPeriod.coerceAtLeast(1)
+            HabitRules.isCompleted(HabitRules.countFor(habitLogs, habit.id, today), habit.targetPerPeriod)
         }
         val activeNotes = notes.count { !it.archived }
         val completedAll = TaskRules.completedRootCount(tasks)

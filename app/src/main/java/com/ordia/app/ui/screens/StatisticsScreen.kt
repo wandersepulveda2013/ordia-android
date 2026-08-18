@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.domain.DateRules
+import com.ordia.app.domain.HabitRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.components.EmptyState
 import com.ordia.app.ui.components.ProgressRing
@@ -62,7 +63,7 @@ fun StatisticsScreen(state: OrdiaUiState, contentPadding: PaddingValues) {
     }
     val completedThisWeek = completedByDay.sumOf { it.second }
     val dailyAverage = completedThisWeek / 7f
-    val habitsDoneToday = state.habits.count { state.habitCount(it.id) >= it.targetPerPeriod }
+    val habitsDoneToday = state.habits.count { HabitRules.isCompleted(state.habitCount(it.id), it.targetPerPeriod) }
     val habitCompletion = if (state.habits.isEmpty()) 0f else habitsDoneToday.toFloat() / state.habits.size
     val bestStreak = state.habits.maxOfOrNull { state.habitStreak(it) } ?: 0
     val completedFocusSessions = state.focusSessions.count { it.completed }

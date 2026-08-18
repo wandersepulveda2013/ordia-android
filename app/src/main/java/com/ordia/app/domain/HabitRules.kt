@@ -31,6 +31,40 @@ object HabitRules {
     fun countFor(logs: List<HabitLogEntity>, habitId: Long, date: LocalDate): Int =
         logs.firstOrNull { it.habitId == habitId && it.epochDay == date.toEpochDay() }?.count ?: 0
 
+    /**
+     * ¿Se cumple la meta del hábito con [count] registros? Fuente única del
+     * predicado "hábito completado hoy" que antes estaba duplicado (con
+     * coerciones inconsistentes: `>= target` en unos sitios,
+     * `>= target.coerceAtLeast(1)` en otros) en [GuardianEngine],
+     * [GuardianCoach], HabitsScreen, StatisticsScreen y [OrdiaViewModel.toggleHabit].
+     * Centralizarlo evita que diverja: si la semántica de "completado" cambia,
+     * basta tocar este sitio. Trata `target <= 0` como meta 1 (un hábito sin
+     * meta nunca es "siempre cumplado"): coherente con el default de Room
+     * (`targetPerPeriod = 1`) y defensivo frente a filas legacy/edición directa.
+     */
+    fun isCompleted(count: Int, targetPerPeriod: Int): Boolean =
+        count >= targetPerPeriod.coerceAtLeast(1)
+
+    /**
+     * Próximo conteo al pulsar el botón del hábito. Invierte "registrar":
+     * - Si aún no se cumple la meta ([current] < target), suma uno.
+     * - Si ya se cumple ([current] >= target), resta uno (deshace el último
+     *   registro) en vez de RESETEAR a 0.
+     *
+     * Antes `toggleHabit` hacía `removeLog` al desmarcar, lo que para una meta
+     * `target > 1` (p. ej. "beber 8 vasos de agua") perdía TODO el progreso
+     * acumulado (8 → 0) en un toque, destruyendo datos de esfuerzo reales. La
+     * resta preserva el progreso: 8 → 7, y como 7 < 8 el predicto
+     * [isCompleted] deja de cumplirse (sin inconsistencia con [currentStreak],
+     * que usa `count >= target`). Para `target = 1` la resta equivale a 0 (mismo
+     * efecto que borrar el registro). Devuelve 0 para indicar "sin registro /
+     * limpiar el log del día".
+     */
+    fun nextToggleCount(current: Int, targetPerPeriod: Int): Int {
+        val target = targetPerPeriod.coerceAtLeast(1)
+        return if (current >= target) (current - 1).coerceAtLeast(0) else current + 1
+    }
+
     fun currentStreak(habit: HabitEntity, logs: List<HabitLogEntity>, today: LocalDate = LocalDate.now()): Int {
         val completed = logs.filter { it.habitId == habit.id && it.count >= habit.targetPerPeriod }.map { it.epochDay }.toSet()
         var date = if (isScheduled(habit, today) && today.toEpochDay() !in completed) today.minusDays(1) else today

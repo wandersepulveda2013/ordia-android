@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.ordia.app.R
 import com.ordia.app.data.local.HabitEntity
 import com.ordia.app.data.local.RoutineEntity
+import com.ordia.app.domain.HabitRules
 import com.ordia.app.ui.OrdiaUiState
 import com.ordia.app.ui.OrdiaViewModel
 import com.ordia.app.ui.components.EmptyState
@@ -82,10 +83,10 @@ fun HabitsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Paddin
                             IconButton(onClick = { editingHabit = habit; showHabitDialog = true }) { Icon(Icons.Outlined.Edit, stringResource(R.string.habits_edit)) }
                             IconButton(onClick = { vm.deleteHabit(habit) }) { Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.habits_delete)) }
                         }
-                        LinearProgressIndicator(progress = { (count.toFloat() / habit.targetPerPeriod).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+                        LinearProgressIndicator(progress = { (count.toFloat() / habit.targetPerPeriod.coerceAtLeast(1)).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.habits_progress, count, habit.targetPerPeriod, state.habitStreak(habit)), style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
-                            Button(onClick = { vm.toggleHabit(habit) }) { Text(if (count >= habit.targetPerPeriod) stringResource(R.string.habits_unmark) else stringResource(R.string.habits_register)) }
+                            Button(onClick = { vm.toggleHabit(habit) }) { Text(if (HabitRules.isCompleted(count, habit.targetPerPeriod)) stringResource(R.string.habits_unmark) else stringResource(R.string.habits_register)) }
                         }
                     }
                 }

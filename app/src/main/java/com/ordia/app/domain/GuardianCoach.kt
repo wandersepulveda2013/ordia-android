@@ -150,7 +150,7 @@ object GuardianCoach {
             return Insight("RECUPERA EL CONTROL", next.title, message, next.id, Tone.FOCUSED)
         }
         next?.let { return Insight("SIGUIENTE PASO", it.title, it.details.takeIf(String::isNotBlank) ?: "Ordía la priorizó por fecha, importancia y estado.", it.id, Tone.FOCUSED) }
-        habits.firstOrNull { HabitRules.isScheduled(it, today) && HabitRules.countFor(habitLogs, it.id, today) < it.targetPerPeriod }?.let {
+        habits.firstOrNull { HabitRules.isScheduled(it, today) && !HabitRules.isCompleted(HabitRules.countFor(habitLogs, it.id, today), it.targetPerPeriod) }?.let {
             return Insight("UN PEQUEÑO RITUAL", it.title, "Tu lista está despejada. Este hábito puede cerrar el día con intención.", tone = Tone.CALM)
         }
         if (completedToday > 0) return Insight("BIEN HECHO", "Tu día está en orden", "Completaste $completedToday ${if (completedToday == 1) "tarea" else "tareas"} hoy.", tone = Tone.CELEBRATING)

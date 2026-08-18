@@ -806,8 +806,14 @@ class OrdiaViewModel(
     fun toggleHabit(habit: HabitEntity, date: LocalDate = LocalDate.now()) {
         viewModelScope.launch {
             val current = uiState.value.habitCount(habit.id, date)
-            if (current >= habit.targetPerPeriod) habitRepository.removeLog(habit.id, date.toEpochDay())
-            else habitRepository.log(HabitLogEntity(habit.id, date.toEpochDay(), current + 1))
+            val next = HabitRules.nextToggleCount(current, habit.targetPerPeriod)
+            // 0 = ningún registro: se borra el log del día (sin fila zombie con
+            // count 0). >0: se persiste el conteo exacto. Antes, al desmarcar
+            // con meta > 1, se hacía `removeLog` y se perdía TODO el progreso
+            // acumulado (8 -> 0); ahora se resta un registro (8 -> 7) y se
+            // conserva el esfuerzo. Decisión en [HabitRules.nextToggleCount].
+            if (next == 0) habitRepository.removeLog(habit.id, date.toEpochDay())
+            else habitRepository.log(HabitLogEntity(habit.id, date.toEpochDay(), next))
         }
     }
 
