@@ -397,10 +397,72 @@ object ContextIntentEngine {
     }
 
     /**
+     * "las N" DESNUDA (c.600): paridad con [com.ordia.app.domain.NaturalTaskParser].
+     * Una captura de contexto p.ej. "cita las 3" / "reunión las 7 y media" menciona
+     * hora SIN introductor "a"/"para". El [timePattern] de abajo exige una pista
+     * horaria explícita (prefijo "a las"/":MM"/meridiana) y, al faltar todas, deja
+     * `targetTime=null` → la cita nacía SIN hora (caía al mediodía por defecto):
+     * cita a hora errónea / posible olvido (P1 evitar olvidos). El parser lo resolvía
+     * en tareas creadas a mano (c.596) pero NO las capturadas por el motor de contexto.
+     *
+     * Aquí se reescribe " las <hora> " → "a las <hora> " ANTES del [timePattern] para
+     * que reutilice TODO el flujo de resolución existente (AM/PM, fracción, wrap 24 h,
+     * past-safe de midpoints) sin nueva rama. Simétrico del [bareLasHourRewriter] del
+     * parser, con los mismos dos guards para no eludir protectores existentes:
+     *  1. Prefijo inmediato en [BARE_LAS_GUARDED_PREFIXES] ("de"/"para"/"todas"/"todos"/
+     *     "desde"/"hasta"/"a"/"sobre"/"hacia"): un conector/guard ya gobierna esa hora
+     *     (franja "antes/después de las N", cadencia "todas las N semanas", rango
+     *     "desde/hasta", forma canónica "a las N") → no tocar.
+     *  2. Anti-cuenta: hora en punto DESNUDA (sin :MM/meridiana/fracción/unidad) seguida
+     *     de un sustantivo plural de cantidad ("compra las 3 manzanas") → NO reescribir
+     *     (preserva el número como cantidad; evita inventar una cita falsa).
+     * Grupo 1 = especificación horaria completa; grupo 2 = ":MM" (evidencia de reloj).
+     */
+    private val bareLasHourRewriter =
+        Regex("""(?i)\blas\s+(\d{1,2})(?::(\d{2}))?(?:\s+(?:y\s+(?:media|treinta|cuarto|tres cuartos|cuarenta y cinco|veinticinco|veinte|diez|cinco|\d{1,2})|menos\s+(?:cuarto|quince|cinco|diez|veinte|veinticinco|\d{1,2})))?(?:\s*(?:horas?|hs|h))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|am|pm|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+en\s+punto)?""")
+
+    private val BARE_LAS_GUARDED_PREFIXES = setOf(
+        "de", "para", "todas", "todos", "desde", "hasta", "a", "sobre", "hacia"
+    )
+
+    /** Tail seguro tras "las N" en punto desnuda: fin de cadena, puntuación, conjunción
+     *  o palabra temporal (NO un sustantivo plural de cantidad). Paridad con el
+     *  [countNounFollowerPattern] del parser. */
+    private val bareLasSafeFollower =
+        Regex("""(?i)^\s*(?:[,.;:!?\s]|$|y\b|o\b|con\b|de\b|del\b|en\b|para\b|hasta\b|desde\b|luego\b|después\b|despues\b|pero\b|porque\b|por\b|sin\b|sobre\b|a\b|al\b|el\b|la\b|los\b|las\b|un\b|una\b|mañana\b|manana\b|hoy\b|ayer\b|anteayer\b|lunes\b|martes\b|miércoles\b|miercoles\b|jueves\b|viernes\b|sábado\b|sabado\b|domingo\b)""")
+
+    /** Aplica [bareLasHourRewriter] con los guards de prefijo y anti-cuenta (c.600). */
+    private fun normalizeBareLasHour(text: String): String =
+        bareLasHourRewriter.replace(text) { m ->
+            // Guard 1: palabra inmediatamente anterior a " las N". Si es un conector
+            // temporal o determinante de cadencia ya gestionado, no tocar.
+            val prefix = text.substring(0, m.range.first)
+            val prevWord = Regex("""(?i)\b(\S+)\s*$""").find(prefix)
+                ?.groupValues?.get(1)?.lowercase()
+            if (prevWord != null && prevWord in BARE_LAS_GUARDED_PREFIXES) return@replace m.value
+            // Evidencia de reloj: :MM, fracción, meridiana, unidad horas/hs/h, "en punto".
+            val ts = m.value
+            val hasMinutes = m.groupValues[2].isNotBlank()
+            val hasEvidence = hasMinutes ||
+                Regex("""(?i):|horas?\b|\bhs\b|\bh\b|a\.?\s*m\.?|p\.?\s*m\.?|am|pm|de\s+la\s+(?:ma[nñ]ana|tarde|noche|madrugada)|del\s+mediod[ií]a|y\s+(?:media|treinta|cuarto|tres cuartos|cuarenta y cinco|veinticinco|veinte|diez|cinco|\d)|menos\s+(?:cuarto|quince|cinco|diez|veinte|veinticinco|\d)|en\s+punto""")
+                    .containsMatchIn(ts)
+            if (hasEvidence) return@replace "a " + m.value
+            // Hora en punto desnuda: guard 2 anti-cuenta. Si el tail NO es un
+            // continuador seguro, es un sustantivo plural de cantidad → preservar.
+            val tail = text.substring(m.range.last + 1)
+            if (!bareLasSafeFollower.containsMatchIn(tail)) return@replace m.value
+            "a " + m.value
+        }
+
+    /**
      * Extrae fecha/hora de un texto en español.
      * Retorna timestamp en milisegundos o null.
      */
     internal fun extractDateTime(lower: String): Long? {
+        // "las N" desnuda → "a las N" (c.600, paridad con NaturalTaskParser c.596).
+        // Se normaliza ANTES de cualquier patrón para que [timePattern] la resuelva.
+        // Sombrea el parámetro: todo el cuerpo siguiente lee ya la forma normalizada.
+        val lower = normalizeBareLasHour(lower)
         val today = LocalDate.now()
         var targetDate: LocalDate? = null
         var targetTime: LocalTime? = null

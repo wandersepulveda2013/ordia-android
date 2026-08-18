@@ -938,4 +938,73 @@ class ContextIntentEngineDateTimeTest {
     // analyze() porque la captura de extremo a extremo depende del puntaje base de
     // la categoría, no sólo del bono de hora (+0.08): una aserción de captura sería
     // frágil y no aislaria el fix del detector.
+
+    // --- "las N" DESNUDA (c.600): paridad con NaturalTaskParser (c.596).
+    // Una captura de contexto p.ej. "cita las 3" / "reunión las 7 y media" menciona
+    // hora SIN introductor "a"/"para". El [timePattern] casaba el grupo 1 vacío y,
+    // al no haber :MM ni meridiano, hasTimeCue=false → targetTime=null → la cita
+    // nacía SIN hora (caía al mediodía por defecto), P1 (evitar olvidos / cita a
+    // hora errónea). La rewriter del parser resolvía "las N" en tareas creadas a
+    // mano, pero NO las capturadas por el motor de contexto. ---
+
+    @Test
+    fun bareLasN_resuelveHora() {
+        val due = ContextIntentEngine.extractDateTime("cita las 3")
+        assertNotNull("'cita las 3' debe resolver hora 03:00", due)
+        val dt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), ZoneId.systemDefault())
+        assertEquals("'las 3' = 03:00", 3, dt.hour)
+        assertEquals("'las 3' = minuto 0", 0, dt.minute)
+    }
+
+    @Test
+    fun bareLasNYMedia_resuelve7_30() {
+        val due = ContextIntentEngine.extractDateTime("reunión las 7 y media")
+        assertNotNull(due)
+        val dt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), ZoneId.systemDefault())
+        assertEquals("'las 7 y media' = 07:00", 7, dt.hour)
+        assertEquals("'las 7 y media' = 07:30", 30, dt.minute)
+    }
+
+    @Test
+    fun bareLasNDeLaTarde_resuelve15_00() {
+        val due = ContextIntentEngine.extractDateTime("cita las 3 de la tarde")
+        assertNotNull(due)
+        val dt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), ZoneId.systemDefault())
+        assertEquals("'las 3 de la tarde' = 15:00 (PM)", 15, dt.hour)
+        assertEquals("'las 3 de la tarde' = minuto 0", 0, dt.minute)
+    }
+
+    @Test
+    fun bareLasColon_resuelve4_30() {
+        val due = ContextIntentEngine.extractDateTime("llamar las 4:30")
+        assertNotNull(due)
+        val dt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), ZoneId.systemDefault())
+        assertEquals("'las 4:30' = 04:00", 4, dt.hour)
+        assertEquals("'las 4:30' = 04:30", 30, dt.minute)
+    }
+
+    @Test
+    fun bareLasConFecha_resuelveHoraEseDia() {
+        // "reunión el 25 las 3": la hora desnuda debe combinarse con la fecha.
+        val due = ContextIntentEngine.extractDateTime("reunión el 25 las 3")
+        assertNotNull(due)
+        val dt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), ZoneId.systemDefault())
+        assertEquals("'el 25 las 3' = 03:00", 3, dt.hour)
+        assertEquals("'el 25 las 3' = día 25", 25, dt.dayOfMonth)
+    }
+
+    @Test
+    fun bareLasNoInventadaDeCantidad() {
+        // "compra las 3 manzanas": "las 3" aquí es cantidad, NO hora. Tras la
+        // corrección debe seguir SIN producir hora (guard anti-cantidad).
+        val due = ContextIntentEngine.extractDateTime("compra las 3 manzanas")
+        // Aceptamos null (sin fecha/hora) o fecha con hora canónica por defecto
+        // (mediodía), PERO nunca hora 03:00 inventada de la cantidad "3".
+        if (due != null) {
+            val dt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due), ZoneId.systemDefault())
+            assert(dt.hour != 3 || dt.minute != 0) {
+                "'las 3 manzanas' no debe inventar hora 03:00 desde la cantidad"
+            }
+        }
+    }
 }
