@@ -181,8 +181,14 @@ object WhatNowEngine {
             ?: return null
         val minutes = ((nextStart - now) / 60_000L).toInt()
         // Redondea a múltiplo de 5 min: la cifra es orientativa ("≈N min"),
-        // no un cronómetro exacto; evitar precisión falsa es más honesto.
-        val rounded = (minutes / 5) * 5
+        // no un cronómetro exacto; evitar precisión falsa es más honesto. PERO
+        // un hueco inminente (< 5 min) NO se trunca a 0: una cita que empieza
+        // en 3 min es justo la que el usuario necesita ver (su tarea de 25 min
+        // no cabe). Truncar a 0 la descartaba (fuera del rango `1..`) y el
+        // aviso de c.552 nunca disparaba → el asistente invitaba a empezar una
+        // tarea larga segundos antes de una cita. Para inminentes se conserva
+        // el valor exacto (la precisión sí importa al decidir ahora).
+        val rounded = if (minutes < 5) minutes else (minutes / 5) * 5
         return if (rounded in 1..NEXT_COMMITMENT_WINDOW_MINUTES) rounded else null
     }
 }

@@ -724,6 +724,76 @@ class WhatNowEngineTest {
     }
 
     /**
+     * Hueco inminente (< 5 min): una cita que empieza en 3 min NO se trunca a
+     * 0 (lo que la descartaba y silenciaba el aviso). Es justo la cita que el
+     * usuario necesita ver: si la sugerida dura más de 3 min, la cita la
+     * interrumpirá. Para huecos inminentes se conserva el valor exacto (la
+     * precisión importa al decidir ahora); para >= 5 min sigue el truncado a
+     * múltiplo de 5. PRE-fix este test daba null (truncado 3→0→fuera de `1..`).
+     */
+    @Test
+    fun contextMinutesSurfacesImminentCommitmentUnderFiveMin() {
+        // Tarea en curso (rank 5/6) gana la sugerencia; su startAt 9:30 ya
+        // pasó y NO cuenta como "próxima cita". La cita a las 10:03 (3 min,
+        // inminente, rank 4) queda como próxima cita → 3 min exacto.
+        val inProgress = task(1, "En curso").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 30), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(12, 0), zone),
+            durationMinutes = 60
+        )
+        val imminent = task(2, "Cita en 3 min").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 3), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(inProgress, imminent), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(3, suggestion.minutesUntilNextCommitment)
+    }
+
+    /**
+     * 4 min también es inminente y se conserva exacto (no se trunca a 0).
+     * Límite inferior del comportamiento corregido.
+     */
+    @Test
+    fun contextMinutesSurfacesFourMinCommitment() {
+        val inProgress = task(1, "En curso").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 30), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(12, 0), zone),
+            durationMinutes = 60
+        )
+        val imminent = task(2, "Cita en 4 min").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 4), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(inProgress, imminent), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(4, suggestion.minutesUntilNextCommitment)
+    }
+
+    /**
+     * 5 min es el primer valor truncado a múltiplo de 5: 5→5 (sin cambio).
+     * Confirma la frontera entre "exacto" (<5) y "truncado" (>=5).
+     */
+    @Test
+    fun contextMinutesFiveMinStillRoundedToFive() {
+        val inProgress = task(1, "En curso").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 30), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(12, 0), zone),
+            durationMinutes = 60
+        )
+        val meeting = task(2, "Cita en 5 min").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 5), zone)
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(inProgress, meeting), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(5, suggestion.minutesUntilNextCommitment)
+    }
+
+    /**
      * Una cita en el pasado (startAt ya ocurrido, p. ej. missed-start) NO es
      * "próxima cita": ya empezó. No debe contar → aquí la única startAt es
      * pasada, así que null (la tarea missed-start puede ser la sugerida, pero

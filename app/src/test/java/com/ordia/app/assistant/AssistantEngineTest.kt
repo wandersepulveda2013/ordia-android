@@ -3125,6 +3125,34 @@ class AssistantEngineTest {
         assertTrue("no miente con 'te alcanza': ${answer.text}", !answer.text.lowercase().contains("te alcanza"))
     }
 
+    @Test fun whatNow_warnsImminentCommitmentUnderFiveMin() {
+        // Caso de borde c.553: cita inminente en 3 min. PRE-fix, `minutesUntilNext
+        // Commitment` truncaba 3→0 y devolvía null → el asistente CALLABA aunque
+        // la cita estaba a punto de empezar. La sugerida es una tarea EN CURSO
+        // (rank 6, gana sobre la cita inminente rank 4) con 25 min restantes, así
+        // la cita no es la sugerida y queda como "próxima cita". 25 > 3 → el
+        // asistente AVISA "ojo: tu próxima cita es en ~3 min" (valor exacto, no
+        // truncado). Sin c.553 este test fallaría: gap era null → sin aviso.
+        val now = 1_000_000_000_000L
+        val enCurso = TaskEntity(
+            id = 1, title = "Informe",
+            startAt = now - 5 * 60_000L, // empezó hace 5 min, ventana activa
+            durationMinutes = 30,         // 30 planificados → 25 restantes
+            priority = TaskPriority.URGENT
+        )
+        val cita = TaskEntity(
+            id = 2, title = "Cita",
+            startAt = now + 3 * 60_000L, // 3 min: inminente (<5), no truncado a 0
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(enCurso, cita), emptyList(), emptyList(), now
+        )
+        assertTrue("avisa cita inminente (3 min): ${answer.text}", answer.text.lowercase().contains("tu próxima cita es en ~3 min"))
+        assertTrue("la sugerencia es la tarea en curso: ${answer.text}", answer.text.lowercase().contains("sigue con"))
+    }
+
     @Test fun whatNow_confirmsWhenTaskSnuglyFitsBeforeNextCommitment() {
         // Sugerida: 25 min. Próxima cita en 40 min. Cabe y el margen es corto
         // (25 ocupa más de la mitad de 40) → confirma "te alcanza antes de tu
