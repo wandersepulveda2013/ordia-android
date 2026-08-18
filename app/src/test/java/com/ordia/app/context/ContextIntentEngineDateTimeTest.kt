@@ -1229,4 +1229,58 @@ class ContextIntentEngineDateTimeTest {
         assertNotNull(intent)
         assertEquals("Llamar al pediatra", intent?.title)
     }
+
+    // --- REMINDER imperativo sin ancla temporal: paridad de piso con TASK (c.619) ---
+    // El piso de confianza de c.613 cubre SOLO TASK ("recuérdame/no olvides/tengo que/
+    // hay que"). Pero "recuérdame" también es palabra clave de REMINDER, y sus sinónimos
+    // puros de aviso — "avísame"/"notifícame"/"acordarme" — sólo viven en REMINDER (no en
+    // TASK). Sin fecha/hora, "avísame pagar la luz" / "notifícame llamar a mamá" quedaban
+    // en conf 0.37 (< MINIMUM_CONFIDENCE 0.45) y se DESCARTABAN: el recordatorio explícito
+    // por excelencia se olvidaba. Asimetría con "recuérdame pagar la luz" (TASK piso c.613
+    // la captura). Paridad: un imperativo de aviso inequívoco + verbo es un recordatorio
+    // claro con independencia de pistas temporales.
+
+    @Test
+    fun avisameSinAncla_noSeDescarta_paridadConRecordarme() {
+        val recordarme = analyzeAnchor("recuérdame pagar la luz")
+        val avisame = analyzeAnchor("avísame pagar la luz")
+        assertNotNull("'recuérdame pagar la luz' se captura (piso TASK c.613)", recordarme)
+        assertNotNull(
+            "'avísame pagar la luz' es el mismo recordatorio; el imperativo de aviso " +
+                "inequívoco no debe descartarse por ausencia de ancla temporal (olvido, P1)",
+            avisame
+        )
+        assertEquals(
+            "'avísame' debe clasificarse como REMINDER (no colapsar a TASK): el piso " +
+                "de c.619 eleva REMINDER sin reescribir el kind",
+            com.ordia.app.context.ContextIntentKind.REMINDER,
+            avisame?.kind
+        )
+    }
+
+    @Test
+    fun notificameSinAncla_noSeDescarta() {
+        assertNotNull(
+            "'notifícame llamar a mamá' es un recordatorio explícito; no debe descartarse",
+            analyzeAnchor("notifícame llamar a mamá")
+        )
+    }
+
+    @Test
+    fun acordarmeSinAncla_noSeDescarta() {
+        assertNotNull(
+            "'acordarme de pagar la factura' es un recordatorio explícito; no debe descartarse",
+            analyzeAnchor("acordarme de pagar la factura")
+        )
+    }
+
+    @Test
+    fun imperativoAviso_conVerbo_requerido_noCasaChatCasual() {
+        // Anti-falso-positivo: el piso exige verbo tras el imperativo (\s+\w), así que
+        // "avísame" sola (saludo/muletilla) no debe generar recordatorio.
+        assertNull(
+            "'avísame' aislado no casa imperativo+verbo; no debe crear recordatorio",
+            analyzeAnchor("avísame")
+        )
+    }
 }

@@ -161,6 +161,18 @@ object ContextIntentEngine {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
+        // Piso simétrico para imperativos de AVISO inequívocos (c.619): "recuérdame"
+        // también es palabra clave de TASK (cubierto por el piso de c.613), pero sus
+        // sinónimos puros de recordatorio — "avísame"/"notifícame"/"acordarme" — sólo
+        // viven en REMINDER. Sin fecha/hora quedaban en 0.37 (< [MINIMUM_CONFIDENCE])
+        // y se DESCARTABAN: el recordatorio explícito por antonomasia se olvidaba,
+        // asimetría con "recuérdame" (capturado como TASK). Un imperativo de aviso +
+        // verbo es un recordatorio claro con independencia de pistas temporales. El
+        // guard `\s+\w` exige verbo real, así "avísame" aislado (muletilla) no activa.
+        if (kind == ContextIntentKind.REMINDER && hasStrongReminderImperative(lower)) {
+            score = maxOf(score, MINIMUM_CONFIDENCE)
+        }
+
         return score.coerceIn(0f, 1f)
     }
 
@@ -171,6 +183,15 @@ object ContextIntentEngine {
      */
     private fun hasStrongTaskImperative(lower: String): Boolean =
         Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que)\s+\w""").containsMatchIn(lower)
+
+    /**
+     * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
+     * sólo viven en [ContextIntentKind.REMINDER] (no en TASK, donde "recuérdame"
+     * ya cubre el piso de c.613). El verbo tras el imperativo evita capturar la
+     * muletilla "avísame" aislada. "acordarme de" admite el "de" opcional.
+     */
+    private fun hasStrongReminderImperative(lower: String): Boolean =
+        Regex("""\b(avísame|notifícame|acordarme(?:\s+de)?)\s+\w""").containsMatchIn(lower)
 
     /**
      * Patrones específicos por tipo de intención.
