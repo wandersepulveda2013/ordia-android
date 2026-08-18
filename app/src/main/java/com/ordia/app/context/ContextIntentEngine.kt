@@ -54,6 +54,13 @@ object ContextIntentEngine {
     // específico eleva el score por encima del umbral SIN pasar por el piso).
     private val SHOPPING_VERBS = "comprar"
     private val PAYMENT_VERBS = "pagar"
+    // Prefijos de acuse (c.651): una confirmación corta ("sí/vale/ok/...")
+    // seguida de un imperativo de compra/pago indica que el usuario ACEPTÓ la
+    // acción; el piso fuerte debe capturarla aunque el verbo no esté al inicio.
+    // Lista cerrada: NO incluye los imperativos envolventes ("avísame",
+    // "recuérdame", "no olvides", "tengo que", "hay que") — su verbo
+    // subordinado es contenido del recordatorio, no una compra/pago autónomo.
+    private val ACK_PREFIX = "sí|vale|ok|okay|bueno|dale|listo|perfecto|ya|claro"
     private val MEETING_VERBS = "reuni[oó]n"
     private val HOUSEHOLD_VERBS =
         "limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar"
@@ -247,19 +254,23 @@ object ContextIntentEngine {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
-        // Piso simétrico para imperativos de COMPRA inequívocos (c.626): "comprar
-        // <producto>" al INICIO de la notificación es una compra clara con
-        // independencia de pistas temporales. Sin este piso, "comprar pan"/"comprar
-        // leche" quedaban en 0.37 (< [MINIMUM_CONFIDENCE]) y se DESCARTABAN: el
-        // usuario capturaba una compra real y Ordía la olvidaba. El contenido dañino
-        // genuino ya fue bloqueado en el paso 1 ([ContextPrivacyFilter]) o en el
-        // paso 3 (insultos), así que llegar aquí es contenido permitido. El guard
-        // `^... \s+\w` exige imperativo AFIRMATIVO al inicio + producto real: así
-        // "no comprar pan" (negación, capta lo opuesto a la intención del usuario),
-        // "mañana no comprar pan" (negación incrustada) y "comprar" aislado
-        // (muletilla) NO activan el piso (c.616 anti-overreach). Los casos
-        // afirmativos con ancla temporal ("mañana comprar pan") ya superan el
-        // umbral vía [extractDateTime], sin necesitar el piso.
+        // Piso simétrico para imperativos de COMPRA inequívocos (c.626, c.651):
+        // "comprar <producto>" es una compra clara con independencia de pistas
+        // temporales. Sin este piso, "comprar pan"/"comprar leche" quedaban en
+        // 0.37 (< [MINIMUM_CONFIDENCE]) y se DESCARTABAN: el usuario capturaba
+        // una compra real y Ordía la olvidaba. El contenido dañino genuino ya
+        // fue bloqueado en el paso 1 ([ContextPrivacyFilter]) o en el paso 3
+        // (insultos), así que llegar aquí es contenido permitido. c.651 amplió
+        // el ancla `^` original: además del verbo al inicio, el piso se activa
+        // tras un prefijo de ACUSE ([ACK_PREFIX]: "sí, comprar pan"/"vale,
+        // comprar pan"/"ok, comprar leche"), que antes se descartaba (olvido
+        // silencioso P1: sin pista temporal, el bono de [extractDateTime] no
+        // compensa la base baja). Los imperativos envolventes NO son acuse:
+        // "recuérdame comprar pan" es una tarea/recordatorio (pisos c.613/
+        // c.619), no una compra autónoma. "no comprar pan", "mañana no comprar
+        // pan" (lookbehind `(?<!no )` + [imperativeIsNegated] c.648) y
+        // "comprar" aislado (muletilla) NO activan el piso (c.616
+        // anti-overreach); duda (c.649) y condición (c.650) penalizan post-piso.
         if (kind == ContextIntentKind.SHOPPING && hasStrongShoppingImperative(lower)) {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
@@ -279,22 +290,26 @@ object ContextIntentEngine {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
-        // Piso simétrico para imperativos de PAGO inequívocos (c.630): "pagar
-        // <objeto>" al INICIO de la notificación es un pago claro con
-        // independencia de pistas temporales. Sin este piso, "pagar la luz"/"pagar
-        // el internet"/"pagar el recibo" quedaban en 0.42 (< [MINIMUM_CONFIDENCE])
-        // y se DESCARTABAN: el usuario capturaba el pago de una factura real y
+        // Piso simétrico para imperativos de PAGO inequívocos (c.630, c.651):
+        // "pagar <objeto>" es un pago claro con independencia de pistas
+        // temporales. Sin este piso, "pagar la luz"/"pagar el internet"/"pagar
+        // el recibo" quedaban en 0.42 (< [MINIMUM_CONFIDENCE]) y se
+        // DESCARTABAN: el usuario capturaba el pago de una factura real y
         // Ordía lo olvidaba. Olvidar un pago tiene mayor coste que olvidar una
-        // compra o reunión (recargos, corte de servicio), así que este cierre es
-        // prioritario dentro de la misma clase. El contenido dañino genuino ya
-        // fue bloqueado en el paso 1 ([ContextPrivacyFilter]) o en el paso 3
-        // (insultos), así que llegar aquí es contenido permitido. El guard
-        // `^pagar\s+\w` exige imperativo AFIRMATIVO al inicio + objeto real: así
-        // "no pagar la luz" (negación, capta lo opuesto a la intención del
-        // usuario), "mañana no pagar la luz" (negación incrustada) y "pagar"
-        // aislado (muletilla) NO activan el piso (c.616 anti-overreach). Los
-        // casos afirmativos con ancla temporal ("mañana pagar la luz") ya
-        // superan el umbral vía [extractDateTime].
+        // compra o reunión (recargos, corte de servicio), así que este cierre
+        // es prioritario dentro de la misma clase. El contenido dañino genuino
+        // ya fue bloqueado en el paso 1 ([ContextPrivacyFilter]) o en el paso 3
+        // (insultos), así que llegar aquí es contenido permitido. c.651 amplió
+        // el ancla `^` original: además del verbo al inicio, el piso se activa
+        // tras un prefijo de ACUSE ([ACK_PREFIX]: "ok, pagar el recibo"/"vale,
+        // pagar el internet"/"sí, pagar la luz"), que antes se descartaba
+        // (olvido silencioso P1: sin pista temporal, el bono de
+        // [extractDateTime] no compensa). Los imperativos envolventes NO son
+        // acuse: "avísame pagar la luz" es un RECORDATORIO (piso c.619), no un
+        // pago autónomo. "no pagar la luz", "mañana no pagar la luz"
+        // (lookbehind `(?<!no )` + [imperativeIsNegated] c.648) y "pagar"
+        // aislado (muletilla) NO activan el piso (c.616 anti-overreach); duda
+        // (c.649) y condición (c.650) penalizan post-piso.
         if (kind == ContextIntentKind.PAYMENT && hasStrongPaymentImperative(lower)) {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
@@ -422,15 +437,28 @@ object ContextIntentEngine {
         Regex("""\b(avísame|notifícame|acordarme(?:\s+de)?)\s+\w""").containsMatchIn(lower)
 
     /**
-     * Imperativos de compra inequívocos (c.626). Coincide con el anclaje de
-     * [extractTitle] para SHOPPING: "comprar <producto>" al INICIO. El ancla `^`
-     * + `\s+\w` exige imperativo afirmativo inicial + producto real: así "no
-     * comprar pan" (negación, capta lo opuesto a la intención del usuario),
-     * "mañana no comprar pan" (negación incrustada) y "comprar" aislado
-     * (muletilla) NO activan el piso (c.616 anti-overreach).
+     * Imperativos de compra inequívocos (c.626, c.651). "comprar <producto>".
+     *
+     * El piso se activa en dos posiciones: (a) verbo al INICIO ("comprar pan");
+     * (b) tras un prefijo de ACUSE de [ACK_PREFIX] ("sí, comprar pan", "vale,
+     * comprar pan", "ok, comprar leche"). c.651 cerró un olvido silencioso: el
+     * ancla `^` original de c.626 descartaba todo imperativo de compra con
+     * prefijo de acuse — sin pista temporal, el bono de [extractDateTime] no
+     * compensa la base baja (0.37 < [MINIMUM_CONFIDENCE]).
+     *
+     * El acuse es una lista cerrada que NO incluye los imperativos envolventes
+     * ("avísame"/"recuérdame"/"no olvides"/"tengo que"/"hay que"): su verbo
+     * subordinado ("recuérdame comprar pan") es contenido del recordatorio, no
+     * una compra autónoma — si activara el piso robaría el kind a TASK/REMINDER
+     * (regresión detectada por [ContextIntentEngineDateTimeTest] y
+     * [ContextIntentEngineNegationGuardTest]).
+     *
+     * La negación sigue bloqueada por el lookbehind `(?<!no )` y por
+     * [imperativeIsNegated] (c.648); los guards de duda (c.649) y condición
+     * (c.650) penalizan DESPUÉS del piso. Determinista (regex), sin IA fingida.
      */
     private fun hasStrongShoppingImperative(lower: String): Boolean =
-        Regex("""^($SHOPPING_VERBS)\s+\w""").containsMatchIn(lower)
+        Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )($SHOPPING_VERBS)\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de reunión inequívocos (c.626, c.647). Coincide con el anclaje de
@@ -457,15 +485,27 @@ object ContextIntentEngine {
         Regex("""\b(?<!no )($MEETING_VERBS)\s+(con|de|del)\s+\w""").containsMatchIn(lower)
 
     /**
-     * Imperativos de pago inequívocos (c.630). Coincide con el anclaje de
-     * [extractTitle] para PAYMENT: "pagar <objeto>" al INICIO. El ancla `^` +
-     * `\s+\w` exige imperativo afirmativo inicial + objeto real, así "no pagar
-     * la luz" (negación, capta lo opuesto a la intención del usuario), "mañana no
-     * pagar la luz" (negación incrustada) y "pagar" aislado (muletilla) NO
-     * activan el piso (c.616 anti-overreach).
+     * Imperativos de pago inequívocos (c.630, c.651). "pagar <objeto>".
+     *
+     * El piso se activa en dos posiciones: (a) verbo al INICIO ("pagar la
+     * luz"); (b) tras un prefijo de ACUSE de [ACK_PREFIX] ("ok, pagar el
+     * recibo", "vale, pagar el internet", "sí, pagar la luz"). c.651 cerró un
+     * olvido silencioso: el ancla `^` original de c.630 descartaba todo
+     * imperativo de pago con prefijo de acuse — sin pista temporal, el bono de
+     * [extractDateTime] no compensa la base baja (0.42 < [MINIMUM_CONFIDENCE]).
+     * Olvidar un pago tiene mayor coste que olvidar una compra (recargos,
+     * corte de servicio).
+     *
+     * El acuse es una lista cerrada que NO incluye los imperativos envolventes
+     * ("avísame pagar la luz" es un RECORDATORIO, no un pago autónomo —
+     * regresión detectada por [ContextIntentEngineDateTimeTest]).
+     *
+     * La negación sigue bloqueada por el lookbehind `(?<!no )` y por
+     * [imperativeIsNegated] (c.648); los guards de duda (c.649) y condición
+     * (c.650) penalizan DESPUÉS del piso. Determinista (regex), sin IA fingida.
      */
     private fun hasStrongPaymentImperative(lower: String): Boolean =
-        Regex("""^($PAYMENT_VERBS)\s+\w""").containsMatchIn(lower)
+        Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )($PAYMENT_VERBS)\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de hogar inequívocos (c.638, c.643). Coincide con los verbos de
