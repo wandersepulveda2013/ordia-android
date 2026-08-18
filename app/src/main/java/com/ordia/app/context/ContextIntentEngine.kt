@@ -242,6 +242,50 @@ object ContextIntentEngine {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
+        // Piso para imperativos de ejercicio inequívocos (c.639): "correr 5k"/
+        // "entrenar piernas"/"hacer yoga"/"ir al gimnasio" al INICIO son
+        // actividades físicas claras con independencia de pistas temporales. Sin
+        // este piso, "correr 5k"/"entrenar piernas"/"hacer yoga" quedaban en
+        // ~0.12–0.27 (< [MINIMUM_CONFIDENCE]) y se DESCARTABAN: el usuario
+        // capturaba un entrenamiento real y Ordía lo olvidaba (P1). Sólo "ir al
+        // gimnasio" pasaba (0.59, patrón específico). El guard `^<verbo>\s+\w`
+        // (o `^ir al gimnasio`) exige imperativo AFIRMATIVO al inicio: así "no
+        // correr hoy"/"no entrenar" (negación) y "correr" aislado NO activan el
+        // piso (c.616 anti-overreach).
+        if (kind == ContextIntentKind.EXERCISE && hasStrongExerciseImperative(lower)) {
+            score = maxOf(score, MINIMUM_CONFIDENCE)
+        }
+
+        // Piso para imperativos de diligencia inequívocos (c.639): "ir al banco"/
+        // "ir a correos"/"recoger el paquete"/"devolver el libro" al INICIO son
+        // trámites claros con independencia de pistas temporales. Sin este piso
+        // quedaban en ~0.12 (< [MINIMUM_CONFIDENCE]) y se DESCARTABAN: una
+        // notificación "ir al banco a pagar el impuesto" nacía NULL y Ordía
+        // olvidaba el trámite (P1; los trámites tienen fechas tope y coste por
+        // olvido, como los pagos). El guard `^ir a(l| la| los| las)?
+        // <destino>|^recoger\s+\w|^devolver\s+\w` exige imperativo AFIRMATIVO al
+        // inicio + objeto/destino real: así "no ir al banco" (negación) y "ir"
+        // aislado NO activan el piso (c.616 anti-overreach). El destino se acota
+        // a lugares de trámite (banco/correos/oficina/sucursal/ayuntamiento/
+        // notaría) para no colisionar con SHOPPING ("ir a la farmacia") ni con
+        // VISIT ("ir a casa de mamá"), que ya clasifican bien por su vía propia.
+        if (kind == ContextIntentKind.ERRAND && hasStrongErrandImperative(lower)) {
+            score = maxOf(score, MINIMUM_CONFIDENCE)
+        }
+
+        // Piso para imperativos de estudio inequívocos (c.639): "estudiar para el
+        // examen"/"repasar la lección"/"preparar el examen" al INICIO son sesiones
+        // de estudio claras con independencia de pistas temporales. Sin este piso,
+        // "repasar la lección"/"preparar el examen" quedaban en ~0.24–0.37
+        // (< [MINIMUM_CONFIDENCE]) y se DESCARTABAN, aunque su intención es
+        // inequívoca (P1: olvidar repasar antes de un examen tiene coste real).
+        // "estudiar para el examen" ya pasaba (0.49). El guard exige imperativo
+        // AFIRMATIVO al inicio + objeto real; "preparar" se acota a "examen"
+        // para no colisionar con HOUSEHOLD ("preparar la cena") ni TASK
+        // ("preparar la reunión"). "no estudiar"/"no repasar" (negación) no activa.
+        if (kind == ContextIntentKind.STUDY && hasStrongStudyImperative(lower)) {
+            score = maxOf(score, MINIMUM_CONFIDENCE)
+        }
         return score.coerceIn(0f, 1f)
     }
 
@@ -305,6 +349,39 @@ object ContextIntentEngine {
      */
     private fun hasStrongHouseholdImperative(lower: String): Boolean =
         Regex("""^(limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar)\s+\w""").containsMatchIn(lower)
+
+    /**
+     * Imperativos de ejercicio inequívocos (c.639). Verbos de actividad física al
+     * INICIO + objeto, o "ir al gimnasio"/"hacer yoga/pesas/deporte". El ancla
+     * `^` exige afirmativo inicial; así "no correr hoy"/"no entrenar" (negación)
+     * y "correr" aislado no activan el piso (c.616 anti-overreach).
+     */
+    private fun hasStrongExerciseImperative(lower: String): Boolean =
+        Regex("""^(correr|entrenar|nataci[oó]n|pesas)\s+\w""").containsMatchIn(lower) ||
+            Regex("""^ir\s+al\s+gimnasio""").containsMatchIn(lower) ||
+            Regex("""^hacer\s+(yoga|pesas|deporte)\b""").containsMatchIn(lower)
+
+    /**
+     * Imperativos de diligencia inequívocos (c.639). "ir a(l| la) <destino de
+     * trámite>" al INICIO, o "recoger/devolver <objeto>". El destino se acota a
+     * lugares de trámite para no colisionar con SHOPPING (farmacia) ni VISIT
+     * (casa de). El ancla `^` exige afirmativo inicial; así "no ir al banco"
+     * (negación) e "ir" aislado no activan el piso (c.616 anti-overreach).
+     */
+    private fun hasStrongErrandImperative(lower: String): Boolean =
+        Regex("""^ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b""").containsMatchIn(lower) ||
+            Regex("""^(recoger|devolver|retirar)\s+\w""").containsMatchIn(lower)
+
+    /**
+     * Imperativos de estudio inequívocos (c.639). "estudiar <X>"/"repasar <X>"
+     * al INICIO, o "preparar el/la/un/una examen". "preparar" se acota a
+     * "examen" para no colisionar con HOUSEHOLD ("preparar la cena") ni TASK.
+     * El ancla `^` exige afirmativo inicial; así "no estudiar"/"no repasar"
+     * (negación) no activan el piso (c.616 anti-overreach).
+     */
+    private fun hasStrongStudyImperative(lower: String): Boolean =
+        Regex("""^(estudiar|repasar)\s+\w""").containsMatchIn(lower) ||
+            Regex("""^preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b""").containsMatchIn(lower)
 
     /**
      * Patrones específicos por tipo de intención.
