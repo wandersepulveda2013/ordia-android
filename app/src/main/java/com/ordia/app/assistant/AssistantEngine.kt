@@ -95,6 +95,17 @@ object AssistantEngine {
             "que hago ahora" in query || "que hago" in query ||
                 "siguiente accion" in query || "que sigue" in query ||
                 "que me toca" in query ||
+                // Interrogativo "cuál" (sinónimo de "qué" para la siguiente acción) +
+                // "¿qué sigo?" + "¿qué viene después?": "¿cuál hago?"/"¿cuál hago
+                // primero?"/"¿cuál es la siguiente?" son semánticamente idénticas a
+                // "¿qué hago?"/"¿qué sigue?", y "¿qué sigo?"/"¿qué viene después?"
+                // piden lo mismo (la siguiente tarea). Antes caían al menú genérico
+                // por no contener "hago"/"sigue"/"toca". No colisionan con agenda
+                // (ésta usa "tengo"/"hay"/"para"). "cual hago" se ancla con verbo de
+                // acción para no robar "¿cuál es el problema?"/"no sé cuál" (ver test
+                // whatNow_cualNoSeActivaConVerboSuelto).
+                "cual hago" in query || "cual es la siguiente" in query ||
+                "que sigo" in query || "que viene despues" in query ||
                 // "¿qué tengo que hacer?"/"¿qué me falta por hacer?" son las formas
                 // más cotidianas de preguntar por la siguiente tarea — semánticamente
                 // idénticas a "¿qué hago ahora?"/"¿qué me toca?" — pero, al no

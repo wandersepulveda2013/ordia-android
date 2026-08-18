@@ -918,6 +918,47 @@ class AssistantEngineTest {
         }
     }
 
+    // --- c.556: interrogativo "cuál" + "¿qué sigo?" + "¿qué viene después?" ---
+    // La familia what-now casaba "qué hago"/"qué sigue"/"qué me toca" pero NO el
+    // interrogativo "cuál" (sinónimo natural: "¿cuál hago?"/"¿cuál hago primero?"/
+    // "¿cuál es la siguiente?") ni "¿qué sigo?"/"¿qué viene después?". Caían al
+    // menú genérico: el usuario pedía su siguiente acción y recibía la lista de
+    // capacidades. Mismo motor (WhatNowEngine.suggest), sólo detección.
+
+    @Test fun whatNow_recognizesCualHago() {
+        val answer = AssistantEngine.answer("¿Cuál hago?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿cuál hago? debe sugerir la urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun whatNow_recognizesCualHagoPrimero() {
+        val answer = AssistantEngine.answer("¿Cuál hago primero?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿cuál hago primero? debe sugerir la urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun whatNow_recognizesCualEsLaSiguiente() {
+        val answer = AssistantEngine.answer("¿Cuál es la siguiente?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿cuál es la siguiente? debe sugerir la urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun whatNow_recognizesQueSigo() {
+        val answer = AssistantEngine.answer("¿Qué sigo?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿qué sigo? debe sugerir la urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun whatNow_recognizesQueVieneDespues() {
+        val answer = AssistantEngine.answer("¿Qué viene después?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿qué viene después? debe sugerir la urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun whatNow_cualNoSeActivaConVerboSuelto() {
+        // "cuál" suelto sin verbo de acción NO es intención what-now (evita
+        // falsos positivos sobre "¿cuál es el problema?" / "no sé cuál").
+        for (q in listOf("cuál es el problema", "no sé cuál elegir del catálogo")) {
+            val answer = AssistantEngine.answer(q, whatNowUrgent, emptyList(), emptyList())
+            assertTrue("'$q' no debe activar What Now: ${answer.text}", answer.relatedTaskIds.isEmpty())
+        }
+    }
+
     @Test fun whatNow_recognizesQueSigueSinTareas() {
         // Sin tareas, la nueva forma sigue dando el mensaje útil (no el genérico).
         val answer = AssistantEngine.answer("¿qué sigue ahora?", emptyList(), emptyList(), emptyList())
