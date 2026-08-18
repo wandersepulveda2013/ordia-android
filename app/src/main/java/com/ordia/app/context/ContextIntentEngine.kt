@@ -61,6 +61,23 @@ object ContextIntentEngine {
     private val ERRAND_VERBS = "recoger|devolver|retirar"
     private val STUDY_VERBS = "estudiar|repasar"
 
+    // Penalización por duda/condicional (c.649 anti-overreach). Marcadores como
+    // "quizá"/"a lo mejor"/"tal vez" expresan que el usuario NO se ha comprometido:
+    // capturarlos como tarea firme en la captura pasiva es overreach (igual que la
+    // negación c.648 capta lo opuesto, la duda capta lo NO-comprometido). A
+    // diferencia de la negación (que descarta el kind), la duda NO niega la
+    // intención, la DEBILITA, así se aplica una penalización (no un bloqueo).
+    // Se aplica POST-pisos para que no la sobreescriban los pisos de imperativos
+    // (que usan maxOf(score, MINIMUM_CONFIDENCE)). Cubre el exceso máximo
+    // observado (APPOINTMENT "tal vez cita..." 0.69 → 0.39) con margen.
+    private const val HEDGE_PENALTY = 0.3f
+    // \b de regex es ASCII-only (\w no incluye 'á'), así que "quizá" no cerraba
+    // frontera y el patrón no casaba. Se usan lookarounds Unicode \p{L} (letras)
+    // para delimitar los marcadores de forma robusta con tildes.
+    private val HEDGE_PATTERN = Regex(
+        """(?<!\p{L})(?:quiz[áa]s?|a\s+lo\s+mejor|tal\s+vez|capaz|puede\s+que|a\s+ver\s+si)(?!\p{L})"""
+    )
+
     /**
      * Analiza un evento contextual y retorna una intención clasificada,
      * o null si el contenido debe descartarse.
@@ -332,6 +349,24 @@ object ContextIntentEngine {
         if (kind == ContextIntentKind.STUDY && hasStrongStudyImperative(lower)) {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
+
+        // Penalización por duda/condicional (c.649 anti-overreach). Los pisos
+        // anteriores elevan la confianza al mínimo para imperativos inequívocos
+        // ("ir al gimnasio", "reunión con el equipo"...), pero NO distinguen un
+        // compromiso firme de una mera especulación: "quizá ir al gimnasio"/"tal
+        // vez reunión con el equipo" activaban el piso y se persistían como tareas
+        // reales aunque el usuario expresamente NO se comprometió. Aplicada POST-
+        // pisos para que no la sobreescriban (los pisos usan maxOf), reduce la
+        // confianza final por debajo de [MINIMUM_CONFIDENCE] y descarta la
+        // especulación. A diferencia de la negación ([imperativeIsNegated], que
+        // descarta el kind porque capta lo OPUESTO), la duda capta lo NO-
+        // comprometido: se penaliza, no se bloquea, porque la duda no niega la
+        // intención. "debería"/"pensaba" NO se incluyen: reconocen necesidad/
+        // intención (no pura duda) y ya caen bajo el umbral por score base bajo.
+        if (hasHedgeMarker(lower)) {
+            score -= HEDGE_PENALTY
+        }
+
         return score.coerceIn(0f, 1f)
     }
 
@@ -544,6 +579,16 @@ object ContextIntentEngine {
         ) return true
         return false
     }
+
+    /**
+     * Detecta marcadores de duda/condicional (c.649). "quizá"/"a lo mejor"/"tal
+     * vez"/"capaz"/"puede que"/"a ver si" indican que el usuario NO se ha
+     * comprometido a la acción. Capturar tal especulación como tarea firme en la
+     * captura pasiva es overreach (degrada la bandeja con items no validados).
+     * Determinista (regex), sin IA fingida — la duda léxica es objetiva.
+     */
+    private fun hasHedgeMarker(lower: String): Boolean =
+        HEDGE_PATTERN.containsMatchIn(lower)
 
     /**
      * Patrones específicos por tipo de intención.
