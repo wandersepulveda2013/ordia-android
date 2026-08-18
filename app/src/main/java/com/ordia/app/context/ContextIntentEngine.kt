@@ -523,6 +523,29 @@ object ContextIntentEngine {
             }
         }
 
+        // Horas canónicas "al mediodía"/"a medianoche"/"a la medianoche" (c.587).
+        // Paridad con NaturalTaskParser: esas palabras sueltas resuelven 12:00/00:00
+        // (parser l.1532-1554 → explicitTimeData l.4395-4406). El [timePattern]
+        // numérico NO las casa (no hay dígito), así targetTime quedaba null y:
+        //  - "reunión al mediodía" (sin día) → null → ContextEvent sin vencimiento,
+        //    invisible en What Now y sin recordatorio (evitar olvidos, P1).
+        //  - "entrega a medianoche mañana" → targetDate=mañana, targetTime=null → caía
+        //    al default `LocalTime.of(12,0)` (l.529) = mediodía, ¡12h de error!
+        // Sólo se aplica si NO hubo hora numérica: una hora explícita ("a las 3")
+        // siempre tiene prioridad (más específica, simétrico al orden de patrones
+        // del parser donde "a las N" se prueba antes que las canónicas). Las
+        // variantes con modificador ("pasada la medianoche"/"pasado el mediodía"/
+        // "después del mediodía") también contienen la palabra canónica, así se
+        // cubren sin lógica extra: al motor de contexto le basta la hora neta.
+        if (targetTime == null) {
+            val hasMedianoche = lower.contains("medianoche")
+            val hasMediodia = lower.contains("mediodía") || lower.contains("mediodia")
+            when {
+                hasMedianoche -> targetTime = LocalTime.of(0, 0)
+                hasMediodia -> targetTime = LocalTime.of(12, 0)
+            }
+        }
+
         if (targetDate == null && targetTime == null) return null
 
         val date = targetDate ?: today

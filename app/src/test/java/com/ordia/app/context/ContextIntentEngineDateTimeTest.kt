@@ -404,4 +404,65 @@ class ContextIntentEngineDateTimeTest {
         val due = ContextIntentEngine.extractDateTime("comprar 2 kilos el 25")
         assertNotNull("una fecha válida tras un número suelto debe extraerse", due)
     }
+
+    // --- "al mediodía"/"a medianoche" (palabra suelta, sin número) ---
+    // Paridad parser↔context: NaturalTaskParser resuelve estas horas canónicas
+    // ("reunión al mediodía" → 12:00, "entrega a medianoche" → 00:00) vía sus
+    // patrones de palabra suelta (líneas ~1532-1554 → explicitTimeData). Antes
+    // ContextIntentEngine.extractDateTime SÓLO extraía hora de la regex numérica
+    // (\d{1,2})...: "al mediodía" no producía targetTime (dueAt=null o sólo fecha)
+    // → un ContextEvent "reunión al mediodía" nacía sin vencimiento, invisible en
+    // What Now y sin recordatorio (evitar olvidos). Misma clase de inconsistencia
+    // parser↔context de c.579/c.583/c.584. c.587 cierra la brecha de paridad.
+
+    @Test
+    fun alMediodia_produceHora_noNull() {
+        val due = ContextIntentEngine.extractDateTime("reunión al mediodía")
+        assertNotNull("'al mediodía' debe extraer fecha/hora (no null)", due)
+    }
+
+    @Test
+    fun alMediodia_hourIs12() {
+        val due = ContextIntentEngine.extractDateTime("reunión al mediodía")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'al mediodía' = 12:00 (mediodía)", 12, hour)
+    }
+
+    @Test
+    fun aMedianoche_produceHora_noNull() {
+        val due = ContextIntentEngine.extractDateTime("entrega a medianoche")
+        assertNotNull("'a medianoche' debe extraer fecha/hora (no null)", due)
+    }
+
+    @Test
+    fun aMedianoche_hourIs0() {
+        val due = ContextIntentEngine.extractDateTime("entrega a medianoche")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'a medianoche' = 00:00 (medianoche)", 0, hour)
+    }
+
+    @Test
+    fun aLaMedianoche_hourIs0() {
+        // Forma con artículo: "a la medianoche" (paridad con parser l.1554).
+        val due = ContextIntentEngine.extractDateTime("entrega a la medianoche")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'a la medianoche' = 00:00 (medianoche)", 0, hour)
+    }
+
+    @Test
+    fun alMediodia_isToday() {
+        // Sin otra referencia de día, "al mediodía" cae a hoy (default del motor).
+        val due = ContextIntentEngine.extractDateTime("reunión al mediodía")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val today = LocalDate.now(z)
+        assertEquals("'al mediodía' (sin día) es hoy", today, dDue)
+    }
 }
