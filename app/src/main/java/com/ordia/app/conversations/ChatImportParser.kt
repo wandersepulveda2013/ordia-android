@@ -29,7 +29,7 @@ object ChatImportParser {
     const val MAX_MESSAGES = 20_000
 
     private val whatsappLine = Regex(
-        """^\[?(\d{1,2}/\d{1,2}/\d{2,4}),?\s+(\d{1,2}:\d{2})(?:\s*([ap]\.?\s*m\.?))?\]?\s*(?:-\s*)?([^:]{1,80}):\s*(.*)$""",
+        """^\[?(\d{1,2}/\d{1,2}/\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?)(?:\s*([ap]\.?\s*m\.?))?\]?\s*(?:-\s*)?([^:]{1,80}):\s*(.*)$""",
         RegexOption.IGNORE_CASE
     )
     private val senderLine = Regex("""^([^:\n]{1,80}):\s+(.+)$""")
@@ -38,6 +38,9 @@ object ChatImportParser {
         .appendPattern("d/M/")
         .appendValueReduced(java.time.temporal.ChronoField.YEAR, 2, 4, 2000)
         .appendPattern(" H:mm")
+        .optionalStart()
+        .appendPattern(":ss")
+        .optionalEnd()
         .toFormatter(Locale.ROOT)
 
     fun parse(raw: String, suggestedTitle: String = "Conversación importada"): ConversationPreview {
@@ -152,7 +155,17 @@ object ChatImportParser {
         if (normalizedMarker.isBlank()) {
             LocalDateTime.parse("$date $time", dateTimeFormatter)
         } else {
-            val formatter = DateTimeFormatter.ofPattern("d/M/yy h:mm a", Locale.US)
+            // Formatter con segundos opcionales (iOS exporta HH:MM:SS AM/PM).
+            val formatter = DateTimeFormatterBuilder()
+                .parseCaseInsensitive()
+                .appendPattern("d/M/")
+                .appendValueReduced(java.time.temporal.ChronoField.YEAR, 2, 4, 2000)
+                .appendPattern(" h:mm")
+                .optionalStart()
+                .appendPattern(":ss")
+                .optionalEnd()
+                .appendPattern(" a")
+                .toFormatter(Locale.US)
             val amPm = if (normalizedMarker.startsWith("p")) "PM" else "AM"
             LocalDateTime.parse("$date $time $amPm", formatter)
         }.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()

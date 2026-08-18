@@ -49,4 +49,37 @@ class ChatImportParserTest {
         assertEquals(first.contentHash, second.contentHash)
         assertFalse(first.contentHash == other.contentHash)
     }
+
+    @Test
+    fun parsesIosWhatsAppExportWithSeconds() {
+        // iOS exporta con corchetes, segundos (HH:MM:SS) y AM/PM; antes del fix esto
+        // no casaba como línea estructurada → se perdía remitente, timestamp y se
+        // fundían líneas. DD/MM es el formato de los iPhones en locale es.
+        val raw = """
+            [31/12/24, 11:30:00 PM] Ana: Hola vamos a vernos
+            [01/01/25, 12:05:00 AM] Luis: nos vemos mañana
+        """.trimIndent()
+
+        val preview = ChatImportParser.parse(raw, "Chat.txt")
+
+        assertEquals(listOf("Ana", "Luis"), preview.participants)
+        assertEquals(2, preview.messages.size)
+        assertEquals("Ana", preview.messages[0].sender)
+        assertEquals("Luis", preview.messages[1].sender)
+        assertEquals("Hola vamos a vernos", preview.messages[0].text)
+        assertNotNull("El timestamp iOS AM/PM con segundos debe parsearse", preview.messages[0].timestamp)
+        assertNotNull("El timestamp iOS 24h con segundos debe parsearse", preview.messages[1].timestamp)
+        assertTrue("El orden cronológico debe preservarse",
+            (preview.messages[1].timestamp ?: 0L) >= (preview.messages[0].timestamp ?: 0L))
+    }
+
+    @Test
+    fun detectsIosWhatsAppExportAsStructured() {
+        val raw = """
+            [31/12/24, 23:59:59] Ana: cita el viernes
+            [01/01/25, 00:05:00] Luis: nos vemos mañana
+        """.trimIndent()
+
+        assertTrue(ChatImportParser.looksLikeConversation(raw))
+    }
 }
