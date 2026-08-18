@@ -48,6 +48,37 @@ class RecurrenceEngineTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(next.dueAt!!, zone))
     }
 
+    // Recurrencia WEEKLY con intervalo>1 y VARIOS días ("cada dos lunes y
+    // jueves" → WEEKLY interval=2 days="1,4", ruta que el parser emite — ver
+    // NaturalTaskParserTest.parsesEveryNthWeekdayCount_multiDayList— pero que el
+    // motor NO tenía cubierta). La cadencia es "lunes y jueves de la 1ª semana de
+    // cada ciclo de 2 semanas" (los días agendados viven en la primera semana del
+    // ciclo, no en cada semana del ciclo: con interval=2, completar el jueves del
+    // ciclo-1 salta al lunes del ciclo-2, +11 días, sin inventar jueves en la
+    // semana vacía del medio). Dos transiciones claves de la rama multi-día:
+    //  (a) rama `later` (mismo ciclo): lunes ciclo-1 → jueves ciclo-1 (+3 días).
+    //  (b) rama `else` (salto de ciclo, la no probada): jueves ciclo-1 → lunes
+    //      ciclo-2 (+interval semanas − offset = 14 − 3 = 11 días). Sin esta
+    //      prueba, un "arreglo" futuro de nextWeekly podía romper la cadencia
+    //      quincenal multi-día y perder la mitad de las ocurrencias (P1: datos).
+    @Test fun weekly_interval2_multiDay_advancesWithinAndAcrossCycles() {
+        val dueThu = DateRules.toEpochMillis(LocalDate.of(2026, 7, 30), LocalTime.of(9, 0), zone) // jueves 30-jul, ciclo-1
+        val task = TaskEntity(title = "Clase cada dos lunes y jueves", dueAt = dueThu, recurrence = RecurrenceFrequency.WEEKLY, recurrenceInterval = 2, recurrenceDays = "1,4")
+        // (b) jueves ciclo-1 → lunes ciclo-2 (10-ago), rama `else` (+11 días).
+        val nextFromThu = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = dueThu, zone = zone))
+        assertEquals(LocalDate.of(2026, 8, 10), DateRules.toLocalDate(nextFromThu.dueAt!!, zone))
+        assertEquals(2, nextFromThu.recurrenceInterval)
+        assertEquals("1,4", nextFromThu.recurrenceDays)
+        // (a) lunes ciclo-2 → jueves ciclo-2 (13-ago), rama `later` (+3 días).
+        val dueMon = DateRules.toEpochMillis(LocalDate.of(2026, 8, 10), LocalTime.of(9, 0), zone) // lunes 10-ago, ciclo-2
+        val nextFromMon = requireNotNull(RecurrenceEngine.nextOccurrence(task.copy(dueAt = dueMon), completedAt = dueMon, zone = zone))
+        assertEquals(LocalDate.of(2026, 8, 13), DateRules.toLocalDate(nextFromMon.dueAt!!, zone))
+        // (b) de nuevo el salto de ciclo: jueves ciclo-2 → lunes ciclo-3 (24-ago).
+        val dueThu2 = DateRules.toEpochMillis(LocalDate.of(2026, 8, 13), LocalTime.of(9, 0), zone) // jueves 13-ago, ciclo-2
+        val nextFromThu2 = requireNotNull(RecurrenceEngine.nextOccurrence(task.copy(dueAt = dueThu2), completedAt = dueThu2, zone = zone))
+        assertEquals(LocalDate.of(2026, 8, 24), DateRules.toLocalDate(nextFromThu2.dueAt!!, zone))
+    }
+
     @Test fun monthly_anchorsToDayOfMonthAndSkipsMonthsLackingIt() {
         // "el 31 de cada mes": ene 31 + 1 mes NO debe dar feb 28 (clamp),
         // sino saltar a mar 31 (feb no tiene 31). Coincide con el anclaje del parser.

@@ -49,4 +49,24 @@ class HabitRulesTest {
         }
         assertEquals(months, HabitRules.currentStreak(habit, logs, today))
     }
+
+    // Hábito MENSUAL agendado el día 31: meses cortos (feb 28/29, abr, jun, sep,
+    // nov) NO tienen día 31, así que ningún día de esos meses es agendado. La
+    // racha debe CONTINUAR a través del mes corto (saltándolo), no romperse:
+    // completar el 31-ene y el 31-mar ⇒ racha 2, aunque feb no tenga 31. El bucle
+    // día a día de [currentStreak] ya lo hace bien (isScheduled=false para todo
+    // feb ⇒ retrocede sin penalizar), pero NO había test que lo fijara: un
+    // "arreglo" futuro que sustituyera el salto día a día por saltos por mes
+    // podía romper esta racha silenciosamente. P1: integridad de la racha.
+    @Test fun streak_monthly31st_continuesAcrossShortMonth() {
+        val habit = HabitEntity(id = 3, title = "Cerrar balance", frequency = HabitFrequency.MONTHLY, activeDays = "31")
+        // Feb 2026 no tiene 31: ningún día de feb es agendado.
+        assertFalse(HabitRules.isScheduled(habit, LocalDate.of(2026, 2, 28)))
+        val today = LocalDate.of(2026, 3, 31) // mar 31, agendado y completado
+        val logs = listOf(
+            HabitLogEntity(3, LocalDate.of(2026, 1, 31).toEpochDay()), // ene 31 (completado)
+            HabitLogEntity(3, LocalDate.of(2026, 3, 31).toEpochDay())  // mar 31 (completado)
+        )
+        assertEquals(2, HabitRules.currentStreak(habit, logs, today))
+    }
 }
