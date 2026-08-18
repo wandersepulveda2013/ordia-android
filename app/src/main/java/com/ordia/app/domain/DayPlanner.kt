@@ -226,7 +226,12 @@ object DayPlanner {
         val blocks = mutableListOf<Block>()
         val unscheduled = mutableListOf<Long>()
         // Si el inicio efectivo cae en o después del fin del día, ya no hay ventana
-        // hoy: el plan queda vacío en vez de inventar slots pasados.
+        // hoy: el plan queda vacío en vez de inventar slots pasados. PERO las
+        // candidatas activas NO agendadas deben figurar en `unscheduled`: callarlas
+        // dejaría "0 agendadas, 0 sin agendar" mientras hay trabajo pendiente — una
+        // mentira por omisión (el usuario no sabría que su jornada se fue y su trabajo
+        // quedó en el aire). Paridad con la rama de "no cabe" dentro del forEach: lo
+        // que no entra al plan se nombra, sea por falta de ventana o por falta de hueco.
         if (effectiveStart < dayEndMinute) {
             var cursor = effectiveStart
             candidates.forEach { task ->
@@ -260,6 +265,10 @@ object DayPlanner {
                     unscheduled += task.id
                 }
             }
+        } else {
+            // Ventana de hoy agotada: nada se puede agendar, pero las candidatas
+            // activas se nombran como no agendadas (no se silencian).
+            unscheduled += candidates.map { it.id }
         }
 
         // Conflictos: el plan mueve tareas que ya tenían hora prevista ese día.

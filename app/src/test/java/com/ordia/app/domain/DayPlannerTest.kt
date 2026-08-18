@@ -600,4 +600,38 @@ class DayPlannerTest {
         assertEquals(1, plan.blocks.size)
         assertEquals(PlanReason.SCHEDULED_TIME, plan.blocks.first().reason)
     }
+
+    @Test
+    fun planForTodayAfterDayEndReportsCandidatesAsUnscheduledNotSilent() {
+        // Plan construido para HOY pero a una hora ya posterior al fin de jornada:
+        // el cursor (effectiveStart) cae en/después de dayEndMinute → la ventana de
+        // hoy se agotó y NO se puede agendar nada. El plan debe ser HONESTO: 0 bloques
+        // PERO todas las candidatas activas que no cupieron deben figurar en
+        // unscheduledTaskIds. Antes, al envolver el forEach en `if (effectiveStart <
+        // dayEndMinute)`, el bloque vacío dejaba `unscheduled` en [] → el plan decía
+        // "0 agendadas, 0 sin agendar" mientras había trabajo pendiente → mentía por
+        // omisión (el usuario no sabía que su jornada ya se fue y su trabajo quedó en
+        // el aire). Paridad con `tasksThatDoNotFitAreReported`: lo que no cabe se nombra.
+        val nowLate = DateRules.toEpochMillis(date, LocalTime.of(19, 30), zone)
+        val overdue = TaskEntity(
+            id = 1, title = "Atrasada", durationMinutes = 30,
+            dueAt = DateRules.toEpochMillis(date.minusDays(1), LocalTime.of(18, 0), zone)
+        )
+        val dueToday = TaskEntity(
+            id = 2, title = "Vence hoy", durationMinutes = 30,
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(18, 0), zone)
+        )
+        val inbox = TaskEntity(id = 3, title = "Bandeja", durationMinutes = 30)
+
+        val plan = DayPlanner.build(
+            listOf(overdue, dueToday, inbox), date, 9 * 60, 18 * 60,
+            breakMinutes = 0, now = nowLate, zone = zone
+        )
+
+        // No hay ventana: nada se agenda.
+        assertTrue(plan.blocks.isEmpty())
+        // HONESTIDAD: las 3 candidatas activas figuran como no agendadas.
+        assertEquals(3, plan.unscheduledTaskIds.size)
+        assertTrue(plan.unscheduledTaskIds.containsAll(listOf(1L, 2L, 3L)))
+    }
 }
