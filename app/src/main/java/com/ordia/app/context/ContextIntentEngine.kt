@@ -304,7 +304,7 @@ object ContextIntentEngine {
      * aislado (muletilla) NO activan el piso (c.616 anti-overreach).
      */
     private fun hasStrongHouseholdImperative(lower: String): Boolean =
-        Regex("""^(limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar)\s+\w""").containsMatchIn(lower)
+        Regex("""^(limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar)\s+\w""").containsMatchIn(lower)
 
     /**
      * Patrones específicos por tipo de intención.
@@ -400,7 +400,7 @@ object ContextIntentEngine {
             }
             ContextIntentKind.HOUSEHOLD -> {
                 var s = 0f
-                if (Regex("""(limpiar|ordenar|cocinar|lavar|planchar|arreglar|reparar|jardín)""").containsMatchIn(lower)) s += 0.15f
+                if (Regex("""(limpiar|ordenar|cocinar|lavar|planchar|arreglar|reparar|jardín|fregar|barrer|trapear|regar|sacudir|desempolvar)""").containsMatchIn(lower)) s += 0.15f
                 s
             }
             else -> 0f
@@ -568,9 +568,9 @@ object ContextIntentEngine {
                 null
             }
             ContextIntentKind.HOUSEHOLD -> {
-                // Verbos alineados con [hasStrongHouseholdImperative] (c.638) para que
+                // Verbos alineados con [hasStrongHouseholdImperative] (c.638/c.639) para que
                 // el piso no capture un verbo cuyo título luego no se forme limpio.
-                val match = Regex("""(limpiar|ordenar|cocinar|lavar|arreglar|planchar|reparar) (.+)""", RegexOption.IGNORE_CASE).find(original)
+                val match = Regex("""(limpiar|ordenar|cocinar|lavar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return "${capitalizeFirst(match.groupValues[1])} ${match.groupValues[2]}"
                 null
             }

@@ -125,4 +125,73 @@ class ContextIntentEngineHouseholdFloorTest {
         val intent = analyze("no cocinar la cena")
         assertNull("negación 'no cocinar la cena' no debe capturarse como HOUSEHOLD", intent)
     }
+
+    // --- c.639: verbos domésticos comunes que faltaban en la cobertura léxica
+    // (fregar/barrer/trapear/regar/sacudir/desempolvar). Antes de c.639 estos
+    // verbos no estaban en la lista de palabras clave de HOUSEHOLD ni en
+    // scoreSpecificPatterns ni en el piso ni en extractTitle, así que
+    // "fregar los platos"/"barrer el patio"/"trapear el piso"/"regar las
+    // plantas"/"sacudir los muebles"/"desempolvar la estantería" se descartaban
+    // silenciosamente — misma rendija de olvido que c.638 cubrió para los otros
+    // verbos. c.639 los añade en lockstep a las 4 listas para cerrar la brecha.
+
+    @Test
+    fun householdFregarPlatosIsCaptured() {
+        val intent = analyze("fregar los platos")
+        assertNotNull("fregar los platos es una tarea del hogar legítima, no debe descartarse", intent)
+        assertEquals(ContextIntentKind.HOUSEHOLD, intent!!.kind)
+    }
+
+    @Test
+    fun householdBarrerPatioIsCaptured() {
+        val intent = analyze("barrer el patio")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.HOUSEHOLD, intent!!.kind)
+    }
+
+    @Test
+    fun householdTrapearPisoIsCaptured() {
+        val intent = analyze("trapear el piso")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.HOUSEHOLD, intent!!.kind)
+    }
+
+    @Test
+    fun householdRegarPlantasIsCaptured() {
+        val intent = analyze("regar las plantas")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.HOUSEHOLD, intent!!.kind)
+    }
+
+    @Test
+    fun householdSacudirMueblesIsCaptured() {
+        val intent = analyze("sacudir los muebles")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.HOUSEHOLD, intent!!.kind)
+    }
+
+    @Test
+    fun householdDesempolvarEstanteriaIsCaptured() {
+        val intent = analyze("desempolvar la estantería")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.HOUSEHOLD, intent!!.kind)
+    }
+
+    @Test
+    fun householdFregarPlatosFormsCleanTitle() {
+        val intent = analyze("fregar los platos")
+        assertNotNull(intent)
+        assertEquals("Fregar los platos", intent!!.title)
+    }
+
+    // --- Guards: los verbos metafóricos/casuales NO se capturan por la
+    // negación incrustada o el uso fuera-de-hogar (c.616 anti-overreach). El
+    // piso exige ancla `^` + objeto, así que las negaciones y los usos
+    // conversacionales quedan fuera. ---
+
+    @Test
+    fun negatedRegarDoesNotTriggerFloor() {
+        val intent = analyze("no regar las plantas")
+        assertNull("negación 'no regar las plantas' no debe capturarse como HOUSEHOLD", intent)
+    }
 }

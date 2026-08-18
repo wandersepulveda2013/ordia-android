@@ -14530,3 +14530,19 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final local/remoto**: `e4c4268` (c.638).
 - **Verificación post-commit**: `bash tools/run_domain_tests.sh` → 3535 PASS, 0 failures, 59 classes (confirmado en el commit `e4c4268`); `bash tools/run_domain_checks.sh` → smoke 25 OK.
 - **Estado**: VERIFIED + PUSHED.
+
+## c.639 — 2026-08-18 (ciclo continuo, continuación de c.638)
+- **Run/ciclo**: c.639 (continuación inmediata de c.638 dentro del mismo entorno).
+- **HEAD inicial**: `c236baa` (docs c.638 push-OK) — sincronizado, sin divergencia.
+- **Problema seleccionado**: la rendija de olvido que c.638 NO cerró del todo — el piso HOUSEHOLD sólo cubría los 7 verbos ya listados; `fregar`/`barrer`/`trapear`/`regar`/`sacudir`/`desempolvar` (verbos domésticos comunes en ES+LATAM) estaban ausentes de las 4 listas en lockstep → "fregar los platos"/"barrer el patio"/"trapear el piso"/"regar las plantas"/"sacudir los muebles"/"desempolvar la estantería" seguían en NULL (olvido silencioso) pese al piso.
+- **Prioridad**: P2 (context/evitar olvidos — continuación de la familia P1 c.638; mismo mandato de misión).
+- **Causa raíz**: cobertura léxica incompleta de HOUSEHOLD en `ContextIntentEngine` y `ContextIntentKind.HOUSEHOLD.keywords`. El piso de c.638 es un `maxOf(score, MIN)` — si el verbo no está en `hasStrongHouseholdImperative`, el piso nunca aplica, y si no está en `keywords`/`scoreSpecificPatterns`, el `score` base es 0.
+- **Solución**: añadir los 6 verbos seguros en **lockstep** a las 4 listas (`ContextIntentKind.HOUSEHOLD.keywords`, `scoreSpecificPatterns` HOUSEHOLD, `hasStrongHouseholdImperative`, `extractTitle` HOUSEHOLD). Selección léxica deliberada anti-overreach (c.616): EXCLUIDOS `colgar`/`doblar`/`tender`/`aspirar` (riesgo de falso positivo en chat casual — "colgar el teléfono", "doblar la esquina", "tender la mano", "aspirar a más"). `regar` INCLUIDO pese a metáfora de chisme porque el ancla `^`+objeto + guard de negación lo protegen.
+- **Archivos modificados**: `app/src/main/java/com/ordia/app/context/ContextIntent.kt` (HOUSEHOLD keywords +6); `app/src/main/java/com/ordia/app/context/ContextIntentEngine.kt` (`scoreSpecificPatterns` +6, `hasStrongHouseholdImperative` +6, `extractTitle` +6); `app/src/test/java/com/ordia/app/context/ContextIntentEngineHouseholdFloorTest.kt` (+8 tests: 6 capturas + 1 title + 1 negación guard).
+- **Tests**: `bash tools/run_domain_tests.sh` → **3543 PASS** (3535 c.638 + 8 c.639), 0 failures, 59 classes; `bash tools/run_domain_checks.sh` → smoke 25 OK. TDD: RED confirmado pre-fix (7 fallaban); GREEN post-fix. Sin tests reducidos/eliminados/falseados.
+- **Commits**: c.639 (feat(context): cobertura léxica HOUSEHOLD +6 verbos — c.639, lockstep con piso c.638). Push pendiente.
+- **HEAD final**: commit c.639 (sobre `c236baa`).
+- **Estado**: VERIFIED (dominio JVM). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **Hallazgos secundarios**: (i) los 4 verbos excluidos (`colgar`/`doblar`/`tender`/`aspirar`) representan una compensación honesta — capturarían verdaderos quehaceres ("colgar la ropa", "doblar las toallas", "tender la cama", "aspirar la alfombra") PERO a costa de false-positivos en chat casual; se dejan fuera hasta que exista un discriminador imperativo/afirmación más fino (como c.614 para TASK); (ii) `classify`/`isCasualChat` siguen como próxima auditoría de fondo (sin cambio de comportamiento detectado aún).
+- **Próxima prioridad**: (i) auditar `ContextIntentEngine.classify`/`isCasualChat` a fondo (sin findings aún); (ii) verbos excluidos con discriminador fino (P3, solo si surge evidencia de olvido real); (iii) `AutomationEngine.runRule`/`OrdiaViewModel.guardianInsight` omiten `zone` (P1, NO JVM-verificable); (iv) workers/backup/restore con DAOs/Room reales (P0 datos, NO JVM-verificable); (v) detección de vencidas importantes / replanificación automática. Re-fetch OBLIGATORIO.
+
