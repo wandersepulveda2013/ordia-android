@@ -271,9 +271,19 @@ object NaturalTaskParser {
      * mismo comportamiento de limpieza del título. "ratito"/"momentito" se listan ANTES
      * que "rato"/"momento" para que la alternancia capture el diminutivo completo y no
      * deje el sufijo "-ito" como residuo en el título.
+     *
+     * Familia "poco"/"breve"/"nada" (c.610): "dentro de poco", "en breve", "dentro de
+     * poco rato", "en poco rato", "de aquí/de acá a poco", "dentro de nada". Formas
+     * cotidianísimas de "pronto" que antes NO casaban → dueAt=null + residuo en el título
+     * ("reunión dentro de poco" → título "reunión dentro de poco", tarea olvidada). Exigen
+     * el prefijo relativo futuro ("en"/"dentro de"/"de aquí a"/"de acá a") para no colisionar
+     * con "hace poco" (pasado, que captura [agoPattern]) ni con contenido legítimo ("tengo
+     * poco tiempo", "poco dinero"). "nada" se restringe a "dentro de nada" (no "en nada",
+     * que rara vez significa "pronto" y sí "en absoluto"/contenido). Misma heurística +1 h
+     * y cede ante hora explícita (c.397).
      */
     private val vagueRelativePattern = Regex(
-        """(?i)\b(?:(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(?:un\s+ratito|un\s+ratico|un\s+momentito|un\s+rato|un\s+momento)|al\s+ratito|al\s+rato|pasado\s+un\s+rato|en\s*seguida|enseguida)\b"""
+        """(?i)\b(?:(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(?:un\s+ratito|un\s+ratico|un\s+momentito|un\s+rato|un\s+momento|poco\s+rato|poco|breve)|dentro\s+de\s+nada|al\s+ratito|al\s+rato|pasado\s+un\s+rato|en\s*seguida|enseguida)\b"""
     )
     /**
      * "Ahora" inmediato cotidiano: "ahora mismo", "ahorita", "ahora",

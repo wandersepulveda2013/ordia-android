@@ -4112,6 +4112,69 @@ class NaturalTaskParserTest {
         assertEquals(now + 60 * 60_000L, result.dueAt)
     }
 
+    // --- "dentro de poco"/"en breve"/"dentro de poco rato"/"dentro de nada" (ciclo 610) ---
+    // Familia coloquial cotidiana de "pronto" que antes NO casaba vagueRelative →
+    // dueAt=null (tarea olvidada, sin recordatorio ni visibilidad en What Now) y residuo
+    // en el título ("reunión dentro de poco" → título "reunión dentro de poco"). Mismo
+    // contrato que "en un rato": +1 h (heurística honesta), título limpio, cede ante hora
+    // explícita. Simétrica futura de "hace poco" (pasado, −3 h).
+    @Test fun dentroDePocoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Reunión dentro de poco", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+        assertNull(result.durationMinutes)
+    }
+
+    @Test fun enBreveEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Llamar en breve", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun dentroDePocoRatoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Pausa dentro de poco rato", now, zone)
+        assertEquals("Pausa", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun enPocoRatoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Llamar en poco rato", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun deAquiAPocoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Cita de aquí a poco", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun deAcaAPocoEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Cita de acá a poco", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    @Test fun dentroDeNadaEsFechaRelativaDe1Hora() {
+        val result = NaturalTaskParser.parse("Reunión dentro de nada", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(now + 60 * 60_000L, result.dueAt)
+    }
+
+    // "dentro de poco a las 5": el ancla vaga cede ante la hora explícita (c.397).
+    @Test fun dentroDePocoCedeAnteHoraExplicita() {
+        val result = NaturalTaskParser.parse("Reunión dentro de poco a las 5 de la tarde", now, zone)
+        assertEquals("Reunión", result.title)
+        assertNotEquals(now + 60 * 60_000L, result.dueAt)
+        assertNotNull(result.dueAt)
+    }
+
+    // "dentro de poco" NO debe colisionar con "hace poco" (pasado, −3 h).
+    @Test fun hacePocoSigueSiendoPasado3Horas() {
+        val result = NaturalTaskParser.parse("Pagué la factura hace poco", now, zone)
+        assertEquals(now - 3 * 60 * 60_000L, result.dueAt)
+    }
+
     // --- "enseguida"/"en seguida" (adverbio puro de inmediatez, sin "un rato") (ciclo 106) ---
     // No casa ningún otro patrón (vagueRelative exige "un rato"/"un momento"; relative exige
     // unidad) → antes dueAt=null + residuo en el título. +1 h (misma heurística honesta).
