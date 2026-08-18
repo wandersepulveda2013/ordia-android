@@ -200,8 +200,28 @@ object CommitmentEngine {
     // revisable, un falso positivo se descarta, un falso negativo es una petición
     // olvidada. La guarda de negación excluye "no revisa el contrato" (narración
     // negada / no es mandato). Determinista (regex), sin random, sin IA fingida.
+    //
+    // c.597: asimetría de NÚMERO en imperativeObjectRequestSignal. El singular de
+    // 2ª persona (tú: envía/revisa/paga el reporte el viernes) se detectaba desde
+    // c.536, pero el plural formal (ustedes: envíen/revisen/paguen el reporte el
+    // viernes) — el mandato estándar a un equipo/grupo en español americano, la
+    // forma cotidiana de pedir a varios en un chat laboral — caía a MISSED
+    // (probe JVM PRE-fix: 10/10) → una petición dirigida a un equipo no generaba
+    // draft y se olvidaba (P1, evitar olvidos + detección de compromisos). Se
+    // alinean los 12 plurales de ustedes con los singulares (envíen/revisen/
+    // entreguen/paguen/firmen/manden/suban/preparen/completen/confirmen/respondan/
+    // agenden/programen). Se reusan intactas las TRES guardas de c.536: negación
+    // precedente ("no envíen" excluido), anti-sujeto-3ª-persona y
+    // temporalObjectMarkers. NOTA DE PRECISIÓN: a diferencia del singular, el
+    // imperativo plural de ustedes NO es homógrafo del presente de 3ª persona
+    // ("ellos revisan" presente vs "revisen" mandato) — terminaciones distintas
+    // (-an vs -en) — así que la ambigüedad 2ª/3ª que justifica la guarda en el
+    // singular aquí no existe; la guarda queda por seguridad ante sujetos
+    // antepuestos ("ustedes revisen" no es gramatical, pero la guarda no daña).
+    // Determinista (regex), sin random, sin IA fingida. Nace como draft REQUEST
+    // PENDING revisable.
     private val imperativeObjectRequestSignal = Regex(
-        """(?iU)\b(?:env[ií]a|revisa|entrega|paga|firma|manda|sube|prepara|completa|confirma|responde|agenda|programa)\s+(?:el|la|los|las|un|una|unos|unas|este|esta|estos|estas|ese|esa|esos|esas|mi|tu|su)\s+(\p{L}{2,})"""
+        """(?iU)\b(?:env[ií]a|revisa|entrega|paga|firma|manda|sube|prepara|completa|confirma|responde|agenda|programa|env[ií]en|revisen|entreguen|paguen|firmen|manden|suban|preparen|completen|confirmen|respondan|agenden|programen)\s+(?:el|la|los|las|un|una|unos|unas|este|esta|estos|estas|ese|esa|esos|esas|mi|tu|su)\s+(\p{L}{2,})"""
     )
     // c.538: subjuntivo de 2ª persona con objeto nominal + fecha — MANDATO
     // INDIRECTO elíptico ("que revises el contrato mañana", "que confirmes la

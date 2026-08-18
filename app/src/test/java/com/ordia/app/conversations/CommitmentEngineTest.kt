@@ -971,6 +971,70 @@ class CommitmentEngineTest {
         }
     }
 
+    // c.597: asimetría de NÚMERO en imperativeObjectRequestSignal. El plural formal
+    // (ustedes: envíen/revisen/paguen el reporte el viernes) — mandato estándar a un
+    // equipo/grupo en español americano, la forma cotidiana de pedir a varios en un
+    // chat laboral — caía a MISSED (probe JVM PRE-fix: 10/10) aunque el singular
+    // (tú: envía/revisa) se detectase desde c.536. Una petición dirigida a un equipo
+    // no generaba draft y se olvidaba (P1). Nace como draft REQUEST PENDING
+    // revisable. La guarda de negación excluye "no envíen". La narración 3ª persona
+    // plural ("ellos revisan", presente -an) NO es homógrafa del imperativo (-en),
+    // así que no dispara; los sujetos antepuestos ("ellos revisen") no son
+    // gramaticales pero la guarda anti-3ª los cubre por seguridad.
+    @Test
+    fun detectsImperativeRequestsWithNominalObjectPluralUstedes() {
+        val positives = listOf(
+            "envíen el reporte el viernes",
+            "revisen el contrato mañana",
+            "entreguen el informe el lunes",
+            "paguen la factura el viernes",
+            "firmen el contrato el lunes",
+            "manden el archivo el viernes",
+            "suban el documento el lunes",
+            "preparen la propuesta el viernes",
+            "completen el formulario",
+            "confirmen la reserva",
+            "respondan el correo",
+            "agenden la reunión",
+            "programen la entrega"
+        )
+        positives.forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "imp-obj-plur-$text"
+            )
+            assertTrue("imperativo plural (ustedes) con objeto nominal DEBE detectarse como petición: \"$text\"", result.isNotEmpty())
+            assertEquals(CommitmentKind.REQUEST, result[0].kind)
+        }
+        // Negación: "no envíen/revisen" son prohibiciones, no peticiones.
+        listOf(
+            "no envíen el reporte el viernes",
+            "no revisen el contrato mañana",
+            "no paguen la factura el viernes"
+        ).forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "imp-obj-plur-neg-$text"
+            )
+            assertEquals("imperativo plural negado NO debe disparar: \"$text\"", 0, result.size)
+        }
+        // Narración 3ª persona plural (presente -an, no homógrafa del imperativo -en).
+        listOf(
+            "ellos revisan el contrato mañana",
+            "ellas entregan el informe el viernes",
+            "María y Juan pagan la factura el lunes"
+        ).forEach { text ->
+            val result = CommitmentEngine.extract(
+                listOf(ChatMessage("Ana", text)),
+                selfParticipant = "Yo",
+                scopeHash = "imp-obj-plur-narr-$text"
+            )
+            assertEquals("narración 3ª persona plural NO debe disparar: \"$text\"", 0, result.size)
+        }
+    }
+
     // c.537: presente de "notificar" (pelado y con-clítico, singular y plural) —
     // la única forma de promesa de comunicación que caía a MISSED. El futuro
     // (notificaré/notificaremos) ya estaba (c.534) y el resto de la familia de
