@@ -455,6 +455,57 @@ class GuardianCoachTest {
         assertFalse("Sin urgentes no debe añadir el marcado", insight.message.contains("urgente"))
     }
 
+    // c.625 — cierra la paridad 4-superficies: la rama staleInbox (captura
+    // arrinconada, sin fecha) era la ÚLTIMA superficie de recuperación basada
+    // en tareas con conteo plano SIN distinguir urgentes. Un URGENT en la
+    // bandeja sin fecha hace 2+ semanas (capturado como urgente, nunca
+    // agendado) es un anti-olvido real: el usuario marcó la prioridad pero
+    // nunca le dio hueco. Cerrarlo hace la invariante uniforme —toda tarjeta
+    // de recuperación nombra urgentes— lo que SIMPLIFICA el modelo mental.
+    @Test
+    fun staleInboxGroupSurfacesUrgentCountWhenThereAreUrgents() {
+        val oldUrgent = TaskEntity(
+            id = 1, title = "Idea urgente arrinconada",
+            createdAt = DateRules.toEpochMillis(today.minusDays(10), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.URGENT
+        )
+        val oldNormal = TaskEntity(
+            id = 2, title = "Otra idea vieja",
+            createdAt = DateRules.toEpochMillis(today.minusDays(10), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val insight = GuardianCoach.insight(listOf(oldUrgent, oldNormal), emptyList(), emptyList(), now, zone)
+
+        assertTrue(insight.message.contains("2 tareas"))
+        assertTrue("Debe señalar cuántas son urgentes (1 urgente)", insight.message.contains("1 urgente"))
+    }
+
+    @Test
+    fun staleInboxGroupSurfacesPluralUrgentLabel() {
+        val a = TaskEntity(id = 1, title = "Urgente A", priority = TaskPriority.URGENT,
+            createdAt = DateRules.toEpochMillis(today.minusDays(10), LocalTime.of(9, 0), zone))
+        val b = TaskEntity(id = 2, title = "Urgente B", priority = TaskPriority.URGENT,
+            createdAt = DateRules.toEpochMillis(today.minusDays(10), LocalTime.of(9, 0), zone))
+        val c = TaskEntity(id = 3, title = "Normal C", priority = TaskPriority.NORMAL,
+            createdAt = DateRules.toEpochMillis(today.minusDays(10), LocalTime.of(9, 0), zone))
+        val insight = GuardianCoach.insight(listOf(a, b, c), emptyList(), emptyList(), now, zone)
+
+        assertTrue(insight.message.contains("3 tareas"))
+        assertTrue("2 urgentes", insight.message.contains("2 urgentes"))
+    }
+
+    @Test
+    fun staleInboxGroupDoesNotSignalUrgentsWhenNoneAreUrgent() {
+        val a = TaskEntity(id = 1, title = "Idea A", priority = TaskPriority.NORMAL,
+            createdAt = DateRules.toEpochMillis(today.minusDays(10), LocalTime.of(9, 0), zone))
+        val b = TaskEntity(id = 2, title = "Idea B", priority = TaskPriority.LOW,
+            createdAt = DateRules.toEpochMillis(today.minusDays(10), LocalTime.of(9, 0), zone))
+        val insight = GuardianCoach.insight(listOf(a, b), emptyList(), emptyList(), now, zone)
+
+        assertTrue(insight.message.contains("2 tareas"))
+        assertFalse("Sin urgentes no debe añadir el marcado", insight.message.contains("urgente"))
+    }
+
     @Test
     fun pendingHabitIsSuggestedWhenTasksAreClear() {
         val habit = HabitEntity(id = 7, title = "Leer diez minutos")

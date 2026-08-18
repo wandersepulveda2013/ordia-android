@@ -146,7 +146,7 @@ object GuardianCoach {
             val message = if (staleInbox.size == 1)
                 "Esta tarea lleva $ageLabel en tu bandeja sin fecha. Hazla hoy, agéndala o quítala: no la dejes pasar otra vez."
             else
-                "Tienes ${staleInbox.size} tareas sin fecha y la más antigua lleva $ageLabel. Elige una: hacerla hoy, agendarla o quitarla."
+                "Tienes ${staleInbox.size} tareas sin fecha y la más antigua lleva $ageLabel. Elige una: hacerla hoy, agendarla o quitarla.".withUrgentTail(staleInbox)
             return Insight("RECUPERA EL CONTROL", next.title, message, next.id, Tone.FOCUSED)
         }
         next?.let { return Insight("SIGUIENTE PASO", it.title, it.details.takeIf(String::isNotBlank) ?: "Ordía la priorizó por fecha, importancia y estado.", it.id, Tone.FOCUSED) }
@@ -251,16 +251,19 @@ object GuardianCoach {
     }
 
     /**
-     * Sufijo de conteo urgente para las tarjetas de atrasadas y huecos pasados
+     * Sufijo de conteo urgente para las tarjetas de recuperación de olvido
      * (paridad con [GuardianEngine.withOverdueTail] c.621): cuando hay varias,
      * el mensaje plural añade "(N urgentes)" para que el atraso crítico no
-     * quede camuflado tras un conteo plano. A diferencia del nudge, aquí el
-     * conteo N ya incluye a TODAS las del grupo (la tarjeta nombra una acción
-     * pero el mensaje cubre el grupo entero), así que [urgentCount] es el
-     * total de urgentes en el grupo, SIN el `-1` del nudge. Sólo se añade
-     * cuando hay ≥1 urgente (no decir "0 urgentes") y el grupo es plural.
-     * Determinista (conteo + predicado `priority==URGENT`), sin IA fingida:
-     * sólo hace visible la prioridad que la tarea ya porta.
+     * quede camuflado tras un conteo plano. Cubre las 4 superficies de olvido
+     * basadas en tareas de la tarjeta (atrasadas c.622, huecos pasados c.623,
+     * capturas arrinconadas c.625 — la rama de compromisos vencidos no
+     * aplica, [CommitmentEntity] no porta [TaskPriority]). A diferencia del
+     * nudge, aquí el conteo N ya incluye a TODAS las del grupo (la tarjeta
+     * nombra una acción pero el mensaje cubre el grupo entero), así que
+     * [urgentCount] es el total de urgentes en el grupo, SIN el `-1` del
+     * nudge. Sólo se añade cuando hay ≥1 urgente (no decir "0 urgentes") y el
+     * grupo es plural. Determinista (conteo + predicado `priority==URGENT`),
+     * sin IA fingida: sólo hace visible la prioridad que la tarea ya porta.
      */
     private fun String.withUrgentTail(recoverable: List<TaskEntity>): String {
         val urgentCount = recoverable.count { it.priority.name == "URGENT" }
