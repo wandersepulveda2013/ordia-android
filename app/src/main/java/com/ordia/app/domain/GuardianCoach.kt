@@ -99,10 +99,10 @@ object GuardianCoach {
                 val message = if (missedStart.size == 1)
                     "Esta tarea tenía su hueco y se pasó hace $ageLabel. Hazla hoy o reagéndala: no la dejes pasar otra vez."
                 else
-                    "Tienes ${missedStart.size} compromisos cuyo hueco pasó y el más antiguo lleva $ageLabel. Elige uno: hacerlo hoy, reagendarlo o quitarlo."
+                    "Tienes ${missedStart.size} compromisos cuyo hueco pasó y el más antiguo lleva $ageLabel. Elige uno: hacerlo hoy, reagendarlo o quitarlo.".withUrgentTail(missedStart)
                 return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay un compromiso olvidado", withStaleInboxTail(withCommitmentTail(message, overdueCommitments), roots, now, zone), next?.id, Tone.FOCUSED)
             }
-            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay un compromiso pendiente", withStaleInboxTail(withCommitmentTail(if (missedStart.size == 1) "Esta tarea tenía su hueco y se pasó. Empieza con un bloque corto o reagéndala." else "Tienes ${missedStart.size} compromisos cuyo hueco pasó. Comienza por este.", overdueCommitments), roots, now, zone), next?.id, Tone.GENTLE)
+            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay un compromiso pendiente", withStaleInboxTail(withCommitmentTail(if (missedStart.size == 1) "Esta tarea tenía su hueco y se pasó. Empieza con un bloque corto o reagéndala." else "Tienes ${missedStart.size} compromisos cuyo hueco pasó. Comienza por este.".withUrgentTail(missedStart), overdueCommitments), roots, now, zone), next?.id, Tone.GENTLE)
         }
         // 4ª clase de olvido como rama propia: cuando NO hay ninguna tarea
         // olvidada que nombrar (ni vencida ni hueco pasado), pero sí un
@@ -251,15 +251,14 @@ object GuardianCoach {
     }
 
     /**
-     * Sufijo de conteo urgente para la tarjeta de atrasadas (paridad con
-     * [GuardianEngine.withOverdueTail] c.621): cuando hay varias atrasadas, el
-     * mensaje plural ("Tienes N tareas atrasadas...") añade "(N urgentes)"
-     * —igual que el nudge del guardián— para que el atraso crítico no quede
-     * camuflado tras un conteo plano. A diferencia del nudge, aquí el conteo
-     * N ya incluye a TODAS las atrasadas (la tarjeta nombra una acción pero
-     * el mensaje cubre el grupo entero), así que [urgentCount] es el total de
-     * urgentes en el grupo, SIN el `-1` del nudge. Sólo se añade cuando hay
-     * ≥1 urgente (no decir "0 urgentes") y el grupo es plural (size ≥ 2).
+     * Sufijo de conteo urgente para las tarjetas de atrasadas y huecos pasados
+     * (paridad con [GuardianEngine.withOverdueTail] c.621): cuando hay varias,
+     * el mensaje plural añade "(N urgentes)" para que el atraso crítico no
+     * quede camuflado tras un conteo plano. A diferencia del nudge, aquí el
+     * conteo N ya incluye a TODAS las del grupo (la tarjeta nombra una acción
+     * pero el mensaje cubre el grupo entero), así que [urgentCount] es el
+     * total de urgentes en el grupo, SIN el `-1` del nudge. Sólo se añade
+     * cuando hay ≥1 urgente (no decir "0 urgentes") y el grupo es plural.
      * Determinista (conteo + predicado `priority==URGENT`), sin IA fingida:
      * sólo hace visible la prioridad que la tarea ya porta.
      */

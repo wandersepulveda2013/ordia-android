@@ -384,6 +384,77 @@ class GuardianCoachTest {
         assertTrue(insight.message.contains("2 semanas"))
     }
 
+    // c.623 — paridad con c.622 (atrasadas) y c.621 (nudge): la rama de
+    // huecos pasados (missedStart) TAMBIÉN tenía mensaje plural con conteo
+    // plano ("Tienes N compromisos cuyo hueco pasó...") SIN distinguir
+    // urgentes. Un hueco pasado URGENTE es señal crítica (se agendó a
+    // propósito y el turno ya pasó), así que su urgencia merece visibilidad
+    // como en las atrasadas. Sin nueva pantalla: mejora el mensaje.
+    @Test
+    fun missedStartGroupSurfacesUrgentCountWhenThereAreUrgents() {
+        val oldest = TaskEntity(
+            id = 1, title = "Hueco urgente olvidado",
+            startAt = DateRules.toEpochMillis(today.minusDays(3), LocalTime.of(9, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(1), LocalTime.of(18, 0), zone),
+            priority = TaskPriority.URGENT
+        )
+        val recent = TaskEntity(
+            id = 2, title = "Otro hueco urgente",
+            startAt = DateRules.toEpochMillis(today.minusDays(2), LocalTime.of(9, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(2), LocalTime.of(18, 0), zone),
+            priority = TaskPriority.URGENT
+        )
+        val normal = TaskEntity(
+            id = 3, title = "Hueco banal",
+            startAt = DateRules.toEpochMillis(today.minusDays(2), LocalTime.of(9, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(3), LocalTime.of(18, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val insight = GuardianCoach.insight(listOf(oldest, recent, normal), emptyList(), emptyList(), now, zone)
+
+        assertTrue(insight.message.contains("3 compromisos"))
+        assertTrue("Debe señalar cuántas son urgentes (2 urgentes)", insight.message.contains("2 urgentes"))
+    }
+
+    @Test
+    fun missedStartGroupSurfacesSingleUrgentLabel() {
+        val urgent = TaskEntity(
+            id = 1, title = "Hueco urgente",
+            startAt = DateRules.toEpochMillis(today.minusDays(3), LocalTime.of(9, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(1), LocalTime.of(18, 0), zone),
+            priority = TaskPriority.URGENT
+        )
+        val normal = TaskEntity(
+            id = 2, title = "Hueco banal",
+            startAt = DateRules.toEpochMillis(today.minusDays(2), LocalTime.of(9, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(2), LocalTime.of(18, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val insight = GuardianCoach.insight(listOf(urgent, normal), emptyList(), emptyList(), now, zone)
+
+        assertTrue("Singular: 1 urgente", insight.message.contains("1 urgente"))
+    }
+
+    @Test
+    fun missedStartGroupDoesNotSignalUrgentsWhenNoneAreUrgent() {
+        val a = TaskEntity(
+            id = 1, title = "Hueco A",
+            startAt = DateRules.toEpochMillis(today.minusDays(3), LocalTime.of(9, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(1), LocalTime.of(18, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val b = TaskEntity(
+            id = 2, title = "Hueco B",
+            startAt = DateRules.toEpochMillis(today.minusDays(2), LocalTime.of(9, 0), zone),
+            dueAt = DateRules.toEpochMillis(today.plusDays(2), LocalTime.of(18, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val insight = GuardianCoach.insight(listOf(a, b), emptyList(), emptyList(), now, zone)
+
+        assertTrue(insight.message.contains("2 compromisos"))
+        assertFalse("Sin urgentes no debe añadir el marcado", insight.message.contains("urgente"))
+    }
+
     @Test
     fun pendingHabitIsSuggestedWhenTasksAreClear() {
         val habit = HabitEntity(id = 7, title = "Leer diez minutos")
