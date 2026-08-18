@@ -107,6 +107,37 @@ class HabitRulesTest {
         assertEquals(0, HabitRules.nextToggleCount(1, 1))
     }
 
+    @Test fun streak_treatsZeroTargetAsOneLikeIsCompleted() {
+        // Un hábito con meta 0 (legacy / edición directa) NO debe inflar la racha:
+        // [isCompleted] trata target<=0 como meta 1 (count>=1), así que un log
+        // con count=0 no cumple. Pero [currentStreak] filtraba con
+        // `count >= habit.targetPerPeriod` (sin coercer) → count>=0 → un log
+        // nulo contaba como día cumplido y la racha se inflaba, contradiciendo
+        // la insignia "cumplido hoy" ([isCompleted]). Mismo invariante, mismo
+        // predicado: target<=0 ⇒ meta 1 en TODAS las superficies de hábito.
+        val habit = HabitEntity(id = 9, title = "Sin meta", frequency = HabitFrequency.DAILY, activeDays = "", targetPerPeriod = 0)
+        val today = LocalDate.of(2026, 7, 29)
+        val logs = listOf(
+            HabitLogEntity(9, today.toEpochDay(), count = 0),
+            HabitLogEntity(9, today.minusDays(1).toEpochDay(), count = 0)
+        )
+        assertFalse(HabitRules.isCompleted(0, 0)) // la insignia dice: no cumplido
+        assertEquals(0, HabitRules.currentStreak(habit, logs, today)) // la racha debe coincidir
+    }
+
+    @Test fun streak_zeroTargetStillCountsRealCompletions() {
+        // Control: con meta 0, un registro real (count>=1) SÍ suma racha, igual que
+        // [isCompleted(1,0)==true]. La coerción a meta 1 no vacía la racha legítima.
+        val habit = HabitEntity(id = 9, title = "Sin meta", frequency = HabitFrequency.DAILY, activeDays = "", targetPerPeriod = 0)
+        val today = LocalDate.of(2026, 7, 29)
+        val logs = listOf(
+            HabitLogEntity(9, today.toEpochDay(), count = 1),
+            HabitLogEntity(9, today.minusDays(1).toEpochDay(), count = 1)
+        )
+        assertTrue(HabitRules.isCompleted(1, 0))
+        assertEquals(2, HabitRules.currentStreak(habit, logs, today))
+    }
+
     @Test fun nextToggleCount_staysConsistentWithIsCompleted() {
         // Tras desmarcar desde "cumplido", el conteo ya no cumple la meta: no hay
         // inconsistencia con currentStreak (que usa count >= target).

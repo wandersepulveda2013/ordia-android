@@ -66,7 +66,14 @@ object HabitRules {
     }
 
     fun currentStreak(habit: HabitEntity, logs: List<HabitLogEntity>, today: LocalDate = LocalDate.now()): Int {
-        val completed = logs.filter { it.habitId == habit.id && it.count >= habit.targetPerPeriod }.map { it.epochDay }.toSet()
+        // Misma noción de "día cumplido" que [isCompleted]: meta 1 cuando
+        // `targetPerPeriod <= 0` (legacy / edición directa). Sin esta coerción,
+        // `count >= 0` hacía contar un log NULO (count = 0) como día cumplido y
+        // la racha se inflaba, contradiciendo la insignia "cumplido hoy"
+        // ([isCompleted], que sí fuerza meta 1). Un solo predicado "cumplido"
+        // para todas las superficies de hábito: racha, insignia y nudge.
+        val effectiveTarget = habit.targetPerPeriod.coerceAtLeast(1)
+        val completed = logs.filter { it.habitId == habit.id && it.count >= effectiveTarget }.map { it.epochDay }.toSet()
         var date = if (isScheduled(habit, today) && today.toEpochDay() !in completed) today.minusDays(1) else today
         var streak = 0
         var guard = 0
