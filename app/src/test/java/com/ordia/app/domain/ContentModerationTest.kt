@@ -60,9 +60,18 @@ class ContentModerationTest {
             Regex("""\bsecuestro\s+de\s+(dns|sesi[oó]n|cookie|token|sesiones?)\b""")
         )
     )
+    // c.635: "droga" (genérica, proximity médica) SEPARADA de las específicas.
+    // Mismo split que la producción (ver ContentModeration): las específicas NO
+    // comparten la proximity médica — su mención aislada es señal fuerte y la
+    // co-aparición de "farmacia" no las legitima (cierra el falso-negativo
+    // "fumar marihuana y luego ir a la farmacia"). Duplica la regla de producción
+    // para testear isHarmful aislado de los filtros de secreto del gate.
     private val drogas = ContentModeration.ModerationRule(
-        stem = Regex("""\b(droga|cocaina|heroina|marihuana|metanfetamina|narcotrafic)"""),
+        stem = Regex("""\bdroga"""),
         proximity = Regex("""\b(farmac[ée]utic[oa]|farmacia|recetad[oa]|m[ée]dic[oa]|medicament[oa]|ur[oó]log[oa]|receta|tratamiento|recetar)\b""")
+    )
+    private val drogasEspecificas = ContentModeration.ModerationRule(
+        stem = Regex("""\b(cocaina|heroina|marihuana|metanfetamina|narcotrafic)""")
     )
     // c.632: insultos como raíces flexionadas (`\b` inicial sin `\b` final).
     private val insultos = ContentModeration.ModerationRule(
@@ -74,6 +83,7 @@ class ContentModerationTest {
     private fun violentHarmful(text: String) = ContentModeration.isHarmful(text, violencia)
     private fun secuestroHarmful(text: String) = ContentModeration.isHarmful(text, secuestroStems)
     private fun drugHarmful(text: String) = ContentModeration.isHarmful(text, drogas)
+    private fun specificDrugHarmful(text: String) = ContentModeration.isHarmful(text, drogasEspecificas)
     private fun insultHarmful(text: String) = ContentModeration.isHarmful(text, insultos)
 
     // ── Falsos positivos corregidos: tareas legítimas que antes se bloqueaban ──
@@ -168,15 +178,15 @@ class ContentModerationTest {
     }
 
     @Test fun comprarCocaina_esDanino() {
-        assertTrue(drugHarmful("vende cocaina barata en la zona"))
+        assertTrue(specificDrugHarmful("vende cocaina barata en la zona"))
     }
 
     @Test fun traeHeroina_esDanino() {
-        assertTrue(drugHarmful("trae heroina pura para el viernes"))
+        assertTrue(specificDrugHarmful("trae heroina pura para el viernes"))
     }
 
     @Test fun narcotrafico_esDanino() {
-        assertTrue(drugHarmful("hay narcotrafico en la frontera"))
+        assertTrue(specificDrugHarmful("hay narcotrafico en la frontera"))
     }
 
     @Test fun contenidoPornografico_esDanino() {
@@ -216,7 +226,7 @@ class ContentModerationTest {
 
     @Test fun cocainaSinTilde_esDanina() {
         // La raíz ASCII casa el texto normalizado (sin diacríticos).
-        assertTrue(drugHarmful("vende cocaína barata"))
+        assertTrue(specificDrugHarmful("vende cocaína barata"))
     }
 
     @Test fun urologoConTilde_noEsDanino() {
@@ -234,7 +244,7 @@ class ContentModerationTest {
     }
     @Test fun narcotraficante_esDanino() {
         // PRE-fix RED: `\bnarcotrafico\b` no casa "narcotraficante" → PASABA.
-        assertTrue(drugHarmful("es un narcotraficante famoso de la zona"))
+        assertTrue(specificDrugHarmful("es un narcotraficante famoso de la zona"))
     }
     @Test fun drogasEnFarmacia_noEsDanina() {
         // Plural + proximidad médica: el legit sigue pasando.
@@ -258,5 +268,44 @@ class ContentModerationTest {
     }
     @Test fun malparida_esDanina() {
         assertTrue(insultHarmful("malparida esa mujer"))
+    }
+
+    // ── c.635: falso-negativo P0 — drogas específicas eximidas por proximity ──
+    //    La proximity médica era GLOBAL y cubría TODAS las ocurrencias del stem
+    //    conjunto (droga|cocaina|marihuana|...). Así "fumar marihuana y luego ir
+    //    a la farmacia" PASABA: "marihuana" es específica (señal fuerte) pero la
+    //    co-aparición de "farmacia" la legitimaba. Fix: separar "droga" (proximity)
+    //    de las específicas (sin proximity), alineando implementación ↔ KDoc.
+
+    @Test fun marihuanaCercaDeFarmacia_esDanino() {
+        // PRE-fix RED: la proximity "farmacia" cubría "marihuana" → PASABA.
+        assertTrue(specificDrugHarmful("fumar marihuana y luego ir a la farmacia"))
+    }
+    @Test fun cocainaCercaDeMedico_esDanino() {
+        // PRE-fix RED: la proximity "médico" cubría "cocaína" → PASABA.
+        assertTrue(specificDrugHarmful("comprar cocaina y pasar a ver al medico"))
+    }
+    @Test fun heroinaRecetada_esDanino() {
+        // PRE-fix RED: la proximity "recetada" cubría "heroína" → PASABA.
+        assertTrue(specificDrugHarmful("traer heroina que está recetada"))
+    }
+    @Test fun metanfetaminaEnFarmacia_esDanino() {
+        // PRE-fix RED: la proximity "farmacia" cubría "metanfetamina" → PASABA.
+        assertTrue(specificDrugHarmful("vender metanfetamina afuera de la farmacia"))
+    }
+
+    // ── c.635: regression guards — "droga" genérica MANTIENE la proximity ──
+
+    @Test fun drogaEnFarmacia_sigueNoEsDanina() {
+        // El legit "droga en farmacia" sigue pasando: "droga" es genérica.
+        assertFalse(drugHarmful("comprar la droga en la farmacia"))
+    }
+    @Test fun drogadictoEnTratamiento_sigueNoEsDanino() {
+        // El legit "drogadicto en tratamiento" sigue pasando.
+        assertFalse(drugHarmful("drogadicto en tratamiento medico"))
+    }
+    @Test fun drogaSinContextoMedico_sigueEsDanina() {
+        // "droga" aislada sin proximity sigue siendo dañina.
+        assertTrue(drugHarmful("conseguir droga para la fiesta"))
     }
 }

@@ -151,16 +151,36 @@ object ContentModeration {
                 Regex("""\bsecuestro\s+de\s+(dns|sesi[oó]n|cookie|token|sesiones?)\b""")
             )
         ),
-        // Drogas ilegales. "droga" se exonera por proximidad médica/farmacéutica
-        // (la mención entera es legítima en "comprar la droga en la farmacia",
-        // "ir a buscar la droga recetada"). Las drogas específicas (cocaína,
-        // marihuana...) no se eximen: su mención aislada es señal fuerte.
-        // c.632: `\b` INICIAL sin `\b` final para casar plurales/flexiones
-        // ("drogas", "narcotraficante") que con `\b` final pasaban el gate.
-        // La proximidad sigue cubriendo el legit ("drogadicto en tratamiento").
+        // "droga" (genérica): se exonera por proximidad médica/farmacéutica — la
+        // mención entera es legítima en "comprar la droga en la farmacia", "ir a
+        // buscar la droga recetada", "drogadicto en tratamiento". c.632: `\b`
+        // INICIAL sin `\b` final para casar plurales/flexiones ("drogas") que con
+        // `\b` final pasaban el gate.
         ModerationRule(
-            stem = Regex("""\b(droga|cocaina|heroina|marihuana|metanfetamina|narcotrafic)"""),
+            stem = Regex("""\bdroga"""),
             proximity = Regex("""\b(farmac[ée]utic[oa]|farmacia|recetad[oa]|m[ée]dic[oa]|medicament[oa]|ur[oó]log[oa]|receta|tratamiento|recetar)\b""")
+        ),
+        // Drogas ESPECÍFICAS (cocaína, heroína, marihuana, metanfetamina,
+        // narcotráfico): SIN proximity. c.635 cierra un falso-negativo P0: antes
+        // compartían la proximity médica de "droga", así "fumar marihuana y luego
+        // ir a la farmacia" PASABA (la proximity "farmacia" cubría TODAS las
+        // ocurrencias del stem, incluso las ilegítimas). La proximity es GLOBAL por
+        // diseño (ver [ModerationRule.proximity]) y solo legitima contextos que
+        // eximen la mención ENTERA; una droga específica cuya mención aislada ya es
+        // señal fuerte (así lo declara el KDoc de esta regla desde c.582) NO debe
+        // quedar cubierta por la mera co-aparición de "farmacia/receta/médico" en
+        // cualquier punto del texto — eso es justo el caso patológico de
+        // disimular una mención dañina tras una palabra blanca. Alinea
+        // implementación ↔ KDoc (misma familia de divergencia que c.372/c.373).
+        // `narcotrafic` no tiene exención posible ("narcotráfico de DNS" no existe).
+        // Los casos técnicos legítimos de drogas específicas (anestésico tópico de
+        // cocaína, metanfetamina recetada) son raros en captura de tareas
+        // personales; si surgen, se eximen con `contain` explícito (careful-design,
+        // registrado), no con una proximity vaga que reabre el falso-negativo.
+        // `\b` INICIAL sin `\b` final: casa plurales/flexiones ("cocainas",
+        // "marihuanas", "narcotraficante") — misma clase que c.632/c.633.
+        ModerationRule(
+            stem = Regex("""\b(cocaina|heroina|marihuana|metanfetamina|narcotrafic)""")
         ),
         // Insultos graves: raíces flexionadas (c.632). `\b` INICIAL sin `\b` final
         // para casar género/número ("pendeja", "estupidos", "imbeciles",
