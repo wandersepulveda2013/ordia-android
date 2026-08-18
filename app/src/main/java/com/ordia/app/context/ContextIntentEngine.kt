@@ -68,6 +68,56 @@ object ContextIntentEngine {
     private val ERRAND_VERBS = "recoger|devolver|retirar"
     private val STUDY_VERBS = "estudiar|repasar"
 
+    // Regex de los pisos de posición libre (c.643 HOUSEHOLD, c.647 MEETING/
+    // EXERCISE/ERRAND/STUDY), centralizados (c.652) para que los pisos
+    // [hasStrong*Imperative] y el guard de imperativo envolvente
+    // [imperativeIsWrapped] compartan EXACTAMENTE el mismo patrón (lección
+    // c.648: listas divergentes producen guards que no protegen lo mismo que
+    // activa el piso).
+    private val MEETING_FLOOR =
+        Regex("""\b(?<!no )($MEETING_VERBS)\s+(con|de|del)\s+\w""")
+    private val HOUSEHOLD_FLOOR =
+        Regex("""\b(?<!no )($HOUSEHOLD_VERBS)\s+\w""")
+    private val EXERCISE_FLOORS = listOf(
+        Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
+        Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
+        Regex("""\b(?<!no )hacer\s+(yoga|pesas|deporte)\b""")
+    )
+    private val ERRAND_FLOORS = listOf(
+        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b"""),
+        Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w""")
+    )
+    private val STUDY_FLOORS = listOf(
+        Regex("""\b(?<!no )($STUDY_VERBS)\s+\w"""),
+        Regex("""\b(?<!no )preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b""")
+    )
+
+    // Imperativos envolventes (c.652 anti-overreach). Lista cerrada ALINEADA con
+    // [hasStrongTaskImperative] y [hasStrongReminderImperative]: cuando uno de
+    // estos imperativos PRECEDE al verbo del piso ("avísame reunión con el
+    // equipo"), el texto es un recordatorio/tarea cuyo CONTENIDO es la acción
+    // subordinada, no una reunión autónoma. Sin el guard, el piso c.647 (ancla
+    // `\b`, cualquier posición) activa el kind subordinado y le ROBA el kind al
+    // envolvente — por empate a 0.45 resuelto por orden de enum ("avísame
+    // correr 5k"→EXERCISE en vez de REMINDER) o por base alta ("recuérdame ir
+    // al gimnasio"→EXERCISE 0.59 > TASK 0.45) — y la semántica de aviso
+    // ("avísame" = notifícame) se pierde: overreach P1 (misma lección de
+    // diseño que c.651 para SHOPPING/PAYMENT: el verbo subordinado es contenido
+    // del recordatorio, no una acción autónoma).
+    private val WRAPPER_PATTERN =
+        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme)\b""")
+
+    // Kinds con piso de posición libre protegidos por el guard de envolvente.
+    // SHOPPING/PAYMENT no lo necesitan: su piso (c.651) exige verbo al inicio
+    // o tras acuse, así un envolvente nunca lo activa.
+    private val WRAPPABLE_FLOORS: Map<ContextIntentKind, List<Regex>> = mapOf(
+        ContextIntentKind.MEETING to listOf(MEETING_FLOOR),
+        ContextIntentKind.HOUSEHOLD to listOf(HOUSEHOLD_FLOOR),
+        ContextIntentKind.EXERCISE to EXERCISE_FLOORS,
+        ContextIntentKind.ERRAND to ERRAND_FLOORS,
+        ContextIntentKind.STUDY to STUDY_FLOORS
+    )
+
     // Penalización por duda/condicional (c.649 anti-overreach). Marcadores como
     // "quizá"/"a lo mejor"/"tal vez" expresan que el usuario NO se ha comprometido:
     // capturarlos como tarea firme en la captura pasiva es overreach (igual que la
@@ -209,6 +259,18 @@ object ContextIntentEngine {
         // (regex), sin IA fingida. Mismo principio que c.616, aplicado a la vía
         // del bono que c.616 no cubría.
         if (imperativeIsNegated(lower, kind)) return 0f
+
+        // Guard de imperativo envolvente (c.652 anti-overreach). Los pisos de
+        // posición libre (c.643/c.647: MEETING/HOUSEHOLD/EXERCISE/ERRAND/STUDY
+        // con ancla `\b`) activan el kind aunque el verbo esté SUBORDINADO a un
+        // imperativo envolvente: "avísame reunión con el equipo"→MEETING (roba
+        // el kind a REMINDER), "recuérdame ir al gimnasio"→EXERCISE 0.59 (roba
+        // el kind a TASK). El verbo subordinado es CONTENIDO del recordatorio/
+        // tarea, no una acción autónoma; la semántica de aviso ("avísame" =
+        // notifícame) se perdía. Misma lección de diseño que c.651 (acuse):
+        // el guard descarta el kind subordinado cuando un imperativo envolvente
+        // lo PRECEDE, dejando que TASK/REMINDER (pisos c.613/c.619) gobiernen.
+        if (imperativeIsWrapped(lower, kind)) return 0f
 
         var score = 0f
         val words = lower.split(Regex("\\s+"))
@@ -482,7 +544,7 @@ object ContextIntentEngine {
      * Determinista (regex), sin IA fingida.
      */
     private fun hasStrongMeetingImperative(lower: String): Boolean =
-        Regex("""\b(?<!no )($MEETING_VERBS)\s+(con|de|del)\s+\w""").containsMatchIn(lower)
+        MEETING_FLOOR.containsMatchIn(lower)
 
     /**
      * Imperativos de pago inequívocos (c.630, c.651). "pagar <objeto>".
@@ -527,7 +589,7 @@ object ContextIntentEngine {
      * exige `\s+\w` (objeto real). Determinista (regex), sin IA fingida.
      */
     private fun hasStrongHouseholdImperative(lower: String): Boolean =
-        Regex("""\b(?<!no )($HOUSEHOLD_VERBS)\s+\w""").containsMatchIn(lower)
+        HOUSEHOLD_FLOOR.containsMatchIn(lower)
 
     /**
      * Imperativos de ejercicio inequívocos (c.639, c.647). Verbos de actividad
@@ -548,9 +610,7 @@ object ContextIntentEngine {
      * (HOUSEHOLD). Determinista (regex), sin IA fingida.
      */
     private fun hasStrongExerciseImperative(lower: String): Boolean =
-        Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w""").containsMatchIn(lower) ||
-            Regex("""\b(?<!no )ir\s+al\s+gimnasio""").containsMatchIn(lower) ||
-            Regex("""\b(?<!no )hacer\s+(yoga|pesas|deporte)\b""").containsMatchIn(lower)
+        EXERCISE_FLOORS.any { it.containsMatchIn(lower) }
 
     /**
      * Imperativos de diligencia inequívocos (c.639, c.647). "ir a(l| la) <destino
@@ -571,8 +631,7 @@ object ContextIntentEngine {
      * Determinista (regex), sin IA fingida.
      */
     private fun hasStrongErrandImperative(lower: String): Boolean =
-        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b""").containsMatchIn(lower) ||
-            Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w""").containsMatchIn(lower)
+        ERRAND_FLOORS.any { it.containsMatchIn(lower) }
 
     /**
      * Imperativos de estudio inequívocos (c.639, c.647). "estudiar <X>"/
@@ -595,8 +654,34 @@ object ContextIntentEngine {
      * Determinista (regex), sin IA fingida.
      */
     private fun hasStrongStudyImperative(lower: String): Boolean =
-        Regex("""\b(?<!no )($STUDY_VERBS)\s+\w""").containsMatchIn(lower) ||
-            Regex("""\b(?<!no )preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b""").containsMatchIn(lower)
+        STUDY_FLOORS.any { it.containsMatchIn(lower) }
+
+    /**
+     * Detecta si el imperativo del [kind] está SUBORDINADO a un imperativo
+     * envolvente (c.652 anti-overreach). Los pisos de posición libre (c.643/
+     * c.647, ancla `\b`) se activan aunque el verbo venga gobernado por
+     * "recuérdame/no olvides/tengo que/hay que/avísame/notifícame/acordarme":
+     * "avísame reunión con el equipo"→MEETING (le robaba el kind a REMINDER),
+     * "recuérdame ir al gimnasio"→EXERCISE 0.59 (le robaba el kind a TASK).
+     * El verbo subordinado es CONTENIDO del recordatorio/tarea, no una acción
+     * autónoma; la semántica de aviso ("avísame") se perdía (overreach P1,
+     * misma lección de diseño que c.651 para los pisos SHOPPING/PAYMENT).
+     *
+     * El guard descarta el kind subordinado cuando un envolvente PRECEDE a su
+     * verbo de piso ([WRAPPABLE_FLOORS]), con lo que TASK/REMINDER (pisos
+     * c.613/c.619) gobiernan la captura. Sólo se evalúan los kinds con piso de
+     * posición libre; TASK/REMINDER son los envolventes y SHOPPING/PAYMENT
+     * exigen inicio/acuse (c.651), así nunca quedan subordinados.
+     *
+     * Determinista (regex), sin IA fingida. No bloquea prefijos declarativos
+     * ("tengo una reunión", "voy a correr"): no son imperativos envolventes.
+     */
+    private fun imperativeIsWrapped(lower: String, kind: ContextIntentKind): Boolean {
+        val floors = WRAPPABLE_FLOORS[kind] ?: return false
+        val verbStart = floors.mapNotNull { it.find(lower)?.range?.first }.minOrNull() ?: return false
+        val wrapperEnd = WRAPPER_PATTERN.find(lower)?.range?.last ?: return false
+        return wrapperEnd < verbStart
+    }
 
     /**
      * Detecta si el verbo imperativo del [kind] aparece inmediatamente negado por

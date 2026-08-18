@@ -97,9 +97,13 @@ class ContextIntentEngineTitleTest {
 
     @Test
     fun studyStripsDateAndTimeResidueAndFixesCapitalization() {
+        // c.652: un envolvente ("recuérdame") ya no pierde el kind ante el piso
+        // STUDY (posición libre c.647); el guard [imperativeIsWrapped] lo
+        // mantiene en REMINDER y el título sale del extractor REMINDER.
         val intent = analyze("recuérdame estudiar para el examen el 22 de agosto a las 9")
         assertNotNull(intent)
-        assertEquals("Estudio: para el examen", intent!!.title)
+        assertEquals(ContextIntentKind.REMINDER, intent!!.kind)
+        assertEquals("Estudiar para el examen", intent.title)
         assertNotNull(intent.dueAt)
     }
 
