@@ -1130,6 +1130,60 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 27), due)
     }
 
+    // ─── Ordinal mensual "quinto" (5ª ocurrencia, c.575) ──────────────────
+    // "el quinto viernes del mes": ord=5 SÓLO existe en meses cuyo día 1 cae en
+    // viernes o antes y tienen 31 días. El parser debe capturarlo (no contaminar el
+    // título) y anclar MONTHLY con codificación "5:weekday". Cuando el mes actual
+    // NO tiene 5ª ocurrencia, avanza al próximo mes que sí (sin rodar al día 35 ni
+    // colapsar al 1er weekday del mes siguiente). Regresión P1: antes "quinto" no
+    // estaba en ningún patrón ordinal → el título quedaba corrupto y la fecha era
+    // la del día del mes o del 1er weekday del mes siguiente (fecha equivocada).
+    @Test fun quintoViernesDelMesAnclaMonthlyOrdinalCinco() {
+        // now=2026-07-29. Julio 2026 (1=Mié) tiene 5 viernes: 3,10,17,24,31 → 5º =
+        // 31-jul (futuro). Recurrence MONTHLY anclado a "5:5".
+        val result = NaturalTaskParser.parse("reunión el quinto viernes del mes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("5:5", result.recurrenceDays)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(java.time.DayOfWeek.FRIDAY, due.dayOfWeek)
+        assertEquals(LocalDate.of(2026, 7, 31), due)
+    }
+
+    @Test fun quintoViernesDeCadaMesAvanzaAlMesConQuintaOcurrencia() {
+        // now=2026-07-29 pero el 5º viernes de julio (31-jul) YA venía; para forzar el
+        // salto al próximo mes con 5º viernes, se parte de agosto (sin 5º viernes):
+        // ago 2026 (1=Sáb) viernes=7,14,21,28 (4) → NO 5º. Próximo mes con 5º viernes =
+        // octubre 2026 (1=Jue, viernes 2,9,16,23,30) → 30-oct. Se emite "el quinto
+        // viernes de cada mes" y se verifica que NO ruede al 1er viernes de septiembre.
+        val result = NaturalTaskParser.parse("reunión el quinto viernes de cada mes", now, zone)
+        assertEquals("reunión", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals("5:5", result.recurrenceDays)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        // El parser parte de julio (mes en curso), cuyo 5º viernes (31-jul) aún no ha
+        // llegado → dueAt = 31-jul. NO debe rodar a agosto ni a septiembre.
+        assertEquals(java.time.DayOfWeek.FRIDAY, due.dayOfWeek)
+        assertEquals(LocalDate.of(2026, 7, 31), due)
+    }
+
+    @Test fun quintoViernesDelMesPasadoMantieneFechaPasadaHonest() {
+        // "el quinto viernes del mes pasado": junio 2026 (1=Lun, viernes=5,12,19,26 →
+        // 4 viernes) NO tiene 5º viernes. El parser avanza mes a mes hasta hallar uno
+        // con 5º viernes, pero como es "mes pasado" (fecha PASADA explícita), el
+        // avance se hace desde el mes anterior (junio) hacia adelante sólo para
+        // encontrar una fecha que cumpla "5º viernes" y que sea HONESTA (no se inventa
+        // un 5º viernes en junio que no existe). El resultado debe ser un viernes, no
+        // contaminar el título y NO promoverse a MONTHLY (fecha única vencida).
+        val result = NaturalTaskParser.parse("pago el quinto viernes del mes pasado", now, zone)
+        assertEquals("pago", result.title)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+        val due = DateRules.toLocalDate(result.dueAt!!, zone)
+        assertEquals(java.time.DayOfWeek.FRIDAY, due.dayOfWeek)
+        // Es una fecha vencida honesta (≤ now=2026-07-29) y cae en viernes.
+        assertTrue("5º viernes del mes pasado debe ser fecha pasada honesta", !due.isAfter(LocalDate.of(2026, 7, 29)))
+    }
+
     // No-regresión: ordinal numérico NO seguido de día de la semana es contenido, no
     // se normaliza ("ver el 3er capítulo", "comprar 2do piso") — no debe producir
     // fecha/recurrencia espurias ni alterar el título.

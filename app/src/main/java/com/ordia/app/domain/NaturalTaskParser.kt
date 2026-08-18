@@ -185,7 +185,7 @@ object NaturalTaskParser {
     // negativo descarta cualquier calificador de mes superviviente (ya borrados arriba, pero
     // protege contra reordenamientos futuros) y "de cada/todos los/mensual" (cadencia mensual).
     private val looseOrdinalWeekdayPattern = Regex(
-        """(?i)\b(?:el\s+)?(primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?!\s+(?:del?\s+(?:mes|cada|este|esta|pr[oó]xim[oa]|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic)|todos\s+los|mensual))\b"""
+        """(?i)\b(?:el\s+)?(primer|primero|segundo|tercer|tercero|cuarto|quinto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?!\s+(?:del?\s+(?:mes|cada|este|esta|pr[oó]xim[oa]|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic)|todos\s+los|mensual))\b"""
     )
     // "el último viernes del mes" / "el primer lunes de agosto" / "el tercer viernes del mes que
     // viene" / "el último viernes del mes pasado": ocurrencia ORDINAL de ese weekday en un mes
@@ -220,7 +220,7 @@ object NaturalTaskParser {
         // y emite MONTHLY, y aquí se captura el ordinal para anclar el motor. Simétrico del
         // puente "de" (que consume sólo "de" y deja "cada mes"). Sin conector de cadencia la
         // alternativa NO dispara → fecha suelta (no recurrente), sin regresión.
-        """(?i)(?<!\p{L})(?:el\s+)?(antepenúltimo|antepenultimo|penúltimo|penultimo|último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+del?\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+|pasad[oa]\s+|anterior\s+)?(?:mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante|pasad[oa]|anterior))?(?:\s+del?\s+)?)?((?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic))?(?:\s+del?\s+(\d{2,4}))?|(?=\s+(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|mensualidades?)\b))\b"""
+        """(?i)(?<!\p{L})(?:el\s+)?(antepenúltimo|antepenultimo|penúltimo|penultimo|último|ultimo|primer|primero|segundo|tercer|tercero|cuarto|quinto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)(?:\s+del?\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+|pasad[oa]\s+|anterior\s+)?(?:mes(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante|pasad[oa]|anterior))?(?:\s+del?\s+)?)?((?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|set|sept|oct|nov|dic))?(?:\s+del?\s+(\d{2,4}))?|(?=\s+(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|mensualidades?)\b))\b"""
     )
 
     /**
@@ -252,7 +252,7 @@ object NaturalTaskParser {
      * semanas" (c.276 en detectWeekInterval/intervalPattern).
      */
     private val precedingCadenceOrdinalPattern = Regex(
-        """(?i)(?<!\p{L})(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|bimestral(?:mente)?|trimestral(?:mente)?|cuatrimestral(?:mente)?|semestral(?:mente)?|cada\s+(?:\d{1,3}|$writtenNumberGroup)\s*meses?|todos\s+los\s+(?:\d{1,3}|$writtenNumberGroup)\s*meses?)\s+((?:el\s+)?(antepenúltimo|antepenultimo|penúltimo|penultimo|último|ultimo|primer|primero|segundo|tercer|tercero|cuarto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b"""
+        """(?i)(?<!\p{L})(?:cada\s+mes|todos\s+los\s+meses|mensual(?:mente)?|bimestral(?:mente)?|trimestral(?:mente)?|cuatrimestral(?:mente)?|semestral(?:mente)?|cada\s+(?:\d{1,3}|$writtenNumberGroup)\s*meses?|todos\s+los\s+(?:\d{1,3}|$writtenNumberGroup)\s*meses?)\s+((?:el\s+)?(antepenúltimo|antepenultimo|penúltimo|penultimo|último|ultimo|primer|primero|segundo|tercer|tercero|cuarto|quinto)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b"""
     )
 
     /**
@@ -3959,6 +3959,7 @@ object NaturalTaskParser {
                     "segundo" -> 2
                     "tercer", "tercero" -> 3
                     "cuarto" -> 4
+                    "quinto" -> 5
                     else -> null
                 }
                 val weekday = ordinalMonthly.weekdayWord.toDayOfWeekOrNull()
@@ -6342,6 +6343,7 @@ object NaturalTaskParser {
             "segundo" -> 2
             "tercer", "tercero" -> 3
             "cuarto" -> 4
+            "quinto" -> 5
             else -> -1
         }
         // "del mes que viene/que entra/próximo/entrante" → mes siguiente; "del mes pasado/
@@ -6364,7 +6366,14 @@ object NaturalTaskParser {
             isPrevious -> if (today.monthValue == 1) { year = today.year - 1; 12 } else today.monthValue - 1
             else -> today.monthValue
         }
-        var date = nthWeekdayInMonth(year, month, ordinal, weekday)
+        // ord ≥5 ("quinto"): un mes sólo tiene 5ª ocurrencia de un weekday si tiene 31 días
+        // y el día 1 cae en ese weekday o antes. Cuando el mes objetivo no tiene 5ª, se
+        // avanza/retrocede mes a mes (hasta 24) hasta hallar uno que sí; así "el quinto
+        // viernes del mes" no agenda silenciosamente el 1er viernes del mes siguiente
+        // (plusWeeks(4)). "del mes pasado" retrocede (fecha vencida honesta); el resto
+        // avanza (nunca en pasado salvo que el propio mes objetivo sea futuro válido).
+        var date = if (isPrevious) nthWeekdayBackward(year, month, ordinal, weekday)
+                   else nthWeekdayForward(year, month, ordinal, weekday)
         // "del mes pasado/anterior" es una fecha PASADA explícita (el usuario registra una
         // tarea vencida refiriéndose al mes previo): se mantiene honesta en el pasado, sin
         // roll al año siguiente ni avance de recurrencia (igual que "ayer"/"el jueves pasado").
@@ -6378,11 +6387,12 @@ object NaturalTaskParser {
         // semana: "último viernes de junio" rodado a 2027 caería en sábado 2027-06-26, no viernes
         // 2027-06-25).
         if (namedMonth != null && yearStr == null && month != today.monthValue && date.isBefore(today)) {
-            date = nthWeekdayInMonth(year + 1, month, ordinal, weekday)
+            date = nthWeekdayForward(year + 1, month, ordinal, weekday)
         }
         // Recurrencia con ocurrencia ordinal ya pasada: avanzar al próximo mes que mantenga
         // el mismo ordinal+weekday sin caer en pasado (ver cabecera). El mes siguiente siempre
-        // es posterior, así que una iteración basta; el bucle es seguro por guardián.
+        // es posterior, así que una iteración basta; el bucle es seguro por guardián. Ord 5
+        // puede saltar meses sin 5ª ocurrencia (nthWeekdayForward ya los ignora).
         if (isRecurring && date.isBefore(today)) {
             var y = year
             var m = month
@@ -6390,23 +6400,74 @@ object NaturalTaskParser {
             while (date.isBefore(today) && guard++ < 24) {
                 m += 1
                 if (m > 12) { m = 1; y += 1 }
-                date = nthWeekdayInMonth(y, m, ordinal, weekday)
+                date = nthWeekdayForward(y, m, ordinal, weekday)
             }
         }
         return date
     }
 
-    /** N-ésima (ordinal<0 = última, -2 = penúltima, -3 = antepenúltima) ocurrencia de [weekday] en (year, month). */
-    private fun nthWeekdayInMonth(year: Int, month: Int, ordinal: Int, weekday: DayOfWeek): LocalDate =
+    /**
+     * N-ésima ocurrencia de [weekday] en (year, month), avanzando mes a mes (hasta 24)
+     * cuando el ordinal es ≥5 y el mes objetivo no tiene 5ª ocurrencia. Siempre devuelve
+     * una fecha no nula: ord 1..4 y negativos existen en todo mes; ord 5 halla un mes con
+     * 5ª ocurrencia en pocas iteraciones, y como reserva última se ancla al último weekday
+     * del mes objetivo (ordinal -1, que siempre existe). Evita que `plusWeeks(4)` ruede
+     * silenciosamente al mes siguiente agendando una fecha errónea.
+     */
+    private fun nthWeekdayForward(year: Int, month: Int, ordinal: Int, weekday: DayOfWeek): LocalDate {
+        var y = year
+        var m = month
+        var guard = 0
+        var date = nthWeekdayInMonth(y, m, ordinal, weekday)
+        while (date == null && guard++ < 24) {
+            m += 1
+            if (m > 12) { m = 1; y += 1 }
+            date = nthWeekdayInMonth(y, m, ordinal, weekday)
+        }
+        return date ?: nthWeekdayInMonth(year, month, -1, weekday)!!
+    }
+
+    /**
+     * Simétrico hacia atrás de [nthWeekdayForward]: busca la N-ésima ocurrencia de
+     * [weekday] en (year, month) retrocediendo mes a mes (hasta 24) cuando el ordinal
+     * es ≥5 y el mes objetivo no tiene 5ª ocurrencia. Se usa para "del mes pasado":
+     * el usuario se refiere al 5º viernes MÁS RECIENTE EN EL PASADO, no a uno futuro.
+     * Reserva última: ancla al último weekday del mes objetivo (ordinal -1, siempre
+     * existe) si ningún mes previo en 24 iteraciones tuviera 5ª ocurrencia.
+     */
+    private fun nthWeekdayBackward(year: Int, month: Int, ordinal: Int, weekday: DayOfWeek): LocalDate {
+        var y = year
+        var m = month
+        var guard = 0
+        var date = nthWeekdayInMonth(y, m, ordinal, weekday)
+        while (date == null && guard++ < 24) {
+            m -= 1
+            if (m < 1) { m = 12; y -= 1 }
+            date = nthWeekdayInMonth(y, m, ordinal, weekday)
+        }
+        return date ?: nthWeekdayInMonth(year, month, -1, weekday)!!
+    }
+
+    /**
+     * N-ésima (ordinal<0 = última, -2 = penúltima, -3 = antepenúltima) ocurrencia de
+     * [weekday] en (year, month). Devuelve `null` únicamente para ordinales ≥5 cuando el
+     * mes no tiene una 5ª ocurrencia de ese weekday (sólo posible en meses de 31 días con
+     * el día 1 en el weekday adecuado): `plusWeeks(4)` rodaría silenciosamente al mes
+     * siguiente y agendaría una fecha errónea. Para ord 1..4 y negativos siempre existe.
+     */
+    private fun nthWeekdayInMonth(year: Int, month: Int, ordinal: Int, weekday: DayOfWeek): LocalDate? =
         if (ordinal < 0) {
             LocalDate.of(year, month, 1)
                 .with(TemporalAdjusters.lastDayOfMonth())
                 .with(TemporalAdjusters.previousOrSame(weekday))
                 .minusWeeks((-ordinal - 1).toLong())
         } else {
-            LocalDate.of(year, month, 1)
+            val candidate = LocalDate.of(year, month, 1)
                 .with(TemporalAdjusters.firstInMonth(weekday))
                 .plusWeeks((ordinal - 1).toLong())
+            // ord ≥5: la 5ª ocurrencia no existe si el candidato cayó fuera de este mes
+            // (plusWeeks rueda al mes siguiente). Ord 1..4 siempre cae dentro del mes.
+            if (ordinal <= 4 || candidate.monthValue == month && candidate.year == year) candidate else null
         }
 
     /**

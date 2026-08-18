@@ -490,6 +490,77 @@ class RecurrenceEngineTest {
         }
     }
 
+    // ─── Recurrencia mensual ORDINAL 5 ("quinto", c.575) ────────────────────
+    // "el quinto viernes de cada mes": ord=5 SÓLO existe en meses de 31 días cuyo
+    // día 1 cae en viernes o antes en la semana. La mayoría de meses NO tienen 5ª
+    // ocurrencia de un weekday dado. El motor debe saltar esos meses (no colapsar
+    // ni derivar al día 35 → DateTimeException) y aterrizar en el próximo mes que
+    // SÍ tenga 5ª ocurrencia, conservando el anclaje ordinal. Regresión de datos:
+    // antes de c.575, ord=5 era rechazado por parseOrdinalWeekday (rango -1..4) y
+    // el motor caía al día del mes, derivando silenciosamente (P1: rutinas).
+
+    @Test fun monthlyOrdinal_fifthFriday_skipsMonthsWithoutFifthOccurrence() {
+        // Ene 2026: 5º viernes = 30-ene (viernes: 2,9,16,23,30). Al completarla, la
+        // próxima NO es feb/mar/abr (ninguno tiene 5º viernes), sino MAY 2026: 1=Fri,
+        // viernes 1,8,15,22,29 → 5º viernes = 29-may.
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 1, 30), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Reunión quinto viernes de cada mes",
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceDays = "5:5" // 5º viernes (ISO viernes=5)
+        )
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 5, 29), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals("5:5", next.recurrenceDays) // el anclaje ordinal 5 se conserva
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(next.dueAt, zone))
+    }
+
+    @Test fun monthlyOrdinal_fifthFriday_chainAcrossGapsStaysAnchored() {
+        // Guardián anti-deriva para ord=5: encadena 3 ciclos y verifica que cada cita
+        // sigue siendo el 5º VIERNES de un mes que lo tenga (sin colapsar a día del
+        // mes ni lanzar DateTimeException en meses cortos). Ene→May→Jul→Oct 2026.
+        // 5º viernes: ene=30, may=29, jul=31, oct=30 (feb/mar/abr/jun/ago/sep saltados).
+        var task = TaskEntity(
+            title = "Reunión quinto viernes de cada mes",
+            dueAt = DateRules.toEpochMillis(LocalDate.of(2026, 1, 30), LocalTime.of(9, 0), zone),
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceDays = "5:5"
+        )
+        val expected = listOf(
+            LocalDate.of(2026, 5, 29),
+            LocalDate.of(2026, 7, 31),
+            LocalDate.of(2026, 10, 30)
+        )
+        for (cycle in expected.indices) {
+            task = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = task.dueAt!!, zone = zone)) {
+                "Ciclo ${cycle + 1}: se esperaba una próxima ocurrencia"
+            }
+            assertEquals(
+                "Ciclo ${cycle + 1} debe caer en el 5º viernes de un mes con 5 viernes (sin derivar)",
+                expected[cycle],
+                DateRules.toLocalDate(task.dueAt!!, zone)
+            )
+            assertEquals("La codificación ordinal 5 debe conservarse", "5:5", task.recurrenceDays)
+        }
+    }
+
+    @Test fun monthlyOrdinal_fifthMonday_skipsMonthsWithoutFifthMonday() {
+        // "quinto lunes de cada mes": ago 2026 (1=Sáb) lun=3,10,17,24,31 → 5º=31-ago.
+        // Próxima: sep/oct NO tienen 5º lunes; NOV 2026 (1=Dom) lun=2,9,16,23,30 →
+        // 5º=30-nov. Verifica que ord=5 salta meses cortos con cualquier weekday.
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 8, 31), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(
+            title = "Reunión quinto lunes de cada mes",
+            dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY,
+            recurrenceDays = "5:1" // 5º lunes (ISO lunes=1)
+        )
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 11, 30), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals("5:1", next.recurrenceDays)
+    }
+
     // HOURLY ("cada 8 horas"): recurrencia sub-diaria REAL para medicación. Antes era
     // NONE + dosis única y la 2ª/3ª dosis se olvidaban. Ahora al completar avanza
     // exactamente N horas, preservando minuto y offset de recordatorio. La 1ª dosis
