@@ -2,7 +2,13 @@ package com.ordia.app.context
 
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 
 /**
  * Regression locks for [ContextIntentEngine.extractDateTime].
@@ -101,5 +107,116 @@ class ContextIntentEngineDateTimeTest {
             "el 25 3 de la tarde debe generar fecha con hora",
             ContextIntentEngine.extractDateTime("reunión el 25 3 de la tarde")
         )
+    }
+
+    // --- "de/por/en la mañana" es hora del día, NO "mañana" = día siguiente ---
+    // Regresión c.<run>: "reunión a las 9 de la mañana" se fechaba para MAÑANA
+    // porque el sufijo "mañana" colisionaba con la regla de día siguiente.
+    // Las aserciones son RELATIVAS (comparan dos llamadas con el mismo "today"
+    // del motor) para no depender de la zona horaria del sistema.
+
+    @Test
+    fun deLaManana_isToday_notTomorrow() {
+        val due = ContextIntentEngine.extractDateTime("reunión a las 9 de la mañana")
+        val hoy = ContextIntentEngine.extractDateTime("reunión hoy a las 9")
+        assertNotNull("'de la mañana' debe extraer fecha/hora", due)
+        assertNotNull("'hoy a las 9' debe extraer fecha/hora", hoy)
+        val z = ZoneId.systemDefault()
+        val dueDate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val hoyDate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(hoy!!), z).toLocalDate()
+        assertEquals(
+            "'de la mañana' es hora del día (hoy), no 'mañana' = día siguiente",
+            hoyDate, dueDate
+        )
+    }
+
+    @Test
+    fun deLaManana_isOneDayBefore_manana() {
+        val due = ContextIntentEngine.extractDateTime("reunión a las 9 de la mañana")
+        val manana = ContextIntentEngine.extractDateTime("reunión mañana a las 9")
+        assertNotNull(due); assertNotNull(manana)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val dMan = ZonedDateTime.ofInstant(Instant.ofEpochMilli(manana!!), z).toLocalDate()
+        assertEquals(
+            "'de la mañana' (hoy) debe ser un día antes que 'mañana' real",
+            1L, ChronoUnit.DAYS.between(dDue, dMan)
+        )
+    }
+
+    @Test
+    fun porLaManana_isToday_notTomorrow() {
+        val due = ContextIntentEngine.extractDateTime("reunión a las 9 por la mañana")
+        val hoy = ContextIntentEngine.extractDateTime("reunión hoy a las 9")
+        assertNotNull(due); assertNotNull(hoy)
+        val z = ZoneId.systemDefault()
+        val dueDate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val hoyDate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(hoy!!), z).toLocalDate()
+        assertEquals(hoyDate, dueDate)
+    }
+
+    @Test
+    fun enLaManana_isToday_notTomorrow() {
+        val due = ContextIntentEngine.extractDateTime("reunión a las 9 en la mañana")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dueDate = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val today = LocalDate.now(z)
+        assertEquals(today, dueDate)
+    }
+
+    @Test
+    fun deLaManana_hourIs9() {
+        val due = ContextIntentEngine.extractDateTime("reunión a las 9 de la mañana")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'9 de la mañana' debe ser 09:00", 9, hour)
+    }
+
+    @Test
+    fun bareManana_stillMeansTomorrow() {
+        // La corrección no debe romper el sentido real de "mañana" = día siguiente.
+        val manana = ContextIntentEngine.extractDateTime("reunión mañana")
+        assertNotNull(manana)
+        val z = ZoneId.systemDefault()
+        val dMan = ZonedDateTime.ofInstant(Instant.ofEpochMilli(manana!!), z).toLocalDate()
+        val today = LocalDate.now(z)
+        assertEquals("'mañana' sin hora del día sigue siendo día siguiente", 1L,
+            ChronoUnit.DAYS.between(today, dMan))
+    }
+
+    @Test
+    fun paraManana_stillMeansTomorrow() {
+        // "para mañana" no contiene ningún sufijo de hora del día → sigue siendo mañana.
+        val manana = ContextIntentEngine.extractDateTime("entregar informe para mañana")
+        assertNotNull(manana)
+        val z = ZoneId.systemDefault()
+        val dMan = ZonedDateTime.ofInstant(Instant.ofEpochMilli(manana!!), z).toLocalDate()
+        val today = LocalDate.now(z)
+        assertEquals(1L, ChronoUnit.DAYS.between(today, dMan))
+    }
+
+    @Test
+    fun desdeManana_stillMeansTomorrow() {
+        // "desde mañana" no debe verse afectado: el límite de palabra evita
+        // confundir el "de" final de "desde" con el prefijo "de" de "de la mañana".
+        val manana = ContextIntentEngine.extractDateTime("reuniones desde mañana")
+        assertNotNull(manana)
+        val z = ZoneId.systemDefault()
+        val dMan = ZonedDateTime.ofInstant(Instant.ofEpochMilli(manana!!), z).toLocalDate()
+        val today = LocalDate.now(z)
+        assertEquals("'desde mañana' debe ser día siguiente", 1L,
+            ChronoUnit.DAYS.between(today, dMan))
+    }
+
+    @Test
+    fun pasadoManana_isDayAfterTomorrow() {
+        val pm = ContextIntentEngine.extractDateTime("reunión pasado mañana")
+        assertNotNull(pm)
+        val z = ZoneId.systemDefault()
+        val dPm = ZonedDateTime.ofInstant(Instant.ofEpochMilli(pm!!), z).toLocalDate()
+        val today = LocalDate.now(z)
+        assertEquals(2L, ChronoUnit.DAYS.between(today, dPm))
     }
 }

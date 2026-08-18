@@ -414,8 +414,13 @@ object ContextIntentEngine {
             "domingo" to DayOfWeek.SUNDAY
         )
 
-        // "mañana"
-        if (lower.contains("mañana") && !lower.contains("pasado mañana") && !lower.contains("pasado mañana")) {
+        // "mañana" como día siguiente. Solo si NO forma parte de una hora del día
+        // ("de la mañana", "por la mañana", "en la mañana", "de/por/en mañana"):
+        // antes, "reunión a las 9 de la mañana" caía aquí y se fechaba para MAÑANA.
+        val manaanaComoDiaSiguiente = lower.contains("mañana") &&
+            !lower.contains("pasado mañana") &&
+            !Regex("""\b(de la|por la|en la|de|por|en)\s+mañana\b""").containsMatchIn(lower)
+        if (manaanaComoDiaSiguiente) {
             targetDate = today.plusDays(1)
         }
         // "pasado mañana"
