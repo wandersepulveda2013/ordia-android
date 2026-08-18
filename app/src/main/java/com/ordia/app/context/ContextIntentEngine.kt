@@ -73,8 +73,20 @@ object ContextIntentEngine {
         // 5. Extraer fecha/hora
         val dueAt = extractDateTime(lower)
 
-        // 6. Generar título descriptivo
-        val title = extractedTitle ?: generateTitle(text, kind)
+        // 6. Generar título descriptivo. Los [extractTitle] de cada [kind] y
+        //    [generateTitle] capturan la cola tras la seña con `(.+)` voraz, de modo
+        //    que los anclajes de fecha/hora (que [extractDateTime] ya resolvió en
+        //    [dueAt]) sobreviven como RESIDUO en el título visible: p.ej.
+        //    "recuérdame llamar a mamá el viernes a las 3" → "Llamar a mamá el
+        //    viernes a las 3", y los prefijos "Cita: "/"Reunión: "/"Pagar " capitalizan
+        //    además el artículo/preposición que encabeza la cola ("Reunión: Con el
+        //    equipo"). El [NaturalTaskParser] depura sus títulos consumiendo los
+        //    anclajes al parsear (c.237–c.438); la captura de contexto (notificaciones
+        //    → ContextIntent → tarea) NO lo hacía: una notificación capturada nacía con
+        //    título sucio/redundante, degradando la captura (P1). [sanitizeTitle]
+        //    depura el residuo temporal de cola y corrige la capitalización, llevando
+        //    la ruta de contexto al mismo estándar de limpieza que el parser.
+        val title = sanitizeTitle(extractedTitle ?: generateTitle(text, kind))
 
         return ContextIntent(
             id = UUID.randomUUID().toString(),
@@ -922,6 +934,111 @@ object ContextIntentEngine {
             lower.contains("de la noche") || lower.contains("del día") ||
             lower.contains("medianoche") ||
             lower.contains("mediodía") || lower.contains("mediodia")
+    }
+
+    /**
+     * Palabras-función del español (artículos, preposiciones, conjunciones) que
+     * NO deben ir en mayúscula salvo al inicio absoluto del título. Los prefijos
+     * de [extractTitle] ("Cita: "/"Reunión: "/"Pagar "/"Comprar ") aplican
+     * [capitalizeFirst] sobre toda la cola capturada, dejando "Reunión: Con el
+     * equipo"/"Pagar La factura"/"Estudio: Para el examen": mayúsculas espurias
+     * en la primera palabra de la cola cuando es un artículo/preposición.
+     */
+    private val FUNCTION_WORDS = setOf(
+        "el", "la", "los", "las", "un", "una", "unos", "unas",
+        "de", "del", "con", "para", "por", "en", "al", "a", "y", "o",
+        "que", "sin", "sobre", "hacia"
+    )
+
+    /**
+     * Depura el título de un [ContextIntent]:
+     *  1. Elimina el residuo de fecha/hora de cola (los anclajes que
+     *     [extractDateTime] ya resolvió en [dueAt], pero que los regex voraces
+     *     `(.+)` de [extractTitle]/[generateTitle] dejaban en el título).
+     *  2. Corrige mayúsculas espurias en artículos/preposiciones que no abren
+     *     el título (artefacto de [capitalizeFirst] sobre la cola).
+     *
+     * Paridad con el estándar de limpieza de títulos del [NaturalTaskParser]
+     * (c.237–c.438), aplicado por fin a la ruta de captura de contexto.
+     */
+    private fun sanitizeTitle(title: String): String {
+        val stripped = stripTrailingTemporalResidue(title)
+        // Si tras depurar el residuo el título queda vacío/muy corto, se conserva
+        // el original: un residuo visible es preferible a un título en blanco.
+        val base = if (stripped.length >= 3) stripped else title
+        return fixCapitalization(base)
+            .replace(Regex("""\s+"""), " ")
+            .trim(' ', ',', '.', '-', ';', ':')
+    }
+
+    /**
+     * Elimina los anclajes de fecha/hora que aparecen al FINAL del título
+     * (residuo), iterando hasta estabilizar (la cola puede apilar fecha + hora).
+     * Anclado a fin de cadena con puntuación/espacios finales opcionales, así
+     * NO toca apariciones legítimas a mitad de frase ("reunión de equipo").
+     *
+     * Guard anti-genitivo: las palabras de día relativo desnudas (hoy/mañana/
+     * ayer/...) NO se eliminan si las precede "de "/"del "/"de la "/"de el ":
+     * "diario de hoy" / "cita de ayer" son genitivos con contenido, no residuo.
+     */
+    private fun stripTrailingTemporalResidue(title: String): String {
+        val weekday = """(?:lunes|martes|mi[ée]rcoles|miercoles|jueves|viernes|s[áa]bado|domingo)s?"""
+        val month = """(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"""
+        val unit = """(?:d[ií]as?|semanas?|quincenas?|bimestres?|trimestres?|semestres?|mes(?:es)?|a[nñ]os?)"""
+        val meridiem = """(?:a\.?\s*m\.?|p\.?\s*m\.?|am|pm|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+d[ií]a)"""
+        val fraction = """(?:\s*(?:y\s+(?:media|treinta|cuarto|tres\s+cuartos|cuarenta\s+y\s+cinco|veinticinco|veinte|diez|cinco|\d{1,2})|menos\s+(?:cuarto|quince|cinco|diez|veinte|veinticinco|\d{1,2})))?"""
+        val time = """(?:(?:a|para)\s+(?:las?|la)\s+\d{1,2}(?::\d{2})?$fraction(?:\s*(?:$meridiem))?(?:\s*(?:horas?|hs|h))?(?:\s+en\s+punto)?|\d{1,2}:\d{2}(?:\s*(?:$meridiem))?|medianoche|mediod[ií]a|mediodia)"""
+        // Anclajes de fecha con seña explícita (no palabras desnudas solas):
+        // weekday (con "el "/"este " opcional: "el viernes"/"este lunes"),
+        // "el N [de mes|del mes]", "N de mes", "pasado mañana",
+        // "esta <parte del día>", períodos relativos multi-unidad y calificados.
+        val date = """(?:(?:el|este)\s+)?$weekday|el\s+\d{1,2}(?:\s+de\s+$month|\s+del\s+mes)?|\d{1,2}\s+de\s+$month|pasado\s+ma[nñ]ana|esta\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(?:un\s+par\s+de|unos|unas|\d{1,3})\s*$unit|(?:la|el)\s+(?:semana|mes|a[ñn]o|quincena|bimestre|trimestre|semestre)\s+(?:que\s+viene|que\s+entra|entrante|pr[oó]xim[oa]|siguiente|pasad[oa]|anterior)|en\s+(?:un|una|unos|unas)\s*(?:semanas?|mes(?:es)?|a[nñ]os?)"""
+        // Sufijo meridiano suelto de cola (tras quitar la hora: " ... de la tarde").
+        val bareMeridiem = """$meridiem"""
+        // Días relativos desnudos (hoy/mañana/ayer/anteayer/antier), con guard genitivo.
+        val bareRelative = """(?:hoy|mañana|manana|ayer|anteayer|antier)"""
+
+        val tail = Regex("""\s*(?:$date|$time|$bareMeridiem)\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
+        val bareTail = Regex("""\s+$bareRelative\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
+
+        var current = title
+        var prev = ""
+        var guard = 0
+        while (current != prev && guard < 6) {
+            prev = current
+            current = tail.replace(current, "").trim()
+            // Días relativos desnudos: sólo si NO los precede un genitivo.
+            val m = bareTail.find(current)
+            if (m != null) {
+                val before = current.substring(0, m.range.first)
+                val prevWord = Regex("""(?i)\b(\S+)\s*$""").find(before)?.groupValues?.get(1)
+                if (prevWord == null || prevWord.lowercase() !in setOf("de", "del", "para", "hasta", "desde", "después", "despues", "antes")) {
+                    current = bareTail.replace(current, "").trim()
+                }
+            }
+            guard++
+        }
+        return current
+    }
+
+    /**
+     * Pasa a minúscula los artículos/preposiciones/conjunciones en mayúscula que
+     * NO abren el título (artefacto de [capitalizeFirst] sobre la cola capturada).
+     * La primera palabra del título se conserva tal cual (capital legítima).
+     */
+    private fun fixCapitalization(title: String): String {
+        val firstSpace = title.indexOfFirst { it == ' ' }
+        if (firstSpace < 0) return title
+        val head = title.substring(0, firstSpace)
+        val rest = title.substring(firstSpace)
+        val pattern = FUNCTION_WORDS.joinToString("|")
+        // Sólo mayúsculas espurias (la cola se capitalizó entera). Las
+        // minúsculas correctas y las palabras que no son función se preservan.
+        val upperPat = Regex("""\b(${pattern})\b""", RegexOption.IGNORE_CASE)
+        val fixed = upperPat.replace(rest) { w ->
+            if (w.value.lowercase() in FUNCTION_WORDS) w.value.lowercase() else w.value
+        }
+        return head + fixed
     }
 
     private fun monthName(name: String): Int? {
