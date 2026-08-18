@@ -173,6 +173,34 @@ object ContextIntentEngine {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
+        // Piso simétrico para imperativos de COMPRA inequívocos (c.626): "comprar
+        // <producto>" al INICIO de la notificación es una compra clara con
+        // independencia de pistas temporales. Sin este piso, "comprar pan"/"comprar
+        // leche" quedaban en 0.37 (< [MINIMUM_CONFIDENCE]) y se DESCARTABAN: el
+        // usuario capturaba una compra real y Ordía la olvidaba. El contenido dañino
+        // genuino ya fue bloqueado en el paso 1 ([ContextPrivacyFilter]) o en el
+        // paso 3 (insultos), así que llegar aquí es contenido permitido. El guard
+        // `^... \s+\w` exige imperativo AFIRMATIVO al inicio + producto real: así
+        // "no comprar pan" (negación, capta lo opuesto a la intención del usuario),
+        // "mañana no comprar pan" (negación incrustada) y "comprar" aislado
+        // (muletilla) NO activan el piso (c.616 anti-overreach). Los casos
+        // afirmativos con ancla temporal ("mañana comprar pan") ya superan el
+        // umbral vía [extractDateTime], sin necesitar el piso.
+        if (kind == ContextIntentKind.SHOPPING && hasStrongShoppingImperative(lower)) {
+            score = maxOf(score, MINIMUM_CONFIDENCE)
+        }
+
+        // Piso simétrico para imperativos de REUNIÓN inequívocos (c.626):
+        // "reunión con/de/del <grupo>" al INICIO es una reunión clara con
+        // independencia de pistas temporales. Sin este piso, "reunión con el
+        // equipo" quedaba en 0.32 (< [MINIMUM_CONFIDENCE]) y se DESCARTABA. El guard
+        // `^... \s+(con|de|del)\s+\w` exige imperativo afirmativo al inicio +
+        // preposición + grupo real: así "no reunión con el equipo" (negación) y
+        // "reunión" sola (eco de chat) no activan el piso (c.616 anti-overreach).
+        if (kind == ContextIntentKind.MEETING && hasStrongMeetingImperative(lower)) {
+            score = maxOf(score, MINIMUM_CONFIDENCE)
+        }
+
         return score.coerceIn(0f, 1f)
     }
 
@@ -192,6 +220,27 @@ object ContextIntentEngine {
      */
     private fun hasStrongReminderImperative(lower: String): Boolean =
         Regex("""\b(avísame|notifícame|acordarme(?:\s+de)?)\s+\w""").containsMatchIn(lower)
+
+    /**
+     * Imperativos de compra inequívocos (c.626). Coincide con el anclaje de
+     * [extractTitle] para SHOPPING: "comprar <producto>" al INICIO. El ancla `^`
+     * + `\s+\w` exige imperativo afirmativo inicial + producto real: así "no
+     * comprar pan" (negación, capta lo opuesto a la intención del usuario),
+     * "mañana no comprar pan" (negación incrustada) y "comprar" aislado
+     * (muletilla) NO activan el piso (c.616 anti-overreach).
+     */
+    private fun hasStrongShoppingImperative(lower: String): Boolean =
+        Regex("""^comprar\s+\w""").containsMatchIn(lower)
+
+    /**
+     * Imperativos de reunión inequívocos (c.626). Coincide con el anclaje de
+     * [extractTitle] para MEETING: "reunión (con|de|del) <grupo>" al INICIO. El
+     * ancla `^` + `\s+(con|de|del)\s+\w` exige imperativo afirmativo inicial +
+     * preposición + grupo real, así "no reunión con el equipo" (negación) y
+     * "reunión" sola (eco de chat) no activan el piso (c.616 anti-overreach).
+     */
+    private fun hasStrongMeetingImperative(lower: String): Boolean =
+        Regex("""^reunión\s+(con|de|del)\s+\w""").containsMatchIn(lower)
 
     /**
      * Patrones específicos por tipo de intención.

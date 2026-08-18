@@ -2,7 +2,6 @@ package com.ordia.app.context
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -108,20 +107,27 @@ class ContextIntentEngineTitleTest {
 
     @Test
     fun genitiveDeHoyIsNotStrippedAsResidue() {
-        // "comprar el diario de hoy" NO clasifica bajo el umbral de confianza
-        // (no es recordatorio/cita explícita): no hay ContextIntent que
-        // desvirtuar, pero si clasificara, el sanitizer NO debe quitar "de hoy".
-        // Se cubre indirectamente: el sanitizer sólo actúa sobre la COLA y con
-        // guard de palabra precedente ("de" → genitivo, se preserva).
-        assertNull(analyze("comprar el diario de hoy"))
+        // c.626: "comprar el diario de hoy" ahora CLASIFICA como COMPRA (piso de
+        // imperativo "comprar <producto>"). El invariante que sigue vigente es que
+        // el sanitizer NO debe quitar "de hoy" (genitivo, contenido). El título
+        // preserva "de hoy" íntegro.
+        val intent = analyze("comprar el diario de hoy")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.SHOPPING, intent!!.kind)
+        assertEquals("Comprar el diario de hoy", intent.title)
     }
 
     // --- Sin anclaje temporal: el título no debe alterarse ---
 
     @Test
     fun titleWithoutTemporalAnchorIsPreserved() {
-        // "comprar leche y huevos" no clasifica (sin seña de recordatorio/cita);
-        // el sanitizer nunca se invoca. Se documenta el invariante de no-overreach.
-        assertNull(analyze("comprar leche y huevos"))
+        // c.626: "comprar leche y huevos" ahora CLASIFICA como COMPRA (piso de
+        // imperativo). El sanitizer nunca recibe residuo temporal (no hay anclaje),
+        // así el título se preserva íntegro: el invariante de no-overreach sigue
+        // cubierto (no se altera el contenido legítimo).
+        val intent = analyze("comprar leche y huevos")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.SHOPPING, intent!!.kind)
+        assertEquals("Comprar Leche y huevos", intent.title)
     }
 }
