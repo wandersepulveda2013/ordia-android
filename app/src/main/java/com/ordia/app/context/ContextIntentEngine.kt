@@ -78,6 +78,29 @@ object ContextIntentEngine {
         """(?<!\p{L})(?:quiz[áa]s?|a\s+lo\s+mejor|tal\s+vez|capaz|puede\s+que|a\s+ver\s+si)(?!\p{L})"""
     )
 
+    // Condicional "si" que gobierna el imperativo (c.650 anti-overreach). Defecto
+    // de CLASE DISTINTA de c.649 (duda) descubierto por probe JVM fuente real:
+    // una cláusula condicional que PRECEDE al imperativo ("si tengo tiempo ir al
+    // gimnasio" → EXERCISE 0.59, "si me dan el día cita con el dentista" →
+    // APPOINTMENT 0.69, "si puedo llamar a mamá" → CALL 0.57) activaba los pisos
+    // y bonos fuertes y se persistía como tarea firme aunque la acción sólo se
+    // haría BAJO CONDICIÓN (no resuelta). El guard penaliza (como la duda, no
+    // bloquea como la negación) porque la condición no niega la intención.
+    // Dos vías, ambas deterministas:
+    //  (1) marcadores medios inequívocos: "si puedo/puedes/podemos",
+    //      "si tengo tiempo", "si es posible", "si se puede", "si me acuerdo";
+    //  (2) "si" al inicio de la frase o tras puntuación (`,;:.`): en español el
+    //      "si" SIN tilde en cabeza de cláusula es condicional, no el "sí"
+    //      afirmativo (que lleva tilde y no casa).
+    // NO se penaliza la condición QUE SIGUE a un imperativo firme ("llamar al
+    // banco si no llega el pago"): es un recordatorio condicional legítimo — el
+    // usuario SÍ se comprometió a actuar bajo esa condición (decisión de diseño
+    // documentada). Tampoco la "si" subordinada de contenido ("ver si hay
+    // leche"): no es condición sobre el compromiso.
+    private val CONDITIONAL_PATTERN = Regex(
+        """(?<!\p{L})si\s+(?:puedo|puedes|podemos|tengo\s+tiempo|es\s+posible|se\s+puede|me\s+acuerdo)(?!\p{L})|(?:^|[,;:.]\s*)si\s+(?=\p{L})"""
+    )
+
     /**
      * Analiza un evento contextual y retorna una intención clasificada,
      * o null si el contenido debe descartarse.
@@ -367,6 +390,17 @@ object ContextIntentEngine {
             score -= HEDGE_PENALTY
         }
 
+        // Penalización por condición que gobierna el imperativo (c.650). Misma
+        // mecánica post-pisos que la duda: "si tengo tiempo ir al gimnasio"/
+        // "si me dan el día cita con el dentista" activaban piso/bono y se
+        // persistían como compromiso firme pese a estar gobernados por una
+        // condición no resuelta (overreach P1). La condición TRAS un imperativo
+        // firme ("llamar al banco si no llega el pago") NO se penaliza: es un
+        // recordatorio condicional legítimo (ver [CONDITIONAL_PATTERN]).
+        if (hasConditionalMarker(lower)) {
+            score -= HEDGE_PENALTY
+        }
+
         return score.coerceIn(0f, 1f)
     }
 
@@ -589,6 +623,15 @@ object ContextIntentEngine {
      */
     private fun hasHedgeMarker(lower: String): Boolean =
         HEDGE_PATTERN.containsMatchIn(lower)
+
+    /**
+     * Detecta la condición "si" que gobierna el imperativo (c.650). Ver
+     * [CONDITIONAL_PATTERN] para el alcance exacto: sólo condición que PRECEDE
+     * al imperativo o marcadores medios inequívocos; nunca la condición
+     * posterior (recordatorio condicional legítimo) ni la "si" de contenido.
+     */
+    private fun hasConditionalMarker(lower: String): Boolean =
+        CONDITIONAL_PATTERN.containsMatchIn(lower)
 
     /**
      * Patrones específicos por tipo de intención.
