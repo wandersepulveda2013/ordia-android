@@ -116,7 +116,21 @@ object AutomationActionPlanner {
                 // determinista. Antes LocalDate.now(zone) ignoraba el `now` fijo de
                 // los tests (que solo pasaban porque "mañana real" > now inyectado).
                 val base = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-                val updates = overdue.sortedBy { it.dueAt }.take(8).mapIndexed { index, task ->
+                // "Detección de vencidas importantes": el ORDEN en que se reparten las
+                // vencidas decide cuál ocupa el slot más temprano (base+1). Antes se
+                // ordenaba por dueAt asc puro (la más vieja primero), de modo que una
+                // vencida URGENT reciente quedaba aplazada detrás de una vencida NORMAL
+                // o LOW más antigua: la automatización difería lo más importante. Ahora
+                // la prioridad explícita del usuario (URGENT > HIGH > NORMAL > LOW) manda
+                // primero — es la señal más fuerte de "lo más importante a recuperar" — y
+                // la antigüedad del vencimiento desempata dentro de la misma prioridad
+                // (la deuda más vieja antes). Simétrico con [TaskRules.smartListComparator]/
+                // [TaskRules.nextBestTask] (banda de urgencia antes que dueAt) y con
+                // [GuardianEngine] (señala vencidas importantes). Sin IA fingida:
+                // comparador determinista sobre campos explícitos del usuario.
+                val updates = overdue.sortedWith(
+                    compareByDescending<TaskEntity> { it.priority }.thenBy { it.dueAt }
+                ).take(8).mapIndexed { index, task ->
                     val due = DateRules.toEpochMillis(base.plusDays(1L + index / 3), LocalTime.of(18, 0), zone)
                     // Recordatorio:
                     // - Si la tarea ya tenía uno, se conserva el OFFSET original del usuario

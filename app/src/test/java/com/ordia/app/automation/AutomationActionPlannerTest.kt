@@ -6,6 +6,7 @@ import com.ordia.app.data.local.AutomationRuleEntity
 import com.ordia.app.data.local.AutomationTrigger
 import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.domain.DateRules
 import java.time.Instant
@@ -45,7 +46,8 @@ class AutomationActionPlannerTest {
         dueAt: Long? = null,
         reminderAt: Long? = null,
         startAt: Long? = null,
-        recurrence: RecurrenceFrequency = RecurrenceFrequency.NONE
+        recurrence: RecurrenceFrequency = RecurrenceFrequency.NONE,
+        priority: TaskPriority = TaskPriority.NORMAL
     ) = TaskEntity(
         id = id,
         title = title,
@@ -55,6 +57,7 @@ class AutomationActionPlannerTest {
         reminderAt = reminderAt,
         startAt = startAt,
         recurrence = recurrence,
+        priority = priority,
         createdAt = now - 1000,
         updatedAt = now - 1000
     )
@@ -198,6 +201,68 @@ class AutomationActionPlannerTest {
         val byId = plan.updates.associateBy { it.id }
         assertEquals(1_736_888_400_000L, byId[4L]!!.dueAt) // más vieja → índice 0 → base+1 = 2025-01-14 18:00
         assertEquals(1_736_974_800_000L, byId[1L]!!.dueAt) // más nueva → índice 3 → base+2 = 2025-01-15 18:00
+    }
+
+    @Test
+    fun `reschedule_overdue prioriza una vencida URGENT aunque otra vencida tenga dueAt mas viejo`() {
+        // "Detección de vencidas importantes": la reprogramación automática no debe
+        // aplazar un compromiso URGENT detrás de uno NORMAL sólo porque el NORMAL se
+        // venció antes. La prioridad explícita del usuario (URGENT) es la señal más
+        // fuerte de "lo más importante a recuperar"; la antigüedad del vencimiento la
+        // desempata dentro de la misma prioridad. PRE-fix: orden por dueAt asc puro →
+        // NORMAL (now-5d) → índice 0 → base+1; URGENT (now-1d) → índice 1 → base+1.
+        // Ambas caían el mismo día aquí, pero el ORDEN dentro del día era equivocado:
+        // la NORMAL ocupaba el primer lugar. Con prioridad primero, URGENT va índice 0.
+        val urgent = task(1, dueAt = now - 86_400_000L, status = TaskStatus.PLANNED, reminderAt = null, priority = TaskPriority.URGENT)
+        val normal = task(2, dueAt = now - 5 * 86_400_000L, status = TaskStatus.PLANNED, reminderAt = null, priority = TaskPriority.NORMAL)
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.RESCHEDULE_OVERDUE, AutomationCondition.HAS_OVERDUE_TASKS),
+            listOf(normal, urgent), 0, now, zone
+        )
+        assertEquals(2, plan.updates.size)
+        // URGENT → índice 0 → base+1 (el slot más temprano).
+        assertEquals(1_736_888_400_000L, plan.updates[0].dueAt) // 2025-01-14 18:00
+        assertEquals(1L, plan.updates[0].id)
+        // NORMAL → índice 1 → base+1 (mismo día, pero detrás de la URGENT).
+        assertEquals(1_736_888_400_000L, plan.updates[1].dueAt)
+        assertEquals(2L, plan.updates[1].id)
+    }
+
+    @Test
+    fun `reschedule_overdue no aplaza una URGENT detras de tres NORMAL aunque estas venzan antes`() {
+        // Caso de 4 vencidas: 3 NORMAL muy viejas (now-3d/4d/5d) + 1 URGENT reciente
+        // (now-1d). Con el reparto de 3/día, el índice 0-2 va a base+1 y el índice 3 a
+        // base+2. PRE-fix (dueAt asc puro): las 3 NORMAL (índices 0-2) → base+1 y la
+        // URGENT (índice 3) → base+2: la URGENT queda aplazada un día entero detrás de
+        // tareas triviales. POST-fix (prioridad primero): la URGENT → índice 0 → base+1.
+        val urgent = task(10, dueAt = now - 86_400_000L, status = TaskStatus.PLANNED, reminderAt = null, priority = TaskPriority.URGENT)
+        val normals = (1..3).map { task(it.toLong(), dueAt = now - (it + 2) * 86_400_000L, status = TaskStatus.PLANNED, reminderAt = null, priority = TaskPriority.NORMAL) }
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.RESCHEDULE_OVERDUE, AutomationCondition.HAS_OVERDUE_TASKS),
+            normals + urgent, 0, now, zone
+        )
+        assertEquals(4, plan.updates.size)
+        // La URGENT debe estar en base+1 (el primer día), no en base+2.
+        assertEquals(1_736_888_400_000L, plan.updates[0].dueAt) // 2025-01-14 18:00 = base+1
+        assertEquals(10L, plan.updates[0].id)
+        // Las 3 NORMAL rellenan los índices 1-3 (índice 3 → base+2).
+        assertEquals(1_736_974_800_000L, plan.updates[3].dueAt) // 2025-01-15 18:00 = base+2
+    }
+
+    @Test
+    fun `reschedule_overdue desempata vencidas de igual prioridad por dueAt asc`() {
+        // Contrato de no-regresión: con prioridades iguales, el orden sigue siendo el
+        // de antigüedad (la más vieja primero), igual que el comportamiento pre-fix.
+        val a = task(1, dueAt = now - 86_400_000L, status = TaskStatus.PLANNED, reminderAt = null, priority = TaskPriority.HIGH)
+        val b = task(2, dueAt = now - 3 * 86_400_000L, status = TaskStatus.PLANNED, reminderAt = null, priority = TaskPriority.HIGH)
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.RESCHEDULE_OVERDUE, AutomationCondition.HAS_OVERDUE_TASKS),
+            listOf(a, b), 0, now, zone
+        )
+        assertEquals(2, plan.updates.size)
+        // b (más vieja, now-3d) → índice 0 → base+1; a (más nueva, now-1d) → índice 1 → base+1.
+        assertEquals(2L, plan.updates[0].id)
+        assertEquals(1L, plan.updates[1].id)
     }
 
     @Test
