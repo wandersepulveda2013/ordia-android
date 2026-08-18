@@ -16,14 +16,14 @@ import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Science
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaOutlinedButton
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -76,15 +76,14 @@ fun AutomationsScreen(vm: OrdiaViewModel, padding: PaddingValues) {
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
+                    OrdiaInput(
                         value = instruction,
                         onValueChange = { instruction = it.take(500) },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text(stringResource(R.string.automation_instruction_label)) },
-                        supportingText = { Text(stringResource(R.string.automation_instruction_hint)) },
-                        minLines = 2
+                                                minLines = 2
                     )
-                    Button(
+                    OrdiaButton(
                         onClick = {
                             vm.createAutomationFromText(instruction)
                             instruction = ""
@@ -102,7 +101,7 @@ fun AutomationsScreen(vm: OrdiaViewModel, padding: PaddingValues) {
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(AutomationRuleCatalog.templates, key = { it.key }) { template ->
-                    OutlinedButton(onClick = { vm.createAutomationTemplate(template.key) }) { Text(template.name) }
+                    OrdiaOutlinedButton(onClick = { vm.createAutomationTemplate(template.key) }) { Text(template.name) }
                 }
             }
         }
@@ -169,11 +168,11 @@ private fun AutomationRuleCard(
                 Text(rule.lastError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onTest, modifier = Modifier.weight(1f)) {
+                OrdiaOutlinedButton(onClick = onTest, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Outlined.Science, null)
                     Text(stringResource(R.string.automation_test), Modifier.padding(start = 6.dp))
                 }
-                Button(onClick = onRun, modifier = Modifier.weight(1f)) {
+                OrdiaButton(onClick = onRun, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Outlined.PlayArrow, null)
                     Text(stringResource(R.string.automation_run), Modifier.padding(start = 6.dp))
                 }

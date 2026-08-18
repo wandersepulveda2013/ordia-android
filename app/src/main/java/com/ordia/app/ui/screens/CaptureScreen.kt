@@ -31,15 +31,15 @@ import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedButton
+import com.ordia.app.ui.components.OrdiaInput
+import com.ordia.app.ui.components.OrdiaOutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -177,7 +177,7 @@ fun CaptureScreen(
                     Modifier.fillMaxWidth().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    OutlinedTextField(
+                    OrdiaInput(
                         value = text,
                         onValueChange = {
                             text = it.take(UniversalCaptureEngine.MAX_CONTENT_CHARS)
@@ -268,7 +268,7 @@ fun CaptureScreen(
                         }
                     }
 
-                    Button(
+                    OrdiaButton(
                         onClick = {
                             vm.submitCapture(
                                 content = text,
@@ -405,11 +405,11 @@ private fun CaptureHistoryRow(
                     style = MaterialTheme.typography.bodySmall
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onRetry, modifier = Modifier.weight(1f)) {
+                    OrdiaButton(onClick = onRetry, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Outlined.Refresh, null)
                         Text(stringResource(R.string.capture_retry), Modifier.padding(start = 6.dp))
                     }
-                    OutlinedButton(onClick = onDiscard) {
+                    OrdiaOutlinedButton(onClick = onDiscard) {
                         Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.capture_discard_failed))
                     }
                 }

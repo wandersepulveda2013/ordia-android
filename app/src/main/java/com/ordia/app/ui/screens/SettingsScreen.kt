@@ -30,13 +30,13 @@ import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaOutlinedButton
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -173,7 +173,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             title = { Text(stringResource(R.string.settings_restore_dialog_title)) },
             text = { Text(stringResource(R.string.settings_restore_dialog_text)) },
             confirmButton = {
-                Button(onClick = {
+                OrdiaButton(onClick = {
                     val name = restoreFileName
                     pendingRestoreJson = null
                     restoreFileName = null
@@ -192,7 +192,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             title = { Text(stringResource(R.string.settings_restore_success_title)) },
             text = { Text(restoreResult.message) },
             confirmButton = {
-                Button(onClick = { vm.dismissRestoreResult() }) { Text(stringResource(R.string.action_understood)) }
+                OrdiaButton(onClick = { vm.dismissRestoreResult() }) { Text(stringResource(R.string.action_understood)) }
             }
         )
         is BackupRestoreState.Error -> AlertDialog(
@@ -200,7 +200,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
             title = { Text(stringResource(R.string.settings_restore_error_title)) },
             text = { Text(restoreResult.message) },
             confirmButton = {
-                Button(onClick = { vm.dismissRestoreResult() }) { Text(stringResource(R.string.action_understood)) }
+                OrdiaButton(onClick = { vm.dismissRestoreResult() }) { Text(stringResource(R.string.action_understood)) }
             }
         )
         else -> Unit
@@ -346,14 +346,14 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         }
         item {
             SettingsCard(Icons.Outlined.AutoAwesome, stringResource(R.string.settings_card_identity)) {
-                OutlinedTextField(
+                OrdiaInput(
                     value = guardianName,
                     onValueChange = { guardianName = it.take(24) },
                     label = { Text(stringResource(R.string.settings_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                Button(
+                OrdiaButton(
                     onClick = { scope.launch { repository.setGuardianName(guardianName) } },
                     enabled = guardianName.isNotBlank(),
                     modifier = Modifier.fillMaxWidth()
@@ -391,9 +391,9 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
         item {
             SettingsCard(null, stringResource(R.string.settings_card_quiet_hours)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(quietStart, { quietStart = it.take(5) }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_quiet_from)) }, singleLine = true)
-                    OutlinedTextField(quietEnd, { quietEnd = it.take(5) }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_quiet_to)) }, singleLine = true)
-                    Button(onClick = {
+                    OrdiaInput(quietStart, { quietStart = it.take(5) }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_quiet_from)) }, singleLine = true)
+                    OrdiaInput(quietEnd, { quietEnd = it.take(5) }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_quiet_to)) }, singleLine = true)
+                    OrdiaButton(onClick = {
                         val start = parseClock(quietStart)
                         val end = parseClock(quietEnd)
                         when {
@@ -447,7 +447,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Button(
+                OrdiaButton(
                     onClick = onUpdates,
                     modifier = Modifier.fillMaxWidth()
                 ) { Text(stringResource(R.string.settings_update_check_button)) }
@@ -466,7 +466,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (!notificationsGranted && Build.VERSION.SDK_INT >= 33) {
-                    Button(
+                    OrdiaButton(
                         onClick = { notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -500,7 +500,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                     is BackupRestoreState.Verifying -> ProgressLine(stringResource(R.string.settings_backup_progress_verifying))
                     else -> Unit
                 }
-                Button(onClick = {
+                OrdiaButton(onClick = {
                     vm.exportBackup { json ->
                         backupJson = json
                         createBackup.launch("Ordía-${LocalDate.now()}.ordia.json")
@@ -509,7 +509,7 @@ fun SettingsScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padd
                     Icon(Icons.Outlined.Backup, null)
                     Text(stringResource(R.string.settings_backup_create_button), Modifier.padding(start = 8.dp))
                 }
-                OutlinedButton(
+                OrdiaOutlinedButton(
                     onClick = { openBackup.launch(arrayOf("application/json", "text/plain")) },
                     enabled = !backupRestoreState.inProgress,
                     modifier = Modifier.fillMaxWidth()

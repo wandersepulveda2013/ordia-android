@@ -18,7 +18,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -99,7 +99,7 @@ fun NotesScreen(
                 }
             }
         }
-        item { OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.notes_search)) }, singleLine = true) }
+        item { OrdiaInput(query, { query = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.notes_search)) }, singleLine = true) }
         if (notes.isEmpty()) {
             item { EmptyState(stringResource(R.string.notes_empty_title), stringResource(R.string.notes_empty_desc), stringResource(R.string.notes_create_note), onAction = { onNote(0) }) }
         } else {

@@ -14,11 +14,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -83,7 +83,7 @@ fun AssistantScreen(
             }
         }
         item {
-            OutlinedTextField(
+            OrdiaInput(
                 value = input,
                 onValueChange = { input = it.take(2_000) },
                 modifier = Modifier.fillMaxWidth(),
@@ -92,7 +92,7 @@ fun AssistantScreen(
                 trailingIcon = { Icon(Icons.Outlined.AutoAwesome, null) }
             )
         }
-        item { Button(onClick = { ask(input) }, enabled = input.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.assistant_ask)) } }
+        item { OrdiaButton(onClick = { ask(input) }, enabled = input.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.assistant_ask)) } }
         latest?.let { answer ->
             item {
                 Card(Modifier.fillMaxWidth()) {
@@ -102,7 +102,7 @@ fun AssistantScreen(
                             AssistChip(onClick = { onTask(task.id) }, label = { Text(task.title) })
                         }
                         if (answer.action != AssistantAction.NONE) {
-                            Button(onClick = {
+                            OrdiaButton(onClick = {
                                 when (answer.action) {
                                     AssistantAction.OPEN_PLANNER -> onPlanner()
                                     AssistantAction.OPEN_CONVERSATIONS -> onConversations()

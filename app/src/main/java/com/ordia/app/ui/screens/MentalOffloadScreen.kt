@@ -29,12 +29,12 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.ShoppingCart
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaOutlinedButton
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -128,7 +128,7 @@ fun MentalOffloadScreen(
 
         item {
             OrdiaCard {
-                OutlinedTextField(
+                OrdiaInput(
                     value = text,
                     onValueChange = { text = it.take(10_000); result = null; applied = false },
                     modifier = Modifier.fillMaxWidth().height(140.dp),
@@ -140,7 +140,7 @@ fun MentalOffloadScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedButton(onClick = {
+                    OrdiaOutlinedButton(onClick = {
                         try {
                             voiceLauncher.launch(
                                 Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -156,7 +156,7 @@ fun MentalOffloadScreen(
                         Text(stringResource(R.string.offload_voice), Modifier.padding(start = 6.dp))
                     }
                     Spacer(Modifier.weight(1f))
-                    Button(onClick = ::process, enabled = text.isNotBlank()) {
+                    OrdiaButton(onClick = ::process, enabled = text.isNotBlank()) {
                         Text(stringResource(R.string.offload_process))
                     }
                 }
@@ -172,7 +172,7 @@ fun MentalOffloadScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Spacer(Modifier.height(8.dp))
-                        OutlinedButton(onClick = {
+                        OrdiaOutlinedButton(onClick = {
                             if (text.isNotBlank()) vm.addNote(text)
                             onDone()
                         }) {
@@ -196,7 +196,7 @@ fun MentalOffloadScreen(
                             modifier = Modifier.weight(1f)
                         )
                         if (!applied) {
-                            Button(onClick = ::applyAll) {
+                            OrdiaButton(onClick = ::applyAll) {
                                 Icon(Icons.Outlined.Check, null)
                                 Text(stringResource(R.string.offload_confirm), Modifier.padding(start = 6.dp))
                             }
@@ -210,7 +210,7 @@ fun MentalOffloadScreen(
                 }
                 if (applied) {
                     item {
-                        Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
+                        OrdiaButton(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
                             Text(stringResource(R.string.action_understood))
                             Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.padding(start = 6.dp))
                         }

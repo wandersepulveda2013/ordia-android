@@ -19,7 +19,7 @@ import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.ordia.app.ui.components.OrdiaOutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -123,7 +123,7 @@ fun OrganizeScreen(
                             )
                         }
                         if (proposal == null) {
-                            OutlinedButton(onClick = { showProposal = true }) {
+                            OrdiaOutlinedButton(onClick = { showProposal = true }) {
                                 Text(stringResource(R.string.organize_ai_review))
                             }
                         }
@@ -140,7 +140,7 @@ fun OrganizeScreen(
                             Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            OutlinedButton(onClick = { showProposal = false }, modifier = Modifier.weight(1f)) {
+                            OrdiaOutlinedButton(onClick = { showProposal = false }, modifier = Modifier.weight(1f)) {
                                 Text(stringResource(R.string.organize_ai_undo))
                             }
                         }
@@ -291,7 +291,7 @@ private fun OrganizeSectionRow(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (action != null && onAction != null) {
-            OutlinedButton(onClick = onAction, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp)) {
+            OrdiaOutlinedButton(onClick = onAction, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp)) {
                 Text(action, style = MaterialTheme.typography.labelMedium)
             }
         }
@@ -322,7 +322,7 @@ private fun OrganizeTaskRow(task: TaskEntity, projectName: String?, onTask: (Lon
                     )
                 }
             }
-            OutlinedButton(onClick = { onTask(task.id) }) {
+            OrdiaOutlinedButton(onClick = { onTask(task.id) }) {
                 Icon(Icons.Outlined.MoreHoriz, null)
             }
         }
@@ -353,7 +353,7 @@ private fun OrganizeNoteRow(note: NoteEntity, onNote: (Long) -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            OutlinedButton(onClick = { onNote(note.id) }) {
+            OrdiaOutlinedButton(onClick = { onNote(note.id) }) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
             }
         }
@@ -386,7 +386,7 @@ private fun OrganizeProjectRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            OutlinedButton(onClick = { onProject(project.id) }) {
+            OrdiaOutlinedButton(onClick = { onProject(project.id) }) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowForward, null)
             }
         }

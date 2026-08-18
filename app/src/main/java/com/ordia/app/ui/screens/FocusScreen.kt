@@ -15,14 +15,14 @@ import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Stop
-import androidx.compose.material3.Button
+import com.ordia.app.ui.components.OrdiaButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.ordia.app.ui.components.OrdiaOutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -108,7 +108,7 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
             }
         }
         Column(Modifier.fillMaxWidth()) {
-            OutlinedButton(onClick = { taskMenu = true }, modifier = Modifier.fillMaxWidth()) {
+            OrdiaOutlinedButton(onClick = { taskMenu = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(state.task(taskId ?: -1)?.title ?: stringResource(R.string.focus_choose_task), maxLines = 1)
             }
             DropdownMenu(taskMenu, { taskMenu = false }) {
@@ -121,7 +121,7 @@ fun FocusScreen(state: OrdiaUiState, vm: OrdiaViewModel, contentPadding: Padding
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { reset() }) { Icon(Icons.Outlined.Refresh, stringResource(R.string.focus_reset)) }
-            Button(onClick = {
+            OrdiaButton(onClick = {
                 val now = System.currentTimeMillis()
                 if (running) {
                     remainingSeconds = FocusTimerRules.remainingSeconds(deadlineAt, now)
