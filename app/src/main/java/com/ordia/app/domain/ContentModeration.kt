@@ -77,6 +77,69 @@ object ContentModeration {
         return false
     }
 
+    /**
+     * Conjunto canónico de reglas de moderación temática (sexual, violencia,
+     * drogas, insultos) con exenciones de contexto legítimo (c.582).
+     *
+     * FUENTE ÚNICA para TODO gate de captura/IA que deba bloquear contenido
+     * dañino antes de procesarlo: [IntelligenceSafetyGate] (gate de IA) y
+     * [com.ordia.app.context.ContextIntentEngine] (captura contextual → tarea).
+     * Antes de c.611, [ContextIntentEngine.containsBlockedContent] duplicaba
+     * estas raíces con regex inline SIN exenciones, así que bloqueaba en bruto
+     * ("matar el proceso", "comprar bomba de agua", "comprar la droga en la
+     * farmacia") justo las tareas legítimas que c.582 eximió en los otros dos
+     * gates — descarte silencioso de captura (P1 datos/evitar olvidos). Al
+     * consumir esta lista, la captura contextual nunca puede desincronizarse de
+     * la puerta de IA: añadir una exención o sentido legítimo aquí corrige
+     * ambos gates a la vez (mismo principio que c.299 para secretos).
+     *
+     * Las categorías de solo-lectura de [com.ordia.app.context.ContextPrivacyFilter]
+     * (acoso, autodaño, transferencias, política) NO viven aquí: no aplican al
+     * gate de IA ni a la decisión de crear una sugerencia de tarea.
+     */
+    val THEMATIC_RULES: List<ModerationRule> = listOf(
+        // Contenido sexual explícito. "sexo"/"sexual"/"porno"/"xxx"/"desnud"
+        // rara vez aparecen en tareas legítimas y son palabras completas, así
+        // que se casan sin exención. Las raíces anatómicas (pene/vagina) SÍ se
+        // eximen en contexto médico (cita con el urólogo/ginecólogo por...).
+        ModerationRule(
+            stem = Regex("""\b(sexo|sexual|desnud|porno|xxx|eroti|culos|tetas|pene|vagina|orgasmo|masturb)\b"""),
+            contain = listOf(
+                Regex("""\b(cita con el ur[oó]logo|cita con la ginec[oó]loga?)\b[^.]*\bpene\b"""),
+                Regex("""\b(revisi[oó]n de|revisar la|revisar el|examen de la|examen del)[^.]*\b(pene|vagina)\b""")
+            ),
+            proximity = Regex("""\b(ur[oó]logo|ginec[oó]log[oa]|sex[oó]logo|prostate|m[ée]dico|cl[íi]nica|farmac[ée]utic[oa])\b""")
+        ),
+        // Violencia y amenazas. Las raíces tienen sentidos legítimos muy
+        // frecuentes en tareas técnicas ("matar el proceso", "violar la
+        // política", "modelo de amenaza", "pistola/bomba de agua", "revisar el
+        // secuestro de DNS") que se eximen por colocación.
+        ModerationRule(
+            stem = Regex("""\b(matar|asesinar|violar|secuestr|bomba|amenaza|escopeta|pistola|cuchill)\b"""),
+            contain = listOf(
+                Regex("""\bmatar\b\s+(el|la|los|las|un|una)?\s*(proceso|hilo|servicio|servidor|demonio|sesi[oó]n|tarea|job|zombie)\b"""),
+                Regex("""\bviolar\b\s+(la|el|una|un|las|los)?\s*(pol[ií]tica|contrato|licencia|restricci[oó]n|norma|ley|clausula|cl[áa]usula|t[ée]rminos?)\b"""),
+                Regex("""\b(modelo|m[oó]delo)\s+de\s+amenaza\b"""),
+                Regex("""\bamenaza\b\s+(de)?\s*(de\s+integridad|de\s+seguridad|de\s+modelo)\b"""),
+                Regex("""\b(revisi[oó]n|revisar|diagn[oó]stico|diag|audit|auditor[íi]a)\s+(de[l]?)\s*secuestro\b"""),
+                Regex("""\bsecuestro\s+de\s+(dns|sesi[oó]n|cookie|token|sesiones?)\b"""),
+                Regex("""\b(bomba|pistola|escopeta)\s+de\s+agua\b"""),
+                Regex("""\b(matar|asesinar)\s+(un|el)\s+proceso\b""")
+            )
+        ),
+        // Drogas ilegales. "droga" se exonera por proximidad médica/farmacéutica
+        // (la mención entera es legítima en "comprar la droga en la farmacia",
+        // "ir a buscar la droga recetada"). Las drogas específicas (cocaína,
+        // marihuana...) no se eximen: su mención aislada es señal fuerte.
+        ModerationRule(
+            stem = Regex("""\b(droga|cocaina|heroina|marihuana|metanfetamina|narcotrafico)\b"""),
+            proximity = Regex("""\b(farmac[ée]utic[oa]|farmacia|recetad[oa]|m[ée]dic[oa]|medicament[oa]|ur[oó]log[oa]|receta|tratamiento|recetar)\b""")
+        ),
+        // Insultos graves: palabras completas, sin exención (su mención aislada
+        // es señal fuerte y rara vez legitiman una tarea).
+        ModerationRule(stem = Regex("""\b(pendejo|estupido|imbecil|malparido|hijueputa)\b"""))
+    )
+
     /** Normaliza a minúsculas sin tildes/diacríticos para comparación tolerante
      *  a acentos (el español casual de móvil escribe sin acentos con frecuencia). */
     private fun normalize(s: String): String =

@@ -1,5 +1,6 @@
 package com.ordia.app.context
 
+import com.ordia.app.domain.ContentModeration
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -325,27 +326,29 @@ object ContextIntentEngine {
     }
 
     /**
-     * Verifica contenido explícitamente bloqueado.
+     * Verifica contenido explícitamente bloqueado (defensa en profundidad).
      *
-     * Las categorías temáticas sexual/violencia/drogas se delegan al paso 1
-     * ([ContextPrivacyFilter.shouldBlock], que aplica [ContentModeration.isHarmful]
-     * con exenciones de colocación/proximidad — c.582, paridad con
-     * [com.ordia.app.intelligence.IntelligenceSafetyGate]). Duplicar aquí esos
-     * patrones con regex primitivos `\b(...)\b` SIN exenciones descartaba
-     * silenciosamente tareas legítimas ("matar el proceso", "bomba de agua",
-     * "droga en la farmacia", "modelo de amenaza", "pistola de agua",
-     * "secuestro de DNS") que el paso 1 ya dejó pasar (c.613). Aquí sólo queda
-     * la categoría que [ContextPrivacyFilter] NO cubre: insultos graves (paridad
-     * con [com.ordia.app.intelligence.IntelligenceSafetyGate]). El contenido
-     * temático genuinamente dañino sigue bloqueado por el paso 1.
+     * Delega en la fuente única [ContentModeration.THEMATIC_RULES] (c.615): la
+     * detección por raíz CON exenciones de contexto legítimo y normalización
+     * sin tildes, idéntica a [com.ordia.app.intelligence.IntelligenceSafetyGate].
+     * Antes, este método duplicaba las raíces con regex inline SIN exenciones, así
+     * que bloqueaba en bruto tareas legítimas que el paso 1
+     * ([ContextPrivacyFilter], que SÍ exime) dejaba pasar: "matar el proceso del
+     * servidor", "comprar bomba de agua", "comprar la droga en la farmacia"... se
+     * descartaban SILENCIOSAMENTE en la captura contextual (P1 datos/evitar
+     * olvidos). Además, al no normalizar tildes, las formas sin acento de los
+     * insultos ("estupido"/"imbecil") se escapaban de este paso (paso 1, sin
+     * regla de insultos, tampoco los frenaba). Ahora comparte el mismo contrato
+     * que el gate de IA, así que no pueden desincronizarse (mismo principio que
+     * c.299 para secretos). Determinista, sin IA fingida.
+     *
+     * Construye sobre c.614 (piso de confianza para imperativos inequívocos):
+     * aquí se mantiene la defensa en profundidad del paso 3 con exenciones en
+     * vez de confiar sólo en el paso 1, y se elimina la duplicación de la lista
+     * en [com.ordia.app.intelligence.IntelligenceSafetyGate] (fuente única).
      */
-    private fun containsBlockedContent(lower: String): Boolean {
-        // Insultos graves (categoría no cubierta por ContextPrivacyFilter).
-        if (Regex("""\b(pendejo|estúpido|imbécil|idiota|malparido|hijueputa|culero)""").containsMatchIn(lower)) {
-            return true
-        }
-        return false
-    }
+    private fun containsBlockedContent(lower: String): Boolean =
+        ContentModeration.THEMATIC_RULES.any { ContentModeration.isHarmful(lower, it) }
 
     /**
      * Extrae el título del texto original.
