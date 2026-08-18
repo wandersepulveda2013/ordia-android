@@ -117,4 +117,20 @@ object DateRules {
         val lastMonth = YearMonth.from(today).minusMonths(1)
         return lastMonth.atDay(1) to lastMonth.atEndOfMonth()
     }
+
+    // Modificadores de pasado ("semana pasada", "mes pasado") en su forma
+    // normalizada sin acentos (la consulta ya viene plegada por foldForSearch).
+    // Fuente única de verdad compartida por SearchEngine (LAST_WEEK/MONTH) y
+    // AssistantEngine (recap + agenda), de modo que "¿qué completé la semana
+    // pasada?", "¿qué tengo la semana pasada?" y buscar "semana pasada"
+    // reconozcan el MISMO conjunto de palabras y resuelvan al mismo periodo.
+    // Antes c.613 cada superficie mantenía su copia y un cambio en una sin la
+    // otra desincronizaba "pasado" vs "esta" (silenciaba logros o tareas).
+    val LAST_WEEK_MODIFIERS: Set<String> = setOf(
+        "pasada", "pasadas", "pasado", "pasados", "ultima", "ultimas",
+    )
+
+    val LAST_MONTH_MODIFIERS: Set<String> = setOf(
+        "pasada", "pasadas", "pasado", "pasados", "ultima", "ultimas", "ultimo", "ultimos",
+    )
 }

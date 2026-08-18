@@ -748,14 +748,15 @@ object AssistantEngine {
         // compromisos de esta semana (o ayuda genérica) — mentía sobre la agenda y
         // el usuario podía olvidar lo que vino a planificar. La consulta ya viene
         // normalizada por foldForSearch (sin acentos), por eso "proxima"/"ultima".
+        // Modificadores delegados a DateRules (fuente única compartida con
+        // SearchEngine y el recap, anti-drift). "semana" se exige fuera del set:
+        // "pasado" masculino se acepta aquí por paridad con la búsqueda (frase
+        // gramaticalmente irregular "semana pasado" no debe caer a esta semana).
         val isNextWeek = "proxima" in query || "proximas" in query || "viene" in query && "semana" in query
-        val isLastWeek = "semana" in query && ("pasada" in query || "pasadas" in query ||
-            "ultima" in query || "ultimas" in query)
+        val isLastWeek = "semana" in query && DateRules.LAST_WEEK_MODIFIERS.any { it in query }
         val isNextMonth = "mes" in query && ("proximo" in query || "proximos" in query ||
             "proxima" in query || "proximas" in query || "viene" in query)
-        val isLastMonth = "mes" in query && ("pasada" in query || "pasadas" in query ||
-            "pasado" in query || "pasados" in query ||
-            "ultima" in query || "ultimas" in query || "ultimo" in query || "ultimos" in query)
+        val isLastMonth = "mes" in query && DateRules.LAST_MONTH_MODIFIERS.any { it in query }
         val weekdayTarget = resolveAgendaWeekday(query, today)
         // Plural ("¿qué tengo los viernes?"): las N fechas EXACTAS del weekday
         // objetivo en vez de sólo la siguiente. Se calcula antes del `when` para
@@ -1026,8 +1027,8 @@ object AssistantEngine {
     // "el último mes"). Sin este split por período, "el último día de la semana"
     // caía a "La semana pasada" y silenciaba el logro de hoy (mentira por
     // omisión introducida en c.611 por usar un superset único).
-    private val LAST_WEEK_RECAP_MODIFIERS = setOf("pasada", "pasadas", "pasado", "pasados", "ultima", "ultimas")
-    private val LAST_MONTH_RECAP_MODIFIERS = setOf("pasada", "pasadas", "pasado", "pasados", "ultima", "ultimas", "ultimo", "ultimos")
+    private val LAST_WEEK_RECAP_MODIFIERS = DateRules.LAST_WEEK_MODIFIERS
+    private val LAST_MONTH_RECAP_MODIFIERS = DateRules.LAST_MONTH_MODIFIERS
 
     /**
      * ¿La consulta pregunta por el fin de semana? "finde" (apócope coloquial) o

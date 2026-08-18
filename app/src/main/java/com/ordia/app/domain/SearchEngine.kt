@@ -531,7 +531,8 @@ object SearchEngine {
     private val NEXT_WEEK_TOKENS = setOf("proxima", "proximas", "viene")
     // Modificadores que señalan "semana pasada"/"última semana": cuando acompañan
     // a "semana" el scope pasa de THIS_WEEK a LAST_WEEK (recuperación de tareas).
-    private val LAST_WEEK_TOKENS = setOf("pasada", "pasadas", "pasado", "pasados", "ultima", "ultimas")
+    // Delegado a DateRules (fuente única compartida con el asistente, anti-drift).
+    private val LAST_WEEK_TOKENS = DateRules.LAST_WEEK_MODIFIERS
     // Modificadores que acompañan a las palabras de fecha ("esta semana") y no
     // deben exigirse en el contenido de la tarea.
     private val DATE_MODIFIERS = setOf("esta", "este", "la", "el", "las", "los", "mis")
@@ -543,7 +544,8 @@ object SearchEngine {
     // que "resumen del mes" siga siendo búsqueda por contenido.
     private val MONTH_TOKENS = setOf("mes")
     private val NEXT_MONTH_TOKENS = setOf("proximo", "proximos", "proxima", "proximas", "viene")
-    private val LAST_MONTH_TOKENS = setOf("pasada", "pasadas", "pasado", "pasados", "ultima", "ultimas", "ultimo", "ultimos")
+    // Delegado a DateRules (fuente única compartida con el asistente, anti-drift).
+    private val LAST_MONTH_TOKENS = DateRules.LAST_MONTH_MODIFIERS
 
     // Tareas sin vencimiento ("sin fecha"/"sin vencimiento"/"sin día"/"sin plazo"):
     // el objetivo es recuperar lo capturado pero nunca agendado, justo lo que

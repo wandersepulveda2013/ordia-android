@@ -1360,6 +1360,30 @@ class AssistantEngineTest {
         assertEquals(listOf(2L), answer.relatedTaskIds)
     }
 
+    // Paridad con SearchEngine y el recap: el modificador masculino "pasado" debe
+    // reconocerse igual en las tres superficies. Antes la agenda usaba un set de 4
+    // (sin "pasado"/"pasados") y "¿qué tengo la semana pasado?" caía a esta
+    // semana; la búsqueda y el recap sí lo aceptaban (6). Ahora la agenda delega
+    // en DateRules.LAST_WEEK_MODIFIERS (fuente única) y coincide con ambos.
+    @Test fun semanaPasado_masculino_recoverPreviousWeekTasks_paridadConBusquedaYRecap() {
+        val monday = LocalDate.of(2026, 7, 27)
+        val lastWeek = monday.minusDays(3) // viernes semana pasada
+        val thisWeek = monday.plusDays(2)
+        val answer = agendaAnswerFor("¿qué tengo la semana pasado?", listOf(1L to thisWeek, 2L to lastWeek))
+        assertTrue("recupera la de la semana pasada pese al masculino: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla con esta semana: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
+    @Test fun semanaPasados_plural_masculino_recoversPreviousWeek() {
+        val monday = LocalDate.of(2026, 7, 27)
+        val lastWeek = monday.minusDays(3)
+        val thisWeek = monday.plusDays(2)
+        val answer = agendaAnswerFor("¿qué tengo las semanas pasados?", listOf(1L to thisWeek, 2L to lastWeek))
+        assertTrue("recupera la de la semana pasada: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla con esta semana: ${answer.text}", !answer.text.contains("Tarea1"))
+    }
+
     // --- meses (consistencia con SearchEngine THIS_MONTH/NEXT_MONTH/LAST_MONTH) ---
     // Antes el asistente ni siquiera reconocía "mes" como consulta de agenda, así que
     // "¿qué tengo el próximo mes?" caía fuera de agendaAnswer (respuesta genérica) en
