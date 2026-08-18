@@ -42,7 +42,7 @@ object GuardianCoach {
         val dueToday = pending.filter { TaskRules.isDueToday(it, now, zone) && !TaskRules.isOverdue(it, now) }
         val completedToday = TaskRules.completedTodayCount(tasks, now, zone)
         if (recoverable.isNotEmpty()) {
-            val next = TaskRules.nextBestTask(recoverable, now)
+            val next = TaskRules.nextBestTask(recoverable, now, zone)
             // "Olvidada": la más atrasada lleva tanto tiempo esperando que el
             // problema no es priorizarla, sino decidir qué hacer con ella. El
             // coach deja de repetir "empieza por esta" y plantea la decisión
@@ -66,7 +66,7 @@ object GuardianCoach {
         }
         val urgent = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
         if (urgent.isNotEmpty()) {
-            val next = TaskRules.nextBestTask(urgent, now)
+            val next = TaskRules.nextBestTask(urgent, now, zone)
             return Insight("PROTEGE TU DÍA", next?.title ?: "Prioridad de hoy", "Reserva tiempo para lo más importante antes de llenar la agenda.", next?.id, Tone.FOCUSED)
         }
         // Recuperación del "olvido silencioso" (isMissedStart, c.201): un
@@ -92,7 +92,7 @@ object GuardianCoach {
         // de la propia lista. Sin nueva pantalla: reencuadra lo que ya existe.
         val missedStart = pending.filter { TaskRules.isMissedStart(it, now) }
         if (missedStart.isNotEmpty()) {
-            val next = TaskRules.nextBestTask(missedStart, now)
+            val next = TaskRules.nextBestTask(missedStart, now, zone)
             val mostMissedDays = missedStart.maxOf { missedStartDays(it.startAt, today, zone) }
             if (mostMissedDays >= FORGOTTEN_DAYS_THRESHOLD) {
                 val ageLabel = forgottenAgeLabel(mostMissedDays)
@@ -128,7 +128,7 @@ object GuardianCoach {
             val tone = if (worstDays >= FORGOTTEN_DAYS_THRESHOLD) Tone.FOCUSED else Tone.GENTLE
             return Insight("RECUPERA EL CONTROL", title, withStaleInboxTail(message, roots, now, zone), taskId = null, tone = tone)
         }
-        val next = TaskRules.nextBestTask(pending, now)
+        val next = TaskRules.nextBestTask(pending, now, zone)
         // Rescate de tareas "olvidadas" SIN fecha: la recuperación solo miraba
         // las vencidas (con dueAt), pero una idea capturada en la bandeja y
         // nunca agendada también se olvida. Si la mejor tarea candidata es

@@ -819,6 +819,55 @@ class GuardianCoachTest {
     }
 
     @Test
+    fun insightRespetaZonaDelUsuarioAlElegirSiguientePaso() {
+        // c.627: GuardianCoach.insight acepta `zone` (la zona del usuario) y ya
+        // calcula `today` con ella, PERO llamaba a TaskRules.nextBestTask(..., now)
+        // SIN pasar `zone` en 4 sitios (recoverable/urgent/missedStart/pending).
+        // nextBestTask → smartListComparator → timeRank → isDueToday usaba
+        // ZoneId.systemDefault() (la zona del DISPOSITIVO), que puede diferir de la
+        // del usuario. Cuando el dispositivo viaja a una zona adelantada, una tarea
+        // que VENCE HOY en la zona del usuario cae a "mañana futuro" en la zona del
+        // dispositivo → isDueToday(device)=false → su timeRank decae y otra tarea
+        // (p. ej. una ALTA de la bandeja sin fecha) le roba el lugar en "SIGUIENTE
+        // PASO". El usuario ve nombrada una captura genérica en vez de la cita de
+        // hoy que debe proteger — el mismo defecto de clase c.604 (parámetro zone
+        // existe pero se silencia en la sub-llamada), ahora en la superficie MÁS
+        // visible de la app (la tarjeta del guardián). Aquí se fuerza la zona del
+        // dispositivo a Asia/Tokyo (UTC+9, +13 h respecto a America/Santo_Domingo)
+        // para reproducir la divergencia de forma determinista sin depender del
+        // huso horario real de la JVM de CI.
+        val deviceZone = java.time.ZoneId.of("Asia/Tokyo") // +13 h respecto a -04
+        val previousDefault = java.util.TimeZone.getDefault()
+        try {
+            java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone(deviceZone))
+            // Consulta MUY temprano en el día del usuario (01:00) y cita al final
+            // del mismo día (22:00). En la zona del usuario ambas son "hoy 29/7" →
+            // isDueToday(user)=true → timeRank 3. En la zona del dispositivo
+            // (Tokyo +13 h) la consulta son las 14:00 del 29/7 PERO la cita cae a
+            // las 11:00 del 30/7 → isDueToday(device)=false y, sin startAt, su
+            // timeRank decae a 0 (NORMAL sin ventana) — una ALTA de la bandeja
+            // (rank 1) le roba el lugar en "SIGUIENTE PASO".
+            val earlyNow = DateRules.toEpochMillis(today, LocalTime.of(1, 0), zone)
+            val dueTonight = TaskEntity(
+                id = 1, title = "Reunión de hoy",
+                dueAt = DateRules.toEpochMillis(today, LocalTime.of(22, 0), zone),
+                priority = TaskPriority.NORMAL
+            )
+            val highInbox = TaskEntity(
+                id = 2, title = "Idea importante de la bandeja",
+                priority = TaskPriority.HIGH,
+                createdAt = DateRules.toEpochMillis(today, LocalTime.of(0, 30), zone)
+            )
+            val insight = GuardianCoach.insight(listOf(dueTonight, highInbox), emptyList(), emptyList(), earlyNow, zone)
+
+            assertEquals("La zona del usuario debe decidir la cita: la que vence HOY manda sobre la bandeja", 1L, insight.taskId)
+            assertTrue(insight.title.contains("Reunión de hoy"))
+        } finally {
+            java.util.TimeZone.setDefault(previousDefault)
+        }
+    }
+
+    @Test
     fun compromisoVencido_ignoraCompromisoFuturoORevisado() {
         // Un compromiso con dueAt futuro, o ya CONVERTED/DISMISSED, no es un olvido: no
         // debe aparecer en la tarjeta. Guard anti-falso-positivo.
