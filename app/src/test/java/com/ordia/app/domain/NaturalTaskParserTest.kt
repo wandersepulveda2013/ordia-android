@@ -14293,6 +14293,126 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    // --- ciclo 589: "las N" DESENUDA (sin introductor "a"/"para"/...) → hora resuelta ---
+    // Forma cotidiana en móvil/notas rápidas y español latino ("quedamos las 3",
+    // "cita las 7 y media"). Antes las SIN meridiana caían a dueAt=null (la cita NUNCA se
+    // agendaba → olvidada, P1 evitar olvidos) y las con ":MM" caían al patrón autónomo
+    // "HH:MM" que resolvía la hora PERO dejaba "las" como residuo en el título (P1 título).
+    // Ahora se normaliza "las N" → "a las N" reutilizando TODO el flujo robusto de
+    // timePatterns. Simétrico de aEsoDeBareHourRewriter y paraTimeIntroPattern.
+    @Test fun bareLasNResuelveHoraYLimpiaTitulo() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("cita las 3", suffixOrderNow(), zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(3, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun bareLasNyMediaResuelveHoraYLimpiaTitulo() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión las 7 y media", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(7, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun bareLasNConMMLimpiaTituloSinResiduoLas() {
+        // Antes ":MM" caía al patrón autónomo y dejaba "las" como residuo ("llamar las").
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("llamar las 4:30", suffixOrderNow(), zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalTime.of(4, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun bareLasNDeLaTardeResuelveMeridiana() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("almuerzo las 3 de la tarde", suffixOrderNow(), zone)
+        assertEquals("almuerzo", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun bareLasNPmResuelveMeridiana() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión las 7:30 pm", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(19, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun bareLasNyCuartoResuelveFraccion() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("cita las 3 y cuarto", suffixOrderNow(), zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalTime.of(3, 15), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun bareLasNMenosCuartoResuelveFraccionNegativa() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("cita las 10 menos cuarto", suffixOrderNow(), zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalTime.of(9, 45), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun bareLasHoraEscritaResuelve() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("cita las nueve", suffixOrderNow(), zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun bareLasNHorasSufijoResuelve() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión las 9 horas", suffixOrderNow(), zone)
+        assertEquals("reunión", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun bareLasNEnPuntoResuelve() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("cita las 9 en punto", suffixOrderNow(), zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // --- guards NO eludidos por el rewriter de "las N" desnuda ---
+    @Test fun bareLasNManzanasNoEsCita() {
+        // "las 3 manzanas" es una cantidad: el guard anti-cuenta lo preserva.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("compra las 3 manzanas", suffixOrderNow(), zone)
+        assertEquals("compra las 3 manzanas", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun bareLasNTareasNoEsCita() {
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("las 3 tareas", suffixOrderNow(), zone)
+        assertEquals("las 3 tareas", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun bareLasNTrasConectorPreservaGuardDeEseConector() {
+        // "para las 9" sigue sin inventar cita (paraTimeIntroPattern la gobierna).
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("reunión para las 9", suffixOrderNow(), zone)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun bareLasNCadenciaNoSeRompe() {
+        // "todas las dos semanas" sigue siendo cadencia WEEKLY/interval=2 (no se reescribe
+        // a "a las dos").
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("Reunión todas las dos semanas", suffixOrderNow(), zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals(2, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun bareLasNAntesDePreservaGuardSinMeridio() {
+        // "antes de las 5" (sin meridio) sigue SIN inventar vencimiento.
+        val zone = ZoneId.of("America/Santo_Domingo")
+        val result = NaturalTaskParser.parse("llamar antes de las 5", suffixOrderNow(), zone)
+        assertNull(result.dueAt)
+    }
+
     @Test fun paraMananaSigueResolviendoFechaSinRegresion() {
         // "para mañana" ya existía como forma de fecha; no debe romperse.
         val zone = ZoneId.of("America/Santo_Domingo")

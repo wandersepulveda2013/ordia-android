@@ -1613,6 +1613,60 @@ object NaturalTaskParser {
         Regex("""(?i)\ba\s+eso\s+de\s+(?=(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h)[0-5]\d)?(?:\s*(?:horas?|hs|h))?(?:\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\b)""")
 
     /**
+     * "las N" DESENUDA (sin introductor "a"/"para"/"desde"/"hasta"/...): "cita las 3",
+     * "reunión las 7 y media", "llamar las 4:30", "almuerzo las 3 de la tarde", "las nueve",
+     * "las 10 menos cuarto". Forma cotidiana, sobre todo en móvil/notas rápidas y en
+     * español latino ("quedamos las 3", "cita las 7 y media"). Antes estas frases NO se
+     * normalizaban: las que NO traían meridiana caían a `dueAt=null` (la cita NUNCA se
+     * agendaba → el usuario la olvidaba, P1 datos/evitar olvidos) y las con ":MM" caían al
+     * patrón autónomo "HH:MM" que resolvía la hora PERO dejaba "las" como residuo en el
+     * título ("cita las" → contenido capturado mutilado, P1 título limpio).
+     *
+     * Aquí se reescribe " las <hora> " → "a las <hora> " para que reutilice TODO el flujo
+     * robusto de [timePatterns] "a las N" (resolución AM/PM, fracción, wrap 24 h, guard
+     * anti-cuenta y limpieza del título) sin nueva rama de resolución. Simétrico de
+     * [aEsoDeBareHourRewriter] ("a eso de N"→"a las N") y de [paraTimeIntroPattern]
+     * ("para las N"→"a las N").
+     *
+     * Para NO eludir guards ya existentes, el rewriter comprueba en [parse] la palabra
+     * inmediatamente anterior a " las N": si es un conector temporal o determinante de
+     * cadencia cubierto por su propio flujo (ver [BARE_LAS_HOUR_GUARDED_PREFIXES]:
+     * "de"→antes/después/a-partir-de/cerca/alrededor-de; "para"→paraTimeIntroPattern;
+     * "todas"/"todos"→cadencia "todas las N semanas"; "desde"/"hasta"/"a"→rangos y forma
+     * canónica), se deja intacto y el conector lo gobierna con su guard. Sólo se reescribe
+     * "las N" precedida de contenido real (verbo/sustantivo) o del inicio de la frase.
+     *
+     * Grupo 1 = especificación horaria completa ("3:30"/"7 y media"/"3 de la tarde"/
+     * "nueve"/"9"/"10 menos cuarto"/"9 en punto"); grupo 2 = ":MM". Cuando hay evidencia de
+     * reloj (`:MM`, meridiana, fracción, "horas/hs/h", "en punto", aproximadores, u hora
+     * ESCRITA) la hora es inequívoca y SIEMPRE se reescribe. Cuando NO la hay ("las 3"
+     * desnuda) se aplica el guard anti-cuenta [countNounFollowerPattern] (c.442, mismo que
+     * [aPartirDeRewriter]/[desdeRewriter]): si lo que sigue es un sustantivo plural
+     * ("compra las 3 manzanas") NO se reescribe (preserva el número como cantidad y evita
+     * inventar una cita falsa); si es fin de cadena/puntuación/conjunción temporal SÍ
+     * ("cita las 3", "reunión las 3, traer café").
+     */
+    private val bareLasHourRewriter =
+        Regex("""(?i)\blas\s+((?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h|[.,])([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+(?:$CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b)""")
+
+    /**
+     * Palabras que, si preceden inmediatamente a " las N", indican que un conector/guard
+     * existente ya gobierna esa hora y [bareLasHourRewriter] NO debe tocarla (para no
+     * eludir su guard anti-cuenta o de cadencia):
+     * - "de" → "antes/después/a partir de/cerca/alrededor de las N" (guards de franja y
+     *   anti-invento sin meridio);
+     * - "para" → [paraTimeIntroPattern] (guard anti-cuenta "para las 9 personas");
+     * - "todas"/"todos" → cadencia ("todas las dos semanas", "todos los dos meses");
+     * - "desde"/"hasta" → rangos temporales;
+     * - "a" → forma canónica "a las N" (producida por rewriters previos: aEsoDe/aPartirDe/
+     *   desde/para/aproximados); reescribirla duplicaría "a a las N".
+     * - "sobre"/"hacia" → [approximateTimePatterns] (guard anti-cuenta "sobre las 3 cajas").
+     */
+    private val BARE_LAS_HOUR_GUARDED_PREFIXES = setOf(
+        "de", "para", "todas", "todos", "desde", "hasta", "a", "sobre", "hacia"
+    )
+
+    /**
      * "a partir de" + anclaje temporal cotidiano: "a partir de las 3 de la tarde",
      * "a partir de la mañana/tarde/noche/madrugada/medianoche", "a partir del mediodía/
      * amanecer/atardecer/anochecer/ocaso/alba". Significa "desde esa hora en adelante"
@@ -2920,6 +2974,47 @@ object NaturalTaskParser {
         // explícita. Véase [paraTimeIntroPattern]: el lookahead exige evidencia de reloj para
         // no agendar destinatarios/cantidades ("para las 9 personas") como cita.
         working = paraTimeIntroPattern.replace(working, "a ")
+
+        // "las N" DESENUDA (sin introductor) → "a las N" para que [timePatterns] la resuelva
+        // y limpie el título. Se aplica DESPUÉS de todos los rewriters de conector
+        // (aEsoDe/aPartirDe/desde/rangos/para/aproximados) para que sólo toquen "las N"
+        // genuinamente sin conector. Para no eludir guards existentes (anti-cuenta de
+        // "para las 9", "antes/después de las 5" sin meridio, y la cadencia "todas/todos las
+        // N <unidades>") se comprueba el prefijo inmediato: si la palabra previa es un
+        // conector temporal o determinante de cadencia ya cubierto, NO se reescribe.
+        // Véase [bareLasHourRewriter]: el guard anti-cuenta preserva las cuentas
+        // ("compra las 3 manzanas").
+        working = bareLasHourRewriter.replace(working) { m ->
+            // Prefijo inmediato (lo que precede a " las N"): si termina en un conector
+            // temporal o determinante de cadencia YA gestionado, se deja intacto.
+            val prefix = working.substring(0, m.range.first)
+            val prevWord = Regex("""(?i)\b(\S+)\s*$""").find(prefix)?.groupValues?.get(1)?.lowercase()
+            // "de" cubre "antes de las N", "después de las N", "a partir de las N",
+            // "cerca de las N", "alrededor de las N" (todos con guard propio); "para" cubre
+            // paraTimeIntroPattern (guard anti-cuenta "para las 9 personas"); "todas"/"todos"
+            // cubren la cadencia ("todas las dos semanas"); "desde"/"hasta"/"a" cubren los
+            // conectores de rango y la forma canónica. Si la palabra previa es una de estas,
+            // el conector la gobierna: no tocar.
+            if (prevWord != null && prevWord in BARE_LAS_HOUR_GUARDED_PREFIXES) return@replace m.value
+            val ts = m.groupValues[1]
+            val hasMinutes = m.groupValues[2].isNotBlank()
+            // ¿Hora escrita ("nueve"/"doce")? No es cantidad (las cuentas van con dígitos).
+            val firstTok = ts.trim().substringBefore(' ').substringBefore(':').substringBefore(',')
+                .substringBefore('.')
+            val isWrittenHour = firstTok.toIntOrNull() == null
+            // Evidencia de reloj: :MM, meridiana, fracción, unidad horas/hs/h, "en punto",
+            // aproximadores, u hora escrita. Si la hay la hora es inequívoca → siempre.
+            val hasEvidence = hasMinutes || isWrittenHour ||
+                ts.contains(":") ||
+                Regex("""(?i)\bhoras?\b|\bhs\b|\bh\b|a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|del\s+mediod[ií]a|y\s+(?:media|cuarto|pico|\d)|menos\s+(?:cuarto|cinco|diez|veinte|veinticinco|media|treinta|cuarenta|cincuenta|tres cuartos|\d)|en\s+punto|m[aá]s\s+o\s+menos|aproximadamente|y\s+pico|pasad[ao]s?|justo""")
+                    .containsMatchIn(ts)
+            if (hasEvidence) return@replace "a " + m.value
+            // Hora en punto desnuda: guard anti-cuenta. Si el tail NO es un continuador
+            // seguro, es un sustantivo de cantidad → no reescribir (preserva el número).
+            val tail = working.substring(m.range.last + 1)
+            if (!countNounFollowerPattern.containsMatchIn(tail)) return@replace m.value
+            "a " + m.value
+        }
 
         val lower = working.lowercase()
         val trailingPriorityWord = trailingPriorityPattern.find(lower)
