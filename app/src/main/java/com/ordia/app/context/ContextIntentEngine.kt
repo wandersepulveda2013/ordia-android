@@ -414,6 +414,31 @@ object ContextIntentEngine {
             "domingo" to DayOfWeek.SUNDAY
         )
 
+        // "esta <parte del día>": paridad con NaturalTaskParser.partOfDayTimes (c.592).
+        // Parser: mañana→09:00, tarde→15:00, noche→21:00, madrugada→04:00, fecha=hoy.
+        // Antes SÓLO "esta noche"/"esta tarde" fijaban targetDate=today (sin hora → caía
+        // al default 12:00 = mediodía, p.ej. "esta noche" = 12:00, 9h de error) y
+        // "esta mañana"/"esta madrugada" no se reconocían: "esta mañana" contiene "mañana"
+        // y colisionaba con la regla "mañana"=día siguiente (sin guard null) → se fechaba
+        // para MAÑANA a mediodía (día Y hora erróneos). Aquí se fijan fecha=hoy Y hora
+        // canónica, ANTES de la regla "mañana"=día siguiente, para que esta última no la
+        // pise; su guard `targetDate == null` la deja sin efecto cuando ya hay parte del
+        // día. La hora canónica se pisa luego si hay hora numérica explícita
+        // ("esta noche a las 10"), más específica (simétrico al orden de patrones del
+        // parser donde "a las N" se prueba antes que las canónicas).
+        val estaPartOfDay = Regex("""\besta\s+(mañana|manana|tarde|noche|madrugada)\b""", RegexOption.IGNORE_CASE)
+            .find(lower)
+        if (estaPartOfDay != null && targetDate == null) {
+            targetDate = today
+            targetTime = when (estaPartOfDay.groupValues[1].lowercase()) {
+                "mañana", "manana" -> LocalTime.of(9, 0)
+                "tarde" -> LocalTime.of(15, 0)
+                "noche" -> LocalTime.of(21, 0)
+                "madrugada" -> LocalTime.of(4, 0)
+                else -> null
+            }
+        }
+
         // "mañana" como día siguiente. Solo si NO forma parte de una hora del día
         // ("de la mañana", "por la mañana", "en la mañana", "de/por/en mañana"):
         // antes, "reunión a las 9 de la mañana" caía aquí y se fechaba para MAÑANA.
@@ -426,7 +451,7 @@ object ContextIntentEngine {
         val mananaSuffix = Regex("""\b(de la|por la|en la|de|por|en)\s+mañana\b""", RegexOption.IGNORE_CASE)
         val mananaTokens = Regex("""\bmañana\b""", RegexOption.IGNORE_CASE).findAll(lower).count()
         val mananaSuffixMatches = mananaSuffix.findAll(lower).count()
-        val manaanaComoDiaSiguiente = lower.contains("mañana") &&
+        val manaanaComoDiaSiguiente = targetDate == null && lower.contains("mañana") &&
             !lower.contains("pasado mañana") &&
             mananaTokens > mananaSuffixMatches
         if (manaanaComoDiaSiguiente) {

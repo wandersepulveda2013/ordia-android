@@ -465,4 +465,69 @@ class ContextIntentEngineDateTimeTest {
         val today = LocalDate.now(z)
         assertEquals("'al mediodía' (sin día) es hoy", today, dDue)
     }
+
+    // --- "esta <parte del día>": paridad con NaturalTaskParser.partOfDayTimes (c.588) ---
+    // Parser: mañana→09:00, tarde→15:00, noche→21:00, madrugada→04:00, fecha=hoy.
+    // Antes ContextIntentEngine: "esta noche"/"esta tarde" sólo fijaban targetDate=today y
+    // dejaban targetTime=null → caía al default LocalTime.of(12,0)=MEDIODÍA ("esta noche"
+    // = 12:00, 9h de error). Peor: "esta mañana"/"esta madrugada" ni siquiera se reconocían
+    // → "esta mañana" contiene "mañana" y colisionaba con la regla "mañana"=día siguiente
+    // (l.429, sin guard null) → se fechaba para MAÑANA + mediodía (día Y hora erróneos).
+    // Un ContextEvent "reunión esta noche" nacía a las 12:00 y "cita esta mañana" para
+    // mañana a mediodía: citas invisibles/mal situadas en What Now y recordatorios (P1).
+
+    @Test
+    fun estaNoche_hourIs21() {
+        val due = ContextIntentEngine.extractDateTime("reunión esta noche")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'esta noche' = 21:00 (no mediodía 12:00)", 21, hour)
+    }
+
+    @Test
+    fun estaTarde_hourIs15() {
+        val due = ContextIntentEngine.extractDateTime("comprar pan esta tarde")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'esta tarde' = 15:00 (no mediodía 12:00)", 15, hour)
+    }
+
+    @Test
+    fun estaManana_isToday_notTomorrow() {
+        // Crítico: "esta mañana" NO debe colisionar con "mañana"=día siguiente.
+        val due = ContextIntentEngine.extractDateTime("reunión esta mañana")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'esta mañana' es hoy (no mañana)", LocalDate.now(z), dDue)
+    }
+
+    @Test
+    fun estaManana_hourIs9() {
+        val due = ContextIntentEngine.extractDateTime("reunión esta mañana")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'esta mañana' = 09:00", 9, hour)
+    }
+
+    @Test
+    fun estaMadrugada_isToday() {
+        val due = ContextIntentEngine.extractDateTime("viaje esta madrugada")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'esta madrugada' es hoy", LocalDate.now(z), dDue)
+    }
+
+    @Test
+    fun estaMadrugada_hourIs4() {
+        val due = ContextIntentEngine.extractDateTime("viaje esta madrugada")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'esta madrugada' = 04:00", 4, hour)
+    }
 }
