@@ -9331,6 +9331,42 @@ class NaturalTaskParserTest {
         assertEquals("Enviar correo", result.title)
     }
 
+    // c.643 — Extensión del intensificador a los límites mensuales (mediados/finales/
+    // principios/último día hábil de "este mismo mes"). Antes estas formas caían a
+    // dueAt=null (vencimiento enfático olvidado, P1): los patrones de boundary mensual
+    // aceptaban "este mes" pero NO "este mismo mes". Misma familia que c.641/c.642;
+    // el intensificador recalca el período en curso sin cambiar el rango. now=2026-07-29.
+
+    @Test fun mediadosDeEsteMismoMesNoCaeANull() {
+        val result = NaturalTaskParser.parse("Pagar renta a mediados de este mismo mes", now, zone)
+        assertEquals("Pagar renta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finalesDeEsteMismoMesAnclaFinMesActual() {
+        val result = NaturalTaskParser.parse("Pagar renta a finales de este mismo mes", now, zone)
+        assertEquals("Pagar renta", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun principiosDeEsteMismoMesNoCaeANull() {
+        val result = NaturalTaskParser.parse("Pagar renta a principios de este mismo mes", now, zone)
+        assertEquals("Pagar renta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDeEsteMismoMesAnclaFinMesActual() {
+        val result = NaturalTaskParser.parse("Reunión a fin de este mismo mes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun ultimoDiaHabilDeEsteMismoMesNoCaeANull() {
+        val result = NaturalTaskParser.parse("Cobro el último día hábil de este mismo mes", now, zone)
+        assertEquals("Cobro", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // "a fin de la semana": plazo = fin de la semana actual (próximo domingo).
     // Sinónimo coloquial de "esta semana". Antes caía a dueAt=null → olvido.
 
