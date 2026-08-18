@@ -176,6 +176,20 @@ object NaturalTaskParser {
     private val previousWeekdayPattern = Regex("""(?i)\b(?:el|del|de)\s+([a-záéíóúüñ]+)\s+(?:pasado|anterior|último|ultimo)\b""")
     // Orden inverso: "el último lunes"/"el pasado martes" (modificador antes del día).
     private val previousWeekdayReversedPattern = Regex("""(?i)\b(?:el|del|de)\s+(?:último|ultimo|pasado|anterior)\s+([a-záéíóúüñ]+)\b""")
+    // "pasado el lunes" / "pasado el viernes" (modificador ANTES de "el <día>"):
+    // forma coloquial FUTURA ("llevar el coche al taller pasado el lunes" = el próximo
+    // lunes). A diferencia de "el lunes pasado" (pasado, [previousWeekdayPattern]) y de
+    // "el pasado martes" (pasado, [previousWeekdayReversedPattern]), aquí "pasado" va
+    // DELANTE del artículo + día. Antes ningún reescritor lo consumía: weekdayPattern
+    // capturaba "el lunes" y fechaba el PRÓXIMO lunes (fecha correcta para este uso), PERO
+    // "pasado" sobrevivía pegado al título ("Llevar el coche al taller pasado") — contenido
+    // degradado P1 (captura sucia). Aquí se borra SÓLO "pasado" y se deja "el lunes" para
+    // que weekdayPattern lo procese igual que antes (sin cambiar la fecha ya calculada).
+    // Exige weekday real (vía [MatchResult.toDayOfWeek] en el llamador) para no tocar
+    // contenido ("pasado el incidente", "pasado el informe") ni "pasado mañana" (la cadena
+    // "pasado el" no aparece en "pasado mañana" — no choca) ni "pasado el mediodía"
+    // (mediodía no es weekday).
+    private val futureWeekdayPostArticlePattern = Regex("""(?i)(?<!\p{L})pasado\s+el\s+([a-záéíóúüñ]+)\b""")
     // Ordinal + weekday SUELTO sin calificador de mes ("el primer lunes", "el segundo martes",
     // "el tercer jueves", "el cuarto sábado"): no casa [lastWeekdayOfMonthPattern] (éste exige
     // "del mes"/"de cada mes"/"de <mes>") ni [previousWeekdayReversedPattern] (éste sólo admite
@@ -3440,6 +3454,23 @@ object NaturalTaskParser {
                 yearStr = null
             )
             else -> null
+        }
+        // "pasado el lunes" (forma coloquial FUTURA, modificador ANTES de "el <día>"):
+        // se borra SÓLO "pasado" dejando "el lunes" para que [weekdayPattern] consuma
+        // limpio la fecha (próximo lunes, la que ya se calculaba). Va ANTES que
+        // [previousWeekdayPattern]/[previousWeekdayReversedPattern] para consumir
+        // "pasado" primero y que éstos no lo vean como residuo. Sólo se borra si el
+        // sustantivo es un día de la semana real (valida vía toDayOfWeekOrNull), para
+        // no tocar contenido ("pasado el informe") ni "pasado mañana" (no casa: no hay
+        // "pasado el" ahí) ni "pasado el mediodía" (mediodía no es weekday).
+        val futureWeekdayPostArticleMatch = futureWeekdayPostArticlePattern.find(working)
+            ?.takeIf { it.groupValues[1].toDayOfWeekOrNull() != null }
+        futureWeekdayPostArticleMatch?.let { m ->
+            // Borra solo "pasado" (preservando " el lunes"): replaceRange sobre el span
+            // de "pasado" + el espacio que sigue, dejando "el lunes" intacto.
+            val start = m.range.first
+            val end = m.groups[1]!!.range.first // inicio de "lunes"
+            working = working.replaceRange(start, end, "")
         }
         // Ordinal + weekday SUELTO sin calificador de mes ("reunión el primer lunes",
         // "el segundo martes", "el tercer jueves"): los patrones ordinales-mensuales
