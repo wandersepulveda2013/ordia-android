@@ -191,10 +191,10 @@ object ContentModeration {
         ModerationRule(
             stem = Regex("""\b(acuchill|cuchill)"""),
             contain = listOf(
-                Regex("""\bcuchill[oa]s?\s+de\s+(el|la|los|las)?\s*(cocina|chef|pan|mes[oó]n|m[aá]rmol|carnicer[ií]a|caza|pescado|mesa|untar|trinchar|cocinero|palo|mantequilla|fruta|carne|queso)\b"""),
+                Regex("""\bcuchill[oa]s?\s+(?:de\s+(el|la|los|las)?|del)\s*(cocina|chef|pan|mes[oó]n|m[aá]rmol|carnicer[ií]a|caza|pescado|mesa|untar|trinchar|cocinero|palo|mantequilla|fruta|carne|queso)\b"""),
                 Regex("""\b(afilad[oa]r(es)?|afi[cz]a(c)?dor(es)?)\s+de\s+cuchill[oa]s?\b"""),
                 Regex("""\b(set|juego|bloque|cubierto|cubre)\s+de\s+cuchill[oa]s?\b"""),
-                Regex("""\bcuchill[oa]\s+(de\s+(el|la)?\s*(mesa|untar|cocina)|para\s+(el|la|los|las)?\s*(pan|cocina|fruta|carne|queso))\b""")
+                Regex("""\bcuchill[oa]\s+(?:(?:de\s+(el|la)?|del)\s*(mesa|untar|cocina)|para\s+(el|la|los|las)?\s*(pan|cocina|fruta|carne|queso))\b""")
             )
         ),
         // Raíz flexionada SECUESTR (secuestrar/secuestro/secuestrado/...).

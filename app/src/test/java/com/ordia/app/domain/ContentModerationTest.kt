@@ -63,10 +63,10 @@ class ContentModerationTest {
     private val cuchilloStems = ContentModeration.ModerationRule(
         stem = Regex("""\b(acuchill|cuchill)"""),
         contain = listOf(
-            Regex("""\bcuchill[oa]s?\s+de\s+(el|la|los|las)?\s*(cocina|chef|pan|mes[oó]n|m[aá]rmol|carnicer[ií]a|caza|pescado|mesa|untar|trinchar|cocinero|palo|mantequilla|fruta|carne|queso)\b"""),
+            Regex("""\bcuchill[oa]s?\s+(?:de\s+(el|la|los|las)?|del)\s*(cocina|chef|pan|mes[oó]n|m[aá]rmol|carnicer[ií]a|caza|pescado|mesa|untar|trinchar|cocinero|palo|mantequilla|fruta|carne|queso)\b"""),
             Regex("""\b(afilad[oa]r(es)?|afi[cz]a(c)?dor(es)?)\s+de\s+cuchill[oa]s?\b"""),
             Regex("""\b(set|juego|bloque|cubierto|cubre)\s+de\s+cuchill[oa]s?\b"""),
-            Regex("""\bcuchill[oa]\s+(de\s+(el|la)?\s*(mesa|untar|cocina)|para\s+(el|la|los|las)?\s*(pan|cocina|fruta|carne|queso))\b""")
+            Regex("""\bcuchill[oa]\s+(?:(?:de\s+(el|la)?|del)\s*(mesa|untar|cocina)|para\s+(el|la|los|las)?\s*(pan|cocina|fruta|carne|queso))\b""")
         )
     )
     private val secuestroStems = ContentModeration.ModerationRule(
@@ -533,5 +533,48 @@ class ContentModerationTest {
     @Test fun cuchillosDeLaCarniceria_noEsDanino() {
         // Plural + artículo: `cuchillos de la carnicería`.
         assertFalse(cuchilloHarmful("afilar los cuchillos de la carnicería"))
+    }
+
+    // ── c.644: exenciones culinarias ahora admiten la CONTRACCIÓN `del`
+    //    (de+el) además del artículo espaciado (el/la/los/las). Mismo defecto
+    //    de clase que c.642 (secuestr): la regex `de\s+(el|la|...)?` exige un
+    //    espacio tras `de` y no casa "del" (sin espacio tras la "e"). Así
+    //    "cuchillo del chef"/"cuchillo del pan"/"cuchillo del mesón" — formas
+    //    naturales contractas — se BLOQUEABAN. ──
+
+    @Test fun cuchilloDelChef_noEsDanino() {
+        assertFalse(cuchilloHarmful("comprar cuchillo del chef"))
+    }
+    @Test fun cuchilloDelPan_noEsDanino() {
+        assertFalse(cuchilloHarmful("regalar cuchillo del pan"))
+    }
+    @Test fun cuchilloDelMeson_noEsDanino() {
+        assertFalse(cuchilloHarmful("traer cuchillo del meson"))
+    }
+    @Test fun cuchillosDelPescado_noEsDanino() {
+        // Plural + contracción: `cuchillos del pescado`.
+        assertFalse(cuchilloHarmful("afilar los cuchillos del pescado"))
+    }
+    @Test fun cuchilloDeLaMesa_noEsDanino() {
+        // 2.ª contain: `del` como alternativa aparte; caso espaciado intacto.
+        assertFalse(cuchilloHarmful("guardar el cuchillo de la mesa"))
+    }
+    @Test fun cuchilloDeLaCocina2_noEsDanino() {
+        // 2.ª contain con artículo espaciado intacto.
+        assertFalse(cuchilloHarmful("comprar cuchillo de la cocina"))
+    }
+
+    // ── Regression guards (true-positivos que deben seguir bloqueados pese
+    //    a la nueva flexibilidad de la contracción `del`). ──
+
+    @Test fun cuchilloSicario_esDanino() {
+        // "cuchillo del sicario": "del" casa la contracción PERO "sicario" no
+        // está en el listado culinario → sigue bloqueado.
+        assertTrue(cuchilloHarmful("amenazar con cuchillo del sicario"))
+    }
+    @Test fun cuchilloDelEnemigo_esDanino() {
+        // "cuchillo del enemigo": contracción casa pero "enemigo" no es
+        // culinario → bloqueado (true-positivo).
+        assertTrue(cuchilloHarmful("llevar cuchillo del enemigo"))
     }
 }
