@@ -321,9 +321,28 @@ object GuardianEngine {
         // mentir por omisión sobre ninguna. Ver [withCommitmentTail] /
         // [withStaleInboxTail].
         return when {
-            overdue > 0 -> smallestOverdueAction(tasks, nowMillis)
-                .withCommitmentTail(overdueCommitments)
-                .withStaleInboxTail(tasks, nowMillis, zoneId)
+            overdue > 0 -> {
+                val overdueAction = smallestOverdueAction(tasks, nowMillis)
+                if (overdueAction != null) overdueAction
+                    .withCommitmentTail(overdueCommitments)
+                    .withStaleInboxTail(tasks, nowMillis, zoneId)
+                // Si TODAS las atrasadas están en curso (no hay ninguna nombrable),
+                // no insistir con "elige una atrasada" — el usuario ya la está
+                // haciendo. En vez de cortar la cascada con un mensaje engañoso,
+                // dejar caer a las siguientes señales de recuperación (hueco
+                // olvidado, compromiso vencido, captura arrinconada) para no mentir
+                // por omisión sobre otros olvidos reales. Es la partición natural:
+                // `overdue` cuenta todas las atrasadas, pero `smallestOverdueAction`
+                // excluye las en curso ([TaskRules.isBeingWorkedOn]); cuando la
+                // diferencia es la lista entera, lo accionable está en otra señal.
+                else when {
+                    missed != null -> missed.withCommitmentTail(overdueCommitments)
+                        .withStaleInboxTail(tasks, nowMillis, zoneId)
+                    overdueCommitments.isNotEmpty() -> overdueCommitmentAction(overdueCommitments)
+                        .withStaleInboxTail(tasks, nowMillis, zoneId)
+                    else -> "Estás trabajando en tu tarea atrasada ahora mismo. Sigue así y ciérrala cuando puedas."
+                }
+            }
             missed != null -> missed.withCommitmentTail(overdueCommitments)
                 .withStaleInboxTail(tasks, nowMillis, zoneId)
             overdueCommitments.isNotEmpty() -> overdueCommitmentAction(overdueCommitments)
@@ -394,10 +413,13 @@ object GuardianEngine {
      * pero dentro de su ventana de duración, o que el usuario marcó IN_PROGRESS a
      * mano) no debe presentarse como "hazla ya": el usuario ya la está haciendo, y
      * nombra en su lugar la siguiente atrasada más pequeña. Si todas las atrasadas
-     * están en curso, cae al mensaje genérico. Mismo predicado "sacro en curso" que
+     * están en curso, devuelve `null`: la cascada de [suggestedAction] continúa con
+     * las siguientes señales de recuperación (hueco olvidado, compromiso vencido,
+     * captura arrinconada) en vez de cortar con un "elige una atrasada" que mentiría
+     * sobre una tarea que ya se está haciendo. Mismo predicado "sacro en curso" que
      * AutomationActionPlanner e isMissedStart.
      */
-    private fun smallestOverdueAction(tasks: List<TaskEntity>, nowMillis: Long): String {
+    private fun smallestOverdueAction(tasks: List<TaskEntity>, nowMillis: Long): String? {
         val chosen = tasks
             .filter {
                 it.parentTaskId == null && TaskRules.isActive(it) &&
@@ -411,7 +433,7 @@ object GuardianEngine {
                     .thenBy { it.dueAt ?: Long.MAX_VALUE }
                     .thenBy { it.id }
             )
-            ?: return "Elige una tarea atrasada y decide: hacerla, moverla o archivarla."
+            ?: return null
         val minutes = TaskRules.plannedDuration(chosen)
         // Cuando lo atrasado es urgente, el nudge lo dice: la señal de "plazo crítico
         // vencido" es justo lo que el usuario necesita oír para no dejarlo pasar. Es

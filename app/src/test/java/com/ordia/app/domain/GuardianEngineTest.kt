@@ -284,7 +284,8 @@ class GuardianEngineTest {
     @Test
     fun suggestedActionFallsBackWhenAllOverdueAreInProgress() {
         // Si TODAS las atrasadas están en curso, no queda ninguna que nombrar: el
-        // nudge cae al mensaje genérico en vez de insistir con una tarea en curso.
+        // nudge NO insiste con "elige una atrasada" (mentiría: el usuario ya la hace).
+        // Cae al mensaje de continuación honesto en vez de cortar la cascada.
         val inProgressOverdue = TaskEntity(
             id = 1, title = "En curso",
             startAt = midday - 30 * 60_000L, dueAt = midday - 10 * 60_000L,
@@ -298,10 +299,46 @@ class GuardianEngineTest {
             preferences = UserPreferences(), nowMillis = midday, zoneId = zone
         )
 
-        // overdue > 0 dispara la rama atrasada, pero sin candidata nombrable cae al
-        // mensaje genérico (no contiene el título de la tarea en curso).
+        // overdue > 0 dispara la rama atrasada, pero sin candidata nombrable cae a
+        // un mensaje honesto: nombra la tarea en curso solo para reconocerla, sin
+        // pedir "elige una atrasada" (el usuario ya la hace). No contiene "En curso".
         assertFalse(result.suggestedAction.contains("En curso"))
-        assertTrue(result.suggestedAction.contains("atrasada"))
+        assertFalse(result.suggestedAction.contains("Elige una tarea atrasada"))
+        assertTrue(result.suggestedAction.contains("trabajando"))
+    }
+
+    @Test
+    fun suggestedAction_cascadeAMissedStartCuandoTodasAtrasadasEnCurso() {
+        // REGRESIÓN c.564: cuando la única atrasada está en curso Y hay además una
+        // tarea con hueco olvidado (missed-start, NO vencida), el nudge NO debe
+        // cortar la cascada con el fallback "elige una atrasada" (mentiría sobre la
+        // tarea en curso y ocultaría el hueco olvidado): debe recuperar la
+        // missed-start. Antes el `overdue > 0` disparaba la rama atrasada, el filtro
+        // `!isBeingWorkedOn` la vaciaba y el fallback genérico cortaba TODO lo demás.
+        val inProgressOverdue = TaskEntity(
+            id = 1, title = "En curso vencida",
+            startAt = midday - 30 * 60_000L, dueAt = midday - 10 * 60_000L,
+            durationMinutes = 120
+        )
+        val missedStart = TaskEntity(
+            id = 2, title = "Llamar al banco",
+            startAt = midday - 3 * 60 * 60_000L, // 12:00 → hueco ya pasado
+            dueAt = midday + 3 * 60 * 60_000L,  // 18:00 → aún NO vencida → missed-start
+            durationMinutes = 30
+        )
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(inProgressOverdue, missedStart),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        assertEquals(1, result.overdue) // la en curso cuenta como atrasada
+        assertTrue(result.suggestedAction.contains("Llamar al banco"))
+        assertTrue(result.suggestedAction.contains("hueco"))
+        assertFalse(result.suggestedAction.contains("En curso"))
+        assertFalse(result.suggestedAction.contains("atrasada"))
     }
 
     @Test
