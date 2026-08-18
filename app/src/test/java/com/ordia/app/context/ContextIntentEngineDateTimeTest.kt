@@ -377,4 +377,31 @@ class ContextIntentEngineDateTimeTest {
         val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due), z).hour
         assertEquals("'9 de la mañana' debe ser 09:00", 9, hour)
     }
+
+    // --- Número suelto ANTES de la pista horaria: no debe robar el match ---
+    // "comprar 2 kilos de arroz a las 9 de la mañana": el regex `.find()` casaba
+    // el primer número ("2", sin prefijo "a las") y, como ese match tenía
+    // hasTimeCue=false, se descartaba — pero al ser el único `.find()` el motor
+    // NUNCA examinaba el "9 de la mañana" posterior. La cita perdía su hora
+    // (y su fecha si no había otra pista). El usuario agendaba "a las 9" y la
+    // app la dejaba sin horario (P1 captura/IA honesta).
+    @Test
+    fun leadingBareNumberDoesNotStealLaterTimeCue() {
+        val due = ContextIntentEngine.extractDateTime("comprar 2 kilos de arroz a las 9 de la mañana")
+        assertNotNull(
+            "una pista horaria válida tras un número suelto debe extraerse", due
+        )
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'9 de la mañana' debe quedar en 09:00", 9, hour)
+    }
+
+    // --- Mismo anti-colisión para FECHA: número suelto antes de "el <día>" ---
+    // "comprar 2 kilos el 25": el regex de fecha `.find()` casaba "2" (sin "el"),
+    // lo descartaba por guard y NUNCA examinaba "el 25" → fecha perdida.
+    @Test
+    fun leadingBareNumberDoesNotStealLaterDateCue() {
+        val due = ContextIntentEngine.extractDateTime("comprar 2 kilos el 25")
+        assertNotNull("una fecha válida tras un número suelto debe extraerse", due)
+    }
 }

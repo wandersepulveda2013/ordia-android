@@ -459,13 +459,21 @@ object ContextIntentEngine {
         // "el [día]" → ejemplo: "el 25", "el 25 de mayo"
         // El prefijo "el" o un mes explícito es OBLIGATORIO para evitar tratar como
         // fecha cualquier número suelto del texto (p.ej. "comprar 2 kilos de arroz").
-        val dayMatch = Regex("""(el\s+)?(\d{1,2})(?:\s+de\s+(\w+))?""").find(lower)
+        // Igual que con la hora, el primer `.find()` puede casar un número suelto
+        // anterior ("comprar 2 kilos el 25") y descartarlo por guard sin examinar
+        // la fecha válida posterior: se itera hasta el primer match con "el" o mes.
+        val dayPattern = Regex("""(el\s+)?(\d{1,2})(?:\s+de\s+(\w+))?""")
+        val dayMatch = dayPattern.findAll(lower).firstOrNull { m ->
+            val hasEl = m.groupValues[1].isNotBlank()
+            val dayNum = m.groupValues[2].toIntOrNull() ?: return@firstOrNull false
+            val month = monthName(m.groupValues[3])
+            dayNum in 1..31 && (hasEl || month != null)
+        }
         if (targetDate == null && dayMatch != null) {
-            val hasEl = dayMatch.groupValues[1].isNotBlank()
             val dayNum = dayMatch.groupValues[2].toIntOrNull()
             val monthName = dayMatch.groupValues[3]
             val month = monthName(monthName)
-            if (dayNum != null && dayNum in 1..31 && (hasEl || month != null)) {
+            if (dayNum != null && dayNum in 1..31) {
                 targetDate = if (month != null) {
                     LocalDate.of(today.year, month, dayNum.coerceIn(1, 28))
                 } else {
@@ -476,20 +484,30 @@ object ContextIntentEngine {
         }
 
         // Extraer hora. Se exige una pista temporal explícita (prefijo "a las",
-        // formato "HH:MM" con dos puntos, o sufijo am/pm/tarde/noche/mañana) para
+        // formato "HH:MM" con dos puntos, o sufijo am/pm/tarde/noche/mañana/madrugada) para
         // evitar inventar una hora a partir de un número suelto ("comprar 2 kilos").
-        val timeMatch = Regex(
+        // El primer `.find()` puede casar un número suelto anterior ("comprar 2 kilos
+        // ... a las 9 de la mañana"): ese match tiene hasTimeCue=false y antes se
+        // descartaba en silencio, dejando SIN hora una cita que sí la mencionaba más
+        // adelante. Se itera hasta el primer match con pista horaria válida.
+        val timePattern = Regex(
             """(a\s+las?|a\s+la|para\s+las?|para\s+la)?\s*(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?|am|pm|de la mañana|de la tarde|de la noche|de la madrugada|del día)?""",
             RegexOption.IGNORE_CASE
-        ).find(lower)
+        )
+        val timeMatch = timePattern.findAll(lower).firstOrNull { m ->
+            val hasTimeCue = m.groupValues[1].isNotBlank() ||
+                m.groupValues[3].isNotBlank() ||
+                m.groupValues[4].isNotBlank()
+            if (!hasTimeCue) return@firstOrNull false
+            val hour = m.groupValues[2].toIntOrNull() ?: return@firstOrNull false
+            val minute = m.groupValues[3].toIntOrNull() ?: 0
+            hour in 0..23 && minute in 0..59
+        }
         if (timeMatch != null) {
-            val hasTimeCue = timeMatch.groupValues[1].isNotBlank() ||
-                timeMatch.groupValues[3].isNotBlank() ||
-                timeMatch.groupValues[4].isNotBlank()
             val hour = timeMatch.groupValues[2].toIntOrNull()
             val minute = timeMatch.groupValues[3].toIntOrNull() ?: 0
             val suffix = timeMatch.groupValues[4].lowercase()
-            if (hasTimeCue && hour != null && hour in 0..23 && minute in 0..59) {
+            if (hour != null && hour in 0..23 && minute in 0..59) {
                 var adjustedHour = hour
                 if (suffix.contains("pm") || suffix.contains("tarde") || suffix.contains("noche")) {
                     // "12 de la noche" = medianoche (00:00), NO mediodía: antes la rama
