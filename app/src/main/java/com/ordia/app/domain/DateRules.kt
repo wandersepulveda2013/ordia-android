@@ -91,4 +91,30 @@ object DateRules {
         val month = YearMonth.from(today)
         return month.atDay(1) to month.atEndOfMonth()
     }
+
+    /**
+     * Rango [inicio, fin] de la semana calendario ISO (lun→dom) inmediatamente
+     * anterior a la de `today`. Fuente única de verdad para "semana pasada":
+     * SearchEngine (LAST_WEEK) y el recap del asistente usan el mismo cálculo,
+     * de modo que "¿qué completé la semana pasada?" recupere el MISMO conjunto
+     * que buscar "semana pasada" en lugar de caer a "esta semana" (mentira por
+     * omisión del logro de la semana previa).
+     */
+    fun calendarLastWeekRange(today: LocalDate): Pair<LocalDate, LocalDate> {
+        val thisWeek = calendarWeekRange(today)
+        val endLastWeek = thisWeek.first.minusDays(1) // domingo pasado
+        val startLastWeek = endLastWeek.minusDays(6) // lunes pasado
+        return startLastWeek to endLastWeek
+    }
+
+    /**
+     * Rango [inicio, fin] del mes natural (1..último día) inmediatamente anterior
+     * al de `today`. Fuente única de verdad para "mes pasado": SearchEngine
+     * (LAST_MONTH) y el recap del asistente comparten el cálculo, evitando que
+     * "¿qué completé el mes pasado?" caiga a "este mes" y silencie el logro previo.
+     */
+    fun calendarLastMonthRange(today: LocalDate): Pair<LocalDate, LocalDate> {
+        val lastMonth = YearMonth.from(today).minusMonths(1)
+        return lastMonth.atDay(1) to lastMonth.atEndOfMonth()
+    }
 }

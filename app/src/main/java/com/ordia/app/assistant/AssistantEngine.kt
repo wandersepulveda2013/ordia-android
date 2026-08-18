@@ -482,17 +482,22 @@ object AssistantEngine {
 
     /**
      * Respuesta de logro para "¿qué hice hoy/ayer/anteayer?" y para períodos
-     * ("¿qué completé esta semana/este mes?"). Reusa el MISMO predicado canónico
-     * que `TaskRules.completedTodayCount` (raíces, `status==COMPLETED`,
+     * ("¿qué completé esta semana/este mes?") y los pasados ("¿qué hice la
+     * semana pasada?"/"¿qué completé el mes pasado?"). Reusa el MISMO predicado
+     * canónico que `TaskRules.completedTodayCount` (raíces, `status==COMPLETED`,
      * `!archived`, `!CANCELLED`) y los MISMOS límites calendario que
      * `SearchEngine.anchorMatchesScope` (semana lun→dom y mes natural, vía
-     * `DateRules.calendarWeekRange`/`calendarMonthRange` — fuente única de
-     * verdad). No es una segunda fuente: aplica el mismo filtro canónico en el
-     * rango del período pedido. Antes "esta semana"/"este mes" caían a HOY y
-     * silenciaban lo terminado el lunes o a principios de mes (mentira por
-     * omisión del logro). Lista los títulos ordenados por `completedAt` desc (lo
-     * más reciente primero) y nombra hasta 3; el resto se resume como recuento.
-     * Sin nueva pantalla ni botón. Determinista y local (sin IA fingida).
+     * `DateRules.calendarWeekRange`/`calendarMonthRange`/`calendarLastWeekRange`
+     * /`calendarLastMonthRange` — fuente única de verdad, simétrica con los
+     * scopes LAST_WEEK/LAST_MONTH de la búsqueda). No es una segunda fuente:
+     * aplica el mismo filtro canónico en el rango del período pedido. Antes
+     * "esta semana"/"este mes" caían a HOY y silenciaban lo terminado el lunes o
+     * a principios de mes; y "la semana pasada"/"el mes pasado" caían a ESTE
+     * período (mentira por omisión del logro previo, justo lo que la búsqueda SÍ
+     * recuperaba: el asistente decía una cosa, la búsqueda otra). Lista los
+     * títulos ordenados por `completedAt` desc (lo más reciente primero) y
+     * nombra hasta 3; el resto se resume como recuento. Sin nueva pantalla ni
+     * botón. Determinista y local (sin IA fingida).
      */
     private fun completedAnswer(
         query: String,
@@ -503,10 +508,23 @@ object AssistantEngine {
         val today = DateRules.toLocalDate(now, zone)
         // "anteayer" contiene el substring "ayer": debe evaluarse ANTES que "ayer".
         // "semana"/"mes" se evalúan antes que los días: un período desplaza la fecha.
+        // Los modificadores de pasado ("pasada"/"última"…) se evalúan ANTES que el
+        // "semana"/"mes" puro: "la semana pasada" debe ir al período anterior, no al
+        // en curso (simétrico a SearchEngine LAST_WEEK/LAST_MONTH).
+        val pastWeek = "semana" in query && PAST_PERIOD_MODIFIERS.any { it in query }
+        val pastMonth = "mes" in query && PAST_PERIOD_MODIFIERS.any { it in query }
         val (label, inRange) = when {
+            pastWeek -> {
+                val (s, e) = DateRules.calendarLastWeekRange(today)
+                "La semana pasada" to ({ d: LocalDate -> !d.isBefore(s) && !d.isAfter(e) })
+            }
             "semana" in query -> {
                 val (s, e) = DateRules.calendarWeekRange(today)
                 "Esta semana" to ({ d: LocalDate -> !d.isBefore(s) && !d.isAfter(e) })
+            }
+            pastMonth -> {
+                val (s, e) = DateRules.calendarLastMonthRange(today)
+                "El mes pasado" to ({ d: LocalDate -> !d.isBefore(s) && !d.isAfter(e) })
             }
             "mes" in query -> {
                 val (s, e) = DateRules.calendarMonthRange(today)
@@ -989,6 +1007,13 @@ object AssistantEngine {
     // Modificador "próximo"/"que viene"/"siguiente"/"posterior" → estricto (salta al
     // siguiente, excluye hoy). Coincide con SearchEngine.WEEKDAY_NEXT_MODIFIERS.
     private val AGENDA_WEEKDAY_NEXT_MODIFIERS = setOf("proximo", "proximos", "proxima", "proximas", "viene", "siguiente", "siguientes", "posterior", "posteriores")
+
+    // Modificadores de pasado para el recap de logros: "la semana pasada"/"el
+    // mes pasado"/"la última semana"/"el último mes". Coincide con
+    // SearchEngine.LAST_WEEK_TOKENS/LAST_MONTH_TOKENS, de modo que el recap del
+    // asistente y la búsqueda interpreten "semana pasada"/"mes pasado" igual: el
+    // asistente ya no cae a "esta semana" (mentira por omisión del logro previo).
+    private val PAST_PERIOD_MODIFIERS = setOf("pasada", "pasadas", "pasado", "pasados", "ultima", "ultimas", "ultimo", "ultimos")
 
     /**
      * ¿La consulta pregunta por el fin de semana? "finde" (apócope coloquial) o

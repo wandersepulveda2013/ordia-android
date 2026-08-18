@@ -3124,6 +3124,80 @@ class AssistantEngineTest {
         assertFalse("no inventa logros: ${answer.text}", answer.text.contains("«"))
     }
 
+    // --- Recap de logros ampliado a períodos pasados ("semana pasada"/"mes pasado") ---
+    // Antes "¿qué completé la semana pasada?" caía a completedAnswer, pero como la
+    // rama "semana" se resolvía al período en curso, respondía "Esta semana" y
+    // listaba lo de la semana actual: una mentira por omisión del logro de la
+    // semana previa (la búsqueda SÍ lo recuperaba via LAST_WEEK — el asistente y la
+    // búsqueda discrepaban). Ahora el recap reconoce el modificador de pasado y va
+    // al período anterior con la MISMA fuente de verdad (DateRules → SearchEngine
+    // LAST_WEEK/LAST_MONTH). Sin nueva pantalla. Determinista/local.
+
+    @Test fun completedRecap_lastWeek_recoversPreviousCalendarWeek() {
+        // dayToday = mié 2026-07-29 → esta semana lun 07-27..dom 08-02;
+        // semana pasada = lun 07-20..dom 07-26.
+        val now = dayAt(dayToday, 15)
+        val lastMonday = LocalDate.of(2026, 7, 20)
+        val thisTuesday = LocalDate.of(2026, 7, 28) // esta semana, excluida
+        val done = listOf(
+            completedTask(1, "De la semana pasada", dayAt(lastMonday, 9)),
+            completedTask(2, "De esta semana", dayAt(thisTuesday, 10))
+        )
+        val answer = AssistantEngine.answer("¿qué completé la semana pasada?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("etiqueta pasada: ${answer.text}", answer.text.startsWith("La semana pasada"))
+        assertTrue("cuenta 1 (no 2): ${answer.text}", answer.text.contains("completaste 1"))
+        assertTrue("nombra la de la semana pasada: ${answer.text}", answer.text.contains("De la semana pasada"))
+        assertFalse("excluye esta semana: ${answer.text}", answer.text.contains("De esta semana"))
+        assertEquals(AssistantAction.NONE, answer.action)
+    }
+
+    @Test fun completedRecap_lastWeek_acceptsUltimaVariant() {
+        // "última semana" (plegado a "ultima") es sinónimo coloquial de "semana
+        // pasada": mismo alcance, misma etiqueta. La consulta ya viene sin acentos.
+        val now = dayAt(dayToday, 15)
+        val lastMonday = LocalDate.of(2026, 7, 20)
+        val done = listOf(completedTask(1, "Logro previo", dayAt(lastMonday, 9)))
+        val answer = AssistantEngine.answer("¿qué hice la ultima semana?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("etiqueta pasada: ${answer.text}", answer.text.startsWith("La semana pasada"))
+        assertTrue("cuenta 1: ${answer.text}", answer.text.contains("completaste 1"))
+        assertTrue("nombra el logro: ${answer.text}", answer.text.contains("Logro previo"))
+    }
+
+    @Test fun completedRecap_lastMonth_recoversPreviousCalendarMonth() {
+        // dayToday = 2026-07-29 → mes pasado = junio 01..30.
+        val now = dayAt(dayToday, 15)
+        val done = listOf(
+            completedTask(1, "De junio", dayAt(LocalDate.of(2026, 6, 15), 9)),
+            completedTask(2, "De julio", dayAt(LocalDate.of(2026, 7, 1), 9)) // este mes
+        )
+        val answer = AssistantEngine.answer("¿qué completé el mes pasado?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("etiqueta mes pasado: ${answer.text}", answer.text.startsWith("El mes pasado"))
+        assertTrue("cuenta 1: ${answer.text}", answer.text.contains("completaste 1"))
+        assertTrue("nombra lo de junio: ${answer.text}", answer.text.contains("De junio"))
+        assertFalse("excluye julio: ${answer.text}", answer.text.contains("De julio"))
+    }
+
+    @Test fun completedRecap_lastWeek_empty_saysSoHonestly() {
+        val now = dayAt(dayToday, 15)
+        // Una completada pero en esta semana: la semana pasada está vacía.
+        val done = listOf(completedTask(1, "Esta semana", dayAt(LocalDate.of(2026, 7, 28), 9)))
+        val answer = AssistantEngine.answer("¿qué completé la semana pasada?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("dice que no hay: ${answer.text}", answer.text.contains("no has completado"))
+        assertFalse("no inventa logros: ${answer.text}", answer.text.contains("«"))
+    }
+
+    @Test fun completedRecap_bareSemana_notTreatedAsPast() {
+        // Guard anti-falso-positivo: "esta semana" (sin modificador de pasado) NO
+        // debe interpretarse como semana pasada. "este"/"esta" no están en
+        // PAST_PERIOD_MODIFIERS, así que sigue siendo la semana en curso.
+        val now = dayAt(dayToday, 15)
+        val thisMonday = LocalDate.of(2026, 7, 27)
+        val done = listOf(completedTask(1, "De esta semana", dayAt(thisMonday, 9)))
+        val answer = AssistantEngine.answer("¿qué completé esta semana?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("sigue siendo esta semana: ${answer.text}", answer.text.startsWith("Esta semana"))
+        assertTrue("cuenta 1: ${answer.text}", answer.text.contains("completaste 1"))
+    }
+
     @Test fun entityLookup_aQueHoraTengo_respondeHoraDelStartAt() {
         // «¿a qué hora tengo la reunión?» con un slot agendado (startAt 11:00 Sto.Dgo).
         val now = dayAt(dayToday, 9)
