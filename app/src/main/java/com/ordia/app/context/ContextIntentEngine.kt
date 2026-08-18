@@ -882,6 +882,21 @@ object ContextIntentEngine {
             // "1 de enero", "15 de marzo": extractDateTime lo resuelve vía
             // dayPattern + monthName; el detector anterior solo miraba "el \d+".
             Regex("""\d{1,2}\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)""").containsMatchIn(lower) ||
+            // Períodos relativos (paridad con extractDateTime c.598/c.599, l.508–570):
+            // multi-unidad ("en 2 semanas"/"dentro de 3 meses"/"de aquí a 5 días"),
+            // calificador + unidad ("la semana que viene"/"próximo mes"/"la semana
+            // pasada"/"el mes anterior") y singular escrito ("en una semana"). Sin
+            // paridad, "reunión la semana que viene" no recibía el bono de fecha y
+            // podía descartarse por umbral (olvido, P1). Se exige palabra de unidad
+            // (semana/mes/año/quincena/bimestre/trimestre/semestre) en la rama
+            // calificada, igual que extractDateTime exige `days != null`: así "el
+            // reporte pasado" (sin unidad) NO cuenta como fecha (no la resuelve).
+            Regex("""(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un\s+par\s+de|unos|unas|\d{1,3})\s*(d[ií]as?|semanas?|quincenas?|bimestres?|trimestres?|semestres?|mes(?:es)?|a[nñ]os?)\b""").containsMatchIn(lower) ||
+            ((Regex("""que\s+viene|que\s+entra|entrante|pr[oó]xim|siguiente""", RegexOption.IGNORE_CASE).containsMatchIn(lower) ||
+              Regex("""pasad[oa]s?|anteriore?s?""", RegexOption.IGNORE_CASE).containsMatchIn(lower)) &&
+             (lower.contains("semana") || lower.contains("mes") || lower.contains("año") || lower.contains("ano") ||
+              lower.contains("quincena") || lower.contains("bimestre") || lower.contains("trimestre") || lower.contains("semestre"))) ||
+            Regex("""\ben\s+(?:un|una|unos|unas)\s+(?:semanas?|mes(?:es)?|a[nñ]os?)\b""", RegexOption.IGNORE_CASE).containsMatchIn(lower) ||
             Regex("""\d{1,2}:\d{2}""").containsMatchIn(lower) ||
             Regex("""a las \d+""").containsMatchIn(lower)
     }

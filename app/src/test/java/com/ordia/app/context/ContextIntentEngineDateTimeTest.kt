@@ -939,6 +939,7 @@ class ContextIntentEngineDateTimeTest {
     // la categoría, no sólo del bono de hora (+0.08): una aserción de captura sería
     // frágil y no aislaria el fix del detector.
 
+
     // --- "las N" DESNUDA (c.600): paridad con NaturalTaskParser (c.596).
     // Una captura de contexto p.ej. "cita las 3" / "reunión las 7 y media" menciona
     // hora SIN introductor "a"/"para". El [timePattern] casaba el grupo 1 vacío y,
@@ -1006,5 +1007,53 @@ class ContextIntentEngineDateTimeTest {
                 "'las 3 manzanas' no debe inventar hora 03:00 desde la cantidad"
             }
         }
+    }
+
+    // --- Paridad de períodos relativos (c.602) ---
+    // extractDateTime (c.598/c.599) resuelve "la semana que viene"/"en 2 semanas"/
+    // "en una semana"; hasDateReference debe reconocerlos para que reciban el bono
+    // de fecha (+0.1) y superen MINIMUM_CONFIDENCE. Sin paridad, una cita futura
+    // ("reunión la semana que viene") se descartaba por umbral (olvido, P1).
+
+    @Test
+    fun semanaQueViene_matchesManyanaSymmetry() {
+        val conPeriodo = analyzeAnchor("pagar la factura la semana que viene")
+        val conManana = analyzeAnchor("pagar la factura mañana")
+        assertNotNull(conPeriodo)
+        assertNotNull(conManana)
+        // Ambos capturados: el ancla de período relativo recibe el mismo bono de
+        // fecha que "mañana", restableciendo la simetría.
+    }
+
+    @Test
+    fun enUnaSemana_matchesManyanaSymmetry() {
+        assertNotNull(
+            "\"en una semana\" es ancla de fecha resuelto por extractDateTime",
+            analyzeAnchor("pagar la factura en una semana")
+        )
+    }
+
+    @Test
+    fun en2Semanas_matchesManyanaSymmetry() {
+        assertNotNull(
+            "\"en 2 semanas\" (multi-unidad) es ancla de fecha resuelto por extractDateTime",
+            analyzeAnchor("pagar la factura en 2 semanas")
+        )
+    }
+
+    @Test
+    fun dentroDe3Meses_isAnchor() {
+        assertNotNull(
+            "\"dentro de 3 meses\" es ancla de fecha resuelto por extractDateTime",
+            analyzeAnchor("pagar la factura dentro de 3 meses")
+        )
+    }
+
+    @Test
+    fun proximoMes_isAnchor() {
+        assertNotNull(
+            "\"el próximo mes\" es ancla de fecha resuelto por extractDateTime",
+            analyzeAnchor("pagar la factura el próximo mes")
+        )
     }
 }

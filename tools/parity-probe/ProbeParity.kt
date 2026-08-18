@@ -15,7 +15,11 @@ fun main() {
         "mañana", "hoy",
         "a medianoche", "al mediodía", "al mediodia",
         "el 15 de marzo", "1 de enero",
-        "la semana que viene", "el próximo mes"
+        // Períodos relativos (paridad c.602 con extractDateTime c.598/c.599)
+        "la semana que viene", "el próximo mes", "el año que viene",
+        "la semana pasada", "el mes anterior", "la quincena pasada",
+        "en 2 semanas", "dentro de 3 meses", "de aquí a 5 días",
+        "en un par de semanas", "en una semana", "en unos meses"
     )
     val timeCases = listOf(
         "a medianoche", "al mediodía", "al mediodia",
@@ -43,6 +47,9 @@ fun main() {
     // vs + "mañana"/"a las 3" (recognized) to isolate the bonus effect.
     val phrases = listOf(
         "pagar la factura ayer", "pagar la factura mañana",
+        "pagar la factura la semana que viene", "pagar la factura en una semana",
+        "pagar la factura en 2 semanas", "pagar la factura el próximo mes",
+        "pagar la factura dentro de 3 meses",
         "entregar el reporte a medianoche", "entregar el reporte a las 3",
         "revisar el documento al mediodía", "revisar el documento a las 3",
         "confirmar la cita ayer", "confirmar la cita mañana",
@@ -58,5 +65,20 @@ fun main() {
         val hdr = call("hasDateReference", p)
         val htr = call("hasTimeReference", p)
         println("  %-34s hdr=%-5s htr=%-5s analyze=%s".format(p, hdr, htr, intent != null))
+    }
+
+    println("=== NEGATIVE: calificador SIN unidad (NO debe contar como fecha) ===")
+    // extractDateTime exige palabra de unidad en la rama calificada (days != null),
+    // así "el reporte pasado" (sin semana/mes/...) devuelve null → hasDateReference
+    // debe ser false para no inflar el bono contextual sin ancla real (falso positivo).
+    val negatives = listOf(
+        "el reporte pasado", "la tarea anterior", "el siguiente paso",
+        "el documento entrante"
+    )
+    for (n in negatives) {
+        val dt = ContextIntentEngine.extractDateTime(n)
+        val hdr = call("hasDateReference", n)
+        val flag = if (dt == null && hdr) "  <<< FALSE POSITIVE" else ""
+        println("  %-30s extractDateTime=%-7s hasDateReference=%-5s%s".format(n, dt != null, hdr, flag))
     }
 }
