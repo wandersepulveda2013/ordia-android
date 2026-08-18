@@ -9300,6 +9300,37 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // c.641 — Intensificador "misma/mismo": "esta misma semana", "este mismo mes",
+    // "este mismo año" son sinónimo enfático del período ACTUAL (mismo rango que
+    // "esta semana"/"este mes"/"este año"). El intensificador NO cambia el plazo,
+    // solo recalca que es el período en curso. Antes these forms caían a dueAt=null
+    // (olvido de vencimiento, P1) y la frase íntegra quedaba como residuo en el título.
+
+    @Test fun estaMismaSemanaAnclaFinSemanaActual() {
+        val result = NaturalTaskParser.parse("Llamar a mamá esta misma semana", now, zone)
+        assertEquals("Llamar a mamá", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun esteMismoMesAnclaFinMesActual() {
+        val result = NaturalTaskParser.parse("Renovar licencia este mismo mes", now, zone)
+        assertEquals("Renovar licencia", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun esteMismoAnoAncla31Diciembre() {
+        val result = NaturalTaskParser.parse("Cerrar ejercicio este mismo a\u00f1o", now, zone)
+        assertEquals("Cerrar ejercicio", result.title)
+        assertEquals(LocalDate.of(2026, 12, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun estaMismaSemanaQueVieneNoDejaResiduo() {
+        // "esta misma semana que viene" (sinónimo confuso de "esta semana que viene"):
+        // antes el título quedaba "enviar el correo esta misma" con residuo.
+        val result = NaturalTaskParser.parse("Enviar correo esta misma semana que viene", now, zone)
+        assertEquals("Enviar correo", result.title)
+    }
+
     // "a fin de la semana": plazo = fin de la semana actual (próximo domingo).
     // Sinónimo coloquial de "esta semana". Antes caía a dueAt=null → olvido.
 
