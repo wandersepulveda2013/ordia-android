@@ -63,10 +63,10 @@ class ContentModerationTest {
     private val cuchilloStems = ContentModeration.ModerationRule(
         stem = Regex("""\b(acuchill|cuchill)"""),
         contain = listOf(
-            Regex("""\bcuchill[oa]s?\s+de\s+(cocina|chef|pan|mes[oó]n|m[aá]rmol|carnicer[ií]a|caza|pescado|mesa|untar|trinchar|cocinero|palo|mantequilla|fruta|carne|queso)\b"""),
+            Regex("""\bcuchill[oa]s?\s+de\s+(el|la|los|las)?\s*(cocina|chef|pan|mes[oó]n|m[aá]rmol|carnicer[ií]a|caza|pescado|mesa|untar|trinchar|cocinero|palo|mantequilla|fruta|carne|queso)\b"""),
             Regex("""\b(afilad[oa]r(es)?|afi[cz]a(c)?dor(es)?)\s+de\s+cuchill[oa]s?\b"""),
             Regex("""\b(set|juego|bloque|cubierto|cubre)\s+de\s+cuchill[oa]s?\b"""),
-            Regex("""\bcuchill[oa]\s+(de\s+(mesa|untar|cocina)|para\s+(pan|cocina|fruta|carne|queso))\b""")
+            Regex("""\bcuchill[oa]\s+(de\s+(el|la)?\s*(mesa|untar|cocina)|para\s+(el|la|los|las)?\s*(pan|cocina|fruta|carne|queso))\b""")
         )
     )
     private val secuestroStems = ContentModeration.ModerationRule(
@@ -473,5 +473,31 @@ class ContentModerationTest {
     @Test fun cuchilloParaCocina_noEsDanino() {
         // Forma alternativa "cuchillo para cocina" (contain `para`).
         assertFalse(cuchilloHarmful("cuchillo para cocina de acero"))
+    }
+
+    // ── c.641: regression guards — artículo definido entre nexo y sustantivo ──
+    // El habla natural española intercala "el/la/los/las" entre "de"/"para" y el
+    // sustantivo culinario ("cuchillo para el pan", "cuchillo de la cocina").
+    // PRE-fix las exenciones `de\s+(sust)` y `para\s+(sust)` NO casaban el
+    // artículo → el stem "cuchill" casaba pero NINGÚN contain lo envolvía →
+    // BLOQUEADO (falso-positivo: captura de cocina legítima rechazada).
+
+    @Test fun cuchilloParaElPan_noEsDanino() {
+        // PRE-fix RED: `para\s+pan` no casa "para el pan" (artículo intermedio).
+        assertFalse(cuchilloHarmful("comprar cuchillo para el pan"))
+    }
+    @Test fun cuchilloParaLaCarne_noEsDanino() {
+        assertFalse(cuchilloHarmful("regalar cuchillo para la carne"))
+    }
+    @Test fun cuchilloParaLaFruta_noEsDanino() {
+        assertFalse(cuchilloHarmful("traer cuchillo para la fruta"))
+    }
+    @Test fun cuchilloDeLaCocina_noEsDanino() {
+        // PRE-fix RED: `de\s+cocina` no casa "de la cocina".
+        assertFalse(cuchilloHarmful("guardar el cuchillo de la cocina"))
+    }
+    @Test fun cuchillosDeLaCarniceria_noEsDanino() {
+        // Plural + artículo: `cuchillos de la carnicería`.
+        assertFalse(cuchilloHarmful("afilar los cuchillos de la carnicería"))
     }
 }

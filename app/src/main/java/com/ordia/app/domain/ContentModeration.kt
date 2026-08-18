@@ -179,17 +179,22 @@ object ContentModeration {
         // PERO también el contain "cuchillo de cocina" que lo envuelve → pasa.
         // "amenazar con cuchillo" casa el stem pero NINGÚN contain lo envuelve
         // → bloqueado. `\b` final en cada contain acota el contexto (evita que
-        // "cuchillo de cocinero sicario" se exima). Casos no-culinarios de
+        // "cuchillo de cocinero sicario" se exima). c.641: los contain ahora
+        // admiten el artículo definido opcional `(el|la|los|las)?` entre el
+        // nexo `de`/`para` y el sustantivo culinario: el habla natural es
+        // "cuchillo para el pan"/"cuchillo de la cocina" (con artículo); sin
+        // el artículo intermedio las exenciones NO casaban → falso-positivo
+        // (captura de cocina legítima bloqueada). Casos no-culinarios de
         // "cuchillo" como objeto personal ("llevar un cuchillo" — ambiguo) NO
         // se eximen: en captura de tareas personales esa mención aislada es
         // señal suficiente, alineado con la regla general de este gate.
         ModerationRule(
             stem = Regex("""\b(acuchill|cuchill)"""),
             contain = listOf(
-                Regex("""\bcuchill[oa]s?\s+de\s+(cocina|chef|pan|mes[oó]n|m[aá]rmol|carnicer[ií]a|caza|pescado|mesa|untar|trinchar|cocinero|palo|mantequilla|fruta|carne|queso)\b"""),
+                Regex("""\bcuchill[oa]s?\s+de\s+(el|la|los|las)?\s*(cocina|chef|pan|mes[oó]n|m[aá]rmol|carnicer[ií]a|caza|pescado|mesa|untar|trinchar|cocinero|palo|mantequilla|fruta|carne|queso)\b"""),
                 Regex("""\b(afilad[oa]r(es)?|afi[cz]a(c)?dor(es)?)\s+de\s+cuchill[oa]s?\b"""),
                 Regex("""\b(set|juego|bloque|cubierto|cubre)\s+de\s+cuchill[oa]s?\b"""),
-                Regex("""\bcuchill[oa]\s+(de\s+(mesa|untar|cocina)|para\s+(pan|cocina|fruta|carne|queso))\b""")
+                Regex("""\bcuchill[oa]\s+(de\s+(el|la)?\s*(mesa|untar|cocina)|para\s+(el|la|los|las)?\s*(pan|cocina|fruta|carne|queso))\b""")
             )
         ),
         // Raíz flexionada SECUESTR (secuestrar/secuestro/secuestrado/...).
