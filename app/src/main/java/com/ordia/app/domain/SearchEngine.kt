@@ -65,10 +65,22 @@ object SearchEngine {
         val normalized = query.foldForSearch()
         if (normalized.isBlank()) return emptyList()
         val words = normalized.split(Regex("\\s+")).filterNot { it in STOP_WORDS }
-        val wantsTasks = "tarea" in normalized || "pendiente" in normalized || "vencid" in normalized
+        // Intencion lexica por PALABRA (no subcadena): "tarea"/"pendiente"/
+        // "vencidas" activan `wantsTasks`. Antes se detectaban como SUBCADENA del
+        // query normalizado y secuestraban busquedas de contenido legitimas
+        // ("convencido" casa "vencid" -> solo tareas vencidas; "dependiente"
+        // casa "pendient" -> solo compromisos). Palabra exacta (plural incluido)
+        // elimina los falsos positivos sin perder las formas legtimas.
+        // Simetrico a OVERDUE_TOKENS/COMPLETED_TOKENS.
+        val wantsTasks = TAREA_INTENT_TOKENS.any { it in words } ||
+            PENDIENTE_INTENT_TOKENS.any { it in words } ||
+            VENCIDA_INTENT_TOKENS.any { it in words }
         val wantsNotes = "nota" in normalized
         val wantsMessages = "mensaje" in normalized || "conversacion" in normalized || "chat" in normalized
-        val wantsCommitments = "compromiso" in normalized || "pendient" in normalized
+        // "pendient" era STEM de subcadena: casaba "dependiente"/"independiente"
+        // y activaba `wantsCommitments` (typed) excluyendo las tareas cuyo titulo
+        // contiene esas palabras. Palabra exacta, simetrico al resto de intents.
+        val wantsCommitments = "compromiso" in normalized || PENDIENTE_INTENT_TOKENS.any { it in words }
         val wantsAutomations = "automatiz" in normalized || "regla" in normalized
         val typed = wantsTasks || wantsNotes || wantsMessages || wantsCommitments || wantsAutomations
         // "alta prioridad"/"prioridad alta" → exactamente HIGH; "baja
@@ -221,12 +233,12 @@ object SearchEngine {
                 val pa = parentHaystack(task)
                 val th = tagHaystack(task.id)
                 !task.archived && task.status != TaskStatus.CANCELLED && (!typed || wantsTasks) &&
-                    (!normalized.contains("vencid") || TaskRules.isOverdue(task, now)) &&
+                    (!(VENCIDA_INTENT_TOKENS.any { it in words }) || TaskRules.isOverdue(task, now)) &&
                     (!normalized.contains("importante") || task.priority in setOf(TaskPriority.HIGH, TaskPriority.URGENT)) &&
                     (!normalized.contains("urgente") || task.priority == TaskPriority.URGENT) &&
                     (!hasHighPriorityIntent || task.priority == TaskPriority.HIGH) &&
                     (!hasLowPriorityIntent || task.priority == TaskPriority.LOW) &&
-                    (!normalized.contains("pendiente") || !task.completed) &&
+                    (!(PENDIENTE_INTENT_TOKENS.any { it in words }) || !task.completed) &&
                     (!wantsCompleted || task.completed) &&
                     (!wantsFlagged || task.flagged) &&
                     (!wantsRecurring || task.recurrence != RecurrenceFrequency.NONE) &&
@@ -298,7 +310,7 @@ object SearchEngine {
                 // concepto "lo vencido" en todas sus clases de olvido, no solo las tareas.
                 (!typed || wantsCommitments || wantsMessages || overdueRecovery) &&
                     (!pureDateScope || overdueRecovery) &&
-                    (!normalized.contains("pendiente") || it.reviewStatus == CommitmentReviewStatus.PENDING) &&
+                    (!(PENDIENTE_INTENT_TOKENS.any { it in words }) || it.reviewStatus == CommitmentReviewStatus.PENDING) &&
                     (overdueRecovery || matches(it.action, it.actor, it.location) || semanticMatches(COMMITMENT_TERMS, it.action, it.actor, it.location))
             }.forEach { add(Ranked(SearchResult(SearchKind.COMMITMENT, it.id, it.action, it.actor.take(90)))) }
             automations.filter { (!typed || wantsAutomations) && !pureDateScope && matches(it.name, it.instruction, it.explanation) }
@@ -414,6 +426,18 @@ object SearchEngine {
 
     // --- Búsqueda por fecha (intención semántica) ---
 
+    // Intencion lexica por palabra exacta para `wantsTasks`/`wantsCommitments`
+    // y los guards de filtro. Antes se usaba `contains("vencid")`/`contains("pendient")`
+    // como SUBCADENA del query normalizado, lo que secuestraba busquedas de contenido
+    // legitimas: "convencido"/"convencidas" casaban "vencid" y "dependiente"/
+    // "independiente" casaban "pendient", activando el intent de tipo y excluyendo
+    // las propias tareas cuyo titulo contiene esas palabras. Palabra exacta (plural
+    // incluido) elimina los falsos positivos sin perder las formas legtimas, y queda
+    // simetrico a OVERDUE_TOKENS/COMPLETED_TOKENS. "tarea" (singular y plural) y
+    // "vencida" ya viven en OVERDUE_TOKENS; aqui se exponen como intent de tipo.
+    private val TAREA_INTENT_TOKENS = setOf("tarea", "tareas")
+    private val PENDIENTE_INTENT_TOKENS = setOf("pendiente", "pendientes")
+    private val VENCIDA_INTENT_TOKENS = setOf("vencida", "vencidas", "vencido", "vencidos")
     private val OVERDUE_TOKENS = setOf("atrasada", "atrasadas", "atrasado", "atrasados", "vencida", "vencidas", "vencido", "vencidos")
     // "olvidadas"/"olvidados" recupera lo que el usuario olvidó: los TRES olvidos
     // de Ordía — una tarea vencida (plazo incumplido, [TaskRules.isOverdue]), una

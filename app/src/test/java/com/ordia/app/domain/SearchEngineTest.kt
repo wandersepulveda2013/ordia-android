@@ -1242,4 +1242,64 @@ class SearchEngineTest {
             .map { it.id }
         assertEquals(listOf(1L, 2L), ids)
     }
+
+    // --- Filtros de intención por palabra (no subcadena) ---
+    // Los filtros léxicos de atributo ("vencidas"→sólo vencidas, "pendiente"→sólo
+    // no completadas, "urgente"/"importante"→prioridad) se detectaban como
+    // SUBCADENA del query normalizado. Eso secuestraba búsquedas de contenido
+    // legítimas: "convencido" casa la subcadena "vencid" y la búsqueda pasaba a
+    // devolver SOLO tareas vencidas (una tarea "Estar convencido" sin vencer era
+    // IRRECUPERABLE); "dependiente" casa "pendiente" y se excluía a una tarea
+    // COMPLETADA ("Empleado dependiente") que el usuario buscaba por su título.
+    // La detección por palabra exacta (plural incluido) elimina los falsos
+    // positivos sin perder las formas legítimas ("vencidas"/"pendientes").
+
+    @Test fun convencido_doesNotHijackIntoOverdueOnlyFilter() {
+        // "convencido" contiene la subcadena "vencid": antes el filtro
+        // `!normalized.contains("vencid") || isOverdue` excluía una tarea NO
+        // vencida cuyo título la contiene. Recuperación de información rota.
+        val task = TaskEntity(id = 1, title = "Estar convencido", dueAt = null)
+        val results = SearchEngine.search("convencido", listOf(task), emptyList(), emptyList(), emptyList())
+        assertEquals(listOf(1L), results.map { it.id })
+    }
+
+    @Test fun convencidas_pluralAlsoNotHijacked() {
+        val task = TaskEntity(id = 1, title = "Personas convencidas", dueAt = null)
+        val results = SearchEngine.search("convencidas", listOf(task), emptyList(), emptyList(), emptyList())
+        assertEquals(listOf(1L), results.map { it.id })
+    }
+
+    @Test fun dependiente_recoversCompletedTaskByTitle() {
+        // "dependiente" contiene la subcadena "pendiente": antes el filtro
+        // `!normalized.contains("pendiente") || !task.completed` excluía una tarea
+        // COMPLETADA cuyo título la contiene. El usuario pierde lo ya hecho.
+        val task = TaskEntity(id = 1, title = "Empleado dependiente", completed = true)
+        val results = SearchEngine.search("dependiente", listOf(task), emptyList(), emptyList(), emptyList())
+        assertEquals(listOf(1L), results.map { it.id })
+    }
+
+    @Test fun independiente_recoversTaskByTitle() {
+        // "independiente" también contiene "pendiente": mismo secuestro.
+        val task = TaskEntity(id = 1, title = "Proyecto independiente", dueAt = null)
+        val results = SearchEngine.search("independiente", listOf(task), emptyList(), emptyList(), emptyList())
+        assertEquals(listOf(1L), results.map { it.id })
+    }
+
+    @Test fun vencidas_keepsOverdueOnlyFilterAfterWordLevelFix() {
+        // Regresión: la forma legítima "vencidas" sigue filtrando a vencidas sólo.
+        val now = System.currentTimeMillis()
+        val overdue = TaskEntity(id = 1, title = "Factura", dueAt = now - 2L * 24 * 60 * 60 * 1000)
+        val pending = TaskEntity(id = 2, title = "Factura", dueAt = now + 2L * 24 * 60 * 60 * 1000)
+        val ids = SearchEngine.search("vencidas", listOf(overdue, pending), emptyList(), emptyList(), emptyList(), now = now).map { it.id }
+        assertEquals(listOf(1L), ids)
+    }
+
+    @Test fun pendiente_keepsIncompleteOnlyFilterAfterWordLevelFix() {
+        // Regresión: la forma legítima "pendiente" sigue excluyendo completadas.
+        val now = System.currentTimeMillis()
+        val pending = TaskEntity(id = 1, title = "Pago", completed = false, dueAt = now + 2L * 24 * 60 * 60 * 1000)
+        val done = TaskEntity(id = 2, title = "Pago", completed = true)
+        val ids = SearchEngine.search("pendiente", listOf(pending, done), emptyList(), emptyList(), emptyList(), now = now).map { it.id }
+        assertEquals(listOf(1L), ids)
+    }
 }
