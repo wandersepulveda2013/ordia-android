@@ -3,7 +3,9 @@ package com.ordia.app.domain
 import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskStatus
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
 import java.time.Year
 import java.time.YearMonth
 import java.time.ZoneId
@@ -22,6 +24,22 @@ object RecurrenceEngine {
     const val LAST_DAY_OF_MONTH = "EOM"
 
     fun isLastDayOfMonthEncoding(value: String): Boolean = value.trim() == LAST_DAY_OF_MONTH
+
+    /**
+     * Sentinel en `recurrenceDays` que codifica una recurrencia mensual anclada al
+     * ÚLTIMO DÍA HÁBIL del mes ("el último día hábil/laborable de cada mes", c.575).
+     * A diferencia de [LAST_DAY_OF_MONTH] (que aterriza en el último día REAL del mes,
+     * incluido sábado/domingo), éste rueda al viernes anterior cuando el último día
+     * del mes objetivo cae en fin de semana. Definición honesta: "hábil" = Lunes-Viernes
+     * (sin festivos locales, que requerirían un calendario por jurisdicción que la app
+     * no tiene — se documenta la limitación en lugar de fingirla). Un pago/nómina/alquiler
+     * vencido "el último día hábil" no se programa en sábado (cuando el banco/entidad no
+     * opera): se ancla al viernes previo. Sólo aplica a MONTHLY; `nextMonthly` lo detecta
+     * y despacha a [nextMonthlyLastBusinessDay].
+     */
+    const val LAST_BUSINESS_DAY_OF_MONTH = "EOM-BD"
+
+    fun isLastBusinessDayOfMonthEncoding(value: String): Boolean = value.trim() == LAST_BUSINESS_DAY_OF_MONTH
 
     fun nextOccurrence(task: TaskEntity, completedAt: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): TaskEntity? {
         if (task.recurrence == RecurrenceFrequency.NONE) return null
@@ -118,6 +136,7 @@ object RecurrenceEngine {
         val ordinal = parseOrdinalWeekday(days)
         if (ordinal != null) return nextMonthlyOrdinal(base, interval, ordinal.first, ordinal.second)
         if (isLastDayOfMonthEncoding(days)) return nextMonthlyLastDay(base, interval)
+        if (isLastBusinessDayOfMonthEncoding(days)) return nextMonthlyLastBusinessDay(base, interval)
         // c.315: lista de días del mes ("d:1,15") — quincena/nómina con varios días por ciclo.
         parseMonthlyDayList(days)?.let { return nextMonthlyDayList(base, interval, it) }
         val day = base.dayOfMonth
@@ -141,6 +160,23 @@ object RecurrenceEngine {
     private fun nextMonthlyLastDay(base: ZonedDateTime, interval: Long): ZonedDateTime {
         val ym = YearMonth.from(base).plusMonths(interval.coerceAtLeast(1))
         return base.withYear(ym.year).withMonth(ym.monthValue).withDayOfMonth(ym.lengthOfMonth())
+    }
+
+    /**
+     * Avanza [interval] meses desde [base] y aterriza en el ÚLTIMO DÍA HÁBIL
+     * (Lunes-Viernes) de ese mes objetivo: si el último día real cae en fin de
+     * semana (sábado/domingo), rueda al viernes anterior. Conserva hora y zona de
+     * [base]. Simétrico a [nextMonthlyLastDay] (c.257), pero respeta la semana
+     * laboral: "el último día hábil de cada mes" no agenda un pago el sábado (c.575).
+     */
+    private fun nextMonthlyLastBusinessDay(base: ZonedDateTime, interval: Long): ZonedDateTime {
+        val ym = YearMonth.from(base).plusMonths(interval.coerceAtLeast(1))
+        var day = ym.lengthOfMonth()
+        while (LocalDate.of(ym.year, ym.monthValue, day).dayOfWeek == DayOfWeek.SATURDAY ||
+            LocalDate.of(ym.year, ym.monthValue, day).dayOfWeek == DayOfWeek.SUNDAY) {
+            day -= 1
+        }
+        return base.withYear(ym.year).withMonth(ym.monthValue).withDayOfMonth(day)
     }
 
     /**

@@ -21,6 +21,7 @@ import com.ordia.app.data.local.NoteEntity
 import com.ordia.app.data.local.ObservedSourceEntity
 import com.ordia.app.data.local.ProjectEntity
 import com.ordia.app.data.local.RecurrenceFrequency
+import com.ordia.app.domain.RecurrenceEngine
 import com.ordia.app.data.local.RoutineEntity
 import com.ordia.app.data.local.RoutineStepEntity
 import com.ordia.app.data.local.TagEntity
@@ -908,6 +909,33 @@ class BackupManagerTest {
         val backup = origin.exportJson()
         val result = newManager(FakeBackupStore(otherData())).importBackup(backup)
         assertFalse("Una tarea mensual con lista de días corrupta NO debe ser restaurable", result.success)
+    }
+
+    @Test
+    fun restoreAceptaTareaMensualUltimoDiaHabilDelMes() = runBlocking {
+        // c.575: "último día hábil del mes" codifica `recurrence=MONTHLY,
+        // recurrenceDays="EOM-BD"` ([RecurrenceEngine.LAST_BUSINESS_DAY_OF_MONTH]).
+        // La validación de restore debe ACEPTAR este sentinel (simétrico a "EOM"
+        // c.257); sin el fix caía a "días de recurrencia inesperados" → backup
+        // IRRESTAURABLE → el usuario perdía la recurrencia de día hábil al
+        // restaurar (pérdida de datos silenciosa, P0 datos: nómina/renta que no
+        // puede caer en fin de semana). Esta prueba ancla la integridad del backup.
+        val habl = sampleData().copy(
+            tasks = listOf(
+                TaskEntity(
+                    id = 2, title = "Renta último día hábil", projectId = 1,
+                    recurrence = RecurrenceFrequency.MONTHLY,
+                    recurrenceInterval = 1,
+                    recurrenceDays = RecurrenceEngine.LAST_BUSINESS_DAY_OF_MONTH,
+                    dueAt = now + 86_400_000L,
+                    createdAt = 1000L, updatedAt = 1000L
+                )
+            )
+        )
+        val origin = newManager(FakeBackupStore(habl))
+        val backup = origin.exportJson()
+        val result = newManager(FakeBackupStore(otherData())).importBackup(backup)
+        assertTrue("Una tarea mensual de día hábil ('EOM-BD') DEBE ser restaurable", result.success)
     }
 
     @Test

@@ -687,6 +687,15 @@ object NaturalTaskParser {
     // recurrencia la detecta `cadaBoundaryRecurrence` vía `cadaInBoundaryMatch` (c.311).
     // "todos los" exige "meses" (plural); "cada" va con "mes" (singular, forma canónica).
     private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(?:fin(?:al|ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
+    // c.575: "el último día hábil/laborable/laboral del mes" — vencimientos que no
+    // pueden caer en fin de semana (renta, nómina, pago de servicios cuando el banco
+    // no opera sábado/domingo). El adjetivo "hábil"/"laborable"/"laboral" rompe la
+    // secuencia `día de/del mes` de [endOfMonthPattern], así que sin este patrón la
+    // frase NO se reconocía: dueAt=null, título corrupto y conf=0.35 → el pago no se
+    // recordaba (olvido de vencimiento recurrente, P1). Misma cola de mes que
+    // [endOfMonthPattern] (grupos 1=nombre de mes, 2=año) para reutilizar
+    // `boundaryDueAt`; el retroceso a viernes lo resuelve el motor (sentinel EOM-BD).
+    private val lastBusinessDayOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?[uú]ltim[oa]\s+d[ií]a\s+(?:h[áa]bil|laborable|laboral)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
     private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
     private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?|inicios?)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
     // c.471: "el último día" SIN "de/del mes" bajo cadencia mensual explícita
@@ -3417,7 +3426,13 @@ object NaturalTaskParser {
         // (alquiler, tarjeta, servicios). Se borran ANTES del período próximo para que
         // la subcadena "mes" no active "mes que viene". Se trata como días relativos
         // (epoch a medianoche) para combinarse con hora explícita ("fin de mes a las 18").
-        var endOfMonthEarlyMatch = endOfMonthPattern.find(working)
+        // c.575: "el último día hábil/laborable/laboral del mes" se reconoce ANTES
+        // que [endOfMonthPattern]: el adjetivo "hábil" rompe la secuencia genérica
+        // "día de/del mes" y, sin esta rama específica, la frase caía sin límite
+        // (dueAt=null, título corrupto). Mismo flujo que fin de mes, pero el motor
+        // retrocede al viernes si el último día real cae en sábado/domingo.
+        val lastBusinessDayEarlyMatch = lastBusinessDayOfMonthPattern.find(working)
+        var endOfMonthEarlyMatch = if (lastBusinessDayEarlyMatch != null) null else endOfMonthPattern.find(working)
         val midOfMonthEarlyMatch = midOfMonthPattern.find(working)
         val startOfMonthEarlyMatch = startOfMonthPattern.find(working)
         // c.471: si NO se reconoció un límite "fin de mes" canónico (requiere "de mes")
@@ -3428,10 +3443,13 @@ object NaturalTaskParser {
         if (endOfMonthEarlyMatch == null && hasMonthlyCadence) {
             endOfMonthNoMesPattern.find(working)?.let { endOfMonthEarlyMatch = it }
         }
-        // Límite mensual ganador (fin > mediados > principios) y su "tipo": sirve para
-        // detectar el prefijo "cada" (recurrencia) y extender su borrado en un solo paso.
-        val boundaryWinner: MatchResult? = endOfMonthEarlyMatch ?: midOfMonthEarlyMatch ?: startOfMonthEarlyMatch
+        // Límite mensual ganador (últ-día-hábil > fin > mediados > principios) y su
+        // "tipo": sirve para detectar el prefijo "cada" (recurrencia) y extender su
+        // borrado en un solo paso. c.575: "último día hábil" gana sobre "fin de mes"
+        // (no se solapan: el patrón hábil excluye al genérico vía la rama temprana).
+        val boundaryWinner: MatchResult? = lastBusinessDayEarlyMatch ?: endOfMonthEarlyMatch ?: midOfMonthEarlyMatch ?: startOfMonthEarlyMatch
         val boundaryKind: String? = when {
+            lastBusinessDayEarlyMatch != null -> "end-business"
             endOfMonthEarlyMatch != null -> "end"
             midOfMonthEarlyMatch != null -> "mid"
             startOfMonthEarlyMatch != null -> "start"
@@ -3441,21 +3459,36 @@ object NaturalTaskParser {
         // p. ej. "fin de mes de octubre") se resuelve a ese mes con
         // `parseMonthBoundaryName` (mismo criterio y roll anual que "finales de
         // octubre"); si no, se usa el mes en curso/que viene (`monthBaseForBoundary`).
+        // c.575: retrocede un día dado al último Lunes-Viernes anterior (anclaje de
+        // "último día hábil"). Sin festivos locales (jurisdicción desconocida): "hábil"
+        // = Lun-Vie; se documenta la limitación en lugar de fingir un calendario.
+        fun lastBusinessDayOf(date: LocalDate): LocalDate {
+            var d = date
+            while (d.dayOfWeek == DayOfWeek.SATURDAY || d.dayOfWeek == DayOfWeek.SUNDAY) d = d.minusDays(1)
+            return d
+        }
         fun boundaryDueAt(match: MatchResult, kind: String): Long? {
             val namedMonth = months[match.groupValues[1].lowercase()]
-            val qualifier = when (kind) {
+            // c.575: "último día hábil" comparte la resolución del último día del mes
+            // ("finales") y luego retrocede al viernes si ese día cae en sábado/domingo.
+            val isBusinessDay = kind == "end-business"
+            val effectiveKind = if (isBusinessDay) "end" else kind
+            val qualifier = when (effectiveKind) {
                 "end" -> "finales"
                 "mid" -> "mediados"
                 else -> "principios"
             }
             if (namedMonth != null) {
-                return parseMonthBoundaryName(base.toLocalDate(), qualifier, namedMonth, match.groupValues[2])
-                    ?.let { DateRules.toEpochMillis(it, LocalTime.of(9, 0), zone) }
+                val lastDay = parseMonthBoundaryName(base.toLocalDate(), qualifier, namedMonth, match.groupValues[2])
+                if (lastDay == null) return null
+                val resolved = if (isBusinessDay) lastBusinessDayOf(lastDay) else lastDay
+                return DateRules.toEpochMillis(resolved, LocalTime.of(9, 0), zone)
             }
             val baseMonth = monthBaseForBoundary(base.toLocalDate(), match.value)
-            return when (kind) {
+            return when (effectiveKind) {
                 "end" -> {
-                    val lastDay = baseMonth.withDayOfMonth(baseMonth.lengthOfMonth())
+                    var lastDay = baseMonth.withDayOfMonth(baseMonth.lengthOfMonth())
+                    if (isBusinessDay) lastDay = lastBusinessDayOf(lastDay)
                     DateRules.toEpochMillis(lastDay, LocalTime.of(9, 0), zone)
                 }
                 "mid" -> DateRules.toEpochMillis(baseMonth.withDayOfMonth(15), LocalTime.of(9, 0), zone)
@@ -3463,6 +3496,7 @@ object NaturalTaskParser {
             }
         }
         val monthBoundaryDueAt = when (boundaryKind) {
+            "end-business" -> boundaryDueAt(lastBusinessDayEarlyMatch!!, "end-business")
             "end" -> boundaryDueAt(endOfMonthEarlyMatch!!, "end")
             "mid" -> boundaryDueAt(midOfMonthEarlyMatch!!, "mid")
             "start" -> boundaryDueAt(startOfMonthEarlyMatch!!, "start")
@@ -3499,6 +3533,7 @@ object NaturalTaskParser {
                 working = working.replaceRange(combined, " ")
                 if (hasNamedMonth) null
                 else when (boundaryKind) {
+                    "end-business" -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList(), monthlyLastBusinessDay = true)
                     "end" -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList(), monthlyLastDay = true)
                     else -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList())
                 }
@@ -3510,10 +3545,12 @@ object NaturalTaskParser {
                 working = working.replaceRange(strippedPeriodRange(working, boundaryWinner.range), " ")
                 if (hasNamedMonth) null
                 else when (boundaryKind) {
+                    "end-business" -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList(), monthlyLastBusinessDay = true)
                     "end" -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList(), monthlyLastDay = true)
                     else -> RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), emptyList())
                 }
             } else {
+                lastBusinessDayEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
                 endOfMonthEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
                 midOfMonthEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
                 startOfMonthEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
@@ -3974,12 +4011,19 @@ object NaturalTaskParser {
             // noviembre), desplazando silenciosamente la rutina de alquiler/nómina. Aquí
             // se adopta el anclaje EOM del límite cuando coincide el boundaryKind=="end"
             // y no hay anclaje ordinal de weekday (que tiene su propia codificación).
-            val promotedEom = if (
+            // c.575: "último día hábil del mes" (boundaryKind=="end-business") adopta
+            // el anclaje EOM-BD (retroceso a viernes) simétrico, en vez de EOM puro.
+            val promotedEom = when {
                 withOrdinal.frequency == RecurrenceFrequency.MONTHLY &&
-                !withOrdinal.monthlyLastDay &&
-                withOrdinal.monthlyOrdinalWeekday == null &&
-                boundaryKind == "end"
-            ) withOrdinal.copy(monthlyLastDay = true) else withOrdinal
+                    !withOrdinal.monthlyLastDay && !withOrdinal.monthlyLastBusinessDay &&
+                    withOrdinal.monthlyOrdinalWeekday == null &&
+                    boundaryKind == "end" -> withOrdinal.copy(monthlyLastDay = true)
+                withOrdinal.frequency == RecurrenceFrequency.MONTHLY &&
+                    !withOrdinal.monthlyLastDay && !withOrdinal.monthlyLastBusinessDay &&
+                    withOrdinal.monthlyOrdinalWeekday == null &&
+                    boundaryKind == "end-business" -> withOrdinal.copy(monthlyLastBusinessDay = true)
+                else -> withOrdinal
+            }
             if (promotedEom.frequency == RecurrenceFrequency.NONE && cadaBoundaryRecurrence != null) cadaBoundaryRecurrence
             else promotedEom
         }
@@ -5199,6 +5243,7 @@ object NaturalTaskParser {
                 recurrence.monthlyOrdinalWeekday != null ->
                     recurrence.monthlyOrdinalWeekday!!.let { (ord, wd) -> "$ord:$wd" }
                 recurrence.monthlyLastDay -> RecurrenceEngine.LAST_DAY_OF_MONTH
+                recurrence.monthlyLastBusinessDay -> RecurrenceEngine.LAST_BUSINESS_DAY_OF_MONTH
                 else -> recurrence.days.joinToString(",")
             },
             category = category,
@@ -5221,6 +5266,13 @@ object NaturalTaskParser {
          *  motor despache cada ciclo al último día real del mes objetivo. Sólo afecta
          *  el vencimiento recurrente; la PRIMERA fecha la fija el límite ("fin de mes"). */
         val monthlyLastDay: Boolean = false,
+        /** Para recurrencia mensual anclada al ÚLTIMO DÍA HÁBIL del mes ("el último
+         *  día hábil/laborable de cada mes", c.575). Igual que [monthlyLastDay] pero
+         *  retrocede al viernes anterior cuando el último día real cae en sábado/domingo.
+         *  Se emite como `recurrenceDays = "EOM-BD"` ([RecurrenceEngine.LAST_BUSINESS_DAY_OF_MONTH]).
+         *  "Hábil" = Lun-Vie (sin festivos locales: la app no conoce la jurisdicción;
+         *  se documenta la limitación en lugar de fingir un calendario). */
+        val monthlyLastBusinessDay: Boolean = false,
         /** Para recurrencia mensual ORDINAL de día de la semana ("el primer lunes de
          *  cada mes", "el último viernes del mes" recurrente): `(ord, weekday)` con
          *  `ord ∈ {1,2,3,4,-1}` (-1 = último) y `weekday ∈ 1..7` (ISO, 1=lunes). Se

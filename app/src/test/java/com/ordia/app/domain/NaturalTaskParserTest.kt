@@ -7932,6 +7932,44 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "último día hábil del mes" / "cada último día hábil del mes" (c.575) ---
+    // Distinto de "último día del mes" (EOM): el día HÁBIL retrocede de sáb/dom al
+    // viernes anterior. now=2026-07-29 → julio tiene 31 días y 7/31 es viernes (día
+    // hábil), así que la 1ª ocurrencia = 7/31 y la recurrencia se codifica como el
+    // sentinel [RecurrenceEngine.LAST_BUSINESS_DAY_OF_MONTH] (EOM-BD). Antes este
+    // patrón caía a "último día del mes" (EOM) → una tarea de nómina/renta que NO debe
+    // caer en fin de semana vencía en sábado → recordatorio inútil (P1 recordatorios +
+    // P0 datos: deriva de fecha real). Esta prueba ancla la distinción hábil↔natural.
+    @Test fun cadaUltimoDiaHabilDelMesGeneraRecurrenciaMensualEOMBD() {
+        val result = NaturalTaskParser.parse("nómina cada último día hábil del mes", now, zone)
+        assertEquals("nómina", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_BUSINESS_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    // 7/31 viernes = día hábil, sin retroceso (cubre el happy path de boundaryDueAt).
+    @Test fun cadaUltimoDiaHabilDelMesRespetaHoraExplicita() {
+        val result = NaturalTaskParser.parse("renta cada último día hábil del mes a las 18", now, zone)
+        assertEquals("renta", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_BUSINESS_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    // Retroceso hábil: con now en octubre 2026, "último día hábil del mes" donde
+    // 10/31 = SÁBADO retrocede al viernes 10/30. Sin el fix, caería a "último día del
+    // mes" (EOM) venciendo en sábado → recordatorio de pago en fin de semana (P1).
+    @Test fun cadaUltimoDiaHabilDelMesRetrocedeDeSabadoAViernes() {
+        val octNow = DateRules.toEpochMillis(LocalDate.of(2026, 10, 15), LocalTime.NOON, zone)
+        val result = NaturalTaskParser.parse("nómina cada último día hábil del mes", octNow, zone)
+        assertEquals("nómina", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(RecurrenceEngine.LAST_BUSINESS_DAY_OF_MONTH, result.recurrenceDays)
+        assertEquals(LocalDate.of(2026, 10, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     // --- "el último día de cada mes": cadencia "cada" DENTRO del límite (c.311) ---
     // Antes el patrón de límite exigía "de/del" + "mes" contiguos, así "de cada mes"
     // (con "cada" intercalado) NO casaba: el límite mensual se perdía, "cada mes" caía a

@@ -146,6 +146,53 @@ class RecurrenceEngineTest {
         assertEquals(LocalDate.of(2028, 2, 29), DateRules.toLocalDate(next.dueAt!!, zone))
     }
 
+    // "el último día hábil de cada mes" (recurrenceDays = "EOM-BD"): anclaje al
+    // último día HÁBIL (Lun-Vie) del mes objetivo. Si el último día real cae en
+    // sábado/domingo, rueda al viernes anterior. Sin esto, "pago de renta el último
+    // día hábil de cada mes" se agendaba en sábado (cuando el banco no opera) o caía
+    // sin recurrencia (olvido del pago, P1). c.575.
+    @Test fun monthly_lastBusinessDay_rollsSaturdayEomBackToFriday() {
+        // Febrero 2026: EOM = sábado 28 → último día hábil = viernes 27.
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 1, 30), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(title = "Renta último día hábil", dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY, recurrenceDays = RecurrenceEngine.LAST_BUSINESS_DAY_OF_MONTH)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 2, 27), DateRules.toLocalDate(next.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(next.dueAt, zone))
+    }
+
+    @Test fun monthly_lastBusinessDay_rollsSundayEomBackToFriday() {
+        // Febrero 2027: EOM = domingo 28 → último día hábil = viernes 26.
+        val due = DateRules.toEpochMillis(LocalDate.of(2027, 1, 29), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(title = "Nómina último día hábil", dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY, recurrenceDays = RecurrenceEngine.LAST_BUSINESS_DAY_OF_MONTH)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2027, 2, 26), DateRules.toLocalDate(next.dueAt!!, zone))
+    }
+
+    @Test fun monthly_lastBusinessDay_staysOnEomWhenItIsAWeekday() {
+        // Agosto 2026: EOM = lunes 31 (día hábil) → se queda en 31 (no rueda).
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 7, 31), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(title = "Cierre hábil agosto", dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY, recurrenceDays = RecurrenceEngine.LAST_BUSINESS_DAY_OF_MONTH)
+        val next = requireNotNull(RecurrenceEngine.nextOccurrence(task, completedAt = due, zone = zone))
+        assertEquals(LocalDate.of(2026, 8, 31), DateRules.toLocalDate(next.dueAt!!, zone))
+    }
+
+    @Test fun monthly_lastBusinessDay_advancesStablyAcrossMixedMonths() {
+        // Cadena: 27/2/2026 (vie) → 31/3/2026 (mar, EOM hábil) → 30/4/2026 (jue, EOM hábil).
+        val due = DateRules.toEpochMillis(LocalDate.of(2026, 1, 30), LocalTime.of(9, 0), zone)
+        val task = TaskEntity(title = "Pago hábil mensual", dueAt = due,
+            recurrence = RecurrenceFrequency.MONTHLY, recurrenceDays = RecurrenceEngine.LAST_BUSINESS_DAY_OF_MONTH)
+        var current = task
+        current = requireNotNull(RecurrenceEngine.nextOccurrence(current, completedAt = current.dueAt!!, zone = zone))
+        assertEquals(LocalDate.of(2026, 2, 27), DateRules.toLocalDate(current.dueAt!!, zone))
+        current = requireNotNull(RecurrenceEngine.nextOccurrence(current, completedAt = current.dueAt!!, zone = zone))
+        assertEquals(LocalDate.of(2026, 3, 31), DateRules.toLocalDate(current.dueAt!!, zone))
+        current = requireNotNull(RecurrenceEngine.nextOccurrence(current, completedAt = current.dueAt!!, zone = zone))
+        assertEquals(LocalDate.of(2026, 4, 30), DateRules.toLocalDate(current.dueAt!!, zone))
+    }
+
     @Test fun yearly_leapDayAnchorSkipsNonLeapYears() {
         // "aniversario el 29 de febrero de cada año": 29/2/2024 +1 año NO debe dar
         // 28/2/2025 (clamp que deriva el ancla para siempre), sino saltar al próximo
