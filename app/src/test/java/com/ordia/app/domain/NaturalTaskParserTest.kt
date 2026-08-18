@@ -13968,6 +13968,80 @@ class NaturalTaskParserTest {
         assertEquals(null, result.dueAt)
     }
 
+    // --- ciclo 599: "antes/después de las HH:MM" y sufijos de reloj (BUG 2) ---
+    // La hora en forma de reloj inequívoca (HH:MM, "horas", "en punto", "y media") SÍ la
+    // resuelve timePatterns, pero el conector "antes/después de las" sobrevivía como residuo
+    // sucio en el título ("enviar antes de las") porque el reescritor sólo aceptaba meridio en
+    // el lookahead. Ahora esas evidencias también disparan el reescritor: el título queda
+    // limpio y la hora se resuelve, simétrico a "hasta las 18:30".
+    @Test fun antesDeLasHoraMinutoLimpiaTituloYResuelveHora() {
+        val result = NaturalTaskParser.parse("enviar antes de las 18:30", now, zone)
+        assertEquals("enviar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun antesDeLasHoraMinutoAmPmLimpiaTituloYResuelveHora() {
+        val result = NaturalTaskParser.parse("enviar antes de las 6:30 pm", now, zone)
+        assertEquals("enviar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun antesDeLasHoraMinutoTardeLimpiaTituloYResuelveHora() {
+        val result = NaturalTaskParser.parse("enviar antes de las 6:30 de la tarde", now, zone)
+        assertEquals("enviar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun antesDeLasHoraHorasLimpiaTituloYResuelveHora() {
+        val result = NaturalTaskParser.parse("enviar antes de las 18:30 horas", now, zone)
+        assertEquals("enviar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 30), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun antesDeLasHoraSueltaConHorasResuelveYNoDejaResiduo() {
+        // Antes ni siquiera resolvía ("antes de las 18 horas" → null). Ahora, simétrico a
+        // "a las 18 horas"/"hasta las 18 horas", resuelve 18:00 con título limpio.
+        val result = NaturalTaskParser.parse("enviar antes de las 18 horas", now, zone)
+        assertEquals("enviar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun despuesDeLasHoraMinutoLimpiaTituloYResuelveHora() {
+        val result = NaturalTaskParser.parse("llegar después de las 9:15", now, zone)
+        assertEquals("llegar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 15), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun antesDeLasEnPuntoLimpiaTituloYResuelveHora() {
+        val result = NaturalTaskParser.parse("enviar antes de las 18 en punto", now, zone)
+        assertEquals("enviar", result.title)
+        assertEquals(LocalTime.of(18, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun antesDeLasYMediaLimpiaTituloYResuelveHora() {
+        val result = NaturalTaskParser.parse("enviar antes de las 6 y media", now, zone)
+        assertEquals("enviar", result.title)
+        assertEquals(LocalTime.of(6, 30), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // Guard: la forma ambigua "antes de las 5" (sin evidencia de reloj) sigue SIN resolver.
+    @Test fun antesDeLasHoraSueltaSinEvidenciaSigueSinResolver() {
+        val result = NaturalTaskParser.parse("enviar antes de las 5", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
+    // Guard: "antes de las 5 cajas" (número = cantidad, no hora) no se inventa vencimiento.
+    @Test fun antesDeLasCantidadNoInventaVencimiento() {
+        val result = NaturalTaskParser.parse("comprar antes de las 5 cajas", now, zone)
+        assertEquals(null, result.dueAt)
+    }
+
     // --- ciclo 240: "<día> <mes>" sin conector "de" (forma abreviada de captura) ---
 
     @Test fun bareDayMonthAbbrConHoraResuelveDiaYMesCorrectos() {

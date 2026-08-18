@@ -3180,9 +3180,20 @@ object NaturalTaskParser {
             //    "después" sólo se trata en HORA (meridio presente): "después del viernes"
             //    (semántica difusa de inicio, no plazo) se deja intacto para no fingir un
             //    vencimiento; su residuo se limpia cuando la hora ya se resolvió (caso HORA).
+            //  · EVIDENCIA DE RELOJ (c.603): antes sólo se aceptaba meridio/parte del día como
+            //    prueba de que la hora NO es la ambigua "las 5" (5am/5pm). Pero la hora en forma
+            //    de reloj inequívoca —HH:MM ("antes de las 18:30"), sufijo "horas/hs/h", "en
+            //    punto" o fracción "y media/cuarto"— TAMBIÉN la resuelve timePatterns sin ambigüedad
+            //    (18:30 no es 06:30; "18 horas" es 24h). Sin embargo el conector sobrevivía como
+            //    residuo sucio en el título ("enviar antes de las") porque el lookahead no admitía
+            //    esas evidencias, y además "antes de las 18 horas" ni siquiera llegaba a resolver.
+            //    Ahora el lookahead acepta, además del meridio, cualquiera de esas evidencias de
+            //    reloj, dejando el conector simétrico a "hasta las 18:30" (limpio) y resolviendo
+            //    la hora. La forma ambigua "antes/después de las 5" (SIN evidencia) sigue SIN
+            //    casar → dueAt=null, sin regresión (guard c.237/c.432).
             .replace(
                 Regex(
-                    """(?i)\b(?:antes|despu[eé]s)\s+de\s+(?=(?:las\s+\d{1,2}|la\s+una)\b\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a))""",
+                    """(?i)\b(?:antes|despu[eé]s)\s+de\s+(?=(?:las\s+\d{1,2}|la\s+una)\b\s*(?::\d{2}(?:\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a|horas?\b|hs\b|h\b))?|a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a|horas?\b|hs\b|h\b|en\s+punto\b|y\s+(?:media\b|cuarto\b|tres\s+cuartos\b)))""",
                 ),
                 "a ",
             )
