@@ -463,6 +463,24 @@ object ContextIntentEngine {
         if (manaanaComoDiaSiguiente) {
             targetDate = today.plusDays(1)
         }
+        // "anteayer"/"antier" = hace 2 días. Paridad con NaturalTaskParser (l.4164):
+        // fechas PASADAS explícitas — el usuario reconoce que la cita está vencida y
+        // debe aparecer en What Now como tal (no perderse ni caer a hoy). Antes
+        // extractDateTime NO las reconocía → la captura de contexto de una
+        // notificación con "ayer"/"anteayer" nacía SIN dueAt (tarea vencida
+        // olvidada, P1). "antier" = variante coloquial hispanoamericana de
+        // "anteayer". Va ANTES que "ayer" ("anteayer" contiene "ayer") y con guard
+        // null para no pisar una fecha ya resuelta (p.ej. "mañana" explícito).
+        if (targetDate == null &&
+            (lower.contains("anteayer") || lower.contains("antier"))) {
+            targetDate = today.minusDays(2)
+        }
+        // "ayer" = hace 1 día. Word-boundary evita casar dentro de "anteayer"
+        // (aunque el guard de orden ya lo cubre) y futuras palabras con sufijo.
+        if (targetDate == null &&
+            Regex("""\bayer\b""", RegexOption.IGNORE_CASE).containsMatchIn(lower)) {
+            targetDate = today.minusDays(1)
+        }
         // "pasado mañana"
         if (lower.contains("pasado mañana") || lower.contains("pasado manana")) {
             targetDate = today.plusDays(2)
@@ -471,10 +489,9 @@ object ContextIntentEngine {
         if (lower.contains("hoy") && !lower.contains("a hoy")) {
             targetDate = today
         }
-        // "esta noche", "esta tarde"
-        if ((lower.contains("esta noche") || lower.contains("esta tarde")) && targetDate == null) {
-            targetDate = today
-        }
+        // "esta noche"/"esta tarde" ya se resuelven antes (bloque `estaPartOfDay`,
+        // l.429): fijan targetDate=today + hora canónica. El guard `targetDate ==
+        // null` de aquí era siempre falso para esas frases → bloque muerto (c.594).
 
         // Día de la semana
         if (targetDate == null) {

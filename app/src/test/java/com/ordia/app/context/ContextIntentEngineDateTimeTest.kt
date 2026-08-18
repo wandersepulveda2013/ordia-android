@@ -575,4 +575,52 @@ class ContextIntentEngineDateTimeTest {
     }
 
 
+    // --- Fechas pasadas relativas: paridad con NaturalTaskParser (l.4164-4165) ---
+    // "ayer"/"anteayer"/"antier" son fechas PASADAS explícitas. Antes
+    // extractDateTime NO las reconocía (ninguna rama las trataba) → devolvía null
+    // → un ContextEvent capturado de una notificación ("reunión de ayer") nacía
+    // SIN dueAt y la tarea VENCIDA no aparecía en What Now (olvido, P1). El parser
+    // ya las resolvía (ayer=−1d, anteayer/antier=−2d); el contexto debe mantener
+    // paridad para que la captura de contexto no pierda la urgencia de vencimiento.
+    // Al mantenerse en el pasado, la cita vencida se hace visible (honesto: el
+    // usuario reconoce que la tarea está atrasada).
+
+    @Test
+    fun ayer_isYesterday() {
+        val due = ContextIntentEngine.extractDateTime("reunión de ayer")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'ayer' = hoy menos 1", LocalDate.now(z).minusDays(1), dDue)
+    }
+
+    @Test
+    fun anteayer_isTwoDaysAgo() {
+        val due = ContextIntentEngine.extractDateTime("cita de anteayer")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'anteayer' = hoy menos 2", LocalDate.now(z).minusDays(2), dDue)
+    }
+
+    @Test
+    fun antier_isTwoDaysAgo() {
+        // "antier" = variante coloquial hispanoamericana de "anteayer".
+        val due = ContextIntentEngine.extractDateTime("antier tenía que llamar")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'antier' = hoy menos 2", LocalDate.now(z).minusDays(2), dDue)
+    }
+
+    @Test
+    fun ayer_conHora_keepsPastDate() {
+        // "ayer a las 4": la hora se fija, pero la fecha debe seguir siendo AYER
+        // (no caer a hoy por la rama de hora). El parser lo mantiene en el pasado.
+        val due = ContextIntentEngine.extractDateTime("reunión ayer a las 4")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'ayer a las 4' sigue siendo ayer", LocalDate.now(z).minusDays(1), dDue)
+    }
 }
