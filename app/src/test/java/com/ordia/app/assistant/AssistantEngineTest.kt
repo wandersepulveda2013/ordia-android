@@ -3095,4 +3095,97 @@ class AssistantEngineTest {
         assertTrue("nombra la cita: ${answer.text}", answer.text.contains("Cita médica"))
     }
 
+    // --- c.552: contexto de "¿qué hago ahora?" — hueco hasta la próxima cita.
+    // El asistente cruza la duración estimada de la sugerida con la próxima cita
+    // (startAt futuro de otra raíz activa) y decide en una frase. Inteligencia
+    // local honesta (no IA fingida): dos comparaciones sobre enteros.
+    // La sugerida es URGENT sin startAt (timeRank 2); la cita es una raíz con
+    // startAt futuro MÁS ALLÁ de la ventana inminente (15 min) → isScheduledLater
+    // (rank -1), así queda como "próxima cita" sin robarle el puesto a la urgente.
+    @Test fun whatNow_warnsWhenTaskDoesNotFitBeforeNextCommitment() {
+        // Sugerida: urgente de 40 min. Próxima cita en 30 min. No cabe → el
+        // asistente AVISA ("ojo: tu próxima cita es en ~30 min") para que el
+        // usuario no arranque algo que la cita interrumpirá.
+        val now = 1_000_000_000_000L
+        val urgente = TaskEntity(
+            id = 1, title = "Informe",
+            durationMinutes = 40,
+            priority = TaskPriority.URGENT
+        )
+        val reunion = TaskEntity(
+            id = 2, title = "Reunión",
+            startAt = now + 30 * 60_000L, // 30 min: fuera de ventana inminente (15)
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(urgente, reunion), emptyList(), emptyList(), now
+        )
+        assertTrue("avisa que la cita interrumpirá: ${answer.text}", answer.text.lowercase().contains("tu próxima cita es en ~30 min"))
+        assertTrue("no miente con 'te alcanza': ${answer.text}", !answer.text.lowercase().contains("te alcanza"))
+    }
+
+    @Test fun whatNow_confirmsWhenTaskSnuglyFitsBeforeNextCommitment() {
+        // Sugerida: 25 min. Próxima cita en 40 min. Cabe y el margen es corto
+        // (25 ocupa más de la mitad de 40) → confirma "te alcanza antes de tu
+        // próxima cita" para que el usuario se decida a arrancar.
+        val now = 1_000_000_000_000L
+        val urgente = TaskEntity(
+            id = 1, title = "Informe",
+            durationMinutes = 25,
+            priority = TaskPriority.URGENT
+        )
+        val reunion = TaskEntity(
+            id = 2, title = "Reunión",
+            startAt = now + 40 * 60_000L,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(urgente, reunion), emptyList(), emptyList(), now
+        )
+        assertTrue("confirma que alcanza: ${answer.text}", answer.text.lowercase().contains("te alcanza antes de tu próxima cita"))
+        assertTrue("no avisa con 'ojo': ${answer.text}", !answer.text.lowercase().contains("ojo"))
+    }
+
+    @Test fun whatNow_silentWhenTaskFitsComfortablyBeforeNextCommitment() {
+        // Sugerida: 10 min (mínimo). Próxima cita en 200 min. Cabe de SOBRA → el
+        // asistente CALLA: un "te alcanza" trivial sólo añadiría ruido; el
+        // silencio es honesto (no hay decisión difícil que señalar).
+        val now = 1_000_000_000_000L
+        val urgente = TaskEntity(
+            id = 1, title = "Informe",
+            durationMinutes = 10,
+            priority = TaskPriority.URGENT
+        )
+        val reunion = TaskEntity(
+            id = 2, title = "Reunión",
+            startAt = now + 200 * 60_000L,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(urgente, reunion), emptyList(), emptyList(), now
+        )
+        assertFalse("no mete ruido de cita: ${answer.text}", answer.text.lowercase().contains("próxima cita"))
+        assertFalse("no miente con 'te alcanza': ${answer.text}", answer.text.lowercase().contains("te alcanza"))
+    }
+
+    @Test fun whatNow_silentWhenNoUpcomingCommitment() {
+        // Sin ninguna startAt futura → no hay cita cercana → el motor devuelve
+        // null y el asistente no menciona "próxima cita" (sin ruido).
+        val now = 1_000_000_000_000L
+        val urgente = TaskEntity(
+            id = 1, title = "Informe",
+            durationMinutes = 40,
+            priority = TaskPriority.URGENT
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(urgente), emptyList(), emptyList(), now
+        )
+        assertFalse("sin cita, sin mención: ${answer.text}", answer.text.lowercase().contains("próxima cita"))
+        assertTrue("sigue dando la sugerencia: ${answer.text}", answer.text.lowercase().contains("empieza por"))
+    }
+
 }

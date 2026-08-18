@@ -165,8 +165,19 @@ object AssistantEngine {
                         else TaskRules.plannedDuration(suggestion.task)
                     val lead = if (inProgress) "Sigue con" else "Empieza por"
                     val timePhrase = if (elapsedKnown) "Te quedan $minutes minutos" else "Estimo $minutes minutos"
+                    // Contexto honesto de "¿qué hago ahora?" (c.552): si What Now
+                    // detectó una cita cercana ([WhatNowSuggestion.minutesUntilNextCommitment]
+                    // ≠ null), el asistente cruza la duración estimada con ese hueco y
+                    // decide por el usuario en una sola frase, sin nueva pantalla/botón:
+                    // avisa cuando NO cabe ("ojo: tu próxima cita es en ~M min" — empezar
+                    // ahora implica que la cita interrumpirá) y confirma cuando el hueco
+                    // está JUSTO (la tarea ocupa más de la mitad del hueco → "te alcanza
+                    // antes de tu próxima cita"). Si sobra tiempo de sobra, calla: el
+                    // silencio es honesto (no hay decisión difícil). Determinista y local
+                    // (no IA fingida): compara dos números ya calculados.
+                    val gapPhrase = nextCommitmentGapPhrase(suggestion.minutesUntilNextCommitment, minutes)
                     AssistantAnswer(
-                        "$lead “${suggestion.task.title}”: $why. $timePhrase.$tail",
+                        "$lead “${suggestion.task.title}”: $why. $timePhrase.$gapPhrase$tail",
                         relatedTaskIds = listOf(suggestion.task.id)
                     )
                 }
@@ -1312,5 +1323,32 @@ object AssistantEngine {
         val capturas = if (count == 1) "1 captura" else "$count capturas"
         val llevan = if (count == 1) "lleva" else "llevan"
         return " Además, $capturas en la bandeja $llevan una semana sin agendar."
+    }
+
+    /**
+     * Frase honesta de "¿qué hago ahora?" sobre el hueco hasta la próxima cita
+     * (c.552). [gapMinutes] viene de [WhatNowSuggestion.minutesUntilNextCommitment]
+     * (null = sin cita cercana en el horizonte útil) y [taskMinutes] es la
+     * duración/pendiente ya estimada de la tarea sugerida.
+     *
+     * - No cabe (taskMinutes > gap): avisa — empezar ahora implica que la cita
+     *   interrumpirá la tarea. Siempre útil: cambia la decisión del usuario.
+     * - Cabe y está JUSTO (taskMinutes ocupa más de la mitad del hueco): confirma
+     *   "te alcanza antes de tu próxima cita" para que el usuario se decida a
+     *   arrancar sabiendo que el margen es corto.
+     * - Cabe de sobra: calla. El silencio es honesto: no hay decisión difícil que
+     *   señalar y un "te alcanza" trivial sólo añadiría ruido.
+     *
+     * Determinista y local (no IA fingida): dos comparaciones sobre enteros.
+     * El prefijo " " integra la frase al mismo nivel que [timePhrase] (antes del
+     * tail de olvidos, que lleva su propio " Además,").
+     */
+    private fun nextCommitmentGapPhrase(gapMinutes: Int?, taskMinutes: Int): String {
+        val gap = gapMinutes ?: return ""
+        return when {
+            taskMinutes > gap -> " Ojo: tu próxima cita es en ~$gap min."
+            taskMinutes * 2 > gap -> " Te alcanza antes de tu próxima cita."
+            else -> ""
+        }
     }
 }
