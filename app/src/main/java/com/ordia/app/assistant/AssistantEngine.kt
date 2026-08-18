@@ -1507,7 +1507,7 @@ object AssistantEngine {
         if (count == 0) return ""
         val capturas = if (count == 1) "1 captura" else "$count capturas"
         val llevan = if (count == 1) "lleva" else "llevan"
-        return " Además, $capturas en la bandeja $llevan una semana sin agendar."
+        return " Además, $capturas en la bandeja $llevan una semana o más sin agendar."
     }
 
     /**
@@ -1526,7 +1526,7 @@ object AssistantEngine {
         if (count == 0) return ""
         val capturas = if (count == 1) "1 captura" else "$count capturas"
         val llevan = if (count == 1) "lleva" else "llevan"
-        return " Además, $capturas en la bandeja $llevan una semana sin agendar."
+        return " Además, $capturas en la bandeja $llevan una semana o más sin agendar."
     }
 
     /**

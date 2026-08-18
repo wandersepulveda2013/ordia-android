@@ -247,6 +247,6 @@ object GuardianCoach {
         if (count == 0) return message
         val capturas = if (count == 1) "1 captura" else "$count capturas"
         val llevan = if (count == 1) "lleva" else "llevan"
-        return "$message Además, $capturas en la bandeja $llevan una semana sin agendar."
+        return "$message Además, $capturas en la bandeja $llevan una semana o más sin agendar."
     }
 }

@@ -578,7 +578,7 @@ object GuardianEngine {
         if (count == 0) return this
         val capturas = if (count == 1) "1 captura" else "$count capturas"
         val llevan = if (count == 1) "lleva" else "llevan"
-        return "$this Además, $capturas en la bandeja $llevan una semana sin agendar."
+        return "$this Además, $capturas en la bandeja $llevan una semana o más sin agendar."
     }
 
     /**

@@ -409,6 +409,37 @@ class GuardianEngineTest {
     }
 
     @Test
+    fun suggestedAction_colaStaleInboxEsHonestoSobreEdadMayorAUnaSemana() {
+        // IA HONESTA: la cola del 3.er olvido no puede decir "una semana sin agendar"
+        // para una captura de 8 días (subestima la edad y, con capturas de 2-3
+        // semanas, sería falso). El recurso `today_stale_inbox` y `WhatNowReason`
+        // ya usan "una semana o más"; la cola del guardián debe coincidir para que la
+        // misma idea arrinconada reciba la misma etiqueta honesta en todas las
+        // superficies. 8 días ≥ 7 → la cola debe contener "o más".
+        val overdue = TaskEntity(
+            id = 1, title = "Atrasada",
+            startAt = midday - 60 * 60_000L, dueAt = midday - 30 * 60_000L
+        )
+        val staleInbox = TaskEntity(
+            id = 2, title = "Idea vieja",
+            createdAt = midday - 8L * 24 * 60 * 60_000L
+        )
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(overdue, staleInbox),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        // La acción primaria nombra la atrasada; la cola señala la captura de fondo.
+        assertTrue(result.suggestedAction.contains("Atrasada"))
+        assertTrue(result.suggestedAction.contains("una semana o más"))
+        // No debe quedarse en el bare "una semana sin agendar" (subestima 8 días).
+        assertFalse(result.suggestedAction.contains("una semana sin agendar"))
+    }
+
+    @Test
     fun suggestedAction_cascadeAMissedStartCuandoTodasAtrasadasEnCurso() {
         // REGRESIÓN c.564: cuando la única atrasada está en curso Y hay además una
         // tarea con hueco olvidado (missed-start, NO vencida), el nudge NO debe
