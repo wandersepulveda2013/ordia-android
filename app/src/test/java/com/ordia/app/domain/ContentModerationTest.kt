@@ -43,7 +43,7 @@ class ContentModerationTest {
         proximity = Regex("""\b(ur[oó]logo|ginec[oó]log[oa]|sex[oó]logo|prostate|m[ée]dico|cl[íi]nica|farmac[ée]utic[oa])\b""")
     )
     private val violencia = ContentModeration.ModerationRule(
-        stem = Regex("""\b(matar|asesinar|violar|secuestr|bomba|amenaza|escopeta|pistola|cuchill)\b"""),
+        stem = Regex("""\b(matar|asesinar|violar|bomba|amenaza|escopeta|pistola|cuchill)\b"""),
         contain = listOf(
             Regex("""\bmatar\b\s+(el|la|los|las|un|una)?\s*(proceso|hilo|servicio|servidor|demonio|sesi[oó]n|tarea|job|zombie)\b"""),
             Regex("""\bviolar\b\s+(la|el|una|un|las|los)?\s*(pol[ií]tica|contrato|licencia|restricci[oó]n|norma|ley|clausula|cl[áa]usula|t[ée]rminos?)\b"""),
@@ -51,6 +51,13 @@ class ContentModerationTest {
             Regex("""\bamenaza\b\s+(de)?\s*(de\s+integridad|de\s+seguridad|de\s+modelo)\b"""),
             Regex("""\b(bomba|pistola|escopeta)\s+de\s+agua\b"""),
             Regex("""\b(matar|asesinar)\s+(un|el)\s+proceso\b""")
+        )
+    )
+    private val secuestroStems = ContentModeration.ModerationRule(
+        stem = Regex("""\bsecuestr"""),
+        contain = listOf(
+            Regex("""\b(revisi[oó]n|revisar|diagn[oó]stico|diag|audit|auditor[íi]a)\s+(de[l]?)\s*secuestro\b"""),
+            Regex("""\bsecuestro\s+de\s+(dns|sesi[oó]n|cookie|token|sesiones?)\b""")
         )
     )
     private val drogas = ContentModeration.ModerationRule(
@@ -61,6 +68,7 @@ class ContentModerationTest {
     private fun sexualHarmful(text: String) = ContentModeration.isHarmful(text, sexual)
     private fun sexualStemHarmful(text: String) = ContentModeration.isHarmful(text, sexualStems)
     private fun violentHarmful(text: String) = ContentModeration.isHarmful(text, violencia)
+    private fun secuestroHarmful(text: String) = ContentModeration.isHarmful(text, secuestroStems)
     private fun drugHarmful(text: String) = ContentModeration.isHarmful(text, drogas)
 
     // ── Falsos positivos corregidos: tareas legítimas que antes se bloqueaban ──
@@ -90,8 +98,30 @@ class ContentModerationTest {
     }
 
     @Test fun secuestroDeDns_noEsDanino() {
-        // "secuestr" no casa "secuestro" (límite de palabra): no se evalúa.
-        assertFalse(violentHarmful("revisar el secuestro de DNS del servicio"))
+        // c.630: `secuestr` ahora SÍ casa "secuestro"; la exención de colocación
+        // ("revisar el secuestro de DNS") legitima el sentido técnico.
+        assertFalse(secuestroHarmful("revisar el secuestro de DNS del servicio"))
+    }
+
+    @Test fun secuestroDeSesion_noEsDanino() {
+        assertFalse(secuestroHarmful("auditar el secuestro de sesion del login"))
+    }
+
+    // ── Stems muertos por `\b` final en VIOLENCIA (c.630): `secuestr` no casaba
+    //    secuestrar/secuestraron → PASABAN el gate. Ahora SÍ. ──
+
+    @Test fun secuestrarAlVecino_esDanino() {
+        // PRE-fix RED: `\bsecuestr\b` no casa "secuestrar" → PASABA (amenaza no bloqueada).
+        assertTrue(secuestroHarmful("secuestrar al vecino esta noche"))
+    }
+
+    @Test fun secuestraronAHermano_esDanino() {
+        assertTrue(secuestroHarmful("secuestraron a mi hermano en la carretera"))
+    }
+
+    @Test fun secuestroDeNino_esDanino() {
+        // "secuestro de un niño" → stem casa, la exención DNS no aplica → bloqueado.
+        assertTrue(secuestroHarmful("investigar el secuestro de un niño"))
     }
 
     @Test fun drogaEnFarmacia_noEsDanina() {

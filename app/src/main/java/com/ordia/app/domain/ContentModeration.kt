@@ -125,19 +125,30 @@ object ContentModeration {
         ),
         // Violencia y amenazas. Las raíces tienen sentidos legítimos muy
         // frecuentes en tareas técnicas ("matar el proceso", "violar la
-        // política", "modelo de amenaza", "pistola/bomba de agua", "revisar el
-        // secuestro de DNS") que se eximen por colocación.
+        // política", "modelo de amenaza", "pistola/bomba de agua") que se
+        // eximen por colocación.
         ModerationRule(
-            stem = Regex("""\b(matar|asesinar|violar|secuestr|bomba|amenaza|escopeta|pistola|cuchill)\b"""),
+            stem = Regex("""\b(matar|asesinar|violar|bomba|amenaza|escopeta|pistola|cuchill)\b"""),
             contain = listOf(
                 Regex("""\bmatar\b\s+(el|la|los|las|un|una)?\s*(proceso|hilo|servicio|servidor|demonio|sesi[oó]n|tarea|job|zombie)\b"""),
                 Regex("""\bviolar\b\s+(la|el|una|un|las|los)?\s*(pol[ií]tica|contrato|licencia|restricci[oó]n|norma|ley|clausula|cl[áa]usula|t[ée]rminos?)\b"""),
                 Regex("""\b(modelo|m[oó]delo)\s+de\s+amenaza\b"""),
                 Regex("""\bamenaza\b\s+(de)?\s*(de\s+integridad|de\s+seguridad|de\s+modelo)\b"""),
-                Regex("""\b(revisi[oó]n|revisar|diagn[oó]stico|diag|audit|auditor[íi]a)\s+(de[l]?)\s*secuestro\b"""),
-                Regex("""\bsecuestro\s+de\s+(dns|sesi[oó]n|cookie|token|sesiones?)\b"""),
                 Regex("""\b(bomba|pistola|escopeta)\s+de\s+agua\b"""),
                 Regex("""\b(matar|asesinar)\s+(un|el)\s+proceso\b""")
+            )
+        ),
+        // Raíz flexionada SECUESTR (secuestrar/secuestro/secuestrado/...).
+        // c.630: separada de la regla de violencia porque el `\b` FINAL mataba
+        // todas sus flexiones (r→o/a word→word) → "secuestrar al vecino" /
+        // "secuestraron a mi hermano" PASABAN el gate. Sin `\b` final casa la
+        // raíz y todas sus formas; las exenciones de colocación legitiman el
+        // sentido técnico ("revisar el secuestro de DNS/ sesión/ cookie/ token").
+        ModerationRule(
+            stem = Regex("""\bsecuestr"""),
+            contain = listOf(
+                Regex("""\b(revisi[oó]n|revisar|diagn[oó]stico|diag|audit|auditor[íi]a)\s+(de[l]?)\s*secuestro\b"""),
+                Regex("""\bsecuestro\s+de\s+(dns|sesi[oó]n|cookie|token|sesiones?)\b""")
             )
         ),
         // Drogas ilegales. "droga" se exonera por proximidad médica/farmacéutica
