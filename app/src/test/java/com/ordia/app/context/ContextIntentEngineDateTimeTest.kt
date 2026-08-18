@@ -219,4 +219,71 @@ class ContextIntentEngineDateTimeTest {
         val today = LocalDate.now(z)
         assertEquals(2L, ChronoUnit.DAYS.between(today, dPm))
     }
+
+    // --- Noche / Tarde: sufijo de hora del día vs. señal de fecha ---
+    // A diferencia de "mañana" (donde el sufijo horario "de la mañana" colisionaba
+    // con el adverbio de día siguiente "mañana"), aquí la señal de fecha es la
+    // secuencia literal "esta noche"/"esta tarde" y el sufijo de meridiano es
+    // "de la noche"/"de la tarde": NO comparten un único disparador, por lo que
+    // no hay colisión. Estos tests fijan ese comportamiento correcto.
+
+    @Test
+    fun deLaNoche_isToday_and21h() {
+        val due = ContextIntentEngine.extractDateTime("reunión a las 9 de la noche")
+        val hoy = ContextIntentEngine.extractDateTime("reunión hoy a las 9")
+        assertNotNull(due); assertNotNull(hoy)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val dHoy = ZonedDateTime.ofInstant(Instant.ofEpochMilli(hoy!!), z).toLocalDate()
+        assertEquals("'de la noche' es hoy (no mañana)", dHoy, dDue)
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due), z).hour
+        assertEquals("'9 de la noche' debe ser 21:00", 21, hour)
+    }
+
+    @Test
+    fun deLaTarde_isToday_and21h() {
+        val due = ContextIntentEngine.extractDateTime("reunión a las 9 de la tarde")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val today = LocalDate.now(z)
+        assertEquals("'de la tarde' es hoy", today, dDue)
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due), z).hour
+        assertEquals("'9 de la tarde' debe ser 21:00", 21, hour)
+    }
+
+    @Test
+    fun estaNoche_isToday() {
+        val due = ContextIntentEngine.extractDateTime("reunión esta noche")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val today = LocalDate.now(z)
+        assertEquals("'esta noche' es hoy", today, dDue)
+    }
+
+    @Test
+    fun estaTarde_isToday() {
+        val due = ContextIntentEngine.extractDateTime("reunión esta tarde")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val today = LocalDate.now(z)
+        assertEquals("'esta tarde' es hoy", today, dDue)
+    }
+
+    @Test
+    fun mananaPorLaNoche_isTomorrow_and21h() {
+        // "mañana a las 9 de la noche" combina día siguiente + sufijo nocturno:
+        // la regla "de la noche" NO debe enmascarar "mañana" = día siguiente.
+        val due = ContextIntentEngine.extractDateTime("reunión mañana a las 9 de la noche")
+        val man = ContextIntentEngine.extractDateTime("reunión mañana a las 9")
+        assertNotNull(due); assertNotNull(man)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val dMan = ZonedDateTime.ofInstant(Instant.ofEpochMilli(man!!), z).toLocalDate()
+        assertEquals("'mañana ... de la noche' debe ser mañana", dMan, dDue)
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due), z).hour
+        assertEquals(21, hour)
+    }
 }
