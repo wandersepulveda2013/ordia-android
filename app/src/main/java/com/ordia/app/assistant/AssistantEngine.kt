@@ -119,7 +119,7 @@ object AssistantEngine {
                 // "¿qué me falta por hacer?" nombra exactamente lo pendiente. No se
                 // añaden verbos sueltos (paridad con whatNow_verbsAloneAreNotWhatNow).
                 (("que tengo que hacer" in query || "que me falta" in query) && !isAgendaQuery(query)) -> {
-                val suggestion = WhatNowEngine.suggest(active, now)
+                val suggestion = WhatNowEngine.suggest(active, now, zone)
                 if (suggestion == null) {
                     // Quinto olvido de Ordía (c.357): sin tareas pendientes PERO con
                     // un compromiso vencido de una conversación. Antes decía "Puedes
@@ -150,7 +150,7 @@ object AssistantEngine {
                     // vía su reason ("tenía su hueco y se pasó"), así se excluye para no
                     // repetir. Sin nueva pantalla: la cola vive en la respuesta que el
                     // usuario ya pidió. Determinista y local (sin IA fingida).
-                    val missedTail = missedStartTail(active, suggestion.task, now)
+                    val missedTail = missedStartTail(active, suggestion.task, now, zone)
                     // Quinto olvido (c.357): la cola de What Now silenciaba los
                     // compromisos vencidos de conversaciones — la misma mentira por
                     // omisión que c.356 corrigió en agenda "hoy" y c.354 en dayLoad.
@@ -205,7 +205,7 @@ object AssistantEngine {
                         // decisión productiva. Reusa [WhatNowEngine.ordered] (fuente
                         // única) para elegir la mejor que cabe. Null si no hay ninguna
                         // → el aviso de c.552 queda intacto (no se inventa nada).
-                        fittingAlternativeBeforeCommitment(active, suggestion.task.id, suggestion.minutesUntilNextCommitment, now)
+                        fittingAlternativeBeforeCommitment(active, suggestion.task.id, suggestion.minutesUntilNextCommitment, now, zone)
                     )
                     AssistantAnswer(
                         "$lead “${suggestion.task.title}”: $why. $timePhrase.$gapPhrase$tail",
@@ -237,7 +237,7 @@ object AssistantEngine {
                         // overdue primero, luego prioridad/fecha) y dejamos el resto
                         // para reprogramar. Simétrico con la rama sin-vencidas, que
                         // nombra el missed-start en lugar de decir "no hay vencidas".
-                        val top = WhatNowEngine.ordered(active, now).first { TaskRules.isOverdue(it, now) }
+                        val top = WhatNowEngine.ordered(active, now, zone).first { TaskRules.isOverdue(it, now) }
                         val minutes = TaskRules.plannedDuration(top)
                         val tail = if (overdue.size == 1) {
                             "Puedo reprogramarla."
@@ -246,7 +246,7 @@ object AssistantEngine {
                         }
                         AssistantAnswer(
                             "“${top.title}” está vencida (~$minutes min) $tail" +
-                                missedStartTail(active, top, now) +
+                                missedStartTail(active, top, now, zone) +
                                 overdueCommitmentTail(overdueCommitments),
                             AssistantAction.RUN_REPLAN,
                             relatedTaskIds = overdue.take(8).map { it.id }
@@ -261,7 +261,7 @@ object AssistantEngine {
                         )
                     }
                 } else {
-                    val missed = WhatNowEngine.ordered(active, now)
+                    val missed = WhatNowEngine.ordered(active, now, zone)
                         .firstOrNull { TaskRules.isMissedStart(it, now) }
                     if (missed == null) {
                         // Tercer olvido de Ordía: una captura arrinconada en la
@@ -344,7 +344,7 @@ object AssistantEngine {
                 )
             }
             "plan minimo" in query || "minimo para hoy" in query -> {
-                val minimal = WhatNowEngine.ordered(active, now).take(3)
+                val minimal = WhatNowEngine.ordered(active, now, zone).take(3)
                 // Sexto olvido (c.358): "plan mínimo" es análoga a "¿qué hago ahora?"
                 // — el usuario pide SU plan. Con plan vacío decía "Tu plan mínimo
                 // está vacío." frente a un compromiso vencido (mentira por omisión:
@@ -360,7 +360,7 @@ object AssistantEngine {
                 )
             }
             "15 minutos" in query || "rapido" in query || "rapida" in query -> {
-                val quick = WhatNowEngine.ordered(active, now).filter { it.durationMinutes <= 15 }.take(6)
+                val quick = WhatNowEngine.ordered(active, now, zone).filter { it.durationMinutes <= 15 }.take(6)
                 // Séptimo olvido (c.419): "tareas rápidas" es análoga a "plan mínimo"
                 // — el usuario pide qué hacer ahora. Con lista vacía decía "No encuentro
                 // tareas de 15 minutos o menos." frente a un compromiso vencido (mentira
@@ -789,7 +789,7 @@ object AssistantEngine {
             "mes" in query -> Triple(thisMonth.atDay(1), thisMonth.atEndOfMonth(), "este mes")
             else -> Triple(monday, monday.plusDays(6), "esta semana")
         }
-        val ranked = WhatNowEngine.ordered(active, now)
+        val ranked = WhatNowEngine.ordered(active, now, zone)
         // Franja horaria (parte del día) como modificador opcional encima del
         // rango de fechas: simétrico con SearchEngine.scopeBand (MADRUGADA 0..5,
         // TARDE 12..17, NOCHE 18..23). Si la consulta menciona una parte del día,
@@ -850,7 +850,7 @@ object AssistantEngine {
                 // las demás superficies (What Now, "¿qué olvidé?", "¿voy bien?") ya
                 // lo recuperaban; la agenda callaba el mismo olvido en la consulta más
                 // común. Lo nombramos (no routing: la consulta es de agenda).
-                val missedEmpty = mostUrgentMissedStart(active, now)
+                val missedEmpty = mostUrgentMissedStart(active, now, zone)
                 if (missedEmpty != null) {
                     val minutes = TaskRules.plannedDuration(missedEmpty)
                     return AssistantAnswer(
@@ -883,7 +883,7 @@ object AssistantEngine {
             val overdueTaskTail = if (earlierOverdue > 0) {
                 " Además, tienes $earlierOverdue atrasad${if (earlierOverdue == 1) "a" else "as"} de días anteriores."
             } else ""
-            val missed = mostUrgentMissedStart(active, now)
+            val missed = mostUrgentMissedStart(active, now, zone)
             val missedTail = if (missed != null) {
                 val minutes = TaskRules.plannedDuration(missed)
                 " Además, «${missed.title}» tenía su hueco y se pasó (~$minutes min)."
@@ -1401,22 +1401,24 @@ object AssistantEngine {
     private fun missedStartTail(
         active: List<TaskEntity>,
         suggested: TaskEntity,
-        now: Long
+        now: Long,
+        zone: ZoneId
     ): String {
-        val missed = mostUrgentMissedStartExcluding(active, suggested.id, now) ?: return ""
+        val missed = mostUrgentMissedStartExcluding(active, suggested.id, now, zone) ?: return ""
         val minutes = TaskRules.plannedDuration(missed)
         return " Además, «${missed.title}» tenía su hueco y se pasó (~$minutes min)."
     }
 
-    private fun mostUrgentMissedStart(active: List<TaskEntity>, now: Long): TaskEntity? =
-        WhatNowEngine.ordered(active, now).firstOrNull { TaskRules.isMissedStart(it, now) }
+    private fun mostUrgentMissedStart(active: List<TaskEntity>, now: Long, zone: ZoneId): TaskEntity? =
+        WhatNowEngine.ordered(active, now, zone).firstOrNull { TaskRules.isMissedStart(it, now) }
 
     private fun mostUrgentMissedStartExcluding(
         active: List<TaskEntity>,
         excludeId: Long,
-        now: Long
+        now: Long,
+        zone: ZoneId
     ): TaskEntity? =
-        WhatNowEngine.ordered(active, now).firstOrNull { TaskRules.isMissedStart(it, now) && it.id != excludeId }
+        WhatNowEngine.ordered(active, now, zone).firstOrNull { TaskRules.isMissedStart(it, now) && it.id != excludeId }
 
     /**
      * Cola que recupera el 3.er olvido en "¿qué hago ahora?": cuenta las
@@ -1534,11 +1536,12 @@ object AssistantEngine {
         active: List<TaskEntity>,
         suggestedId: Long,
         gapMinutes: Int?,
-        now: Long
+        now: Long,
+        zone: ZoneId
     ): TaskEntity? {
         val gap = gapMinutes ?: return null
         if (gap <= 0) return null
-        return WhatNowEngine.ordered(active, now).firstOrNull { t ->
+        return WhatNowEngine.ordered(active, now, zone).firstOrNull { t ->
             t.id != suggestedId &&
                 !TaskRules.isBeingWorkedOn(t, now) &&
                 (t.startAt == null || t.startAt <= now) &&

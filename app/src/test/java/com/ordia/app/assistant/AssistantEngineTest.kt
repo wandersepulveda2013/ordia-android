@@ -3550,4 +3550,46 @@ class AssistantEngineTest {
             answer.text.contains("compromiso") && answer.text.contains("vencido"))
     }
 
+    // --- c.604: el asistente RECIBE `zone` pero lo silenciaba en el ranking.
+    // WhatNowEngine.ordered/suggest tienen `zone = ZoneId.systemDefault()`;
+    // AssistantEngine.answer(...) los llamaba SIN pasar `zone`, así que toda la
+    // lógica de "vence hoy"/"se pasó el arranque" (que depende de LocalDate, que
+    // depende de la zona) se evaluaba con la zona del dispositivo, no con la que
+    // el llamante (y el usuario) indicó. Un plazo a las 23:00 UTC que es "hoy" en
+    // Honolulu (UTC-10) pero "mañana" en Tokio (UTC+9) se etiquetaba igual en
+    // ambas → el asistente mentía sobre urgencia y un compromiso "de hoy" podía
+    // caer al cajón neutro de la bandeja y olvidarse. Test diferencial: dos zonas
+    // que producen LocalDate distinto para el mismo epoch deben dar respuestas
+    // distintas; si se ignora `zone`, ambas coinciden (bug). Robusto frente a la
+    // zona del contenedor: el bug produce respuestas idénticas, el fix produce
+    // la diferencia esperada.
+    @Test fun whatNow_usesPassedZoneForDueTodayRanking() {
+        // now = 2026-08-18 12:00 UTC → Honolulu (UTC-10) = 18/08 02:00; Tokio (+9) = 18/08 21:00.
+        val now = Instant.parse("2026-08-18T12:00:00Z").toEpochMilli()
+        // dueAt = 2026-08-18 23:00 UTC → Honolulu = 18/08 13:00 (HOY, futuro); Tokio = 19/08 08:00 (MAÑANA).
+        val dueAt = Instant.parse("2026-08-18T23:00:00Z").toEpochMilli()
+        val task = TaskEntity(id = 1, title = "Llamada cliente", createdAt = now, dueAt = dueAt)
+
+        val honolulu = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(task), emptyList(), emptyList(),
+            now, ZoneId.of("Pacific/Honolulu")
+        )
+        val tokio = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(task), emptyList(), emptyList(),
+            now, ZoneId.of("Asia/Tokyo")
+        )
+
+        // En Honolulu vence hoy → etiqueta "vence hoy".
+        assertTrue("Honolulu (vence hoy) debe decir 'vence hoy': ${honolulu.text}",
+            honolulu.text.contains("vence hoy"))
+        // En Tokio vence mañana → NO es "vence hoy" (cae a "es lo siguiente de la bandeja").
+        assertFalse("Tokio (vence mañana) NO debe decir 'vence hoy': ${tokio.text}",
+            tokio.text.contains("vence hoy"))
+        // Guardia anti-bug: las dos zonas deben diferir (si coinciden, se ignoró `zone`).
+        assertNotEquals("las dos zonas deben dar respuestas distintas: ${honolulu.text} | ${tokio.text}",
+            honolulu.text, tokio.text)
+    }
+
 }
