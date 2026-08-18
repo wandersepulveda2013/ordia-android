@@ -119,4 +119,33 @@ class NoteBlockCodecTest {
         assertTrue(text.contains("• b"))
         assertTrue(text.contains("---"))
     }
+
+    // c.624: un bloque NUMBERED serializaba su texto en pelón (igual que un
+    // PARAGRAPH), perdiendo el orden en el `body` plano que se persiste en Room
+    // y que alimenta la búsqueda/previsualización. Asimetría con BULLET ("•"),
+    // QUOTE (">") y CHECKLIST ("[x]"): la única marca con semántica de ORDEN era
+    // la única que la perdía. Ahora conserva su número, reiniciando tras un
+    // bloque de otro tipo (igual que un editor: [1,2,parrafo,1]).
+    @Test fun toPlainTextNumbersConsecutiveNumberedBlocksAndResetsAfterOtherType() {
+        val blocks = listOf(
+            NoteBlock(type = NoteBlockType.NUMBERED, text = "primero"),
+            NoteBlock(type = NoteBlockType.NUMBERED, text = "segundo"),
+            NoteBlock(type = NoteBlockType.PARAGRAPH, text = "corte"),
+            NoteBlock(type = NoteBlockType.NUMBERED, text = "reinicia")
+        )
+        val text = NoteBlockCodec.toPlainText(blocks)
+        assertEquals(
+            "1. primero\n2. segundo\ncorte\n1. reinicia",
+            text
+        )
+    }
+
+    @Test fun toPlainTextDoesNotRenderBareTextForNumberedBlock() {
+        // Anti-regresión: un NUMBERED suelto NO debe serializar como texto pelón
+        // (que lo haría indistinguible de un PARAGRAPH y perder el orden).
+        val text = NoteBlockCodec.toPlainText(
+            listOf(NoteBlock(type = NoteBlockType.NUMBERED, text = "único"))
+        )
+        assertEquals("1. único", text)
+    }
 }

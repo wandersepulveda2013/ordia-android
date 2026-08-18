@@ -53,15 +53,31 @@ object NoteBlockCodec {
         return blocks.ifEmpty { listOf(NoteBlock(text = fallbackBody)).ifEmpty { listOf(NoteBlock()) } }
     }
 
-    fun toPlainText(blocks: List<NoteBlock>): String = blocks.joinToString("\n") { block ->
-        when (block.type) {
-            NoteBlockType.HEADING -> block.text
-            NoteBlockType.CHECKLIST -> "${if (block.checked) "[x]" else "[ ]"} ${block.text}"
-            NoteBlockType.QUOTE -> "> ${block.text}"
-            NoteBlockType.BULLET -> "• ${block.text}"
-            NoteBlockType.NUMBERED -> block.text
-            NoteBlockType.DIVIDER -> "---"
-            NoteBlockType.PARAGRAPH -> block.text
+    /**
+     * Reflejo en texto plano de los bloques, usado como `body` persistido en Room
+     * (fuente de búsqueda/previsualización de la lista) —NO es el almacenamiento
+     * canónico (éso es [encode]). Cada tipo lleva su marca: HEADING y PARAGRAPH el
+     * texto; CHECKLIST "[x]"/"[ ]"; QUOTE ">"; BULLET "•"; DIVIDER "---".
+     *
+     * NUMBERED conserva su número de orden, reiniciando tras un bloque de otro
+     * tipo (igual que un editor: `[1,2,parrafo]` → `1.`/`2.`/texto/`1.`). Antes
+     * emitía el texto en pelón —igual que un PARAGRAPH— perdiendo el orden en el
+     * `body` plano y siendo la ÚNICA marca con semántica de orden que la perdía
+     * (asimetría con BULLET/QUOTE/CHECKLIST). Determinista (contador local), sin
+     * estado compartido.
+     */
+    fun toPlainText(blocks: List<NoteBlock>): String {
+        var number = 0
+        return blocks.joinToString("\n") { block ->
+            when (block.type) {
+                NoteBlockType.HEADING -> block.text
+                NoteBlockType.CHECKLIST -> "${if (block.checked) "[x]" else "[ ]"} ${block.text}"
+                NoteBlockType.QUOTE -> "> ${block.text}"
+                NoteBlockType.BULLET -> "• ${block.text}"
+                NoteBlockType.NUMBERED -> { number++; "$number. ${block.text}" }
+                NoteBlockType.DIVIDER -> "---"
+                NoteBlockType.PARAGRAPH -> block.text
+            }.also { if (block.type != NoteBlockType.NUMBERED) number = 0 }
         }
     }
 }
