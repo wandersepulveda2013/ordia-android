@@ -123,10 +123,19 @@ object ContentModeration {
             stem = Regex("""\b(desnud|eroti|masturb)"""),
             proximity = Regex("""\b(ur[oó]logo|ginec[oó]log[oa]|sex[oó]logo|prostate|m[ée]dico|cl[íi]nica|farmac[ée]utic[oa])\b""")
         ),
-        // Violencia y amenazas. Las raíces tienen sentidos legítimos muy
-        // frecuentes en tareas técnicas ("matar el proceso", "violar la
-        // política", "modelo de amenaza", "pistola/bomba de agua") que se
-        // eximen por colocación. `cuchill` vive en su propia regla (c.636,
+        // Violencia y amenazas (c.637: stem SIN `\b` final para casar
+        // enclíticos/pronominales/flexiones verbales — "matarte"/"matarlo"/
+        // "matarse", "violarla"/"violaron", "amenazarte"/"amenazó"/"amenazaba",
+        // "asesinarte"). PRE-fix el stem `\b(matar|...)\b` (con `\b` FINAL)
+        // NO casaba esas formas (word→word) → "te voy a matar"/"violarla"/
+        // "amenazarte de muerte" PASABAN el gate (amenaza no bloqueada). Sin
+        // `\b` final la raíz caza, PERO eso atrapa también idiomáticos
+        // legítimos ("matar el hambre"/"matar el tiempo"/"matar las ganas"/
+        // "matar la sed" — PRE-fix ya false-bloqueados porque `\bmatar\b` SÍ
+        // casa la base "matar"; careful-design los exime explícitamente) y
+        // plurales de juguete ("bombas de agua"/"pistolas de agua") y el
+        // pretérito "violaron la política" (contain previo con `\b` final en
+        // `violar` no lo casaba). `cuchill` vive en su propia regla (c.636,
         // ver abajo): la familia "cuchillo/cuchillada/cuchillazo/acuchillar"
         // escribe letras tras la raíz, así `\bcuchill\b` (con `\b` final, la
         // forma previa) NO casaba ninguna de ellas — el gate dejaba pasar
@@ -138,13 +147,14 @@ object ContentModeration {
         // para los contextos culinarios legítimos ANTES de revivir el stem
         // (careful-design, anti-falso-positivo P1).
         ModerationRule(
-            stem = Regex("""\b(matar|asesinar|violar|bomba|amenaza|escopeta|pistola)\b"""),
+            stem = Regex("""\b(matar|asesinar|violar|bomba|amenaza|escopeta|pistola)"""),
             contain = listOf(
-                Regex("""\bmatar\b\s+(el|la|los|las|un|una)?\s*(proceso|hilo|servicio|servidor|demonio|sesi[oó]n|tarea|job|zombie)\b"""),
-                Regex("""\bviolar\b\s+(la|el|una|un|las|los)?\s*(pol[ií]tica|contrato|licencia|restricci[oó]n|norma|ley|clausula|cl[áa]usula|t[ée]rminos?)\b"""),
+                Regex("""\bmatar\s+(el|la|los|las|un|una)?\s*(proceso|hilo|servicio|servidor|demonio|sesi[oó]n|tarea|job|zombie)\b"""),
+                Regex("""\bmatar\s+(el|la|los|las)\s+(hambre|tiempo|ganas|aburrimiento|sed|sue[nñ]o|rabia|enojo|ansiedad|estr[eé]s|dolor|cansa(?:d|c)io|curiosidad)\b"""),
+                Regex("""\bviolar(?:on|[éeo]|a|as|an)?\s+(la|el|una|un|las|los)?\s*(pol[ií]tica|contrato|licencia|restricci[oó]n|norma|ley|clausula|cl[áa]usula|t[ée]rminos?)\b"""),
                 Regex("""\b(modelo|m[oó]delo)\s+de\s+amenaza\b"""),
-                Regex("""\bamenaza\b\s+(de)?\s*(de\s+integridad|de\s+seguridad|de\s+modelo)\b"""),
-                Regex("""\b(bomba|pistola|escopeta)\s+de\s+agua\b"""),
+                Regex("""\bamenaza(?:s)?\s+(de)?\s*(de\s+integridad|de\s+seguridad|de\s+modelo)\b"""),
+                Regex("""\b(bomba[ns]?|pistola[ns]?|escopeta[ns]?)\s+de\s+agua\b"""),
                 Regex("""\b(matar|asesinar)\s+(un|el)\s+proceso\b""")
             )
         ),

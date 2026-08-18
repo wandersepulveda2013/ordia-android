@@ -43,13 +43,14 @@ class ContentModerationTest {
         proximity = Regex("""\b(ur[oó]logo|ginec[oó]log[oa]|sex[oó]logo|prostate|m[ée]dico|cl[íi]nica|farmac[ée]utic[oa])\b""")
     )
     private val violencia = ContentModeration.ModerationRule(
-        stem = Regex("""\b(matar|asesinar|violar|bomba|amenaza|escopeta|pistola)\b"""),
+        stem = Regex("""\b(matar|asesinar|violar|bomba|amenaza|escopeta|pistola)"""),
         contain = listOf(
-            Regex("""\bmatar\b\s+(el|la|los|las|un|una)?\s*(proceso|hilo|servicio|servidor|demonio|sesi[oó]n|tarea|job|zombie)\b"""),
-            Regex("""\bviolar\b\s+(la|el|una|un|las|los)?\s*(pol[ií]tica|contrato|licencia|restricci[oó]n|norma|ley|clausula|cl[áa]usula|t[ée]rminos?)\b"""),
+            Regex("""\bmatar\s+(el|la|los|las|un|una)?\s*(proceso|hilo|servicio|servidor|demonio|sesi[oó]n|tarea|job|zombie)\b"""),
+            Regex("""\bmatar\s+(el|la|los|las)\s+(hambre|tiempo|ganas|aburrimiento|sed|sue[nñ]o|rabia|enojo|ansiedad|estr[eé]s|dolor|cansa(?:d|c)io|curiosidad)\b"""),
+            Regex("""\bviolar(?:on|[éeo]|a|as|an)?\s+(la|el|una|un|las|los)?\s*(pol[ií]tica|contrato|licencia|restricci[oó]n|norma|ley|clausula|cl[áa]usula|t[ée]rminos?)\b"""),
             Regex("""\b(modelo|m[oó]delo)\s+de\s+amenaza\b"""),
-            Regex("""\bamenaza\b\s+(de)?\s*(de\s+integridad|de\s+seguridad|de\s+modelo)\b"""),
-            Regex("""\b(bomba|pistola|escopeta)\s+de\s+agua\b"""),
+            Regex("""\bamenaza(?:s)?\s+(de)?\s*(de\s+integridad|de\s+seguridad|de\s+modelo)\b"""),
+            Regex("""\b(bomba[ns]?|pistola[ns]?|escopeta[ns]?)\s+de\s+agua\b"""),
             Regex("""\b(matar|asesinar)\s+(un|el)\s+proceso\b""")
         )
     )
@@ -192,6 +193,72 @@ class ContentModerationTest {
     @Test fun amenazarConArma_esDanino() {
         assertTrue(violentHarmful("amenazar al vecino con una pistola"))
     }
+
+    // c.637: enclíticos/pronominales/flexiones verbales que PRE-fix (stem con
+    // `\b` final) NO casaban → "matarte"/"violarla"/"violaron"/"amenazarte"
+    // PASABAN el gate (amenaza directa no bloqueada). Sin `\b` final casan.
+    @Test fun matarEnclitico_esDanino() {
+        assertTrue(violentHarmful("te voy a matar y matarte hoy"))
+    }
+
+    @Test fun matarseReflexivo_esDanino() {
+        assertTrue(violentHarmful("matarse a si mismo"))
+    }
+
+    @Test fun violarlaEnclitico_esDanino() {
+        assertTrue(violentHarmful("violarla esta noche"))
+    }
+
+    @Test fun violaronPretérito_esDanino() {
+        assertTrue(violentHarmful("violaron a mi hermana"))
+    }
+
+    @Test fun amenazarteEnclitico_esDanino() {
+        assertTrue(violentHarmful("amenazarte de muerte"))
+    }
+
+    @Test fun asesinarteEnclitico_esDanino() {
+        assertTrue(violentHarmful("asesinarte mañana"))
+    }
+
+    // c.637 regression guards: idiomáticos/técnicos que sin `\b` final ahora
+    // casarían el stem → se eximen con contains ampliados.
+    @Test fun matarElHambre_noEsDanino() {
+        assertFalse(violentHarmful("comprar algo para matar el hambre"))
+    }
+
+    @Test fun matarElTiempo_noEsDanino() {
+        assertFalse(violentHarmful("jugar para matar el tiempo"))
+    }
+
+    @Test fun matarLasGanas_noEsDanino() {
+        assertFalse(violentHarmful("dulce para matar las ganas de fumar"))
+    }
+
+    @Test fun matarLaSed_noEsDanino() {
+        assertFalse(violentHarmful("agua para matar la sed"))
+    }
+
+    @Test fun matarElSueno_noEsDanino() {
+        assertFalse(violentHarmful("cafe para matar el sueno"))
+    }
+
+    @Test fun matarElAburrimiento_noEsDanino() {
+        assertFalse(violentHarmful("leer para matar el aburrimiento"))
+    }
+
+    @Test fun violaronPolitica_noEsDanino() {
+        assertFalse(violentHarmful("violaron la politica de privacidad"))
+    }
+
+    @Test fun bombasDeAguaPlural_noEsDanino() {
+        assertFalse(violentHarmful("comprar bombas de agua para el jardin"))
+    }
+
+    @Test fun pistolasDeAguaPlural_noEsDanino() {
+        assertFalse(violentHarmful("pistolas de agua para los niños"))
+    }
+
 
     @Test fun comprarCocaina_esDanino() {
         assertTrue(specificDrugHarmful("vende cocaina barata en la zona"))
