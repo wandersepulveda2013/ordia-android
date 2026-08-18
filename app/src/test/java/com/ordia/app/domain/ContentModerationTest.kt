@@ -73,7 +73,11 @@ class ContentModerationTest {
         stem = Regex("""\bsecuestr"""),
         contain = listOf(
             Regex("""\b(revisi[oó]n|revisar|diagn[oó]stico|diag|audit|auditor[íi]a)\s+(de[l]?)\s*secuestro\b"""),
-            Regex("""\bsecuestro\s+de\s+(dns|sesi[oó]n|cookie|token|sesiones?)\b""")
+            // c.642: artículo definido intermedio opcional (MISMA CLASE que c.641).
+            // Admite "de la sesion" (artículo separado), "de las sesiones" (plural)
+            // y "del token" (de+el contraído sin espacio), además de "de DNS" (sin
+            // artículo). La forma natural del español técnico es con artículo.
+            Regex("""\bsecuestro\s+(?:del|de\s*(?:la|las)?)\s*(dns|sesi[oó]n|cookie|token|sesiones?)\b""")
         )
     )
     // c.635: "droga" (genérica, proximity médica) SEPARADA de las específicas.
@@ -137,6 +141,36 @@ class ContentModerationTest {
 
     @Test fun secuestroDeSesion_noEsDanino() {
         assertFalse(secuestroHarmful("auditar el secuestro de sesion del login"))
+    }
+
+    // ── c.642: artículo definido intermedio en la exención técnica de `secuestr`
+    //    (MISMA CLASE que c.641/cuchill). El habla técnica natural es
+    //    "secuestro de la sesión/cookie/token" (con artículo); PRE-fix el contain
+    //    `secuestro de (dns|sesion|...)` NO admitía artículo intermedio → la forma
+    //    natural era bloqueada (falso-positivo, captura de nota técnica perdida). ──
+
+    @Test fun secuestroDeLaSesion_noEsDanino() {
+        // PRE-fix RED: "secuestro de la sesion" no casaba el contain (artículo "la")
+        // → falso-positivo. Ahora el artículo intermedio es opcional.
+        assertFalse(secuestroHarmful("secuestro de la sesion de usuario"))
+    }
+
+    @Test fun secuestroDeLaCookie_noEsDanino() {
+        assertFalse(secuestroHarmful("revisar el secuestro de la cookie de auth"))
+    }
+
+    @Test fun secuestroDelToken_noEsDanino() {
+        assertFalse(secuestroHarmful("auditar el secuestro del token de refresco"))
+    }
+
+    @Test fun secuestroDeLasSesiones_noEsDanino() {
+        // Plural con artículo "las": forma natural "secuestro de las sesiones".
+        assertFalse(secuestroHarmful("diagnostico del secuestro de las sesiones"))
+    }
+
+    @Test fun secuestroTecnicoSinArticulo_sigueNoDanino() {
+        // Regresión: la forma sin artículo (c.630) sigue pasando tras c.642.
+        assertFalse(secuestroHarmful("secuestro de cookie del backend"))
     }
 
     // ── Stems muertos por `\b` final en VIOLENCIA (c.630): `secuestr` no casaba

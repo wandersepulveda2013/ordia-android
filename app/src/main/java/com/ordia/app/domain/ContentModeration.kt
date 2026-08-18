@@ -203,11 +203,23 @@ object ContentModeration {
         // "secuestraron a mi hermano" PASABAN el gate. Sin `\b` final casa la
         // raíz y todas sus formas; las exenciones de colocación legitiman el
         // sentido técnico ("revisar el secuestro de DNS/ sesión/ cookie/ token").
+        // c.642: la exención `secuestro de (dns|sesión|...)` ahora admite el
+        // artículo definido intermedio ("secuestro de la sesión/cookie/token")
+        // — la forma habitual del español técnico (MISMA CLASE que c.641).
         ModerationRule(
             stem = Regex("""\bsecuestr"""),
             contain = listOf(
                 Regex("""\b(revisi[oó]n|revisar|diagn[oó]stico|diag|audit|auditor[íi]a)\s+(de[l]?)\s*secuestro\b"""),
-                Regex("""\bsecuestro\s+de\s+(dns|sesi[oó]n|cookie|token|sesiones?)\b""")
+                // c.642: artículo definido intermedio opcional entre `de` y el
+                // sustantivo técnico (MISMA CLASE que c.641/cuchill). El habla
+                // técnica natural es "secuestro de la sesión"/"secuestro de las
+                // sesiones"/"secuestro del token" (de+el contraído); PRE-fix el
+                // contain `secuestro de (dns|sesión|...)` NO admitía artículo
+                // intermedio → esa forma natural era bloqueada (falso-positivo,
+                // captura de nota técnica legítima perdida). No abre
+                // falso-negativo: "secuestro de la sesión/cookie/token" es
+                // inherentemente técnico, sin lectura dañina que disimular.
+                Regex("""\bsecuestro\s+(?:del|de\s*(?:la|las)?)\s*(dns|sesi[oó]n|cookie|token|sesiones?)\b""")
             )
         ),
         // "droga" (genérica): se exonera por proximidad médica/farmacéutica — la
