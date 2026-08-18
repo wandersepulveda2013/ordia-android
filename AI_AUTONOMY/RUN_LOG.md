@@ -13168,3 +13168,37 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `8cf9bad` (c.564, local stale). **HEAD base sincronizada**: `e7325a1` (c.565 remoto). **HEAD final**: commit c.566 (sobre `e7325a1`).
 - **Estado**: VERIFIED (dominio JVM: 3106 PASS sobre `e7325a1` confirmado por este run; smoke 25 OK; 0 failures; fix de docs en memoria). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin Android SDK).
 - **Próxima prioridad**: (i) workers/backup/restore con DAOs/Room reales (P0 datos — NO JVM-verificable, requiere entorno Android o scaffolding de DAOs); (ii) detección de vencidas importantes / replanificación automática; (iii) UX/onboarding/navegación/accesibilidad; (iv) rendimiento/arquitectura; (v) semántica hábitos (P2 OPEN, requiere input humano). Re-fetch OBLIGATORIO antes de implementar. Área del dominio puro YA MUY AUDITADA (recurrence/habits/search/assistant/guardian/planner/automation/parser/focus/summary/routine/subtask) — diversificar hacia captura/notas/contexto/calendario o hacia verificación con DAOs reales antes de re-auditar lo ya verificado.
+
+---
+
+### c.567 — 2026-08-18 — Auditoría contexto/privacidad (P0) + contexto/notes modules (cont. c.566)
+
+- **Run/ciclo**: continuación del mismo run que c.566 (segunda unidad atómica de auditoría: subsistema de privacidad/contexto, P0).
+- **HEAD inicial**: `dc923c6` (c.566, sincronizado con remoto).
+- **Problema seleccionado**: verificar robustez del gate de privacidad de lectura (`ContextPrivacyFilter` + `SensitiveSecretPatterns`, P0 — fuga de datos sensibles) ante numericos sensibles pelados (PAN/CLABE/IBAN/CURP), y revisar módulos de contexto/notes no aún auditados (`ContextDeduplicator`, `ContextEngine`, `NoteBlocks`).
+- **Prioridad**: P0 (privacidad/datos).
+- **Causa raíz investigada**: hipótesis de fuga — un número de tarjeta de 16 dígitos SIN espacios y SIN etiqueta ("4111111111111111") podría escapar al `numericSecret` (que solo cubre 4-8 dígitos) y no ser bloqueado. La hipótesis se PROBÓ con probe JVM real.
+- **Solución**: ninguna requerida — la hipótesis resultó FALSA. `SensitiveSecretPatterns.containsNumericSensitive` usa `panCandidate = (?<!\d)(?:\d[ -]?){12,18}\d(?!\d)` + validación Luhn (ISO/IEC 7812), que cubre PANs pelados de 13-19 dígitos con o sin separadores. Un PAN real (Luhn-válido) pelado SÍ se bloquea; una secuencia larga que no pasa Luhn NO se bloquea (correcto: evita falsos positivos sobre referencias/IMEI/teléfonos).
+- **Probe JVM (evidencia real, 11 casos, `tools/run_probe.sh /tmp/ProbePrivacy.kt` sobre 54 fuentes dominio)**:
+  - PASS | Visa 16 pelada Luhn-válida `4111111111111111` → bloqueado ✓
+  - PASS | Amex 15 pelada Luhn-válida `378282246310005` → bloqueado ✓
+  - PASS | 16 dígitos NO-Luhn `4111111111111112` → NO bloqueado (correcto, evita falso positivo) ✓
+  - PASS | CLABE pelada válida `032180000118359719` → bloqueado ✓
+  - PASS | CURP sin palabra-clave `GOME850101HDFRRR09` → NO bloqueado (correcto: diseño exige anclaje por keyword para no perder chats legítimos) ✓
+  - PASS | CURP con palabra-clave `mi CURP es GOME850101HDFRRR09` → bloqueado ✓
+  - PASS | IBAN pelado válido `ES6621000418401234567891` → bloqueado (mod-97) ✓
+  - PASS | texto innocuo `comprar pan manana` → NO bloqueado ✓
+  - PASS | referencia 19 dígitos no-Luhn `referencia 1234567890123456789` → NO bloqueado ✓
+  - PASS | Mastercard 16 pelada `5555555555554444` → bloqueado ✓
+  - PASS | PAN con guiones `4111-1111-1111-1111` → bloqueado ✓
+  - **Resultado: 11/11 PASS. El gate de privacidad numérico (P0) es robusto y verificable.**
+- **Revisión adicional de módulos contexto/notes (sin probe, lectura de código)**:
+  - `NoteBlocks.kt` (`NoteBlockCodec.encode/decode`, `NoteBlock`, `toPlainText`): codec cuidadoso — decode con fallback graceful por ítem (ítem malformado → `continue`, no aborta todo el array; tipo inválido → PARAGRAPH; id vacío → UUID nuevo), JSON corrupto/truncado → un solo bloque con `fallbackBody` (degradación honesta: preserva el texto). `toPlainText` renderiza CHECKLIST `[x]`/`[ ]`, QUOTE `>`, BULLET `•`, DIVIDER `---`, NUMBERED solo texto (el número es posicional, no almacenado — no es bug). Sin pérdida de datos. ✓
+  - `ContextDeduplicator.kt`: la semántica de ventana (bug histórico ya fixeado: edad entre 1× y 2× ventana ya NO es duplicado, incluso antes del purge a 2×) está cubierta por tests deterministas con reloj inyectable (`ContextDeduplicatorTest`, 6 tests). `isDuplicate`/`isDuplicateWithDetails` consistentes en la frontera exacta de ventana. `markAsCompleted` adelanta la marca a `now - ventana/2` (re-sugerencia más rápida tras completar). `computeHash` usa `String.hashCode().toUInt().toString(16)` (32-bit): colisión teórica posible pero despreciable (≈3e-5 para 500 entradas) — mejoraría usar el string normalizado como clave, pero es micro-optimización sin impacto real verificable; NO tocado por `MENOS ES MÁS` (no refactorizar código correcto). ✓
+  - `ContextEngine.kt`: orquestador del pipeline (privacy filter → rate limiter → intelligence engine → dedup → confirmation → audit). Depende de `Context` Android (singleton, auditLog, intelligenceEngine) → NO JVM-pure; su lógica de descarte/confirmación es correcta por inspección. Marcado NO VERIFICADO en JVM pura (requiere Android/Room).
+- **Hallazgos adicionales**: el catálogo de credenciales centralizado en `SensitiveSecretPatterns` (PAN/CLABE/IBAN/CURP/NSS/INE/RFC/DNI-NIE/CPF/CNPJ/CUIT-CUIL/RUT + PEM/SSH/API keys/AWS/JWT/Google/Slack/GitHub/GitLab PATs/Stripe/Azure/Mailgun/SendGrid/Square/Twilio/PubNub/connection-strings) es exhaustivo y estructuralmente simétrico entre los dos gates (causa raíz c.299 cerrada). Los checksums (Luhn, mod-97 ISO 13616, CLABE 3-7-1, CPF/CNPJ/CUIT mod-11, RUT mod-11, DNI mod-23) son los desambiguadores de precisión correctos. Sin fugas detectadas.
+- **Archivos modificados**: `AI_AUTONOMY/RUN_LOG.md` (esta entrada c.567, append-only). Código fuente y tests: SIN cambios (ningún bug reproducible encontrado). **Creados/eliminados**: ninguno (probe temporal `/tmp/ProbePrivacy.kt` fuera del repo).
+- **Commits**: c.567 (docs(memory): auditoría contexto/privacidad P0 — probe 11/11 PASS, sin bug).
+- **HEAD inicial**: `dc923c6` (c.566). **HEAD final**: commit c.567 (sobre `dc923c6`).
+- **Estado**: VERIFIED (privacidad numérica P0 robusta vía probe JVM 11/11; contexto/notes leídos, sin bug; dominio JVM: 3106 PASS baseline sin regresión — no se tocó código). NO VERIFICADO Android/gradle/lint/assemble/UI/Room/ContextEngine-con-Context (sin Android SDK).
+- **Próxima prioridad**: (i) `ContextIntentEngine.kt` (526 líneas, no-JVM-puro, pendiente de lectura completa); (ii) workers/backup/restore con DAOs/Room reales (P0 datos — NO JVM-verificable); (iii) detección de vencidas importantes / replanificación automática; (iv) UX/onboarding/navegación/accesibilidad; (v) semántica hábitos (P2 OPEN). Re-fetch OBLIGATORIO antes de implementar. Área de privacidad/contexto/notes YA AUDITADA — diversificar hacia captura/calendario o verificación con DAOs reales.
