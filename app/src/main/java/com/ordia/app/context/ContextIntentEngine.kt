@@ -404,6 +404,12 @@ object ContextIntentEngine {
         val today = LocalDate.now()
         var targetDate: LocalDate? = null
         var targetTime: LocalTime? = null
+        // Punto medio canonico inequivoco (medianoche 00:00 / mediodia 12:00)
+        // proveniente de meridiem explicito o palabra canonica. Permite aplicar
+        // past-safe (ruedo +1 dia si ya paso hoy) solo a midpoints seguros, no a
+        // horas numericas arbitrarias donde +1 es ambiguo. Paridad con el
+        // past-safe de medianoche/mediodia del NaturalTaskParser (l.4706-4711).
+        var canonicalMidpoint: LocalTime? = null
 
         // Días de la semana
         val dayMap = mapOf(
@@ -545,6 +551,16 @@ object ContextIntentEngine {
                     if (hour == 12) adjustedHour = 0
                 }
                 targetTime = LocalTime.of(adjustedHour, minute)
+                // Marca el midpoint canonico cuando un meridiem explicito resuelve
+                // a medianoche (00:00) o mediodia (12:00): solo esos dos son
+                // inequivocos y admiten past-safe (a una hora numerica como "a las
+                // 9" el ruido de +1 es ambiguo: podria ser hoy si no ha llegado).
+                // Paridad con el guard del parser (isInequivocalMidpoint, l.4706).
+                if (minute == 0 && adjustedHour == 0) canonicalMidpoint = LocalTime.MIDNIGHT
+                else if (minute == 0 && adjustedHour == 12 &&
+                    (suffix.contains("pm") || suffix.contains("tarde"))) {
+                    canonicalMidpoint = LocalTime.NOON
+                }
             }
         }
 
@@ -566,15 +582,35 @@ object ContextIntentEngine {
             val hasMedianoche = lower.contains("medianoche")
             val hasMediodia = lower.contains("mediodía") || lower.contains("mediodia")
             when {
-                hasMedianoche -> targetTime = LocalTime.of(0, 0)
-                hasMediodia -> targetTime = LocalTime.of(12, 0)
+                hasMedianoche -> {
+                    targetTime = LocalTime.of(0, 0)
+                    canonicalMidpoint = LocalTime.MIDNIGHT
+                }
+                hasMediodia -> {
+                    targetTime = LocalTime.of(12, 0)
+                    canonicalMidpoint = LocalTime.NOON
+                }
             }
         }
 
         if (targetDate == null && targetTime == null) return null
 
-        val date = targetDate ?: today
+        // Past-safe (c.590): un punto medio canonico inequivoco (medianoche/
+        // mediodia) sin fecha explicita que ya paso hoy se rueda a +1 dia. Sin
+        // esto, una captura contextual "reunion a las 12 de la noche" tomada por
+        // la manana caia en hoy 00:00 (pasado) -> reminder <= now -> descartado
+        // por ReminderSync -> la cita nacia olvidada (P1: evitar olvidos). Paridad
+        // con el past-safe de midpoints del NaturalTaskParser (l.4706-4711, que
+        // usa el mismo guard: date==null + parsedTime==MIDNIGHT/NOON + < now).
+        // Solo se aplica a midpoints inequivocos: una hora numerica ("a las 9")
+        // NO se rueda porque +1 es ambiguo (podria ser hoy si aun no llego) y el
+        // parser tampoco lo hace salvo para esos midpoints.
+        val baseDate = targetDate ?: today
         val time = targetTime ?: LocalTime.of(12, 0)
+        val zone = java.time.ZoneId.systemDefault()
+        val instant = baseDate.atTime(time).atZone(zone).toInstant()
+        val date = if (targetDate == null && canonicalMidpoint != null &&
+            instant.toEpochMilli() <= System.currentTimeMillis()) baseDate.plusDays(1) else baseDate
 
         return date.atTime(time)
             .atZone(java.time.ZoneId.systemDefault())

@@ -456,14 +456,17 @@ class ContextIntentEngineDateTimeTest {
     }
 
     @Test
-    fun alMediodia_isToday() {
-        // Sin otra referencia de día, "al mediodía" cae a hoy (default del motor).
+    fun alMediodia_isToday_or_manana() {
+        // Sin otra referencia de día, "al mediodía" cae a hoy si aún no llegó (mañana),
+        // o a mañana si ya pasó (past-safe c.590). Antes de las 12 es hoy; a partir de
+        // las 12 se rueda. Se respeta la hora real para no romper en CI a distintas horas.
         val due = ContextIntentEngine.extractDateTime("reunión al mediodía")
         assertNotNull(due)
         val z = ZoneId.systemDefault()
+        val now = ZonedDateTime.now(z)
         val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
-        val today = LocalDate.now(z)
-        assertEquals("'al mediodía' (sin día) es hoy", today, dDue)
+        val esperado = if (now.hour < 12) LocalDate.now(z) else LocalDate.now(z).plusDays(1)
+        assertEquals("'al mediodía' (sin día) respeta past-safe", esperado, dDue)
     }
 
     // --- "esta <parte del día>": paridad con NaturalTaskParser.partOfDayTimes (c.588) ---
@@ -530,4 +533,46 @@ class ContextIntentEngineDateTimeTest {
         val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
         assertEquals("'esta madrugada' = 04:00", 4, hour)
     }
+
+// --- Past-safe: midpoints canónicos en el pasado se ruedan a +1 día (c.590) ---
+    // Regresión c.590: extractDateTime carecía del past-safe de medianoche/mediodía
+    // del NaturalTaskParser (l.4706-4711). Una captura contextual "reunión a las 12 de
+    // la noche" (medianoche) tomada a cualquier hora del día caía en hoy 00:00 (pasado)
+    // → recordatorio (dueAt-offset) <= now → ReminderSync lo descarta → cita olvidada
+    // (P1: evitar olvidos). Ahora el motor rueda a mañana, paridad con el parser.
+    @Test
+    fun medianoche_pasada_se_ruega_a_manana() {
+        // Medianoche de hoy (00:00) SIEMPRE está en el pasado al capturar (la ventana
+        // "medianoche justo ahora" es despreciable), así esta aserción es determinista.
+        val due = ContextIntentEngine.extractDateTime("reunión a las 12 de la noche")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val manana = LocalDate.now(z).plusDays(1)
+        assertEquals("'12 de la noche' ya pasada se rueda a mañana (no hoy pasado)", manana, dDue)
+    }
+
+    @Test
+    fun medianoche_madrugada_pasada_se_ruega_a_manana() {
+        // Misma divergencia P1 con "12 de la madrugada" (también medianoche).
+        val due = ContextIntentEngine.extractDateTime("reunión a las 12 de la madrugada")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val manana = LocalDate.now(z).plusDays(1)
+        assertEquals("'12 de la madrugada' ya pasada se rueda a mañana", manana, dDue)
+    }
+
+    @Test
+    fun palabra_medianoche_pasada_se_ruega_a_manana() {
+        // "a medianoche" (palabra suelta) sin día: mismo past-safe que la forma numérica.
+        val due = ContextIntentEngine.extractDateTime("entrega a medianoche")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val manana = LocalDate.now(z).plusDays(1)
+        assertEquals("'a medianoche' ya pasada se rueda a mañana", manana, dDue)
+    }
+
+
 }
