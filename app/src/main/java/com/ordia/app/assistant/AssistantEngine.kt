@@ -458,12 +458,13 @@ object AssistantEngine {
     }
 
     /**
-     * Detecta la intención de "recap" de logros: "¿qué hice hoy?",
-     * "¿qué completé/terminé hoy?", "¿qué hice ayer?". Tokens sin acento (ya
-     * normalizados por `foldForSearch`). Excluye deliberadamente el verbo
-     * *tener* (agenda) y *deber/faltar* (pendientes) para no secuestrar esas
-     * ramas. El token "hice" solo casa con recap (no aparece en agenda ni en
-     * olvidos ni en compromisos), por lo que es seguro.
+     * Detecta la intención de "recap" de logros: "¿qué hice hoy?", "¿qué
+     * completé/terminé hoy?", "¿qué hice ayer/anteayer?" y los períodos "¿qué
+     * completé esta semana/este mes?". Tokens sin acento (ya normalizados por
+     * `foldForSearch`). Excluye deliberadamente el verbo *tener* (agenda) y
+     * *deber/faltar* (pendientes) para no secuestrar esas ramas. El token "hice"
+     * solo casa con recap (no aparece en agenda ni en olvidos ni en
+     * compromisos), por lo que es seguro.
      */
     private fun isCompletedRecapIntent(query: String): Boolean {
         val isRecapVerb =
@@ -473,20 +474,25 @@ object AssistantEngine {
                 "hice hoy" in query || "complete hoy" in query ||
                 "termine hoy" in query || "acabe hoy" in query ||
                 "completado hoy" in query
-        // "hice ayer" se trata aparte para forzar la fecha de ayer aunque falte
-        // el verbo recap explícito ("¿qué hice ayer?" trae "hice" + "ayer").
-        return isRecapVerb || "hice ayer" in query
+        // "hice ayer"/"hice anteayer" fuerzan la fecha aunque falte el verbo
+        // recap explícito ("¿qué hice ayer?" trae "hice" + "ayer"; lo mismo con
+        // anteayer). "anteayer" contiene "ayer", por lo que ambos se cubren.
+        return isRecapVerb || "hice ayer" in query || "hice anteayer" in query
     }
 
     /**
-     * Respuesta de logro para "¿qué hice hoy?"/"¿qué hice ayer?". Reusa el
-     * MISMO predicado canónico que `TaskRules.completedTodayCount` (raíces,
-     * `status==COMPLETED`, `!archived`, `!CANCELLED`, `completedAt` cae en la
-     * fecha), extendido a "ayer" (fecha = hoy-1). No es una segunda fuente de
-     * verdad: aplica el mismo filtro canónico en otra fecha. Lista los títulos
-     * ordenados por `completedAt` desc (lo más reciente primero) y nombra hasta
-     * 3; el resto se resume como recuento. Sin nueva pantalla ni botón: la
-     * superficie del asistente ya existe. Determinista y local (sin IA fingida).
+     * Respuesta de logro para "¿qué hice hoy/ayer/anteayer?" y para períodos
+     * ("¿qué completé esta semana/este mes?"). Reusa el MISMO predicado canónico
+     * que `TaskRules.completedTodayCount` (raíces, `status==COMPLETED`,
+     * `!archived`, `!CANCELLED`) y los MISMOS límites calendario que
+     * `SearchEngine.anchorMatchesScope` (semana lun→dom y mes natural, vía
+     * `DateRules.calendarWeekRange`/`calendarMonthRange` — fuente única de
+     * verdad). No es una segunda fuente: aplica el mismo filtro canónico en el
+     * rango del período pedido. Antes "esta semana"/"este mes" caían a HOY y
+     * silenciaban lo terminado el lunes o a principios de mes (mentira por
+     * omisión del logro). Lista los títulos ordenados por `completedAt` desc (lo
+     * más reciente primero) y nombra hasta 3; el resto se resume como recuento.
+     * Sin nueva pantalla ni botón. Determinista y local (sin IA fingida).
      */
     private fun completedAnswer(
         query: String,
@@ -495,8 +501,21 @@ object AssistantEngine {
         zone: ZoneId
     ): AssistantAnswer {
         val today = DateRules.toLocalDate(now, zone)
-        val target = if ("ayer" in query) today.minusDays(1) else today
-        val day = if ("ayer" in query) "Ayer" else "Hoy"
+        // "anteayer" contiene el substring "ayer": debe evaluarse ANTES que "ayer".
+        // "semana"/"mes" se evalúan antes que los días: un período desplaza la fecha.
+        val (label, inRange) = when {
+            "semana" in query -> {
+                val (s, e) = DateRules.calendarWeekRange(today)
+                "Esta semana" to ({ d: LocalDate -> !d.isBefore(s) && !d.isAfter(e) })
+            }
+            "mes" in query -> {
+                val (s, e) = DateRules.calendarMonthRange(today)
+                "Este mes" to ({ d: LocalDate -> !d.isBefore(s) && !d.isAfter(e) })
+            }
+            "anteayer" in query -> "Anteayer" to ({ d: LocalDate -> d == today.minusDays(2) })
+            "ayer" in query -> "Ayer" to ({ d: LocalDate -> d == today.minusDays(1) })
+            else -> "Hoy" to ({ d: LocalDate -> d == today })
+        }
         val done = tasks
             .asSequence()
             .filter { it.parentTaskId == null }
@@ -505,23 +524,23 @@ object AssistantEngine {
             .filterNot { it.status == TaskStatus.CANCELLED }
             .mapNotNull { t ->
                 val at = t.completedAt ?: return@mapNotNull null
-                if (DateRules.toLocalDate(at, zone) == target) t else null
+                if (inRange(DateRules.toLocalDate(at, zone))) t else null
             }
             .sortedByDescending { it.completedAt ?: 0L }
             .toList()
         return when {
             done.isEmpty() -> AssistantAnswer(
-                "$day no has completado tareas todavía.",
+                "$label no has completado tareas todavía.",
                 AssistantAction.NONE
             )
             done.size <= 3 -> AssistantAnswer(
-                "$day completaste ${done.size}: " + done.joinToString(", ") { "«${it.title}»" } + ".",
+                "$label completaste ${done.size}: " + done.joinToString(", ") { "«${it.title}»" } + ".",
                 AssistantAction.NONE
             )
             else -> {
                 val shown = done.take(3).joinToString(", ") { "«${it.title}»" }
                 AssistantAnswer(
-                    "$day completaste ${done.size}: $shown y ${done.size - 3} más.",
+                    "$label completaste ${done.size}: $shown y ${done.size - 3} más.",
                     AssistantAction.NONE
                 )
             }

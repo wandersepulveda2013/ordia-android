@@ -4,6 +4,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -64,4 +65,30 @@ object DateRules {
         } ?: ""
 
     fun minutesToClock(minutes: Int): String = "%02d:%02d".format(minutes / 60, minutes % 60)
+
+    /**
+     * Rango [inicio, fin] de la semana calendario ISO (lun→dom) que contiene a
+     * `today`. Fuente única de verdad para "esta semana" / "completadas esta
+     * semana": SearchEngine (anclaje en completedAt con `fullCalendarWeek`) y el
+     * asistente usan el mismo cálculo, de modo que el logro recuperado en el
+     * diálogo coincida con el de la búsqueda. Día de semana ISO: lunes=1..domingo=7.
+     * El `% 7` es crítico en domingo: `(7 - 7) % 7 = 0` → la semana termina hoy.
+     */
+    fun calendarWeekRange(today: LocalDate): Pair<LocalDate, LocalDate> {
+        val daysToSunday = (7 - today.dayOfWeek.value) % 7
+        val endOfWeek = today.plusDays(daysToSunday.toLong())
+        val startOfWeek = today.minusDays((today.dayOfWeek.value - 1).toLong())
+        return startOfWeek to endOfWeek
+    }
+
+    /**
+     * Rango [inicio, fin] del mes natural (1..último día) que contiene a `today`.
+     * Fuente única de verdad para "este mes": SearchEngine y el asistente comparten
+     * el mismo cálculo (`YearMonth`), evitando que el recap del diálogo discrepe
+     * con la búsqueda.
+     */
+    fun calendarMonthRange(today: LocalDate): Pair<LocalDate, LocalDate> {
+        val month = YearMonth.from(today)
+        return month.atDay(1) to month.atEndOfMonth()
+    }
 }

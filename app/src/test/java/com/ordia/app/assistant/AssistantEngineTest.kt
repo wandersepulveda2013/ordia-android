@@ -3056,6 +3056,74 @@ class AssistantEngineTest {
         assertFalse("no responde recap a agenda: ${answer.text}", answer.text.contains("completaste"))
     }
 
+    // --- Recap de logros ampliado a períodos ("esta semana"/"este mes"/"anteayer") ---
+    // Antes "¿qué completé esta semana?" caía a completedAnswer pero, al no reconocer
+    // el scope, lo resolvía como HOY: silenciaba lo terminado el lunes (mentira por
+    // omisión del logro, justo lo que el recap existente corrige para "hoy"/"ayer").
+    // Ahora recupera el logro del período entero con el MISMO predicado canónico
+    // (raíces, COMPLETED, !archived, !CANCELLED) y los mismos límites de semana/mes
+    // que SearchEngine (lun→dom; mes natural). Sin nueva pantalla. Determinista/local.
+
+    @Test fun completedRecap_thisWeek_recoversWholeCalendarWeek() {
+        // dayToday = mié 2026-07-29 → semana lun 07-27..dom 08-02.
+        val now = dayAt(dayToday, 15)
+        val monday = LocalDate.of(2026, 7, 27)
+        val prevSunday = LocalDate.of(2026, 7, 26) // semana pasada, excluida
+        val done = listOf(
+            completedTask(1, "Miércoles", dayAt(dayToday, 10)),
+            completedTask(2, "Lunes", dayAt(monday, 9)),
+            completedTask(3, "Domingo pasado", dayAt(prevSunday, 9))
+        )
+        val answer = AssistantEngine.answer("¿qué completé esta semana?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("etiqueta de semana: ${answer.text}", answer.text.startsWith("Esta semana"))
+        assertTrue("cuenta 2 (no 3): ${answer.text}", answer.text.contains("completaste 2"))
+        assertTrue("nombra la de hoy: ${answer.text}", answer.text.contains("Miércoles"))
+        assertTrue("nombra la del lunes: ${answer.text}", answer.text.contains("Lunes"))
+        assertFalse("excluye semana pasada: ${answer.text}", answer.text.contains("Domingo pasado"))
+        assertEquals(AssistantAction.NONE, answer.action)
+    }
+
+    @Test fun completedRecap_thisMonth_recoversWholeCalendarMonth() {
+        // dayToday = 2026-07-29 → mes jul 01..31.
+        val now = dayAt(dayToday, 15)
+        val done = listOf(
+            completedTask(1, "Principio", dayAt(LocalDate.of(2026, 7, 1), 9)),
+            completedTask(2, "Hoy", dayAt(dayToday, 10)),
+            completedTask(3, "De junio", dayAt(LocalDate.of(2026, 6, 30), 9)) // mes pasado
+        )
+        val answer = AssistantEngine.answer("¿qué completé este mes?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("etiqueta de mes: ${answer.text}", answer.text.startsWith("Este mes"))
+        assertTrue("cuenta 2: ${answer.text}", answer.text.contains("completaste 2"))
+        assertTrue("nombra principio de mes: ${answer.text}", answer.text.contains("Principio"))
+        assertFalse("excluye junio: ${answer.text}", answer.text.contains("De junio"))
+    }
+
+    @Test fun completedRecap_anteayer_listsDayBeforeYesterday() {
+        // dayToday = mié 07-29 → anteayer = lun 07-27.
+        val now = dayAt(dayToday, 15)
+        val anteayer = dayToday.minusDays(2)
+        val yesterday = dayToday.minusDays(1)
+        val done = listOf(
+            completedTask(1, "De anteayer", dayAt(anteayer, 9)),
+            completedTask(2, "De ayer", dayAt(yesterday, 9)),
+            completedTask(3, "De hoy", dayAt(dayToday, 9))
+        )
+        val answer = AssistantEngine.answer("¿qué hice anteayer?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("etiqueta anteayer: ${answer.text}", answer.text.startsWith("Anteayer"))
+        assertTrue("cuenta 1: ${answer.text}", answer.text.contains("completaste 1"))
+        assertTrue("nombra la de anteayer: ${answer.text}", answer.text.contains("De anteayer"))
+        assertFalse("no nombra la de ayer: ${answer.text}", answer.text.contains("De ayer"))
+    }
+
+    @Test fun completedRecap_thisWeek_empty_saysSoHonestly() {
+        val now = dayAt(dayToday, 15)
+        // Una completada pero en semana pasada: esta semana vacía.
+        val done = listOf(completedTask(1, "Otra semana", dayAt(LocalDate.of(2026, 7, 26), 9)))
+        val answer = AssistantEngine.answer("¿qué completé esta semana?", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("dice que no hay: ${answer.text}", answer.text.contains("no has completado"))
+        assertFalse("no inventa logros: ${answer.text}", answer.text.contains("«"))
+    }
+
     @Test fun entityLookup_aQueHoraTengo_respondeHoraDelStartAt() {
         // «¿a qué hora tengo la reunión?» con un slot agendado (startAt 11:00 Sto.Dgo).
         val now = dayAt(dayToday, 9)
