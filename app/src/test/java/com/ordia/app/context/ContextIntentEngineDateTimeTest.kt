@@ -881,4 +881,61 @@ class ContextIntentEngineDateTimeTest {
         val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
         assertEquals("'en 10 días' = hoy + 10 días", LocalDate.now(z).plusDays(10), dDue)
     }
+
+    // --- Paridad parser↔detector de anclaje (c.600) ---
+    // hasDateReference/hasTimeReference alimentan el bono contextual de confianza
+    // (+0.1 fecha, +0.08 hora) en scoreContextualBonus. Antes omitían anclajes que
+    // extractDateTime sí resolvía, así una frase con "ayer" no recibía el bono y caía
+    // por debajo de MINIMUM_CONFIDENCE: el compromiso se descartaba (olvido, P1).
+    // Estos tests bloquean la paridad a nivel analyze() de extremo a extremo.
+
+    private fun analyzeAnchor(raw: String): com.ordia.app.context.ContextIntent? =
+        ContextIntentEngine.analyze(
+            com.ordia.app.context.ContextEvent(
+                com.ordia.app.context.ContextCaptureSource.SHARED_TEXT,
+                raw, System.currentTimeMillis(), null, null
+            )
+        )
+
+    @Test
+    fun ayerProducesIntent_parityWithManana() {
+        // "pagar la factura ayer" y "pagar la factura mañana" deben capturarse ambos:
+        // mismo verbo + objeto, sólo cambia el ancla temporal reconocido.
+        assertNotNull(
+            "ayer es ancla de fecha resuelto por extractDateTime; el bono de fecha " +
+                "debe aplicarse y el compromiso no debe descartarse",
+            analyzeAnchor("pagar la factura ayer")
+        )
+    }
+
+    @Test
+    fun ayerAndMananaCaptureSymmetry() {
+        val conAyer = analyzeAnchor("pagar la factura ayer")
+        val conManana = analyzeAnchor("pagar la factura mañana")
+        assertNotNull(conAyer)
+        assertNotNull(conManana)
+        // Ambos capturados: la paridad restaura la simetría de anclaje de fecha.
+    }
+
+    @Test
+    fun anteayerProducesIntent() {
+        assertNotNull(
+            "anteayer es ancla de fecha resuelto por extractDateTime",
+            analyzeAnchor("pagar la factura anteayer")
+        )
+    }
+
+    @Test
+    fun antierProducesIntent() {
+        assertNotNull(
+            "antier (variante coloquial) es ancla de fecha resuelto por extractDateTime",
+            analyzeAnchor("pagar la factura antier")
+        )
+    }
+
+    // Nota: la paridad de hora (medianoche/mediodía en hasTimeReference) se
+    // verifica a nivel de detector con tools/run_parity_probe.sh. No se bloca vía
+    // analyze() porque la captura de extremo a extremo depende del puntaje base de
+    // la categoría, no sólo del bono de hora (+0.08): una aserción de captura sería
+    // frágil y no aislaria el fix del detector.
 }

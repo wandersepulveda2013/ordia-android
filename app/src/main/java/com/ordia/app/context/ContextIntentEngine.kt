@@ -803,22 +803,37 @@ object ContextIntentEngine {
     }
 
     private fun hasDateReference(lower: String): Boolean {
+        // Paridad con extractDateTime (c.600): reconocer los anclajes de fecha que
+        // el parser resuelve pero este detector omitía. Sin ellos, una frase como
+        // "pagar la factura ayer" no recibía el bono de fecha (+0.1) y caía por
+        // debajo de MINIMUM_CONFIDENCE, descartando un compromiso (olvido, P1),
+        // mientras que "pagar la factura mañana" sí pasaba. Mismo verbo, mismo
+        // objeto: la única diferencia era el ancla temporal reconocida.
         return lower.contains("mañana") || lower.contains("hoy") ||
+            lower.contains("ayer") || lower.contains("antier") ||
             lower.contains("lunes") || lower.contains("martes") ||
             lower.contains("miércoles") || lower.contains("miercoles") ||
             lower.contains("jueves") || lower.contains("viernes") ||
             lower.contains("sábado") || lower.contains("sabado") ||
             lower.contains("domingo") ||
-            Regex("""(pasado mañana|pasado manana|esta noche|esta tarde|el \d+)""").containsMatchIn(lower) ||
+            Regex("""(pasado mañana|pasado manana|esta noche|esta tarde|esta madrugada|el \d+)""").containsMatchIn(lower) ||
+            // "1 de enero", "15 de marzo": extractDateTime lo resuelve vía
+            // dayPattern + monthName; el detector anterior solo miraba "el \d+".
+            Regex("""\d{1,2}\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)""").containsMatchIn(lower) ||
             Regex("""\d{1,2}:\d{2}""").containsMatchIn(lower) ||
             Regex("""a las \d+""").containsMatchIn(lower)
     }
 
     private fun hasTimeReference(lower: String): Boolean {
+        // Paridad con extractDateTime (c.600): "a medianoche"/"al mediodía" son
+        // horas canónicas (00:00/12:00) que el parser resuelve; el detector las
+        // omitía, así una entrega "a medianoche" no recibía el bono de hora (+0.08).
         return Regex("""\d{1,2}:\d{2}""").containsMatchIn(lower) ||
             Regex("""a (las|la) \d{1,2}""").containsMatchIn(lower) ||
             lower.contains("de la mañana") || lower.contains("de la tarde") ||
-            lower.contains("de la noche") || lower.contains("del día")
+            lower.contains("de la noche") || lower.contains("del día") ||
+            lower.contains("medianoche") ||
+            lower.contains("mediodía") || lower.contains("mediodia")
     }
 
     private fun monthName(name: String): Int? {
