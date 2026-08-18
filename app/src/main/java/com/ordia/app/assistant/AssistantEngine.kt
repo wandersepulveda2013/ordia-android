@@ -73,6 +73,15 @@ object AssistantEngine {
                 )
             }
             isDayLoadQuery(query) -> dayLoadAnswer(tasks, overdue, overdueCommitments, now, zone, profile)
+            // "¿resumen del día?"/"¿cuántas tareas tengo hoy?" — el PANORAMA de
+            // hoy a demanda. El asistente ya respondía al veredicto ("¿voy bien?")
+            // y a la agenda ("¿qué tengo hoy?"), pero la forma más natural de pedir
+            // el resumen (hechas/pendientes/vencidas + cómo va el día) caía al menú
+            // genérico. Ordía YA calcula esos conteos en SummaryEngine (fuente única
+            // de la tarjeta de Hoy); aquí se exponen a demanda, reusando el MISMO
+            // motor para que asistente y tarjeta nunca discrepen. Sin nueva
+            // pantalla/botón: sólo entender más frases. Determinista y local.
+            isDaySummaryQuery(query) -> daySummaryAnswer(tasks, overdue, overdueCommitments, now, zone, profile)
             // Reconocimiento de intención "¿qué hago ahora?" — la consulta de mayor
             // valor del asistente (la siguiente acción). Antes sólo "qué hago ahora" y
             // "siguiente acción" la activaban: formas cotidianas como "¿qué sigue?",
@@ -1094,6 +1103,35 @@ object AssistantEngine {
             "estoy saturad" in query
 
     /**
+     * Detecta la intención de PANORAMA del día: el recuento (hechas/pendientes/
+     * vencidas) + cómo va el día. Frases cotidianas: "¿resumen del día?",
+     * "¿cómo va el día/mi día?", "¿cuántas tareas tengo hoy?", "¿cuántas tengo
+     * hoy?", "¿cuántos pendientes tengo hoy?". Tokens sin acento (ya
+     * normalizados por `foldForSearch`). No colisiona:
+     *  - NO es veredicto de carga ([isDayLoadQuery]: "voy bien"/"da tiempo"/
+     *    "cuánto me queda"/"tengo tiempo libre"...) — aquí se pide un recuento,
+     *    no "¿cabe?".
+     *  - NO es agenda ([isAgendaQuery]: "qué tengo"/"tengo para"/"hay algo"...) —
+     *    "cuántas tengo hoy" no contiene "qué tengo"/"tengo para"/"tengo algo".
+     *  - NO es what-now ("qué hago"/"qué sigue"...) ni recap ("qué hice"/"completé")
+     *    ni búsqueda de entidad ("a qué hora"/"cuándo"/"dónde").
+     * El recuento con tiempo (futuro: "cuántas tengo mañana/el viernes") se deja
+     * fuera: exigir "hoy" evita robar la agenda de un día concreto. Mismo enfoque
+     * conservador que [isDayLoadQuery] (guarda anti-colisión explícita).
+     */
+    private fun isDaySummaryQuery(query: String): Boolean {
+        if ("resumen del dia" in query || "resumen de hoy" in query) return true
+        if ("como va el dia" in query || "como va mi dia" in query) return true
+        // Recuento de hoy: exige "hoy" para no robar la agenda de otros días.
+        if ("hoy" in query) {
+            if ("cuantas tareas" in query || "cuantas tengo" in query ||
+                "cuantos pendientes" in query || "cuantos pendiente" in query
+            ) return true
+        }
+        return false
+    }
+
+    /**
      * Intención de planificación: abre el planificador. "organiza mi día" y sus
      * sinónimos cotidianos. La query ya viene normalizada (sin acentos, minúsculas).
      * Excluye "plan mínimo" (lista de 3) porque se resuelve en su propia rama más
@@ -1171,6 +1209,80 @@ object AssistantEngine {
                 }
             }
         }
+    }
+
+    /**
+     * "¿resumen del día?"/"¿cuántas tareas tengo hoy?"/"¿cómo va el día?" — el
+     * PANORAMA de hoy a demanda. El asistente ya respondía al veredicto de carga
+     * ("¿voy bien?") y a la lista de agenda ("¿qué tengo hoy?"), pero la forma
+     * más natural de pedir el PANORAMA — cuántas hechas, cuántas pendientes,
+     * cuántas vencidas y cómo va el día — caía al menú genérico. Ordía YA calcula
+     * esos conteos en `SummaryEngine` (fuente única de la tarjeta de Hoy); aquí se
+     * exponen a demanda, reusando el MISMO motor para que el asistente y la tarjeta
+     * nunca discrepen (no es una segunda fuente de verdad). Como [dayLoadAnswer],
+     * no calla los olvidos: anexa missed-start, stale-inbox y compromisos vencidos
+     * (las vencidas se cuentan inline como métrica primaria, así que NO se repiten
+     * como cola — evita la doble señalización de c.409/c.410). Bajo OVERLOADED nombra
+     * la candidata a posponer (mismo `deferralSuggestion`). Sin nueva pantalla ni
+     * botón: sólo entender más frases sobre la superficie que ya existe.
+     * Determinista y local (sin IA fingida).
+     */
+    private fun daySummaryAnswer(
+        tasks: List<TaskEntity>,
+        overdue: List<TaskEntity>,
+        overdueCommitments: List<CommitmentEntity>,
+        now: Long,
+        zone: ZoneId,
+        profile: LearningProfile?
+    ): AssistantAnswer {
+        val summary = SummaryEngine.summarize(tasks, now, zone, profile)
+        val completed = summary.completedToday
+        val remaining = summary.remainingToday
+        val over = overdue.size
+        val mins = summary.remainingMinutesToday
+        // Las vencidas se cuentan inline → NO se repiten como cola (anti-doble-
+        // señalización). El resto de olvidos SÍ van como cola informativa.
+        val tail = missedStartTail(summary.missedStart) +
+            staleInboxTail(tasks, now, zone) +
+            overdueCommitmentTail(overdueCommitments)
+        // Recuento: hechas / pendientes (~min) / vencidas, en frases plurales
+        // correctas. Si todo es cero, "no tienes tareas pendientes" (honesto).
+        val parts = mutableListOf<String>()
+        if (completed > 0) parts += "$completed ${if (completed == 1) "hecha" else "hechas"}"
+        if (remaining > 0) {
+            val dur = if (mins >= 60) {
+                val h = mins / 60
+                val m = mins % 60
+                if (m == 0) "~${h}h" else "~${h}h ${m}min"
+            } else {
+                "~${mins} min"
+            }
+            val noun = if (remaining == 1) "pendiente" else "pendientes"
+            parts += "$remaining $noun ($dur)"
+        }
+        if (over > 0) parts += "$over ${if (over == 1) "vencida" else "vencidas"}"
+        val head = if (parts.isEmpty()) "Hoy no tienes tareas pendientes." else "Hoy: ${parts.joinToString(", ")}."
+        val hasPendingWork = remaining > 0 || over > 0
+        if (!hasPendingWork) {
+            // Todo hecho (o nada) → el recuento basta; el veredicto sería "despejado"
+            // y resultaría redundante. Se evita "cabe con holgura" cuando no queda nada.
+            return AssistantAnswer("$head$tail")
+        }
+        // Con trabajo pendiente/vencido → veredicto honesto del día (mismo motor).
+        val (verdict, ids, action) = when (summary.dayLoad) {
+            DayLoad.LIGHT -> Triple("El día está despejado.", emptyList<Long>(), AssistantAction.NONE)
+            DayLoad.ON_TRACK -> Triple("Va a tiempo.", emptyList<Long>(), AssistantAction.NONE)
+            DayLoad.FULL -> Triple("Cabe, pero justo.", emptyList<Long>(), AssistantAction.NONE)
+            DayLoad.OVERLOADED -> {
+                val sug = summary.deferralSuggestion
+                if (sug != null) {
+                    Triple("No da tiempo a todo: «${sug.title}» es la candidata a mover a mañana.", listOf(sug.taskId), AssistantAction.NONE)
+                } else {
+                    Triple("No da tiempo a todo: revisa qué posponer o quitar.", emptyList<Long>(), AssistantAction.OPEN_PLANNER)
+                }
+            }
+        }
+        return AssistantAnswer("$head $verdict$tail", action, relatedTaskIds = ids)
     }
 
     /** Cola informativa para no callar las vencidas en "¿voy bien?"/"¿da tiempo?":

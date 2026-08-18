@@ -3188,4 +3188,127 @@ class AssistantEngineTest {
         assertTrue("sigue dando la sugerencia: ${answer.text}", answer.text.lowercase().contains("empieza por"))
     }
 
+    // ---- Panorama del día a demanda ("¿resumen del día?"/"¿cuántas tengo hoy?") ----
+    //
+    // El asistente respondía al veredicto ("¿voy bien?") y a la lista de agenda
+    // ("¿qué tengo hoy?"), pero la forma más natural de pedir el PANORAMA —
+    // cuántas hechas/pendientes/vencidas + cómo va el día — caía al menú genérico.
+    // Ordía YA calcula esos conteos en SummaryEngine (fuente única de la tarjeta de
+    // Hoy); ahora el asistente los expone a demanda reusando el MISMO motor, para
+    // que el diálogo y la tarjeta nunca discrepen. Sin nueva pantalla/botón.
+
+    @Test fun daySummary_resumenDelDia_daRecuentoYVeredicto() {
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿resumen del día?",
+            listOf(
+                TaskEntity(id = 1, title = "Hecha", dueAt = dayAt(dayToday, 11), durationMinutes = 30, status = com.ordia.app.data.local.TaskStatus.COMPLETED, completed = true, completedAt = now - 1000),
+                TaskEntity(id = 2, title = "Pend", dueAt = dayAt(dayToday, 15), durationMinutes = 30)
+            ),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertFalse("no cae al menú genérico: ${answer.text}", answer.text.contains("Puedo organizar"))
+        assertTrue("menciona las completadas: ${answer.text}", answer.text.contains("hecha"))
+        assertTrue("menciona las pendientes: ${answer.text}", answer.text.contains("pendiente"))
+    }
+
+    @Test fun daySummary_cuantasTengoHoy_daRecuentoConDuracion() {
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿cuántas tareas tengo hoy?",
+            listOf(
+                TaskEntity(id = 1, title = "A", dueAt = dayAt(dayToday, 11), durationMinutes = 90),
+                TaskEntity(id = 2, title = "B", dueAt = dayAt(dayToday, 15), durationMinutes = 90)
+            ),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertFalse("no cae al menú: ${answer.text}", answer.text.contains("Puedo organizar"))
+        assertTrue("cuenta 2 pendientes: ${answer.text}", answer.text.contains("2 pendientes"))
+        assertTrue("incluye la duración estimada: ${answer.text}", answer.text.contains("~3h"))
+    }
+
+    @Test fun daySummary_noRobaAgendaNiWhatNowNiRecap() {
+        val now = dayAt(dayToday, 9)
+        val reunion = TaskEntity(id = 1, title = "Reunión", dueAt = dayAt(dayToday, 11))
+        // Agenda ("¿qué tengo hoy?") sigue listando tareas, no dando recuento.
+        val agenda = AssistantEngine.answer(
+            "¿qué tengo hoy?",
+            listOf(reunion), emptyList(), emptyList(), now, dayZone
+        )
+        assertTrue("agenda lista el título (no recuento): ${agenda.text}", agenda.text.contains("Reunión"))
+        assertFalse("agenda no cuenta 'pendientes': ${agenda.text}", agenda.text.contains("pendientes"))
+        // What-now sigue dando la siguiente tarea.
+        val whatNow = AssistantEngine.answer(
+            "¿qué hago ahora?",
+            listOf(reunion), emptyList(), emptyList(), now, dayZone
+        )
+        assertEquals("what-now relaciona la tarea", listOf(1L), whatNow.relatedTaskIds)
+        // Recap ("¿qué hice hoy?") sigue siendo logro, no recuento pendiente.
+        val recap = AssistantEngine.answer(
+            "¿qué hice hoy?",
+            listOf(reunion), emptyList(), emptyList(), now, dayZone
+        )
+        assertTrue("recap habla de completadas/vacío: ${recap.text}",
+            recap.text.contains("completaste") || recap.text.contains("no has completado"))
+    }
+
+    @Test fun daySummary_noRobaAgendaDeOtroDia() {
+        // "¿cuántas tengo mañana?" NO activa el recuento de hoy: exige "hoy".
+        // (Tampoco es agenda: "cuántas tengo" no contiene "qué tengo" — cae al
+        // menú genérico, lo cual es correcto: no se inventa un recuento de mañana.)
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿cuántas tengo mañana?",
+            listOf(TaskEntity(id = 1, title = "Mañana", dueAt = dayAt(dayToday.plusDays(1), 11))),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertFalse("no cuenta hoy: ${answer.text}", answer.text.contains("Hoy:"))
+        assertTrue("cae al menú genérico (no inventa recuento): ${answer.text}", answer.text.contains("Puedo organizar"))
+    }
+
+    @Test fun daySummary_noRepiteVencidasComoCola() {
+        // Con vencidas: se cuentan inline como métrica primaria y NO se repiten
+        // como "Además, N vencidas" (anti-doble-señalización, paridad c.409/c.410).
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿cómo va el día?",
+            listOf(
+                TaskEntity(id = 1, title = "Hoy", dueAt = dayAt(dayToday, 11), durationMinutes = 30),
+                TaskEntity(id = 2, title = "Vencida", dueAt = dayAt(dayToday.minusDays(1), 9), durationMinutes = 30)
+            ),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("cuenta la vencida inline: ${answer.text}", answer.text.contains("vencida"))
+        assertFalse("no repite vencida como 'Además': ${answer.text}", answer.text.contains("Además"))
+    }
+
+    @Test fun daySummary_vacio_esHonesto() {
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿resumen del día?",
+            emptyList(), emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertTrue("dice que no hay pendientes: ${answer.text}", answer.text.contains("no tienes tareas pendientes"))
+    }
+
+    @Test fun daySummary_noCallaCompromisoVencido() {
+        // Recuento despejado pero con un compromiso vencido: no calla la promesa
+        // (paridad con dayLoad — la cola informativa se mantiene).
+        val now = dayAt(dayToday, 9)
+        val overdueDue = dayAt(dayToday.minusDays(3), 10)
+        val commitment = overdueCommitment(1, "te llamo el martes", overdueDue)
+        val answer = AssistantEngine.answer(
+            "¿resumen del día?",
+            emptyList(), emptyList(), listOf(commitment),
+            now, dayZone
+        )
+        assertTrue("no calla el compromiso vencido: ${answer.text}",
+            answer.text.contains("compromiso") && answer.text.contains("vencido"))
+    }
+
 }
