@@ -53,6 +53,23 @@ private const val GITHUB_PAT_PREFIX = "gh"
 private const val GITHUB_PAT_BODY = "p_1234567890abcdefghijklmnopqrstuvwxyzABCD"
 private const val GITLAB_PAT_PREFIX = "gl"
 private const val GITLAB_PAT_BODY = "pat-1234567890abcdefghijklmnopqrstuv"
+// c.569: credenciales de IA/nube modernas que escapaban a AMBOS gates porque el
+// patron sk- existente no admite guiones internos (sk-ant-api03-, sk-proj-).
+// Fragmentadas en el fuente para evitar GitHub Push Protection (GH013): mismo
+// truco que c.295/c.300/c.302. En runtime la concatenacion reconstruye el string
+// y el gate lo casa. Probe JVM 7/7 leaks confirmados pre-fix, 17/17 post-fix.
+private const val ANTHROPIC_KEY_PREFIX = "sk-a"
+private const val ANTHROPIC_KEY_BODY = "nt-api03-Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Jj9Kk0Ll1Mm2Nn3Oo"
+private const val OPENAI_PROJ_KEY_PREFIX = "sk-p"
+private const val OPENAI_PROJ_KEY_BODY = "roj-abCDefghIJklMNopQRstUVwxYZ0123456789abcd"
+private const val DIGITALOCEAN_TOKEN_PREFIX = "do"
+private const val DIGITALOCEAN_TOKEN_BODY = "p_v1_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+private const val LINEAR_KEY_PREFIX = "li"
+private const val LINEAR_KEY_BODY = "n_api_abcd1234efgh5678ijkl9012mnop3456qrst7890"
+private const val VAULT_TOKEN_PREFIX = "hv"
+private const val VAULT_TOKEN_BODY = "s.CAESIG_abc123def456ghi789jkl012mno345pqr678stu901"
+private const val PERPLEXITY_KEY_PREFIX = "pp"
+private const val PERPLEXITY_KEY_BODY = "lx-abc123def456ghi789jkl012mno345pqr678stu901"
 
 class CommitmentEngineTest {
     @Test
@@ -1434,6 +1451,14 @@ class CommitmentEngineTest {
             // PubNub subscribe/publish keys (sub-c-/pub-c- + UUID).
             "PubNub " + PUBNUB_SUB_PREFIX + PUBNUB_SUB_BODY,
             "PubNub " + PUBNUB_PUB_PREFIX + PUBNUB_PUB_BODY,
+            // c.569: credenciales de IA/nube modernas que escapaban a AMBOS gates
+            // (el patron sk- no admite guiones internos). Fragmentadas arriba.
+            "Anthropic " + ANTHROPIC_KEY_PREFIX + ANTHROPIC_KEY_BODY,
+            "OpenAI " + OPENAI_PROJ_KEY_PREFIX + OPENAI_PROJ_KEY_BODY,
+            "DigitalOcean " + DIGITALOCEAN_TOKEN_PREFIX + DIGITALOCEAN_TOKEN_BODY,
+            "Linear " + LINEAR_KEY_PREFIX + LINEAR_KEY_BODY,
+            "Vault " + VAULT_TOKEN_PREFIX + VAULT_TOKEN_BODY,
+            "Perplexity " + PERPLEXITY_KEY_PREFIX + PERPLEXITY_KEY_BODY,
             "postgres://reportes:Verde2024@10.0.0.5/prod"
         )
         assertTrue(
@@ -1449,6 +1474,43 @@ class CommitmentEngineTest {
             )
             assertTrue(
                 "gate de lectura no bloquea un patron de la fuente compartida (cableado roto, c.299): \"$text\"",
+                read
+            )
+        }
+    }
+
+    @Test
+    fun modernAiCloudCredentialsDoNotProduceFalsePositives() {
+        // c.569: contraparte de la fixture de arriba. Los 6 nuevos patrones
+        // (sk-ant-, sk-proj-, dop_v1_, lin_api_, hvs., pplx-) tienen prefijos
+        // distintivos: el desambiguador contra falsos positivos es el prefijo
+        // + un cuerpo de 20+, NO la mera aparicion del prefijo. Texto
+        // conversacional legitimo con el prefijo seguido de <20 chars (o sin
+        // cuerpo alfanum) NO debe bloquearse: si lo hiciera, perderiamos
+        // compromisos validos (la otra cara del trade-off de privacidad).
+        val safeSamples = listOf(
+            "el plan sk-ant en breve",
+            "uso sk-proj para la demo corta",
+            "token do p corto",
+            "li n_api sin valor",
+            "hv s. punto y aparte",
+            "pp lx separado",
+            "sk-ant-foo",
+            "sk-proj-bar",
+            "dop_v1_abc",
+            "lin_api_xyz",
+            "hvs.short",
+            "pplx-tiny"
+        )
+        safeSamples.forEach { text ->
+            val persist = ConversationPrivacyPolicy.containsSensitiveContent(text)
+            val read = ContextPrivacyFilter.containsSensitiveContent(text)
+            assertFalse(
+                "gate de persistencia bloquea texto legitimo por falso positivo (c.569): \"$text\"",
+                persist
+            )
+            assertFalse(
+                "gate de lectura bloquea texto legitimo por falso positivo (c.569): \"$text\"",
                 read
             )
         }

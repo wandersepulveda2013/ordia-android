@@ -87,6 +87,25 @@ object SensitiveSecretPatterns {
         // Prefijo `sub`/`pub` + `-c-` + UUID (8-4-4-4-12 hex). Distintivo de PubNub
         // (mensajeria realtime). No ocurre en texto conversacional normal.
         Regex("""\b(?:sub|pub)-c-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"""),
+        // c.569: Credenciales de IA/nube modernas que escapaban a AMBOS gates.
+        // El patron sk- existente (c.295) exige `[A-Za-z0-9]{20,}` justo tras
+        // `sk-`, sin guiones internos: las nuevas claves con segmentos intermedios
+        // (`sk-ant-api03-`, `sk-proj-`) no casaban y se persistian en texto plano.
+        // Cada prefijo es canonico y distintivo (no aparece en texto normal) ->
+        // bajo falso positivo; el prefijo es el desambiguador, no la longitud.
+        // Anthropic Claude (`sk-ant-api03-`/`sk-ant-api01-` + 95 alfanum con guiones).
+        Regex("""\bsk-ant-(?:api\d*-)?[A-Za-z0-9_-]{20,}"""),
+        // OpenAI project keys (`sk-proj-` + base64 con guiones bajos, 2024+).
+        Regex("""\bsk-proj-[A-Za-z0-9_-]{20,}"""),
+        // DigitalOcean PAT (`dop_v1_` + 64 hex/alnum).
+        Regex("""\bdop_v1_[A-Za-z0-9]{20,}"""),
+        // Linear API key (`lin_api_` + 40 alnum).
+        Regex("""\blin_api_[A-Za-z0-9]{20,}"""),
+        // HashiCorp Vault token (`hvs.` moderno + base64; el legacy `s.` es
+        // demasiado comun en prosa para patronearlo con seguridad).
+        Regex("""\bhvs\.[A-Za-z0-9_-]{20,}"""),
+        // Perplexity API key (`pplx-` + 40 alnum).
+        Regex("""\bpplx-[A-Za-z0-9]{20,}"""),
         // Cadenas de conexion con credenciales embebidas (esquema://user:pass@host).
         Regex("""(?i)\b[a-z][a-z0-9+.-]*://[^\s:@/]+:[^\s@/]+@[^\s/]+""")
     )
