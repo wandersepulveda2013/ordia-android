@@ -14345,3 +14345,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: VERIFIED (dominio JVM: 3460 PASS; smoke 25 OK; 0 failures; TDD RED→GREEN; sin regresión; integración no destructiva con c.627). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin Android SDK).
 - **Hallazgos secundarios**: (i) auditoría de dominio fuera de context/parser — `SubtaskRules`/`TaskMutationGate`/`TaskSnapshotCodec`/`ContentModeration`/`SensitiveSecretPatterns`/`RecurrenceEngine`/`SearchEngine`/`DayPlanner`/`WhatNowEngine` revisados sin bug nuevo; `RoutineRules` SÍ reveló este P1. (ii) Patrón "igualdad exacta sobre campo libre editable" = clase de fragilidad; `isRoutineDetail` es modelo de fix (prefijo + límite). (iii) Set de separadores actual (\n, \t, " (", " -") cubre anotaciones naturales más probables; ampliable con evidencia.
 - **Próxima prioridad**: (i) automatizaciones/recordatorios/workers/backup (P1, varias fuera JVM por Room); (ii) `AutomationEngine.runRule`/`OrdiaViewModel.guardianInsight` zona usuario (P1 misma clase c.604/c.627, fuera JVM); (iii) accesibilidad `contentDescription` (P2, fuera JVM); (iv) eliminar default `zone=systemDefault()` de `nextBestTask` (P2 API). Re-fetch OBLIGATORIO antes de implementar.
+
+
+## Push confirmado c.628 — 2026-08-18 (UTC)
+- `git push origin openhands/autonomous-ordia` → `cc9f3d9e..7b4bbabb` OK (auth con `github_token` secret; `GITHUB_TOKEN` env falló con "Invalid username or token" — usado el secret de minúsculas en su lugar).
+- HEAD final remoto: `7b4bbabb` (c.628 sobre `cc9f3d9e` c.627).
+
+## Auditoría de descubrimiento post-c.628 (segunda unidad evaluada, sin cambio por madurez real)
+- **ReminderRules** (`snooze`/`resolveReminderAt`/`reminderAtFromOffset`/`defaultReminderAt`): past-safe robusto, preserva offsets de recurrencia, sin bug. Maduro (c.183-class).
+- **ReminderSync** (`triggers`/`overdueNow`): descarta pasados en re-sync (anti-duplicado), recupera pasados tras restore (`overdueNow` delay 0) — cubre "evitar olvidos" tras restore. Maduro.
+- **ReminderScheduler** (WorkManager `enqueueUniqueWork`/`REPLACE`/`cancelAllAndAwait`): Android-dependiente (non-JVM), sólido.
+- **AutomationActionPlanner**: sacrosanct "en curso"/"recurrencia" (no muta tareas activas ni recurrentes), past-safe reminders (`planReminder`), orden URGENT-first en RESCHEDULE_OVERDUE, `skipBusy` rodea reuniones. Maduro (c.129/c.187/c.559/c.560-class).
+- **RoutineRules reconocimiento** (verificación post-fix): confirmado que `isRoutineDetail` es la fuente única — `isCreatedByRoutine`/`tasksFromRoutine`/`wasRunToday`/`relinkAfterRename` delegan; NO hay otros sitios que reconozcan tareas por igualdad exacta sobre el marcador "Rutina: <name>" (grep fuera de RoutineRules.kt sólo en tests/BackupManager/comentario CommitmentEngine). Fix de clase completo, sin sitio inconsistente residual.
+- **Undo de rutina** (`OrdiaViewModel.undoLastAutomation`): la guarda "intacta" usa `status==INBOX && !completed && !archived`, NO igualdad de `details` → una tarea anotada sigue siendo eliminable al deshacer. Sin interacción problemática con el fix c.628 (confirmado, no bug).
+- **Conclusión honesta**: las capas JVM-testables (dominio puro + automatización + recordatorios) están maduras; los P1 residuales de mayor impacto (`AutomationEngine.runRule`/`OrdiaViewModel.guardianInsight` zona del usuario, misma clase c.604/c.627) requieren Android SDK (non-JVM). No se fabricó cambio cosmético. c.628 queda como entregable verificado de este run.
