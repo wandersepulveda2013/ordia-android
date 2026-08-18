@@ -417,9 +417,18 @@ object ContextIntentEngine {
         // "mañana" como día siguiente. Solo si NO forma parte de una hora del día
         // ("de la mañana", "por la mañana", "en la mañana", "de/por/en mañana"):
         // antes, "reunión a las 9 de la mañana" caía aquí y se fechaba para MAÑANA.
+        // Pero la frase "mañana por la mañana" / "mañana a las 9 de la mañana" tiene
+        // DOS "mañana": el primer token es el adverbio de día siguiente y el segundo
+        // el sufijo de meridiano. La exclusión anti-colisión solo debe suprimir el
+        // adverbio cuando TODOS los "mañana" del texto forman parte de un sufijo de
+        // hora. Si hay más tokens "mañana" que sufijos de meridiano, sobra al menos
+        // un "mañana" que sí significa día siguiente.
+        val mananaSuffix = Regex("""\b(de la|por la|en la|de|por|en)\s+mañana\b""", RegexOption.IGNORE_CASE)
+        val mananaTokens = Regex("""\bmañana\b""", RegexOption.IGNORE_CASE).findAll(lower).count()
+        val mananaSuffixMatches = mananaSuffix.findAll(lower).count()
         val manaanaComoDiaSiguiente = lower.contains("mañana") &&
             !lower.contains("pasado mañana") &&
-            !Regex("""\b(de la|por la|en la|de|por|en)\s+mañana\b""").containsMatchIn(lower)
+            mananaTokens > mananaSuffixMatches
         if (manaanaComoDiaSiguiente) {
             targetDate = today.plusDays(1)
         }

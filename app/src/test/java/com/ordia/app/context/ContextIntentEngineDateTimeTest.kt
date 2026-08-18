@@ -286,4 +286,37 @@ class ContextIntentEngineDateTimeTest {
         val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due), z).hour
         assertEquals(21, hour)
     }
+
+    // --- "mañana por la mañana" / "mañana ... de la mañana" (día siguiente + meridiano) ---
+    // Frase cotidiana: el primer "mañana" = adverbio de día siguiente; el segundo
+    // ("de/por la mañana") = sufijo de meridiano. La exclusión anti-colisión de c.579
+    // (que suprime "mañana"=día siguiente cuando aparece como sufijo de hora) NO debe
+    // suprimirlo cuando hay DOS "mañana": una es sufijo, la otra es el adverbio real.
+
+    @Test
+    fun mananaPorLaManana_isTomorrow() {
+        val due = ContextIntentEngine.extractDateTime("reunión mañana por la mañana")
+        val man = ContextIntentEngine.extractDateTime("reunión mañana")
+        assertNotNull(due); assertNotNull(man)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val dMan = ZonedDateTime.ofInstant(Instant.ofEpochMilli(man!!), z).toLocalDate()
+        assertEquals(
+            "'mañana por la mañana' debe fecharse para mañana (no null, no hoy)",
+            dMan, dDue
+        )
+    }
+
+    @Test
+    fun mananaDeLaManana_isTomorrow_and9h() {
+        val due = ContextIntentEngine.extractDateTime("reunión mañana a las 9 de la mañana")
+        val man = ContextIntentEngine.extractDateTime("reunión mañana a las 9")
+        assertNotNull(due); assertNotNull(man)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        val dMan = ZonedDateTime.ofInstant(Instant.ofEpochMilli(man!!), z).toLocalDate()
+        assertEquals("'mañana ... de la mañana' debe ser mañana", dMan, dDue)
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due), z).hour
+        assertEquals("'9 de la mañana' debe ser 09:00", 9, hour)
+    }
 }
