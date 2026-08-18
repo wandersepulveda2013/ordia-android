@@ -256,6 +256,74 @@ class GuardianEngineTest {
     }
 
     @Test
+    fun suggestedActionNombraUnaAtrasadaYSenalaCuantasMasHay() {
+        // "Recuperación de tareas olvidadas" / "evitar olvidos": cuando hay varias
+        // atrasadas nombrables, el nudge nombra UNA (la mejor para arrancar) y añade
+        // una cola informativa con el conteo de las restantes, para que el usuario
+        // no resuelva la nombrada y olvide que el atraso sigue. Antes esta cola NO
+        // existía: cinco atrasadas → nudge de una sola, sin señal del resto.
+        val past = midday - 86_400_000L
+        val a = TaskEntity(id = 1, title = "A", dueAt = past, durationMinutes = 30)
+        val b = TaskEntity(id = 2, title = "B", dueAt = past, durationMinutes = 30)
+        val c = TaskEntity(id = 3, title = "C", dueAt = past, durationMinutes = 30)
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(a, b, c),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        // Tres atrasadas nombrables → se nombra 1 y la cola dice "2 tareas más".
+        assertTrue(result.suggestedAction.contains("atrasada"))
+        assertTrue(result.suggestedAction.contains("2 tareas más atrasadas"))
+    }
+
+    @Test
+    fun suggestedActionNoAnadeColaDeAtrasadasCuandoSoloHayUna() {
+        // No decir "0 más": con una sola atrasada nombrable, el nudge la nombra sin
+        // cola de conteo. (Contraste con el test anterior.)
+        val past = midday - 86_400_000L
+        val only = TaskEntity(id = 1, title = "Única", dueAt = past, durationMinutes = 30)
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(only),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        assertTrue(result.suggestedAction.contains("Única"))
+        assertFalse(result.suggestedAction.contains("tareas más atrasadas"))
+        assertFalse(result.suggestedAction.contains("1 tarea más atrasada"))
+    }
+
+    @Test
+    fun suggestedActionColaDeAtrasadasExcluyeLasEnCurso() {
+        // Una atrasada "en curso" (startAt ya empezó, dentro de su ventana) NO es un
+        // olvido a recuperar: la cola de "otras atrasadas" debe excluirla, igual que
+        // la selección. Aquí hay 2 atrasadas: una en curso y una nombrable → la cola
+        // no debe contar la en curso (otherCount = 0, sin cola).
+        val past = midday - 3_600_000L
+        val inProgress = TaskEntity(
+            id = 1, title = "En curso", dueAt = past, durationMinutes = 60,
+            startAt = midday - 1_800_000L, status = TaskStatus.PLANNED
+        )
+        val nombrable = TaskEntity(id = 2, title = "Nombrable", dueAt = past, durationMinutes = 30)
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(inProgress, nombrable),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        // Se nombra la nombrable; la en curso no se cuenta como "otra atrasada".
+        assertTrue(result.suggestedAction.contains("Nombrable"))
+        assertFalse(result.suggestedAction.contains("tareas más atrasadas"))
+    }
+
+    @Test
     fun suggestedActionSkipsOverdueTaskAlreadyInProgress() {
         // Una tarea vencida que se está ejecutando justo ahora (startAt ya empezó
         // y no rebasó su duración, dueAt ya pasado) NO debe ser nombrada como

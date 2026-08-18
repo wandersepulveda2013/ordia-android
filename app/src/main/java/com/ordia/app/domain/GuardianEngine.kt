@@ -323,9 +323,16 @@ object GuardianEngine {
         return when {
             overdue > 0 -> {
                 val overdueAction = smallestOverdueAction(tasks, nowMillis)
-                if (overdueAction != null) overdueAction
-                    .withCommitmentTail(overdueCommitments)
-                    .withStaleInboxTail(tasks, nowMillis, zoneId)
+                if (overdueAction != null) {
+                    // Cuántas atrasadas nombrables quedan tras la elegida (excluye
+                    // "en curso" vía [actionableOverdueTasks]). Evita el olvido del
+                    // resto del atraso: [withOverdueTail] no nombra títulos.
+                    val otherOverdue = actionableOverdueTasks(tasks, nowMillis).size - 1
+                    overdueAction
+                        .withOverdueTail(otherOverdue)
+                        .withCommitmentTail(overdueCommitments)
+                        .withStaleInboxTail(tasks, nowMillis, zoneId)
+                }
                 // Si TODAS las atrasadas están en curso (no hay ninguna nombrable),
                 // no insistir con "elige una atrasada" — el usuario ya la está
                 // haciendo. En vez de cortar la cascada con un mensaje engañoso,
@@ -420,12 +427,7 @@ object GuardianEngine {
      * AutomationActionPlanner e isMissedStart.
      */
     private fun smallestOverdueAction(tasks: List<TaskEntity>, nowMillis: Long): String? {
-        val chosen = tasks
-            .filter {
-                it.parentTaskId == null && TaskRules.isActive(it) &&
-                    TaskRules.isOverdue(it, nowMillis) &&
-                    !TaskRules.isBeingWorkedOn(it, nowMillis)
-            }
+        val chosen = actionableOverdueTasks(tasks, nowMillis)
             .minWithOrNull(
                 compareByDescending<TaskEntity> { it.priority == TaskPriority.URGENT }
                     .thenBy { TaskRules.plannedDuration(it) }
@@ -445,6 +447,22 @@ object GuardianEngine {
             "«${chosen.title}» está atrasada (~${minutes} min). Hazla, muévela o archívala."
         }
     }
+
+    /**
+     * Subconjunto de tareas atrasadas realmente "nombrables" por el nudge: raíces
+     * activas, atrasadas y NO en curso ([TaskRules.isBeingWorkedOn] — una atrasada
+     * que el usuario ya está haciendo no es un olvido a recuperar). Es el mismo
+     * filtro que [smallestOverdueAction] aplicaba inline; se extrae para que el
+     * conteo de "otras atrasadas" de [withOverdueTail] use exactamente el mismo
+     * criterio que la selección, sin duplicar el predicado ( fuente de drift si
+     * las reglas de "sacro en curso" cambian ).
+     */
+    private fun actionableOverdueTasks(tasks: List<TaskEntity>, nowMillis: Long): List<TaskEntity> =
+        tasks.filter {
+            it.parentTaskId == null && TaskRules.isActive(it) &&
+                TaskRules.isOverdue(it, nowMillis) &&
+                !TaskRules.isBeingWorkedOn(it, nowMillis)
+        }
 
     /**
      * Recupera un compromiso agendado cuyo hueco ya pasó sin atraso: el "olvido
@@ -555,6 +573,30 @@ object GuardianEngine {
         val capturas = if (count == 1) "1 captura" else "$count capturas"
         val llevan = if (count == 1) "lleva" else "llevan"
         return "$this Además, $capturas en la bandeja $llevan una semana sin agendar."
+    }
+
+    /**
+     * Cola informativa del 5.º olvido: cuando el nudge nombra UNA tarea atrasada
+     * ([smallestOverdueAction]) PERO hay MÁS atrasadas nombrables, las restantes no
+     * se callan. Cierra la última asimetría de "mentir por omisión": antes, un
+     * usuario con cinco tareas atrasadas recibía el nudge de la más importante y
+     * NINGUNA señal de las otras cuatro — resolvía la nombrada y olvidaba que el
+     * resto del atraso seguía ahí. Es la dirección "detección de vencidas
+     * importantes" + "recuperación de tareas olvidadas": el nudge ya elige a la
+     * mejor para arrancar, pero ahora también dice cuánto atraso queda detrás.
+     *
+     * Paridad con [withCommitmentTail] / [withStaleInboxTail]: sólo INFORMA del
+     * conteo (no nombra títulos ni abre una segunda acción), para no romper la
+     * regla "una sola acción primaria". El conteo excluye la tarea ya nombrada
+     * (otherCount = nombrables − 1) y excluye las "en curso" —usa el mismo filtro
+     * que la selección vía [actionableOverdueTasks]— porque una atrasada que el
+     * usuario ya está haciendo no es un olvido a recuperar. Cuando sólo hay una,
+     * no se añade nada (otherCount == 0): no decir "0 más".
+     */
+    private fun String.withOverdueTail(otherCount: Int): String {
+        if (otherCount <= 0) return this
+        val tareas = if (otherCount == 1) "1 tarea más atrasada" else "$otherCount tareas más atrasadas"
+        return "$this Además, tienes $tareas."
     }
 
     private fun message(
