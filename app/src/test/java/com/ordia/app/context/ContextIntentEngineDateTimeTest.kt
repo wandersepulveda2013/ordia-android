@@ -1056,4 +1056,89 @@ class ContextIntentEngineDateTimeTest {
             analyzeAnchor("pagar la factura el próximo mes")
         )
     }
+
+    // --- Paridad de hora "las N" DESNUDA en hasTimeReference (c.605) ---
+    // Continuación directa de c.600 (hasDateReference) y c.601 (extractDateTime):
+    // extractDateTime resuelve "las N" desnuda desde c.601, PERO hasTimeReference
+    // (que alimenta el bono de hora +0.08 en scoreContextualBonus) NO la reconocía.
+    // Sin ese bono, una captura marginal caía por debajo de MINIMUM_CONFIDENCE y se
+    // DESCARTABA, aunque su gemela con "a las N" (mismo verbo, misma fecha) sí pasaba:
+    // olvido asimétrico, P1. El rewriter normalizeBareLasHour (c.601) ya tiene el
+    // guard anti-cantidad, así "comprar las 3 manzanas" NO recibe un bono de hora falso.
+
+    @Test
+    fun dentistaBareLasN_matchesAlasSymmetry() {
+        // "ir al dentista el viernes a las 4" → capturado (conf=0.5).
+        // "ir al dentista el viernes las 4"   → DESCARTADO sin el fix (base+fecha=0.4 < 0.45).
+        val conCue = analyzeAnchor("ir al dentista el viernes a las 4")
+        val sinCue = analyzeAnchor("ir al dentista el viernes las 4")
+        assertNotNull(conCue)
+        assertNotNull(
+            "'ir al dentista el viernes las 4' es la misma cita que '... a las 4'; la " +
+                "hora desnuda resuelta por extractDateTime (c.601) debe dar el bono de " +
+                "hora en hasTimeReference para no descartarse por umbral (olvido, P1)",
+            sinCue
+        )
+    }
+
+    @Test
+    fun terapiaBareLasN_matchesAlasSymmetry() {
+        val conCue = analyzeAnchor("terapia el viernes a las 4")
+        val sinCue = analyzeAnchor("terapia el viernes las 4")
+        assertNotNull(conCue)
+        assertNotNull(sinCue)
+    }
+
+    @Test
+    fun reunionEquipoBareLasN_matchesAlasSymmetry() {
+        val conCue = analyzeAnchor("reunión de equipo el viernes a las 4")
+        val sinCue = analyzeAnchor("reunión de equipo el viernes las 4")
+        assertNotNull(conCue)
+        assertNotNull(sinCue)
+    }
+
+    @Test
+    fun revisionMedicaBareLasN_matchesAlasSymmetry() {
+        val conCue = analyzeAnchor("revisión médica el viernes a las 4")
+        val sinCue = analyzeAnchor("revisión médica el viernes las 4")
+        assertNotNull(conCue)
+        assertNotNull(sinCue)
+    }
+
+    @Test
+    fun llamarDoctorBareLasN_matchesAlasSymmetry() {
+        val conCue = analyzeAnchor("llamar al doctor el viernes a las 4")
+        val sinCue = analyzeAnchor("llamar al doctor el viernes las 4")
+        assertNotNull(conCue)
+        assertNotNull(sinCue)
+    }
+
+    @Test
+    fun bareLasNYMedia_matchesAlasSymmetry() {
+        // Fracción "y media": extractDateTime la resuelve (c.601); hasTimeReference
+        // debe reconocerla (cue de fracción horaria) para el bono.
+        val conCue = analyzeAnchor("ir al dentista el viernes a las 4 y media")
+        val sinCue = analyzeAnchor("ir al dentista el viernes las 4 y media")
+        assertNotNull(conCue)
+        assertNotNull(sinCue)
+    }
+
+    @Test
+    fun cantidadNoInventaBonoHora() {
+        // Control anti-cuenta: "comprar las 3 manzanas el viernes" debe seguir SIN
+        // capturarse como cita horaria. El guard anti-cantidad de normalizeBareLasHour
+        // (c.601) preserva "las 3" como cantidad → hasTimeReference=false → sin bono falso.
+        // Verificamos que NO se genere un intent cuya hora sea 03:00 (la "cantidad 3").
+        val intent = analyzeAnchor("comprar las 3 manzanas el viernes")
+        if (intent != null && intent.dueAt != null) {
+            val dt = ZonedDateTime.ofInstant(
+                Instant.ofEpochMilli(intent.dueAt!!), ZoneId.systemDefault()
+            )
+            assert(dt.hour != 3 || dt.minute != 0) {
+                "'las 3 manzanas' no debe inventar hora 03:00 desde la cantidad (guard anti-cuenta)"
+            }
+        }
+        // En cualquier caso, no debe capturarse como cita con hora falsa: si hay intent,
+        // no debe llevar hora 03:00. La aserción anterior ya lo cubre.
+    }
 }

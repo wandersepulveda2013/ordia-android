@@ -905,8 +905,19 @@ object ContextIntentEngine {
         // Paridad con extractDateTime (c.600): "a medianoche"/"al mediodía" son
         // horas canónicas (00:00/12:00) que el parser resuelve; el detector las
         // omitía, así una entrega "a medianoche" no recibía el bono de hora (+0.08).
-        return Regex("""\d{1,2}:\d{2}""").containsMatchIn(lower) ||
-            Regex("""a (las|la) \d{1,2}""").containsMatchIn(lower) ||
+        //
+        // Paridad con extractDateTime (c.601): "las N" DESNUDA (sin introductor "a")
+        // — "ir al dentista el viernes las 4" / "terapia el viernes las 4" — la resuelve
+        // extractDateTime vía normalizeBareLasHour, PERO hasTimeReference la omitía → no
+        // recibía el bono de hora (+0.08) y, en capturas marginales (base+fecha en
+        // 0.37–0.45), caía por debajo de MINIMUM_CONFIDENCE y se DESCARTABA, aunque su
+        // gemela con "a las N" sí pasaba: olvido asimétrico, P1. Se normaliza el texto
+        // con el MISMO rewriter de c.601 (con su guard anti-cantidad) antes de los
+        // checks, así "a las \d+" reconoce la hora y "comprar las 3 manzanas" NO recibe
+        // un bono falso (el guard preserva "las 3" como cantidad).
+        val normalized = normalizeBareLasHour(lower)
+        return Regex("""\d{1,2}:\d{2}""").containsMatchIn(normalized) ||
+            Regex("""a (las|la) \d{1,2}""").containsMatchIn(normalized) ||
             lower.contains("de la mañana") || lower.contains("de la tarde") ||
             lower.contains("de la noche") || lower.contains("del día") ||
             lower.contains("medianoche") ||
