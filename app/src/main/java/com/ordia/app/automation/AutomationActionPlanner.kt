@@ -156,12 +156,32 @@ object AutomationActionPlanner {
                 val current = Instant.ofEpochMilli(now).atZone(zone)
                 val date = if (current.hour >= 20) current.toLocalDate().plusDays(1) else current.toLocalDate()
                 val firstMinute = if (date != current.toLocalDate()) 9 * 60 else (((current.hour * 60 + current.minute + 29) / 15) * 15)
-                var cursor = firstMinute.coerceAtMost(21 * 60)
-                val updates = quick.sortedBy { it.dueAt ?: Long.MAX_VALUE }.take(8).map { task ->
+                val dayEndMinute = 21 * 60
+                // Compromisos FIJOS del día que el agrupador NO debe pisar (reuniones
+                // agendadas con `startAt` hoy que NO son candidatas rápidas). Simétrico
+                // con DayPlanner.build (c.559): el cursor lineal PRE-fix avanzaba sin
+                // rodear reuniones y colocaba tareas rápidas ENCIMA de un compromiso
+                // agendado, pisándolo al aplicarse la automatización. Las candidatas
+                // (rápidas) se excluyen del bloqueo: el agrupador las RE-coloca, así su
+                // hora original se libera (no se reserva). Fuente única compartida
+                // [DayPlanner.fixedBusyIntervals]. (c.560)
+                val quickIds = quick.mapTo(HashSet()) { it.id }
+                val busy = DayPlanner.fixedBusyIntervals(mutable, date, quickIds, firstMinute, dayEndMinute, zone)
+                var cursor = firstMinute.coerceAtMost(dayEndMinute)
+                val updates = quick.sortedBy { it.dueAt ?: Long.MAX_VALUE }.take(8).mapNotNull { task ->
                     val duration = task.durationMinutes.coerceIn(5, 10)
-                    val start = DateRules.toEpochMillis(date, LocalTime.of(cursor / 60, cursor % 60), zone)
-                    val end = start + duration * 60_000L
-                    cursor += duration + 5
+                    var proposedStart = cursor
+                    var proposedEnd = proposedStart + duration
+                    // Rodea reuniones fijas: si el slot cae encima de un compromiso, salta
+                    // a su fin y recomprueba. Sin este paso el cursor atravesaba la
+                    // reunión. (c.560)
+                    val placed = DayPlanner.skipBusy(proposedStart, proposedEnd, busy, dayEndMinute)
+                    if (placed == null) return@mapNotNull null
+                    proposedStart = placed.first
+                    proposedEnd = placed.second
+                    val start = DateRules.toEpochMillis(date, LocalTime.of(proposedStart / 60, proposedStart % 60), zone)
+                    val end = DateRules.toEpochMillis(date, LocalTime.of(proposedEnd / 60, proposedEnd % 60), zone)
+                    cursor = proposedEnd + 5
                     task.copy(
                         startAt = start,
                         // Vencimiento coherente con el slot (igual que PLAN_DAY): si el slot

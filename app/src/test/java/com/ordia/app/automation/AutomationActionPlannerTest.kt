@@ -656,4 +656,77 @@ class AutomationActionPlannerTest {
         assertNull("La recurrente no debe mutarse en el plan (corrompería la cadencia)", byId[1L])
         assertNotNull("La tarea de inbox sí debe planificarse", byId[2L])
     }
+
+    // --- BATCH_QUICK_TASKS respeta compromisos FIJOS agendados (c.560) ---
+    // Simétrico con el fix de DayPlanner (c.559): el cursor lineal de BATCH_QUICK_TASKS
+    // no rodeaba reuniones/compromisos fijos con `startAt` hoy que NO son candidatas
+    // (pura reunión sin dueAt, duración > 10 min). Colocaba tareas rápidas ENCIMA de
+    // la reunión al avanzar el cursor, pisando el compromiso agendado del usuario al
+    // aplicarse la automatización.
+
+    @Test
+    fun `batch_quick_tasks no pisa un compromiso fijo agendado`() {
+        // now 10:00. Reunión FIJA 10:30-11:30 (startAt hoy, sin dueAt → no candidata,
+        // duración 60 > 10 → no quick). 5 tareas rápidas de 5 min: el cursor lineal
+        // PRE-fix colocaba las 3 últimas (10:35, 10:45, 10:55) DENTRO de la reunión.
+        val meetingStart = now + 30 * 60_000L // 10:30 hoy
+        val meeting = task(
+            10,
+            durationMinutes = 60,
+            startAt = meetingStart,
+            status = TaskStatus.PLANNED
+        )
+        val quick = (1..5).map { task(it.toLong(), durationMinutes = 5) }
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.BATCH_QUICK_TASKS, AutomationCondition.HAS_QUICK_TASKS),
+            quick + meeting, 0, now, zone
+        )
+        assertTrue(plan.matched)
+        // La reunión no se muta (no es quick): no aparece en updates.
+        val byId = plan.updates.associateBy { it.id }
+        assertNull("La reunión fija no debe mutarse", byId[10L])
+        // Ninguna tarea rápida puede caer dentro del intervalo [10:30, 11:30) en minutos
+        // del día (630..690). El cursor debe RODEAR la reunión, no pisarla.
+        val meetingStartMin = 10 * 60 + 30
+        val meetingEndMin = 11 * 60 + 30
+        plan.updates.forEach { u ->
+            val startZ = Instant.ofEpochMilli(u.startAt!!).atZone(zone)
+            val startMin = startZ.hour * 60 + startZ.minute
+            assertTrue(
+                "Tarea ${u.id} en $startMin cae DENTRO de la reunión [$meetingStartMin, $meetingEndMin)",
+                startMin < meetingStartMin || startMin >= meetingEndMin
+            )
+        }
+    }
+
+    @Test
+    fun `batch_quick_tasks coloca tareas rapidas antes y despues de la reunion`() {
+        // Variante: con now 09:00 hay margen para colocar rápidas ANTES de la reunión
+        // 10:30 y luego SALTAR a su fin. PRE-fix el cursor atravesaba la reunión.
+        val earlyNow = 1_736_769_600_000L // 2025-01-13 09:00 America/Santiago
+        val meetingStart = earlyNow + 90 * 60_000L // 10:30
+        val meeting = task(
+            10,
+            durationMinutes = 60,
+            startAt = meetingStart,
+            status = TaskStatus.PLANNED
+        )
+        // 6 rápidas de 5 min: cabe 1 antes (09:15-09:20) y el resto tras la reunión.
+        val quick = (1..6).map { task(it.toLong(), durationMinutes = 5, dueAt = null) }
+        val plan = AutomationActionPlanner.build(
+            rule(AutomationAction.BATCH_QUICK_TASKS, AutomationCondition.HAS_QUICK_TASKS),
+            quick + meeting, 0, earlyNow, zone
+        )
+        assertTrue(plan.matched)
+        val meetingStartMin = 10 * 60 + 30
+        val meetingEndMin = 11 * 60 + 30
+        plan.updates.forEach { u ->
+            val startZ = Instant.ofEpochMilli(u.startAt!!).atZone(zone)
+            val startMin = startZ.hour * 60 + startZ.minute
+            assertTrue(
+                "Tarea ${u.id} en $startMin cae DENTRO de la reunión [$meetingStartMin, $meetingEndMin)",
+                startMin < meetingStartMin || startMin >= meetingEndMin
+            )
+        }
+    }
 }

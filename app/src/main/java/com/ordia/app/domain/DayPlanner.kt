@@ -40,6 +40,82 @@ object DayPlanner {
         val remainingMinutes: Int get() = (availableMinutes - scheduledMinutes).coerceAtLeast(0)
     }
 
+    /**
+     * Intervalos ocupados por compromisos FIJOS del día: tareas con `startAt` en `date`
+     * que NO son candidatas a reasignar (no figuran en [candidateIds]). El planificador
+     * no debe moverlas, PERO tampoco debe agendar trabajo ENCIMA de su hora: un cursor
+     * que coloca una tarea a las 10:00 solapando una reunión de 10:30 es irrealizable y,
+     * al aplicarse (PLAN_DAY/UI/BATCH_QUICK_TASKS), pisaba el compromiso agendado del
+     * usuario. Aquí se registran como intervalos ocupados para que cualquier cursor los
+     * RODEE.
+     *
+     * Sólo las NO candidatas: una tarea agendada hoy que SÍ es candidata (vence hoy /
+     * includeScheduledOnDate / missed-start recuperable) la RE-coloca el plan y se marca
+     * como conflicto MOVED_FROM_SCHEDULED_TIME, así su hora original no se reserva (se
+     * libera para reubicarla). Las fijas (pura reunión sin vencimiento, o recurrente
+     * sagrada) se quedan en su slot: su hora sí bloquea el cursor. Raíces y recurrentes,
+     * igual que el filtro de candidatas; la duración ocupada es [TaskRules.plannedDuration]
+     * (misma fuente que el resto del plan). El fin se acota al día: una reunión que se
+     * alarga pasada la jornada bloquea hasta [dayEndMinute], no más allá. Las que ya
+     * terminaron antes de [startFloor] se ignoran (no ocupan nada útil adelante).
+     *
+     * Fuente única reutilizada por [build] (PLAN_DAY/UI Apply-Replan) y por
+     * [com.ordia.app.automation.AutomationActionPlanner] (BATCH_QUICK_TASKS): cerrar de
+     * forma centralizada ambas rutas que mutan `startAt` evita que el bug de solapamiento
+     * reaparezca en un cursor olvidado (c.559 fix DayPlanner, c.560 fix BATCH_QUICK_TASKS).
+     * Determinista, sin random, sin IA fingida.
+     */
+    fun fixedBusyIntervals(
+        tasks: List<TaskEntity>,
+        date: LocalDate,
+        candidateIds: Set<Long>,
+        startFloor: Int,
+        dayEndMinute: Int,
+        zone: ZoneId
+    ): List<Pair<Int, Int>> =
+        tasks.asSequence()
+            .filter { TaskRules.isActive(it) && it.parentTaskId == null }
+            .filter { it.id !in candidateIds }
+            .mapNotNull { task ->
+                val start = task.startAt ?: return@mapNotNull null
+                val startZ = Instant.ofEpochMilli(start).atZone(zone)
+                if (startZ.toLocalDate() != date) return@mapNotNull null
+                val startMinute = startZ.hour * 60 + startZ.minute
+                if (startMinute >= dayEndMinute) return@mapNotNull null
+                val endMinute = minOf(dayEndMinute, startMinute + TaskRules.plannedDuration(task))
+                if (endMinute <= startFloor) return@mapNotNull null
+                startMinute to endMinute
+            }
+            .sortedBy { it.first }
+            .toList()
+
+    /**
+     * Desplaza un slot propuesto de modo que no solape ningún intervalo ocupado de un
+     * compromiso fijo. Si el bloque `[proposedStart, proposedEnd)` cae encima de una
+     * reunión, se mueve al fin de esa reunión y se recomprueba (puede haber varios
+     * fijos seguidos). Devuelve el slot reubicado, o `null` si tras saltar todos los
+     * fijos el fin supera [dayEndMinute] (no cabe en el día).
+     *
+     * Fuente única del bucle de rodeo, compartida por [build] y por BATCH_QUICK_TASKS
+     * en [com.ordia.app.automation.AutomationActionPlanner]: el cursor incremental de
+     * rápidas usa su propio avance, pero la resolución de solapes es idéntica.
+     */
+    fun skipBusy(
+        proposedStart: Int,
+        proposedEnd: Int,
+        busy: List<Pair<Int, Int>>,
+        dayEndMinute: Int
+    ): Pair<Int, Int>? {
+        var s = proposedStart
+        var e = proposedEnd
+        while (true) {
+            val hit = busy.firstOrNull { it.first < e && it.second > s } ?: break
+            s = hit.second
+            e = s + (proposedEnd - proposedStart)
+        }
+        return if (e <= dayEndMinute) s to e else null
+    }
+
     fun build(
         tasks: List<TaskEntity>,
         date: LocalDate,
@@ -143,37 +219,9 @@ object DayPlanner {
 
         val tasksById = candidates.associateBy { it.id }
         val candidateIds = candidates.mapTo(HashSet()) { it.id }
-        // Compromisos FIJOS del día: tareas con `startAt` en `date` que el plan NO
-        // reasigna (no son candidatas). El planificador no debe moverlas, PERO
-        // tampoco debe agendar trabajo ENCIMA de su hora: un plan que coloca una
-        // tarea de 2 h a las 10:00 solapando una reunión de 11:00 es irrealizable y,
-        // al aplicarlo (PLAN_DAY/UI), pisaba el compromiso agendado. Aquí se
-        // registran como intervalos ocupados para que el cursor los RODEE.
-        //
-        // Sólo las NO candidatas: una tarea agendada hoy que SÍ es candidata (vence
-        // hoy / includeScheduledOnDate / missed-start recuperable) la RE-coloca el
-        // plan y se marca como conflicto MOVED_FROM_SCHEDULED_TIME, así su hora
-        // original no se reserva (se libera para reubicarla). Las fijas (pura
-        // reunión sin vencimiento, o recurrente sagrada) se quedan en su slot: su
-        // hora sí bloquea el cursor. Raíces y recurrentes, igual que el filtro de
-        // candidatas; la duración ocupada es [plannedDuration] (misma fuente que el
-        // resto del plan). El fin se acota al día: una reunión que se alarga pasada
-        // la jornada bloquea hasta dayEnd, no más allá. (c.556)
-        val busyIntervals = tasks.asSequence()
-            .filter { TaskRules.isActive(it) && it.parentTaskId == null }
-            .filter { it.id !in candidateIds }
-            .mapNotNull { task ->
-                val start = task.startAt ?: return@mapNotNull null
-                val startZ = Instant.ofEpochMilli(start).atZone(zone)
-                if (startZ.toLocalDate() != date) return@mapNotNull null
-                val startMinute = startZ.hour * 60 + startZ.minute
-                if (startMinute >= dayEndMinute) return@mapNotNull null
-                val endMinute = minOf(dayEndMinute, startMinute + TaskRules.plannedDuration(task))
-                if (endMinute <= effectiveStart) return@mapNotNull null
-                startMinute to endMinute
-            }
-            .sortedBy { it.first }
-            .toList()
+        // Compromisos FIJOS del día (intervalos ocupados) que el cursor debe rodear.
+        // Ver [fixedBusyIntervals] para el contrato. (c.559)
+        val busyIntervals = fixedBusyIntervals(tasks, date, candidateIds, effectiveStart, dayEndMinute, zone)
 
         val blocks = mutableListOf<Block>()
         val unscheduled = mutableListOf<Long>()
@@ -194,15 +242,10 @@ object DayPlanner {
                 // recomprueba (puede haber varios fijos seguidos). Si tras saltar no
                 // cabe en el día, la tarea queda no agendada. No añade hueco extra:
                 // el break es entre bloques de trabajo, no transición evento→tarea.
-                var proposedStart = cursor + gap
-                var proposedEnd = proposedStart + duration
-                while (true) {
-                    val hit = busyIntervals.firstOrNull { it.first < proposedEnd && it.second > proposedStart }
-                    if (hit == null) break
-                    proposedStart = hit.second
-                    proposedEnd = proposedStart + duration
-                }
-                if (proposedEnd <= dayEndMinute) {
+                val placed = skipBusy(cursor + gap, cursor + gap + duration, busyIntervals, dayEndMinute)
+                if (placed != null) {
+                    val proposedStart = placed.first
+                    val proposedEnd = placed.second
                     blocks += Block(
                         taskId = task.id,
                         title = task.title,
