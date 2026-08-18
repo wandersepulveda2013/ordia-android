@@ -27,6 +27,16 @@ object LearningEngine {
     private const val DEFAULT_END = 18 * 60
 
     /**
+     * Mínimo de muestras para apartarse del default. Con menos observaciones los
+     * percentiles son ruido estadístico: una sola noche atípica (p. ej. entregar
+     * un trabajo a las 23:00) bastaba para empujar el p90 a la madrugada y
+     * estirar la ventana del planificador, relajando el veredicto de carga de
+     * SummaryEngine hasta altas horas. El default honesto es más fiable que un
+     * perfil aprendido sobre 1-2 muestras.
+     */
+    const val MIN_SAMPLES = 5
+
+    /**
      * Calcula el perfil a partir de las tareas completadas en los últimos
      * [WINDOW_DAYS] días:
      * - dayStartMinute: percentil 10 de la hora de finalización (cuándo empieza
@@ -67,7 +77,7 @@ object LearningEngine {
             .sorted()
             .toList()
 
-        if (minutes.isEmpty()) return LearningProfile()
+        if (minutes.size < MIN_SAMPLES) return LearningProfile()
 
         val start = percentile(minutes, 0.10f).coerceIn(6 * 60, 12 * 60)
         // El final se limita a un mínimo de una hora de jornada y nunca más

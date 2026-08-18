@@ -112,6 +112,30 @@ class LearningEngineTest {
     }
 
     @Test
+    fun insufficientSamplesReturnDefaults() {
+        // Una sola noche atípica (entregar tesis a las 23:00) NO debe deformar
+        // el perfil: con muy pocas muestras el aprendizaje no es fiable, así que
+        // se devuelve el default honesto en lugar de una ventana ruidosa.
+        val one = listOf(completed(1, at(today, 23, 0)))
+
+        val pOne = LearningEngine.learn(one, now, zone)
+
+        assertEquals(9 * 60, pOne.dayStartMinute)
+        assertEquals(18 * 60, pOne.dayEndMinute)
+
+        // Dos muestras tardías siguen siendo insuficientes.
+        val two = listOf(
+            completed(1, at(today, 23, 0)),
+            completed(2, at(today.minusDays(1), 23, 0))
+        )
+
+        val pTwo = LearningEngine.learn(two, now, zone)
+
+        assertEquals(9 * 60, pTwo.dayStartMinute)
+        assertEquals(18 * 60, pTwo.dayEndMinute)
+    }
+
+    @Test
     fun ignoresSubtasksSoLateBurstDoesNotStretchWindow() {
         // Tareas raíz completadas en una jornada real 9:00–18:00 → ventana sana.
         val roots = listOf(
