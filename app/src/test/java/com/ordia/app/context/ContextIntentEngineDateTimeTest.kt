@@ -1141,4 +1141,92 @@ class ContextIntentEngineDateTimeTest {
         // En cualquier caso, no debe capturarse como cita con hora falsa: si hay intent,
         // no debe llevar hora 03:00. La aserción anterior ya lo cubre.
     }
+
+    // --- CALL: olvido de llamadas puras + título corrupto (P1) ---
+
+    @Test
+    fun llamarApersonaSinAncla_seCapturaComoCall() {
+        // Antes: "llamar a María" (sin fecha/hora) quedaba en 0.32 (< 0.45) y se
+        // DESCARTABA → una llamada legítima se olvidaba. Ahora el bono de objeto
+        // explícito la eleva sobre el umbral.
+        val intent = analyzeAnchor("llamar a María")
+        assertNotNull("una llamada clara con objeto no debe descartarse (olvido, P1)", intent)
+        assertEquals(
+            "el kind debe ser CALL, no otro",
+            com.ordia.app.context.ContextIntentKind.CALL,
+            intent?.kind
+        )
+    }
+
+    @Test
+    fun llamarAMama_seCapturaComoCall() {
+        val intent = analyzeAnchor("llamar a mamá")
+        assertNotNull(intent)
+        assertEquals(com.ordia.app.context.ContextIntentKind.CALL, intent?.kind)
+    }
+
+    @Test
+    fun llamarAlDoctor_ganaSobreAppointment() {
+        // "llamar al doctor el viernes a las 4": el verbo "llamar" hace evidente que
+        // es una LLAMADA; "doctor" es solo el objeto. Antes empataba con APPOINTMENT
+        // (0.5) y perdía por orden de enum → mal clasificada como cita médica.
+        val intent = analyzeAnchor("llamar al doctor el viernes a las 4")
+        assertNotNull(intent)
+        assertEquals(
+            "el verbo 'llamar' debe imponerse sobre el objeto 'doctor'",
+            com.ordia.app.context.ContextIntentKind.CALL,
+            intent?.kind
+        )
+    }
+
+    @Test
+    fun hablarConDentista_seCapturaComoCall() {
+        val intent = analyzeAnchor("hablar con el dentista")
+        assertNotNull(intent)
+        assertEquals(com.ordia.app.context.ContextIntentKind.CALL, intent?.kind)
+    }
+
+    @Test
+    fun callTitleSinDobleA_llamarAlDoctor() {
+        // Antes: "llamar al doctor" → "Llamar a Al doctor" (doble "a" + "Al" mayúscula).
+        // Con c.609 (sanitizeTitle) el residuo temporal de cola se depura → "Llamar al doctor".
+        val intent = analyzeAnchor("llamar al doctor el viernes a las 4")
+        assertNotNull(intent)
+        assertEquals("Llamar al doctor", intent?.title)
+    }
+
+    @Test
+    fun callTitleSinDobleA_llamarAMaria() {
+        // Antes: "llamar a María" → "Llamar a A María" (doble "a").
+        val intent = analyzeAnchor("llamar a María")
+        assertNotNull(intent)
+        assertEquals("Llamar a María", intent?.title)
+    }
+
+    @Test
+    fun callTitleHablarCon_preservaVerbo_noInsertaA() {
+        // Antes: "hablar con el dentista" → "Llamar a Con el dentista" (corrupto:
+        // perdía "hablar con", insertaba "a" y "Con" mayúscula).
+        val intent = analyzeAnchor("hablar con el dentista")
+        assertNotNull(intent)
+        assertEquals("Hablar con el dentista", intent?.title)
+    }
+
+    @Test
+    fun callTitle_llamarAMama_minusculaPreservada() {
+        // El objeto común ("mamá") no debe capitalizarse a "Mamá": respeta lo que el
+        // usuario escribió.
+        val intent = analyzeAnchor("llamar a mamá")
+        assertNotNull(intent)
+        assertEquals("Llamar a mamá", intent?.title)
+    }
+
+    @Test
+    fun callTitle_residuoTemporalDepurado_llamarAlPediatraManana() {
+        // Paridad c.609 sanitizeTitle + fix CALL: "llamar al pediatra mañana" debe
+        // quedar "Llamar al pediatra" (el "mañana" se resolvió en dueAt, no en título).
+        val intent = analyzeAnchor("llamar al pediatra mañana")
+        assertNotNull(intent)
+        assertEquals("Llamar al pediatra", intent?.title)
+    }
 }

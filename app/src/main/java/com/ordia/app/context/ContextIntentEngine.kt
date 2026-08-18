@@ -205,6 +205,18 @@ object ContextIntentEngine {
                 var s = 0f
                 if (Regex("""llamar (a|por teléfono)""").containsMatchIn(lower)) s += 0.2f
                 if (Regex("""hablar (con|por teléfono)""").containsMatchIn(lower)) s += 0.15f
+                // Bono de objeto explícito (P1): "llamar a/al/a la/a los <persona>" o
+                // "hablar con <persona>" es una llamada telefónica clara. Sin este bono,
+                // "llamar a María" quedaba en 0.32 (< MINIMUM_CONFIDENCE 0.45) y se
+                // DESCARTABA (olvido), y "llamar al doctor el viernes a las 4" empataba
+                // con APPOINTMENT (0.5) y perdía por orden de enum → clasificada como
+                // cita médica aunque el verbo "llamar" hace evidente la intención. El
+                // bono eleva CALL por encima del umbral y de APPOINTMENT. El guard `\S`
+                // tras la preposición exige un objeto real (no "llamar a" al final).
+                val hasCallObject =
+                    Regex("""\bllamar\s+(a|al|a la|a los|a las)\s+\S""").containsMatchIn(lower) ||
+                        Regex("""\bhablar\s+con\s+\S""").containsMatchIn(lower)
+                if (hasCallObject) s += 0.25f
                 s
             }
             ContextIntentKind.EXERCISE -> {
@@ -367,8 +379,19 @@ object ContextIntentEngine {
                 null
             }
             ContextIntentKind.CALL -> {
-                val match = Regex("""(llamar|hablar con) (.+)""", RegexOption.IGNORE_CASE).find(original)
-                if (match != null) return "Llamar a ${capitalizeFirst(match.groupValues[2])}"
+                // Preserva el verbo + preposición ORIGINAL del input. Antes el template
+                // fijo "Llamar a ${group2}" corrumpía títulos legítimos: "llamar al doctor"
+                // → "Llamar a Al doctor" (doble "a" + "Al" mayúscula), "llamar a María" →
+                // "Llamar a A María" (doble "a"), "hablar con María" → "Llamar a Con María"
+                // (perdía "hablar con" e insertaba "a" + "Con" mayúscula). Ahora se
+                // capitaliza el texto desde el verbo, respetando la preposición que el
+                // usuario ya escribió ("a"/"al"/"con"). El match arranca en \b(llamar|
+                // hablar con) para no capturar texto previo accidental.
+                val match = Regex(
+                    """\b(llamar(?:\s+(?:a|al|a la|a los|a las|por teléfono))?|hablar con)\b.*""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (match != null) return capitalizeFirst(match.value.trim())
                 null
             }
             ContextIntentKind.PAYMENT -> {
