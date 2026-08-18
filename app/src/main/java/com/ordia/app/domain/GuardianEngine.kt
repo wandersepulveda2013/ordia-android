@@ -347,7 +347,13 @@ object GuardianEngine {
                         .withStaleInboxTail(tasks, nowMillis, zoneId)
                     overdueCommitments.isNotEmpty() -> overdueCommitmentAction(overdueCommitments)
                         .withStaleInboxTail(tasks, nowMillis, zoneId)
+                    // La acción primaria (reconocer la tarea en curso) ya está dicha; la cola
+                    // del stale-inbox sólo INFORMA del conteo para no mentir por omisión del 3.er
+                    // olvido, igual que las otras sub-ramas de overdue>0. Sin esta cola, un
+                    // usuario con la atrasada en curso Y capturas arrinconadas recibía el
+                    // mensaje de continuación y NINGUNA señal de las capturas olvidadas.
                     else -> "Estás trabajando en tu tarea atrasada ahora mismo. Sigue así y ciérrala cuando puedas."
+                        .withStaleInboxTail(tasks, nowMillis, zoneId)
                 }
             }
             missed != null -> missed.withCommitmentTail(overdueCommitments)

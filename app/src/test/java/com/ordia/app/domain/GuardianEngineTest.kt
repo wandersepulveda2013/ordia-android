@@ -376,6 +376,39 @@ class GuardianEngineTest {
     }
 
     @Test
+    fun suggestedAction_fallbackTodasAtrasadasEnCursoNoOcultaCapturasArrinconadas() {
+        // Paridad "no mentir por omisión" del 3.er olvido: cuando TODAS las atrasadas
+        // están en curso (no hay nombrable) Y hay además capturas de bandeja
+        // arrinconadas, el mensaje de continuación honesto NO debe silenciarlas. Las
+        // demás ramas del cascada overdue>0 ya encadenan withStaleInboxTail; este
+        // fallback (sub-rama final) se quedaba sin la cola y ocultaba las capturas
+        // olvidadas. La acción primaria sigue siendo reconocer la tarea en curso; la
+        // cola sólo INFORMA del conteo, sin abrir una segunda acción.
+        val inProgressOverdue = TaskEntity(
+            id = 1, title = "En curso",
+            startAt = midday - 30 * 60_000L, dueAt = midday - 10 * 60_000L,
+            durationMinutes = 120
+        )
+        val staleInbox = TaskEntity(
+            id = 2, title = "Idea arrinconada", createdAt = midday - 8L * 24 * 60 * 60_000L
+        )
+
+        val result = GuardianEngine.snapshot(
+            tasks = listOf(inProgressOverdue, staleInbox),
+            habits = emptyList(), habitLogs = emptyList(),
+            focusSessions = emptyList(), notes = emptyList(),
+            preferences = UserPreferences(), nowMillis = midday, zoneId = zone
+        )
+
+        assertTrue(result.suggestedAction.contains("trabajando"))
+        // La cola informativa del stale-inbox no nombra el título (acción primaria =
+        // la tarea en curso), sólo el conteo, para no mentir por omisión del 3.er olvido.
+        assertFalse(result.suggestedAction.contains("Idea arrinconada"))
+        assertTrue(result.suggestedAction.contains("captura"))
+        assertTrue(result.suggestedAction.contains("bandeja"))
+    }
+
+    @Test
     fun suggestedAction_cascadeAMissedStartCuandoTodasAtrasadasEnCurso() {
         // REGRESIÓN c.564: cuando la única atrasada está en curso Y hay además una
         // tarea con hueco olvidado (missed-start, NO vencida), el nudge NO debe
