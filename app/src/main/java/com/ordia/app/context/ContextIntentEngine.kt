@@ -489,6 +489,49 @@ object ContextIntentEngine {
         if (lower.contains("hoy") && !lower.contains("a hoy")) {
             targetDate = today
         }
+        // Períodos relativos (paridad con NaturalTaskParser nextPeriodPattern /
+        // lastPeriodPattern, l.3806-3844 y l.3288-3300). "la semana/el mes/el año
+        // que viene"/"próxima"/"entrante"/"en una semana" → +7/+30/+365 días;
+        // "la semana/el mes/el año pasado"/"anterior" → −7/−30/−365 días. Misma
+        // día-aritmética que el parser (now ± N·86400000 → aquí today ± N días).
+        // Antes extractDateTime NO reconocía períodos → un ContextEvent de
+        // notificación ("reunión la semana que viene") nacía SIN dueAt → la cita
+        // futura no generaba recordatorio ni aparecía en el planificador; una cita
+        // vencida ("la semana pasada") no se hacía visible en What Now (P1 evitar
+        // olvidos). Se exige un calificador explícito (que viene/próxima/pasada/
+        // anterior/en una…) para no inventar fechas a partir de "semana"/"mes"/
+        // "año" sueltos ("esta semana", "cada semana", "fin de semana"). Va
+        // DESPUÉS de hoy/mañana/pasado mañana para que esas frases más específicas
+        // se resuelvan primero (sin necesidad de exclusiones). Orden del `when`
+        // espeja el parser: trimestre/bimestre/semestre ANTES de "mes" porque
+        // "trimes**tre**"/"bi**mes**tre"/"se**mes**tre" contienen la subcadena "mes".
+        if (targetDate == null) {
+            val periodFuture = Regex(
+                """que\s+viene|que\s+entra|entrante|pr[oó]xim|siguiente""",
+                RegexOption.IGNORE_CASE
+            ).containsMatchIn(lower) || Regex(
+                """\ben\s+(?:un|una|unos|unas)\s+(?:semanas?|mes(?:es)?|a[nñ]os?)\b""",
+                RegexOption.IGNORE_CASE
+            ).containsMatchIn(lower)
+            val periodPast = Regex(
+                """pasad[oa]s?|anteriore?s?""", RegexOption.IGNORE_CASE
+            ).containsMatchIn(lower)
+            if (periodFuture || periodPast) {
+                val days = when {
+                    "trimestre" in lower -> 90L
+                    "bimestre" in lower -> 60L
+                    "semestre" in lower -> 180L
+                    "quincena" in lower -> 15L
+                    "semana" in lower -> 7L
+                    "mes" in lower -> 30L
+                    "año" in lower || "ano" in lower -> 365L
+                    else -> null
+                }
+                if (days != null) {
+                    targetDate = if (periodFuture) today.plusDays(days) else today.minusDays(days)
+                }
+            }
+        }
         // "esta noche"/"esta tarde" ya se resuelven antes (bloque `estaPartOfDay`,
         // l.429): fijan targetDate=today + hora canónica. El guard `targetDate ==
         // null` de aquí era siempre falso para esas frases → bloque muerto (c.594).

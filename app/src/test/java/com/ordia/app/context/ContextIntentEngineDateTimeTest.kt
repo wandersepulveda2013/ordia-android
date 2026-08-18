@@ -694,4 +694,139 @@ class ContextIntentEngineDateTimeTest {
         assertEquals("'a medianoche y cuarto' = 00:00", 0, dt.hour)
         assertEquals("'a medianoche y cuarto' = 00:15 (cuarto)", 15, dt.minute)
     }
+    // --- Períodos relativos (paridad con NaturalTaskParser) ---
+    // "la semana que viene"/"el mes que viene"/"el año que viene" y sus sinónimos
+    // ("próxima semana"/"próximo mes"/"la semana entrante") se resuelven como
+    // +7/+30/+365 días (mismo día-aritmética que el parser, l.3830-3844). Antes
+    // extractDateTime NO las reconocía → un ContextEvent de notificación
+    // ("reunión la semana que viene") nacía SIN dueAt → la cita futura no generaba
+    // recordatorio ni aparecía en el planificador (P1 evitar olvidos).
+
+    @Test
+    fun laSemanaQueViene_isPlus7Days() {
+        val due = ContextIntentEngine.extractDateTime("reunión la semana que viene")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'la semana que viene' = hoy + 7", LocalDate.now(z).plusDays(7), dDue)
+    }
+
+    @Test
+    fun elMesQueViene_isPlus30Days() {
+        val due = ContextIntentEngine.extractDateTime("pago el mes que viene")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'el mes que viene' = hoy + 30", LocalDate.now(z).plusDays(30), dDue)
+    }
+
+    @Test
+    fun elAnoQueViene_isPlus365Days() {
+        val due = ContextIntentEngine.extractDateTime("revisión el año que viene")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'el año que viene' = hoy + 365", LocalDate.now(z).plusDays(365), dDue)
+    }
+
+    @Test
+    fun proximaSemana_isPlus7Days() {
+        val due = ContextIntentEngine.extractDateTime("entrega próxima semana")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'próxima semana' = hoy + 7", LocalDate.now(z).plusDays(7), dDue)
+    }
+
+    @Test
+    fun proximoMes_isPlus30Days() {
+        val due = ContextIntentEngine.extractDateTime("alquiler próximo mes")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'próximo mes' = hoy + 30", LocalDate.now(z).plusDays(30), dDue)
+    }
+
+    @Test
+    fun enUnaSemana_isPlus7Days() {
+        // "en una semana" = +7d (paridad parser l.316). Forma coloquial frecuente.
+        val due = ContextIntentEngine.extractDateTime("cita en una semana")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'en una semana' = hoy + 7", LocalDate.now(z).plusDays(7), dDue)
+    }
+
+    // --- Períodos pasados (paridad con NaturalTaskParser lastPeriodPattern) ---
+    // "la semana pasada"/"el mes pasado"/"el año pasado" y "anterior" se resuelven
+    // como -7/-30/-365 días (parser l.3288-3300). El usuario reconoce que la cita
+    // está vencida → debe aparecer en What Now como atrasada (no perderse).
+
+    @Test
+    fun laSemanaPasada_isMinus7Days() {
+        val due = ContextIntentEngine.extractDateTime("reunión la semana pasada")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'la semana pasada' = hoy - 7", LocalDate.now(z).minusDays(7), dDue)
+    }
+
+    @Test
+    fun elMesPasado_isMinus30Days() {
+        val due = ContextIntentEngine.extractDateTime("cita el mes pasado")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'el mes pasado' = hoy - 30", LocalDate.now(z).minusDays(30), dDue)
+    }
+
+    @Test
+    fun elAnoPasado_isMinus365Days() {
+        val due = ContextIntentEngine.extractDateTime("visita el año pasado")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'el año pasado' = hoy - 365", LocalDate.now(z).minusDays(365), dDue)
+    }
+
+    @Test
+    fun laSemanaAnterior_isMinus7Days() {
+        // "anterior" = sinónimo pleno de "pasado" para períodos (parser l.497-512).
+        val due = ContextIntentEngine.extractDateTime("reunión la semana anterior")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'la semana anterior' = hoy - 7", LocalDate.now(z).minusDays(7), dDue)
+    }
+
+    // --- Anti-falsos-positivos: "semana"/"mes"/"año" SIN calificador → sin fecha ---
+    // El bloque de períodos exige un calificador explícito (que viene/próxima/pasada/
+    // anterior/en una…) para no inventar fechas. "esta semana"/"cada semana"/
+    // "fin de semana" NO llevan calificador → deben quedar SIN dueAt (no asumir
+    // +7d solo por la palabra "semana"). Protege contra regresiones que ignoren
+    // los calificadores y produzcan fechas espurias.
+
+    @Test
+    fun estaSemana_sinCalificador_noDueAt() {
+        assertNull(
+            "'esta semana' sin calificador = sin fecha (no +7d)",
+            ContextIntentEngine.extractDateTime("comprar pan esta semana")
+        )
+    }
+
+    @Test
+    fun cadaSemana_sinCalificador_noDueAt() {
+        assertNull(
+            "'cada semana' sin calificador = sin fecha (no +7d)",
+            ContextIntentEngine.extractDateTime("revisar el informe cada semana")
+        )
+    }
+
+    @Test
+    fun finDeSemana_sinCalificador_noDueAt() {
+        assertNull(
+            "'fin de semana' sin calificador = sin fecha (no +7d)",
+            ContextIntentEngine.extractDateTime("descansar el fin de semana")
+        )
+    }
 }
