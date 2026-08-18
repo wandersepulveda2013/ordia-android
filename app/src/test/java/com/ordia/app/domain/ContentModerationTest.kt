@@ -31,7 +31,7 @@ class ContentModerationTest {
     // c.630 separa las raíces flexionadas (desnud/eroti/masturb) de las palabras
     // completas: aquéllas usan `\b` inicial sin `\b` final (ver ContentModeration).
     private val sexual = ContentModeration.ModerationRule(
-        stem = Regex("""\b(sexo|sexual|porno|xxx|culos|tetas|pene|vagina|orgasmo)\b"""),
+        stem = Regex("""\b(sexo|sexual|porno|xxx|culo|culos|teta|tetas|pene|vagina|orgasmo)\b"""),
         contain = listOf(
             Regex("""\b(cita con el ur[oó]logo|cita con la ginec[oó]loga?)\b[^.]*\bpene\b"""),
             Regex("""\b(revisi[oó]n de|revisar la|revisar el|examen de la|examen del)[^.]*\b(pene|vagina)\b""")
@@ -173,6 +173,32 @@ class ContentModerationTest {
     @Test fun examenProstate_noEsDanino() {
         // Proximidad médica cubre la mención anatómica.
         assertFalse(sexualHarmful("examen de la prostate de rutina"))
+    }
+
+    // c.638: SINGULARES "culo"/"teta". PRE-fix el stem listaba SÓLO los plurales
+    // "culos"/"tetas" → el gate dejaba pasar "mostró el culo"/"enseña la teta"
+    // (contenido sexual explícito no bloqueado, P1 privacidad/gate, misma clase
+    // que c.630/c.633 — `\b` final mata el número).
+    @Test fun mostrarElCulo_esDanino() {
+        assertTrue(sexualHarmful("mostró el culo en la foto"))
+    }
+
+    @Test fun ensenarLaTeta_esDanino() {
+        assertTrue(sexualHarmful("enseña la teta"))
+    }
+
+    @Test fun sacoElCulo_esDanino() {
+        assertTrue(sexualHarmful("sacó el culo"))
+    }
+
+    @Test fun tetasPlural_preservado_esDanino() {
+        // Plural ya casaba PRE-fix; debe seguir cazando (regresión).
+        assertTrue(sexualHarmful("fotos de tetas"))
+    }
+
+    @Test fun contenidoPorno_preservado_esDanino() {
+        // Palabra completa sin número, ya casaba; sin regresión.
+        assertTrue(sexualHarmful("contenido porno"))
     }
 
     // ── Verdaderos positivos: contenido dañino que debe seguir bloqueándose ──

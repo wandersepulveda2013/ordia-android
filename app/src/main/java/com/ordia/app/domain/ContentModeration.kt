@@ -98,13 +98,19 @@ object ContentModeration {
      * gate de IA ni a la decisión de crear una sugerencia de tarea.
      */
     val THEMATIC_RULES: List<ModerationRule> = listOf(
-        // Contenido sexual explícito. "sexo"/"sexual"/"porno"/"xxx"/"culos"/"tetas"/"pene"/"vagina"/"orgasmo"
+        // Contenido sexual explícito. "sexo"/"sexual"/"porno"/"xxx"/"culo"/"teta"/"pene"/"vagina"/"orgasmo"
         // son PALABRAS COMPLETAS que rara vez aparecen en tareas legítimas, así que se
         // casan con `\b` a ambos lados para no alcanzar prefijos accidentales (p.ej. "pene"
         // en "Penélope" — `pene` requiere límite final). Las raíces anatómicas (pene/vagina)
         // SÍ se eximen en contexto médico (cita con el urólogo/ginecólogo por...).
+        // c.638: PRE-fix el stem listaba SÓLO los plurales "culos"/"tetas" → los SINGULARES
+        // "culo"/"teta" NO casaban → "mostró el culo"/"enseña la teta" PASABAN el gate
+        // (contenido sexual explícito no bloqueado, P1 privacidad/gate, MISMA CLASE que
+        // c.630/c.633 — `\b` final mata el número). Fix: listar ambas formas (singular +
+        // plural). Son anatómicos vulgares: mención aislada en captura de tareas personales
+        // es señal suficiente (paridad con `pene`/`vagina` ya listadas como singulares).
         ModerationRule(
-            stem = Regex("""\b(sexo|sexual|porno|xxx|culos|tetas|pene|vagina|orgasmo)\b"""),
+            stem = Regex("""\b(sexo|sexual|porno|xxx|culo|culos|teta|tetas|pene|vagina|orgasmo)\b"""),
             contain = listOf(
                 Regex("""\b(cita con el ur[oó]logo|cita con la ginec[oó]loga?)\b[^.]*\bpene\b"""),
                 Regex("""\b(revisi[oó]n de|revisar la|revisar el|examen de la|examen del)[^.]*\b(pene|vagina)\b""")
