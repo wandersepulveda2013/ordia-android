@@ -59,10 +59,10 @@ object GuardianCoach {
                 val message = if (recoverable.size == 1)
                     "Esta tarea lleva $ageLabel atrasada. Hazla hoy o muévela con intención, no la dejes pasar otra vez."
                 else
-                    "Tienes ${recoverable.size} tareas atrasadas y la más antigua lleva $ageLabel. Elige una: hacerla hoy, reprogramarla o quitarla."
+                    "Tienes ${recoverable.size} tareas atrasadas y la más antigua lleva $ageLabel. Elige una: hacerla hoy, reprogramarla o quitarla.".withUrgentTail(recoverable)
                 return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", withStaleInboxTail(withCommitmentTail(message, overdueCommitments), roots, now, zone), next?.id, Tone.FOCUSED)
             }
-            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", withStaleInboxTail(withCommitmentTail(if (recoverable.size == 1) "Esta tarea está atrasada. Empieza con un bloque corto." else "Tienes ${recoverable.size} tareas atrasadas. Comienza por esta.", overdueCommitments), roots, now, zone), next?.id, Tone.GENTLE)
+            return Insight("RECUPERA EL CONTROL", next?.title ?: "Hay algo pendiente", withStaleInboxTail(withCommitmentTail(if (recoverable.size == 1) "Esta tarea está atrasada. Empieza con un bloque corto." else "Tienes ${recoverable.size} tareas atrasadas. Comienza por esta.".withUrgentTail(recoverable), overdueCommitments), roots, now, zone), next?.id, Tone.GENTLE)
         }
         val urgent = dueToday.filter { it.priority.name == "URGENT" || it.priority.name == "HIGH" }
         if (urgent.isNotEmpty()) {
@@ -248,5 +248,25 @@ object GuardianCoach {
         val capturas = if (count == 1) "1 captura" else "$count capturas"
         val llevan = if (count == 1) "lleva" else "llevan"
         return "$message Además, $capturas en la bandeja $llevan una semana o más sin agendar."
+    }
+
+    /**
+     * Sufijo de conteo urgente para la tarjeta de atrasadas (paridad con
+     * [GuardianEngine.withOverdueTail] c.621): cuando hay varias atrasadas, el
+     * mensaje plural ("Tienes N tareas atrasadas...") añade "(N urgentes)"
+     * —igual que el nudge del guardián— para que el atraso crítico no quede
+     * camuflado tras un conteo plano. A diferencia del nudge, aquí el conteo
+     * N ya incluye a TODAS las atrasadas (la tarjeta nombra una acción pero
+     * el mensaje cubre el grupo entero), así que [urgentCount] es el total de
+     * urgentes en el grupo, SIN el `-1` del nudge. Sólo se añade cuando hay
+     * ≥1 urgente (no decir "0 urgentes") y el grupo es plural (size ≥ 2).
+     * Determinista (conteo + predicado `priority==URGENT`), sin IA fingida:
+     * sólo hace visible la prioridad que la tarea ya porta.
+     */
+    private fun String.withUrgentTail(recoverable: List<TaskEntity>): String {
+        val urgentCount = recoverable.count { it.priority.name == "URGENT" }
+        if (urgentCount <= 0) return this
+        val urgentes = if (urgentCount == 1) "1 urgente" else "$urgentCount urgentes"
+        return "$this ($urgentes)"
     }
 }

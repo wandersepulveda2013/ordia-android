@@ -111,6 +111,70 @@ class GuardianCoachTest {
         assertTrue(insight.message.contains("2"))
     }
 
+    // c.622 — paridad con GuardianEngine.withOverdueTail (c.621): la tarjeta del
+    // coach (superficie MÁS visible) decía "Tienes N tareas atrasadas y la más
+    // antigua lleva X" SIN distinguir cuántas eran URGENTES. Mismo camuflaje que
+    // c.621 cerró en el nudge: un usuario con varias atrasadas urgentes leía el
+    // mismo conteo plano que si todas fueran banales, justo cuando "detección de
+    // vencidas importantes" más ayuda hace. Sin nueva pantalla: mejora el mensaje.
+    @Test
+    fun forgottenOverdueGroupSurfacesUrgentCountWhenThereAreUrgents() {
+        val oldest = TaskEntity(
+            id = 1, title = "Tarea muy atrasada",
+            dueAt = DateRules.toEpochMillis(today.minusDays(3), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.URGENT
+        )
+        val recent = TaskEntity(
+            id = 2, title = "Tarea recién atrasada",
+            dueAt = DateRules.toEpochMillis(today.minusDays(2), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.URGENT
+        )
+        val normal = TaskEntity(
+            id = 3, title = "Otra atrasada banal",
+            dueAt = DateRules.toEpochMillis(today.minusDays(2), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val insight = GuardianCoach.insight(listOf(oldest, recent, normal), emptyList(), emptyList(), now, zone)
+
+        assertTrue(insight.message.contains("3 tareas atrasadas"))
+        assertTrue("Debe señalar cuántas son urgentes (2 urgentes)", insight.message.contains("2 urgentes"))
+    }
+
+    @Test
+    fun forgottenOverdueGroupSurfacesSingleUrgentLabel() {
+        val urgent = TaskEntity(
+            id = 1, title = "Atrasada urgente",
+            dueAt = DateRules.toEpochMillis(today.minusDays(3), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.URGENT
+        )
+        val normal = TaskEntity(
+            id = 2, title = "Atrasada banal",
+            dueAt = DateRules.toEpochMillis(today.minusDays(2), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val insight = GuardianCoach.insight(listOf(urgent, normal), emptyList(), emptyList(), now, zone)
+
+        assertTrue("Singular: 1 urgente", insight.message.contains("1 urgente"))
+    }
+
+    @Test
+    fun forgottenOverdueGroupDoesNotSignalUrgentsWhenNoneAreUrgent() {
+        val a = TaskEntity(
+            id = 1, title = "Atrasada A",
+            dueAt = DateRules.toEpochMillis(today.minusDays(3), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val b = TaskEntity(
+            id = 2, title = "Atrasada B",
+            dueAt = DateRules.toEpochMillis(today.minusDays(2), LocalTime.of(9, 0), zone),
+            priority = TaskPriority.NORMAL
+        )
+        val insight = GuardianCoach.insight(listOf(a, b), emptyList(), emptyList(), now, zone)
+
+        assertTrue(insight.message.contains("2 tareas atrasadas"))
+        assertFalse("Sin urgentes no debe añadir el marcado", insight.message.contains("urgente"))
+    }
+
     // Tarea en la bandeja SIN fecha, capturada hace 3 semanas y nunca agendada:
     // el coach debe rescatarla como "olvidada" (no un "siguiente paso" genérico),
     // porque la recuperación de tareas olvidadas solo miraba las vencidas (con
