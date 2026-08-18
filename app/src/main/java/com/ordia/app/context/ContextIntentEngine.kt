@@ -46,6 +46,21 @@ object ContextIntentEngine {
         "bonito", "te quiero", "te amo", "te extraño", "te adoro"
     )
 
+    // Verbos imperativos por kind, reutilizados por los pisos
+    // (hasStrong*Imperative) y por el guard de negación (imperativeIsNegated,
+    // c.648). Centralizar las listas evita divergencia entre el guard del piso
+    // (que protege cuando el score queda bajo [MINIMUM_CONFIDENCE]) y el guard
+    // de negación global (que protege cuando el bono temporal o un patrón
+    // específico eleva el score por encima del umbral SIN pasar por el piso).
+    private val SHOPPING_VERBS = "comprar"
+    private val PAYMENT_VERBS = "pagar"
+    private val MEETING_VERBS = "reuni[oó]n"
+    private val HOUSEHOLD_VERBS =
+        "limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar"
+    private val EXERCISE_VERBS = "correr|entrenar|nataci[oó]n|pesas"
+    private val ERRAND_VERBS = "recoger|devolver|retirar"
+    private val STUDY_VERBS = "estudiar|repasar"
+
     /**
      * Analiza un evento contextual y retorna una intención clasificada,
      * o null si el contenido debe descartarse.
@@ -129,6 +144,25 @@ object ContextIntentEngine {
      * Puntúa qué tan bien coincide el texto con una categoría de intención.
      */
     private fun scoreKind(lower: String, kind: ContextIntentKind): Float {
+        // Guard de negación global (c.648 anti-overreach). Los pisos
+        // hasStrong*Imperative bloquean la captura del OPUESTO de la intención
+        // del usuario cuando el score queda BAJO [MINIMUM_CONFIDENCE]: su
+        // lookbehind `(?<!no )` impide activar el piso si la negación precede al
+        // verbo. PERO el bono temporal ([scoreContextualBonus], +0.1 por fecha)
+        // y algunos patrones específicos ([scoreSpecificPatterns], p.ej. "ir al
+        // gimnasio") elevan el score por encima del umbral SIN pasar por el
+        // piso, así el guard de negación del piso NUNCA se evalúa y la negación
+        // se ignora: "mañana no comprar pan" → tarea "Comprar pan" (0.47),
+        // "mañana no ir al gimnasio" → tarea "ir al gimnasio" (0.69). Esto es
+        // un overreach P1: captura exactamente lo opuesto a lo que el usuario
+        // dijo y lo persiste como tarea real. El guard comprueba si el verbo
+        // imperativo del kind aparece inmediatamente negado por "no " (en
+        // cualquier posición, con o sin prefijo temporal) y, si es así,
+        // descarta ESE kind (score 0) para todo el pipeline. Determinista
+        // (regex), sin IA fingida. Mismo principio que c.616, aplicado a la vía
+        // del bono que c.616 no cubría.
+        if (imperativeIsNegated(lower, kind)) return 0f
+
         var score = 0f
         val words = lower.split(Regex("\\s+"))
 
@@ -327,7 +361,7 @@ object ContextIntentEngine {
      * (muletilla) NO activan el piso (c.616 anti-overreach).
      */
     private fun hasStrongShoppingImperative(lower: String): Boolean =
-        Regex("""^comprar\s+\w""").containsMatchIn(lower)
+        Regex("""^($SHOPPING_VERBS)\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de reunión inequívocos (c.626, c.647). Coincide con el anclaje de
@@ -351,7 +385,7 @@ object ContextIntentEngine {
      * Determinista (regex), sin IA fingida.
      */
     private fun hasStrongMeetingImperative(lower: String): Boolean =
-        Regex("""\b(?<!no )reunión\s+(con|de|del)\s+\w""").containsMatchIn(lower)
+        Regex("""\b(?<!no )($MEETING_VERBS)\s+(con|de|del)\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de pago inequívocos (c.630). Coincide con el anclaje de
@@ -362,7 +396,7 @@ object ContextIntentEngine {
      * activan el piso (c.616 anti-overreach).
      */
     private fun hasStrongPaymentImperative(lower: String): Boolean =
-        Regex("""^pagar\s+\w""").containsMatchIn(lower)
+        Regex("""^($PAYMENT_VERBS)\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de hogar inequívocos (c.638, c.643). Coincide con los verbos de
@@ -384,7 +418,7 @@ object ContextIntentEngine {
      * exige `\s+\w` (objeto real). Determinista (regex), sin IA fingida.
      */
     private fun hasStrongHouseholdImperative(lower: String): Boolean =
-        Regex("""\b(?<!no )(limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar)\s+\w""").containsMatchIn(lower)
+        Regex("""\b(?<!no )($HOUSEHOLD_VERBS)\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de ejercicio inequívocos (c.639, c.647). Verbos de actividad
@@ -405,7 +439,7 @@ object ContextIntentEngine {
      * (HOUSEHOLD). Determinista (regex), sin IA fingida.
      */
     private fun hasStrongExerciseImperative(lower: String): Boolean =
-        Regex("""\b(?<!no )(correr|entrenar|nataci[oó]n|pesas)\s+\w""").containsMatchIn(lower) ||
+        Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w""").containsMatchIn(lower) ||
             Regex("""\b(?<!no )ir\s+al\s+gimnasio""").containsMatchIn(lower) ||
             Regex("""\b(?<!no )hacer\s+(yoga|pesas|deporte)\b""").containsMatchIn(lower)
 
@@ -429,7 +463,7 @@ object ContextIntentEngine {
      */
     private fun hasStrongErrandImperative(lower: String): Boolean =
         Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b""").containsMatchIn(lower) ||
-            Regex("""\b(?<!no )(recoger|devolver|retirar)\s+\w""").containsMatchIn(lower)
+            Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de estudio inequívocos (c.639, c.647). "estudiar <X>"/
@@ -452,8 +486,64 @@ object ContextIntentEngine {
      * Determinista (regex), sin IA fingida.
      */
     private fun hasStrongStudyImperative(lower: String): Boolean =
-        Regex("""\b(?<!no )(estudiar|repasar)\s+\w""").containsMatchIn(lower) ||
+        Regex("""\b(?<!no )($STUDY_VERBS)\s+\w""").containsMatchIn(lower) ||
             Regex("""\b(?<!no )preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b""").containsMatchIn(lower)
+
+    /**
+     * Detecta si el verbo imperativo del [kind] aparece inmediatamente negado por
+     * "no " en el texto (c.648 anti-overreach). Complementa a los pisos
+     * [hasStrong*Imperative]: éstos sólo bloquean la negación cuando el score queda
+     * bajo [MINIMUM_CONFIDENCE] (vía lookbehind `(?<!no )`), pero NO protegen cuando
+     * el bono temporal ([scoreContextualBonus]) o un patrón específico
+     * ([scoreSpecificPatterns], p.ej. "ir al gimnasio") elevan el score por encima
+     * del umbral sin activar el piso. En ese caso, "mañana no comprar pan" se
+     * capturaba como la tarea "Comprar pan": exactamente lo opuesto a la intención
+     * del usuario, persistido como dato real (overreach P1).
+     *
+     * El patrón `\bno\s+(verbo)` exige la negación INMEDIATA, así no bloquea casos
+     * afirmativos con "no" incidental: "no olvides comprar pan" (el "no" niega
+     * "olvides", "comprar" va libre) o "no tengo gluten, comprar pan" (el "no" va
+     * con "tengo") NO se bloquean. Sólo "no <verbo-imperativo>" y "<temporal> no
+     * <verbo-imperativo>" (la negación incrustada) disparan el guard y descartan
+     * ese kind para todo el pipeline. Determinista (regex), sin IA fingida.
+     *
+     * TASK y REMINDER se excluyen: su imperativo ("recuérdame/no olvides/tengo
+     * que/hay que") ya contiene o admite "no" ("no olvides" es afirmativo: "no te
+     * olvides DE"), así negar aquí rompería recordatorios legítimos. APPOINTMENT,
+     * CALL, DEADLINE y COMMITMENT_PERSONAL no tienen verbo imperativo de acción
+     * directa negable en este sentido.
+     */
+    private fun imperativeIsNegated(lower: String, kind: ContextIntentKind): Boolean {
+        val negatedVerbs: String = when (kind) {
+            ContextIntentKind.SHOPPING -> SHOPPING_VERBS
+            ContextIntentKind.PAYMENT -> PAYMENT_VERBS
+            ContextIntentKind.MEETING -> MEETING_VERBS
+            ContextIntentKind.HOUSEHOLD -> HOUSEHOLD_VERBS
+            ContextIntentKind.EXERCISE -> EXERCISE_VERBS
+            ContextIntentKind.ERRAND -> ERRAND_VERBS
+            ContextIntentKind.STUDY -> STUDY_VERBS
+            else -> return false
+        }
+        // Negación inmediata del verbo imperativo, en cualquier posición
+        // (cubre "no comprar pan" y "mañana no comprar pan").
+        if (Regex("""\bno\s+($negatedVerbs)\b""").containsMatchIn(lower)) return true
+        // "ir al gimnasio" y "hacer yoga/pesas/deporte" son imperativos multi-palabra
+        // de EXERCISE sin verbo simple; se niegan igual con "no ir al gimnasio" /
+        // "mañana no hacer yoga".
+        if (kind == ContextIntentKind.EXERCISE) {
+            if (Regex("""\bno\s+ir\s+al\s+gimnasio""").containsMatchIn(lower)) return true
+            if (Regex("""\bno\s+hacer\s+(yoga|pesas|deporte)""").containsMatchIn(lower)) return true
+        }
+        // "preparar el examen" es imperativo de STUDY acotado (no verbo simple).
+        if (kind == ContextIntentKind.STUDY &&
+            Regex("""\bno\s+preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b""").containsMatchIn(lower)
+        ) return true
+        // "ir al banco" (ERRAND) es imperativo multi-palabra.
+        if (kind == ContextIntentKind.ERRAND &&
+            Regex("""\bno\s+ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b""").containsMatchIn(lower)
+        ) return true
+        return false
+    }
 
     /**
      * Patrones específicos por tipo de intención.
