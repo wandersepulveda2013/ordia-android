@@ -14524,3 +14524,9 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `0b1eccd` (c.637). **HEAD final**: commit c.638 (sobre `0b1eccd`, pendiente de push).
 - **Estado**: VERIFIED (dominio JVM: 3535 PASS; smoke 25 OK; 0 failures; TDD RED→GREEN; sin regresión). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin Android SDK).
 - **Próxima prioridad**: (i) `classify`/`extractTitle`/`isCasualChat` en `ContextIntentEngine` — funciones NO-auditadas a fondo (área context, continuación); (ii) "fregar"/"barrer"/"trapear"/"regar" ausentes de `scoreSpecificPatterns` HOUSEHOLD (P2 clasificación, NO piso); (iii) `AutomationEngine.runRule`/`OrdiaViewModel.guardianInsight` omiten `zone` (P1 MISMA CLASE c.604/c.627 — NO JVM-verificable); (iv) workers/backup/restore con DAOs/Room reales (P0 datos — NO JVM-verificable); (v) accesibilidad — `contentDescription` (P2, fuera JVM); (vi) detección de vencidas importantes / replanificación automática. Re-fetch OBLIGATORIO antes de implementar.
+
+## Push confirmado c.638 — 2026-08-18 (UTC)
+- `git push origin openhands/autonomous-ordia` (auth con `github_token` secret; NOTA: `$GITHUB_TOKEN` uppercase dio "Invalid username or token" en este run — posiblemente expirado/vacío; `$github_token` lowercase sí autenticó; reusar lowercase en runs futuros) — `0b1eccd..e4c4268` fast-forward limpio, sin divergencia, sin force.
+- **HEAD final local/remoto**: `e4c4268` (c.638).
+- **Verificación post-commit**: `bash tools/run_domain_tests.sh` → 3535 PASS, 0 failures, 59 classes (confirmado en el commit `e4c4268`); `bash tools/run_domain_checks.sh` → smoke 25 OK.
+- **Estado**: VERIFIED + PUSHED.
