@@ -773,6 +773,37 @@ class WhatNowEngineTest {
     }
 
     /**
+     * Hueco SUB-minuto: una cita que empieza en 40 s (startAt futuro pero a
+     * menos de 1 min). Es el compromiso MÁS inminente posible y justo el que
+     * el usuario necesita ver para no arrancar una tarea larga que la cita
+     * interrumpirá segundos después. PRE-fix, la división entera de millis
+     * daba minutes == 0; la rama inminente (<5) devolvía ese 0 exacto, que cae
+     * fuera del rango `1..` y silenciaba el aviso — contradicción con el
+     * propósito explícito de c.552 ("un hueco inminente NO se trunca a 0").
+     * Post-fix se conserva la intención honesta mostrando "1 min" (no se afirma
+     * precisión sub-minuto en una cifra orientativa "N min").
+     */
+    @Test
+    fun contextMinutesSurfacesSubMinuteCommitment() {
+        // Tarea en curso (rank 5/6) gana la sugerencia; su startAt 9:30 ya
+        // pasó y NO cuenta como "próxima cita". La cita a las 10:00:40 (40 s)
+        // queda como próxima cita → se muestra como 1 min, no se silencia.
+        val inProgress = task(1, "En curso").copy(
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 30), zone),
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(12, 0), zone),
+            durationMinutes = 60
+        )
+        val imminent = task(2, "Cita en 40 s").copy(
+            startAt = now + 40_000L
+        )
+
+        val suggestion = WhatNowEngine.suggest(listOf(inProgress, imminent), now = now, zone = zone)
+
+        assertEquals(1L, suggestion!!.task.id)
+        assertEquals(1, suggestion.minutesUntilNextCommitment)
+    }
+
+    /**
      * 5 min es el primer valor truncado a múltiplo de 5: 5→5 (sin cambio).
      * Confirma la frontera entre "exacto" (<5) y "truncado" (>=5).
      */

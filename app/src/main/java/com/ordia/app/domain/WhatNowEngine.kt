@@ -188,7 +188,17 @@ object WhatNowEngine {
         // aviso de c.552 nunca disparaba → el asistente invitaba a empezar una
         // tarea larga segundos antes de una cita. Para inminentes se conserva
         // el valor exacto (la precisión sí importa al decidir ahora).
-        val rounded = if (minutes < 5) minutes else (minutes / 5) * 5
+        // Caso sub-minuto (c.570): un compromiso que arranca en <60 s da
+        // `minutes == 0` por división entera de millis. Es el compromiso MÁS
+        // inminente posible —justo el que más urgente es señalar para no
+        // arrancar una tarea larga que la cita interrumpirá segundos después.
+        // Devolver 0 lo silenciaba (fuera de `1..`), contradiciendo el propósito
+        // explícito de c.552 ("un hueco inminente NO se trunca a 0"). Se eleva a
+        // 1: la cifra es orientativa ("≈N min"), afirmar precisión sub-minuto
+        // sería deshonesto, pero callarla es peor. Simétrico con c.553: allí un
+        // hueco de 3 min se conservaba exacto para no perderlo; aquí el de <1 min
+        // se eleva al mínimo visible por la misma razón —no perder el más urgente.
+        val rounded = if (minutes < 5) minutes.coerceAtLeast(1) else (minutes / 5) * 5
         return if (rounded in 1..NEXT_COMMITMENT_WINDOW_MINUTES) rounded else null
     }
 }
