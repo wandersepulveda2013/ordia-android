@@ -1,5 +1,7 @@
 package com.ordia.app.context
 
+import com.ordia.app.domain.ContentModeration
+import com.ordia.app.domain.ContentModeration.ModerationRule
 import com.ordia.app.domain.SensitiveSecretPatterns
 
 /**
@@ -40,13 +42,42 @@ object ContextPrivacyFilter {
         // consumen en `containsSensitiveContent` mas abajo. Las categorias de
         // contenido (adultos, violencia, politica) siguen aqui, propias del gate
         // de lectura: no aplican a la persistencia de un compromiso.
-        Regex("""\b(sexo|sexual|desnud|porno|xxx|eróti|intimidad)\b""", RegexOption.IGNORE_CASE),
-        Regex("""\b(matar|asesinar|violar|robar|secuestr|bomba|arma|amenaza)\b""", RegexOption.IGNORE_CASE),
-        Regex("""\b(droga|cocaína|cocaina|marihuana|heroína|heroina|metanfetamina|narcotráfico|narcotrafico)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(acoso|hostigamiento|extorsión|extorsion|chantaje)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(suicidi|autolesión|autolesion|hacerme daño|hacerme dano|quitarme la vida)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(transferencia|depósito|deposito|retiro|saldo|estado de cuenta)\b""", RegexOption.IGNORE_CASE),
         Regex("""\b(partido político|partido politico|elección|eleccion|campaña política|campana politica|votar por)\b""", RegexOption.IGNORE_CASE)
+    )
+
+    /** Reglas de moderación temática (sexual/violencia/drogas) con exenciones
+     *  de contexto legítimo (c.582). Algoritmo centralizado en [ContentModeration],
+     *  paridad con [IntelligenceSafetyGate]: añadir una exención o sentido legítimo
+     *  en un solo sitio corrige ambos gates a la vez (mismo principio que c.299).
+     *  Las raíces se evalúan sobre texto normalizado sin tildes (no hace falta
+     *  duplicar formas con/sin acento). */
+    private val moderationRules = listOf(
+        ModerationRule(
+            stem = Regex("""\b(sexo|sexual|desnud|porno|xxx|eroti|intimidad)\b"""),
+            contain = listOf(
+                Regex("""\b(revisi[oó]n de|revisar la|revisar el|examen de la|examen del)[^.]*\b(pene|vagina)\b""")
+            ),
+            proximity = Regex("""\b(ur[oó]logo|ginec[oó]log[oa]|sex[oó]logo|m[ée]dico|cl[íi]nica|farmac[ée]utic[oa])\b""")
+        ),
+        ModerationRule(
+            stem = Regex("""\b(matar|asesinar|violar|robar|secuestr|bomba|arma|amenaza)\b"""),
+            contain = listOf(
+                Regex("""\bmatar\b\s+(el|la|los|las|un|una)?\s*(proceso|hilo|servicio|servidor|demonio|sesi[oó]n|tarea|job|zombie)\b"""),
+                Regex("""\bviolar\b\s+(la|el|una|un|las|los)?\s*(pol[ií]tica|contrato|licencia|restricci[oó]n|norma|ley|cl[áa]usula|t[ée]rminos?)\b"""),
+                Regex("""\b(modelo|m[oó]delo)\s+de\s+amenaza\b"""),
+                Regex("""\bamenaza\b\s+(de)?\s*(de\s+integridad|de\s+seguridad|de\s+modelo)\b"""),
+                Regex("""\b(revisi[oó]n|revisar|diagn[oó]stico|diag|audit|auditor[íi]a)\s+(de[l]?)\s*secuestro\b"""),
+                Regex("""\bsecuestro\s+de\s+(dns|sesi[oó]n|cookie|token|sesiones?)\b"""),
+                Regex("""\b(bomba|pistola|escopeta)\s+de\s+agua\b""")
+            )
+        ),
+        ModerationRule(
+            stem = Regex("""\b(droga|cocaina|heroina|marihuana|metanfetamina|narcotrafico)\b"""),
+            proximity = Regex("""\b(farmac[ée]utic[oa]|farmacia|recetad[oa]|m[ée]dic[oa]|medicament[oa]|ur[oó]log[oa]|receta|tratamiento|recetar)\b""")
+        )
     )
 
     private val sensitiveInputTypes = setOf(
@@ -75,6 +106,7 @@ object ContextPrivacyFilter {
     fun containsSensitiveContent(text: String, metadata: Map<String, String> = emptyMap()): Boolean {
         if (text.isBlank()) return false
         if (blockedContentPatterns.any { it.containsMatchIn(text) }) return true
+        if (moderationRules.any { ContentModeration.isHarmful(text, it) }) return true
         if (SensitiveSecretPatterns.patterns.any { it.containsMatchIn(text) }) return true
         if (SensitiveSecretPatterns.containsNumericSensitive(text)) return true
         if (SensitiveSecretPatterns.containsPersonalIdentifier(text)) return true

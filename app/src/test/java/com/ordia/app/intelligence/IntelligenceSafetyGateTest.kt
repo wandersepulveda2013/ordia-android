@@ -186,11 +186,26 @@ class IntelligenceSafetyGateTest {
         assertEquals(true, blocked("clave bancaria 4567"))
     }
 
-    // --- Moderación temática (permanece) ---
+    // --- Moderación temática (raíz + exenciones de contexto legítimo, c.582) ---
+
+    // "matar el proceso" es tarea técnica legítima: el gate anterior la bloqueaba
+    // por casar la raíz "matar" sin distinguir el sentido. c.582 la exonera por
+    // colocación. La detección sigue siendo por RAÍZ: una ocurrencia NO cubierta
+    // sigue bloqueando (ver matarAUnaPersonaSeBloquea más abajo).
+    @Test
+    fun matarElProceso_noSeBloquea() {
+        assertEquals(false, blocked("recuérdame matar el proceso del servidor"))
+    }
 
     @Test
-    fun contenidoViolentoSeBloquea() {
-        assertEquals(true, blocked("recuérdame matar el proceso del servidor"))
+    fun matarHiloZombie_noSeBloquea() {
+        assertEquals(false, blocked("matar el hilo zombie que quedó colgado"))
+    }
+
+    @Test
+    fun matarAUnaPersonaSeBloquea() {
+        // 2ª ocurrencia sin cobertura: verdadero positivo de violencia.
+        assertEquals(true, blocked("matar el proceso y luego matar a juan"))
     }
 
     @Test

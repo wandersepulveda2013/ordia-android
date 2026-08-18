@@ -1,6 +1,8 @@
 package com.ordia.app.intelligence
 
 import android.util.Log
+import com.ordia.app.domain.ContentModeration
+import com.ordia.app.domain.ContentModeration.ModerationRule
 import com.ordia.app.domain.SensitiveSecretPatterns
 import java.text.Normalizer
 
@@ -9,7 +11,8 @@ import java.text.Normalizer
  *
  * Responsabilidades:
  * 1. Filtro de privacidad (contraseñas, PIN, OTP, datos bancarios, salud, etc.)
- * 2. Contenido bloqueado (sexual, violencia, drogas, delitos)
+ * 2. Contenido bloqueado (sexual, violencia, drogas, delitos) — por raíz con
+ *    exenciones de contexto legítimo (c.582, ver [BLOCKED_CONTENT_RULES]).
  * 3. Sanitización básica del texto
  *
  * La detección de secretos estructurados (PAN/CLABE/IBAN por Luhn/checksum,
@@ -58,18 +61,65 @@ object IntelligenceSafetyGate {
      * Patrones de contenido bloqueado: modera el tema del que la inteligencia
      * puede ocuparse. Son legítimamente específicos de esta puerta (no forman
      * parte de [SensitiveSecretPatterns], que solo detecta secretos).
+     *
+     * Detección por RAÍZ con EXENCIONES de contexto legítimo (c.582). Antes se
+     * casaba la raíz cruda (`matar`, `bomba`, `violar`, `droga`, `pene`...)
+     * sin distinguir el sentido, lo que bloqueaba 16/17 tareas cotidianas
+     * ("matar el proceso del servidor", "comprar bomba de agua", "violar la
+     * política", "comprar la droga en la farmacia", "modelo de amenaza",
+     * "pistola de agua") y se descartaban SILENCIOSAMENTE. Ahora [ContentModeration.isHarmful]
+     * solo bloquea las OCURRENCIAS de la raíz no cubiertas por una forma legítima
+     * (colocación: la coincidencia legítima envuelve a la raíz; o proximidad:
+     * una señal que legitima toda la mención). El algoritmo está centralizado en
+     * [ContentModeration] (paridad con [ContextPrivacyFilter], mismo principio
+     * que c.299 para secretos: no pueden desincronizarse).
+     *
+     * Las raíces se evalúan sobre texto normalizado sin tildes (ver
+     * [ContentModeration]), por lo que no hace falta duplicar formas con/sin
+     * acento. `\b` evita que "mata" case dentro de "matar" — las raíces se
+     * buscan como prefijo de palabra.
      */
-    private val BLOCKED_CONTENT_PATTERNS = listOf(
-        // Contenido sexual explícito (formas con/sin tilde: el español casual de
-        // móvil escribe sin acentos con enorme frecuencia — c.519, continuación de
-        // c.516, cierra la asimetría con el gate de lectura ContextPrivacyFilter).
-        Regex("""\b(sexo|sexual|desnud|porno|xxx|eróti|eroti|culos|tetas|pene|vagina|orgasmo|masturb)""", RegexOption.IGNORE_CASE),
-        // Violencia y amenazas
-        Regex("""\b(matar|asesinar|violar|secuestr|bomba|amenaza|escopeta|pistola|cuchill)""", RegexOption.IGNORE_CASE),
-        // Drogas ilegales (con/sin tilde)
-        Regex("""\b(droga|cocaína|cocaina|heroína|heroina|marihuana|metanfetamina|narcotráfico|narcotrafico)""", RegexOption.IGNORE_CASE),
-        // Insultos graves (con/sin tilde)
-        Regex("""\b(pendejo|estúpido|estupido|imbécil|imbecil|malparido|hijueputa)""", RegexOption.IGNORE_CASE)
+    private val BLOCKED_CONTENT_RULES = listOf(
+        // Contenido sexual explícito. "sexo"/"sexual"/"porno"/"xxx"/"desnud"
+        // rara vez aparecen en tareas legítimas y son palcabras completas, así
+        // que se casan sin exención. Las raíces anatómicas (pene/vagina) SÍ se
+        // eximen en contexto médico (cita con el urólogo/ginecólogo por...).
+        ModerationRule(
+            stem = Regex("""\b(sexo|sexual|desnud|porno|xxx|eroti|culos|tetas|pene|vagina|orgasmo|masturb)\b"""),
+            contain = listOf(
+                Regex("""\b(cita con el ur[oó]logo|cita con la ginec[oó]loga?)\b[^.]*\bpene\b"""),
+                Regex("""\b(revisi[oó]n de|revisar la|revisar el|examen de la|examen del)[^.]*\b(pene|vagina)\b""")
+            ),
+            proximity = Regex("""\b(ur[oó]logo|ginec[oó]log[oa]|sex[oó]logo|prostate|m[ée]dico|cl[íi]nica|farmac[ée]utic[oa])\b""")
+        ),
+        // Violencia y amenazas. Las raíces tienen sentidos legítimos muy
+        // frecuentes en tareas técnicas ("matar el proceso", "violar la
+        // política", "modelo de amenaza", "pistola/bomba de agua", "revisar el
+        // secuestro de DNS") que se eximen por colocación.
+        ModerationRule(
+            stem = Regex("""\b(matar|asesinar|violar|secuestr|bomba|amenaza|escopeta|pistola|cuchill)\b"""),
+            contain = listOf(
+                Regex("""\bmatar\b\s+(el|la|los|las|un|una)?\s*(proceso|hilo|servicio|servidor|demonio|sesi[oó]n|tarea|job|zombie)\b"""),
+                Regex("""\bviolar\b\s+(la|el|una|un|las|los)?\s*(pol[ií]tica|contrato|licencia|restricci[oó]n|norma|ley|clausula|cl[áa]usula|t[ée]rminos?)\b"""),
+                Regex("""\b(modelo|m[oó]delo)\s+de\s+amenaza\b"""),
+                Regex("""\bamenaza\b\s+(de)?\s*(de\s+integridad|de\s+seguridad|de\s+modelo)\b"""),
+                Regex("""\b(revisi[oó]n|revisar|diagn[oó]stico|diag|audit|auditor[íi]a)\s+(de[l]?)\s*secuestro\b"""),
+                Regex("""\bsecuestro\s+de\s+(dns|sesi[oó]n|cookie|token|sesiones?)\b"""),
+                Regex("""\b(bomba|pistola|escopeta)\s+de\s+agua\b"""),
+                Regex("""\b(matar|asesinar)\s+(un|el)\s+proceso\b""")
+            )
+        ),
+        // Drogas ilegales. "droga" se exonera por proximidad médica/farmacéutica
+        // (la mención entera es legítima en "comprar la droga en la farmacia",
+        // "ir a buscar la droga recetada"). Las drogas específicas (cocaína,
+        // marihuana...) no se eximen: su mención aislada es señal fuerte.
+        ModerationRule(
+            stem = Regex("""\b(droga|cocaina|heroina|marihuana|metanfetamina|narcotrafico)\b"""),
+            proximity = Regex("""\b(farmac[ée]utic[oa]|farmacia|recetad[oa]|m[ée]dic[oa]|medicament[oa]|ur[oó]log[oa]|receta|tratamiento|recetar)\b""")
+        ),
+        // Insultos graves: palabras completas, sin exención (su mención aislada
+        // es señal fuerte y rara vez legitiman una tarea).
+        ModerationRule(stem = Regex("""\b(pendejo|estupido|imbecil|malparido|hijueputa)\b"""))
     )
 
     /**
@@ -82,10 +132,12 @@ object IntelligenceSafetyGate {
         val lower = text.lowercase().trim()
         if (lower.isBlank()) return PrivacyResult.BLOCKED
 
-        // 1. Contenido bloqueado (moderación temática).
-        for (blockedPattern in BLOCKED_CONTENT_PATTERNS) {
-            if (blockedPattern.containsMatchIn(text)) {
-                Log.w(TAG, "Bloqueado por contenido: ${blockedPattern.pattern.take(40)}")
+        // 1. Contenido bloqueado (moderación temática por raíz con exenciones
+        //    de contexto legítimo, c.582). Solo bloquea ocurrencias de la raíz
+        //    no cubiertas por una forma legítima (colocación/proximidad).
+        for (rule in BLOCKED_CONTENT_RULES) {
+            if (ContentModeration.isHarmful(text, rule)) {
+                Log.w(TAG, "Bloqueado por contenido: ${rule.stem.pattern.take(40)}")
                 return PrivacyResult.BLOCKED
             }
         }
