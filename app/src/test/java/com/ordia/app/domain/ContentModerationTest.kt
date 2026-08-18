@@ -61,8 +61,12 @@ class ContentModerationTest {
         )
     )
     private val drogas = ContentModeration.ModerationRule(
-        stem = Regex("""\b(droga|cocaina|heroina|marihuana|metanfetamina|narcotrafico)\b"""),
+        stem = Regex("""\b(droga|cocaina|heroina|marihuana|metanfetamina|narcotrafic)"""),
         proximity = Regex("""\b(farmac[ée]utic[oa]|farmacia|recetad[oa]|m[ée]dic[oa]|medicament[oa]|ur[oó]log[oa]|receta|tratamiento|recetar)\b""")
+    )
+    // c.632: insultos como raíces flexionadas (`\b` inicial sin `\b` final).
+    private val insultos = ContentModeration.ModerationRule(
+        stem = Regex("""\b(pendej|estupid|imbecil|malparid|hijueputa)""")
     )
 
     private fun sexualHarmful(text: String) = ContentModeration.isHarmful(text, sexual)
@@ -70,6 +74,7 @@ class ContentModerationTest {
     private fun violentHarmful(text: String) = ContentModeration.isHarmful(text, violencia)
     private fun secuestroHarmful(text: String) = ContentModeration.isHarmful(text, secuestroStems)
     private fun drugHarmful(text: String) = ContentModeration.isHarmful(text, drogas)
+    private fun insultHarmful(text: String) = ContentModeration.isHarmful(text, insultos)
 
     // ── Falsos positivos corregidos: tareas legítimas que antes se bloqueaban ──
 
@@ -217,5 +222,41 @@ class ContentModerationTest {
     @Test fun urologoConTilde_noEsDanino() {
         // La exención de proximidad también normaliza: "urólogo" con tilde cubre.
         assertFalse(sexualHarmful("cita con el urólogo por el pene"))
+    }
+
+    // ── Stems rotos por `\b` final en drogas e insultos (c.632) ──
+    //    Mismo defecto de clase que c.630 (sexual) y c.631 (violencia):
+    //    `\b` final mata plurales y flexiones de género/número.
+
+    @Test fun drogasPlural_esDanino() {
+        // PRE-fix RED: `\bdroga\b` no casa "drogas" → PASABA.
+        assertTrue(drugHarmful("comprar drogas ilegales para la fiesta"))
+    }
+    @Test fun narcotraficante_esDanino() {
+        // PRE-fix RED: `\bnarcotrafico\b` no casa "narcotraficante" → PASABA.
+        assertTrue(drugHarmful("es un narcotraficante famoso de la zona"))
+    }
+    @Test fun drogasEnFarmacia_noEsDanina() {
+        // Plural + proximidad médica: el legit sigue pasando.
+        assertFalse(drugHarmful("comprar las drogas en la farmacia del barrio"))
+    }
+    @Test fun drogadictoEnTratamiento_noEsDanino() {
+        // "drogadicto" casa el stem "droga" pero la proximidad "tratamiento" lo cubre.
+        assertFalse(drugHarmful("drogadicto en tratamiento medico"))
+    }
+
+    @Test fun pendeja_esDanina() {
+        // PRE-fix RED: `\bpendejo\b` no casa "pendeja" (femenino) → PASABA.
+        assertTrue(insultHarmful("eres una pendeja"))
+    }
+    @Test fun estupidos_esDanino() {
+        // PRE-fix RED: `\bestupido\b` no casa "estupidos" (plural) → PASABA.
+        assertTrue(insultHarmful("estupidos los dos"))
+    }
+    @Test fun imbeciles_esDanino() {
+        assertTrue(insultHarmful("imbeciles todos en esta oficina"))
+    }
+    @Test fun malparida_esDanina() {
+        assertTrue(insultHarmful("malparida esa mujer"))
     }
 }

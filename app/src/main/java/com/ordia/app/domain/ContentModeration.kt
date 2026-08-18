@@ -155,13 +155,19 @@ object ContentModeration {
         // (la mención entera es legítima en "comprar la droga en la farmacia",
         // "ir a buscar la droga recetada"). Las drogas específicas (cocaína,
         // marihuana...) no se eximen: su mención aislada es señal fuerte.
+        // c.632: `\b` INICIAL sin `\b` final para casar plurales/flexiones
+        // ("drogas", "narcotraficante") que con `\b` final pasaban el gate.
+        // La proximidad sigue cubriendo el legit ("drogadicto en tratamiento").
         ModerationRule(
-            stem = Regex("""\b(droga|cocaina|heroina|marihuana|metanfetamina|narcotrafico)\b"""),
+            stem = Regex("""\b(droga|cocaina|heroina|marihuana|metanfetamina|narcotrafic)"""),
             proximity = Regex("""\b(farmac[ée]utic[oa]|farmacia|recetad[oa]|m[ée]dic[oa]|medicament[oa]|ur[oó]log[oa]|receta|tratamiento|recetar)\b""")
         ),
-        // Insultos graves: palabras completas, sin exención (su mención aislada
-        // es señal fuerte y rara vez legitiman una tarea).
-        ModerationRule(stem = Regex("""\b(pendejo|estupido|imbecil|malparido|hijueputa)\b"""))
+        // Insultos graves: raíces flexionadas (c.632). `\b` INICIAL sin `\b` final
+        // para casar género/número ("pendeja", "estupidos", "imbeciles",
+        // "malparida") — justo las formas que se escriben en móvil y que con
+        // `\b` final pasaban el gate. Sin exención: su mención aislada es señal
+        // fuerte y rara vez legitima una tarea.
+        ModerationRule(stem = Regex("""\b(pendej|estupid|imbecil|malparid|hijueputa)"""))
     )
 
     /** Normaliza a minúsculas sin tildes/diacríticos para comparación tolerante
