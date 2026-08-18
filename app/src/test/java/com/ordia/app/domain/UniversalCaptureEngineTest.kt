@@ -86,4 +86,44 @@ class UniversalCaptureEngineTest {
         assertEquals(CaptureTarget.TASK, tarea.target)
         assertEquals("llamar al dentista", tarea.title)
     }
+
+    // c.583: verbos de acción cotidiana sin fecha ni "tengo que/debo" caían a
+    // INBOX y exigían reclasificar a mano. "hacer"/"revisar" están entre los
+    // verbos de tarea más frecuentes en español; su ausencia era fricción real.
+    // Ahora los infinitivos inequívocos (hacer, revisar, preparar, limpiar,
+    // avisar, pedir, leer, escribir, cocinar, ir a/al...) promueven a TASK.
+    @Test fun accionVerbalInfinitivoSinFechaEsTask() {
+        val casos = listOf(
+            "hacer ejercicio",
+            "revisar contrato",
+            "preparar la cena",
+            "limpiar la cocina",
+            "avisar a mamá",
+            "pedir cita",
+            "leer el informe",
+            "escribir el reporte",
+            "cocinar",
+            "ir al médico",
+            "ir a la escuela",
+            "mandar email"
+        )
+        for (raw in casos) {
+            val r = UniversalCaptureEngine.interpret(raw)
+            assertEquals("'$raw' debería ser TASK, no ${r.target}", CaptureTarget.TASK, r.target)
+            assertEquals(raw, r.body)
+        }
+    }
+
+    // La promoción a TASK por verbo NO muta el texto: la captura nunca daña datos.
+    @Test fun accionVerbalPreservaTituloYBody() {
+        val r = UniversalCaptureEngine.interpret("revisar contrato")
+        assertEquals("revisar contrato", r.title)
+        assertEquals("revisar contrato", r.body)
+    }
+
+    // Texto NO accionable sigue en INBOX: la heurística discrimina, no infla TASK.
+    @Test fun textoNoAccionableSigueEnInbox() {
+        val r = UniversalCaptureEngine.interpret("Una idea suelta sin organizar")
+        assertEquals(CaptureTarget.INBOX, r.target)
+    }
 }

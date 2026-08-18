@@ -27,7 +27,16 @@ object UniversalCaptureEngine {
     private val noteCommand = Regex("""(?i)^\s*(guardar\s+esto\s+como\s+nota|nota|idea)\b\s*[:\-]?\s*""")
     private val taskCommand = Regex("""(?i)^\s*(crear\s+)?(una\s+)?tarea\b\s*[:\-]?\s*""")
     private val reminderSignal = Regex("""(?i)\b(recu[eé]rdame|recordatorio|av[ií]same|no\s+dejes\s+que\s+olvide)\b""")
-    private val taskSignal = Regex("""(?i)\b(tengo\s+que|debo|hay\s+que|llamar|enviar|comprar|pagar|terminar|entregar|responder|reuni[oó]n)\b""")
+    // Verbos de acción cotidiana: sin fecha ni "tengo que/debo", una captura
+    // como "hacer ejercicio" o "revisar contrato" es claramente una tarea, pero
+    // antes caía a INBOX por no figurar aquí y exigía reclasificar a mano. Se
+    // amplía con infinitivos CONCRETOS e inequívocos (formas -ar/-er/-ir son
+    // verbos, no sustantivos: "limpiar"/"revisar" no se confunden con
+    // "limpieza"/"revisión"). "ir a/al" cubre "ir al médico/banco". Se excluyen
+    // verbos vagos/gerenciales ("organizar", "gestionar", "mirar"...) que aparecen
+    // en texto NO accionable ("una idea que no sé organizar") y falsearían TASK.
+    // Límites \b evitan coincidencia por prefijo (la captura nunca muta el texto).
+    private val taskSignal = Regex("""(?i)\b(tengo\s+que|debo|hay\s+que|llamar|enviar|mandar|comprar|pagar|terminar|entregar|responder|reuni[oó]n|hacer|revisar|preparar|limpiar|arreglar|avisar|pedir|reservar|leer|escribir|estudiar|cocinar|visitar|ir\s+(?:a|al))\b""")
     private val urlOnly = Regex("""(?i)^https?://\S+$""")
     private val listPrefix = Regex("""^\s*(?:[-*•]|\d+[.)]|\[\s?])\s+""")
 
