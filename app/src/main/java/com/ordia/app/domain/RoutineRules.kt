@@ -18,11 +18,52 @@ object RoutineRules {
 
     fun routineDetail(routineName: String): String = "Rutina: $routineName"
 
+    /**
+     * `true` si [task] fue generada por la rutina [routineName]. Reconoce por
+     * PREFIJO del marcador canónico `Rutina: <name>` al inicio de `details`,
+     * seguido del fin del marcador: el texto RESTA, vacío o una anotación que
+     * el usuario añadió tras el marcador.
+     *
+     * Una igualdad exacta (`details == "Rutina: Gym"`) rompía en cuanto el
+     * usuario ANOTABA el paso ("Rutina: Gym\nllevar toalla", "Rutina: Gym
+     * (llevar toalla)"): las tareas generadas por rutina son tareas normales
+     * editables. Perdido el reconocimiento, [wasRunToday] devolvía `false` y un
+     * re-disparo (reabrir la app, worker, acción manual) DUPLICABA los pasos en
+     * la bandeja — justo lo opuesto a "evitar olvidos" y "rutinas adaptables".
+     *
+     * El límite tras el nombre (fin de cadena o separador) evita que "Gym"
+     * reconozca una tarea de "Gym avanzado": el marcador debe corresponder al
+     * nombre EXACTO de la rutina. Y el marcador debe ir al INICIO de `details`
+     * para no captar menciones a mitad del texto ("ya hice la Rutina: Gym
+     * ayer") que no son tareas generadas por ella.
+     */
     fun isCreatedByRoutine(task: TaskEntity, routineName: String): Boolean =
-        task.details == routineDetail(routineName)
+        isRoutineDetail(task.details, routineName)
 
     fun tasksFromRoutine(tasks: List<TaskEntity>, routineName: String): List<TaskEntity> =
         tasks.filter { isCreatedByRoutine(it, routineName) }
+
+    /**
+     * Reconocimiento de prefijo con límite: `details` arranca con el marcador
+     * `Rutina: <name>` y, si hay más texto, éste comienza con un separador
+     * (salto de línea, tab, espacio + paréntesis/guion) o es exactamente el
+     * marcador. Un nombre que sea prefijo de otro ("Gym" vs "Gym avanzado") no
+     * casa porque tras "Gym" viene " avanzado" (espacio + letra, no un
+     * separador de anotación). Detalle puro sin marcador ("Otra cosa") tampoco.
+     */
+    private fun isRoutineDetail(details: String, routineName: String): Boolean {
+        val marker = routineDetail(routineName)
+        if (details == marker) return true
+        if (!details.startsWith(marker)) return false
+        // Tras el marcador sólo se admite una anotación del usuario: salto de
+        // línea/tab, o espacio seguido de un signo de apertura/nota ("(...)" o
+        // "- ..."). Así "Rutina: Gym avanzado" (espacio + letra) no casa para
+        // "Gym", pero "Rutina: Gym\nllevar toalla" y "Rutina: Gym (llevar
+        // toalla)" sí.
+        val rest = details.substring(marker.length)
+        return rest.startsWith("\n") || rest.startsWith("\t") ||
+            rest.startsWith(" (") || rest.startsWith(" -")
+    }
 
     /**
      * Devuelve true si la rutina ya se ejecutó hoy: existe al menos una tarea
@@ -74,10 +115,9 @@ object RoutineRules {
         zone: ZoneId = ZoneId.systemDefault()
     ): List<RoutineTaskRelink> {
         if (oldName == newName) return emptyList()
-        val oldDetail = routineDetail(oldName)
         return tasks
             .filter { task ->
-                task.details == oldDetail &&
+                isRoutineDetail(task.details, oldName) &&
                     !task.archived && task.status != TaskStatus.CANCELLED &&
                     Instant.ofEpochMilli(task.createdAt).atZone(zone).toLocalDate() == today
             }

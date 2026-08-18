@@ -147,6 +147,76 @@ class RoutineRulesTest {
         assertTrue(relinks.all { it.newDetails == "Rutina: Gym M" })
     }
 
+    // --- Reconocimiento por prefijo (no igualdad exacta): una tarea de rutina
+    //     anotada por el usuario sigue siendo reconocida → no se duplica al
+    //     re-disparar la rutina. ---
+
+    @Test
+    fun wasRunTodayTrueWhenRoutineTaskAnnotatedWithNote() {
+        // El usuario ejecutó "Gym" hoy y luego ANOTÓ el paso añadiendo contexto
+        // ("llevar toalla"). Antes la igualdad exacta rompía el reconocimiento y un
+        // re-disparo duplicaba los pasos en la bandeja.
+        val tasks = listOf(routineTask(1, todayEpoch, details = "Rutina: Gym\nllevar toalla"))
+
+        assertTrue(RoutineRules.wasRunToday(tasks, "Gym", today, zone))
+    }
+
+    @Test
+    fun wasRunTodayTrueWhenRoutineTaskAnnotatedWithParenthetical() {
+        // Variante de anotación entre paréntesis, también legítima.
+        val tasks = listOf(routineTask(1, todayEpoch, details = "Rutina: Gym (llevar toalla)"))
+
+        assertTrue(RoutineRules.wasRunToday(tasks, "Gym", today, zone))
+    }
+
+    @Test
+    fun isCreatedByRoutineTrueForAnnotatedTask() {
+        val annotated = routineTask(1, todayEpoch, details = "Rutina: Mañana\nrevisar agenda")
+
+        assertTrue(RoutineRules.isCreatedByRoutine(annotated, "Mañana"))
+    }
+
+    @Test
+    fun isCreatedByRoutineFalseForTaskWhoseDetailsOnlyContainMarkerNotAtStart() {
+        // El marcador debe estar al INICIO: un task cuyo details menciona la rutina
+        // a mitad del texto (p. ej. "ya hice la Rutina: Gym ayer") NO es una tarea
+        // generada por ella. Evita falsos positivos por subcadena suelta.
+        val mention = routineTask(1, todayEpoch, details = "ya hice la Rutina: Gym ayer")
+
+        assertFalse(RoutineRules.isCreatedByRoutine(mention, "Gym"))
+    }
+
+    @Test
+    fun isCreatedByRoutineFalseForRoutineNameThatIsPrefixOfAnother() {
+        // "Gym" no debe reconocer una tarea de "Gym avanzado": el prefijo del
+        // marcador debe corresponder al nombre EXACTO de la rutina, seguido del
+        // fin del marcador (salto de línea o paréntesis añadido por el usuario).
+        val other = routineTask(1, todayEpoch, details = "Rutina: Gym avanzado")
+
+        assertFalse(RoutineRules.isCreatedByRoutine(other, "Gym"))
+    }
+
+    @Test
+    fun tasksFromRoutineIncludesAnnotatedTasks() {
+        val plain = routineTask(1, todayEpoch, details = "Rutina: Gym")
+        val annotated = routineTask(2, todayEpoch, details = "Rutina: Gym\nllevar toalla")
+        val otherRoutine = routineTask(3, todayEpoch, details = "Rutina: Lectura")
+
+        assertEquals(setOf(1L, 2L), RoutineRules.tasksFromRoutine(listOf(plain, annotated, otherRoutine), "Gym").map { it.id }.toSet())
+    }
+
+    @Test
+    fun relinkAfterRename_relinksAnnotatedTodayTasks() {
+        // Una tarea de rutina anotada hoy sigue siendo reconocida tras renombrar la
+        // rutina: si no se reetiqueta, wasRunToday(newName) la pierde y un re-disparo
+        // duplica. El prefijo del nombre viejo debe seguir casando pese a la anotación.
+        val tasks = listOf(routineTask(1, todayEpoch, details = "Rutina: Gym\nllevar toalla"))
+
+        val relinks = RoutineRules.relinkAfterRename(tasks, "Gym", "Gym matutino", today, zone)
+
+        assertEquals(listOf(RoutineRules.RoutineTaskRelink(1L, "Rutina: Gym matutino")), relinks)
+    }
+
     @Test
     fun relinkAfterRename_fixesWasRunTodayAfterRename() {
         // BUG: la rutina "Gym" se ejecutó hoy (tareas con details "Rutina: Gym") y
