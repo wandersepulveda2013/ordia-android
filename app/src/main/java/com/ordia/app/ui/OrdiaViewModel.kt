@@ -1,4 +1,4 @@
-﻿package com.ordia.app.ui
+package com.ordia.app.ui
 
 import android.content.Context
 import androidx.lifecycle.ViewModel

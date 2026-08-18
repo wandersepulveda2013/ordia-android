@@ -1,4 +1,4 @@
-﻿package com.ordia.app.ui.components
+package com.ordia.app.ui.components
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
@@ -23,7 +23,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import com.ordia.app.ui.components.OrdiaInput
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -98,8 +98,8 @@ fun TaskEditorDialog(
                 Modifier.fillMaxWidth().heightIn(max = 620.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.external_suggestion_title_hint)) }, singleLine = true)
-                OutlinedTextField(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_task_details)) }, minLines = 2, maxLines = 4)
+                OrdiaInput(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.external_suggestion_title_hint)) }, singleLine = true)
+                OrdiaInput(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_task_details)) }, minLines = 2, maxLines = 4)
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
@@ -161,7 +161,7 @@ fun TaskEditorDialog(
                             RecurrenceFrequency.entries.forEach { value -> DropdownMenuItem(text = { Text(value.label()) }, onClick = { recurrence = value; recurrenceMenu = false }) }
                         }
                     }
-                    OutlinedTextField(
+                    OrdiaInput(
                         value = duration,
                         onValueChange = { duration = it.filter(Char::isDigit).take(3) },
                         modifier = Modifier.weight(0.7f),
@@ -201,7 +201,7 @@ fun TaskEditorDialog(
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
+                    OrdiaInput(
                         value = newTag,
                         onValueChange = { newTag = it.take(30) },
                         modifier = Modifier.weight(1f),
@@ -255,8 +255,8 @@ fun ProjectEditorDialog(existing: ProjectEntity? = null, onDismiss: () -> Unit, 
         title = { Text(if (existing == null) stringResource(R.string.dialog_project_new) else stringResource(R.string.dialog_project_edit)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_name)) }, singleLine = true)
-                OutlinedTextField(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_description)) }, minLines = 3)
+                OrdiaInput(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_name)) }, singleLine = true)
+                OrdiaInput(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_description)) }, minLines = 3)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ProjectStatus.entries.forEach { value -> FilterChip(selected = status == value, onClick = { status = value }, label = { Text(value.label()) }) }
                 }
@@ -278,12 +278,12 @@ fun HabitEditorDialog(existing: HabitEntity? = null, onDismiss: () -> Unit, onSa
         title = { Text(if (existing == null) stringResource(R.string.dialog_habit_new) else stringResource(R.string.dialog_habit_edit)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_habit_title)) }, singleLine = true)
-                OutlinedTextField(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_habit_why)) }, minLines = 2)
+                OrdiaInput(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_habit_title)) }, singleLine = true)
+                OrdiaInput(details, { details = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_habit_why)) }, minLines = 2)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     HabitFrequency.entries.forEach { value -> FilterChip(selected = frequency == value, onClick = { frequency = value }, label = { Text(value.label()) }) }
                 }
-                OutlinedTextField(target, { target = it.filter(Char::isDigit).take(2) }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_habit_target)) }, singleLine = true)
+                OrdiaInput(target, { target = it.filter(Char::isDigit).take(2) }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_habit_target)) }, singleLine = true)
             }
         },
         confirmButton = { Button(onClick = { onSave((existing ?: HabitEntity(title = title)).copy(title = title, details = details, frequency = frequency, targetPerPeriod = target.toIntOrNull()?.coerceIn(1, 20) ?: 1)) }, enabled = title.isNotBlank()) { Text(stringResource(R.string.action_save)) } },
@@ -301,9 +301,9 @@ fun RoutineEditorDialog(existing: RoutineEntity? = null, existingSteps: List<Str
         title = { Text(if (existing == null) stringResource(R.string.dialog_routine_new) else stringResource(R.string.dialog_routine_edit)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_name)) }, singleLine = true)
-                OutlinedTextField(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_description)) }, minLines = 2)
-                OutlinedTextField(steps, { steps = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_routine_steps)) }, minLines = 5)
+                OrdiaInput(name, { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_name)) }, singleLine = true)
+                OrdiaInput(description, { description = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_field_description)) }, minLines = 2)
+                OrdiaInput(steps, { steps = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.dialog_routine_steps)) }, minLines = 5)
             }
         },
         confirmButton = { Button(onClick = { onSave((existing ?: RoutineEntity(name = name)).copy(name = name, description = description), steps.lines()) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.action_save)) } },
