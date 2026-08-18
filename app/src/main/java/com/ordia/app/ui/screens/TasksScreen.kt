@@ -117,12 +117,7 @@ fun TasksScreen(
             }
     }
     val shown = when (sort) {
-        TaskSort.SMART -> filtered.sortedWith(
-            compareBy<TaskEntity> { it.completed }
-                .thenBy { it.dueAt ?: Long.MAX_VALUE }
-                .thenByDescending { it.priority }
-                .thenBy { it.title.lowercase() }
-        )
+        TaskSort.SMART -> filtered.sortedWith(TaskRules.smartListComparator(now))
         TaskSort.DATE -> filtered.sortedBy { it.dueAt ?: Long.MAX_VALUE }
         TaskSort.PRIORITY -> filtered.sortedWith(compareByDescending<TaskEntity> { it.priority }.thenBy { it.dueAt ?: Long.MAX_VALUE })
     }

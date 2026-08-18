@@ -684,4 +684,93 @@ class TaskRulesTest {
         )
         assertTrue(TaskRules.isActive(restored))
     }
+
+    // --- smartListComparator: la lista de Tareas ordena igual que What Now / widget ---
+
+    private fun sortedNow(tasks: List<TaskEntity>, now: Long): List<TaskEntity> =
+        tasks.sortedWith(TaskRules.smartListComparator(now, zone))
+
+    @Test
+    fun smartListComparator_bubblesInProgressToTopIgnoringLaterDueAt() {
+        // Antes (SMART propio de la lista) una tarea en curso no subía: dueAt mandaba.
+        // Ahora la banda de urgencia (IN_PROGRESS = rank 6) manda sobre el plazo.
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val inProgress = TaskEntity(
+            id = 1, title = "En curso",
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(9, 30), zone),
+            durationMinutes = 60,
+            status = TaskStatus.IN_PROGRESS
+        )
+        val dueNow = TaskEntity(
+            id = 2, title = "Vence ya",
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone) // atrasada (rank 4)
+        )
+        assertEquals(listOf(inProgress, dueNow), sortedNow(listOf(dueNow, inProgress), now))
+    }
+
+    @Test
+    fun smartListComparator_overdueBeatsFutureDatedRegardlessOfPriority() {
+        // Una NORMAL atrasada (rank 4) va antes que una URGENTE sin plazo futuro
+        // (rank 2): la urgencia temporal domina, igual que nextBestTask/What Now.
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val overdue = TaskEntity(
+            id = 1, title = "Atrasada", priority = TaskPriority.NORMAL,
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        )
+        val urgentUndated = TaskEntity(id = 2, title = "Urgente sin plazo", priority = TaskPriority.URGENT)
+        assertEquals(listOf(overdue, urgentUndated), sortedNow(listOf(urgentUndated, overdue), now))
+    }
+
+    @Test
+    fun smartListComparator_urgentOverdueBeforeLowOverdueWithinBand() {
+        // Dentro de la misma banda de urgencia (atrasadas, rank 4) la prioridad
+        // desempata: URGENT antes que LOW, igual que nextBestTask.
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val lowOverdue = TaskEntity(
+            id = 1, title = "Atrasada baja", priority = TaskPriority.LOW,
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(8, 0), zone)
+        )
+        val urgentOverdue = TaskEntity(
+            id = 2, title = "Atrasada urgente", priority = TaskPriority.URGENT,
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        )
+        assertEquals(
+            listOf(urgentOverdue, lowOverdue),
+            sortedNow(listOf(lowOverdue, urgentOverdue), now)
+        )
+    }
+
+    @Test
+    fun smartListComparator_completedTasksSinkToBottom() {
+        // Una tarea completada que venció hoy queda tras una incompleta del inbox,
+        // aunque su timeRank seguiría señalando urgencia: `completed` es la clave
+        // primaria del comparador de lista.
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val doneOverdue = TaskEntity(
+            id = 1, title = "Hecha y vencida", completed = true,
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        )
+        val inbox = TaskEntity(id = 2, title = "Bandeja", priority = TaskPriority.NORMAL)
+        assertEquals(listOf(inbox, doneOverdue), sortedNow(listOf(doneOverdue, inbox), now))
+    }
+
+    @Test
+    fun smartListComparator_matchesNextBestTaskForFirstIncomplete() {
+        // Consistencia estructural con nextBestTask: el primer elemento
+        // incompleto de la lista ordenada es exactamente lo que What Now sugiere.
+        val now = DateRules.toEpochMillis(date, LocalTime.of(10, 0), zone)
+        val imminent = TaskEntity(
+            id = 1, title = "Reunión en 5 min",
+            startAt = DateRules.toEpochMillis(date, LocalTime.of(10, 5), zone),
+            durationMinutes = 30
+        )
+        val overdue = TaskEntity(
+            id = 2, title = "Atrasada",
+            dueAt = DateRules.toEpochMillis(date, LocalTime.of(9, 0), zone)
+        )
+        val inbox = TaskEntity(id = 3, title = "Bandeja", priority = TaskPriority.HIGH)
+        val tasks = listOf(inbox, overdue, imminent)
+        val first = TaskRules.nextBestTask(tasks, now, zone)
+        assertEquals(first, tasks.sortedWith(TaskRules.smartListComparator(now, zone)).first())
+    }
 }

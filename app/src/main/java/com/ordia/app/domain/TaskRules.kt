@@ -54,16 +54,42 @@ object TaskRules {
     ): TaskEntity? =
         tasks.asSequence()
             .filter { isActive(it) && it.parentTaskId == null }
-            .sortedWith(
-                compareByDescending<TaskEntity> { timeRank(it, now, zone) }
-                    .thenByDescending { priorityScore(it.priority) }
-                    .thenByDescending { isMissedStart(it, now) }
-                    .thenBy { it.dueAt ?: Long.MAX_VALUE }
-                    .thenBy { it.startAt ?: Long.MAX_VALUE }
-                    .thenBy { it.sortOrder }
-                    .thenBy { it.createdAt }
-            )
+            .sortedWith(smartListComparator(now, zone))
             .firstOrNull()
+
+    /**
+     * Orden canónico de la lista completa de tareas. Es el mismo comparador que
+     * [nextBestTask] (misma secuencia de campos: banda de urgencia → prioridad →
+     * hueco olvidado → plazo → hora prevista → orden → creación), con una sola
+     * diferencia: pone las completadas al final. Fuente única de verdad compartida
+     * con [nextBestTask] (widget, fallback del ViewModel), [WhatNowEngine],
+     * GuardianEngine y ahora la lista de Tareas, de forma que TODAS las
+     * superficies que muestran tareas ordenen igual: lo que What Now sugiere
+     * primero es lo que aparece primero en la lista.
+     *
+     * Antes, la lista de Tareas redefinía su propio "SMART" (completadas → dueAt
+     * → prioridad → título), ignorando la banda de urgencia [timeRank]: una tarea
+     * en curso ([TaskStatus.IN_PROGRESS]) o a punto de empezar ([isImminentStart])
+     * no subía arriba, y una tarea URGENTE sin plazo quedaba por debajo de una
+     * NORMAL con dueAt lejano — divergente respecto a What Now/widget. Reutilizar
+     * el comparador canónico cierra esa asimetría sin nueva pantalla ni botón.
+     *
+     * `completed` es la clave primaria para que las completadas (cuyo [timeRank]
+     * aún reflejaría urgencia pasada) queden siempre al final; dentro de cada
+     * grupo el orden sigue el mismo criterio que el resto de la app.
+     */
+    fun smartListComparator(
+        now: Long = System.currentTimeMillis(),
+        zone: ZoneId = ZoneId.systemDefault()
+    ): Comparator<TaskEntity> =
+        compareBy<TaskEntity> { it.completed }
+            .thenByDescending { timeRank(it, now, zone) }
+            .thenByDescending { priorityScore(it.priority) }
+            .thenByDescending { isMissedStart(it, now) }
+            .thenBy { it.dueAt ?: Long.MAX_VALUE }
+            .thenBy { it.startAt ?: Long.MAX_VALUE }
+            .thenBy { it.sortOrder }
+            .thenBy { it.createdAt }
 
     /** Ventana en la que un compromiso programado futuro se considera "ahora mismo". */
     const val IMMINENT_WINDOW_MINUTES = 15
