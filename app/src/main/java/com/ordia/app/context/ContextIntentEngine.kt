@@ -479,7 +479,7 @@ object ContextIntentEngine {
         // formato "HH:MM" con dos puntos, o sufijo am/pm/tarde/noche/mañana) para
         // evitar inventar una hora a partir de un número suelto ("comprar 2 kilos").
         val timeMatch = Regex(
-            """(a\s+las?|a\s+la|para\s+las?|para\s+la)?\s*(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?|am|pm|de la mañana|de la tarde|de la noche|del día)?""",
+            """(a\s+las?|a\s+la|para\s+las?|para\s+la)?\s*(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?|am|pm|de la mañana|de la tarde|de la noche|de la madrugada|del día)?""",
             RegexOption.IGNORE_CASE
         ).find(lower)
         if (timeMatch != null) {
@@ -498,7 +498,7 @@ object ContextIntentEngine {
                     // "12 de la tarde"/"12 pm" siguen siendo mediodía (12:00).
                     if (hour == 12 && suffix.contains("noche")) adjustedHour = 0
                     else if (hour < 12) adjustedHour = hour + 12
-                } else if (suffix.contains("am") || suffix.contains("mañana")) {
+                } else if (suffix.contains("am") || suffix.contains("mañana") || suffix.contains("madrugada")) {
                     if (hour == 12) adjustedHour = 0
                 }
                 targetTime = LocalTime.of(adjustedHour, minute)

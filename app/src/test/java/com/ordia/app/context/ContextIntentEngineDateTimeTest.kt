@@ -211,6 +211,28 @@ class ContextIntentEngineDateTimeTest {
     }
 
     @Test
+    fun doceDeLaMadrugada_esMedianoche_noMediodia() {
+        // Paridad con NaturalTaskParser: "12 de la madrugada" = medianoche (00:00).
+        // El parser lo resuelve vía "de la madrugada" = meridiano AM → hour==12 → 0.
+        val due = ContextIntentEngine.extractDateTime("reunión a las 12 de la madrugada")
+        assertNotNull("'12 de la madrugada' debe extraer fecha/hora", due)
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'12 de la madrugada' = medianoche (00:00), no mediodía (12:00)", 0, hour)
+    }
+
+    @Test
+    fun tresDeLaMadrugada_esTresAm_noQuince() {
+        // No-regresión: "3 de la madrugada" = 03:00 (AM), NO 15:00 (PM).
+        // La madrugada es siempre AM (pre-amanecer); el sufijo debe rutear a la rama AM.
+        val due = ContextIntentEngine.extractDateTime("reunión a las 3 de la madrugada")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'3 de la madrugada' = 03:00 (AM)", 3, hour)
+    }
+
+    @Test
     fun bareManana_stillMeansTomorrow() {
         // La corrección no debe romper el sentido real de "mañana" = día siguiente.
         val manana = ContextIntentEngine.extractDateTime("reunión mañana")
