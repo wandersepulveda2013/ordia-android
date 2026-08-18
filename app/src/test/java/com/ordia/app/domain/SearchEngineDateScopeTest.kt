@@ -429,6 +429,34 @@ class SearchEngineDateScopeTest {
         assertEquals(setOf(2L), ids)
     }
 
+    @Test fun parteDelDia_encuentraTareaCuyoStartAtHoyOtraFranjaYDueAtHoyEnLaFranja() {
+        // Un compromiso agendado a las 10:00 (mañana) cuyo PLAZO vence esta tarde
+        // (15:00). El usuario que pregunta "esta tarde" necesita verlo: vence esta
+        // tarde. PRE-fix, la rama de parte del día tomaba startAt (10:00, hoy) como
+        // ancla EXCLUSIVA y comprobaba sólo su hora (10 ∉ 12..17) → false; jamás
+        // miraba dueAt (15:00, sí en la franja), mintiendo por omisión. Inconsistente
+        // con el resto de scopes (hoy/semana/mes), que ya hacen OR de startAt ∨ dueAt.
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Entrega", startAt = slotAt(today, 10), dueAt = atHour(today, 15)),
+            TaskEntity(id = 2, title = "Slot mañana sin plazo tarde", startAt = slotAt(today, 9), dueAt = atHour(today, 20)),
+            TaskEntity(id = 3, title = "Slot tarde puro", startAt = slotAt(today, 16))
+        )
+        val ids = SearchEngine.search("esta tarde", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 8)).map { it.id }.toSet()
+        assertEquals(setOf(1L, 3L), ids)
+    }
+
+    @Test fun parteDelDia_noCaeFalsamenteCuandoAmbasMarcasHoyEstanFueraDeLaFranja() {
+        // startAt hoy 10:00 y dueAt hoy 11:00, ambos en la mañana: NUNCA es "esta
+        // tarde". Garantiza que el OR de ambas marcas no infla falsos positivos.
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Mañana pura", startAt = slotAt(today, 10), dueAt = atHour(today, 11))
+        )
+        val ids = SearchEngine.search("esta tarde", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 8)).map { it.id }.toSet()
+        assertEquals(emptySet<Long>(), ids)
+    }
+
     // --- Búsqueda por mes ("este mes"/"próximo mes"/"mes que viene"/"mes pasado") ---
     // Simétrico al scope de semana: permite recuperar lo que vence en un mes
     // sin recorrer la lista, aunque el título no contenga "mes".

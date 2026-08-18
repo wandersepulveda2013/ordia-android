@@ -762,15 +762,23 @@ object SearchEngine {
         val partOfDay = scopeBand(scope)
         if (partOfDay != null) {
             val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-            // La franja se resuelve con la marca temporal que cae HOY, prefiriendo
-            // `startAt` (simétrico con AssistantEngine.isInHourBand y
-            // PlannerCalendar.timestampOnDate). Así "esta tarde" muestra un slot de
-            // hoy 15:00 aunque venza más tarde; antes miraba sólo `dueAt` y omitía
-            // los slots agendados cuya fecha de vencimiento era posterior.
-            val stt = task.startAt?.takeIf { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() == today }
-            val ts = stt ?: task.dueAt?.takeIf { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() == today } ?: return false
-            val zoned = Instant.ofEpochMilli(ts).atZone(zone)
-            return zoned.toLocalDate() == today && zoned.hour in partOfDay
+            // La franja se resuelve con la marca temporal que cae HOY. A diferencia
+            // del resto de scopes (que hacen OR de startAt ∨ dueAt), aquí antes se
+            // tomaba `startAt` (si caía hoy) como ancla EXCLUSIVA y se ignoraba
+            // `dueAt`: un compromiso agendado a las 10:00 (mañana) cuyo PLAZO vencía
+            // a las 15:00 (tarde) NO aparecía en "esta tarde" aunque venciese esta
+            // tarde — mintiendo por omisión en la consulta "¿qué me espera esta
+            // tarde?". Ahora se comprueban AMBAS marcas (la que cae hoy) y basta
+            // con que UNA esté en la franja: un slot de hoy 15:00 sigue encontrándose
+            // por `startAt` (caso que motivó la preferencia original, simétrica con
+            // AssistantEngine.isInHourBand y PlannerCalendar.timestampOnDate), Y un
+            // plazo de hoy 15:00 también se encuentra por `dueAt`. Sin falsear
+            // miembros: una marca nula o de otro día no aporta hora y se descarta.
+            fun hourInBand(epoch: Long?): Boolean {
+                val zoned = epoch?.let { Instant.ofEpochMilli(it).atZone(zone) } ?: return false
+                return zoned.toLocalDate() == today && zoned.hour in partOfDay
+            }
+            return hourInBand(task.startAt) || hourInBand(task.dueAt)
         }
         // Membresía por fecha: una tarea pertenece al alcance si su `startAt` o su
         // `dueAt` cae en él (simétrico con PlannerCalendar.datesFor, que ubica la
