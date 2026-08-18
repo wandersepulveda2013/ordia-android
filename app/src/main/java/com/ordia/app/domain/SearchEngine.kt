@@ -358,6 +358,21 @@ object SearchEngine {
      * que vence hoy.
      */
     private fun urgencyRank(task: TaskEntity, now: Long): Int = when {
+        // Lo ya terminado es lo MENOS accionable: hunde las completadas al fondo
+        // del ranking (tier 8, por debajo del else=7). Sin este tier, una tarea
+        // completada con `dueAt` pasado (p. ej. una "Reunión" hecha la semana
+        // pasada) empataba en urgencia con una captura pendiente de la bandeja
+        // (ambas urgency 7) y, al desempatar por `dueAt` ascendente, su fecha
+        // pasada (pequeña) la colocaba POR ENCIMA de la pendiente actual: la
+        // búsqueda ofrecía primero el trabajo ya hecho en vez del que falta por
+        // hacer. Mantener las completadas en los resultados preserva la
+        // recuperación ("¿ya hice esa reunión?"), pero hundirlas respeta el
+        // principio de "lo más accionable primero" que comparten timeRank y
+        // WhatNowEngine (enfocadas en tareas ACTIVAS vía [TaskRules.isActive]).
+        // Cuando el usuario busca "completadas"/"hice", el filtro deja SOLO
+        // completadas, así que todas caen a este tier y ordenan entre sí por
+        // `dueAt`/título — sin perder su orden relativo. No muta nada.
+        task.completed -> COMPLETED_URGENCY
         TaskRules.isBeingWorkedOn(task, now) -> 0
         (TaskRules.isOverdue(task, now) || TaskRules.isImminentStart(task, now)) && task.priority == TaskPriority.URGENT -> 1
         TaskRules.isOverdue(task, now) || TaskRules.isImminentStart(task, now) -> 2
@@ -385,6 +400,9 @@ object SearchEngine {
         val dueAt: Long = Long.MAX_VALUE,
         val missedStart: Boolean = false
     )
+
+    /** Tier de urgencia para tareas completadas: por debajo del `else` (7). */
+    private const val COMPLETED_URGENCY = 8
 
     private val STOP_WORDS = setOf(
         "de", "del", "la", "las", "el", "los", "con", "que", "mis", "mi", "cosas", "mostrar", "muestra"

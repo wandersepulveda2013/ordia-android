@@ -1197,4 +1197,49 @@ class SearchEngineTest {
         assertFalse(completedTask.id in taskIds)
         assertEquals(listOf(340L), commitmentIds)
     }
+
+    // --- Completadas hunden al fondo en búsqueda normal (lo más accionable primero) ---
+    // Una tarea completada con `dueAt` pasado NO debe aparecer por encima de una
+    // pendiente de la misma query. Antes del fix ambas empataban en urgencia (7) y
+    // el desempate por `dueAt` ascendente dejaba la completada (fecha pasada, pequeña)
+    // POR ENCIMA de la pendiente actual (sin dueAt, MAX): buscar "reunión" ofrecía
+    // primero una reunión ya hecha en vez de la que falta por hacer. La completada
+    // sigue recuperable (sigue en los resultados), pero ahora ocupa el último tier.
+    @Test fun completedTask_doesNotRankAbovePendingInNormalSearch() {
+        val now = System.currentTimeMillis()
+        val pastDue = now - 10L * 24 * 60 * 60 * 1000 // hace ~10 días
+        val done = TaskEntity(
+            id = 1, title = "Reunión equipo", priority = TaskPriority.NORMAL,
+            completed = true, dueAt = pastDue, completedAt = pastDue
+        )
+        val pending = TaskEntity(id = 2, title = "Reunión equipo", priority = TaskPriority.NORMAL, dueAt = null)
+        val ids = SearchEngine.search("reunion", listOf(done, pending), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }
+        assertEquals(listOf(2L, 1L), ids)
+    }
+
+    // Variante con varias completadas: entre sí conservan un orden estable y predecible
+    // (por `dueAt` ascendente) y todas quedan por debajo de la pendiente.
+    @Test fun completedTasks_sinkBelowPending_andKeepRelativeOrder() {
+        val now = System.currentTimeMillis()
+        val older = TaskEntity(id = 1, title = "Reunión vieja", priority = TaskPriority.URGENT, completed = true, dueAt = now - 20L * 24 * 60 * 60 * 1000, completedAt = now)
+        val newer = TaskEntity(id = 2, title = "Reunión reciente", priority = TaskPriority.NORMAL, completed = true, dueAt = now - 2L * 24 * 60 * 60 * 1000, completedAt = now)
+        val pending = TaskEntity(id = 3, title = "Reunión pendiente", priority = TaskPriority.LOW, dueAt = null)
+        val ids = SearchEngine.search("reunion", listOf(pending, older, newer), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }
+        // La pendiente va primero; luego las completadas por dueAt ascendente (older antes).
+        assertEquals(listOf(3L, 1L, 2L), ids)
+    }
+
+    // "completadas" sigue devolviendo SOLO completadas y ordenadas entre sí (no se
+    // pierde la recuperación al hundir el tier).
+    @Test fun completadasQuery_keepsCompletedResultsOrdered() {
+        val now = System.currentTimeMillis()
+        val a = TaskEntity(id = 1, title = "Reunión A", completed = true, dueAt = now - 5L * 24 * 60 * 60 * 1000, completedAt = now)
+        val b = TaskEntity(id = 2, title = "Reunión B", completed = true, dueAt = now - 1L * 24 * 60 * 60 * 1000, completedAt = now)
+        val pending = TaskEntity(id = 3, title = "Reunión C", completed = false)
+        val ids = SearchEngine.search("completadas reunion", listOf(a, b, pending), emptyList(), emptyList(), emptyList(), now = now)
+            .map { it.id }
+        assertEquals(listOf(1L, 2L), ids)
+    }
 }
