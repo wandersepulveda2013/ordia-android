@@ -506,6 +506,43 @@ object ContextIntentEngine {
         // espeja el parser: trimestre/bimestre/semestre ANTES de "mes" porque
         // "trimes**tre**"/"bi**mes**tre"/"se**mes**tre" contienen la subcadena "mes".
         if (targetDate == null) {
+            // Períodos relativos multi-unidad (paridad con NaturalTaskParser.relativePattern,
+            // l.334): "en 2 semanas"/"dentro de 3 meses"/"de aquí a 5 días"/"en un par de
+            // semanas" → cantidad × unitDays. Antes extractDateTime sólo reconocía el
+            // singular escrito "en una semana" (bloque siguiente) → estas formas con
+            // cantidad numérica devolvían null → un ContextEvent de notificación futuro
+            // nacía SIN dueAt → sin recordatorio ni planificador (P1 evitar olvidos).
+            // Misma aritmética y ORDEN de unidades que el parser (trimestre/bimestre/
+            // semestre antes de "mes" porque contienen la subcadena "mes"). Va antes del
+            // bloque singular ("en una semana") para que la forma más específica gane.
+            val multiUnitMatch = Regex(
+                """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un\s+par\s+de|unos|unas|\d{1,3})\s*(d[ií]as?|semanas?|quincenas?|bimestres?|trimestres?|semestres?|mes(?:es)?|a[nñ]os?)\b"""
+            ).find(lower)
+            if (multiUnitMatch != null) {
+                val rawAmount = multiUnitMatch.groupValues[1]
+                val amount: Long = if (rawAmount.startsWith("un par") || rawAmount in setOf("unos", "unas")) {
+                    2L
+                } else {
+                    rawAmount.toLongOrNull() ?: 1L
+                }
+                val unit = multiUnitMatch.groupValues[2].lowercase()
+                val unitDays = when {
+                    unit.startsWith("día") || unit.startsWith("dia") -> 1L
+                    unit.startsWith("quincena") -> 15L
+                    unit.startsWith("semana") -> 7L
+                    unit.startsWith("bimestre") -> 60L
+                    unit.startsWith("trimestre") -> 90L
+                    unit.startsWith("semestre") -> 180L
+                    unit.startsWith("mes") -> 30L
+                    unit.startsWith("año") || unit.startsWith("ano") -> 365L
+                    else -> null
+                }
+                if (unitDays != null) {
+                    targetDate = today.plusDays(amount * unitDays)
+                }
+            }
+        }
+        if (targetDate == null) {
             val periodFuture = Regex(
                 """que\s+viene|que\s+entra|entrante|pr[oó]xim|siguiente""",
                 RegexOption.IGNORE_CASE

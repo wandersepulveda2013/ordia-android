@@ -829,4 +829,56 @@ class ContextIntentEngineDateTimeTest {
             ContextIntentEngine.extractDateTime("descansar el fin de semana")
         )
     }
+
+    // --- Períodos relativos multi-unidad (paridad con NaturalTaskParser.relativePattern) ---
+    // "en 2 semanas"/"dentro de 3 meses"/"de aquí a 5 días"/"en un par de semanas"
+    // deben resolverse como N×unitDays (igual que el parser). Antes extractDateTime
+    // sólo reconocía "en una semana" (singular escrito) → estas formas cotidianas con
+    // cantidad numérica devolvían null → un ContextEvent de notificación futuro nacía
+    // SIN dueAt → sin recordatorio ni planificador (P1 evitar olvidos).
+
+    @Test
+    fun enDosSemanas_isPlus14Days() {
+        val due = ContextIntentEngine.extractDateTime("reunión en 2 semanas")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'en 2 semanas' = hoy + 14 días", LocalDate.now(z).plusDays(14), dDue)
+    }
+
+    @Test
+    fun dentroDeTresMeses_isPlus90Days() {
+        val due = ContextIntentEngine.extractDateTime("control en 3 meses")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'en 3 meses' = hoy + 90 días (3×30)", LocalDate.now(z).plusDays(90), dDue)
+    }
+
+    @Test
+    fun deAquiACincoDias_isPlus5Days() {
+        val due = ContextIntentEngine.extractDateTime("entrega de aquí a 5 días")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'de aquí a 5 días' = hoy + 5 días", LocalDate.now(z).plusDays(5), dDue)
+    }
+
+    @Test
+    fun dentroDeDosAnos_isPlus730Days() {
+        val due = ContextIntentEngine.extractDateTime("vencimiento dentro de 2 años")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'dentro de 2 años' = hoy + 730 días (2×365)", LocalDate.now(z).plusDays(730), dDue)
+    }
+
+    @Test
+    fun enDiezDias_isPlus10Days() {
+        val due = ContextIntentEngine.extractDateTime("llamar en 10 días")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val dDue = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).toLocalDate()
+        assertEquals("'en 10 días' = hoy + 10 días", LocalDate.now(z).plusDays(10), dDue)
+    }
 }
