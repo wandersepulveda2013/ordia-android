@@ -75,6 +75,9 @@ CONTEXT_PURE_SOURCES=(
   "$CONTEXT_MAIN/NotificationObservationPolicy.kt"
   "$CONTEXT_MAIN/ContextIntent.kt"
   "$CONTEXT_MAIN/ContextDeduplicator.kt"
+  # ContextIntentEngine: parser regex de intenciones (java.time/Regex/UUID/Locale,
+  # sin Android). Se incluye para cubrir su lógica de extracción de fecha/hora.
+  "$CONTEXT_MAIN/ContextIntentEngine.kt"
 )
 
 # Paquete conversations: 2 archivos, ambos JVM-puros (CommitmentEngine define
