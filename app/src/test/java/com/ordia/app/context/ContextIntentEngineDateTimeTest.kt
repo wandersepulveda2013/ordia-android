@@ -174,6 +174,42 @@ class ContextIntentEngineDateTimeTest {
         assertEquals("'9 de la mañana' debe ser 09:00", 9, hour)
     }
 
+    // --- "12 de la noche" = medianoche (00:00), NO mediodía (12:00) ---
+    // Regresión c.<run>: el sufijo "de la noche" se trataba como PM genérico, así
+    // que hour=12 NO se ajustaba (la rama PM sólo suma 12 si hour<12) → quedaba
+    // 12:00 (mediodía) en vez de 00:00 (medianoche). Un recordatorio "a las 12 de
+    // la noche" se disparaba 12 h antes (al mediodía): IA deshonesta + olvido.
+    // Paridad con NaturalTaskParser (línea `part == "noche" && h == 12 -> 0`).
+    @Test
+    fun doceDeLaNoche_esMedianoche_noMediodia() {
+        val due = ContextIntentEngine.extractDateTime("reunión a las 12 de la noche")
+        assertNotNull("'12 de la noche' debe extraer fecha/hora", due)
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'12 de la noche' = medianoche (00:00), no mediodía (12:00)", 0, hour)
+    }
+
+    @Test
+    fun doceDeLaTarde_esMediodia_noMedianoche() {
+        // No-regresión: "12 de la tarde" SÍ es mediodía (12:00), simétrico a la
+        // rama `part == "tarde" && h == 12 -> 12` del parser.
+        val due = ContextIntentEngine.extractDateTime("reunión a las 12 de la tarde")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'12 de la tarde' = mediodía (12:00)", 12, hour)
+    }
+
+    @Test
+    fun docePm_esMediodia_noMedianoche() {
+        // No-regresión: "12 pm" (sin "noche") sigue siendo mediodía.
+        val due = ContextIntentEngine.extractDateTime("reunión el 25 a las 12 pm")
+        assertNotNull(due)
+        val z = ZoneId.systemDefault()
+        val hour = ZonedDateTime.ofInstant(Instant.ofEpochMilli(due!!), z).hour
+        assertEquals("'12 pm' = mediodía (12:00)", 12, hour)
+    }
+
     @Test
     fun bareManana_stillMeansTomorrow() {
         // La corrección no debe romper el sentido real de "mañana" = día siguiente.

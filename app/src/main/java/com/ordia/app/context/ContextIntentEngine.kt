@@ -492,7 +492,12 @@ object ContextIntentEngine {
             if (hasTimeCue && hour != null && hour in 0..23 && minute in 0..59) {
                 var adjustedHour = hour
                 if (suffix.contains("pm") || suffix.contains("tarde") || suffix.contains("noche")) {
-                    if (hour < 12) adjustedHour = hour + 12
+                    // "12 de la noche" = medianoche (00:00), NO mediodía: antes la rama
+                    // PM sólo sumaba 12 si hour<12, así hour=12 quedaba en 12:00 (mediodía).
+                    // Paridad con NaturalTaskParser (`part == "noche" && h == 12 -> 0`).
+                    // "12 de la tarde"/"12 pm" siguen siendo mediodía (12:00).
+                    if (hour == 12 && suffix.contains("noche")) adjustedHour = 0
+                    else if (hour < 12) adjustedHour = hour + 12
                 } else if (suffix.contains("am") || suffix.contains("mañana")) {
                     if (hour == 12) adjustedHour = 0
                 }
