@@ -43,7 +43,7 @@ class ContentModerationTest {
         proximity = Regex("""\b(ur[oó]logo|ginec[oó]log[oa]|sex[oó]logo|prostate|m[ée]dico|cl[íi]nica|farmac[ée]utic[oa])\b""")
     )
     private val violencia = ContentModeration.ModerationRule(
-        stem = Regex("""\b(matar|asesinar|violar|bomba|amenaza|escopeta|pistola|cuchill)\b"""),
+        stem = Regex("""\b(matar|asesinar|violar|bomba|amenaza|escopeta|pistola)\b"""),
         contain = listOf(
             Regex("""\bmatar\b\s+(el|la|los|las|un|una)?\s*(proceso|hilo|servicio|servidor|demonio|sesi[oó]n|tarea|job|zombie)\b"""),
             Regex("""\bviolar\b\s+(la|el|una|un|las|los)?\s*(pol[ií]tica|contrato|licencia|restricci[oó]n|norma|ley|clausula|cl[áa]usula|t[ée]rminos?)\b"""),
@@ -51,6 +51,21 @@ class ContentModerationTest {
             Regex("""\bamenaza\b\s+(de)?\s*(de\s+integridad|de\s+seguridad|de\s+modelo)\b"""),
             Regex("""\b(bomba|pistola|escopeta)\s+de\s+agua\b"""),
             Regex("""\b(matar|asesinar)\s+(un|el)\s+proceso\b""")
+        )
+    )
+    // c.636: `cuchill` SEPARADA de violencia (mismo split que producción).
+    // PRE-fix la raíz iba con `\b` final en el stem conjunto de violencia y NO
+    // casaba "cuchillo/cuchillada/cuchillazo/acuchillar" → "amenazar con
+    // cuchillo" PASABA. Sin `\b` final casa la familia, PERO se añaden `contain`
+    // culinarios para no bloquear "cuchillo de cocina/chef/pan" (falso positivo
+    // P1 datos). Duplica la regla de producción para testear isHarmful aislado.
+    private val cuchilloStems = ContentModeration.ModerationRule(
+        stem = Regex("""\b(acuchill|cuchill)"""),
+        contain = listOf(
+            Regex("""\bcuchill[oa]s?\s+de\s+(cocina|chef|pan|mes[oó]n|m[aá]rmol|carnicer[ií]a|caza|pescado|mesa|untar|trinchar|cocinero|palo|mantequilla|fruta|carne|queso)\b"""),
+            Regex("""\b(afilad[oa]r(es)?|afi[cz]a(c)?dor(es)?)\s+de\s+cuchill[oa]s?\b"""),
+            Regex("""\b(set|juego|bloque|cubierto|cubre)\s+de\s+cuchill[oa]s?\b"""),
+            Regex("""\bcuchill[oa]\s+(de\s+(mesa|untar|cocina)|para\s+(pan|cocina|fruta|carne|queso))\b""")
         )
     )
     private val secuestroStems = ContentModeration.ModerationRule(
@@ -81,6 +96,7 @@ class ContentModerationTest {
     private fun sexualHarmful(text: String) = ContentModeration.isHarmful(text, sexual)
     private fun sexualStemHarmful(text: String) = ContentModeration.isHarmful(text, sexualStems)
     private fun violentHarmful(text: String) = ContentModeration.isHarmful(text, violencia)
+    private fun cuchilloHarmful(text: String) = ContentModeration.isHarmful(text, cuchilloStems)
     private fun secuestroHarmful(text: String) = ContentModeration.isHarmful(text, secuestroStems)
     private fun drugHarmful(text: String) = ContentModeration.isHarmful(text, drogas)
     private fun specificDrugHarmful(text: String) = ContentModeration.isHarmful(text, drogasEspecificas)
@@ -307,5 +323,62 @@ class ContentModerationTest {
     @Test fun drogaSinContextoMedico_sigueEsDanina() {
         // "droga" aislada sin proximity sigue siendo dañina.
         assertTrue(drugHarmful("conseguir droga para la fiesta"))
+    }
+
+    // ── c.636: `cuchill` stem muerto por `\b` final — falso-negativo P1 ──
+    //    PRE-fix la raíz `\bcuchill\b` (con `\b` final, en el stem conjunto de
+    //    violencia) NO casaba "cuchillo/cuchillada/cuchillazo/acuchillar" (esas
+    //    formas añaden letras tras "cuchill") → "amenazar con cuchillo" PASABA.
+    //    Fix: separar `cuchill` con `\b` inicial SIN `\b` final + `contain`
+    //    culinarios para no bloquear "cuchillo de cocina/chef/pan" (falso
+    //    positivo P1 datos). Mismo defecto de clase que c.630/c.631/c.633.
+
+    @Test fun amenazarConCuchillo_esDanino() {
+        // PRE-fix RED: `\bcuchill\b` no casa "cuchillo" → PASABA.
+        assertTrue(cuchilloHarmful("amenazar al vecino con un cuchillo"))
+    }
+    @Test fun cuchillada_esDanina() {
+        // PRE-fix RED: `\bcuchill\b` no casa "cuchillada" → PASABA.
+        assertTrue(cuchilloHarmful("le dio una cuchillada en la cara"))
+    }
+    @Test fun cuchillazo_esDanino() {
+        // PRE-fix RED: `\bcuchill\b` no casa "cuchillazo" → PASABA.
+        assertTrue(cuchilloHarmful("sufrió un cuchillazo en el cuello"))
+    }
+    @Test fun acuchillar_esDanino() {
+        // PRE-fix RED: `\bcuchill\b` no casa "acuchillar" → PASABA.
+        assertTrue(cuchilloHarmful("decidió acuchillar al intruso"))
+    }
+    @Test fun cuchilloAislado_esDanino() {
+        // "llevar un cuchillo" (mención aislada, ambigua) es señal suficiente en
+        // captura de tareas personales: NO se exime (regla general del gate).
+        assertTrue(cuchilloHarmful("llevar un cuchillo en la mochila"))
+    }
+
+    // ── c.636: regression guards — contextos culinarios legítimos PASAN ──
+
+    @Test fun cuchilloDeCocina_noEsDanino() {
+        // Contain "cuchillo de cocina" envuelve el stem "cuchill" → eximido.
+        assertFalse(cuchilloHarmful("comprar un cuchillo de cocina nuevo"))
+    }
+    @Test fun cuchilloDeChef_noEsDanino() {
+        assertFalse(cuchilloHarmful("regalar un cuchillo de chef profesional"))
+    }
+    @Test fun cuchilloDePan_noEsDanino() {
+        assertFalse(cuchilloHarmful("traer el cuchillo de pan a la mesa"))
+    }
+    @Test fun cuchillosDePescado_noEsDanino() {
+        // Plural "cuchillos" + contexto culinario.
+        assertFalse(cuchilloHarmful("afilar los cuchillos de pescado"))
+    }
+    @Test fun afiladorDeCuchillos_noEsDanino() {
+        assertFalse(cuchilloHarmful("comprar afilador de cuchillos"))
+    }
+    @Test fun setDeCuchillos_noEsDanino() {
+        assertFalse(cuchilloHarmful("pedir un set de cuchillos para la boda"))
+    }
+    @Test fun cuchilloParaCocina_noEsDanino() {
+        // Forma alternativa "cuchillo para cocina" (contain `para`).
+        assertFalse(cuchilloHarmful("cuchillo para cocina de acero"))
     }
 }

@@ -126,9 +126,19 @@ object ContentModeration {
         // Violencia y amenazas. Las raíces tienen sentidos legítimos muy
         // frecuentes en tareas técnicas ("matar el proceso", "violar la
         // política", "modelo de amenaza", "pistola/bomba de agua") que se
-        // eximen por colocación.
+        // eximen por colocación. `cuchill` vive en su propia regla (c.636,
+        // ver abajo): la familia "cuchillo/cuchillada/cuchillazo/acuchillar"
+        // escribe letras tras la raíz, así `\bcuchill\b` (con `\b` final, la
+        // forma previa) NO casaba ninguna de ellas — el gate dejaba pasar
+        // "amenazar con cuchillo", "cuchillada en la cara", "acuchillar al
+        // intruso" (contenido dañino no bloqueado, mismo defecto de clase
+        // que c.630/c.631/c.632/c.633). Sin `\b` final la raíz caza, PERO eso
+        // atrapa también "cuchillo de cocina/chef/pan" (falso positivo P1
+        // datos — pérdida de captura legítima), así que se añaden `contain`
+        // para los contextos culinarios legítimos ANTES de revivir el stem
+        // (careful-design, anti-falso-positivo P1).
         ModerationRule(
-            stem = Regex("""\b(matar|asesinar|violar|bomba|amenaza|escopeta|pistola|cuchill)\b"""),
+            stem = Regex("""\b(matar|asesinar|violar|bomba|amenaza|escopeta|pistola)\b"""),
             contain = listOf(
                 Regex("""\bmatar\b\s+(el|la|los|las|un|una)?\s*(proceso|hilo|servicio|servidor|demonio|sesi[oó]n|tarea|job|zombie)\b"""),
                 Regex("""\bviolar\b\s+(la|el|una|un|las|los)?\s*(pol[ií]tica|contrato|licencia|restricci[oó]n|norma|ley|clausula|cl[áa]usula|t[ée]rminos?)\b"""),
@@ -136,6 +146,34 @@ object ContentModeration {
                 Regex("""\bamenaza\b\s+(de)?\s*(de\s+integridad|de\s+seguridad|de\s+modelo)\b"""),
                 Regex("""\b(bomba|pistola|escopeta)\s+de\s+agua\b"""),
                 Regex("""\b(matar|asesinar)\s+(un|el)\s+proceso\b""")
+            )
+        ),
+        // `cuchill`: raíz flexionada (c.636). `\b` INICIAL sin `\b` final para
+        // casar la familia "cuchillo/cuchilla/cuchillada/cuchillazo/acuchillar/
+        // acuchilló". PRE-fix la raíz iba con `\b` final en el stem conjunto de
+        // violencia, así NO casaba ninguna de esas formas (exigía límite de
+        // palabra justo después de "cuchill") → "amenazar con cuchillo" PASABA.
+        // `\b(acuchill|cuchill)`: el `\b` va al INICIO de palabra, así casa
+        // "acuchillar" (la "a" inicial crea el límite) Y "cuchillo" (la "c"
+        // inicial crea el límite); sin esta alternativa "acuchillar" no casa
+        // porque "cuchill" va precedido de "a" (ambas letras, sin límite).
+        // Exenciones `contain` para los contextos culinarios legítimos: el
+        // algoritmo exime un match del stem si un `contain` ENVUELVE su rango
+        // (ver [isHarmful]), así "cuchillo de cocina" casa el stem "cuchill"
+        // PERO también el contain "cuchillo de cocina" que lo envuelve → pasa.
+        // "amenazar con cuchillo" casa el stem pero NINGÚN contain lo envuelve
+        // → bloqueado. `\b` final en cada contain acota el contexto (evita que
+        // "cuchillo de cocinero sicario" se exima). Casos no-culinarios de
+        // "cuchillo" como objeto personal ("llevar un cuchillo" — ambiguo) NO
+        // se eximen: en captura de tareas personales esa mención aislada es
+        // señal suficiente, alineado con la regla general de este gate.
+        ModerationRule(
+            stem = Regex("""\b(acuchill|cuchill)"""),
+            contain = listOf(
+                Regex("""\bcuchill[oa]s?\s+de\s+(cocina|chef|pan|mes[oó]n|m[aá]rmol|carnicer[ií]a|caza|pescado|mesa|untar|trinchar|cocinero|palo|mantequilla|fruta|carne|queso)\b"""),
+                Regex("""\b(afilad[oa]r(es)?|afi[cz]a(c)?dor(es)?)\s+de\s+cuchill[oa]s?\b"""),
+                Regex("""\b(set|juego|bloque|cubierto|cubre)\s+de\s+cuchill[oa]s?\b"""),
+                Regex("""\bcuchill[oa]\s+(de\s+(mesa|untar|cocina)|para\s+(pan|cocina|fruta|carne|queso))\b""")
             )
         ),
         // Raíz flexionada SECUESTR (secuestrar/secuestro/secuestrado/...).
