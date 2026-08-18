@@ -182,6 +182,63 @@ class NaturalTaskParserTest {
         assertEquals("1,3,5", result.recurrenceDays)
     }
 
+    // Lista de días abreviada separada por GUIONES: "clase lun-mie-vie". Es la
+    // forma de captura rápida más natural para rutinas tipo clase/turno, y antes
+    // caía sin recurrencia (recur=NONE) dejando "-mie" como residuo corrupto en el
+    // título → la rutina se olvidaba por completo. El guion ahora es conector de
+    // lista válido, al igual que coma, "y" y espacio.
+    @Test fun parsesAbbrevWeekdayListHyphenSeparated() {
+        val result = NaturalTaskParser.parse("Clase lun-mie-vie", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3,5", result.recurrenceDays)
+    }
+
+    // Mismo caso con nombres completos: "clase lunes-miercoles-viernes".
+    @Test fun parsesFullWeekdayListHyphenSeparated() {
+        val result = NaturalTaskParser.parse("Clase lunes-miercoles-viernes", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3,5", result.recurrenceDays)
+    }
+
+    // Abreviatura de 4 letras "mierc"/"miérc" (estándar de calendarios dominicanos
+    // para miércoles, que evita la ambigüedad de "mie"). Antes el rewriter solo
+    // conocía 3 letras ("mie"/"mié") → "mierc" no se expandía y corrompía la
+    // captura de rutinas ("gym lun mierc vier" → recur=NONE, días perdidos).
+    @Test fun parsesFourLetterAbbrevMierc() {
+        val result = NaturalTaskParser.parse("Gym lun mierc vier", now, zone)
+        assertEquals("Gym", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("1,3,5", result.recurrenceDays)
+    }
+
+    @Test fun parsesFourLetterAbbrevMiercAccented() {
+        val result = NaturalTaskParser.parse("Gym miérc vie", now, zone)
+        assertEquals("Gym", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("3,5", result.recurrenceDays)
+    }
+
+    // "vier" es la abreviatura de 4 letras de viernes (análoga a "mierc"). Antes
+    // no estaba en el mapa → se quedaba como residuo en el título y rompía la lista.
+    @Test fun parsesFourLetterAbbrevVier() {
+        val result = NaturalTaskParser.parse("Clase mie vier", now, zone)
+        assertEquals("Clase", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("3,5", result.recurrenceDays)
+    }
+
+    // La expansión de "mierc"/"vier" NO debe tocar el nombre completo "miércoles"/
+    // "viernes": el lookahead de no-letra tras la coincidencia lo impide. Si se
+    // corrompiera, el título quedaría roto (regresión histórica del \b ASCII).
+    @Test fun fourLetterAbbrevDoesNotCorruptFullWeekday() {
+        val result = NaturalTaskParser.parse("Reunión miércoles y viernes", now, zone)
+        assertEquals("Reunión", result.title)
+        assertEquals(RecurrenceFrequency.WEEKLY, result.recurrence)
+        assertEquals("3,5", result.recurrenceDays)
+    }
+
     // La abreviatura "mié" (con tilde) también debe expandirse, y NUNCA debe
     // tocar "miércoles" completo (regresión: el \b ASCII trató "é" como no-palabra
     // y "mié" casaba dentro de "miércoles" → "miércolesrcoles").

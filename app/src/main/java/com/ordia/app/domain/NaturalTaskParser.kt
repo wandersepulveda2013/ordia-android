@@ -124,7 +124,7 @@ object NaturalTaskParser {
      * subcadenas dentro de otra palabra ("alunizar", "adomicilio").
      */
     private val weekdayAbbrevRewriter = Regex(
-        """(?i)(?<![a-záéíóúüñ])(lun|mi[eé]|jue|vie|s[aá]b|dom)\.?(?![a-záéíóúüñ])"""
+        """(?i)(?<![a-záéíóúüñ])(lun|mi[eé](?:rc?)?|vier|jue|vie|s[aá]b|dom)\.?(?![a-záéíóúüñ])"""
     )
     /** "este/el/próximo fin de semana" o "fin de semana" suelto → próximo sábado.
      *  Acepta también "finales de semana" (plural análogo a "finales de mes") y la
@@ -2525,7 +2525,10 @@ object NaturalTaskParser {
         "lun" to "lunes",
         "mie" to "miércoles",
         "mié" to "miércoles",
+        "mierc" to "miércoles",
+        "miérc" to "miércoles",
         "jue" to "jueves",
+        "vier" to "viernes",
         "vie" to "viernes",
         "sab" to "sábado",
         "sáb" to "sábado",
@@ -5509,7 +5512,7 @@ object NaturalTaskParser {
         // lista de días de abajo). Definido aquí para estar disponible en ambos.
         val dayNameRegex = Regex("""(?i)lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo""")
         val weekdayCountPattern =
-            Regex("""(?i)\b(?:cada|todos\s+los|todas\s+las)\s+(\d{1,3}|$writtenNumberGroup)\s+((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y)?\s*(?:(?:el|los)\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
+            Regex("""(?i)\b(?:cada|todos\s+los|todas\s+las)\s+(\d{1,3}|$writtenNumberGroup)\s+((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y|-)?\s*(?:(?:el|los)\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
         weekdayCountPattern.find(working)?.let { match ->
             val rawN = match.groupValues[1]
             val n = rawN.toLongOrNull()?.toInt() ?: parseWrittenNumber(rawN)?.toInt()
@@ -5561,7 +5564,7 @@ object NaturalTaskParser {
         // artículo=[2], días=[3]). El rango Lun-Vie ("entre lunes y viernes") ya
         // se resolvió arriba, así que aquí solo llegan listas reales. c.282.
         val dayListPattern =
-            Regex("""(?i)\b(?:entre\s+)?(?:(todos\s+los|cada|los)\s+)?(?:(el|los)\s+)?((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y)?\s*(?:(?:el|los)\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
+            Regex("""(?i)\b(?:entre\s+)?(?:(todos\s+los|cada|los)\s+)?(?:(el|los)\s+)?((?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?)(?:\s*(?:,|y|-)?\s*(?:(?:el|los)\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?))*)\b""")
         val weeklyMatch = dayListPattern.find(working)
         if (weeklyMatch != null) {
             val days = dayNameRegex.findAll(weeklyMatch.groupValues[3])
