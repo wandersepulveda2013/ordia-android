@@ -201,6 +201,26 @@ object ContextIntentEngine {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
+        // Piso simétrico para imperativos de PAGO inequívocos (c.630): "pagar
+        // <objeto>" al INICIO de la notificación es un pago claro con
+        // independencia de pistas temporales. Sin este piso, "pagar la luz"/"pagar
+        // el internet"/"pagar el recibo" quedaban en 0.42 (< [MINIMUM_CONFIDENCE])
+        // y se DESCARTABAN: el usuario capturaba el pago de una factura real y
+        // Ordía lo olvidaba. Olvidar un pago tiene mayor coste que olvidar una
+        // compra o reunión (recargos, corte de servicio), así que este cierre es
+        // prioritario dentro de la misma clase. El contenido dañino genuino ya
+        // fue bloqueado en el paso 1 ([ContextPrivacyFilter]) o en el paso 3
+        // (insultos), así que llegar aquí es contenido permitido. El guard
+        // `^pagar\s+\w` exige imperativo AFIRMATIVO al inicio + objeto real: así
+        // "no pagar la luz" (negación, capta lo opuesto a la intención del
+        // usuario), "mañana no pagar la luz" (negación incrustada) y "pagar"
+        // aislado (muletilla) NO activan el piso (c.616 anti-overreach). Los
+        // casos afirmativos con ancla temporal ("mañana pagar la luz") ya
+        // superan el umbral vía [extractDateTime].
+        if (kind == ContextIntentKind.PAYMENT && hasStrongPaymentImperative(lower)) {
+            score = maxOf(score, MINIMUM_CONFIDENCE)
+        }
+
         return score.coerceIn(0f, 1f)
     }
 
@@ -241,6 +261,17 @@ object ContextIntentEngine {
      */
     private fun hasStrongMeetingImperative(lower: String): Boolean =
         Regex("""^reunión\s+(con|de|del)\s+\w""").containsMatchIn(lower)
+
+    /**
+     * Imperativos de pago inequívocos (c.630). Coincide con el anclaje de
+     * [extractTitle] para PAYMENT: "pagar <objeto>" al INICIO. El ancla `^` +
+     * `\s+\w` exige imperativo afirmativo inicial + objeto real, así "no pagar
+     * la luz" (negación, capta lo opuesto a la intención del usuario), "mañana no
+     * pagar la luz" (negación incrustada) y "pagar" aislado (muletilla) NO
+     * activan el piso (c.616 anti-overreach).
+     */
+    private fun hasStrongPaymentImperative(lower: String): Boolean =
+        Regex("""^pagar\s+\w""").containsMatchIn(lower)
 
     /**
      * Patrones específicos por tipo de intención.
