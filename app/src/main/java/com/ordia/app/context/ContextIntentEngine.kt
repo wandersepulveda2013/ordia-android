@@ -107,7 +107,17 @@ object ContextIntentEngine {
         listOf(APPOINTMENT_CITA_PATTERN, APPOINTMENT_MEDICAL_PATTERN)
     private val CALL_LLAMAR_PATTERN = Regex("""llamar (a|por teléfono)""")
     private val CALL_HABLAR_PATTERN = Regex("""hablar (con|por teléfono)""")
-    private val CALL_SPECIFIC = listOf(CALL_LLAMAR_PATTERN, CALL_HABLAR_PATTERN)
+    // Futuro declarativo de 1ª persona (c.656): "llamaré/hablaré" + objeto es una
+    // promesa explícita de acción (no infinitivo condicionable). Requiere objeto
+    // explícito (igual que el bono de objeto del infinitivo) para no capturar
+    // muletillas ("llamaré" a secas) y queda cubierto por el guard de envolvente
+    // vía [CALL_SPECIFIC] (misma fuente única, c.653).
+    private val CALL_LLAMAR_FUTURE_PATTERN =
+        Regex("""\bllamaré\s+(a|al|a la|a los|a las)\s+\S""")
+    private val CALL_HABLAR_FUTURE_PATTERN =
+        Regex("""\bhablaré\s+con\s+\S""")
+    private val CALL_SPECIFIC = listOf(CALL_LLAMAR_PATTERN, CALL_HABLAR_PATTERN,
+        CALL_LLAMAR_FUTURE_PATTERN, CALL_HABLAR_FUTURE_PATTERN)
 
     // Imperativos envolventes (c.652 anti-overreach). Lista cerrada ALINEADA con
     // [hasStrongTaskImperative] y [hasStrongReminderImperative]: cuando uno de
@@ -842,6 +852,14 @@ object ContextIntentEngine {
                 var s = 0f
                 if (CALL_LLAMAR_PATTERN.containsMatchIn(lower)) s += 0.2f
                 if (CALL_HABLAR_PATTERN.containsMatchIn(lower)) s += 0.15f
+                // Futuro declarativo (c.656): "llamaré/hablaré" + objeto explícito
+                // es evidencia MÁS firme que el infinitivo (promesa en indefinido,
+                // 1ª persona). Sin este bono quedaba NULL (olvido P1) aun la frase
+                // inequívoca "llamaré a mamá el viernes". Bono fusionado (patrón +
+                // objeto) que alcanza [MINIMUM_CONFIDENCE]; el guard de envolvente
+                // sigue protegido (patrones en [CALL_SPECIFIC]).
+                if (CALL_LLAMAR_FUTURE_PATTERN.containsMatchIn(lower)) s += 0.45f
+                if (CALL_HABLAR_FUTURE_PATTERN.containsMatchIn(lower)) s += 0.45f
                 // Bono de objeto explícito (P1): "llamar a/al/a la/a los <persona>" o
                 // "hablar con <persona>" es una llamada telefónica clara. Sin este bono,
                 // "llamar a María" quedaba en 0.32 (< MINIMUM_CONFIDENCE 0.45) y se
@@ -1048,9 +1066,11 @@ object ContextIntentEngine {
                 // (perdía "hablar con" e insertaba "a" + "Con" mayúscula). Ahora se
                 // capitaliza el texto desde el verbo, respetando la preposición que el
                 // usuario ya escribió ("a"/"al"/"con"). El match arranca en \b(llamar|
-                // hablar con) para no capturar texto previo accidental.
+                // hablar con) para no capturar texto previo accidental. c.655: el
+                // futuro declarativo ("llamaré a"/"hablaré con") activa el mismo path,
+                // así la fecha prefija ("mañana llamaré a mamá") no ensucia el título.
                 val match = Regex(
-                    """\b(llamar(?:\s+(?:a|al|a la|a los|a las|por teléfono))?|hablar con)\b.*""",
+                    """\b(llamar(?:\s+(?:a|al|a la|a los|a las|por teléfono))?|llamaré\s+(?:a|al|a la|a los|a las)|hablar con|hablaré con)\b.*""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (match != null) return capitalizeFirst(match.value.trim())
