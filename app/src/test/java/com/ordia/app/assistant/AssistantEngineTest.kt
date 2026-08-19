@@ -253,6 +253,82 @@ class AssistantEngineTest {
         assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
     }
 
+    // --- Tiempo libre (Cluster C sonda assistant; c.416 cubre la forma literal
+    // "tareas de 15 minutos": "tengo un rato/tiempo/hueco" o "tengo N minutos"
+    // caía al menú genérico). Reusa la rama de tareas cortas con ventana del
+    // usuario EXPLÍCITA (N minutos/horas/diez/veinte/media hora) o 15 min si
+    // es suelta. Determinista: usa WhatNowEngine.ordered, no inferencia de IA.
+
+    @Test fun freeTime_ratoSuggestsShortTasksNotMenu() {
+        val answer = AssistantEngine.answer(
+            "tengo un rato libre",
+            listOf(
+                TaskEntity(id = 1, title = "Responder un correo", durationMinutes = 10),
+                TaskEntity(id = 2, title = "Informe largo", durationMinutes = 60)
+            ),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun freeTime_digitWindowFiltersByExplicitMinutes() {
+        val quarter = TaskEntity(id = 1, title = "Revisión corta", durationMinutes = 10)
+        val half = TaskEntity(id = 2, title = "Trámite del banco", durationMinutes = 30)
+        val answer = AssistantEngine.answer(
+            "tengo 20 minutos",
+            listOf(quarter, half),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("menciona la ventana: ${answer.text}", answer.text.contains("20 minutos"))
+        assertTrue("no lista la de 30 min: ${answer.text}", !answer.text.contains("Trámite del banco"))
+    }
+
+    @Test fun freeTime_wordWindowAndUnaHora() {
+        val quickT = TaskEntity(id = 1, title = "Corta", durationMinutes = 15)
+        val long = TaskEntity(id = 2, title = "Larga", durationMinutes = 45)
+        val veinte = AssistantEngine.answer(
+            "tengo veinte minutos", listOf(quickT, long), emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L), veinte.relatedTaskIds)
+        // "media hora" (30 min) excluye la de 45; "una hora" (60) la incluye.
+        val media = AssistantEngine.answer(
+            "tengo media hora libre", listOf(quickT, long), emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L), media.relatedTaskIds)
+        val unaHora = AssistantEngine.answer(
+            "tengo una hora libre", listOf(quickT, long), emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L, 2L), unaHora.relatedTaskIds)
+    }
+
+    @Test fun freeTime_nothingFitsIsHonestNotMenu() {
+        val long = TaskEntity(id = 1, title = "Migrar servidor", durationMinutes = 120)
+        val answer = AssistantEngine.answer(
+            "tengo 10 minutos",
+            listOf(long),
+            emptyList(), emptyList()
+        )
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("vacío honesto: ${answer.text}", answer.text.contains("Nada te cabe"))
+    }
+
+    @Test fun freeTime_recoversOverdueCommitmentWhenEmpty() {
+        // Paridad con c.357/c.416/c.680/c.702: vacío + promesa vencida → recuperación.
+        val now = 1_000_000_000_000L
+        val commitment = overdueCommitment(42, "envío el informe", now - 2 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "tengo un hueco",
+            emptyList(),
+            emptyList(),
+            listOf(commitment),
+            now
+        )
+        assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
+    }
+
     // --- c.422: el menú genérico (consulta no reconocida) no debe callar un
     // compromiso vencido. Octavo olvido de la familia "lie-by-omission": el catch-all
     // es la superficie de mayor tránsito para un usuario confundido (escribió algo que
@@ -2178,9 +2254,11 @@ class AssistantEngineTest {
     // otras intenciones. Sólo la forma "tengo tiempo libre" activa el veredicto.
     @Test fun dayLoad_tengoTiempoSoloNoEsVeredictoForzado() {
         val answer = AssistantEngine.answer("tengo tiempo", emptyList(), emptyList(), emptyList())
-        // Sin "libre": cae al menú genérico (no se fuerza veredicto ambiguo).
+        // Sin "libre": nunca se fuerza un veredicto de carga. c.703 lo rutea a
+        // la superficie de hueco libre (Cluster C sonda assistant) como estado
+        // honesto — con lista vacía, "Nada te cabe…" (menú genérico prohibido).
         assertTrue("no se inventa un veredicto para 'tengo tiempo' ambiguo: ${answer.text}",
-            answer.text.contains("Puedo organizar"))
+            !answer.text.contains("Puedo organizar") && answer.text.contains("Nada te cabe"))
     }
 
     // "¿cómo voy?" / "¿cómo voy hoy?" — la forma cotidiana por excelencia de

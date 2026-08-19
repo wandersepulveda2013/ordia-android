@@ -31,6 +31,10 @@ data class AssistantAnswer(
 
 /** Asistente determinista y local; nunca necesita red ni una clave de API. */
 object AssistantEngine {
+    // Ventana por defecto de las formas sueltas de hueco ("tengo un rato"):
+    // la misma del filtro histórico "tareas de 15 minutos o menos".
+    private const val QUICK_TASK_WINDOW_MINUTES = 15
+
     fun answer(
         request: String,
         tasks: List<TaskEntity>,
@@ -469,6 +473,35 @@ object AssistantEngine {
                     relatedTaskIds = hits.map { it.id }
                 )
             }
+            isFreeTimeQuery(query) -> {
+                // Décimo olvido de la familia "lie-by-omission": el usuario ya
+                // declara que tiene un hueco libre ("tengo un rato/tiempo/hueco"
+                // o "tengo N minutos") — caía al menú genérico, que PIDE una
+                // intención conocida y le devuelve trabajo de pensar. La misma
+                // frase calibrada con la ventana que el propio usuario declara
+                // (explícita: dígito/palabra + minutos|horas|media hora; suelta:
+                // QUICK_TASK_WINDOW_MINUTES de la rama "tareas de 15 minutos")
+                // filtra el plan de What Now a lo que CABE. Y con hueco vacío,
+                // la promesa vencida rutea a la recuperación (paridad
+                // c.357/c.416/c.680: mentir por omisión en una superficie
+                // declarativa es peor que no responder). Determinista y local:
+                // reusa WhatNowEngine.ordered + overdueCommitmentAnswer; cero
+                // nueva pantalla, cero random, cero IA fingida. El filtro
+                // `durationMinutes <= window` es la ESTIMACIÓN REAL que el
+                // usuario calibró por tarea (0 = sin estimar → cuenta como
+                // corta, paridad con la rama c.416 de tareas rápidas).
+                val windowMinutes = freeTimeWindowMinutes(query) ?: QUICK_TASK_WINDOW_MINUTES
+                val quick = WhatNowEngine.ordered(active, now, zone).filter { it.durationMinutes <= windowMinutes }.take(6)
+                if (quick.isEmpty() && overdueCommitments.isNotEmpty()) {
+                    return overdueCommitmentAnswer(overdueCommitments)
+                }
+                return AssistantAnswer(
+                    if (quick.isEmpty()) "Nada te cabe en esos $windowMinutes minutos."
+                    else "En esos $windowMinutes minutos puedes completar: " + quick.joinToString(" · ") { it.title } + overdueCommitmentTail(overdueCommitments),
+                    relatedTaskIds = quick.map { it.id }
+                )
+            }
+
             // Señal de sobrecarga emocional ("estoy abrumado/agobiado",
             // "no doy abasto" — cluster E c.677). Ante esa señal la respuesta debe
             // REDUCIR carga, no listar ni abrir el menú de capacidades: una única
@@ -549,6 +582,49 @@ object AssistantEngine {
      */
     private fun isOverwhelmedQuery(query: String): Boolean =
         "abrumad" in query || "agobiad" in query || "no doy abasto" in query
+
+    /**
+     * Señal de "tengo un hueco libre" (Cluster C c.677): formas sueltas
+     * ("tengo tiempo/hueco/un rato (libre)") o con ventana explícita
+     * ("tengo N minutos", "tengo veinte minutos", "tengo (una|media) hora").
+     * Ancla "tengo" para no secuestrar otras ramas ("me queda tiempo",
+     * "el tiempo que tengo", planificación "qué me queda por hacer" no la
+     * casa; ver rama whatNow). "rapido"/"rapida" siguen en la rama rápida
+     * (arriba en el despacho) — aquí SÓLO si NO es esa forma ("tengo un
+     * rato para pensar rápido" no entra: contiene "rato" pero la rama de
+     * arriba gana antes por posición; paridad positiva/negativa en tests).
+     */
+    private fun isFreeTimeQuery(query: String): Boolean {
+        val bareForm = "tengo tiempo" in query || "tengo hueco" in query ||
+            "tengo un hueco" in query || "tengo un rato" in query
+        return bareForm || freeTimeWindowMinutes(query) != null
+    }
+
+    private val freeTimeWindowRegex = Regex(
+        """tengo\s+(?:un\s+|una\s+)?(\d{1,3}|diez|doce|quince|veinte|treinta|cuarenta|cincuenta|sesenta)\s+(minutos?|horas?)"""
+    )
+
+    private val freeTimeWordMinutes = mapOf(
+        "diez" to 10, "doce" to 12, "quince" to 15, "veinte" to 20,
+        "treinta" to 30, "cuarenta" to 40, "cincuenta" to 50, "sesenta" to 60
+    )
+
+    /**
+     * Ventana explícita → minutos, o null si el usuario no declaró ninguna.
+     * Dígito o palabra + "minuto(s)" → esos minutos; + "hora(s)" → ×60.
+     * "media hora" → 30; "una hora" → 60. Nunca inventa una unidad donde no
+     * se declaró ninguna: las formas sueltas ("un rato", "tiempo") caen al
+     * QUICK_TASK_WINDOW_MINUTES de la rama rápida (paridad c.416).
+     */
+    private fun freeTimeWindowMinutes(query: String): Int? {
+        if ("media hora" in query) return 30
+        if ("una hora" in query && freeTimeWindowRegex.find(query) == null) return 60
+        val m = freeTimeWindowRegex.find(query) ?: return null
+        val value = m.groupValues[1].toIntOrNull() ?: freeTimeWordMinutes[m.groupValues[1]] ?: return null
+        val isHour = m.groupValues[2].startsWith("hora")
+        val total = if (isHour) value * 60 else value
+        return total.takeIf { it > 0 }
+    }
 
     /**
      * Respuesta de logro para "¿qué hice hoy/ayer/anteayer?" y para períodos
