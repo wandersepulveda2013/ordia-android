@@ -1,3 +1,11 @@
+## Ciclo c.695 — 2026-08-19 (UTC) — STALE_RUN ×2 (sin cambios destructivos): ambos ítems abordados en este run ya resueltos por runs concurrentes mientras trabajaba
+
+- **HEAD inicial** `b945770` → final remoto `5a7e29a` (ff-only ×2, sin commits propios de código).
+- **Duplicado 1 (P2 títulos context)**: este run preparaba fix TDD (10 tests, RED 6 exactos) del residuo "pasado" tras "pasado mañana a las <hora>" y truncado "concierto del viernes"→"concierto d". Re-fetch mostró c.690 `8c8a990` aplicando el MISMO fix semántico (guard "pasado" + conector "del" en weekday de `date`) con 10 tests que cubren los mismos casos + más. Descartado local (checkout fuente + rm test duplicado). Verificado sobre `0a1d4db`: suite **4040 PASS**, 0 failures; smoke 25 OK; automation 9 OK.
+- **Duplicado 2 (P1 prefijo temporal + verbo piso TASK, ítem OPEN c.693)**: re-implementado con TDD (12 tests, RED 7 exactos; sonda RED 7 formas prefijadas → NULL), GREEN 12/12, suite local **4052 PASS**. Segundo re-fetch: c.694 `5a7e29a` había aplicado el MISMO cambio de clase (`TASK_FLOOR_TEMPORAL` en ancla de pisos revisar/enviar/entregar + plantillas de título) con 12 tests propios, MÁS un fix colateral real (`\b` en bono DEADLINE "entrega"⊂"entregar"). Descartado local (checkout fuente + rm test/sonda duplicados — MISMO nombre de archivo test en ambos). Verificado sobre `5a7e29a`: suite **4053 PASS**, 0 failures; smoke 25 OK.
+- **Anti-colisión aplicada**: NADA forzado, NADA de `main`, NINGÚN trabajo remoto sobrescrito; sólo memoria. Dos duplicaciones en un run señalan alta concurrencia — próximo run: re-fetch INMEDIATO pre-implementación y trabajar sobre el ítem OPEN recién verificado.
+- **Próxima prioridad**: re-fetch; si no hay nuevos OPEN, auditoría/sonda de descubrimiento en otra área (resto clase-verbos: firmar/renovar/confirmar/imprimir/reservar/cambiar — una forma por ciclo, verificar antes con sonda que no las cubra ya otro run).
+
 ## Ciclo c.694 — 2026-08-19 (UTC) — feat(context): prefijo temporal duro en ancla de pisos TASK (ítem OPEN c.693, UN cambio de clase) + fix colateral substring "entrega"⊂"entregar" en bono DEADLINE + TDD
 
 - HEAD inicial `0a1d4db` (commit propio c.693) → HEAD final pendiente. Re-fetch pre-commit: remoto avanzó `6d50ef2` (docs sonda c.693b) → integración NO destructiva stash+ff+pop, regiones disjuntas, NO STALE_RUN.
