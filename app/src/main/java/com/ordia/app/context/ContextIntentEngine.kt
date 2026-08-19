@@ -92,6 +92,23 @@ object ContextIntentEngine {
         Regex("""\b(?<!no )preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b""")
     )
 
+    // Patrones de ACTIVACIÓN de los bonus-kinds APPOINTMENT/CALL (c.653),
+    // centralizados (misma lección c.648/c.652) para que el bono aditivo de
+    // [scoreSpecificPatterns] y el guard de envolvente [imperativeIsWrapped]
+    // compartan EXACTAMENTE el mismo patrón. APPOINTMENT/CALL no tienen piso
+    // (son "bonus-kinds": su confianza crece por bono específico aditivo), pero
+    // eso no los exime del robo de kind: "recuérdame cita con el dentista" →
+    // APPOINTMENT 0.69 robaba a TASK 0.45; "recuérdame llamar al banco" → CALL
+    // 0.57 (hallazgo c.652, cierre c.653).
+    private val APPOINTMENT_CITA_PATTERN = Regex("""cita (con|médica|del|con el|con la)""")
+    private val APPOINTMENT_MEDICAL_PATTERN =
+        Regex("""(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia)""")
+    private val APPOINTMENT_SPECIFIC =
+        listOf(APPOINTMENT_CITA_PATTERN, APPOINTMENT_MEDICAL_PATTERN)
+    private val CALL_LLAMAR_PATTERN = Regex("""llamar (a|por teléfono)""")
+    private val CALL_HABLAR_PATTERN = Regex("""hablar (con|por teléfono)""")
+    private val CALL_SPECIFIC = listOf(CALL_LLAMAR_PATTERN, CALL_HABLAR_PATTERN)
+
     // Imperativos envolventes (c.652 anti-overreach). Lista cerrada ALINEADA con
     // [hasStrongTaskImperative] y [hasStrongReminderImperative]: cuando uno de
     // estos imperativos PRECEDE al verbo del piso ("avísame reunión con el
@@ -107,15 +124,18 @@ object ContextIntentEngine {
     private val WRAPPER_PATTERN =
         Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme)\b""")
 
-    // Kinds con piso de posición libre protegidos por el guard de envolvente.
-    // SHOPPING/PAYMENT no lo necesitan: su piso (c.651) exige verbo al inicio
-    // o tras acuse, así un envolvente nunca lo activa.
-    private val WRAPPABLE_FLOORS: Map<ContextIntentKind, List<Regex>> = mapOf(
+    // Kinds protegidos por el guard de envolvente: pisos de posición libre
+    // (c.652) + bonus-kinds APPOINTMENT/CALL (c.653). SHOPPING/PAYMENT no lo
+    // necesitan: su piso (c.651) exige verbo al inicio o tras acuse, así un
+    // envolvente nunca lo activa.
+    private val WRAPPABLE_PATTERNS: Map<ContextIntentKind, List<Regex>> = mapOf(
         ContextIntentKind.MEETING to listOf(MEETING_FLOOR),
         ContextIntentKind.HOUSEHOLD to listOf(HOUSEHOLD_FLOOR),
         ContextIntentKind.EXERCISE to EXERCISE_FLOORS,
         ContextIntentKind.ERRAND to ERRAND_FLOORS,
-        ContextIntentKind.STUDY to STUDY_FLOORS
+        ContextIntentKind.STUDY to STUDY_FLOORS,
+        ContextIntentKind.APPOINTMENT to APPOINTMENT_SPECIFIC,
+        ContextIntentKind.CALL to CALL_SPECIFIC
     )
 
     // Penalización por duda/condicional (c.649 anti-overreach). Marcadores como
@@ -260,12 +280,16 @@ object ContextIntentEngine {
         // del bono que c.616 no cubría.
         if (imperativeIsNegated(lower, kind)) return 0f
 
-        // Guard de imperativo envolvente (c.652 anti-overreach). Los pisos de
-        // posición libre (c.643/c.647: MEETING/HOUSEHOLD/EXERCISE/ERRAND/STUDY
-        // con ancla `\b`) activan el kind aunque el verbo esté SUBORDINADO a un
-        // imperativo envolvente: "avísame reunión con el equipo"→MEETING (roba
-        // el kind a REMINDER), "recuérdame ir al gimnasio"→EXERCISE 0.59 (roba
-        // el kind a TASK). El verbo subordinado es CONTENIDO del recordatorio/
+        // Guard de imperativo envolvente (c.652/c.653 anti-overreach). Los
+        // pisos de posición libre (c.643/c.647: MEETING/HOUSEHOLD/EXERCISE/
+        // ERRAND/STUDY con ancla `\b`) activan el kind aunque el verbo esté
+        // SUBORDINADO a un imperativo envolvente: "avísame reunión con el
+        // equipo"→MEETING (roba el kind a REMINDER), "recuérdame ir al
+        // gimnasio"→EXERCISE 0.59 (roba el kind a TASK). c.653 cerró la misma
+        // rendija en los bonus-kinds APPOINTMENT/CALL (sin piso; su confianza
+        // crece por bono específico aditivo): "recuérdame cita con el
+        // dentista"→APPOINTMENT 0.69 > TASK 0.45, "recuérdame llamar al
+        // banco"→CALL 0.57. El verbo subordinado es CONTENIDO del recordatorio/
         // tarea, no una acción autónoma; la semántica de aviso ("avísame" =
         // notifícame) se perdía. Misma lección de diseño que c.651 (acuse):
         // el guard descarta el kind subordinado cuando un imperativo envolvente
@@ -658,29 +682,34 @@ object ContextIntentEngine {
 
     /**
      * Detecta si el imperativo del [kind] está SUBORDINADO a un imperativo
-     * envolvente (c.652 anti-overreach). Los pisos de posición libre (c.643/
-     * c.647, ancla `\b`) se activan aunque el verbo venga gobernado por
+     * envolvente (c.652/c.653 anti-overreach). Los pisos de posición libre
+     * (c.643/c.647, ancla `\b`) se activan aunque el verbo venga gobernado por
      * "recuérdame/no olvides/tengo que/hay que/avísame/notifícame/acordarme":
      * "avísame reunión con el equipo"→MEETING (le robaba el kind a REMINDER),
      * "recuérdame ir al gimnasio"→EXERCISE 0.59 (le robaba el kind a TASK).
-     * El verbo subordinado es CONTENIDO del recordatorio/tarea, no una acción
-     * autónoma; la semántica de aviso ("avísame") se perdía (overreach P1,
-     * misma lección de diseño que c.651 para los pisos SHOPPING/PAYMENT).
+     * c.653 extendió el guard a los bonus-kinds APPOINTMENT/CALL: no tienen
+     * piso, pero su bono específico aditivo [scoreSpecificPatterns] los eleva
+     * por encima del piso de TASK/REMINDER ("recuérdame cita con el dentista"
+     * →APPOINTMENT 0.69, "recuérdame llamar al banco"→CALL 0.57), con el mismo
+     * robo de kind que los pisos. El verbo subordinado es CONTENIDO del
+     * recordatorio/tarea, no una acción autónoma (overreach P1, misma lección
+     * de diseño que c.651 para los pisos SHOPPING/PAYMENT).
      *
-     * El guard descarta el kind subordinado cuando un envolvente PRECEDE a su
-     * verbo de piso ([WRAPPABLE_FLOORS]), con lo que TASK/REMINDER (pisos
-     * c.613/c.619) gobiernan la captura. Sólo se evalúan los kinds con piso de
-     * posición libre; TASK/REMINDER son los envolventes y SHOPPING/PAYMENT
-     * exigen inicio/acuse (c.651), así nunca quedan subordinados.
+     * El guard descarta el kind subordinado cuando un envolvente PRECEDE al
+     * primer match de sus patrones de activación ([WRAPPABLE_PATTERNS]: pisos
+     * c.652 + bonus-kinds c.653), con lo que TASK/REMINDER (pisos c.613/c.619)
+     * gobiernan la captura. TASK/REMINDER son los envolventes y SHOPPING/
+     * PAYMENT exigen inicio/acuse (c.651), así nunca quedan subordinados.
      *
      * Determinista (regex), sin IA fingida. No bloquea prefijos declarativos
-     * ("tengo una reunión", "voy a correr"): no son imperativos envolventes.
+     * ("tengo una reunión", "voy a correr", "tengo cita con el dentista"): no
+     * son imperativos envolventes.
      */
     private fun imperativeIsWrapped(lower: String, kind: ContextIntentKind): Boolean {
-        val floors = WRAPPABLE_FLOORS[kind] ?: return false
-        val verbStart = floors.mapNotNull { it.find(lower)?.range?.first }.minOrNull() ?: return false
+        val patterns = WRAPPABLE_PATTERNS[kind] ?: return false
+        val matchStart = patterns.mapNotNull { it.find(lower)?.range?.first }.minOrNull() ?: return false
         val wrapperEnd = WRAPPER_PATTERN.find(lower)?.range?.last ?: return false
-        return wrapperEnd < verbStart
+        return wrapperEnd < matchStart
     }
 
     /**
@@ -786,8 +815,8 @@ object ContextIntentEngine {
             }
             ContextIntentKind.APPOINTMENT -> {
                 var s = 0f
-                if (Regex("""cita (con|médica|del|con el|con la)""").containsMatchIn(lower)) s += 0.25f
-                if (Regex("""(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia)""").containsMatchIn(lower)) s += 0.2f
+                if (APPOINTMENT_CITA_PATTERN.containsMatchIn(lower)) s += 0.25f
+                if (APPOINTMENT_MEDICAL_PATTERN.containsMatchIn(lower)) s += 0.2f
                 s
             }
             ContextIntentKind.MEETING -> {
@@ -811,8 +840,8 @@ object ContextIntentEngine {
             }
             ContextIntentKind.CALL -> {
                 var s = 0f
-                if (Regex("""llamar (a|por teléfono)""").containsMatchIn(lower)) s += 0.2f
-                if (Regex("""hablar (con|por teléfono)""").containsMatchIn(lower)) s += 0.15f
+                if (CALL_LLAMAR_PATTERN.containsMatchIn(lower)) s += 0.2f
+                if (CALL_HABLAR_PATTERN.containsMatchIn(lower)) s += 0.15f
                 // Bono de objeto explícito (P1): "llamar a/al/a la/a los <persona>" o
                 // "hablar con <persona>" es una llamada telefónica clara. Sin este bono,
                 // "llamar a María" quedaba en 0.32 (< MINIMUM_CONFIDENCE 0.45) y se

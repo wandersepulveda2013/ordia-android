@@ -27,7 +27,11 @@ import org.junit.Test
  * descartarse en silencio.
  *
  * Casos RED → GREEN: antes `analyze(...)` devolvía `null` para los tres
- * textos legítimos; ahora clasifican como [ContextIntentKind.CALL].
+ * textos legítimos; ahora se capturan. c.653 (guard de envolvente extendido a
+ * los bonus-kinds APPOINTMENT/CALL) reclasificó "tengo que llamar..." de
+ * CALL a [ContextIntentKind.TASK]: el envolvente gobierna, el verbo
+ * subordinado es su contenido. La garantía que protege este archivo (captura,
+ * no bloqueo silencioso) se mantiene; sólo cambió el kind resultante.
  */
 class ContextIntentLegitimateRootsTest {
 
@@ -41,23 +45,23 @@ class ContextIntentLegitimateRootsTest {
         )
 
     @Test
-    fun callWithKillProcessRootIsCapturedNotBlocked() {
+    fun wrappedCallWithKillProcessRootIsCapturedNotBlocked() {
         val intent = analyze("tengo que llamar al técnico para matar el proceso del servidor")
         assertNotNull(intent)
-        assertEquals(ContextIntentKind.CALL, intent!!.kind)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
     }
 
     @Test
-    fun callWithWaterBombRootIsCapturedNotBlocked() {
+    fun wrappedCallWithWaterBombRootIsCapturedNotBlocked() {
         val intent = analyze("tengo que llamar a la tienda para comprar la bomba de agua")
         assertNotNull(intent)
-        assertEquals(ContextIntentKind.CALL, intent!!.kind)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
     }
 
     @Test
-    fun callWithPrescriptionDrugRootIsCapturedNotBlocked() {
+    fun wrappedCallWithPrescriptionDrugRootIsCapturedNotBlocked() {
         val intent = analyze("tengo que llamar a la farmacia por la droga recetada")
         assertNotNull(intent)
-        assertEquals(ContextIntentKind.CALL, intent!!.kind)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
     }
 }
