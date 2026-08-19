@@ -14961,7 +14961,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Estado**: AUDITED → NOT CONFIRMED.
 
 ## c.662 (2026-08-19 UTC) — feat(automation): seam `zone` en AutomationEngine — VERIFIED
-- HEAD inicial: 02d53311 (remoto, sin avances). HEAD final: 40f807d local vía push (mismo commit id a anunciarse en remoto tras push OK; hash en la línea del commit).
+- HEAD inicial: 02d53311 (remoto, sin avances). HEAD final: 8405a35b (push OK a origin/openhands/autonomous-ordia).
 - Cambios: AutomationEngine.kt (+2 params `zone` en runTrigger/runRule, dayStart por zone, planificador recibe zone); BACKLOG (3 filas cerradas: automation FIXED, guardianInsight CERRADO sin-cambio, nextBestTask-default REJECTED con rationale); DECISIONS +1 fila; CURRENT_STATE +1 ciclo.
 - Bugs: 1 P1 (silenciador de `zone` en AutomationEngine → límite diario/dayStart/planificador en zona de dispositivo). Features: seam de inyección de zona para pruebas/pref-futuras. Hallazgos: no existe zona de usuario configurada; la política de defaults queda documentada.
 - Tests: probe JVM 9 aserciones (AutomationEngine compilado por primera vez con fakes); suite 3796 PASS; smoke 25 OK. NO VERIFICADO Android/gradle/UI/Room.
