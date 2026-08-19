@@ -15329,3 +15329,11 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos**: `ContextIntentEngine.kt` (piso + plantilla + `\b` ×2 HOUSEHOLD), `ContextIntentEngineEntregarFloorTest.kt` (+11), AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md. Sondas ad-hoc de diagnóstico eliminadas tras uso (la persistente `CommonVerbDiscoveryProbe.kt` sigue).
 - **Próxima prioridad**: ítem OPEN prefijo temporal (mejor impacto: cierra asimetría de 3 verbos) o forma 3/8 de la clase; clusters C/E assistant. Re-fetch OBLIGATORIO.
 - **Estado**: VERIFIED. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+### 2026-08-19 — c.693b (agente OpenHands; run CONCURRENTE duplicado → descarte no destructivo + rescate de sonda persistente)
+
+- **HEAD inicial**: `f958fe4` (clone shallow, pull --ff-only limpio al inicio). Push rechazado non-fast-forward: run concurrente publicó `0a1d4db` c.693 con EL MISMO ítem (forma 2/8 "entregar"), mismo enfoque (piso ancla inicio/acuse + plantilla + fix de subcadena "regar"⊂"entregar") y suite 4040 PASS.
+- **Recuperación**: mi commit `2df97ab` (no pusheado, duplicado) se DESCARTA — `git reset --hard origin/openhands/autonomous-ordia` sobre trabajo propio no pusheado (NO sobrescribe trabajo ajeno; el remoto queda intacto). Único artefacto único conservado: sonda persistente `tools/probe/EntregarFloorProbe.kt` (el run concurrente no dejó sonda persistente).
+- **Verificación post-reset**: sonda 10/10 contra la implementación remota (5 capturas TASK título limpio/dueAt + regresión envolvente "tengo que entregar…" + 4 NULL: negada/quizá/sustantivo/verbo suelto). Suite remota ya verificada por el run concurrente (4040 PASS).
+- **Commit**: probe + esta nota. Sin cambios de código de producción.
+
