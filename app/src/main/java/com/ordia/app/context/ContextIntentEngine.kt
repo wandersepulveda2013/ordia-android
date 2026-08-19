@@ -122,8 +122,23 @@ object ContextIntentEngine {
     private val APPOINTMENT_CITA_PATTERN = Regex("""cita (con|médica|del|con el|con la)""")
     private val APPOINTMENT_MEDICAL_PATTERN =
         Regex("""(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia)""")
+    // Futuro declarativo de 1ª persona (c.663): "tendré (una |la )?cita" y "tendré
+    // <sustantivo médico>" son promesas explícitas (no infinitivo condicionable),
+    // evidencia MÁS firme que el presente — mismo olvido P1 que c.656 cerró para
+    // CALL ("llamaré/hablaré + objeto"). El lookbehind `(?<!no )` protege la
+    // negación inmediata ("no tendré dentista" NO se captura). La fuente única
+    // [APPOINTMENT_SPECIFIC] (c.653) alimenta el bono y el guard de envolvente.
+    private val APPOINTMENT_CITA_FUTURE_PATTERN =
+        Regex("""\b(?<!no )tendré\s+(?:una\s+|la\s+)?cita\b""")
+    private val APPOINTMENT_MEDICAL_FUTURE_PATTERN =
+        Regex("""\b(?<!no )tendré\s+(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia)\b""")
     private val APPOINTMENT_SPECIFIC =
-        listOf(APPOINTMENT_CITA_PATTERN, APPOINTMENT_MEDICAL_PATTERN)
+        listOf(
+            APPOINTMENT_CITA_PATTERN,
+            APPOINTMENT_MEDICAL_PATTERN,
+            APPOINTMENT_CITA_FUTURE_PATTERN,
+            APPOINTMENT_MEDICAL_FUTURE_PATTERN
+        )
     private val CALL_LLAMAR_PATTERN = Regex("""llamar (a|por teléfono)""")
     private val CALL_HABLAR_PATTERN = Regex("""hablar (con|por teléfono)""")
     // Futuro declarativo de 1ª persona (c.656): "llamaré/hablaré" + objeto es una
@@ -889,6 +904,14 @@ object ContextIntentEngine {
                 var s = 0f
                 if (APPOINTMENT_CITA_PATTERN.containsMatchIn(lower)) s += 0.25f
                 if (APPOINTMENT_MEDICAL_PATTERN.containsMatchIn(lower)) s += 0.2f
+                // Bono fusionado de futuro (c.663): un "tendré (una |la )?cita"
+                // o "tendré <médico>" vuela por encima de [MINIMUM_CONFIDENCE]
+                // igual que el futuro CALL (c.656): la promesa en indefinido de
+                // 1ª persona es evidencia más firme que el presente. Sin esto,
+                // "tendré dentista el viernes" quedaba en ~0.42 (< umbral) y se
+                // DESCARTABA (olvido P1) aunque a veces arrastraba fecha/hora.
+                if (APPOINTMENT_CITA_FUTURE_PATTERN.containsMatchIn(lower)) s += 0.45f
+                if (APPOINTMENT_MEDICAL_FUTURE_PATTERN.containsMatchIn(lower)) s += 0.45f
                 s
             }
             ContextIntentKind.MEETING -> {
@@ -1101,7 +1124,9 @@ object ContextIntentEngine {
                 // "Cita: La cita...". Cuando el resto arranca en (una|la)?cita se elimina
                 // el artículo y se capitaliza el resto tal cual (mismo criterio que el
                 // título CALL de c.653: preservar el texto del usuario, no adornarlo).
-                val match = Regex("""(tengo|cita|voy a|debo ir a) (.+)""", RegexOption.IGNORE_CASE).find(original)
+                // c.663: "tendré" también abre el match (futuro declarativo), así el
+                // prefijo verbal no ensucia el resto igual que "tengo".
+                val match = Regex("""(tengo|tendré|cita|voy a|debo ir a) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) {
                     // Si la alternativa "cita" ganó el match, el sustantivo está en el
                     // grupo 1: el resto a evaluar es el match completo ("cita con ...").
