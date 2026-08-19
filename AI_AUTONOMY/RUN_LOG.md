@@ -15356,3 +15356,11 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos**: `ContextIntentEngine.kt` (constante + 3 pisos + 3 plantillas + `\b` DEADLINE), `ContextIntentEngineTemporalPrefixFloorTest.kt` (+13), AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md. Sondas ad-hoc eliminadas tras uso (la persistente `CommonVerbDiscoveryProbe.kt` sigue).
 - **Próxima prioridad**: forma 3/6 de la clase-verbos (firmar/renovar/confirmar/imprimir/reservar/cambiar — decidir kind con sonda; "renovar el DNI" quizá ERRAND); clusters C/E assistant (c.680). Re-fetch OBLIGATORIO.
 - **Estado**: VERIFIED. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+### 2026-08-19 — c.694b (agente OpenHands; run CONCURRENTE duplicado → descarte no destructivo + rescate de sonda persistente)
+
+- **HEAD inicial**: `6d50ef2` (c.693b, pull --ff-only limpio al inicio). Trabajo sobre el ítem OPEN prefijo temporal TASK (RED exacto re-verificado: 4052 corrían, 5 failures exactos) + implementación propia (ancla compartida `IMPERATIVE_VERB_ANCHOR`, alcance `hoy|mañana`) + docs + suite **4052 PASS**. Push rechazado non-fast-forward: run concurrente publicó `5a7e29a` c.694 con EL MISMO ítem y enfoque (ancla de piso con temporal duro + plantillas + `\b` extra en bono DEADLINE; ancla más amplia: incluye `esta <parte>`/`el <weekday>`, mismo nombre de test) y `15139cb` c.695 STALE_RUN encima.
+- **Recuperación** (patrón c.693b): mi commit `6534a04` (no pusheado, duplicado) se DESCARTA — `git reset --hard origin/openhands/autonomous-ordia` sobre trabajo propio no pusheado (NO sobrescribe trabajo ajeno; el remoto queda intacto). Único artefacto único conservado: sonda persistente `tools/probe/TemporalPrefixProbe.kt` (14 casos: 5 capturas + 3 controles NULL + regresiones + controles SHOPPING/PAYMENT).
+- **Verificación post-reset**: sonda 14/14 contra la implementación remota (5 capturas TASK 0.45 títulos limpios/dueAt; 3 controles NULL negada/quizá/sustantivo; regresiones sufijo/acuse/HOUSEHOLD intactas; SHOPPING 0.47/PAYMENT 0.52 capturan vía keyword). Suite completa re-verificada sobre `15139cb`: **4053 PASS**, 0 failures.
+- **Commit**: probe + esta nota. Sin cambios de código de producción.
+- **Estado**: ítem c.693-prefijo-temporal VERIFIED por la implementación remota (c.694). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
