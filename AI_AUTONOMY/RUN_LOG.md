@@ -15433,10 +15433,20 @@ a un permiso persistente frágil y silencioso ante fallos.
 
 ## RUN c.702 — 2026-08-19 (UTC)
 
-- **HEAD inicial**: `8b85aac3` (c.701 docs STALE_RUN remoto; fetch+`pull --ff-only` limpio, sin divergencia). HEAD final: pendiente (push tras este log).
+- **HEAD inicial**: `8b85aac3` (c.701 docs STALE_RUN remoto; fetch+`pull --ff-only` limpio, sin divergencia). **HEAD final**: `6d941cc3` (feat `ef208cc0` + docs `6d941cc3`).
 - **Selección**: P2 Cluster E sonda assistant — "estoy abrumado/agobiado/no doy abasto" caía al menú genérico ("Puedo organizar tu día…") justo cuando el usuario está saturado. Filosofía "menos es más": ante sobrecarga responder UNA sola cosa, no opciones.
 - **Cambios**: `AssistantEngine.kt` — nueva rama `isOverwhelmedQuery(query)` tras `isPriorityQuery` y antes del catch-all + helper homónimo (`"abrumad" in query || "agobiad" in query || "no doy abasto" in query`). Con tareas: `WhatNowEngine.suggest` → "Respira. Primero solo esto: «X». Cuando la termines queda(n) N; una a una." Vacío: "No encuentro tareas pendientes. Respira." Vacío + promesa vencida → `overdueCommitmentAnswer` (paridad c.357/c.416/c.680). Determinista y local (reusa WhatNowEngine; cero random/IA fingida/pantalla nueva). +4 tests en `AssistantEngineTest.kt`.
-- **Tests**: RED exacto 4 failures (los 4 nuevos) → GREEN suite **4090 PASS** (4086 + 4), 0 failures; smoke 25 OK; automation 9 OK. Sonda `tools/probe/AssistantDiscoveryProbe.kt` POST: "estoy abrumado" → respuesta (17/49 restantes siguen genéricas; Cluster C "tengo N minutos" sigue OPEN).
-- **Commits**: pendiente push. Renumeración: ninguna (c.702 libre; c.700/c.701 STALE_RUN cerrados por remoto antes de este run).
-- **Próxima prioridad**: Cluster C assistant (formas sueltas "tengo 20 minutos", "tengo tiempo", "tengo hueco") o forma 6/8 clase-verbos (imprimir/reservar/cambiar). Re-fetch OBLIGATORIO pre-implementación por concurrencia reciente.
+- **Tests**: RED exacto 4 failures (los 4 nuevos) → GREEN suite **4090 PASS** (4086 + 4), 0 failures; smoke 25 OK; automation 9 OK. Sonda `tools/probe/AssistantDiscoveryProbe.kt` POST: "estoy abrumado" → respuesta (Cluster C "tengo N minutos" RESUELTO c.703 en este MISMO run; abajo).
+- **Commits**: `ef208cc0` (feat) + `6d941cc3` (docs). Renumeración: ninguna (c.702 libre; c.700/c.701 STALE_RUN cerrados por remoto antes de este run).
+- **Continuación con capacidad segura**: Cluster C → c.703 (abajo).
+- **NO VERIFICADO**: Android/gradle/lint/UI/Room (sin SDK).
+
+## RUN c.703 — 2026-08-19 (UTC) — continuación del run c.702
+
+- **HEAD inicial**: `6d941cc3` (c.702 docs, pull --ff-only limpio). **HEAD final**: pendiente de push tras docs (feat ya `806b10c5`).
+- **Selección**: P2 Cluster C sonda assistant — formas sueltas de tiempo libre ("tengo un rato", "tengo tiempo", "tengo hueco") y con ventana ("tengo N minutos"/"tengo veinte minutos"/"tengo media hora") caían al menú genérico. El usuario ya declaró su ventana; el asistente le devolvía trabajo de pensar pidiendo una intención conocida.
+- **Cambios**: `AssistantEngine.kt` — nueva rama `isFreeTimeQuery(query)` tras `isPriorityQuery`/antes de `isOverwhelmedQuery` + helpers `isFreeTimeQuery`/`freeTimeWindowMinutes` + `QUICK_TASK_WINDOW_MINUTES=15` (paridad c.416). Respuesta: filtro `WhatNowEngine.ordered` a `durationMinutes <= window` (top-6; 0=sin estimar corta) → "En esos N minutos puedes completar: …" + cola de compromisos; vacío + promesa vencida → recuperación OPEN_CONVERSATIONS; vacío honesto "Nada te cabe en esos N minutos." (NUNCA menú). Ancla "tengo" anti-overreach; rama rápida ("rapido/a") primero, intacta. Determinista/local (predicado + filtro; cero random/IA fingida/pantalla nueva). +5 tests en `AssistantEngineTest.kt` + 1 guard re-anclado (`dayLoad_tengoTiempoSoloNoEsVeredictoForzado` ahora aserta la superficie de hueco, mismo invariante).
+- **Tests**: RED exacto EXACTAMENTE los 5 nuevos → CORREGIR (compile error `QUICK_TASK_WINDOW_MINUTES` unresolved) → corregir (2 fallos interim: expectativa mía errada "media hora" excluye la de 45 min, y re-ancla del guard) → GREEN suite **4095 PASS** (4090 + 5), 0 failures; `run_domain_checks.sh` smoke 25 OK.
+- **Commits**: `806b10c5` (feat). Renumeración: ninguna (c.703 libre al re-fetch pre-implementación).
+- **Próxima prioridad**: clusters restantes de la sonda assistant ("algo pendiente", "nada para hoy", "tareas sin fecha") con sonda PRE, o clase-verbos forma 6/8 (imprimir/reservar/cambiar) si sonda de clase las confirma NULL. Re-fetch OBLIGATORIO.
 - **NO VERIFICADO**: Android/gradle/lint/UI/Room (sin SDK).
