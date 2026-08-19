@@ -14916,4 +14916,8 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Cambios**: `CHAT_TOKENS = CHAT_WORDS.flatMap { it.split(" ") }.toSet()` precomputado; ratio compara tokens contra `CHAT_TOKENS`. Nueva clase de tests `ContextIntentChatWordsTest` (6 tests: 4 multi-palabra descartadas + 2 controles).
 - **Tests**: 3781 PASS (3775 + 6); smoke 25 OK; 0 failures. NO VERIFICADO Android/UI/Room.
 - **Estado**: VERIFIED.
+---
+## 2026-08-19 — Auditoría c.659 — hallazgo secundario c.641/c.642 (eje artículo drogas/sexual/secuestr): NOT CONFIRMED
+- **HEAD inicial**: `dc181c3`. Veredicto por revisión de `ContentModeration.kt`: drogas → proximity global (insensible a eje); sexual → contain con artículos explícitos cubiertos; secuestr → c.642 cerrada. Cero cambio de código. 3781 PASS; smoke 25 OK.
+- **Estado**: AUDITED → NOT CONFIRMED.
 

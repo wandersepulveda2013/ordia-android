@@ -1,3 +1,11 @@
+## Auditoría c.659 — 2026-08-19 (UTC) — hallazgo secundario c.641/c.642 "¿`drogas`/`sexual`/`secuestr` en eje artículo?" — resultado NOT CONFIRMED, sin cambio de código (P1 seguridad, JVM-verificable)
+
+- **Rama**: `openhands/autonomous-ordia`. HEAD inicial `dc181c3`. Re-fetch al iniciar: sin avances (base al día). Entorno JVM.
+- **Objetivo**: verificar el hueco P1 abierto por c.641/c.642 en el eje artículo — si `drogas`/`sexual`/`secuestr` son sensibles a exenciones deficitarias tras las correcciones previas.
+- **Veredicto**: (a) `drogas` usa `proximity` GLOBAL (no `contain`), por lo que el problema artículo-intermedio no aplica; (b) `sexual` tiene `contain` con artículos explícitos ("el urólogo","la ginecóloga","examen del","de la") cubiertos; (c) `secuestr` cerrada con exención artículo opcional en c.642. **NO-GAP confirmado** — cero modificaciones.
+- **Tests**: 3781 PASS; smoke 25 OK. NO VERIFICADO Android.
+- **Próxima prioridad**: (i) `SensitiveSecretPatterns` audit P2 (JVM); (ii) `zone` omitida P1 (NO JVM, decisión humana o visor de diseño requerido); (iii) AP-futuro "tendré cita" (P2 decisión humana); (iv) "esta misma semana" (P2 decisión humana). Estos cuatro PENDIENTE requieren intervención humana o riesgo de overreach — no ejecutables autónomamente.
+- **Estado**: AUDITED → NOT CONFIRMED.
 ## Ciclo c.658 — 2026-08-19 (UTC) — fix(context): `CHAT_WORDS` entradas multi-palabra inalcanzables en `isCasualChat` (hallazgo c.656 (ii)) — la puerta 2 comparaba token-a-token contra frases como "buenos días"/"qué tal"/"nos vemos" → lista muerta; se derivan los tokens con `flatMap(split)` (precomputado) y la ratio los alcanza; +6 tests TDD en `ContextIntentChatWordsTest`
 
 - **Rama**: `openhands/autonomous-ordia`. HEAD inicial `11ebbd2` (merge final de c.657). Re-fetch al iniciar: remoto sin avances. Entorno JVM (sin Android SDK): kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`. Auth git `github_token`.
