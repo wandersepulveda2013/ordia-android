@@ -1,3 +1,14 @@
+## Ciclo c.715 — 2026-08-19 (UTC) — feat(context): piso TASK "buscar <objeto>" (forma 5/14 segunda clase de gestión)
+
+- **HEAD**: inicial `0ab0776` (push c.714; ff-only limpio); final tras este log (feat + docs).
+- **Selección (P1, sonda persistente `tools/probe/ManagementVerbDiscoveryProbe.kt`, una forma por ciclo)**: "buscar el seguro de la casa mañana" → NULL (olvido silencioso). Controles verdes desde el inicio.
+- **Solución**: piso `buscar` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla "(buscar) X"→"Buscar X" (patrón c.691…c.714). **Kind decidido: TASK, en deliberación contra ERRAND** — "buscar" recupera el objeto (documento/llave/seguro), no un destino (ERRAND reserva el desplazamiento a "ir a/pasar por"). Controles NULL: negada, duda, sustantivo "búsqueda", verbo suelto; regresión envolvente TASK (c.613/c.652). Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +9 tests `ContextIntentEngineBuscarFloorTest.kt`; GREEN **OK (4201 tests)** (4192 + 9), 0 failures; smoke 25 OK; sonda POST: "buscar el seguro de la casa mañana" → TASK dueAt=true 'Buscar el seguro de la casa'; "buscar" suelto → NULL; quedan 9 formas OPEN en BACKLOG.
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla), `test/.../ContextIntentEngineBuscarFloorTest.kt` (NUEVO +9), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN segunda-clase (p.ej. "coger <objeto>" → deliberar TASK vs SHOPPING; "pasar por"→ERRAND/"sacar la basura"→HOUSEHOLD requieren deliberación de kind). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+
 ## Ciclo c.714 — 2026-08-19 (UTC) — feat(context): piso NOTE "apuntar/anotar <nota>" (forma 4/14 segunda clase de gestión)
 
 - **HEAD**: inicial `017aedd` (fetch+pull --ff-only limpio); final tras este log (feat + docs).

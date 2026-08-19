@@ -15602,3 +15602,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Commits**: `bd75cd9f` (feat) + docs tras este log.
 - **Próxima prioridad**: clusters restantes sonda assistant (posponer/defer ×4; "en qué gasto mi tiempo" ×2) con sonda PRE; alternativa clase-verbos forma 6/8. Re-fetch OBLIGATORIO.
 - **NO VERIFICADO**: Android/gradle/lint/UI/Room (sin SDK).
+## Run c.715 — feat: piso TASK “buscar <objeto>” (forma 5/14 segunda clase)
+
+- HEAD inicial: 0ab0776 (push c.714; ff-only limpio).
+- Sonda PRE: “buscar el seguro de la casa mañana” → NULL (olvido silencioso P1).
+- Diseño: TASK (deliberación contra ERRAND — recupera objeto, no destino).
+- Fija: piso + plantilla “(buscar) X”→“Buscar X”. Controles NULL: negada/duda/
+  sustantivo “búsqueda”/suelto; guard de envolvente TASK-NOTE (c.613/c.652).
+- TDD: 9 tests nuevos (capturas 4 + controles 4 + regresión 1).
+- Suite: OK (4201 tests), smoke 25/25, sonda POST: TASK dueAt=true ✓; “buscar” → NULL ✓.
+- Próxima prioridad: forma 6/14 (coger/sacar, impe. prioridad por sonda).
+
