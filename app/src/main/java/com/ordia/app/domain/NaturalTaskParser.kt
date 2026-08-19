@@ -793,6 +793,20 @@ object NaturalTaskParser {
      */
     private val bareMonthPattern = Regex("""(?i)(?<!\p{L})en\s+($monthNameGroup)(?:\s+del?\s+(\d{2,4}))?\b""")
     /**
+     * "para <mes>" / "para <mes> de [<año>]": plazo de fin de mes idiomático
+     * ("entregar informe para septiembre", "liquidación para febrero de 2028",
+     * "renovar afiliación para marzo"). En español "para <mes>" sin día denota un
+     * deadline que se cumple "para finales de <mes>": por eso se ancla al ÚLTIMO
+     * día del mes nombrado, reutilizando el mismo resolver de límite que
+     * [monthBoundaryNamePattern] con calificador "finales". El conector durativo
+     * "hasta <mes>" se declina intencionadamente (forma de rango, no plazo) —
+     * decisión evidenciada en tools/probe/ParaHastaMesProbe.kt (c.676). Va DESPUÉS
+     * de [monthBoundaryNamePattern] (calificador explícito gana) y de
+     * [bareMonthPattern] ("en <mes>" gana: la captura "entregar para septiembre"
+     * no se confunde con "en septiembre"), y ANTES de [monthNamePattern].
+     */
+    private val paraMonthPattern = Regex("""(?i)(?<!\p{L})para\s+($monthNameGroup)(?:\s+del?\s+(\d{2,4}))?\b""")
+    /**
      * "fin de año" / "a fin de año" / "finales de año" / "fin del año" / "cierre de año"
      * → 31 de diciembre del año actual (o del siguiente si hoy ya es 31/12).
      * "principios de año" / "a principios de año" → 1 de enero del año siguiente.
@@ -3829,6 +3843,20 @@ object NaturalTaskParser {
             bareMonthEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
         }
 
+        // "para <mes> [de <año>]": plazo de fin de mes (calificador "finales").
+        // Tras "en <mes>" para no competir, y tras el calificador explícito
+        // [monthBoundaryNamePattern].
+        val paraMonthEarlyMatch = paraMonthPattern.find(working)
+        val paraMonthMonthNum = paraMonthEarlyMatch?.let { months[it.groupValues[1].lowercase()] }
+        val paraMonthDueAt = paraMonthEarlyMatch?.let { m ->
+            val monthNum = paraMonthMonthNum ?: return@let null
+            parseMonthBoundaryName(base.toLocalDate(), "finales", monthNum, m.groupValues[2])
+                ?.let { DateRules.toEpochMillis(it, LocalTime.of(9, 0), zone) }
+        }
+        if (paraMonthMonthNum != null) {
+            paraMonthEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
+        }
+
         // "fin de año" / "mediados de año" / "principios de año": vencimientos anuales
         // (cierre fiscal, renovaciones). Se borran ANTES del período próximo para que
         // la subcadena "año" no active "año que viene" como +365d genérico. Días
@@ -4176,7 +4204,7 @@ object NaturalTaskParser {
             agoDueAt ?: lastPeriodDueAt ?: deHoyEnIdiomDueAt ?: relativeDueAt ?: vagueRelativeDueAt ?: nowDueAt ?:
             laterRelativeDueAt ?: fractionalAndQuarterRelativeDueAt ?: fractionalRelativeDueAt ?:
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
-            monthBoundaryNameDueAt ?: bareMonthDueAt ?: yearBoundaryDueAt ?:
+            monthBoundaryNameDueAt ?: bareMonthDueAt ?: paraMonthDueAt ?: yearBoundaryDueAt ?:
             thisMonthDueAt ?: thisYearDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?: nextMonthDayShortDueAt ?:
@@ -4186,7 +4214,7 @@ object NaturalTaskParser {
             deHoyEnIdiomMatch != null || relativeMatch != null || fractionalRelativeMatch != null ||
             fractionalAndQuarterRelativeMatch != null ||
             compoundFractionalRelativeMatch != null || multiQuarterRelativeMatch != null ||
-            monthBoundaryDueAt != null || monthBoundaryNameDueAt != null || bareMonthDueAt != null || yearBoundaryDueAt != null ||
+            monthBoundaryDueAt != null || monthBoundaryNameDueAt != null || bareMonthDueAt != null || paraMonthDueAt != null || yearBoundaryDueAt != null ||
             thisMonthEarlyMatch != null || thisYearEarlyMatch != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
             quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null ||

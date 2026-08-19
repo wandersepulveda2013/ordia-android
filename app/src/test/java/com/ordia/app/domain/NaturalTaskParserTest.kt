@@ -16306,4 +16306,32 @@ class NaturalTaskParserTest {
         assertEquals("llamar a funda", result.title)
     }
 
+    @Test
+    fun `c676 para mes suelto se ancla a fin de mes y limpia titulo`() {
+        // "para <mes>" sin día = plazo de fin de mes (equivalente honesto a
+        // "para finales de <mes>", que ya se ancla con el calificador explícito).
+        val result = NaturalTaskParser.parse("entregar informe para septiembre", now, zone)
+        assertEquals(LocalDate.of(2026, 9, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals("entregar informe", result.title)
+    }
+
+    @Test
+    fun `c676 para mes con anno explicito usa ese anno`() {
+        val result = NaturalTaskParser.parse("liquidación para febrero de 2028", now, zone)
+        assertEquals(LocalDate.of(2028, 2, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals("liquidación", result.title)
+    }
+
+    @Test
+    fun `c676 para mes ya pasado hace roll anual`() {
+        // now=2026-07-29: "para febrero" ya pasó → 28/2/2027 (manejo del roll del
+        // resolver de límite, no simple fecha fija).
+        val result = NaturalTaskParser.parse("renovar afiliación para febrero", now, zone)
+        assertEquals(LocalDate.of(2027, 2, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals("renovar afiliación", result.title)
+    }
+
 }
