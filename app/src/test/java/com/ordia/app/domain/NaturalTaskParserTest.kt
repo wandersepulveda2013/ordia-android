@@ -3659,6 +3659,40 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(3, 0), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // ── Intensificador "misma" en parte del día (c.672) ──
+    // "esta misma tarde/noche/mañana/madrugada" es la forma enfática de "esta tarde…"
+    // (paridad con "esta misma semana/este mismo mes", ya soportada en thisWeekPattern/
+    // softMonthPattern). Antes "misma" rompía [partOfDayPattern]: caía a dueAt=null y la
+    // frase entera quedaba como residuo en el título — captura olvidada (P1).
+    @Test fun estaMismaTardeSetsAfternoonCanonicalTime() {
+        val result = NaturalTaskParser.parse("Revisión esta misma tarde", now, zone)
+        assertEquals("Revisión", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun estaMismaNocheSetsTonightCanonicalTime() {
+        val result = NaturalTaskParser.parse("Entregarlo esta misma noche", now, zone)
+        assertEquals("Entregarlo", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    // ── "entrando/entrada la tarde/noche" (c.672, forma caribeña) ──
+    // Perífrasis común en español caribeño ("entrar la tarde/noche" ≈ al caer la
+    // tarde/noche). Antes caía a dueAt=null con el residuo íntegro en el título.
+    // Paridad con el conector "en la" ya admitido (forma caribeña/hispanoamericana).
+    @Test fun entrandoLaTardeSetsAfternoonTime() {
+        val result = NaturalTaskParser.parse("Llamar entrando la tarde", now, zone)
+        assertEquals("Llamar", result.title)
+        assertEquals(LocalTime.of(15, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun entradaLaNocheSetsTonightTime() {
+        val result = NaturalTaskParser.parse("Cita entrada la noche", now, zone)
+        assertEquals("Cita", result.title)
+        assertEquals(LocalTime.of(21, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
     // ── "el día de mañana/hoy": pleonasmo coloquial de "mañana/hoy" ──
     // La frase completa debe consumirse; antes el borrado de "mañana"/"hoy" dejaba el
     // residuo "el día de" en el título (p. ej. "reunión el día de" en vez de "reunión"),

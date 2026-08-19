@@ -1,3 +1,12 @@
+## Ciclo c.673 — fix/feat(parser): intensificador "misma" en parte del día cerrado (ítem c.630); conector caribeño "entrando/entrada la tarde/noche"; +4 TDD — VERIFIED
+- **HEAD inicial**: `af10a1a` (c.671 remoto). Durante el trabajo el remoto publicó c.672-mes suelto (`a6625ab`, COLISIÓN de cycle-ID); integración NO destructiva stash → ff-only → stash pop; conflictos SÓLO en docs (resueltos conservando AMBOS bloques); RENUMERADO c.672→c.673. NO STALE_RUN destructivo; código merge limpio. Entorno JVM; sin Android SDK. Auth `github_token`.
+- **Problemas (P1 captura/evitar olvidos + P2 conector)**: "esta misma tarde/noche/mañana/madrugada" → null (partOfDayPattern asimétrico vs c.642); "entrando/entrada la tarde/noche" → null (faltaba a la familia de conectores).
+- **Causa raíz**: regex de parte del día sin el intensificador opcional; conector caribeño ausente.
+- **Fix**: `partOfDayPattern` `(?:misma\s+)?` no capturador; `standalonePartOfDayPattern` conectores `entrando\s+la|entrada\s+la`. Ítem P2 c.630 (semana/mes) confirmado YA resuelto en HEAD (c.642/c.646) y CERRADO en BACKLOG.
+- **Tests**: +4 TDD RED→GREEN; suite 3857 PASS pos-merge; smoke 25 OK; automation 9 OK. **NO VERIFICADO** Android/UI/Room.
+- **Archivos**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt`, AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md.
+- **Estado**: VERIFIED.
+
 ## Ciclo c.671 — feat(parser): "eso de las N" (sin "a" inicial) — descubierto por probe; +2 TDD — VERIFIED
 - **HEAD inicial**: `606cf3b` (c.670; sin avances remotos, NO STALE_RUN). Entorno JVM; sin Android SDK. Auth `github_token`.
 - **Problema (P2, descubrimiento audit)**: "alarma eso de las 5" → null + residuo (tarea olvidada).

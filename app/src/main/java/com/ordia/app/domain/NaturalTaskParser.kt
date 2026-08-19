@@ -2270,9 +2270,11 @@ object NaturalTaskParser {
      * (p.ej. "reunión esta madrugada") se perdía sin vencimiento ni recordatorio (P1,
      * tarea olvidada). "madrugada" es inequívoca como parte del día (no hay marcador de
      * día "madrugada" con el que colisionar, a diferencia de "mañana"), por lo que es
-     * seguro incluirla aquí simétricamente con mañana/tarde/noche.
+     * seguro incluirla aquí simétricamente con mañana/tarde/noche, igual que el
+     * intensificador opcional "misma" ("esta misma tarde/noche/mañana/madrugada"),
+     * paridad con "esta misma semana/este mismo mes" (thisWeekPattern/softMonthPattern).
      */
-    private val partOfDayPattern = Regex("""(?i)\besta\s+(ma[nñ]ana|tarde|noche|madrugada)\b""")
+    private val partOfDayPattern = Regex("""(?i)\besta\s+(?:misma\s+)?(ma[nñ]ana|tarde|noche|madrugada)\b""")
     private val partOfDayTimes = mapOf(
         "mañana" to LocalTime.of(9, 0),
         "manana" to LocalTime.of(9, 0),
@@ -2316,7 +2318,10 @@ object NaturalTaskParser {
     // en el título. Se EXCLUYE "mañana" de este conector (simétrico al conector "de",
     // que también la excluye): "durante la mañana" es ambigua (parte del día vs. fecha
     // "mañana") y ya resuelve vía la fecha relativa; no se altera su comportamiento.
-    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:justo\s+)?(?:(?:a\s+la|de\s+la|por\s+la|en\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada)|durante\s+la\s+(tarde|noche|madrugada))(?:\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier))?\b""")
+    // c.672: perífrasis caribeña/latam "entrando/entrada la tarde/noche/…" (al caer la
+    // tarde/noche) se une a la familia de conectores "a la|de la|por la|en la"; antes
+    // caía a dueAt=null con el residuo íntegro en el título (paridad con "en la").
+    private val standalonePartOfDayPattern = Regex("""(?i)\b(?:justo\s+)?(?:(?:a\s+la|de\s+la|por\s+la|en\s+la|entrando\s+la|entrada\s+la)\s+(tarde|noche|madrugada|ma[nñ]ana)|de\s+(tarde|noche|madrugada)|durante\s+la\s+(tarde|noche|madrugada))(?:\s+de\s+(?:hoy|ma[nñ]ana|ayer|anteayer|antier))?\b""")
     private val standalonePartOfDayTimes = mapOf(
         "tarde" to LocalTime.of(15, 0),
         "noche" to LocalTime.of(21, 0),
