@@ -1,3 +1,16 @@
+## Run c.654 — 2026-08-19 (UTC) — fix(context): títulos APPOINTMENT con prefijo duplicado "Cita: Cita ..." — sólo prefijar cuando el resto no auto-menciona "cita" — +7 tests TDD — ÁREA CONTEXT (cierre del hallazgo secundario (ii) c.653)
+
+- **Run/ciclo**: c.654 (rama `openhands/autonomous-ordia`). HEAD inicial `d56047c` (c.653 push-OK). `git fetch origin openhands/autonomous-ordia` remoto == local, SIN avances concurrentes, NO STALE_RUN. NO force, NO reset --hard, NO clean destructivo, NO toques a `main`. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars `/tmp/libs`. Auth git con `github_token` secret.
+- **Problema (P2 ruido / IA honesta)**: `extractTitle APPOINTMENT` anteponía siempre el prefijo `"Cita:"`, duplicando el sustantivo cuando el propio texto ya lo mencionaba: "tengo cita con el dentista"→"Cita: Cita con el dentista", "voy a la cita..."→"Cita: La cita...", "cita con el dentista"→"Cita: con el dentista" (la alternativa `"cita"` del regex lo consumía en el grupo 1 y el resto quedaba desnudo).
+- **Descubrimiento (probe JVM fuente real `/tmp/probe653/ProbeApptTitle.kt`)**: 5/5 duplicados PRE-fix. PENDIENTE del ciclo c.653, cerrado aquí.
+- **Cambios**: `ContextIntentEngine.kt` rama APPOINTMENT de `extractTitle`: si la alternativa ganadora es `"cita"`, el texto a evaluar es `match.value`; si el resto casa `^(?:(?:una|la) )?cita\b.*` se descarta el artículo y se capitaliza el resto tal cual; el prefijo `"Cita:"` sólo se conserva si no se auto-menciona ("tengo dentista revisión médica"→"Cita: Dentista revisión médica"). Nuevo `ContextIntentAppointmentTitleTest.kt` (+7 tests). `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md`. Probes `/tmp/probe653/*` fuera del repo.
+- **Bugs**: POST-fix 5/5 títulos sin duplicación + 2/2 controles con prefijo legítimo. Sin regresión: suite completa verde.
+- **Tests**: `bash tools/run_domain_tests.sh` → **3762 PASS** (3755 c.653 + 7 c.654), 0 failures; `bash tools/run_domain_checks.sh` → smoke 25 OK. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **Commits**: `fix(context): títulos APPOINTMENT sin duplicación del sustantivo (c.654)` (pendiente de push).
+- **HEAD final**: pendiente de push (commit c.654 sobre `d56047c`).
+- **Hallazgos**: (i) APPOINTMENT era la única rama con prefijo duplicable (MEETING/STUDY/PAYMENT no se auto-mencionan en sus alternativas); (ii) `AutomationEngine.runRule`/`OrdiaViewModel.guardianInsight` omiten `zone` (P1, NO JVM) sigue pendiente.
+- **Próxima prioridad**: (i) `classify`/`isCasualChat`/otros extraer-título (JVM); (ii) gates seguridad (P2, JVM); (iii) `zone` omitida (P1, NO JVM); (iv) workers/backup/restore (P0, NO JVM). Re-fetch OBLIGATORIO.
+
 ## Run c.653 — 2026-08-19 (UTC) — fix(context): bonus-kinds APPOINTMENT/CALL robaban kind a imperativos envolventes — guard `imperativeIsWrapped` extendido con patrones centralizados — +19 tests TDD — ÁREA CONTEXT (cierre del hallazgo secundario (i) c.652)
 
 - **Run/ciclo**: c.653 (rama `openhands/autonomous-ordia`). HEAD inicial `4c66708` (c.652 push-OK). Checkout+status limpio, SIN avances concurrentes, NO STALE_RUN. NO force, NO reset --hard, NO clean destructivo, NO toques a `main`. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars `/tmp/libs`. Auth git con `github_token` secret.

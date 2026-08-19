@@ -1003,8 +1003,29 @@ object ContextIntentEngine {
                 null
             }
             ContextIntentKind.APPOINTMENT -> {
+                // El prefijo "Cita:" sólo se añade cuando el resto NO menciona ya "cita".
+                // Antes se anteponía siempre, duplicando el sustantivo: "tengo cita con el
+                // dentista" → "Cita: Cita con el dentista", "voy a la cita..." →
+                // "Cita: La cita...". Cuando el resto arranca en (una|la)?cita se elimina
+                // el artículo y se capitaliza el resto tal cual (mismo criterio que el
+                // título CALL de c.653: preservar el texto del usuario, no adornarlo).
                 val match = Regex("""(tengo|cita|voy a|debo ir a) (.+)""", RegexOption.IGNORE_CASE).find(original)
-                if (match != null) return "Cita: ${capitalizeFirst(match.groupValues[2])}"
+                if (match != null) {
+                    // Si la alternativa "cita" ganó el match, el sustantivo está en el
+                    // grupo 1: el resto a evaluar es el match completo ("cita con ...").
+                    val rest = if (match.groupValues[1].equals("cita", ignoreCase = true)) {
+                        match.value
+                    } else {
+                        match.groupValues[2]
+                    }
+                    val selfMention = Regex("""^(?:(?:una|la) )?cita\b.*""", RegexOption.IGNORE_CASE)
+                    return if (selfMention.matches(rest)) {
+                        val article = Regex("""^(una|la) """, RegexOption.IGNORE_CASE)
+                        capitalizeFirst(article.replace(rest, ""))
+                    } else {
+                        "Cita: ${capitalizeFirst(match.groupValues[2])}"
+                    }
+                }
                 null
             }
             ContextIntentKind.MEETING -> {
