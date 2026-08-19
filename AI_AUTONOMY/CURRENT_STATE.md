@@ -1,3 +1,14 @@
+## Ciclo c.712 — 2026-08-19 (UTC) — feat(context): piso TASK "pedir <objeto>" (forma 2/14 segunda clase de gestión)
+
+- **HEAD**: inicial `44a0acb` (fetch+pull --ff-only limpio); final tras este log (feat `69018b5` + docs `e80f176` + este state).
+- **Selección (P1, sonda persistente `tools/probe/ManagementVerbDiscoveryProbe.kt`, una forma por ciclo)**: "pedir <objeto>" → NULL (olvido silencioso). Baseline 4160 PASS; RED exacto 6/11 (capturas); controles + regresión envolvente verdes desde el inicio.
+- **Solución**: piso `pedir` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla "Pedir X" (patrón c.691…c.711). Kind TASK (deliberación contra ERRAND/APPOINTMENT — "pedir" solicita/encarga el objeto). Controles NULL: negada, "quizá…", sustantivo "pedido", verbo suelto; envolvente c.613 gobierna. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +11 tests `ContextIntentEnginePedirFloorTest.kt`; RED exacto (6 failures) → GREEN **OK (4171 tests)** (4160 + 11), 0 failures; smoke 25 OK; sonda POST: pedir→TASK 'Pedir el taxi'/'Pedir una cita' dueAt=true; restan 12 formas OPEN en BACKLOG.
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla), `test/.../ContextIntentEnginePedirFloorTest.kt` (NUEVO +11), `tools/probe/ManagementVerbDiscoveryProbe.kt` (+3 controles pedir), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN segunda-clase ("solicitar <objeto>" → TASK; "pasar por"→ERRAND/"sacar la basura"→HOUSEHOLD requieren deliberación de kind). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+
 ## Ciclo c.711 — 2026-08-19 (UTC) — feat(context): nueva sonda segunda-clase-verbos + piso TASK "avisar <a <persona>/<objeto>" (forma 1/14)
 
 - **HEAD**: inicial `7c235d8` (clone local, fetch+pull --ff-only limpio); final tras este log (feat + docs).
