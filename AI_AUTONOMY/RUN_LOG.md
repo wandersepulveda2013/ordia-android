@@ -1,3 +1,17 @@
+## Ciclo c.712 — 2026-08-19 (UTC) — feat(context): piso TASK "pedir <objeto>" (forma 2/14 segunda clase de gestión; doctrina anti-overreach)
+
+- **HEAD inicial**: `44a0acb` (c.711 docs, fetch+pull --ff-only limpio, sin divergencia, NO STALE_RUN).
+- **Problema seleccionado**: "pedir <objeto>" ("pedir el taxi mañana", "pedir una cita hoy") se DESCARTABA (analyze → NULL) — olvido silencioso P1 en captura pasiva. Ítem OPEN de la sonda persistente `tools/probe/ManagementVerbDiscoveryProbe.kt` (14 formas; doctrina: UNA por ciclo).
+- **Causa raíz**: ninguna rama de `hasStrongTaskImperative` cubría "pedir".
+- **Solución**: piso `pedir` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla "pedir X"→"Pedir X" (patrón c.691…c.711). Kind TASK (deliberado contra ERRAND/APPOINTMENT — "pedir" solicita/encarga el objeto; "pedir una cita" gestiona la solicitud; la cita se captura por su propia vía). Controles NULL: negada/quizá/sustantivo "pedido"/suelto; envolvente c.613 gobierna. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +11 tests `ContextIntentEnginePedirFloorTest.kt` (NUEVO); RED exacto (6 failures = las capturas) → GREEN **OK (4171 tests)** (4160 + 11), 0 failures; smoke 25 OK; sonda POST: pedir→TASK ("Pedir el taxi"/"Pedir una cita" dueAt=true), 3 controles aditivos NULL, 12 formas OPEN.
+- **Archivos**: `context/ContextIntentEngine.kt`, `test/.../ContextIntentEnginePedirFloorTest.kt`, `tools/probe/ManagementVerbDiscoveryProbe.kt`, AI_AUTONOMY ×3.
+- **Commits**: feat + docs este log.
+- **HEAD final**: tras docs.
+- **Próxima prioridad**: siguiente forma OPEN de segunda-clase ("solicitar <objeto>" → TASK; deliberar la kind de "pasar por"→ERRAND/"sacar"→HOUSEHOLD a su debido capitulo). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+
 ## Ciclo c.711 — 2026-08-19 (UTC) — feat(context): nueva sonda de segunda clase de verbos + piso TASK "avisar <a <persona>/<objeto>" (forma 1/14; doctrina anti-overreach una forma por ciclo)
 
 - **HEAD inicial**: `7c235d8` (c.710 docs propios, fetch+pull --ff-only limpio, sin divergencia, NO STALE_RUN).
