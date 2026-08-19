@@ -1,3 +1,13 @@
+## Ciclo c.684 — 2026-08-19 — feat(context): piso transportativo de mantenimiento "llevar/llevo <vehículo> a(l) taller|mecánica|revisión" → ERRAND; cierra 2 de las 5 formas NULL restantes del P1 c.681
+
+- **HEAD inicial**: `c799695` (c.683 propio, post-push; fetch sin avances concurrentes → NO STALE_RUN).
+- **Cambio**: nuevo `ERRAND_CARRY_FLOOR` (listas cerradas vehículos + destinos de mantenimiento, verbos llevar|llevo) como tercer piso de `ERRAND_FLOORS` (propagación automática a piso/guard/negación).
+- **Bugs**: ninguno nuevo; controles intactos (negación NULL, envolvente→TASK/REMINDER, duda/condición NULL, persona/ocio NULL, "paquetes a correos" NULL, no-regresiones banco/gimnasio/pan/paquete OK).
+- **Features**: "llevar el coche al taller", "el lunes llevo el coche a revisión" (dueAt=true), "llevar el coche a mecánica", "llevar las ruedas al taller mañana" → ERRAND 0.45.
+- **Tests**: `run_domain_tests.sh` → 3931 PASS, 0 failures; `run_domain_checks.sh` → 25 OK; `run_automation_engine_checks.sh` → 9 OK. RED→GREEN verificado (5 failures pre-fix exactos). NO VERIFICADO Android/gradle/UI/Room.
+- **Commits**: c.684 (cambio + memoria).
+- **Próxima prioridad**: 3 formas OPEN del ítem c.681 ("hacer ejercicio por la mañana", "falta comprar…", "te acuerdas de…", una por ciclo); sondas; P0/P1 emergente. Re-fetch OBLIGATORIO.
+
 ## Ciclo c.683 — 2026-08-19 — feat(context): "ir a(l) <destino médico>" → APPOINTMENT + TDD [renumerado c.682→c.683 por colisión de cycle-ID con run concurrente c.682 (ecd9c78 wrapper "recuerda <infinitivo>"); stash→ff-only→pop; regiones DISJUNTAS en el mismo archivo]
 
 - **HEAD inicial**: `0557cde` (c.681 remoto) → integrado sobre `ecd9c78` (c.682 remoto) → HEAD final vía commit propio.

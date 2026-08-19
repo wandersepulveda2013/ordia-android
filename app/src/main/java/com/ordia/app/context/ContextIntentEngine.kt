@@ -90,9 +90,18 @@ object ContextIntentEngine {
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
         Regex("""\b(?<!no )hacer\s+(yoga|pesas|deporte)\b""")
     )
+    // Piso transportativo de mantenimiento (c.684, ítem c.681): "llevar el
+    // coche al taller"/"el lunes llevo el coche a revisión" son diligencias
+    // inequívocas pero caían a NULL (ni verbo piso ni keyword ≥ umbral).
+    // Objeto restringido a vehículos/piezas y destino a mantenimiento para no
+    // colisionar con "llevar a María al cine" (persona/ocio) ni con destinos
+    // ya cubiertos por el piso de "ir a ..." (correos/banco).
+    private val ERRAND_CARRY_FLOOR =
+        Regex("""\b(?<!no )(llevar|llevo)\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+)?(coche|carro|auto|automóvil|moto|motocicleta|bicicleta|camión|camioneta|furgoneta|ruedas|motor)\s+a(?:l| la)?\s+(taller|mec[aá]nica|revisi[oó]n)\b""")
     private val ERRAND_FLOORS = listOf(
         Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b"""),
-        Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w""")
+        Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w"""),
+        ERRAND_CARRY_FLOOR
     )
     private val STUDY_FLOORS = listOf(
         Regex("""\b(?<!no )($STUDY_VERBS)\s+\w"""),
