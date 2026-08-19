@@ -38,7 +38,12 @@ fun main() {
         "no confirmar la reserva",
         "quizá confirmar la reserva mañana",
         "la confirmación de la reserva llegó ayer",
-        "confirmar"
+        "confirmar",
+        // Controles c.708 (piso "imprimir"): misma doctrina.
+        "no imprimir el informe",
+        "quizá imprimir el informe mañana",
+        "la impresión del informe fue ayer",
+        "imprimir"
     )
     for (c in cases) {
         val intent = ContextIntentEngine.analyze(

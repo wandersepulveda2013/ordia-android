@@ -716,7 +716,15 @@ object ContextIntentEngine {
             // ancla/guard que c.691…c.698. Kind TASK: "confirmar" es una
             // acción de gestión sobre el objeto (reserva/cita/asistencia),
             // no un evento (MEETING) ni un aviso (REMINDER).
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )confirmar\s+\w""").containsMatchIn(lower)
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )confirmar\s+\w""").containsMatchIn(lower) ||
+            // c.708: "imprimir <objeto>" ("imprimir las entradas el
+            // viernes"), forma 6/8 de la clase de verbos cotidianos (sonda
+            // `tools/probe/CommonVerbDiscoveryProbe.kt`, c.692); mismo
+            // ancla/guard que c.691…c.700. Kind TASK: "imprimir" es una
+            // acción de gestión sobre el objeto (entradas/informe/
+            // contrato/billete), no un evento (MEETING) ni un
+            // desplazamiento (ERRAND, anclado a destinos físicos).
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )imprimir\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1333,6 +1341,12 @@ object ContextIntentEngine {
                 // temporal despojado).
                 val matchConfirmar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )confirmar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchConfirmar != null) return "Confirmar ${matchConfirmar.groupValues[1]}"
+
+                // "imprimir X" → "Imprimir X" (c.708): mismo criterio
+                // que c.691…c.700 (verbo preservado, acuse/prefijo
+                // temporal despojado).
+                val matchImprimir = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )imprimir\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchImprimir != null) return "Imprimir ${matchImprimir.groupValues[1]}"
 
                 null
             }
