@@ -4431,6 +4431,11 @@ object NaturalTaskParser {
             // el mismo día). Se buscan todas las apariciones y basta con que una
             // sea un token de fecha suelto.
             mananaAsDate(working) -> base.toLocalDate().plusDays(1)
+            // c.674/675: "este (mismo )?día" ≡ hoy. "día" no tiene marcador propio
+            // (a diferencia de semana/mes/año, que viven en patrones de período), pero
+            // la forma idiomática post-puesta "este mismo día" debe agendar HOY; antes
+            // quedaba dueAt=null con el residuo íntegro en el título (P1: olvidada).
+            Regex("""(?i)\beste\s+(?:mismo\s+)?d[ií]a\b""").containsMatchIn(working) -> base.toLocalDate()
             Regex("""(?i)\bhoy\b""").containsMatchIn(working) -> base.toLocalDate()
             // "el último viernes del mes" / "el primer lunes de agosto" / "el tercer viernes
             // del mes que viene": ocurrencia ORDINAL de ese weekday en el mes (del mes = mes
@@ -5203,6 +5208,10 @@ object NaturalTaskParser {
             // frase completa primero; el resto del regex sigue borrando los tokens
             // sueltos ("hoy"/"ayer"/"anteayer"/"pasado mañana"/"antepasado mañana").
             .replace(Regex("""(?i)\b(?:para\s+)?(?:el|del)\s+d[ií]a\s+de\s+(?:ma[nñ]ana|hoy)\b"""), " ")
+            // c.674/675 — "este (mismo )?día" ≡ hoy: el borrado genérico de abajo
+            // consume "hoy"/"mañana"/etc. sueltos, pero esta frase post-puesta quedaría
+            // íntegra como residuo en el título; se borra completa antes del genérico.
+            .let { value -> if (dueAt != null) value.replace(Regex("""(?i)\beste\s+(?:mismo\s+)?d[ií]a\b"""), " ") else value }
             // "de hoy en adelante": coloquialismo sin cantidad que cae al keyword "hoy"
             // (fecha = hoy, correcta), pero cuyo borrado palabra-suelta dejaba el residuo
             // "en adelante" en el título (P3, follow-up de c.667). Se consume la frase

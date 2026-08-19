@@ -16285,4 +16285,25 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    // --- c.674/675: "este mismo día" ≡ hoy (follow-up post-puesto de c.646 (ii)) ---
+
+    @Test
+    fun `c675 este mismo dia se agenda a hoy y limpia titulo`() {
+        // "día" no tiene patrón pre-puesto (a diferencia de semana/mes/años y partes
+        // del día), pero el post-puesto es idiomático: "este mismo día" ≡ hoy.
+        val result = NaturalTaskParser.parse("llamar a funda este mismo día", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals("llamar a funda", result.title)
+    }
+
+    @Test
+    fun `c675 este mismo dia al inicio tampoco rompe`() {
+        // Guard: frase al inicio; la PhraseSpanConsumer debe quitarla por completo.
+        val result = NaturalTaskParser.parse("este mismo día llamar a funda", now, zone)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(9, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+        assertEquals("llamar a funda", result.title)
+    }
+
 }
