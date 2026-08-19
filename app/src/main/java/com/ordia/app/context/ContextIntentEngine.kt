@@ -207,8 +207,13 @@ object ContextIntentEngine {
     // excluye el uso temporal ("falta una hora"), el sustantivo ("una falta
     // grave") y la forma personal ("me falta tu apoyo"); `(?<!no )` bloquea
     // "no falta X" (= no hace falta, opuesto de la intención).
+    // c.687 añade "te acuerdas de": la envolvente INTERROGATIVA de
+    // recordatorio ("¿te acuerdas de pagar la renta?" = acuérdate de pagarla)
+    // es el auto-recordatorio cotidiano por excelencia. El mismo lookahead
+    // de infinitivo la separa de la evocación del pasado ("te acuerdas de
+    // cuando íbamos…", "¿te acuerdas de la película?"), que es conversación.
     private val WRAPPER_PATTERN =
-        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme|recuerda(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )cancelar|(?<!no )anular|(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b))\b""")
+        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme|recuerda(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )cancelar|(?<!no )anular|(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )te acuerdas de(?=\s+\w*(?:ar|er|ir)\b))\b""")
 
     // Kinds protegidos por el guard de envolvente: pisos de posición libre
     // (c.652) + bonus-kinds APPOINTMENT/CALL (c.653). SHOPPING/PAYMENT no lo
@@ -656,7 +661,14 @@ object ContextIntentEngine {
      * muletilla "avísame" aislada. "acordarme de" admite el "de" opcional.
      */
     private fun hasStrongReminderImperative(lower: String): Boolean =
-        Regex("""\b(avísame|notifícame|acordarme(?:\s+de)?)\s+\w""").containsMatchIn(lower)
+        Regex("""\b(avísame|notifícame|acordarme(?:\s+de)?)\s+\w""").containsMatchIn(lower) ||
+            // c.687: "te acuerdas de <infinitivo>?" es el formato interrogativo
+            // del auto-recordatorio ("¿te acuerdas de pagar la renta?" =
+            // acuérdate de pagarla). El lookahead de infinitivo excluye la
+            // evocación del pasado ("te acuerdas de cuando íbamos…",
+            // "¿te acuerdas de la película?"); `(?<!no )` bloquea la negada
+            // ("no te acuerdas de pagar…": conservador, no se captura).
+            Regex("""\b(?<!no )te acuerdas de(?=\s+\w*(?:ar|er|ir)\b)\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de compra inequívocos (c.626, c.651). "comprar <producto>".
@@ -1284,6 +1296,18 @@ object ContextIntentEngine {
             ContextIntentKind.REMINDER -> {
                 val match = Regex("""(recuérdame|avísame|notifícame) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return capitalizeFirst(match.groupValues[2])
+
+                // "te acuerdas de X?" → "X" (c.687): mismo lookahead de
+                // infinitivo que el piso, así nunca se despoja un "te acuerdas
+                // de" conversacional ("te acuerdas de cuando…") aunque
+                // REMINDER haya ganado por otro wrapper. El '?' de cierre de
+                // la interrogación es marca de la envolvente, no del título:
+                // se recorta para que no sobreviva en el título visible.
+                val matchInterrogative = Regex("""te acuerdas de\s+(?=\w*(?:ar|er|ir)\b)(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchInterrogative != null) {
+                    return capitalizeFirst(matchInterrogative.groupValues[1].trimEnd('?', ' '))
+                }
+
                 null
             }
             ContextIntentKind.EXERCISE -> {
