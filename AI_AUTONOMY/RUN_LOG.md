@@ -15364,3 +15364,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Verificación post-reset**: sonda 14/14 contra la implementación remota (5 capturas TASK 0.45 títulos limpios/dueAt; 3 controles NULL negada/quizá/sustantivo; regresiones sufijo/acuse/HOUSEHOLD intactas; SHOPPING 0.47/PAYMENT 0.52 capturan vía keyword). Suite completa re-verificada sobre `15139cb`: **4053 PASS**, 0 failures.
 - **Commit**: probe + esta nota. Sin cambios de código de producción.
 - **Estado**: ítem c.693-prefijo-temporal VERIFIED por la implementación remota (c.694). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+### 2026-08-19 — c.696 (agente OpenHands): piso TASK "firmar <objeto>" (forma 3/6 clase-verbos c.692, doctrina anti-overreach)
+
+- **HEAD inicial**: `53f91ef` (propio, docs c.694b; re-fetch sin avances pre-implementación).
+- **Ítem**: P1 olvido silencioso captura pasiva — "firmar <objeto>" ("firmar el contrato el jueves") → analyze NULL (sonda de clase `tools/probe/CommonVerbDiscoveryProbe.kt`, c.692). Siguiente forma OPEN del ítem clase-verbos (enviar c.692, entregar c.693 hechos).
+- **RED (TDD estricto, test primero)**: +11 tests `ContextIntentEngineFirmarFloorTest.kt` (6 capturas: fecha weekday/"mañana"/"a las 9"/sin fecha/acuse/prefijo temporal c.694 "hoy firmar…"; 4 controles NULL: negada/quizá/sustantivo "firma"/suelto; 1 regresión envolvente c.613 "tengo que firmar…"). Suite PRE-fix: 4064 corrían, **EXACTAMENTE 6 failures** (las 6 capturas; controles ya verdes).
+- **Fix**: `ContextIntentEngine.kt` — piso `firmar` en `hasStrongTaskImperative` con el MISMO ancla inicio/acuse/`TASK_FLOOR_TEMPORAL` (patrón c.691…c.693, hereda gratis la clase c.694) + plantilla de título "firmar X"→"Firmar X" tras las de revisar/enviar/entregar. Determinista (regex), sin random, sin IA fingida, cero UI nueva.
+- **GREEN**: `run_domain_tests.sh` → **OK (4064 tests)** (4053 + 11), 0 failures; `run_domain_checks.sh` → 25 OK; `run_automation_engine_checks.sh` → 9 OK. Sonda clase POST: "firmar el contrato el jueves" → TASK 'Firmar el contrato' dueAt=true; control sustantivo "la firma del contrato fue ayer" → NULL.
+- **Archivos**: `ContextIntentEngine.kt` (piso + plantilla, +13 líneas), `ContextIntentEngineFirmarFloorTest.kt` (+11), AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md.
+- **Anti-overreach**: `\s+\w` exige objeto, `(?<!no )` bloquea la negada, c.649 mantiene "quizá…"→NULL, "firma" (sustantivo) no casa. Restan 5 formas (renovar/confirmar/imprimir/reservar/cambiar — decidir kind por ciclo con sonda).
+- **Próxima prioridad**: re-fetch OBLIGATORIO pre-implementación (alta concurrencia); siguiente forma de la clase si sigue OPEN.
+- **Estado**: VERIFIED. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).

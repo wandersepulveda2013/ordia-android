@@ -696,7 +696,12 @@ object ContextIntentEngine {
             // c.693: "entregar <objeto>" ("entregar la tarea el lunes"),
             // forma 2/8 de la clase de verbos cotidianos (sonda
             // `tools/probe/CommonVerbDiscoveryProbe.kt`); mismo ancla/guard.
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )entregar\s+\w""").containsMatchIn(lower)
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )entregar\s+\w""").containsMatchIn(lower) ||
+            // c.696: "firmar <objeto>" ("firmar el contrato el jueves"),
+            // forma 3 de la clase de verbos cotidianos (sonda
+            // `tools/probe/CommonVerbDiscoveryProbe.kt`, c.692); mismo
+            // ancla/guard que c.691…c.693.
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )firmar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1295,6 +1300,12 @@ object ContextIntentEngine {
                 // c.691/c.692 (verbo preservado, acuse despojado).
                 val matchEntregar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )entregar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchEntregar != null) return "Entregar ${matchEntregar.groupValues[1]}"
+
+                // "firmar X" → "Firmar X" (c.696): mismo criterio que
+                // c.691…c.693 (verbo preservado, acuse/prefijo temporal
+                // despojado).
+                val matchFirmar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )firmar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchFirmar != null) return "Firmar ${matchFirmar.groupValues[1]}"
 
                 null
             }

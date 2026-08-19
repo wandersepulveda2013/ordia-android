@@ -1,3 +1,12 @@
+## Ciclo c.696 — 2026-08-19 (UTC) — feat(context): piso TASK "firmar <objeto>" (forma 3/6 clase-verbos, doctrina anti-overreach) + rescate no destructivo del duplicado concurrente c.694
+
+- **HEAD inicial** `6d50ef2` (c.693b; pull --ff-only limpio). HEAD final pendiente.
+- **Duplicado c.694 (rescate)**: este run implementó el prefijo temporal TASK en paralelo con un run concurrente que publicó c.694 `5a7e29a` (mismo ítem/approach, ancla más amplia + fix colateral `\b` DEADLINE) y c.695 `15139cb` (docs). Descarte no destructivo del commit propio no pusheado `6534a04` (`git reset --hard origin/...` sólo sobre trabajo propio; remoto intacto). Único artefacto único conservado: sonda persistente `tools/probe/TemporalPrefixProbe.kt` — 14/14 contra la implementación remota. Suite re-verificada sobre `15139cb`: **4053 PASS**. Push: `53f91ef` (docs).
+- **Fix c.696 (P1 olvido silencioso, ítem OPEN clase-verbos)**: "firmar <objeto>" ("firmar el contrato el jueves") se DESCARTABA (analyze → NULL; sonda de clase `tools/probe/CommonVerbDiscoveryProbe.kt` c.692). Fix mínimo patrón c.691…c.693: piso `firmar` en `hasStrongTaskImperative` (ancla inicio/acuse/prefijo-temporal — hereda gratis la clase c.694) + plantilla de título "firmar X"→"Firmar X". Anti-overreach: `\s+\w` objeto, `(?<!no )` negada, c.649 "quizá…"→NULL, sustantivo "firma" no casa.
+- **TDD**: +11 tests `ContextIntentEngineFirmarFloorTest.kt` (6 capturas — incl. prefijo temporal "hoy firmar el contrato" — + 4 controles NULL + 1 regresión envolvente c.613). RED exacto: 6 failures → GREEN **4064 PASS** (4053 + 11), 0 failures; smoke 25 OK; automation 9 OK. Sonda clase POST: "firmar el contrato el jueves" → TASK 'Firmar el contrato' dueAt=true.
+- Determinista (regex), sin random, sin IA fingida, cero UI nueva. Restan 5 formas de la clase (renovar/confirmar/imprimir/reservar/cambiar — decidir kind por ciclo con sonda; "renovar el DNI" quizá ERRAND). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+- **Próxima prioridad**: re-fetch OBLIGATORIO pre-implementación (alta concurrencia: 2 STALE_RUN consecutivos); siguiente forma de la clase-verbos si sigue OPEN.
+
 ## Ciclo c.695 — 2026-08-19 (UTC) — STALE_RUN ×2 (sin cambios destructivos): ambos ítems abordados en este run ya resueltos por runs concurrentes mientras trabajaba
 
 - **HEAD inicial** `b945770` → final remoto `5a7e29a` (ff-only ×2, sin commits propios de código).
