@@ -25,6 +25,10 @@ private val LightPaper = lightColorScheme(
     surfaceVariant = SoftPaper,
     onSurfaceVariant = InkMuted,
     outline = Rule,
+    error = SemanticAlert,
+    onError = Page,
+    errorContainer = SemanticAlertContainer,
+    onErrorContainer = OnSemanticAlertContainer,
 )
 
 private val DarkPaper = darkColorScheme(
@@ -39,6 +43,10 @@ private val DarkPaper = darkColorScheme(
     surfaceVariant = DarkInkRaised,
     onSurfaceVariant = PageMuted,
     outline = DarkRule,
+    error = SemanticAlertDark,
+    onError = DarkInk,
+    errorContainer = SemanticAlertContainerDark,
+    onErrorContainer = OnSemanticAlertContainerDark,
 )
 
 @Composable
@@ -46,18 +54,9 @@ fun NotepadTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val base = Typography()
-    val type = Typography(
-        bodyLarge = base.bodyLarge.copy(fontSize = 17.sp, lineHeight = 28.sp),
-        bodyMedium = base.bodyMedium.copy(fontSize = 16.sp, lineHeight = 26.sp),
-        titleLarge = base.titleLarge.copy(fontFamily = FontFamily.Serif, fontSize = 24.sp),
-        titleMedium = base.titleMedium.copy(fontFamily = FontFamily.Serif, fontSize = 20.sp),
-        titleSmall = base.titleSmall.copy(fontFamily = FontFamily.Serif),
-        labelSmall = base.labelSmall.copy(fontSize = 11.sp),
-    )
     MaterialTheme(
         colorScheme = if (darkTheme) DarkPaper else LightPaper,
-        typography = type,
+        typography = OrdiaTypography,
         content = content,
     )
 }
