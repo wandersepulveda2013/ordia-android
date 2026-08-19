@@ -15280,3 +15280,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Descubrimientos**: nuevo P1 OPEN en BACKLOG — "revisar el informe pasado mañana" → NULL (verbo "revisar" sin piso; KindCheckProbe c.690).
 - **Próxima prioridad**: P1 "revisar <objeto> <fecha>" → NULL (sonda + TDD, una forma por ciclo); clusters C/E del ítem assistant c.680; sondas de descubrimiento. Re-fetch OBLIGATORIO.
 - **Estado**: VERIFIED. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+### 2026-08-19 — c.691 (agente OpenHands)
+
+- **HEAD inicial**: `8c8a990` (commit propio c.690). `git fetch` pre-trabajo: sin avance concurrente.
+- **Problema (P1, ítem BACKLOG OPEN descubierto c.690)**: "revisar <objeto>" — el verbo cotidiano de comprobación — se DESCARTABA (analyze → NULL): ningún piso cubre "revisar" y el bono temporal no alcanza el umbral. Olvido silencioso en la vía de captura pasiva.
+- **Sonda PRE-fix** (`tools/probe/RevisarFloorProbe.kt`, fuente real): 6 formas de captura → NULL; controles ("no revisar…", "quizá…", "la revisión…", "revisar" suelto) ya NULL; envolvente c.613 ("tengo que revisar…") → TASK.
+- **TDD**: +11 en `ContextIntentEngineRevisarFloorTest.kt`. RED exacto: EXACTAMENTE 6 failures (las 6 capturas), 5 controles/regresión verdes pre-fix sobre 4017.
+- **Solución (mínima, 2 puntos, determinista)**: (a) piso TASK en `hasStrongTaskImperative` — "revisar" con ancla inicio/acuse (mismo patrón SHOPPING/PAYMENT c.651), `\s+\w` exige objeto, `(?<!no )` bloquea negada; (b) plantilla de título "revisar X"→"Revisar X" en `extractTitle` TASK que despoja el acuse (alineación piso↔título c.616; sin ella "vale, revisar…" dejaba el título 'Vale, revisar…' — detectado en RED parcial: 1 failure tras el piso).
+- **GREEN**: `run_domain_tests.sh` → **4017 PASS** (4006 + 11), 0 failures; `run_domain_checks.sh` → 25 OK; `run_automation_engine_checks.sh` → 9 OK; sonda POST 11/11 (6 capturas TASK títulos limpios + dueAt cuando hay fecha, 4 controles NULL, 1 regresión).
+- **Archivos**: `ContextIntentEngine.kt` (piso + plantilla), `ContextIntentEngineRevisarFloorTest.kt` (+11), `tools/probe/RevisarFloorProbe.kt` (persistente), AI_AUTONOMY md.
+- **Próxima prioridad**: clusters C/E assistant (c.680); sonda de descubrimiento de clase (verbos cotidianos sin piso: enviar/entregar/firmar/renovar — una forma por ciclo). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).

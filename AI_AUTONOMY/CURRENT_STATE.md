@@ -1,3 +1,11 @@
+## Ciclo c.691 — 2026-08-19 (UTC) — feat(context): piso TASK "revisar <objeto>" con ancla inicio/acuse + plantilla de título (P1 "revisar … pasado mañana" → NULL, descubierto c.690) + TDD
+
+- HEAD inicial `8c8a990` (commit propio c.690) → HEAD final pendiente. Fetch pre-trabajo sin avance concurrente.
+- Fix (P1 olvido silencioso): "revisar <objeto>" (incl. "revisar el informe pasado mañana") ya no se descarta: piso TASK en `hasStrongTaskImperative` con ancla inicio/acuse (patrón SHOPPING/PAYMENT c.651) + plantilla de título "revisar X"→"Revisar X" que despoja el acuse "vale, " (alineación piso↔título, lección c.616; diagnóstico vía RED parcial: el acuse se filtraba al título por la vía por-defecto). Anti-overreach: `\s+\w` exige objeto, `(?<!no )` bloquea negada, c.649 mantiene "quizá…"→NULL, sustantivo "revisión" no casa.
+- TDD: +11 en `ContextIntentEngineRevisarFloorTest.kt` (RED exacto: 6 capture-failures, 5 controles/regresión verdes pre-fix). **4017 PASS** (4006 + 11), 0 failures; smoke 25 OK; automation 9 OK; sonda persistente `tools/probe/RevisarFloorProbe.kt` 11/11. NO VERIFICADO Android/gradle/UI/Room.
+- BACKLOG: ítem P1 "revisar" (c.690) → VERIFIED. Sin ítems OPEN ahora mismo.
+- Próximo: clusters C/E assistant (c.680); sondas de descubrimiento (clase de verbos cotidianos sin piso: enviar/entregar/firmar/renovar…); re-fetch OBLIGATORIO.
+
 ## Ciclo c.690 — 2026-08-19 (UTC) — fix(context): residuo de título post-temporal — guard "pasado" en bareTail + artículo "del" en weekday (ítem P2 c.681 CERRADO) + TDD
 
 - HEAD inicial `b945770` → HEAD final pendiente de commit. Fetch pre-trabajo mostró avance docs-only (`67638ef..b945770`) → `git pull --ff-only` limpio, sin divergencia.

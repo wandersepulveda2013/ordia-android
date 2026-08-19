@@ -662,7 +662,16 @@ object ContextIntentEngine {
             // hora"), el sustantivo ("una falta grave") y el personal ("me
             // falta tu apoyo"); `(?<!no )` bloquea "no falta X" (= no hace
             // falta, lo opuesto de la intención).
-            Regex("""\b(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b)\s+\w""").containsMatchIn(lower)
+            Regex("""\b(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b)\s+\w""").containsMatchIn(lower) ||
+            // c.691: "revisar <objeto>" (el verbo cotidiano de comprobación:
+            // "revisar el informe (pasado) mañana") se DESCARTABA — ningún
+            // piso lo cubre y el bono temporal no alcanza el umbral (olvido
+            // silencioso P1, descubierto con `tools/probe/KindCheckProbe.kt`
+            // c.690). Mismo patrón de ancla que SHOPPING/PAYMENT (c.651):
+            // verbo al inicio o tras prefijo de ACUSE. Anti-overreach:
+            // `\s+\w` exige objeto ("revisar" aislado no captura),
+            // `(?<!no )` bloquea la negada, "revisión" (sustantivo) no casa.
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )revisar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1231,6 +1240,14 @@ object ContextIntentEngine {
                 if (match5 != null) {
                     return "${capitalizeFirst(match5.groupValues[1])} ${match5.groupValues[2]}"
                 }
+
+                // "revisar X" → "Revisar X" (c.691): el verbo gobierna el
+                // contenido y se PRESERVA en el título (alineación piso↔
+                // título, lección c.616); el prefijo de acuse ("vale, ") se
+                // despoja igual que en SHOPPING (c.651: el match arranca en
+                // el verbo, no en el acuse). Mismo ancla/guard que el piso.
+                val matchRevisar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )revisar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchRevisar != null) return "Revisar ${matchRevisar.groupValues[1]}"
 
                 null
             }
