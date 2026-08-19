@@ -1,3 +1,14 @@
+## Ciclo c.680 — 2026-08-19 (UTC) — feat(assistant): filtro por prioridad explícita "urgente"/"importante" en `AssistantEngine` (Cluster B de la sonda `AssistantDiscoveryProbe`). +4 tests TDD. [Renumerado c.677→c.678→c.679→c.680 por TRES colisiones de cycle-ID con runs concurrentes (`a9d0a7e` c.677 parser-ordinales; `1107a0a` c.678 privacidad; `a7a3fa6` c.679 audit docs-only); push rechazado 3× non-fast-forward → `git fetch` + `git rebase` ×3 sobre el HEAD remoto, conflictos SÓLO en AI_AUTONOMY md, resoluciones conservan TODAS las entradas sin duplicar; regiones de código DISJUNTAS (parser / ContentModeration / probes / AssistantEngine).]
+
+- **Rama**: `openhands/autonomous-ordia`. HEAD inicial `571cca7` (c.676 propio); base tras 3er rebase `a7a3fa6` (c.679 remoto audit docs-only, sin cambio de código → suite 3879 PASS vigente). Entorno JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21); sin Android SDK. Auth git `github_token`.
+- **Descubrimiento (mandato del ciclo: diversificar FUERA del parser — últimos ~12 runs solo parser)**: sonda persistente `tools/probe/AssistantDiscoveryProbe.kt` con 49 frases cotidianas → PRE-fix 23/49 al menú genérico (POST-fix 18/49). Clusters genuinos: B (prioridad explícita: "que es lo mas importante"/"tengo algo urgente"/"que es urgente"), C (presupuesto de tiempo suelto: "tengo 20 minutos"/"veinte minutos"), E (sobrecarga: "estoy abrumado"). Explorados: `AssistantEngine.answer` (dispatch), `WhatNowEngine.ordered`, enum `TaskPriority{LOW,NORMAL,HIGH,URGENT}`.
+- **Problema (Cluster B — P2/IA honesta/priorización inteligente/recuperación de información)**: consultas con señal de prioridad EXPLÍCITA ("¿tengo algo urgente?", "¿qué es lo más importante?") caían al menú "Puedo organizar tu día…" aunque el usuario YA marcó ese dato en la captura (URGENT/HIGH llega del parser/UI). El asistente desperdiciaba una señal recolectada por el propio producto y respondía con su lista de capacidades.
+- **Solución (mínima, sin IA fingida)**: rama `isPriorityQuery(query)` en el `when` (antes del catch-all, tras `isEntityLookupQuery` para no secuestrar "¿cuándo es lo urgente?" → entity-lookup) + helper homónimo. Mapeo sobre el enum real: "urgente"→URGENT; "importante"→HIGH+URGENT. Lista top-6 en orden `WhatNowEngine.ordered` (coherente con la sugerencia). Vacío honesto "No tienes tareas marcadas como urgentes." (NUNCA menú genérico). Paridad con c.416 (compromiso vencido: vacío → `overdueCommitmentAnswer`; con aciertos → cola `overdueCommitmentTail`).
+- **Tests**: +4 TDD RED→GREEN en `AssistantEngineTest.kt` (RED verificado pre-fix: 4 fallos exactos sobre 224 de la clase). Suite completa en el árbol mergeado (ordinales c.677 + privacidad c.678 + 228 de la clase de asistente) **3879 PASS**; smoke 25 OK; automation 9 OK; sonda 23→18/49 (−5 frases rescatadas). **NO VERIFICADO** Android/gradle/lint/compose/UI/Room (sin SDK).
+- **Archivos**: `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt` (rama + helper + import `TaskPriority`), `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt` (+4), AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md.
+- **Próxima prioridad**: Clusters C ("tengo N minutos"/"veinte minutos" — familia `quickTasks_*` c.416 cubre ya "tareas de 15 minutos"; la forma suelta sigue genérica; ruta honesta posible: extender la guarda) y E ("estoy abrumado" → foco What Now sin nueva interfaz); cualquier P0/P1 emergente. Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED.
+
 ## Ciclo c.679 — 2026-08-19 (UTC) — audit(parser↔context): ítem P2 c.592 (fracción sobre canónica) VERIFICADO YA RESUELTO (c.594) → CERRADO; re-audición guard anti-cuenta "las N" desnuda: paridad motor/parser 11/11. Sin cambio de código.
 
 - **Rama**: `openhands/autonomous-ordia`. HEAD inicial `1107a0a` (c.678 propio, push OK `a9d0a7e`→`1107a0a`). `git fetch` sin avances remotos → NO STALE_RUN. Entorno JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21); sin Android SDK. Auth git `github_token`.
@@ -30,6 +41,7 @@
 - **Archivos**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt` (+4), `tools/probe/OrdinalPosicionProbe.kt` (sonda nueva), AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md.
 - **Próxima prioridad**: revisión de producto / nuevas sondas; cualquier P0/P1 emergente. Re-fetch OBLIGATORIO.
 - **Estado**: VERIFIED.
+
 
 ## Ciclo c.676 — 2026-08-19 (UTC) — feat(parser): plazo mensual idiomático "para <mes>" ancla fin de mes (roll anual si ya pasó; año explícito soportado); "hasta <mes>" DECLINADO (forma de rango). +3 tests TDD.
 

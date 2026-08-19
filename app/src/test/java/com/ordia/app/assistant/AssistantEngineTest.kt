@@ -140,6 +140,65 @@ class AssistantEngineTest {
         assertTrue("no inventa compromiso sin haberlo: ${answer.text}", !answer.text.contains("compromiso"))
     }
 
+    // --- c.677: filtro por prioridad explícita. "¿tengo algo urgente?"/"¿qué es
+    // lo más importante?" caía al menú genérico aunque el usuario YA marcó ese
+    // dato (URGENT/HIGH) en la captura. IA honesta: responde con la señal que el
+    // usuario mismo puso, no con una inferencia. ---
+    @Test fun priorityUrgent_listsOnlyUrgentTier() {
+        val normal = TaskEntity(id = 1, title = "Normal")
+        val high = TaskEntity(id = 2, title = "Alta", priority = TaskPriority.HIGH)
+        val urgent = TaskEntity(id = 3, title = "Entrega crítica", priority = TaskPriority.URGENT)
+        val answer = AssistantEngine.answer(
+            "¿tengo algo urgente?",
+            listOf(normal, high, urgent),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(3L), answer.relatedTaskIds)
+        assertTrue("habla de urgentes: ${answer.text}", answer.text.contains("urgente"))
+        assertTrue("no lista la normal/alta: ${answer.text}", !answer.text.contains("Normal") && !answer.text.contains("Alta"))
+    }
+
+    @Test fun priorityImportant_includesHighAndUrgentTiers() {
+        val normal = TaskEntity(id = 1, title = "Normal")
+        val high = TaskEntity(id = 2, title = "Alta", priority = TaskPriority.HIGH)
+        val urgent = TaskEntity(id = 3, title = "Crítica", priority = TaskPriority.URGENT)
+        val answer = AssistantEngine.answer(
+            "¿qué es lo más importante?",
+            listOf(normal, high, urgent),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(3L, 2L), answer.relatedTaskIds)
+        assertTrue("habla de importantes: ${answer.text}", answer.text.contains("importante"))
+        assertTrue("no lista la normal: ${answer.text}", !answer.text.contains("Normal"))
+    }
+
+    @Test fun priorityUrgent_emptyIsHonestNotGeneric() {
+        val answer = AssistantEngine.answer(
+            "¿hay algo urgente?",
+            listOf(TaskEntity(id = 1, title = "Normal")),
+            emptyList(), emptyList()
+        )
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("vacío honesto: ${answer.text}", answer.text.contains("No tienes tareas marcadas como urgentes"))
+    }
+
+    @Test fun priorityUrgent_recoversOverdueCommitmentWhenEmpty() {
+        // Sin tareas urgentes PERO con un compromiso vencido: paridad con
+        // "tareas de 15 minutos" (c.416) — "no tienes urgentes" frente a una
+        // promesa vencida es mentira por omisión. Rutea a la recuperación.
+        val now = 1_000_000_000_000L
+        val commitment = overdueCommitment(32, "envío el informe", now - 2 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿tengo algo urgente?",
+            emptyList(),
+            emptyList(),
+            listOf(commitment),
+            now
+        )
+        assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
+    }
+
     // --- c.422: el menú genérico (consulta no reconocida) no debe callar un
     // compromiso vencido. Octavo olvido de la familia "lie-by-omission": el catch-all
     // es la superficie de mayor tránsito para un usuario confundido (escribió algo que

@@ -4,6 +4,7 @@ import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.ConversationEntity
 import com.ordia.app.data.local.TaskEntity
+import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.domain.CommitmentRules
 import com.ordia.app.domain.DateRules
@@ -441,6 +442,33 @@ object AssistantEngine {
             // normalizada de SearchEngine. Va tras agenda/what-now/recap (éstas se
             // evalúan antes y describen conjuntos, no una entidad concreta).
             isEntityLookupQuery(query) -> entityLookupAnswer(query, active, now, zone)
+            // Filtro por prioridad EXPLÍCITA ("urgente"/"importante"). El usuario ya
+            // marcó esa señal en la captura con URGENT/HIGH del enum; "urgente" filtra
+            // el nivel URGENT y "importante" cubre HIGH+URGENT (los dos niveles altos
+            // del modelo LOW/NORMAL/HIGH/URGENT). Se listan en el orden de What Now
+            // para que lo primero nombrado sea lo primero sugerido. IA honesta:
+            // responde con la señal que el propio usuario puso, no con una inferencia.
+            // Va tras recap/entity-lookup para no robar consultas que combinen tiempo
+            // o entidad con "urgente"/"importante" ("¿cuándo es lo urgente?" sigue
+            // resolviéndose como entity-lookup). Con lista vacía y un compromiso
+            // vencido rutea a la recuperación (paridad con c.416 "tareas de 15
+            // minutos": "no tienes urgentes" frente a una promesa vencida es mentira
+            // por omisión); con coincidencias anexa la cola de conteo
+            // (overdueCommitmentTail).
+            isPriorityQuery(query) -> {
+                val isUrgent = "urgente" in query
+                val allowed = if (isUrgent) setOf(TaskPriority.URGENT) else setOf(TaskPriority.HIGH, TaskPriority.URGENT)
+                val label = if (isUrgent) "urgentes" else "importantes"
+                val hits = WhatNowEngine.ordered(active, now, zone).filter { it.priority in allowed }.take(6)
+                if (hits.isEmpty() && overdueCommitments.isNotEmpty()) {
+                    return overdueCommitmentAnswer(overdueCommitments)
+                }
+                AssistantAnswer(
+                    if (hits.isEmpty()) "No tienes tareas marcadas como $label."
+                    else "Tienes ${hits.size} $label: " + hits.joinToString(" · ") { it.title } + overdueCommitmentTail(overdueCommitments),
+                    relatedTaskIds = hits.map { it.id }
+                )
+            }
             // Octavo olvido de la familia "lie-by-omission": la consulta no casa con
             // ninguna rama conocida y el asistente cae a su menú de capacidades. Es la
             // superficie de mayor tránsito para un usuario confundido —y justo ahí
@@ -479,6 +507,14 @@ object AssistantEngine {
         // anteayer). "anteayer" contiene "ayer", por lo que ambos se cubren.
         return isRecapVerb || "hice ayer" in query || "hice anteayer" in query
     }
+
+    /**
+     * Guarda de la rama de prioridad explícita: la consulta menciona "urgente"
+     * o "importante" (plural incluido por subcadena). Tokens sin acento tras
+     * `foldForSearch`. Par de tokens deliberado y pequeño para no secuestrar
+     * otras ramas; el desempate ("urgente" preferente) ocurre en la rama.
+     */
+    private fun isPriorityQuery(query: String): Boolean = "urgente" in query || "importante" in query
 
     /**
      * Respuesta de logro para "¿qué hice hoy/ayer/anteayer?" y para períodos
