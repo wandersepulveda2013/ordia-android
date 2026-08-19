@@ -43,7 +43,12 @@ fun main() {
         "no imprimir el informe",
         "quizá imprimir el informe mañana",
         "la impresión del informe fue ayer",
-        "imprimir"
+        "imprimir",
+        // Controles c.709 (piso "reservar"): misma doctrina.
+        "no reservar el hotel",
+        "quizá reservar el restaurante mañana",
+        "la reserva del restaurante es mañana",
+        "reservar"
     )
     for (c in cases) {
         val intent = ContextIntentEngine.analyze(

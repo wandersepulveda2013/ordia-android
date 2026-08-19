@@ -724,7 +724,14 @@ object ContextIntentEngine {
             // acción de gestión sobre el objeto (entradas/informe/
             // contrato/billete), no un evento (MEETING) ni un
             // desplazamiento (ERRAND, anclado a destinos físicos).
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )imprimir\s+\w""").containsMatchIn(lower)
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )imprimir\s+\w""").containsMatchIn(lower) ||
+            // c.709: "reservar <objeto>" ("reservar el restaurante el
+            // sábado"), forma 7/8 de la clase de verbos cotidianos (sonda
+            // `tools/probe/CommonVerbDiscoveryProbe.kt`, c.692); mismo
+            // ancla/guard que c.691…c.708. Kind TASK: "reservar" gobierna
+            // el objeto (restaurante/mesa/hotel/vuelo); el evento/cita en
+            // sí se captura por su propia vía.
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reservar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1347,6 +1354,12 @@ object ContextIntentEngine {
                 // temporal despojado).
                 val matchImprimir = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )imprimir\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchImprimir != null) return "Imprimir ${matchImprimir.groupValues[1]}"
+
+                // "reservar X" → "Reservar X" (c.709): mismo criterio
+                // que c.691…c.708 (verbo preservado, acuse/prefijo
+                // temporal despojado).
+                val matchReservar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reservar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchReservar != null) return "Reservar ${matchReservar.groupValues[1]}"
 
                 null
             }
