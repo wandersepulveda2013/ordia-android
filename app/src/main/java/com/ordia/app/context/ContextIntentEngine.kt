@@ -120,8 +120,27 @@ object ContextIntentEngine {
     // APPOINTMENT 0.69 robaba a TASK 0.45; "recuérdame llamar al banco" → CALL
     // 0.57 (hallazgo c.652, cierre c.653).
     private val APPOINTMENT_CITA_PATTERN = Regex("""cita (con|médica|del|con el|con la)""")
+    // c.682: "psicólog[oa]/nutricionista/terapeuta" ya eran keywords del kind
+    // (ContextIntentKind.APPOINTMENT) pero faltaban en el patrón específico
+    // (lockstep keyword↔patrón, misma lección c.639 para HOUSEHOLD): sin ellos,
+    // "ir al psicólogo" no reunía evidencia suficiente para superar el umbral.
     private val APPOINTMENT_MEDICAL_PATTERN =
-        Regex("""(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia)""")
+        Regex("""(dentista|doctor|médico|especialista|consulta|revisión|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta)""")
+    // Desplazamiento a destino médico inequívoco (c.682, hallazgo c.681):
+    // "ir al médico mañana" se DESCARTABA (NULL, olvido silencioso P1): las
+    // evidencias sueltas (keyword + patrón médico + bono de fecha ≈ 0.42) no
+    // alcanzaban [MINIMUM_CONFIDENCE] sin la keyword "cita". "ir a(l)
+    // <destino médico>" es tan inequívoco como "ir al gimnasio" (EXERCISE,
+    // patrón específico) o "ir al banco" (ERRAND, piso c.639): el desplazamiento
+    // a un profesional/servicio de salud ES la cita. Lista cerrada de destinos
+    // (no "taller"/"revisión" suelta: "llevar el coche a revisión" NO es cita
+    // médica). El lookbehind `(?<!no )` bloquea la negación inmediata ("no ir al
+    // médico"); el envolvente ("recuérdame ir al médico"→TASK) queda protegido
+    // por el guard vía la fuente única [APPOINTMENT_SPECIFIC] (lección c.653).
+    // Se aplica como BONO (no piso), así la duda (c.649) y la condición (c.650)
+    // penalizan DESPUÉS y siguen descartando ("quizá ir al médico" → NULL).
+    private val APPOINTMENT_GO_PATTERN =
+        Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(médico|dentista|doctor|especialista|consulta|chequeo|terapia|psicólog[oa]|nutricionista|terapeuta)\b""")
     // Futuro declarativo de 1ª persona (c.663): "tendré (una |la )?cita" y "tendré
     // <sustantivo médico>" son promesas explícitas (no infinitivo condicionable),
     // evidencia MÁS firme que el presente — mismo olvido P1 que c.656 cerró para
@@ -137,7 +156,8 @@ object ContextIntentEngine {
             APPOINTMENT_CITA_PATTERN,
             APPOINTMENT_MEDICAL_PATTERN,
             APPOINTMENT_CITA_FUTURE_PATTERN,
-            APPOINTMENT_MEDICAL_FUTURE_PATTERN
+            APPOINTMENT_MEDICAL_FUTURE_PATTERN,
+            APPOINTMENT_GO_PATTERN
         )
     private val CALL_LLAMAR_PATTERN = Regex("""llamar (a|por teléfono)""")
     private val CALL_HABLAR_PATTERN = Regex("""hablar (con|por teléfono)""")
@@ -947,6 +967,16 @@ object ContextIntentEngine {
                 // DESCARTABA (olvido P1) aunque a veces arrastraba fecha/hora.
                 if (APPOINTMENT_CITA_FUTURE_PATTERN.containsMatchIn(lower)) s += 0.45f
                 if (APPOINTMENT_MEDICAL_FUTURE_PATTERN.containsMatchIn(lower)) s += 0.45f
+                // Bono de desplazamiento a destino médico (c.682): "ir al médico
+                // (mañana)" se descartaba (NULL, olvido silencioso P1) porque las
+                // evidencias sueltas sumaban ~0.42 (< [MINIMUM_CONFIDENCE]) sin
+                // la keyword "cita". El desplazamiento a un profesional/servicio
+                // de salud es evidencia inequívoca de cita (simétrico a "ir al
+                // gimnasio"/"ir al banco"). Bono (no piso): la duda (c.649) y la
+                // condición (c.650) penalizan después y siguen descartando. El
+                // patrón vive en [APPOINTMENT_SPECIFIC], así el guard de
+                // envolvente (c.653) protege "recuérdame ir al médico" → TASK.
+                if (APPOINTMENT_GO_PATTERN.containsMatchIn(lower)) s += 0.35f
                 s
             }
             ContextIntentKind.MEETING -> {

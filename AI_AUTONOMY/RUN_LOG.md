@@ -1,3 +1,13 @@
+## Ciclo c.683 — 2026-08-19 — feat(context): "ir a(l) <destino médico>" → APPOINTMENT + TDD [renumerado c.682→c.683 por colisión de cycle-ID con run concurrente c.682 (ecd9c78 wrapper "recuerda <infinitivo>"); stash→ff-only→pop; regiones DISJUNTAS en el mismo archivo]
+
+- **HEAD inicial**: `0557cde` (c.681 remoto) → integrado sobre `ecd9c78` (c.682 remoto) → HEAD final vía commit propio.
+- **Cambio**: `APPOINTMENT_GO_PATTERN` (desplazamiento a destino médico, bono +0.35) + `APPOINTMENT_MEDICAL_PATTERN` ampliado (psicólog[oa]|nutricionista|terapeuta) + fuente única `APPOINTMENT_SPECIFIC` (guard envolvente) + lookbehind `(?<!no )` (anti-overreach).
+- **Bugs**: ninguno nuevo; controles intactos (negación NULL, envolvente→TASK/REMINDER, duda/condición NULL, c.653 intacto).
+- **Features**: familia "ir al médico mañana" (ítem c.681) ahora captura APPOINTMENT con título limpio y dueAt opcional (0.67–0.77).
+- **Tests**: `run_domain_tests.sh` → 3919 PASS, 0 failures; `run_domain_checks.sh` → 25 OK; `run_automation_engine_checks.sh` → 9 OK. RED→GREEN verificado (7 failures pre-fix). NO VERIFICADO Android/gradle/UI/Room.
+- **Commits**: c.683 (cambio + memoria).
+- **Próxima prioridad**: follow-ups OPEN c.681 (NULL-capturas restantes, una forma por ciclo); sondas; P0/P1 emergente. Re-fetch OBLIGATORIO.
+
 ## Ciclo c.682 — 2026-08-19 — feat(context): wrapper "recuerda <infinitivo>" captura como TASK; cierra 1 de 7 formas NULL del P1 c.681
 
 - **Rama**: `openhands/autonomous-ordia` | **HEAD inicial**: `0557cde` (c.681 propio, post-push; fetch sin avances concurrentes → NO STALE_RUN) | **HEAD final**: tras docs+commit.
