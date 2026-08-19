@@ -680,7 +680,11 @@ object ContextIntentEngine {
             // c.691: verbo al inicio o tras prefijo de ACUSE, `\s+\w` exige
             // objeto, `(?<!no )` bloquea la negada, el sustantivo "envío"
             // no casa.
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )enviar\s+\w""").containsMatchIn(lower)
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )enviar\s+\w""").containsMatchIn(lower) ||
+            // c.693: "entregar <objeto>" ("entregar la tarea el lunes"),
+            // forma 2/8 de la clase de verbos cotidianos (sonda
+            // `tools/probe/CommonVerbDiscoveryProbe.kt`); mismo ancla/guard.
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )entregar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1119,7 +1123,11 @@ object ContextIntentEngine {
             }
             ContextIntentKind.HOUSEHOLD -> {
                 var s = 0f
-                if (Regex("""(limpiar|ordenar|cocinar|lavar|planchar|arreglar|reparar|jardín|fregar|barrer|trapear|regar|sacudir|desempolvar)""").containsMatchIn(lower)) s += 0.15f
+                // `\b` inicial (c.693): sin borde de palabra "regar" casa DENTRO
+                // de "entregar"/"entregaré" y el verbo de entrega se roba como
+                // tarea doméstica ("entregar el informe a las 9" → HOUSEHOLD
+                // "Regar el informe"). El piso (HOUSEHOLD_FLOOR) ya tiene `\b`.
+                if (Regex("""\b(limpiar|ordenar|cocinar|lavar|planchar|arreglar|reparar|jardín|fregar|barrer|trapear|regar|sacudir|desempolvar)""").containsMatchIn(lower)) s += 0.15f
                 s
             }
             else -> 0f
@@ -1265,6 +1273,11 @@ object ContextIntentEngine {
                 val matchEnviar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )enviar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchEnviar != null) return "Enviar ${matchEnviar.groupValues[1]}"
 
+                // "entregar X" → "Entregar X" (c.693): mismo criterio que
+                // c.691/c.692 (verbo preservado, acuse despojado).
+                val matchEntregar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )entregar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchEntregar != null) return "Entregar ${matchEntregar.groupValues[1]}"
+
                 null
             }
             ContextIntentKind.SHOPPING -> {
@@ -1384,7 +1397,8 @@ object ContextIntentEngine {
             ContextIntentKind.HOUSEHOLD -> {
                 // Verbos alineados con [hasStrongHouseholdImperative] (c.638/c.639) para que
                 // el piso no capture un verbo cuyo título luego no se forme limpio.
-                val match = Regex("""(limpiar|ordenar|cocinar|lavar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar) (.+)""", RegexOption.IGNORE_CASE).find(original)
+                // `\b` (c.693): sin borde, "regar" casa dentro de "entregar".
+                val match = Regex("""\b(limpiar|ordenar|cocinar|lavar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return "${capitalizeFirst(match.groupValues[1])} ${match.groupValues[2]}"
                 null
             }

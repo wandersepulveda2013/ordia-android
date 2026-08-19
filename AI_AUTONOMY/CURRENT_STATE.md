@@ -1,6 +1,15 @@
+## Ciclo c.693 — 2026-08-19 (UTC) — feat(context): piso TASK "entregar <objeto>" (forma 2/8 clase-verbos) + fix colateral substring "regar"⊂"entregar" + TDD
+
+- HEAD inicial `f958fe4` (commit propio c.692, push confirmado) → HEAD final pendiente. Re-fetch pre-trabajo sin avance concurrente.
+- Fix (P1 olvido silencioso): piso TASK "entregar <objeto>" con ancla inicio/acuse (patrón c.691/c.692) + plantilla de título "entregar X"→"Entregar X" (despoja acuse). Anti-overreach: `\s+\w` objeto, `(?<!no )` negada, c.649 "quizá…"→NULL, sustantivo "entrega" no casa.
+- Bug colateral descubierto por RED parcial (sonda de scores por reflexión): "entregar el informe a las 9" → HOUSEHOLD 'Regar el informe' — "regar" casaba DENTRO de "entregar" (regex de score + extractTitle HOUSEHOLD sin `\b`; keyword "regar" por `contains`). Fix mínimo: `\b` en ambos regex HOUSEHOLD; la keyword sola (0.12+0.18=0.30) ya no puede ganar sin piso (piso ya tenía `\b`). Regresión fijada: "regar las plantas" → HOUSEHOLD intacto.
+- TDD: +11 en `ContextIntentEngineEntregarFloorTest.kt` (RED exacto: 5 capture-failures, 6 controles/regresión verdes pre-fix). **4040 PASS** (4029 + 11), 0 failures; smoke 25 OK; automation 9 OK; sonda POST: "entregar la tarea el lunes" → TASK 'Entregar la tarea' dueAt=true. NO VERIFICADO Android/gradle/UI/Room.
+- BACKLOG: ítem P1 clase-verbos (PARCIAL; restan 6: firmar/renovar/confirmar/imprimir/reservar/cambiar). NUEVO OPEN (descubierto c.693): P1 prefijo temporal + verbo de piso TASK → NULL ("hoy entregar el informe", "mañana enviar el informe", "hoy revisar el informe" → NULL; el ancla sólo admite inicio/acuse). Propuesta: UN cambio de clase (ancla con prefijo temporal duro) para revisar/enviar/entregar.
+- Próximo: ítem OPEN prefijo temporal (probable mejor impacto: cierra asimetría de 3 verbos de una vez) o siguiente forma de la clase; clusters C/E assistant; re-fetch OBLIGATORIO.
+
 ## Ciclo c.692 — 2026-08-19 (UTC) — feat(context): piso TASK "enviar <objeto>" con ancla inicio/acuse + plantilla de título (P1 clase de verbos cotidianos sin piso, sonda `CommonVerbDiscoveryProbe.kt`) + TDD
 
-- HEAD inicial `2dd66a5` (commit propio c.691) → HEAD final pendiente. Fetch pre-trabajo sin avance concurrente.
+- HEAD inicial `2dd66a5` (commit propio c.691) → HEAD final `f958fe4` (push confirmado c.693; hubo rebase sobre `73f407c` c.690b concurrente, área disjunta, conflictos sólo en RUN_LOG conservando ambas entradas). Fetch pre-trabajo sin avance concurrente.
 - Descubrimiento: sonda de clase `tools/probe/CommonVerbDiscoveryProbe.kt` — 8 verbos cotidianos con objeto+fecha → NULL (enviar/entregar/firmar/renovar/confirmar/imprimir/reservar/cambiar); "devolver"/"recoger" ya capturan vía ERRAND. Controles ya NULL. Una forma por ciclo → c.692 = "enviar".
 - Fix (P1 olvido silencioso): piso TASK "enviar <objeto>" (ancla inicio/acuse, patrón c.691/c.651) + plantilla de título "enviar X"→"Enviar X" (despoja acuse, lección c.616). Anti-overreach: `\s+\w` objeto, `(?<!no )` negada, c.649 "quizá…"→NULL, sustantivo "envío" no casa.
 - TDD: +10 en `ContextIntentEngineEnviarFloorTest.kt` (RED exacto: 5 capture-failures, 5 controles/regresión verdes pre-fix). **4027 PASS** (4017 + 10), 0 failures; smoke 25 OK; automation 9 OK; sonda: "enviar el informe mañana" → TASK 'Enviar el informe' dueAt=true. NO VERIFICADO Android/gradle/UI/Room.

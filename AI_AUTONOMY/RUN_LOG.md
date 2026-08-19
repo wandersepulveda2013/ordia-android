@@ -15316,3 +15316,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos**: `ContextIntentEngine.kt` (piso + plantilla), `ContextIntentEngineEnviarFloorTest.kt` (+10), `tools/probe/CommonVerbDiscoveryProbe.kt` (persistente), AI_AUTONOMY md.
 - **Próxima prioridad**: siguiente forma de la clase (entregar/firmar/renovar/confirmar/imprimir/reservar/cambiar — valorar kind en cada ciclo, p.ej. "renovar el DNI" quizá ERRAND); clusters C/E assistant. Re-fetch OBLIGATORIO.
 - **Estado**: VERIFIED. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+### 2026-08-19 — c.693 (agente OpenHands)
+
+- **HEAD inicial**: `f958fe4` (commit propio c.692; push del run anterior confirmado OK). `git fetch` pre-trabajo: sin avance concurrente → NO STALE_RUN.
+- **Problema (P1)**: forma 2/8 de la clase-verbos (sonda `CommonVerbDiscoveryProbe.kt`): "entregar <objeto>" ("entregar la tarea el lunes") → NULL.
+- **TDD**: +11 en `ContextIntentEngineEntregarFloorTest.kt`. RED exacto: EXACTAMENTE 5 failures (capturas), 6 controles/regresión verdes pre-fix sobre 4039.
+- **Solución (mínima, 2 puntos, determinista)**: piso TASK "entregar" ancla inicio/acuse (patrón c.691/c.692) + plantilla de título "entregar X"→"Entregar X" (despoja acuse). Anti-overreach: `\s+\w` objeto, `(?<!no )` negada, c.649 "quizá…"→NULL, sustantivo "entrega" no casa.
+- **Bug colateral (RED parcial)**: "entregar el informe a las 9" → HOUSEHOLD 'Regar el informe' — "regar" casaba DENTRO de "entregar" (regex score + extractTitle HOUSEHOLD sin `\b`; tie float 0.45000002 vs TASK 0.45). Sonda de scores por reflexión (`scoreKind` por kind) aisló la causa. Fix: `\b` en ambos regex; keyword "regar" sola (0.30) ya no puede ganar. Regresión fijada: "regar las plantas" → HOUSEHOLD 'Regar las plantas' intacto.
+- **GREEN**: `run_domain_tests.sh` → **OK (4040 tests)** (4029 + 11), 0 failures; `run_domain_checks.sh` → 25 OK; `run_automation_engine_checks.sh` → 9 OK; sonda POST: "entregar la tarea el lunes" → TASK 'Entregar la tarea' dueAt=true; "quizá entregar la tarea mañana" → NULL.
+- **Descubrimiento NUEVO (BACKLOG OPEN P1)**: prefijo temporal + verbo de piso TASK → NULL ("hoy entregar el informe", "mañana enviar el informe", "hoy revisar el informe", "mañana entregar la tarea"; sonda ad-hoc 4/4 NULL) — el ancla sólo admite inicio/acuse. Propuesta: UN cambio de clase (ancla con prefijo temporal duro) cubre revisar/enviar/entregar.
+- **Archivos**: `ContextIntentEngine.kt` (piso + plantilla + `\b` ×2 HOUSEHOLD), `ContextIntentEngineEntregarFloorTest.kt` (+11), AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md. Sondas ad-hoc de diagnóstico eliminadas tras uso (la persistente `CommonVerbDiscoveryProbe.kt` sigue).
+- **Próxima prioridad**: ítem OPEN prefijo temporal (mejor impacto: cierra asimetría de 3 verbos) o forma 3/8 de la clase; clusters C/E assistant. Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
