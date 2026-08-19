@@ -33,7 +33,12 @@ fun main() {
         "no renovar el seguro",
         "quizá renovar el seguro mañana",
         "la renovación del seguro es mañana",
-        "renovar"
+        "renovar",
+        // Controles c.700 (piso "confirmar"): misma doctrina.
+        "no confirmar la reserva",
+        "quizá confirmar la reserva mañana",
+        "la confirmación de la reserva llegó ayer",
+        "confirmar"
     )
     for (c in cases) {
         val intent = ContextIntentEngine.analyze(
