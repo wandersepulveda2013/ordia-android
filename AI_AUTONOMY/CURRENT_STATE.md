@@ -1,3 +1,14 @@
+## Ciclo c.679 — 2026-08-19 (UTC) — audit(parser↔context): ítem P2 c.592 (fracción sobre canónica) VERIFICADO YA RESUELTO (c.594) → CERRADO; re-audición guard anti-cuenta "las N" desnuda: paridad motor/parser 11/11. Sin cambio de código.
+
+- **Rama**: `openhands/autonomous-ordia`. HEAD inicial `1107a0a` (c.678 propio, push OK `a9d0a7e`→`1107a0a`). `git fetch` sin avances remotos → NO STALE_RUN. Entorno JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21); sin Android SDK. Auth git `github_token`.
+- **Actividad 1 (P2 backlog-cleanup)**: sonda `tools/probe/MidpointFractionProbe.kt` verifica que la fracción "y media"/"y cuarto" sobre canónica ("al mediodía y media"→12:30, "a medianoche y cuarto"→00:15) YA está soportada en `ContextIntentEngine.extractDateTime` (familia c.591/c.594: `resolveClockFraction`+`CLOCK_FRACTION_MAP`/`CLOCK_FRACTION_PHRASE`, rama `hasMedianoche`/`hasMediodia`); 6/6 casos conformes, past-safe intacto. El ítem ABIERTO desde c.592 quedó OBSOLETO → CERRADO en BACKLOG (VERIFICADO YA RESUELTO).
+- **Actividad 2 (auditoría pendiente c.630-familia)**: sonda `tools/probe/BareLasAudit.kt` contra AMBOS componentes (`extractDateTime` + `NaturalTaskParser.parse`), 11 casos: cuentas preservadas ("las 3 cajas"/"las 4 tareas"→null/null), citas desnudas con paridad EXACTA motor↔parser (11/11). Rama "subject noun las N" ("matemáticas las 4"→04:00) = abreviatura de horario de clase, aceptada por diseño; el guard anti-cuenta opera sobre el tail (sustantivo plural posterior), no sobre el sujeto previo. Sin defecto medible, sin cambio de código.
+- **Tests**: sin cambio de código → suite no re-ejecutada (baseline 3875 PASS de c.678, minutos antes); sondas 6/6 y 11/11 conformes. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+- **Archivos**: `tools/probe/MidpointFractionProbe.kt` (nueva), `tools/probe/BareLasAudit.kt` (nueva), AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md. RUN_LOG: entrada c.678 reubicada del pie al tope (convención newest-first). Sondas sin hallazgos del run eliminadas (no commiteadas).
+- **Próxima prioridad**: nueva revisión de producto / sondas de descubrimiento en otra área (rutinas, calendario, búsqueda); cualquier P0/P1 emergente. Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED.
+
+
 ## Ciclo c.678 — 2026-08-19 (UTC) — fix(privacidad): exención médica de `\bdroga` admite PLURAL ("las drogas recetadas", "las drogas de las recetas") — cierre del hallazgo pendiente c.642 (drogas+sexual auditadas; sexual sin gap). +3 tests TDD.
 
 - **Rama**: `openhands/autonomous-ordia`. HEAD inicial `a9d0a7e` (c.677 propio, head==origin tras fetch) → NO STALE_RUN. Entorno JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21); sin Android SDK. Auth git `github_token`.
