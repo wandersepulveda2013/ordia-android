@@ -671,7 +671,16 @@ object ContextIntentEngine {
             // verbo al inicio o tras prefijo de ACUSE. Anti-overreach:
             // `\s+\w` exige objeto ("revisar" aislado no captura),
             // `(?<!no )` bloquea la negada, "revisión" (sustantivo) no casa.
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )revisar\s+\w""").containsMatchIn(lower)
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )revisar\s+\w""").containsMatchIn(lower) ||
+            // c.692: "enviar <objeto>" (envío de gestión cotidiana: "enviar
+            // el informe mañana") se DESCARTABA — descubierto con la sonda de
+            // clase `tools/probe/CommonVerbDiscoveryProbe.kt` (c.692), que
+            // reveló una familia de verbos sin piso; se resuelve UNA forma
+            // por ciclo (doctrina anti-overreach). Mismo patrón de ancla que
+            // c.691: verbo al inicio o tras prefijo de ACUSE, `\s+\w` exige
+            // objeto, `(?<!no )` bloquea la negada, el sustantivo "envío"
+            // no casa.
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )enviar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1248,6 +1257,13 @@ object ContextIntentEngine {
                 // el verbo, no en el acuse). Mismo ancla/guard que el piso.
                 val matchRevisar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )revisar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchRevisar != null) return "Revisar ${matchRevisar.groupValues[1]}"
+
+                // "enviar X" → "Enviar X" (c.692): mismo criterio que la
+                // plantilla de c.691 — el verbo gobierna el contenido y se
+                // PRESERVA; el prefijo de acuse se despoja (el match arranca
+                // en el verbo). Mismo ancla/guard que el piso.
+                val matchEnviar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )enviar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchEnviar != null) return "Enviar ${matchEnviar.groupValues[1]}"
 
                 null
             }

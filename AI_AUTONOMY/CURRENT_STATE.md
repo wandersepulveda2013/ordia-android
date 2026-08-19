@@ -1,3 +1,12 @@
+## Ciclo c.692 — 2026-08-19 (UTC) — feat(context): piso TASK "enviar <objeto>" con ancla inicio/acuse + plantilla de título (P1 clase de verbos cotidianos sin piso, sonda `CommonVerbDiscoveryProbe.kt`) + TDD
+
+- HEAD inicial `2dd66a5` (commit propio c.691) → HEAD final pendiente. Fetch pre-trabajo sin avance concurrente.
+- Descubrimiento: sonda de clase `tools/probe/CommonVerbDiscoveryProbe.kt` — 8 verbos cotidianos con objeto+fecha → NULL (enviar/entregar/firmar/renovar/confirmar/imprimir/reservar/cambiar); "devolver"/"recoger" ya capturan vía ERRAND. Controles ya NULL. Una forma por ciclo → c.692 = "enviar".
+- Fix (P1 olvido silencioso): piso TASK "enviar <objeto>" (ancla inicio/acuse, patrón c.691/c.651) + plantilla de título "enviar X"→"Enviar X" (despoja acuse, lección c.616). Anti-overreach: `\s+\w` objeto, `(?<!no )` negada, c.649 "quizá…"→NULL, sustantivo "envío" no casa.
+- TDD: +10 en `ContextIntentEngineEnviarFloorTest.kt` (RED exacto: 5 capture-failures, 5 controles/regresión verdes pre-fix). **4027 PASS** (4017 + 10), 0 failures; smoke 25 OK; automation 9 OK; sonda: "enviar el informe mañana" → TASK 'Enviar el informe' dueAt=true. NO VERIFICADO Android/gradle/UI/Room.
+- BACKLOG: ítem P1 clase-verbos (PARCIAL; restan 7 formas: entregar/firmar/renovar/confirmar/imprimir/reservar/cambiar).
+- Próximo: siguiente forma de la clase (entregar el informe — decidir kind TASK; "renovar el DNI" quizá ERRAND: decidir con sonda en su ciclo); clusters C/E assistant (c.680); re-fetch OBLIGATORIO.
+
 ## Ciclo c.691 — 2026-08-19 (UTC) — feat(context): piso TASK "revisar <objeto>" con ancla inicio/acuse + plantilla de título (P1 "revisar … pasado mañana" → NULL, descubierto c.690) + TDD
 
 - HEAD inicial `8c8a990` (commit propio c.690) → HEAD final pendiente. Fetch pre-trabajo sin avance concurrente.

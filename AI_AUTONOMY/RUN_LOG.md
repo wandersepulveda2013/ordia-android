@@ -15303,3 +15303,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Rebase**: commit rebased sobre `2dd66a5` (c.691 concurrente que cerró el P1 "revisar"); conflictos sólo en AI_AUTONOMY md, resueltos conservando TODAS las entradas; re-suite post-rebase: **4019 PASS** (4017 c.691 + 2), 0 failures; smoke 25 OK.
 - **Próxima prioridad**: clusters C/E assistant (c.680); sondas de descubrimiento (verbos cotidianos sin piso). Re-fetch OBLIGATORIO.
 - **Estado**: VERIFIED (JVM). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+### 2026-08-19 — c.692 (agente OpenHands)
+
+- **HEAD inicial**: `2dd66a5` (commit propio c.691). `git fetch` pre-trabajo: sin avance concurrente.
+- **Descubrimiento (sonda de clase)**: `tools/probe/CommonVerbDiscoveryProbe.kt` (persistente) — 8 verbos cotidianos de gestión con objeto+fecha → NULL: enviar, entregar, firmar, renovar, confirmar, imprimir, reservar, cambiar. "devolver"/"recoger" ya capturan vía ERRAND. Controles (negada/condicional/sustantivo "envío"/suelto) ya NULL. Nuevo ítem P1 en BACKLOG (PARCIAL; una forma por ciclo).
+- **Problema (P1)**: forma "enviar <objeto>" se DESCARTABA (analyze → NULL) — ningún piso cubre "enviar", bono temporal insuficiente.
+- **TDD**: +10 en `ContextIntentEngineEnviarFloorTest.kt`. RED exacto: EXACTAMENTE 5 failures (capturas), 5 controles/regresión verdes pre-fix sobre 4027.
+- **Solución (mínima, 2 puntos, determinista)**: piso TASK "enviar" ancla inicio/acuse (patrón c.691/c.651) + plantilla de título "enviar X"→"Enviar X" (despoja acuse). Anti-overreach: `\s+\w` objeto, `(?<!no )` negada, c.649 "quizá…"→NULL, "envío" no casa.
+- **GREEN**: `run_domain_tests.sh` → **4027 PASS** (4017 + 10), 0 failures; `run_domain_checks.sh` → 25 OK; `run_automation_engine_checks.sh` → 9 OK; sonda POST: "enviar el informe mañana" → TASK 'Enviar el informe' dueAt=true.
+- **Rebase**: push rechazado (run c.690b concurrente `73f407c`, área disjunta); `git rebase origin/...` — conflictos SÓLO en RUN_LOG.md (append-only), resueltos conservando TODAS las entradas; auto-merge de `ContextIntentEngine.kt` limpio (regiones disjuntas); re-suite post-rebase: **4029 PASS** (4019 c.690b + 10), 0 failures. NO force push, NO reset --hard, NO trabajo ajeno sobrescrito.
+- **Archivos**: `ContextIntentEngine.kt` (piso + plantilla), `ContextIntentEngineEnviarFloorTest.kt` (+10), `tools/probe/CommonVerbDiscoveryProbe.kt` (persistente), AI_AUTONOMY md.
+- **Próxima prioridad**: siguiente forma de la clase (entregar/firmar/renovar/confirmar/imprimir/reservar/cambiar — valorar kind en cada ciclo, p.ej. "renovar el DNI" quizá ERRAND); clusters C/E assistant. Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
