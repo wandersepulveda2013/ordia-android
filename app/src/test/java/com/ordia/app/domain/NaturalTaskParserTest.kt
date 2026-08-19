@@ -10192,6 +10192,64 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    // --- Idioma "de hoy en ocho/quince/N (días)": coloquialismo (+N días) ---
+    // P1: sin unidad no casaba ningún relativo → keyword "hoy" agendaba PARA HOY y
+    // "en ocho" quedaba de residuo en el título (fecha errónea + título sucio).
+    // P2: con "días" el prefijo "de hoy en" no casaba → el alert residual caía al
+    // fallback y el título resucitaba el texto completo ("de hoy en quince días").
+
+    @Test fun deHoyEnOchoResuelveMasOchoDias() {
+        // now 2026-07-29 + 8 días = 2026-08-06.
+        val result = NaturalTaskParser.parse("llamar de hoy en ocho", now, zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 6), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deHoyEnQuinceResuelveMasQuinceDias() {
+        // now 2026-07-29 + 15 días = 2026-08-13.
+        val result = NaturalTaskParser.parse("revisar de hoy en quince", now, zone)
+        assertEquals("revisar", result.title)
+        assertEquals(LocalDate.of(2026, 8, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deHoyEnQuinceDiasLimpiaTitulo() {
+        // Con unidad explícita: el prefijo completo se consume y el título queda limpio.
+        val result = NaturalTaskParser.parse("cita de hoy en quince días", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 13), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deHoyEnDigitosResuelveMasNDias() {
+        // now 2026-07-29 + 30 días = 2026-08-28.
+        val result = NaturalTaskParser.parse("informe de hoy en 30", now, zone)
+        assertEquals("informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 28), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deHoyEnOchoDiasResuelveMasOchoDias() {
+        val result = NaturalTaskParser.parse("cita de hoy en ocho días", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 6), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun deHoyConUnidadNoDiaUsaLaUnidadReal() {
+        // Guard anti-falso-positivo: el idioma sin unidad no debe robar "8 horas" ni
+        // "15 minutos": la unidad explícita gana (lookahead negativo del idiom).
+        val result = NaturalTaskParser.parse("entrega de hoy en 8 horas", now, zone)
+        assertEquals("entrega", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun deHoyEnOchoConHoraExplicita() {
+        // El idioma es a nivel día y se combina con la hora explícita: +8d a las 10:00.
+        val result = NaturalTaskParser.parse("cita de hoy en ocho a las 10", now, zone)
+        assertEquals("cita", result.title)
+        assertEquals(LocalDate.of(2026, 8, 6), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+
     @Test fun weekdayHoyConHoraFuturaQuedaHoy() {
         val result = NaturalTaskParser.parse("Reunión el viernes a las 18", fridayNow, zone)
         assertEquals("Reunión", result.title)

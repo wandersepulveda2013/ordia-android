@@ -354,9 +354,30 @@ object NaturalTaskParser {
      * valor que "un par de"). El prefijo ("en/dentro de/de aquí a") + la palabra de
      * unidad protegen de falsos positivos: "comprar unos libros"/"tengo unos
      * pendientes" no casan (libros/pendientes no son unidades de tiempo).
+     * Admite el prefijo idiomático "de hoy en" (coloquial muy común: "llamar de hoy
+     * en dos semanas"): antes sólo casaba la subcadena "en dos semanas" y el "de
+     * hoy" suelto activaba el keyword "hoy" o quedaba como residuo, y si la frase de
+     * agenda era TODO el contenido, el fallback de título resucitaba el texto
+     * completo ("de hoy en quince días" como título). La forma SIN unidad
+     * ("de hoy en ocho" = +8d) la captura [deHoyEnIdiomPattern], procesada antes.
      */
     private val relativePattern = Regex(
-        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(un\s+par\s+de|unos|unas|\d{1,3}(?:[.,]\d+)?|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)(?:\s+y\s+(media|medio))?\b"""
+        """(?i)\b(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a|de\s+hoy\s+en)\s+(un\s+par\s+de|unos|unas|\d{1,3}(?:[.,]\d+)?|$writtenNumberGroup)\s*(minutos?|mins?|horas?|d[ií]as?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)(?:\s+y\s+(media|medio))?\b"""
+    )
+    /**
+     * Idioma "de hoy en ocho/quince/N (días)" SIN unidad explícita: coloquialismo
+     * cotidiano (España y LatAm) para "+N días". Antes NO casaba ningún patrón
+     * relativo (no hay unidad), el keyword "hoy" agendaba la tarea PARA HOY y el
+     * "en ocho" quedaba como residuo en el título ("llamar de hoy en ocho" →
+     * título "llamar en ocho", vencimiento hoy): compromiso futuro agendado en el
+     * presente → recordatorio disparado 8 días antes y tarea vencida mañana (P1:
+     * fecha errónea). Se asume días (es lo único que el idioma admite sin unidad).
+     * El lookahead negativo rechaza una unidad distinta explícita ("de hoy en 8
+     * horas") para que la capture [relativePattern] con su prefijo "de hoy en" y la
+     * unidad real; el "día(s)" opcional lo consume aquí la alternativa final.
+     */
+    private val deHoyEnIdiomPattern = Regex(
+        """(?i)\bde\s+hoy\s+en\s+($writtenNumberGroup|\d{1,3})(?!\s+(?:minutos?|mins?|horas?|semanas?|quincenas?|mes(?:es)?|bimestres?|trimestres?|semestres?|a[nñ]os?)\b)(?:\s+d[ií]as?)?\b"""
     )
     /**
      * Fecha relativa fraccionaria sin dígitos: "en media hora", "dentro de media hora",
@@ -3285,6 +3306,19 @@ object NaturalTaskParser {
         val laterRelativeDueAt = laterRelativeMatch?.let { now + 3 * 60 * 60_000L }
         laterRelativeMatch?.let { working = working.replaceRange(it.range, " ") }
 
+        // Idioma "de hoy en ocho/quince/N (días)" sin unidad → now + N días. Se
+        // procesa ANTES que [relativePattern] para robar la frase completa (si no,
+        // "de hoy en ocho" no casa nada, "hoy" agenda hoy y "en ocho" queda de
+        // residuo en el título). Con unidad explícita no-día ("de hoy en 8 horas")
+        // el lookahead del patrón falla y la forma la captura [relativePattern].
+        val deHoyEnIdiomMatch = deHoyEnIdiomPattern.find(working)
+        val deHoyEnIdiomDueAt = deHoyEnIdiomMatch?.let { match ->
+            val days = match.groupValues[1].toLongOrNull()
+                ?: parseWrittenNumber(match.groupValues[1])?.toLong() ?: 0L
+            now + days * 24 * 60 * 60_000L
+        }
+        deHoyEnIdiomMatch?.let { working = working.replaceRange(it.range, " ") }
+
         // Fecha relativa "en/dentro de N minutos/horas/días" (N = dígitos o palabra).
         val relativeMatch = relativePattern.find(working)
         val relativeDueAt = relativeMatch?.let { match ->
@@ -4071,10 +4105,13 @@ object NaturalTaskParser {
         // diminutiveAgoDueAt ("hace un ratito") va antes que agoDueAt: se blanquea antes
         // que [agoPattern], así a lo sumo uno de los dos está activo; se prefiere por
         // seguridad y para que el título quede limpio (agoPattern robaría solo "hace un").
+        // deHoyEnIdiomDueAt ("de hoy en ocho") va antes que relativeDueAt: a lo sumo
+        // uno de los dos está activo (el lookahead del idiom rechaza las unidades
+        // explícitas que captura relativePattern), pero se prefiere por seguridad.
         val effectiveRelativeDueAt =
             compoundFractionalAgoDueAt ?: fractionalAndQuarterAgoDueAt ?: fractionalAgoDueAt ?:
             diminutiveAgoDueAt ?:
-            agoDueAt ?: lastPeriodDueAt ?: relativeDueAt ?: vagueRelativeDueAt ?: nowDueAt ?:
+            agoDueAt ?: lastPeriodDueAt ?: deHoyEnIdiomDueAt ?: relativeDueAt ?: vagueRelativeDueAt ?: nowDueAt ?:
             laterRelativeDueAt ?: fractionalAndQuarterRelativeDueAt ?: fractionalRelativeDueAt ?:
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
             monthBoundaryNameDueAt ?: yearBoundaryDueAt ?:
@@ -4084,7 +4121,7 @@ object NaturalTaskParser {
             nextMonthDayShortReverseDueAt ?:
             nextWeekWeekdayReverseDueAt ?: nextWeekWeekdayForwardDueAt ?: nextPeriodDueAt
         val relativeIsDays = (agoMatch != null || lastPeriodMatch != null ||
-            relativeMatch != null || fractionalRelativeMatch != null ||
+            deHoyEnIdiomMatch != null || relativeMatch != null || fractionalRelativeMatch != null ||
             fractionalAndQuarterRelativeMatch != null ||
             compoundFractionalRelativeMatch != null || multiQuarterRelativeMatch != null ||
             monthBoundaryDueAt != null || monthBoundaryNameDueAt != null || yearBoundaryDueAt != null ||
