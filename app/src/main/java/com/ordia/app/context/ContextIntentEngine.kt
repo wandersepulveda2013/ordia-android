@@ -701,7 +701,15 @@ object ContextIntentEngine {
             // forma 3 de la clase de verbos cotidianos (sonda
             // `tools/probe/CommonVerbDiscoveryProbe.kt`, c.692); mismo
             // ancla/guard que c.691…c.693.
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )firmar\s+\w""").containsMatchIn(lower)
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )firmar\s+\w""").containsMatchIn(lower) ||
+            // c.698: "renovar <objeto>" ("renovar el DNI la semana que
+            // viene"), forma 4/6 de la clase de verbos cotidianos (sonda
+            // `tools/probe/CommonVerbDiscoveryProbe.kt`, c.692); mismo
+            // ancla/guard que c.691…c.696. Kind TASK: "renovar" gobierna
+            // el objeto (DNI/seguro/suscripción), no el desplazamiento —
+            // "renovar la suscripción" es gestión digital, y el piso
+            // ERRAND está anclado a destinos físicos.
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )renovar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1306,6 +1314,12 @@ object ContextIntentEngine {
                 // despojado).
                 val matchFirmar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )firmar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchFirmar != null) return "Firmar ${matchFirmar.groupValues[1]}"
+
+                // "renovar X" → "Renovar X" (c.698): mismo criterio que
+                // c.691…c.696 (verbo preservado, acuse/prefijo temporal
+                // despojado).
+                val matchRenovar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )renovar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchRenovar != null) return "Renovar ${matchRenovar.groupValues[1]}"
 
                 null
             }

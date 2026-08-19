@@ -27,7 +27,13 @@ fun main() {
         "quizá entregar la tarea mañana",
         "la entrega del paquete es mañana",
         "la firma del contrato fue ayer",
-        "enviar"
+        "enviar",
+        // Controles c.698 (piso "renovar"): negada, condicional,
+        // sustantivo y verbo aislado deben permanecer NULL.
+        "no renovar el seguro",
+        "quizá renovar el seguro mañana",
+        "la renovación del seguro es mañana",
+        "renovar"
     )
     for (c in cases) {
         val intent = ContextIntentEngine.analyze(
