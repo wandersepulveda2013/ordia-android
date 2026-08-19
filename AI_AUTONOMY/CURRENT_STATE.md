@@ -1,3 +1,14 @@
+## Ciclo c.711 — 2026-08-19 (UTC) — feat(context): nueva sonda segunda-clase-verbos + piso TASK "avisar <a <persona>/<objeto>" (forma 1/14)
+
+- **HEAD**: inicial `7c235d8` (clone local, fetch+pull --ff-only limpio); final tras este log (feat + docs).
+- **Selección (P1, nueva sonda de descubrimiento — segunda clase de verbos de gestión)**: `tools/probe/ManagementVerbDiscoveryProbe.kt` (NUEVA persistente) auditó avisar/pedir/solicitar/apuntar/anotar/buscar/coger/sacar/pasar por/publicar/recordar a → **14/14 candidatos NULL** (olvido silencioso), 9 controles NULL (OK). Doctrina: UNA forma por ciclo ⇒ "avisar". Bug latente adicional descubierto por la sonda: guard de substring `!contains("a hoy")` en `extractDateTime` bloqueaba `dueAt` si el token previo termina en "a" ("…entrega hoy" → NULL).
+- **Solución**: piso TASK `avisar` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla "Avisar X" (patrón c.691…c.710; kind TASK en deliberación contra CALL) + guard "a hoy" con lookarangs Unicode `\p{L}` (lección c.649). Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +11 tests `ContextIntentEngineAvisarFloorTest.kt` + 1 test guard en `ContextIntentEngineDateTimeTest.kt`; RED exacto (6 failures) → GREEN **OK (4160 tests)** (4148 + 12), 0 failures; smoke 25 OK; sonda POST: "avisar a mamá de la cita mañana" → TASK dueAt 'Avisar a mamá de la cita'; restan 13 formas OPEN en BACKLOG.
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla +fix guard), `test/.../ContextIntentEngineAvisarFloorTest.kt` (NUEVO +11), `test/.../ContextIntentEngineDateTimeTest.kt` (+1), `tools/probe/ManagementVerbDiscoveryProbe.kt` (NUEVA), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN segunda-clase-verbos (deliberar "pedir <objeto>" → TASK; "pasar por …"→ERRAND/"sacar la basura"→HOUSEHOLD requieren deliberación de kind). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+
 ## Ciclo c.710 — 2026-08-19 (UTC) — feat(context): piso TASK "cambiar <objeto>" (forma 8/8 clase-verbos — CIERRE DE CLASE; doctrina anti-overreach una forma por ciclo)
 
 - **HEAD inicial** `9923b0f` (c.709 docs, pull --ff-only limpio, NO STALE_RUN). **HEAD final** tras este log (feat + docs).

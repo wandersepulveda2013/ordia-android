@@ -1,3 +1,16 @@
+## Ciclo c.711 — 2026-08-19 (UTC) — feat(context): nueva sonda de segunda clase de verbos + piso TASK "avisar <a <persona>/<objeto>" (forma 1/14; doctrina anti-overreach una forma por ciclo)
+
+- **HEAD inicial**: `7c235d8` (c.710 docs propios, fetch+pull --ff-only limpio, sin divergencia, NO STALE_RUN).
+- **Problema seleccionado**: c.710 cerró la clase-verbos (8/8 "cambiar"); por su próxima prioridad ("nueva sonda o auditoría nueva") se construyó una NUEVA sonda de descubrimiento `tools/probe/ManagementVerbDiscoveryProbe.kt` sobre la segunda clase de verbos cotidianos de gestión (avisar/pedir/solicitar/apuntar/anotar/buscar/coger/sacar/pasar por/publicar/recordar a). Sonda PRE: **14/14 candidatos → NULL** (olvido silencioso P1); 9 controles (negada/quizá/sustantivo/suelto/chat) → NULL (OK). Doctrina: UNA forma por ciclo ⇒ "avisar".
+- **Causa raíz**: (i) ninguna rama de `hasStrongTaskImperative` cubre "avisar"; (ii) bug latente descubierto por la sonda: guard de substring `!contains("a hoy")` en `extractDateTime` BLOQUEABA la fecha cuando la palabra previa termina en "a" ("…entrega hoy" → dueAt NULL) — olvido silencioso P1 adicional.
+- **Solución**: (i) piso `avisar` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla "avisar X"→"Avisar X" (patrón c.691…c.710). Kind decidido TASK (en deliberación contra CALL — "avisar" es notificar, no una llamada específica). Controles NULL: negada, "quizá…", sustantivo "aviso", verbo suelto; envolvente c.613 ("recuérdame…") sigue gobernando por su plantilla genérica. (ii) guard "a hoy" con lookarangs Unicode `\p{L}` (lección c.649). Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +11 tests `ContextIntentEngineAvisarFloorTest.kt` (NUEVO) + 1 test guard temporal en `ContextIntentEngineDateTimeTest.kt`; RED exacto (6 failures = las capturas) → GREEN **OK (4160 tests)** (4148 + 12), 0 failures; smoke 25 OK; sonda POST: "avisar a mamá de la cita mañana" → TASK dueAt=true "Avisar a mamá de la cita"; "…entrega hoy" → dueAt=true; restan 13 formas OPEN documentadas en BACKLOG.
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla +fix guard), `test/.../ContextIntentEngineAvisarFloorTest.kt` (NUEVO +11), `test/.../ContextIntentEngineDateTimeTest.kt` (+1), `tools/probe/ManagementVerbDiscoveryProbe.kt` (NUEVA sonda persistente), AI_AUTONOMY ×3.
+- **Commits**: feat + docs este log.
+- **HEAD final**: tras docs.
+- **Próxima prioridad**: siguiente forma OPEN de segunda-clase-verbos (deliberar: "pedir <objeto>" → TASK; un piso "pasar por <destino>"→ERRAND/"sacar la basura"→HOUSEHOLD requiere deliberación de kind; mantener una-forma-por-ciclo). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
 ## Ciclo c.710 — 2026-08-19 (UTC) — feat(context): piso TASK "cambiar <objeto>" (forma 8/8 clase-verbos — CIERRE; doctrina anti-overreach)
 
 - **HEAD inicial**: `9923b0f` (c.709 docs, fetch+pull --ff-only limpio, sin divergencia, NO STALE_RUN; base integrada con `ab5b3a2` registro-duplicados remoto).
