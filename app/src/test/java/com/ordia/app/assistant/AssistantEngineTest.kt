@@ -318,6 +318,80 @@ class AssistantEngineTest {
         assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
     }
 
+    // --- Posponer/defer (cluster sonda assistant: "qué puedo dejar para
+    // mañana", "puedo posponer algo", "qué no puedo dejar para después",
+    // "qué pasa si pospongo") — el usuario pregunta QUÉ puede posponerse; el
+    // asistente debe nombrar la tarea de hoy MÁS posponible (fuente única:
+    // SummaryEngine.deferralCandidate, la misma lógica que el veredicto
+    // OVERLOADED nombra vía deferralSuggestion), no listar capacidades.
+    // Paridad familia lie-by-omission: vacío honesto (NUNCA menú); vacío +
+    // promesa vencida → recuperación (c.357/c.416/c.680).
+    @Test fun deferral_suggestsMostDeferrableNotMenu() {
+        val now = 1_787_140_800_000L // 2026-08-19T12:00:00Z (mediodía, sin borde de medianoche)
+        val answer = AssistantEngine.answer(
+            "¿Qué puedo dejar para mañana?",
+            listOf(
+                TaskEntity(id = 1, title = "Informe urgente", priority = TaskPriority.URGENT, dueAt = now + 3_600_000, durationMinutes = 20),
+                TaskEntity(id = 2, title = "Ordenar el archivo", priority = TaskPriority.LOW, dueAt = now + 7_200_000, durationMinutes = 120)
+            ),
+            emptyList(), emptyList(), now
+        )
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+        assertTrue("nombra la más posponible: ${answer.text}", answer.text.contains("Ordenar el archivo"))
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun deferral_posponerVariantRoutes() {
+        val now = 1_787_140_800_000L
+        val answer = AssistantEngine.answer(
+            "¿Puedo posponer algo?",
+            listOf(TaskEntity(id = 1, title = "Revisar el borrador", dueAt = now + 3_600_000, durationMinutes = 30)),
+            emptyList(), emptyList(), now
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("nombra la posponible: ${answer.text}", answer.text.contains("Revisar el borrador"))
+    }
+
+    @Test fun deferral_overdueTodayIsNotDeferrable() {
+        // Una vencida NO es posponible (posponer lo vencido lo agrava); nombra la sana.
+        val now = 1_787_140_800_000L
+        val answer = AssistantEngine.answer(
+            "¿Qué no puedo dejar para después?",
+            listOf(
+                TaskEntity(id = 1, title = "Pago vencido", priority = TaskPriority.URGENT, dueAt = now - 86_400_000),
+                TaskEntity(id = 2, title = "Clasificar fotos", priority = TaskPriority.LOW, dueAt = now + 3_600_000, durationMinutes = 45)
+            ),
+            emptyList(), emptyList(), now
+        )
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+        assertTrue("nombra la sana, no la vencida: ${answer.text}", answer.text.contains("Clasificar fotos"))
+    }
+
+    @Test fun deferral_emptyIsHonestNotGeneric() {
+        val answer = AssistantEngine.answer(
+            "¿Qué puedo dejar para mañana?",
+            emptyList(), emptyList(), emptyList()
+        )
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("vacío honesto: ${answer.text}", answer.text.contains("No tienes tareas"))
+    }
+
+    @Test fun deferral_recoversOverdueCommitmentWhenEmpty() {
+        // Paridad con c.357/c.416/c.680: vacío + promesa vencida → recuperación.
+        val now = 1_000_000_000_000L
+        val commitment = overdueCommitment(41, "envío el informe", now - 2 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿Puedo posponer algo?",
+            emptyList(),
+            emptyList(),
+            listOf(commitment),
+            now
+        )
+        assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
+    }
+
     // --- Tiempo libre (Cluster C sonda assistant; c.416 cubre la forma literal
     // "tareas de 15 minutos": "tengo un rato/tiempo/hueco" o "tengo N minutos"
     // caía al menú genérico). Reusa la rama de tareas cortas con ventana del

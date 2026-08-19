@@ -344,6 +344,29 @@ object SummaryEngine {
         return DeferralSuggestion(taskId = chosen.id, title = chosen.title, canDefer = chosen.dueAt != null)
     }
 
+    /**
+     * La tarea de hoy MÁS posponible, sin exigir veredicto OVERLOADED: es la
+     * superficie a demanda de [mostDeferrableTask] para el asistente ("¿qué
+     * puedo dejar para mañana?"). Bajo OVERLOADED la tarjeta ya la nombra vía
+     * `deferralSuggestion`; aquí se expone la MISMA elección con cualquier
+     * carga, para que tarjeta y asistente nunca discrepen sobre qué se aplaza
+     * (fuente única de verdad). `null` si no hay candidata posponible. No muta
+     * nada; el usuario decide moverla (paridad con el diseño de
+     * `deferralSuggestion`: "no mueve nada, solo nombra").
+     */
+    fun deferralCandidate(
+        tasks: List<TaskEntity>,
+        now: Long,
+        zone: ZoneId = ZoneId.systemDefault()
+    ): DeferralSuggestion? {
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        val remainingTodayTasks = tasks.filter { task ->
+            task.parentTaskId == null &&
+                TaskRules.isActive(task) && (onDate(task.dueAt, today, zone) || onDate(task.startAt, today, zone))
+        }
+        return mostDeferrableTask(remainingTodayTasks, now)
+    }
+
     /** Mayor peso = más posponible (menos urgente). LOW=NORMAL/HIGH/URGENT inverso. */
     private fun priorityDeferralWeight(priority: TaskPriority): Int = when (priority) {
         TaskPriority.LOW -> 3

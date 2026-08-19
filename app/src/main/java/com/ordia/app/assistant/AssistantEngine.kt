@@ -551,6 +551,31 @@ object AssistantEngine {
                     )
                 }
             }
+            // Petición de posponer/defer (cluster sonda assistant: "qué puedo
+            // dejar para mañana", "puedo posponer algo", "qué no puedo dejar
+            // para después", "qué pasa si pospongo"). El usuario pregunta QUÉ
+            // se aplaza sin romper nada; responder con el menú de capacidades
+            // le devuelve trabajo de decidir. Ordía YA sabe elegir la tarea de
+            // hoy más posponible (fuente única: [SummaryEngine.deferralCandidate],
+            // la MISMA lógica que la tarjeta de resumen nombra bajo OVERLOADED),
+            // así asistente y tarjeta nunca discrepen. Solo nombra la candidata
+            // + id (el usuario decide moverla; nunca un auto-movimiento,
+            // coherente con el diseño de deferralSuggestion). Vacío: vacío
+            // honesto (NUNCA menú); vacío + promesa vencida → recuperación
+            // (paridad familia lie-by-omission c.357/c.416/c.680). Determinista
+            // local; cero random/IA fingida/pantalla nueva (decisión c.361).
+            isDeferralQuery(query) -> {
+                val candidate = SummaryEngine.deferralCandidate(active, now, zone)
+                if (candidate == null) {
+                    if (overdueCommitments.isNotEmpty()) return overdueCommitmentAnswer(overdueCommitments)
+                    AssistantAnswer("No tienes tareas de hoy que puedan posponerse.")
+                } else {
+                    AssistantAnswer(
+                        "La más posponible de hoy es «${candidate.title}»; puedes dejarla para mañana.",
+                        relatedTaskIds = listOf(candidate.taskId)
+                    )
+                }
+            }
             // Octavo olvido de la familia "lie-by-omission": la consulta no casa con
             // ninguna rama conocida y el asistente cae a su menú de capacidades. Es la
             // superficie de mayor tránsito para un usuario confundido —y justo ahí
@@ -620,6 +645,21 @@ object AssistantEngine {
      */
     private fun isRecommendationQuery(query: String): Boolean =
         "recomiend" in query || "a decidir" in query || "me conviene" in query
+
+    /**
+     * Petición de posponer/defer: "¿qué puedo dejar para mañana/después?",
+     * "¿puedo posponer algo?", "¿qué pasa si pospongo?". Tokens sin acento (ya
+     * normalizados por `foldForSearch`). Conservadora y sin colisión:
+     *  - NO es agenda ([isAgendaQuery]: "qué tengo"/"tengo para"/"hay algo") —
+     *    aquí no aparece el verbo *tener/haber*.
+     *  - NO es veredicto de carga ([isDayLoadQuery]: "voy bien"/"da tiempo") —
+     *    "qué puedo posponer" no pregunta "¿cabe?" sino "¿cuál se mueve?".
+     *  - NO es acción de mover una tarea concreta ("pospón la reunión") — la
+     *    rama de modificación por entidad se evalúa antes y nombraría la tarea;
+     *    aquí se pide el CANDIDATO entre las de hoy.
+     */
+    private fun isDeferralQuery(query: String): Boolean =
+        "pospon" in query || "dejar para manana" in query || "dejar para despues" in query
 
     /**
      * Señal de "tengo un hueco libre" (Cluster C c.677): formas sueltas
