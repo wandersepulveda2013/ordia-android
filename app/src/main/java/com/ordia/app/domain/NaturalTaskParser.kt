@@ -1885,6 +1885,17 @@ object NaturalTaskParser {
         // cajas" → "a las 9 cajas" → rechazado por followedByCountNoun (la lectura de
         // cuenta "cajas ya pasadas" es forzada y rara; el uso dominante es temporal).
         Regex("""(?i)\bpasadas?\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
+        // "tipo las N"/"tipo la una": aproximación coloquial Caribe/LatAm ("cita tipo las 8"
+        // ≈ "cita a las 8"). A diferencia de "hacia/sobre", no admite lectura de tema ni de
+        // cantidad NUNCA: "tipo las" no es gramatical sin hora ("tipo las 8 personas" no se
+        // dice; la lectura de tema "documento tipo" va sin artículo). Así que NO exige
+        // evidencia de reloj (igual que "a eso de"/"casi"): el lookahead decide y, sin hora
+        // válida inmediata, no toca el texto. Guard: usos de tema/categoría sin artículo
+        // ("documento tipo 8", "plan tipo estrategia") quedan fuera por construcción.
+        // Antes la hora se agendaba pero "tipo" quedaba como residuo del título (cita bien
+        // fechada, título mutilado: captura degradada, P1/P2); ahora el rewriter consume
+        // "tipo " y reutiliza TODO [timePatterns].
+        Regex("""(?i)\btipo\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
         // "hacia/cerca de/alrededor de/sobre" admiten usos de tema ("sobre las ventas") y
         // de cantidad ("sobre las 3 cajas"), así que exigen evidencia de reloj INMEDIATA
         // tras la hora (minutos `:MM`, meridiem, parte del día, "horas/hs/h") para no
@@ -3253,6 +3264,17 @@ object NaturalTaskParser {
             .replace(
                 Regex(
                     """(?i)\bantes\s+del?\s+(?=(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|ma[nñ]ana\b|hoy\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b))""",
+                ),
+                " ",
+            )
+            // Marcador de plazo "a más tardar" (no later than) + ancla temporal: la fecha
+            // se resolvía bien pero el marcador sobrevivía como residuo en el título
+            // ("entregar informe a más tardar"). Simétrico del borrado de "antes del/de":
+            // se borra sólo cuando hay ancla (weekday/mañana/hoy...); sin ancla ("terminarlo
+            // a más tardar") se conserva para no falsificar una fecha que no existe.
+            .replace(
+                Regex(
+                    """(?i)\ba\s+m[aá]s\s+tardar\s+(?:el\s+)?(?=(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|ma[nñ]ana\b|hoy\b|ayer\b|anteayer\b|antier\b|pasado\s+ma[nñ]ana\b|antepasad[oa]\s+ma[nñ]ana\b))""",
                 ),
                 " ",
             )

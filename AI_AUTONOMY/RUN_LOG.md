@@ -1,3 +1,13 @@
+## 2026-08-19 — Ciclo c.670 — feat(parser): tipógrafo/hypótesis "hacia" evaluada; "tipo las N"/"tipo la una" + fold "a más tardar" — VERIFIED
+- **HEAD inicial**: `f94ee68` local (c.668). Durante el trabajo el remoto avanzó a `6b3167f` (c.669 "de hoy en adelante"); stash → ff-only → stash pop limpio, renumerado mi c.669→c.670. Entorno JVM (kotlinc 2.1.20, jars `/tmp/libs`), sin Android SDK. Auth `github_token`.
+- **Problema (P2 captura/título limpio, ítem BACKLOG c.668)**: conector aproximado "tipo las N"/"tipo la una" (Caribe/LatAm) no casaba → `dueAt=null` + residuo (tarea olvidada); "a más tardar" dejaba residuo en título aunque la fecha sí resolvía; hipótesis "hacia las N desnuda" evaluada y descartada (ambiguo por tema/cantidad; guard de evidencia es la protección).
+- **Cambios**: entrada `\btipo\s+(?=las <hora>|la una)` en `approximateTimePatterns` (no exige evidencia de reloj: "tipo las" con artículo no es gramatical como tema/cantidad; `\b` previo permite fold; sin hora válida hacia adelante no toca nada); fold `aMasTardarPattern` `\ba\s+m[aá]s\s+tardar\b`→"a " pre-parse. Probe JVM (10 casos) confirma GREEN y guardas.
+- **Bugs**: residuo de conector aproximado (captura degradada). **Features**: soporte de un conector regional adicional + fold de "a más tardar". **Hallazgos**: guards `documento tipo 8`/`plan tipo estrategia` intactos null; "reunión hacia las 9 pm" pre-existente resuelve 21:00.
+- **Tests**: +8 TDD RED→GREEN; suite **3843 PASS** post-merge (3833+2 remoto c.669+8 míos), 0 failures; smoke dominio 25 OK; automation 9 OK. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+- **Archivos**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt`, AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG,DECISIONS}.md.
+- **Próxima prioridad**: revisión de producto; cualquier P0/P1; avoid-warning P2. Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED. Renumeración c.669→c.670 por colisión con run remoto.
+
 ## Run c.669 (renumerado desde c.668) — 2026-08-19 (UTC) — fix(parser): follow-up "de hoy en adelante" → sin residuo "en adelante"
 
 - **HEAD inicial (refs sincronizadas)**: `a4ea071` c.667 remoto. Al push remoto avanzó a `f94ee68` (c.668 cadencia); integración stash→ff-only→pop (auto-merge limpio); renumerado c.668→c.669. NO STALE_RUN destructivo.

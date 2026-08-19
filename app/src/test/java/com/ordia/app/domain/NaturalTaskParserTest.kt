@@ -16053,4 +16053,68 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    @Test fun tipoLasOchoResuelveHoraYLimpiaTitulo() {
+        // "tipo" = aproximación coloquial (Caribe/LatAm) antes de "las N": se reescribe a
+        // "a " reutilizando timePatterns. Antes la hora se agendaba pero "tipo" quedaba
+        // como residuo en el título (cita bien fechada, título mutilado).
+        val result = NaturalTaskParser.parse("cita tipo las 8", now, zone)
+        assertEquals("cita", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun tipoLasOchoPmResuelveMeridiem() {
+        val result = NaturalTaskParser.parse("cita tipo las 8 pm", now, zone)
+        assertEquals("cita", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalTime.of(20, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun tipoLaUnaResuelveHoraSingular() {
+        val result = NaturalTaskParser.parse("reunión tipo la una", now, zone)
+        assertEquals("reunión", result.title)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun tipoSinArticuloNoEsMarcadorDeHora() {
+        // "documento tipo 8": "tipo" + número sin "las/la" es uso de tema/categoría → no
+        // es hora. Guard: sin reescritura, sin fecha.
+        val result = NaturalTaskParser.parse("documento tipo 8", now, zone)
+        assertEquals("documento tipo 8", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun tipoTemaNoEsMarcadorDeHora() {
+        // "plan tipo estrategia": uso de tema legítimo; nada debe resolverse.
+        val result = NaturalTaskParser.parse("plan tipo estrategia", now, zone)
+        assertEquals("plan tipo estrategia", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun aMasTardarConWeekdayLimpiaTitulo() {
+        // Marcador de plazo "a más tardar" (no later than): el weekday se resolvía pero el
+        // marcador sobrevivía como residuo en el título. Se borra sólo cuando hay ancla
+        // temporal (igual que "antes del viernes").
+        val result = NaturalTaskParser.parse("entregar informe a más tardar el viernes", now, zone)
+        assertEquals("entregar informe", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aMasTardarConMananaLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("llamar a más tardar mañana", now, zone)
+        assertEquals("llamar", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalDate.of(2026, 7, 30), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun aMasTardarSinAnclaConservaEsfuerzo() {
+        // Sin ancla temporal el marcador se conserva (no se borra para no falsificar una
+        // fecha): el título queda íntegro y dueAt null.
+        val result = NaturalTaskParser.parse("terminarlo a más tardar", now, zone)
+        assertEquals("terminarlo a más tardar", result.title)
+        assertNull(result.dueAt)
+    }
+
 }
