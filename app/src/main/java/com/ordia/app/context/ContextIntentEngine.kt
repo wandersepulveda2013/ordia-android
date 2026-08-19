@@ -741,7 +741,19 @@ object ContextIntentEngine {
             // "cambiar de opinión/tema" como hogar (overreach) —
             // gobierna el objeto (sábanas/toallas/cerradura/pilas) como
             // acción de gestión, igual que las 7 formas previas.
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cambiar\s+\w""").containsMatchIn(lower)
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cambiar\s+\w""").containsMatchIn(lower) ||
+            // c.711: "avisar <a <persona>/<objeto>" ("avisar a mamá de la
+            // cita mañana"), forma 1 de la SEGUNDA clase de verbos
+            // cotidianos de gestión (sonda
+            // `tools/probe/ManagementVerbDiscoveryProbe.kt`, c.711;
+            // herencia de la clase-verbos c.692…c.710, CERRADA 8/8).
+            // Mismo ancla/guard que c.691…c.710. Kind decidido en este
+            // ciclo: TASK (en deliberación contra CALL — "avisar" es
+            // notificar, no una llamada específica); gobierna el objeto
+            // (mamá/jefe/cita/entrega) como acción de gestión. Anti-overreach:
+            // `\s+\w` exige objeto, `(?<!no )` bloquea la negada,
+            // sustantivo "aviso" no casa, suelto "avisar" no casa.
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )avisar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1377,6 +1389,12 @@ object ContextIntentEngine {
                 val matchCambiar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cambiar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchCambiar != null) return "Cambiar ${matchCambiar.groupValues[1]}"
 
+                // "avisar X" → "Avisar X" (c.711): mismo criterio
+                // que c.691…c.710 (verbo preservado, acuse/prefijo
+                // temporal despojado).
+                val matchAvisar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )avisar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchAvisar != null) return "Avisar ${matchAvisar.groupValues[1]}"
+
                 null
             }
             ContextIntentKind.SHOPPING -> {
@@ -1683,8 +1701,16 @@ object ContextIntentEngine {
         if (lower.contains("pasado mañana") || lower.contains("pasado manana")) {
             targetDate = today.plusDays(2)
         }
-        // "hoy"
-        if (lower.contains("hoy") && !lower.contains("a hoy")) {
+        // "hoy" (c.711: guard de bordes de palabra). El guard original con
+        // substring "a hoy" BLOQUEABA todo "…a" seguido de "hoy" ("avisar al
+        // jefe de la entrega hoy" → dueAt NULL, olvido silencioso P1 descubierto
+        // por la sonda `tools/probe/ManagementVerbDiscoveryProbe.kt` c.711).
+        // Se usa lookarangs Unicode \p{L} para delimitar "a" como palabra
+        // (misma lección c.649: \b ASCII no cierra con tildes; aquí ASCII es
+        // suficiente pero la forma es homogénea con HEDGE/CONDITIONAL).
+        if (lower.contains("hoy") &&
+            !Regex("""(?<!\p{L})a\s+hoy(?!\p{L})""", RegexOption.IGNORE_CASE).containsMatchIn(lower)
+        ) {
             targetDate = today
         }
         // Períodos relativos (paridad con NaturalTaskParser nextPeriodPattern /

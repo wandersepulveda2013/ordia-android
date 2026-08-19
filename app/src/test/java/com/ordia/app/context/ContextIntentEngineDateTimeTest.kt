@@ -1283,4 +1283,16 @@ class ContextIntentEngineDateTimeTest {
             analyzeAnchor("avísame")
         )
     }
+
+    // c.711: guard "a hoy" exige bordes de palabra — "entrega hoy" debe seguir
+    // capturando fecha (regresión: un guard de substring "a hoy" bloqueaba
+    // cualquier "…a" seguido de "hoy", p.ej. "avisar al jefe de la entrega hoy"
+    // nacía SIN dueAt; descubierto por la sonda ManagementVerbDiscoveryProbe).
+    @Test
+    fun palabraTerminadaEnASeguidaDeHoy_hoyFollowsWordEndingInA_capturesDate() {
+        assertNotNull(
+            "la frase '…entrega hoy' debe capturar 'hoy' como fecha (guard de bordes de palabra)",
+            ContextIntentEngine.extractDateTime("avisar al jefe de la entrega hoy")
+        )
+    }
 }
