@@ -1,3 +1,13 @@
+## Auditoría c.660 — 2026-08-19 (UTC) — item pendiente (ii) de c.657/658: paridad dual de privacidad `SensitiveSecretPatterns↔ConversationPrivacyPolicy/ContextPrivacyFilter` — VERIFIED, sin cambio de código
+
+- **Rama**: `openhands/autonomous-ordia`. HEAD inicial `dc181c38` → re-fetch reveló avance remoto (c.659 document). Renumerado c.659→c.660; rebase limpio `git pull --ff-only` sobre `59cd3321`, NO STALE_RUN. Entorno JVM.
+- **Objetivo**: validar que los dos gates de privacidad (persistencia `ConversationPrivacyPolicy` en `conversations/CommitmentEngine` + lectura `ContextPrivacyFilter`) bloquean idénticamente la fuente única `SensitiveSecretPatterns`.
+- **Veredicto**: probe JVM dual (`/tmp/probechat/ProbeSecrets.kt`, 34 casos = 28 secretos canónicos + 6 negativos) → 34/34 OK en ambos gates. Las "fugas" iniciales eran artefactos del probe (valores demasiado cortos); recorrido con longitudes correctas (`ProbeSecrets2.kt` 4/4 OK). "FP pin palabra sola" es trade-off intencional c.292 (bloqueo de palabra cue de credencial sin valor).
+- **Tests**: suite base post-rebase 3796 PASS (idéntica a remoto c.659); smoke 25 OK. Cierre como auditoría limpia sin cambio de código.
+- **Próxima prioridad**: (i) `zone` omitida en `AutomationEngine.runRule`/`OrdiaViewModel.guardianInsight` (P1 — seam Zone inyectado, NO JVM); (ii) `TaskRules.nextBestTask` default-zone audit tras cerrar P1 (P2); (iii) workers/backup/restore (P0 — NO JVM). Re-fetch OBLIGATORIO.
+- **Estado**: AUDITED → VERIFIED. NO VERIFICADO Android/UI/Room.
+
+
 ## Auditoría c.659 — 2026-08-19 (UTC) — hallazgo secundario c.641/c.642 "¿`drogas`/`sexual`/`secuestr` en eje artículo?" — resultado NOT CONFIRMED, sin cambio de código (P1 seguridad, JVM-verificable)
 
 - **Rama**: `openhands/autonomous-ordia`. HEAD inicial `dc181c3`. Re-fetch al iniciar: sin avances (base al día). Entorno JVM.
