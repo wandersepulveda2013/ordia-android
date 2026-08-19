@@ -1,3 +1,16 @@
+## Ciclo c.709 — 2026-08-19 (UTC) — feat(context): piso TASK "reservar <objeto>" (forma 7/8 clase-verbos, ítem OPEN c.692; doctrina anti-overreach)
+
+- **HEAD inicial**: `ca62b31` (c.708 docs propios, pull --ff-only limpio, sin divergencia).
+- **Problema seleccionado**: "reservar <objeto>" → analyze NULL (P1 olvido silencioso en captura pasiva). Sonda PRE: "reservar el restaurante el sábado" → NULL. Ítem OPEN compartido más antiguo (clase-verbos c.692).
+- **Causa raíz**: ninguna rama de `hasStrongTaskImperative` cubría "reservar".
+- **Solución**: piso `reservar` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla "reservar X"→"Reservar X" (patrón c.691…c.708). Kind TASK. Controles NULL: negada/quizá/sustantivo "reserva"/suelto; envolvente c.613 gobierna. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +11 tests `ContextIntentEngineReservarFloorTest.kt` (NUEVO); RED exacto (6 failures = las capturas) → GREEN **OK (4137 tests)** (4126 + 11), 0 failures; smoke 25 OK; automation 9 OK; sonda POST: 'Reservar el restaurante' dueAt=true; 4 controles aditivos NULL; última forma OPEN: "cambiar".
+- **Archivos**: `context/ContextIntentEngine.kt`, `test/.../ContextIntentEngineReservarFloorTest.kt`, `tools/probe/CommonVerbDiscoveryProbe.kt`, AI_AUTONOMY ×3.
+- **Commits**: feat + docs este log.
+- **HEAD final**: tras docs.
+- **Próxima prioridad**: última forma OPEN de clase-verbos: "cambiar" (prob. HOUSEHOLD — deliberar). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
 ## Ciclo c.708 — 2026-08-19 (UTC) — feat(context): piso TASK "imprimir <objeto>" (forma 6/8 clase-verbos, ítem OPEN c.692; doctrina anti-overreach)
 
 - **HEAD inicial**: `f1c98ed` (c.707 docs propios, pull --ff-only limpio, sin divergencia).
