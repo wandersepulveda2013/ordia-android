@@ -9551,6 +9551,44 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // c.672 — Intensificador POST-puesto: "esta semana misma"/"este mes mismo" son el
+    // mismo ancla del período en curso que "esta misma semana"/"este mismo mes" (c.641).
+    // Antes la fecha resolvía pero "misma"/"mismo" quedaba como residuo en el título
+    // (el match consumía solo la forma pre-puesta). El intensificador es semánticamente
+    // neutro (recalca el período en curso), así que debe limpiarse siempre.
+
+    @Test fun estaSemanaMismaPospuestaLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Revisar propuesta esta semana misma", now, zone)
+        assertEquals("Revisar propuesta", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun esteMesMismoPospuestoLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pagar renta este mes mismo", now, zone)
+        assertEquals("Pagar renta", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDeLaSemanaMismaPospuestaLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Informe a fin de la semana misma", now, zone)
+        assertEquals("Informe", result.title)
+        assertEquals(LocalDate.of(2026, 8, 2), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun finDeEsteMesMismoPospuestoLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("Pagar renta a fin de este mes mismo", now, zone)
+        assertEquals("Pagar renta", result.title)
+        assertEquals(LocalDate.of(2026, 7, 31), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun laSemanaMismaSinDeterminanteNoCasa() {
+        // Guard: sin "esta/este" no se consume un "misma/mismo" colgado por error; el
+        // intensificador nunca debe limpiarse si no hay ancla.
+        val result = NaturalTaskParser.parse("revisar la semana", now, zone)
+        assertEquals("revisar la semana", result.title)
+        assertNull(result.dueAt)
+    }
+
     // c.488: variantes "finales de la semana" / "al final de la semana" (sin "que viene")
     // antes caían a dueAt=null + frase íntegra como residuo en el título → vencimiento
     // olvidado (P1). Ahora resuelven al domingo de esta semana (próximo domingo).

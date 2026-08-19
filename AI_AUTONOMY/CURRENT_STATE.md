@@ -18,6 +18,16 @@
 - **Próxima prioridad**: revisión de producto; cualquier P0/P1. Re-fetch OBLIGATORIO.
 
 - **Estado**: VERIFIED.
+## Ciclo c.674 — 2026-08-19 (UTC) — fix(parser): seguimiento de c.646 (ii) y cierre row 42 — intensificador POST-PUESTO "esta semana misma" / "este mes mismo" ya no deja residuo "misma"/"mismo" en el título (se resolvía la fecha pero el título quedaba sucio). +5 tests TDD.
+
+- **Rama**: `openhands/autonomous-ordia`. HEAD inicial `af10a1a` (c.671 remoto). Fetch al iniciar sin avances → base al día, NO STALE_RUN. Entorno JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21); sin Android SDK. Auth `github_token`.
+- **Problema (P2 captura/título; row 42 PENDIENTE en BACKLOG)**: investigación reveló que las formas PRE-puestas "esta misma semana"/"este mismo mes" ya funcionaban (c.641; suite c.671 soportaba "esta misma semana"+título limpio). El gap real, follow-up abierto de c.646 (ii), era la forma POST-PUESTA "esta semana misma" / "este mes mismo": `thisWeekPattern`/`thisMonthPattern`/límites mensuales aceptaban el intensificador solo PRE-puesto (`esta (misma )?semana`) → el span terminaba en "semana"/"mes" y "misma"/"mismo" sobraba en el título.
+- **Causa raíz**: 7 regexes de período actual (`thisWeekPattern`, `thisMonthPattern`, `thisYearPattern`, `endOfMonthPattern`, `lastBusinessDayOfMonthPattern`, `midOfMonthPattern`, `startOfMonthPattern`) admitían `(?:misma\s+)?` sólo intra-span (pre-posed), no post-puesto. Determinista.
+- **Solución (cambio mínimo)**: añiertan grupo opcional `(?:\s+mism[oa])?` tras el sustantivo dentro del span en las 7 regexes; el intensificador se CONSUME (sin residuo) y NO altera la índice de grupos de `boundaryDueAt` (grupo no capturador). PROBE GREEN (16 casos): pre-posed/post-posed limpio, guards "la misma semana" y "este mismo día" (ambos → null intacto, conocido; registrar "este mismo día"→hoy como follow-up P3), y límites mensuales intactos.
+- **Tests (TDD)**: insertados después del bloque c.641/c.646 en `NaturalTaskParserTest.kt` (arril ~lin 9445): `estaSemanaMismaPosposModuloAnclaFinSemanaActual`, `esteMesMismoPosposModuloAnclaFinMesActual`, `aFinDeEstaSemanaMismaPospos`, `aFinDeEsteMesMismoPospos`, guard `laMismaSemanaNoSeToca`. RED confirmado (4 fallos por residuo; guard pasaba de entrada) → GREEN. Suite **3850 PASS** (3845 base +5), 0 failures; smoke 25 OK. **NO VERIFICADO** Android/gradle/UI/Room (sin SDK).
+- **Archivos**: `NaturalTaskParser.kt` (7 regexes), `NaturalTaskParserTest.kt` (+5), `tools/probe/MismoCheckProbe.kt` (sonda). AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md.
+- **Próxima prioridad**: (i) follow-up P3 "este mismo día"→hoy (registrado); (ii) nueva revisión de producto; (iii) cualquier P0/P1. Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED (JVM: suite 3850 PASS + smoke 25 OK; 0 failures). NO VERIFICADO Android/UI/Room.
 
 ## Ciclo c.670 — 2026-08-19 (UTC) — feat(parser): conector aproximado "tipo las N"/"tipo la una" agendado + rolado fold "a más tardar" limpia título; hipótesis "hacia las N desnuda" evaluada y RECHAZADA con disciplina (guard embutido contra falso positivo tema/cantidad). +8 tests TDD.
 

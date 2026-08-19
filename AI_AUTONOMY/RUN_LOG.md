@@ -15081,3 +15081,12 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: +8 TDD (7 RED pre-fix + guard tallos). `bash tools/run_domain_tests.sh` → **3853 PASS** (0 failures, 72 clases; 3845 c.671 + 8); `bash tools/run_domain_checks.sh` → 25 OK. **NO VERIFICADO** Android/gradle/lint/compose/UI/Room (sin SDK).
 - **Archivos**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt` (+8), AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md.
 - **Próxima prioridad**: revisión de producto; cualquier P0/P1; follow-up evaluable "para <mes>"/"hasta <mes>" (NO añadir sin necesidad). Re-fetch OBLIGATORIO.
+## c.674 (2026-08-19 UTC) — fix(parser) intensificador post-puesto "semana misma"/"mes mismo" limpia título; cierre row 42 — VERIFIED
+- HEAD inicial: af10a1a (c.671 remoto, fetch sin avances → NO STALE_RUN). HEAD final: (push tras commit). Rama: openhands/autonomous-ordia. Auth: github_token. Entorno JVM (kotlinc 2.1.20, jars /tmp/libs), sin Android SDK.
+- Problema (P2 captura/título, follow-up c.646 (ii) + row 42): formas pre-puestas "esta misma semana"/"este mismo mes" ya resolvían sin residuo (verificado por probe; anti-loop sobre hipótesis A). Gap real: post-puesto "esta semana misma"/"este mes mismo" → fecha resuelta pero "misma/mismo" de residuo en título. Afecta 7 regexes de período actual.
+- Fix: `(?:\s+mism[oa])?` después del sustantivo dentro del span en thisWeekPattern/thisMonthPattern/thisYearPattern/endOfMonthPattern/lastBusinessDayOfMonthPattern/midOfMonthPattern/startOfMonthPattern; no altera boundaryDueAt.
+- Tests: +5 TDD en NaturalTaskParserTest (4 residuo RED→GREEN + guard "la misma semana no se toca"). Suite 3850 PASS (3845 base +5), smoke 25 OK. NO VERIFICADO Android/gradle/UI/Room (sin SDK).
+- Hallazgos: "este mismo día"→null intacto (follow-up P3 registrado: map→hoy).
+- Archivos: NaturalTaskParser.kt; NaturalTaskParserTest.kt; tools/probe/MismoCheckProbe.kt; AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md.
+- Próxima prioridad: "este mismo día"→hoy P3; revisión producto; P0/P1. Re-fetch OBLIGATORIO.
+- Estado: VERIFIED.

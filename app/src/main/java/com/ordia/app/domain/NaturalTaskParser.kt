@@ -731,7 +731,7 @@ object NaturalTaskParser {
     // desplazar los índices de mes (g1)/año (g2) que usa `boundaryDueAt`. La promoción a
     // recurrencia la detecta `cadaBoundaryRecurrence` vía `cadaInBoundaryMatch` (c.311).
     // "todos los" exige "meses" (plural); "cada" va con "mes" (singular, forma canónica).
-    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(?:fin(?:al|ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
+    private val endOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(?:fin(?:al|ales|es)?|cierre|corte|[uú]ltim[oa]\s+d[ií]a)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+mism[oa])?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
     // c.575: "el último día hábil/laborable/laboral del mes" — vencimientos que no
     // pueden caer en fin de semana (renta, nómina, pago de servicios cuando el banco
     // no opera sábado/domingo). El adjetivo "hábil"/"laborable"/"laboral" rompe la
@@ -740,9 +740,9 @@ object NaturalTaskParser {
     // recordaba (olvido de vencimiento recurrente, P1). Misma cola de mes que
     // [endOfMonthPattern] (grupos 1=nombre de mes, 2=año) para reutilizar
     // `boundaryDueAt`; el retroceso a viernes lo resuelve el motor (sentinel EOM-BD).
-    private val lastBusinessDayOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?[uú]ltim[oa]\s+d[ií]a\s+(?:h[áa]bil|laborable|laboral)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
-    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
-    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?|inicios?)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
+    private val lastBusinessDayOfMonthPattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?[uú]ltim[oa]\s+d[ií]a\s+(?:h[áa]bil|laborable|laboral)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+mism[oa])?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
+    private val midOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:mediados?|mitad)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+mism[oa])?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
+    private val startOfMonthPattern = Regex("""(?i)\b(?:a\s+)?(?:principios?|comienzos?|primeros?|inicios?)\s+(?:de\s+|del\s+)(?:(?:cada\s+(?:este\s+|esta\s+|pr[oó]xim[oa]\s+)?)|(?:todos\s+los\s+))?(?:este\s+(?:mismo\s+)?|esta\s+(?:misma\s+)?|pr[oó]xim[oa]\s+)?mes(?:es)?(?:\s+mism[oa])?(?:\s+(?:que\s+viene|que\s+entra|pr[oó]ximo|pr[oó]xima|entrante))?(?:\s+del?\s+($monthNameGroup))?(?:\s+del?\s+(\d{2,4}))?\b""")
     // c.471: "el último día" SIN "de/del mes" bajo cadencia mensual explícita
     // (alquiler/nómina "pago mensual el último día"). El patrón anterior exige
     // "de mes", así que esta forma cotidiana no se reconocía: el límite no se borraba
@@ -824,8 +824,8 @@ object NaturalTaskParser {
      * fecha (p. ej. 15→31). Se detecta y borra ANTES del período próximo para que la
      * subcadena "mes"/"año" no active "mes/año que viene".
      */
-    private val thisMonthPattern = Regex("""(?i)(?<!\d\s)(?<!de\s)(?<!del\s)este\s+(?:mismo\s+)?mes\b""")
-    private val thisYearPattern = Regex("""(?i)(?<!\d\s)(?<!de\s)(?<!del\s)este\s+(?:mismo\s+)?a[nñ]o\b""")
+    private val thisMonthPattern = Regex("""(?i)(?<!\d\s)(?<!de\s)(?<!del\s)este\s+(?:mismo\s+)?mes(?:\s+mismo)?\b""")
+    private val thisYearPattern = Regex("""(?i)(?<!\d\s)(?<!de\s)(?<!del\s)este\s+(?:mismo\s+)?a[nñ]o(?:\s+mismo)?\b""")
     /**
      * "la quincena" / "de la quincena" / "primera quincena" / "segunda quincena":
      * hito financiero mensual (cobro, nómina, pago). La "primera quincena" es el día
@@ -875,7 +875,7 @@ object NaturalTaskParser {
      * para que "la semana que viene" no se robe el +7d genérico dejando "a finales
      * de" como residuo.
      */
-    private val thisWeekPattern = Regex("""(?i)\b(?:esta\s+(?:misma\s+)?semana(?:\s+que\s+viene)?|(?:a\s+|al\s+)?(?:fin|fines|final|finales)\s+de\s+(?:la\s+(?:pr[oó]xim[oa]\s+)?semana|esta\s+(?:misma\s+)?semana)(?:\s+que\s+viene)?)\b""")
+    private val thisWeekPattern = Regex("""(?i)\b(?:esta\s+(?:misma\s+)?semana(?:\s+misma)?(?:\s+que\s+viene)?|(?:a\s+|al\s+)?(?:fin|fines|final|finales)\s+de\s+(?:la\s+(?:pr[oó]xim[oa]\s+)?semana(?:\s+misma)?|esta\s+(?:misma\s+)?semana(?:\s+misma)?)(?:\s+que\s+viene)?)\b""")
     /**
      * "principios de semana" / "a principios de semana": plazo blando de "a inicios de
      * la semana" (el lunes). Frases cotidianas ("lo termino a principios de semana") que
