@@ -6364,6 +6364,70 @@ object NaturalTaskParser {
             return RecurrenceResult(RecurrenceFrequency.WEEKLY, 2, emptyList(), phrases)
         }
 
+        // Cadencia de frecuencia cotidiana: "N veces por semana" / "N veces a la
+        // semana" / "N veces al día" / "N veces por día" / "N veces al mes" / "N
+        // veces por mes" ("ir al gym tres veces por semana", "tomar medicamento 3
+        // veces al día", "nómina dos veces al mes"). Antes caían a NONE + dueAt=null:
+        // la rutina nacía sin cadencia ni fecha → el recordatorio jamás disparaba,
+        // invisible en What Now (P1 evitar olvidos/rutinas adaptables) y la frase
+        // entera quedaba como residuo en el título. El modelo de cadencia sólo
+        // admite intervalos enteros por frecuencia (no existe "N veces por período"
+        // como tal), así que se mapea al intervalo exacto o al más próximo, con
+        // truncación hacia MÁS frecuente (nunca menos) para no estirar una rutina
+        // de medicación/pago: por semana → cada ⌊7/N⌋ días (2→3, 3→2, ≥4→1); al
+        // día → cada ⌊24/N⌋ horas (2→12, 3→8 — exactos); al mes → cada ⌊30/N⌋ días
+        // (2→15 — exacto, igual que quincena). Con N=1 se usa la frecuencia natural
+        // del período ("una vez por semana"→WEEKLY, "una vez al día"→DAILY, "una vez
+        // al mes"→MONTHLY). N admite dígito o número escrito ("dos"/"tres") y la
+        // singular "vez" cuando N=1. Se evalúa tras las ramas de lista de días e
+        // intervalo (no casan: exigen "cada" o unidad sin "veces") y ANTES de
+        // fixedPatterns (cuyo "cada semana"/"cada día" no casa por la palabra
+        // "veces" interpuesta, pero el orden mantiene la norma específico-antes-
+        // que-general). No casa "dos veces" sin período: el título se conserva.
+        val timesPerPeriodPattern = Regex(
+            """(?i)\b(\d{1,3}|$writtenNumberGroup)\s+(?:veces|vez)\s+(por\s+semana|a\s+la\s+semana|al\s+d[ií]a|por\s+d[ií]a|al\s+mes|por\s+mes)\b"""
+        )
+        timesPerPeriodPattern.find(working)?.let { match ->
+            val rawN = match.groupValues[1]
+            val n = rawN.toIntOrNull() ?: parseWrittenNumber(rawN)?.toInt()
+            if (n != null && n >= 1) {
+                phrases += match.range
+                val period = match.groupValues[2].lowercase()
+                return when {
+                    period.endsWith("semana") -> if (n == 1) {
+                        RecurrenceResult(RecurrenceFrequency.WEEKLY, 1, emptyList(), phrases)
+                    } else {
+                        RecurrenceResult(
+                            RecurrenceFrequency.DAILY,
+                            (7 / n).coerceAtLeast(1),
+                            emptyList(),
+                            phrases
+                        )
+                    }
+                    period.endsWith("mes") -> if (n == 1) {
+                        RecurrenceResult(RecurrenceFrequency.MONTHLY, 1, emptyList(), phrases)
+                    } else {
+                        RecurrenceResult(
+                            RecurrenceFrequency.DAILY,
+                            (30 / n).coerceAtLeast(1),
+                            emptyList(),
+                            phrases
+                        )
+                    }
+                    else -> if (n == 1) { // "al día"/"por día"
+                        RecurrenceResult(RecurrenceFrequency.DAILY, 1, emptyList(), phrases)
+                    } else {
+                        RecurrenceResult(
+                            RecurrenceFrequency.HOURLY,
+                            (24 / n).coerceAtLeast(1),
+                            emptyList(),
+                            phrases
+                        )
+                    }
+                }
+            }
+        }
+
         val fixedPatterns = listOf(
             Regex("""(?i)\btodos\s+los\s+d[ií]as\b|\bcada\s+d[ií]a\b|\bdiariamente\b|\ba\s+diario\b""") to RecurrenceFrequency.DAILY,
             Regex("""(?i)\btodas\s+las\s+[sS]emanas\b|\bcada\s+[sS]emana\b|\bsemanalmente\b|\bsemanal\b""") to RecurrenceFrequency.WEEKLY,
