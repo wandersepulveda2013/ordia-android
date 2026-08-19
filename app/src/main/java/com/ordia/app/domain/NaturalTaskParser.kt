@@ -5141,6 +5141,11 @@ object NaturalTaskParser {
             // frase completa primero; el resto del regex sigue borrando los tokens
             // sueltos ("hoy"/"ayer"/"anteayer"/"pasado mañana"/"antepasado mañana").
             .replace(Regex("""(?i)\b(?:para\s+)?(?:el|del)\s+d[ií]a\s+de\s+(?:ma[nñ]ana|hoy)\b"""), " ")
+            // "de hoy en adelante": coloquialismo sin cantidad que cae al keyword "hoy"
+            // (fecha = hoy, correcta), pero cuyo borrado palabra-suelta dejaba el residuo
+            // "en adelante" en el título (P3, follow-up de c.667). Se consume la frase
+            // íntegra antes del borrado genérico de abajo.
+            .replace(Regex("""(?i)\bde\s+hoy\s+en\s+adelante\b"""), " ")
             // Calificador "de/del/desde + día relativo" ("reunión de mañana", "tarea de hoy",
             // "cita de ayer", "llamada de pasado mañana", "trabajo desde hoy", "estudio desde
             // mañana"): la preposición "de"/"del"/"desde" antes de un marcador de día relativo

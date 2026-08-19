@@ -19,6 +19,8 @@ fun main() {
         "cita de hoy en quince días",
         "informe de hoy en 30 días",
         "de hoy en adelante",
+        "entrevista en adelante",
+        "llamar de hoy en adelante",
         "llamar en ocho",
         "dentro de ocho días",
         "de aquí a ocho días"

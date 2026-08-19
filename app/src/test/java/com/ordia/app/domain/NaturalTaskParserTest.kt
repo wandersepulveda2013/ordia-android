@@ -10249,6 +10249,23 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(10, 0), DateRules.toLocalTime(result.dueAt, zone))
     }
 
+    @Test fun deHoyEnAdelanteUsaHoyYLimpiaTitulo() {
+        // Follow-up P3 de c.667 (c.668): sin cantidad cae al keyword "hoy" (fecha correcta)
+        // y pre-fix el título quedaba con el residuo "en adelante". Ahora la frase íntegra
+        // se consume en la limpieza del título.
+        val result = NaturalTaskParser.parse("llamar de hoy en adelante", now, zone)
+        assertEquals("llamar", result.title)
+        assertEquals(LocalDate.of(2026, 7, 29), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enAdelanteNoDetectadoSinDeHoy() {
+        // Guard anti-falso-positivo: "en adelante" suelto (sin "de hoy") no se toca.
+        val result = NaturalTaskParser.parse("entrevista en adelante", now, zone)
+        assertEquals("entrevista en adelante", result.title)
+        assertNull(result.dueAt)
+    }
+
+
 
     @Test fun weekdayHoyConHoraFuturaQuedaHoy() {
         val result = NaturalTaskParser.parse("Reunión el viernes a las 18", fridayNow, zone)
