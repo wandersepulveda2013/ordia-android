@@ -200,8 +200,15 @@ object ContextIntentEngine {
     // subordinado (APPOINTMENT/MEETING...) ROBABA el kind a TASK con un
     // título corrupto ("Cita: del dentista"): overreach P1. "cancelar" sin
     // objeto ("cancelar todo") no activa wrapper (guard `\s+\w` en el piso).
+    // c.685 añade "falta": la construcción impersonal de obligación ("falta
+    // comprar detergente" = hay que comprarlo) también gobierna el verbo
+    // subordinado — "falta llamar al banco" es la TAREA de llamar, no una
+    // llamada autónoma (misma lección c.653). El lookahead de infinitivo
+    // excluye el uso temporal ("falta una hora"), el sustantivo ("una falta
+    // grave") y la forma personal ("me falta tu apoyo"); `(?<!no )` bloquea
+    // "no falta X" (= no hace falta, opuesto de la intención).
     private val WRAPPER_PATTERN =
-        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme|recuerda(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )cancelar|(?<!no )anular)\b""")
+        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme|recuerda(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )cancelar|(?<!no )anular|(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b))\b""")
 
     // Kinds protegidos por el guard de envolvente: pisos de posición libre
     // (c.652) + bonus-kinds APPOINTMENT/CALL (c.653). SHOPPING/PAYMENT no lo
@@ -632,7 +639,15 @@ object ContextIntentEngine {
             // c.682: "recuerda" sólo si el verbo subordinado es INFINITIVO
             // (anti-overreach: "recuerda cuando…"/"recuerda que…"/"recuerdas…"
             // no son instrucciones al asistente).
-            Regex("""\brecuerda(?=\s+\w*(?:ar|er|ir)\b)\s+\w""").containsMatchIn(lower)
+            Regex("""\brecuerda(?=\s+\w*(?:ar|er|ir)\b)\s+\w""").containsMatchIn(lower) ||
+            // c.685: "falta <infinitivo>" / "hace falta <infinitivo>" es la
+            // construcción impersonal de obligación ("falta comprar detergente"
+            // = hay que comprarlo): una tarea clara aunque no mencione fecha.
+            // El lookahead de infinitivo excluye el uso temporal ("falta una
+            // hora"), el sustantivo ("una falta grave") y el personal ("me
+            // falta tu apoyo"); `(?<!no )` bloquea "no falta X" (= no hace
+            // falta, lo opuesto de la intención).
+            Regex("""\b(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b)\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1167,6 +1182,13 @@ object ContextIntentEngine {
                 // ("recuerda que…") aunque TASK haya ganado por otro wrapper.
                 val matchRecuerda = Regex("""recuerda\s+(?=\w*(?:ar|er|ir)\b)(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchRecuerda != null) return capitalizeFirst(matchRecuerda.groupValues[1])
+
+                // "falta X" / "hace falta X" → "X" (c.685): mismo lookahead de
+                // infinitivo que el piso, así el uso temporal ("falta una
+                // hora") o personal ("me falta tu apoyo") nunca se despoja
+                // aunque TASK haya ganado por otro wrapper.
+                val matchFalta = Regex("""(?<!no )falta\s+(?=\w*(?:ar|er|ir)\b)(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchFalta != null) return capitalizeFirst(matchFalta.groupValues[1])
 
                 // "hay que X" → "X"
                 val match4 = Regex("""hay que (.+)""", RegexOption.IGNORE_CASE).find(original)

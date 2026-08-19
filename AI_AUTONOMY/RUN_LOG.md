@@ -15205,3 +15205,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Próxima prioridad**: revisión de producto / nuevas sondas de descubrimiento; cualquier P0/P1 emergente. Re-fetch OBLIGATORIO.
 - **Estado**: VERIFIED.
 
+
+## Ciclo c.685 — 2026-08-19 (UTC)
+
+- **HEAD inicial**: `4bec4d7` (c.684 remoto). Fetch pre/post-trabajo sin avances concurrentes → NO STALE_RUN.
+- **Problema (P1 olvido silencioso, área context, ítem c.681, una forma por ciclo)**: "falta/hace falta <infinitivo>" (construcción impersonal de obligación) se descartaba → NULL: "falta comprar detergente", "falta pagar la renta", "hace falta comprar leche", "hace falta renovar el seguro", "falta hacer la compra" (sonda JVM fuente real PRE-fix; persistente en `tools/probe/FaltaWrapperProbe.kt`).
+- **Causa raíz**: piso TASK (c.613) no reconocía el envolvente "falta"; ausente en piso, `WRAPPER_PATTERN` y `extractTitle`.
+- **Solución (mínima, determinista)**: `\b(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b)\s+\w` en piso + WRAPPER_PATTERN + extractTitle (plantilla c.682). Lookahead de infinitivo excluye uso temporal/sustantivo/personal; `(?<!no )` bloquea "no falta X". Kinds subordinados ceden (c.653): "falta llamar al banco mañana" CALL→TASK con dueAt intacto.
+- **Tests**: +14 TDD en `ContextIntentEngineFaltaWrapperTest.kt`. RED verificado por `git stash` del fix: EXACTAMENTE 8 failures pre-fix (las capturas); controles/regresión pasaban pre-fix. Post-fix: `bash tools/run_domain_tests.sh` → **3945 PASS** (3931 + 14), 0 failures; `run_domain_checks.sh` → smoke 25 OK; `run_automation_engine_checks.sh` → 9 OK. Sin tests reducidos/eliminados/falseados. **NO VERIFICADO** Android/gradle/lint/compose/UI/Room (sin SDK).
+- **Archivos**: `ContextIntentEngine.kt` (piso + wrapper + extractTitle + comentarios), `ContextIntentEngineFaltaWrapperTest.kt` (+14), `tools/probe/FaltaWrapperProbe.kt` (sonda), AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md.
+- **Descubrimientos**: "falta reunión con el equipo" (sustantivo) sigue MEETING por su piso propio (wrapper no aplica a sustantivos — correcto). Ítem c.681: quedan 2 formas OPEN ("hacer ejercicio por la mañana", "te acuerdas de…").
+- **Próxima prioridad**: 2 formas OPEN restantes de c.681 (una por ciclo); P2 títulos context (residuo "pasado", truncado); nuevas sondas; P0/P1 emergente. Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED.
