@@ -253,6 +253,71 @@ class AssistantEngineTest {
         assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
     }
 
+    // --- Recomendación/decisión (Cluster sonda assistant: "qué me recomiendas",
+    // "recomiéndame algo", "ayúdame a decidir", "cuál me conviene hacer") — el
+    // usuario pide UNA sugerencia; el asistente debe usar What Now, no listar
+    // capacidades. Paridad con la familia overwhelmed (una sola cosa, resto
+    // contado, vacío honesto, recuperación paridad c.357/c.416/c.680).
+    @Test fun recommendation_suggestsNextTaskNotMenu() {
+        val answer = AssistantEngine.answer(
+            "¿Qué me recomiendas?",
+            listOf(
+                TaskEntity(id = 1, title = "Normal"),
+                TaskEntity(id = 2, title = "Urgente", priority = TaskPriority.URGENT)
+            ),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+        assertTrue("nombra la sugerida: ${answer.text}", answer.text.contains("Urgente"))
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("cuenta el resto honestamente: ${answer.text}", answer.text.contains("queda 1"))
+    }
+
+    @Test fun recommendation_decidirVariantRoutes() {
+        val answer = AssistantEngine.answer(
+            "Ayúdame a decidir",
+            listOf(TaskEntity(id = 1, title = "Pagar la renta")),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("nombra la sugerida: ${answer.text}", answer.text.contains("Pagar la renta"))
+    }
+
+    @Test fun recommendation_convengoVariantRoutes() {
+        val answer = AssistantEngine.answer(
+            "¿Cuál me conviene hacer?",
+            listOf(TaskEntity(id = 1, title = "Enviar el informe")),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun recommendation_emptyIsHonestNotGeneric() {
+        val answer = AssistantEngine.answer(
+            "Recomiéndame algo",
+            emptyList(), emptyList(), emptyList()
+        )
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("vacío honesto: ${answer.text}", answer.text.contains("No encuentro tareas pendientes"))
+    }
+
+    @Test fun recommendation_recoversOverdueCommitmentWhenEmpty() {
+        // Paridad con c.357/c.416/c.680: vacío + promesa vencida → recuperación.
+        val now = 1_000_000_000_000L
+        val commitment = overdueCommitment(41, "envío el informe", now - 2 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "¿Qué me recomiendas?",
+            emptyList(),
+            emptyList(),
+            listOf(commitment),
+            now
+        )
+        assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
+    }
+
     // --- Tiempo libre (Cluster C sonda assistant; c.416 cubre la forma literal
     // "tareas de 15 minutos": "tengo un rato/tiempo/hueco" o "tengo N minutos"
     // caía al menú genérico). Reusa la rama de tareas cortas con ventana del

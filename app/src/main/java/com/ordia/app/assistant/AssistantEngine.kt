@@ -526,6 +526,31 @@ object AssistantEngine {
                     )
                 }
             }
+            // Petición de recomendación/decisión (cluster sonda assistant: "qué me
+            // recomiendas", "recomiéndame algo", "ayúdame a decidir", "cuál me
+            // conviene hacer"). El usuario pide UNA sugerencia; responder con el
+            // menú de capacidades le devuelve trabajo de pensar. La rama reusa
+            // What Now y describe UNA sola cosa con el resto contado
+            // honestamente (paridad familia overwhelmed). Vacío: vacío honesto
+            // (NUNCA menú); vacío + promesa vencida → recuperación (paridad
+            // c.357/c.416/c.680). Determinista y local: reusa WhatNowEngine, sin
+            // random, sin IA fingida, sin nueva pantalla.
+            isRecommendationQuery(query) -> {
+                val suggestion = WhatNowEngine.suggest(active, now, zone)
+                if (suggestion == null) {
+                    if (overdueCommitments.isNotEmpty()) return overdueCommitmentAnswer(overdueCommitments)
+                    AssistantAnswer("No encuentro tareas pendientes para recomendar.")
+                } else {
+                    val rest = active.size - 1
+                    val restTail = if (rest == 1) " Cuando la termines queda 1."
+                        else if (rest > 1) " Cuando la termines quedan $rest."
+                        else ""
+                    AssistantAnswer(
+                        "Te sugiero empezar por «${suggestion.task.title}».$restTail",
+                        relatedTaskIds = listOf(suggestion.task.id)
+                    )
+                }
+            }
             // Octavo olvido de la familia "lie-by-omission": la consulta no casa con
             // ninguna rama conocida y el asistente cae a su menú de capacidades. Es la
             // superficie de mayor tránsito para un usuario confundido —y justo ahí
@@ -582,6 +607,19 @@ object AssistantEngine {
      */
     private fun isOverwhelmedQuery(query: String): Boolean =
         "abrumad" in query || "agobiad" in query || "no doy abasto" in query
+
+    /**
+     * Petición de recomendación/decisión: "qué me recomiendas", "recomiéndame
+     * algo", "ayúdame a decidir", "cuál me conviene hacer". Tokens sin acento
+     * tras `foldForSearch` ("recomiend" cubre recomiendas/recomiéndame/
+     * recomendación; "a decidir" no se acota más porque la superficie de
+     * decisión ES esta rama — "qué cenar" no la casa por falta de "decidir...",
+     * pero "decidir qué hacer" y "ayúdame a decidir" sí). Familia pequeña para
+     * no robar otras ramas; va después de entity-lookup, prioridad, hueco
+     * libre y sobrecarga por la misma razón de posición.
+     */
+    private fun isRecommendationQuery(query: String): Boolean =
+        "recomiend" in query || "a decidir" in query || "me conviene" in query
 
     /**
      * Señal de "tengo un hueco libre" (Cluster C c.677): formas sueltas
