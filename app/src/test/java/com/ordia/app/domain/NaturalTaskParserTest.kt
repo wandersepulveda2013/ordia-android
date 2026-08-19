@@ -2109,6 +2109,38 @@ class NaturalTaskParserTest {
         assertEquals(30, result.reminderOffsetMinutes)
     }
 
+    // --- Subordinador "que" tras verbo de recordatorio ---
+    // "recuérdame que X" = "recuérdame X": el "que" es subordinador puro (el verbo
+    // envolvente ya se consumió), no contenido. Antes sobrevivía como residuo al
+    // inicio del título ("que tengo clases"), degradando la captura (verbo = acción
+    // oculta tras un conector vacío). Simétrico de la limpieza del verbo mismo.
+    @Test fun recuerdameQueSubordinadorLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("recuérdame que tengo clases mañana", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals("tengo clases", result.title)
+    }
+
+    @Test fun recuerdameQueDeboLimpiaTitulo() {
+        val result = NaturalTaskParser.parse("recuérdame que debo llamar a mamá mañana", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals("debo llamar a mamá", result.title)
+    }
+
+    // El subordinador se borra sólo cuando queda contenido real tras él: si el
+    // título quedara vacío, se conserva lo original (honesto, sin inventar).
+    @Test fun recuerdameQueSinContenidoConservaQue() {
+        val result = NaturalTaskParser.parse("recuérdame que mañana", now, zone)
+        assertNotNull(result.dueAt)
+        assertTrue(result.title.isNotBlank())
+    }
+
+    // Sin verbo de recordatorio, un "que" inicial NO se toca: es contenido legítimo.
+    @Test fun queInicialSinVerboSeConserva() {
+        val result = NaturalTaskParser.parse("que sea honesto el informe mañana", now, zone)
+        assertNotNull(result.dueAt)
+        assertEquals("que sea honesto el informe", result.title)
+    }
+
     // --- "mándame/envíame + sustantivo de aviso" (c.471) ---
     // "mándame un recordatorio"/"envíame una alerta" son peticiones explícitas de aviso,
     // tan cotidianas como "recuérdame". Antes NO se reconocían: el verbo sobrevivía como

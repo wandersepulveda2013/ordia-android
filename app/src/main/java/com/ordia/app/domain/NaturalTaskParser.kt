@@ -5208,6 +5208,12 @@ object NaturalTaskParser {
                 else {
                     val stripped = bareReminderVerbPattern.replace(value, " ")
                         .replace(Regex("""(?i)\b(para|el)\b\s*$"""), " ")
+                        // Verbo consumido: el "que" inicial que queda es subordinador
+                        // puro ("recuérdame que X" = "recuérdame X"), no contenido.
+                        // Si borrarlo dejara el título vacío ("recuérdame que mañana"
+                        // → la fecha ya se consumió), se conserva: prefiero un título
+                        // con residuo a uno en blanco (ver guarda isNotBlank abajo).
+                        .replace(Regex("""(?i)^\s*que\s+"""), " ")
                         .replace(Regex("""\s+"""), " ")
                         .trim(' ', ',', '.', '-')
                     if (stripped.isNotBlank()) stripped else value
