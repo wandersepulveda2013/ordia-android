@@ -31,9 +31,12 @@ fun main() {
         // Controles: negación / condicional / sustantivo / verbo suelto deben
         // permanecer NULL (anti-overreach), chat casual NULL.
         "no avisar a mamá mañana",
+        "no pedir el taxi mañana",
         "quizá pedir el taxi mañana",
         "el aviso a mamá era ayer",
         "avisar",
+        "el pedido llegó ayer",
+        "pedir",
         "la solicitud de la cita llegó ayer",
         "buscar",
         "recordadetodos los pendientes",

@@ -753,7 +753,18 @@ object ContextIntentEngine {
             // (mamá/jefe/cita/entrega) como acción de gestión. Anti-overreach:
             // `\s+\w` exige objeto, `(?<!no )` bloquea la negada,
             // sustantivo "aviso" no casa, suelto "avisar" no casa.
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )avisar\s+\w""").containsMatchIn(lower)
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )avisar\s+\w""").containsMatchIn(lower) ||
+            // c.712: "pedir <objeto>" ("pedir el taxi mañana"), forma 2/14
+            // de la SEGUNDA clase de verbos cotidianos de gestión (sonda
+            // `tools/probe/ManagementVerbDiscoveryProbe.kt`, c.711). Mismo
+            // ancla/guard que c.691…c.711. Kind decidido: TASK (en
+            // deliberación contra ERRAND/APPOINTMENT — "pedir" es solicitar/
+            // encargar el objeto; "pedir una cita" gestiona la solicitud, la
+            // cita en sí se captura por su propia vía); gobierna el objeto
+            // (taxi/cita/comida/presupuesto) como acción de gestión.
+            // Anti-overreach: `\s+\w` exige objeto, `(?<!no )` bloquea la
+            // negada, sustantivo "pedido" no casa, suelto "pedir" no casa.
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )pedir\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1394,6 +1405,12 @@ object ContextIntentEngine {
                 // temporal despojado).
                 val matchAvisar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )avisar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchAvisar != null) return "Avisar ${matchAvisar.groupValues[1]}"
+
+                // "pedir X" → "Pedir X" (c.712): mismo criterio
+                // que c.691…c.711 (verbo preservado, acuse/prefijo
+                // temporal despojado).
+                val matchPedir = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )pedir\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchPedir != null) return "Pedir ${matchPedir.groupValues[1]}"
 
                 null
             }
