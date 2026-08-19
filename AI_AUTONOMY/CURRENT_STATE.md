@@ -5,6 +5,14 @@
 - TDD: +11 en `ContextIntentEngineRevisarFloorTest.kt` (RED exacto: 6 capture-failures, 5 controles/regresión verdes pre-fix). **4017 PASS** (4006 + 11), 0 failures; smoke 25 OK; automation 9 OK; sonda persistente `tools/probe/RevisarFloorProbe.kt` 11/11. NO VERIFICADO Android/gradle/UI/Room.
 - BACKLOG: ítem P1 "revisar" (c.690) → VERIFIED. Sin ítems OPEN ahora mismo.
 - Próximo: clusters C/E assistant (c.680); sondas de descubrimiento (clase de verbos cotidianos sin piso: enviar/entregar/firmar/renovar…); re-fetch OBLIGATORIO.
+## Ciclo c.690b — 2026-08-19 (UTC) — fix(context): band singular "por la noche" despojada del título (ampliación de c.690) + TDD
+
+- HEAD inicial `67638ef` → trabajo sobre base obsoleta detectado en re-fetch (`67638ef..8c8a990`: run concurrente c.690 resolvió los defectos (a) "pasado" huérfano y (b) "del <weekday>" del mismo ítem). Recuperación NO destructiva: `git stash -u` → `pull --ff-only` → `stash pop` (conflicto resuelto tomando HEAD + re-aplicando sólo el delta propio). Mi suite duplicada se descartó; mis casos únicos migraron al test del run concurrente.
+- Fix: `bandTail` `noches` → `noches?` — el singular "por la noche" (caso común) NO era despojado: "tengo que regar las plantas por la noche" → título 'Regar las plantas por la noche'; "sacar la basura pasado mañana por la noche" → residuo doble. Un punto, 2 chars, determinista.
+- TDD: RED exacto sobre HEAD remoto (2 failures: singular solo + singular tras "pasado mañana") → GREEN. **4008 PASS** (4006 + 2), 0 failures; context suite 510 OK; smoke 25 OK. NO VERIFICADO Android/gradle/lint/UI/Room (sin SDK).
+- BACKLOG: ítem c.690 ampliado con nota c.690b. El P1 "revisar el informe pasado mañana" → NULL lo cerró el run concurrente c.691 (VERIFIED); sin ítems OPEN.
+- Próximo: clusters C/E assistant (c.680); sondas de descubrimiento (verbos cotidianos sin piso: enviar/entregar/firmar/renovar…). Re-fetch OBLIGATORIO antes de tocar nada.
+- NOTA rebase: commit rebased sobre `2dd66a5` (c.691 concurrente, otro engine + docs) — conflictos sólo en AI_AUTONOMY md, resueltos conservando TODAS las entradas; engine/tests merge limpio.
 
 ## Ciclo c.690 — 2026-08-19 (UTC) — fix(context): residuo de título post-temporal — guard "pasado" en bareTail + artículo "del" en weekday (ítem P2 c.681 CERRADO) + TDD
 

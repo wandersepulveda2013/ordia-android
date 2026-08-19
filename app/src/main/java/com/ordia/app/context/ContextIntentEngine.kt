@@ -2005,7 +2005,8 @@ object ContextIntentEngine {
         // por la mañana" dejaba 'Hacer ejercicio por la' (el bareRelative
         // cortaba sólo "mañana", y el artículo+preposición quedaban
         // colgando en el título visible).
-        val bandTail = Regex("""\s*por\s+las?\s+(?:ma[nñ]anas?|tardes?|noches)\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
+        // (c.690b: `noches?` cubre el singular "por la noche", caso común.)
+        val bandTail = Regex("""\s*por\s+las?\s+(?:ma[nñ]anas?|tardes?|noches?)\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
 
         var current = title
         var prev = ""

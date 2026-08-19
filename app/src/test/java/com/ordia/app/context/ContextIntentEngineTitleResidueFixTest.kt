@@ -127,4 +127,25 @@ class ContextIntentEngineTitleResidueFixTest {
         assertNotNull(intent)
         assertEquals("Revisar el informe de ayer", intent!!.title)
     }
+
+    @Test
+    fun singularNightBandStripsWithPasadoManana() {
+        // c.690b: bandTail sólo listaba "noches" (plural); "por la noche"
+        // (singular, caso común) quedaba entero en el título junto al
+        // compuesto "pasado mañana" ya protegido por el guard.
+        val intent = analyze("recuérdame sacar la basura pasado mañana por la noche")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.REMINDER, intent!!.kind)
+        assertNotNull(intent.dueAt)
+        assertEquals("Sacar la basura", intent.title)
+    }
+
+    @Test
+    fun singularNightBandAloneStrips() {
+        // Ruta greedy ("tengo que ...") para que el título pase por el
+        // bucle de residuo: sin el fix quedaba " por la noche" entero.
+        val intent = analyze("tengo que regar las plantas por la noche")
+        assertNotNull(intent)
+        assertEquals("Regar las plantas", intent!!.title)
+    }
 }

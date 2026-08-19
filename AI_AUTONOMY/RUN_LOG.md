@@ -15292,3 +15292,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos**: `ContextIntentEngine.kt` (piso + plantilla), `ContextIntentEngineRevisarFloorTest.kt` (+11), `tools/probe/RevisarFloorProbe.kt` (persistente), AI_AUTONOMY md.
 - **Próxima prioridad**: clusters C/E assistant (c.680); sonda de descubrimiento de clase (verbos cotidianos sin piso: enviar/entregar/firmar/renovar — una forma por ciclo). Re-fetch OBLIGATORIO.
 - **Estado**: VERIFIED. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+## Ciclo c.690b — 2026-08-19 (UTC) — fix(context): band singular "por la noche" despojada del título (ampliación c.690) + TDD
+
+- **Rama/HEAD**: `openhands/autonomous-ordia`. HEAD inicial `67638ef`; re-fetch detectó avance concurrente (`67638ef..8c8a990`, run c.690: mismo ítem, 2 de mis 4 defectos ya corregidos). Base reconstruida de forma NO destructiva (stash → ff-only → pop, conflicto resuelto a favor de HEAD + delta propio). HEAD final pendiente de commit.
+- **Colisión gestionada**: run c.690 (concurrente) cubrió (a) guard "pasado" en `bareTail` y (b) artículo "del" en weekday. Mi suite `ContextIntentEnginePasadoMananaResidueTest.kt` (6 tests) resultó duplicada en 4/6 → eliminada; los 2 casos únicos (band singular) migraron a `ContextIntentEngineTitleResidueFixTest.kt`. Mi hardening `\b` en `tail` se descartó (redundante: el conector exige `\s+` tras él; cero casos reales). NO se sobrescribió trabajo ajeno.
+- **Fix propio**: `bandTail` `noches` → `noches?` — singular "por la noche" (caso común) no se despojaba del título: "tengo que regar las plantas por la noche" → 'Regar las plantas por la noche' (ruta greedy); "recuérdame sacar la basura pasado mañana por la noche" → residuo doble. 1 punto, determinista, cero UI.
+- **Tests TDD**: +2 en `ContextIntentEngineTitleResidueFixTest.kt`. RED verificado sobre HEAD remoto sin el fix: EXACTAMENTE 2 failures (singular solo + singular tras "pasado mañana"); los 10 tests del c.690 verdes. GREEN: **4008 PASS** (4006 + 2), 0 failures; `run_filtered_test.sh "ContextIntent"` → 510 OK; `run_domain_checks.sh` → 25 OK.
+- **Archivos**: `ContextIntentEngine.kt` (bandTail + comentario), `ContextIntentEngineTitleResidueFixTest.kt` (+2), AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md.
+- **Rebase**: commit rebased sobre `2dd66a5` (c.691 concurrente que cerró el P1 "revisar"); conflictos sólo en AI_AUTONOMY md, resueltos conservando TODAS las entradas; re-suite post-rebase: **4019 PASS** (4017 c.691 + 2), 0 failures; smoke 25 OK.
+- **Próxima prioridad**: clusters C/E assistant (c.680); sondas de descubrimiento (verbos cotidianos sin piso). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED (JVM). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
