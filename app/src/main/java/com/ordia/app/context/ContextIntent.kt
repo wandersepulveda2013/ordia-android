@@ -34,7 +34,7 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
     TASK("Tarea", listOf("tengo que", "debo", "toca", "hay que", "pendiente", "recuérdame",
         "no olvides", "necesito", "preparar", "terminar", "hacer", "completar",
         "entregar", "enviar", "llamar", "avisar", "confirmar", "reservar",
-        "comprar", "traer", "llevar", "conseguir", "buscar", "pedir",
+        "comprar", "traer", "llevar", "conseguir", "buscar", "pedir", "solicitar",
         "acordarme de", "acordarse de")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
