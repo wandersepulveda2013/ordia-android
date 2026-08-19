@@ -15130,3 +15130,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos**: `NaturalTaskParser.kt` (2 lookaheads + comentarios), `NaturalTaskParserTest.kt` (+4), `tools/probe/OrdinalPosicionProbe.kt` (sonda nueva), AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md.
 - **Próxima prioridad**: revisión de producto / nuevas sondas de descubrimiento; cualquier P0/P1 emergente. Re-fetch OBLIGATORIO.
 - **Estado**: VERIFIED.
+
+## Ciclo c.678 — 2026-08-19 — re-audición P1 drogas/sexual (+1 gap real cerrado)
+
+- **Rama**: `openhands/autonomous-ordia` | **HEAD inicial**: `a9d0a7e` (c.677) | **HEAD final**: tras docs+commit.
+- **Problema seleccionado**: hallazgo secundario pendiente desde c.642 — re-auditar exenciones `drogas`/`sexual` en el eje artículo/plural. P1. Sonda `tools/probe/ModerationArticleAudit.kt` (18 casos contra la fuente real `ContentModeration`): 17 OK PRE-fix; 1 gap real — "recoger las drogas recetadas"/"comprar las drogas de las recetas" BLOQUEADAS por falta de plural (`recetad[oa]`/`receta` sin `s?`) en la proximity → falso-positivo P1 en gates compartidos. `sexual` resultó NO vulnerable en este eje (contains usan `[^.]*`, proximity global inmune al artículo). Drogas específicas: sin proximity (c.635), nada que auditar.
+- **Causa raíz**: MISMA FAMILIA c.630/c.640 (singular vs plural) en la lista de proximity de `\bdroga`.
+- **Solución (mínima, determinista)**: pluralizar `recetad[oa]`→`recetad[oa]s?` y `receta`→`recetas?` (producción `ContentModeration.kt` línea ~244 + comentario c.678 + espejo helper test línea ~92). Sin tocar la regla de drogas específicas (sin falso-negativo).
+- **TDD**: +3 tests (`drogasRecetadasPlural_noEsDanina`, `drogasDeLasRecetasPlural_noEsDanina`, regression guard `drogasParaLaFiesta_esDanino`). RED PRE-fix: suite completa 3875 run, EXACTAMENTE 2 failures (los nuevos). GREEN post-fix: **3875 PASS** 0 failures; smoke 25 OK; automation 9 OK; sonda 18/18 PASS.
+- **Archivos**: `ContentModeration.kt` (proximity plural + comentario), `ContentModerationTest.kt` (+3, espejo), `AI_AUTONOMY/{BACKLOG,RUN_LOG,CURRENT_STATE}.md`, `tools/probe/ModerationArticleAudit.kt` (sonda nueva).
+- **Próxima prioridad**: seguir sondas de descubrimiento de dominio (parser/context/asistente); cualquier P0/P1 emergente. Re-fetch OBLIGATORIO al inicio del próximo run.
+- **Estado**: VERIFIED.

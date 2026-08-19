@@ -89,7 +89,7 @@ class ContentModerationTest {
     // para testear isHarmful aislado de los filtros de secreto del gate.
     private val drogas = ContentModeration.ModerationRule(
         stem = Regex("""\bdroga"""),
-        proximity = Regex("""\b(farmac[ée]utic[oa]|farmacia|recetad[oa]|m[ée]dic[oa]|medicament[oa]|ur[oó]log[oa]|receta|tratamiento|recetar)\b""")
+        proximity = Regex("""\b(farmac[ée]utic[oa]|farmacia|recetad[oa]s?|m[ée]dic[oa]|medicament[oa]|ur[oó]log[oa]|recetas?|tratamiento|recetar)\b""")
     )
     private val drogasEspecificas = ContentModeration.ModerationRule(
         stem = Regex("""\b(cocaina|heroina|marihuana|metanfetamina|narcotrafic)""")
@@ -219,6 +219,21 @@ class ContentModerationTest {
 
     @Test fun drogaRecetada_noEsDanina() {
         assertFalse(drugHarmful("ir a buscar la droga recetada al médico"))
+    }
+
+    @Test fun drogasRecetadasPlural_noEsDanina() {
+        // MISMA FAMILIA c.630/c.640 (singular→plural): `\brecetad[oa]\b` no casa
+        // "recetadas" → la captura legítima en plural se bloqueaba (falso-positivo).
+        assertFalse(drugHarmful("recoger las drogas recetadas"))
+    }
+
+    @Test fun drogasDeLasRecetasPlural_noEsDanina() {
+        assertFalse(drugHarmful("comprar las drogas de las recetas"))
+    }
+
+    @Test fun drogasParaLaFiesta_esDanino() {
+        // Sin proximidad médica/farmacéutica → sigue bloqueado (regression guard).
+        assertTrue(drugHarmful("las drogas para la fiesta"))
     }
 
     @Test fun citaUrologoPorPene_noEsDanino() {

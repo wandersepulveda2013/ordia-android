@@ -235,10 +235,13 @@ object ContentModeration {
         // mención entera es legítima en "comprar la droga en la farmacia", "ir a
         // buscar la droga recetada", "drogadicto en tratamiento". c.632: `\b`
         // INICIAL sin `\b` final para casar plurales/flexiones ("drogas") que con
-        // `\b` final pasaban el gate.
+        // `\b` final pasaban el gate. c.678: plurales de la propia clase léxica
+        // "receta/recetada" (`recetas?`, `recetad[oa]s?`) — "recoger las drogas
+        // recetadas"/"las drogas de las recetas" quedaban SIN proximidad y se
+        // bloqueaban (falso-positivo, MISMA FAMILIA c.630/c.640 singular→plural).
         ModerationRule(
             stem = Regex("""\bdroga"""),
-            proximity = Regex("""\b(farmac[ée]utic[oa]|farmacia|recetad[oa]|m[ée]dic[oa]|medicament[oa]|ur[oó]log[oa]|receta|tratamiento|recetar)\b""")
+            proximity = Regex("""\b(farmac[ée]utic[oa]|farmacia|recetad[oa]s?|m[ée]dic[oa]|medicament[oa]|ur[oó]log[oa]|recetas?|tratamiento|recetar)\b""")
         ),
         // Drogas ESPECÍFICAS (cocaína, heroína, marihuana, metanfetamina,
         // narcotráfico): SIN proximity. c.635 cierra un falso-negativo P0: antes
