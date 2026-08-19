@@ -46,6 +46,10 @@ fun main() {
         "quizá coger el bus mañana",
         "coger",
         "cogí el bus ayer",
+        "no pasar por el banco mañana",
+        "quizá pasar por el banco mañana",
+        "pasé por el banco ayer",
+        "pasar por el parque mañana",
         "recordadetodos los pendientes",
         "hola buenos días gracias luego",
         "nos vemos después jeje"

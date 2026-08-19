@@ -125,10 +125,21 @@ object ContextIntentEngine {
     // ya cubiertos por el piso de "ir a ..." (correos/banco).
     private val ERRAND_CARRY_FLOOR =
         Regex("""\b(?<!no )(llevar|llevo)\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+|un\s+|una\s+)?(coche|carro|auto|automóvil|moto|motocicleta|bicicleta|camión|camioneta|furgoneta|ruedas|motor)\s+a(?:l| la)?\s+(taller|mec[aá]nica|revisi[oó]n)\b""")
+    // Piso de parada/errata acotado al destino (c.718, forma 8/14 de la
+    // SEGUNDA clase de gestión, sonda `ManagementVerbDiscoveryProbe.kt`
+    // c.711): "pasar por el banco/…" es el desplazamiento de ida-y-vuelta a
+    // un lugar de TRÁMITE (misma familia que el piso "ir a banco/…" c.647).
+    // "pasar por" suelto es demasiado genérico (casa/parque/el centro), así
+    // se acota a los MISMOS destinos de trámite que el piso de "ir a", y el
+    // keyword histórico genérico "pasar por" queda también en [VISIT], donde
+    // convive sin robar (mismo umbral). `\b` final: "bancomadre" no casa.
+    private val ERRAND_STOPBY_FLOOR =
+        Regex("""\b(?<!no )pasar\s+por\s+(?:el\s+|la\s+|los\s+|las\s+)?(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b""")
     private val ERRAND_FLOORS = listOf(
         Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b"""),
         Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w"""),
-        ERRAND_CARRY_FLOOR
+        ERRAND_CARRY_FLOOR,
+        ERRAND_STOPBY_FLOOR
     )
     private val STUDY_FLOORS = listOf(
         Regex("""\b(?<!no )($STUDY_VERBS)\s+\w"""),
@@ -1127,6 +1138,13 @@ object ContextIntentEngine {
         if (kind == ContextIntentKind.ERRAND &&
             Regex("""\bno\s+ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b""").containsMatchIn(lower)
         ) return true
+        // "pasar por el banco" (ERRAND, piso acotado c.718) es imperativo
+        // multi-palabra: la negación sigue bloqueada aunque el bono temporal
+        // eleve el score sin pasar por el piso (misma vía que "sacar la
+        // basura" c.717).
+        if (kind == ContextIntentKind.ERRAND &&
+            Regex("""\bno\s+pasar\s+por\s+(?:el\s+|la\s+|los\s+|las\s+)?(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b""").containsMatchIn(lower)
+        ) return true
         // "sacar la basura" (HOUSEHOLD, piso acotado c.717) es imperativo
         // multi-palabra: la negación sigue bloqueada aunque el bono temporal
         // eleve el score sin pasar por el piso (misma vía que ERRAND).
@@ -1658,6 +1676,16 @@ object ContextIntentEngine {
                 // `\b` (c.693): sin borde, "regar" casa dentro de "entregar".
                 val match = Regex("""\b(limpiar|ordenar|cocinar|lavar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return "${capitalizeFirst(match.groupValues[1])} ${match.groupValues[2]}"
+                null
+            }
+            ContextIntentKind.ERRAND -> {
+                // "pasar por <lugar de trámite>" → "Pasar por el banco"
+                // (c.718): verbo preservado (alineación piso↔título, lección
+                // c.616); el match arranca en el verbo, así el acuse/prefijo
+                // temporal ("mañana ") no ensucia el título (misma lección
+                // EXERCISE c.655).
+                val match = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )pasar\s+((?:por\s+).+)""", RegexOption.IGNORE_CASE).find(original)
+                if (match != null) return "Pasar ${match.groupValues[1]}"
                 null
             }
             ContextIntentKind.DEADLINE -> {

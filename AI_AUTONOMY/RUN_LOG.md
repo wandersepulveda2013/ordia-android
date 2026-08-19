@@ -1,3 +1,15 @@
+## Ciclo c.718 — 2026-08-19 (UTC) — feat(context): piso ERRAND 'pasar por <destino>' (forma 8/14 segunda clase de gestión)
+
+- **HEAD inicial**: `80fea84` (c.717 remoto adoptado tras STALE_RUN; git reset --soft sobre trabajo duplicado abandonado, NO destructivo).
+- **Problema seleccionado**: "pasar por el banco mañana" se DESCARTABA (analyze → NULL) — olvido silencioso P1 del desplazamiento de trámite en captura pasiva. Ítem OPEN de la sonda persistente `tools/probe/ManagementVerbDiscoveryProbe.kt` (quedan 2 formas OPEN tras esta; doctrina: UNA por ciclo).
+- **Causa raíz**: "pasar por" solo existía como keyword genérico de VISIT (umbral insuficiente, ~0.35); ningún piso acotaba el destino de trámite; extractTitle no tenía rama ERRAND (generateTitle ensuciaba prefijos temporales).
+- **Solución**: piso `ERRAND_STOPBY_FLOOR` `pasar por <destino de trámite>` (`(?<!no )`, destino acotado a los mismos 8 lugares del piso "ir a…" c.647) + keyword "pasar por" en ERRAND (paridad lockstep, lección c.713/c.717) + plantilla "pasar (por) X"→"Pasar por X" (NUEVA rama ERRAND en `extractTitle`, lección EXERCISE c.655) + guard de negación explícito en `imperativeIsNegated` (lockstep c.717). **Kind decidido: ERRAND, en deliberación contra VISIT** — parada de trámite de ida-y-vuelta; el keyword genérico "pasar por" de VISIT no se roba (el PISO acota el destino; el keyword ERRAND solo suma base bajo umbral). Anti-overreach: negada/duda/pasado "pasé…"/destino no-trámite NULL; envolvente TASK gobierna (c.613/c.652). Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +9 tests `ContextIntentEnginePasarPorFloorTest.kt` (NUEVO); RED exacto (4 failures = capturas; 5 controles verdes desde el inicio) → GREEN **OK (4229 tests)** (4220 c.717 + 9), 0 failures; suite idempotente; smoke 25 OK; automation smoke 9 OK; sonda POST: "pasar por el banco mañana" → ERRAND 'Pasar por el banco' dueAt=true; 4 controles aditivos NULL (negada/quizá/"pasé…"/parque).
+- **Archivos**: `context/ContextIntentEngine.kt` (+ERRAND_STOPBY_FLOOR +guard negación +rama ERRAND en extractTitle), `context/ContextIntent.kt` (keyword "pasar por" en ERRAND), `test/.../ContextIntentEnginePasarPorFloorTest.kt` (NUEVO +9), `tools/probe/ManagementVerbDiscoveryProbe.kt` (+4 controles), AI_AUTONOMY ×3.
+- **Commits/HEAD final**: feat + docs a continuación de `80fea84` (ff-only push previsto).
+- **Próxima prioridad**: sonda quedan 2 formas OPEN (publicar/recordar a; deliberación de kind por ciclo). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED (JVM, kotlinc 2.1.20, jars `/tmp/libs`, JDK 21). NO VERIFICADO: Android/gradle/lint/UI/Room (sin SDK).
+
 ## Ciclo c.716 — 2026-08-19 (UTC) — feat(context): piso TASK 'coger <objeto>' (forma 6/14 segunda clase de gestión)
 
 - **HEAD inicial**: `3487ef7` (c.715 push, fetch+pull --ff-only limpio, sin divergencia, NO STALE_RUN).

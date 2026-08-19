@@ -51,7 +51,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         "ir al super", "ir a comprar")),
     ERRAND("Diligencia", listOf("diligencia", "trámite", "banco", "oficina",
         "correo", "paquete", "devolver", "recoger",
-        "dejar", "pagar", "factura", "recibo")),
+        "dejar", "pagar", "factura", "recibo",
+        // c.718: parada de trámite (lockstep keyword↔piso `ERRAND_STOPBY_FLOOR`,
+        // lección c.639/c.717). El destino lo acota el piso; el keyword sólo
+        // suma base y permanece por debajo del umbral sin piso, así no roba
+        // el keyword genérico histórico de [VISIT].
+        "pasar por")),
     CALL("Llamada", listOf("llamar a", "llamar por teléfono", "hablar con",
         "llamada", "telefonear")),
     PAYMENT("Pago", listOf("pagar", "pago", "transferencia", "depósito",
