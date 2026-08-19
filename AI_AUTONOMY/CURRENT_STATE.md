@@ -1,3 +1,14 @@
+## Ciclo c.674 — 2026-08-19 (UTC) — fix(parser): conector PLURAL "los días N" de recurrencia mensual consumido íntegro (título limpio); forma financiera cotidiana "pagar la luz los días 15 de cada mes" ya no deja "los días" en el título. +1 test TDD.
+
+- **Rama**: `openhands/autonomous-ordia`. HEAD inicial `d9f4b87` (c.673 remoto; fetch/pull --ff-only sin avances → NO STALE_RUN). Entorno JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21); sin Android SDK. Auth git `github_token`.
+- **Problema (P1 título-limpio / recurrencias mensuales, descubierto por sonda amplia `tools/probe/ParserDiscoveryProbe3`)**: "pagar la luz los días 15 de cada mes" anillaba MONTHLY(15) pero dejaba el conector plural "los días" como residuo del título (`title='pagar la luz los días'`). El singular "el día N de cada mes" ya era limpio; el plural es forma financiera cotidiana (pago/nómina/renta).
+- **Causa raíz**: `monthlyDayPattern` admitía el sustantivo singular `(?:d[ií]a\s+)?` solo.
+- **Solución (mínima)**: conector `(?:d[ií]as?\s+)?` (singular conservado, plural añadido). La cadencia sigue anclada por "de cada mes"/"todos los meses"/"mensual(mente)".
+- **Tests**: +1 TDD RED→GREEN `losDiasMonthlyRecurrenceCleanTitle`. Suite **3858 PASS** (3857 → 3858), smoke 25 OK, automation 9 OK. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+- **Archivos**: `NaturalTaskParser.kt` (regex), `NaturalTaskParserTest.kt` (+1), AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md.
+- **Próxima prioridad**: re-audición ContentModeration drogas/sexual (BACKLOG c.640) o nueva revisión de producto; cualquier P0/P1 nuevo. Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED.
+
 ## Ciclo c.672 — 2026-08-19 (UTC) — feat(parser): nombre de mes suelto tras "en" ("viaje en diciembre", "renovar en enero") ancla día 1 (roll anual si ya pasó) y limpia título. +8 tests TDD.
 
 - **Rama**: `openhands/autonomous-ordia`. HEAD inicial `af10a1a` (c.671 remoto); `git fetch`/`git pull --ff-only` sin avances al iniciar → NO STALE_RUN. Entorno JVM (kotlinc 2.1.20, jars `/tmp/libs`); sin Android SDK. Auth git `github_token`.

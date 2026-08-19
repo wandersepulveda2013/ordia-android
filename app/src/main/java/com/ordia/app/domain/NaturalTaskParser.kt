@@ -6080,8 +6080,13 @@ object NaturalTaskParser {
         // MONTHLY sin saber qué día repetir. El lookahead negativo (sólo en la rama
         // "mes") descarta "del mes actual/entrante/próximo/que viene" (fecha única, no
         // recurrente); las formas "todos los meses"/"mensual" no tienen esa ambigüedad.
+        // c.674: el sustantivo del conector admite también el PLURAL "días". La
+        // forma financiera cotidiana "pagar la luz los días 15 de cada mes"
+        // dejaba el plural como residuo del título (sólo se consumía "los"); el
+        // singular "el día 15 de cada mes" ya se cubría y la cadencia seguía
+        // anclada igual ("de cada mes"/"todos los meses"/"mensual").
         val monthlyDayPattern =
-            Regex("""(?i)\b(?:\bdel?\s+)?(?:cada|el|los)?\s*(?:d[ií]a\s+)?(\d{1,2})\s+(?:(?:de|del)\s+(?:cada\s+)?mes(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))|(?:de\s+)?todos\s+los\s+meses|mensual(?:mente|idades)?)""")
+            Regex("""(?i)\b(?:\bdel?\s+)?(?:cada|el|los)?\s*(?:d[ií]as?\s+)?(\d{1,2})\s+(?:(?:de|del)\s+(?:cada\s+)?mes(?:es)?(?!\s+(?:actual|presente|este|entrante|pr[oó]ximos?|siguientes?|que\s+(?:viene|entra|sigue)))|(?:de\s+)?todos\s+los\s+meses|mensual(?:mente|idades)?)""")
         monthlyDayPattern.find(working)?.let { match ->
             val day = match.groupValues[1].toIntOrNull()?.coerceIn(1, 31) ?: return@let
             phrases += match.range

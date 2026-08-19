@@ -11372,6 +11372,16 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // c.674: el conector PLURAL "los días N" también debe consumirse entero.
+    // PRE-fix monthlyDayPattern sólo admitía el singular `(día)`; el plural quedaba
+    // como residuo del título ("pagar la luz los días") al anillar el día N.
+    @Test fun losDiasMonthlyRecurrenceCleanTitle() {
+        val result = NaturalTaskParser.parse("pagar la luz los días 15 de cada mes", now, zone)
+        assertEquals("pagar la luz", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(LocalDate.of(2026, 8, 15), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
     @Test fun elDiaMonthNameCleanTitle() {
         // "el día 1 de enero": antes "el día" sobraba porque monthNamePattern no
         // consumía la palabra "día". Ahora se resuelve al 1 de enero (próximo año).
