@@ -14856,3 +14856,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `10b3b1d` (c.650b). **HEAD final**: `32fa396` (c.651 remoto) + commit doc c.651b.
 - **Lección**: colisiones consecutivas c.650b/c.651b sobre el ítem P1 destacado del backlog — hacer fetch inmediato antes y tras cada hito y preferir áreas de archivo distintas al último commit remoto.
 - **Estado**: STALE_RUN — el P1 prefijo-de-acuse queda RESUELTO y VERIFICADO por el remoto c.651; mi duplicado descartado limpiamente.
+
+
+---
+
+## 2026-08-18 — Ciclo c.653b — STALE_RUN (colisión remota c.653+c.654; verificación remota + descarte no destructivo)
+
+- **HEAD inicial**: `4c66708` (c.652 push-OK).
+- **Objetivo**: P1 robo de kind por bonus-kinds APPOINTMENT/CALL bajo envolventes (probe PRE 12 robos).
+- **Colisión**: tras implementar mi alternativa local (guard extendido + excepción v2 CALL con objeto + pulido título APPOINTMENT, suite 3746 PASS), el push fue rechazado: remoto avanzó `4c66708`→`3115534` (c.653 + c.654 de run concurrente, mismo objetivo).
+- **Verificación remota**: `tools/run_domain_tests.sh` → 3762 PASS; `tools/run_domain_checks.sh` → smoke 25 OK; probe fuente real 10/10 (envueltes AP/CALL→TASK/REMINDER, posición-libre/declarativos intactos). DECISIÓN remota conservadora: CALL envuelto siempre descartado (sin excepción v2 con objeto).
+- **Acción**: `git branch backup-c653-local` (no pushed), `reset --soft 4c66708`, `stash push`→`drop`, `merge --ff-only origin` → `3115534`. SIN force, SIN reset --hard, SIN clean destructivo, SIN sobrescribir trabajo remoto. Integré SÓLO docs.
+- **HEAD final**: docs c.653b sobre `3115534` (pendiente push).
+- **Estado**: STALE_RUN. Defecto envolvente-bonus-kinds P1 VERIFIED por c.653 remoto; ruido títulos APPOINTMENT P2 VERIFIED por c.654 remoto.
