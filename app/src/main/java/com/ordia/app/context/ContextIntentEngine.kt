@@ -211,9 +211,9 @@ object ContextIntentEngine {
         //    que los anclajes de fecha/hora (que [extractDateTime] ya resolvió en
         //    [dueAt]) sobreviven como RESIDUO en el título visible: p.ej.
         //    "recuérdame llamar a mamá el viernes a las 3" → "Llamar a mamá el
-        //    viernes a las 3", y los prefijos "Cita: "/"Reunión: "/"Pagar " capitalizan
-        //    además el artículo/preposición que encabeza la cola ("Reunión: Con el
-        //    equipo"). El [NaturalTaskParser] depura sus títulos consumiendo los
+        //    viernes a las 3", y los prefijos "Cita: "/"Reunión: "/"Pagar "
+        //    capitalizaban además el artículo/preposición que encabeza la cola.
+        //    El [NaturalTaskParser] depura sus títulos consumiendo los
         //    anclajes al parsear (c.237–c.438); la captura de contexto (notificaciones
         //    → ContextIntent → tarea) NO lo hacía: una notificación capturada nacía con
         //    título sucio/redundante, degradando la captura (P1). [sanitizeTitle]
@@ -992,13 +992,15 @@ object ContextIntentEngine {
                 null
             }
             ContextIntentKind.SHOPPING -> {
-                // "comprar X" → "Comprar X"
+                // "comprar X" → "Comprar X". Sin [capitalizeFirst] en el objeto:
+                // se preserva el caso original del usuario (doctrina c.653) y se
+                // evita el title-case espurio ("Comprar Pan"/"Comprar Leche...").
                 val match = Regex("""comprar (.+)""", RegexOption.IGNORE_CASE).find(original)
-                if (match != null) return "Comprar ${capitalizeFirst(match.groupValues[1])}"
+                if (match != null) return "Comprar ${match.groupValues[1]}"
 
                 // "ir al supermercado" → "Ir al supermercado"
                 val match2 = Regex("""(ir|vamos|voy|iremos) (.+)""", RegexOption.IGNORE_CASE).find(original)
-                if (match2 != null) return "Ir ${capitalizeFirst(match2.groupValues[2])}"
+                if (match2 != null) return "Ir ${match2.groupValues[2]}"
 
                 null
             }
@@ -1055,8 +1057,9 @@ object ContextIntentEngine {
                 null
             }
             ContextIntentKind.PAYMENT -> {
+                // Mismo criterio que SHOPPING: sin [capitalizeFirst] en el objeto.
                 val match = Regex("""pagar (.+)""", RegexOption.IGNORE_CASE).find(original)
-                if (match != null) return "Pagar ${capitalizeFirst(match.groupValues[1])}"
+                if (match != null) return "Pagar ${match.groupValues[1]}"
                 null
             }
             ContextIntentKind.REMINDER -> {

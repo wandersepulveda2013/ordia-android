@@ -56,7 +56,8 @@ class ContextIntentEngineShoppingMeetingFloorTest {
         val intent = analyze("comprar leche y huevos")
         assertNotNull(intent)
         assertEquals(ContextIntentKind.SHOPPING, intent!!.kind)
-        assertEquals("Comprar Leche y huevos", intent!!.title)
+        // c.653b: el objeto preserva su caso original (sin title-case espurio).
+        assertEquals("Comprar leche y huevos", intent!!.title)
     }
 
     @Test

@@ -85,10 +85,11 @@ class ContextIntentEngineAckFloorTest {
 
     @Test
     fun ackTitleDropsPrefix() {
-        // El prefijo de acuse no debe contaminar el título persistido.
+        // El prefijo de acuse no debe contaminar el título persistido. c.653b:
+        // el objeto preserva su caso original (sin title-case espurio).
         val intent = analyze("sí, comprar pan")
         assertNotNull(intent)
-        assertEquals("Comprar Pan", intent!!.title)
+        assertEquals("Comprar pan", intent!!.title)
     }
 
     // --- Afirmativos preexistentes: regresión (sin acuse siguen capturados) ---
