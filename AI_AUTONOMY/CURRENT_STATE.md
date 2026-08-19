@@ -7,6 +7,13 @@
 - **Próxima prioridad**: (i) `zone` omitida en `AutomationEngine.runRule`/`OrdiaViewModel.guardianInsight` (P1 — seam Zone inyectado, NO JVM); (ii) `TaskRules.nextBestTask` default-zone audit tras cerrar P1 (P2); (iii) workers/backup/restore (P0 — NO JVM). Re-fetch OBLIGATORIO.
 - **Estado**: AUDITED → VERIFIED. NO VERIFICADO Android/UI/Room.
 
+## Run c.660 — 2026-08-19 (UTC) — **STALE_RUN (no-destructivo)**: c.658 local (CHAT_WORDS → multi-palabra alcanzables vía renombre CHAT_TOKENS) fue superado por la c.658 remota (695aecf1, mismo hallazgo c.656(ii), mismo fix CHAT_TOKENS + tests propios); se descarta el stash local sin sobreescritura; suite remota + probe de regresión validan la implementación remota
+
+- **Rama**: `openhands/autonomous-ordia`. HEAD inicial `59cd3321` (post-fast-forward). Re-fetch al iniciar: sin avances (base al día). Entorno JVM.
+- **Incidente**: en la run anterior (c.658 local) el remoto avanzó de `11ebbd21` a `59cd3321` con la corrección `695aecf1 fix(context): c.658 fixes — CHAT_WORDS/CHAT_TOKENS...` antes del push; la implementación remota es semánticamente equivalente y estructuralmente más simple (fuente única `CHAT_WORDS`, `CHAT_TOKENS` derivado con `flatMap(split)`, `contains` para la penalización ambigua, test `ContextIntentChatWordsTest` (+6)).
+- **Acción**: `git stash drop` del WIP local (`c.658 WIP (retry)`) sin rebase/push; no se tocan archivos de código; se re-valida el HEAD remoto.
+- **Tests (HEAD `59cd3321`)**: `bash tools/run_domain_tests.sh` → **3796 PASS**, 0 failures; `bash tools/run_domain_checks.sh` → smoke 25 OK. Probe de regresión `/tmp/probe660/ProbeChat660.kt` (fuera del repo): "llamar a mamá mañana"→CALL, "comprar pan hoy"→SHOPPING, "recuérdame llamar a mamá mañana"→TASK, "ir al gimnasio luego"→EXERCISE (intactos); "qué hora es la reunión"/"cómo llego al trabajo"/"nos lo contó el profesor"/"nes nos vemos luego"→NULL (chat sin ancla real, correcto); "buenos días"/"nos vemos"/"qué tal"/"gracias"→NULL (regresión del hallazgo original); "comprar drogas mañana"/"sección secuestrada"→NULL (bloqueo temático de `ContentModeration`, intencional). **NO VERIFICADO** gradle/lint/assemble/Android/UI/Room con DAOs reales (sin Android SDK).
+- **Estado**: STALE_RUN → CLOSED-BY-REMOTE (sin degradación del remoto).
 
 ## Auditoría c.659 — 2026-08-19 (UTC) — hallazgo secundario c.641/c.642 "¿`drogas`/`sexual`/`secuestr` en eje artículo?" — resultado NOT CONFIRMED, sin cambio de código (P1 seguridad, JVM-verificable)
 

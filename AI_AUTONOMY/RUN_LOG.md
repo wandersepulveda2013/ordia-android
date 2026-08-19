@@ -12,6 +12,17 @@
 - **Próxima prioridad**: (i) `zone` omitida en `AutomationEngine.runRule`/`OrdiaViewModel.guardianInsight` (P1 — seam Zone inyectado o decisión humana); (ii) `TaskRules.nextBestTask` default-zone audit post-P1 follow-ups (P2); (iii) AP-futuro "tendré cita" y "esta misma semana" (P2 — decisión humana). Re-fetch OBLIGATORIO.
 - **Estado**: AUDITED → VERIFIED (cero cambio de código, probe+checks JVM). NO VERIFICADO Android/UI/Room.
 
+## Run c.660 — 2026-08-19 (UTC) — **STALE_RUN (no-destructivo)**: c.658 local (CHAT_WORDS multi-palabra) superada por c.658 remota (`695aecf1`); stash local descartado sin sobrescritura; HEAD remoto re-validado
+
+- **Run/ciclo**: c.660 (rama `openhands/autonomous-ordia`). HEAD inicial `59cd3321`. Re-fetch al iniciar: sin avances (base al día).
+- **Incidente**: el remoto avanzó durante la run anterior (c.658 local) de `11ebbd21` → `59cd3321`; el commit remoto `695aecf1` resolvió el MISMO hallazgo (c.656(ii), CHAT_WORDS multi-palabra inalcanzables) con el MISMO enfoque CHAT_TOKENS y test propio `ContextIntentChatWordsTest`. Ambas correcciones son semánticamente equivalentes; la remota es estructuralmente más simple (fuente única + deriva).
+- **Acción no destructiva**: `git stash drop` del WIP local; sin rebase, sin push, sin overwrite del remoto. Suite re-ejecutada sobre el HEAD remoto para validación.
+- **Tests (HEAD `59cd3321`)**: `bash tools/run_domain_tests.sh` → **3796 PASS**, 0 failures; `bash tools/run_domain_checks.sh` → smoke 25 OK. Probe `/tmp/probe660/ProbeChat660.kt` (fuera del repo) confirma que los intents reales (CALL/SHOPPING/TASK/EXERCISE) siguen detectados y que los chat multi-palabra se descartan correctamente; "comprar drogas mañana"→NULL es bloqueo temático intencional de `ContentModeration`. **NO VERIFICADO** Android/gradle/UI/Room.
+- **Commits**: ninguno (docs-only: actualización de CURRENT_STATE).
+- **HEAD inicial**: `59cd3321`. **HEAD final**: pendiente push (commit docs).
+- **Próxima prioridad**: retomar pendientes JVM: (i) `SensitiveSecretPatterns` audit P2 (c.659); (ii) P0/P1 nuevos no detectados.
+- **Estado**: STALE_RUN → CLOSED-BY-REMOTE (sin degradación del remoto).
+
 ## Run c.656 — 2026-08-19 (UTC) — fix(context): futuro declarativo de CALL ("llamaré/hablaré + objeto") se DESCARTABA — bono específico via fuente única [CALL_SPECIFIC] + título limpio — +8 tests TDD — ÁREA CONTEXT (cierre del hallazgo (i) c.654, P1 olvido)
 
 - **Run/ciclo**: c.656 (rama `openhands/autonomous-ordia`). HEAD inicial `2420b7b` → rebase NO destructivo sobre `6c8ac76` (remoto c.655 EXERCISE-título, regiones DISJUNTAS, docs conflict solo en AI_AUTONOMY, ambos bloques conservados — lección c.653b renumeración). Base local quedó obsoleta DOS veces por avances remotos (`d56047c`→`3115534` c.654 AP-títulos → `2420b7b` docs-STALE); resolución NO destructiva (stash de mis notas doc-only + `ff-only`, sin sobrescribir). POST-fix re-verificados contra la base nueva (probe RED re-confirmado 4/4 NULL). Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars `/tmp/libs`, JDK Temurin 21 (`/tmp/jdk21`). Auth git con `github_token` secret.
