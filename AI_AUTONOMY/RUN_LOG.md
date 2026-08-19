@@ -15421,3 +15421,12 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD final**: `c175174`.
 - **Próxima prioridad**: clústeres P2 asistente (C/E) o forma 6/8 (imprimir/reservar/cambiar).
 - **NO VERIFICADO**: Android/gradle/lint/UI/Room (sin SDK).
+
+## c.701 — 2026-08-19T17:50Z — STALE_RUN (duplicado de c.700 remoto `4cfff2a`; descarte no destructivo + verificación independiente)
+- **HEAD inicial**: `1cd3e6b` (c.699, pull --ff-only limpio). **HEAD final remoto**: `db51753` (c.700 del run concurrente; docs c.701 push cero).
+- **Qué pasó**: TDD completa de "confirmar <objeto>" implementada (RED exacto 6 failures → GREEN 4086 PASS, sonda OK). Al re-fetch pre-push, el remoto ya traía c.700 `4cfff2a` con el MISMO fix (piso confirmar, 11 tests, sonda, memoria). Descarte no destructivo: `git stash push -u + stash drop` + `git pull --ff-only`. NADA remoto sobrescrito/forzado; `main` intacto.
+- **Verificación independiente sobre `db51753`**: `run_domain_tests.sh` → **OK (4086 tests)**, 0 failures; `run_domain_checks.sh` → 25 OK; sonda clase → confirmar TASK 'Confirmar la reserva' dueAt=true; 4 controles NULL; 3 formas OPEN NULL.
+- **Archivos**: solo AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md (docs-only). Commits propios de código: 0.
+- **Lección reforzada**: re-fetch INMEDIATO pre-implementación; en concurrencia alta, preferir clusters P2 assistant (C "tengo N minutos" / E "estoy abrumado") a ítems de la lista clase-verbos compartida.
+- **Estado**: STALE_RUN. NO VERIFICADO Android/gradle/lint/UI/Room (sin SDK).
+

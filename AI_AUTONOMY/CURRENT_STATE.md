@@ -1,3 +1,10 @@
+## Ciclo c.701 — 2026-08-19 (UTC) — STALE_RUN (sin cambios destructivos): fix confirmar duplicado del c.700 remoto `4cfff2a` (+ `c175174`/`db51753` docs)
+
+- **HEAD inicial** `1cd3e6b` (c.699 remoto, pull --ff-only limpio). **HEAD final remoto** `db51753` (c.700 del run concurrente). Implementé TDD completa de confirmar (RED exacto 6 failures, GREEN 4086 PASS, sonda OK) sobre `1cd3e6b`; al re-fetch pre-push el remoto ya traía el MISMO fix c.700 `4cfff2a` (piso confirmar + 11 tests + sonda + memoria). Duplicación (espejo del c.699): descarte no destructivo — stash push + drop del trabajo local no pusheado, `git pull --ff-only`, NADA remoto sobrescrito, NADA forzado.
+- **Verificación independiente sobre `db51753`**: `run_domain_tests.sh` → **4086 PASS**, 0 failures; `run_domain_checks.sh` → 25 OK; sonda clase POST: "confirmar la reserva esta noche" → TASK 'Confirmar la reserva' dueAt=true; 4 controles confirmar NULL; 3 formas OPEN (imprimir/reservar/cambiar NULL). Cero commits propios (docs-only). Lección reforzada: re-fetch INMEDIATO pre-implementación; en ventanas de concurrencia alta preferir clusters P2 (`tengo N minutos`/`estoy abrumado`) o ítems fuera de la lista clase-verbos compartida.
+- **Próxima prioridad**: clusters P2 assistant (C/E) o siguiente forma clase-verbos si la sonda la confirma NULL al re-fetch; re-fetch OBLIGATORIO pre-implementación.
+
+
 ## Ciclo c.700 — 2026-08-19 (UTC) — feat(context): piso TASK "confirmar <objeto>" (forma 5/8 clase-verbos, doctrina anti-overreach; renumerado c.699→c.700 por colisión con STALE_RUN concurrente docs-only)
 
 - **HEAD inicial** `5bb7927` (c.698 docs, pull --ff-only limpio). **HEAD final** `c175174` = feat `4cfff2a` + docs; hubo rebase no destructivo sobre STALE_RUN concurrente `1cd3e6b` (preservado íntegro c.699 en CURRENT_STATE/RUN_LOG tras conflicto docs-only; renumeración única autorizada c.699→c.700). Verificación POST-rebase en el árbol final: **4086 PASS**, smoke 25 OK.
