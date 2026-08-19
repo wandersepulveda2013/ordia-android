@@ -92,6 +92,18 @@ object ContextIntentEngine {
         Regex("""\b(?<!no )preparar\s+(?:el\s+|la\s+|lo\s+|un\s+|una\s+)?examen\b""")
     )
 
+    // Regex del piso de DEADLINE (c.654): marcadores de fecha límite INEQUÍVOCOS
+    // ("deadline"/"fecha límite"/"vencimiento"). Centralizado (misma lección
+    // c.648/c.652) para que el piso [hasStrongDeadlineImperative] y el guard de
+    // envolvente [imperativeIsWrapped] compartan EXACTAMENTE el mismo patrón.
+    // El lookahead Unicode \p{L} delimita la frontera ("vencimiento" no casa
+    // "desvencimiento"); "tope"/"límite"/"finaliza"/"último día" NO entran:
+    // demasiado genéricos, se quedan como palabra clave sin piso. La negación
+    // inmediata ("no deadline") queda bloqueada por el lookbehind `(?<!no )`.
+    private val DEADLINE_FLOORS = listOf(
+        Regex("""\b(?<!no )(deadline|fecha\s+l[íi]mite|vencimiento)(?!\p{L})""")
+    )
+
     // Patrones de ACTIVACIÓN de los bonus-kinds APPOINTMENT/CALL (c.653),
     // centralizados (misma lección c.648/c.652) para que el bono aditivo de
     // [scoreSpecificPatterns] y el guard de envolvente [imperativeIsWrapped]
@@ -131,8 +143,14 @@ object ContextIntentEngine {
     // ("avísame" = notifícame) se pierde: overreach P1 (misma lección de
     // diseño que c.651 para SHOPPING/PAYMENT: el verbo subordinado es contenido
     // del recordatorio, no una acción autónoma).
+    // c.654 añade "cancelar|anular": son verbos de ACCIÓN que gobiernan el
+    // contenido ("cancelar la cita del dentista") — semánticamente UNA TAREA
+    // ("hay que cancelar…"), no una cita autónoma. Sin el guard, el kind
+    // subordinado (APPOINTMENT/MEETING...) ROBABA el kind a TASK con un
+    // título corrupto ("Cita: del dentista"): overreach P1. "cancelar" sin
+    // objeto ("cancelar todo") no activa wrapper (guard `\s+\w` en el piso).
     private val WRAPPER_PATTERN =
-        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme)\b""")
+        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme|(?<!no )cancelar|(?<!no )anular)\b""")
 
     // Kinds protegidos por el guard de envolvente: pisos de posición libre
     // (c.652) + bonus-kinds APPOINTMENT/CALL (c.653). SHOPPING/PAYMENT no lo
@@ -145,7 +163,8 @@ object ContextIntentEngine {
         ContextIntentKind.ERRAND to ERRAND_FLOORS,
         ContextIntentKind.STUDY to STUDY_FLOORS,
         ContextIntentKind.APPOINTMENT to APPOINTMENT_SPECIFIC,
-        ContextIntentKind.CALL to CALL_SPECIFIC
+        ContextIntentKind.CALL to CALL_SPECIFIC,
+        ContextIntentKind.DEADLINE to DEADLINE_FLOORS
     )
 
     // Penalización por duda/condicional (c.649 anti-overreach). Marcadores como
@@ -484,6 +503,19 @@ object ContextIntentEngine {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
+        // Piso para marcadores de FECHA LÍMITE inequívocos (c.654): "deadline"/
+        // "fecha límite"/"vencimiento" son vocabulario de compromiso explícito.
+        // Sin este piso quedaban en ~0.22 (< [MINIMUM_CONFIDENCE]) y se
+        // DESCARTABAN — olvido silencioso P1 (probe JVM: "deadline: enviar el
+        // informe" → NULL; "fecha límite: enviar el informe" → NULL). Olvidar
+        // la fecha tope de un informe tiene coste real, como olvidar un pago.
+        // El guard de envolvente se evaluó antes: "recuérdame la fecha límite"
+        // gana TASK (piso c.613), no DEADLINE. Marcadores genéricos ("tope"/
+        // "límite") NO activan el piso y quedan como palabra clave suelta.
+        if (kind == ContextIntentKind.DEADLINE && hasStrongDeadlineImperative(lower)) {
+            score = maxOf(score, MINIMUM_CONFIDENCE)
+        }
+
         // Penalización por duda/condicional (c.649 anti-overreach). Los pisos
         // anteriores elevan la confianza al mínimo para imperativos inequívocos
         // ("ir al gimnasio", "reunión con el equipo"...), pero NO distinguen un
@@ -516,12 +548,19 @@ object ContextIntentEngine {
     }
 
     /**
-     * Imperativos de tarea inequívocos (c.613). Coincide con los anclajes de
-     * [extractTitle] para TASK. "recuérdame/no olvides" exigen verbo; "tengo
-     * que/hay que" ya incluyen la cópula en el patrón.
+     * Imperativos de tarea inequívocos (c.613, c.654). Coincide con los
+     * anclajes de [extractTitle] para TASK. "recuérdame/no olvides" exigen
+     * verbo; "tengo que/hay que" ya incluyen la cópula en el patrón.
+     * c.654 añade "cancelar|anular": verbo de ACCIÓN que gobierna el
+     * contenido ("cancelar la cita del dentista" es la tarea de cancelarla,
+     * no una cita autónoma — anti-overreach, ver [WRAPPER_PATTERN]). La
+     * alineación piso↔título (lección c.616) la garantiza [extractTitle]:
+     * los templates "cancelar (.+)"/"anular (.+)" producen "Cancelar X"/
+     * "Anular X" sin texto envolvente.
      */
     private fun hasStrongTaskImperative(lower: String): Boolean =
-        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que)\s+\w""").containsMatchIn(lower)
+        Regex("""\b(?:recuérdame|no olvides|tengo (?:que|q)|hay que|(?<!no )cancelar|(?<!no )anular)\s+\w""")
+            .containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -691,10 +730,26 @@ object ContextIntentEngine {
         STUDY_FLOORS.any { it.containsMatchIn(lower) }
 
     /**
+     * Marcador inequívoco de fecha límite (c.654). "deadline"/"fecha límite"/
+     * "vencimiento" son vocabulario de compromiso explícito, igual que los
+     * verbos de compra/pago de c.626/c.630: sin piso, "deadline: enviar el
+     * informe" quedaba en ~0.22 (< [MINIMUM_CONFIDENCE]) y se DESCARTABA
+     * (olvido silencioso P1; olvidar una fecha tope tiene coste real, como
+     * un pago). Marcadores genéricos ("tope"/"límite"/"finaliza") NO activan
+     * el piso (anti-overreach: el lookbehind `(?<!no )` también bloquea la
+     * negación inmediata). El guard de envolvente [imperativeIsWrapped]
+     * intercepta antes si un wrapper precede al marcador ("recuérdame la
+     * fecha límite" → TASK, no DEADLINE). Determinista (regex), sin IA.
+     */
+    private fun hasStrongDeadlineImperative(lower: String): Boolean =
+        DEADLINE_FLOORS.any { it.containsMatchIn(lower) }
+
+    /**
      * Detecta si el imperativo del [kind] está SUBORDINADO a un imperativo
      * envolvente (c.652/c.653 anti-overreach). Los pisos de posición libre
      * (c.643/c.647, ancla `\b`) se activan aunque el verbo venga gobernado por
-     * "recuérdame/no olvides/tengo que/hay que/avísame/notifícame/acordarme":
+     * "recuérdame/no olvides/tengo que/hay que/avísame/notifícame/acordarme/
+     * cancelar/anular":
      * "avísame reunión con el equipo"→MEETING (le robaba el kind a REMINDER),
      * "recuérdame ir al gimnasio"→EXERCISE 0.59 (le robaba el kind a TASK).
      * c.653 extendió el guard a los bonus-kinds APPOINTMENT/CALL: no tienen
@@ -1007,6 +1062,16 @@ object ContextIntentEngine {
                 val match4 = Regex("""hay que (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match4 != null) return capitalizeFirst(match4.groupValues[1])
 
+                // "cancelar X" → "Cancelar X" / "anular X" → "Anular X" (c.654).
+                // El verbo de cancelación gobierna el contenido: se PRESERVA en
+                // el título (la lección de [approach de c.616] exige que si el
+                // piso dispara, el título siga al verbo envolvente, no a un
+                // template corrupto como "Cita: del dentista").
+                val match5 = Regex("""\b(?<!no )(cancelar|anular)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (match5 != null) {
+                    return "${capitalizeFirst(match5.groupValues[1])} ${match5.groupValues[2]}"
+                }
+
                 null
             }
             ContextIntentKind.SHOPPING -> {
@@ -1105,6 +1170,20 @@ object ContextIntentEngine {
                 // el piso no capture un verbo cuyo título luego no se forme limpio.
                 val match = Regex("""(limpiar|ordenar|cocinar|lavar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return "${capitalizeFirst(match.groupValues[1])} ${match.groupValues[2]}"
+                null
+            }
+            ContextIntentKind.DEADLINE -> {
+                // Quita la ETIQUETA del marcador ("deadline:"/"fecha límite:"/
+                // "vencimiento:") para quedarse con el contenido (c.654). Sin
+                // esta rama, [generateTitle] dejaba en el título el marcador
+                // con signos ("Deadline: enviar el informe"). La idea es la
+                // misma que para TASK (alineación piso↔título, lección c.616):
+                // el marcador inequívoco que activó el piso se consume aquí.
+                val match = Regex(
+                    """(?:deadline|fecha\s+l[íi]mite|vencimiento)\s*[,;:.!]?\s*(.+)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (match != null) return capitalizeFirst(match.groupValues[1])
                 null
             }
             else -> null

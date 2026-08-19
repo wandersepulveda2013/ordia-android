@@ -26,7 +26,7 @@ SOURCES=(
   "$BACKUP_MAIN/BackupStore.kt" "$BACKUP_MAIN/BackupPreferences.kt" "$BACKUP_MAIN/ReminderSchedulerPort.kt"
   "$CONTEXT_MAIN/ContextEvent.kt" "$CONTEXT_MAIN/ContextualSuggestion.kt" "$CONTEXT_MAIN/ContextCaptureSource.kt"
   "$CONTEXT_MAIN/ContextPrivacyFilter.kt" "$CONTEXT_MAIN/ContextRateLimiter.kt"
-  "$CONTEXT_MAIN/NotificationObservationPolicy.kt" "$CONTEXT_MAIN/ContextIntent.kt" "$CONTEXT_MAIN/ContextDeduplicator.kt"
+  "$CONTEXT_MAIN/NotificationObservationPolicy.kt" "$CONTEXT_MAIN/ContextIntent.kt" "$CONTEXT_MAIN/ContextDeduplicator.kt" "$CONTEXT_MAIN/ContextIntentEngine.kt"
   "$CONVERSATIONS_MAIN"/*.kt
   "$ROOT/app/src/main/java/com/ordia/app/assistant"/*.kt
 )

@@ -35,6 +35,19 @@
 - **HEAD final**: pendiente de push (commit c.654 sobre `d56047c`).
 - **Hallazgos**: (i) APPOINTMENT era la única rama con prefijo duplicable (MEETING/STUDY/PAYMENT no se auto-mencionan en sus alternativas); (ii) `AutomationEngine.runRule`/`OrdiaViewModel.guardianInsight` omiten `zone` (P1, NO JVM) sigue pendiente.
 - **Próxima prioridad**: (i) `classify`/`isCasualChat`/otros extraer-título (JVM); (ii) gates seguridad (P2, JVM); (iii) `zone` omitida (P1, NO JVM); (iv) workers/backup/restore (P0, NO JVM). Re-fetch OBLIGATORIO.
+## Ciclo c.658 — 2026-08-19 (UTC) — fix(context): piso DEADLINE inequívoco + guard cancel-envolvente TASK (2 defectos P1); +15 tests TDD
+
+- **Secuencia**: BACKLOG sin pendientes → audité con probe JVM (`run_probe.sh`, 21 casos) sobre `ContextIntentEngine` (próx. prioridad explícita c.653 (i)): dos defectos reales. (a) Olvido P1: "deadline:…"/"fecha límite:…"/"vencimiento:…" sin fecha→NULL (~0.22<MIN); (b) Overreach P1: "cancelar la cita/anular…"→APPOINTMENT robado ("Cita: del dentista"). TDD RED PRE-fix confirmado por probe y por suite-failures-iniciales; tras implementar: suite roja sólo con expectativas de título (capitalización `match4→match5` y "Anular…" capitalizado en título) → tests corregidos a la semántica correcta.
+- **Causa raíz**: (a) DEADLINE carecía de piso; (b) "cancelar|anular" no estaban en `WRAPPER_PATTERN`/`hasStrongTaskImperative` ni en el guard de c.652/c.653 → bono APPOINTMENT robaba kind.
+- **Solución**: `DEADLINE_FLOORS` + `hasStrongDeadlineImperative` piso→`MINIMUM_CONFIDENCE`; registro en `WRAPPABLE_PATTERNS`; "cancelar|anular" con lookbehind `(?<!no )` en wrapper/piso-TASK/`extractTitle` ("Cancelar X"/"Anular X"). Determinista (regex), sin random.
+- **Cambios**: `ContextIntentEngine.kt` (piso + wrapper + templates + docs); `tools/run_probe.sh` (`+ContextIntentEngine.kt` en SOURCES — probe runner la omitía); 2 nuevas clases test (`…DeadlineFloorTest` +6, `…CancelWrapperTest` +9); `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md`. Probes `/tmp/probe-ctx/*` fuera del repo.
+- **Bugs**: fix-a: 3 marcadores→DEADLINE 0.45 con título limpio; "recuérdame la fecha límite"→TASK; genérico "tope:"→NULL; "no deadline:"→NULL. fix-b: "cancelar la cita del dentista"→TASK "Cancelar la cita del dentista"; posición-libre APPOINTMENT/CALL intacta; "no cancelar la cita"→APPOINTMENT (TASK bloqueada; la cita existe).
+- **Tests**: `bash tools/run_domain_tests.sh` → **3790 PASS** (3755+15), 0 failures; `bash tools/run_domain_checks.sh` → smoke 25 OK. TDD RED→GREEN. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **Commits**: `fix(context): deadline-floor + cancel-wrapper (c.658)` (pendiente de push).
+- **HEAD inicial**: `6b3aebb` (c.653). **HEAD final**: pendiente push (commit c.658 sobre `6b3aebb`).
+- **Hallazgos**: (i) `run_probe.sh` faltaba `ContextIntentEngine.kt` (fix runner); (ii) área olvido/overreach cierra en 8 ejes; (iii) `zone` omitida en `AutomationEngine`/`guardianInsight` (P1 NO JVM); (iv) residuo P3: `extractDateTime` deja "antes" al título ("Enviar el informe antes d", cosmético).
+- **Próxima prioridad**: (i) `SensitiveSecretPatterns`/`IntelligenceSafetyGate`/`ContextPrivacyFilter` (P2 JVM); (ii) residuo P3 `extractDateTime`/"antes:" (JVM); (iii) `zone` (P1 NO JVM); (iv) workers/backup/restore (P0 NO JVM). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED (JVM 3790 PASS; smoke 25 OK; probe 21/21; 2 clases TDD). NO VERIFICADO Android/UI/Room.
 
 ## Run c.653 — 2026-08-19 (UTC) — fix(context): bonus-kinds APPOINTMENT/CALL robaban kind a imperativos envolventes — guard `imperativeIsWrapped` extendido con patrones centralizados — +19 tests TDD — ÁREA CONTEXT (cierre del hallazgo secundario (i) c.652)
 
