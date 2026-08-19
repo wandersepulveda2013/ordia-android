@@ -30,18 +30,23 @@ class AutomationEngine(
 ) {
     private val mutex = Mutex()
 
-    suspend fun runTrigger(trigger: AutomationTrigger, chainDepth: Int = 0): List<AutomationRunOutcome> =
-        rules.enabledFor(trigger).map { runRule(it, chainDepth = chainDepth) }
+    suspend fun runTrigger(
+        trigger: AutomationTrigger,
+        chainDepth: Int = 0,
+        zone: ZoneId = ZoneId.systemDefault()
+    ): List<AutomationRunOutcome> =
+        rules.enabledFor(trigger).map { runRule(it, chainDepth = chainDepth, zone = zone) }
 
     suspend fun runRule(
         rule: AutomationRuleEntity,
         manual: Boolean = false,
         test: Boolean = false,
         chainDepth: Int = 0,
-        now: Long = System.currentTimeMillis()
+        now: Long = System.currentTimeMillis(),
+        zone: ZoneId = ZoneId.systemDefault()
     ): AutomationRunOutcome = mutex.withLock {
-        val dayStart = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate()
-            .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val dayStart = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+            .atStartOfDay(zone).toInstant().toEpochMilli()
         val guard = AutomationExecutionGuard.evaluate(
             rule, now, rules.countRuns(rule.id, dayStart), chainDepth, manual, test
         )
@@ -61,7 +66,7 @@ class AutomationEngine(
         return@withLock runCatching {
             val allTasks = tasks.getAllNow()
             val pending = conversations.getCommitmentsNow().count { it.reviewStatus == CommitmentReviewStatus.PENDING }
-            val plan = AutomationActionPlanner.build(rule, allTasks, pending, now)
+            val plan = AutomationActionPlanner.build(rule, allTasks, pending, now, zone)
             if (test) {
                 rules.update(rule.copy(lastResult = AutomationRuleResult.TESTED, lastError = "", updatedAt = now))
                 val logId = rules.log(
