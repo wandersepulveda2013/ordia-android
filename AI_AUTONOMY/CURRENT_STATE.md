@@ -1,3 +1,11 @@
+## Ciclo c.697 — 2026-08-19 (UTC) — STALE_RUN (duplicado de c.696, descarte no destructivo) + verificación independiente de `a8cd748`
+
+- **HEAD inicial** `15139cb` → **HEAD final** `a8cd748` (c.696 remoto; sin commits propios de código, sólo memoria).
+- **Duplicado**: este run tomó la MISMA forma "firmar <objeto>" del ítem clase-verbos (RED propio exacto: 6 failures) y descubrió al run concurrente c.696 trabajando EN VIVO sobre el mismo worktree compartido (conflicto stash-pop, sólo comentarios; regex idénticos). Resolución conservando ÍNTEGRA la versión del concurrente; stash propio duplicado descartado (`git stash drop`). Cero force/reset-hard sobre trabajo ajeno; `main` intacto.
+- **Verificación independiente sobre `a8cd748`**: suite **4064 PASS**, 0 failures; smoke 25 OK; automation 9 OK; sonda clase POST: "firmar el contrato el jueves" → TASK 'Firmar el contrato' dueAt=true; controles NULL; 5 formas OPEN (renovar/confirmar/imprimir/reservar/cambiar).
+- **Hallazgo operativo**: varios runs comparten el mismo worktree (archivos ajenos aparecen a mitad de comando). Mitigación: cierre docs-only; próximos runs con re-fetch inmediato y preferencia por verificación si hay actividad concurrente reciente.
+- **Próxima prioridad**: siguiente forma de la clase-verbos (renovar — valorar kind TASK vs ERRAND con sonda; decidir en su ciclo). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
 ## Ciclo c.696 — 2026-08-19 (UTC) — feat(context): piso TASK "firmar <objeto>" (forma 3/6 clase-verbos, doctrina anti-overreach) + rescate no destructivo del duplicado concurrente c.694
 
 - **HEAD inicial** `6d50ef2` (c.693b; pull --ff-only limpio). HEAD final pendiente.
