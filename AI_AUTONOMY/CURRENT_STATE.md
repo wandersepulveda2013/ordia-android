@@ -1,3 +1,13 @@
+## Ciclo c.717 — 2026-08-19 (UTC) — fix(context): envolvente "recuérdame …" robada por REMINDER; completado piso TASK "sacar <objeto>" (forma 7/14 segunda clase)
+
+- **HEAD**: inicial `3487ef7`-origin pull --ff-only limpio (tras continuación del run previo); final tras este log (fix + docs).
+- **Problema (P1 olvido-silencioso / robo-de-kind, raíz descubierta por sonda de depuración reflexiva `tools/probe/WrapperKindDebugProbe.kt`, eliminada tras auditar)**: el piso "sacar la basura" (formas 7/14) ya existía, pero "recuérdame sacar la basura mañana" caía a **REMINDER** (o incluso "limpiar la cocina", "pasar por el banco") porque el bono **específico** de REMINDER incluía "recuérdame" (+0.25) y, sumado al keyword (+0.12) y pista temporal (+0.1), llegaba a **0.47 > piso TASK 0.45** en textos con fecha. Sonda: *sin* fecha → TASK; *con* fecha → REMINDER. Pre-existente (no enganchado sólo a "sacar").
+- **Solución (mínima, doctrina "recuérdame es piso de TASK, no de REMINDER" — ver `ContextIntentEngineAcuerdateReminderTest` c.613)**: restringido el bono específico de REMINDER a sinónimos puros de aviso `"(avísame|notifícame|acordarme)"` — lockstep con `hasStrongReminderImperative`; "recuérdame" deja de inflar REMINDER y su piso TASK (c.613) gobierna. 2 expectativas legacy que *capturaban* el robo se re-marcaron a TASK con comentario (misma fuerza, semántica corregida — no se redujeron assertions).
+- **TDD**: RED (1 failure: `recuérdameSacarLaBasura_governsTaskWrapper`) → GREEN **OK (4220 tests)**; smoke 25 OK; sonda de depuración POST (antes de eliminar): 8 casos — "recuérdame sacar/coger/limpiar/pasar por [con/sin fecha]" → TASK siempre.
+- **Archivos**: `context/ContextIntentEngine.kt` (-recuérdame del bono REMINDER), `test/.../ContextIntentEngineTitleTest.kt` (kind TASK), `test/.../ContextIntentEngineTitleResidueFixTest.kt` (kind TASK), `tools/probe/WrapperKindDebugProbe.kt` (creada y **eliminada** tras audit), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN segunda-clase ("pasar por <destino>" → deliberar ERRAND; "publicar <contenido>" → prob. TASK; "recordar a <persona> <evento>" → deliberar TASK/REMINDER). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
 ## Ciclo c.716 — 2026-08-19 (UTC) — feat(context): piso TASK "coger <objeto>" (forma 6/14 segunda clase de gestión)
 
 - **HEAD**: inicial `3487ef7` (push c.715; ff-only limpio); final tras este log (feat + docs).

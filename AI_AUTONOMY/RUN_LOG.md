@@ -15634,3 +15634,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Suite: OK (4201 tests), smoke 25/25, sonda POST: TASK dueAt=true ✓; “buscar” → NULL ✓.
 - Próxima prioridad: forma 6/14 (coger/sacar, impe. prioridad por sonda).
 
+## Run c.717 — fix: envolvente "recuérdame …" ya no robada por REMINDER (+ completa forma 7/14 "sacar")
+
+- HEAD inicial: 3487ef7 (pull --ff-only limpio; trabajo no commiteado del run previo continuado).
+- RED inicial: 1 failure (recuérdameSacarLaBasura_governsTaskWrapper).
+- Sonda de depuración `tools/probe/WrapperKindDebugProbe.kt` (reflexiva, temporal): sin fecha → TASK;
+  con fecha → REMINDER (robo pre-existente: el bono específico de REMINDER incluía "recuérdame",
+  +0.25, y con pista temporal totalizaba 0.47 > piso TASK 0.45). Eliminada tras el diagnostico.
+- Fix: bono específico de REMINDER restringido a (avísame|notifícame|acordarme) — lockstep con
+  hasStrongReminderImperative; doctrina c.613 ("recuérdame" es piso de TASK).
+- 2 expectativas legacy que capturaban el robo re-marcadas a TASK con comentario
+  (TitleTest estudiar; TitleResidueFixTest sacar).
+- GREEN: suite OK (4220 tests), 0 failures; smoke 25/25. Sonda POST: 8 combinaciones
+  (sacar/coger/limpiar/pasar por × con/sin fecha) → TASK siempre.
+- NO VERIFICADO: Android/gradle/lint/UI/Room (sin SDK).

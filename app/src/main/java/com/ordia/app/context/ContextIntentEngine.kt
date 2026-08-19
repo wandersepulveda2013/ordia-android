@@ -97,6 +97,15 @@ object ContextIntentEngine {
         Regex("""\b(?<!no )($MEETING_VERBS)\s+(con|de|del)\s+\w""")
     private val HOUSEHOLD_FLOOR =
         Regex("""\b(?<!no )($HOUSEHOLD_VERBS)\s+\w""")
+    // Piso faena doméstica acotado al objeto (c.717, forma 7/14 de la SEGUNDA
+    // clase de gestión, sonda `ManagementVerbDiscoveryProbe.kt` c.711): "sacar
+    // la basura" es EL quehacer doméstico canónico con "sacar". El verbo suelto
+    // ("dinero/fotos/el perro") es demasiado genérico para posición libre, así
+    // se acota al objeto "basura" (como `ERRAND_CARRY_FLOOR` acota a vehículos/
+    // mantenimiento c.684). `\b` final: "basurilla" no casa.
+    private val HOUSEHOLD_TRASH_FLOOR =
+        Regex("""\b(?<!no )sacar\s+(?:el\s+|la\s+|los\s+|las\s+)?basura\b""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -254,7 +263,7 @@ object ContextIntentEngine {
     // envolvente nunca lo activa.
     private val WRAPPABLE_PATTERNS: Map<ContextIntentKind, List<Regex>> = mapOf(
         ContextIntentKind.MEETING to listOf(MEETING_FLOOR),
-        ContextIntentKind.HOUSEHOLD to listOf(HOUSEHOLD_FLOOR),
+        ContextIntentKind.HOUSEHOLD to HOUSEHOLD_FLOORS,
         ContextIntentKind.EXERCISE to EXERCISE_FLOORS,
         ContextIntentKind.ERRAND to ERRAND_FLOORS,
         ContextIntentKind.STUDY to STUDY_FLOORS,
@@ -940,7 +949,7 @@ object ContextIntentEngine {
      * exige `\s+\w` (objeto real). Determinista (regex), sin IA fingida.
      */
     private fun hasStrongHouseholdImperative(lower: String): Boolean =
-        HOUSEHOLD_FLOOR.containsMatchIn(lower)
+        HOUSEHOLD_FLOORS.any { it.containsMatchIn(lower) }
 
     /**
      * Imperativos de ejercicio inequívocos (c.639, c.647). Verbos de actividad
@@ -1118,6 +1127,12 @@ object ContextIntentEngine {
         if (kind == ContextIntentKind.ERRAND &&
             Regex("""\bno\s+ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b""").containsMatchIn(lower)
         ) return true
+        // "sacar la basura" (HOUSEHOLD, piso acotado c.717) es imperativo
+        // multi-palabra: la negación sigue bloqueada aunque el bono temporal
+        // eleve el score sin pasar por el piso (misma vía que ERRAND).
+        if (kind == ContextIntentKind.HOUSEHOLD &&
+            Regex("""\bno\s+sacar\s+(?:el\s+|la\s+|los\s+|las\s+)?basura\b""").containsMatchIn(lower)
+        ) return true
         return false
     }
 
@@ -1263,7 +1278,15 @@ object ContextIntentEngine {
             }
             ContextIntentKind.REMINDER -> {
                 var s = 0f
-                if (Regex("""(recuérdame|avísame|notifícame|acordarme)""").containsMatchIn(lower)) s += 0.25f
+                // "recuérdame" NO entra aquí (c.717 lockstep): el bono del
+                // envolvente "recuérdame …" (+0.25) sumado a la pista temporal
+                // (+0.1) llegaba a 0.47 y ROBABA a TASK su piso de envolvente
+                // (0.45) en textos con fecha: "recuérdame limpiar la cocina
+                // mañana" → REMINDER sobre TASK. "recuérdame" es envolvente de
+                // TAREA (su piso c.613 gobierna); los sinónimos puros de aviso
+                // ("avísame|notifícame|acordarme") siguen siendo REMINDER
+                // (alineados con [hasStrongReminderImperative]).
+                if (Regex("""(avísame|notifícame|acordarme)""").containsMatchIn(lower)) s += 0.25f
                 s
             }
             ContextIntentKind.PAYMENT -> {
@@ -1618,6 +1641,18 @@ object ContextIntentEngine {
                 null
             }
             ContextIntentKind.HOUSEHOLD -> {
+                // "sacar (la) basura …" → "Sacar la basura …" (c.717): verbo
+                // preservado (alineación piso↔título, lección c.616) y objeto
+                // restringido como en [HOUSEHOLD_TRASH_FLOOR]; el match
+                // arranca en el verbo, así el prefijo temporal ("esta noche ")
+                // no ensucia el título.
+                val matchSacar = Regex(
+                    """\b(?<!no )(sacar)\s+((?:el\s+|la\s+|los\s+|las\s+)?basura\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchSacar != null) {
+                    return "${capitalizeFirst(matchSacar.groupValues[1])} ${matchSacar.groupValues[2]}"
+                }
                 // Verbos alineados con [hasStrongHouseholdImperative] (c.638/c.639) para que
                 // el piso no capture un verbo cuyo título luego no se forme limpio.
                 // `\b` (c.693): sin borde, "regar" casa dentro de "entregar".

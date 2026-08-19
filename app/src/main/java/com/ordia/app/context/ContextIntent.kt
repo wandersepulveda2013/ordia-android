@@ -86,7 +86,11 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         "jardín", "mantenimiento", "tramitar",
         // c.639: verbos domésticos comunes que faltaban en la cobertura léxica
         // (mismo lockstep que scoreSpecificPatterns / piso / extractTitle).
-        "fregar", "barrer", "trapear", "regar", "sacudir", "desempolvar")),
+        "fregar", "barrer", "trapear", "regar", "sacudir", "desempolvar",
+        // c.717: objeto del piso `sacar la basura` (lockstep keyword↔piso,
+        // lección c.639). "sacar" suelto es demasiado genérico, así se
+        // alinea el OBJETO restringido en el piso.
+        "basura")),
     UNKNOWN("Sin clasificar", emptyList());
 
     companion object {
