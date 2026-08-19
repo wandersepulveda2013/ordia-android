@@ -15660,3 +15660,22 @@ a un permiso persistente frágil y silencioso ante fallos.
 - GREEN: suite OK (4220 tests), 0 failures; smoke 25/25. Sonda POST: 8 combinaciones
   (sacar/coger/limpiar/pasar por × con/sin fecha) → TASK siempre.
 - NO VERIFICADO: Android/gradle/lint/UI/Room (sin SDK).
+
+## Run c.718-STALE — 2026-08-19 (UTC) — rama openhands/autonomous-ordia
+
+- HEAD inicial local: 80fea84. Al preparar el push el remoto habia avanzado a 911e55a.
+- Deteccion anti-colicion: otro run resolvio la MISMA forma 8/14 ("pasar por <destino>")
+  con piso ERRAND (su 911e55a). Mi trabajo local (76a26df+docs) era un duplicado paralelo
+  (mismo piso, misma rama ERRAND en extractTitle, mismo nombre de test).
+- Resolucion NO destructiva (doctrina): `git reset --soft origin` -> `git reset origin`
+  (mixed) -> `git checkout -- .` — el trabajo duplicado local se descarto; gana el
+  remoto empujado. Arbol limpio en 911e55a, cero perdia de trabajo ajeno valido.
+- Esto se registra como STALE_RUN a nivel de mis dos commits locales (docs-only
+  tras descarte). La forma 8/14 queda RESUELTA por el remoto (deliberacion ERRAND
+  contra VISIT, identica conclusion).
+- Verificacion independiente del remoto en este entorno: `bash tools/run_domain_tests.sh`
+  → OK (4229 tests); `bash tools/run_domain_checks.sh` → 25/25. No reduje/asumí verde.
+- Proxima prioridad en este run: siguiente forma OPEN ("publicar <contenido>", prob. TASK;
+  "recordar a <persona> <evento>", deliberar TASK/REMINDER). Re-fetch antes de push.
+- NO VERIFICADO: Android/gradle/lint/UI/Room (sin SDK).
+- HEAD final (este log): 911e55a + docs (STALE log).
