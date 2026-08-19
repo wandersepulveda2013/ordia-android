@@ -88,7 +88,13 @@ object ContextIntentEngine {
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
-        Regex("""\b(?<!no )hacer\s+(yoga|pesas|deporte)\b""")
+        // c.688: "hacer ejercicio" es la forma más genérica — y más
+        // cotidiana — de la actividad física (ítem c.681, última forma
+        // OPEN). `(?!\p{L})` exige SINGULAR: "hacer ejercicios de
+        // matemáticas" (deberes) no captura. Sin este piso, "hacer
+        // ejercicio por la mañana" se DESCARTABA (NULL, olvido
+        // silencioso P1) con la sola franja blanda o desnuda.
+        Regex("""\b(?<!no )hacer\s+(yoga|pesas|deporte|ejercicio(?!\p{L}))\b""")
     )
     // Piso transportativo de mantenimiento (c.684, ítem c.681): "llevar el
     // coche al taller"/"el lunes llevo el coche a revisión" son diligencias
@@ -1953,6 +1959,14 @@ object ContextIntentEngine {
 
         val tail = Regex("""\s*(?:$date|$time|$bareMeridiem)\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
         val bareTail = Regex("""\s+$bareRelative\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
+        // Franja horaria blanda de cola (c.688): "por la mañana" /
+        // "por las mañanas" / "por la tarde" / "por la noche" son pista
+        // temporal pura, nunca contenido ("por" aquí sólo denota franja).
+        // Sin esta rama el residuo se partía a la mitad: "hacer ejercicio
+        // por la mañana" dejaba 'Hacer ejercicio por la' (el bareRelative
+        // cortaba sólo "mañana", y el artículo+preposición quedaban
+        // colgando en el título visible).
+        val bandTail = Regex("""\s*por\s+las?\s+(?:ma[nñ]anas?|tardes?|noches)\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
 
         var current = title
         var prev = ""
@@ -1960,6 +1974,7 @@ object ContextIntentEngine {
         while (current != prev && guard < 6) {
             prev = current
             current = tail.replace(current, "").trim()
+            current = bandTail.replace(current, "").trim()
             // Días relativos desnudos: sólo si NO los precede un genitivo.
             val m = bareTail.find(current)
             if (m != null) {

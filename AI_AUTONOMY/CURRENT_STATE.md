@@ -1,3 +1,11 @@
+## Ciclo c.688 — 2026-08-19 (UTC) — feat(context): "hacer ejercicio (+ franja blanda)" → EXERCISE; ítem c.681 CERRADO (7/7) + TDD
+
+- **Rama/HEAD**: `openhands/autonomous-ordia`, HEAD inicial `f8fc114` (c.687 propio). Fetch pre-trabajo sin avances → NO STALE_RUN. JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21), sin Android SDK.
+- **Hecho**: piso EXERCISE extendido con "hacer ejercicio" singular (`(?!\p{L})` anti-deberes-plural; `(?<!no )` anti-negación) → captura con franja blanda o desnuda. Nuevo `bandTail` ("por la(s) mañana(s)/tarde(s)/noche(s)") en `stripTrailingTemporalResidue` → título limpio 'Hacer ejercicio' (antes 'Hacer ejercicio por la').
+- **Tests**: +11 TDD `ContextIntentEngineHacerEjercicioTest.kt` (RED exacto: 5 failures). Suite **3987 PASS**, 0 failures; smoke 25 OK; automation 9 OK; sonda FORMA B 3/3 EXERCISE, controles NULL, FORMA A intacta. NO VERIFICADO Android/gradle/UI/Room.
+- **BACKLOG**: ítem c.681 (7 formas NULL) → VERIFIED/CERRADO. Nuevo P1 OPEN: "acuérdate de <infinitivo>" → NULL.
+- **Próximo**: "acuérdate de <infinitivo>" (una forma por ciclo); P2 títulos (residuo "pasado", truncado a media palabra); sondas. Re-fetch OBLIGATORIO.
+
 ## Ciclo c.687 — 2026-08-19 (UTC) — feat(context): envolvente interrogativa de recordatorio "¿te acuerdas de <infinitivo>?" → REMINDER + TDD
 
 - **Rama**: `openhands/autonomous-ordia`. HEAD inicial `f939560` (c.686 propio, fetch pre/post-trabajo sin avances concurrentes → NO STALE_RUN). Entorno JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21); sin Android SDK. Auth git `github_token`.
