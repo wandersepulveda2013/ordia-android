@@ -40,6 +40,13 @@ object ContextIntentEngine {
         "nos vemos", "luego", "después", "hablamos", "x", "ok", "okis"
     )
 
+    // Tokens individuales derivados: en [isCasualChat] la comparación es
+    // token-a-token (split por espacios), así que las entradas multi-palabra
+    // ("buenos días", "qué tal", "nos vemos", ...) eran INALCANZABLES (lista
+    // muerta, hallazgo c.656 (ii)). Se derivan por split() una vez en lugar de
+    // recalcular en cada llamada.
+    private val CHAT_TOKENS = CHAT_WORDS.flatMap { it.split(" ") }.toSet()
+
     /** Palabras de baja confianza que indican conversación casual */
     private val LOW_CONFIDENCE_WORDS = setOf(
         "amor", "cariño", "corazón", "bebé", "hermoso", "lindo",
@@ -954,7 +961,7 @@ object ContextIntentEngine {
         val words = lower.split(Regex("\\s+")).filter { it.length > 2 }
         if (words.isEmpty()) return true
 
-        val chatRatio = words.count { it in CHAT_WORDS }.toFloat() / words.size
+        val chatRatio = words.count { it in CHAT_TOKENS }.toFloat() / words.size
         return chatRatio > 0.6f
     }
 

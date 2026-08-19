@@ -14907,3 +14907,13 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Commits**: `bf15c6e` fix(context) + `2d00105` merge + docs commit.
 - **Estado**: VERIFIED.
 
+---
+
+## 2026-08-19 — Ciclo c.658 — fix(context): CHAT_TOKENS alcanzables en `isCasualChat`
+
+- **HEAD inicial**: `11ebbd2` (merge final c.657). Re-fetch: sin avances.
+- **Objetivo**: P3 latente — frases multi-palabra de `CHAT_WORDS` eran entradas muertas en gate 2 (token-a-token).
+- **Cambios**: `CHAT_TOKENS = CHAT_WORDS.flatMap { it.split(" ") }.toSet()` precomputado; ratio compara tokens contra `CHAT_TOKENS`. Nueva clase de tests `ContextIntentChatWordsTest` (6 tests: 4 multi-palabra descartadas + 2 controles).
+- **Tests**: 3781 PASS (3775 + 6); smoke 25 OK; 0 failures. NO VERIFICADO Android/UI/Room.
+- **Estado**: VERIFIED.
+
