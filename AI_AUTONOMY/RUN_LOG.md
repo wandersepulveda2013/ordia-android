@@ -1,3 +1,16 @@
+## Ciclo c.707 — 2026-08-19 (UTC) — feat(assistant): lo próximo ("tengo algo pronto") → próxima cita/tarea REAL, no menú (último cluster sonda assistant; sonda cerrada 0/49)
+
+- **HEAD inicial**: `077e91f` (c.706 docs, pull --ff-only limpio, sin divergencia).
+- **Problema seleccionado**: "tengo algo pronto" caía al menú genérico. Prioridad P2 (sonda PRE 1/49; doctrina anti-overreach: UN solo cluster — el último abierto de la sonda assistant).
+- **Causa raíz**: ninguna rama del `when` de `AssistantEngine.answer` cubría la consulta de "lo próximo" sin alcance de fecha; `isAgendaQuery` exige día/fecha explícita y "pronto" no aporta ninguna.
+- **Solución**: rama `isUpcomingQuery(query)` ("pronto" in query) JUSTO después de `isAgendaQuery` (alcance explícito sigue siendo agenda: "tengo algo pronto hoy" intacto) + helpers `upcomingMarker` (min de startAt/dueAt futuros; vencida/sin-fecha excluidas) y `upcomingWhenLabel` ("hoy"/"mañana"/fecha + hora sólo si existe). Respuesta top-3 "Lo más próximo: …" + `overdueCommitmentTail` + `relatedTaskIds`; vacío honesto "No tienes nada agendado próximamente." (NUNCA menú); vacío + promesa vencida → `overdueCommitmentAnswer` OPEN_CONVERSATIONS (paridad c.357/c.416/c.680). Determinista local; cero random/IA fingida/pantalla nueva.
+- **TDD**: +5 tests `AssistantEngineTest.kt`; RED exacto (4 failures; el 5º es guard anti-colisión agenda que ya pasaba verde) → GREEN **4115 PASS** (4110 + 5), 0 failures; `run_domain_checks.sh` → smoke 25 OK; `run_automation_engine_checks.sh` → 9 OK; sonda POST 1/49 → **0/49** (sonda assistant CERRADA).
+- **Archivos**: `AssistantEngine.kt`, `AssistantEngineTest.kt`, AI_AUTONOMY ×3.
+- **Commits**: feat + docs este log.
+- **HEAD final**: tras docs.
+- **Próxima prioridad**: sonda assistant agotada → nueva sonda de descubrimiento de otra superficie (parser clase-verbos forma 6/8 si sonda las confirma NULL; o What Now/búsqueda/context) o auditoría progresiva de otra área del mandato. Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
 ## Ciclo c.706 — 2026-08-19 (UTC) — feat(assistant): tiempo invertido ("en qué gasto mi tiempo"/"en qué estoy gastando tiempo"/"en qué se me va el tiempo") → resumen REAL de sesiones de enfoque del día, no menú (cluster tiempo-gastado sonda assistant)
 
 - **HEAD inicial** `a2a93c46` (c.705 docs, pull --ff-only limpio). **HEAD final feat** `ca64cc6d`; docs tras este log.
