@@ -1,3 +1,13 @@
+## Ciclo c.706 — 2026-08-19 (UTC) — feat(assistant): tiempo invertido ("en qué gasto mi tiempo") → resumen REAL de sesiones de enfoque del día, no menú (cluster tiempo-gastado sonda assistant)
+
+- **HEAD inicial** `a2a93c46` (c.705 docs, pull --ff-only limpio). **HEAD final feat** `ca64cc6d` (pusheado); docs tras este log.
+- **Selección (P2, anti-overreach: UN cluster)**: sonda `tools/probe/AssistantDiscoveryProbe.kt` PRE — 3/49 genéricas tras c.705; cluster tiempo-gastado 2 casos → GENERIC. Fuente real confirmada: `FocusSessionEntity` + `OrdiaUiState.focusSessions` ya existen.
+- **Implementación**: nuevo `FocusRecap` (domain, fuente única: sesiones COMPLETADAS de hoy por tarea, tope 180 min/sesión paridad GuardianEngine, top-3, `humanMinutes`); `AssistantEngine.answer` + param `focusSessions` (default, firma no rota) + rama `isTimeSpentQuery` ("gast"+"tiempo" / "se me va el tiempo"); vacío → honesto (NUNCA menú); `AssistantScreen.ask` pasa `state.focusSessions` (cero pantalla/botón). IA honesta: solo agrega minutos registrados.
+- **TDD**: +5 tests (`timeSpent_*`); RED exacto 5 → GREEN **4110 PASS** (4105 + 5), 0 failures; smoke 25 OK; sonda POST 3/49 → **1/49** (solo resta "tengo algo pronto").
+- **Archivos**: `domain/FocusRecap.kt` (NUEVO), `assistant/AssistantEngine.kt`, `ui/screens/AssistantScreen.kt` (wiring), `test/.../AssistantEngineTest.kt` (+5), AI_AUTONOMY ×3.
+- **Próxima prioridad**: último cluster sonda assistant "tengo algo pronto" (sondear ANTES; al cerrarlo la sonda quedaría 0/49). Alternativa: clase-verbos forma 6/8 si sonda las confirma NULL. Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI (wiring no compila en JVM pura)/Room (sin SDK).
+
 ## Ciclo c.705 — 2026-08-19 (UTC) — feat(assistant): petición de posponer ("qué puedo dejar para mañana"/"puedo posponer algo") → nombra la tarea más posponible de hoy, no menú (cluster posponer sonda assistant)
 
 - **HEAD inicial** `b186971e` (c.704 docs, pull --ff-only limpio). **HEAD final** `1c2d037e` feat (pusheado); docs tras este log.
