@@ -15416,8 +15416,8 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **HEAD inicial**: `5bb7927` (c.698 docs; clone→checkout→`pull --ff-only` limpio, sin divergencia).
 - **Selección**: P1 clase-verbos forma 5/8 — piso TASK "confirmar <objeto>" se DESCARTABA (analyze→NULL). Kind: TASK (acción de gestión), no MEETING/REMINDER.
 - **Cambios**: `ContextIntentEngine.kt` (+1 piso `confirmar`; +1 plantilla título "confirmar X"→"Confirmar X"); test `ContextIntentEngineConfirmarFloorTest.kt` (+11); sonda `tools/probe/CommonVerbDiscoveryProbe.kt` (+4 controles, aditivo).
-- **Tests**: RED exacto 6 failures (de 11) → suite **4086 PASS** (4075+11), 0 failures; smoke 25 OK; automation 9 OK; sonda POST: captura TASK, controles NULL, 3 formas restantes NULL.
-- **Commits**: pendiente (feat + docs).
-- **HEAD final**: pendiente.
+- **Tests**: RED exacto 6 failures (de 11) → suite **4086 PASS** (4075+11), 0 failures; smoke 25 OK; automation 9 OK; sonda POST: captura TASK, controles NULL, 3 formas restantes NULL. Verificación POST-rebase en árbol final: OK (4086 tests), smoke 25 OK.
+- **Commits**: feat `4cfff2a` + docs `c175174`. Colisión: STALE_RUN concurrente docs-only `1cd3e6b` tomó c.699 → renumeración única autorizada c.699→c.700; rebase no destructivo preservando íntegra la entrada concurrente (conflicto docs-only resuelto conservando AMBAS entradas).
+- **HEAD final**: `c175174`.
 - **Próxima prioridad**: clústeres P2 asistente (C/E) o forma 6/8 (imprimir/reservar/cambiar).
 - **NO VERIFICADO**: Android/gradle/lint/UI/Room (sin SDK).
