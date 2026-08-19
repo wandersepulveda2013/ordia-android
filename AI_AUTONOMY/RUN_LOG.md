@@ -1,3 +1,24 @@
+## Ciclo c.716 — 2026-08-19 (UTC) — feat(context): piso TASK 'coger <objeto>' (forma 6/14 segunda clase de gestión)
+
+- **HEAD inicial**: `3487ef7` (c.715 push, fetch+pull --ff-only limpio, sin divergencia, NO STALE_RUN).
+- **Problema seleccionado**: "coger el bus mañana" / "coger la ropa mañana" se DESCARTABAN (analyze → NULL) — olvido silencioso P1 en captura pasiva. Ítem OPEN de la sonda persistente `tools/probe/ManagementVerbDiscoveryProbe.kt` (doctrina: UNA forma por ciclo).
+- **Causa raíz**: piso TASK sin "coger"; keyword ausente; plantilla de título sin "coger".
+- **Solución**: piso `coger` en `hasStrongTaskImperative` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`, `\s+\w` exige objeto) + plantilla "(coger) X"→"Coger X" (patrón c.691…c.715) + keyword "coger" en TASK (paridad, lección c.713). **Kind decidido: TASK, en deliberación contra SHOPPING** — "coger" toma/recoge una cosa (bus/ropa/llaves), sin semántica de compra ("comprar/supermercado/tienda" viven en SHOPPING); tampoco ERRAND (desplazamiento a destino, "ir a/pasar por"). Anti-overreach: negada/duda/pasado "cogí…"/suelto "coger" NULL; envolvente TASK gobierna (c.613). Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +9 tests `ContextIntentEngineCogerFloorTest.kt` (NUEVO); RED exacto (4 failures = capturas; 5 controles verdes desde el inicio) → GREEN **OK (4210 tests)** (4201 + 9), 0 failures; smoke 25 OK; sonda POST: ambas capturas → TASK con dueAt + título; 4 controles aditivos NULL.
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla), `context/ContextIntent.kt` (keyword "coger" en TASK), `test/.../ContextIntentEngineCogerFloorTest.kt` (NUEVO +9), `tools/probe/ManagementVerbDiscoveryProbe.kt` (+4 controles), AI_AUTONOMY ×3.
+- **Commits/HEAD final**: feat + docs a continuación de `3487ef7` (ff-only push).
+- **Próxima prioridad**: sonda quedan 4 formas OPEN (sacar/pasar por/publicar/recordar a; deliberación de kind por ciclo). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED (JVM). NO VERIFICADO: Android/gradle/lint/UI/Room (sin SDK).
+
+## Ciclo c.715 — 2026-08-19 (UTC) — MEND (entrada recuperada desde CURRENT_STATE.md; la de c.715 no se prependió en commit `3487ef7`)
+
+- **HEAD inicial**: `0ab0776` (c.714 push).
+- **Problema seleccionado**: "buscar <objeto>" → NULL (olvido silencioso P1). Ítem OPEN de la sonda persistente (de doctrina: una forma por ciclo).
+- **Solución**: piso `buscar` en `hasStrongTaskImperative` + plantilla "(buscar) X"→"Buscar X" (patrón c.691…c.714) + keyword "buscar" en TASK (paridad, lección c.713). Kind decidido: TASK (deliberación contra NOTE — buscar es acción ejecutable, no nota útil, c.714). Controles NULL: sustantivo pasado "la búsqueda…", verbo suelto "buscar".
+- **TDD**: +9 tests `ContextIntentEngineBuscarFloorTest.kt`; RED exacto 4/9 → GREEN **OK (4201 tests)** (4192 + 9); smoke 25 OK; sonda POST: captura → TASK dueAt=true.
+- **Estado**: VERIFIED (JVM). NO VERIFICADO Android/gradle/Room.
+- **Notas**: esta entrada repara la omisión detectada en c.716; append-only preservado.
+
 ## Ciclo c.714 — 2026-08-19 (UTC) — feat(context): piso NOTE "apuntar/anotar <nota>" (forma 4/14 segunda clase de gestión; doctrina anti-overreach)
 
 - **HEAD inicial**: `017aedd` (c.713 docs, fetch+pull --ff-only limpio, sin divergencia, NO STALE_RUN).

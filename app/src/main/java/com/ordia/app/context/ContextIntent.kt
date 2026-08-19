@@ -35,7 +35,7 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         "no olvides", "necesito", "preparar", "terminar", "hacer", "completar",
         "entregar", "enviar", "llamar", "avisar", "confirmar", "reservar",
         "comprar", "traer", "llevar", "conseguir", "buscar", "pedir", "solicitar",
-        "acordarme de", "acordarse de")),
+        "coger", "acordarme de", "acordarse de")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",

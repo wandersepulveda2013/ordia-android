@@ -817,6 +817,15 @@ object ContextIntentEngine {
             // `(?<!no )` bloquea la negada, sustantivo "búsqueda" no casa,
             // suelto "buscar" no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )buscar\s+\w""").containsMatchIn(lower)
+            // c.716 (forma 6/14 segunda clase de gestión, sonda
+            // `tools/probe/ManagementVerbDiscoveryProbe.kt` c.711): "coger
+            // <objeto>" toma/recoge una cosa (bus/ropa/llaves). Kind
+            // decidido: TASK, en deliberación contra SHOPPING — sin
+            // semántica de compra ("comprar/supermercado/tienda" viven en
+            // SHOPPING); tampoco ERRAND (desplazamiento a destino).
+            // Anti-overreach: `\s+\w` exige objeto, `(?<!no )` bloquea la
+            // negada, pasado "cogí…" no casa, suelto "coger" no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )coger\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1485,6 +1494,12 @@ object ContextIntentEngine {
                 // temporal despojado).
                 val matchBuscar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(buscar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchBuscar != null) return "Buscar ${matchBuscar.groupValues[2]}"
+
+                // "coger X" → "Coger X" (c.716): mismo criterio
+                // que c.691…c.715 (verbo preservado, acuse/prefijo
+                // temporal despojado).
+                val matchCoger = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(coger)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchCoger != null) return "Coger ${matchCoger.groupValues[2]}"
 
                 null
             }

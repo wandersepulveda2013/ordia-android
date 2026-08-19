@@ -42,6 +42,10 @@ fun main() {
         "la solicitud de la cita llegó ayer",
         "solicitar",
         "buscar",
+        "no coger el bus mañana",
+        "quizá coger el bus mañana",
+        "coger",
+        "cogí el bus ayer",
         "recordadetodos los pendientes",
         "hola buenos días gracias luego",
         "nos vemos después jeje"
