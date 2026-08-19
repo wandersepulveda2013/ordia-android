@@ -15450,3 +15450,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Commits**: `806b10c5` (feat). Renumeración: ninguna (c.703 libre al re-fetch pre-implementación).
 - **Próxima prioridad**: clusters restantes de la sonda assistant ("algo pendiente", "nada para hoy", "tareas sin fecha") con sonda PRE, o clase-verbos forma 6/8 (imprimir/reservar/cambiar) si sonda de clase las confirma NULL. Re-fetch OBLIGATORIO.
 - **NO VERIFICADO**: Android/gradle/lint/UI/Room (sin SDK).
+
+## RUN c.704 — 2026-08-19 (UTC) — feat(assistant): petición de recomendación → What Now, no menú
+
+- **Cierre c.703 (pendiente en su entrada)**: HEAD final `26334a6e` (feat `806b10c5` + docs `26334a6e`, pusheado limpio).
+- **HEAD inicial**: `26334a6e` (docs c.703, pull --ff-only limpio, sin divergencia; entorno JVM, kotlinc 2.1.20, jars `/tmp/libs`, JDK 21; auth `github_token`).
+- **Sonda PRE** (`tools/probe/AssistantDiscoveryProbe.kt`, jar sobre fuente real de HEAD): 11/49 genéricas; cluster recomendación 4 casos ("que me recomiendas", "recomiendame algo", "ayudame a decidir", "cual me conviene hacer") → GENERIC. Anti-overreach: UN solo cluster.
+- **Cambios**: `AssistantEngine.kt` — nueva rama `isRecommendationQuery(query)` tras `isOverwhelmedQuery`/antes del catch-all + helper (`"recomiend" in query || "a decidir" in query || "me conviene" in query`, acentos plegados por `foldForSearch`). Respuesta: `WhatNowEngine.suggest` → "Te sugiero empezar por «X». Cuando la termines queda(n) N." (una sola cosa + resto contado, paridad overwhelmed); vacío → "No encuentro tareas pendientes para recomendar." (NUNCA menú); vacío + compromiso vencido → `overdueCommitmentAnswer` (OPEN_CONVERSATIONS, paridad c.357/c.416/c.680). Determinista/local; cero random/IA fingida/pantalla nueva. +5 tests TDD en `AssistantEngineTest.kt`.
+- **Tests**: RED exacto EXACTAMENTE los 5 nuevos → GREEN suite **4100 PASS** (4095 + 5), 0 failures; `run_domain_checks.sh` smoke 25 OK. Sonda POST: 11/49 → 7/49 genéricas (las 4 del cluster rescatas).
+- **Commits**: `bd75cd9f` (feat) + docs tras este log.
+- **Próxima prioridad**: clusters restantes sonda assistant (posponer/defer ×4; "en qué gasto mi tiempo" ×2) con sonda PRE; alternativa clase-verbos forma 6/8. Re-fetch OBLIGATORIO.
+- **NO VERIFICADO**: Android/gradle/lint/UI/Room (sin SDK).
