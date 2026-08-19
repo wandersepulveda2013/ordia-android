@@ -15337,3 +15337,15 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Verificación post-reset**: sonda 10/10 contra la implementación remota (5 capturas TASK título limpio/dueAt + regresión envolvente "tengo que entregar…" + 4 NULL: negada/quizá/sustantivo/verbo suelto). Suite remota ya verificada por el run concurrente (4040 PASS).
 - **Commit**: probe + esta nota. Sin cambios de código de producción.
 
+
+### 2026-08-19 — c.694 (agente OpenHands)
+
+- **HEAD inicial**: `0a1d4db` (commit propio c.693). `git fetch` pre-trabajo: sin avance concurrente; pre-commit el remoto avanzó `6d50ef2` (docs sonda c.693b) → integración NO destructiva stash+ff+pop (regiones disjuntas: él RUN_LOG+sonda; yo BACKLOG+engine+test). NO STALE_RUN, NO force, NO reset --hard, NO clean destructivo, NO toques a `main`.
+- **Problema (P1, ítem OPEN descubierto c.693)**: forma con PREFIJO temporal de los verbos de piso TASK (revisar/enviar/entregar, c.691–c.693) → NULL, pues el ancla sólo admitía inicio/acuse. Además "el lunes entregar la tarea" caía a DEADLINE con título íntegro sucio.
+- **TDD**: +13 en `ContextIntentEngineTemporalPrefixFloorTest.kt` (8 capturas + 3 controles anti-overreach + 2 regresión). RED exacto: EXACTAMENTE 8 failures sobre 4053.
+- **Solución (mínima, UN cambio de clase, determinista)**: nueva constante `TASK_FLOOR_TEMPORAL` (`hoy|mañana|esta\s+(mañana\|tarde\|noche)|el\s+(lunes\|…\|domingo)`; "pasado mañana" cubierto por "mañana" substring) como tercera alternativa del ancla en los 3 pisos y las 3 plantillas (la plantilla arranca en el verbo: prefijo fuera del match, = despojo del acuse c.651). Anti-overreach: `\s+\w` objeto, `(?<!no )` negada, c.649 "quizá…"→NULL.
+- **Bug colateral (RED parcial, sonda de scores por reflexión)**: "el lunes entregar la tarea" → DEADLINE (0.45000002 vs piso TASK 0.45, épsilon float) — el bono `(el|lunes|…) (entrego|entrega|entregan)` casaba "entrega" DENTRO del infinitivo "entregar" (substring; lección `\b` c.693). Fix: `\b` al grupo (bono para presente/3ª persona; "el lunes entrega…" sigue NULL igual que PRE).
+- **GREEN**: `run_domain_tests.sh` → **OK (4053 tests)** (4040 + 13), 0 failures; `run_domain_checks.sh` → 25 OK; `run_automation_engine_checks.sh` → 9 OK; sonda POST: 8/8 capturas TASK limpias + dueAt; controles NULL; regresiones (sufijo, "regar las plantas") intactas.
+- **Archivos**: `ContextIntentEngine.kt` (constante + 3 pisos + 3 plantillas + `\b` DEADLINE), `ContextIntentEngineTemporalPrefixFloorTest.kt` (+13), AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md. Sondas ad-hoc eliminadas tras uso (la persistente `CommonVerbDiscoveryProbe.kt` sigue).
+- **Próxima prioridad**: forma 3/6 de la clase-verbos (firmar/renovar/confirmar/imprimir/reservar/cambiar — decidir kind con sonda; "renovar el DNI" quizá ERRAND); clusters C/E assistant (c.680). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).

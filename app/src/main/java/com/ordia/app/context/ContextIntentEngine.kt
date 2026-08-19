@@ -68,6 +68,18 @@ object ContextIntentEngine {
     // "recuérdame", "no olvides", "tengo que", "hay que") — su verbo
     // subordinado es contenido del recordatorio, no una compra/pago autónomo.
     private val ACK_PREFIX = "sí|vale|ok|okay|bueno|dale|listo|perfecto|ya|claro"
+
+    // c.694: PREFIJO temporal duro admitido por el ancla de los pisos TASK de
+    // verbos cotidianos (revisar c.691 / enviar c.692 / entregar c.693). La
+    // fecha delante del verbo es tan cotidiana como detrás ("mañana enviar el
+    // informe", "hoy entregar el informe"); sin ella esas formas caían a NULL
+    // (ítem OPEN descubierto c.693) o a DEADLINE con título íntegro sucio
+    // ("el lunes entregar la tarea"). "pasado mañana" queda cubierto por
+    // "mañana" (el match arranca en el "mañana" interior). La plantilla de
+    // título usa el mismo ancla y arranca en el verbo, así el prefijo queda
+    // fuera del match igual que el acuse (c.651).
+    private val TASK_FLOOR_TEMPORAL =
+        "hoy|mañana|esta\\s+(?:mañana|tarde|noche)|el\\s+(?:lunes|martes|miércoles|jueves|viernes|sábado|domingo)"
     private val MEETING_VERBS = "reuni[oó]n"
     private val HOUSEHOLD_VERBS =
         "limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar"
@@ -671,7 +683,7 @@ object ContextIntentEngine {
             // verbo al inicio o tras prefijo de ACUSE. Anti-overreach:
             // `\s+\w` exige objeto ("revisar" aislado no captura),
             // `(?<!no )` bloquea la negada, "revisión" (sustantivo) no casa.
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )revisar\s+\w""").containsMatchIn(lower) ||
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )revisar\s+\w""").containsMatchIn(lower) ||
             // c.692: "enviar <objeto>" (envío de gestión cotidiana: "enviar
             // el informe mañana") se DESCARTABA — descubierto con la sonda de
             // clase `tools/probe/CommonVerbDiscoveryProbe.kt` (c.692), que
@@ -680,11 +692,11 @@ object ContextIntentEngine {
             // c.691: verbo al inicio o tras prefijo de ACUSE, `\s+\w` exige
             // objeto, `(?<!no )` bloquea la negada, el sustantivo "envío"
             // no casa.
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )enviar\s+\w""").containsMatchIn(lower) ||
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )enviar\s+\w""").containsMatchIn(lower) ||
             // c.693: "entregar <objeto>" ("entregar la tarea el lunes"),
             // forma 2/8 de la clase de verbos cotidianos (sonda
             // `tools/probe/CommonVerbDiscoveryProbe.kt`); mismo ancla/guard.
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )entregar\s+\w""").containsMatchIn(lower)
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )entregar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1069,7 +1081,13 @@ object ContextIntentEngine {
             ContextIntentKind.DEADLINE -> {
                 var s = 0f
                 if (Regex("""(entregar|debo entregar|tengo que entregar)""").containsMatchIn(lower)) s += 0.2f
-                if (Regex("""(el|lunes|martes|miércoles|jueves|viernes) (entrego|entrega|entregan)""").containsMatchIn(lower)) s += 0.15f
+                // `\b` (c.694): sin borde, "entrega" casaba dentro del
+                // INFINITIVO "entregar" y "el lunes entregar la tarea" sumaba
+                // 0.45 puros (0.1+0.2+0.15) que vencían por épsilon al piso
+                // TASK de c.693 — misma lección que el `\b` HOUSEHOLD de
+                // c.693. Este bono es para la presente/3ª persona ("el lunes
+                // entrega el informe"), no para el infinitivo.
+                if (Regex("""(el|lunes|martes|miércoles|jueves|viernes) (entrego|entrega|entregan)\b""").containsMatchIn(lower)) s += 0.15f
                 s
             }
             ContextIntentKind.CALL -> {
@@ -1263,19 +1281,19 @@ object ContextIntentEngine {
                 // título, lección c.616); el prefijo de acuse ("vale, ") se
                 // despoja igual que en SHOPPING (c.651: el match arranca en
                 // el verbo, no en el acuse). Mismo ancla/guard que el piso.
-                val matchRevisar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )revisar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                val matchRevisar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )revisar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchRevisar != null) return "Revisar ${matchRevisar.groupValues[1]}"
 
                 // "enviar X" → "Enviar X" (c.692): mismo criterio que la
                 // plantilla de c.691 — el verbo gobierna el contenido y se
                 // PRESERVA; el prefijo de acuse se despoja (el match arranca
                 // en el verbo). Mismo ancla/guard que el piso.
-                val matchEnviar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )enviar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                val matchEnviar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )enviar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchEnviar != null) return "Enviar ${matchEnviar.groupValues[1]}"
 
                 // "entregar X" → "Entregar X" (c.693): mismo criterio que
                 // c.691/c.692 (verbo preservado, acuse despojado).
-                val matchEntregar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )entregar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                val matchEntregar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )entregar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchEntregar != null) return "Entregar ${matchEntregar.groupValues[1]}"
 
                 null

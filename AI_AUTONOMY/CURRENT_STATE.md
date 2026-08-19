@@ -1,3 +1,12 @@
+## Ciclo c.694 — 2026-08-19 (UTC) — feat(context): prefijo temporal duro en ancla de pisos TASK (ítem OPEN c.693, UN cambio de clase) + fix colateral substring "entrega"⊂"entregar" en bono DEADLINE + TDD
+
+- HEAD inicial `0a1d4db` (commit propio c.693) → HEAD final pendiente. Re-fetch pre-commit: remoto avanzó `6d50ef2` (docs sonda c.693b) → integración NO destructiva stash+ff+pop, regiones disjuntas, NO STALE_RUN.
+- Fix (P1 olvido silencioso): el ancla de los pisos TASK revisar/enviar/entregar (c.691/c.692/c.693) y sus plantillas ganan el PREFIJO temporal duro `hoy|mañana|esta <parte>|el <weekday>` (constante nueva `TASK_FLOOR_TEMPORAL`; "pasado mañana" cubierto por "mañana" substring). La plantilla arranca en el verbo: prefijo fuera del match (= despojo del acuse c.651). Anti-overreach: `\s+\w` objeto, `(?<!no )` negada, c.649 "quizá…"→NULL.
+- Bug colateral (RED parcial, sonda de scores por reflexión): "el lunes entregar la tarea" → DEADLINE 'El lunes entregar la tarea' — "entrega" casaba DENTRO del infinitivo "entregar" en el bono DEADLINE `(el|lunes|…) (entrego|entrega|entregan)` (0.1+0.2+0.15 = 0.45000002 > piso TASK 0.45 por épsilon float; lección `\b` c.693). Fix: `\b` al grupo (bono reservado a presente/3ª persona; "el lunes entrega…" sigue NULL igual que PRE).
+- TDD: +13 en `ContextIntentEngineTemporalPrefixFloorTest.kt` (8 capturas + 3 controles + 2 regresión). RED exacto 8 failures → **4053 PASS** (4040 + 13), 0 failures; smoke 25 OK; automation 9 OK; sonda POST 8/8 capturas con título limpio + dueAt. NO VERIFICADO Android/gradle/UI/Room.
+- BACKLOG: ítem P1 prefijo temporal → FIXED → VERIFIED (c.694). Clase-verbos (PARCIAL): restan 6 (firmar/renovar/confirmar/imprimir/reservar/cambiar).
+- Próximo: siguiente forma de la clase (una por ciclo, decidir kind con sonda); clusters C/E assistant (c.680); re-fetch OBLIGATORIO.
+
 ## Ciclo c.693 — 2026-08-19 (UTC) — feat(context): piso TASK "entregar <objeto>" (forma 2/8 clase-verbos) + fix colateral substring "regar"⊂"entregar" + TDD
 
 - HEAD inicial `f958fe4` (commit propio c.692, push confirmado) → HEAD final pendiente. Re-fetch pre-trabajo sin avance concurrente.
