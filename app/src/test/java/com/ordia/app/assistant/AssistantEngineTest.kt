@@ -199,6 +199,60 @@ class AssistantEngineTest {
         assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
     }
 
+    // --- Sobrecarga ("estoy abrumado/agobiado": c.702): ante una señal de
+    // saturación emocional la respuesta debe REDUCIR carga, no listar ni dar el
+    // menú de capacidades. Una única acción (la ordenada por What Now), el
+    // resto queda esperando. Determinista: reusa WhatNowEngine, sin random.
+
+    @Test fun overwhelmed_suggestsSingleTaskNotMenu() {
+        val answer = AssistantEngine.answer(
+            "Estoy abrumado",
+            listOf(
+                TaskEntity(id = 1, title = "Normal"),
+                TaskEntity(id = 2, title = "Urgente", priority = TaskPriority.URGENT)
+            ),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+        assertTrue("nombra la única cosa: ${answer.text}", answer.text.contains("Urgente"))
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("cuenta el resto honestamente: ${answer.text}", answer.text.contains("queda 1"))
+    }
+
+    @Test fun overwhelmed_agobiadoVariantRoutes() {
+        val answer = AssistantEngine.answer(
+            "Estoy agobiada con tanto por hacer",
+            listOf(TaskEntity(id = 1, title = "Solo")),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun overwhelmed_emptyIsHonestNotGeneric() {
+        val answer = AssistantEngine.answer(
+            "Estoy abrumado",
+            emptyList(), emptyList(), emptyList()
+        )
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("vacío honesto: ${answer.text}", answer.text.contains("No encuentro tareas pendientes"))
+    }
+
+    @Test fun overwhelmed_recoversOverdueCommitmentWhenEmpty() {
+        // Paridad con c.357/c.416/c.680: vacío + promesa vencida → recuperación.
+        val now = 1_000_000_000_000L
+        val commitment = overdueCommitment(41, "envío el informe", now - 2 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "Estoy abrumado",
+            emptyList(),
+            emptyList(),
+            listOf(commitment),
+            now
+        )
+        assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
+    }
+
     // --- c.422: el menú genérico (consulta no reconocida) no debe callar un
     // compromiso vencido. Octavo olvido de la familia "lie-by-omission": el catch-all
     // es la superficie de mayor tránsito para un usuario confundido (escribió algo que

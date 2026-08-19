@@ -469,6 +469,30 @@ object AssistantEngine {
                     relatedTaskIds = hits.map { it.id }
                 )
             }
+            // Señal de sobrecarga emocional ("estoy abrumado/agobiado",
+            // "no doy abasto" — cluster E c.677). Ante esa señal la respuesta debe
+            // REDUCIR carga, no listar ni abrir el menú de capacidades: una única
+            // cosa (la siguiente según What Now) y el resto queda esperando. Vacío
+            // honesto sin tareas; vacío + promesa vencida → recuperación (paridad
+            // c.357/c.416/c.680: mentir por omisión en la superficie emocional es
+            // peor que no responder). Determinista y local: reusa WhatNowEngine,
+            // sin random, sin IA fingida, sin nueva pantalla.
+            isOverwhelmedQuery(query) -> {
+                val suggestion = WhatNowEngine.suggest(active, now, zone)
+                if (suggestion == null) {
+                    if (overdueCommitments.isNotEmpty()) return overdueCommitmentAnswer(overdueCommitments)
+                    AssistantAnswer("No encuentro tareas pendientes. Respira.")
+                } else {
+                    val rest = active.size - 1
+                    val restTail = if (rest == 1) " Cuando la termines queda 1; una a una."
+                        else if (rest > 1) " Cuando la termines quedan $rest; una a una."
+                        else ""
+                    AssistantAnswer(
+                        "Respira. Primero solo esto: «${suggestion.task.title}».$restTail",
+                        relatedTaskIds = listOf(suggestion.task.id)
+                    )
+                }
+            }
             // Octavo olvido de la familia "lie-by-omission": la consulta no casa con
             // ninguna rama conocida y el asistente cae a su menú de capacidades. Es la
             // superficie de mayor tránsito para un usuario confundido —y justo ahí
@@ -515,6 +539,16 @@ object AssistantEngine {
      * otras ramas; el desempate ("urgente" preferente) ocurre en la rama.
      */
     private fun isPriorityQuery(query: String): Boolean = "urgente" in query || "importante" in query
+
+    /**
+     * Guarda de sobrecarga emocional: "abrumado/abrumada", "agobiado/agobiada"
+     * (subcadena de género incluida) y la forma coloquial "no doy abasto".
+     * Tokens sin acento tras `foldForSearch`. Familia deliberadamente pequeña
+     * para no secuestrar otras ramas; colocada tras prioridad y entity-lookup
+     * para no robar consultas que sí describen conjuntos/entidades.
+     */
+    private fun isOverwhelmedQuery(query: String): Boolean =
+        "abrumad" in query || "agobiad" in query || "no doy abasto" in query
 
     /**
      * Respuesta de logro para "¿qué hice hoy/ayer/anteayer?" y para períodos
