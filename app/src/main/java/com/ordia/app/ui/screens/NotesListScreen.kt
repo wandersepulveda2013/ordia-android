@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ordia.app.data.NoteEntity
+import com.ordia.app.ui.components.OrdiaCard
 import java.text.DateFormat
 import java.util.Date
 
@@ -62,8 +63,8 @@ fun NotesListScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onCreateNote,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ) { Icon(Icons.Outlined.Add, contentDescription = "Nueva nota") }
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -76,8 +77,11 @@ fun NotesListScreen(
                 contentPadding = PaddingValues(vertical = 8.dp),
             ) {
                 items(notes, key = { it.id }) { note ->
-                    NoteRow(note, onOpenNote, onTogglePin, onDeleteNote)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                        OrdiaCard(onClick = { onOpenNote(note) }) {
+                            NoteRow(note, onTogglePin, onDeleteNote)
+                        }
+                    }
                 }
             }
         }
@@ -92,15 +96,9 @@ private fun EmptyState(padding: PaddingValues) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "Una página en blanco\nes donde empieza todo.",
+                "Tu día está libre. Añade algo o deja que Ordía te ayude a planificarlo.",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
-            )
-            Text(
-                "Toca + para escribir.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
             )
         }
     }
@@ -109,7 +107,6 @@ private fun EmptyState(padding: PaddingValues) {
 @Composable
 private fun NoteRow(
     note: NoteEntity,
-    onOpenNote: (NoteEntity) -> Unit,
     onTogglePin: (NoteEntity) -> Unit,
     onDeleteNote: (NoteEntity) -> Unit,
 ) {
@@ -122,8 +119,7 @@ private fun NoteRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onOpenNote(note) }
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(16.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -131,7 +127,7 @@ private fun NoteRow(
                 Text(
                     note.title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -158,12 +154,12 @@ private fun NoteRow(
                 Icons.Outlined.PushPin,
                 contentDescription = "Fijada",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp).padding(top = 2.dp),
+                modifier = Modifier.size(18.dp).padding(top = 2.dp, end = 8.dp),
             )
         }
         Box {
             IconButton(onClick = { menuOpen = true }) {
-                Icon(Icons.Outlined.MoreVert, contentDescription = "Más")
+                Icon(Icons.Outlined.MoreVert, contentDescription = "Más", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
