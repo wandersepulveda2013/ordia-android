@@ -1967,10 +1967,13 @@ object ContextIntentEngine {
         val fraction = """(?:\s*(?:y\s+(?:media|treinta|cuarto|tres\s+cuartos|cuarenta\s+y\s+cinco|veinticinco|veinte|diez|cinco|\d{1,2})|menos\s+(?:cuarto|quince|cinco|diez|veinte|veinticinco|\d{1,2})))?"""
         val time = """(?:(?:a|para)\s+(?:las?|la)\s+\d{1,2}(?::\d{2})?$fraction(?:\s*(?:$meridiem))?(?:\s*(?:horas?|hs|h))?(?:\s+en\s+punto)?|\d{1,2}:\d{2}(?:\s*(?:$meridiem))?|medianoche|mediod[ií]a|mediodia)"""
         // Anclajes de fecha con seña explícita (no palabras desnudas solas):
-        // weekday (con "el "/"este " opcional: "el viernes"/"este lunes"),
+        // weekday (con conector opcional "el "/"este "/"del ": "el viernes"/
+        // "concierto del viernes". c.690: sin "del" listado, el "el" interior
+        // de "del" casaba leftmost dentro del genitivo y el título quedaba
+        // cortado a media palabra — "...concierto del viernes" → "...concierto d"),
         // "el N [de mes|del mes]", "N de mes", "pasado mañana",
         // "esta <parte del día>", períodos relativos multi-unidad y calificados.
-        val date = """(?:(?:el|este)\s+)?$weekday|el\s+\d{1,2}(?:\s+de\s+$month|\s+del\s+mes)?|\d{1,2}\s+de\s+$month|pasado\s+ma[nñ]ana|esta\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(?:un\s+par\s+de|unos|unas|\d{1,3})\s*$unit|(?:la|el)\s+(?:semana|mes|a[ñn]o|quincena|bimestre|trimestre|semestre)\s+(?:que\s+viene|que\s+entra|entrante|pr[oó]xim[oa]|siguiente|pasad[oa]|anterior)|en\s+(?:un|una|unos|unas)\s*(?:semanas?|mes(?:es)?|a[nñ]os?)"""
+        val date = """(?:(?:el|este|del)\s+)?$weekday|el\s+\d{1,2}(?:\s+de\s+$month|\s+del\s+mes)?|\d{1,2}\s+de\s+$month|pasado\s+ma[nñ]ana|esta\s+(?:ma[nñ]ana|manana|tarde|noche|madrugada)|(?:en|dentro\s+de|de\s+aqu[íi]\s+a|de\s+ac[aá]\s+a)\s+(?:un\s+par\s+de|unos|unas|\d{1,3})\s*$unit|(?:la|el)\s+(?:semana|mes|a[ñn]o|quincena|bimestre|trimestre|semestre)\s+(?:que\s+viene|que\s+entra|entrante|pr[oó]xim[oa]|siguiente|pasad[oa]|anterior)|en\s+(?:un|una|unos|unas)\s*(?:semanas?|mes(?:es)?|a[nñ]os?)"""
         // Sufijo meridiano suelto de cola (tras quitar la hora: " ... de la tarde").
         val bareMeridiem = """$meridiem"""
         // Días relativos desnudos (hoy/mañana/ayer/anteayer/antier), con guard genitivo.
@@ -1995,11 +1998,15 @@ object ContextIntentEngine {
             current = tail.replace(current, "").trim()
             current = bandTail.replace(current, "").trim()
             // Días relativos desnudos: sólo si NO los precede un genitivo.
+            // "pasado" también bloquea (c.690): el compuesto "pasado mañana"
+            // lo consume la alternativa `date` de `tail` en la siguiente
+            // iteración; si el bareTail corta "mañana" primero, queda un
+            // "pasado" huérfano en el título ("Entregar el informe pasado").
             val m = bareTail.find(current)
             if (m != null) {
                 val before = current.substring(0, m.range.first)
                 val prevWord = Regex("""(?i)\b(\S+)\s*$""").find(before)?.groupValues?.get(1)
-                if (prevWord == null || prevWord.lowercase() !in setOf("de", "del", "para", "hasta", "desde", "después", "despues", "antes")) {
+                if (prevWord == null || prevWord.lowercase() !in setOf("de", "del", "para", "hasta", "desde", "después", "despues", "antes", "pasado")) {
                     current = bareTail.replace(current, "").trim()
                 }
             }

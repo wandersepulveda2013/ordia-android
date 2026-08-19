@@ -1,3 +1,11 @@
+## Ciclo c.690 — 2026-08-19 (UTC) — fix(context): residuo de título post-temporal — guard "pasado" en bareTail + artículo "del" en weekday (ítem P2 c.681 CERRADO) + TDD
+
+- HEAD inicial `b945770` → HEAD final pendiente de commit. Fetch pre-trabajo mostró avance docs-only (`67638ef..b945770`) → `git pull --ff-only` limpio, sin divergencia.
+- Fix (P2 títulos context, ítem OPEN descubierto c.681): 2 defectos aislados en `stripTrailingTemporalResidue` vía sondas de traza — (a) "pasado mañana a las 10" dejaba "pasado" huérfano en el título (el `bareTail` cortaba "mañana" antes de que el `tail` consumiera el compuesto); (b) "concierto del viernes" cortaba a media palabra ('...concierto d': el "el" interior de "del" casaba leftmost sin "del" listado en el artículo opcional del weekday). Solución: guard genitivo del `bareTail` gana `"pasado"`; weekday `(?:el|este)` → `(?:el|este|del)`.
+- TDD: +10 en `ContextIntentEngineTitleResidueFixTest.kt` (RED exacto: 4 failures; 6 controles verdes pre-fix). **4006 PASS** (3996 + 10), 0 failures; smoke 25 OK; automation 9 OK; sonda persistente `tools/probe/TitleResidueProbe.kt` 9/9 limpias. NO VERIFICADO Android/gradle/UI/Room.
+- BACKLOG: ítem P2 títulos (c.681) → VERIFIED. Nuevo P1 OPEN (descubierto c.690): "revisar el informe pasado mañana" → NULL.
+- Próximo: P1 "revisar <objeto> <fecha>" → NULL; clusters C/E assistant (c.680); sondas. Re-fetch OBLIGATORIO.
+
 ## Ciclo c.689 — 2026-08-19 (UTC) — feat(context): "acuérdate de <infinitivo>" → REMINDER; P1 descubierto en c.688 CERRADO + TDD
 
 - HEAD inicial `faa9fcb` → HEAD final pendiente de commit. Re-fetch sin avance concurrente; push normal fast-forward.
