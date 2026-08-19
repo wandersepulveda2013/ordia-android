@@ -1,3 +1,16 @@
+## Ciclo c.708 — 2026-08-19 (UTC) — feat(context): piso TASK "imprimir <objeto>" (forma 6/8 clase-verbos, ítem OPEN c.692; doctrina anti-overreach)
+
+- **HEAD inicial**: `f1c98ed` (c.707 docs propios, pull --ff-only limpio, sin divergencia).
+- **Problema seleccionado**: "imprimir <objeto>" → analyze NULL (P1 olvido silencioso en captura pasiva). Sonda `tools/probe/CommonVerbDiscoveryProbe.kt` PRE re-ejecutada: "imprimir las entradas el viernes" → NULL. Ítem OPEN compartido más antiguo (clase-verbos c.692).
+- **Causa raíz**: ninguna rama de `hasStrongTaskImperative` cubría "imprimir".
+- **Solución**: piso `imprimir` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla "imprimir X"→"Imprimir X" (patrón c.691…c.700). Kind decidido: TASK. Controles NULL: negada/quizá/sustantivo "impresión"/suelto; envolvente c.613 gobierna. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +11 tests `ContextIntentEngineImprimirFloorTest.kt` (NUEVO); RED exacto (6 failures = las capturas) → GREEN **OK (4126 tests)** (4115 + 11), 0 failures; smoke 25 OK; automation 9 OK; sonda POST: 'Imprimir las entradas' dueAt=true; 4 controles aditivos NULL en sonda; restan 2 formas OPEN (reservar/cambiar).
+- **Archivos**: `context/ContextIntentEngine.kt`, `test/.../ContextIntentEngineImprimirFloorTest.kt`, `tools/probe/CommonVerbDiscoveryProbe.kt`, AI_AUTONOMY ×3.
+- **Commits**: feat + docs este log.
+- **HEAD final**: tras docs.
+- **Próxima prioridad**: forma 7/8 "reservar" (kind por deliberar: MEETING/ERRAND) u 8/8 "cambiar" (HOUSEHOLD). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
 ## Ciclo c.707 — 2026-08-19 (UTC) — feat(assistant): lo próximo ("tengo algo pronto") → próxima cita/tarea REAL, no menú (último cluster sonda assistant; sonda cerrada 0/49)
 
 - **HEAD inicial**: `077e91f` (c.706 docs, pull --ff-only limpio, sin divergencia).

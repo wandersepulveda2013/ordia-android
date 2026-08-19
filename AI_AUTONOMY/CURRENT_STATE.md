@@ -1,3 +1,14 @@
+## Ciclo c.708 — 2026-08-19 (UTC) — feat(context): piso TASK "imprimir <objeto>" (forma 6/8 clase-verbos; doctrina anti-overreach una forma por ciclo)
+
+- **HEAD inicial** `f1c98ed` (c.707 docs, pull --ff-only limpio). **HEAD final** tras este log (feat + docs).
+- **Selección (P1, ítem OPEN compartido más antiguo — clase-verbos c.692)**: sonda `tools/probe/CommonVerbDiscoveryProbe.kt` re-ejecutada PRE-fix: "imprimir las entradas el viernes" → NULL (olvido silencioso de una gestión con fecha explícita). Doctrina una-forma-por-ciclo: sólo "imprimir"; restan "reservar/cambiar".
+- **Causa raíz**: ninguna rama de `hasStrongTaskImperative` cubría "imprimir"; caía a ningún piso → analyze NULL.
+- **Solución**: piso `imprimir` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla de título "imprimir X"→"Imprimir X" (patrón c.691…c.700). Kind decidido: TASK (gobierna el objeto; ERRAND anclado a destinos físicos). Controles NULL: negada, "quizá…", sustantivo "impresión", verbo suelto; envolvente c.613 sigue gobernando. Determinista (regex), cero random/IA fingida/UI nueva.
+- **TDD**: +11 tests `ContextIntentEngineImprimirFloorTest.kt`; RED exacto (6 failures — las capturas; controles y regresión envolvente ya verdes) → GREEN **OK (4126 tests)** (4115 + 11), 0 failures; smoke 25 OK; automation 9 OK; sonda POST: 'Imprimir las entradas' dueAt=true + 4 controles NULL aditivos en la sonda; 2 formas OPEN (reservar/cambiar).
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla), `test/.../ContextIntentEngineImprimirFloorTest.kt` (NUEVO +11), `tools/probe/CommonVerbDiscoveryProbe.kt` (+4 controles), AI_AUTONOMY ×3.
+- **Próxima prioridad**: forma 7/8 "reservar" (decidir kind: probablemente MEETING/ERRAND — deliberar con sonda), o "cambiar las sábanas" (HOUSEHOLD). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
 ## Ciclo c.707 — 2026-08-19 (UTC) — feat(assistant): lo próximo ("tengo algo pronto") → próxima cita/tarea REAL, no menú (último cluster sonda assistant; sonda cerrada 0/49)
 
 - **HEAD inicial** `077e91f` (c.706 docs, pull --ff-only limpio). **HEAD final feat** tras este log (feat + docs).
