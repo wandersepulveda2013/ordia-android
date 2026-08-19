@@ -8758,6 +8758,75 @@ class NaturalTaskParserTest {
         assertEquals(LocalDate.of(2026, 9, 1), DateRules.toLocalDate(result.dueAt!!, zone))
     }
 
+    // --- "en <mes>": nombre de mes suelto tras la preposición "en" (sin día) ---
+    // Anclas blandas cotidianas ("apuntarme al gimnasio en septiembre",
+    // "viaje en diciembre") caían a dueAt=null y la frase entera quedaba en el
+    // título → compromiso del mes olvidado, sin recordatorio ni visibilidad aunque
+    // el usuario sí informó el mes. Mismo criterio que "a inicios de <mes>": día 1,
+    // roll anual si el día 1 ya pasó; año explícito opcional con "de/del".
+
+    @Test fun enMesNombreAnclaDia1FuturoNoRuedaAnio() {
+        // "en septiembre" desde julio 2026 → 1/9/2026 (aún no pasa).
+        val result = NaturalTaskParser.parse("Apuntarme al gimnasio en septiembre", now, zone)
+        assertEquals("Apuntarme al gimnasio", result.title)
+        assertEquals(LocalDate.of(2026, 9, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enMesNombrePasadoRuedaUnAnio() {
+        // "en enero" desde julio 2026: 1/1/2026 ya pasó → 1/1/2027 (como "inicios de enero").
+        val result = NaturalTaskParser.parse("Renovar contrato en enero", now, zone)
+        assertEquals("Renovar contrato", result.title)
+        assertEquals(LocalDate.of(2027, 1, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enMesActualRuedaUnAnioSiDia1YaPaso() {
+        // "en julio" dicho el 29/7/2026: el día 1 ya pasó → 1/7/2027 (paridad "inicios de julio").
+        val result = NaturalTaskParser.parse("Preparar viaje en julio", now, zone)
+        assertEquals("Preparar viaje", result.title)
+        assertEquals(LocalDate.of(2027, 7, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enMesNombreConAnioExplicitoNoRueda() {
+        // "en agosto de 2027": año explícito → 1/8/2027 (sin roll).
+        val result = NaturalTaskParser.parse("Entrega en agosto de 2027", now, zone)
+        assertEquals("Entrega", result.title)
+        assertEquals(LocalDate.of(2027, 8, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enMesNombreRespetaHoraExplicita() {
+        // La hora explícita reemplaza el default 09:00 del ancla de día.
+        val result = NaturalTaskParser.parse("Viaje en octubre a las 8", now, zone)
+        assertEquals("Viaje", result.title)
+        assertEquals(LocalDate.of(2026, 10, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+        assertEquals(LocalTime.of(8, 0), DateRules.toLocalTime(result.dueAt, zone))
+    }
+
+    @Test fun enMesAbreviadoAnclaDia1() {
+        // Abreviatura "dic" → diciembre, igual que "el 25 de dic" (monthNamePattern).
+        val result = NaturalTaskParser.parse("Cierre en dic", now, zone)
+        assertEquals("Cierre", result.title)
+        assertEquals(LocalDate.of(2026, 12, 1), DateRules.toLocalDate(result.dueAt!!, zone))
+    }
+
+    @Test fun enTalloDeMesNoCasa() {
+        // "en marcha"/"en mercado": el tallo "mar" NO es el mes "marzo"; sin \b no
+        // debe casar ni anclar fecha (paridad anti-residuo del monthNameGroup).
+        val result = NaturalTaskParser.parse("Poner el plan en marcha", now, zone)
+        assertEquals("Poner el plan en marcha", result.title)
+        assertNull(result.dueAt)
+    }
+
+    @Test fun enMesDoNoRobaLimitesExplicitos() {
+        // "a inicios de septiembre" (calificador explícito) sigue ganando a "en":
+        // una captura con "a inicios de" no debe rebajarse al patrón blando.
+        val explicit = NaturalTaskParser.parse("Cobro a inicios de septiembre", now, zone)
+        assertEquals("Cobro", explicit.title)
+        assertEquals(LocalDate.of(2026, 9, 1), DateRules.toLocalDate(explicit.dueAt!!, zone))
+        val soft = NaturalTaskParser.parse("Cobro en septiembre", now, zone)
+        assertEquals("Cobro", soft.title)
+        assertEquals(LocalDate.of(2026, 9, 1), DateRules.toLocalDate(soft.dueAt!!, zone))
+    }
+
     // --- "antepasado mañana" = dentro de 3 días ---
     // Antes la palabra "mañana" casaba con el token de fecha suelto → +1 (fecha
     // errónea) y "antepasado" quedaba como residuo en el título. P1: cita 2 días

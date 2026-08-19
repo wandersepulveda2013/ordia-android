@@ -776,6 +776,23 @@ object NaturalTaskParser {
      */
     private val monthBoundaryNamePattern = Regex("""(?i)(?<!\p{L})(?:a\s+|al\s+)?(mediados?|mitad|principios?|comienzos?|primeros?|inicios?|final(?:es)?|fin|cierre|corte)\s+(?:de\s+|del\s+)([a-záéíóúüñ]+)(?:\s+del?\s+(\d{2,4}))?\b""")
     /**
+     * "en <mes>" / "en <mes> de [<año>]": el nombre de mes SUELTO tras la preposición
+     * "en", sin día explícito ("apuntarme al gimnasio en septiembre", "viaje en
+     * diciembre", "entrega en agosto de 2027"): antes caía a dueAt=null y la frase
+     * entera quedaba como título → compromiso del mes olvidado, sin recordatorio ni
+     * visibilidad (P1), pese a ser la misma intención que "a inicios de <mes>" (que
+     * sí ancla vía [monthBoundaryNamePattern]). Se ancla al día 1 del mes nombrado
+     * (mismo criterio y roll anual que "a inicios de <mes>" si el día 1 ya pasó).
+     * El lookbehind (?<!\p{L}) impide casar "en" dentro de palabras ("orden en",
+     * "tren en..."), y exigir nombre completo/abreviatura en [monthNameGroup] con
+     * `\b` final evita tallos ("en marcha"/"en mercado" no casan: "mar" queda sin
+     * límite de palabra). Va DESPUÉS de [monthBoundaryNamePattern] (el calificador
+     * explícito "a inicios/mediados/finales de..." gana) y ANTES de
+     * [monthNamePattern] para no dejar residuo ni doble-match ("el 15 de septiembre"
+     * lleva "de" antes del mes, no "en").
+     */
+    private val bareMonthPattern = Regex("""(?i)(?<!\p{L})en\s+($monthNameGroup)(?:\s+del?\s+(\d{2,4}))?\b""")
+    /**
      * "fin de año" / "a fin de año" / "finales de año" / "fin del año" / "cierre de año"
      * → 31 de diciembre del año actual (o del siguiente si hoy ya es 31/12).
      * "principios de año" / "a principios de año" → 1 de enero del año siguiente.
@@ -3791,6 +3808,22 @@ object NaturalTaskParser {
             monthBoundaryNameEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
         }
 
+        // "en <mes> [de <año>]": nombre de mes suelto tras "en" (sin día explícito).
+        // Ancla blanda cotidiana ("viaje en diciembre", "renovar en enero"): se
+        // consume aquí (tras [monthBoundaryNamePattern], cuyo calificador gana, y
+        // antes de [monthNamePattern], que exige día) para no dejar residuo. Misma
+        // resolución que "a inicios de <mes>": día 1, roll anual si ya pasó.
+        val bareMonthEarlyMatch = bareMonthPattern.find(working)
+        val bareMonthMonthNum = bareMonthEarlyMatch?.let { months[it.groupValues[1].lowercase()] }
+        val bareMonthDueAt = bareMonthEarlyMatch?.let { m ->
+            val monthNum = bareMonthMonthNum ?: return@let null
+            parseMonthBoundaryName(base.toLocalDate(), "inicios", monthNum, m.groupValues[2])
+                ?.let { DateRules.toEpochMillis(it, LocalTime.of(9, 0), zone) }
+        }
+        if (bareMonthMonthNum != null) {
+            bareMonthEarlyMatch?.let { working = working.replaceRange(strippedPeriodRange(working, it.range), " ") }
+        }
+
         // "fin de año" / "mediados de año" / "principios de año": vencimientos anuales
         // (cierre fiscal, renovaciones). Se borran ANTES del período próximo para que
         // la subcadena "año" no active "año que viene" como +365d genérico. Días
@@ -4138,7 +4171,7 @@ object NaturalTaskParser {
             agoDueAt ?: lastPeriodDueAt ?: deHoyEnIdiomDueAt ?: relativeDueAt ?: vagueRelativeDueAt ?: nowDueAt ?:
             laterRelativeDueAt ?: fractionalAndQuarterRelativeDueAt ?: fractionalRelativeDueAt ?:
             compoundFractionalRelativeDueAt ?: multiQuarterRelativeDueAt ?: monthBoundaryDueAt ?:
-            monthBoundaryNameDueAt ?: yearBoundaryDueAt ?:
+            monthBoundaryNameDueAt ?: bareMonthDueAt ?: yearBoundaryDueAt ?:
             thisMonthDueAt ?: thisYearDueAt ?:
             thisWeekDueAt ?: startOfWeekDueAt ?: midOfWeekDueAt ?: quincenaDueAt ?:
             nextMonthDayDueAt ?: nextMonthDayReverseDueAt ?: nextMonthDayShortDueAt ?:
@@ -4148,7 +4181,7 @@ object NaturalTaskParser {
             deHoyEnIdiomMatch != null || relativeMatch != null || fractionalRelativeMatch != null ||
             fractionalAndQuarterRelativeMatch != null ||
             compoundFractionalRelativeMatch != null || multiQuarterRelativeMatch != null ||
-            monthBoundaryDueAt != null || monthBoundaryNameDueAt != null || yearBoundaryDueAt != null ||
+            monthBoundaryDueAt != null || monthBoundaryNameDueAt != null || bareMonthDueAt != null || yearBoundaryDueAt != null ||
             thisMonthEarlyMatch != null || thisYearEarlyMatch != null ||
             thisWeekEarlyMatch != null || startOfWeekEarlyMatch != null || midOfWeekEarlyMatch != null ||
             quincenaMatch != null || nextMonthDayMatch != null || nextMonthDayReverseMatch != null ||
