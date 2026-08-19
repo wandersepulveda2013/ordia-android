@@ -14880,3 +14880,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Acción**: `git branch backup-c653-local` (no pushed), `reset --soft 4c66708`, `stash push`→`drop`, `merge --ff-only origin` → `3115534`. SIN force, SIN reset --hard, SIN clean destructivo, SIN sobrescribir trabajo remoto. Integré SÓLO docs.
 - **HEAD final**: docs c.653b sobre `3115534` (pendiente push).
 - **Estado**: STALE_RUN. Defecto envolvente-bonus-kinds P1 VERIFIED por c.653 remoto; ruido títulos APPOINTMENT P2 VERIFIED por c.654 remoto.
+
+---
+
+## 2026-08-19 — Ciclo c.657 — fix(context): títulos SHOPPING/PAYMENT sin title-case espurio
+
+- **HEAD inicial**: `2420b7b` (c.653b docs push-OK en esta sesión; renumerado c.657 tras c.655 remoto).
+- **Objetivo**: P3 calidad visible — `extractTitle` capitalizaba el objeto (`capitalizeFirst(grupo)`) y `fixCapitalization` sólo baja palabras-función → "Comprar Pan"/"Comprar Leche y huevos"/"Pagar El recibo".
+- **Cambios**: ramas SHOPPING/PAYMENT y SHOPPING-`ir`: `Comprar ${grupo}`, `Pagar ${grupo}`, `Ir ${grupo}` — preservar caso original (doctrina c.653, paridad CALL). Comentario `analyze` corregido a pasado. 2 aserciones fosilizadas actualizadas (comportamiento intencionado, NO degradación).
+- **Colisión remota**: durante el trabajo, `git fetch` mostró `6c8ac76` (c.655 EXERCISE, DISJUNTO). Integración no destructiva: commit local + `git merge origin/openhands/autonomous-ordia --no-edit` (merge `2d00105`, limpio).
+- **Tests**: `bash tools/run_domain_tests.sh` → 3762 PASS pre-merge, **3767 PASS** post-merge; `bash tools/run_domain_checks.sh` → smoke 25 OK; 0 failures. NO VERIFICADO Android/UI/Room.
+- **Commits**: `bf15c6e` fix(context) + `2d00105` merge + docs commit.
+- **Estado**: VERIFIED.
+
