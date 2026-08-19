@@ -138,6 +138,17 @@ object ContextIntentEngine {
         Regex("""\b(?<!no )(deadline|fecha\s+l[íi]mite|vencimiento)(?!\p{L})""")
     )
 
+    // Regex del piso de NOTA (c.714): verbos de anotación inequívocos
+    // ("apuntar"/"anotar") + objeto, con los mismos anclajes de los pisos de
+    // gestión c.691…c.713 (verbo al inicio, tras prefijo de ACUSE o tras
+    // prefijo temporal). Centralizado (misma lección c.648/c.652) para que el
+    // piso [hasStrongNoteImperative] y el guard de envolvente
+    // [imperativeIsWrapped] compartan EXACTAMENTE el mismo patrón. `\s+\w`
+    // exige objeto ("apuntar"/"anotar" sueltos, muletilla, no activan) y el
+    // lookbehind `(?<!no )` bloquea la negación inmediata.
+    private val NOTE_FLOOR =
+        Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:apuntar|anotar)\s+\w""")
+
     // Patrones de ACTIVACIÓN de los bonus-kinds APPOINTMENT/CALL (c.653),
     // centralizados (misma lección c.648/c.652) para que el bono aditivo de
     // [scoreSpecificPatterns] y el guard de envolvente [imperativeIsWrapped]
@@ -249,7 +260,8 @@ object ContextIntentEngine {
         ContextIntentKind.STUDY to STUDY_FLOORS,
         ContextIntentKind.APPOINTMENT to APPOINTMENT_SPECIFIC,
         ContextIntentKind.CALL to CALL_SPECIFIC,
-        ContextIntentKind.DEADLINE to DEADLINE_FLOORS
+        ContextIntentKind.DEADLINE to DEADLINE_FLOORS,
+        ContextIntentKind.NOTE to listOf(NOTE_FLOOR)
     )
 
     // Penalización por duda/condicional (c.649 anti-overreach). Marcadores como
@@ -618,6 +630,26 @@ object ContextIntentEngine {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
 
+        // Piso de NOTA (c.714): "apuntar/anotar <objeto>" — SEGUNDA clase de
+        // verbos cotidianos de gestión (sonda
+        // `tools/probe/ManagementVerbDiscoveryProbe.kt` c.711, forma 4/14;
+        // una por ciclo, doctrina anti-overreach). Sin este piso, "apuntar la
+        // dirección del médico"/"anotar el número del banco mañana" quedaban
+        // en ~0.12–0.22 (< [MINIMUM_CONFIDENCE]) y se DESCARTABAN: el usuario
+        // se auto-anotaba información útil desde una notificación y Ordía lo
+        // olvidaba (olvido silencioso P1). Kind decidido: NOTE (deliberación
+        // contra TASK — downstream [ConfirmExternalSuggestionUseCase] lo
+        // convierte en entidad NOTE real; marcar un teléfono/dirección no es
+        // una acción ejecutable). Anti-overreach: `\s+\w` exige objeto,
+        // `(?<!no )` bloquea la negada, el guard de envolvente
+        // [imperativeIsWrapped] deja que "recuérdame apuntar…" gane TASK
+        // (registrado en [WRAPPABLE_PATTERNS], lección c.652), y la duda
+        // (c.649)/condición (c.650) penalizan post-piso. Determinista (regex),
+        // sin IA fingida.
+        if (kind == ContextIntentKind.NOTE && hasStrongNoteImperative(lower)) {
+            score = maxOf(score, MINIMUM_CONFIDENCE)
+        }
+
         // Penalización por duda/condicional (c.649 anti-overreach). Los pisos
         // anteriores elevan la confianza al mínimo para imperativos inequívocos
         // ("ir al gimnasio", "reunión con el equipo"...), pero NO distinguen un
@@ -971,6 +1003,16 @@ object ContextIntentEngine {
      */
     private fun hasStrongDeadlineImperative(lower: String): Boolean =
         DEADLINE_FLOORS.any { it.containsMatchIn(lower) }
+
+    /**
+     * Imperativos de anotación inequívocos (c.714): "apuntar/anotar <objeto>".
+     * El piso comparte el patrón [NOTE_FLOOR] con el guard de envolvente
+     * [imperativeIsWrapped] (lección c.648/c.652). Kind decidido: NOTE, en
+     * deliberación contra TASK — "apuntar"/"anotar" es el verbo canónico de la
+     * nota útil y downstream se materializa como entidad NOTE, no como tarea.
+     */
+    private fun hasStrongNoteImperative(lower: String): Boolean =
+        NOTE_FLOOR.containsMatchIn(lower)
 
     /**
      * Detecta si el imperativo del [kind] está SUBORDINADO a un imperativo
@@ -1565,6 +1607,15 @@ object ContextIntentEngine {
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (match != null) return capitalizeFirst(match.groupValues[1])
+                null
+            }
+            ContextIntentKind.NOTE -> {
+                // "(apuntar|anotar) X" → "Apuntar X"/"Anotar X" (c.714): verbo
+                // preservado (alineación piso↔título, lección c.616); prefijo
+                // de acuse/temporal despojado (el match arranca en el verbo).
+                // Mismo ancla/guard que el piso [NOTE_FLOOR].
+                val match = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(apuntar|anotar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (match != null) return "${capitalizeFirst(match.groupValues[1])} ${match.groupValues[2]}"
                 null
             }
             else -> null

@@ -1,3 +1,14 @@
+## Ciclo c.714 — 2026-08-19 (UTC) — feat(context): piso NOTE "apuntar/anotar <nota>" (forma 4/14 segunda clase de gestión)
+
+- **HEAD**: inicial `017aedd` (fetch+pull --ff-only limpio); final tras este log (feat + docs).
+- **Selección (P1, sonda persistente `tools/probe/ManagementVerbDiscoveryProbe.kt`, una forma por ciclo)**: "apuntar/anotar <nota>" → NULL (olvido silencioso). Baseline 4182 PASS; RED exacto 5/10 (capturas); controles verdes desde el inicio.
+- **Solución**: `NOTE_FLOOR` piso ("apuntar|anotar" + objeto, ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla "(apuntar|anotar) X"→"Apuntar X"/"Anotar X" (patrón c.691…c.713). **Kind decidido: NOTE en deliberación contra TASK** — el verbo canónico de la nota útil; downstream entidad NOTE real. Guard de envolvente: NOTE registrada en `WRAPPABLE_PATTERNS` (lección c.652) — "recuérdame apuntar…" gana TASK. Controles NULL: negada, "quizá…", "si tengo tiempo…", verbo suelto. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +10 tests `ContextIntentEngineApuntarAnotarFloorTest.kt`; RED exacto (5 failures) → GREEN **OK (4192 tests)** (4182 c.713 + 10), 0 failures; smoke 25 OK; sonda POST: NOTE captura + dueAt; quedan 10 formas OPEN en BACKLOG.
+- **Archivos**: `context/ContextIntentEngine.kt` (+NOTE_FLOOR +piso +plantilla +WRAPPABLE), `test/.../ContextIntentEngineApuntarAnotarFloorTest.kt` (NUEVO +10), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN segunda-clase ("buscar"/"coger" → prob. TASK; "pasar por"→ERRAND/"sacar"→HOUSEHOLD/"recordar a"→TASK|REMINDER deliberar). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+
 ## Ciclo c.713 — 2026-08-19 (UTC) — feat(context): piso TASK "solicitar <objeto>" (forma 3/14 segunda clase de gestión)
 
 - **HEAD**: inicial `70e462f` (fetch+pull --ff-only limpio); final tras este log (feat + docs).

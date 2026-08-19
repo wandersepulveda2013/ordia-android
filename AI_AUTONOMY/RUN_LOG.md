@@ -1,3 +1,17 @@
+## Ciclo c.714 — 2026-08-19 (UTC) — feat(context): piso NOTE "apuntar/anotar <nota>" (forma 4/14 segunda clase de gestión; doctrina anti-overreach)
+
+- **HEAD inicial**: `017aedd` (c.713 docs, fetch+pull --ff-only limpio, sin divergencia, NO STALE_RUN).
+- **Problema seleccionado**: "apuntar/anotar <nota>" ("apuntar la dirección del médico", "anotar el número del banco") se DESCARTABA (analyze → NULL) — olvido silencioso P1 en captura pasiva (las keywords de NOTE "apuntar"/"anotar" existen pero dan base ~0.12–0.22 < umbral 0.45). Ítem OPEN de la sonda persistente `tools/probe/ManagementVerbDiscoveryProbe.kt` (10 formas OPEN tras esta; doctrina: UNA por ciclo).
+- **Causa raíz**: NOTE jamás tuvo piso; sus keywords no alcanzan el mínimo.
+- **Solución**: piso `NOTE_FLOOR` ("apuntar|anotar" + objeto, ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla de título "(apuntar|anotar) X"→"Apuntar X"/"Anotar X" (mismo mecanismo c.691…c.713). **Decisión de kind (hecha en este ciclo): NOTE en deliberación contra TASK** — "apuntar/anotar" es el verbo canónico de la nota útil (downstream: `ConfirmExternalSuggestionUseCase` lo convierte en entidad NOTE real; marcar un teléfono/dirección/número no es una acción ejecutable). Guard de envolvente: NOTE se registra en `WRAPPABLE_PATTERNS` (lección c.652), así "recuérdame apuntar la dirección" gana TASK (piso c.613) y no NOTE. Controles NULL: negada, "quizá…", condición "si tengo tiempo…", verbo suelto "apuntar"/"anotar". Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +10 tests `ContextIntentEngineApuntarAnotarFloorTest.kt` (NUEVO); RED exacto (5 failures = las capturas; los 5 controles verdes desde el inicio) → GREEN **OK (4192 tests)** (4192 = 4182 + 10), 0 failures; smoke 25 OK; sonda POST: "apuntar la dirección del médico" → NOTE 'Apuntar la dirección del médico'; "anotar el número del banco mañana" → NOTE 'Anotar el número del banco' dueAt=true.
+- **Archivos**: `context/ContextIntentEngine.kt` (+NOTE_FLOOR +piso +plantilla +WRAPPABLE_PATTERNS), `test/.../ContextIntentEngineApuntarAnotarFloorTest.kt` (NUEVO +10), AI_AUTONOMY ×3.
+- **Commits**: feat + docs este log.
+- **HEAD final**: tras docs.
+- **Próxima prioridad**: siguiente forma OPEN segunda-clase-verbos ("buscar" → prob. TASK; "coger" → prob. TASK; "pasar por"→ERRAND/"sacar la basura"→HOUSEHOLD/"recordar a"→TASK/REMINDER requieren deliberación de kind). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+
 ## Ciclo c.713 — 2026-08-19 (UTC) — feat(context): piso TASK "solicitar <objeto>" (forma 3/14 segunda clase de gestión; doctrina anti-overreach)
 
 - **HEAD inicial**: `70e462f` (c.712 docs, fetch+pull --ff-only limpio, sin divergencia, NO STALE_RUN).
