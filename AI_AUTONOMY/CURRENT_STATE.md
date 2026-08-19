@@ -1,3 +1,14 @@
+## Ciclo c.713 — 2026-08-19 (UTC) — feat(context): piso TASK "solicitar <objeto>" (forma 3/14 segunda clase de gestión)
+
+- **HEAD**: inicial `70e462f` (fetch+pull --ff-only limpio); final tras este log (feat + docs).
+- **Selección (P1, sonda persistente `tools/probe/ManagementVerbDiscoveryProbe.kt`, una forma por ciclo)**: "solicitar <objeto>" → NULL (olvido silencioso). Baseline 4171 PASS; RED exacto 6/13 (capturas + envolvente); controles verdes desde el inicio.
+- **Solución**: piso `solicitar` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla "Solicitar X" (patrón c.691…c.712). Kind TASK (deliberación contra APPOINTMENT/ERRAND/CALL — "solicitar" solicita el objeto: cita/permiso/presupuesto/prestación). **Fix de coherencia del ciclo**: la envolvente "recuérdame solicitar … [objeto-F]" caía a REMINDER por bono temporal (TASK 0.45 vs REMINDER 0.47) porque "solicitar" no era keyword de TASK — añadida a `ContextIntentKind.TASK.keywords` en paridad con "pedir"/"avisar"; test envolvente ahora pasa sin excepciones. Controles NULL: negada, "quizá…", sustantivo "solicitud", verbo suelto; envolvente c.613 gobierna. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +7 tests `ContextIntentEngineSolicitarFloorTest.kt`; RED exacto (6 failures) → GREEN **OK (4182 tests)**, 0 failures; smoke 25 OK; sonda POST (+4 controles solicitar): captura TASK dueAt=true, controles NULL; quedan 11 formas OPEN en BACKLOG.
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla), `context/ContextIntent.kt` (keyword TASK "solicitar"), `test/.../ContextIntentEngineSolicitarFloorTest.kt` (NUEVO +7), `tools/probe/ManagementVerbDiscoveryProbe.kt` (+4 controles), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN segunda-clase (deliberar "apuntar/anotar <nota>" → NOTE; "buscar" → TASK; "pasar por"→ERRAND/"sacar la basura"→HOUSEHOLD requieren deliberación de kind). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+
 ## Ciclo c.712 — 2026-08-19 (UTC) — feat(context): piso TASK "pedir <objeto>" (forma 2/14 segunda clase de gestión)
 
 - **HEAD**: inicial `44a0acb` (fetch+pull --ff-only limpio); final tras este log (feat `69018b5` + docs `e80f176` + este state).

@@ -1,3 +1,17 @@
+## Ciclo c.713 — 2026-08-19 (UTC) — feat(context): piso TASK "solicitar <objeto>" (forma 3/14 segunda clase de gestión; doctrina anti-overreach)
+
+- **HEAD inicial**: `70e462f` (c.712 docs, fetch+pull --ff-only limpio, sin divergencia, NO STALE_RUN).
+- **Problema seleccionado**: "solicitar <objeto>" ("solicitar la cita el lunes", "solicitar el permiso/presupuesto/prestación") se DESCARTABA (analyze → NULL) — olvido silencioso P1 en captura pasiva. Ítem OPEN de la sonda persistente `tools/probe/ManagementVerbDiscoveryProbe.kt` (11 formas OPEN tras esta; doctrina: UNA por ciclo).
+- **Causa raíz**: (i) ninguna rama de `hasStrongTaskImperative` cubría "solicitar"; (ii) la envolvente "recuérdame solicitar [objeto-F]" competía y perdía contra REMINDER (0.47 vs 0.45) porque "solicitar" no era keyword de TASK (aunque "pedir"/"avisar" sí lo eran).
+- **Solución**: piso `solicitar` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla "solicitar X"→"Solicitar X" (patrón c.691…c.712). Kind TASK (deliberado contra APPOINTMENT/ERRAND/CALL — "solicitar" solicita/encarga el objeto; la cita se captura por su propia vía). Fix de coherencia: `ContextIntentKind.TASK.keywords` gana "solicitar" (paridad con "pedir"/"avisar") → envolvente con objeto femenino ("cita") pasa a TASK. Controles NULL: negada/quizá/sustantivo "solicitud"/suelto; envolvente c.613 gobierna. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +7 tests `ContextIntentEngineSolicitarFloorTest.kt` (NUEVO); RED exacto (6 failures = capturas + envolvente) → GREEN **OK (4182 tests)**, 0 failures; smoke 25 OK; sonda POST (+4 controles solicitar): captura TASK dueAt=true, controles NULL.
+- **Archivos**: `context/ContextIntentEngine.kt`, `context/ContextIntent.kt`, `test/.../ContextIntentEngineSolicitarFloorTest.kt`, `tools/probe/ManagementVerbDiscoveryProbe.kt`, AI_AUTONOMY ×3.
+- **Commits**: feat + docs este log.
+- **HEAD final**: tras docs.
+- **Próxima prioridad**: siguiente forma OPEN de segunda-clase ("apuntar/anotar <nota>" → deliberar NOTE; "buscar" → TASK; "pasar por"→ERRAND/"sacar"→HOUSEHOLD requieren deliberación de kind). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+
 ## Ciclo c.712 — 2026-08-19 (UTC) — feat(context): piso TASK "pedir <objeto>" (forma 2/14 segunda clase de gestión; doctrina anti-overreach)
 
 - **HEAD inicial**: `44a0acb` (c.711 docs, fetch+pull --ff-only limpio, sin divergencia, NO STALE_RUN).
