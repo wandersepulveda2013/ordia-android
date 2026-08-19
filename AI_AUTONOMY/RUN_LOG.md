@@ -15430,3 +15430,13 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Lección reforzada**: re-fetch INMEDIATO pre-implementación; en concurrencia alta, preferir clusters P2 assistant (C "tengo N minutos" / E "estoy abrumado") a ítems de la lista clase-verbos compartida.
 - **Estado**: STALE_RUN. NO VERIFICADO Android/gradle/lint/UI/Room (sin SDK).
 
+
+## RUN c.702 — 2026-08-19 (UTC)
+
+- **HEAD inicial**: `8b85aac3` (c.701 docs STALE_RUN remoto; fetch+`pull --ff-only` limpio, sin divergencia). HEAD final: pendiente (push tras este log).
+- **Selección**: P2 Cluster E sonda assistant — "estoy abrumado/agobiado/no doy abasto" caía al menú genérico ("Puedo organizar tu día…") justo cuando el usuario está saturado. Filosofía "menos es más": ante sobrecarga responder UNA sola cosa, no opciones.
+- **Cambios**: `AssistantEngine.kt` — nueva rama `isOverwhelmedQuery(query)` tras `isPriorityQuery` y antes del catch-all + helper homónimo (`"abrumad" in query || "agobiad" in query || "no doy abasto" in query`). Con tareas: `WhatNowEngine.suggest` → "Respira. Primero solo esto: «X». Cuando la termines queda(n) N; una a una." Vacío: "No encuentro tareas pendientes. Respira." Vacío + promesa vencida → `overdueCommitmentAnswer` (paridad c.357/c.416/c.680). Determinista y local (reusa WhatNowEngine; cero random/IA fingida/pantalla nueva). +4 tests en `AssistantEngineTest.kt`.
+- **Tests**: RED exacto 4 failures (los 4 nuevos) → GREEN suite **4090 PASS** (4086 + 4), 0 failures; smoke 25 OK; automation 9 OK. Sonda `tools/probe/AssistantDiscoveryProbe.kt` POST: "estoy abrumado" → respuesta (17/49 restantes siguen genéricas; Cluster C "tengo N minutos" sigue OPEN).
+- **Commits**: pendiente push. Renumeración: ninguna (c.702 libre; c.700/c.701 STALE_RUN cerrados por remoto antes de este run).
+- **Próxima prioridad**: Cluster C assistant (formas sueltas "tengo 20 minutos", "tengo tiempo", "tengo hueco") o forma 6/8 clase-verbos (imprimir/reservar/cambiar). Re-fetch OBLIGATORIO pre-implementación por concurrencia reciente.
+- **NO VERIFICADO**: Android/gradle/lint/UI/Room (sin SDK).
