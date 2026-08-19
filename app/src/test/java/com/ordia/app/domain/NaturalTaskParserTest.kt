@@ -16117,4 +16117,21 @@ class NaturalTaskParserTest {
         assertNull(result.dueAt)
     }
 
+    @Test fun esoDeSinAResuelveHoraYLimpiaTitulo() {
+        // "eso de las N" sin la "a" inicial: forma coloquial cotidiana de "a eso de las N"
+        // (adverbio temporal puro, mismo criterio que la familia de c.676). Antes: NULL.
+        val result = NaturalTaskParser.parse("alarma eso de las 5", now, zone)
+        assertEquals("alarma", result.title)
+        assertNotNull(result.dueAt)
+        assertEquals(LocalTime.of(5, 0), DateRules.toLocalTime(result.dueAt!!, zone))
+    }
+
+    @Test fun esoDeSinAConCuentaNoEsHora() {
+        // Guard anti-cuenta del flujo común (c.361): la aproximación se reescribe a "a "
+        // y el guard rechaza → no agenda (dueAt null). El título refleja la reescritura.
+        val result = NaturalTaskParser.parse("comprar eso de las 3 cajas", now, zone)
+        assertEquals("comprar a las 3 cajas", result.title)
+        assertNull(result.dueAt)
+    }
+
 }

@@ -1850,9 +1850,11 @@ object NaturalTaskParser {
      * [aEsoDePartOfDayRewriter], que emite el conector canónico correcto.
      */
     private val approximateTimePatterns = listOf(
-        // "a eso de" es un adverbio temporal puro (sin uso de tema/cantidad), así que
-        // admite hora en punto sin meridiem ("a eso de las 5"): es el caso más común.
-        Regex("""(?i)\ba\s+eso\s+de\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
+        // "eso de" es un adverbio temporal puro (sin uso de tema/cantidad), así que
+        // admite hora en punto sin meridiem ("(a) eso de las 5"): es el caso más común.
+        // La "a" inicial es OPCIONAL porque la forma cotidiana la omite ("alarma eso de
+        // las 5"): mismo criterio de c.676, no se exige evidencia de reloj.
+        Regex("""(?i)\b(?:a\s+)?eso\s+de\s+(?=las\s+(?:[01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?::[0-5]\d)?|la\s+una(?::[0-5]\d)?)"""),
         // "casi a las/la" es adverbio de aproximación temporal puro: "casi a las 9" =
         // un poco antes de las 9. No admite lectura de cantidad ("casi a las 9 personas"
         // no es gramatical), así que NO exige evidencia de reloj (igual que "a eso de").

@@ -10,6 +10,18 @@
 - **Estado**: VERIFIED (JVM: suite 3843 PASS + smoke 25 OK + automation 9 OK; 0 failures). NO VERIFICADO Android/UI/Room.
 
 
+## Ciclo c.671 — 2026-08-19 (UTC) — feat(parser): "eso de las N" (sin "a" inicial) agendado + limpia título; guard anti-cuenta conservado. +2 tests TDD.
+
+- **Rama**: `openhands/autonomous-ordia`. HEAD inicial `606cf3b` (c.670 local, sin avances remotos; NO STALE_RUN). Entorno JVM (kotlinc, jars `/tmp/libs`); sin Android SDK. Auth git `github_token`.
+- **Problema (P2, descubrimiento por probe de captura diaria)**: "alarma eso de las 5" (forma coloquial que omite la "a" de "a eso de") → `dueAt=null` + residuo (tarea olvidada).
+- **Causa raíz**: entrada "a eso de" en `approximateTimePatterns` exigía la "a" inicial literal.
+- **Solución (mínima)**: `(?:a\s+)?` opcional en la entrada "eso de" de `approximateTimePatterns`. Guard de evidencia no aplicable igual que la familia pura ("eso de" es adverbio temporal puro); guard anti-cuenta del flujo común (c.361) protege "comprar eso de las 3 cajas"→null.
+- **Tests**: +2 TDD RED→GREEN (resolución + guard de cuenta). Suite **3845 PASS**; smoke 25 OK; automation 9 OK. **NO VERIFICADO** Android/UI/Room (sin SDK).
+- **Archivos**: `NaturalTaskParser.kt` (1 regex), `NaturalTaskParserTest.kt` (+2), AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md.
+- **Próxima prioridad**: revisión de producto; cualquier P0/P1; avoid-warning P2. Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED.
+
+## Ciclo c.670 — 2026-08-19 (UTC) — feat(parser): conector aproximado "tipo las N"/"tipo la una" agendado + rolado fold "a más tardar" limpia título; hipótesis "hacia las N desnuda" evaluada y RECHAZADA con disciplina (guard embutido contra falso positivo tema/cantidad). +8 tests TDD.
 ## Ciclo c.669 (renumerado desde c.668) — 2026-08-19 (UTC) — fix(parser): follow-up c.667 — "de hoy en adelante" ya no deja residuo "en adelante" en el título (regex de limpieza `\bde\s+hoy\s+en\s+adelante\b` → hoy como fecha, guard "en adelante" suelto NO se toca: "entrevista en adelante" sigue siendo contenido útil). +2 tests TDD.
 
 - **Rama**: `openhands/autonomous-ordia`. HEAD inicial `a4ea071` (c.667 remoto). Al push el remoto avanzó a `f94ee68` (c.668 cadencia "N veces por semana"); integración NO destructiva: stash → ff-only → stash pop (auto-merge limpio), renumeración c.668→c.669. NO STALE_RUN destructivo. Entorno JVM (sin Android SDK): kotlinc 2.1.20 (`/tmp/kotlinc-home`), jars `/tmp/libs`, JDK 21. Auth git `github_token`.

@@ -1,3 +1,12 @@
+## Ciclo c.671 — feat(parser): "eso de las N" (sin "a" inicial) — descubierto por probe; +2 TDD — VERIFIED
+- **HEAD inicial**: `606cf3b` (c.670; sin avances remotos, NO STALE_RUN). Entorno JVM; sin Android SDK. Auth `github_token`.
+- **Problema (P2, descubrimiento audit)**: "alarma eso de las 5" → null + residuo (tarea olvidada).
+- **Causa raíz**: entrada "a eso de" exigía la "a" literal.
+- **Fix**: `(?:a\s+)?` opcional en `approximateTimePatterns`; guard convencional (c.361) rechaza cuentas.
+- **Tests**: +2 TDD RED→GREEN; suite 3845 PASS; smoke 25 OK; automation 9 OK. **NO VERIFICADO** Android/UI/Room.
+- **Archivos**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt`, AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md.
+- **Estado**: VERIFIED.
+
 ## 2026-08-19 — Ciclo c.670 — feat(parser): tipógrafo/hypótesis "hacia" evaluada; "tipo las N"/"tipo la una" + fold "a más tardar" — VERIFIED
 - **HEAD inicial**: `f94ee68` local (c.668). Durante el trabajo el remoto avanzó a `6b3167f` (c.669 "de hoy en adelante"); stash → ff-only → stash pop limpio, renumerado mi c.669→c.670. Entorno JVM (kotlinc 2.1.20, jars `/tmp/libs`), sin Android SDK. Auth `github_token`.
 - **Problema (P2 captura/título limpio, ítem BACKLOG c.668)**: conector aproximado "tipo las N"/"tipo la una" (Caribe/LatAm) no casaba → `dueAt=null` + residuo (tarea olvidada); "a más tardar" dejaba residuo en título aunque la fecha sí resolvía; hipótesis "hacia las N desnuda" evaluada y descartada (ambiguo por tema/cantidad; guard de evidencia es la protección).
