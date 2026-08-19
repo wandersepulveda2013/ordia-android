@@ -15400,3 +15400,11 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Anti-overreach**: `\s+\w` exige objeto, `(?<!no )` bloquea la negada, c.649 mantiene "quizá…"→NULL, "renovación" (sustantivo) no casa, "renovar" suelto no casa. Restan 4 formas (confirmar/imprimir/reservar/cambiar — decidir kind por ciclo con sonda; "cambiar las sábanas" quizá HOUSEHOLD, "confirmar/reservar" quizá MEETING/REMINDER).
 - **Próxima prioridad**: re-fetch OBLIGATORIO pre-implementación (alta concurrencia); siguiente forma de la clase si sigue OPEN.
 - **Estado**: VERIFIED. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+## c.699 — 2026-08-19T16:30Z — STALE_RUN (duplicado de c.696 remoto; descarte no destructivo + verificación independiente)
+- **HEAD inicial**: `5a7e29a`. **HEAD final**: `5bb7927` (remoto). Run con 1 commit propio NO pusheado `b1d428a` (feat firmar, numerado c.696 local). Descartado íntegramente: abort rebase + reset a `origin` (único trabajo local era el duplicado; NADA remoto sobrescrito, NADA forzado).
+- **Qué pasó**: implementación completa TDD de firmar (RED 6 exactos, GREEN 4063 PASS, sonda 9/9) resultó duplicada: el remoto ya traía firmar c.696 `a8cd748` (11 tests, `ContextIntentEngineFirmarFloorTest.kt` equivalente) + renovar c.698 `5c4f853`. Tercera duplicación del día (precedentes: 11852d1 c.697, 15139cb c.695).
+- **Verificación independiente sobre `5bb7927`**: `run_domain_tests.sh` → OK (4075 tests), 0 failures; `run_domain_checks.sh` → 25 OK; `run_automation_engine_checks.sh` → 9 OK. Sonda ad-hoc firmar 9/9 correctas (8 capturas + 4 NULL controles + envolvente c.613) y renovar 4/4.
+- **Archivos**: solo AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md (docs-only).
+- **Próxima prioridad**: re-fetch inmediato pre-decisión; formas clase-verbos restantes (confirmar/imprimir/reservar/cambiar) solo si sonda confirma NULL; alternativa clusters C/E assistant.
+- **Estado**: STALE_RUN. NO VERIFICADO Android/gradle/lint/UI/Room (sin SDK).

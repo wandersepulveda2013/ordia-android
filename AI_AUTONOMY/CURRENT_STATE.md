@@ -1,3 +1,9 @@
+## Ciclo c.699 — 2026-08-19 (UTC) — STALE_RUN (sin cambios destructivos): mi fix firmar era duplicado del c.696 remoto `a8cd748`
+
+- HEAD inicial `5a7e29a` → final remoto `5bb7927`. Mi implementación completa de firmar (TDD: RED exacto 5 failures, GREEN 4063 PASS, sonda 9/9) quedó obsoleta al pushear: remoto avanzó `15139cb`→`5bb7927` con firmar c.696 `a8cd748` (11 tests, equivalente) + renovar c.698 `5c4f853`. Descarte no destructivo del commit propio no pusheado (abort rebase + reset a origin; único trabajo local era el duplicado). Verificación independiente sobre `5bb7927`: suite **4075 PASS**, 0 failures; smoke 25 OK; automation 9 OK; sonda ad-hoc firmar 9/9 + renovar 4/4 correctas. Anti-colisión: NADA forzado, NADA de `main`, NINGÚN trabajo remoto sobrescrito.
+- Lección (3ª duplicación en el día): en ventanas de alta concurrencia, hacer re-fetch INMEDIATO antes de elegir forma del ítem clase-verbos y preferir ítems fuera de esa lista compartida.
+- Próximo: re-fetch; clase-verbos restantes (confirmar/imprimir/reservar/cambiar — verificar con sonda que no las cubra ya otro run) o clusters C/E assistant.
+
 ## Ciclo c.698 — 2026-08-19 (UTC) — feat(context): piso TASK "renovar <objeto>" (forma 4/6 clase-verbos, doctrina anti-overreach)
 
 - **HEAD inicial** `a8cd748` (c.696, pull --ff-only limpio; sin divergencia). **HEAD final** `0aec1e7` (merge) con feat `5c4f853`; renumerado c.697→c.698 por colisión con STALE_RUN docs-only concurrente (`11852d1`).
