@@ -1068,8 +1068,16 @@ object ContextIntentEngine {
                 null
             }
             ContextIntentKind.EXERCISE -> {
+                // c.655: el título nace desde el verbo de ejercicio, NO desde el
+                // inicio del original. Devolver `capitalizeFirst(original)` dejaba
+                // el prefijo temporal líder ("mañana " / "el lunes " / "mañana a
+                // las 6 ") como residuo VISIBLE en el título — el sanitizer de
+                // c.606 sólo corta residuo de COLA, así que el prefijo de CABEZA
+                // escapaba. "mañana ir al gimnasio" → título "Ir al gimnasio"
+                // (dueAt ya lo resolvió [extractDateTime]). Misma paridad que la
+                // rama CALL, que también arranca desde el verbo.
                 val match = Regex("""(ir al gimnasio|entrenar|hacer|yoga|correr)""", RegexOption.IGNORE_CASE).find(original)
-                if (match != null) return capitalizeFirst(original)
+                if (match != null) return capitalizeFirst(original.substring(match.range.start))
                 null
             }
             ContextIntentKind.HOUSEHOLD -> {

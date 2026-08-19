@@ -121,6 +121,58 @@ class ContextIntentEngineTitleTest {
         assertEquals("Comprar el diario de hoy", intent.title)
     }
 
+    // --- Prefijo temporal líder recortado en EXERCISE (c.655) ---
+
+    @Test
+    fun exerciseStripsLeadingMananaPrefix() {
+        // c.655: la rama EXERCISE de extractTitle devolvía TODO el original
+        // ("mañana ir al gimnasio" → título "Mañana ir al gimnasio"): el prefijo
+        // temporal líder (que extractDateTime ya resolvió en dueAt) quedaba como
+        // residuo VISIBLE en el título. El sanitizer de c.606 sólo corta residuo
+        // de COLA, así que el prefijo de CABEZA escapaba. Ahora el título nace
+        // desde el verbo de ejercicio (paridad con CALL).
+        val intent = analyze("mañana ir al gimnasio")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.EXERCISE, intent!!.kind)
+        assertEquals("Ir al gimnasio", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun exerciseStripsLeadingWeekdayPrefix() {
+        val intent = analyze("el lunes ir al gimnasio")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.EXERCISE, intent!!.kind)
+        assertEquals("Ir al gimnasio", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun exerciseStripsLeadingDateTimePrefix() {
+        val intent = analyze("mañana a las 6 ir al gimnasio")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.EXERCISE, intent!!.kind)
+        assertEquals("Ir al gimnasio", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun exerciseStripsLeadingHoyPrefix() {
+        val intent = analyze("hoy entrenar piernas")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.EXERCISE, intent!!.kind)
+        assertEquals("Entrenar piernas", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun exerciseWithoutPrefixKeepsTitle() {
+        val intent = analyze("ir al gimnasio")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.EXERCISE, intent!!.kind)
+        assertEquals("Ir al gimnasio", intent.title)
+    }
+
     // --- Sin anclaje temporal: el título no debe alterarse ---
 
     @Test
