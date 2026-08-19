@@ -1511,7 +1511,15 @@ object NaturalTaskParser {
         // de la fracción/meridiem (simétrico del reloj "HH:MMh pm" de c.235 y del
         // "a las N" de aquí): así "a la una horas y media" y "a la una h pm" consumen
         // el sufijo completo en vez de dejar fracción/meridiem como residuo en el título.
-        Regex("""(?i)\ba\s+la\s+(una)(?:(?::|h|[.,])([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
+        // Además de la forma ESCRITA ("una") admite el DÍGITO ("a la 1", "a la 1 pm",
+        // "a la 1:30", "a la 1 de la tarde"): es igual de cotidiano y SIN él el dígito
+        // caía al patrón de reloj autónomo (N:MM o Nam/pm), que resolvía la hora pero
+        // DEJABA el artículo "a la" como residuo del título ("almuerzo con Pedro a la"),
+        // o se perdía entera cuando no había evidencia ("reunión a la 1" → NULL aunque
+        // "reunión a las 3" sí resuelve a las 03:00: asimetría plural/singular). Sólo el
+        // dígito 0?1 es válido en singular ("a la 1"); cualquier otra hora exige el
+        // plural ("a las N") — el `\b` final impide casar "a la 12" con hora=1.
+        Regex("""(?i)\ba\s+la\s+(una|0?1)(?:(?::|h|[.,])([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
         // Sufijo opcional "(horas?|hs|h)" tras la hora para consumir "a las 9 horas"/
         // "a las 9h" completo: antes "horas" quedaba como residuo en el titulo y, peor,
         // "9 horas" era robado como duracion (540 min falsos). Es NO capturante (no

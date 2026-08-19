@@ -4770,6 +4770,46 @@ class NaturalTaskParserTest {
         assertEquals(LocalTime.of(1, 30), DateRules.toLocalTime(result.dueAt!!, zone))
     }
 
+    // --- "a la 1" en DÍGITOS (femenino singular) ---
+    // La forma cotidiana "a la 1 pm"/"a la 1:30"/"a la 1 de la tarde" caía al
+    // reloj autónomo (N:MM / Nam/pm): la hora se resolvía pero el artículo "a la"
+    // quedaba como residuo del título ("almuerzo con Pedro a la"). La forma sin
+    // evidencia ("reunión a la 1") se perdía entera (NULL) aunque su simétrica
+    // plural ("reunión a las 3") sí resuelve. El patrón "a la una" ahora admite el
+    // dígito 0?1 además de la forma escrita.
+
+    @Test fun aLaDigitFormsResolveAndCleanTitle() {
+        listOf(
+            "Almuerzo con Pedro a la 1 pm" to LocalTime.of(13, 0),
+            "Almuerzo con Pedro a la 1" to LocalTime.of(1, 0),
+            "Cena a la 1:30" to LocalTime.of(1, 30),
+            "Almuerzo con Pedro a la 1 de la tarde" to LocalTime.of(13, 0),
+            "Cenar a la 1 y media" to LocalTime.of(1, 30)
+        ).forEach { (input, time) ->
+            val result = NaturalTaskParser.parse(input, now, zone)
+            val expectedTitle = input.substringBefore(" a la")
+            assertEquals(expectedTitle, result.title)
+            assertEquals(time, DateRules.toLocalTime(result.dueAt!!, zone))
+        }
+    }
+
+    @Test fun aLaSingularRejectsDigitOtherThanOne() {
+        // Only hour 1 is grammatically singular ("la una"). "a la 12" must stay
+        // unresolved; the plural "a las 12" is the correct form.
+        val result = NaturalTaskParser.parse("reunión a la 12", now, zone)
+        assertNull(result.dueAt)
+        assertEquals("reunión a la 12", result.title)
+    }
+
+    @Test fun aLaDigitCountNounStaysUnresolved() {
+        // "enviar a la 1 invitaciones" is a count (1 invitation), not an
+        // appointment at 01:00: the timeMatchIsCountNoun guard extends to the
+        // new digit form exactly as it does for "a la una personas".
+        val result = NaturalTaskParser.parse("enviar a la 1 invitaciones", now, zone)
+        assertNull(result.dueAt)
+        assertEquals("enviar a la 1 invitaciones", result.title)
+    }
+
     // --- Regresión BUG: "de la mañana"/"por la mañana" como marcador de hora NO
     //     debe interpretarse como la fecha "mañana" (antes "Reunión a las 9 de la
     //     mañana" se programaba para MAÑANA en vez de HOY → reunión perdida el mismo día). ---
