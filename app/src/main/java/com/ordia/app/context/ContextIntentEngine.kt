@@ -347,6 +347,23 @@ object ContextIntentEngine {
         // lo PRECEDE, dejando que TASK/REMINDER (pisos c.613/c.619) gobiernen.
         if (imperativeIsWrapped(lower, kind)) return 0f
 
+        // Guard de envolvente de obligación negado (c.681 anti-overreach). La
+        // negación española canónica de la OBLIGACIÓN niega el envolvente, no el
+        // verbo subordinado: "no tengo que ir al banco", "ya no tengo que pagar
+        // el arriendo", "no hay que limpiar la cocina". [imperativeIsNegated]
+        // (c.648) no lo cubre (su regex exige "no" INMEDIATO al verbo del kind)
+        // y el lookbehind `(?<!no )` de los pisos tampoco ("no" no precede a
+        // "tengo"/"hay" en la posición que miran), así el piso de TASK (c.613),
+        // el piso de MEETING (c.647) y los patrones de APPOINTMENT disparaban
+        // sobre la frase negada: la captura pasiva persistía EXACTAMENTE lo
+        // opuesto a lo que el usuario dijo ("no tengo que ir al banco" → tarea
+        // "Ir al banco"; "no tengo cita con el dentista" → APPOINTMENT 0.69).
+        // La frase entera niega la obligación/posesión del evento, así que no
+        // contiene intención capturable: se descarta TODA la clasificación
+        // (todos los kinds), no un kind concreto. "no tengo gluten" no se toca:
+        // "gluten" no es envolvente de obligación.
+        if (obligationWrapperIsNegated(lower)) return 0f
+
         var score = 0f
         val words = lower.split(Regex("\\s+"))
 
@@ -854,6 +871,20 @@ object ContextIntentEngine {
         ) return true
         return false
     }
+
+    /**
+     * Detecta la negación del envolvente de obligación/posesión (c.681).
+     * Cubre "no tengo que|q …", "ya no tengo que|q …", "no hay que …" y la
+     * negación de la posesión de evento "no tengo reunión|cita …": la frase
+     * entera afirma la AUSENCIA de la obligación o del evento, así que ningún
+     * kind puede capturarla (el guard se evalúa para todos los kinds en
+     * [scoreKind]). A diferencia de [imperativeIsNegated] (negación inmediata
+     * del verbo del kind), aquí el "no" precede al envolvente léxico del piso.
+     * Determinista (regex), sin IA fingida.
+     */
+    private fun obligationWrapperIsNegated(lower: String): Boolean =
+        Regex("""\b(?:ya\s+)?no\s+(?:tengo\s+(?:que|q)\b|hay\s+que\b|tengo\s+(?:reuni[oó]n|cita)\b)""")
+            .containsMatchIn(lower)
 
     /**
      * Detecta marcadores de duda/condicional (c.649). "quizá"/"a lo mejor"/"tal
