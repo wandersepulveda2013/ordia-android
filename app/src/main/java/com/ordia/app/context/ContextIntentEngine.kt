@@ -172,7 +172,7 @@ object ContextIntentEngine {
     // título corrupto ("Cita: del dentista"): overreach P1. "cancelar" sin
     // objeto ("cancelar todo") no activa wrapper (guard `\s+\w` en el piso).
     private val WRAPPER_PATTERN =
-        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme|(?<!no )cancelar|(?<!no )anular)\b""")
+        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme|recuerda(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )cancelar|(?<!no )anular)\b""")
 
     // Kinds protegidos por el guard de envolvente: pisos de posición libre
     // (c.652) + bonus-kinds APPOINTMENT/CALL (c.653). SHOPPING/PAYMENT no lo
@@ -599,7 +599,11 @@ object ContextIntentEngine {
      */
     private fun hasStrongTaskImperative(lower: String): Boolean =
         Regex("""\b(?:recuérdame|no olvides|tengo (?:que|q)|hay que|(?<!no )cancelar|(?<!no )anular)\s+\w""")
-            .containsMatchIn(lower)
+            .containsMatchIn(lower) ||
+            // c.682: "recuerda" sólo si el verbo subordinado es INFINITIVO
+            // (anti-overreach: "recuerda cuando…"/"recuerda que…"/"recuerdas…"
+            // no son instrucciones al asistente).
+            Regex("""\brecuerda(?=\s+\w*(?:ar|er|ir)\b)\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1118,6 +1122,12 @@ object ContextIntentEngine {
                 // "no olvides X" → "X"
                 val match3 = Regex("""no olvides (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match3 != null) return capitalizeFirst(match3.groupValues[1])
+
+                // "recuerda X" → "X" (c.682): mismo lookahead de infinitivo que
+                // el piso, así nunca se despoja un "recuerda" conversacional
+                // ("recuerda que…") aunque TASK haya ganado por otro wrapper.
+                val matchRecuerda = Regex("""recuerda\s+(?=\w*(?:ar|er|ir)\b)(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchRecuerda != null) return capitalizeFirst(matchRecuerda.groupValues[1])
 
                 // "hay que X" → "X"
                 val match4 = Regex("""hay que (.+)""", RegexOption.IGNORE_CASE).find(original)
