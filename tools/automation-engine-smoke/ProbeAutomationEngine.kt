@@ -41,8 +41,8 @@ fun main() {
 
     rules.rulesForTrigger = listOf(rule)
     rules.countRunsSince.clear()
-    runBlocking { engine.runTrigger(AutomationTrigger.DAILY_MORNING, zone = ny) }
-    check(rules.countRunsSince.size == 1 && rules.countRunsSince[0] == midnightNy, "runTrigger propaga zone a runRule")
+    runBlocking { engine.runTrigger(AutomationTrigger.DAILY_MORNING, now = now, zone = ny) }
+    check(rules.countRunsSince.size == 1 && rules.countRunsSince[0] == midnightNy, "runTrigger propaga now+zone a runRule (seam c.665)")
 
     rules.countRunsSince.clear()
     runBlocking { engine.runRule(rule, now = now) }

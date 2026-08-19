@@ -33,9 +33,10 @@ class AutomationEngine(
     suspend fun runTrigger(
         trigger: AutomationTrigger,
         chainDepth: Int = 0,
+        now: Long = System.currentTimeMillis(),
         zone: ZoneId = ZoneId.systemDefault()
     ): List<AutomationRunOutcome> =
-        rules.enabledFor(trigger).map { runRule(it, chainDepth = chainDepth, zone = zone) }
+        rules.enabledFor(trigger).map { runRule(it, chainDepth = chainDepth, now = now, zone = zone) }
 
     suspend fun runRule(
         rule: AutomationRuleEntity,
