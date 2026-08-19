@@ -15408,3 +15408,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos**: solo AI_AUTONOMY/{CURRENT_STATE,RUN_LOG}.md (docs-only).
 - **Próxima prioridad**: re-fetch inmediato pre-decisión; formas clase-verbos restantes (confirmar/imprimir/reservar/cambiar) solo si sonda confirma NULL; alternativa clusters C/E assistant.
 - **Estado**: STALE_RUN. NO VERIFICADO Android/gradle/lint/UI/Room (sin SDK).
+
+---
+
+## RUN c.700 — 2026-08-19 (UTC)
+
+- **HEAD inicial**: `5bb7927` (c.698 docs; clone→checkout→`pull --ff-only` limpio, sin divergencia).
+- **Selección**: P1 clase-verbos forma 5/8 — piso TASK "confirmar <objeto>" se DESCARTABA (analyze→NULL). Kind: TASK (acción de gestión), no MEETING/REMINDER.
+- **Cambios**: `ContextIntentEngine.kt` (+1 piso `confirmar`; +1 plantilla título "confirmar X"→"Confirmar X"); test `ContextIntentEngineConfirmarFloorTest.kt` (+11); sonda `tools/probe/CommonVerbDiscoveryProbe.kt` (+4 controles, aditivo).
+- **Tests**: RED exacto 6 failures (de 11) → suite **4086 PASS** (4075+11), 0 failures; smoke 25 OK; automation 9 OK; sonda POST: captura TASK, controles NULL, 3 formas restantes NULL.
+- **Commits**: pendiente (feat + docs).
+- **HEAD final**: pendiente.
+- **Próxima prioridad**: clústeres P2 asistente (C/E) o forma 6/8 (imprimir/reservar/cambiar).
+- **NO VERIFICADO**: Android/gradle/lint/UI/Room (sin SDK).
