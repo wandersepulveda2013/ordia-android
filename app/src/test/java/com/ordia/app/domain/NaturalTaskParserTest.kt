@@ -4876,6 +4876,46 @@ class NaturalTaskParserTest {
         assertEquals("enviar a la 1 invitaciones", result.title)
     }
 
+    // --- c.677: ordinales posicionales con dígito ("1ª/2º") no son citas a esa hora ---
+    // "clasificar a la 1ª posición" casaba con "a la 1" → 01:00 falso y título mutilado
+    // ('clasificar ª posición'): el indicador ordinal º/ª no es carácter de palabra en
+    // Java regex, así que el `\b` final SÍ existía tras el dígito.
+
+    @Test fun aLaDigitOrdinalPositionStaysUnresolved() {
+        listOf("clasificar a la 1ª posición", "subirlo a la 1º posición").forEach { input ->
+            val result = NaturalTaskParser.parse(input, now, zone)
+            assertNull("'$input' es ordinal posicional, no cita a la 1:00", result.dueAt)
+            assertEquals(input, result.title)
+        }
+    }
+
+    @Test fun aLasDigitOrdinalPositionStaysUnresolved() {
+        listOf("a las 3ª posición", "mover a las 2º fila").forEach { input ->
+            val result = NaturalTaskParser.parse(input, now, zone)
+            assertNull("'$input' es ordinal posicional, no cita a esa hora", result.dueAt)
+            assertEquals(input, result.title)
+        }
+    }
+
+    @Test fun aLaUnaPosicionEscritaStaysUnresolved() {
+        // Simétrico al dígito: "a la una posición" (posición escrita) tampoco es cita.
+        val result = NaturalTaskParser.parse("a la una posición", now, zone)
+        assertNull(result.dueAt)
+        assertEquals("a la una posición", result.title)
+    }
+
+    @Test fun aLaDigitOrdinalIndicatorDoesNotBlockLegitForms() {
+        // Regresión del guard: las formas legítimas de "a la 1"/"a las N" siguen resolviendo.
+        listOf(
+            "cena a la 1" to LocalTime.of(1, 0),
+            "a las 3" to LocalTime.of(3, 0),
+            "cena a la 1:30" to LocalTime.of(1, 30)
+        ).forEach { (input, time) ->
+            val result = NaturalTaskParser.parse(input, now, zone)
+            assertEquals(time, DateRules.toLocalTime(result.dueAt!!, zone))
+        }
+    }
+
     // --- Regresión BUG: "de la mañana"/"por la mañana" como marcador de hora NO
     //     debe interpretarse como la fecha "mañana" (antes "Reunión a las 9 de la
     //     mañana" se programaba para MAÑANA en vez de HOY → reunión perdida el mismo día). ---

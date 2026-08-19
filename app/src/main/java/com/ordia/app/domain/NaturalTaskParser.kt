@@ -1571,7 +1571,12 @@ object NaturalTaskParser {
         // "reunión a las 3" sí resuelve a las 03:00: asimetría plural/singular). Sólo el
         // dígito 0?1 es válido en singular ("a la 1"); cualquier otra hora exige el
         // plural ("a las N") — el `\b` final impide casar "a la 12" con hora=1.
-        Regex("""(?i)\ba\s+la\s+(una|0?1)(?:(?::|h|[.,])([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
+        // c.677 — Guard anti-ordinal: "clasificar a la 1ª posición" NO es una cita a
+        // la 01:00. El indicador ordinal º/ª no es carácter de palabra en Java regex,
+        // así que el `\b` final SÍ existía tras el dígito y la hora casaba con título
+        // mutilado ('clasificar ª posición'). El lookahead rechaza el indicador ordinal
+        // tras el dígito y, para la forma escrita, "una posición" (simétrico).
+        Regex("""(?i)\ba\s+la\s+(una|0?1)(?![ºª]|\s+posici[oó]n\b)(?:(?::|h|[.,])([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
         // Sufijo opcional "(horas?|hs|h)" tras la hora para consumir "a las 9 horas"/
         // "a las 9h" completo: antes "horas" quedaba como residuo en el titulo y, peor,
         // "9 horas" era robado como duracion (540 min falsos). Es NO capturante (no
@@ -1594,7 +1599,10 @@ object NaturalTaskParser {
         // hora más común en español). Sin ella, el `\b` final no casa (entre "5" y "h"
         // no hay límite de palabra) → dueAt perdido + "a las 15h" como residuo. El `\b`
         // tras "h" deja intacta la "h" de "hola"/"hello". Simétrico al reloj "HH:MMh".
-        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?:(?::|h|[.,])([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
+        // c.677 — Mismo guard anti-ordinal que "a la 1": "a las 3ª posición" no es una
+        // cita a las 03:00 (el `\b` final existía tras el dígito porque º/ª no es
+        // carácter de palabra en Java regex) y mutilaba el título ('ª posición').
+        Regex("""(?i)\ba\s+las\s+([01]?\d|2[0-4]|$WRITTEN_HOUR_ALT)(?![ºª])(?:(?::|h|[.,])([0-5]\d))?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?\s*(a\.?\s*m\.?|p\.?\s*m\.?|de\s+la\s+ma[nñ]ana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|del\s+mediod[ií]a)?(?:\s*(?:horas?|hs|h))?(?:\s+($CLOCK_FRACTION_Y|$CLOCK_FRACTION_MENOS))?$EN_PUNTO_SUFFIX$APPROX_TIME_SUFFIX\b"""),
         // Hora de reloj autónoma "HH:MM [h/hs/horas] [am/pm]" en AMBOS órdenes. El sufijo
         // de unidad "h/hs/horas" puede ir ANTES ("3:30h pm") o DESPUÉS ("3:30 pm h") del
         // meridiem: se permite en las dos posiciones (no capturante) para absorberlo

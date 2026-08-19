@@ -1,3 +1,14 @@
+## Ciclo c.677 — 2026-08-19 (UTC) — fix(parser): ordinales posicionales con dígito ("a la 1ª posición", "a las 3ª posición") ya no son citas falsas a esa hora ni mutilan el título. +4 tests TDD.
+
+- **Rama**: `openhands/autonomous-ordia`. HEAD inicial `571cca7` (c.676 propio, push OK `a2a1776→571cca7`). `git fetch` sin avances remotos → NO STALE_RUN. Entorno JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21); sin Android SDK. Auth git `github_token`.
+- **Problema (P2 captura/evitar falsas citas/título limpio, follow-up registrado c.664 y re-autorizado c.675/c.676 como "evidencia aún no demostrada")**: sonda nueva `tools/probe/OrdinalPosicionProbe.kt` DEMUESTRA el defecto: "clasificar a la 1ª posición" → cita FALSA 01:00 con título mutilado ('clasificar ª posición'); "a las 3ª posición" → 03:00 falso; "mover a las 2º fila" → 02:00 falso; "a la una posición" → 01:00 falso.
+- **Causa raíz**: el indicador ordinal º/ª NO es carácter de palabra en Java regex, así que el `\b` final de los patrones "a la 1"/"a las N" SÍ existía tras el dígito y la hora casaba.
+- **Solución (mínima, determinista)**: lookahead `(?![ºª]|\s+posici[oó]n\b)` tras `(una|0?1)` en "a la 1" y `(?![ºª])` tras la hora del plural "a las N". Legítimas ("cena a la 1", "a las 3", "cena a la 1:30", "a la una", "a la 1:30 pm") intactas.
+- **Tests**: +4 TDD RED→GREEN (`aLaDigitOrdinalPositionStaysUnresolved`, `aLasDigitOrdinalPositionStaysUnresolved`, `aLaUnaPosicionEscritaStaysUnresolved`, `aLaDigitOrdinalIndicatorDoesNotBlockLegitForms`). RED pre-fix: 3 fallos exactos sobre 3872. `bash tools/run_domain_tests.sh` → **3872 PASS**, 0 failures; smoke 25 OK; automation 9 OK. **NO VERIFICADO** Android/gradle/lint/compose/UI/Room (sin SDK).
+- **Archivos**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt` (+4), `tools/probe/OrdinalPosicionProbe.kt` (sonda nueva), AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md.
+- **Próxima prioridad**: revisión de producto / nuevas sondas; cualquier P0/P1 emergente. Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED.
+
 ## Ciclo c.676 — 2026-08-19 (UTC) — feat(parser): plazo mensual idiomático "para <mes>" ancla fin de mes (roll anual si ya pasó; año explícito soportado); "hasta <mes>" DECLINADO (forma de rango). +3 tests TDD.
 
 - **Rama**: `openhands/autonomous-ordia`. HEAD inicial `a2a1776` (c.675 propio). `git fetch`/`git pull --ff-only` sin avances → NO STALE_RUN. Entorno JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21); sin Android SDK. Auth git `github_token` (remote reconfigurado al inicio; el run previo dejó la URL sin token).
