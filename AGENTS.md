@@ -113,5 +113,9 @@ es reproducible con kotlinc + JUnit4 + stubs:
   `tools/domain-smoke/RoomStubs.kt` + `PreferenceStubs.kt`, `Entities.kt`, todo el dominio
   (`app/src/main/java/com/ordia/app/domain/*.kt`) y todos los tests (`app/src/test/.../domain/*.kt`)
   con kotlinc (-cp las jars anteriores) y los ejecuta con `JUnitCore` → 147 tests (25 clases).
+- `bash tools/run_automation_engine_checks.sh` → smoke de `AutomationEngine` (9 aserciones)
+  con fakes concretos mismos-nombres en `tools/automation-engine-smoke/` (fuera de
+  `app/src/test` para no colisionar con las clases reales bajo gradle). Verifica el
+  seam de `zone` (runTrigger/runRule → guard diario → AutomationActionPlanner) en JVM pura.
 - LIMITACIÓN: tests de `backup`, `context`, `repositories`, `ime`, UI y DAOs requieren
   DAOs/RoomDatabase/Context (Android). No son ejecutables en JVM pura; marcar NO VERIFICADO.

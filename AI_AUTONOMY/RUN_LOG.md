@@ -14962,8 +14962,8 @@ a un permiso persistente frágil y silencioso ante fallos.
 
 ## c.662 (2026-08-19 UTC) — feat(automation): seam `zone` en AutomationEngine — VERIFIED
 - HEAD inicial: 02d53311 (remoto, sin avances). HEAD final: 8405a35b (push OK a origin/openhands/autonomous-ordia).
-- Cambios: AutomationEngine.kt (+2 params `zone` en runTrigger/runRule, dayStart por zone, planificador recibe zone); BACKLOG (3 filas cerradas: automation FIXED, guardianInsight CERRADO sin-cambio, nextBestTask-default REJECTED con rationale); DECISIONS +1 fila; CURRENT_STATE +1 ciclo.
+- Cambios: AutomationEngine.kt (+2 params `zone` en runTrigger/runRule, dayStart por zone, planificador recibe zone); BACKLOG (3 filas cerradas: automation FIXED, guardianInsight CERRADO sin-cambio, nextBestTask-default REJECTED con rationale); DECISIONS +1 fila; CURRENT_STATE +1 ciclo; tools/run_automation_engine_checks.sh + tools/automation-engine-smoke/* (smoke JVM persistente del engine, 9 aserciones); AGENTS.md §6 +1 viñeta.
 - Bugs: 1 P1 (silenciador de `zone` en AutomationEngine → límite diario/dayStart/planificador en zona de dispositivo). Features: seam de inyección de zona para pruebas/pref-futuras. Hallazgos: no existe zona de usuario configurada; la política de defaults queda documentada.
-- Tests: probe JVM 9 aserciones (AutomationEngine compilado por primera vez con fakes); suite 3796 PASS; smoke 25 OK. NO VERIFICADO Android/gradle/UI/Room.
-- Commits: feat(automation) seam zone + docs (mismo push).
+- Tests: smoke persistente del engine 9 aserciones PASS (AutomationEngine compilado en JVM por primera vez con fakes); suite 3796 PASS; smoke dominio 25 OK. NO VERIFICADO Android/gradle/UI/Room.
+- Commits: 8405a35b feat(automation) seam zone; 92ad9b90 docs corrección hash; + commit del smoke persistente (este push).
 - Próxima prioridad: workers/backup/restore (P0 audit estático) o nueva revisión de producto; vestigio P2 sondeado y cerrado.
