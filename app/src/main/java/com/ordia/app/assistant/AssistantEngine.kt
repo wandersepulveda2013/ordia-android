@@ -222,6 +222,36 @@ object AssistantEngine {
                 }
             }
             isAgendaQuery(query) -> agendaAnswer(query, active, overdueCommitments, now, zone)
+            // Cluster sonda assistant c.707: "tengo algo pronto" — el usuario
+            // pregunta por lo PRÓXIMO agendado sin alcance de fecha concreto.
+            // Caía al menú genérico pese a que la respuesta ya existe en los
+            // datos (la próxima cita/tarea por su marca futura más cercana:
+            // hueco `startAt` o `dueAt`, lo que llegue antes). La agenda va
+            // ANTES en el despacho, así "tengo algo pronto hoy/el viernes"
+            // (alcance explícito) sigue resolviéndose como agenda. Lo vencido
+            // no es "próximo" (lo cubren las ramas de recuperación) y la
+            // captura sin fecha tampoco (no se puede ordenar honestamente).
+            // Vacío honesto (NUNCA menú); vacío + promesa vencida →
+            // recuperación (paridad familia lie-by-omission c.357/c.416/c.680).
+            // Determinista y local; cero random/IA fingida/pantalla nueva.
+            isUpcomingQuery(query) -> {
+                val upcoming = active
+                    .mapNotNull { t -> upcomingMarker(t, now)?.let { m -> t to m } }
+                    .sortedBy { it.second }
+                    .take(3)
+                if (upcoming.isEmpty()) {
+                    if (overdueCommitments.isNotEmpty()) return overdueCommitmentAnswer(overdueCommitments)
+                    AssistantAnswer("No tienes nada agendado próximamente.")
+                } else {
+                    val parts = upcoming.joinToString(" · ") { (t, marker) ->
+                        "«${t.title}» ${upcomingWhenLabel(marker, now, zone)}"
+                    }
+                    AssistantAnswer(
+                        "Lo más próximo: $parts." + overdueCommitmentTail(overdueCommitments),
+                        relatedTaskIds = upcoming.map { it.first.id }
+                    )
+                }
+            }
             "que olvide" in query || "olvidado" in query || "atrasad" in query || "vencid" in query -> {
                 // Partición honesta: "vencid" pregunta por vencidas (dueAt pasado);
                 // "atrasad" es el sinónimo cotidiano de "overdue" en español — la
@@ -650,6 +680,43 @@ object AssistantEngine {
      * otras ramas; el desempate ("urgente" preferente) ocurre en la rama.
      */
     private fun isPriorityQuery(query: String): Boolean = "urgente" in query || "importante" in query
+
+    /**
+     * Consulta de "lo próximo" sin alcance de fecha ("tengo algo pronto",
+     * "¿qué tengo pronto?", "¿hay algo pronto?"). Token sin acento tras
+     * `foldForSearch`. Va después de la agenda en el despacho, así las formas
+     * con alcance explícito ("tengo algo pronto hoy") siguen resolviéndose
+     * como agenda; no colisiona con entity-lookup ("cuándo/dónde/a qué hora")
+     * ni con prioridad ("urgente"/"importante"), evaluadas por sus propios
+     * marcadores.
+     */
+    private fun isUpcomingQuery(query: String): Boolean = "pronto" in query
+
+    /**
+     * Marca temporal futura más cercana de una tarea: su hueco (`startAt`) si
+     * aún no llega; si no, su fecha límite (`dueAt`). Las marcas pasadas no son
+     * "próximas" (lo vencido/olvidado lo cubren las ramas de recuperación) y
+     * una tarea sin marca alguna no se puede ordenar honestamente → null.
+     */
+    private fun upcomingMarker(task: TaskEntity, now: Long): Long? =
+        listOfNotNull(task.startAt, task.dueAt).filter { it > now }.minOrNull()
+
+    /**
+     * Etiqueta de cuándo cae una marca próxima: "hoy"/"mañana" relativas a la
+     * zona del usuario, o la fecha formateada si cae más lejos. Sufijo de hora
+     * sólo si la marca tiene hora real (medianoche = fecha sin hora, igual que
+     * en entityLookupAnswer: no se finge una hora que no existe).
+     */
+    private fun upcomingWhenLabel(marker: Long, now: Long, zone: ZoneId): String {
+        val date = Instant.ofEpochMilli(marker).atZone(zone).toLocalDate()
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        val day = when (date) {
+            today -> "hoy"
+            today.plusDays(1) -> "mañana"
+            else -> "el ${DateRules.formatDate(marker)}"
+        }
+        return if (isMidnight(marker, zone)) day else "$day a las ${DateRules.formatTime(marker)}"
+    }
 
     /**
      * Guarda de sobrecarga emocional: "abrumado/abrumada", "agobiado/agobiada"

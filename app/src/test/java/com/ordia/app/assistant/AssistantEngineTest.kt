@@ -4216,4 +4216,82 @@ class AssistantEngineTest {
             honolulu.text, tokio.text)
     }
 
+    // --- c.707: "tengo algo pronto" (último cluster de la sonda assistant) — el
+    // usuario pregunta por lo PRÓXIMO agendado sin alcance de fecha concreto;
+    // caía al menú genérico pese a que la respuesta (la próxima cita/tarea) ya
+    // existe en los datos. Vacío honesto, NUNCA menú; vacío + promesa vencida →
+    // recuperación (paridad familia lie-by-omission c.357/c.416/c.680).
+    @Test fun upcoming_prontoListsNextScheduledNotMenu() {
+        val now = Instant.parse("2026-08-19T12:00:00Z").toEpochMilli()
+        val zone = ZoneId.of("UTC")
+        val answer = AssistantEngine.answer(
+            "tengo algo pronto",
+            listOf(
+                TaskEntity(id = 1, title = "Dentista", dueAt = now + 2 * 3_600_000),
+                TaskEntity(id = 2, title = "Informe", dueAt = now + 26 * 3_600_000),
+                TaskEntity(id = 3, title = "Sin fecha")
+            ),
+            emptyList(), emptyList(), now, zone
+        )
+        assertEquals(listOf(1L, 2L), answer.relatedTaskIds)
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("nombra lo más próximo primero: ${answer.text}",
+            answer.text.indexOf("Dentista") in 0 until answer.text.indexOf("Informe"))
+        assertTrue("usa etiquetas relativas honestas: ${answer.text}",
+            answer.text.contains("hoy") && answer.text.contains("mañana"))
+        assertTrue("excluye la sin fecha: ${answer.text}", !answer.text.contains("Sin fecha"))
+    }
+
+    @Test fun upcoming_prontoExcludesOverdueAndUsesStartAt() {
+        val now = Instant.parse("2026-08-19T12:00:00Z").toEpochMilli()
+        val zone = ZoneId.of("UTC")
+        val answer = AssistantEngine.answer(
+            "tengo algo pronto",
+            listOf(
+                TaskEntity(id = 1, title = "Pago vencido", dueAt = now - 3_600_000),
+                TaskEntity(id = 2, title = "Clase de yoga", startAt = now + 4 * 3_600_000),
+                TaskEntity(id = 3, title = "Vuelo", dueAt = now + 50 * 3_600_000)
+            ),
+            emptyList(), emptyList(), now, zone
+        )
+        assertEquals(listOf(2L, 3L), answer.relatedTaskIds)
+        assertTrue("no lista lo vencido como próximo: ${answer.text}", !answer.text.contains("Pago vencido"))
+        assertTrue("incluye hueco agendado sin dueAt: ${answer.text}", answer.text.contains("Clase de yoga"))
+    }
+
+    @Test fun upcoming_prontoHoyKeepsAgenda() {
+        // "tengo algo pronto hoy" tiene alcance de día explícito: sigue siendo
+        // agenda de hoy (evaluada antes), no la rama de "próximo".
+        val now = Instant.parse("2026-08-19T12:00:00Z").toEpochMilli()
+        val zone = ZoneId.of("UTC")
+        val answer = AssistantEngine.answer(
+            "tengo algo pronto hoy",
+            listOf(TaskEntity(id = 1, title = "Dentista", dueAt = now + 2 * 3_600_000)),
+            emptyList(), emptyList(), now, zone
+        )
+        assertTrue("rutea a agenda de hoy: ${answer.text}", answer.text.startsWith("Hoy:"))
+        assertTrue("no usa la rama de próximos: ${answer.text}", !answer.text.contains("Lo más próximo"))
+    }
+
+    @Test fun upcoming_emptyIsHonestNotGeneric() {
+        val answer = AssistantEngine.answer(
+            "tengo algo pronto",
+            emptyList(), emptyList(), emptyList()
+        )
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("vacío honesto: ${answer.text}", answer.text.contains("No tienes nada agendado próximamente."))
+    }
+
+    @Test fun upcoming_recoversOverdueCommitmentWhenEmpty() {
+        val now = 1_000_000_000_000L
+        val commitment = overdueCommitment(41, "envío el informe", now - 2 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "tengo algo pronto",
+            emptyList(), emptyList(), listOf(commitment), now
+        )
+        assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
+    }
+
+
 }
