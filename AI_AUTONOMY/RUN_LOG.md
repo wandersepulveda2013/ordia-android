@@ -15260,3 +15260,11 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos**: `ContextIntentEngine.kt` (3 puntos: wrapper + piso + título), `ContextIntentEngineAcuerdateReminderTest.kt` (+9), `InterrogativeReminderProbe.kt` (FORMA C), AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md.
 - **Próxima prioridad**: continuar auditoría P1 de formas cotidianas NULL en `ContextIntentEngine.analyze` (sondas de descubrimiento); P2 títulos context (residuo "pasado" en "pasado mañana", truncado a media palabra — ítem OPEN c.681); P0/P1 emergente. Re-fetch OBLIGATORIO.
 - **Estado**: VERIFIED. Ítem P1 "acuérdate de <infinitivo>" (descubierto c.688) cerrado.
+
+## STALE_RUN — 2026-08-19 (UTC) — run sin cambios propios: c.689 ya resuelto por run concurrente `67638ef`
+
+- **Rama/HEAD**: `openhands/autonomous-ordia`, HEAD inicial `faa9fcb` (c.688). Al trabajar el ítem P1 OPEN "acuérdate de <infinitivo>" (descubierto c.688) se detectó avance concurrente: `git fetch` mostró `67638ef feat(context): "acuérdate de <infinitivo>" → REMINDER (c.689)` ya en remoto, cubriendo EXACTAMENTE el mismo ítem (mismos 3 puntos: WRAPPER_PATTERN + piso + extractTitle, misma sonda FORMA C, e incluso tolerancia a la variante sin tilde `acu[ée]rdate`).
+- **Acción (anti-colisión)**: trabajo local duplicado DESCARTADO (checkout de los 5 archivos modificados + borrado del test propio no commiteado), `git pull --ff-only` hasta `67638ef`. NO force push, NO reset --hard, NO rebase, NO sobrescritura del trabajo del otro run.
+- **Verificación de integridad del HEAD remoto**: `bash tools/run_domain_tests.sh` → **3996 PASS**, 0 failures (confirma lo afirmado por el run concurrente: 3987 c.688 + 9 c.689).
+- **Aprendizaje operativo**: mi suite RED pre-descarte (6 failures exactos) y la solución local eran semánticamente idénticas al fix remoto → colisión benigna de dos runs sobre el mismo siguiente-ítem del BACKLOG. Los próximos runs deben re-hacer fetch OBLIGATORIO justo antes de elegir ítem, no sólo al inicio.
+- **Estado**: STALE_RUN (sin cambios de código propios; este único commit sólo registra el evento).
