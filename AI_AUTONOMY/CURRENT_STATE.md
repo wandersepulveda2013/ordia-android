@@ -1,3 +1,14 @@
+## Ciclo c.710 — 2026-08-19 (UTC) — feat(context): piso TASK "cambiar <objeto>" (forma 8/8 clase-verbos — CIERRE DE CLASE; doctrina anti-overreach una forma por ciclo)
+
+- **HEAD inicial** `9923b0f` (c.709 docs, pull --ff-only limpio, NO STALE_RUN). **HEAD final** tras este log (feat + docs).
+- **Selección (P1, ítem OPEN compartido más antiguo — clase-verbos c.692, última forma OPEN)**: sonda PRE re-ejecutada: "cambiar las sábanas el domingo" → NULL (olvido silencioso de una gestión con fecha explícita).
+- **Causa raíz**: ninguna rama de `hasStrongTaskImperative` cubría "cambiar".
+- **Solución**: piso `cambiar` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla "cambiar X"→"Cambiar X" (patrón c.691…c.709). Kind decidido: TASK (en deliberación contra HOUSEHOLD — "cambiar" es genérico; posición libre capturaría "cambiar de opinión/tema" como hogar = overreach). Controles NULL: negada, "quizá…", sustantivo "cambio", verbo suelto; envolvente c.613 gobierna. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +11 tests `ContextIntentEngineCambiarFloorTest.kt`; RED exacto (6 failures) → GREEN **OK (4148 tests)** (4137 + 11), 0 failures; smoke 25 OK; automation 9 OK; sonda POST: 'Cambiar las sábanas' dueAt=true + 4 controles NULL aditivos. CLASE-VERBOS CERRADA (8/8).
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla), `test/.../ContextIntentEngineCambiarFloorTest.kt` (NUEVO +11), `tools/probe/CommonVerbDiscoveryProbe.kt` (+4 controles), AI_AUTONOMY ×3.
+- **Próxima prioridad**: clase-verbos cerrada; elegir siguiente ítem P0/P1 (audit nueva sonda o backlog P1 restante). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
 ## Ciclo c.709 — 2026-08-19 (UTC) — feat(context): piso TASK "reservar <objeto>" (forma 7/8 clase-verbos; doctrina anti-overreach una forma por ciclo)
 
 - **HEAD inicial** `ca62b31` (c.708 docs, pull --ff-only limpio). **HEAD final** tras este log (feat + docs).

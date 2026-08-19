@@ -731,7 +731,17 @@ object ContextIntentEngine {
             // ancla/guard que c.691…c.708. Kind TASK: "reservar" gobierna
             // el objeto (restaurante/mesa/hotel/vuelo); el evento/cita en
             // sí se captura por su propia vía.
-            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reservar\s+\w""").containsMatchIn(lower)
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reservar\s+\w""").containsMatchIn(lower) ||
+            // c.710: "cambiar <objeto>" ("cambiar las sábanas el
+            // domingo"), forma 8/8 (ÚLTIMA OPEN) de la clase de verbos
+            // cotidianos (sonda `tools/probe/CommonVerbDiscoveryProbe.kt`,
+            // c.692); mismo ancla/guard que c.691…c.709. Kind decidido:
+            // TASK, en deliberación contra HOUSEHOLD — "cambiar" es un
+            // verbo genérico y un piso de posición libre capturaría
+            // "cambiar de opinión/tema" como hogar (overreach) —
+            // gobierna el objeto (sábanas/toallas/cerradura/pilas) como
+            // acción de gestión, igual que las 7 formas previas.
+            Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cambiar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1360,6 +1370,12 @@ object ContextIntentEngine {
                 // temporal despojado).
                 val matchReservar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reservar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchReservar != null) return "Reservar ${matchReservar.groupValues[1]}"
+
+                // "cambiar X" → "Cambiar X" (c.710): mismo criterio
+                // que c.691…c.709 (verbo preservado, acuse/prefijo
+                // temporal despojado).
+                val matchCambiar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cambiar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchCambiar != null) return "Cambiar ${matchCambiar.groupValues[1]}"
 
                 null
             }

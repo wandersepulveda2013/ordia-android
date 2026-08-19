@@ -48,7 +48,12 @@ fun main() {
         "no reservar el hotel",
         "quizá reservar el restaurante mañana",
         "la reserva del restaurante es mañana",
-        "reservar"
+        "reservar",
+        // Controles c.710 (piso "cambiar"): misma doctrina.
+        "no cambiar las sábanas",
+        "quizá cambiar las sábanas mañana",
+        "el cambio de aceite es mañana",
+        "cambiar"
     )
     for (c in cases) {
         val intent = ContextIntentEngine.analyze(

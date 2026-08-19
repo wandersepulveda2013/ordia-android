@@ -1,11 +1,23 @@
+## Ciclo c.710 — 2026-08-19 (UTC) — feat(context): piso TASK "cambiar <objeto>" (forma 8/8 clase-verbos — CIERRE; doctrina anti-overreach)
+
+- **HEAD inicial**: `9923b0f` (c.709 docs, fetch+pull --ff-only limpio, sin divergencia, NO STALE_RUN; base integrada con `ab5b3a2` registro-duplicados remoto).
+- **Problema seleccionado**: "cambiar <objeto>" → analyze NULL (P1 olvido silencioso en captura pasiva). Sonda `tools/probe/CommonVerbDiscoveryProbe.kt` PRE re-ejecutada: "cambiar las sábanas el domingo" → NULL. Ítem OPEN compartido más antiguo (clase-verbos c.692 — última forma OPEN).
+- **Causa raíz**: ninguna rama de `hasStrongTaskImperative` cubría "cambiar".
+- **Solución**: piso `cambiar` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`) + plantilla "cambiar X"→"Cambiar X" (patrón c.691…c.709). Kind decidido TASK (deliberado contra HOUSEHOLD — verbo genérico; posición libre = overreach). Controles NULL: negada/quizá/sustantivo "cambio"/suelto; envolvente c.613 gobierna. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +11 tests `ContextIntentEngineCambiarFloorTest.kt` (NUEVO); RED exacto (6 failures = las capturas) → GREEN **OK (4148 tests)** (4137 + 11), 0 failures; smoke 25 OK; automation 9 OK; sonda POST: 'Cambiar las sábanas' dueAt=true; 4 controles aditivos NULL; CLASE-VERBOS CERRADA (8/8).
+- **Archivos**: `context/ContextIntentEngine.kt`, `test/.../ContextIntentEngineCambiarFloorTest.kt`, `tools/probe/CommonVerbDiscoveryProbe.kt`, AI_AUTONOMY ×3.
+- **Commits**: feat + docs este log.
+- **HEAD final**: tras docs.
+- **Próxima prioridad**: clase-verbos cerrada; elegir siguiente P0/P1 (nueva sonda o auditoría). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
 ## Registro de duplicados — 2026-08-19 (UTC) — c.707 y c.709 resueltos por sesión concurrente (anti-colisión, sin push forzado)
 
 - **Contexto**: el repositorio es compartido; otra sesión avanzó ciclos en paralelo. Doctrina anti-colisión: duplicado detectado → registrar, descartar trabajo local duplicado de forma segura, ff-pull; NUNCA force push.
 - **c.707 (duplicado previo)**: implementación local (AssistantEngine "tengo algo pronto", +5 tests, suite 4117 PASS, smoke 25, sonda 0/49) commiteada localmente como `729e246`, pero el remoto ya contenía la resolución equivalente (`69972ed` feat + `f1c98ed` docs; sonda 0/49 CERRADA). Push falló; se resolvió con rebase no destructivo sobre `ca62b31` y el commit local `729e246` quedó huérfano. Registrado aquí para memoria permanente (pendiente desde la sesión previa).
-- **c.709 (duplicado de este run)**: HEAD inicial `ca62b31`. Este run ejecutó c.709 completo de forma independiente: sonda PRE (`reservar` → NULL), RED exacto 6 failures en `ContextIntentEngineReservarFloorTest` (+11 tests), fix (piso `reservar` + plantilla "Reservar X", kind TASK), GREEN local **4137 tests**, smoke 25 OK, automation 9 OK, sonda POST OK ("Reservar el restaurante" dueAt=true, controles NULL). **Antes de push, fetch reveló que el remoto ya contenía c.709 idéntico** (`556bf0d` feat + `9923b0f` docs; suite 4137, mismos 3 archivos). Descartado el trabajo local duplicado sin operaciones destructivas (checkout de tracked + borrado del test nuevo no versionado; jamás `reset --hard`); `git pull --ff-only` a `9923b0f`.
-- **Pruebas**: suite JVM 4137 OK (de la implementación remota, validada además por este run pre-colisión), smoke 25, automation 9, sonda clase-verbos POST OK.
-- **HEAD final**: `9923b0f` (sincronizado, sin push nuevo).
-- **Próxima prioridad**: forma 8/8 "cambiar" (prob. HOUSEHOLD — deliberar; última OPEN de clase-verbos). Re-fetch OBLIGATORIO antes de cualquier implementación.
+- **c.709 (duplicado de este run)**: HEAD inicial `ca62b31`. Ejecutado c.709 completo de forma independiente: sonda PRE (`reservar` → NULL), RED exacto 6 failures en `ContextIntentEngineReservarFloorTest` (+11 tests), fix (piso `reservar` + plantilla "Reservar X", kind TASK), GREEN local **4137 tests**, smoke 25 OK, automation 9 OK, sonda POST OK ("Reservar el restaurante" dueAt=true, controles NULL). **Antes de push, fetch reveló que el remoto ya contenía c.709 idéntico** (`556bf0d` feat + `9923b0f` docs; suite 4137, mismos 3 archivos). Descartado el trabajo local duplicado sin operaciones destructivas (checkout de tracked + borrado del test nuevo no versionado; jamás `reset --hard`); `git pull --ff-only` a `9923b0f`.
+- **Pruebas**: suite JVM 4137 OK (de la implementación remota, validada además por ese run pre-colisión), smoke 25, automation 9, sonda clase-verbos POST OK.
+- **HEAD**: `9923b0f` (sincronizado, sin push nuevo).
 - **Estado**: DUPLICATE_RESOLVED (STALE_RUN por colisión benigna; cero cambios destructivos, cero push forzado).
 
 ## Ciclo c.709 — 2026-08-19 (UTC) — feat(context): piso TASK "reservar <objeto>" (forma 7/8 clase-verbos, ítem OPEN c.692; doctrina anti-overreach)
