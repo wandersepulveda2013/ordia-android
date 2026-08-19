@@ -49,4 +49,19 @@ fun main() {
         "no hacer ejercicio por la mañana",
         "ejercicio de matemáticas por la mañana"
     ).forEach(::probe)
+
+    // c.689: forma imperativa reflexiva "acuérdate de <infinitivo>" →
+    // REMINDER (antes NULL). Controles: evocación/sustantivo/negación NULL.
+    println("=== FORMA C: imperativo recordatorio 'acuérdate de <infinitivo>' ===")
+    listOf(
+        "acuérdate de sacar al perro",
+        "acuerdate de comprar leche",
+        "acuérdate de llamar al banco mañana"
+    ).forEach(::probe)
+    println("=== FORMA C: controles ===")
+    listOf(
+        "acuérdate de cuando íbamos al parque",
+        "acuérdate de las llaves",
+        "no acuérdate de pagar"
+    ).forEach(::probe)
 }

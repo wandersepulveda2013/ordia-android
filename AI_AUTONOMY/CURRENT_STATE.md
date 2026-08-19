@@ -1,3 +1,10 @@
+## Ciclo c.689 — 2026-08-19 (UTC) — feat(context): "acuérdate de <infinitivo>" → REMINDER; P1 descubierto en c.688 CERRADO + TDD
+
+- HEAD inicial `faa9fcb` → HEAD final pendiente de commit. Re-fetch sin avance concurrente; push normal fast-forward.
+- Fix: "acuérdate de <infinitivo>" (imperativo reflexivo 2ª pers., la forma hablada más cotidiana de auto-recordatorio) ya no se descarta: WRAPPER_PATTERN + piso REMINDER + plantilla de título (3 puntos en `ContextIntentEngine.kt`). Acepta forma sin tilde; exige infinitivo (evocación/sustantivo no capturan); `(?<!no )` bloquea la negada.
+- TDD: RED exacto 4 failures → GREEN. **3996 PASS** (3987 + 9 nuevos), 0 failures; smoke 25 OK; automation 9 OK. Sonda FORMA C: 3 capturas REMINDER con títulos limpios y dueAt con "mañana" + 3 controles NULL. **NO VERIFICADO** Android/gradle/UI/Room (sin SDK).
+- BACKLOG: ítem P1 "acuérdate de <infinitivo>" (descubierto c.688) → VERIFIED. Queda OPEN: P2 títulos context (residuo "pasado", truncado a media palabra). Auditoría P1 de formas NULL continúa en c.690.
+
 ## Ciclo c.688 — 2026-08-19 (UTC) — feat(context): "hacer ejercicio (+ franja blanda)" → EXERCISE; ítem c.681 CERRADO (7/7) + TDD
 
 - **Rama/HEAD**: `openhands/autonomous-ordia`, HEAD inicial `f8fc114` (c.687 propio). Fetch pre-trabajo sin avances → NO STALE_RUN. JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21), sin Android SDK.

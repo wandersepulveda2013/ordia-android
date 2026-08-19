@@ -218,8 +218,12 @@ object ContextIntentEngine {
     // es el auto-recordatorio cotidiano por excelencia. El mismo lookahead
     // de infinitivo la separa de la evocación del pasado ("te acuerdas de
     // cuando íbamos…", "¿te acuerdas de la película?"), que es conversación.
+    // c.689 añade "acuérdate de": la envolvente IMPERATIVA reflexiva de
+    // recordatorio (2ª persona, enclítico -te) — hermano de "acordarme"
+    // (c.619, 1ª persona) y de la interrogativa c.687. Sin ella, la forma
+    // más cotidiana de auto-recordatorio se DESCARTABA → NULL (P1).
     private val WRAPPER_PATTERN =
-        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme|recuerda(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )cancelar|(?<!no )anular|(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )te acuerdas de(?=\s+\w*(?:ar|er|ir)\b))\b""")
+        Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme|recuerda(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )cancelar|(?<!no )anular|(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )te acuerdas de(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )acu[ée]rdate de(?=\s+\w*(?:ar|er|ir)\b))\b""")
 
     // Kinds protegidos por el guard de envolvente: pisos de posición libre
     // (c.652) + bonus-kinds APPOINTMENT/CALL (c.653). SHOPPING/PAYMENT no lo
@@ -674,7 +678,13 @@ object ContextIntentEngine {
             // evocación del pasado ("te acuerdas de cuando íbamos…",
             // "¿te acuerdas de la película?"); `(?<!no )` bloquea la negada
             // ("no te acuerdas de pagar…": conservador, no se captura).
-            Regex("""\b(?<!no )te acuerdas de(?=\s+\w*(?:ar|er|ir)\b)\s+\w""").containsMatchIn(lower)
+            Regex("""\b(?<!no )te acuerdas de(?=\s+\w*(?:ar|er|ir)\b)\s+\w""").containsMatchIn(lower) ||
+            // c.689: "acuérdate de <infinitivo>" es el imperativo reflexivo
+            // de 2ª persona (el auto-recordatorio hablado por excelencia).
+            // `[ée]` admite la forma sin tilde; el lookahead de infinitivo
+            // sólo admite recordatorio (la evocación y el sustantivo no
+            // capturan); `(?<!no )` bloquea la negada (conservador).
+            Regex("""\b(?<!no )acu[ée]rdate de(?=\s+\w*(?:ar|er|ir)\b)\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de compra inequívocos (c.626, c.651). "comprar <producto>".
@@ -1312,6 +1322,15 @@ object ContextIntentEngine {
                 val matchInterrogative = Regex("""te acuerdas de\s+(?=\w*(?:ar|er|ir)\b)(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchInterrogative != null) {
                     return capitalizeFirst(matchInterrogative.groupValues[1].trimEnd('?', ' '))
+                }
+
+                // "acuérdate de X" → "X" (c.689): la envolvente imperativa se
+                // despoja y el título nace del infinitivo (misma paridad que
+                // la interrogativa de arriba); `[ée]` tolera la forma sin
+                // tilde en el original indexado por NOTIFICATION.
+                val matchImperative = Regex("""acu[ée]rdate de\s+(?=\w*(?:ar|er|ir)\b)(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchImperative != null) {
+                    return capitalizeFirst(matchImperative.groupValues[1].trim())
                 }
 
                 null
