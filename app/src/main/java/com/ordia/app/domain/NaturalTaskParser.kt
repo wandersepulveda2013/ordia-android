@@ -2113,9 +2113,29 @@ object NaturalTaskParser {
      * documento", "ponme el libro"), por lo que solo cuentan como aviso con el
      * sustantivo vía lookahead. Sin él, el recordatorio nunca se programaba pese a
      * pedirse expresamente con fecha → olvido silencioso.
+     *
+     * c.678: el ENCUADRE REFLEXIVO de recordatorio —"que no se me olvide X",
+     * "que no se me pase X", "no dejes que se me olvide X"— es junto a
+     * "recuérdame X" la petición de aviso más cotidiana en español, y NO se
+     * reconocía: quedaba íntegro como residuo del título (título sucio desde la
+     * captura, P1) y el recordatorio nunca se programaba pese a pedirse
+     * expresamente (olvido). Comportamiento idéntico al imperativo: se borra el
+     * encuadre del título (el "que" inicial subordinador lo limpia el paso
+     * genérico, ver el fold del título) y, con fecha límite, se aplica el mismo
+     * offset de respaldo (30 min, u 0 si el encuadre era el único contenido).
+     * El "olvides?" existente se amplía del único reflexivo "se te" al conjunto
+     * "se me/te/le/les/nos/os" y también dentro de "no dejes que se me olvide".
+     * "pasen?" sólo se admite en forma reflexiva ("que no se me pase/pasen") —
+     * sin "se"+pronombre "pasar" es verbo de acción ("haz que pasen la lista").
+     * El pretérito "se me olvidó" (contenido: confiesa un olvido pasado) queda
+     * intacto: la forma "olvidó" no casa en "olvides?". El modismo literal
+     * "no vaya a ser que se me pase/olvide X" es inequívoco (avisar, nunca
+     * contenido) y también se borra del título; el subjuntivo suelto "que se
+     * me pase" SÍ es ambiguo ("espero que se me pase el dolor" = contenido)
+     * y NO se toca: sólo entra con el prefijo inequívoco "no vaya a ser que".
      */
     private val bareReminderVerbPattern =
-        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordarme|avisarme|notificarme|acordarme(?:\s+de\b)?|no\s+dejes\s+que\s+olvide|no\s+(?:se\s+te\s+|te\s+|me\s+|le\s+)?olvides?(?:\s+de\b)?(?:\s+que\b)?|acu[eé]rdate(?:\s+de\b)?|recuerda|(?:m[aá]ndame|env[ií]ame|p[oó]nme|dame)(?=\s+(?:un(?:a|os|as)?\s+)?(?:recordatorio|alerta|aviso|notificaci[oó]n)\b)|(?<!(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus|nuestros?|nuestras?|estes?|estas?|esos?|esas?|aquella?)\s)recordatorio)\b""")
+        Regex("""(?i)\b(?:recu[eé]rdame|av[ií]same|notif[ií]came|recordarme|avisarme|notificarme|acordarme(?:\s+de\b)?|no\s+dejes\s+que\s+(?:se\s+(?:me|te|le|les|nos|os)\s+)?olvide|no\s+(?:se\s+(?:te|me|le|les|nos|os)\s+|te\s+|me\s+|le\s+)?olvides?(?:\s+de\b)?(?:\s+que\b)?|no\s+se\s+(?:me|te|le|les|nos|os)\s+pasen?|no\s+vaya\s+a\s+ser\s+que\s+se\s+(?:me|te|le|les|nos|os)\s+(?:olvides?|pasen?)|acu[eé]rdate(?:\s+de\b)?|recuerda|(?:m[aá]ndame|env[ií]ame|p[oó]nme|dame)(?=\s+(?:un(?:a|os|as)?\s+)?(?:recordatorio|alerta|aviso|notificaci[oó]n)\b)|(?<!(?:el|la|los|las|un|una|unos|unas|mi|mis|tu|tus|su|sus|nuestros?|nuestras?|estes?|estas?|esos?|esas?|aquella?)\s)recordatorio)\b""")
     private const val BARE_REMINDER_DEFAULT_OFFSET_MINUTES = 30
     private val durationPatterns = listOf(
         Regex("""(?i)\((\d{1,3}(?:[.,]\d+)?)\s*(minutos?|min|horas?|hora)\)"""),
@@ -5446,10 +5466,18 @@ object NaturalTaskParser {
 
         // ¿El verbo de recordatorio era el ÚNICO contenido tras limpiar la agenda?
         // (sin recurrencia: las cadencias mantienen la hora como hora de cita).
+        // c.678: el "que" inicial que encabeza el encuadre ("recuérdame que",
+        // "que no se me olvide") es subordinador puro, no contenido: sin él la
+        // comprobación no veía el encuadre reflexivo como verb-only y aplicaba
+        // 30 min de nudge a una hora que el usuario dio como hora DEL AVISO
+        // (offset 0, simétrico a "recuérdame mañana"). `\b` evita recortar el
+        // prefijo "que" de contenido legítimo ("queda", "quédate").
         val reminderVerbIsOnlyContent = hasBareReminderVerb &&
             recurrence.frequency == RecurrenceFrequency.NONE &&
             bareReminderVerbPattern.replace(working, " ")
-                .replace(Regex("""\s+"""), " ").trim(' ', ',', '.', '-').isBlank()
+                .replace(Regex("""\s+"""), " ").trim(' ', ',', '.', '-')
+                .replace(Regex("""(?i)^que\b\s*"""), " ")
+                .trim(' ', ',', '.', '-').isBlank()
 
         val confidence = when {
             effectiveRelativeDueAt != null -> 1.0f

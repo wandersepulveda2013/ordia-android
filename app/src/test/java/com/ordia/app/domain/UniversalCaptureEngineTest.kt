@@ -126,4 +126,45 @@ class UniversalCaptureEngineTest {
         val r = UniversalCaptureEngine.interpret("Una idea suelta sin organizar")
         assertEquals(CaptureTarget.INBOX, r.target)
     }
+
+    // Encuadre reflexivo de recordatorio ("que no se me olvide X", "que no se
+    // me pase X"): la petición de aviso más cotidiana junto a "recuérdame X".
+    // Simétrico con NaturalTaskParser.bareReminderVerbPattern: la captura debe
+    // inferir REMINDER igual que con "recuérdame", no caer a INBOX/TASK genéricos.
+    @Test fun queNoSeMeOlvideInfiereRecordatorio() {
+        val r = UniversalCaptureEngine.interpret("que no se me olvide comprar leche")
+        assertEquals(CaptureTarget.REMINDER, r.target)
+    }
+
+    @Test fun queNoSeMePaseInfiereRecordatorio() {
+        val r = UniversalCaptureEngine.interpret("que no se me pase recoger el paquete")
+        assertEquals(CaptureTarget.REMINDER, r.target)
+    }
+
+    @Test fun noDejesQueSeMeOlvideInfiereRecordatorio() {
+        val r = UniversalCaptureEngine.interpret("no dejes que se me olvide pagar la luz")
+        assertEquals(CaptureTarget.REMINDER, r.target)
+    }
+
+    // c.678: el modismo literal "no vaya a ser que se me pase/olvide X" es
+    // inequívoco (avisar, nunca contenido) → REMINDER. El subjuntivo suelto
+    // "que se me pase" sin ese prefijo es ambiguo y NO infiere aviso.
+    @Test fun noVayaASerQueSeMePaseInfiereRecordatorio() {
+        val r = UniversalCaptureEngine.interpret("no vaya a ser que se me pase la cita")
+        assertEquals(CaptureTarget.REMINDER, r.target)
+    }
+
+    @Test fun esperoQueSeMePaseNoInfiereRecordatorio() {
+        val r = UniversalCaptureEngine.interpret("espero que se me pase el dolor")
+        assertTrue(r.target != CaptureTarget.REMINDER)
+    }
+
+    // Contra-regresión: el pretérito "se me olvidó" es contenido (olvido pasado
+    // confesado), NO petición de aviso. Infiera TASK por el verbo de acción
+    // "comprar", pero jamás REMINDER (no hay petición de recordatorio).
+    @Test fun seMeOlvidoPreteritoNoInfiereRecordatorio() {
+        val r = UniversalCaptureEngine.interpret("se me olvidó comprar leche")
+        assertEquals(CaptureTarget.TASK, r.target)
+        assertTrue(r.target != CaptureTarget.REMINDER)
+    }
 }

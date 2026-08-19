@@ -26,7 +26,13 @@ object UniversalCaptureEngine {
     // proyecto"). La captura nunca debe dañar datos del usuario.
     private val noteCommand = Regex("""(?i)^\s*(guardar\s+esto\s+como\s+nota|nota|idea)\b\s*[:\-]?\s*""")
     private val taskCommand = Regex("""(?i)^\s*(crear\s+)?(una\s+)?tarea\b\s*[:\-]?\s*""")
-    private val reminderSignal = Regex("""(?i)\b(recu[eé]rdame|recordatorio|av[ií]same|no\s+dejes\s+que\s+olvide)\b""")
+    // Encuadre reflexivo de recordatorio (c.678): "que no se me olvide X" /
+    // "que no se me pase X" / "no dejes que se me olvide X" son las peticiones
+    // de aviso más cotidianas junto a "recuérdame X". Simétrico con
+    // NaturalTaskParser.bareReminderVerbPattern (que también limpia el título
+    // y aplica el offset de respaldo con fecha). El pretérito "se me olvidó"
+    // (contenido: un olvido pasado confesado) NO casa y no infiere aviso.
+    private val reminderSignal = Regex("""(?i)\b(recu[eé]rdame|recordatorio|av[ií]same|no\s+dejes\s+que\s+(?:se\s+(?:me|te|le|les|nos|os)\s+)?olvide|no\s+se\s+(?:me|te|le|les|nos|os)\s+(?:olvides?|pasen?)|no\s+vaya\s+a\s+ser\s+que\s+se\s+(?:me|te|le|les|nos|os)\s+(?:olvides?|pasen?))\b""")
     // Verbos de acción cotidiana: sin fecha ni "tengo que/debo", una captura
     // como "hacer ejercicio" o "revisar contrato" es claramente una tarea, pero
     // antes caía a INBOX por no figurar aquí y exigía reclasificar a mano. Se
