@@ -71,7 +71,10 @@ fun AssistantScreen(
         val profile = if (state.preferences.learningEnabled) {
             LearningEngine.learn(state.tasks, clockNow)
         } else null
-        latest = AssistantEngine.answer(value, state.tasks, conversations, commitments, now = clockNow, profile = profile)
+        latest = AssistantEngine.answer(
+            value, state.tasks, conversations, commitments, now = clockNow,
+            profile = profile, focusSessions = state.focusSessions
+        )
         input = ""
     }
 

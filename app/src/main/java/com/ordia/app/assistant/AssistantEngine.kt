@@ -3,12 +3,14 @@ package com.ordia.app.assistant
 import com.ordia.app.data.local.CommitmentEntity
 import com.ordia.app.data.local.CommitmentReviewStatus
 import com.ordia.app.data.local.ConversationEntity
+import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
 import com.ordia.app.domain.CommitmentRules
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayLoad
+import com.ordia.app.domain.FocusRecap
 import com.ordia.app.domain.LearningProfile
 import com.ordia.app.domain.SummaryEngine
 import com.ordia.app.domain.TaskRules
@@ -42,7 +44,8 @@ object AssistantEngine {
         commitments: List<CommitmentEntity>,
         now: Long = System.currentTimeMillis(),
         zone: ZoneId = ZoneId.systemDefault(),
-        profile: LearningProfile? = null
+        profile: LearningProfile? = null,
+        focusSessions: List<FocusSessionEntity> = emptyList()
     ): AssistantAnswer {
         val clean = request.trim().take(2_000)
         val query = clean.foldForSearch()
@@ -576,6 +579,31 @@ object AssistantEngine {
                     )
                 }
             }
+            // Petición de tiempo invertido (cluster sonda assistant: "en qué
+            // gasto mi tiempo", "en qué estoy gastando tiempo", "en qué se me
+            // va el tiempo"). El usuario pregunta EN QUÉ invirtió su día;
+            // responder con el menú de capacidades le devuelve trabajo de
+            // decidir. Ordía YA registra sesiones de enfoque con minutos
+            // reales por tarea; se agregan las COMPLETADAS de hoy (fuente
+            // única: [FocusRecap.today], mismas reglas defensivas que
+            // GuardianEngine) y se nombran las 3 tareas con más minutos.
+            // Vacío: vacío honesto (NUNCA menú; paridad familia
+            // lie-by-omission). IA honesta: solo agrega minutos registrados,
+            // no infiere ni estima. Cero random/pantalla nueva (decisión c.361).
+            isTimeSpentQuery(query) -> {
+                val recap = FocusRecap.today(tasks, focusSessions, now, zone)
+                if (recap.totalMinutes <= 0) {
+                    AssistantAnswer("Hoy aún no registras tiempo de enfoque; cuando completes una sesión, te diré aquí en qué lo invertiste.")
+                } else {
+                    val total = FocusRecap.humanMinutes(recap.totalMinutes)
+                    val parts = recap.topTasks.joinToString(", ") { "«${it.title}» (${FocusRecap.humanMinutes(it.minutes)})" }
+                    val tail = if (parts.isEmpty()) "." else ": $parts."
+                    AssistantAnswer(
+                        "Hoy invertiste $total de enfoque$tail",
+                        relatedTaskIds = recap.topTasks.map { it.taskId }
+                    )
+                }
+            }
             // Octavo olvido de la familia "lie-by-omission": la consulta no casa con
             // ninguna rama conocida y el asistente cae a su menú de capacidades. Es la
             // superficie de mayor tránsito para un usuario confundido —y justo ahí
@@ -660,6 +688,21 @@ object AssistantEngine {
      */
     private fun isDeferralQuery(query: String): Boolean =
         "pospon" in query || "dejar para manana" in query || "dejar para despues" in query
+
+    /**
+     * Petición de tiempo invertido: "¿en qué gasto mi tiempo?", "¿en qué estoy
+     * gastando tiempo?", "¿en qué se me va el tiempo?". Tokens sin acento (ya
+     * normalizados por `foldForSearch`). Conservadora y sin colisión:
+     *  - NO es hueco libre ([isFreeTimeQuery]: ancla "tengo") — aquí no hay
+     *    "tengo tiempo" sino "gasto/gastando... tiempo".
+     *  - NO es veredicto de carga ([isDayLoadQuery]: "cuánto tiempo me queda")
+     *    — aquí se pregunta por el PASADO del día (invertido), no por lo que
+     *    cabe. "gast" + "tiempo" no aparece en "me queda tiempo".
+     *  - NO es duración estimada ("cuánto tarda X") — esa forma nombra una
+     *    tarea/entidad y la rama de entidades se evalúa antes.
+     */
+    private fun isTimeSpentQuery(query: String): Boolean =
+        ("gast" in query && "tiempo" in query) || "se me va el tiempo" in query
 
     /**
      * Señal de "tengo un hueco libre" (Cluster C c.677): formas sueltas

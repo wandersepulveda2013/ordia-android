@@ -1,5 +1,6 @@
 package com.ordia.app.assistant
 
+import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.domain.DateRules
@@ -391,6 +392,97 @@ class AssistantEngineTest {
         assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
         assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
     }
+
+    // --- Tiempo invertido (cluster sonda assistant: "en qué gasto mi tiempo",
+    // "en qué estoy gastando tiempo") — el usuario pregunta EN QUÉ invirtió su
+    // tiempo; el asistente debe responder con datos REALES (sesiones de enfoque
+    // completadas de hoy agregadas por tarea, fuente única: FocusRecap), no
+    // listar capacidades. Paridad familia lie-by-omission: vacío honesto
+    // (NUNCA menú). IA honesta: solo agrega minutos registrados, no infiere.
+    @Test fun timeSpent_namesTopTasksWithMinutesNotMenu() {
+        val now = 1_787_140_800_000L // 2026-08-19T12:00:00Z (mediodía UTC, sin borde de medianoche)
+        val answer = AssistantEngine.answer(
+            "¿En qué gasto mi tiempo?",
+            listOf(
+                TaskEntity(id = 1, title = "Informe trimestral"),
+                TaskEntity(id = 2, title = "Ordenar el archivo")
+            ),
+            emptyList(), emptyList(), now,
+            zone = java.time.ZoneOffset.UTC,
+            focusSessions = listOf(
+                FocusSessionEntity(id = 1, taskId = 1, startedAt = now - 5 * 3_600_000L, actualMinutes = 45, completed = true),
+                FocusSessionEntity(id = 2, taskId = 1, startedAt = now - 3 * 3_600_000L, actualMinutes = 30, completed = true),
+                FocusSessionEntity(id = 3, taskId = 2, startedAt = now - 2 * 3_600_000L, actualMinutes = 20, completed = true)
+            )
+        )
+        assertTrue("total del día: ${answer.text}", answer.text.contains("1 h 35 min"))
+        assertTrue("nombra la tarea con más minutos: ${answer.text}", answer.text.contains("Informe trimestral"))
+        assertTrue("agrega las sesiones de la misma tarea (75 min): ${answer.text}", answer.text.contains("1 h 15 min"))
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun timeSpent_seMeVaVariantRoutes() {
+        val now = 1_787_140_800_000L
+        val answer = AssistantEngine.answer(
+            "¿En qué se me va el tiempo?",
+            listOf(TaskEntity(id = 1, title = "Informe trimestral")),
+            emptyList(), emptyList(), now,
+            zone = java.time.ZoneOffset.UTC,
+            focusSessions = listOf(
+                FocusSessionEntity(id = 1, taskId = 1, startedAt = now - 3_600_000L, actualMinutes = 40, completed = true)
+            )
+        )
+        assertTrue("nombra la tarea: ${answer.text}", answer.text.contains("Informe trimestral"))
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun timeSpent_ignoresIncompleteAndOtherDays() {
+        val now = 1_787_140_800_000L
+        val answer = AssistantEngine.answer(
+            "¿En qué estoy gastando tiempo?",
+            listOf(TaskEntity(id = 1, title = "Informe trimestral"), TaskEntity(id = 2, title = "Ayer")),
+            emptyList(), emptyList(), now,
+            zone = java.time.ZoneOffset.UTC,
+            focusSessions = listOf(
+                FocusSessionEntity(id = 1, taskId = 1, startedAt = now - 2 * 3_600_000L, actualMinutes = 45, completed = false),
+                FocusSessionEntity(id = 2, taskId = 2, startedAt = now - 30 * 3_600_000L, actualMinutes = 90, completed = true)
+            )
+        )
+        // Ni la sesión en curso ni la de ayer cuentan: el día no registra foco
+        // completado todavía → respuesta honesta, no datos inflados ni menú.
+        assertTrue("vacío honesto: ${answer.text}", answer.text.contains("no registras"))
+        assertTrue("no infla con ayer: ${answer.text}", !answer.text.contains("Ayer"))
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun timeSpent_emptyIsHonestNotGeneric() {
+        val now = 1_787_140_800_000L
+        val answer = AssistantEngine.answer(
+            "¿En qué gasto mi tiempo?",
+            listOf(TaskEntity(id = 1, title = "Informe trimestral")),
+            emptyList(), emptyList(), now,
+            zone = java.time.ZoneOffset.UTC,
+            focusSessions = emptyList()
+        )
+        assertTrue("vacío honesto: ${answer.text}", answer.text.contains("no registras"))
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun timeSpent_limitsToThreeTopTasks() {
+        val now = 1_787_140_800_000L
+        val tasks = (1L..4L).map { TaskEntity(id = it, title = "Tarea $it") }
+        val sessions = (1L..4L).map { FocusSessionEntity(id = it, taskId = it, startedAt = now - it * 3_600_000L, actualMinutes = (5 - it).toInt() * 10, completed = true) }
+        val answer = AssistantEngine.answer(
+            "¿En qué gasto mi tiempo?",
+            tasks, emptyList(), emptyList(), now,
+            zone = java.time.ZoneOffset.UTC,
+            focusSessions = sessions
+        )
+        assertTrue("top 1: ${answer.text}", answer.text.contains("Tarea 1"))
+        assertTrue("top 3: ${answer.text}", answer.text.contains("Tarea 3"))
+        assertTrue("solo nombra 3 (respuesta corta): ${answer.text}", !answer.text.contains("Tarea 4"))
+    }
+
 
     // --- Tiempo libre (Cluster C sonda assistant; c.416 cubre la forma literal
     // "tareas de 15 minutos": "tengo un rato/tiempo/hueco" o "tengo N minutos"
