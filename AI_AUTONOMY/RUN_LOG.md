@@ -16218,3 +16218,12 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin Android SDK).
 - **HEAD final**: tras commit/push de este ciclo (base reintegrada `1ac27c2`; push auth `github_token`).
 
+
+## Ciclo c.754/colisión — 2026-08-20 (UTC) — STALE_RUN: duplicado 'quitar la mesa' — resolución NO destructiva + verificación independiente VERDE
+
+- **Rama**: `openhands/autonomous-ordia`. **HEAD base**: `1ac27c2` (c.753) → **HEAD final**: `4958ea4` (c.754 remoto, ff-only).
+- **Evento**: mi run implementó c.754 'quitar la mesa' (piso `HOUSEHOLD_CLEAR_TABLE_FLOOR` + lockstep + plantilla + 9 tests, suite 4591 verde local) EN PARALELO con run hermano: al re-fetch pre-push, el remoto ya publicó `4958ea4` con la MISMA forma, mismo piso, mismo nombre de fichero de tests (suite remota 4595, +13 vs mis +9). **No llegué a pushear mi variante — cero sobrescritura del trabajo válido ajeno.**
+- **Resolución (doctrina anti-colisión c.739/c.742/c.745/c.749)**: `git stash push` (mis cambios en evidencia) → `git merge --ff-only origin/openhands/autonomous-ordia` (integración limpia) → verificación del HEAD remoto en MI JVM: `run_domain_tests.sh` → **OK (4595 tests)** (independiente del claim de commit remoto); `run_domain_checks.sh` → 25 OK; `run_automation_engine_checks.sh` → 9 OK → `git stash drop` (duplicado obsoleto; ficheros/constantes con nombres idénticos harían conflictos espurios). NO force push, NO reset hard, NO toques a main.
+- **Estado**: STALE_RUN registrado; el valor del run es la **verificación independiente** del fix concurrente (dos implementaciones convergentes del mismo invariante: verbo bivalente 'quitar' → piso ACOTADO al objeto — confirma que la doctrina es reproducible).
+- **Tests**: 4595 PASS (0 failures) / smokes 25+9 OK. **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **Próxima prioridad**: sonda Verb OPEN 5 (una por run, con re-fetch pre-ejecución y heurística de actividad <15 min aplicada): 'bañar al perro' (RESERVA c.740), 'sacar la perra al parque', 'llevar al gato al veterinario', 'vacunar al perro', 'pintar la casa'; o ChoreProbe OPEN 2/7.
