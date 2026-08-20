@@ -31,11 +31,13 @@ import com.ordia.app.context.ContextIntentEngine
  *   intacto; keyword "medicina" ya existía — lockstep coste-cero;
  *   dispersión epoch-day 20685 % 7 = 0; NULL PRE verificado sobre
  *   HEAD b025444).
+ * - c.771: "reiniciar el router esta noche" → TASK acotado al objeto
+ *   `routers?` ("reiniciar" es bivalente — ordenador/app/móvil fuera;
+ *   dispersión epoch-day 20685 % 6 = 3 sobre el pool residual de 6).
  *
  * Pool OPEN (NULL medido en PRE c.765, HEAD 9815ee2):
  * - "medir la tensión hoy" / "medirme la presión mañana"
  * - "hacer copia de seguridad hoy" (hogar-tecnología; protege datos)
- * - "reiniciar el router esta noche"
  * - "llevar a los niños al colegio mañana" / "llevar a la niña al médico
  *   el lunes" (familia; "recoger a los niños" ya captura vía ERRAND)
  */
@@ -53,7 +55,6 @@ fun main() {
         "medirme la presión mañana",
         // ---- Hogar-tecnología (pool OPEN) ----
         "hacer copia de seguridad hoy",
-        "reiniciar el router esta noche",
         // ---- Familia / niños (parcial: pool OPEN) ----
         "llevar a los niños al colegio mañana",
         "llevar a la niña al médico el lunes",
@@ -74,6 +75,12 @@ fun main() {
         "tomarme la medicina esta noche",
         "tomarme las pastillas hoy",
         "tengo que tomarme la medicina esta noche",
+        // c.771: capturas del piso router (regresión)
+        "reiniciar el router esta noche",
+        "reiniciar el router mañana",
+        "vale, reiniciar el router hoy",
+        "mañana reiniciar el router",
+        "reiniciar routers mañana",
         // ---- Controles anti-overreach (deben quedar NULL) ----
         "no tomar la medicina mañana",
         "quizá tomar la medicina mañana",
@@ -102,6 +109,13 @@ fun main() {
         "llené el tanque ayer",
         "no recoger a los niños mañana",
         "recogí a los niños ayer",
+        // c.771: controles del piso router (NULL)
+        "no reiniciar el router mañana",
+        "quizá reiniciar el router mañana",
+        "reinicié el router ayer",
+        "reiniciar el ordenador mañana",
+        "reiniciar",
+        "el router está apagado",
         "hola cómo estás"
     )
     for (c in cases) {

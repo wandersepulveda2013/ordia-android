@@ -1320,6 +1320,16 @@ object ContextIntentEngine {
             // ^/ACK/temporal, `(?<!no )` bloquea la negada; el pasado
             // "pasé…" y el sustantivo suelto "la ITV del coche" no casan.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )pasar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?itv\b""").containsMatchIn(lower)
+            // Piso "reiniciar el router" (c.771, quinta clase — hogar-
+            // tecnología; dispersión epoch-day 20685 % 6 = 3 sobre el pool
+            // OPEN). El verbo "reiniciar" es bivalente (el ordenador/la
+            // app/el móvil) → el piso se ACOTA al objeto `routers?`.
+            // Lockstep keyword-OBJETO "router" (lección c.713/c.751/c.765).
+            // Ancla ^/ACK/temporal, `(?<!no )` bloquea la negada; el pasado
+            // "reinicié…", el suelto "reiniciar" y el sustantivo "el router
+            // está…" no casan. Negación sin cláusula dedicada: keyword 0.12
+            // + bono temporal 0.1 = 0.22 < umbral (hermana c.765/c.766/c.768).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reiniciar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?routers?\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -2177,6 +2187,12 @@ object ContextIntentEngine {
                 // la tarde…" nunca llega aquí porque el piso no lo captura).
                 val matchPasarItv = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(pasar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?itv\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchPasarItv != null) return "Pasar ${matchPasarItv.groupValues[2]}"
+                // c.771: plantilla "reiniciar el router" (ancla/guard
+                // idénticos al piso; el residuo temporal lo depura
+                // [sanitizeTitle]; el objeto bivalente "reiniciar el
+                // ordenador…" nunca llega aquí porque el piso no lo captura).
+                val matchReiniciarRouter = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(reiniciar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?routers?\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchReiniciarRouter != null) return "Reiniciar ${matchReiniciarRouter.groupValues[2]}"
 
                 null
             }

@@ -61,7 +61,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // verbo "pasar": bivalente (la tarde/el rato/la película). 0.12 sola
         // queda bajo el umbral: "la ITV está cara" sigue descartado. Sin
         // colisión de subcadena en español corriente.
-        "itv")),
+        "itv",
+        // c.771: keyword-OBJETO "router" (lockstep con el piso acotado
+        // "reiniciar el router", ver ContextIntentEngine.hasStrongTaskImperative).
+        // NO el verbo "reiniciar": bivalente (el ordenador/la app/el móvil).
+        // 0.12 sola queda bajo el umbral: "el router está apagado" sigue
+        // descartado. Sin colisión de subcadena en español corriente.
+        "router")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",
