@@ -4766,15 +4766,44 @@ class AssistantEngineTest {
 
     @Test fun flagged_acceptsSynonyms() {
         val flagged = TaskEntity(id = 1, title = "Revisar el contrato", flagged = true)
-        // Paridad estricta con SearchEngine.FLAGGED_TOKENS (participios; el
-        // infinitivo "marcar"/"destacar" queda fuera por palabra exacta).
-        // Nota: "marqué" (pretérito 1.ª persona) sigue siendo gap del BUSCADOR
-        // (BACKLOG c.780); aquí no se añade para que asistente y buscador
-        // compartan exactamente el mismo vocabulario de marcado.
+        // Paridad estricta con SearchEngine.FLAGGED_TOKENS (participios y, desde
+        // el ciclo del pretérito, también "marqué"/"destaqué"; el infinitivo
+        // "marcar"/"destacar" queda fuera por palabra exacta). Ambas superficies
+        // comparten exactamente el mismo vocabulario de marcado.
         for (q in listOf("tareas destacadas", "destacados", "tareas marcadas", "¿cuáles tengo marcadas?")) {
             val answer = AssistantEngine.answer(q, listOf(flagged), emptyList(), emptyList())
             assertEquals("«$q» recupera la marcada: ${answer.text}", listOf(1L), answer.relatedTaskIds)
         }
+    }
+
+    // Pretérito 1.ª persona del marcado — "¿qué marqué?" / "lo que destaqué":
+    // la forma más natural de pedir lo que uno MISMO marcó. Entra en la MISMA
+    // lista que los participios (paridad buscador↔asistente, mismo ciclo).
+
+    @Test fun flagged_pastTenseMarque_listsFlaggedTasks() {
+        val flagged = TaskEntity(id = 1, title = "Revisar el contrato", flagged = true)
+        val normal = TaskEntity(id = 2, title = "Comprar leche", priority = TaskPriority.HIGH)
+        for (q in listOf("¿qué marqué?", "las que marqué")) {
+            val answer = AssistantEngine.answer(q, listOf(flagged, normal), emptyList(), emptyList())
+            assertEquals("«$q» recupera la marcada: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+            assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        }
+    }
+
+    @Test fun flagged_pastTenseDestaque_listsFlaggedTasks() {
+        val flagged = TaskEntity(id = 1, title = "Llamar al banco", flagged = true)
+        val answer = AssistantEngine.answer("lo que destaqué", listOf(flagged), emptyList(), emptyList())
+        assertEquals("recupera la marcada: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun flagged_pastTenseEmpty_isHonestNotMenu() {
+        val answer = AssistantEngine.answer(
+            "¿qué marqué?",
+            listOf(TaskEntity(id = 1, title = "Normal", priority = TaskPriority.HIGH)),
+            emptyList(), emptyList()
+        )
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("vacío honesto: ${answer.text}", answer.text.contains("No tienes tareas marcadas"))
     }
 
     @Test fun flagged_emptyIsHonestNotMenu() {

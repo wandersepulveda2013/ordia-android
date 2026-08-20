@@ -479,8 +479,11 @@ object SearchEngine {
         // mis recurrentes?", "¿cuáles son mis marcadas?"). Sin ellos la consulta
         // quedaba envenenada y la recuperación era vacía aunque el alcance sí
         // coincidiera un filtro para atributos (marcadas/completadas/recurrentes).
+        // "lo" (artículo/pronombre neutro): es inviable de cortar por filtros o
+        // tokens, igual que la/las/el/los que ya están. "lo que marqué" quedaba
+        // envenenada — exigía un "lo" libre en el título y devolvía vacío.
         "de", "del", "la", "las", "el", "los", "con", "que", "mis", "mi", "cosas", "mostrar", "muestra", "en", "por",
-        "tengo", "hay", "cuales", "son"
+        "tengo", "hay", "cuales", "son", "lo"
     )
     private val TASK_TERMS = setOf("tarea", "pendient", "vencid", "important", "urgente")
     private val NOTE_TERMS = setOf("nota")
@@ -544,9 +547,14 @@ object SearchEngine {
     // "marcadas"/"destacadas" recupera las tareas que el usuario marcó (flagged).
     // Formas del participio (no el infinitivo "marcar"/"destacar"). Coincide con la
     // etiqueta de la UI ("Marcada") y el filtro "Importantes" que ya existe.
+    // "marque"/"destaque" cubren el pretérito 1.ª persona ("las que marqué",
+    // "lo que destaqué"): tras foldForSearch el acento desaparece y la forma
+    // pedía contenido que el título no porta. Forma invariante (el pretérito no
+    // pluraliza). PARIDAD: FLAGGED_WORDS del asistente lleva la misma lista.
     private val FLAGGED_TOKENS = setOf(
         "marcada", "marcadas", "marcado", "marcados",
-        "destacada", "destacadas", "destacado", "destacados"
+        "destacada", "destacadas", "destacado", "destacados",
+        "marque", "destaque"
     )
     // "fijadas" recupera las NOTAS que el usuario fijó (pinned). Es el análogo de
     // "marcadas" para tareas: la fijación es la señal que el usuario dejó (UI:

@@ -8,6 +8,17 @@
 - **Resultado**: Sonda c.779 COMPLETA (21 consultas, 6 gaps cerrados en 8 ciclos c.779→c.788).
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK); rama verificada en JVM.
 - **HEAD final**:  (push OK sobre base ).
+## Ciclo c.789 — 2026-08-20 (UTC) — fix(search/assistant): residuo (i) «las que marqué»/«lo que destaqué» recupera las tareas marcadas en las DOS superficies; stop-word «lo» desenvenena la variante coloquial
+
+- **Situación al inicio**: HEAD base `a3694c4` (c.787 hermano DEDUPE: colisiones dobles sobre el gap (vi); descarte total y verificación 4881). Al re-fetch de seguridad (colisión 1), el remoto avanzó `a3694c4..8019ffa` (el hermano publicando sólo docs de su c.787) → `git pull --ff-only` limpio y NO destructivo (mi trabajo tocaba sólo código+tests). NO STALE_RUN, NO force, NO reset --hard, `main` intacto. Y al re-fetch PRE-COMMIT apareció el hermano c.788 («notas fijadas», ítem (v)) con commit de código: stash → `pull --ff-only` → pop, conflictos sólo en CURRENT_STATE/RUN_LOG/BACKLOG resueltos conservando AMBAS entradas, y RENUMERADO yo c.788→c.789 por integridad del registro.
+- **Problema (P1, paridad buscador↔asistente / IA honesta / recuperación explícita)**: residuo de la fila (i) c.779 BACKLOGUEADO por c.781: «las que marqué» / «lo que destaqué» caían a [] en búsqueda y al menú en el asistente (sólo participios). Mismo veneno «lo que destaqué» se descubrió al testear: «lo» (hermano de la/las/el/los) no era stop-word y el verificador de contenido lo exigía literal en el título → vacío.
+- **Solución (cambio mínimo en un solo commit)**: «marque»/«destaque» entran JUNTOS en `SearchEngine.FLAGGED_TOKENS` y en `AssistantEngine.FLAGGED_WORDS`, doctrina paridad c.677/c.779 (por PALABRA exacta — infinitivo y «desmarcada» no detonan); «lo» entra en `SearchEngine.STOP_WORDS` (familia c.783 «cuales/son»). Determinista, sin random, cero UI/botón nuevo.
+- **TDD**: 6 fallos exactos RED → GREEN (`SearchEngineTest` 3, `AssistantEngineTest` 3, con guardas de vacío-honesto y de notas-fijadas-no-contaminan).
+- **Pruebas**: `bash tools/run_domain_tests.sh` → **OK (4887: 4881 + 6)**, 0 failures; `run_domain_checks.sh` → 25/25 OK. Sin tests reducidos/eliminados/falseados.
+- **AI_AUTONOMY**: CURRENT_STATE c.789 prepend; BACKLOG residuo (i) cerrado (fila familia c.779) + fila FIXED nueva pre-puesta; RUN_LOG c.789 prepend.
+- **HEAD final**: tras commit/push (auth `github_token`).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK). La rama sí en JVM.
+- **Próxima prioridad**: la familia c.779 (gaps (i)-(vi) + residuo (i)) quedó COMPLETA por mí y el hermano c.788 («notas fijadas»). Nueva ronda de descubrimiento P1/P2. Re-fetch OBLIGATORIO; numerar SOLO en fetch final.
 
 ## Ciclo c.787 — 2026-08-20 (UTC) — DEDUPE (cero cambios de código): el trabajo local duplicó el gap (vi) que dos ciclos hermanos (c.785 y c.786) resolvieron en carrera; descarte total + verificación independiente del HEAD aterrizado
 

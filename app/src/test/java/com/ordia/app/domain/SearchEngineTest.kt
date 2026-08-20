@@ -428,6 +428,46 @@ class SearchEngineTest {
         assertEquals(setOf(1L), ids)
     }
 
+    // --- Pretérito 1.ª persona del marcado ("las que marqué" / "lo que
+    // destaqué"): paridad búsqueda↔asistente (mismo ciclo, misma lista) ---
+    // La forma más natural de pedir lo que uno MISMO marcó es el pretérito
+    // ("¿qué marqué?"), no el participio ("marcadas"). Tras foldForSearch,
+    // "marqué"→"marque" y "destaqué"→"destaque"; son tokens de intención por
+    // palabra exacta, igual que los participios, y se excluyen del contenido
+    // exigido (el título no tiene por qué decir "marqué").
+
+    @Test fun lasQueMarque_pastTense_recoversFlaggedTasks() {
+        val flagged = TaskEntity(id = 1, title = "Presupuesto Q3", flagged = true)
+        val plain = TaskEntity(id = 2, title = "Ordenar escritorio", flagged = false)
+        // "lo que marqué" además exige que "lo" (artículo neutro) sea stop-word
+        // como la/las/el/los: sin ello la consulta exigía un "lo" libre en el
+        // título y devolvía vacío.
+        for (q in listOf("las que marqué", "lo que marqué")) {
+            val ids = SearchEngine.search(q, listOf(flagged, plain), emptyList(), emptyList(), emptyList())
+                .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+            assertEquals("«$q» recupera la marcada", setOf(1L), ids)
+        }
+    }
+
+    @Test fun loQueDestaque_pastTense_recoversFlaggedTasks() {
+        val flagged = TaskEntity(id = 1, title = "Llamar al banco", flagged = true)
+        val plain = TaskEntity(id = 2, title = "Comprar café", flagged = false)
+        val ids = SearchEngine.search("lo que destaqué", listOf(flagged, plain), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun marquePastTense_withContent_filtersWithinFlagged() {
+        // "marqué presupuesto": la marca es filtro, el contenido sigue exigiéndose
+        // dentro de las marcadas (simétrico a "marcadas presupuesto").
+        val match = TaskEntity(id = 1, title = "Revisar presupuesto", flagged = true)
+        val otherFlagged = TaskEntity(id = 2, title = "Otra cosa", flagged = true)
+        val unflaggedMatch = TaskEntity(id = 3, title = "Presupuesto viejo", flagged = false)
+        val ids = SearchEngine.search("marqué presupuesto", listOf(match, otherFlagged, unflaggedMatch), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
     // --- Recuperación de tareas recurrentes ("repetitivas"/"recurrentes") ---
 
     @Test fun recurrentes_recoversRecurringTasksWithoutTheWordInContent() {

@@ -526,7 +526,7 @@ object AssistantEngine {
             // recupera, el asistente caía al menú genérico — mentía por omisión
             // sobre la señal más explícita que el usuario pone (él mismo marcó la
             // tarea, a veces TODAS las de un proyecto). Coincidencia por PALABRA
-            // EXACTA (los 8 participios), así el infinitivo "marcar"/"destacar"
+            // EXACTA (participios + pretérito "marque"/"destaque"), así el infinitivo "marcar"/"destacar"
             // (acción por hacer) no la detona (guardia palabra-exacta, igual que
             // c.779 para los participios del recap). Va después de prioridad para
             // que "marcadas como urgentes" siga filtrando por prioridad. Vacío:
@@ -801,15 +801,16 @@ object AssistantEngine {
 
     /**
      * Vocabulario de marcado: paridad estricta con los FLAGGED_TOKENS de
-     * [com.ordia.app.domain.SearchEngine] (los 8 participios, nunca infinitivos).
-     * Por PALABRA EXACTA para no secuestrar "marcar"/"destacar" (acción por
-     * hacer) ni un "desmarcada". Si el buscador añade o quita un token, este
-     * conjunto debe moverse con él en la misma dirección (soledad buscador↔
-     * asistente, doctrina c.677/c.779).
+     * [com.ordia.app.domain.SearchEngine] (participios + pretérito 1.ª persona
+     * "marque"/"destaque", nunca infinitivos). Por PALABRA EXACTA para no
+     * secuestrar "marcar"/"destacar" (acción por hacer) ni un "desmarcada". Si
+     * el buscador añade o quita un token, este conjunto debe moverse con él en
+     * la misma dirección (soledad buscador↔asistente, doctrina c.677/c.779).
      */
     private val FLAGGED_WORDS = setOf(
         "marcada", "marcadas", "marcado", "marcados",
-        "destacada", "destacadas", "destacado", "destacados"
+        "destacada", "destacadas", "destacado", "destacados",
+        "marque", "destaque"
     )
 
     private fun isFlaggedQuery(query: String): Boolean =
