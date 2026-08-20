@@ -23,13 +23,15 @@ import com.ordia.app.context.ContextIntentEngine
  * - c.766: "ponerse la insulina mañana" → TASK acotado al objeto `insulina`
  *   ("ponerse" es bivalente — chaqueta/enfermo/contento fuera; dispersión
  *   epoch-day 20685 % 9 = 3).
+ * - c.768: "pasar la ITV este mes" → TASK acotado al objeto `itv` (vehículo;
+ *   "pasar" es bivalente — la tarde/el rato/la película fuera; dispersión
+ *   epoch-day 20685 % 9 = 3).
  *
  * Pool OPEN (NULL medido en PRE c.765, HEAD 9815ee2):
  * - "tomarme la medicina esta noche" (reflexivo 1ª persona)
  * - "medir la tensión hoy" / "medirme la presión mañana"
  * - "hacer copia de seguridad hoy" (hogar-tecnología; protege datos)
  * - "reiniciar el router esta noche"
- * - "pasar la ITV este mes" (vehículo)
  * - "llevar a los niños al colegio mañana" / "llevar a la niña al médico
  *   el lunes" (familia; "recoger a los niños" ya captura vía ERRAND)
  */
@@ -49,8 +51,6 @@ fun main() {
         // ---- Hogar-tecnología (pool OPEN) ----
         "hacer copia de seguridad hoy",
         "reiniciar el router esta noche",
-        // ---- Vehículo (parcial: pool OPEN) ----
-        "pasar la ITV este mes",
         // ---- Familia / niños (parcial: pool OPEN) ----
         "llevar a los niños al colegio mañana",
         "llevar a la niña al médico el lunes",
@@ -64,6 +64,9 @@ fun main() {
         "votar el domingo",
         "cargar el celular hoy",
         "ponerse la insulina mañana",
+        "pasar la ITV este mes",
+        "pasar la ITV mañana",
+        "vale, pasar la ITV el viernes",
         // ---- Controles anti-overreach (deben quedar NULL) ----
         "no tomar la medicina mañana",
         "quizá tomar la medicina mañana",
@@ -76,6 +79,12 @@ fun main() {
         "me puse la insulina ayer",
         "ponerse la chaqueta mañana",
         "la insulina está en la nevera",
+        "no pasar la ITV mañana",
+        "quizá pasar la ITV mañana",
+        "pasé la ITV ayer",
+        "pasar la tarde",
+        "pasar la película mañana",
+        "la ITV del coche está cara",
         "no llenar el tanque mañana",
         "llené el tanque ayer",
         "no recoger a los niños mañana",

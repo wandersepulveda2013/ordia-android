@@ -1300,6 +1300,19 @@ object ContextIntentEngine {
             // "me puse…"/suelto "ponerse"/sustantivo "la insulina está…" no
             // casa. Negación sin cláusula dedicada: 0.12+0.1=0.22<umbral.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )ponerse\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?insulina\b""").containsMatchIn(lower)
+            // Piso "pasar la ITV" (c.768, forma 4/9 quinta clase): la
+            // inspección técnica del vehículo es un trámite periódico
+            // obligatorio. Kind decidido: TASK, en deliberación contra
+            // APPOINTMENT — no hay cita con profesional; es hermano del
+            // deber cívico "votar" (c.752) y del documento "renovar el DNI"
+            // (c.698): acción con plazo. El verbo "pasar" es bivalente
+            // (pasar la tarde/el rato/la película = ocio, NO tarea) → el
+            // piso se ACOTA al objeto `itv` (sigla invariable, sin plural
+            // coloquial) y el verbo nunca entra suelto. Lockstep
+            // keyword-OBJETO "itv" (lección c.713/c.751/c.765). Ancla
+            // ^/ACK/temporal, `(?<!no )` bloquea la negada; el pasado
+            // "pasé…" y el sustantivo suelto "la ITV del coche" no casan.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )pasar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?itv\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -2148,6 +2161,13 @@ object ContextIntentEngine {
                 // sanitizeTitle).
                 val matchPonerseInsulina = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(ponerse)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?insulina\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchPonerseInsulina != null) return "Ponerse ${matchPonerseInsulina.groupValues[2]}"
+                // c.768: plantilla "pasar la ITV" (ancla/guard idénticos al
+                // piso; lección c.616: el match arranca en el verbo, así
+                // acuse/prefijo temporal se despojan; el residuo temporal de
+                // cola lo depura [sanitizeTitle]; el objeto bivalente "pasar
+                // la tarde…" nunca llega aquí porque el piso no lo captura).
+                val matchPasarItv = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(pasar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?itv\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchPasarItv != null) return "Pasar ${matchPasarItv.groupValues[2]}"
 
                 null
             }

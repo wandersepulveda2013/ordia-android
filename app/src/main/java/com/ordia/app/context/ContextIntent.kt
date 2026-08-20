@@ -55,7 +55,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // "ponerse la insulina"). NO el verbo "ponerse": bivalente (la
         // chaqueta/enfermo/contento). 0.12 sola bajo el umbral: "la
         // insulina está en la nevera" sigue descartado.
-        "insulina")),
+        "insulina",
+        // c.768: keyword-OBJETO "itv" (lockstep con el piso acotado "pasar
+        // la ITV", ver ContextIntentEngine.hasStrongTaskImperative). NO el
+        // verbo "pasar": bivalente (la tarde/el rato/la película). 0.12 sola
+        // queda bajo el umbral: "la ITV está cara" sigue descartado. Sin
+        // colisión de subcadena en español corriente.
+        "itv")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",
