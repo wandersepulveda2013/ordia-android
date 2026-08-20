@@ -1,3 +1,12 @@
+## Run c.719-STALE-3 — 2026-08-20 (UTC) — rama openhands/autonomous-ordia
+
+- HEAD inicial: `92be3e0` (ff-only limpio). Al terminar TDD+verificación (RED 4 → GREEN, suite OK) el remoto avanzó concurrentemente resolviendo la MISMA forma 9/14 "publicar <contenido>" (`6852d7d` + `a4354e4` + `e305f1c` keyword-paridad).
+- Resolución NO destructiva: rebase sobre el remoto; mi duplicado idéntico (piso/plantilla/keyword, mismo nombre de test — el remoto es superset 11 > 10) descartado en favor del remoto (`checkout --ours` de los 4 ficheros idénticos); SOLO sobrevive lo aditivo y único: +4 controles de "publicar" en la sonda persistente `tools/probe/ManagementVerbDiscoveryProbe.kt` (el remoto no la tocó).
+- Docs (BACKLOG/CURRENT_STATE/RUN_LOG): gana la versión remota; mi entrada de resolución se repliega a esta nota STALE (append-only).
+- HEAD final (este log): remote `e305f1c` + probe controls + STALE log (push ff-only).
+
+
+
 ## Ciclo c.718 — 2026-08-19 (UTC) — feat(context): piso ERRAND 'pasar por <destino>' (forma 8/14 segunda clase de gestión)
 
 - **HEAD inicial**: `80fea84` (c.717 remoto adoptado tras STALE_RUN; git reset --soft sobre trabajo duplicado abandonado, NO destructivo).
