@@ -59,6 +59,27 @@ fun main() {
         // c.742, keyword "aspiradora" lockstep) — la línea queda como
         // REGRESIÓN de forma compartida entre ambas sondas.
         "pasar la aspiradora mañana",
+        // c.753: re-integración del ledger OPEN (hogar+mascotas) para la
+        // dispersión determinista (epoch-day mod N) — lección c.745/c.749.
+        "lavar los platos hoy",
+        "quitar la mesa después de comer",
+        // Candidatos mascota (restaurados tras merge; ver BACKLOG row 3):
+        // Nota mantenimiento c.753: "dar de comer al gato hoy" RESUELTA
+        // (piso `HOUSEHOLD_FEED_CAT_VARIANT_FLOOR` c.753 acotado al objeto
+        // mascota `gat[oa]s?` — variante conversacional de c.744; keywords
+        // "gato"/"gata" ya existidas, cero keywords nuevas) — la línea
+        // queda como REGRESIÓN de la familia mascota.
+        "dar de comer al gato hoy",
+        "sacar la perra al parque mañana",
+        "llevar al gato al veterinario el viernes",
+        // Nota mantenimiento c.753: el chequeo PRE en el HEAD combinado
+        // mostró que "limpiar la jaula del loro el domingo" YA capturaba
+        // por keyword genérica — el ledger OPEN depurado antes de elegir
+        // (uno cerró por keyword fuera de sonda); la línea queda como
+        // REGRESIÓN de cobertura keyword (NO OPEN de piso).
+        "limpiar la jaula del loro el domingo",
+        "vacunar al perro este mes",
+        "comprar pienso mañana",
         "pintar la casa este fin de semana",
         // Nota mantenimiento c.743: "colgar la ropa hoy" RESUELTA por la
         // sonda paralela Chore (piso `HOUSEHOLD_HANG_LAUNDRY_FLOOR` c.743,

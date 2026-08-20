@@ -224,7 +224,19 @@ object ContextIntentEngine {
     // c.740); guard de negación heredado de la familia (?<!no ).
     private val HOUSEHOLD_GARDEN_FLOOR =
         Regex("""\b(?<!no )podar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?jard(?:ín|ines)\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR)
+    // Piso mascota "dar de comer al gato" (c.753 — sonda
+    // `FourthClassVerbDiscoveryProbe.kt`; selección por dispersión
+    // determinista epoch-day sobre el ledger OPEN tras depurar las entradas
+    // ya capturadas por keywords/pisos genéricos). Variante conversacional
+    // del piso [HOUSEHOLD_FEED_CAT_FLOOR] (c.744): "dar de comer" es
+    // bivalente (al bebé/a los pescaditos), así se ACOTA al objeto mascota
+    // `gat[oa]s?` (familia de [HOUSEHOLD_FEED_CAT_FLOOR]; interop: verbo
+    // disjunto alimentar/dar de comer, sin solape). Keyword de lockstep:
+    // "gato"/"gata" ya existidas (c.744) — no se añade keyword nueva.
+    // `\b` final; guard de negación heredado de la familia (?<!no ).
+    private val HOUSEHOLD_FEED_CAT_VARIANT_FLOOR =
+        Regex("""\b(?<!no )dar\s+de\s+comer\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)?gat[oa]s?\b""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -2187,6 +2199,16 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchAlimentarGato != null) {
                     return "${capitalizeFirst(matchAlimentarGato.groupValues[1])} ${matchAlimentarGato.groupValues[2]}"
+                }
+                // Piso "dar de comer al gato" (c.753): titular lo acotado al
+                // objeto mascota (alineado con
+                // [HOUSEHOLD_FEED_CAT_VARIANT_FLOOR]; familia mascota c.740).
+                val matchDarDeComerGato = Regex(
+                    """\b(dar de comer) ((?:al|a (?:el|la|los|las|mi|tu|su)) gat[oa]s?.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchDarDeComerGato != null) {
+                    return "${capitalizeFirst(matchDarDeComerGato.groupValues[1])} ${matchDarDeComerGato.groupValues[2]}"
                 }
                 // Piso "llevar al perro al veterinario" (c.747 provisional):
                 // titular la forma completa mascota+destino (alineada con
