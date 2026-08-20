@@ -105,7 +105,15 @@ object ContextIntentEngine {
     // mantenimiento c.684). `\b` final: "basurilla" no casa.
     private val HOUSEHOLD_TRASH_FLOOR =
         Regex("""\b(?<!no )sacar\s+(?:el\s+|la\s+|los\s+|las\s+)?basura\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR)
+    // Piso faena doméstica acotado al objeto (c.728, forma 15/19 de la TERCERA
+    // clase cotidiana, sonda `ThirdClassVerbDiscoveryProbe.kt` c.721): "hacer
+    // la cama" es EL quehacer doméstico canónico con "hacer". El verbo suelto
+    // ("el informe"/"la compra") es demasiado genérico para posición libre
+    // (además "hacer" ya es keyword de TASK en `ContextIntent.kt`), así se
+    // acota al objeto `camas?` (plural incluido; `\b` final: "camada" no casa).
+    private val HOUSEHOLD_BED_FLOOR =
+        Regex("""\b(?<!no )hacer\s+(?:el\s+|la\s+|los\s+|las\s+)?camas?\b""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -1861,6 +1869,18 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchSacar != null) {
                     return "${capitalizeFirst(matchSacar.groupValues[1])} ${matchSacar.groupValues[2]}"
+                }
+                // "hacer (la|las) cama(s) …" → "Hacer la cama …" (c.728): verbo
+                // preservado (alineación pisos↔títulos, lección c.616/c.717) y
+                // objeto restringido como en [HOUSEHOLD_BED_FLOOR]; el match
+                // arranca en el verbo, así el prefijo temporal no ensucia el
+                // título ("hacer" suelto es ambiguo para la plantilla general).
+                val matchHacer = Regex(
+                    """\b(?<!no )(hacer)\s+((?:el\s+|la\s+|los\s+|las\s+)?camas?\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchHacer != null) {
+                    return "${capitalizeFirst(matchHacer.groupValues[1])} ${matchHacer.groupValues[2]}"
                 }
                 // Verbos alineados con [hasStrongHouseholdImperative] (c.638/c.639) para que
                 // el piso no capture un verbo cuyo título luego no se forme limpio.

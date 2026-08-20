@@ -1,3 +1,26 @@
+## Ciclo c.728 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "hacer la cama" (forma 15/19 TERCERA clase)
+
+- **Objetivo**: decimoquinta forma de la TERCERA clase cotidiana (verbos hogar;
+  sondeo c.721): "hacer la cama mañana" → HOUSEHOLD. Piso ACOTADO al objeto
+  `camas?` (precedente `HOUSEHOLD_TRASH_FLOOR` c.717 — "hacer" suelto es
+  demasiado genérico y ya es keyword de TASK) + keyword "cama"
+  (`ContextIntent.kt`, lockstep c.717) + plantilla "(hacer) (la|las) cama(s)…"
+  →"Hacer la cama…" en extractTitle (lockstep c.717).
+- **Deliberación de kind**: HOUSEHOLD, en deliberación contra TASK/EXERCISE —
+  quehacer doméstico canónico ("hacer yoga" sigue EXERCISE por su vía; TASK
+  queda solo para envolvente c.613). Plural "hacer las camas" cubierto.
+- **Anti-overreach**: negada NULL; quizá NULL; pasado "hice la cama ayer" NULL;
+  suelto "hacer" NULL; objeto no doméstico "hacer el informe" NO roba HOUSEHOLD
+  (kind-drift control); envolvente c.613 gobierna TASK.
+- **TDD**: +10 tests `ContextIntentEngineHacerCamaFloorTest.kt` (4 capturas RED
+  exacto → GREEN). RED declarado: exactamente 4 fallos / 10 tests.
+- **Pruebas**: suite `run_domain_tests.sh` **OK (4401 tests)** (4391 c.727 + 10),
+  0 failures; `run_domain_checks.sh` smoke **25/25 OK**;
+  `run_automation_engine_checks.sh` **9/9 OK**. Quedan 4 OPEN (hogar × 4) —
+  próxima forma: "poner la lavadora esta tarde" (deliberar kind forma a forma).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **HEAD**: inicial `5fce90e` (ff-only limpio; final tras commit).
+
 ## Ciclo c.727 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "tender <objeto>" (forma 14/19 TERCERA clase)
 
 - **Objetivo**: decimocuarta forma de la TERCERA clase cotidiana (verbos hogar +

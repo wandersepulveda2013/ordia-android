@@ -1,3 +1,13 @@
+## Run c.728 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "hacer la cama" — forma 15/19 TERCERA clase — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `5fce90e` (push c.727, ff-only limpio). **Selección (P1)**: "hacer la cama" (sonda). Doctrina una-forma-por-ciclo.
+- **Solución**: piso `hacer la(s) cama(s)` ACOTADO al objeto (precedente `HOUSEHOLD_TRASH_FLOOR` c.717 — "hacer" suelto es keyword genérico de TASK) + keyword "cama" (`ContextIntent.kt`, lockstep) + plantilla "(hacer) (la|las) cama(s)…"→"Hacer la cama…" en extractTitle (lockstep c.717). **Kind deliberado: HOUSEHOLD** (quehacer doméstico canónico; EXERCISE/TASK por su vía). Plural cubierto. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineHacerCamaFloorTest.kt` — RED exacto 4/10 (capturas) → GREEN **OK (4401 tests)** (4391 + 10), 0 failures; smoke 25 OK; automation 9 OK. Quedan 4 OPEN (hogar × 4).
+- **Archivos**: engine (+piso acotado + plantilla), `ContextIntent.kt` (+keyword "cama"), test NUEVO (+10), AI_AUTONOMY BACKLOG+CURRENT_STATE+RUN_LOG.
+- **Próxima prioridad**: forma hogar OPEN #3 "poner la lavadora esta tarde" — deliberar kind. Re-fetch OBLIGATORIO antes de trabajar.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **HEAD final**: tras el commit.
+
 ## Run c.727 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "tender <objeto>" — forma 14/19 TERCERA clase — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `c46f824` (push c.726, ff-only limpio). **Selección (P1)**: "tender <objeto>" (sonda). Doctrina una-forma-por-ciclo.
