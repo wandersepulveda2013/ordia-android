@@ -1368,6 +1368,26 @@ object ContextIntentEngine {
             // + bono temporal 0.1 = 0.22 < umbral (hermana c.765/c.766/c.768/
             // c.771).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )medir\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?tensi[oó]n\b""").containsMatchIn(lower)
+            // Piso "hacer copia de seguridad" (c.774, quinta clase — hogar-
+            // tecnología; dispersión epoch-day 20686 % 3 = 1 sobre el pool
+            // OPEN residual de 3; NULL PRE verificado por la sonda sobre
+            // HEAD 027826b). La copia de seguridad es el acto de protección
+            // de datos más cotidiano: capturarlo evita el olvido silencioso
+            // (DATOS SAGRADOS — hermano de "reiniciar el router" c.771).
+            // El verbo "hacer" es muy bivalente (la compra —SHOPPING c.758—,
+            // la cama —HOUSEHOLD c.728—, ejercicio…) → el piso se ACOTA al
+            // objeto `copias? de seguridad` con ALTERNANCIA `backups?`
+            // (misma clase de objeto, grafía técnica; "hacer la copia de la
+            // llave" queda FUERA — no es respaldo de datos). Lockstep
+            // keyword-OBJETO "backup" (lección c.713/c.751/c.765; NO el
+            // verbo "hacer" — bivalente; "copia" no es keyword segura:
+            // subcadena de "fotocopia"/"copiar"). Ancla ^/ACK/temporal,
+            // `(?<!no )` bloquea la negada; el pasado "hice…", el truncado
+            // "hacer copia" y el sustantivo "la copia de seguridad falló"
+            // no casan. Negación sin cláusula dedicada: keyword 0.12 + bono
+            // temporal 0.1 = 0.22 < umbral (hermana c.765/c.766/c.768/
+            // c.771/c.772).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:copias?\s+de\s+seguridad|backups?)\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -2240,6 +2260,15 @@ object ContextIntentEngine {
                 // tension" sin tilde queda tal cual en el título.
                 val matchMedirTension = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(medir)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?tensi[oó]n\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchMedirTension != null) return "Medir ${matchMedirTension.groupValues[2]}"
+                // c.774: plantilla "hacer copia de seguridad" (ancla/guard
+                // idénticos al piso; lección c.616: el match arranca en el
+                // verbo, así acuse/prefijo temporal se despojan; el residuo
+                // temporal de cola lo depura [sanitizeTitle]; el objeto
+                // bivalente "hacer la copia de la llave…" nunca llega aquí
+                // porque el piso no lo captura). La grafía del usuario se
+                // preserva (doctrina c.653): "Hacer backup" queda tal cual.
+                val matchHacerCopiaSeguridad = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:copias?\s+de\s+seguridad|backups?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchHacerCopiaSeguridad != null) return "Hacer ${matchHacerCopiaSeguridad.groupValues[2]}"
 
                 null
             }

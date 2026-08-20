@@ -75,7 +75,15 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // descartado. Las colisiones de subcadena ("extensión"/"pretensión"/
         // "hipertensión") suman como mucho 0.12, inertes bajo el umbral —
         // ninguna activa captura sin el piso.
-        "tensión")),
+        "tensión",
+        // c.774: keyword-OBJETO "backup" (lockstep con el piso acotado
+        // "hacer copia de seguridad", ver ContextIntentEngine.hasStrongTaskImperative).
+        // NO el verbo "hacer": muy bivalente (la compra/la cama/ejercicio).
+        // Tampoco "copia": subcadena de "fotocopia"/"copiar" — insegura como
+        // keyword aunque sumara sólo 0.12. "backup" es inequívoco en español
+        // corriente; 0.12 sola queda bajo el umbral: "el backup está
+        // corrupto" sigue descartado.
+        "backup")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",

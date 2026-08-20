@@ -45,10 +45,15 @@ import com.ordia.app.context.ContextIntentEngine
  *   perro al veterinario c.747, a María al cine fuera; hermano SIMÉTRICO
  *   de "recoger a los niños" vía ERRAND; dispersión epoch-day 20686 % 4 = 2
  *   sobre el pool residual de 4; NULL PRE verificado sobre HEAD dda9251).
+ * - c.774: "hacer copia de seguridad hoy" → TASK acotado al objeto
+ *   `copias? de seguridad` con alternancia `backups?` ("hacer" es muy
+ *   bivalente — la compra SHOPPING c.758, la cama HOUSEHOLD c.728,
+ *   "la copia de la llave" fuera; hermano de "reiniciar el router" c.771;
+ *   lockstep keyword-OBJETO "backup"; dispersión epoch-day 20686 % 3 = 1
+ *   sobre el pool residual de 3; NULL PRE verificado sobre HEAD 027826b).
  *
  * Pool OPEN (NULL medido en PRE c.765, HEAD 9815ee2):
  * - "medirme la presión mañana" (reflexivo; objeto `presión`)
- * - "hacer copia de seguridad hoy" (hogar-tecnología; protege datos)
  * - "llevar a la niña al médico el lunes" (familia/salud; destino
  *   `médico` — deliberación APPOINTMENT vs ERRAND, ítem aparte)
  */
@@ -64,8 +69,6 @@ fun main() {
         "vale, tomar la medicina mañana",
         // c.772 OPEN residual: el reflexivo con objeto `presión` sigue OPEN
         "medirme la presión mañana",
-        // ---- Hogar-tecnología (pool OPEN) ----
-        "hacer copia de seguridad hoy",
         // ---- Familia / niños (parcial: pool OPEN) ----
         // c.773 OPEN residual: el destino `médico` sigue OPEN (otra
         // deliberación — APPOINTMENT vs ERRAND)
@@ -105,6 +108,12 @@ fun main() {
         "vale, llevar a los niños al colegio mañana",
         "mañana llevar a los niños al colegio",
         "llevo a mis niños a la guardería mañana",
+        // c.774: capturas del piso copia de seguridad (regresión)
+        "hacer copia de seguridad hoy",
+        "hacer la copia de seguridad mañana",
+        "vale, hacer copia de seguridad hoy",
+        "mañana hacer copia de seguridad",
+        "hacer backup hoy",
         // ---- Controles anti-overreach (deben quedar NULL) ----
         "no tomar la medicina mañana",
         "quizá tomar la medicina mañana",
@@ -155,6 +164,14 @@ fun main() {
         "llevar a María al cine mañana",
         "llevar a los niños mañana",
         "los niños van al colegio mañana",
+        // c.774: controles del piso copia de seguridad (NULL)
+        "no hacer copia de seguridad hoy",
+        "quizá hacer copia de seguridad hoy",
+        "hice la copia de seguridad ayer",
+        "hacer la copia de la llave hoy",
+        "hacer copia",
+        "la copia de seguridad falló",
+        "el backup está corrupto",
         "hola cómo estás"
     )
     for (c in cases) {
