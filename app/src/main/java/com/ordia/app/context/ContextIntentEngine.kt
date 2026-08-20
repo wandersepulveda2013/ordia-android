@@ -855,6 +855,20 @@ object ContextIntentEngine {
             // `\s+\w` exige objeto, `(?<!no )` bloquea la negada, sustantivo
             // "publicación" no casa, suelto "publicar" no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )publicar\s+\w""").containsMatchIn(lower)
+            // c.720 (forma 10/14, ÚLTIMA de la SEGUNDA clase de verbos
+            // cotidianos de gestión, sonda
+            // `tools/probe/ManagementVerbDiscoveryProbe.kt` c.711):
+            // "recordar a <persona> <evento>" ("recordar a papá el
+            // almuerzo mañana"). Kind decidido: TASK, en deliberación
+            // contra REMINDER — "recordar a alguien de algo" es la acción
+            // del usuario (avisar a papá), no un aviso automático a sí
+            // mismo (REMINDER puro es "recuérdame"/"avísame"). Mismo
+            // ancla/guard que c.691…c.719. Anti-overreach: objeto exigido
+            // tras la preposición "a" (`a\s+\w` — "recordar mucho"
+            // recordatorio-mental no casa, recordar-objeto como memoria
+            // propia no casa), sustantivo "recuerdo" no casa, pasado
+            // "recordé…" no casa, suelto "recordar a" no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )recordar\s+a\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1556,6 +1570,12 @@ object ContextIntentEngine {
                 // temporal despojado).
                 val matchPublicar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(publicar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchPublicar != null) return "Publicar ${matchPublicar.groupValues[2]}"
+
+                // "recordar a X" → "Recordar a X" (c.720): mismo criterio
+                // que c.691…c.719 (verbo preservado, acuse/prefijo
+                // temporal despojado).
+                val matchRecordar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(recordar)\s+(a\s+.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchRecordar != null) return "Recordar ${matchRecordar.groupValues[2]}"
 
                 null
             }

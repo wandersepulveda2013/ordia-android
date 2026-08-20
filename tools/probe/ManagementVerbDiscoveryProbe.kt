@@ -54,6 +54,10 @@ fun main() {
         "quizá publicar las fotos mañana",
         "publiqué las fotos ayer",
         "publicar",
+        "no recordar a papá el almuerzo mañana",
+        "quizá recordar a papá el almuerzo mañana",
+        "recordé a papá el almuerzo ayer",
+        "recordar a",
         "recordadetodos los pendientes",
         "hola buenos días gracias luego",
         "nos vemos después jeje"
