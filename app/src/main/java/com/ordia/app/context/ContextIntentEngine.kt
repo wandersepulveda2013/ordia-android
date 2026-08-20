@@ -1278,17 +1278,24 @@ object ContextIntentEngine {
             // c.713/c.751): NO se añade el verbo "tomar" como keyword — es
             // bivalente (el café/el autobús/un vuelo/una decisión), así el
             // piso se ACOTA al objeto `medicinas?|medicamentos?|pastillas?`
-            // (una forma por ciclo, doctrina de la sonda; el reflexivo
-            // "tomarme…" queda OPEN en la sonda). Kind decidido: TASK, en
-            // deliberación contra APPOINTMENT/HABIT/HOUSEHOLD — no hay
+            // (una forma por ciclo, doctrina de la sonda). c.770 extiende
+            // el piso por ALTERNANCIA al reflexivo enclítico "tomarme"
+            // (pool OPEN de la sonda QUINTA clase; dispersión epoch-day
+            // 20685 % 7 = 0; NULL PRE verificado sobre HEAD b025444): la
+            // 1ª persona reflexiva es la forma más cotidiana de autocuidado
+            // ("tengo que tomarme la medicina"). El objeto acotado se
+            // conserva intacto — "tomarme el café" queda FUERA igual que su
+            // infinitivo. Kind decidido: TASK, en deliberación contra
+            // APPOINTMENT/HABIT/HOUSEHOLD — no hay
             // profesional sanitario ni consulta (no es cita), no es quehacer
             // doméstico; es autocuidado de vida, hermano de "donar sangre"
             // (c.750). Anti-overreach: artículo/posesivo opcional, `\b`
             // final ("medicinal" no casa), `(?<!no )` bloquea la negada
             // (la keyword 0.12 + bono temporal 0.1 = 0.22 < umbral: no hace
             // falta cláusula dedicada en [imperativeIsNegated]), pasado
-            // "tomé…"/suelto "tomar"/sustantivo "la medicina está…" no casa.
-            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )tomar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:medicinas?|medicamentos?|pastillas?)\b""").containsMatchIn(lower)
+            // "tomé…"/"me tomé…"/suelto "tomar"/sustantivo "la medicina
+            // está…" no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:tomar|tomarme)\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:medicinas?|medicamentos?|pastillas?)\b""").containsMatchIn(lower)
             // c.766: piso acotado "ponerse la insulina" (sonda
             // FifthClassLifeProbe, QUINTA clase — salud/autocuidado; elegida
             // por dispersión epoch-day 20685 % 9 = 3). NULL PRE incluso con
@@ -2153,9 +2160,11 @@ object ContextIntentEngine {
                 // acuse/prefijo temporal se despojan). El objeto bivalente
                 // "tomar el café…" nunca llega aquí porque el piso no lo
                 // captura. El residuo temporal de cola lo depura
-                // [sanitizeTitle].
-                val matchTomarMedicina = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(tomar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:medicinas?|medicamentos?|pastillas?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
-                if (matchTomarMedicina != null) return "Tomar ${matchTomarMedicina.groupValues[2]}"
+                // [sanitizeTitle]. c.770: alternancia enclítica
+                // "tomarme" (el verbo capturado gobierna y se preserva
+                // capitalizado: "Tomarme la medicina").
+                val matchTomarMedicina = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(tomar|tomarme)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:medicinas?|medicamentos?|pastillas?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchTomarMedicina != null) return "${matchTomarMedicina.groupValues[1].replaceFirstChar { it.uppercase() }} ${matchTomarMedicina.groupValues[2]}"
                 // c.766: plantilla "ponerse la insulina" (ancla/guard
                 // idénticos al piso; el residuo temporal lo depura
                 // sanitizeTitle).

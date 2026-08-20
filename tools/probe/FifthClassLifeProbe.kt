@@ -26,9 +26,13 @@ import com.ordia.app.context.ContextIntentEngine
  * - c.768: "pasar la ITV este mes" → TASK acotado al objeto `itv` (vehículo;
  *   "pasar" es bivalente — la tarde/el rato/la película fuera; dispersión
  *   epoch-day 20685 % 9 = 3).
+ * - c.770: "tomarme la medicina esta noche" → TASK por ALTERNANCIA del
+ *   piso c.765 al enclítico reflexivo `tomar|tomarme` (objeto acotado
+ *   intacto; keyword "medicina" ya existía — lockstep coste-cero;
+ *   dispersión epoch-day 20685 % 7 = 0; NULL PRE verificado sobre
+ *   HEAD b025444).
  *
  * Pool OPEN (NULL medido en PRE c.765, HEAD 9815ee2):
- * - "tomarme la medicina esta noche" (reflexivo 1ª persona)
  * - "medir la tensión hoy" / "medirme la presión mañana"
  * - "hacer copia de seguridad hoy" (hogar-tecnología; protege datos)
  * - "reiniciar el router esta noche"
@@ -45,7 +49,6 @@ fun main() {
         "tomar las pastillas hoy",
         "tomar el medicamento esta noche",
         "vale, tomar la medicina mañana",
-        "tomarme la medicina esta noche",
         "medir la tensión hoy",
         "medirme la presión mañana",
         // ---- Hogar-tecnología (pool OPEN) ----
@@ -67,6 +70,10 @@ fun main() {
         "pasar la ITV este mes",
         "pasar la ITV mañana",
         "vale, pasar la ITV el viernes",
+        // c.770: capturas del enclítico reflexivo (regresión)
+        "tomarme la medicina esta noche",
+        "tomarme las pastillas hoy",
+        "tengo que tomarme la medicina esta noche",
         // ---- Controles anti-overreach (deben quedar NULL) ----
         "no tomar la medicina mañana",
         "quizá tomar la medicina mañana",
@@ -74,6 +81,12 @@ fun main() {
         "tomar el café mañana",
         "tomar",
         "la medicina está en la mesa",
+        // c.770: controles del enclítico (NULL)
+        "no tomarme la medicina mañana",
+        "quizá tomarme la medicina mañana",
+        "me tomé la medicina ayer",
+        "tomarme el café mañana",
+        "tomarme",
         "no ponerse la insulina mañana",
         "quizá ponerse la insulina mañana",
         "me puse la insulina ayer",
