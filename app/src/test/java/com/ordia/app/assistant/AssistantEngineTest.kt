@@ -873,6 +873,27 @@ class AssistantEngineTest {
         assertEquals(listOf(6L), answer.relatedTaskIds)
     }
 
+    // c.786: extensión simétrica a primera persona plural ("se nos pasó").
+    // c.785 solo cubrió 1.ª singular ("se me"); la forma plural caía al
+    // fallback del menú (mentira por omisión en la recuperación).
+    @Test fun forgottenIntent_seNosPaso_phraseNamesMissedStart() {
+        val now = 1_000_000_000_000L
+        val missedStart = TaskEntity(
+            id = 7, title = "Recoger la documentación",
+            startAt = now - 90 * 60_000L,
+            durationMinutes = 15,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué se nos pasó?",
+            listOf(missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra el compromiso del que se nos pasó: ${answer.text}", answer.text.contains("Recoger la documentación"))
+        assertEquals(listOf(7L), answer.relatedTaskIds)
+    }
+
     // Guard: "paso" suelto (p. ej. "el paso decisivo") NO es intención de olvido
     // cuando la frase "se me pas" no está presente.
     @Test fun pasoGuard_doesNotTriggerForgottenIntent() {

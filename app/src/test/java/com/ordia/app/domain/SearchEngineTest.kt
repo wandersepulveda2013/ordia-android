@@ -989,6 +989,38 @@ class SearchEngineTest {
         assertTrue(results.isEmpty())
     }
 
+    // c.786: extensión simétrica de la frase de olvido a primera persona
+    // plural — "se nos pasó"/"se nos pasaron". c.785 sólo cubrió 1.ª
+    // singular ("se me"), así que la forma plural caía a vacío (mentira por
+    // omisión en la recuperación de olvidos).
+    @Test fun seNosPaso_firstPersonPlural_activatesMissedRecovery() {
+        val now = System.currentTimeMillis()
+        val missed = TaskEntity(
+            id = 113,
+            title = "Recogida de vacío",
+            priority = TaskPriority.NORMAL,
+            startAt = now - 90 * 60_000L,
+            durationMinutes = 30
+        )
+        val results = SearchEngine.search("se nos pasó", listOf(missed), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(1, results.size)
+        assertEquals(113L, results.first().id)
+    }
+
+    @Test fun seNosPasaron_firstPersonPlural_activatesMissedRecovery() {
+        val now = System.currentTimeMillis()
+        val missed = TaskEntity(
+            id = 114,
+            title = "Visita al taller",
+            priority = TaskPriority.NORMAL,
+            startAt = now - 60 * 60_000L,
+            durationMinutes = 20
+        )
+        val results = SearchEngine.search("se nos pasaron las cosas", listOf(missed), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(1, results.size)
+        assertEquals(114L, results.first().id)
+    }
+
     // --- "anteayer"/"antier": paridad de búsqueda con la captura ---
     // El parser de captura resuelve "anteayer"/"antier" a base.minusDays(2)
     // (NaturalTaskParserTest "anteayer/antier"). La búsqueda ya honraba la

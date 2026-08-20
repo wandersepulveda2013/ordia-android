@@ -255,9 +255,9 @@ object AssistantEngine {
                 }
             }
             // ¿qué olvidé? ("que olvide"), "¿qué olvidado?", sinónimos
-            // ("atrasad","vencid") — y la frase coloquial del olvido: "¿qué se
-            // me pasó/pasaron?". Es frase, NUNCA el token "paso" suelto.
-            "que olvide" in query || "olvidado" in query || "atrasad" in query || "vencid" in query || "que se me pas" in query -> {
+            // ("atrasad","vencid") — y el modismo del olvido "se me/se nos
+            // pasó/pasaron". Frase, NUNCA el token "paso" suelto.
+            "que olvide" in query || "olvidado" in query || "atrasad" in query || "vencid" in query || isMissedSlipQuery(query) -> {
                 // Partición honesta: "vencid" pregunta por vencidas (dueAt pasado);
                 // "atrasad" es el sinónimo cotidiano de "overdue" en español — la
                 // palabra MÁS natural — y pregunta por lo mismo pero la rama sólo
@@ -272,7 +272,7 @@ object AssistantEngine {
                 // se pasó: mentía por omisión en la superficie de recuperación. Cierra
                 // la simetría con What Now (c.203) y el guardián (c.201), reusando
                 // WhatNowEngine.ordered para elegir el olvido más urgente.
-                val forgottenIntent = "que olvide" in query || "olvidado" in query || "atrasad" in query || "que se me pas" in query
+                val forgottenIntent = "que olvide" in query || "olvidado" in query || "atrasad" in query || isMissedSlipQuery(query)
                 if (overdue.isNotEmpty()) {
                     if (forgottenIntent) {
                         // "¿Qué olvidé?" pide recuperar QUÉ se pasó, no un conteo frío.
@@ -825,6 +825,15 @@ object AssistantEngine {
     // roba: la rama de compromisos se evalúa antes que ésta en `answer`.
     private fun isUndatedQuery(query: String): Boolean =
         "sin fecha" in query || "sin vencimiento" in query || "sin dia" in query || "sin plazo" in query
+
+    // Modismo del olvido "se me/se nos pas…" (1.ª singular y plural en pretérito):
+    // frase exacta en la consulta normalizada (foldForSearch quita los acentos).
+    // Se excluye "te" ("¿qué te pasó?" es "ocurrió algo", no un olvido); nunca
+    // la palabra "paso" suelta. Simétrico a SearchEngine.MISSED_SLIP_HEADS.
+    private val MISSED_SLIP_HEADS = listOf("se me pas", "se nos pas")
+
+    private fun isMissedSlipQuery(query: String): Boolean =
+        MISSED_SLIP_HEADS.any { it in query }
 
     /**
      * Consulta de "lo próximo" sin alcance de fecha ("tengo algo pronto",

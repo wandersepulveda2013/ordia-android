@@ -1,5 +1,7 @@
 # DECISIONS — Ordía
 
+| 2026-08-20 (c.786) | El modismo del olvido cubre 1.ª singular y plural («se me», «se nos»); «se te» queda excluido | La forma de recuperación comparte el mismo núcleo léxico y detección por frase normalizada; la 2.ª persona («¿qué te pasó?») alude a un suceso, no al olvido | SearchEngine (scope MISSED) + AssistantEngine (forgottenIntent) — cabeçeras simétricas en los dos motores | Activa |
+
 > Registro de decisiones de arquitectura/estrategia (append-only).
 > Formato: `FECHA | DECISIÓN | MOTIVO | CONSECUENCIA`
 

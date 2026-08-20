@@ -16619,3 +16619,12 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Commits**: este append (code+docs en commit único sobre `f05699c`).
 - **HEAD final**: tras este push.
 - **Próxima prioridad**: gaps OPEN restantes — (iv) bare temporal, (vi) vocabulario missed "se me pasó", (v) notas fijadas → OPEN_SEARCH.
+
+
+### c.786 — 2026-08-20 (UTC) — fix(search/assistant): plural «se nos pasó/pasaron» (resto gap (vi) c.779)
+- HEAD inicial: `cbfbbf3` (c.784). Fetch a mitad de trabajo: run hermano c.785 (`67c0e11`) resolvió el mismo gap (vi) — **STALE_RUN/DUPLICATE** en mi solución inicial; descarte local no destructivo + ff-only. Verificación independiente del HEAD heredado: suite OK (4878).
+- Unidad adicional sobre la base actualizada: extensión plural del modismo del olvido. `SearchEngine.kt` (`MISSED_SLIP_HEADS`, remanente «nos»), `AssistantEngine.kt` (`isMissedSlipQuery`), tests: `SearchEngineTest` (+2), `AssistantEngineTest` (+1).
+- TDD: RED 3 fallos exactos → GREEN. `bash tools/run_domain_tests.sh` → **OK (4881)**; `run_domain_checks.sh` → 25/25 OK. Sin tests reducidos/eliminados/falseados.
+- NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK).
+- Commits/HEAD final: pendiente del push.
+- Próxima prioridad: (v) «notas fijadas» → estructural (asistente no recibe notas; ruteable a OPEN_SEARCH) o nueva oportunidad P1/P2.

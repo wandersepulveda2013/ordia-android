@@ -136,12 +136,13 @@ object SearchEngine {
         // modificador: resuelve al día de la semana, no a hoy.
         val morningOfTodayPrep = MORNING_OF_TODAY_PREP.containsMatchIn(normalized) &&
             WEEKDAY_TOKENS.none { it in words }
-        // "se me pasó"/"se me pasaron": frase coloquial del olvido silencioso
+        // "se me/se nos pasó/pasaron": frase coloquial del olvido silencioso
         // ([TaskRules.isMissedStart]), sólo recuperable por detección de FRASE
         // sobre `normalized`, jamás por token suelto "paso" (es stop-word y,
-        // como "olvidar", secuestraría títulos ilegítimos). Paridad con el
-        // asistente ("que se me pas", c.785).
-        val missedStartPhrase = "se me pas" in normalized
+        // como "olvidar", secuestraría títulos ilegítimos). 1.ª singular y
+        // plural ("se me", "se nos"); "te" excluido. Paridad con el
+        // asistente (MISSED_SLIP_HEADS, c.785/c.786).
+        val missedStartPhrase = MISSED_SLIP_HEADS.any { it in normalized }
         val dateScope = if (missedStartPhrase) DateScope.MISSED else detectDateScope(words, morningOfTodayPrep)
         // Día + parte del día ("el viernes por la tarde", "mañana en la noche",
         // "hoy por la mañana"): la franja RECORTA el día ganador en vez de
@@ -160,13 +161,13 @@ object SearchEngine {
         }
         // Cuando la búsqueda expresa un rango de fecha ("hoy", "mañana", ...),
         // las palabras de fecha no se exigen en el contenido: se filtra por fecha.
-        // Si el scope ganador vino de la FRASE "se me pas..." (c.785), el
+        // Si el scope ganador vino de la FRASE "se me/nos pas..." (c.785/c.786), el
         // remanente literal "paso/pasaron" tampoco se exige en contenido.
         val dateWords = if (dateScope != null) {
             dateScopeTokens(words) +
                 if (missedStartPhrase) words.filter {
-                    // remanentes tipográficos de la frase "se me pas..."
-                    it == "paso" || it == "pasa" || it == "pasaron" || it == "pasan" || it == "se" || it == "me"
+                    // remanentes tipográficos de la frase "se me pas..." / "se nos pas..."
+                    it == "paso" || it == "pasa" || it == "pasaron" || it == "pasan" || it == "se" || it == "me" || it == "nos"
                 }.toSet()
                 else emptySet()
         } else emptySet()
@@ -520,6 +521,9 @@ object SearchEngine {
     // olvidadas, contradiciendo el tema #1 del producto. "olvide" no aparece
     // en "olvidar hacer X", así que el guard se mantiene.
     private val MISSED_TOKENS = setOf("olvidada", "olvidadas", "olvidado", "olvidados", "olvide")
+    // Cabeçeras de frase para el modismo del olvido "se me/se nos pas*"
+    // (1.ª singular y plural; "te" excluido a propósito).
+    private val MISSED_SLIP_HEADS = listOf("se me pas", "se nos pas")
     // Formas del participio "completado/hecho/terminado/finalizado/acabado" (no el
     // infinitivo "completar"/"terminar") más la 1ª persona del pretérito
     // "completé"→"complete" y "hice" (de hacer), las frases MÁS naturales para

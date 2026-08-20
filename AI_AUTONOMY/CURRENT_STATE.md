@@ -1,3 +1,11 @@
+## Ciclo c.786 — 2026-08-20 (UTC) — fix(search/assistant): plural «se nos pasó/pasaron» cierra la simetría del modismo del olvido (resto del gap (vi) c.779/c.785)
+
+- **Situación al inicio**: HEAD base `cbfbbf3` (c.784); durante el trabajo, un run hermano (c.785) resolvió el MISMO gap (vi) con la 1.ª singular («se me pas»). Trabajo local duplicado descartado (STALE_RUN/DUPLICATE sin pérdida, integración por ff-only). Tras recuperar la base, se verificó el HEAD remoto (`bash tools/run_domain_tests.sh` → OK 4878) y se completó la simetría: la forma de 1.ª plural «se nos pasó/pasaron» seguía cayendo a vacío/menú en las dos superficies.
+- **Resolución**: `SearchEngine.MISSED_SLIP_HEADS = ["se me pas", "se nos pas"]` + remanente «nos» excluido de contenido; `AssistantEngine.isMissedSlipQuery` con las mismas cabeçeras («te» excluido: «¿qué te pasó?» ≠ olvido). Determinista por frase normalizada; jamás por token suelto «paso».
+- **Tests**: +3 TDD (`SearchEngineTest` ×2, `AssistantEngineTest` ×1). RED: 3 fallos exactos; GREEN: `bash tools/run_domain_tests.sh` → **OK (4881 tests)**; `run_domain_checks.sh` → 25/25 OK.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- **HEAD final**: pendiente hasta el push.
+
 ## Ciclo c.785 — 2026-08-20 (UTC) — fix(missed-start): la frase coloquial "se me pasó/se me pasaron" recupera el hueco olvidado en búsqueda Y asistente (gap (vi) OPEN c.779)
 
 - **Situación al inicio**: HEAD base `cbfbbf3` (c.784) sincronizado con remoto; fetch PRE-COMMIT sin avance (sin colisión; NO STALE_RUN). Sesión con resumen de contexto (TDD RED de los 4 tests de recuperación ya verificado en sesión de preparación).
