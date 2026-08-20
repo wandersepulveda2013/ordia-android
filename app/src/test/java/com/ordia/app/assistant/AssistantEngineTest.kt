@@ -4579,5 +4579,88 @@ class AssistantEngineTest {
         assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
     }
 
+    // --- c.780: paridad buscador↔asistente para tareas marcadas ("tareas
+    // marcadas"/"destacadas"/"las que marqué"). La búsqueda las recupera vía
+    // SearchEngine.FLAGGED_TOKENS (task.flagged), pero el asistente caía al menú
+    // genérico — mentía por omisión sobre la señal más explícita que el usuario
+    // pone (marcó la tarea él mismo, a veces TODAS las de un proyecto). Ruta como
+    // la familia de prioridad c.677: lista sólo las marcadas activas (raíz),
+    // ordenadas por What Now, vacío honesto (NUNCA menú), recuperación de
+    // compromisos vencidos ante el vacío (paridad c.357/c.416). Los infinitivos
+    // ("marcar", "destacar" — acción por hacer) NO la detonan. ---
+
+    @Test fun flagged_listsOnlyFlaggedTasks() {
+        val flagged = TaskEntity(id = 1, title = "Revisar el contrato", flagged = true, priority = TaskPriority.LOW)
+        val normal = TaskEntity(id = 2, title = "Comprar leche", priority = TaskPriority.HIGH)
+        val anotherFlagged = TaskEntity(id = 3, title = "Pagar la tarjeta", flagged = true)
+        val answer = AssistantEngine.answer(
+            "tareas marcadas",
+            listOf(flagged, normal, anotherFlagged),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L, 3L), answer.relatedTaskIds.sorted())
+        assertTrue("habla de marcadas: ${answer.text}", answer.text.contains("marcada"))
+        assertTrue("no lista la normal: ${answer.text}", !answer.text.contains("leche"))
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun flagged_acceptsSynonyms() {
+        val flagged = TaskEntity(id = 1, title = "Revisar el contrato", flagged = true)
+        // Paridad estricta con SearchEngine.FLAGGED_TOKENS (participios; el
+        // infinitivo "marcar"/"destacar" queda fuera por palabra exacta).
+        // Nota: "marqué" (pretérito 1.ª persona) sigue siendo gap del BUSCADOR
+        // (BACKLOG c.780); aquí no se añade para que asistente y buscador
+        // compartan exactamente el mismo vocabulario de marcado.
+        for (q in listOf("tareas destacadas", "destacados", "tareas marcadas", "¿cuáles tengo marcadas?")) {
+            val answer = AssistantEngine.answer(q, listOf(flagged), emptyList(), emptyList())
+            assertEquals("«$q» recupera la marcada: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+        }
+    }
+
+    @Test fun flagged_emptyIsHonestNotMenu() {
+        val answer = AssistantEngine.answer(
+            "tareas marcadas",
+            listOf(TaskEntity(id = 1, title = "Normal", priority = TaskPriority.HIGH)),
+            emptyList(), emptyList()
+        )
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("vacío honesto: ${answer.text}", answer.text.contains("No tienes tareas marcadas"))
+    }
+
+    @Test fun flagged_recoversOverdueCommitmentWhenEmpty() {
+        val now = 1_000_000_000_000L
+        val commitment = overdueCommitment(32, "envío el informe", now - 2 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "tareas marcadas",
+            emptyList(), emptyList(), listOf(commitment), now
+        )
+        assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
+    }
+
+    @Test fun flagged_doesNotHijackInfinitive() {
+        // "marcar"/"destacar" (infinitivo, acción POR HACER) no es pedir las
+        // marcadas (adjetivo /participio). La marca proyectual la hizo c.779 en
+        // la familia complete-recap; aquí el guardia es por palabra exacta.
+        val flagged = TaskEntity(id = 1, title = "Revisar el contrato", flagged = true)
+        for (q in listOf("quiero marcar una tarea", "destacar las prioridades", "debería marcar esto")) {
+            val answer = AssistantEngine.answer(q, listOf(flagged), emptyList(), emptyList())
+            assertTrue("«$q» no lista la marcada: ${answer.text}", answer.relatedTaskIds.isEmpty())
+        }
+    }
+
+    @Test fun flagged_mixedWithPrioritySignal_keepsPriorityRouting() {
+        // "marcadas como urgentes": la señal de prioridad (alta/urgente) es más
+        // específica que la de marcado; la rama de prioridad responde y filtra.
+        val flaggedNormal = TaskEntity(id = 1, title = "Revisar el contrato", flagged = true, priority = TaskPriority.HIGH)
+        val flaggedUrgent = TaskEntity(id = 2, title = "Entrega crítica", flagged = true, priority = TaskPriority.URGENT)
+        val answer = AssistantEngine.answer(
+            "tareas marcadas como importantes",
+            listOf(flaggedNormal, flaggedUrgent),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(2L, 1L), answer.relatedTaskIds)
+        assertTrue("usa la rama de prioridad: ${answer.text}", answer.text.contains("importante"))
+    }
 
 }

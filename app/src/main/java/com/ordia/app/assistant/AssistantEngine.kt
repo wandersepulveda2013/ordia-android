@@ -511,6 +511,28 @@ object AssistantEngine {
                     relatedTaskIds = hits.map { it.id }
                 )
             }
+            // Filtro por tareas MARCADAS ("tareas marcadas"/"destacadas"). Paridad
+            // con SearchEngine.FLAGGED_TOKENS (task.flagged): la búsqueda las
+            // recupera, el asistente caía al menú genérico — mentía por omisión
+            // sobre la señal más explícita que el usuario pone (él mismo marcó la
+            // tarea, a veces TODAS las de un proyecto). Coincidencia por PALABRA
+            // EXACTA (los 8 participios), así el infinitivo "marcar"/"destacar"
+            // (acción por hacer) no la detona (guardia palabra-exacta, igual que
+            // c.779 para los participios del recap). Va después de prioridad para
+            // que "marcadas como urgentes" siga filtrando por prioridad. Vacío:
+            // honesto, sin menú (paridad familia lie-by-omission); con compromiso
+            // vencido, recuperación (c.357/c.416).
+            isFlaggedQuery(query) -> {
+                val hits = WhatNowEngine.ordered(active, now, zone).filter { it.flagged }.take(6)
+                if (hits.isEmpty() && overdueCommitments.isNotEmpty()) {
+                    return overdueCommitmentAnswer(overdueCommitments)
+                }
+                AssistantAnswer(
+                    if (hits.isEmpty()) "No tienes tareas marcadas."
+                    else "Tienes ${hits.size} marcadas: " + hits.joinToString(" · ") { it.title } + overdueCommitmentTail(overdueCommitments),
+                    relatedTaskIds = hits.map { it.id }
+                )
+            }
             // Tareas sin fecha ("sin fecha"/"sin día"/"sin plazo"/"sin vencimiento").
             // La búsqueda (SearchEngine.UNDATED) las recupera; el asistente caía al
             // menú genérico y la tarea sin vencimiento —la más olvidable de todas—
@@ -749,6 +771,22 @@ object AssistantEngine {
             else -> null
         }
     }
+
+    /**
+     * Vocabulario de marcado: paridad estricta con los FLAGGED_TOKENS de
+     * [com.ordia.app.domain.SearchEngine] (los 8 participios, nunca infinitivos).
+     * Por PALABRA EXACTA para no secuestrar "marcar"/"destacar" (acción por
+     * hacer) ni un "desmarcada". Si el buscador añade o quita un token, este
+     * conjunto debe moverse con él en la misma dirección (soledad buscador↔
+     * asistente, doctrina c.677/c.779).
+     */
+    private val FLAGGED_WORDS = setOf(
+        "marcada", "marcadas", "marcado", "marcados",
+        "destacada", "destacadas", "destacado", "destacados"
+    )
+
+    private fun isFlaggedQuery(query: String): Boolean =
+        query.split(" ").any { it in FLAGGED_WORDS }
 
     // Intención "tareas sin fecha": identica al scope UNDATED de SearchEngine
     // ("sin" + hint: fecha/vencimiento/día/plazo), así búsqueda y asistente
