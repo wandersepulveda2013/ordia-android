@@ -425,6 +425,12 @@ object AssistantEngine {
                 if (content.isBlank()) AssistantAnswer("Añade el contenido después de dos puntos para crear la nota.")
                 else AssistantAnswer("La nota está lista para guardarse: “${content.take(120)}”.", AssistantAction.CREATE_NOTE, content)
             }
+            // (v) sonda c.779: "notas fijadas" — el asistente no recibe notas, así la
+            // ÚNICA ruta honesta hacia ellas es la vista de búsqueda (SearchKind.NOTE
+            // + wantsPinned). Antes caía al menú genérico: mentira por omisión
+            // cruzada (el dato existe en la app; sólo falta el routing).
+            isPinnedNotesQuery(query) ->
+                AssistantAnswer("Abriré la búsqueda con las notas fijadas.", AssistantAction.OPEN_SEARCH, clean)
             query.startsWith("busca ") || query.startsWith("muestra ") || query.startsWith("pendientes con") ->
                 AssistantAnswer("Abriré la búsqueda con esa consulta.", AssistantAction.OPEN_SEARCH, clean)
             // Noveno olvido de la familia "lie-by-omission" / recuperación de
@@ -834,6 +840,17 @@ object AssistantEngine {
 
     private fun isMissedSlipQuery(query: String): Boolean =
         MISSED_SLIP_HEADS.any { it in query }
+
+    // Notas fijadas: "nota(s)" + participio de "fijar" por palabra exacta
+    // (vocabulario propio de notas: nunca "marcadas", que es de tareas). En
+    // paridad con SearchEngine.PINNED_TOKENS. Creación ("guardar como nota:") se
+    // evalúa ANTES en el when y sigue ganando; "fijada" suelta no es consulta.
+    private val PINNED_NOTE_WORDS = setOf("fijada", "fijadas", "fijado", "fijados")
+
+    private fun isPinnedNotesQuery(query: String): Boolean {
+        val words = query.split(" ")
+        return words.any { it == "nota" || it == "notas" } && words.any { it in PINNED_NOTE_WORDS }
+    }
 
     /**
      * Consulta de "lo próximo" sin alcance de fecha ("tengo algo pronto",

@@ -4860,4 +4860,31 @@ class AssistantEngineTest {
         assertTrue("noun does not list recurring: ${answer.text}", answer.relatedTaskIds.isEmpty())
     }
 
+
+    // c.787 — (v) notas fijadas: la única ruta honesta del asistente hacia las
+    // notas es la vista de búsqueda (el asistente no recibe notas); antes, la
+    // consulta caía al menú genérico — mentira por omisión cruzada.
+    @Test fun pinnedNotes_fijadas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("notas fijadas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas fijadas", answer.actionPayload
+            ?: answer.text)
+    }
+
+    @Test fun pinnedNotes_queNotasTengoFijadas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("¿qué notas tengo fijadas?", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun pinnedNotes_guard_guandarComoNota_keepsCreateNote() {
+        // La creación sigue siendo creación: "guardar como nota: …" no abre la búsqueda.
+        val answer = AssistantEngine.answer("Guardar como nota: receta", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.CREATE_NOTE, answer.action)
+    }
+
+    @Test fun pinnedNotes_guard_bareFijadaDoesNotRoute() {
+        // "fijada" sin "nota(s)" no es una consulta de notas fijadas.
+        val answer = AssistantEngine.answer("fijada", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
 }

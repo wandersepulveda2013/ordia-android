@@ -1,9 +1,14 @@
+## Ciclo c.788 (2026-08-20, sonda c.779 (v) — último gap: «notas fijadas»)
+
+Base original `a3694c4` (c.786; fetch pre-commit sin colisión). Tras el push rechazado, el remoto avanzó a `8019ffa` (ciclo c.787 DEDUPE hermano, docs-only, tomó el ID c.787): rebase no destructivo sobre `8019ffa` (conflictos sólo en los prepend de CURRENT_STATE/RUN_LOG; ambos bloques conservados verbatim) + renumeración c.787→c.788. NO STALE_RUN (rebase con resolución, sin force, sin pérdida). **Problema**: «notas fijadas» caía al menú genérico — mentira por omisión cruzada (la app sí lista notas fijadas en búsqueda; el asistente ocultaba el camino). **Solución**: `isPinnedNotesQuery` («nota(s)» + participio «fijar» por palabra) → `AssistantAction.OPEN_SEARCH` con la consulta; creación gana antes; guarda bilateral («fijada» sin «nota» no rutea). **TDD**: 4 tests (RED: 2 fallos exactos sobre 4883; guardas pasaban pre-fix); GREEN: **OK (4885 tests)**, smoke 25/25. Sonda c.779 COMPLETA (21 consultas, 6 gaps, 8 ciclos). NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK). Commits/HEAD final: pendiente del push.
+
+---
 ## Ciclo c.787 — 2026-08-20 (UTC) — DEDUPE (cero código): colisión doble sobre el gap (vi); descarte total del duplicado + verificación del HEAD hermano
 
 - **HEAD inicial**: `cbfbbf3` (c.784) → ff a `67c0e11` (c.785 hermano, DUPLICADO #1 del gap (vi)) → tras complementar el residuo (helper compartido en `TaskRules`), ff a `a3694c4` (c.786 hermano, DUPLICADO #2 del residuo). Protocolo anti-colisión aplicado en ambas: stash → ff-only → comparar → **descarte total del trabajo local** (superposición casi total; el delta restante — pronombres «te/le/ha» — contradecía la guard deliberada del hermano sobre «te»: «¿qué te pasó?» ≠ olvido). Sin force, sin reset --hard, sin sobrescribir al hermano, `main` intacto, NO STALE_RUN (ff válidos).
 - **Verificación del HEAD aterrizado** (`a3694c4`): `bash tools/run_domain_tests.sh` → **OK (4881)**; `bash tools/run_domain_checks.sh` → 25/25 OK. Brecha (vi) cerrada por los hermanos c.785+c.786 (`MISSED_SLIP_HEADS` simétricas en búsqueda y asistente).
 - **Commits**: docs-only (CURRENT_STATE c.787 + RUN_LOG c.787). BACKLOG sin cambios (ningún residuo OPEN nuevo). Calidad > cantidad: sesión sin código cerrado honestamente en vez de inventar cambios.
-- **Próxima prioridad**: (v) notas fijadas → OPEN_SEARCH (estructural) o residuo search-side "las que marqué".
+- **Próxima prioridad**: (v) notas fijadas → OPEN_SEARCH (estructural) o residuo search-side "las que marqué" — cerrada por c.788.
 ## Ciclo c.785 — 2026-08-20 (UTC) — fix(missed-start): la frase coloquial "se me pasó/se me pasaron" recupera el hueco olvidado en búsqueda Y asistente (gap (vi) OPEN c.779)
 
 - **HEAD inicial**: `cbfbbf3` (c.784) sincronizado con remoto; `git fetch` PRE-COMMIT sin avance (sin colisión; NO STALE_RUN; NO force/reset --hard/clean destructivo; `main` intacto).
