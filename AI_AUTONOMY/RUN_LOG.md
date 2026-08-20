@@ -16533,3 +16533,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Archivos**: `app/src/main/java/com/ordia/app/domain/SearchEngine.kt` (rama THIS_WEEK + firma de `anchorMatchesScope` + doc), `app/src/test/java/com/ordia/app/domain/SearchEngineDateScopeTest.kt` (3 reescritos + 2 nuevos + 2 comentarios), `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG,DECISIONS}.md`. Creados: 0; eliminados: 0.
 - **Estado**: VERIFIED (dominio JVM). **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
 - **Próxima prioridad**: paridad residual documentada — "ayer"/"anteayer" sueltas (≈0 valor); workers/backup/restore con DAOs/Room reales (P0 datos — NO JVM-verificable); accesibilidad `contentDescription`; `ContextIntentEngine` funciones no auditadas; o nueva revisión de producto. Re-fetch OBLIGATORIO, numerar ciclo SOLO en fetch final.
+
+---
+
+## 2026-08-20 — c.779 — feat(assistant): recap adjetival de logros (paridad búsqueda↔asistente, ítem 5)
+
+- **HEAD inicial**: `1c8e156` (c.777); fetch PRE-COMMIT reveló hermano c.778 `4c2aceb` (region disjunta SearchEngine) -> integracion stash -> ff-only -> pop (conflictos solo en CURRENT_STATE/RUN_LOG, resolucion manual conservando ambas entradas) -> **COLISION cycle-ID: renumerado c.778->c.779**. Base fusionada: `4c2aceb` + cambios propios.
+- **Cambios**: `AssistantEngine.kt` (`isCompletedRecapIntent` + `isCompletedAdjectiveQuery` por palabra con sustantivo "tarea(s)"; `completedAnswer` rama `adjectiveNoAnchor` = logros recientes sin filtro de fecha, con ancla → período); `AssistantEngineTest.kt` (+8 TDD); AI_AUTONOMY (CURRENT_STATE/BACKLOG/RUN_LOG).
+- **Bugs**: 1 familia — forma adjetival de recap de logros ("tareas completadas/terminadas/hechas/finalizadas/acabadas") → menú genérico pese a que la búsqueda las recupera (medido por sonda diferencial NUEVA `/tmp/probe-work/AssistantSearchParity2.kt`, 22 consultas, fixture temporal de 12 tareas).
+- **Features**: recap adjetival de logros (sin nueva pantalla); guards anti-robo (infinitivo pendiente, palabra-límite "determinada").
+- **Tests**: `tools/run_domain_tests.sh` → OK (4847 esperados: 4839 base fusionada + 8 (re-suite sobre base fusionada)), 0 failures; `run_domain_checks.sh` → 25/25 OK; sonda recompilada POST: familia cerrada. NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Commits**: tras este append (prefijo feat(assistant)).
+- **HEAD final**: tras push.
+- **Próxima prioridad**: gaps residuales sonda c.779 (BACKLOG fila OPEN): prioridad alta/baja, marcadas/destacadas, recurrentes, bare temporal "tareas de <día>", notas fijadas (→OPEN_SEARCH), "¿qué se me pasó?".

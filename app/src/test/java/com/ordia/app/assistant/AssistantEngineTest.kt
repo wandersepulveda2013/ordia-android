@@ -3697,6 +3697,113 @@ class AssistantEngineTest {
         assertEquals(AssistantAction.NONE, answer.action)
     }
 
+    // --- Recap en forma adjetival ("tareas completadas/terminadas/hechas") ---
+    // Es la MISMA intención de recap sin verbo recap: la forma adjetival es la
+    // más cotidiana. Antes caía al menú genérico callando el logro (gap medido
+    // por sonda diferencial búsqueda-vs-asistente: la búsqueda las recupera vía
+    // COMPLETED_TOKENS, el asistente no). Sin ancla temporal lista los logros
+    // recientes SIN filtrar por hoy (filtrar por hoy mentiría por omisión);
+    // con ancla usa el período igual que las formas verbales.
+
+    @Test fun completedRecap_adjectiveBare_listsRecentAcrossDays() {
+        val now = dayAt(dayToday, 15)
+        val done = listOf(
+            completedTask(1, "De hoy", dayAt(dayToday, 10)),
+            completedTask(2, "De ayer", dayAt(dayToday.minusDays(1), 12)),
+            completedTask(3, "De anteayer", dayAt(dayToday.minusDays(2), 9))
+        )
+        val answer = AssistantEngine.answer("tareas completadas", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("cuenta 3: ${answer.text}", answer.text.contains("Has completado 3"))
+        assertTrue("nombra la de hoy: ${answer.text}", answer.text.contains("De hoy"))
+        assertTrue("nombra la de ayer (sin filtro de hoy): ${answer.text}", answer.text.contains("De ayer"))
+        assertTrue("nombra la de anteayer: ${answer.text}", answer.text.contains("De anteayer"))
+        assertFalse("no cae al menú: ${answer.text}", answer.text.contains("Puedo organizar tu día"))
+        assertFalse("no filtra por hoy: ${answer.text}", answer.text.startsWith("Hoy"))
+        assertEquals(AssistantAction.NONE, answer.action)
+    }
+
+    @Test fun completedRecap_adjective_acceptsSynonyms() {
+        val now = dayAt(dayToday, 15)
+        val done = listOf(completedTask(1, "Revisar propuesta", dayAt(dayToday, 11)))
+        for (q in listOf("tareas completadas", "tareas terminadas", "tareas hechas", "tareas finalizadas", "tareas acabadas", "mis tareas completadas")) {
+            val answer = AssistantEngine.answer(q, done, emptyList(), emptyList(), now, dayZone)
+            assertTrue("[$q] nombra el logro: ${answer.text}", answer.text.contains("Revisar propuesta"))
+        }
+    }
+
+    @Test fun completedRecap_adjective_moreThanThree_summarizesRest() {
+        val now = dayAt(dayToday, 18)
+        val done = (1..5).map { completedTask(it.toLong(), "Tarea $it", dayAt(dayToday, 8 + it)) }
+        val answer = AssistantEngine.answer("tareas hechas", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("cuenta 5: ${answer.text}", answer.text.contains("Has completado 5"))
+        assertTrue("resume el resto: ${answer.text}", answer.text.contains("y 2 más"))
+        assertTrue("nombra los 3 más recientes: ${answer.text}",
+            answer.text.contains("Tarea 5") && answer.text.contains("Tarea 3"))
+        assertFalse("no nombra el más antiguo: ${answer.text}", answer.text.contains("Tarea 1"))
+    }
+
+    @Test fun completedRecap_adjectiveWithAnchor_usesPeriodNotToday() {
+        // dayToday = mié 2026-07-29 → semana pasada lun 07-20..dom 07-26.
+        val now = dayAt(dayToday, 15)
+        val done = listOf(
+            completedTask(1, "De la semana pasada", dayAt(LocalDate.of(2026, 7, 22), 10)),
+            completedTask(2, "De esta semana", dayAt(LocalDate.of(2026, 7, 28), 10))
+        )
+        val answer = AssistantEngine.answer("tareas completadas la semana pasada", done, emptyList(), emptyList(), now, dayZone)
+        assertTrue("etiqueta pasada: ${answer.text}", answer.text.startsWith("La semana pasada"))
+        assertTrue("nombra la de la semana pasada: ${answer.text}", answer.text.contains("De la semana pasada"))
+        assertFalse("excluye esta semana: ${answer.text}", answer.text.contains("De esta semana"))
+    }
+
+    @Test fun completedRecap_adjective_empty_saysSoHonestly() {
+        val now = dayAt(dayToday, 15)
+        val answer = AssistantEngine.answer("tareas completadas", emptyList(), emptyList(), emptyList(), now, dayZone)
+        assertTrue("dice que no hay: ${answer.text}", answer.text.contains("Aún no tienes tareas completadas."))
+        assertFalse("no inventa logros: ${answer.text}", answer.text.contains("«"))
+        assertFalse("no cae al menú: ${answer.text}", answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun completedRecap_adjective_excludesSubtasksArchivedCancelled() {
+        // Mismo predicado canónico que el recap verbal: solo raíces, no
+        // archivadas, no canceladas.
+        val now = dayAt(dayToday, 15)
+        val root = completedTask(1, "Raíz", dayAt(dayToday, 10))
+        val subtask = completedTask(2, "Subtarea", dayAt(dayToday, 11)).copy(parentTaskId = 1)
+        val archived = completedTask(3, "Archivada", dayAt(dayToday, 12)).copy(archived = true)
+        val cancelled = TaskEntity(
+            id = 4, title = "Cancelada", completed = true,
+            status = com.ordia.app.data.local.TaskStatus.CANCELLED,
+            completedAt = dayAt(dayToday, 13), parentTaskId = null
+        )
+        val answer = AssistantEngine.answer("tareas terminadas", listOf(root, subtask, archived, cancelled), emptyList(), emptyList(), now, dayZone)
+        assertTrue("cuenta solo 1 raíz: ${answer.text}", answer.text.contains("Has completado 1"))
+        assertFalse("no cuenta subtarea: ${answer.text}", answer.text.contains("Subtarea"))
+        assertFalse("no cuenta archivada: ${answer.text}", answer.text.contains("Archivada"))
+        assertFalse("no cuenta cancelada: ${answer.text}", answer.text.contains("Cancelada"))
+    }
+
+    @Test fun completedRecap_adjective_doesNotHijackInfinitive() {
+        // El infinitivo "completar/terminar" es acción pendiente, NO logro:
+        // no debe disparar el recap (emparejamiento por palabra, no subcadena).
+        val now = dayAt(dayToday, 15)
+        val done = listOf(completedTask(1, "Hecha", dayAt(dayToday, 10)))
+        for (q in listOf("quiero completar la tarea mañana", "debo terminar la tarea", "tengo que acabar la tarea")) {
+            val answer = AssistantEngine.answer(q, done, emptyList(), emptyList(), now, dayZone)
+            assertFalse("[$q] no responde recap: ${answer.text}",
+                answer.text.contains("Has completado") || answer.text.contains("completaste"))
+        }
+    }
+
+    @Test fun completedRecap_adjective_wordBoundary_determinadaIsNotTerminada() {
+        // "determinada" CONTIENE "terminada" como subcadena pero no es un
+        // adjetivo de completado; el emparejamiento por palabra lo excluye.
+        val now = dayAt(dayToday, 15)
+        val done = listOf(completedTask(1, "Hecha", dayAt(dayToday, 10)))
+        val answer = AssistantEngine.answer("la tarea determinada", done, emptyList(), emptyList(), now, dayZone)
+        assertFalse("no responde recap: ${answer.text}",
+            answer.text.contains("Has completado") || answer.text.contains("completaste"))
+    }
+
     @Test fun completedRecap_lastWeek_acceptsUltimaVariant() {
         // "última semana" (plegado a "ultima") es sinónimo coloquial de "semana
         // pasada": mismo alcance, misma etiqueta. La consulta ya viene sin acentos.

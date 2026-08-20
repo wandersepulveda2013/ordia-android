@@ -688,8 +688,32 @@ object AssistantEngine {
         // "hice ayer"/"hice anteayer" fuerzan la fecha aunque falte el verbo
         // recap explícito ("¿qué hice ayer?" trae "hice" + "ayer"; lo mismo con
         // anteayer). "anteayer" contiene "ayer", por lo que ambos se cubren.
-        return isRecapVerb || "hice ayer" in query || "hice anteayer" in query
+        return isRecapVerb || "hice ayer" in query || "hice anteayer" in query ||
+            isCompletedAdjectiveQuery(query)
     }
+
+    // Adjetivo de completado + sustantivo "tarea(s)": "tareas completadas",
+    // "mis tareas terminadas", "tareas hechas la semana pasada". Es la MISMA
+    // intención de recap ("¿qué terminé?") en su forma adjetival —la más
+    // cotidiana— pero sin verbo recap caía al menú genérico callando el logro
+    // (gap medido por sonda diferencial búsqueda-vs-asistente: SearchEngine
+    // COMPLETED_TOKENS las recupera, el asistente no). Mismo vocabulario
+    // adjetival que SearchEngine (paridad de superficies). Por PALABRA (no
+    // subcadena): "determinada" contiene "terminada" y el infinitivo
+    // "completar/terminar" (acción pendiente, no logro) no debe disparar el
+    // recap. Se exige "tarea(s)" para no robar consultas ajenas al recap de
+    // tareas ("proyecto terminado" no es recap de tareas).
+    private val COMPLETED_ADJECTIVE_TOKENS = setOf(
+        "completada", "completadas", "completado", "completados",
+        "hecha", "hechas", "hecho", "hechos",
+        "terminada", "terminadas", "terminado", "terminados",
+        "finalizada", "finalizadas", "finalizado", "finalizados",
+        "acabada", "acabadas", "acabado", "acabados"
+    )
+
+    private fun isCompletedAdjectiveQuery(query: String): Boolean =
+        "tarea" in query &&
+            query.split(Regex("\\s+")).any { it in COMPLETED_ADJECTIVE_TOKENS }
 
     /**
      * Guarda de la rama de prioridad explícita: la consulta menciona "urgente"
@@ -864,6 +888,16 @@ object AssistantEngine {
         now: Long,
         zone: ZoneId
     ): AssistantAnswer {
+        // Forma adjetival SIN ancla temporal ("tareas completadas", "mis tareas
+        // hechas"): filtrar por HOY mentiría por omisión ("Hoy no has
+        // completado..." pese a logros de otros días) y filtrar por un período
+        // arbitrario inventaría un alcance que el usuario no pidió. La lectura
+        // honesta de la forma adjetival sin fecha es "mis logros recientes":
+        // se listan sin filtro de fecha (mismo predicado canónico, orden desc
+        // por completedAt). Con ancla ("…la semana pasada") se usa el período
+        // exactamente como las formas verbales ("qué completé").
+        val adjectiveNoAnchor = isCompletedAdjectiveQuery(query) &&
+            "semana" !in query && "mes" !in query && "ayer" !in query && "hoy" !in query
         val today = DateRules.toLocalDate(now, zone)
         // "anteayer" contiene el substring "ayer": debe evaluarse ANTES que "ayer".
         // "semana"/"mes" se evalúan antes que los días: un período desplaza la fecha.
@@ -901,18 +935,45 @@ object AssistantEngine {
             "ayer" in query -> "Ayer" to ({ d: LocalDate -> d == today.minusDays(1) })
             else -> "Hoy" to ({ d: LocalDate -> d == today })
         }
-        val done = tasks
+        // Raíces completadas (mismo predicado canónico que
+        // TaskRules.completedTodayCount): sin subtareas, archivadas o canceladas.
+        val completedRoots = tasks
             .asSequence()
             .filter { it.parentTaskId == null }
             .filter { it.status == TaskStatus.COMPLETED }
             .filterNot { it.archived }
             .filterNot { it.status == TaskStatus.CANCELLED }
+            .filter { it.completedAt != null }
+            .sortedByDescending { it.completedAt ?: 0L }
+            .toList()
+        // Sin ancla temporal en la forma adjetival: logros recientes, sin
+        // filtro de fecha (la mentira por omisión "Hoy no has completado" quita
+        // el acceso al logro de otros días; el período inventado, también).
+        if (adjectiveNoAnchor) {
+            return when {
+                completedRoots.isEmpty() -> AssistantAnswer(
+                    "Aún no tienes tareas completadas.",
+                    AssistantAction.NONE
+                )
+                completedRoots.size <= 3 -> AssistantAnswer(
+                    "Has completado ${completedRoots.size}: " +
+                        completedRoots.joinToString(", ") { "«${it.title}»" } + ".",
+                    AssistantAction.NONE
+                )
+                else -> {
+                    val shown = completedRoots.take(3).joinToString(", ") { "«${it.title}»" }
+                    AssistantAnswer(
+                        "Has completado ${completedRoots.size}; las más recientes: $shown y ${completedRoots.size - 3} más.",
+                        AssistantAction.NONE
+                    )
+                }
+            }
+        }
+        val done = completedRoots
             .mapNotNull { t ->
                 val at = t.completedAt ?: return@mapNotNull null
                 if (inRange(DateRules.toLocalDate(at, zone))) t else null
             }
-            .sortedByDescending { it.completedAt ?: 0L }
-            .toList()
         return when {
             done.isEmpty() -> AssistantAnswer(
                 "$label no has completado tareas todavía.",
