@@ -967,6 +967,14 @@ object ContextIntentEngine {
             // `\s+\w` exige objeto, sustantivo "descarga"/pasado
             // "descargué…"/suelto no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )descargar\s+\w""").containsMatchIn(lower)
+            // c.726 (forma 13/19 tercera clase): "llenar <objeto>".
+            // Lockstep piso+keyword (c.713). Kind decidido: TASK, en
+            // deliberación contra NOTE/FORM — acción de completar el
+            // objeto (solicitud/forma/cheque/mochila); FORM no existe;
+            // NOTE es contenido capturado, no acción (criterio c.704).
+            // Anti-overreach: `\s+\w` exige objeto, sustantivo
+            // "llenado"/pasado "llené…"/suelto no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )llenar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1721,6 +1729,9 @@ object ContextIntentEngine {
                 // c.725: misma plantilla para "descargar".
                 val matchDescargar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(descargar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchDescargar != null) return "Descargar ${matchDescargar.groupValues[2]}"
+                // c.726: misma plantilla para "llenar".
+                val matchLlenar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llenar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchLlenar != null) return "Llenar ${matchLlenar.groupValues[2]}"
 
                 null
             }

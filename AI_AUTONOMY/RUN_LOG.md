@@ -1,3 +1,13 @@
+## Run c.726 — 2026-08-20 (UTC) — feat(context): piso TASK "llenar <objeto>" — forma 13/19 TERCERA clase — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `2d9928a` (push c.725, ff-only limpio). **Selección (P1)**: "llenar <objeto>" (sonda). Doctrina una-forma-por-ciclo.
+- **Solución**: piso `llenar` + keyword TASK + plantilla "(llenar) X"→"Llenar X". **Kind decidido: TASK, en deliberación contra NOTE/FORM** — acción de completar el objeto (solicitud/forma/cheque/mochila); FORM no existe; NOTE es contenido capturado (criterio c.704). Controles NULL (negada/quizá/"llenado"/"llené…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineLlenarFloorTest.kt` — RED exacto 4/10 (capturas) → GREEN **OK (4381 tests)** (4371 + 10), 0 failures; smoke 25 OK; automation 9 OK. Sonda POST → TASK 'Llenar la solicitud' dueAt=true; 5 controles NULL. Quedan 6 OPEN (hogar × 6).
+- **Archivos**: engine (+piso +plantilla), `ContextIntent.kt` (+keyword), probe (+5 controles c.726), test NUEVO (+10), AI_AUTONOMY BACKLOG+CURRENT_STATE+RUN_LOG.
+- **Próxima prioridad**: forma de hogar OPEN #1 "tender la ropa <objeto>" — deliberación de kind (HOUSEHOLD vs TASK) pendiente; `HOUSEHOLD_VERBS` no cubre "tender". Re-fetch OBLIGATORIO antes de trabajar.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **HEAD final**: tras el commit.
+
 ## Run c.724 — 2026-08-20 (UTC) — feat(context): piso TASK "subir <objeto>" — forma 11/19 TERCERA clase — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `d9714ea` (push c.723, ff-only limpio). **Selección (P1)**: "subir <objeto>" (sonda). Doctrina una-forma-por-ciclo.

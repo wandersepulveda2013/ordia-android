@@ -82,6 +82,13 @@ fun main() {
         "la descarga de la factura fue ayer",
         "descargué la factura ayer",
         "descargar",
+        // Controles c.726 (forma "llenar"): negada/duda/sustantivo/
+        // pasado/verbo suelto deben permanecer NULL.
+        "no llenar la solicitud mañana",
+        "quizá llenar la solicitud mañana",
+        "el llenado de la solicitud fue ayer",
+        "llené la solicitud ayer",
+        "llenar",
         "y al final terminé contento jeje",
         "hola buenos días"
     )

@@ -1,3 +1,30 @@
+## Ciclo c.726 — 2026-08-20 (UTC) — feat(context): piso TASK "llenar <objeto>" (forma 13/19 TERCERA clase)
+
+- **Objetivo**: decimotercera forma de la TERCERA clase cotidiana (verbos de
+  gestión de cierre/completitud + hogar; sondeo c.721): "llenar la solicitud
+  mañana" → TASK. Piso en `hasStrongTaskImperative` (anclas inicio/acuse/
+  `TASK_FLOOR_TEMPORAL`, guard `(?<!no )`, `\s+\w` exige objeto) + keyword
+  "llenar" en TASK (`ContextIntent.kt` — lockstep piso↔keyword, lección c.713)
+  + plantilla "(llenar) X"→"Llenar X". Evita el derrame "llenado/objeto"
+  (tipo c.706/c.723).
+- **Deliberación de kind**: TASK contra NOTE/FORM (completar el objeto como
+  gestión; FORM no existe; NOTE es contenido capturado — criterio c.704).
+- **Anti-overreach**: negada/quizá NULL; sustantivo "el llenado…" NULL; pasado
+  "llené la solicitud ayer" NULL; suelto "llenar" NULL; envolvente c.613 sigue
+  gobernando TASK ("recuérdame llenar la solicitud ≠ piso; envolvente TASK").
+- **TDD**: +10 tests `ContextIntentEngineLlenarFloorTest.kt` (4 capturas RED
+  exacto → GREEN). RED declarado: 4 fallos / 10 tests (solo las 4 capturas).
+- **Pruebas**: suite `run_domain_tests.sh` **OK (4381 tests)** (4371 c.725 + 10),
+  0 failures; `run_domain_checks.sh` smoke **25/25 OK**;
+  `run_automation_engine_checks.sh` **9/9 OK**. Sonda POST: "llenar la
+  solicitud mañana" → TASK 'Llenar la solicitud' dueAt=true; +5 controles
+  neutralizados (NULL). Quedan 6 OPEN (hogar × 6) — próxima forma:
+  "tender la ropa hoy" (deliberar kind HOUSEHOLD vs TASK; `HOUSEHOLD_VERBS`
+  no cubre "tender").
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **HEAD**: inicial `2d9928a` (ff-only limpio sondado; final tras commit).
+
+
 ## Ciclo c.725 — 2026-08-20 (UTC) — feat(context): piso TASK "descargar <objeto>" (forma 12/19 TERCERA clase)
 
 - **Objetivo**: duodécima forma de la TERCERA clase cotidiana (verbos de gestión
