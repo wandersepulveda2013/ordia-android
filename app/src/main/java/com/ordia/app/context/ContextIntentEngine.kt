@@ -909,6 +909,14 @@ object ContextIntentEngine {
             // Anti-overreach: `\s+\w` exige objeto, `(?<!no )` bloquea negada,
             // sustantivo "redacción"/pasado "redacté…"/suelto no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )redactar\s+\w""").containsMatchIn(lower)
+            // c.721e (forma 5/19 TERCERA clase, sonda `ThirdClassVerbDiscoveryProbe`):
+            // "leer <objeto>" ("leer el contrato hoy"). Sin keyword — lockstep
+            // piso+keyword (lección c.713). Kind decidido: TASK, en deliberación
+            // contra NOTE — acción de consumir el objeto (contrato/documento/libro);
+            // NOTE es contenido capturado, no acción (criterio c.704).
+            // Anti-overreach: `\s+\w` exige objeto, `(?<!no )` bloquea negada,
+            // sustantivo "lectura"/pasado "leí…"/suelto no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )leer\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1635,6 +1643,10 @@ object ContextIntentEngine {
                 // lección c.616: match arranca en el verbo).
                 val matchRedactar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(redactar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchRedactar != null) return "Redactar ${matchRedactar.groupValues[2]}"
+                // c.721e: misma plantilla para "leer" (ancla/guard idénticos;
+                // lección c.616: match arranca en el verbo).
+                val matchLeer = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(leer)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchLeer != null) return "Leer ${matchLeer.groupValues[2]}"
 
                 null
             }

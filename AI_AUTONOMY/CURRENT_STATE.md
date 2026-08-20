@@ -1,3 +1,10 @@
+## Ciclo c.721e — 2026-08-20 (UTC) — feat(context): piso TASK "leer <objeto>" (forma 5/19 TERCERA clase)
+
+- **HEAD**: inicial `6f20aab`-origin (ff-only limpio; final tras commit).
+- **Solución**: piso `leer` + keyword TASK (lockstep c.713) + plantilla "(leer) X"→"Leer X". **Kind decidido: TASK, en deliberación contra NOTE** — acción de consumir el objeto; NOTE es contenido (criterio c.704). Controles NULL (negada/duda/"lectura"/"leí…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineLeerFloorTest.kt`; RED exacto 4/10 → GREEN **OK (4301 tests)** (4291 + 10), 0 failures; smoke 25 OK; automation 9 OK; sonda POST → TASK 'Leer el contrato' dueAt=true. Quedan 14 OPEN.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android.
+
 ## Ciclo c.721d — 2026-08-20 (UTC) — feat(context): piso TASK "redactar <objeto>" (forma 4/19 TERCERA clase)
 
 - **HEAD**: inicial `9f80fa1`-origin (ff-only limpio; final tras commit).

@@ -1,3 +1,14 @@
+## Run c.721e — 2026-08-20 (UTC) — feat(context): piso TASK "leer <objeto>" — forma 5/19 TERCERA clase — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `6f20aab` (push c.721d, ff-only limpio).
+- **Selección (P1)**: "leer <objeto>" (sonda). Doctrina una-forma-por-ciclo.
+- **Solución**: piso `leer` + keyword TASK + plantilla "(leer) X"→"Leer X". **Kind decidido: TASK, en deliberación contra NOTE** — acción de consumir el objeto; NOTE es contenido (criterio c.704). Controles NULL (negada/duda/"lectura"/"leí…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineLeerFloorTest.kt` — RED exacto 4/10 → GREEN **OK (4301 tests)** (4291 + 10), 0 failures; smoke 25 OK; automation 9 OK. Sonda POST → TASK 'Leer el contrato' dueAt=true. Quedan 14 OPEN.
+- **Archivos**: engine (+piso +plantilla), `ContextIntent.kt` (+keyword), test NUEVO (+10), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN tercera-clase (~14 restantes). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android.
+- **HEAD final**: tras el commit.
+
 ## Run c.721d — 2026-08-20 (UTC) — feat(context): piso TASK "redactar <objeto>" — forma 4/19 TERCERA clase — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `9f80fa1` (push c.721c, ff-only limpio).
