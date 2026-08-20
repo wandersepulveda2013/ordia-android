@@ -459,8 +459,12 @@ object SearchEngine {
         // ("¿qué tengo hoy?", "¿qué hay mañana?") que igualmente se exigían en
         // el contenido. Ningún conjunto léxico (intents, scopes, filtros)
         // depende de estas palabras.
+        // "cuales"/"son" (c.783): introducción interrogativa total ("¿cuáles son
+        // mis recurrentes?", "¿cuáles son mis marcadas?"). Sin ellos la consulta
+        // quedaba envenenada y la recuperación era vacía aunque el alcance sí
+        // coincidiera un filtro para atributos (marcadas/completadas/recurrentes).
         "de", "del", "la", "las", "el", "los", "con", "que", "mis", "mi", "cosas", "mostrar", "muestra", "en", "por",
-        "tengo", "hay"
+        "tengo", "hay", "cuales", "son"
     )
     private val TASK_TERMS = setOf("tarea", "pendient", "vencid", "important", "urgente")
     private val NOTE_TERMS = setOf("nota")

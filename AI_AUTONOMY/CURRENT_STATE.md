@@ -1,3 +1,14 @@
+## Ciclo c.783 — 2026-08-20 (UTC) — fix(search): muletilla interrogativa "cuales"/"son" en STOP_WORDS — residual buscador del gap (ii) c.782 (run STALE_RUN/DUPLICATE de asistente, residual conservado)
+
+- **Situación al inicio**: HEAD base `f05699c`; durante el run el remoto aterrizó `7140cdb` (hermano: c.782 asistente recurrentes, DUPLICADO del mío — descartado de la parte asistente, precedentes STALE_RUN/DUPLICATE de post-c.781/post-c.774); se integró con pull --ff-only conservando el residual buscador; renumerado c.783 con fetch final.
+- **Problema (P1, paridad)**: tras el fix asistente del hermano, la sonda `/tmp/probe-work/RecurrentParityProbe.kt` revelaba GAP residual del BUSCADOR: "¿cuáles son recurrentes?" → búsqueda VACÍA porque `STOP_WORDS` no excluía "cuales"/"son" (c.764 sólo excluye "tengo"/"hay") — paridad asimétrica.
+- **Solución**: `SearchEngine.STOP_WORDS += "cuales","son"` (comentario c.782/783) — la pregunta natural total por atributos (recurrentes/marcadas/completadas) ya no queda vacía en la búsqueda. Determinista, cero UI, sin IA fingida.
+- **TDD**: +1 test `recurrentes_interrogativeFiller_recoversRecurringTasks` en `SearchEngineTest.kt`. Suite **OK (4864 tests: 4863 hermano + 1)**, 0 failures; `run_domain_checks.sh` → 25/25 OK. Probe POST: GAPS 0/5 (mediados en base local; componente buscador verificado sobre base remota por la misma sonda PRE/POST).
+- **AI_AUTONOMY**: CURRENT_STATE prepend; BACKLOG fila OPEN c.779 residual-buscador marcada; RUN_LOG append (STALE_RUN/DUPLICATE + residual).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin Android SDK); la lógica pura `SearchEngine.search` SÍ verificada en JVM.
+- **HEAD final**: tras commit/push (auth `github_token` — si `$GITHUB_TOKEN` vacío, usar `$github_token`, lección c.782).
+- **Próxima prioridad**: gaps OPEN restantes de la fila c.779, UNO por ciclo: (iv) bare temporal "tareas de <día>", (v) "notas fijadas" (estructural → OPEN_SEARCH), (vi) "¿qué se me pasó?" (vocab missed en AMBOS motores); + cola search-side (i) "las que marqué".
+
 ## Ciclo c.782 — 2026-08-20 (UTC) — feat(assistant): paridad búsqueda↔asistente "recurrentes/repetitivas" por PALABRA (el 4º gap OPEN de la sonda c.779 cerrado; integración NO destructiva con hermanos c.780/c.781)
 
 - **Situación al inicio**: base inicial `c0b6686` (c.779) → implementé 3 gaps (prioridad/flagged/recurring, 15 tests) → **fetch PRE-PUSH reveló hermanos: `8f7c5eb` c.780 (prioridad, mismo gap) + `508e17f` c.781 (flagged, mismo gap) ya pusheados; COLISION 2×2**: mi duplicado descartado con `git reset --soft` + checkout del HEAD hermano `f05699c` (NO destructivo sobre trabajo de otros), conservado sólo el (ii) recurrente/repetitiva. Integración re-verificada (**4863 = 4859 + 4**, 0 fallos). **Colisión auth**: `$GITHUB_TOKEN` vacío → cambiamos a `$github_token` y la push proseguirá.

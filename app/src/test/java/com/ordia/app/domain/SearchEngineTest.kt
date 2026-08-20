@@ -453,6 +453,18 @@ class SearchEngineTest {
         assertEquals(setOf(1L), ids)
     }
 
+    @Test fun recurrentes_interrogativeFiller_recoversRecurringTasks() {
+        // "¿cuáles son recurrentes?": muletilla interrogativa ("cuales"/"son")
+        // es ruido, igual que "tengo"/"hay". Sin excluirla, la consulta natural
+        // quedaba vacía aunque el filtro de atributo sí aplicara (GAP sondeado
+        // en c.782). Paridad buscador↔asistente para preguntas naturales.
+        val renta = TaskEntity(id = 1, title = "Pagar renta", recurrence = RecurrenceFrequency.MONTHLY)
+        val pan = TaskEntity(id = 2, title = "Comprar pan", recurrence = RecurrenceFrequency.NONE)
+        val ids = SearchEngine.search("cuales son recurrentes", listOf(renta, pan), emptyList(), emptyList(), emptyList())
+            .filter { it.kind == SearchKind.TASK }.map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
     @Test fun recurrentes_withContent_recoversRecurringMatchingContent() {
         // "recurrentes luz" recupera la tarea recurrente cuyo contenido contiene
         // "luz", pero no otra recurrente ajena ni una no recurrente que sí lo
