@@ -506,6 +506,24 @@ object AssistantEngine {
                     relatedTaskIds = hits.map { it.id }
                 )
             }
+            // Tareas sin fecha ("sin fecha"/"sin día"/"sin plazo"/"sin vencimiento").
+            // La búsqueda (SearchEngine.UNDATED) las recupera; el asistente caía al
+            // menú genérico y la tarea sin vencimiento —la más olvidable de todas—
+            // quedaba invisible para la superficie conversacional. Va tras el
+            // compromiso-sin-fecha (ésa habla de compromisos) y tras prioridad para
+            // no robar consultas mixtas. Vacío: honesto, sin menú (paridad familia
+            // lie-by-omission).
+            isUndatedQuery(query) -> {
+                val undated = WhatNowEngine.ordered(active, now, zone).filter { it.dueAt == null }.take(6)
+                if (undated.isEmpty() && overdueCommitments.isNotEmpty()) {
+                    return overdueCommitmentAnswer(overdueCommitments)
+                }
+                AssistantAnswer(
+                    if (undated.isEmpty()) "No tienes tareas sin fecha."
+                    else "Tienes ${undated.size} sin fecha: " + undated.joinToString(" · ") { it.title } + overdueCommitmentTail(overdueCommitments),
+                    relatedTaskIds = undated.map { it.id }
+                )
+            }
             isFreeTimeQuery(query) -> {
                 // Décimo olvido de la familia "lie-by-omission": el usuario ya
                 // declara que tiene un hueco libre ("tengo un rato/tiempo/hueco"
@@ -680,6 +698,13 @@ object AssistantEngine {
      * otras ramas; el desempate ("urgente" preferente) ocurre en la rama.
      */
     private fun isPriorityQuery(query: String): Boolean = "urgente" in query || "importante" in query
+
+    // Intención "tareas sin fecha": identica al scope UNDATED de SearchEngine
+    // ("sin" + hint: fecha/vencimiento/día/plazo), así búsqueda y asistente
+    // coinciden en qué frases abren el conjunto. "compromiso sin fecha" NO se
+    // roba: la rama de compromisos se evalúa antes que ésta en `answer`.
+    private fun isUndatedQuery(query: String): Boolean =
+        "sin fecha" in query || "sin vencimiento" in query || "sin dia" in query || "sin plazo" in query
 
     /**
      * Consulta de "lo próximo" sin alcance de fecha ("tengo algo pronto",

@@ -1767,6 +1767,62 @@ class AssistantEngineTest {
         assertEquals(listOf(1L), answer.relatedTaskIds)
     }
 
+    // --- Tareas sin fecha (paridad búsqueda↔asistente). SearchEngine ya las
+    // recupera con su scope UNDATED ("sin fecha"), pero el asistente caía al
+    // menú genérico: una tarea de bandeja sin vencimiento era invisible para
+    // la superficie conversacional pese a que el usuario la pedía a gritos.
+
+    @Test fun undated_listsTasksWithoutDueDate() {
+        val answer = AssistantEngine.answer(
+            "tareas sin fecha",
+            listOf(
+                TaskEntity(id = 1, title = "Idea suelta"),
+                TaskEntity(id = 2, title = "Con fecha", dueAt = 1L)
+            ),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("nombra la sin fecha: ${answer.text}", answer.text.contains("Idea suelta"))
+        assertTrue("no incluye la con fecha: ${answer.text}", !answer.text.contains("Con fecha"))
+    }
+
+    @Test fun undated_variantPhrases() {
+        val tasks = listOf(TaskEntity(id = 1, title = "Suelta"))
+        for (q in listOf("¿qué tengo sin fecha?", "sin fecha", "pendientes sin plazo", "tareas sin día")) {
+            val answer = AssistantEngine.answer(q, tasks, emptyList(), emptyList())
+            assertTrue("$q → ${answer.text}", answer.text.contains("Suelta"))
+            assertEquals("$q", listOf(1L), answer.relatedTaskIds)
+        }
+    }
+
+    @Test fun undated_noneIsHonestNotMenu() {
+        val answer = AssistantEngine.answer(
+            "tareas sin fecha",
+            listOf(TaskEntity(id = 1, title = "Con fecha", dueAt = 1L)),
+            emptyList(), emptyList()
+        )
+        assertTrue("vacío honesto: ${answer.text}", answer.text.contains("No tienes tareas sin fecha"))
+    }
+
+    @Test fun undated_compromisoSinFechaStillRoutesToCommitments() {
+        // "compromiso sin fecha" habla de compromisos de conversación, no de
+        // tareas: la rama anterior (OPEN_CONVERSATIONS) debe ganar a la nueva.
+        val commitment = com.ordia.app.data.local.CommitmentEntity(
+            id = 7, conversationId = 1,
+            kind = com.ordia.app.data.local.CommitmentKind.SELF_COMMITMENT,
+            owner = com.ordia.app.data.local.CommitmentOwner.SELF,
+            actor = "yo", action = "algo", dueAt = null, confidence = 0.9f,
+            reviewStatus = com.ordia.app.data.local.CommitmentReviewStatus.PENDING,
+            fingerprint = "fp7", createdAt = 1L
+        )
+        val answer = AssistantEngine.answer(
+            "compromiso sin fecha",
+            listOf(TaskEntity(id = 1, title = "Idea suelta")),
+            emptyList(), listOf(commitment)
+        )
+        assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
+    }
+
     // --- "próxima semana" / "semana que viene" / "semana pasada" (consistencia con
     // SearchEngine, que ya distingue NEXT_WEEK/LAST_WEEK). Antes el asistente caía al
     // `else` de agendaAnswer y respondía ESTA semana (mon..dom de hoy) con la etiqueta
