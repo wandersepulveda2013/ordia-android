@@ -18,6 +18,11 @@
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK).
 - Proxima prioridad: forma 2/7 "poner el lavavajillas esta noche" (sonda).
 
+- Incidente git propio (sin impacto): tipeo en el refspec creó fugazmente la rama
+  "openHands/autonomous-ordia"; se borró de inmediato tras verificar el push
+  correcto 1a38844..3a333bc. Ademas, un script python trunco RUN_LOG por contexto
+  de apertura; restaurado de git ANTES del commit (verificado diff +20/-0).
+
 ## Run c.735 — 2026-08-20 (UTC) — test: completar controles c.731/c.732 en la sonda tercera clase (+ STALE_RUN resuelto) — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `1b00da0` (push c.730). **STALE_RUN detectado y resuelto sin destruir trabajo**: durante mi ciclo preparatorio sobre c.731 (duplicando, sin saberlo, las formas "cortar el césped"/"quitar el polvo"), un run paralelo pusheó **c.731 (b9ae43f)**, **c.732 (5c013ef, CIERRE 19/19)** y **c.733 (efcc69b, higiene fila sonda c.711)** — incluidos los dos ficheros de test con los mismos nombres que los míos. Según la doctrina anti-colisión: revisé su implementación (equivalente a mi diseño), descarté ÍNTEGRO mi trabajo local no commiteado sin tocar nada remoto, y ff-only a `efcc69b`. Cero sobrescritura de trabajo ajeno. **Colisión 2**: mientras preparaba mi commit, otro run publicó c.734 (`3a395be`, discovery sonda CUARTA clase, 7 OPEN + recuperación docs c.732): re-fetch, copia de mis bloques a /tmp, checkout limpio, ff-only a `3a395be`, re-aplicación de mi cabecera c.734→**c.735 renumerada** (cycle-ID ocupado) sin tocar su bloque. Dos STALE_RUNs resueltos sin force ni sobrescritura en esta sesión.
