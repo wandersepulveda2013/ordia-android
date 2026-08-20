@@ -846,6 +846,15 @@ object ContextIntentEngine {
             // Anti-overreach: `\s+\w` exige objeto, `(?<!no )` bloquea la
             // negada, pasado "cogí…" no casa, suelto "coger" no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )coger\s+\w""").containsMatchIn(lower)
+            // c.719: "publicar <contenido>" ("publicar las fotos mañana"),
+            // forma 9/14 de la SEGUNDA clase de verbos cotidianos de gestión
+            // (sonda `tools/probe/ManagementVerbDiscoveryProbe.kt`, c.711).
+            // Mismo ancla/guard que c.691…c.716. Kind decidido: TASK (en
+            // deliberación contra NOTE/REMINDER — "publicar" es acción de
+            // gestión sobre un contenido; no nota ni aviso). Anti-overreach:
+            // `\s+\w` exige objeto, `(?<!no )` bloquea la negada, sustantivo
+            // "publicación" no casa, suelto "publicar" no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )publicar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1541,6 +1550,12 @@ object ContextIntentEngine {
                 // temporal despojado).
                 val matchCoger = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(coger)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchCoger != null) return "Coger ${matchCoger.groupValues[2]}"
+
+                // "publicar X" → "Publicar X" (c.719): mismo criterio
+                // que c.691…c.716 (verbo preservado, acuse/prefijo
+                // temporal despojado).
+                val matchPublicar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(publicar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchPublicar != null) return "Publicar ${matchPublicar.groupValues[2]}"
 
                 null
             }

@@ -1,3 +1,13 @@
+## Ciclo c.719 — 2026-08-19 (UTC) — feat(context): piso TASK "publicar <contenido>" (forma 9/14 segunda clase)
+
+- **HEAD**: inicial `92be3e0`-origin tras STALE_RUN c.718 (remoto 911e55a ya resolvió la forma 8/14; mi duplicado local se descartó NO destructivo — ver RUN_LOG c.718-STALE); ff-only limpio; final tras este log (feat + docs).
+- **Selección (P1, sonda persistente `tools/probe/ManagementVerbDiscoveryProbe.kt`, una forma por ciclo, doctrina anti-overreach)**: "publicar las fotos mañana" → NULL (olvido silencioso de una gestión con contenido). Controles verdes desde el inicio.
+- **Solución**: piso `publicar` en `hasStrongTaskImperative` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`, `\s+\w` exige objeto) + plantilla "(publicar) X"→"Publicar X" (patrón c.691…c.716). **Kind decidido: TASK, en deliberación contra NOTE/REMINDER** — "publicar" es acción de gestión sobre un contenido (fotos/vídeo/estado/entrada); ni nota (NOTE exige verbo de anotar) ni aviso (REMINDER exige sinónimo puro de recordatorio). Anti-overreach: negada NULL, duda NULL, pasado "publicaron…" NULL, sustantivo "publicación" NULL, verbo suelto NULL; envolvente "recuérdame publicar…" gobierna TASK (c.613). Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +11 tests `ContextIntentEnginePublicarFloorTest.kt`; RED exacto 5/11 (capturas) → GREEN **OK (4240 tests)** (4229 c.718 + 11), 0 failures; smoke 25 OK; sonda POST: "publicar las fotos mañana" → TASK 'Publicar las fotos' dueAt=true; queda 1 forma OPEN en BACKLOG ("recordar a <persona> <evento>" — deliberar TASK/REMINDER).
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla), `test/.../ContextIntentEnginePublicarFloorTest.kt` (NUEVO +11), AI_AUTONOMY ×3.
+- **Próxima prioridad**: última forma OPEN segunda-clase ("recordar a <persona> <evento>" → deliberar TASK vs REMINDER). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
 ## Ciclo c.718 — 2026-08-19 (UTC) — feat(context): piso ERRAND "pasar por <destino>" (forma 8/14 segunda clase)
 
 - **HEAD**: inicial `80fea84` (push c.717; ff-only limpio, STALE_RUN de c.717 adoptada); final tras este log (feat + docs).

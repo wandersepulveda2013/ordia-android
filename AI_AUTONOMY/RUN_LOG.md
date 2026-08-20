@@ -15679,3 +15679,14 @@ a un permiso persistente frágil y silencioso ante fallos.
   "recordar a <persona> <evento>", deliberar TASK/REMINDER). Re-fetch antes de push.
 - NO VERIFICADO: Android/gradle/lint/UI/Room (sin SDK).
 - HEAD final (este log): 911e55a + docs (STALE log).
+
+## Run c.719 — 2026-08-19 (UTC) — rama openhands/autonomous-ordia
+
+- HEAD inicial: 92be3e0 (post-STALE c.718). Re-fetch ff-only limpio (una sola automatizacion activa detectada en este momento).
+- Problema seleccionado (P1, sonda `tools/probe/ManagementVerbDiscoveryProbe.kt`, forma 9/14 segunda clase de verbos de gestion): "publicar las fotos manana" → NULL (olvido silencioso). Kind decidido: TASK (deliberacion contra NOTE/REMINDER).
+- Fix: piso `publicar` en `hasStrongTaskImperative` (ancla inicio/acuse/TASK_FLOOR_TEMPORAL, `(?<!no )`) + plantilla "(publicar) X"→"Publicar X". Anti-overreach: negada/duda/pasado "publicaron…"/sustantivo "publicacion"/verbo suelto → NULL; envolvente TASK (c.613).
+- TDD: +11 tests `ContextIntentEnginePublicarFloorTest.kt` (5 capturas RED inicial + 6 NULL desde el inicio → GREEN post-fix). Nota de calidad interna: un assert inicial (`dueAt` Long vs true) se corrigio antes del verde — el fallo era del TEST, no del motor; sin reducir assertions.
+- Pruebas: `bash tools/run_domain_tests.sh` → OK (4240 tests) (4229 c.718 + 11); `bash tools/run_domain_checks.sh` → smoke 25 OK (25/25); sonda POST: "publicar las fotos manana" → TASK 'Publicar las fotos' dueAt=true. NO VERIFICADO Android/gradle/lint/UI/Room (sin SDK).
+- AI_AUTONOMY: BACKLOG 9/14 (queda "recordar a <persona> <evento>"); CURRENT_STATE c.719 escrito.
+- Proxima prioridad: ultima forma OPEN ("recordar a", deliberar TASK vs REMINDER). Re-fetch OBLIGATORIO.
+- HEAD final: (se rellena tras commit).
