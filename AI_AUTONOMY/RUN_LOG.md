@@ -26,7 +26,7 @@
   No reduje/asumí verde.
 - Conclusión: segunda clase de verbos de gestión CERRADA (10/10 formas, 14/14 candidatos) por el remoto;
   mi única contribución es este registro STALE_RUN + la re-verificación del árbol final.
-- HEAD final: se registra tras el commit de este registro docs-only.
+- HEAD final: dbd8e91 (docs-only STALE c.720).
 ## Run c.719-STALE-3 — 2026-08-20 (UTC) — rama openhands/autonomous-ordia
 
 - HEAD inicial: `92be3e0` (ff-only limpio). Al terminar TDD+verificación (RED 4 → GREEN, suite OK) el remoto avanzó concurrentemente resolviendo la MISMA forma 9/14 "publicar <contenido>" (`6852d7d` + `a4354e4` + `e305f1c` keyword-paridad).
