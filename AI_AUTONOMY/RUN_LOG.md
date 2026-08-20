@@ -16572,3 +16572,10 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Commits**: tras este append (prefijo feat(assistant)).
 - **HEAD final**: tras push.
 - **Próxima prioridad**: gaps residuales sonda c.779 (BACKLOG fila OPEN): (i) marcadas/destacadas, (ii) recurrentes, (iv) bare temporal "tareas de <día>", (v) notas fijadas (→OPEN_SEARCH), (vi) "¿qué se me pasó?" (extensión simétrica).
+
+### 2026-08-20 (UTC, post-c.780) — STALE_RUN/DUPLICATE: run paralelo del MISMO residual (i) flagged descartado sin pérdida; superconjunto del hermano (excluye "desmarcada", +6 tests vs +5); verificación INDEPENDIENTE del HEAD `508e17f` OK
+
+- HEAD inicial: `8f7c5eb` (c.780 remoto, misma base que el hermano). Selección (histórica, idéntica al hermano): residual (i) "tareas marcadas"/"destacadas" de la sonda diferencial c.779 + `isFlaggedQuery` por palabra (quité el infinitivo) con RED pre-fix 4/5 exactos. El hermano publicó `508e17f` (c.781) con SUPERCONJUNTO: mismo `isFlaggedQuery` + exclusión explícita de "desmarcada" + 6 tests (vs mis 5) + integración stash→ff-only→pop con c.780 (como yo habría hecho).
+- Resolución NO destructiva (precedentes post-c.771 `61c1963`, post-c.772 `9d895b2`, post-c.773 `dda9251`, post-c.774 `c5031be`): duplicado local descartado SIN pérdida (`git checkout --` de mis 5 archivos) → `git merge --ff-only` limpio a `508e17f`. NO force, NO --hard, NO toques a `main`.
+- Verificación INDEPENDIENTE sobre `508e17f` (árbol limpio): suite **OK (4859 tests: 4853 + 6 del hermano)**, 0 failures; `run_domain_checks.sh` 25/25 OK. (El guard-substring "desmarcada" del hermano es más fino que el mío.) **NO VERIFICADO** gradle/Android/UI/Room/lint (sin SDK).
+- Lección anti-colisión (4ª cycle-ID/DUPLICADO hoy): dos runs en paralelo sobre el mismo pool OPEN volvieron a colisionar pese al fetch pre-commit; el hermano numeró c.781 primero. Escalonar los horarios de inicio de los supervisores (ya apuntado post-c.774). Este run resulta en docs-only.
