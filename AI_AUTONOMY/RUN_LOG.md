@@ -1,3 +1,13 @@
+## Run c.727 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "tender <objeto>" — forma 14/19 TERCERA clase — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `c46f824` (push c.726, ff-only limpio). **Selección (P1)**: "tender <objeto>" (sonda). Doctrina una-forma-por-ciclo.
+- **Solución**: piso `tender` en `hasStrongHouseholdImperative` (`HOUSEHOLD_VERBS`; guard `(?<!no )`, `\s+\w` exige objeto) + keyword "tender" en HOUSEHOLD (`ContextIntent.kt`, lockstep — lección c.639) + bono houseSpecific en `scoreSpecificPatterns` + plantilla "(tender) X"→"Tender X" en extractTitle (lockstep — lección c.713). **Kind decidido: HOUSEHOLD** — c.726 dejó la deliberación a kind pendiente; aquí es quehacer doméstico canónico, y la familia HOUSEHOLD gobierna los imperativos diarios del hogar (criterio c.704). Controles NULL (negada/quizá/"tendedero"/"tendí…"/suelto); envolvente c.613 ("recuérdame tender…") sigue gobernando TASK. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineTenderFloorTest.kt` — RED exacto 4/10 (capturas) → GREEN **OK (4391 tests)** (4381 + 10), 0 failures; smoke 25 OK; automation 9 OK (c.726). Quedan 5 OPEN (hogar × 5).
+- **Archivos**: engine (+piso +planta +bono), `ContextIntent.kt` (+keyword), test NUEVO (+10), AI_AUTONOMY BACKLOG+CURRENT_STATE+RUN_LOG.
+- **Próxima prioridad**: forma hogar OPEN #2 "hacer la cama mañana" — deliberación de kind (HOUSEHOLD vs TASK) forma a forma. Re-fetch OBLIGATORIO antes de trabajar.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **HEAD final**: tras el commit.
+
 ## Run c.726 — 2026-08-20 (UTC) — feat(context): piso TASK "llenar <objeto>" — forma 13/19 TERCERA clase — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `2d9928a` (push c.725, ff-only limpio). **Selección (P1)**: "llenar <objeto>" (sonda). Doctrina una-forma-por-ciclo.

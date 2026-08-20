@@ -1,3 +1,29 @@
+## Ciclo c.727 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "tender <objeto>" (forma 14/19 TERCERA clase)
+
+- **Objetivo**: decimocuarta forma de la TERCERA clase cotidiana (verbos hogar +
+  gestión de cierre; sondeo c.721): "tender la ropa hoy" → HOUSEHOLD. Piso
+  `tender` en `hasStrongHouseholdImperative` (`HOUSEHOLD_VERBS`; guard
+  `(?<!no )`, `\s+\w` exige objeto) + keyword "tender" en HOUSEHOLD
+  (`ContextIntent.kt` — lockstep, lección c.639) + bono houseSpecific en
+  `scoreSpecificPatterns` + plantilla "(tender) X"→"Tender X" en extractTitle
+  (lockstep — lección c.713). Evita el derrame "tendedero" (nominal, guard
+  análogo al "entregar" de c.693 — match arranca en el verbo).
+- **Deliberación de kind**: HOUSEHOLD, en deliberación contra TASK — la tarea
+  doméstica cotidiana "tender la ropa/cama/mesa" es quehacer canónico, y la
+  familia HOUSEHOLD gobierna los imperativos diarios del hogar (criterio
+  c.704; c.726 dejó la deliberación dependiente de la forma).
+- **Anti-overreach**: negada NULL; quizá NULL; sustantivo "tendedero" NULL;
+  pasado "tendí la ropa ayer" NULL; suelto "tender" NULL; envolvente c.613 sigue
+  gobernando TASK ("recuérdame tender la ropa" → TASK).
+- **TDD**: +10 tests `ContextIntentEngineTenderFloorTest.kt` (4 capturas RED
+  exacto → GREEN). RED declarado: 4 fallos / 10 tests (solo las 4 capturas).
+- **Pruebas**: suite `run_domain_tests.sh` **OK (4391 tests)** (4381 c.726 + 10),
+  0 failures; `run_domain_checks.sh` smoke **25/25 OK**;
+  `run_automation_engine_checks.sh` **9/9 OK**. Quedan 5 OPEN (hogar × 5) —
+  próxima forma: "hacer la cama mañana" (deliberación de kind forma a forma).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **HEAD**: inicial `c46f824` (ff-only limpio; final tras commit).
+
 ## Ciclo c.726 — 2026-08-20 (UTC) — feat(context): piso TASK "llenar <objeto>" (forma 13/19 TERCERA clase)
 
 - **Objetivo**: decimotercera forma de la TERCERA clase cotidiana (verbos de

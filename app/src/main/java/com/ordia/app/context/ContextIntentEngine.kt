@@ -82,7 +82,7 @@ object ContextIntentEngine {
         "hoy|mañana|esta\\s+(?:mañana|tarde|noche)|el\\s+(?:lunes|martes|miércoles|jueves|viernes|sábado|domingo)"
     private val MEETING_VERBS = "reuni[oó]n"
     private val HOUSEHOLD_VERBS =
-        "limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar"
+        "limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar|tender"
     private val EXERCISE_VERBS = "correr|entrenar|nataci[oó]n|pesas"
     private val ERRAND_VERBS = "recoger|devolver|retirar"
     private val STUDY_VERBS = "estudiar|repasar"
@@ -1454,7 +1454,7 @@ object ContextIntentEngine {
                 // de "entregar"/"entregaré" y el verbo de entrega se roba como
                 // tarea doméstica ("entregar el informe a las 9" → HOUSEHOLD
                 // "Regar el informe"). El piso (HOUSEHOLD_FLOOR) ya tiene `\b`.
-                if (Regex("""\b(limpiar|ordenar|cocinar|lavar|planchar|arreglar|reparar|jardín|fregar|barrer|trapear|regar|sacudir|desempolvar)""").containsMatchIn(lower)) s += 0.15f
+                if (Regex("""\b(limpiar|ordenar|cocinar|lavar|planchar|arreglar|reparar|jardín|fregar|barrer|trapear|regar|sacudir|desempolvar|tender)""").containsMatchIn(lower)) s += 0.15f
                 s
             }
             else -> 0f
@@ -1865,7 +1865,10 @@ object ContextIntentEngine {
                 // Verbos alineados con [hasStrongHouseholdImperative] (c.638/c.639) para que
                 // el piso no capture un verbo cuyo título luego no se forme limpio.
                 // `\b` (c.693): sin borde, "regar" casa dentro de "entregar".
-                val match = Regex("""\b(limpiar|ordenar|cocinar|lavar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar) (.+)""", RegexOption.IGNORE_CASE).find(original)
+                // c.727: "tender" (14/19 tercera clase, hogar), mismo lockstep
+                // que c.639. El match arranca en el verbo — no hay lookbehind
+                // de negación en la plantilla; el piso ya lo aplica.
+                val match = Regex("""\b(limpiar|ordenar|cocinar|lavar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar|tender) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return "${capitalizeFirst(match.groupValues[1])} ${match.groupValues[2]}"
                 null
             }
