@@ -135,7 +135,14 @@ object ContextIntentEngine {
     // c.717 / [HOUSEHOLD_BED_FLOOR] c.728 / [HOUSEHOLD_WASHER_FLOOR] c.729).
     private val HOUSEHOLD_LAWN_FLOOR =
         Regex("""\b(?<!no )cortar\s+(?:el\s+|la\s+|los\s+|las\s+)?c[ée]sped(?:es)?\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR)
+    // Piso faena doméstica "quitar el polvo" (c.732, forma 19/19 de la
+    // TERCERA clase cotidiana — cierra la sonda `ThirdClassVerbDiscoveryProbe.kt`
+    // c.721): "quitar" suelto es ambiguo (el protector/la mancha/la ropa),
+    // así se ACOTA al objeto `polvo(s)` (familia TRASH c.717 / BED c.728 /
+    // WASHER c.729 / LAWN c.731).
+    private val HOUSEHOLD_DUST_FLOOR =
+        Regex("""\b(?<!no )quitar\s+(?:el\s+|la\s+|los\s+|las\s+)?polvos?\b""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -1924,6 +1931,16 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchCortar != null) {
                     return "${capitalizeFirst(matchCortar.groupValues[1])} ${matchCortar.groupValues[2]}"
+                }
+                // "quitar (el) polvo(s) …" → "Quitar el polvo …" (c.732):
+                // verbo preservado y objeto restringido como en
+                // [HOUSEHOLD_DUST_FLOOR] (familia lockstep c.717).
+                val matchQuitar = Regex(
+                    """\b(?<!no )(quitar)\s+((?:el\s+|la\s+|los\s+|las\s+)?polvos?\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchQuitar != null) {
+                    return "${capitalizeFirst(matchQuitar.groupValues[1])} ${matchQuitar.groupValues[2]}"
                 }
                 // Verbos alineados con [hasStrongHouseholdImperative] (c.638/c.639) para que
                 // el piso no capture un verbo cuyo título luego no se forme limpio.

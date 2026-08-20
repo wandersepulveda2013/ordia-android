@@ -110,7 +110,9 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // restringido en el piso).
         // c.731: objeto del piso `cortar el césped` (lockstep keyword↔piso;
         // "cortar" suelto es ambiguo — pelo/pan/comunicación).
-        "basura", "cama", "lavadora", "césped")),
+        // c.732: objeto del piso `quitar el polvo` (lockstep keyword↔piso;
+        // "quitar" suelto es ambiguo — el protector/la mancha/la ropa).
+        "basura", "cama", "lavadora", "césped", "polvo")),
     UNKNOWN("Sin clasificar", emptyList());
 
     companion object {
