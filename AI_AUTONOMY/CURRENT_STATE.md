@@ -1,3 +1,10 @@
+## Ciclo c.734 — 2026-08-20 (UTC) — STALE_RUN (unidad c.732 duplicada por run concurrente) + verificación independiente del cierre de la sonda c.721
+- **Secuencia**: base `b9ae43f` (ff-only limpio); durante el trabajo local (forma 19/19 "quitar el polvo", TDD con RED exacto 4/10 y GREEN), `git fetch` reveló que un run concurrente empujó la MISMA unidad (5c013ef, c.732 — SONDA `ThirdClassVerbDiscoveryProbe` CERRADA 19/19) + higiene backlog (efcc69b, c.733 — sonda c.711 CERRADA 14/14). Trabajo local duplicado (sin commit, mismo nombre de piso/clase de test) descartado; `git pull --ff-only` a `efcc69b`. Cero operaciones destructivas (nada force/reset).
+- **Verificación independiente (valor del ciclo)**: sobre HEAD `efcc69b` → suite **OK (4441 tests)**, 0 failures; smoke 25/25 OK; sonda POST: **19/19 dueAt=true**, controles NULL ("quitar el polvo hoy" → HOUSEHOLD 'Quitar el polvo'). El piso remoto incluye plural `polvos?`. El cierre de la sonda queda VERIFIED por segunda vía independiente.
+- **Estado de la campaña**: TRES sondas de clases cotidianas CERRADAS — c.692 (8/8), c.711 (14/14), c.721 (19/19). No queda forma OPEN en estas familias.
+- **Próxima prioridad**: P1 restante del BACKLOG, o sondeo de NUEVA familia (evitar olvidos / captura). Re-fetch OBLIGATORIO antes.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin Android SDK). **HEAD**: `efcc69b` (== origin tras pull; final tras commit de este ciclo).
+
 ## Ciclo c.731 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "cortar el césped" (forma 18/19 TERCERA clase)
 - **Objetivo**: decimoctava forma TERCERA clase: "cortar el césped el sábado" → HOUSEHOLD. Piso ACOTADO al objeto `césped(es)` (familia TRASH c.717 / BED c.728 / WASHER c.729) + keyword "césped" + plantilla "(cortar) (el) césped(es)…"→"Cortar el césped…".
 - **Deliberación de kind**: HOUSEHOLD (quehacer doméstico canónico; TASK solo envolvente c.613).
