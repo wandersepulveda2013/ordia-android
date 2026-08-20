@@ -353,23 +353,50 @@ object ContextIntentEngine {
     // (el coche al taller —[ERRAND_CARRY_FLOOR] c.684—, al perro al
     // veterinario —HOUSEHOLD c.747—, a María al cine —persona/ocio—), así se
     // ACOTA a la forma completa objeto+destino: `niñ[oa]s?` +
-    // `colegio|escuela|guarder[ií]a` (destinos educativos; "al médico" es
-    // otra deliberación, ítem OPEN aparte). Interop: verbos disjuntos
-    // recoger/llevar, destinos disjuntos taller/veterinario/colegio — sin
-    // solape. Kind deliberado: ERRAND (desplazamiento de ida, hermano de
-    // "ir al banco"; NO HOUSEHOLD — no es quehacer doméstico). Lockstep
-    // keyword-OBJETO "niños" en ERRAND (lección c.713/c.751/c.765; NO el
-    // verbo "llevar" — bivalente). Negación sin cláusula dedicada: keyword
-    // 0.12 + bono temporal 0.1 = 0.22 < umbral (hermana c.765→c.772), más
-    // el guard `(?<!no )` de la familia.
+    // `colegio|escuela|guarder[ií]a` (destinos educativos; "al médico" se
+    // resolvió en c.776 como [ERRAND_MEDICAL_RUN_FLOOR]). Interop: verbos
+    // disjuntos recoger/llevar, destinos disjuntos taller/veterinario/
+    // colegio/médico — sin solape. Kind deliberado: ERRAND (desplazamiento
+    // de ida, hermano de "ir al banco"; NO HOUSEHOLD — no es quehacer
+    // doméstico). Lockstep keyword-OBJETO "niños" en ERRAND (lección
+    // c.713/c.751/c.765; NO el verbo "llevar" — bivalente). Negación sin
+    // cláusula dedicada: keyword 0.12 + bono temporal 0.1 = 0.22 < umbral
+    // (hermana c.765→c.772), más el guard `(?<!no )` de la familia.
     private val ERRAND_SCHOOL_RUN_FLOOR =
         Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?\s+a(?:l| la)\s+(colegio|escuela|guarder[ií]a)\b""")
+    // Piso transportativo médico familiar (c.776, ítem 2/2 del pool OPEN
+    // residual de la sonda `FifthClassLifeProbe.kt` — pool AGOTADO con este
+    // piso, QUINTA clase — familia/salud; dispersión epoch-day 20685 % 2 = 1;
+    // NULL PRE verificado por la sonda sobre HEAD c5031be): "llevar a la
+    // niña al médico" es la
+    // diligencia familiar de salud hermana del desplazamiento escolar c.773
+    // — llevar al hijo/a a su cita es desplazamiento (la cita es del niño,
+    // no del usuario). "llevar" sigue bivalente (el coche al taller c.684,
+    // al perro al veterinario HOUSEHOLD c.747, a María al cine FUERA), así
+    // se ACOTA al MISMO objeto `niñ[oa]s?` del piso escolar + destino
+    // médico inequívoco `médico|doctor|dentista|hospital|consulta`
+    // (`m[ée]dico` admite la grafía sin tilde, hermana `[oó]` c.772);
+    // "llevar a mamá al médico" (otro objeto) y destinos ambiguos
+    // ("terapia"/"chequeo" sin contexto) quedan FUERA — una forma por
+    // ciclo, doctrina de la sonda. Interop: destinos disjuntos
+    // colegio/escuela/guardería vs médico/doctor/dentista/hospital/
+    // consulta — sin solape. Kind deliberado: ERRAND contra APPOINTMENT
+    // (la cita médica es de la niña; para el usuario es un desplazamiento
+    // familiar, hermano del piso escolar; APPOINTMENT propio ya cubre
+    // "ir al médico" —bono c.682— y "tendré médico" —c.663). Lockstep
+    // keyword-OBJETO "niños" PREEXISTENTE en ERRAND (c.773) → coste-cero
+    // (hermana c.770). Negación sin cláusula dedicada: keyword 0.12 +
+    // bono temporal 0.1 = 0.22 < umbral (verificado por test), más el
+    // guard `(?<!no )` de la familia.
+    private val ERRAND_MEDICAL_RUN_FLOOR =
+        Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?niñ[oa]s?\s+a(?:l| la)\s+(m[ée]dico|doctor|dentista|hospital|consulta)\b""")
     private val ERRAND_FLOORS = listOf(
         Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b"""),
         Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w"""),
         ERRAND_CARRY_FLOOR,
         ERRAND_STOPBY_FLOOR,
-        ERRAND_SCHOOL_RUN_FLOOR
+        ERRAND_SCHOOL_RUN_FLOOR,
+        ERRAND_MEDICAL_RUN_FLOOR
     )
     private val STUDY_FLOORS = listOf(
         Regex("""\b(?<!no )($STUDY_VERBS)\s+\w"""),
@@ -2651,6 +2678,19 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchSchoolRun != null) {
                     return "${capitalizeFirst(matchSchoolRun.groupValues[1])} ${matchSchoolRun.groupValues[2]}"
+                }
+                // "llevar a la niña al médico" → "Llevar a la niña al
+                // médico" (c.776, lockstep con [ERRAND_MEDICAL_RUN_FLOOR]):
+                // verbo preservado con su persona (doctrina c.653; "Llevo a
+                // mi niña…" — el piso admite el posesivo singular mi/tu/su),
+                // residuo temporal de cola depurado por [sanitizeTitle]; el
+                // match arranca en el verbo (lección c.616).
+                val matchMedicalRun = Regex(
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?niñ[oa]s?\s+a(?:l| la)\s+(?:m[ée]dico|doctor|dentista|hospital|consulta)).*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchMedicalRun != null) {
+                    return "${capitalizeFirst(matchMedicalRun.groupValues[1])} ${matchMedicalRun.groupValues[2]}"
                 }
                 null
             }

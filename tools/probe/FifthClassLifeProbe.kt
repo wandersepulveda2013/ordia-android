@@ -59,10 +59,19 @@ import com.ordia.app.context.ContextIntentEngine
  *   una forma por ciclo; lockstep keyword-OBJETO "presión" — colisiones
  *   "depresión"/"compresión" inertes; dispersión epoch-day 20686 % 2 = 0
  *   sobre el pool residual de 2; NULL PRE verificado sobre HEAD c5031be).
+ * - c.776: "llevar a la niña al médico el lunes" → ERRAND acotado al
+ *   MISMO objeto `niñ[oa]s?` del piso escolar c.773 + destino médico
+ *   inequívoco `médico|doctor|dentista|hospital|consulta` ("llevar"
+ *   sigue bivalente — a María al médico FUERA; hermano del piso escolar;
+ *   kind ERRAND en deliberación contra APPOINTMENT: la cita es de la
+ *   niña, para el usuario es desplazamiento familiar; lockstep keyword
+ *   "niños" PREEXISTENTE c.773 → coste-cero; dispersión epoch-day
+ *   20685 % 2 = 1 sobre el pool residual de 2; NULL PRE verificado
+ *   sobre HEAD c5031be). Ítem 2/2: pool OPEN AGOTADO (c.765–c.776
+ *   resolvieron las 12 formas medidas NULL en PRE c.765).
  *
- * Pool OPEN (NULL medido en PRE c.765, HEAD 9815ee2):
- * - "llevar a la niña al médico el lunes" (familia/salud; destino
- *   `médico` — deliberación APPOINTMENT vs ERRAND, ítem aparte)
+ * Pool OPEN: VACÍO (los 2 ítems residuales se resolvieron en c.775
+ * "medirme la presión" y c.776 "llevar a la niña al médico").
  */
 @Suppress("DEPRECATION")
 fun main() {
@@ -74,10 +83,6 @@ fun main() {
         "tomar las pastillas hoy",
         "tomar el medicamento esta noche",
         "vale, tomar la medicina mañana",
-        // ---- Familia / niños (parcial: pool OPEN) ----
-        // c.773 OPEN residual: el destino `médico` sigue OPEN (otra
-        // deliberación — APPOINTMENT vs ERRAND)
-        "llevar a la niña al médico el lunes",
         // ---- Regresiones (cobertura previa, no debe romperse) ----
         "sacar al perro mañana",
         "pagar el arriendo el lunes",
@@ -125,6 +130,12 @@ fun main() {
         "vale, medirme la presión hoy",
         "hoy medirme la presión",
         "medirme la presion mañana",
+        // c.776: capturas del piso médico familiar (regresión)
+        "llevar a la niña al médico el lunes",
+        "llevar a los niños al doctor mañana",
+        "vale, llevar a la niña al médico mañana",
+        "mañana llevar a la niña al médico",
+        "llevo a mi niña al dentista mañana",
         // ---- Controles anti-overreach (deben quedar NULL) ----
         "no tomar la medicina mañana",
         "quizá tomar la medicina mañana",
@@ -175,6 +186,13 @@ fun main() {
         "llevar a María al cine mañana",
         "llevar a los niños mañana",
         "los niños van al colegio mañana",
+        // c.776: controles del piso médico familiar (NULL)
+        "no llevar a la niña al médico mañana",
+        "quizá llevar a la niña al médico mañana",
+        "llevé a la niña al médico ayer",
+        "llevar a María al médico mañana",
+        "llevar a la niña mañana",
+        "la niña va al médico mañana",
         // c.774: controles del piso copia de seguridad (NULL)
         "no hacer copia de seguridad hoy",
         "quizá hacer copia de seguridad hoy",
