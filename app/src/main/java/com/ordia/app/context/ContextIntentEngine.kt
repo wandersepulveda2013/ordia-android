@@ -931,6 +931,11 @@ object ContextIntentEngine {
             // Anti-overreach: `\s+\w` exige objeto, sustantivo "corrección"/
             // pasado "corregí…" no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )corregir\s+\w""").containsMatchIn(lower)
+            // c.721h (forma 8/19 tercera clase): "traducir <objeto>".
+            // Kind decidido: TASK (deliberación contra EDUCATION; criterio
+            // c.704). Anti-overreach: `\s+\w` exige objeto, sustantivo
+            // "traducción"/pasado "traducí…"/suelto no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )traducir\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1667,6 +1672,9 @@ object ContextIntentEngine {
                 // c.721g: misma plantilla para "corregir".
                 val matchCorregir = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(corregir)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchCorregir != null) return "Corregir ${matchCorregir.groupValues[2]}"
+                // c.721h: misma plantilla para "traducir".
+                val matchTraducir = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(traducir)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchTraducir != null) return "Traducir ${matchTraducir.groupValues[2]}"
 
                 null
             }

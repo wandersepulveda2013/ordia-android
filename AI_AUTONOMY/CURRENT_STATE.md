@@ -1,3 +1,8 @@
+## Ciclo c.721h — 2026-08-20 (UTC) — feat(context): piso TASK "traducir <objeto>" (forma 8/19 TERCERA clase)
+
+- **HEAD**: inicial `d400fbb`-origin. Piso `traducir` + keyword TASK + plantilla "(traducir) X"→"Traducir X" (kind deliberación TASK vs EDUCATION, criterio c.704). Controles NULL; envolvente c.613 gobierna TASK. Determinista.
+- **TDD**: +10 tests; RED 4/10 → GREEN **OK (4331 tests)**, 0 failures; smoke 25 OK; automation 9 OK; sonda POST → TASK 'Traducir el documento' dueAt=true. Quedan 11 OPEN. **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android.
+
 ## Ciclo c.721g — 2026-08-20 (UTC) — feat(context): piso TASK "corregir <objeto>" (forma 7/19 TERCERA clase)
 
 - **HEAD**: inicial `f8bef67`-origin (ff-only limpio; final tras commit).

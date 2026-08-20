@@ -1,3 +1,9 @@
+## Run c.721h — 2026-08-20 (UTC) — feat(context): piso TASK "traducir <objeto>" — forma 8/19 TERCERA clase — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `d400fbb` (push c.721g). **Solución**: piso `traducir` + keyword TASK + plantilla "(traducir) X"→"Traducir X". Kind: TASK (deliberación contra EDUCATION; criterio c.704). Controles NULL (negada/duda/"traducción"/"traducí…"/suelto); envolvente c.613 gobierna TASK. Determinista.
+- **TDD**: +10 tests `ContextIntentEngineTraducirFloorTest.kt` — RED exacto 4/10 → GREEN **OK (4331 tests)**, 0 failures; smoke 25 OK; automation 9 OK; sonda POST → TASK 'Traducir el documento' dueAt=true. Quedan 11 OPEN.
+- **Archivos**: engine (+piso +plantilla), `ContextIntent.kt` (+keyword), test NUEVO (+10), AI_AUTONOMY ×3. **Próxima prioridad**: formas OPEN (11). **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android. **HEAD final**: tras el commit.
+
 ## Run c.721g — 2026-08-20 (UTC) — feat(context): piso TASK "corregir <objeto>" — forma 7/19 TERCERA clase — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `f8bef67` (push c.721f, ff-only limpio).
