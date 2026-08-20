@@ -1130,6 +1130,24 @@ object ContextIntentEngine {
             // objeto `sangre`; `(?<!no )` bloquea la negada, sustantivo
             // "donación"/pasado "doné…"/suelto no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )donar\s+sangre\b""").containsMatchIn(lower)
+            // c.751 (forma 14/14 CUARTA clase de verbos cotidianos, sonda
+            // `tools/probe/FourthClassVerbDiscoveryProbe.kt` c.740): "cargar
+            // el celular (hoy)". Lockstep piso+keyword-OBJETO "celular"
+            // (lección c.713): NO se añade el verbo "cargar" como keyword —
+            // es bivalente (el archivo/la tarjeta/gasolina/al bebé) y
+            // subcadena de "descargar" (c.725). Kind decidido: TASK, en
+            // deliberación contra HOUSEHOLD — deber de mantenimiento del
+            // móvil, no quehacer físico del hogar (limpieza/orden,
+            // HOUSEHOLD_VERBS); los envolventes c.613 ya lo trataban como
+            // TASK. PRIMER piso TASK acotado al objeto: los anteriores de
+            // la familia (c.691…c.726) usaban `\s+\w` porque su verbo era
+            // unívoco; "cargar" exige el acotamiento de los pisos
+            // kind-drift (c.717/c.728/c.731/c.740/c.744/c.748). Anti-
+            // overreach: objeto `celular/celulares` con artículo/posesivo
+            // opcional, `\b` final ("celularcito" no casa), `(?<!no )`
+            // bloquea la negada, sustantivo "la carga del celular"/pasado
+            // "cargué…"/suelto "cargar" no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cargar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?celular(?:es)?\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1915,6 +1933,12 @@ object ContextIntentEngine {
                 // [sanitizeTitle].
                 val matchDonar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(donar)\s+(sangre.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchDonar != null) return "Donar ${matchDonar.groupValues[2]}"
+                // c.751: misma plantilla para "cargar" ACOTADA al objeto
+                // celular (ancla/guard idénticos al piso; lección c.616: el
+                // match arranca en el verbo, así acuse/prefijo temporal se
+                // despojan). El verbo gobierna el contenido y se PRESERVA.
+                val matchCargarCelular = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(cargar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?celular(?:es)?\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchCargarCelular != null) return "Cargar ${matchCargarCelular.groupValues[2]}"
 
                 null
             }

@@ -78,6 +78,13 @@ fun main() {
         // "renovar el DNI" c.698 — keyword "donar" lockstep, plantilla
         // "(donar) sangre"→"Donar sangre") — la línea queda como REGRESIÓN.
         "donar sangre el sábado",
+        // Nota mantenimiento c.751: "cargar el celular hoy" RESUELTA (piso
+        // TASK acotado al objeto `celular/celulares` c.751 — kind TASK en
+        // deliberación contra HOUSEHOLD: deber de mantenimiento del móvil,
+        // no quehacer físico del hogar — keyword-OBJETO "celular" lockstep,
+        // NO el verbo "cargar" [bivalente + subcadena de "descargar" c.725],
+        // plantilla "(cargar) … celular…"→"Cargar el celular") — la línea
+        // queda como REGRESIÓN.
         "cargar el celular hoy",
         "sacar la basura esta noche",
         // Controles: negación / duda / sustantivo / pasado / verbo suelto /
