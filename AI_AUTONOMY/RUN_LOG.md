@@ -1,3 +1,8 @@
+## Run c.733 — 2026-08-20 (UTC) — docs(backlog): higiene fila ManagementVerbDiscoveryProbe (sonda c.711 CERRADA 14/14) — rama openhands/autonomous-ordia
+- **HEAD inicial**: `5c013ef` (push c.732). Hallazgo: la cabecera de la fila P1 (sonda c.711) seguía "**OPEN (9/14…; queda forma 'recordar a')**" pero "recordar a <persona> <evento>" se resolvió en **c.720** (piso + keyword multi-palabra + plantilla; RUN_LOG c.720 "SONDA CERRADA (10/14)"). Cabecera obsoleta = falso OPEN.
+- **Evidencia**: `bash tools/run_probe.sh tools/probe/ManagementVerbDiscoveryProbe.kt` POST en HEAD → los 14 candidatos capturan (TASK, NOTE, HOUSEHOLD, ERRAND; "Recordar a papá el almuerzo mañana" → TASK dueAt=true) y todos los controles → NULL.
+- **Cambio**: cabecera de la fila → CLOSED (14/14; higiene c.733). CERO código, cero tests (cambio documental).
+- **Estado**: VERIFIED (sonda POST). **NO VERIFICADO** Android (n/a, docs).
 ## Run c.731 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "cortar el césped" — forma 18/19 — rama openhands/autonomous-ordia
 - **HEAD inicial**: `1b00da0` (push c.730). Selección (P1): "cortar el césped".
 - **Solución**: piso `cortar el césped` ACOTADO (familia TRASH/BED/WASHER) + keyword "césped" + plantilla "(cortar)(el) césped(es)"→"Cortar el césped". Kind deliberado: HOUSEHOLD.
