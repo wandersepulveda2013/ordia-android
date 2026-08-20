@@ -7,7 +7,7 @@
 - Sonda POST (`bash tools/run_probe.sh tools/probe/FourthClassVerbDiscoveryProbe.kt`): "bañar al perro el sábado" → HOUSEHOLD 'Bañar al perro' dueAt=true; +5 controles NULL (no/quizá/bañé/al bebé/verbo suelto); regresiones familia mascota intactas; controles NULL acumulados (hola/jaja/etc.) → NULL.
 - Sonda actualizada: la candidata pasa a REGRESIÓN de familia con nota de mantenimiento c.761. Pool Verb OPEN residual: VACÍO (clase cerrada).
 - Verificación: `bash tools/run_domain_tests.sh` → **4667 PASS** (4655 base + 12), 0 failures; `bash tools/run_domain_checks.sh` → 25 OK; `bash tools/run_automation_engine_checks.sh` → 9 OK. Sin tests reducidos/eliminados/falseados. **NO VERIFICADO** Android/gradle/UI/Room (sin SDK; limitación infraestructura JVM local).
-- HEAD final: pendiente tras push.
+- HEAD final: `ff0b962` (push `d1d4234..ff0b962` a openhands/autonomous-ordia).
 
 
 ### c.760/colisión — 2026-08-20 (UTC) — STALE_RUN: duplicado convergente "hacer la colada" con `2fedbd7` del hermano — verificación independiente VERDE (4655 tests) — stash drop, cero sobrescritura
