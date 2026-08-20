@@ -1,3 +1,14 @@
+## Ciclo c.720 — 2026-08-20 (UTC) — feat(context): piso TASK "recordar a <persona> <evento>" (forma 10/14 ÚLTIMA — sonda cerrada)
+
+- **HEAD**: inicial `3f5279d`-origin (c.719-STALE-3 ya integrada; ff-only limpio; final tras este log: feat + docs).
+- **Selección (P1, sonda persistente `tools/probe/ManagementVerbDiscoveryProbe.kt`, una forma por ciclo, doctrina anti-overreach)**: "recordar a papá el almuerzo mañana" → NULL (olvido silencioso de una gestión cotidiana con fecha explícita). Controles verdes desde el inicio.
+- **Solución**: piso `recordar a` en `hasStrongTaskImperative` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`, `a\s+\w` exige objeto tras la preposición — bloquea la polisemia "recordar mucho…") + plantilla "(recordar) a X"→"Recordar a X" + keyword multi-palabra **"recordar a"** en TASK (paridad lockstep piso+keyword, lección c.713) + 4 controles aditivos en la sonda. **Kind decidido: TASK, en deliberación contra REMINDER** — "recordar a alguien de algo" es la acción del usuario (avisar a papá), no un aviso automático a sí mismo (REMINDER puro es "recuérdame"/"avísame" c.717). Anti-overreach: negada NULL, duda NULL, sustantivo "recuerdo" NULL, pasado "recordé…" NULL, suelto "recordar a" NULL, polisemia "recordar-memoria" NULL; envolvente "recuérdame recordar a…" gobierna TASK (c.613). Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +11 tests `ContextIntentEngineRecordarAFloorTest.kt`; capturas GREEN de primera (motor editado con patrón prevalente c.691…c.719); primer run completo: 1 failure (kindLabel con objeto "examen" por competencia legítima con ESTUDIO — objeto ajustado a neutro "la cena") → **OK (4251 tests)** (4240 c.719 + 11), 0 failures; smoke 25 OK; automation 9 OK. **SONDA `ManagementVerbDiscoveryProbe` CERRADA (10/14 formas resueltas en c.711…c.720); sin OPEN.**
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla en extractTitle), `context/ContextIntent.kt` (keyword "recordar a" en TASK), `test/.../ContextIntentEngineRecordarAFloorTest.kt` (NUEVO +11), `tools/probe/ManagementVerbDiscoveryProbe.kt` (+4 controles), AI_AUTONOMY ×3.
+- **Próxima prioridad**: sondear una TERCERA clase de formas cotidianas (p.ej. sonda de pronombres-encuadre o verbos de hogar) antes de ceder ciclos a P2; y mantener el re-fetch OBLIGATORIO (3 STALE duplicados seguidos c.718/c.719 — alta colisión concurrente; elegir objetos distintos si la sonda de segundo nivel marca colisión).
+- **Estado**: VERIFIED en JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
+
 ## Ciclo c.719 — 2026-08-19 (UTC) — feat(context): piso TASK "publicar <contenido>" (forma 9/14 segunda clase)
 
 - **HEAD**: inicial `92be3e0`-origin tras STALE_RUN c.718 (remoto 911e55a ya resolvió la forma 8/14; mi duplicado local se descartó NO destructivo — ver RUN_LOG c.718-STALE); ff-only limpio; final tras este log (feat + docs).

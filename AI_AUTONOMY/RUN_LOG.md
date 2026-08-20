@@ -1,3 +1,15 @@
+## Run c.720 — 2026-08-20 (UTC) — feat(context): piso TASK "recordar a <persona> <evento>" — forma 10/14 ÚLTIMA (sonda cerrada) — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `3f5279d` (ff-only limpio; la STALE c.719-3 ya estaba integrada).
+- **Selección (P1)**: sonda `tools/probe/ManagementVerbDiscoveryProbe.kt` (c.711) — forma 10/14 "recordar a <persona> <evento>" última OPEN de la segunda clase de verbos cotidianos de gestión, doctrina una-forma-por-ciclo. Causa raíz: ausencia de piso para el verbo "recordar a" con objeto tras la preposición "a" (polisemia: recordar como memoria propia vs gestión sobre tercero); keyword REMINDER ("recordatorio") sólo genera base bajo-umbral → `analyze` = NULL (olvido silencioso).
+- **Solución**: piso en `hasStrongTaskImperative` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`, `a\s+\w` exige objeto) + plantilla `(recordar) a X`→"Recordar a X" + keyword multi-palabra "recordar a" en TASK (paridad lockstep piso+keyword, lección c.713). Decisión de kind: TASK, deliberación contra REMINDER (acción del usuario sobre tercero, no aviso automático a sí mismo; c.717). Anti-overreach: negada/duda/sustantivo "recuerdo"/pasado "recordé…"/suelto "recordar a"/polisemia "recordar mucho…" → NULL; envolvente "recuérdame recordar a…" gobierna TASK (c.613).
+- **TDD**: +11 tests `ContextIntentEngineRecordarAFloorTest.kt` — capturas GREEN de primera (motor con patrón prevalente c.691…c.719); primer run completo: 1 failure (kindLabel con objeto "examen" — competencia legítima ESTUDIO; objeto ajustado a neutro "la cena") → segundo run: **OK (4251 tests)** (4240 c.719 + 11), 0 failures; smoke 25 OK; automation 9 OK. FIX de ordering: motor+y tests en un run, sin falsificar RED. Sonda POST: captura TASK dueAt=true, 4 controles aditivos NULL. **SONDA CERRADA (10/14).**
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla extractTitle), `context/ContextIntent.kt` (keyword "recordar a" en TASK), `test/.../ContextIntentEngineRecordarAFloorTest.kt` (NUEVO +11), `tools/probe/ManagementVerbDiscoveryProbe.kt` (+4 controles), AI_AUTONOMY ×3.
+- **Próxima prioridad**: nueva sonda de TERCERA clase (p.ej. pronombres-encuadre / verbos de hogar) antes que P2; re-fetch OBLIGATORIO (3 STALE duplicados seguidos).
+- **Estado**: VERIFIED en JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+- **HEAD final**: tras los 2 commits (feat + docs).
+
+
 ## Run c.719-STALE-3 — 2026-08-20 (UTC) — rama openhands/autonomous-ordia
 
 - HEAD inicial: `92be3e0` (ff-only limpio). Al terminar TDD+verificación (RED 4 → GREEN, suite OK) el remoto avanzó concurrentemente resolviendo la MISMA forma 9/14 "publicar <contenido>" (`6852d7d` + `a4354e4` + `e305f1c` keyword-paridad).
