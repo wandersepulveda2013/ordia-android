@@ -50,9 +50,17 @@ class SearchEngineDateScopeTest {
         assertEquals(listOf(3L), ids)
     }
 
-    @Test fun estaSemana_returnsTasksFromTodayToEndOfWeek() {
+    @Test fun estaSemana_returnsWholeCalendarWeekIncludingOverdueFromMonday() {
         // Usar instantes a las 09:00 en la zona por defecto para evitar desbordamiento de día
         // cuando el sistema opera en otra zona horaria.
+        // c.778 (paridad búsqueda/asistente + coherencia interna con "este mes"):
+        // "esta semana" abarca la semana CALENDARIO completa (lunes-domingo), así
+        // una tarea PENDIENTE vencida el lunes de esta misma semana (id 4) se
+        // recupera: antes se ocultaba ("tiene su propio filtro OVERDUE"), pero el
+        // asistente SÍ la nombraba en "¿qué tengo esta semana?" y "este mes" ya
+        // recupera las vencidas de principios de mes: la semana era el único
+        // rango que mentía por omisión sobre su propio período. El solape con
+        // OVERDUE no es precedente nuevo: ya existe para "este mes".
         val zone = java.time.ZoneId.systemDefault()
         val todayLocal = java.time.LocalDate.of(2026, 8, 13) // jueves
         val t0 = java.time.ZonedDateTime.of(todayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
@@ -64,8 +72,44 @@ class SearchEngineDateScopeTest {
             TaskEntity(id = 5, title = "Sin fecha")
         )
         val ids = SearchEngine.search("esta semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
-        // Jueves 2026-08-13: la semana abarca hasta el domingo 2026-08-16.
-        assertEquals(setOf(1L, 2L, 3L), ids)
+        // Jueves 2026-08-13: la semana abarca del lunes 2026-08-10 al domingo 2026-08-16.
+        assertEquals(setOf(1L, 2L, 3L, 4L), ids)
+    }
+
+    @Test fun estaSemana_excludesOverdueFromLastWeek() {
+        // Guard anti-overreach (c.778): la vencida recuperada es la de ESTA semana
+        // calendario (lunes-domingo). Una vencida de la semana PASADA (lunes
+        // 2026-08-03) sigue fuera de "esta semana": la recupera "vencidas" o
+        // "semana pasada", no este scope.
+        val zone = java.time.ZoneId.systemDefault()
+        val todayLocal = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = java.time.ZonedDateTime.of(todayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy", dueAt = t0),
+            TaskEntity(id = 2, title = "Atrasada esta semana", dueAt = java.time.ZonedDateTime.of(todayLocal.minusDays(3).atTime(9, 0), zone).toInstant().toEpochMilli()), // lun 08-10
+            TaskEntity(id = 3, title = "Atrasada semana pasada", dueAt = java.time.ZonedDateTime.of(todayLocal.minusDays(10).atTime(9, 0), zone).toInstant().toEpochMilli()) // lun 08-03
+        )
+        val ids = SearchEngine.search("esta semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L), ids)
+    }
+
+    @Test fun estaSemana_overdueThisWeekTaskAlsoFoundByVencidas() {
+        // Guard de solape deliberado (c.778): la vencida de esta semana aparece en
+        // AMBAS superficies ("esta semana" por pertenencia de período; "vencidas"
+        // por plazo incumplido), igual que una vencida de principios de mes ya
+        // aparecía en "este mes" Y en "vencidas". Ninguna miente; cada una
+        // responde su pregunta.
+        val zone = java.time.ZoneId.systemDefault()
+        val todayLocal = java.time.LocalDate.of(2026, 8, 13) // jueves
+        val t0 = java.time.ZonedDateTime.of(todayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Hoy", dueAt = t0),
+            TaskEntity(id = 2, title = "Atrasada esta semana", dueAt = java.time.ZonedDateTime.of(todayLocal.minusDays(3).atTime(9, 0), zone).toInstant().toEpochMilli()) // lun 08-10
+        )
+        val weekIds = SearchEngine.search("esta semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        val overdueIds = SearchEngine.search("vencidas", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L), weekIds)
+        assertEquals(setOf(2L), overdueIds)
     }
 
     @Test fun atrasadas_returnsOnlyOverdueTasks() {
@@ -82,9 +126,11 @@ class SearchEngineDateScopeTest {
         // Domingo 2026-08-16: la semana termina HOY (domingo), no abarca hasta el
         // domingo siguiente. Antes del fix, `daysToSunday = 7 - (7 % 7) = 7`
         // arrastraba tareas de la semana siguiente (id 2, lunes próximo) a
-        // "esta semana". Tras el fix, solo queda lo de hoy (id 1); la atrasada
-        // (id 3) se excluye del rango "esta semana" (tiene su propio filtro
-        // "atrasadas"), igual que en el caso del jueves ya cubierto.
+        // "esta semana". Tras el fix, queda lo de hoy (id 1) y la atrasada de
+        // ESTA semana (id 3, jueves 08-13): desde c.778 "esta semana" es la
+        // semana calendario completa (lunes-domingo), como "este mes" y como la
+        // agenda del asistente; la vencida de esta misma semana se recupera
+        // aquí y también por "vencidas". El lunes próximo (id 2) sigue fuera.
         val zone = java.time.ZoneId.systemDefault()
         val sundayLocal = java.time.LocalDate.of(2026, 8, 16) // domingo
         val t0 = java.time.ZonedDateTime.of(sundayLocal.atTime(9, 0), zone).toInstant().toEpochMilli()
@@ -94,7 +140,7 @@ class SearchEngineDateScopeTest {
             TaskEntity(id = 3, title = "Atrasada", dueAt = java.time.ZonedDateTime.of(sundayLocal.minusDays(3).atTime(9, 0), zone).toInstant().toEpochMilli())
         )
         val ids = SearchEngine.search("esta semana", tasks, emptyList(), emptyList(), emptyList(), now = t0).map { it.id }.toSet()
-        assertEquals(setOf(1L), ids)
+        assertEquals(setOf(1L, 3L), ids)
     }
 
     @Test fun completedTasksAreExcludedFromDateScopes() {
@@ -1254,8 +1300,8 @@ class SearchEngineDateScopeTest {
 
     @Test fun estaSemana_incluyeTareaAgendadaPorStartAtConDueAtProximaSemana() {
         // Slot de esta semana (startAt) que vence la próxima semana. Antes "esta
-        // semana" la omitía; ahora la encuentra por startAt. (THIS_WEEK para
-        // pendientes abarca hoy→domingo: el slot debe caer ese rango hacia adelante.)
+        // semana" la omitía; ahora la encuentra por startAt. (Desde c.778 THIS_WEEK
+        // es la semana calendario lunes→domingo; el slot cae dentro.)
         val today = java.time.LocalDate.of(2026, 8, 13) // jueves; esta semana hoy(13)→dom(16)
         val t0 = slotAt(today, 9)
         val tasks = listOf(
@@ -1400,7 +1446,7 @@ class SearchEngineDateScopeTest {
     // — semana/mes pedida desaparecía de la respuesta. —
 
     @Test fun estaSemanaPorLaTarde_soloTardesDelRestoDeLaSemana() {
-        // Hoy jueves 13 → "esta semana" = hoy→domingo 16 (pendientes).
+        // Hoy jueves 13 → "esta semana" = semana calendario lun 10→dom 16 (c.778).
         val thursday = java.time.LocalDate.of(2026, 8, 13)
         val friday = thursday.plusDays(1)
         val saturday = thursday.plusDays(2)

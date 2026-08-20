@@ -909,7 +909,7 @@ object SearchEngine {
         // terminación que anclar → no entra (no se inventa una fecha).
         if (anchorOnCompleted) {
             val completedAt = task.completedAt ?: return false
-            return anchorMatchesScope(scope, completedAt, now, zone, fullCalendarWeek = true)
+            return anchorMatchesScope(scope, completedAt, now, zone)
         }
         if (!pastScope && task.completed) return false
         // Partes del día: franja horaria de HOY (presente → excluye completadas,
@@ -968,12 +968,12 @@ object SearchEngine {
             fun inScopeAndBand(epoch: Long?): Boolean {
                 val zoned = epoch?.let { Instant.ofEpochMilli(it).atZone(zone) } ?: return false
                 return zoned.hour in dayBand &&
-                    anchorMatchesScope(scope, epoch, now, zone, fullCalendarWeek = false)
+                    anchorMatchesScope(scope, epoch, now, zone)
             }
             return inScopeAndBand(task.startAt) || inScopeAndBand(task.dueAt)
         }
-        return anchorMatchesScope(scope, task.startAt, now, zone, fullCalendarWeek = false) ||
-            anchorMatchesScope(scope, task.dueAt, now, zone, fullCalendarWeek = false)
+        return anchorMatchesScope(scope, task.startAt, now, zone) ||
+            anchorMatchesScope(scope, task.dueAt, now, zone)
     }
 
     // Comprueba si un instante (epoch) cae dentro del rango calendario del scope.
@@ -981,11 +981,12 @@ object SearchEngine {
     // día-fecha relativo (ayer/mañana) ni "hoy" absoluto, siempre dentro de la
     // semana/mes en curso relativo a `now`. Usado para dueAt (tareas pendientes)
     // y para completedAt (tareas terminadas por el usuario en un período).
-    // fullCalendarWeek: cuando es true (anclaje en completedAt), THIS_WEEK abarca
-    // la semana calendario completa (lunes-domingo) en vez de hoy→domingo: la
-    // lectura de "completadas esta semana" es "qué terminé esta semana", que
-    // incluye lo terminado el lunes aunque hoy sea jueves.
-    private fun anchorMatchesScope(scope: DateScope, anchorEpoch: Long?, now: Long, zone: ZoneId, fullCalendarWeek: Boolean): Boolean {
+    // THIS_WEEK abarca siempre la semana calendario completa (lunes-domingo),
+    // también para pendientes (c.778: la agenda del asistente ya usa lunes-domingo
+    // y "este mes" ya recupera lo vencido de principios de mes — la semana era el
+    // único rango que escondía su propio pasado; una tarea pendiente vencida el
+    // lunes de ESTA semana se recupera aquí y también por OVERDUE).
+    private fun anchorMatchesScope(scope: DateScope, anchorEpoch: Long?, now: Long, zone: ZoneId): Boolean {
         // Un epoch nulo (tarea sin startAt o sin dueAt) nunca ancla: la membresía
         // se decide por el OR de ambas marcas en `taskMatchesDateScope`, así que
         // aquí sólo se descarta ese lado del OR sin falsear el otro.
@@ -1004,15 +1005,16 @@ object SearchEngine {
             DateScope.TOMORROW -> date == today.plusDays(1)
             DateScope.DAY_AFTER_TOMORROW -> date == today.plusDays(2)
             DateScope.THIS_WEEK -> {
-                // Semana de lunes a domingo (Monday=1..Sunday=7). Para dueAt el
-                // inicio es HOY (lo que me espera esta semana); para completedAt
-                // (fullCalendarWeek) el inicio es el LUNES de esta semana, así
-                // "completadas esta semana" recupera lo terminado desde el lunes.
-                // El `% 7` es crítico en domingo: `(7 - 7) % 7 = 0` → la semana
-                // termina HOY. Sin él, `7 - (7 % 7) = 7` arrastraba la siguiente.
+                // Semana calendario de lunes a domingo (Monday=1..Sunday=7) para
+                // los tres anclajes (dueAt/startAt/completedAt). Hasta c.778 los
+                // pendientes arrancaban en hoy y una tarea pendiente vencida a
+                // principios de ESTA semana quedaba escondida (mentira por omisión:
+                // el asistente sí la listaba en "qué tengo esta semana"). El `% 7`
+                // es crítico en domingo: `(7 - 7) % 7 = 0` → la semana termina HOY.
+                // Sin él, `7 - (7 % 7) = 7` arrastraba la siguiente.
                 val daysToSunday = (7 - today.dayOfWeek.value) % 7
                 val endOfWeek = today.plusDays(daysToSunday.toLong())
-                val startOfWeek = if (fullCalendarWeek) today.minusDays((today.dayOfWeek.value - 1).toLong()) else today
+                val startOfWeek = today.minusDays((today.dayOfWeek.value - 1).toLong())
                 !date.isBefore(startOfWeek) && !date.isAfter(endOfWeek)
             }
             DateScope.NEXT_WEEK -> {
