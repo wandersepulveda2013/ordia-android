@@ -15873,4 +15873,7 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Proxima prioridad: "llenar la solicitud mañana" (prob. TASK; deliberar contra
   FORM). Re-fetch OBLIGATORIO antes de push.
 - NO VERIFICADO: Android/gradle/lint/UI/Room (sin SDK).
-- HEAD final: pendiente del commit (docs incluidos en el commit).
+- HEAD final: c4977c4 (docs incluidos en el commit). NOTA GIT: ${GITHUB_TOKEN}
+  (mayús) no autentica push HTTPS en este entorno; ${github_token} (minús) sí
+  (401 vs 200 verificado ante api.github.com). Push URL literal, sin persistir
+  credencial en remote.
