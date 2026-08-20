@@ -47,6 +47,11 @@ fun main() {
         // `gat[oa]s?`, keywords "gato"/"gata" lockstep) — la línea queda
         // como REGRESIÓN de la familia mascota.
         "alimentar al gato hoy",
+        // Nota mantenimiento c.747: "llevar al perro al veterinario
+        // mañana" RESUELTA (piso `HOUSEHOLD_VET_FLOOR` c.747 acotado a la
+        // forma completa mascota `perr[oa]s?` + destino `veterinari[oa]s?`,
+        // keywords "veterinario"/"veterinaria" lockstep) — la línea queda
+        // como REGRESIÓN de la familia mascota.
         "llevar al perro al veterinario mañana",
         // Candidatos: hogar aún no cubierto por HOUSEHOLD_VERBS ni pisos acotados.
         // Nota mantenimiento c.742: "pasar la aspiradora mañana" RESUELTA
@@ -87,6 +92,17 @@ fun main() {
         "quizá alimentar al gato mañana",
         "alimenté al gato ayer",
         "alimentar al bebé hoy",
+        // c.747: controles del piso `llevar al perro al veterinario`
+        // (negada / duda / pasado / objeto no mascota / destino no
+        // veterinario). Nota: "llevar el coche al taller" captura como
+        // ERRAND por vía PRE-EXISTENTE (piso de llevar-objeto de ERRAND,
+        // verificado pre-cambio en la base) — el control exige que NO
+        // robe HOUSEHOLD.
+        "no llevar al perro al veterinario mañana",
+        "quizá llevar al perro al veterinario mañana",
+        "llevé al perro al veterinario ayer",
+        "llevar el coche al taller mañana",
+        "llevar al perro al parque mañana",
         "no pintar la casa mañana",
         "pinté la casa ayer",
         "no votar el domingo",

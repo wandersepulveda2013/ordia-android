@@ -135,8 +135,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // keyword↔piso; "alimentar" suelto es bivalente — al bebé/la
         // planta/la relación — así se alinea el OBJETO mascota,
         // familia `sacar al perro` c.740).
+        // c.747: destino del piso `llevar al perro al veterinario`
+        // (lockstep keyword↔piso; "llevar" suelto es bivalente — el
+        // coche/la cuenta/a los niños al colegio — así se alinea el
+        // DESTINO restringido, familia mascota c.740/c.744).
         "basura", "cama", "lavadora", "césped", "polvo", "mesa",
-        "lavavajillas", "perro", "perra", "aspiradora", "ropa", "gato", "gata")),
+        "lavavajillas", "perro", "perra", "aspiradora", "ropa", "gato", "gata",
+        "veterinario", "veterinaria")),
     UNKNOWN("Sin clasificar", emptyList());
 
     companion object {
