@@ -1368,6 +1368,27 @@ object ContextIntentEngine {
             // + bono temporal 0.1 = 0.22 < umbral (hermana c.765/c.766/c.768/
             // c.771).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )medir\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?tensi[oó]n\b""").containsMatchIn(lower)
+            // Piso "medirme la presión" (c.775, quinta clase — salud/
+            // autocuidado; dispersión epoch-day 20686 % 2 = 0 sobre el pool
+            // OPEN residual de 2; NULL PRE verificado por la sonda sobre
+            // HEAD c5031be). Es la misma medición de tensión arterial en su
+            // forma real más cotidiana: reflexiva enclítica con el objeto
+            // `presi[oó]n` — hermana de la alternancia enclítica c.770
+            // ("tomarme") y del piso c.772. Clausula ACOTADA a la pareja
+            // exacta reflexivo+objeto: "medirme la tensión"/"medir la
+            // presión" (no reflexiva) quedan FUERA — una forma por ciclo,
+            // doctrina de la sonda. El objeto es bivalente para el verbo
+            // (la estatura/el peso) → alternancia `medirme` SOLO con
+            // `presi[oó]n`. SIN plural: "las presiones" son exigencias
+            // sociales, otra semántica. Lockstep keyword-OBJETO "presión"
+            // (lección c.713/c.751/c.765; NO el verbo; las colisiones de
+            // subcadena "depresión"/"compresión"/"expresión" son inertes:
+            // 0.12 < umbral sola). Ancla ^/ACK/temporal, `(?<!no )`
+            // bloquea la negada; el pasado "me medí…", el suelto "medirme"
+            // y el sustantivo "la presión está…" no casan. Negación sin
+            // cláusula dedicada: keyword 0.12 + bono temporal 0.1 = 0.22
+            // < umbral (hermana c.765/c.766/c.768/c.771/c.772).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )medirme\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?presi[oó]n\b""").containsMatchIn(lower)
             // Piso "hacer copia de seguridad" (c.774, quinta clase — hogar-
             // tecnología; dispersión epoch-day 20686 % 3 = 1 sobre el pool
             // OPEN residual de 3; NULL PRE verificado por la sonda sobre
@@ -2260,6 +2281,10 @@ object ContextIntentEngine {
                 // tension" sin tilde queda tal cual en el título.
                 val matchMedirTension = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(medir)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?tensi[oó]n\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchMedirTension != null) return "Medir ${matchMedirTension.groupValues[2]}"
+                // c.775: presión arterial reflexiva (grafía del usuario preservada;
+                // verbo reconstruido capitalizado — hermana c.770).
+                val matchMedirmePresion = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(medirme)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?presi[oó]n\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchMedirmePresion != null) return "Medirme ${matchMedirmePresion.groupValues[2]}"
                 // c.774: plantilla "hacer copia de seguridad" (ancla/guard
                 // idénticos al piso; lección c.616: el match arranca en el
                 // verbo, así acuse/prefijo temporal se despojan; el residuo

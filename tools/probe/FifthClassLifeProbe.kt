@@ -51,9 +51,16 @@ import com.ordia.app.context.ContextIntentEngine
  *   "la copia de la llave" fuera; hermano de "reiniciar el router" c.771;
  *   lockstep keyword-OBJETO "backup"; dispersión epoch-day 20686 % 3 = 1
  *   sobre el pool residual de 3; NULL PRE verificado sobre HEAD 027826b).
+ * - c.775: "medirme la presión mañana" → TASK acotado a la pareja
+ *   reflexivo enclítico `medirme` + objeto `presi[oó]n` (la misma
+ *   medición de tensión arterial en su forma real más cotidiana —
+ *   hermana de c.772 y de la alternancia enclítica c.770; la NO
+ *   reflexiva "medir la presión" y "medirme la tensión" quedan FUERA —
+ *   una forma por ciclo; lockstep keyword-OBJETO "presión" — colisiones
+ *   "depresión"/"compresión" inertes; dispersión epoch-day 20686 % 2 = 0
+ *   sobre el pool residual de 2; NULL PRE verificado sobre HEAD c5031be).
  *
  * Pool OPEN (NULL medido en PRE c.765, HEAD 9815ee2):
- * - "medirme la presión mañana" (reflexivo; objeto `presión`)
  * - "llevar a la niña al médico el lunes" (familia/salud; destino
  *   `médico` — deliberación APPOINTMENT vs ERRAND, ítem aparte)
  */
@@ -67,8 +74,6 @@ fun main() {
         "tomar las pastillas hoy",
         "tomar el medicamento esta noche",
         "vale, tomar la medicina mañana",
-        // c.772 OPEN residual: el reflexivo con objeto `presión` sigue OPEN
-        "medirme la presión mañana",
         // ---- Familia / niños (parcial: pool OPEN) ----
         // c.773 OPEN residual: el destino `médico` sigue OPEN (otra
         // deliberación — APPOINTMENT vs ERRAND)
@@ -114,6 +119,12 @@ fun main() {
         "vale, hacer copia de seguridad hoy",
         "mañana hacer copia de seguridad",
         "hacer backup hoy",
+        // c.775: capturas del piso presión reflexiva (regresión)
+        "medirme la presión mañana",
+        "medirme la presión hoy",
+        "vale, medirme la presión hoy",
+        "hoy medirme la presión",
+        "medirme la presion mañana",
         // ---- Controles anti-overreach (deben quedar NULL) ----
         "no tomar la medicina mañana",
         "quizá tomar la medicina mañana",
@@ -172,6 +183,14 @@ fun main() {
         "hacer copia",
         "la copia de seguridad falló",
         "el backup está corrupto",
+        // c.775: controles del piso presión reflexiva (NULL)
+        "no medirme la presión mañana",
+        "quizá medirme la presión hoy",
+        "me medí la presión ayer",
+        "medirme la estatura mañana",
+        "medir la presión mañana",
+        "medirme",
+        "la presión está alta",
         "hola cómo estás"
     )
     for (c in cases) {
