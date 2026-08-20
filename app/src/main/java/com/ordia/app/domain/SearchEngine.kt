@@ -124,7 +124,19 @@ object SearchEngine {
         // "marcadas"/"completadas" para el atributo de recurrencia.
         val wantsRecurring = RECURRING_TOKENS.any { it in words }
         val recurringTerms = if (wantsRecurring) RECURRING_TOKENS.filter { it in words }.toSet() else emptySet()
-        val dateScope = detectDateScope(words)
+        // "en la mañana"/"por la mañana" (preposición + artículo): la mañana
+        // (franja 6..11) de HOY, jamás tomorrow — la misma lectura que "esta
+        // mañana", el parser de captura (hoy 09:00) y el motor de contexto.
+        // Se detecta sobre la consulta normalizada porque "en"/"por"/"la" son
+        // stop-words y no sobreviven en `words`: sin esta señal el token suelto
+        // "manana" caía a TOMORROW y la consulta devolvía las de mañana
+        // (mentira cruzada con la captura). El lookbehind excluye "mañana en la
+        // mañana" y "pasado mañana en la mañana" (tomorrow + franja: el primer
+        // "mañana" gana). Un weekday presente ("el lunes en la mañana") gana al
+        // modificador: resuelve al día de la semana, no a hoy.
+        val morningOfTodayPrep = MORNING_OF_TODAY_PREP.containsMatchIn(normalized) &&
+            WEEKDAY_TOKENS.none { it in words }
+        val dateScope = detectDateScope(words, morningOfTodayPrep)
         // Cuando la búsqueda expresa un rango de fecha ("hoy", "mañana", ...),
         // las palabras de fecha no se exigen en el contenido: se filtra por fecha.
         val dateWords = if (dateScope != null) dateScopeTokens(words) else emptySet()
@@ -419,8 +431,21 @@ object SearchEngine {
     /** Tier de urgencia para tareas completadas: por debajo del `else` (7). */
     private const val COMPLETED_URGENCY = 8
 
+    // Preposiciones/artículos sin valor de contenido. "en"/"por" se añadieron al
+    // descubrir que envenenaban la búsqueda: "cita en madrid" exigía la palabra
+    // "en" en el título (→ vacío casi siempre) y "por la tarde" nunca resolvía
+    // su franja porque "por" quedaba como palabra de contenido. Ningún token de
+    // intención usa "en"/"por" (verificado), así que eliminarlas solo recupera
+    // resultados legítimos.
     private val STOP_WORDS = setOf(
-        "de", "del", "la", "las", "el", "los", "con", "que", "mis", "mi", "cosas", "mostrar", "muestra"
+        // "en"/"por" (c.764): antes envenenaban TODA búsqueda con preposición
+        // ("cita en madrid" exigía "en" en el título → vacío; "en la mañana"
+        // era irrecuperable). "tengo"/"hay": muletillas de pregunta natural
+        // ("¿qué tengo hoy?", "¿qué hay mañana?") que igualmente se exigían en
+        // el contenido. Ningún conjunto léxico (intents, scopes, filtros)
+        // depende de estas palabras.
+        "de", "del", "la", "las", "el", "los", "con", "que", "mis", "mi", "cosas", "mostrar", "muestra", "en", "por",
+        "tengo", "hay"
     )
     private val TASK_TERMS = setOf("tarea", "pendient", "vencid", "important", "urgente")
     private val NOTE_TERMS = setOf("nota")
@@ -513,6 +538,10 @@ object SearchEngine {
     )
     private val TODAY_TOKENS = setOf("hoy")
     private val TOMORROW_TOKENS = setOf("manana")
+    // "en la mañana"/"por la mañana" sobre la consulta normalizada (sin acentos).
+    // El lookbehind fijo "(?<!manana )" bloquea "mañana en la mañana" y
+    // "pasado mañana en la mañana": ahí el primer "mañana" es tomorrow.
+    private val MORNING_OF_TODAY_PREP = Regex("(?<!manana )\\b(?:en|por) la manana\\b")
     private val YESTERDAY_TOKENS = setOf("ayer")
     // "anteayer"/"antier" = el día antes de ayer. El parser de captura resuelve
     // ambos a base.minusDays(2) ([NaturalTaskParser], con tests en
@@ -618,7 +647,7 @@ object SearchEngine {
     private fun isWeekendQuery(words: List<String>): Boolean =
         "finde" in words || (WEEKEND_HEAD_TOKENS.any { it in words } && "semana" in words)
 
-    private fun detectDateScope(words: List<String>): DateScope? = when {
+    private fun detectDateScope(words: List<String>, morningOfTodayPrep: Boolean = false): DateScope? = when {
         "sin" in words && UNDATED_HINTS.any { it in words } -> DateScope.UNDATED
         OVERDUE_TOKENS.any { it in words } -> DateScope.OVERDUE
         MISSED_TOKENS.any { it in words } -> DateScope.MISSED
@@ -637,6 +666,13 @@ object SearchEngine {
         // para hoy 09:00 (mentira cruzada entre superficies). "mañana" SOLA sigue
         // cayendo a TOMORROW (lectura dominante del token suelto).
         "esta" in words && TOMORROW_TOKENS.any { it in words } -> DateScope.MORNING
+        // "en la mañana"/"por la mañana": la mañana (6-11) de HOY, jamás
+        // tomorrow. La señal llega precomputada (regex sobre la consulta
+        // normalizada, ver [MORNING_OF_TODAY_PREP]) porque las preposiciones no
+        // sobreviven en `words`. Va ANTES de TOMORROW: sin esta rama el token
+        // suelto "manana" robaba la consulta a mañana. "mañana en la mañana"
+        // NO llega aquí (lookbehind) y sigue cayendo a TOMORROW.
+        morningOfTodayPrep && TOMORROW_TOKENS.any { it in words } -> DateScope.MORNING
         TOMORROW_TOKENS.any { it in words } -> DateScope.TOMORROW
         YESTERDAY_TOKENS.any { it in words } -> DateScope.YESTERDAY
         // "anteayer"/"antier" = día antes de ayer (simétrico de "pasado mañana" =
@@ -943,6 +979,15 @@ object SearchEngine {
     }
 }
 
+// Plegado para búsqueda: minúsculas, sin acentos y SIN puntuación. La
+// puntuación pegada al token ("mañana?", "hoy!", "reunión:") rompía la
+// comparación por palabra exacta de los scopes de fecha y exigía el signo en
+// el contenido ("¿qué tengo en la mañana?" devolvía vacío pese a haber tareas
+// de esta mañana). Letras/dígitos se conservan; el resto se vuelve espacio.
+// Se aplica igual a consulta y contenido (matches), así que el matching por
+// subcadena sigue siendo consistente en ambos lados.
 internal fun String.foldForSearch(): String =
     Normalizer.normalize(trim().lowercase(), Normalizer.Form.NFD)
         .replace(Regex("\\p{M}+"), "")
+        .replace(Regex("[^\\p{L}\\p{N}]+"), " ")
+        .trim()

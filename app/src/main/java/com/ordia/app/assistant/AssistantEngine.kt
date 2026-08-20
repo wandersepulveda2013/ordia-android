@@ -1108,6 +1108,14 @@ object AssistantEngine {
             // rama, "¿qué tengo esta mañana?" mostraba la agenda de MAÑANA (mentira
             // cruzada con la captura). La franja horaria la aplica la etapa `band`.
             "esta manana" in query -> Triple(today, today, "esta mañana")
+            // "en la mañana"/"por la mañana": la mañana de HOY (la franja 6-11 la
+            // aplica la etapa `band` vía agendaPartOfDay), jamás tomorrow — ver
+            // [enLaMananaHoy]. Va ANTES de "manana": sin esta rama el token suelto
+            // robaba "¿qué tengo en la mañana?" a la agenda de MAÑANA. Se segmenta
+            // del weekday y del finde para que "el viernes en la mañana" resuelva
+            // al viernes (franja como modificador) y no a hoy.
+            enLaMananaHoy(query) && AGENDA_WEEKDAY_TOKENS.none { it in query } &&
+                !isAgendaWeekendQuery(query) -> Triple(today, today, "esta mañana")
             "pasado manana" in query -> Triple(today.plusDays(2), today.plusDays(2), "pasado mañana")
             "manana" in query -> Triple(today.plusDays(1), today.plusDays(1), "mañana")
             // Parte del día ("esta tarde"/"esta noche"/"la madrugada"): franja de
@@ -1309,6 +1317,7 @@ object AssistantEngine {
     // demostrativa "esta mañana" es inequívoca como la mañana de HOY (6..11).
     private fun agendaPartOfDay(query: String): IntRange? = when {
         "esta manana" in query -> 6..11
+        enLaMananaHoy(query) -> 6..11
         "madrugada" in query -> 0..5
         "tarde" in query -> 12..17
         "noche" in query -> 18..23
@@ -1317,11 +1326,22 @@ object AssistantEngine {
 
     private fun agendaPartOfDayLabel(query: String): String = when {
         "esta manana" in query -> "esta mañana"
+        enLaMananaHoy(query) -> "esta mañana"
         "madrugada" in query -> "esta madrugada"
         "tarde" in query -> "esta tarde"
         "noche" in query -> "esta noche"
         else -> "hoy"
     }
+
+    // "en la mañana"/"por la mañana" (preposición + artículo): la mañana (6..11)
+    // de HOY, jamás tomorrow — la misma lectura que "esta mañana", el parser de
+    // captura (hoy 09:00) y SearchEngine. Sin esta señal el token suelto
+    // "manana" de "¿qué tengo en la mañana?" caía a la agenda de MAÑANA (mentira
+    // cruzada con la captura). El lookbehind fijo excluye "mañana en la mañana"
+    // y "pasado mañana en la mañana": ahí el primer "mañana" es tomorrow y la
+    // consulta resuelve a ese día completo (sin franja, como SearchEngine).
+    private val AGENDA_MANANA_PREP = Regex("(?<!manana )\\b(?:en|por) la manana\\b")
+    private fun enLaMananaHoy(query: String): Boolean = AGENDA_MANANA_PREP.containsMatchIn(query)
 
     private fun isInHourBand(task: TaskEntity, band: IntRange, start: LocalDate, end: LocalDate, zone: ZoneId): Boolean {
         // La franja se resuelve con la marca temporal que cae dentro del rango de

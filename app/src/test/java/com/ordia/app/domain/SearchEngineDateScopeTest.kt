@@ -1257,5 +1257,64 @@ class SearchEngineDateScopeTest {
         assertTrue("Una tarea futura no debe aparecer en 'ayer'", ids.isEmpty())
     }
 
+    // --- "en la mañana"/"por la mañana" (preposición + artículo): mañana de HOY ---
 
+    @Test fun enLaManana_returnsOnlyTodayMorningTasks() {
+        // Con preposición + artículo, "mañana" es la franja 6-11 de HOY — la misma
+        // lectura que el parser de captura (hoy 09:00) —, nunca tomorrow. Antes el
+        // token suelto "manana" caía a TOMORROW y, encima, "en"/"por" quedaban
+        // como palabras de contenido que ningún título contiene → devolvía VACÍO.
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Correr en el parque", dueAt = atHour(today, 8)),          // hoy, mañana
+            TaskEntity(id = 2, title = "Comprar aguacates", dueAt = atHour(today, 15)),           // hoy, tarde
+            TaskEntity(id = 3, title = "Reunión de equipo", dueAt = atHour(today.plusDays(1), 9)) // mañana, mañana
+        )
+        val nowT = atHour(today, 12)
+        for (q in listOf("en la mañana", "por la mañana", "¿qué tengo en la mañana?")) {
+            val ids = SearchEngine.search(q, pod, emptyList(), emptyList(), emptyList(), now = nowT).map { it.id }.toSet()
+            assertEquals("'$q' solo debe traer la mañana de hoy", setOf(1L), ids)
+        }
+    }
+
+    @Test fun mananaEnLaManana_stillMeansTomorrow() {
+        // Control: "mañana en la mañana" = tomorrow (el primer "mañana" gana; el
+        // lookbehind de la regex bloquea la lectura preposicional). SearchEngine
+        // resuelve al día completo (sin franja, igual que "mañana" sola).
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Correr en el parque", dueAt = atHour(today, 8)),          // hoy, mañana
+            TaskEntity(id = 3, title = "Reunión de equipo", dueAt = atHour(today.plusDays(1), 9)), // mañana
+            TaskEntity(id = 4, title = "Cena con Ana", dueAt = atHour(today.plusDays(1), 20))      // mañana noche
+        )
+        val nowT = atHour(today, 12)
+        val ids = SearchEngine.search("mañana en la mañana", pod, emptyList(), emptyList(), emptyList(), now = nowT).map { it.id }.toSet()
+        assertEquals(setOf(3L, 4L), ids)
+    }
+
+    @Test fun porLaTarde_resolvesAfternoonBand() {
+        // "por"/"en" ya no envenenan la búsqueda: con stop-words eliminadas,
+        // "por la tarde" resuelve la franja de hoy como "tarde" sola (antes
+        // devolvía vacío porque exigía "por" en el título).
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Cita médica", dueAt = atHour(today, 15)),
+            TaskEntity(id = 2, title = "Desayuno", dueAt = atHour(today, 8))
+        )
+        val nowT = atHour(today, 12)
+        val ids = SearchEngine.search("por la tarde", pod, emptyList(), emptyList(), emptyList(), now = nowT).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun contentSearchWithEnPor_noLongerPoisoned() {
+        // Búsqueda de contenido con preposición: "cita en madrid" antes exigía
+        // "en" en el título (→ vacío casi siempre). Con "en" como stop-word
+        // basta con que el contenido real case.
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Cita médica", details = "Madrid"),
+            TaskEntity(id = 2, title = "Comprar pan")
+        )
+        val ids = SearchEngine.search("cita en madrid", tasks, emptyList(), emptyList(), emptyList(), now = now).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
 }

@@ -1494,6 +1494,50 @@ class AssistantEngineTest {
         assertTrue("avisa de las atrasadas previas: ${answer.text}", answer.text.contains("atrasada"))
     }
 
+    // --- "¿qué tengo en la mañana?" (preposición + artículo): mañana de HOY ---
+
+    private fun todayAtHour(now: Long, hour: Int): Long {
+        val zone = ZoneId.systemDefault()
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        return today.atTime(hour, 0).atZone(zone).toInstant().toEpochMilli()
+    }
+
+    @Test fun queTengoEnLaManana_showsTodayMorningNotTomorrow() {
+        // "en la mañana"/"por la mañana": la mañana (franja 6-11) de HOY, jamás
+        // tomorrow — la misma lectura que el parser de captura (hoy 09:00) y
+        // SearchEngine. Antes el token suelto "manana" robaba la consulta a la
+        // agenda de MAÑANA (mentira cruzada con la captura).
+        val now = 1_000_000_000_000L
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Correr en el parque", dueAt = todayAtHour(now, 8)),
+            TaskEntity(id = 2, title = "Comprar aguacates", dueAt = todayAtHour(now, 15)),
+            TaskEntity(id = 3, title = "Reunión de equipo", dueAt = tomorrowNoon(now))
+        )
+        for (q in listOf("¿qué tengo en la mañana?", "¿qué tengo por la mañana?")) {
+            val answer = AssistantEngine.answer(q, tasks, emptyList(), emptyList(), now)
+            assertTrue("'$q' nombra la de esta mañana: ${answer.text}", answer.text.contains("Correr en el parque"))
+            assertTrue("'$q' no mezcla la tarde: ${answer.text}", !answer.text.contains("Comprar aguacates"))
+            assertTrue("'$q' no muestra mañana: ${answer.text}", !answer.text.contains("Reunión de equipo"))
+        }
+    }
+
+    @Test fun queTengoMananaEnLaManana_stillShowsTomorrow() {
+        // Control: "mañana en la mañana" = tomorrow (el primer "mañana" gana; el
+        // lookbehind de la regex bloquea la lectura preposicional).
+        val now = 1_000_000_000_000L
+        val answer = AssistantEngine.answer(
+            "¿qué tengo mañana en la mañana?",
+            listOf(
+                TaskEntity(id = 1, title = "Correr en el parque", dueAt = todayAtHour(now, 8)),
+                TaskEntity(id = 3, title = "Reunión de equipo", dueAt = tomorrowNoon(now))
+            ),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra la de mañana: ${answer.text}", answer.text.contains("Reunión de equipo"))
+        assertTrue("no mezcla con la de hoy: ${answer.text}", !answer.text.contains("Correr en el parque"))
+    }
+
     // --- c.356: "¿qué tengo hoy?" no debe callar un compromiso vencido de una
     // conversación (el cuarto olvido). La rama "hoy" de agendaAnswer ya rompía la
     // pureza "sólo agenda de hoy" para nombrar las atrasadas de días anteriores
