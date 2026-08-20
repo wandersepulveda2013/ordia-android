@@ -30,6 +30,10 @@ fun main() {
         // Candidatos: cuidado de mascotas (cotidiano, sin piso ni keyword).
         "sacar al perro mañana",
         "bañar al perro el sábado",
+        // Nota mantenimiento c.744: "alimentar al gato hoy" RESUELTA (piso
+        // `HOUSEHOLD_FEED_CAT_FLOOR` c.744 acotado al objeto mascota
+        // `gat[oa]s?`, keywords "gato"/"gata" lockstep) — la línea queda
+        // como REGRESIÓN de la familia mascota.
         "alimentar al gato hoy",
         "llevar al perro al veterinario mañana",
         // Candidatos: hogar aún no cubierto por HOUSEHOLD_VERBS ni pisos acotados.
@@ -65,6 +69,12 @@ fun main() {
         "pasé la aspiradora ayer",
         "no colgar la ropa hoy",
         "colgué la ropa ayer",
+        // c.744: controles del piso `alimentar al gato` (negada / duda /
+        // pasado / objeto no gato).
+        "no alimentar al gato hoy",
+        "quizá alimentar al gato mañana",
+        "alimenté al gato ayer",
+        "alimentar al bebé hoy",
         "no pintar la casa mañana",
         "pinté la casa ayer",
         "no votar el domingo",

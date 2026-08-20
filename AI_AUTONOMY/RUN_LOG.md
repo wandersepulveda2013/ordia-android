@@ -1,3 +1,14 @@
+## Run c.744 — 2026-08-20 — feat(context): piso HOUSEHOLD "alimentar al gato" (mascota 2/8 sonda Verb c.740; anti-colisión: evitadas compra/colada anunciadas y "bañar al perro" señalada c.740)
+- **HEAD inicial**: `212a85f` (local = origin, sin colisiones). Re-fetch final: sin avance remoto → número c.744 confirmado.
+- **Selección**: sonda paralela Verb (P1 context/evitar olvidos), mascota 2/8 "alimentar al gato hoy" — forma NO anunciada (anti-colisión; las 2 OPEN de Chore están anunciadas, "bañar al perro" señalada en c.740).
+- **Secuencia**: TDD RED exacto 5/11 (las 5 capturas; los 6 controles ya sanos por guards acumulados) → GREEN; sondas actualizadas PRE→POST; memoria (CURRENT_STATE/BACKLOG/RUN_LOG).
+- **Cambios**: piso `HOUSEHOLD_FEED_CAT_FLOOR` (`\b(?<!no )alimentar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)gat[oa]s?\b`) en `ContextIntentEngine.kt`; keywords "gato"/"gata" en `ContextIntent.kt` (lockstep); plantilla "(alimentar) (al|a …) gat[oa]s?…"→"Alimentar al gato…" (matchAlimentarGato, tras matchSacarPerro); +11 tests `ContextIntentEngineAlimentarGatoFloorTest.kt`; sonda Verb: nota de mantenimiento (alimentar RESUELTA c.744, regresión mascota) + 4 controles nuevos (no/quizá/alimenté/alimentar al bebé, ahora 26).
+- **Tests**: `bash tools/run_domain_tests.sh` → **OK (4503 tests)** (4492 + 11), 0 failures; `run_domain_checks.sh` smoke 25 OK; `run_automation_engine_checks.sh` 9 OK. Sonda Verb POST: alimentar → HOUSEHOLD 'Alimentar al gato' dueAt=true; 11 OPEN restantes NULL (sin fugas), controles 26/26 NULL. Sonda Chore POST: intacta. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Estado**: VERIFIED. Clase Mascotas 2/8 (perro c.740, gato c.744); clase 4 Chore 6/7.
+- **Próxima prioridad**: "hacer la compra mañana" (acotamiento estricto + controles kind-drift) / "hacer la colada mañana" (acotar a `colada(s)`; interop lavadora c.729) / Verb 11 OPEN. Heurística anti-colisión activa; ciclo numerado SOLO en el fetch final.
+- **Commits**: este (feat+docs c.744) → hash tras el commit.
+---
+
 ## Run c.743 — 2026-08-20 — feat(context): piso HOUSEHOLD "colgar la ropa" (forma 6/7 clase 4 Chore; anti-colisión tras perder "pasar la aspiradora" en el fetch de inicio)
 - **HEAD inicial**: `29a2431d`. Fetch de inicio reveló `10846c3f` (c.742 "pasar la aspiradora" — mi alternativa elegida, publicada minutos antes) → alternativa invalidada; heurística anti-colisión → 3ª del pool: "colgar la ropa hoy". ff-only limpio, sin rebase ni stash.
 - **Selección**: clase 4 Chore, forma 6/7 (P1 context/evitar olvidos, ítem OPEN de la sonda `FourthClassChoreProbe`).

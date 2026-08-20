@@ -190,7 +190,18 @@ object ContextIntentEngine {
     // `\b` final sin derrame nominal.
     private val HOUSEHOLD_HANG_LAUNDRY_FLOOR =
         Regex("""\b(?<!no )colgar\s+(?:la\s+|las\s+)?ropas?\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR)
+    // Piso faena doméstica "alimentar al gato" (c.744 provisional, mascota
+    // 2/8 — sonda `FourthClassVerbDiscoveryProbe.kt` c.740, paralela a
+    // Chore c.734): el cuidado diario del gato. "alimentar" suelto es
+    // bivalente (al bebé/la planta/la relación), así se ACOTA al objeto
+    // mascota `gat[oa]s?` (masculino+femenino+plural, familia de
+    // [HOUSEHOLD_PET_FLOOR] c.740; interop: verbos disjuntos
+    // sacar/alimentar, objetos disjuntos perro/gato — sin solape).
+    // `\b` final: "gatito(s)" (diminutivo) no casa (como "perrito" en
+    // c.740); guard de negación heredado de la familia (?<!no ).
+    private val HOUSEHOLD_FEED_CAT_FLOOR =
+        Regex("""\b(?<!no )alimentar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)gat[oa]s?\b""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -2044,6 +2055,16 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchSacarPerro != null) {
                     return "${capitalizeFirst(matchSacarPerro.groupValues[1])} ${matchSacarPerro.groupValues[2]}"
+                }
+                // Piso "alimentar al gato" (c.744 provisional): titular lo
+                // acotado al objeto mascota gato (alineado con
+                // [HOUSEHOLD_FEED_CAT_FLOOR]; familia mascota c.740).
+                val matchAlimentarGato = Regex(
+                    """\b(alimentar) ((?:al|a (?:el|la|los|las|mi|tu|su)) gat[oa]s?.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchAlimentarGato != null) {
+                    return "${capitalizeFirst(matchAlimentarGato.groupValues[1])} ${matchAlimentarGato.groupValues[2]}"
                 }
                 // Verbos alineados con [hasStrongHouseholdImperative] (c.638/c.639) para que
                 // el piso no capture un verbo cuyo título luego no se forme limpio.
