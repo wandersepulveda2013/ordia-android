@@ -1,3 +1,9 @@
+## Ciclo c.741 — 2026-08-20 (UTC) — doble STALE_RUN (mi c.738 lavavajillas TDD + mi docs c.739, igualados por runs hermanos) + verificación independiente del c.740 remoto (piso "sacar al perro")
+- **Secuencia**: base `18dc350a`; TDD local completo c.738 lavavajillas (RED 3/9 → GREEN 4460 propio) igualado por `baef3a27`; descartado con `git checkout --` ×6 + rm test (cero destructivo). Docs STALE_RUN propias reescritas → igualadas por `39d8f4d1` (idéntica entrada c.739). ff-only escalonado a `e7f3cee6`.
+- **Verificación independiente de `e7f3cee6`**: suite **OK (4472 tests)**, 0 failures; smokes 25/9; sonda Chore POST: "sacar al perro mañana" → HOUSEHOLD 'Sacar al perro' dueAt=true, 4/7 OPEN NULL; sonda Verb c.740 POST: 14→13 NULL, controles 18/18 NULL. El c.740 concurrente queda VERIFIED por segunda vía.
+- **Campaña**: clase 4 Chore 3/7 RESUELTAS (mesa c.736, lavavajillas c.738, perro c.740); clase Mascotas 1/8. **Próxima prioridad**: "hacer la compra mañana" (piso ACOTADO `hacer (la) compra(s)` + keyword + plantilla + test + sonda POST).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin Android SDK). **HEAD**: inicial `18dc350a` → remoto verificado `e7f3cee6`.
+
 ## Ciclo c.739 — 2026-08-20 (UTC) — STALE_RUN (unidad c.738 "poner el lavavajillas" duplicada por run concurrente, llegada 3 min antes) + verificación independiente del c.738 remoto
 
 ## Ciclo c.740 — 2026-08-20 (UTC) — CUARTA clase mascotas forma 1/8: piso HOUSEHOLD "sacar al perro" (sonda NUEVA Verb c.740, paralela a Chore c.734; TDD RED 5/11 → GREEN 4472; CINCO colisiones push resueltas sin destruir trabajo ajeno)
