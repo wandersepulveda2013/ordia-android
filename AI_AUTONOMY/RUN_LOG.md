@@ -16158,3 +16158,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Próxima prioridad: otra Verb NO anunciada (~9 OPEN: pintar la casa / votar / donar sangre / cargar el celular / lavar los platos / quitar la mesa / mascotas restantes…) o compra/colada (anunciadas, verificar antes); re-fetch OBLIGATORIO y numerar ciclo SOLO en el fetch final.
 - NO VERIFICADO: Android/gradle/lint/UI/Room (sin Android SDK).
 - HEAD final: tras commit/push de este ciclo.
+
+## Run c.750 — 2026-08-20 (UTC) — rama openhands/autonomous-ordia
+
+- HEAD inicial: 59cd9e7 (c.748 feat; ff-only limpio al inicio).
+- Problema seleccionado (P1, sonda Verb cuarta clase, familia cívicas/salud/dispositivo): "donar sangre el sábado" → NULL (olvido silencioso del acto de salud/cívico). Elegida por dispersión anti-colisión (ni "bañar al perro" señalada c.740, ni compra/colada anunciadas, ni "pintar la casa" primera del pool, ni "podar el jardín" en doble convergencia c.748/c.749-STALE). Kind: TASK — quehacer de vida, hermano de "renovar el DNI" c.698 (deliberación contra APPOINTMENT/ERRAND/HOUSEHOLD documentada en KDoc).
+- COLISIÓN de cycle-ID (duodécima de la campaña, NO destructiva): re-fetch final reveló 2435ca9 (c.749 STALE_RUN docs ajena sobre "podar el jardín"). Mi unidad intacta (forma distinta del pool); renumerado c.749→c.750 SOLO en hunks propios (sed con números de línea, 5 refs: 2 engine + 2 sonda + 1 test — lección c.747); pull --ff-only limpio (regiones disjuntas).
+- Fix: piso TASK acotado `donar\s+sangre\b` (anclas ^/ACK/TASK_FLOOR_TEMPORAL + `(?<!no )`) en ContextIntentEngine.kt + keyword "donar" en ContextIntent.kt (lockstep; "sangre" ya era keyword-objeto de APPOINTMENT) + plantilla "(donar) (sangre…)"→"Donar sangre" (matchDonar, tras matchLlenar; cola temporal la depura sanitizeTitle).
+- TDD: +11 tests ContextIntentEngineDonarSangreFloorTest.kt; RED exacto 2/11 (directa + acuse; wrapper "recuérdame" / "tengo que" / prefijo temporal ya verdes por vías pre-existentes) → GREEN 11/11 sin fixes extra.
+- Pruebas: `bash tools/run_domain_tests.sh` → **OK (4549 tests)** (4538 base + 11), 0 failures; `bash tools/run_domain_checks.sh` → smoke 25/25 OK; sonda Verb POST: "donar sangre el sábado" → TASK 'Donar sangre' dueAt=true (regresión), +3 controles nuevos NULL (quizá / "donar dinero a la ONG" / suelto "donar"), resto de candidatos NULL sin fugas, regresiones c.717…c.748 intactas.
+- AI_AUTONOMY: CURRENT_STATE c.750 prepend; BACKLOG fila sonda Verb (POST c.750, OPEN ~8); RUN_LOG append.
+- Próxima prioridad: otra Verb NO anunciada (~8 OPEN: bañar al perro —señalada— / pintar la casa / votar / cargar el celular / lavar los platos / quitar la mesa / mascotas restantes) o compra/colada (anunciadas, verificar antes); dispersión reforzada (índice determinista, lección c.745/c.749); re-fetch OBLIGATORIO y numerar ciclo SOLO en el fetch final.
+- NO VERIFICADO: Android/gradle/lint/UI/Room (sin Android SDK).
+- HEAD final: tras commit/push de este ciclo.
