@@ -50,6 +50,10 @@ fun main() {
         "quizá pasar por el banco mañana",
         "pasé por el banco ayer",
         "pasar por el parque mañana",
+        "no publicar las fotos mañana",
+        "quizá publicar las fotos mañana",
+        "publiqué las fotos ayer",
+        "publicar",
         "recordadetodos los pendientes",
         "hola buenos días gracias luego",
         "nos vemos después jeje"
