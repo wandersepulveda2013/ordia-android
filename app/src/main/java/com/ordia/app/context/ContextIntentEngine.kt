@@ -121,6 +121,16 @@ object ContextIntentEngine {
     // c.717 / [HOUSEHOLD_BED_FLOOR] c.728).
     private val HOUSEHOLD_WASHER_FLOOR =
         Regex("""\b(?<!no )poner\s+(?:el\s+|la\s+|los\s+|las\s+)?lavadora\b""")
+    // Piso faena doméstica "poner el lavavajillas" (c.738, forma 2/7 de la
+    // CUARTA clase cotidiana — quehaceres de objeto acotado sobre verbos
+    // bivalentes, sonda `FourthClassChoreProbe.kt` c.734): "poner el
+    // lavavajillas" es EL quehacer doméstico canónico con "poner" tras la
+    // lavadora (c.729). Mismo patrón acotado (familia [HOUSEHOLD_TRASH_FLOOR]
+    // c.717 / [HOUSEHOLD_BED_FLOOR] c.728 / [HOUSEHOLD_WASHER_FLOOR] c.729);
+    // `lavadora\b` no casa dentro de `lavavajillas\b` (`s` != `\b`), así no
+    // hay solape con c.729.
+    private val HOUSEHOLD_DISHWASHER_FLOOR =
+        Regex("""\b(?<!no )poner\s+(?:el\s+|la\s+|los\s+|las\s+)?lavavajillas\b""")
     // Piso faena doméstica "aspirar" (c.730, forma 17/19 de la TERCERA clase
     // cotidiana, sonda `ThirdClassVerbDiscoveryProbe.kt` c.721): aspiradora,
     // inequívoco como "barrer"/"fregar"; NO va a `HOUSEHOLD_VERBS` porque la
@@ -150,7 +160,7 @@ object ContextIntentEngine {
     // WASHER c.729 / DUST c.732). `\b` final: "mesada" no casa.
     private val HOUSEHOLD_TABLE_FLOOR =
         Regex("""\b(?<!no )poner\s+(?:el\s+|la\s+|los\s+|las\s+)?mesas?\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR)
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -1929,6 +1939,16 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchPoner != null) {
                     return "${capitalizeFirst(matchPoner.groupValues[1])} ${matchPoner.groupValues[2]}"
+                }
+                // "poner (el) lavavajillas …" → "Poner el lavavajillas…"
+                // (c.738): verbo preservado y objeto restringido como en
+                // [HOUSEHOLD_DISHWASHER_FLOOR] (lockstep c.717).
+                val matchLavavajillas = Regex(
+                    """\b(?<!no )(poner)\s+((?:el\s+|la\s+|los\s+|las\s+)?lavavajillas\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchLavavajillas != null) {
+                    return "${capitalizeFirst(matchLavavajillas.groupValues[1])} ${matchLavavajillas.groupValues[2]}"
                 }
                 // "cortar (el) césped(es) …" → "Cortar el césped …" (c.731):
                 // verbo preservado y objeto restringido como en

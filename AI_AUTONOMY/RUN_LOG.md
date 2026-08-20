@@ -15985,3 +15985,41 @@ a un permiso persistente frágil y silencioso ante fallos.
   (mayús) no autentica push HTTPS en este entorno; ${github_token} (minús) sí
   (401 vs 200 verificado ante api.github.com). Push URL literal, sin persistir
   credencial en remote.
+
+## Run c.738 — 2026-08-20 (UTC) — rama openhands/autonomous-ordia (renumerado por DOBLE colisión: c.736 = mesa paralela; c.737 = STALE_RUN docs ajena)
+
+- HEAD inicial: 1a38844 (mi propio c.735; ff-only limpio al iniciar el ciclo).
+- Problema seleccionado (P1, sonda c.734, forma 2/7 CUARTA clase): "poner el
+  lavavajillas esta noche" → NULL (olvido del quehacer; la forma 1/7 "poner la
+  mesa hoy" estaba reservada por el run paralelo, así evito la colisión).
+- Fix: piso `HOUSEHOLD_DISHWASHER_FLOOR` (poner + lavavajillas, `(?<!no )`) +
+  keyword "lavavajillas" + plantilla "Poner el lavavajillas" (lockstep c.717).
+  Kind: HOUSEHOLD (envolvente c.613 gobierna TASK — test dedicado).
+- TDD: +10 tests `ContextIntentEnginePonerLavavajillasFloorTest.kt` (RED 4/10
+  exacto → GREEN sobre 4441).
+- DOBLE COLISIÓN + RESOLUCIÓN (no destructiva): al re-fetch pre-push el
+  remoto subió c15f51b (c.736 = "poner la mesa" + docs) y luego 18dc350
+  (c.737 = STALE_RUN docs ajeno). Stash → ff-only a c15f51b → pop con 5
+  conflictos (ContextIntent.kt, ContextIntentEngine.kt ×2, sonda,
+  CURRENT_STATE/BACKLOG) resueltos CONSERVANDO AMBOS trabajos de código
+  (mesa + lavavajillas coexisten); commit propio tras la base c15f51b y merge
+  no-destructivo con 18dc350. Mi ciclo renumerado c.736→c.738 (c.737
+  reservada por el STALE_RUN ajeno). Cero force-push / cero reset-hard /
+  nada perdido. LECCIÓN: con tráfico paralelo alto, el cycle-ID solo se
+  fija en el último fetch pre-push.
+- RE-VERIFICACIÓN post-fusión (HEAD combinado mesa+lavavajillas):
+  run_domain_tests.sh → OK (4461 tests, 0 failures);
+  run_domain_checks.sh → 25/25 OK;
+  sonda c.734 POST: 5 candidatos OPEN→NULL (perro/compra/aspiradora/colar/
+  colada), regresiones c.639 (fregar/regar) + c.729 lavadora + c.732 polvo +
+  c.736 mesa + c.738 lavavajillas → HOUSEHOLD dueAt=true; controles mesa 6/6
+  NULL + controles lavavajillas 4/4 NULL.
+- Sonda c.734 actualizada: forma → sección regresiones (5 OPEN); +4 controles.
+- AI_AUTONOMY: BACKLOG 2/7 RESUELTAS (5 OPEN); CURRENT_STATE c.738 encima
+  del c.736 remoto; RUN_LOG append.
+- Próxima prioridad: 5 formas OPEN de la clase 4 (una por ciclo: "sacar al
+  perro mañana", "hacer la compra", "pasar la aspiradora", "colgar la ropa",
+  "hacer la colada"). Re-fetch OBLIGATORIO (tráfico paralelo alto: 3 STALE_RUNs
+  + 2 colisiones reales de ID hoy).
+- NO VERIFICADO: Android/gradle/lint/UI/Room (sin SDK).
+- HEAD final: tras commit de este ciclo.

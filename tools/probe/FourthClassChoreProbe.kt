@@ -24,9 +24,8 @@ fun main() {
     val now = 1723939200000L
     val cases = listOf(
         // Candidatos: objeto acotado sobre verbos genéricos bivalentes
-        // (c.736: "poner la mesa" ya cubierto — piso HOUSEHOLD_TABLE_FLOOR;
-        // queda en COBERTURA abajo como guard 1/7)
-        "poner el lavavajillas esta noche",        // poner + lavavajillas (≠ lavadora c.729)
+        // (5 OPEN: "poner la mesa" resuelta en c.736 y "poner el
+        // lavavajillas" en c.738 — ambas abajo, sección regresiones)
         "sacar al perro mañana",                   // sacar + perro (≠ basura c.717)
         "hacer la compra mañana",                  // hacer + compra (≠ cama c.728)
         "pasar la aspiradora mañana",              // pasar + aspiradora (≠ aspirar c.730)
@@ -38,13 +37,11 @@ fun main() {
         "fregar los platos esta noche",
         "regar las plantas mañana",
 
-        // Cobertura CUARTA clase cerrada (c.736, forma 1/7 — guard de
-        // regresión; candidato promovido tras piso PROP c.736)
-        "poner la mesa hoy",
-
         // Regresiones de las clases cerradas (deben SEGUIR capturando)
         "poner la lavadora esta tarde",            // c.729
         "quitar el polvo hoy",                     // c.732
+        "poner la mesa hoy",                       // c.736 (forma 1/7 clase 4)
+        "poner el lavavajillas esta noche",        // c.738 (forma 2/7 clase 4)
 
         // Controles anti-overreach (deben permanecer NULL)
         "no poner la mesa hoy",
@@ -53,6 +50,13 @@ fun main() {
         "poner",                                   // suelto
         "echar de menos a mi hermana",             // sentimento, sin fecha → NULL
         "tirar la toalla",                         // rendirse (idiomático)
+
+        // Controles c.738 (forma "poner el lavavajillas"): negada/duda/
+        // pasado/objeto no acotado deben permanecer NULL.
+        "no poner el lavavajillas esta noche",
+        "quizá poner el lavavajillas esta noche",
+        "puse el lavavajillas ayer",               // pasado
+        "poner la película a las 2",               // objeto no acotado (cine ≠ quehacer)
     )
 
     for (raw in cases) {

@@ -114,7 +114,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // "quitar" suelto es ambiguo — el protector/la mancha/la ropa).
         // c.736: objeto del piso `poner la mesa` (lockstep keyword↔piso;
         // "poner" suelto es ambiguo — la música/la alarma/las pilas).
-        "basura", "cama", "lavadora", "césped", "polvo", "mesa")),
+        // c.738: objeto del piso `poner el lavavajillas` (lockstep
+        // keyword↔piso; primer electrodoméstico de la CUARTA clase,
+        // sonda `FourthClassChoreProbe.kt` c.734; interop c.729: el
+        // guard del piso lavavajillas exige el literal, "lavadora" no
+        // roba lavavajillas ni viceversa).
+        "basura", "cama", "lavadora", "césped", "polvo", "mesa", "lavavajillas")),
     UNKNOWN("Sin clasificar", emptyList());
 
     companion object {
