@@ -33,6 +33,10 @@ fun main() {
         "alimentar al gato hoy",
         "llevar al perro al veterinario mañana",
         // Candidatos: hogar aún no cubierto por HOUSEHOLD_VERBS ni pisos acotados.
+        // Nota mantenimiento c.742: "pasar la aspiradora mañana" RESUELTA
+        // por la sonda paralela Chore (piso `HOUSEHOLD_VACUUM_CLEANER_FLOOR`
+        // c.742, keyword "aspiradora" lockstep) — la línea queda como
+        // REGRESIÓN de forma compartida entre ambas sondas.
         "pasar la aspiradora mañana",
         "pintar la casa este fin de semana",
         "colgar la ropa hoy",

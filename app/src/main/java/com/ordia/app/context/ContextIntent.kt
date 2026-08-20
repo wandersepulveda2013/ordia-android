@@ -124,8 +124,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // entradas/los críos, piso TRASH c.717; sonda
         // `FourthClassVerbDiscoveryProbe.kt` c.740, primera mascota
         // del dominio).
+        // c.742: objeto del piso `pasar la aspiradora` (lockstep
+        // keyword↔piso; el verbo "aspirar" ya era keyword desde c.730,
+        // pero el sustantivo no; "pasar" suelto es ambiguo — la tarde/
+        // la página/la mano — así se alinea el OBJETO restringido).
         "basura", "cama", "lavadora", "césped", "polvo", "mesa",
-        "lavavajillas", "perro", "perra")),
+        "lavavajillas", "perro", "perra", "aspiradora")),
     UNKNOWN("Sin clasificar", emptyList());
 
     companion object {

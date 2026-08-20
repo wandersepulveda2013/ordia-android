@@ -24,11 +24,11 @@ fun main() {
     val now = 1723939200000L
     val cases = listOf(
         // Candidatos: objeto acotado sobre verbos genéricos bivalentes
-        // (5 OPEN: "poner la mesa" resuelta en c.736 y "poner el
-        // lavavajillas" en c.738 — ambas abajo, sección regresiones)
-        "sacar al perro mañana",                   // sacar + perro (≠ basura c.717)
+        // (3 OPEN: "poner la mesa" c.736, "poner el lavavajillas" c.738,
+        // "sacar al perro" c.740 — resuelta por la sonda paralela de
+        // mascotas `FourthClassVerbDiscoveryProbe.kt` — y "pasar la
+        // aspiradora" c.742 resueltas — abajo, sección regresiones)
         "hacer la compra mañana",                  // hacer + compra (≠ cama c.728)
-        "pasar la aspiradora mañana",              // pasar + aspiradora (≠ aspirar c.730)
         "colgar la ropa hoy",                      // colgar + ropa
         "hacer la colada mañana",                  // hacer + colada (~ lavadora)
 
@@ -42,6 +42,8 @@ fun main() {
         "quitar el polvo hoy",                     // c.732
         "poner la mesa hoy",                       // c.736 (forma 1/7 clase 4)
         "poner el lavavajillas esta noche",        // c.738 (forma 2/7 clase 4)
+        "sacar al perro mañana",                   // c.740 (forma 3/7 clase 4, vía mascota)
+        "pasar la aspiradora mañana",              // c.742 (forma 5/7 clase 4)
 
         // Controles anti-overreach (deben permanecer NULL)
         "no poner la mesa hoy",
@@ -57,6 +59,13 @@ fun main() {
         "quizá poner el lavavajillas esta noche",
         "puse el lavavajillas ayer",               // pasado
         "poner la película a las 2",               // objeto no acotado (cine ≠ quehacer)
+
+        // Controles c.742 (forma "pasar la aspiradora"): negada/duda/
+        // pasado/objeto no acotado deben permanecer NULL.
+        "no pasar la aspiradora mañana",
+        "quizá pasar la aspiradora mañana",
+        "pasé la aspiradora ayer",                 // pasado
+        "pasar la tarde en casa",                  // objeto no acotado (el tardeo ≠ quehacer)
     )
 
     for (raw in cases) {

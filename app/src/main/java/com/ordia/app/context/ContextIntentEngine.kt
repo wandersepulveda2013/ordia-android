@@ -170,7 +170,17 @@ object ContextIntentEngine {
     // guard de negación explícito heredado de la familia (?<!no ).
     private val HOUSEHOLD_PET_FLOOR =
         Regex("""\b(?<!no )sacar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR)
+    // Piso faena doméstica "pasar la aspiradora" (c.742, forma 5/7 de la
+    // CUARTA clase cotidiana — sonda `FourthClassChoreProbe.kt` c.734;
+    // renumerada c.740→c.742 por colisión de cycle-ID con la mascota):
+    // "pasar" suelto es ambiguo (la tarde/la página/la mano), así se ACOTA
+    // al objeto `aspiradora(s)` (familia TRASH c.717 / BED c.728 / WASHER
+    // c.729 / DISHWASHER c.738). Interop c.730: el piso VACUUM exige el
+    // verbo "aspirar"; aquí es sustantivo — no hay solape. `\b` final sin
+    // derrame nominal.
+    private val HOUSEHOLD_VACUUM_CLEANER_FLOOR =
+        Regex("""\b(?<!no )pasar\s+(?:la\s+)?aspiradoras?\b""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -1962,6 +1972,16 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchLavavajillas != null) {
                     return "${capitalizeFirst(matchLavavajillas.groupValues[1])} ${matchLavavajillas.groupValues[2]}"
+                }
+                // "pasar (la) aspiradora(s) …" → "Pasar la aspiradora…"
+                // (c.742): verbo preservado y objeto restringido como en
+                // [HOUSEHOLD_VACUUM_CLEANER_FLOOR] (lockstep c.717).
+                val matchAspiradora = Regex(
+                    """\b(?<!no )(pasar)\s+((?:la\s+)?aspiradoras?\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchAspiradora != null) {
+                    return "${capitalizeFirst(matchAspiradora.groupValues[1])} ${matchAspiradora.groupValues[2]}"
                 }
                 // "cortar (el) césped(es) …" → "Cortar el césped …" (c.731):
                 // verbo preservado y objeto restringido como en
