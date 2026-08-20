@@ -136,7 +136,13 @@ object SearchEngine {
         // modificador: resuelve al día de la semana, no a hoy.
         val morningOfTodayPrep = MORNING_OF_TODAY_PREP.containsMatchIn(normalized) &&
             WEEKDAY_TOKENS.none { it in words }
-        val dateScope = detectDateScope(words, morningOfTodayPrep)
+        // "se me pasó"/"se me pasaron": frase coloquial del olvido silencioso
+        // ([TaskRules.isMissedStart]), sólo recuperable por detección de FRASE
+        // sobre `normalized`, jamás por token suelto "paso" (es stop-word y,
+        // como "olvidar", secuestraría títulos ilegítimos). Paridad con el
+        // asistente ("que se me pas", c.785).
+        val missedStartPhrase = "se me pas" in normalized
+        val dateScope = if (missedStartPhrase) DateScope.MISSED else detectDateScope(words, morningOfTodayPrep)
         // Día + parte del día ("el viernes por la tarde", "mañana en la noche",
         // "hoy por la mañana"): la franja RECORTA el día ganador en vez de
         // devolverlo entero — la misma lectura que el asistente
@@ -154,7 +160,16 @@ object SearchEngine {
         }
         // Cuando la búsqueda expresa un rango de fecha ("hoy", "mañana", ...),
         // las palabras de fecha no se exigen en el contenido: se filtra por fecha.
-        val dateWords = if (dateScope != null) dateScopeTokens(words) else emptySet()
+        // Si el scope ganador vino de la FRASE "se me pas..." (c.785), el
+        // remanente literal "paso/pasaron" tampoco se exige en contenido.
+        val dateWords = if (dateScope != null) {
+            dateScopeTokens(words) +
+                if (missedStartPhrase) words.filter {
+                    // remanentes tipográficos de la frase "se me pas..."
+                    it == "paso" || it == "pasa" || it == "pasaron" || it == "pasan" || it == "se" || it == "me"
+                }.toSet()
+                else emptySet()
+        } else emptySet()
         val textWords = words.filterNot { it in dateWords }
         // Un scope de fecha PURO ("hoy", "esta semana", "vencidas", "ayer"...)
         // solo aplica a entidades con fecha (tareas). Proyectos, notas,

@@ -934,6 +934,61 @@ class SearchEngineTest {
         assertTrue(results.isEmpty())
     }
 
+    // --- "se me pasó": la forma frasa coloquial del olvido ("¿qué se me pasó?") ---
+    // El asistente responde a "¿qué olvidé?" porque detecta la intención
+    // forgotten; la búsqueda universal recuperaba con participios
+    // ("olvidadas") y con la 1ª persona del pretérito ("olvidé"). Pero la forma
+    // MÁS natural de preguntar por el olvido silencioso ([TaskRules.isMissedStart])
+    // es la frase "se me pasó" — singular — o "se me pasaron" — plural. Sin
+    // detección de frase, esas palabras son stop-words ("se","me") + "pasó" (no
+    // está en MISSED_TOKENS), así que buscar así devolvía vacío pese a haber
+    // olvidos. La detección se hace como segmento precomputable del query
+    // normalizado (patrón `agendaHolidayMorning`, c.778), NO por token: "paso"
+    // está en STOP_WORDS precisamente para no secuestrar recuperación con
+    // títulos como "primer paso", así que prohibido añadirlo a MISSED_TOKENS.
+    @Test fun seMePaso_activatesMissedRecovery() {
+        val now = System.currentTimeMillis()
+        val missed = TaskEntity(
+            id = 110,
+            title = "Llamada agendada",
+            priority = TaskPriority.NORMAL,
+            startAt = now - 90 * 60_000L,
+            durationMinutes = 30
+        )
+        val results = SearchEngine.search("se me pasó", listOf(missed), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(1, results.size)
+        assertEquals(110L, results.first().id)
+    }
+
+    @Test fun seMePasaron_plural_activatesMissedRecovery() {
+        val now = System.currentTimeMillis()
+        val missed = TaskEntity(
+            id = 111,
+            title = "Revisión de contrato",
+            priority = TaskPriority.NORMAL,
+            startAt = now - 60 * 60_000L,
+            durationMinutes = 25
+        )
+        val results = SearchEngine.search("se me pasaron", listOf(missed), emptyList(), emptyList(), emptyList(), now = now)
+        assertEquals(1, results.size)
+        assertEquals(111L, results.first().id)
+    }
+
+    // Guard: "paso" solo no dispara el scope MISSED (detección por frase, no
+    // palabra suelta). Vocabulario "se me pasó": lander c.785.
+    @Test fun pasoBare_doesNotActivateMissedRecovery_guard() {
+        val now = System.currentTimeMillis()
+        val missed = TaskEntity(
+            id = 112,
+            title = "Reunión equipo",
+            priority = TaskPriority.NORMAL,
+            startAt = now - 2 * 3_600_000L,
+            durationMinutes = 30
+        )
+        val results = SearchEngine.search("paso", listOf(missed), emptyList(), emptyList(), emptyList(), now = now)
+        assertTrue(results.isEmpty())
+    }
+
     // --- "anteayer"/"antier": paridad de búsqueda con la captura ---
     // El parser de captura resuelve "anteayer"/"antier" a base.minusDays(2)
     // (NaturalTaskParserTest "anteayer/antier"). La búsqueda ya honraba la

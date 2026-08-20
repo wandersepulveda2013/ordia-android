@@ -827,6 +827,72 @@ class AssistantEngineTest {
         assertEquals(listOf(7L), answer.relatedTaskIds)
     }
 
+    // --- "se me pasó": la frase coloquial del olvido, en el asistente ---
+    // Búsqueda↔asistente deben hablar el MISMO vocabulario coloquial que el
+    // usuario (paridad, misión). La frase "¿qué se me pasó?" es la forma MÁS
+    // natural de preguntar por lo que se te olvidó, pero el guard de olvido
+    // solo miraba subcadena "olvid", así que caía al fallback de agenda
+    // ("No es una consulta concreta") aunque el guardián y la búsqueda sí
+    // recuperaban huecos pasados ([TaskRules.isMissedStart]). Detección por
+    // frase normalizada, nunca por el token suelto "paso" (que es stop-word
+    // justo para no secuestrar detecciones).
+    @Test fun forgottenIntent_seMePaso_phraseNamesMissedStart() {
+        val now = 1_000_000_000_000L
+        val missedStart = TaskEntity(
+            id = 5, title = "Llamada agendada",
+            startAt = now - 90 * 60_000L,
+            durationMinutes = 30,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué se me pasó?",
+            listOf(missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra el compromiso del que se pasó: ${answer.text}", answer.text.contains("Llamada agendada"))
+        assertEquals(AssistantAction.RUN_REPLAN, answer.action)
+        assertEquals(listOf(5L), answer.relatedTaskIds)
+    }
+
+    @Test fun forgottenIntent_seMePasaron_plural_phraseNamesMissedStart() {
+        val now = 1_000_000_000_000L
+        val missedStart = TaskEntity(
+            id = 6, title = "Cita médica",
+            startAt = now - 120 * 60_000L,
+            durationMinutes = 20,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "¿qué se me pasaron?",
+            listOf(missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue("nombra el compromiso del que se pasaron: ${answer.text}", answer.text.contains("Cita médica"))
+        assertEquals(listOf(6L), answer.relatedTaskIds)
+    }
+
+    // Guard: "paso" suelto (p. ej. "el paso decisivo") NO es intención de olvido
+    // cuando la frase "se me pas" no está presente.
+    @Test fun pasoGuard_doesNotTriggerForgottenIntent() {
+        val now = 1_000_000_000_000L
+        val missedStart = TaskEntity(
+            id = 9, title = "Llamada agendada",
+            startAt = now - 90 * 60_000L,
+            durationMinutes = 30,
+            status = com.ordia.app.data.local.TaskStatus.PLANNED
+        )
+        val answer = AssistantEngine.answer(
+            "hacer el paso decisivo",
+            listOf(missedStart),
+            emptyList(), emptyList(),
+            now
+        )
+        assertTrue(answer.relatedTaskIds.isEmpty() || answer.relatedTaskIds.none { it == 9L })
+        assertTrue(answer.action != AssistantAction.RUN_REPLAN)
+    }
+
     @Test fun overdueIntent_doesNotPretendMissedStartIsOverdue() {
         // "vencidas" pregunta por vencidas (dueAt pasado). Un compromiso cuyo hueco
         // pasó (isMissedStart genuino: start+duración < now, sin dueAt vencido) NO es

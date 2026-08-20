@@ -254,7 +254,10 @@ object AssistantEngine {
                     )
                 }
             }
-            "que olvide" in query || "olvidado" in query || "atrasad" in query || "vencid" in query -> {
+            // ¿qué olvidé? ("que olvide"), "¿qué olvidado?", sinónimos
+            // ("atrasad","vencid") — y la frase coloquial del olvido: "¿qué se
+            // me pasó/pasaron?". Es frase, NUNCA el token "paso" suelto.
+            "que olvide" in query || "olvidado" in query || "atrasad" in query || "vencid" in query || "que se me pas" in query -> {
                 // Partición honesta: "vencid" pregunta por vencidas (dueAt pasado);
                 // "atrasad" es el sinónimo cotidiano de "overdue" en español — la
                 // palabra MÁS natural — y pregunta por lo mismo pero la rama sólo
@@ -269,7 +272,7 @@ object AssistantEngine {
                 // se pasó: mentía por omisión en la superficie de recuperación. Cierra
                 // la simetría con What Now (c.203) y el guardián (c.201), reusando
                 // WhatNowEngine.ordered para elegir el olvido más urgente.
-                val forgottenIntent = "que olvide" in query || "olvidado" in query || "atrasad" in query
+                val forgottenIntent = "que olvide" in query || "olvidado" in query || "atrasad" in query || "que se me pas" in query
                 if (overdue.isNotEmpty()) {
                     if (forgottenIntent) {
                         // "¿Qué olvidé?" pide recuperar QUÉ se pasó, no un conteo frío.
