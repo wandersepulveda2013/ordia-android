@@ -1270,6 +1270,25 @@ object ContextIntentEngine {
             // profesional. Anti-overreach: `(?<!no )` bloquea la negada,
             // sustantivo "la votación"/pasado "voté…"/suelto no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )votar\s+\w""").containsMatchIn(lower)
+            // c.765 (sonda NUEVA `tools/probe/FifthClassLifeProbe.kt`,
+            // QUINTA clase de formas cotidianas — salud/autocuidado 6/6 NULL
+            // en sonda PRE): "tomar la medicina (a las 8)". Es el olvido
+            // silencioso de mayor coste del autocuidado: la medicación
+            // diaria. Lockstep piso+keyword-OBJETO "medicina" (lección
+            // c.713/c.751): NO se añade el verbo "tomar" como keyword — es
+            // bivalente (el café/el autobús/un vuelo/una decisión), así el
+            // piso se ACOTA al objeto `medicinas?|medicamentos?|pastillas?`
+            // (una forma por ciclo, doctrina de la sonda; el reflexivo
+            // "tomarme…" queda OPEN en la sonda). Kind decidido: TASK, en
+            // deliberación contra APPOINTMENT/HABIT/HOUSEHOLD — no hay
+            // profesional sanitario ni consulta (no es cita), no es quehacer
+            // doméstico; es autocuidado de vida, hermano de "donar sangre"
+            // (c.750). Anti-overreach: artículo/posesivo opcional, `\b`
+            // final ("medicinal" no casa), `(?<!no )` bloquea la negada
+            // (la keyword 0.12 + bono temporal 0.1 = 0.22 < umbral: no hace
+            // falta cláusula dedicada en [imperativeIsNegated]), pasado
+            // "tomé…"/suelto "tomar"/sustantivo "la medicina está…" no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )tomar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:medicinas?|medicamentos?|pastillas?)\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -2104,6 +2123,15 @@ object ContextIntentEngine {
                 // al piso; verbo unívoco, complemento libre).
                 val matchVotar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(votar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchVotar != null) return "Votar ${matchVotar.groupValues[2]}"
+                // c.765: misma plantilla para "tomar" ACOTADA al objeto
+                // medicina/medicamento/pastilla (ancla/guard idénticos al
+                // piso; lección c.616: el match arranca en el verbo, así
+                // acuse/prefijo temporal se despojan). El objeto bivalente
+                // "tomar el café…" nunca llega aquí porque el piso no lo
+                // captura. El residuo temporal de cola lo depura
+                // [sanitizeTitle].
+                val matchTomarMedicina = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(tomar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:medicinas?|medicamentos?|pastillas?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchTomarMedicina != null) return "Tomar ${matchTomarMedicina.groupValues[2]}"
 
                 null
             }

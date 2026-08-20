@@ -44,7 +44,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         "celular",
         // c.752: keyword-verbo "votar" (lockstep con el piso; verbo
         // unívoco, ningún objeto bivalente queda abierto).
-        "votar")),
+        "votar",
+        // c.765: keyword-OBJETO "medicina" (lockstep con el piso acotado
+        // "tomar la medicina", ver ContextIntentEngine.hasStrongTaskImperative).
+        // NO se añade el verbo "tomar": bivalente (el café/el autobús/un
+        // vuelo/una decisión). 0.12 sola queda bajo el umbral: el sustantivo
+        // suelto ("la medicina está en la mesa") sigue descartado.
+        "medicina")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",
