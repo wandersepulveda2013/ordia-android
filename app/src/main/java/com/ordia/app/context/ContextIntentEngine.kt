@@ -1116,6 +1116,20 @@ object ContextIntentEngine {
             // Anti-overreach: `\s+\w` exige objeto, sustantivo
             // "llenado"/pasado "llené…"/suelto no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )llenar\s+\w""").containsMatchIn(lower)
+            // c.750 (CUARTA clase de formas cotidianas, sonda
+            // `tools/probe/FourthClassVerbDiscoveryProbe.kt` c.740, familia
+            // salud/cívica): "donar sangre". Lockstep piso+keyword (c.713).
+            // Kind decidido: TASK, en deliberación contra APPOINTMENT/
+            // ERRAND/HOUSEHOLD — no hay "cita" ni profesional sanitario
+            // explícito (no es consulta), el objeto gobernado es la sangre
+            // (el acto) y no el destino (no es diligencia de calle), y
+            // tampoco es quehacer doméstico: es quehacer de vida, hermano
+            // de "renovar el DNI" (c.698). Anti-overreach: el verbo "donar"
+            // es bivalente (dinero/ropa/muebles quedan fuera — una forma
+            // por ciclo, doctrina de la sonda), así el piso se ACOTA al
+            // objeto `sangre`; `(?<!no )` bloquea la negada, sustantivo
+            // "donación"/pasado "doné…"/suelto no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )donar\s+sangre\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1893,6 +1907,14 @@ object ContextIntentEngine {
                 // c.726: misma plantilla para "llenar".
                 val matchLlenar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llenar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchLlenar != null) return "Llenar ${matchLlenar.groupValues[2]}"
+                // c.750: "donar sangre" → "Donar sangre" (plantilla acotada
+                // al objeto `sangre`, misma ancla/guard que el piso: el
+                // objeto bivalente "donar dinero…" nunca llega aquí porque
+                // el piso no lo captura; lección c.616, match arranca en el
+                // verbo). El residuo temporal de cola lo depura
+                // [sanitizeTitle].
+                val matchDonar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(donar)\s+(sangre.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchDonar != null) return "Donar ${matchDonar.groupValues[2]}"
 
                 null
             }

@@ -72,6 +72,11 @@ fun main() {
         "podar el jardín el sábado",
         // Candidatos: obligaciones cívicas/salud/de dispositivo cotidianas.
         "votar el domingo",
+        // Nota mantenimiento c.750: "donar sangre el sábado" RESUELTA (piso
+        // TASK acotado al objeto `sangre` c.750 — kind TASK en deliberación
+        // contra APPOINTMENT/ERRAND/HOUSEHOLD: quehacer de vida, hermano de
+        // "renovar el DNI" c.698 — keyword "donar" lockstep, plantilla
+        // "(donar) sangre"→"Donar sangre") — la línea queda como REGRESIÓN.
         "donar sangre el sábado",
         "cargar el celular hoy",
         "sacar la basura esta noche",
@@ -121,6 +126,12 @@ fun main() {
         "voté el domingo pasado",
         "no donar sangre el sábado",
         "doné sangre el sábado pasado",
+        // c.750: controles del piso `donar sangre` (duda / objeto bivalente
+        // / verbo suelto). La forma capturable "donar sangre el sábado" se
+        // movió arriba como regresión.
+        "quizá donar sangre el sábado",
+        "donar dinero a la ONG el sábado",
+        "donar",
         "no cargar el celular hoy",
         "cargué el celular anoche",
         "hola cómo estás",
