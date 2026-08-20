@@ -1,3 +1,11 @@
+## Ciclo c.721c — 2026-08-20 (UTC) — feat(context): piso TASK "organizar <objeto>" (forma 3/19 TERCERA clase)
+
+- **HEAD**: inicial `127d6a1`-origin (ff-only limpio; final tras commit).
+- **Selección (P1, sonda `ThirdClassVerbDiscoveryProbe`)**: "organizar <objeto>" → NULL. Sin keyword — lockstep piso+keyword obligado (c.713).
+- **Solución**: piso `organizar` en `hasStrongTaskImperative` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`, `\s+\w` exige objeto) + keyword "organizar" TASK (`ContextIntent.kt`) + plantilla "(organizar) X"→"Organizar X". **Kind decidido: TASK, en deliberación contra HOUSEHOLD** — verbo genérico de orden sobre objeto, criterio c.704 "arreglar". Controles NULL (negada/duda/"organización"/"organicé…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +10 tests `ContextIntentEngineOrganizarFloorTest.kt`; RED exacto 4/10 → GREEN **OK (4281 tests)** (4271 + 10), 0 failures; smoke 25 OK; automation 9 OK; sonda POST → TASK 'Organizar el armario' dueAt=true; controles negada/quizá NULL. Quedan 16 OPEN.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room.
+
 ## Ciclo c.721b — 2026-08-20 (UTC) — feat(context): piso TASK "completar <objeto>" (forma 2/19 TERCERA clase)
 
 - **HEAD**: inicial `df481b4`-origin (ff-only limpio; final tras commit).

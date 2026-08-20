@@ -892,6 +892,15 @@ object ContextIntentEngine {
             // objeto, `(?<!no )` bloquea la negada, sustantivo "completitud"
             // no casa, pasado "completé…" no casa, suelto "completar" no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )completar\s+\w""").containsMatchIn(lower)
+            // c.721c (forma 3/19 TERCERA clase, sonda `ThirdClassVerbDiscoveryProbe`):
+            // "organizar <objeto>" ("organizar el armario hoy"). Sin keyword de TASK
+            // — aunque el piso la capturase, la base lo hacería al hueco; por eso se
+            // añade keyword en lockstep (lección c.713). Kind decidido: TASK, en
+            // deliberación contra HOUSEHOLD — verbo genérico de orden sobre objeto
+            // (armario/cajón/documentos/proyecto), criterio c.704 "arreglar".
+            // Anti-overreach: `\s+\w` exige objeto, `(?<!no )` bloquea negada,
+            // sustantivo "organización"/pasado "organicé…"/suelto no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )organizar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1610,6 +1619,10 @@ object ContextIntentEngine {
                 // en el verbo, arrastre fiel tras ese punto).
                 val matchCompletar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(completar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchCompletar != null) return "Completar ${matchCompletar.groupValues[2]}"
+                // c.721c: misma plantilla para "organizar" (ancla/guard idénticos;
+                // lección c.616: match arranca en el verbo).
+                val matchOrganizar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(organizar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchOrganizar != null) return "Organizar ${matchOrganizar.groupValues[2]}"
 
                 null
             }

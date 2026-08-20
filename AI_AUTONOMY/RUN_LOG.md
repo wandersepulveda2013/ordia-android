@@ -1,3 +1,14 @@
+## Run c.721c — 2026-08-20 (UTC) — feat(context): piso TASK "organizar <objeto>" — forma 3/19 TERCERA clase — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `127d6a1` (push c.721b, ff-only limpio).
+- **Selección (P1)**: "organizar <objeto>" (sonda `ThirdClassVerbDiscoveryProbe`). Sin keyword — fix exige lockstep piso+keyword (lección c.713). Doctrina una-forma-por-ciclo.
+- **Solución**: piso `organizar` en `hasStrongTaskImperative` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`, `\s+\w` exige objeto) + keyword "organizar" en TASK (`ContextIntent.kt`, lockstep c.713) + plantilla "(organizar) X"→"Organizar X". **Kind decidido: TASK, en deliberación contra HOUSEHOLD** — verbo genérico de orden sobre objeto (armario/cajón/documentos/proyecto), criterio c.704 "arreglar". Anti-overreach: negada/duda/sustantivo "organización"/pasado "organicé…"/suelto → NULL; envolvente c.613 gobierna TASK. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +10 tests `ContextIntentEngineOrganizarFloorTest.kt` — RED exacto 4/10 (capturas) → GREEN **OK (4281 tests)** (4271 + 10), 0 failures; smoke 25 OK; automation 9 OK. Sonda POST: "organizar el armario hoy" → TASK 'Organizar el armario' dueAt=true; "no organizar el armario hoy"/"quizá organizar el armario hoy" → NULL. Quedan 16 OPEN.
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla), `context/ContextIntent.kt` (+keyword TASK), `test/.../ContextIntentEngineOrganizarFloorTest.kt` (NUEVO +10), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN tercera-clase (~16 restantes). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+- **HEAD final**: tras el commit.
+
 ## Run c.721b — 2026-08-20 (UTC) — feat(context): piso TASK "completar <objeto>" — forma 2/19 TERCERA clase — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `df481b4` (push c.721, ff-only limpio).
