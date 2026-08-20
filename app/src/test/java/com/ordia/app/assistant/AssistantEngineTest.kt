@@ -1910,6 +1910,9 @@ class AssistantEngineTest {
     // agenda mostraba. Un usuario que pregunta "¿qué tengo la próxima semana?" para
     // planificar veía los compromisos de esta semana y podía olvidar los de la próxima.
 
+    // --- c.783: forma desnuda "tareas de <fecha>" — la búsqueda ya entendía la
+    // expresión (DateRules); el asistente la mandaba al menú (gap (iv) sonda c.779) ---
+
     private fun agendaZone(): ZoneId = ZoneId.of("America/Santo_Domingo")
 
     private fun agendaAnswerFor(query: String, idsAndDue: List<Pair<Long, LocalDate>>): com.ordia.app.assistant.AssistantAnswer {
@@ -1919,6 +1922,75 @@ class AssistantEngineTest {
             TaskEntity(id = id, title = "Tarea$id", dueAt = date.atTime(9, 0).atZone(zone).toInstant().toEpochMilli())
         }
         return AssistantEngine.answer(query, tasks, emptyList(), emptyList(), now, zone)
+    }
+
+    @Test fun tareasDeHoy_bareForm_resolvesAsAgenda() {
+        val hoy = LocalDate.of(2026, 7, 29) // miércoles
+        val answer = agendaAnswerFor("tareas de hoy", listOf(1L to hoy, 2L to hoy.plusDays(2)))
+        assertTrue("nombra la de hoy: ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("no mezcla con otra fecha: ${answer.text}", !answer.text.contains("Tarea2"))
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun tareasDeManana_bareForm_resolvesAsAgenda() {
+        val manana = LocalDate.of(2026, 7, 30)
+        val answer = agendaAnswerFor("tareas de mañana", listOf(1L to manana, 2L to manana.plusDays(1)))
+        assertTrue("nombra la de mañana: ${answer.text}", answer.text.contains("Tarea1"))
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun tareasDePasadoManana_bareForm_resolvesAsAgenda() {
+        val pasadoManana = LocalDate.of(2026, 7, 31)
+        val answer = agendaAnswerFor("tareas de pasado mañana", listOf(1L to pasadoManana, 2L to LocalDate.of(2026, 8, 3)))
+        assertTrue("nombra la de pasado mañana: ${answer.text}", answer.text.contains("Tarea1"))
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun tareasDelViernes_bareForm_resolvesAsAgenda() {
+        val viernes = LocalDate.of(2026, 7, 31)
+        val jueves = LocalDate.of(2026, 7, 30)
+        val answer = agendaAnswerFor("tareas del viernes", listOf(1L to jueves, 2L to viernes))
+        assertTrue("nombra la del viernes: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla con jueves: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
+    @Test fun tareasDeLaProximaSemana_bareForm_resolvesAsAgenda() {
+        val monday = LocalDate.of(2026, 7, 27)
+        val thisWeek = monday.plusDays(2) // miércoles esta semana
+        val nextWeek = monday.plusDays(9) // jueves próxima semana
+        val answer = agendaAnswerFor("tareas de la próxima semana", listOf(1L to thisWeek, 2L to nextWeek))
+        assertTrue("nombra la de la próxima semana: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla con esta semana: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
+    @Test fun tareasDeEsteMes_bareForm_resolvesAsAgenda() {
+        val inMonth = LocalDate.of(2026, 7, 31) // julio
+        val nextMonth = LocalDate.of(2026, 8, 20)
+        val answer = agendaAnswerFor("tareas de este mes", listOf(1L to inMonth, 2L to nextMonth))
+        assertTrue("nombra la de este mes: ${answer.text}", answer.text.contains("Tarea1"))
+        assertTrue("no mezcla con agosto: ${answer.text}", !answer.text.contains("Tarea2"))
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun tareasDelFinDeSemana_bareForm_resolvesAsAgenda() {
+        // Miércoles 29: el finde entrante es sábado 1 de agosto + domingo 2.
+        val sabado = LocalDate.of(2026, 8, 1)
+        val viernes = LocalDate.of(2026, 7, 31)
+        val answer = agendaAnswerFor("tareas del fin de semana", listOf(1L to viernes, 2L to sabado))
+        assertTrue("nombra la del finde: ${answer.text}", answer.text.contains("Tarea2"))
+        assertTrue("no mezcla con viernes: ${answer.text}", !answer.text.contains("Tarea1"))
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+    }
+
+    @Test fun tareasDeSinAlcanceTemporal_fallsBackToMenu() {
+        // Guardia: "tareas de matemáticas" (sin alcance temporal) NO es agenda —
+        // la búsqueda la resuelve por contenido; el asistente sigue al menú
+        // (cierre del hueco de contenido = otro gap, no c.783).
+        val answer = agendaAnswerFor("tareas de matemáticas", emptyList())
+        assertTrue("menú genérico, no agenda: ${answer.text}", answer.text.contains("Puedo organizar"))
+        assertTrue("sin ids: ${answer.relatedTaskIds}", answer.relatedTaskIds.isEmpty())
     }
 
     @Test fun proximaSemana_listsNextWeekNotThisWeek() {
