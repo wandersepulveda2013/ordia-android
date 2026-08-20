@@ -24,11 +24,9 @@ fun main() {
     val now = 1723939200000L
     val cases = listOf(
         // Candidatos: objeto acotado sobre verbos genéricos bivalentes.
-        // "hacer la compra" (form 4/7 clase 4) quedó resuelta en c.758 vía
-        // SHOPPING (piso acotado del verbo-hacer + objeto-compra) — movida
-        // a regresiones abajo. Forma OPEN que queda: "hacer la colada"
-        // (~ lavadora, HOUSEHOLD; ver también el resolver #6 arriba).
-        "hacer la colada mañana",                  // OPEN tras c.758
+        // "hacer la compra" (form 4/7 clase 4) y "hacer la colada" (form 7/7
+        // última OPEN) resueltas en c.758/c.760 vía SHOPPING/HOUSEHOLD —
+        // movidas a regresiones abajo. Clase 4 COMPLETA: 7/7.
 
         // Cobertura existente (guards — deben SEGUIR capturando vía keyword
         // c.639 de HOUSEHOLD)
@@ -36,6 +34,7 @@ fun main() {
         "regar las plantas mañana",
 
         // Regresiones de las clases cerradas (deben SEGUIR capturando)
+        "hacer la colada mañana",                  // c.760 (form 7/7 clase 4 → HOUSEHOLD)
         "hacer la compra mañana",                  // c.758 (form 4/7 clase 4 → SHOPPING)
         "poner la lavadora esta tarde",            // c.729
         "quitar el polvo hoy",                     // c.732
@@ -81,6 +80,14 @@ fun main() {
         "hice la compra ayer",                     // pasado
         "hacer",                                   // suelto (implicito del guard c.728)
         "hacer la cama mañana",                    // objeto no compra → HOUSEHOLD (c.728)
+
+        // Controles c.760 (forma "hacer la colada"): negada/duda/pasado/
+        // objeto no acotado deben permanecer NULL.
+        "no hacer la colada mañana",
+        "quizá hacer la colada mañana",
+        "hice la colada ayer",                     // pasado
+        "el colador está sucio",                   // objeto no colada (utensilio)
+        "recuérdame hacer la colada mañana",      // envuelta → TASK (candado envolvente)
     )
 
     for (raw in cases) {

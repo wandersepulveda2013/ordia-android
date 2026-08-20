@@ -275,7 +275,18 @@ object ContextIntentEngine {
     // `\b` final; guard de negación heredado de la familia (?<!no ).
     private val HOUSEHOLD_FEED_CAT_VARIANT_FLOOR =
         Regex("""\b(?<!no )dar\s+de\s+comer\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)?gat[oa]s?\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR)
+    // c.760: piso acotado "hacer la colada" (sonda `FourthClassChoreProbe.kt`
+    // c.734 — la ÚNICA forma OPEN que quedaba del pool de quehaceres): la
+    // colada (ropa por lavar) es el quehacer doméstico canónico con el verbo
+    // bivalente "hacer" (≠ cama c.728, ≠ compra c.758, ≠ informe/TASK). Se
+    // acota a `coladas?` (lavando la colada, no cualquier objeto) — interop:
+    // "poner la lavadora" c.729 sigue ganando su propio piso primero
+    // (objetos disjuntos). `\b` final: "colador" no casa. Mismo lockstep de
+    // envolvente/negación/plantilla que la familia HOUSEHOLD_*_FLOOR
+    // (c.717/c.728) y SHOPPING_GROCERY_FLOOR c.758.
+    private val HOUSEHOLD_COLADA_FLOOR =
+        Regex("""\b(?<!no )hacer\s+(?:el\s+|la\s+|los\s+|las\s+)?coladas?\b""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -1577,6 +1588,14 @@ object ContextIntentEngine {
         if (kind == ContextIntentKind.SHOPPING &&
             Regex("""\bno\s+hacer\s+(?:el\s+|la\s+|los\s+|las\s+)?compras?\b""").containsMatchIn(lower)
         ) return true
+        // "hacer la colada" (HOUSEHOLD, piso acotado c.760) es imperativo
+        // multi-palabra (verbo bivalente "hacer" + objeto acotado `coladas?`):
+        // la keyword TASK del piso de "hacer" + bono temporal elevan el score
+        // del kind sin pasar por el piso (cuyo lookbehind sí la bloquea), así
+        // la negación se bloquea aquí (misma vía que "hacer la compra" c.758).
+        if (kind == ContextIntentKind.HOUSEHOLD &&
+            Regex("""\bno\s+hacer\s+(?:el\s+|la\s+|los\s+|las\s+)?coladas?\b""").containsMatchIn(lower)
+        ) return true
         return false
     }
 
@@ -2198,6 +2217,16 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchHacer != null) {
                     return "${capitalizeFirst(matchHacer.groupValues[1])} ${matchHacer.groupValues[2]}"
+                }
+                // "hacer (la|las) colada(s) …" → "Hacer la colada …" (c.760):
+                // verbo preservado y objeto restringido como en
+                // [HOUSEHOLD_COLADA_FLOOR] (lockstep c.728 "hacer la cama").
+                val matchColada = Regex(
+                    """\b(?<!no )(hacer)\s+((?:el\s+|la\s+|los\s+|las\s+)?coladas?\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchColada != null) {
+                    return "${capitalizeFirst(matchColada.groupValues[1])} ${matchColada.groupValues[2]}"
                 }
                 // "poner (la) lavadora …" → "Poner la lavadora …" (c.729):
                 // verbo preservado (alineación pisos↔títulos, lección c.717)
