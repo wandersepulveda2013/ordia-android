@@ -1,3 +1,9 @@
+## Ciclo c.730 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "aspirar" (forma 17/19 TERCERA clase)
+- **Objetivo**: decimoséptima forma TERCERA clase: "aspirar la alfombra mañana" → HOUSEHOLD. Piso propio con lookahead `(?!a)` (deliberación: genérico — aspiradora inequívoco como "barrer", pero sin caber en `HOUSEHOLD_VERBS` para excluir la acepción figurada "aspirar a un cargo") + keyword + plantilla genérica + bono specific (lockstep c.727).
+- **Anti-overreach honesto**: "aspirar a un cargo mañana" → NULL (keyword y bono no alcanzan umbral sin piso); "aspirar el sofá" → HOUSEHOLD.
+- **TDD**: +10 tests `ContextIntentEngineAspirarFloorTest.kt` (RED exacto 4/10 → GREEN).
+- **Pruebas**: suite **OK (4421 tests)**, 0 failures; smokes 25/9 OK. Quedan 2 OPEN (hogar × 2).
+- **NO VERIFICADO**: Android/gradle/UI/Room. **HEAD**: inicial `fc5aefd`.
 ## Ciclo c.729 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "poner la lavadora" (forma 16/19 TERCERA clase)
 - **Objetivo**: decimosexta forma TERCERA clase (verbos hogar): "poner la lavadora esta tarde" → HOUSEHOLD. Piso ACOTADO al objeto `lavadora` (familia TRASH c.717 / BED c.728) + keyword "lavadora" (`ContextIntent.kt`) + plantilla "(poner) (la) lavadora…"→"Poner la lavadora…".
 - **Deliberación de kind**: HOUSEHOLD (quehacer doméstico canónico; TASK solo envolvente c.613).

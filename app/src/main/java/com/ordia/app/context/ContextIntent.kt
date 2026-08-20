@@ -94,7 +94,11 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // (mismo lockstep que scoreSpecificPatterns / piso / extractTitle).
         // c.727: "tender" — mismo lockstep (c.639) por la sonda tercera clase
         // (14/19): quehacer doméstico canónico ("tender la ropa/cama/mesa").
+        // c.730: "aspirar" — mismo lockstep (17/19): aspiradora, inequívoco
+        // como "barrer"/"fregar" (la acepción figurada "aspirar a un cargo"
+        // no captura: guardia en el piso y baja puntuación de keyword).
         "fregar", "barrer", "trapear", "regar", "sacudir", "desempolvar", "tender",
+        "aspirar",
         // c.717: objeto del piso `sacar la basura` (lockstep keyword↔piso,
         // lección c.639). "sacar" suelto es demasiado genérico, así se
         // alinea el OBJETO restringido en el piso.

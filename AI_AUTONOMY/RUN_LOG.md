@@ -1,3 +1,8 @@
+## Run c.730 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "aspirar" — forma 17/19 — rama openhands/autonomous-ordia
+- **HEAD inicial**: `fc5aefd` (push c.729). Selección (P1): "aspirar".
+- **Solución**: piso `aspirar` con lookahead `(?!a)` — deliberación; +keyword/plantilla/bono. Kind: HOUSEHOLD. Control honesto "aspirar a un cargo mañana" → NULL.
+- **TDD**: +10 tests (RED 4/10 → GREEN OK 4421). Quedan 2 OPEN hogar.
+- **Estado**: VERIFIED JVM. **NO VERIFICADO** Android.
 ## Run c.729 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "poner la lavadora" — forma 16/19 TERCERA clase — rama openhands/autonomous-ordia
 - **HEAD inicial**: `5ee8ff1` (push c.728). **Selección (P1)**: "poner la lavadora". Doctrina una-forma-por-ciclo.
 - **Solución**: piso `poner la lavadora` ACOTADO (familia TRASH c.717/BED c.728) + keyword "lavadora" (lockstep) + plantilla "(poner) (la) lavadora…"→"Poner la lavadora…" (lockstep). **Kind deliberado: HOUSEHOLD**.

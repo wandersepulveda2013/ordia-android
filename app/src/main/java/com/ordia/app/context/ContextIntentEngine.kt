@@ -121,7 +121,14 @@ object ContextIntentEngine {
     // c.717 / [HOUSEHOLD_BED_FLOOR] c.728).
     private val HOUSEHOLD_WASHER_FLOOR =
         Regex("""\b(?<!no )poner\s+(?:el\s+|la\s+|los\s+|las\s+)?lavadora\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR)
+    // Piso faena doméstica "aspirar" (c.730, forma 17/19 de la TERCERA clase
+    // cotidiana, sonda `ThirdClassVerbDiscoveryProbe.kt` c.721): aspiradora,
+    // inequívoco como "barrer"/"fregar"; NO va a `HOUSEHOLD_VERBS` porque la
+    // acepción figurada "aspirar a un cargo" debe quedar fuera — lookahead
+    // `(?!a\b)` la excluye, el resto del objeto es libre como el piso genérico.
+    private val HOUSEHOLD_VACUUM_FLOOR =
+        Regex("""\b(?<!no )aspirar\s+(?!a\b)\w""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_VACUUM_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -1470,7 +1477,8 @@ object ContextIntentEngine {
                 // de "entregar"/"entregaré" y el verbo de entrega se roba como
                 // tarea doméstica ("entregar el informe a las 9" → HOUSEHOLD
                 // "Regar el informe"). El piso (HOUSEHOLD_FLOOR) ya tiene `\b`.
-                if (Regex("""\b(limpiar|ordenar|cocinar|lavar|planchar|arreglar|reparar|jardín|fregar|barrer|trapear|regar|sacudir|desempolvar|tender)""").containsMatchIn(lower)) s += 0.15f
+                // c.730: "aspirar" en la lista (lockstep c.727).
+                if (Regex("""\b(limpiar|ordenar|cocinar|lavar|planchar|arreglar|reparar|jardín|fregar|barrer|trapear|regar|sacudir|desempolvar|tender|aspirar)""").containsMatchIn(lower)) s += 0.15f
                 s
             }
             else -> 0f
@@ -1906,7 +1914,7 @@ object ContextIntentEngine {
                 // c.727: "tender" (14/19 tercera clase, hogar), mismo lockstep
                 // que c.639. El match arranca en el verbo — no hay lookbehind
                 // de negación en la plantilla; el piso ya lo aplica.
-                val match = Regex("""\b(limpiar|ordenar|cocinar|lavar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar|tender) (.+)""", RegexOption.IGNORE_CASE).find(original)
+                val match = Regex("""\b(limpiar|ordenar|cocinar|lavar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar|tender|aspirar) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return "${capitalizeFirst(match.groupValues[1])} ${match.groupValues[2]}"
                 null
             }
