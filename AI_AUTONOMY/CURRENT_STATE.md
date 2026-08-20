@@ -1,3 +1,13 @@
+## Ciclo c.790 — 2026-08-20 (UTC) — descarte(DEDUPE): mi duplicado del pretérito «marqué/destaqué» se descarta; permanece el render del hermano c.789
+
+- **HEAD inicial**: `83bce53` (c.788; pp. docs de la propia sesión)
+- **Problema**: el hermano concurrente `910621f` cerró la MISMA unidad «las que marqué»/«tareas que destaqué» (residuo OPEN documentado en c.781 como candidato search-side) mientras esta sesión preparaba su propio render apuntado al residuo. Duplicado exacto del fix (tokens pretérito + STOP «lo» del hermano).
+- **Descarte**: `git stash` (todo el trabajo duplicado) → `git pull --ff-only` → `git stash drop` = cero código de este run conflicto.
+- **Verificación independiente** (post ff): `bash tools/run_domain_tests.sh` → **OK (4891 tests)**; smoke 25/25.
+- **LECCIÓN**: cuando el residuo c.781 queda documentado OPEN el hermano y esta sesión pueden apuntarlo a la vez; al coincidir en c.789 la elección del primer comentario en BACKLOG (`CERRADO c.789 (ambas superficies)`) debía también considerar al hermano. Número c.789 consumido por el hermano; esta sesión se renombra c.790.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **HEAD final**: pendiente hasta push.
+
 ## Ciclo c.788 — 2026-08-20 (UTC) — fix(assistant): «notas fijadas» rutea honestamente a la búsqueda (último gap (v) de la sonda c.779)
 
 - **HEAD inicial**: `a3694c4` (c.786 remoto, fetch limpio). Tras el push rechazado, el remoto había avanzado a `8019ffa` (ciclo c.787 DEDUPE hermano, docs-only) que **tomó el ID c.787**: rebase no destructivo sobre `8019ffa` (conflictos sólo en CURRENT_STATE/RUN_LOG prepend; ambos bloques conservados) + renumeración c.787→c.788 por integridad del registro.
