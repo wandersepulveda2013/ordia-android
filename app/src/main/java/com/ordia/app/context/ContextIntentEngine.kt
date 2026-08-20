@@ -128,7 +128,14 @@ object ContextIntentEngine {
     // `(?!a\b)` la excluye, el resto del objeto es libre como el piso genérico.
     private val HOUSEHOLD_VACUUM_FLOOR =
         Regex("""\b(?<!no )aspirar\s+(?!a\b)\w""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_VACUUM_FLOOR)
+    // Piso faena doméstica "cortar el césped" (c.731, forma 18/19 de la
+    // TERCERA clase cotidiana, sonda `ThirdClassVerbDiscoveryProbe.kt`
+    // c.721): "cortar" suelto es ambiguo (pelo/pan/comunicación), así se
+    // ACOTA al objeto `césped(es)` (familia de [HOUSEHOLD_TRASH_FLOOR]
+    // c.717 / [HOUSEHOLD_BED_FLOOR] c.728 / [HOUSEHOLD_WASHER_FLOOR] c.729).
+    private val HOUSEHOLD_LAWN_FLOOR =
+        Regex("""\b(?<!no )cortar\s+(?:el\s+|la\s+|los\s+|las\s+)?c[ée]sped(?:es)?\b""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -1907,6 +1914,16 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchPoner != null) {
                     return "${capitalizeFirst(matchPoner.groupValues[1])} ${matchPoner.groupValues[2]}"
+                }
+                // "cortar (el) césped(es) …" → "Cortar el césped …" (c.731):
+                // verbo preservado y objeto restringido como en
+                // [HOUSEHOLD_LAWN_FLOOR] (familia lockstep c.717).
+                val matchCortar = Regex(
+                    """\b(?<!no )(cortar)\s+((?:el\s+|la\s+|los\s+|las\s+)?c[ée]sped(?:es)?\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchCortar != null) {
+                    return "${capitalizeFirst(matchCortar.groupValues[1])} ${matchCortar.groupValues[2]}"
                 }
                 // Verbos alineados con [hasStrongHouseholdImperative] (c.638/c.639) para que
                 // el piso no capture un verbo cuyo título luego no se forme limpio.

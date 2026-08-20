@@ -1,3 +1,9 @@
+## Run c.731 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "cortar el césped" — forma 18/19 — rama openhands/autonomous-ordia
+- **HEAD inicial**: `1b00da0` (push c.730). Selección (P1): "cortar el césped".
+- **Solución**: piso `cortar el césped` ACOTADO (familia TRASH/BED/WASHER) + keyword "césped" + plantilla "(cortar)(el) césped(es)"→"Cortar el césped". Kind deliberado: HOUSEHOLD.
+- **TDD**: +10 tests `ContextIntentEngineCortarCespedFloorTest.kt` (RED exacto 4/10 → GREEN OK 4431, 0 failures; smokes 25/9 OK). Queda 1 OPEN hogar.
+- **Próxima prioridad**: hogar OPEN #6 "quitar el polvo hoy" (última, cierra la sonda c.721). Re-fetch OBLIGATORIO antes.
+- **Estado**: VERIFIED JVM. **NO VERIFICADO** Android.
 ## Run c.730 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "aspirar" — forma 17/19 — rama openhands/autonomous-ordia
 - **HEAD inicial**: `fc5aefd` (push c.729). Selección (P1): "aspirar".
 - **Solución**: piso `aspirar` con lookahead `(?!a)` — deliberación; +keyword/plantilla/bono. Kind: HOUSEHOLD. Control honesto "aspirar a un cargo mañana" → NULL.

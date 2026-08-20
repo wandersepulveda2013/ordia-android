@@ -1,3 +1,10 @@
+## Ciclo c.731 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "cortar el césped" (forma 18/19 TERCERA clase)
+- **Objetivo**: decimoctava forma TERCERA clase: "cortar el césped el sábado" → HOUSEHOLD. Piso ACOTADO al objeto `césped(es)` (familia TRASH c.717 / BED c.728 / WASHER c.729) + keyword "césped" + plantilla "(cortar) (el) césped(es)…"→"Cortar el césped…".
+- **Deliberación de kind**: HOUSEHOLD (quehacer doméstico canónico; TASK solo envolvente c.613).
+- **Anti-overreach**: negada NULL; quizá NULL; pasado "corté…" NULL; suelto "cortar" NULL; objeto-no-césped "cortar la comunicación" NO roba HOUSEHOLD; envolvente c.613 gobierna TASK.
+- **TDD**: +10 tests `ContextIntentEngineCortarCespedFloorTest.kt` (RED exacto 4/10 → GREEN).
+- **Pruebas**: suite **OK (4431 tests)**, 0 failures; smokes 25/9 OK. Queda 1 OPEN (hogar × 1: "quitar el polvo hoy").
+- **NO VERIFICADO**: Android/gradle/UI/Room. **HEAD**: inicial `1b00da0`.
 ## Ciclo c.730 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "aspirar" (forma 17/19 TERCERA clase)
 - **Objetivo**: decimoséptima forma TERCERA clase: "aspirar la alfombra mañana" → HOUSEHOLD. Piso propio con lookahead `(?!a)` (deliberación: genérico — aspiradora inequívoco como "barrer", pero sin caber en `HOUSEHOLD_VERBS` para excluir la acepción figurada "aspirar a un cargo") + keyword + plantilla genérica + bono specific (lockstep c.727).
 - **Anti-overreach honesto**: "aspirar a un cargo mañana" → NULL (keyword y bono no alcanzan umbral sin piso); "aspirar el sofá" → HOUSEHOLD.
