@@ -119,7 +119,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // sonda `FourthClassChoreProbe.kt` c.734; interop c.729: el
         // guard del piso lavavajillas exige el literal, "lavadora" no
         // roba lavavajillas ni viceversa).
-        "basura", "cama", "lavadora", "césped", "polvo", "mesa", "lavavajillas")),
+        // c.740: mascota del piso `sacar al perro` (lockstep
+        // keyword↔piso; "sacar" suelto es ambiguo — la basura/las
+        // entradas/los críos, piso TRASH c.717; sonda
+        // `FourthClassVerbDiscoveryProbe.kt` c.740, primera mascota
+        // del dominio).
+        "basura", "cama", "lavadora", "césped", "polvo", "mesa",
+        "lavavajillas", "perro", "perra")),
     UNKNOWN("Sin clasificar", emptyList());
 
     companion object {

@@ -160,7 +160,17 @@ object ContextIntentEngine {
     // WASHER c.729 / DUST c.732). `\b` final: "mesada" no casa.
     private val HOUSEHOLD_TABLE_FLOOR =
         Regex("""\b(?<!no )poner\s+(?:el\s+|la\s+|los\s+|las\s+)?mesas?\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR)
+    // Piso faena doméstica "sacar al perro" (c.740, primera mascota del
+    // dominio — sonda NUEVA `FourthClassVerbDiscoveryProbe.kt` c.740,
+    // paralela a Chore c.734): el quehacer diario con mascota canónico.
+    // "sacar" suelto es ambiguo (la basura piso TRASH c.717 / las
+    // entradas / los críos), así se ACOTA al objeto mascota
+    // `perr[oa]s?` (masculino+femenino; familias TRASH/TABLE).
+    // `\b` final: "perrito(s)" (diminutivo) no casa (forma OPEN en sonda);
+    // guard de negación explícito heredado de la familia (?<!no ).
+    private val HOUSEHOLD_PET_FLOOR =
+        Regex("""\b(?<!no )sacar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\b""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -1335,6 +1345,9 @@ object ContextIntentEngine {
         if (kind == ContextIntentKind.HOUSEHOLD &&
             Regex("""\bno\s+sacar\s+(?:el\s+|la\s+|los\s+|las\s+)?basura\b""").containsMatchIn(lower)
         ) return true
+        if (kind == ContextIntentKind.HOUSEHOLD &&
+            Regex("""\bno\s+sacar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\b""").containsMatchIn(lower)
+        ) return true
         return false
     }
 
@@ -1981,6 +1994,15 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchPonerMesa != null) {
                     return "${capitalizeFirst(matchPonerMesa.groupValues[1])} ${matchPonerMesa.groupValues[2]}"
+                }
+                // Piso "sacar al perro" (c.740): titular lo acotado al
+                // objeto mascota (alineado con [HOUSEHOLD_PET_FLOOR]).
+                val matchSacarPerro = Regex(
+                    """\b(sacar) ((?:al|a (?:el|la|los|las|mi|tu|su)) perr[oa]s?.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchSacarPerro != null) {
+                    return "${capitalizeFirst(matchSacarPerro.groupValues[1])} ${matchSacarPerro.groupValues[2]}"
                 }
                 // Verbos alineados con [hasStrongHouseholdImperative] (c.638/c.639) para que
                 // el piso no capture un verbo cuyo título luego no se forme limpio.
