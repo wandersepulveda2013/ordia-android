@@ -4970,4 +4970,40 @@ class AssistantEngineTest {
         val answer = AssistantEngine.answer("tareas de", emptyList(), emptyList(), emptyList())
         assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
     }
+
+    // c.793 — sonda de entidades: listado simple de notas ("mis notas"/"todas
+    // las notas"/"las notas"). La única ruta honesta hacia las notas del
+    // asistente sigue siendo OPEN_SEARCH (no recibe notas); antes, la forma
+    // cotidiana caía al menú genérico — mentira por omisión cruzada.
+    @Test fun notesListing_misNotas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("mis notas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_todasLasNotas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("todas las notas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_fijadasStillWinsPinnedFirst() {
+        // La rama de fijadas (c.788) sigue ganando antes que la de listado.
+        val answer = AssistantEngine.answer("notas fijadas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("notas fijadas", answer.actionPayload)
+    }
+
+    @Test fun notesListing_guard_createNoteStillWins() {
+        // "guardar como nota: …" sigue siendo CREATE_NOTE (rama anterior).
+        val answer = AssistantEngine.answer("Guardar como nota: receta", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.CREATE_NOTE, answer.action)
+    }
+
+    @Test fun notesListing_guard_contentQueryDoesNotRoute() {
+        // "notas de física" es contenido de una nota, no pedir la lista:
+        // no debe abrir la búsqueda con el payload canónico.
+        val answer = AssistantEngine.answer("notas de física", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
 }

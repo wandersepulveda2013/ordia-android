@@ -433,6 +433,15 @@ object AssistantEngine {
                 AssistantAnswer("Abriré la búsqueda con las notas fijadas.", AssistantAction.OPEN_SEARCH, clean)
             query.startsWith("busca ") || query.startsWith("muestra ") || query.startsWith("pendientes con") ->
                 AssistantAnswer("Abriré la búsqueda con esa consulta.", AssistantAction.OPEN_SEARCH, clean)
+            // Sonda de entidades c.793: "mis notas"/"todas las notas" — la forma
+            // COTIDIANA de pedir ver las notas — no era "fijadas" (rama de arriba)
+            // ni "guardar como nota" (CREATE_NOTE, arriba también), así que caía
+            // al menú genérico: mentira por omisión cruzada (el dato existe en
+            // SearchKind.NOTE; sólo faltaba el routing). Ruta honesta: OPEN_SEARCH
+            // con payload canónico "notas" (SearchEngine.wantsNotes filtra limpio;
+            // "mis"/"todas"/"las" se hubieran quedado como palabras de contenido).
+            isNotesListingQuery(query) ->
+                AssistantAnswer("Abriré la búsqueda con las notas.", AssistantAction.OPEN_SEARCH, "notas")
             // Noveno olvido de la familia "lie-by-omission" / recuperación de
             // compromisos: "¿qué me comprometí?"/"¿qué prometí?" — la forma
             // COTIDIANA de pedir recordar lo prometido en una conversación — no
@@ -897,6 +906,19 @@ object AssistantEngine {
         }
         return qualifier.isNotEmpty()
     }
+    // Listado simple de notas: "mis notas"/"todas las notas"/"las notas" — la
+    // forma cotidiana de pedir ver las notas enteras. A diferencia de
+    // "notas fijadas" (rama isPinnedNotesQuery) no pide un atributo, sólo la
+    // lista. Se rutea por OPEN_SEARCH igual que c.788. Formas EXPLÍCITAS (no
+    // tokens sueltos) para no secuestrar consultas ajenas: "notas de física"
+    // (contenido) no es pedir la lista, y "guardar como nota"/"busca …" ya
+    // se evalúan antes en el when.
+    private val NOTES_LISTING_FORMS = setOf(
+        "mis notas", "todas las notas", "todas mis notas",
+        "las notas", "ver notas", "ver las notas", "lista de notas", "notas"
+    )
+    private fun isNotesListingQuery(query: String): Boolean =
+        query.trim() in NOTES_LISTING_FORMS
 
     /**
      * Consulta de "lo próximo" sin alcance de fecha ("tengo algo pronto",
@@ -1630,7 +1652,17 @@ object AssistantEngine {
     // marcador verbal; el alcance temporal se exige en isAgendaQuery, por lo que
     // "tareas de matemáticas" NO se secuestra por el conector suelto. Normalizado
     // (sin tilde) antes, por isAssistantQuery → normalize.
-    private val BARE_TEMPORAL_TASK_CONNECTORS = listOf("tareas de ", "tareas del ", "tarea de ", "tarea del ")
+    // Sonda c.793: "tareas por la tarde/noche" — la forma MÁS natural en
+    // español de pedir agenda por franja ("por la tarde"). Sólo existían los
+    // conectores "de/del", así que la consulta caía al menú: mentira por
+    // omisión, el asistente NO leía la agenda vespertina que ya tenía la
+    // maquinaria. La guardia de alcance temporal abajo (hoy/mañana/semana/
+    // mes/finde/weekday/partOfDay) impide secuestrar el contenido: "tareas
+    // por hacer" sigue sin activar agenda (no hay token temporal).
+    private val BARE_TEMPORAL_TASK_CONNECTORS = listOf(
+        "tareas de ", "tareas del ", "tarea de ", "tarea del ",
+        "tareas por ", "tarea por "
+    )
     // DayOfWeek ISO (lun=1..dom=7). Simétrico con SearchEngine.WEEKDAY_TOKENS y el
     // parser de captura, para que preguntar, buscar y capturar signifiquen lo mismo.
     private val AGENDA_WEEKDAY_TOKENS = setOf("lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo")
