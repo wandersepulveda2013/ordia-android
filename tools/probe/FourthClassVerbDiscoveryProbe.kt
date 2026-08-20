@@ -25,10 +25,13 @@ fun main() {
         // `PAYMENT_FLOOR` c.746 centralizado con ancla TEMPORAL añadida a las
         // de c.630 inicio + c.651 acuse, compartido con el guard de envolvente
         // `WRAPPABLE_PATTERNS` — lección lockstep c.648/c.652) — las líneas
-        // quedan como REGRESIÓN de la familia pago temporal. OPEN residual:
-        // "el lunes que viene pagar el arriendo" (el ancla temporal exige el
-        // temporal INMEDIATO al verbo; "que viene" no está cubierto por
-        // TASK_FLOOR_TEMPORAL — ampliarlo tocaría TODOS los pisos).
+        // quedan como REGRESIÓN de la familia pago temporal. Nota c.763: el
+        // OPEN residual "el lunes que viene pagar el arriendo" quedó RESUELTO
+        // — ancla "que viene" añadida a `TASK_FLOOR_TEMPORAL` (sufijo opcional
+        // tras el día de la semana + alternativas "la semana/el mes que
+        // viene") de una vez para TODOS los pisos que la comparten (lección de
+        // clase c.643/c.647: el cambio en el ancla compartida propaga en
+        // lockstep a pisos, plantillas y guard de envolvente).
         "mañana pagar la luz",
         "el lunes pagar el arriendo",
         "hoy pagar el recibo del internet",

@@ -78,8 +78,23 @@ object ContextIntentEngine {
     // "mañana" (el match arranca en el "mañana" interior). La plantilla de
     // título usa el mismo ancla y arranca en el verbo, así el prefijo queda
     // fuera del match igual que el acuse (c.651).
+    // c.763: ancla "que viene" — el calificador entre el temporal y el verbo
+    // rompía TODOS los pisos que comparten este ancla ("el lunes que viene
+    // pagar el arriendo" → NULL, olvido silencioso residual de c.746; igual
+    // "la semana que viene pagar la renta" y cualquier "el <día>/la semana/
+    // el mes que viene <verbo-piso>"). El sufijo opcional `(?:\s+que\s+
+    // viene)?` tras el día de la semana y las alternativas `la semana que
+    // viene`/`el mes que viene` cierran la brecha de una vez para todos los
+    // pisos (la alternativa aislada tocaría piso a piso — lección de clase
+    // c.643/c.647). Paridad de fecha con [NaturalTaskParser.weekdayPattern]:
+    // "lunes que viene" resuelve al próximo lunes estricto en ambos
+    // (extractDateTime: bloque de período no casa unidad en "el lunes que
+    // viene" → cae al día de la semana con daysUntil==0→+7). La negación
+    // sigue bloqueada: "no " entre el ancla y el verbo impide el match del
+    // piso; la duda ("quizá el lunes que viene pagar…") casa el piso pero la
+    // penalización post-pisos [HEDGE_PENALTY] la descarta (0.45−0.3→NULL).
     private val TASK_FLOOR_TEMPORAL =
-        "hoy|mañana|esta\\s+(?:mañana|tarde|noche)|el\\s+(?:lunes|martes|miércoles|jueves|viernes|sábado|domingo)"
+        "hoy|mañana|esta\\s+(?:mañana|tarde|noche)|el\\s+(?:lunes|martes|miércoles|jueves|viernes|sábado|domingo)(?:\\s+que\\s+viene)?|la\\s+semana\\s+que\\s+viene|el\\s+mes\\s+que\\s+viene"
     private val MEETING_VERBS = "reuni[oó]n"
     private val HOUSEHOLD_VERBS =
         "limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar|tender"
