@@ -1,3 +1,14 @@
+## Run c.721d — 2026-08-20 (UTC) — feat(context): piso TASK "redactar <objeto>" — forma 4/19 TERCERA clase — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `9f80fa1` (push c.721c, ff-only limpio).
+- **Selección (P1)**: "redactar <objeto>" (sonda). Sin keyword — lockstep obligado (c.713). Doctrina una-forma-por-ciclo.
+- **Solución**: piso `redactar` + keyword TASK + plantilla "(redactar) X"→"Redactar X". **Kind decidido: TASK, en deliberación contra NOTE** — acción de componer un texto como gestión; NOTE es el contenido capturado, no la acción (criterio c.704). Anti-overreach: negada/duda/"redacción"/"redacté…"/suelto → NULL; envolvente c.613 gobierna TASK. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineRedactarFloorTest.kt` — RED exacto 4/10 → GREEN **OK (4291 tests)** (4281 + 10), 0 failures; smoke 25 OK; automation 9 OK. Sonda POST → TASK 'Redactar el correo' dueAt=true. Quedan 15 OPEN.
+- **Archivos**: engine (+piso +plantilla), `ContextIntent.kt` (+keyword), test NUEVO (+10), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN tercera-clase (~15 restantes). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android.
+- **HEAD final**: tras el commit.
+
 ## Run c.721c — 2026-08-20 (UTC) — feat(context): piso TASK "organizar <objeto>" — forma 3/19 TERCERA clase — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `127d6a1` (push c.721b, ff-only limpio).

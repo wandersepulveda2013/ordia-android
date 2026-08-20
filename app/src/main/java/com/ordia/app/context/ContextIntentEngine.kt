@@ -901,6 +901,14 @@ object ContextIntentEngine {
             // Anti-overreach: `\s+\w` exige objeto, `(?<!no )` bloquea negada,
             // sustantivo "organización"/pasado "organicé…"/suelto no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )organizar\s+\w""").containsMatchIn(lower)
+            // c.721d (forma 4/19 TERCERA clase, sonda `ThirdClassVerbDiscoveryProbe`):
+            // "redactar <objeto>" ("redactar el correo mañana"). Sin keyword —
+            // lockstep piso+keyword (lección c.713). Kind decidido: TASK, en
+            // deliberación contra NOTE — acción de componer un texto como gestión;
+            // NOTE es el contenido capturado, no la acción (criterio c.704).
+            // Anti-overreach: `\s+\w` exige objeto, `(?<!no )` bloquea negada,
+            // sustantivo "redacción"/pasado "redacté…"/suelto no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )redactar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1623,6 +1631,10 @@ object ContextIntentEngine {
                 // lección c.616: match arranca en el verbo).
                 val matchOrganizar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(organizar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchOrganizar != null) return "Organizar ${matchOrganizar.groupValues[2]}"
+                // c.721d: misma plantilla para "redactar" (ancla/guard idénticos;
+                // lección c.616: match arranca en el verbo).
+                val matchRedactar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(redactar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchRedactar != null) return "Redactar ${matchRedactar.groupValues[2]}"
 
                 null
             }

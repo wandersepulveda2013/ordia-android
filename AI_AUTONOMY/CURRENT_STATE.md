@@ -1,3 +1,10 @@
+## Ciclo c.721d — 2026-08-20 (UTC) — feat(context): piso TASK "redactar <objeto>" (forma 4/19 TERCERA clase)
+
+- **HEAD**: inicial `9f80fa1`-origin (ff-only limpio; final tras commit).
+- **Solución**: piso `redactar` + keyword TASK (lockstep c.713) + plantilla "(redactar) X"→"Redactar X". **Kind decidido: TASK, en deliberación contra NOTE** — acción de componer texto como gestión; NOTE es contenido, no acción (criterio c.704). Controles NULL (negada/duda/"redacción"/"redacté…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineRedactarFloorTest.kt`; RED exacto 4/10 → GREEN **OK (4291 tests)** (4281 + 10), 0 failures; smoke 25 OK; automation 9 OK; sonda POST → TASK 'Redactar el correo' dueAt=true. Quedan 15 OPEN.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android.
+
 ## Ciclo c.721c — 2026-08-20 (UTC) — feat(context): piso TASK "organizar <objeto>" (forma 3/19 TERCERA clase)
 
 - **HEAD**: inicial `127d6a1`-origin (ff-only limpio; final tras commit).
