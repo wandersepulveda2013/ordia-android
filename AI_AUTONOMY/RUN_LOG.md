@@ -1,3 +1,9 @@
+## Ciclo c.793 (2026-08-20, paridad entidades — listado de notas + conector agenda «por»)
+
+Colisión hermano c.792 (`ca17b0c`) resuelta stash→ff-only→pop (conflictos AssistantEngine+Test regiones adjuntas; renumerado mío a c.793). **Problema** (sonda nueva `tools/probe/AssistantEntityParityProbe.kt`, 29 consultas): (a) «mis notas»/«todas las notas» caía al menú; (b) «tareas por la tarde/noche» caía al menú (sólo conectores «de/del»). **Solución**: (a) `isNotesListingQuery` (formas explícitas trim) → `OPEN_SEARCH` payload canónico «notas»; (b) `BARE_TEMPORAL_TASK_CONNECTORS += "tareas por "/"tarea por "` (scope check sigue exigiendo token temporal — guard «por hacer»). **TDD**: +5 tests. **Suite OK (4909: 4904 hermano + 5)**; smoke 25/25; sonda POST los dos gaps cerrados; resto OPEN clasificado (hábitos/rutinas/proyectos estructurales; temporales desnudas deliberadas; «completadas» = guard; sondas detalladas en BACKLOG). **Estado**: VERIFIED (JVM). **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs. Commits: (pendiente numeración post-fetch-final).
+
+---
+
 ## Ciclo c.792 (2026-08-20, paridad búsqueda↔asistente — calificador de contenido «tareas de/del/de la <X>»)
 
 Base `bae3922` (c.791 hermano de contexto integrado ff-only en el fetch PRE; regiones disjuntas). **Problema**: sonda nueva `tools/probe/ContentQualifiedProbe.kt` — 6 gaps residuales «tareas de/del/de la <contenido>» (búsqueda filtra, asistente al menú; residuo c.784). **Solución**: helper puro `isContentQualifiedTasksQuery` (sujeto tarea(s)/pendiente(s) + artículo inicial opcional + conector de/del + artículo opcional + calificador no-vacio) → última rama del despacho antes del `else` → `OPEN_SEARCH`; el guardia c.784 se actualizó a bloquear la nueva ruta. **TDD RED→GREEN**: 5 fallos exactos + 4 guardias; suite **OK (4904: 4895 + 9)**; smoke 25/25; sonda POST: 6/6 → OPEN_SEARCH. **Estado**: VERIFIED (JVM). **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs.

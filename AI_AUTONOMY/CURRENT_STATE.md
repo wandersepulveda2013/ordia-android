@@ -1,3 +1,16 @@
+## Ciclo c.793 — 2026-08-20 (UTC) — fix(assistant): «mis notas»/«todas las notas» listado honesto + conector agenda «tareas por la tarde/noche»
+
+- **HEAD inicial (fetch PRE)**: colisión con hermano c.792 (`ca17b0c`) detectada ANTES de commitear — integración stash→ff-only→pop; conflictos sólo en `AssistantEngine.kt` + test (regiones adjuntas: helpers y suite de tests). Renumerado mío a c.793. NO STALE_RUN, NO force, NO reset --hard, NO toques main.
+- **Problema (P1 asistente / paridad / IA honesta)**: sonda nueva persistente `tools/probe/AssistantEntityParityProbe.kt` (29 consultas de entidades/desnudas) marcaba: (a) el listado simple de notas («mis notas», «todas las notas», «las notas») caía al menú genérico pese a que `SearchKind.NOTE` es la ruta honesta y fue la forma idiomática recomendada en c.788 (respuesta OPEN_SEARCH vacía → mentira por omisión); (b) «tareas por la tarde/noche» (LA forma natural de decirlo) caía al menú — `BARE_TEMPORAL_TASK_CONNECTORS` sólo tenía «de/del» (hermano docs c.788 sugería "por" como consulta posible).
+- **Solución (cambio mínimo)**: (a) `isNotesListingQuery` — formas EXPLÍCITAS tras trim («mis notas», «todas las notas», «todas mis notas», «las notas», «ver notas», «ver las notas», «lista de notas», «notas») → `AssistantAction.OPEN_SEARCH` con payload canónico «notas» (NO la frase literal: «mis/todas» son stop veneno de contenido; el vocabulario de notas al dictar). (b) `BARE_TEMPORAL_TASK_CONNECTORS += "tareas por "/"tarea por "` — `hasAgendaPartOfDay`/`hasAgendaDateScope` siguen exigiendo el token temporal → «tareas por hacer»/`«tareas por ahí»` siguen sin agenda (guard).
+- **TDD**: RED→GREEN sobre la base integrada; +5 tests — `notesListing_misNotas`/`todasLasNotas` (acción+payload), `fijadasStillWinsPinnedFirst`, guardias `createNoteStillWins` + `contentQueryDoesNotRoute` («notas de física» no secuestra).
+- **Verificación**: suite **OK (4909: 4904 hermano c.792 + 5)**; smoke 25/25; sonda POST → «mis notas»/«todas mis notas»/«notas» → OPEN_SEARCH; «tareas por la tarde/noche» → ids de agenda. Remanente OPEN (21 GAPS) clasificado: listados hábitos/rutinas/proyectos estructurales (asistente no recibe esos datos; búsqueda también devuelve []) → necesita arquitectura explícita (registrado BACKLOG OPEN); temporales desnudas deliberadas; «completadas» guardada (exige «tarea»).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- **AI_AUTONOMY**: CURRENT_STATE c.793 prepend; RUN_LOG c.793 prepend; BACKLOG fila nueva (a)+(b) RESUELTOS + OPEN estructurales/guardias.
+- **Próxima prioridad**: OPEN estructural de hábitos/rutinas/proyectos o nueva ronda de probes de paridad (temporales desnudas deliberadas). Numerar en fetch final.
+
+---
+
 ## Ciclo c.792 — 2026-08-20 (UTC) — fix(assistant): calificador de contenido «tareas de/del/de la <X>» rutea a búsqueda (paridad búsqueda↔asistente)
 
 - **HEAD inicial**: `bae3922` (c.791 hermano de contexto integrado por ff-only en el fetch PRE de este ciclo; regiones disjuntas, cero colisión).
