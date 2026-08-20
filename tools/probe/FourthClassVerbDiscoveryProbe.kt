@@ -65,6 +65,10 @@ fun main() {
         // keyword "ropa" lockstep) — la línea queda como REGRESIÓN de
         // forma compartida entre ambas sondas.
         "colgar la ropa hoy",
+        // Nota mantenimiento c.748: "podar el jardín el sábado" RESUELTA
+        // (piso `HOUSEHOLD_GARDEN_FLOOR` c.748, verbo "podar" keyword
+        // lockstep — la keyword-objeto "jardín" ya existía) — la línea
+        // queda como REGRESIÓN.
         "podar el jardín el sábado",
         // Candidatos: obligaciones cívicas/salud/de dispositivo cotidianas.
         "votar el domingo",
@@ -103,6 +107,14 @@ fun main() {
         "llevé al perro al veterinario ayer",
         "llevar el coche al taller mañana",
         "llevar al perro al parque mañana",
+        // c.748: controles del piso `podar el jardín` (negada / duda /
+        // pasado / objeto no jardín / diminutivo). La forma capturable
+        // "podar el jardín el sábado" se movió arriba como regresión.
+        "no podar el jardín mañana",
+        "quizá podar el jardín mañana",
+        "podé el jardín ayer",
+        "podar las rosas mañana",
+        "podar el jardincito mañana",
         "no pintar la casa mañana",
         "pinté la casa ayer",
         "no votar el domingo",

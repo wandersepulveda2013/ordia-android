@@ -16135,3 +16135,17 @@ a un permiso persistente frágil y silencioso ante fallos.
   + 2 colisiones reales de ID hoy).
 - NO VERIFICADO: Android/gradle/lint/UI/Room (sin SDK).
 - HEAD final: `b5c49e5` (merge no destructivo sobre `18dc350`) tras push.
+
+## Run c.748 — 2026-08-20 (UTC) — rama openhands/autonomous-ordia
+
+- HEAD inicial: 7b55cb9 (c.747 docs; ff-only limpio al inicio; re-fetch final SIN avance → número c.748 confirmado sin renumerar). NOTA: los ciclos c.739–c.747 documentaron en CURRENT_STATE.md; este run retoma el append en RUN_LOG (doctrina).
+- Problema seleccionado (P1, sonda Verb cuarta clase, hogar no cubierto): "podar el jardín el sábado" → NULL (olvido silencioso del quehacer de jardinería). Elegida por dispersión anti-colisión (ni "bañar al perro" señalada c.740, ni compra/colada anunciadas, ni "pintar la casa" primera del pool). Kind: HOUSEHOLD (hermana directa de "cortar el césped" c.731).
+- Sonda PRE efímera `/tmp/probe-work/PodarPreProbe.kt`: 5/5 capturas NULL; 7/7 controles sanos (incl. diminutivo "jardincito" excluido por `\b`).
+- Fix: piso `HOUSEHOLD_GARDEN_FLOOR` (`\b(?<!no )podar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?jard(?:ín|ines)\b`) en `ContextIntentEngine.kt` + plantilla "(podar) (…art/pos…) jardín(ines)…"→"Podar el jardín…" (matchPodar, tras matchLlevarVeterinario) + keyword-verbo "podar" en `ContextIntent.kt` (lockstep; la keyword-objeto "jardín" ya existía). "podar" NO entra en `HOUSEHOLD_VERBS` (rompería el acotamiento: "podar las rosas" sigue NULL).
+- Hallazgo de negación: keyword-verbo + keyword-objeto + patrón específico + bono temporal sumaban 0.45 en "no podar el jardín mañana" SIN pasar por el piso (el lookbehind del piso sí bloqueaba) → fuga de la forma negada. Fix: cláusula HOUSEHOLD dedicada en `imperativeIsNegated` (misma vía doctrinal c.717 basura / c.740 perro / c.718 banco).
+- TDD: +12 tests `ContextIntentEnginePodarJardinFloorTest.kt`; RED exacto 5/12 (solo capturas) → tras el fix de negación GREEN 12/12.
+- Pruebas: `bash tools/run_domain_tests.sh` → **OK (4538 tests)** (4526 base + 12), 0 failures; `bash tools/run_domain_checks.sh` → smoke 25/25 OK; sonda Verb POST actualizada: captura → HOUSEHOLD 'Podar el jardín' dueAt=true (regresión), +5 controles nuevos NULL, resto de candidatos NULL sin fugas.
+- AI_AUTONOMY: CURRENT_STATE c.748 prepend; BACKLOG fila sonda Verb actualizada (POST c.748 + OPEN ~9); RUN_LOG append (retomado desde c.738).
+- Próxima prioridad: otra Verb NO anunciada (~9 OPEN: pintar la casa / votar / donar sangre / cargar el celular / lavar los platos / quitar la mesa / mascotas restantes…) o compra/colada (anunciadas, verificar antes); re-fetch OBLIGATORIO y numerar ciclo SOLO en el fetch final.
+- NO VERIFICADO: Android/gradle/lint/UI/Room (sin Android SDK).
+- HEAD final: tras commit/push de este ciclo.

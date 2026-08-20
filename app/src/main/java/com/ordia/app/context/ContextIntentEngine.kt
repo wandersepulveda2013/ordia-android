@@ -212,7 +212,19 @@ object ContextIntentEngine {
     // `\b` final sin derrame nominal; guard de negación heredado (?<!no ).
     private val HOUSEHOLD_VET_FLOOR =
         Regex("""\b(?<!no )llevar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\s+(?:al\s+|a\s+la\s+)veterinari[oa]s?\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR)
+    // Piso faena doméstica "podar el jardín" (c.748 provisional, hogar no
+    // cubierto — sonda `FourthClassVerbDiscoveryProbe.kt` c.740, paralela
+    // a Chore c.734): la jardinería canónica tras el césped (c.731).
+    // "podar" suelto es bivalente (las rosas/los setos/el árbol), así se
+    // ACOTA al objeto `jardín/jardines` (familia de [HOUSEHOLD_LAWN_FLOOR]
+    // c.731; interop: verbos disjuntos cortar/podar, objetos disjuntos
+    // césped/jardín — sin solape). La keyword "jardín" ya existía; el
+    // lockstep añade el VERBO "podar" (precedente c.639/c.727/c.730).
+    // `\b` final: "jardincito" (diminutivo) no casa (como "perrito"
+    // c.740); guard de negación heredado de la familia (?<!no ).
+    private val HOUSEHOLD_GARDEN_FLOOR =
+        Regex("""\b(?<!no )podar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?jard(?:ín|ines)\b""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -1419,6 +1431,15 @@ object ContextIntentEngine {
         if (kind == ContextIntentKind.HOUSEHOLD &&
             Regex("""\bno\s+sacar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\b""").containsMatchIn(lower)
         ) return true
+        // "podar el jardín" (HOUSEHOLD, piso acotado c.748) es imperativo
+        // multi-palabra: la keyword-verbo "podar" (lockstep c.748) + la
+        // keyword-objeto "jardín" + el bono temporal elevan el score al
+        // umbral sin pasar por el piso (cuyo lookbehind sí la bloquea),
+        // así la negación se bloquea aquí (misma vía que "sacar la
+        // basura" c.717 / "sacar al perro" c.740).
+        if (kind == ContextIntentKind.HOUSEHOLD &&
+            Regex("""\bno\s+podar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?jard(?:ín|ines)\b""").containsMatchIn(lower)
+        ) return true
         return false
     }
 
@@ -2115,6 +2136,16 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchLlevarVeterinario != null) {
                     return "${capitalizeFirst(matchLlevarVeterinario.groupValues[1])} ${matchLlevarVeterinario.groupValues[2]}"
+                }
+                // Piso "podar el jardín" (c.748 provisional): titular lo
+                // acotado al objeto jardín (alineado con
+                // [HOUSEHOLD_GARDEN_FLOOR]; familia jardinería c.731).
+                val matchPodarJardin = Regex(
+                    """\b(podar) ((?:(?:el|la|los|las|mi|tu|su) )?jard(?:ín|ines).*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchPodarJardin != null) {
+                    return "${capitalizeFirst(matchPodarJardin.groupValues[1])} ${matchPodarJardin.groupValues[2]}"
                 }
                 // Verbos alineados con [hasStrongHouseholdImperative] (c.638/c.639) para que
                 // el piso no capture un verbo cuyo título luego no se forme limpio.
