@@ -1,3 +1,8 @@
+## Ciclo c.722 — 2026-08-20 (UTC) — feat(context): piso TASK "actualizar <objeto>" (forma 9/19 TERCERA clase)
+
+- **HEAD**: inicial `7583a77`-origin. Colisión: run local "leer" duplicó c.721e remoto → descarte local; re-construcción sobre el tip remoto. Piso `actualizar` + keyword TASK + plantilla "(actualizar) X"→"Actualizar X" (kind deliberación TASK vs HABIT, criterio c.704). Controles NULL; envolvente c.613 gobierna TASK. Determinista.
+- **TDD**: +10 tests; RED 4/10 → GREEN **OK (4341 tests)**, 0 failures; smoke 25 OK; automation 9 OK; sonda POST → TASK 'Actualizar el currículum' dueAt=true, 5 controles NULL. Quedan 10 OPEN. **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android.
+
 ## Ciclo c.721h — 2026-08-20 (UTC) — feat(context): piso TASK "traducir <objeto>" (forma 8/19 TERCERA clase)
 
 - **HEAD**: inicial `d400fbb`-origin. Piso `traducir` + keyword TASK + plantilla "(traducir) X"→"Traducir X" (kind deliberación TASK vs EDUCATION, criterio c.704). Controles NULL; envolvente c.613 gobierna TASK. Determinista.

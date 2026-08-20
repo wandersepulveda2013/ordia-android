@@ -1,3 +1,13 @@
+## Run c.722 — 2026-08-20 (UTC) — feat(context): piso TASK "actualizar <objeto>" — forma 9/19 TERCERA clase — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `7583a77` (push c.721h, colisión duplicada "leer" resuelta: descarte local del rebase, re-construcción sobre el tip remoto). **Selección (P1)**: "actualizar <objeto>" (sonda). Doctrina una-forma-por-ciclo.
+- **Solución**: piso `actualizar` + keyword TASK + plantilla "(actualizar) X"→"Actualizar X". **Kind decidido: TASK, en deliberación contra HABIT** — acción puntual de poner al día el objeto; HABIT es rutina recurrente (criterio c.704). Controles NULL (negada/duda/"actualización"/"actualicé…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineActualizarFloorTest.kt` — RED exacto 4/10 → GREEN **OK (4341 tests)** (4331 + 10), 0 failures; smoke 25 OK; automation 9 OK. Sonda POST → TASK 'Actualizar el currículum' dueAt=true, 5 controles NULL. Quedan 10 OPEN.
+- **Archivos**: engine (+piso +plantilla), `ContextIntent.kt` (+keyword), probe (+5 controles), test NUEVO (+10), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN tercera-clase (~10 restantes). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android.
+- **HEAD final**: tras el commit.
+
 ## Run c.721h — 2026-08-20 (UTC) — feat(context): piso TASK "traducir <objeto>" — forma 8/19 TERCERA clase — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `d400fbb` (push c.721g). **Solución**: piso `traducir` + keyword TASK + plantilla "(traducir) X"→"Traducir X". Kind: TASK (deliberación contra EDUCATION; criterio c.704). Controles NULL (negada/duda/"traducción"/"traducí…"/suelto); envolvente c.613 gobierna TASK. Determinista.

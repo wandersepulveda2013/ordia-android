@@ -54,6 +54,13 @@ fun main() {
         "no poner la lavadora esta tarde",
         "quizá poner la lavadora esta tarde",
         "poner",
+        // Controles c.722 (forma "actualizar"): negada/duda/sustantivo/
+        // pasado/verbo suelto deben permanecer NULL.
+        "no actualizar el currículum mañana",
+        "quizá actualizar el currículum mañana",
+        "la actualización del documento fue ayer",
+        "actualicé el currículum ayer",
+        "actualizar",
         "y al final terminé contento jeje",
         "hola buenos días"
     )

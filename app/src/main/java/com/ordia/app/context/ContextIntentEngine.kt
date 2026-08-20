@@ -936,6 +936,13 @@ object ContextIntentEngine {
             // c.704). Anti-overreach: `\s+\w` exige objeto, sustantivo
             // "traducción"/pasado "traducí…"/suelto no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )traducir\s+\w""").containsMatchIn(lower)
+            // c.722 (forma 9/19 tercera clase): "actualizar <objeto>".
+            // Lockstep piso+keyword (c.713). Kind decidido: TASK, en
+            // deliberación contra HABIT — acción puntual de poner al día el
+            // objeto (currículum/documento/lista), no rutina recurrente
+            // (criterio c.704). Anti-overreach: `\s+\w` exige objeto,
+            // sustantivo "actualización"/pasado "actualicé…"/suelto no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )actualizar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1675,6 +1682,11 @@ object ContextIntentEngine {
                 // c.721h: misma plantilla para "traducir".
                 val matchTraducir = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(traducir)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchTraducir != null) return "Traducir ${matchTraducir.groupValues[2]}"
+
+                // c.722: misma plantilla para "actualizar" (ancla/guard idénticos;
+                // lección c.616: el match arranca en el verbo).
+                val matchActualizar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(actualizar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchActualizar != null) return "Actualizar ${matchActualizar.groupValues[2]}"
 
                 null
             }
