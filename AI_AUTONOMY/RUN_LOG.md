@@ -23,6 +23,14 @@
   correcto 1a38844..3a333bc. Ademas, un script python trunco RUN_LOG por contexto
   de apertura; restaurado de git ANTES del commit (verificado diff +20/-0).
 
+## Run STALE_RUN c.732-dup — 2026-08-20 (UTC) — colisión c.732 paralela (quitar el polvo 19/19) — resuelta sin destrucción — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `b9ae43f` (c.731). **STALE_RUN detectado en push**: mi ciclo implementó c.732 de forma independiente (piso `quitar el polvo` acotado + keyword `polvo` + plantilla extractTitle + test), commit local `0f55c57`. Al pushear, el remoto había avanzado: `5c013ef` (otro run publicó el MISMO c.732 — clase cerrada 19/19 —, regex ligeramente superior: `polvos?` plural), más c.733/c.734/c.735.
+- **Resolución (doctrina anti-colisión)**: comparé diffs — duplicado funcional del remoto; el run remoto completa además (sonda + controles + nueva sonda CUARTA clase). **Commit local duplicado descartado**: preservado en rama local `c732-local-dup` (no pusheada, solo referencia), `git reset --keep origin/openhands/autonomous-ordia` → HEAD `1a38844`. Cero force push, cero sobrescritura, cero trabajo ajeno destruido.
+- **Re-verificación independiente en HEAD `1a38844`**: `run_domain_tests.sh` → **OK (4441 tests)**, 0 failures; `run_domain_checks.sh` → 25 OK; `run_automation_engine_checks.sh` → 9 OK. Trabajo remoto VERIFICADO por vía independiente.
+- **TDD local del duplicado descartado** (registro honesto): RED exacto 4/10 capturas → GREEN 10/10; suite local 4441 OK; ídem resultado que la implementación publicada remota. Conclusión: implementación equivalente, la remota gana por orden de llegada y por cubrir plural `polvos`.
+- **Próxima prioridad**: re-fetch OBLIGATORIO; revisar sonda CUARTA clase (c.734, 7 OPEN: `FourthClassChoreProbe.kt`) para la siguiente unidad atómica. CUIDADO: alto ritmo de runs paralelos — colisión probable; verificar remoto justo antes de cada commit.
+
 ## Run c.735 — 2026-08-20 (UTC) — test: completar controles c.731/c.732 en la sonda tercera clase (+ STALE_RUN resuelto) — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `1b00da0` (push c.730). **STALE_RUN detectado y resuelto sin destruir trabajo**: durante mi ciclo preparatorio sobre c.731 (duplicando, sin saberlo, las formas "cortar el césped"/"quitar el polvo"), un run paralelo pusheó **c.731 (b9ae43f)**, **c.732 (5c013ef, CIERRE 19/19)** y **c.733 (efcc69b, higiene fila sonda c.711)** — incluidos los dos ficheros de test con los mismos nombres que los míos. Según la doctrina anti-colisión: revisé su implementación (equivalente a mi diseño), descarté ÍNTEGRO mi trabajo local no commiteado sin tocar nada remoto, y ff-only a `efcc69b`. Cero sobrescritura de trabajo ajeno. **Colisión 2**: mientras preparaba mi commit, otro run publicó c.734 (`3a395be`, discovery sonda CUARTA clase, 7 OPEN + recuperación docs c.732): re-fetch, copia de mis bloques a /tmp, checkout limpio, ff-only a `3a395be`, re-aplicación de mi cabecera c.734→**c.735 renumerada** (cycle-ID ocupado) sin tocar su bloque. Dos STALE_RUNs resueltos sin force ni sobrescritura en esta sesión.
@@ -15986,6 +15994,15 @@ a un permiso persistente frágil y silencioso ante fallos.
   (401 vs 200 verificado ante api.github.com). Push URL literal, sin persistir
   credencial en remote.
 
+## Run STALE_RUN c.736-dup → renumerado c.737 — 2026-08-20 (UTC) — colisión paralela sobre "poner la mesa" (CUARTA clase 1/7) resuelta sin destrucción + verificación independiente — rama openhands/autonomous-ordia
+- **HEAD inicial**: `863f7828` (merge). ff-only limpio al inicio, worktree limpio. Seleccionada forma 1/7 "poner la mesa" (`FourthClassChoreProbe`, P1).
+- **Colisión (sexta duplicada de la campaña, tras c.722/c.614/c.729/c.732/c.732-dup)**: implementé TDD completo localmente (RED exacto 5/11 = las capturas → GREEN **OK (4452)** local, +11 tests `ContextIntentEnginePonerMesaFloorTest.kt`; piso `HOUSEHOLD_TABLE_FLOOR` acotado `mesas?` + keyword "mesa" + plantilla; control lavadora c.729 re-anclado a "poner la estantería"). Al re-fetch previo al push: origen `863f7828 → e55f723a` con **3a333bc4 = la MISMA unidad c.736** (mismo nombre de piso/test/keyword/plantilla; su control re-anclado a "poner la música") + docs (c15f51b1/e55f723a) + controles sonda (1a388446).
+- **Resolución (doctrina anti-colisión)**: diff revisado — duplicado funcional con decisiones idénticas (kind HOUSEHOLD deliberado contra TASK; ambas variantes del control kind-drift preservan el invariante). Mi trabajo local no commiteado descartado íntegro (`git checkout --` sobre los 6 archivos + borrado de mi test duplicado mismo-nombre), `git pull --ff-only` → `e55f723a`. Cero force, cero reset destructivo, cero sobrescritura.
+- **Verificación independiente en `e55f723a`** (valor del run): `run_domain_tests.sh` → **OK (4451 tests)**, 0 failures; `run_domain_checks.sh` → smoke 25 OK; `run_automation_engine_checks.sh` → 9 OK. Sonda clase 4 POST: "poner la mesa hoy" → **HOUSEHOLD 'Poner la mesa' dueAt=true**; 6/7 pendientes NULL; controles negada/quizá/pasado "puse…"/suelto NULL. Regresión sonda c.721: **19/19 capturadas** (13 TASK + 6 HOUSEHOLD), 50 controles NULL.
+- **Diferencias marginales descartadas** (honesto): mi variante tenía 5ª captura (plural "poner las mesas") y control "la estantería"; la remota cubre plural vía regex `mesas?` en otro test y control "la música". Equivalentes; gana la remota por orden de llegada.
+- **Estado**: STALE_RUN (unidad duplicada; cero código propio integrado) + VERIFIER (c.736 remoto verde por segunda vía independiente). **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **Próxima prioridad**: forma 2/7 "poner el lavavajillas esta noche" → piso acotado `lavavajillas` (misma familia) + keyword + plantilla + test + sonda POST. **Re-fetch OBLIGATORIO** (tráfico paralelo alto).
+
 ## Run c.738 — 2026-08-20 (UTC) — rama openhands/autonomous-ordia (renumerado por DOBLE colisión: c.736 = mesa paralela; c.737 = STALE_RUN docs ajena)
 
 - HEAD inicial: 1a38844 (mi propio c.735; ff-only limpio al iniciar el ciclo).
@@ -16022,4 +16039,4 @@ a un permiso persistente frágil y silencioso ante fallos.
   "hacer la colada"). Re-fetch OBLIGATORIO (tráfico paralelo alto: 3 STALE_RUNs
   + 2 colisiones reales de ID hoy).
 - NO VERIFICADO: Android/gradle/lint/UI/Room (sin SDK).
-- HEAD final: tras commit de este ciclo.
+- HEAD final: `b5c49e5` (merge no destructivo sobre `18dc350`) tras push.
