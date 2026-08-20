@@ -34,9 +34,14 @@ import com.ordia.app.context.ContextIntentEngine
  * - c.771: "reiniciar el router esta noche" → TASK acotado al objeto
  *   `routers?` ("reiniciar" es bivalente — ordenador/app/móvil fuera;
  *   dispersión epoch-day 20685 % 6 = 3 sobre el pool residual de 6).
+ * - c.772: "medir la tensión hoy" → TASK acotado al objeto `tensi[oó]n`
+ *   ("medir" es bivalente — la mesa/el espacio/el rendimiento fuera; sin
+ *   plural: "las tensiones del equipo" son fricciones interpersonales;
+ *   [oó] admite la grafía sin tilde; dispersión epoch-day 20685 % 5 = 0
+ *   sobre el pool residual de 5; NULL PRE verificado sobre HEAD 0990f7b).
  *
  * Pool OPEN (NULL medido en PRE c.765, HEAD 9815ee2):
- * - "medir la tensión hoy" / "medirme la presión mañana"
+ * - "medirme la presión mañana" (reflexivo; objeto `presión`)
  * - "hacer copia de seguridad hoy" (hogar-tecnología; protege datos)
  * - "llevar a los niños al colegio mañana" / "llevar a la niña al médico
  *   el lunes" (familia; "recoger a los niños" ya captura vía ERRAND)
@@ -51,7 +56,7 @@ fun main() {
         "tomar las pastillas hoy",
         "tomar el medicamento esta noche",
         "vale, tomar la medicina mañana",
-        "medir la tensión hoy",
+        // c.772 OPEN residual: el reflexivo con objeto `presión` sigue OPEN
         "medirme la presión mañana",
         // ---- Hogar-tecnología (pool OPEN) ----
         "hacer copia de seguridad hoy",
@@ -81,6 +86,12 @@ fun main() {
         "vale, reiniciar el router hoy",
         "mañana reiniciar el router",
         "reiniciar routers mañana",
+        // c.772: capturas del piso tensión (regresión)
+        "medir la tensión hoy",
+        "medir la tensión mañana",
+        "vale, medir la tensión hoy",
+        "mañana medir la tensión",
+        "medir la tension hoy",
         // ---- Controles anti-overreach (deben quedar NULL) ----
         "no tomar la medicina mañana",
         "quizá tomar la medicina mañana",
@@ -116,6 +127,14 @@ fun main() {
         "reiniciar el ordenador mañana",
         "reiniciar",
         "el router está apagado",
+        // c.772: controles del piso tensión (NULL)
+        "no medir la tensión mañana",
+        "quizá medir la tensión mañana",
+        "medí la tensión ayer",
+        "medir la mesa mañana",
+        "medir",
+        "la tensión está alta",
+        "medir las tensiones del equipo mañana",
         "hola cómo estás"
     )
     for (c in cases) {

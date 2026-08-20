@@ -1330,6 +1330,23 @@ object ContextIntentEngine {
             // está…" no casan. Negación sin cláusula dedicada: keyword 0.12
             // + bono temporal 0.1 = 0.22 < umbral (hermana c.765/c.766/c.768).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )reiniciar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?routers?\b""").containsMatchIn(lower)
+            // Piso "medir la tensión" (c.772, quinta clase — salud/
+            // autocuidado; dispersión epoch-day 20685 % 5 = 0 sobre el pool
+            // OPEN residual de 5; NULL PRE verificado por la sonda sobre
+            // HEAD 0990f7b). El autocontrol de la tensión arterial es
+            // autocuidado de vida, hermano de "tomar la medicina" (c.765) y
+            // "ponerse la insulina" (c.766). El verbo "medir" es bivalente
+            // (la mesa/el espacio/el rendimiento) → el piso se ACOTA al
+            // objeto `tensi[oó]n` ([oó]: admite la grafía sin tilde, hermana
+            // MEETING_VERBS "reuni[oó]n"). SIN plural: "las tensiones del
+            // equipo" son fricciones interpersonales, otra semántica.
+            // Lockstep keyword-OBJETO "tensión" (lección c.713/c.751/c.765).
+            // Ancla ^/ACK/temporal, `(?<!no )` bloquea la negada; el pasado
+            // "medí…", el suelto "medir" y el sustantivo "la tensión está…"
+            // no casan. Negación sin cláusula dedicada: keyword 0.12
+            // + bono temporal 0.1 = 0.22 < umbral (hermana c.765/c.766/c.768/
+            // c.771).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )medir\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?tensi[oó]n\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -2193,6 +2210,15 @@ object ContextIntentEngine {
                 // ordenador…" nunca llega aquí porque el piso no lo captura).
                 val matchReiniciarRouter = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(reiniciar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?routers?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchReiniciarRouter != null) return "Reiniciar ${matchReiniciarRouter.groupValues[2]}"
+                // c.772: plantilla "medir la tensión" (ancla/guard idénticos
+                // al piso; lección c.616: el match arranca en el verbo, así
+                // acuse/prefijo temporal se despojan; el residuo temporal de
+                // cola lo depura [sanitizeTitle]; el objeto bivalente "medir
+                // la mesa…" nunca llega aquí porque el piso no lo captura).
+                // La grafía del usuario se preserva (doctrina c.653): "la
+                // tension" sin tilde queda tal cual en el título.
+                val matchMedirTension = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(medir)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?tensi[oó]n\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchMedirTension != null) return "Medir ${matchMedirTension.groupValues[2]}"
 
                 null
             }

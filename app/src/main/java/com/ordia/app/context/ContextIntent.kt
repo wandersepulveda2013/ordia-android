@@ -67,7 +67,15 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // NO el verbo "reiniciar": bivalente (el ordenador/la app/el móvil).
         // 0.12 sola queda bajo el umbral: "el router está apagado" sigue
         // descartado. Sin colisión de subcadena en español corriente.
-        "router")),
+        "router",
+        // c.772: keyword-OBJETO "tensión" (lockstep con el piso acotado
+        // "medir la tensión", ver ContextIntentEngine.hasStrongTaskImperative).
+        // NO el verbo "medir": bivalente (la mesa/el espacio/el rendimiento).
+        // 0.12 sola queda bajo el umbral: "la tensión está alta" sigue
+        // descartado. Las colisiones de subcadena ("extensión"/"pretensión"/
+        // "hipertensión") suman como mucho 0.12, inertes bajo el umbral —
+        // ninguna activa captura sin el piso.
+        "tensión")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",
