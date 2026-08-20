@@ -15689,4 +15689,4 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Pruebas: `bash tools/run_domain_tests.sh` → OK (4240 tests) (4229 c.718 + 11); `bash tools/run_domain_checks.sh` → smoke 25 OK (25/25); sonda POST: "publicar las fotos manana" → TASK 'Publicar las fotos' dueAt=true. NO VERIFICADO Android/gradle/lint/UI/Room (sin SDK).
 - AI_AUTONOMY: BACKLOG 9/14 (queda "recordar a <persona> <evento>"); CURRENT_STATE c.719 escrito.
 - Proxima prioridad: ultima forma OPEN ("recordar a", deliberar TASK vs REMINDER). Re-fetch OBLIGATORIO.
-- HEAD final: (se rellena tras commit).
+- HEAD final: 6852d7d.
