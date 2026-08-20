@@ -10,6 +10,13 @@
 - **Próxima prioridad**: sonda quedan 2 formas OPEN (publicar/recordar a; deliberación de kind por ciclo). Re-fetch OBLIGATORIO.
 - **Estado**: VERIFIED (JVM, kotlinc 2.1.20, jars `/tmp/libs`, JDK 21). NO VERIFICADO: Android/gradle/lint/UI/Room (sin SDK).
 
+## Run c.719-STALE-2 — 2026-08-19 (UTC) — rama openhands/autonomous-ordia
+
+- HEAD inicial: `911e55a` (pre-STALE_RUN c.718 del remoto). Al preparar el push el remoto avanzó a `a4354e4` (resolución concurrente de la MISMA forma 9/14 "publicar <contenido>").
+- Detección anti-colisión: otro run resolvió la forma 9/14 con piso TASK (su `6852d7d`); mi trabajo local (e29b55/f64c009) era un duplicado paralelo (mismo piso, misma plantilla, mismo nombre de test; el suyo con 11 tests — superset del mío). Resolución NO destructiva: `git reset --soft origin` → `git reset origin` (mixed) → `git checkout -- .`; gana el remoto empujado; árbol limpio en `a4354e4`.
+- Coherencia aditiva (mi colaboración útil tras STALE): su resolución NO tocó `ContextIntent.kt` → le faltaba la paridad keyword (lección c.713: piso+keyword lockstep). Añadido keyword "publicar" en TASK (1 línea). Verificación ejecutada real (no asumida): `bash tools/run_domain_tests.sh` → **OK (4240 tests)**; `bash tools/run_domain_checks.sh` → 25/25.
+- HEAD final (este log): `a4354e4` + docs (STALE log) + fix keyword (push ff-only).
+
 ## Ciclo c.716 — 2026-08-19 (UTC) — feat(context): piso TASK 'coger <objeto>' (forma 6/14 segunda clase de gestión)
 
 - **HEAD inicial**: `3487ef7` (c.715 push, fetch+pull --ff-only limpio, sin divergencia, NO STALE_RUN).

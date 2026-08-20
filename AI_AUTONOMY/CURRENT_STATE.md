@@ -7,6 +7,7 @@
 - **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla), `test/.../ContextIntentEnginePublicarFloorTest.kt` (NUEVO +11), AI_AUTONOMY ×3.
 - **Próxima prioridad**: última forma OPEN segunda-clase ("recordar a <persona> <evento>" → deliberar TASK vs REMINDER). Re-fetch OBLIGATORIO.
 - **Estado**: VERIFIED en JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+- **Coherencia c.719-STALE-2 (run paralelo)**: un segundo run resolvía la misma forma en duplicado y su trabajo se descartó vía doctrina STALE_RUN (rebase/reset NO destructivo, gana el remoto empujado — ver RUN_LOG `c.719-STALE-2`). Como contribución útil: su resolución original no tocaba `ContextIntent.kt` → se añadió el keyword **"publicar"** en TASK (paridad lockstep piso+keyword, lección c.713). Suite re-verificada sobre el árbol final (ver resultado en el informe del run).
 
 ## Ciclo c.718 — 2026-08-19 (UTC) — feat(context): piso ERRAND "pasar por <destino>" (forma 8/14 segunda clase)
 
