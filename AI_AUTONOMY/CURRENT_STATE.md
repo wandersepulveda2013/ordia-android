@@ -1,3 +1,11 @@
+## Ciclo c.721b — 2026-08-20 (UTC) — feat(context): piso TASK "completar <objeto>" (forma 2/19 TERCERA clase)
+
+- **HEAD**: inicial `df481b4`-origin (ff-only limpio; final tras commit).
+- **Selección (P1, sonda `ThirdClassVerbDiscoveryProbe`)**: "completar <objeto>" → NULL. Ya keyword de TASK; sin piso, base bajo-umbral.
+- **Solución**: piso `completar` en `hasStrongTaskImperative` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`, `\s+\w` exige objeto) + plantilla "(completar) X"→"Completar X". **Kind decidido: TASK, en deliberación contra DEADLINE** — acción de cerrar/terminar el objeto, no fecha tope (c.654). Controles NULL (negada/duda/"completitud"/"completé…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex), cero random/IA fingida/UI nueva.
+- **TDD**: +10 tests `ContextIntentEngineCompletarFloorTest.kt`; RED exacto 4/10 → GREEN **OK (4271 tests)** (4261 + 10), 0 failures; smoke 25 OK; automation 9 OK; sonda POST → TASK 'Completar el formulario' dueAt=true. Quedan 17 OPEN.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room.
+
 ## Ciclo c.721 — 2026-08-20 (UTC) — feat(context): piso TASK "terminar <objeto>" (forma 1/19 TERCERA clase — sonda NUEVA)
 
 - **HEAD**: inicial `e1f9f35`-origin (ff-only limpio; final tras este log: feat + docs).

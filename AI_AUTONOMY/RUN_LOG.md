@@ -1,3 +1,14 @@
+## Run c.721b — 2026-08-20 (UTC) — feat(context): piso TASK "completar <objeto>" — forma 2/19 TERCERA clase — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `df481b4` (push c.721, ff-only limpio).
+- **Selección (P1)**: siguiente forma OPEN de la sonda `tools/probe/ThirdClassVerbDiscoveryProbe.kt` — **"completar <objeto>"**. Ya keyword de TASK; sin piso → `analyze` = NULL (misma clase que c.721). Doctrina una-forma-por-ciclo.
+- **Solución**: piso `completar` en `hasStrongTaskImperative` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`, `\s+\w` exige objeto) + plantilla "(completar) X"→"Completar X" (patrón c.691…c.721). Keyword "completar" ya existía en TASK. **Kind decidido: TASK, en deliberación contra DEADLINE** — acción de cerrar/terminar el objeto (formulario/tarea/proyecto), no fecha tope (c.654). Anti-overreach: negada NULL, duda NULL, sustantivo "completitud" NULL, pasado "completé…" NULL, suelto "completar" NULL; envolvente c.613 gobierna TASK. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +10 tests `ContextIntentEngineCompletarFloorTest.kt` — RED exacto 4/10 (capturas) → GREEN **OK (4271 tests)** (4261 c.721 + 10), 0 failures; smoke 25 OK; automation 9 OK. Sonda POST: "completar el formulario el lunes" → TASK 'Completar el formulario' dueAt=true. Quedan 17 OPEN.
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla), `test/.../ContextIntentEngineCompletarFloorTest.kt` (NUEVO +10), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN tercera-clase (~17 restantes). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+- **HEAD final**: tras el commit.
+
 ## Run c.721 — 2026-08-20 (UTC) — feat(context): piso TASK "terminar <objeto>" — forma 1/19 TERCERA clase (sonda NUEVA) — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `e1f9f35` (ff-only limpio; push c.720).

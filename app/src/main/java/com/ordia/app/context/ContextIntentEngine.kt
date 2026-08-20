@@ -881,6 +881,17 @@ object ContextIntentEngine {
             // "término" no casa, pasado "terminé…" no casa, suelto
             // "terminar" no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )terminar\s+\w""").containsMatchIn(lower)
+            // c.721b (forma 2/19 TERCERA clase de formas cotidianas, sonda
+            // `tools/probe/ThirdClassVerbDiscoveryProbe.kt`): "completar
+            // <objeto>" ("completar el formulario el lunes"). Ya era keyword
+            // de TASK, pero la base baja tras la penalización de ambigüedad no
+            // alcanzaba [MINIMUM_CONFIDENCE] sin piso. Kind decidido: TASK,
+            // en deliberación contra DEADLINE — "completar" es la acción de
+            // cerrar/terminar el objeto (formulario/tarea/proyecto), no un
+            // marcador de fecha tope (c.654). Anti-overreach: `\s+\w` exige
+            // objeto, `(?<!no )` bloquea la negada, sustantivo "completitud"
+            // no casa, pasado "completé…" no casa, suelto "completar" no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )completar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1594,6 +1605,11 @@ object ContextIntentEngine {
                 // temporal despojado).
                 val matchTerminar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(terminar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchTerminar != null) return "Terminar ${matchTerminar.groupValues[2]}"
+                // c.721b: misma plantilla que "terminar" para "completar"
+                // (ancla/guard idénticos; lección c.616: el match arranca
+                // en el verbo, arrastre fiel tras ese punto).
+                val matchCompletar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(completar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchCompletar != null) return "Completar ${matchCompletar.groupValues[2]}"
 
                 null
             }
