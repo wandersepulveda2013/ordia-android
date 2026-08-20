@@ -16626,5 +16626,5 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Unidad adicional sobre la base actualizada: extensión plural del modismo del olvido. `SearchEngine.kt` (`MISSED_SLIP_HEADS`, remanente «nos»), `AssistantEngine.kt` (`isMissedSlipQuery`), tests: `SearchEngineTest` (+2), `AssistantEngineTest` (+1).
 - TDD: RED 3 fallos exactos → GREEN. `bash tools/run_domain_tests.sh` → **OK (4881)**; `run_domain_checks.sh` → 25/25 OK. Sin tests reducidos/eliminados/falseados.
 - NO VERIFICADO: Android/gradle/lint/assemble/UI/Room (sin SDK).
-- Commits/HEAD final: pendiente del push.
+- Commit `7a41143` (code+tests+docs único sobre base `67c0e11`); HEAD final `7a41143` (push OK; auth vía `$github_token`).
 - Próxima prioridad: (v) «notas fijadas» → estructural (asistente no recibe notas; ruteable a OPEN_SEARCH) o nueva oportunidad P1/P2.

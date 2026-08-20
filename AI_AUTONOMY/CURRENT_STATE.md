@@ -4,7 +4,7 @@
 - **Resolución**: `SearchEngine.MISSED_SLIP_HEADS = ["se me pas", "se nos pas"]` + remanente «nos» excluido de contenido; `AssistantEngine.isMissedSlipQuery` con las mismas cabeçeras («te» excluido: «¿qué te pasó?» ≠ olvido). Determinista por frase normalizada; jamás por token suelto «paso».
 - **Tests**: +3 TDD (`SearchEngineTest` ×2, `AssistantEngineTest` ×1). RED: 3 fallos exactos; GREEN: `bash tools/run_domain_tests.sh` → **OK (4881 tests)**; `run_domain_checks.sh` → 25/25 OK.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
-- **HEAD final**: pendiente hasta el push.
+- **HEAD final**: `7a41143` (push OK sobre base `67c0e11`).
 
 ## Ciclo c.785 — 2026-08-20 (UTC) — fix(missed-start): la frase coloquial "se me pasó/se me pasaron" recupera el hueco olvidado en búsqueda Y asistente (gap (vi) OPEN c.779)
 
