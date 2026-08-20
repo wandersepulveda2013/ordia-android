@@ -265,6 +265,25 @@ object ContextIntentEngine {
     private val NOTE_FLOOR =
         Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(?:apuntar|anotar)\s+\w""")
 
+    // Regex del piso de PAGO (c.630 inicio, c.651 acuse, c.746 prefijo
+    // temporal): "pagar <objeto>" es un imperativo de pago inequívoco en
+    // cualquiera de las tres posiciones. c.746 cerró un olvido silencioso
+    // de CLASE (mismo que c.643/c.647): el supuesto de c.630 — "los casos
+    // con ancla temporal ya superan el umbral vía [extractDateTime]" — era
+    // FALSO y dependiente del OBJETO ("mañana pagar la luz" pasaba por la
+    // keyword "luz"; "mañana pagar el arriendo", "el lunes pagar el
+    // arriendo", "el viernes pagar la renta" quedaban en 0.42 <
+    // [MINIMUM_CONFIDENCE] → NULL). Olvidar el pago del arriendo/renta es
+    // el olvido de MAYOR coste del dominio (recargos, desalojo).
+    // Centralizado (misma lección c.648/c.652) para que el piso
+    // [hasStrongPaymentImperative] y el guard de envolvente
+    // [imperativeIsWrapped] compartan EXACTAMENTE el mismo patrón: sin ello
+    // "recuérdame mañana pagar el arriendo" robaría el kind a TASK. `\s+\w`
+    // exige objeto ("mañana pagar" suelto, muletilla, no activa) y el
+    // lookbehind `(?<!no )` + [imperativeIsNegated] bloquean la negación.
+    private val PAYMENT_FLOOR =
+        Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )($PAYMENT_VERBS)\s+\w""")
+
     // Patrones de ACTIVACIÓN de los bonus-kinds APPOINTMENT/CALL (c.653),
     // centralizados (misma lección c.648/c.652) para que el bono aditivo de
     // [scoreSpecificPatterns] y el guard de envolvente [imperativeIsWrapped]
@@ -365,9 +384,11 @@ object ContextIntentEngine {
         Regex("""\b(recuérdame|no olvides|tengo (?:que|q)|hay que|avísame|notifícame|acordarme|recuerda(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )cancelar|(?<!no )anular|(?<!no )falta(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )te acuerdas de(?=\s+\w*(?:ar|er|ir)\b)|(?<!no )acu[ée]rdate de(?=\s+\w*(?:ar|er|ir)\b))\b""")
 
     // Kinds protegidos por el guard de envolvente: pisos de posición libre
-    // (c.652) + bonus-kinds APPOINTMENT/CALL (c.653). SHOPPING/PAYMENT no lo
-    // necesitan: su piso (c.651) exige verbo al inicio o tras acuse, así un
-    // envolvente nunca lo activa.
+    // (c.652) + bonus-kinds APPOINTMENT/CALL (c.653) + PAYMENT (c.746: su
+    // piso ganó el ancla temporal, así "recuérdame mañana pagar el arriendo"
+    // lo activaría subordinado sin este guard — lockstep c.648/c.652).
+    // SHOPPING no lo necesita: su piso (c.651) exige verbo al inicio o tras
+    // acuse, así un envolvente nunca lo activa.
     private val WRAPPABLE_PATTERNS: Map<ContextIntentKind, List<Regex>> = mapOf(
         ContextIntentKind.MEETING to listOf(MEETING_FLOOR),
         ContextIntentKind.HOUSEHOLD to HOUSEHOLD_FLOORS,
@@ -377,7 +398,8 @@ object ContextIntentEngine {
         ContextIntentKind.APPOINTMENT to APPOINTMENT_SPECIFIC,
         ContextIntentKind.CALL to CALL_SPECIFIC,
         ContextIntentKind.DEADLINE to DEADLINE_FLOORS,
-        ContextIntentKind.NOTE to listOf(NOTE_FLOOR)
+        ContextIntentKind.NOTE to listOf(NOTE_FLOOR),
+        ContextIntentKind.PAYMENT to listOf(PAYMENT_FLOOR)
     )
 
     // Penalización por duda/condicional (c.649 anti-overreach). Marcadores como
@@ -1143,27 +1165,32 @@ object ContextIntentEngine {
         MEETING_FLOOR.containsMatchIn(lower)
 
     /**
-     * Imperativos de pago inequívocos (c.630, c.651). "pagar <objeto>".
+     * Imperativos de pago inequívocos (c.630, c.651, c.746). "pagar <objeto>".
      *
-     * El piso se activa en dos posiciones: (a) verbo al INICIO ("pagar la
-     * luz"); (b) tras un prefijo de ACUSE de [ACK_PREFIX] ("ok, pagar el
-     * recibo", "vale, pagar el internet", "sí, pagar la luz"). c.651 cerró un
-     * olvido silencioso: el ancla `^` original de c.630 descartaba todo
-     * imperativo de pago con prefijo de acuse — sin pista temporal, el bono de
-     * [extractDateTime] no compensa la base baja (0.42 < [MINIMUM_CONFIDENCE]).
-     * Olvidar un pago tiene mayor coste que olvidar una compra (recargos,
-     * corte de servicio).
+     * El piso se activa en tres posiciones (patrón centralizado en
+     * [PAYMENT_FLOOR]): (a) verbo al INICIO ("pagar la luz"); (b) tras un
+     * prefijo de ACUSE de [ACK_PREFIX] ("ok, pagar el recibo"); (c) tras un
+     * prefijo TEMPORAL de [TASK_FLOOR_TEMPORAL] ("mañana pagar el arriendo",
+     * "el lunes pagar la renta" — olvido silencioso cerrado en c.746, mismo
+     * defecto de clase que c.643/c.647). c.651 cerró un olvido silencioso:
+     * el ancla `^` original de c.630 descartaba todo imperativo de pago con
+     * prefijo de acuse — sin pista temporal, el bono de [extractDateTime] no
+     * compensa la base baja (0.42 < [MINIMUM_CONFIDENCE]). Olvidar un pago
+     * tiene mayor coste que olvidar una compra (recargos, corte de servicio).
      *
      * El acuse es una lista cerrada que NO incluye los imperativos envolventes
      * ("avísame pagar la luz" es un RECORDATORIO, no un pago autónomo —
-     * regresión detectada por [ContextIntentEngineDateTimeTest]).
+     * regresión detectada por [ContextIntentEngineDateTimeTest]). La subordinación
+     * bajo envolvente con prefijo temporal ("recuérdame mañana pagar el
+     * arriendo") queda bloqueada por [imperativeIsWrapped] vía
+     * [WRAPPABLE_PATTERNS] (lockstep c.648/c.652).
      *
      * La negación sigue bloqueada por el lookbehind `(?<!no )` y por
      * [imperativeIsNegated] (c.648); los guards de duda (c.649) y condición
      * (c.650) penalizan DESPUÉS del piso. Determinista (regex), sin IA fingida.
      */
     private fun hasStrongPaymentImperative(lower: String): Boolean =
-        Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )($PAYMENT_VERBS)\s+\w""").containsMatchIn(lower)
+        PAYMENT_FLOOR.containsMatchIn(lower)
 
     /**
      * Imperativos de hogar inequívocos (c.638, c.643). Coincide con los verbos de
@@ -1295,9 +1322,11 @@ object ContextIntentEngine {
      *
      * El guard descarta el kind subordinado cuando un envolvente PRECEDE al
      * primer match de sus patrones de activación ([WRAPPABLE_PATTERNS]: pisos
-     * c.652 + bonus-kinds c.653), con lo que TASK/REMINDER (pisos c.613/c.619)
-     * gobiernan la captura. TASK/REMINDER son los envolventes y SHOPPING/
-     * PAYMENT exigen inicio/acuse (c.651), así nunca quedan subordinados.
+     * c.652 + bonus-kinds c.653 + PAYMENT c.746), con lo que TASK/REMINDER
+     * (pisos c.613/c.619) gobiernan la captura. TASK/REMINDER son los
+     * envolventes y SHOPPING exige inicio/acuse (c.651), así nunca queda
+     * subordinado. PAYMENT se añadió al guard en c.746 cuando su piso ganó
+     * el ancla temporal ("recuérdame mañana pagar el arriendo" → TASK).
      *
      * Determinista (regex), sin IA fingida. No bloquea prefijos declarativos
      * ("tengo una reunión", "voy a correr", "tengo cita con el dentista"): no

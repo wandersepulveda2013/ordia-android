@@ -20,11 +20,23 @@ import com.ordia.app.context.ContextIntentEngine
 fun main() {
     val now = 1723939200000L
     val cases = listOf(
-        // Candidatos: pago/compra con prefijo temporal (ancla ausente en los
-        // pisos de c.626/c.630/c.651 — misma clase que c.643/c.647).
+        // Candidatos: pago/compra con prefijo temporal.
+        // Nota mantenimiento c.746: las 3 formas de PAGO RESUELTAS (piso
+        // `PAYMENT_FLOOR` c.746 centralizado con ancla TEMPORAL añadida a las
+        // de c.630 inicio + c.651 acuse, compartido con el guard de envolvente
+        // `WRAPPABLE_PATTERNS` — lección lockstep c.648/c.652) — las líneas
+        // quedan como REGRESIÓN de la familia pago temporal. OPEN residual:
+        // "el lunes que viene pagar el arriendo" (el ancla temporal exige el
+        // temporal INMEDIATO al verbo; "que viene" no está cubierto por
+        // TASK_FLOOR_TEMPORAL — ampliarlo tocaría TODOS los pisos).
         "mañana pagar la luz",
         "el lunes pagar el arriendo",
         "hoy pagar el recibo del internet",
+        "mañana pagar el arriendo",
+        "el viernes pagar la renta",
+        // Regresión c.746 del guard de envolvente (lockstep): el envolvente
+        // gobierna TASK, no PAYMENT subordinado.
+        "recuérdame mañana pagar el arriendo",
         "mañana comprar el mercado",
         "el sábado comprar el pan",
         // Candidatos: cuidado de mascotas (cotidiano, sin piso ni keyword).
