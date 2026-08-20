@@ -70,6 +70,12 @@ fun main() {
         // "gato"/"gata" ya existidas, cero keywords nuevas) — la línea
         // queda como REGRESIÓN de la familia mascota.
         "dar de comer al gato hoy",
+        // Nota mantenimiento c.756: "sacar la perra al parque mañana"
+        // RESUELTA — extensión del piso [HOUSEHOLD_PET_FLOOR] c.740 con
+        // alternancia de ARTÍCULO DIRECTO `(el|la|los|las|mi|tu|su)` (la
+        // variante conversacional del hermano "sacar al perro"; cero
+        // keywords nuevas, "perro"/"perra" existen c.740; acotamiento
+        // conservado). La línea queda como REGRESIÓN de la familia mascota.
         "sacar la perra al parque mañana",
         // Nota mantenimiento c.755: "llevar al gato al veterinario el
         // viernes" RESUELTA — extensión del piso `HOUSEHOLD_VET_FLOOR`
@@ -201,6 +207,13 @@ fun main() {
         // capturable se movió arriba como regresión.
         "llevar la planta al veterinario mañana",
         "llevar al gato al parque mañana",
+        // c.756: controles del piso `sacar artículo-directo` (negada /
+        // duda / pasado / objeto no mascota con artículo directo). La
+        // forma capturable se movió arriba como regresión.
+        "no sacar la perra mañana",
+        "quizá sacar la perra mañana",
+        "saqué la perra ayer",
+        "sacar la cuenta hoy",
         "hola cómo estás",
         "jaja qué risa"
     )

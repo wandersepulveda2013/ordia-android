@@ -176,10 +176,14 @@ object ContextIntentEngine {
     // "sacar" suelto es ambiguo (la basura piso TRASH c.717 / las
     // entradas / los críos), así se ACOTA al objeto mascota
     // `perr[oa]s?` (masculino+femenino; familias TRASH/TABLE).
+    // c.756: alternancia de ARTÍCULO DIRECTO `(el|la|los|las|mi|tu|su)`
+    // añadida a las formas "al"/"a+(el|la|...)" (variante conversacional
+    // "sacar la perra", hermano de "sacar al perro"; cero keywords nuevas,
+    // acotamiento al mascota conservado).
     // `\b` final: "perrito(s)" (diminutivo) no casa (forma OPEN en sonda);
     // guard de negación explícito heredado de la familia (?<!no ).
     private val HOUSEHOLD_PET_FLOOR =
-        Regex("""\b(?<!no )sacar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\b""")
+        Regex("""\b(?<!no )sacar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+|(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\b""")
     // Piso faena doméstica "pasar la aspiradora" (c.742, forma 5/7 de la
     // CUARTA clase cotidiana — sonda `FourthClassChoreProbe.kt` c.734;
     // renumerada c.740→c.742 por colisión de cycle-ID con la mascota):
@@ -2204,10 +2208,11 @@ object ContextIntentEngine {
                 if (matchQuitarMesa != null) {
                     return "${capitalizeFirst(matchQuitarMesa.groupValues[1])} ${matchQuitarMesa.groupValues[2]}"
                 }
-                // Piso "sacar al perro" (c.740): titular lo acotado al
-                // objeto mascota (alineado con [HOUSEHOLD_PET_FLOOR]).
+                // Piso "sacar al perro" (c.740; c.756 añade artículo
+                // directo): titular lo acotado al objeto mascota
+                // (alineado con [HOUSEHOLD_PET_FLOOR]).
                 val matchSacarPerro = Regex(
-                    """\b(sacar) ((?:al|a (?:el|la|los|las|mi|tu|su)) perr[oa]s?.*)""",
+                    """\b(sacar) ((?:al|a (?:el|la|los|las|mi|tu|su)|(?:el|la|los|las|mi|tu|su)) perr[oa]s?.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchSacarPerro != null) {

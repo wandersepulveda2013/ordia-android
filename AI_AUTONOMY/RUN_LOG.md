@@ -16240,3 +16240,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin Android SDK).
 - **HEAD final**: tras commit/push de este ciclo (push auth github_token).
 - **Próxima prioridad**: 4 OPEN NULL reales en sonda Verb (bañar al perro — RESERVADA c.740 —, sacar la perra al parque, vacunar al perro, pintar la casa); o ChoreProbe OPEN 2/7; o pago residual "el lunes que viene pagar el arriendo"; re-fetch OBLIGATORIO, numerar ciclo SOLO en fetch final.
+
+
+## Run c.756 — 2026-08-20 (UTC) — feat(context): extensión del piso mascota "sacar al perro" (c.740) al ARTÍCULO DIRECTO (mascota ~6/8 sonda Verb; NULL → HOUSEHOLD 'Sacar la perra al parque'; SIN colisión)
+
+- **HEAD inicial**: `18246d0` (c.755). Fetch de inicio y final SIN avance remoto → número c.756 confirmado.
+- **Selección**: dispersión determinista epoch-day sobre el pool Verb OPEN depurado por chequeo PRE (lección c.753/c.754/c.755): pool de 3 = [sacar la perra al parque, vacunar al perro, pintar la casa] tras excluir la RESERVA "bañar al perro" c.740: índice `20685 mod 3 = 0` → **"sacar la perra al parque mañana"**.
+- **Sonda PRE**: la forma → NULL (el piso `HOUSEHOLD_PET_FLOOR` c.740 solo cubre "al"/"a+(el|la|los|las|mi|tu|su)" — no el artículo directo).
+- **Fix (una forma por ciclo)**: extensión por ALTERNANCIA del piso EXISTENTE `HOUSEHOLD_PET_FLOOR` — artículo directo `(?:el|la|los|las|mi|tu|su)\s+` añadido a las formas "al"/"a+(el|la…)" en el piso y en la rama de plantilla `matchSacarPerro`. **Cero keywords nuevas** ("perro"/"perra" c.740); acotamiento al objeto mascota `perr[oa]s?` conservado íntegro; "sacar" suelto sigue bivalente (la basura/las entradas).
+- **TDD**: `ContextIntentEngineSacarLaPerraFloorTest.kt` — +10 tests (4 capturas artículo-directo: "la perra al parque"/"el perro"/"las perras"/"mi perra"; 1 regresión c.740 "sacar al perro"; 5 controles: negada / quizá / pasado "saqué" / objeto no mascota "sacar la cuenta" NULL + envolvente "recuérdame sacar la perra" gobierna TASK vía `WRAPPABLE_PATTERNS` central). RED exacto 4/10 = las 4 capturas → GREEN 10/10.
+- **Pruebas**: `bash tools/run_filtered_test.sh` RED 4/10 → GREEN 10/10; `bash tools/run_domain_tests.sh` → **OK (4615 tests, 0 failures)** (4605 base + 10); `bash tools/run_domain_checks.sh` → smoke 25/25 OK; `bash tools/run_automation_engine_checks.sh` → 9/9 OK. Sonda Verb POST: captura confirmada (línea anotada como REGRESIÓN en la sonda + 4 controles); regresiones intactas; resto de candidatos NULL sin fugas (bañar/vacunar/pintar).
+- **AI_AUTONOMY**: CURRENT_STATE c.756 prepend; BACKLOG fila sonda Verb (OPEN 6/8 mascotas RESUELTAS; 3 OPEN NULL reales restantes); RUN_LOG append.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **HEAD final**: tras commit/push de este ciclo (push auth `github_token`).
+- **Próxima prioridad**: 3 OPEN NULL reales en sonda Verb (bañar al perro — RESERVADA c.740 —, vacunar al perro, pintar la casa); o ChoreProbe OPEN 2/7 (hacer la compra / hacer la colada); o pago residual "el lunes que viene pagar el arriendo"; re-fetch OBLIGATORIO, numerar ciclo SOLO en fetch final.
