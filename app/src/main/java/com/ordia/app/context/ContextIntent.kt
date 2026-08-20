@@ -76,6 +76,11 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // "hipertensión") suman como mucho 0.12, inertes bajo el umbral —
         // ninguna activa captura sin el piso.
         "tensión",
+        // c.775: lockstep con el piso "medirme la presión" (reflexivo
+        // enclítico, hermano c.770). misma doctrina: keyword "presión",
+        // no el verbo bivalente; "depresión"/"compresión"/"expresión"
+        // quedan inertes (0.12 < umbral sola)
+        "presión",
         // c.774: keyword-OBJETO "backup" (lockstep con el piso acotado
         // "hacer copia de seguridad", ver ContextIntentEngine.hasStrongTaskImperative).
         // NO el verbo "hacer": muy bivalente (la compra/la cama/ejercicio).
