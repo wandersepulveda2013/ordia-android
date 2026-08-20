@@ -1,3 +1,9 @@
+## Ciclo c.787 — 2026-08-20 (UTC) — DEDUPE (cero código): colisión doble sobre el gap (vi); descarte total del duplicado + verificación del HEAD hermano
+
+- **HEAD inicial**: `cbfbbf3` (c.784) → ff a `67c0e11` (c.785 hermano, DUPLICADO #1 del gap (vi)) → tras complementar el residuo (helper compartido en `TaskRules`), ff a `a3694c4` (c.786 hermano, DUPLICADO #2 del residuo). Protocolo anti-colisión aplicado en ambas: stash → ff-only → comparar → **descarte total del trabajo local** (superposición casi total; el delta restante — pronombres «te/le/ha» — contradecía la guard deliberada del hermano sobre «te»: «¿qué te pasó?» ≠ olvido). Sin force, sin reset --hard, sin sobrescribir al hermano, `main` intacto, NO STALE_RUN (ff válidos).
+- **Verificación del HEAD aterrizado** (`a3694c4`): `bash tools/run_domain_tests.sh` → **OK (4881)**; `bash tools/run_domain_checks.sh` → 25/25 OK. Brecha (vi) cerrada por los hermanos c.785+c.786 (`MISSED_SLIP_HEADS` simétricas en búsqueda y asistente).
+- **Commits**: docs-only (CURRENT_STATE c.787 + RUN_LOG c.787). BACKLOG sin cambios (ningún residuo OPEN nuevo). Calidad > cantidad: sesión sin código cerrado honestamente en vez de inventar cambios.
+- **Próxima prioridad**: (v) notas fijadas → OPEN_SEARCH (estructural) o residuo search-side "las que marqué".
 ## Ciclo c.785 — 2026-08-20 (UTC) — fix(missed-start): la frase coloquial "se me pasó/se me pasaron" recupera el hueco olvidado en búsqueda Y asistente (gap (vi) OPEN c.779)
 
 - **HEAD inicial**: `cbfbbf3` (c.784) sincronizado con remoto; `git fetch` PRE-COMMIT sin avance (sin colisión; NO STALE_RUN; NO force/reset --hard/clean destructivo; `main` intacto).
