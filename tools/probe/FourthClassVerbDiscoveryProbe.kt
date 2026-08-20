@@ -71,6 +71,13 @@ fun main() {
         // queda como REGRESIÓN de la familia mascota.
         "dar de comer al gato hoy",
         "sacar la perra al parque mañana",
+        // Nota mantenimiento c.755: "llevar al gato al veterinario el
+        // viernes" RESUELTA — extensión del piso `HOUSEHOLD_VET_FLOOR`
+        // c.747 con alternancia `(?:perr[oa]s?|gat[oa]s?)` + destino
+        // `veterinari[oa]s?` (segunda mascota de la familia; lockstep
+        // keywords "gato"/"gata" c.744 + "veterinario"/"veterinaria"
+        // c.747 ya existidas — cero keywords nuevas). La línea queda
+        // como REGRESIÓN de la familia mascota.
         "llevar al gato al veterinario el viernes",
         // Nota mantenimiento c.753: el chequeo PRE en el HEAD combinado
         // mostró que "limpiar la jaula del loro el domingo" YA capturaba
@@ -189,6 +196,11 @@ fun main() {
         "quitar",
         "quitar la música hoy",
         "quitar la mesita hoy",
+        // c.755: controles del piso `llevar mascota-vet` (objeto no
+        // mascota / destino no veterinario sobre gato). La forma
+        // capturable se movió arriba como regresión.
+        "llevar la planta al veterinario mañana",
+        "llevar al gato al parque mañana",
         "hola cómo estás",
         "jaja qué risa"
     )

@@ -212,16 +212,18 @@ object ContextIntentEngine {
     private val HOUSEHOLD_FEED_CAT_FLOOR =
         Regex("""\b(?<!no )alimentar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)gat[oa]s?\b""")
     // Piso mascota "llevar al perro al veterinario" (c.747 provisional,
-    // mascota 3/8 — sonda `FourthClassVerbDiscoveryProbe.kt` c.740,
+    // mascota 3/8 → 4/8 en c.755 con el gato — sonda
+    // `FourthClassVerbDiscoveryProbe.kt` c.740,
     // paralela a Chore c.734): la salud de la mascota. "llevar" suelto es
     // bivalente (el coche/la cuenta/a los niños al colegio), así se ACOTA
-    // a la forma completa: objeto mascota `perr[oa]s?` + destino
+    // a la forma completa: objeto mascota `(?:perr[oa]s?|gat[oa]s?)` (c.747
+    // perro; c.755 añade gato, segunda mascota de la familia) + destino
     // `veterinari[oa]s?` ("al veterinario"/"a la veterinaria"; familia de
     // [HOUSEHOLD_PET_FLOOR] c.740 / [HOUSEHOLD_FEED_CAT_FLOOR] c.744;
     // interop: verbos disjuntos sacar/alimentar/llevar, sin solape).
     // `\b` final sin derrame nominal; guard de negación heredado (?<!no ).
     private val HOUSEHOLD_VET_FLOOR =
-        Regex("""\b(?<!no )llevar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)perr[oa]s?\s+(?:al\s+|a\s+la\s+)veterinari[oa]s?\b""")
+        Regex("""\b(?<!no )llevar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\s+(?:al\s+|a\s+la\s+)veterinari[oa]s?\b""")
     // Piso faena doméstica "podar el jardín" (c.748 provisional, hogar no
     // cubierto — sonda `FourthClassVerbDiscoveryProbe.kt` c.740, paralela
     // a Chore c.734): la jardinería canónica tras el césped (c.731).
@@ -2231,11 +2233,12 @@ object ContextIntentEngine {
                 if (matchDarDeComerGato != null) {
                     return "${capitalizeFirst(matchDarDeComerGato.groupValues[1])} ${matchDarDeComerGato.groupValues[2]}"
                 }
-                // Piso "llevar al perro al veterinario" (c.747 provisional):
-                // titular la forma completa mascota+destino (alineada con
-                // [HOUSEHOLD_VET_FLOOR]; familia mascota c.740/c.744).
+                // Piso "llevar al perro/gato al veterinario" (c.747 perro,
+                // c.755 gato): titular la forma completa mascota+destino
+                // (alineada con [HOUSEHOLD_VET_FLOOR]; familia mascota
+                // c.740/c.744).
                 val matchLlevarVeterinario = Regex(
-                    """\b(llevar) ((?:al|a (?:el|la|los|las|mi|tu|su)) perr[oa]s? (?:al|a la) veterinari[oa]s?.*)""",
+                    """\b(llevar) ((?:al|a (?:el|la|los|las|mi|tu|su)) (?:perr[oa]s?|gat[oa]s?) (?:al|a la) veterinari[oa]s?.*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchLlevarVeterinario != null) {
