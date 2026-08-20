@@ -1,6 +1,6 @@
 ## Ciclo c.790 (2026-08-20, descarte-DEDUPE de mi duplicado con c.789 hermano)
 
-Base `83bce53` (c.788). **Problema**: el render de esta sesión para «las que marqué»/«tareas que destaqué» duplicó el render hermano `910621f` (c.789). **Descarte**: stash → ff-only → stash drop. **Verificación**: suite OK (4891) + smoke 25 en `910621f`. **LECCIÓN**: residuos c.781-documentados OPEN deben comprobarse contra el BACKLOG hermano. Número en registro: c.790. HEAD final: pendiente push.
+Base `83bce53` (c.788). **Problema**: el render de esta sesión para «las que marqué»/«tareas que destaqué» duplicó el render hermano `910621f` (c.789). **Descarte**: stash → ff-only → stash drop. **Verificación**: suite OK (4891) + smoke 25 en `910621f`. **LECCIÓN**: residuos c.781-documentados OPEN deben comprobarse contra el BACKLOG hermano. Número en registro: c.790. HEAD final: final 5ee6932.
 
 ---
 ## Ciclo c.788 (2026-08-20, sonda c.779 (v) — último gap: «notas fijadas»)

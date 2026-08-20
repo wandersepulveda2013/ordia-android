@@ -6,7 +6,7 @@
 - **Verificación independiente** (post ff): `bash tools/run_domain_tests.sh` → **OK (4891 tests)**; smoke 25/25.
 - **LECCIÓN**: cuando el residuo c.781 queda documentado OPEN el hermano y esta sesión pueden apuntarlo a la vez; al coincidir en c.789 la elección del primer comentario en BACKLOG (`CERRADO c.789 (ambas superficies)`) debía también considerar al hermano. Número c.789 consumido por el hermano; esta sesión se renombra c.790.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK).
-- **HEAD final**: pendiente hasta push.
+- **HEAD final**: final 5ee6932.
 
 ## Ciclo c.788 — 2026-08-20 (UTC) — fix(assistant): «notas fijadas» rutea honestamente a la búsqueda (último gap (v) de la sonda c.779)
 
