@@ -7,7 +7,7 @@
 - **TDD**: 4 tests nuevos en `AssistantEngineTest` — RED: 2 fallos exactos sobre 4883 (guardas pasaban pre-fix) → GREEN: **OK (4885 tests)**; smoke 25/25.
 - **Resultado**: Sonda c.779 COMPLETA (21 consultas, 6 gaps cerrados en 8 ciclos c.779→c.788).
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK); rama verificada en JVM.
-- **HEAD final**: pendiente hasta el push.
+- **HEAD final**:  (push OK sobre base ).
 
 ## Ciclo c.787 — 2026-08-20 (UTC) — DEDUPE (cero cambios de código): el trabajo local duplicó el gap (vi) que dos ciclos hermanos (c.785 y c.786) resolvieron en carrera; descarte total + verificación independiente del HEAD aterrizado
 
