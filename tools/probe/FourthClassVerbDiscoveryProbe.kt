@@ -91,6 +91,12 @@ fun main() {
         // (uno cerró por keyword fuera de sonda); la línea queda como
         // REGRESIÓN de cobertura keyword (NO OPEN de piso).
         "limpiar la jaula del loro el domingo",
+        // Nota mantenimiento c.757: "vacunar al perro este mes" RESUELTA —
+        // piso `HOUSEHOLD_VACCINE_FLOOR` c.757 acotado al objeto mascota
+        // `(?:perr[oa]s?|gat[oa]s?)` (lockstep: keyword-verbo "vacunar" —
+        // las keyword-mascota "perro"/"gato" existían c.740/c.744;
+        // precedente c.748 "podar" + guard de negación dedicado). La
+        // línea queda como REGRESIÓN de la familia mascota.
         "vacunar al perro este mes",
         "comprar pienso mañana",
         "pintar la casa este fin de semana",

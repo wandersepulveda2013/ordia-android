@@ -1,7 +1,19 @@
+
+### c.757 — 2026-08-20 (UTC) — feat(context): piso mascota "vacunar al perro/gato" (mascota ~7/8; NULL → HOUSEHOLD 'Vacunar al perro')
+- HEAD inicial: `accffee` (c.756). Re-fetch de inicio/final: sin avance remoto → provisional c.757 confirmado.
+- Selección: dispersión determinista epoch-day `20685 % 5 = 0` pool Verb OPEN depurado (chequeo PRE) → "vacunar al perro este mes".
+- Sonda PRE: → NULL (candidato real).
+- TDD: `ContextIntentEngineVacunarMascotaFloorTest.kt` +10 (RED 4/10 capturas → GREEN 10/10) — 4 capturas (base/gata/posesivo/plural-gatos), 1 regresión c.740, 5 controles (negada/duda/pasado/objeto-no-mascota NULL + envolvente → TASK).
+- Fix: piso `HOUSEHOLD_VACCINE_FLOOR` acotado `(?:perr[oa]s?|gat[oa]s?)`; keyword-verbo "vacunar" lockstep; guard de negación dedicada `imperativeIsNegated` (precedente c.748); plantilla "(vacunar) <al|a…>".
+- Tests: `run_domain_tests.sh` → OK 4625 (4615 + 10), 0 failures; `run_domain_checks.sh` 25 OK; `run_automation_engine_checks.sh` 9 OK. NO VERIFICADO Android/gradle/UI/Room.
+- Archivos: `ContextIntentEngine.kt`, `ContextIntent.kt`, prueba TDD nueva, sonda Verb regresión, `AI_AUTONOMY/` ledgers. Commits pendientes (fetch pre-commit final).
+- Estado: FIXED → VERIFIED (dominio JVM).
+- Próxima prioridad: 2 OPEN en Verb depurada ("bañar al perro" reservada c.740 / "pintar la casa") + "hacer la compra/colada" + pago residual; dispersión con chequeo PRE; re-fetch obligatorio.
 ## Run c.756 — 2026-08-20 — STALE_RUN (mi "sacar la perra al parque" duplicó la c.756 publicada por run hermano durante mi ciclo: convergencia total, segunda tras c.745/c.749) + verificación independiente de `accffee`
 - **HEAD inicial**: `18246d0` (c.755). Fetch de inicio limpio. Dispersión epoch-day (`20685 mod 3 = 0`) sobre pool Verb OPEN (excluida RESERVA "bañar al perro" c.740) → "sacar la perra al parque mañana". TDD completo local: RED exacto 4/10 → GREEN 4615 (alternancia de artículo directo en piso+plantilla, probe actualizado).
 - **Convergencia total**: re-fetch final → remoto `accffee` (c.756 hermano) = LA MISMA unidad, mismo nombre de piso/plantilla (el suyo `ContextIntentEngineSacarLaPerraFloorTest`). Mi duplicado descartado íntegro (checkout -- tracked + rm test propio) → ff-only a `accffee`. Cero destructivo/force.
 - **Verificación independiente**: en `accffee` el suite JVM de dominio → 4615 PASS, smokers 25 + 9 OK. (No publiqú nada: solo docs actualizados con esta entrada STALE_RUN.)
+
 
 ## Run c.749 — 2026-08-20 — STALE_RUN (mi "podar el jardín" duplicó la c.748 publicada por run hermano durante mi ciclo: convergencia total, segunda tras c.745) + verificación independiente de `59cd9e7`
 - **HEAD inicial**: `7b55cb9` (c.747 docs, local = origin). Fetch de inicio limpio. Sonda Verb PRE: podar el jardín NULL, "bañar al perro" NULL, pagos temporales resueltos. Elegí "podar el jardín el sábado" (NO anunciada: evitadas compra/colada, "bañar al perro" señalada c.740, mascotas recién tomadas). TDD completo local: RED exacto 5/11 → GREEN 4537 (piso `HOUSEHOLD_GARDEN_FLOOR` + plantilla + nota keyword + sonda POST).

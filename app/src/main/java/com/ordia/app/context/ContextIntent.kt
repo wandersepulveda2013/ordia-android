@@ -152,9 +152,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // base, así el lockstep añade el VERBO — precedente de verbos
         // keyword c.639 "fregar"/c.727 "tender"/c.730 "aspirar";
         // familia jardinería `cortar el césped` c.731).
+        // c.757: verbo del piso `vacunar al perro/gato` (lockstep
+        // keyword↔piso; las keyword-mascota "perro"/"gato" ya existían
+        // c.740/c.744, así el lockstep añade el VERBO — precedente de
+        // verbos keyword c.748 "podar"; familia mascota c.740/c.747).
         "basura", "cama", "lavadora", "césped", "polvo", "mesa",
         "lavavajillas", "perro", "perra", "aspiradora", "ropa", "gato", "gata",
-        "veterinario", "veterinaria", "podar")),
+        "veterinario", "veterinaria", "podar", "vacunar")),
     UNKNOWN("Sin clasificar", emptyList());
 
     companion object {
