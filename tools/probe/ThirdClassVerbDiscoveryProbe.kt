@@ -61,6 +61,13 @@ fun main() {
         "la actualización del documento fue ayer",
         "actualicé el currículum ayer",
         "actualizar",
+        // Controles c.723 (forma "archivar"): negada/duda/sustantivo/
+        // pasado/verbo suelto deben permanecer NULL.
+        "no archivar el contrato el viernes",
+        "quizá archivar el contrato el viernes",
+        "el archivo del contrato fue ayer",
+        "archivé el contrato ayer",
+        "archivar",
         "y al final terminé contento jeje",
         "hola buenos días"
     )

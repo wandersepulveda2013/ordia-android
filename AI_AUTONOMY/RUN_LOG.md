@@ -1,3 +1,13 @@
+## Run c.723 — 2026-08-20 (UTC) — feat(context): piso TASK "archivar <objeto>" — forma 10/19 TERCERA clase — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `6b3b60c` (push c.722, ff-only limpio). **Selección (P1)**: "archivar <objeto>" (sonda). Doctrina una-forma-por-ciclo.
+- **Solución**: piso `archivar` + keyword TASK + plantilla "(archivar) X"→"Archivar X". **Kind decidido: TASK, en deliberación contra NOTE** — acción de cerrar/guardar el objeto; NOTE es contenido (criterio c.704). Controles NULL (negada/duda/"archivo"/"archivé…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineArchivarFloorTest.kt` — RED exacto 4/10 (capturas) → GREEN **OK (4351 tests)** (4341 + 10), 0 failures; smoke 25 OK; automation 9 OK. Sonda POST → TASK 'Archivar el contrato' dueAt=true; 5 controles NULL. Quedan 9 OPEN (subir/descargar/llenar + hogar × 6).
+- **Archivos**: engine (+piso +plantilla), `ContextIntent.kt` (+keyword), probe (+5 controles c.723 + comentario), test NUEVO (+10), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN tercera-clase (~9 restantes; deliberación de kind forma a forma — p. ej. "llenar la solicitud"). Re-fetch OBLIGATORIO antes de trabajar.
+- **Estado**: VERIFIED en JVM (suite + sonda + smokes). **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **HEAD final**: tras el commit.
+
 ## Run c.722 — 2026-08-20 (UTC) — feat(context): piso TASK "actualizar <objeto>" — forma 9/19 TERCERA clase — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `7583a77` (push c.721h, colisión duplicada "leer" resuelta: descarte local del rebase, re-construcción sobre el tip remoto). **Selección (P1)**: "actualizar <objeto>" (sonda). Doctrina una-forma-por-ciclo.

@@ -943,6 +943,14 @@ object ContextIntentEngine {
             // (criterio c.704). Anti-overreach: `\s+\w` exige objeto,
             // sustantivo "actualización"/pasado "actualicé…"/suelto no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )actualizar\s+\w""").containsMatchIn(lower)
+            // c.723 (forma 10/19 tercera clase): "archivar <objeto>".
+            // Lockstep piso+keyword (c.713). Kind decidido: TASK, en
+            // deliberación contra NOTE — acción de depositar el objeto
+            // (contrato/documento/factura) en su archivo; NOTE es contenido
+            // capturado, no acción (criterio c.704). Anti-overreach: `\s+\w`
+            // exige objeto, sustantivo "archivo"/pasado "archivé…"/suelto
+            // no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )archivar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1687,6 +1695,10 @@ object ContextIntentEngine {
                 // lección c.616: el match arranca en el verbo).
                 val matchActualizar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(actualizar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchActualizar != null) return "Actualizar ${matchActualizar.groupValues[2]}"
+
+                // c.723: misma plantilla para "archivar".
+                val matchArchivar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(archivar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchArchivar != null) return "Archivar ${matchArchivar.groupValues[2]}"
 
                 null
             }

@@ -1,3 +1,10 @@
+## Ciclo c.723 — 2026-08-20 (UTC) — feat(context): piso TASK "archivar <objeto>" (forma 10/19 TERCERA clase)
+
+- **HEAD**: inicial `6b3b60c`-origin (ff-only limpio; final tras commit).
+- **Solución**: piso `archivar` en `hasStrongTaskImperative` (anclas inicio/acuse/`TASK_FLOOR_TEMPORAL`, guard `(?<!no )`, `\s+\w` exige objeto) + keyword "archivar" TASK (`ContextIntent.kt`, lockstep c.713) + plantilla "(archivar) X"→"Archivar X". **Kind decidido: TASK, en deliberación contra NOTE** — acción de cerrar/guardar el objeto; NOTE es contenido (criterio c.704). Controles NULL (negada/duda/"archivo"/"archivé…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +10 tests `ContextIntentEngineArchivarFloorTest.kt`; RED exacto 4/10 (capturas) → GREEN **OK (4351 tests)** (4341 + 10), 0 failures; smoke 25 OK; automation 9 OK; sonda POST → TASK 'Archivar el contrato' dueAt=true; controles NULL. Quedan 9 OPEN (subir/descargar/llenar + hogar × 6).
+- **Estado**: VERIFIED en JVM (sonda POST Ok, suite Ok). **NO VERIFICADO** Android/gradle/lint/UI/Room.
+
 ## Ciclo c.722 — 2026-08-20 (UTC) — feat(context): piso TASK "actualizar <objeto>" (forma 9/19 TERCERA clase)
 
 - **HEAD**: inicial `7583a77`-origin. Colisión: run local "leer" duplicó c.721e remoto → descarte local; re-construcción sobre el tip remoto. Piso `actualizar` + keyword TASK + plantilla "(actualizar) X"→"Actualizar X" (kind deliberación TASK vs HABIT, criterio c.704). Controles NULL; envolvente c.613 gobierna TASK. Determinista.
