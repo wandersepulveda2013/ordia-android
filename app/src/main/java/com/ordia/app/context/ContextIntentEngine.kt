@@ -357,6 +357,20 @@ object ContextIntentEngine {
     // lookbehind `(?<!no )` + [imperativeIsNegated] bloquean la negación.
     private val PAYMENT_FLOOR =
         Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )($PAYMENT_VERBS)\s+\w""")
+    // Piso de compra acotado al objeto (c.758, forma 7/7 de la CUARTA clase de
+    // quehaceres, sonda `FourthClassChoreProbe.kt` c.734): "hacer la compra" es
+    // LA compra doméstica canónica con el verbo bivalente "hacer" (≠ cama
+    // c.728, ≠ informe/TASK). El verbo suelto ("la recarga"/"la limpieza"…) es
+    // demasiado genérico para posición libre, así se acota a `compras?` —
+    // comestibles de la semana; `\b` final: "comprada" no casa). Como el piso
+    // es de posición libre (familia HOUSEHOLD_*_FLOOR), el guard de envolvente
+    // [imperativeIsWrapped] y la plantilla de título comparten EXACTAMENTE el
+    // mismo patrón (lección c.648/c.652, ver mapa [WRAPPABLE_PATTERNS]). La
+    // negación inmediata se bloquea en la propia regex `(?<!no )` y de nuevo
+    // en [imperativeIsNegated] (precedente c.748/c.757: cinturón y tirantes).
+    private val SHOPPING_GROCERY_FLOOR =
+        Regex("""\b(?<!no )hacer\s+(?:el\s+|la\s+|los\s+|las\s+)?compras?\b""")
+    private val SHOPPING_BOUNDED_FLOORS = listOf(SHOPPING_GROCERY_FLOOR)
 
     // Patrones de ACTIVACIÓN de los bonus-kinds APPOINTMENT/CALL (c.653),
     // centralizados (misma lección c.648/c.652) para que el bono aditivo de
@@ -460,9 +474,12 @@ object ContextIntentEngine {
     // Kinds protegidos por el guard de envolvente: pisos de posición libre
     // (c.652) + bonus-kinds APPOINTMENT/CALL (c.653) + PAYMENT (c.746: su
     // piso ganó el ancla temporal, así "recuérdame mañana pagar el arriendo"
-    // lo activaría subordinado sin este guard — lockstep c.648/c.652).
-    // SHOPPING no lo necesita: su piso (c.651) exige verbo al inicio o tras
-    // acuse, así un envolvente nunca lo activa.
+    // lo activaría subordinado sin este guard — lockstep c.648/c.652) +
+    // SHOPPING (c.758: su piso acotado [SHOPPING_GROCERY_FLOOR] "hacer la
+    // compra" es de posición libre, así "recuérdame hacer la compra mañana"
+    // lo activaría subordinado sin este guard). El piso SHOPPING histórico
+    // de "comprar" (c.651) sigue SIN registro: exige verbo al inicio o tras
+    // acuse; un envolvente nunca lo activa.
     private val WRAPPABLE_PATTERNS: Map<ContextIntentKind, List<Regex>> = mapOf(
         ContextIntentKind.MEETING to listOf(MEETING_FLOOR),
         ContextIntentKind.HOUSEHOLD to HOUSEHOLD_FLOORS,
@@ -473,7 +490,8 @@ object ContextIntentEngine {
         ContextIntentKind.CALL to CALL_SPECIFIC,
         ContextIntentKind.DEADLINE to DEADLINE_FLOORS,
         ContextIntentKind.NOTE to listOf(NOTE_FLOOR),
-        ContextIntentKind.PAYMENT to listOf(PAYMENT_FLOOR)
+        ContextIntentKind.PAYMENT to listOf(PAYMENT_FLOOR),
+        ContextIntentKind.SHOPPING to SHOPPING_BOUNDED_FLOORS
     )
 
     // Penalización por duda/condicional (c.649 anti-overreach). Marcadores como
@@ -712,6 +730,9 @@ object ContextIntentEngine {
         // pan" (lookbehind `(?<!no )` + [imperativeIsNegated] c.648) y
         // "comprar" aislado (muletilla) NO activan el piso (c.616
         // anti-overreach); duda (c.649) y condición (c.650) penalizan post-piso.
+        // c.758: el piso acotado [SHOPPING_GROCERY_FLOOR] ("hacer la compra")
+        // se activa en lockstep con su keyword / guards / título (ver mapa
+        // [WRAPPABLE_PATTERNS] y [imperativeIsNegated]).
         if (kind == ContextIntentKind.SHOPPING && hasStrongShoppingImperative(lower)) {
             score = maxOf(score, MINIMUM_CONFIDENCE)
         }
@@ -1255,7 +1276,10 @@ object ContextIntentEngine {
      * (c.650) penalizan DESPUÉS del piso. Determinista (regex), sin IA fingida.
      */
     private fun hasStrongShoppingImperative(lower: String): Boolean =
-        Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )($SHOPPING_VERBS)\s+\w""").containsMatchIn(lower)
+        Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+)(?<!no )($SHOPPING_VERBS)\s+\w""").containsMatchIn(lower) ||
+            // c.758: piso acotado del objeto-compra ("hacer la compra"), posición
+            // libre por el candado vía WRAPPABLE_PATTERNS (lockstep c.648/c.652).
+            SHOPPING_BOUNDED_FLOORS.any { it.containsMatchIn(lower) }
 
     /**
      * Imperativos de reunión inequívocos (c.626, c.647). Coincide con el anclaje de
@@ -1542,6 +1566,16 @@ object ContextIntentEngine {
         // (precedente "podar el jardín" c.748).
         if (kind == ContextIntentKind.HOUSEHOLD &&
             Regex("""\bno\s+vacunar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""").containsMatchIn(lower)
+        ) return true
+        // "hacer la compra" (SHOPPING, piso acotado c.758) es imperativo
+        // multi-palabra: el mapa de verbos de este kind sólo conoce
+        // "comprar", así "no hacer la compra" lo anularía y el verbo-hacer
+        // (keyword TASK) + tal vez bono temporal elevan el score sin pasar
+        // por el piso (cuyo lookbehind sí la bloquea). La negación se bloquea
+        // aquí (precedente "podar el jardín" c.748 / "vacunar al perro/gato"
+        // c.757).
+        if (kind == ContextIntentKind.SHOPPING &&
+            Regex("""\bno\s+hacer\s+(?:el\s+|la\s+|los\s+|las\s+)?compras?\b""").containsMatchIn(lower)
         ) return true
         return false
     }
@@ -2027,6 +2061,15 @@ object ContextIntentEngine {
                 // "ir al supermercado" → "Ir al supermercado"
                 val match2 = Regex("""(ir|vamos|voy|iremos) (.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match2 != null) return "Ir ${match2.groupValues[2]}"
+
+                // c.758: "hacer la compra" → "Hacer la compra(las compras)".
+                // Misma ancla/guard que el piso (prefijo de acuse o temporal
+                // despojado: el match arranca en el verbo-hacer; lección
+                // c.616 — arrastre fiel tras ese punto). Artículo y plural
+                // preservados tal cual los dicta el usuario (doctrina c.653).
+                // El residuo temporal de cola lo depura [sanitizeTitle].
+                val matchCompra = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(hacer)\s+((?:el\s+|la\s+|los\s+|las\s+)?compras?\b(?:\s+.*)?)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchCompra != null) return "Hacer ${matchCompra.groupValues[2]}"
 
                 null
             }

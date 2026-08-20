@@ -1,4 +1,15 @@
 
+### c.759 — 2026-08-20 (UTC) — feat(context): piso compra "hacer la compra" (Chore forma 7/7; NULL → SHOPPING 'Hacer la compra'; colisión c.758 hermano 'pintar la casa' resuelta NO destructiva)
+- HEAD inicial: `f8ad30b` (c.757). Re-fetch final: avance remoto `3ffbfd0` (c.758 hermano "pintar la casa") → reintegración NO destructiva (stash −u → pull --ff-only → stash pop, unión automática del engine limpia, cero conflictos) → renumerado c.758 → c.759.
+- Selección: pool Chore OPEN depurado — única candidata "hacer la compra mañana" (las 4 restantes cerradas c.736/c.738/c.740/c.742/c.743; "hacer la colada" única restante).
+- Sonda PRE: "hacer la compra mañana" → NULL (forma real; "hacer" bivalente sin objeto acotado). Sonda auxiliar: "hacer el informe mañana" → NULL en HEAD (acotamiento; test dedicado assertNull).
+- TDD: `ContextIntentEngineHacerCompraFloorTest.kt` +13 (RED completo en primer intento por keyword substring — ver abajo → GREEN 13/13): 5 capturas (base/plural/sin artículo/prefijo temporal/acuse val+recuérdame) + 2 envolventes robustas → TASK + 6 anti-overreach NULL (negada directa/negada temporal incrustada/duda/condición/pasado/objeto no compra).
+- Fix: piso `SHOPPING_GROCERY_FLOOR` acotado a `compras?`; lockstep: `SHOPPING_BOUNDED_FLOORS` → `WRAPPABLE_PATTERNS[SHOPPING]` + cláusula dedicada en `imperativeIsNegated` + plantilla `matchCompra` (doctrina c.653) + `hasStrongShoppingImperative` OR extendido. **Lección/anti-patrón**: keyword-objeto "compra" propuesta inicialmente (lockstep c.728/c.751) → REGRESIÓN 12 fallos en suite (substring de "comprar" eleva SHOPPING por encima del piso TASK/REMINDER 0.45 en formas envolventes) → ELIMINADA: el piso basta. **Anti-patrón documentado: nunca keyword que sea substring de verbo ya clasificado**.
+- Tests: `run_domain_tests.sh` → OK 4645 (4632 merge c.757+c.758 + 13), 0 failures; `run_domain_checks.sh` 25 OK; probe `run_probe.sh tools/probe/FourthClassChoreProbe.kt` POST script correcto. NO VERIFICADO Android/gradle/UI/Room (sin SDK).
+- Archivos: `ContextIntentEngine.kt`, prueba TDD nueva, `tools/probe/FourthClassChoreProbe.kt` (candidata→regresión +5 controles), `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md`. `ContextIntent.kt` sin diff (keyword propuesta eliminada → vuelve a HEAD; lección arriba).
+- Estado: FIXED → VERIFIED (dominio JVM).
+- Próxima prioridad: "hacer la colada mañana" (única OPEN Chore; acotar `colada(s)`, interop lavadora c.729); Verb OPEN restante: "bañar al perro el sábado" (señalada/reservada c.740).
+
 ### c.757 — 2026-08-20 (UTC) — feat(context): piso mascota "vacunar al perro/gato" (mascota ~7/8; NULL → HOUSEHOLD 'Vacunar al perro')
 - HEAD inicial: `accffee` (c.756). Re-fetch de inicio/final: sin avance remoto → provisional c.757 confirmado.
 - Selección: dispersión determinista epoch-day `20685 % 5 = 0` pool Verb OPEN depurado (chequeo PRE) → "vacunar al perro este mes".

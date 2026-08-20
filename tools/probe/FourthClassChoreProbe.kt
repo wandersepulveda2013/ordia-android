@@ -23,14 +23,12 @@ import com.ordia.app.context.ContextIntentEngine
 fun main() {
     val now = 1723939200000L
     val cases = listOf(
-        // Candidatos: objeto acotado sobre verbos genéricos bivalentes
-        // (2 OPEN: "poner la mesa" c.736, "poner el lavavajillas" c.738,
-        // "sacar al perro" c.740 — resuelta por la sonda paralela de
-        // mascotas `FourthClassVerbDiscoveryProbe.kt` —, "pasar la
-        // aspiradora" c.742 y "colgar la ropa" c.743 resueltas — abajo,
-        // sección regresiones)
-        "hacer la compra mañana",                  // hacer + compra (≠ cama c.728)
-        "hacer la colada mañana",                  // hacer + colada (~ lavadora)
+        // Candidatos: objeto acotado sobre verbos genéricos bivalentes.
+        // "hacer la compra" (form 4/7 clase 4) quedó resuelta en c.758 vía
+        // SHOPPING (piso acotado del verbo-hacer + objeto-compra) — movida
+        // a regresiones abajo. Forma OPEN que queda: "hacer la colada"
+        // (~ lavadora, HOUSEHOLD; ver también el resolver #6 arriba).
+        "hacer la colada mañana",                  // OPEN tras c.758
 
         // Cobertura existente (guards — deben SEGUIR capturando vía keyword
         // c.639 de HOUSEHOLD)
@@ -38,13 +36,14 @@ fun main() {
         "regar las plantas mañana",
 
         // Regresiones de las clases cerradas (deben SEGUIR capturando)
+        "hacer la compra mañana",                  // c.758 (form 4/7 clase 4 → SHOPPING)
         "poner la lavadora esta tarde",            // c.729
         "quitar el polvo hoy",                     // c.732
-        "poner la mesa hoy",                       // c.736 (forma 1/7 clase 4)
-        "poner el lavavajillas esta noche",        // c.738 (forma 2/7 clase 4)
-        "sacar al perro mañana",                   // c.740 (forma 3/7 clase 4, vía mascota)
-        "pasar la aspiradora mañana",              // c.742 (forma 5/7 clase 4)
-        "colgar la ropa hoy",                      // c.743 (forma 6/7 clase 4)
+        "poner la mesa hoy",                       // c.736 (form 1/7 clase 4)
+        "poner el lavavajillas esta noche",        // c.738 (form 2/7 clase 4)
+        "sacar al perro mañana",                   // c.740 (form 3/7 clase 4, vía mascota)
+        "pasar la aspiradora mañana",              // c.742 (form 5/7 clase 4)
+        "colgar la ropa hoy",                      // c.743 (form 6/7 clase 4)
 
         // Controles anti-overreach (deben permanecer NULL)
         "no poner la mesa hoy",
@@ -74,6 +73,14 @@ fun main() {
         "quizá colgar la ropa mañana",
         "colgué la ropa ayer",                     // pasado
         "colgar el cuadro del salón",              // objeto no acotado (decoración ≠ quehacer)
+
+        // Controles c.758 (forma "hacer la compra"): negada/duda/pasado/
+        // objeto no acotado deben permanecer NULL.
+        "no hacer la compra mañana",
+        "quizá hacer la compra mañana",
+        "hice la compra ayer",                     // pasado
+        "hacer",                                   // suelto (implicito del guard c.728)
+        "hacer la cama mañana",                    // objeto no compra → HOUSEHOLD (c.728)
     )
 
     for (raw in cases) {
