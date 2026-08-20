@@ -71,6 +71,13 @@ fun main() {
         // queda como REGRESIÓN.
         "podar el jardín el sábado",
         // Candidatos: obligaciones cívicas/salud/de dispositivo cotidianas.
+        // Nota mantenimiento c.752: "votar el domingo" RESUELTA (piso TASK
+        // sobre el verbo unívoco "votar" c.752 — kind TASK en deliberación
+        // contra EVENT/APPOINTMENT/ERRAND: deber cívico de vida, hermano de
+        // "donar sangre" c.750 y "renovar el DNI" c.698 — keyword "votar"
+        // lockstep, plantilla "(votar) <complemento>"; complemento
+        // obligatorio: reordenado temporal-votar sin complemento descartado)
+        // — la línea queda como REGRESIÓN.
         "votar el domingo",
         // Nota mantenimiento c.750: "donar sangre el sábado" RESUELTA (piso
         // TASK acotado al objeto `sangre` c.750 — kind TASK en deliberación

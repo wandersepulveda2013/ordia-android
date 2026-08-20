@@ -1148,6 +1148,17 @@ object ContextIntentEngine {
             // bloquea la negada, sustantivo "la carga del celular"/pasado
             // "cargué…"/suelto "cargar" no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )cargar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?celular(?:es)?\b""").containsMatchIn(lower)
+            // c.752 (sonda `tools/probe/FourthClassVerbDiscoveryProbe.kt`
+            // c.750, candidato cívico "votar"): "votar <complemento/día>".
+            // Lockstep piso+keyword (lección c.713). Verbo unívoco (votar =
+            // sufragio, no admite objeto bivalente); `\s+\w` exige
+            // complemento (familia c.691…c.726), el suelto nunca casa. Kind
+            // decidido: TASK, en deliberación contra EVENT/APPOINTMENT/
+            // ERRAND — deber cívico de vida, hermano de "donar sangre"
+            // (c.750) y "renovar el DNI" (c.698); no es encuentro social ni
+            // profesional. Anti-overreach: `(?<!no )` bloquea la negada,
+            // sustantivo "la votación"/pasado "voté…"/suelto no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )votar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1939,6 +1950,10 @@ object ContextIntentEngine {
                 // despojan). El verbo gobierna el contenido y se PRESERVA.
                 val matchCargarCelular = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(cargar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?celular(?:es)?\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchCargarCelular != null) return "Cargar ${matchCargarCelular.groupValues[2]}"
+                // c.752: misma plantilla para "votar" (ancla/guard idénticos
+                // al piso; verbo unívoco, complemento libre).
+                val matchVotar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(votar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchVotar != null) return "Votar ${matchVotar.groupValues[2]}"
 
                 null
             }

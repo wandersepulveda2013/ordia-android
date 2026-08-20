@@ -16172,6 +16172,18 @@ a un permiso persistente frágil y silencioso ante fallos.
 - NO VERIFICADO: Android/gradle/lint/UI/Room (sin Android SDK).
 - HEAD final: tras commit/push de este ciclo.
 
+## Run c.752 — 2026-08-20 — feat(context): piso TASK verbo unívoco "votar" (cívicas/salud/dispositivo 3/3, CLASE CERRADA; NULL → TASK 'Votar'; SIN colisión)
+- **HEAD inicial**: `f149997` (c.751 docs + feat, local = origin). Fetch de inicio limpio; re-fetch final pre-commit SIN avance remoto → número c.752 confirmado.
+- **Selección**: sonda Verb (P1 context/evitar olvidos), forma "votar el domingo" — NO anunciada (anti-colisión por dispersión: ni "bañar al perro" señalada c.740, ni compra/colada anunciadas, ni "pintar la casa" primera del pool, ni "donar sangre"/"cargar el celular" recién tomadas). PRIMER verbo-bottom de la sonda (anteriores acotaban al objeto; "votar" es unívoco: sólo sufragio).
+- **Secuencia**: TDD RED exacto 4/11 (las 4 capturas; los 7 controles ya sanos por guards/keywords acumulados) → GREEN; sonda actualizada PRE→POST; memoria (CURRENT_STATE/BACKLOG/RUN_LOG).
+- **Cambios**: piso TASK verbo (`(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )votar\s+\w`) en `ContextIntentEngine.kt` (complemento obligatorio: reordenado "el domingo votar" descartado, anti-overreach); keyword "votar" en `ContextIntent.kt` (lockstep directa del verbo — inversa de c.751 keyword-OBJETO); plantilla `(?i)(votar)\s+(.+)$` → "Votar <complemento>" (matchVotar, tras matchCargarCelular); +11 tests `ContextIntentEngineVotarFloorTest.kt`; sonda Verb: nota mantenimiento c.752.
+- **Kind: TASK** — deliberado contra EVENT/APPOINTMENT/ERRAND: deber cívico de vida (hermano de "donar sangre" c.750 y "renovar el DNI" c.698).
+- **Hallazgo propio corregido en local (pre-commit)**: el caso "el domingo votar" (temporal primero, sin complemento) estaba sobre-afirmado en mi test inicial; el piso-familia exige complemento tras el verbo unívoco (igual que "archivar \w"). Reestructurado: captura con complemento ("el domingo votar en el colegio") + control nuevo "reordenado sin complemento descartado" (NULL). Cero debilitamiento: el descarte documenta anti-overreach.
+- **Verificación**: `bash tools/run_domain_tests.sh` → **OK (4573 tests)** (4562 base + 11), 0 failures; `run_domain_checks.sh` smoke 25 OK. Sonda Verb POST: "votar el domingo" → TASK 'Votar' dueAt=true (regresión con nota c.752); "donar sangre"/"cargar el celular" intactos; controles NULL; resto de candidatos NULL sin fugas. Determinista (regex), sin random, sin IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Estado**: FIXED → VERIFIED (JVM). **Próxima prioridad**: otra Verb NO anunciada (~6 OPEN: bañar al perro señalada c.740; pintar la casa; lavar los platos; quitar la mesa…) con dispersión reforzada; re-fetch OBLIGATORIO y numerar ciclo SOLO en el fetch final.
+- **Commits**: este (feat + tests + sonda + docs c.752). **HEAD final**: `f149997` + este commit.
+---
+
 ## Run c.751 — 2026-08-20 (UTC) — rama openhands/autonomous-ordia
 
 - HEAD inicial: 2435ca9 (c.749 STALE_RUN docs ajena; local = origin al inicio).

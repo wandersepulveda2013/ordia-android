@@ -41,7 +41,10 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // "cargar el celular", ver ContextIntentEngine.hasStrongTaskImperative).
         // NO se añade el verbo "cargar": bivalente (el archivo/la tarjeta/
         // gasolina) y subcadena de "descargar" (c.725).
-        "celular")),
+        "celular",
+        // c.752: keyword-verbo "votar" (lockstep con el piso; verbo
+        // unívoco, ningún objeto bivalente queda abierto).
+        "votar")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",
