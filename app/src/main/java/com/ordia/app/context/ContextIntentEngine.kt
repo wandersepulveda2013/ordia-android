@@ -286,7 +286,20 @@ object ContextIntentEngine {
     // (c.717/c.728) y SHOPPING_GROCERY_FLOOR c.758.
     private val HOUSEHOLD_COLADA_FLOOR =
         Regex("""\b(?<!no )hacer\s+(?:el\s+|la\s+|los\s+|las\s+)?coladas?\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR)
+    // Piso mascota "bañar al perro/gato" (c.761 provisional — sonda
+    // `FourthClassVerbDiscoveryProbe.kt` c.740, ÚNICO OPEN residual del
+    // ledger Verb tras los cierres acumulados): la higiene de la mascota,
+    // hermana de [HOUSEHOLD_PET_FLOOR] c.740 (paseo) /
+    // [HOUSEHOLD_VACCINE_FLOOR] c.757 (salud). "bañar" suelto es
+    // bivalente (al bebé/a los niños/reflectivo "bañarse"), así se ACOTA
+    // al objeto mascota `(?:perr[oa]s?|gat[oa]s?)` (verbos disjuntos
+    // sacar/alimentar/llevar/vacunar/bañar — sin solape). El lockstep
+    // añade el VERBO "bañar" como keyword (precedente c.748 "podar",
+    // c.757 "vacunar"). `\b` final sin derrame nominal; guard de negación
+    // heredado (?<!no ) + cláusula dedicada en [imperativeIsNegated].
+    private val HOUSEHOLD_BATHE_PET_FLOOR =
+        Regex("""\b(?<!no )bañar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR, HOUSEHOLD_COLADA_FLOOR, HOUSEHOLD_BATHE_PET_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -1578,6 +1591,15 @@ object ContextIntentEngine {
         if (kind == ContextIntentKind.HOUSEHOLD &&
             Regex("""\bno\s+vacunar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""").containsMatchIn(lower)
         ) return true
+        // "bañar al perro/gato" (HOUSEHOLD, piso acotado c.761) es
+        // imperativo multi-palabra: la keyword-verbo "bañar" (lockstep
+        // c.761) + la keyword-mascota "perro/gato" + el bono temporal
+        // elevan el score al umbral sin pasar por el piso (cuyo
+        // lookbehind sí la bloquea), así la negación se bloquea aquí
+        // (precedente "vacunar al perro/gato" c.757).
+        if (kind == ContextIntentKind.HOUSEHOLD &&
+            Regex("""\bno\s+bañar\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)(?:perr[oa]s?|gat[oa]s?)\b""").containsMatchIn(lower)
+        ) return true
         // "hacer la compra" (SHOPPING, piso acotado c.758) es imperativo
         // multi-palabra: el mapa de verbos de este kind sólo conoce
         // "comprar", así "no hacer la compra" lo anularía y el verbo-hacer
@@ -2372,6 +2394,17 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchVacunarMascota != null) {
                     return "${capitalizeFirst(matchVacunarMascota.groupValues[1])} ${matchVacunarMascota.groupValues[2]}"
+                }
+                // Piso "bañar al perro/gato" (c.761): titular lo acotado
+                // al objeto mascota (alineado con
+                // [HOUSEHOLD_BATHE_PET_FLOOR]; familia mascota c.740 /
+                // [HOUSEHOLD_VACCINE_FLOOR] c.757).
+                val matchBanarMascota = Regex(
+                    """\b(bañar) ((?:al|a (?:el|la|los|las|mi|tu|su)) (?:perr[oa]s?|gat[oa]s?).*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchBanarMascota != null) {
+                    return "${capitalizeFirst(matchBanarMascota.groupValues[1])} ${matchBanarMascota.groupValues[2]}"
                 }
                 // Piso "podar el jardín" (c.748 provisional): titular lo
                 // acotado al objeto jardín (alineado con

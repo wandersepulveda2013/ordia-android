@@ -41,6 +41,13 @@ fun main() {
         "el sábado comprar el pan",
         // Candidatos: cuidado de mascotas (cotidiano, sin piso ni keyword).
         "sacar al perro mañana",
+        // Nota mantenimiento c.761: "bañar al perro el sábado" RESUELTA —
+        // piso `HOUSEHOLD_BATHE_PET_FLOOR` c.761 acotado al objeto mascota
+        // `(?:perr[oa]s?|gat[oa]s?)` (ÚNICO OPEN residual del ledger Verb;
+        // lockstep: keyword-verbo "bañar" — las keyword-mascota
+        // "perro"/"gato" existían c.740/c.744; precedente c.748 "podar" /
+        // c.757 "vacunar" + guard de negación dedicado + plantilla).
+        // La línea queda como REGRESIÓN de la familia mascota.
         "bañar al perro el sábado",
         // Nota mantenimiento c.744: "alimentar al gato hoy" RESUELTA (piso
         // `HOUSEHOLD_FEED_CAT_FLOOR` c.744 acotado al objeto mascota
@@ -231,6 +238,14 @@ fun main() {
         "quizá sacar la perra mañana",
         "saqué la perra ayer",
         "sacar la cuenta hoy",
+        // c.761: controles del piso `bañar al perro/gato` (negada / duda /
+        // pasado / objeto no mascota / verbo suelto). La forma capturable
+        // "bañar al perro el sábado" se movió arriba como regresión.
+        "no bañar al perro mañana",
+        "quizá bañar al perro mañana",
+        "bañé al perro ayer",
+        "bañar al bebé mañana",
+        "bañar",
         "hola cómo estás",
         "jaja qué risa"
     )

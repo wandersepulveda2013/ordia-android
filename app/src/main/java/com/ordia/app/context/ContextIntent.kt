@@ -156,13 +156,18 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // keyword↔piso; las keyword-mascota "perro"/"gato" ya existían
         // c.740/c.744, así el lockstep añade el VERBO — precedente de
         // verbos keyword c.748 "podar"; familia mascota c.740/c.747).
+        // c.761: verbo del piso `bañar al perro/gato` (lockstep
+        // keyword↔piso; las keyword-mascota "perro"/"gato" ya existían
+        // c.740/c.744, así el lockstep añade el VERBO — precedente de
+        // verbos keyword c.748 "podar", c.757 "vacunar"; familia mascota
+        // c.740/c.747/c.757).
         "basura", "cama", "lavadora", "césped", "polvo", "mesa",
         // c.758: objeto del piso `pintar la(s) casa(s)` (lockstep
         // keyword↔piso; "pintar" suelto es bivalente — un cuadro/la
         // veranda — así se alinea el OBJETO restringido, sonda
         // `FourthClassVerbDiscoveryProbe.kt`).
         "lavavajillas", "perro", "perra", "aspiradora", "ropa", "gato", "gata",
-        "veterinario", "veterinaria", "podar", "vacunar", "casa")),
+        "veterinario", "veterinaria", "podar", "vacunar", "bañar", "casa")),
     UNKNOWN("Sin clasificar", emptyList());
 
     companion object {
