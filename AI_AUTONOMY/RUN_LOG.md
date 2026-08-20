@@ -8,7 +8,7 @@
 - Sonda POST (Chore re-ejecutada): candidato → HOUSEHOLD 'Hacer la colada' dueAt=true; regresiones c.729/c.732/c.736/c.738/c.740/c.742/c.743/c.758 intactas (11 formas) + "hacer la cama" c.728 HOUSEHOLD intocable + keyword-cobertura c.639 (fregar/regar) intactas; controles NULL 30/30 (+5 nuevos: no/quizá/hice la colada/el colador utensilio; envolvente "recuérdame hacer la colada" → TASK por candado). Clase 4 Chore: 7/7 RESUELTAS.
 - Tests: `bash tools/run_domain_tests.sh` → **OK (4655 tests)** (4645 base + 10), 0 failures; `run_domain_checks.sh` smoke 25 OK. NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin Android SDK).
 - Determinista (regex), sin random, sin IA fingida, cero UI nueva (menos complejidad visible, más capacidad de captura — la colada/lavadora es el quehacer más frecuente del hogar con la ropa).
-- HEAD final: (pendiente de commit sobre `a752939`).
+- HEAD final: `2fedbd7` sobre `a752939` (push limpio, sin re-fetch de avance en el final).
 
 ### c.759 — 2026-08-20 (UTC) — feat(context): piso compra "hacer la compra" (Chore forma 7/7; NULL → SHOPPING 'Hacer la compra'; colisión c.758 hermano 'pintar la casa' resuelta NO destructiva)
 - HEAD inicial: `f8ad30b` (c.757). Re-fetch final: avance remoto `3ffbfd0` (c.758 hermano "pintar la casa") → reintegración NO destructiva (stash −u → pull --ff-only → stash pop, unión automática del engine limpia, cero conflictos) → renumerado c.758 → c.759.
