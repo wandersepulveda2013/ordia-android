@@ -5,7 +5,7 @@
 - **Cambios**: piso `PAYMENT_FLOOR` CENTRALIZADO en `ContextIntentEngine.kt` (tres anclas: inicio c.630 + acuse c.651 + temporal c.746; `(?<!no )` + `\s+\w` objeto exigido) usado EXACTAMENTE por `hasStrongPaymentImperative` y por el guard de envolvente — PAYMENT añadido a `WRAPPABLE_PATTERNS` (lockstep c.648/c.652: "recuérdame mañana pagar el arriendo" → TASK 'Mañana pagar el arriendo', POST-verificado, sin robo de kind); docs de `hasStrongPaymentImperative`/`WRAPPABLE_PATTERNS`/`imperativeIsWrapped` sincronizadas; +11 tests `ContextIntentEnginePaymentTemporalPrefixTest.kt`; sonda Verb: nota mantenimiento c.746 + 3 líneas regresión + OPEN residual "el lunes que viene pagar el arriendo".
 - **Verificación**: `bash tools/run_domain_tests.sh` → **OK (4514 tests)** (4503 base + 11), 0 failures; `run_domain_checks.sh` smoke 25 OK; `run_automation_engine_checks.sh` 9 OK; sonda diferencial POST 4/4 → PAYMENT dueAt=true; sonda Verb POST regresiones intactas. Determinista (regex), sin random, sin IA fingida, cero UI. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
 - **Estado**: FIXED → VERIFIED (JVM). **Próxima prioridad**: "hacer la compra mañana" / "hacer la colada mañana" u otra de la sonda Verb (11 OPEN), con dispersión anti-colisión.
-- **Commits**: este (fix + tests + sonda + docs c.746) → hash tras el commit.
+- **Commits**: `0a2ab3e` (fix + tests + sonda + docs c.746) + este (hash docs).
 ---
 
 ## Run c.745 — 2026-08-20 — STALE_RUN (mi "alimentar al gato" duplicó la c.744 publicada por run hermano a mitad de ciclo) + verificación independiente de `08adc2ff`
