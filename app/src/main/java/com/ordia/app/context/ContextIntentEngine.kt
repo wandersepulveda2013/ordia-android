@@ -3244,7 +3244,13 @@ object ContextIntentEngine {
               lower.contains("quincena") || lower.contains("bimestre") || lower.contains("trimestre") || lower.contains("semestre"))) ||
             Regex("""\ben\s+(?:un|una|unos|unas)\s+(?:semanas?|mes(?:es)?|a[nñ]os?)\b""", RegexOption.IGNORE_CASE).containsMatchIn(lower) ||
             Regex("""\d{1,2}:\d{2}""").containsMatchIn(lower) ||
-            Regex("""a las \d+""").containsMatchIn(lower)
+            Regex("""a las \d+""").containsMatchIn(lower) ||
+            // Paridad con extractDateTime: "medianoche"/"mediodía" anclan a HOY a una
+            // hora canónica (00:00/12:00), igual que las horas explícitas de arriba;
+            // hasTimeReference ya los reconocía, pero el bono de fecha (+0.1) no se
+            // aplicaba: asimetría parser↔detector (tools/run_parity_probe.sh).
+            lower.contains("medianoche") || lower.contains("mediodía") ||
+            lower.contains("mediodia")
     }
 
     private fun hasTimeReference(lower: String): Boolean {

@@ -1,3 +1,14 @@
+## Ciclo c.791 — 2026-08-20 (UTC) — fix(context): paridad fecha para «medianoche»/«mediodía» en hasDateReference — el GAP flagged por `tools/parity-probe/ProbeParity.kt` deja de existir (0 <<< GAP)
+
+- **HEAD inicial**: `250407e` (docs c.790 hermano DEDUPE del residuo «marqué»; fetch PRE-COMMIT: stash → ff-only → pop, limpio).
+- **Problema (P1 captura / IA honesta / MENOS ES MÁS)**: la sonda persistente `tools/parity-probe/ProbeParity.kt` marcaba con `<<< GAP` el único hueco parser↔detector abierto: `extractDateTime` ANCLA «a medianoche»/«al mediodía» (y «mediodia» sin acento) a HOY a una hora canónica (00:00/12:00), PERO `hasDateReference` devolvía false → el bono de fecha (+0.1) de `scoreContextualBonus` no se aplicaba (sólo el de hora +0.08 de `hasTimeReference`). Asimetría: un compromiso a esa hora recibía menos confianza con el mismo verbo+objeto que otras horas explícitas.
+- **Solución (cambio mínimo, MENOS ES MÁS)**: `ContextIntentEngine.hasDateReference` admite «medianoche»/«mediodía»/«mediodia» al final — parity explicit con comment (`tools/run_parity_probe.sh` como evidencia). Sin UI nueva, sin IA fingida, sin spans HTML.
+- **Tests**: 4 tests nuevos con reflexión sobre el detector privado (estilo ProbeParity): `medianocheMatchesDateAnchor`, `mediodiaMatchesDateAnchor`, `mediodiaSinAcentoMatchesDateAnchor`, `qualifierWithoutUnitIsNotDateAnchor` (guard NEGATIVO: «el reporte pasado» sin unidad NO ancla, guard conserva regla c.602). `ContextIntentEngineDateTimeTest`.
+- **Verificación**: `bash tools/run_domain_tests.sh` → **OK (4895 tests: 4891 hermano + 4, aterizado sobre merged sibling)**, 0 failures; `run_domain_checks.sh` → 25/25; `tools/run_parity_probe.sh` → **0 <<< GAP** antes 3.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK); el motor de contexto pure-JVM sí.
+- **AI_AUTONOMY**: CURRENT_STATE c.791 prepend; RUN_LOG c.791 prepend; BACKLOG fila FIXED nueva pre-puesta. Numeración c.791 tras la colisión con el hermano-c.790 DEDUPE (registro íntegro, honesto).
+- **Próxima prioridad**: nueva ronda de descubrimiento (probes de paridad/intel; áreas OPEN). Numerar en el fetch final, como siempre.
+
 ## Ciclo c.790 — 2026-08-20 (UTC) — descarte(DEDUPE): mi duplicado del pretérito «marqué/destaqué» se descarta; permanece el render del hermano c.789
 
 - **HEAD inicial**: `83bce53` (c.788; pp. docs de la propia sesión)

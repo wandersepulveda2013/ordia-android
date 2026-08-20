@@ -1057,6 +1057,55 @@ class ContextIntentEngineDateTimeTest {
         )
     }
 
+    // --- Paridad fecha medianoche/mediodía (GAP de tools/run_parity_probe.sh) ---
+    // extractDateTime ancla "a medianoche"/"al mediodía" a HOY a una hora canónica
+    // (00:00/12:00), pero hasDateReference los omitía → sin bono de fecha (+0.1) y
+    // asimetría parser↔detector. hasTimeReference ya los reconocía. Reflexión sobre
+    // el detector, igual que ProbeParity.kt, porque una aserción analyze() de
+    // extremo a extremo sería frágil (doctrina c.600).
+    @Suppress("UNCHECKED_CAST")
+    private fun hasDateReference(raw: String): Boolean {
+        val m = ContextIntentEngine::class.java.getDeclaredMethod(
+            "hasDateReference", String::class.java
+        )
+        m.isAccessible = true
+        return m.invoke(ContextIntentEngine, raw) as Boolean
+    }
+
+    @Test
+    fun medianocheMatchesDateAnchor() {
+        assertEquals(
+            "«a medianoche» ancla a hoy: parity con extractDateTime requiere hasDateReference=true",
+            true, hasDateReference("a medianoche")
+        )
+    }
+
+    @Test
+    fun mediodiaMatchesDateAnchor() {
+        assertEquals(
+            "«al mediodía» ancla a hoy: parity con extractDateTime requiere hasDateReference=true",
+            true, hasDateReference("al mediodía")
+        )
+    }
+
+    @Test
+    fun mediodiaSinAcentoMatchesDateAnchor() {
+        assertEquals(
+            "«al mediodia» sin acento también ancla",
+            true, hasDateReference("al mediodia")
+        )
+    }
+
+    @Test
+    fun qualifierWithoutUnitIsNotDateAnchor() {
+        // Guard negativo (NEGATIVE de ProbeParity): un calificador sin unidad NO
+        // debe contar como fecha, manteniendo la rama calificada inocua.
+        assertEquals(
+            "«el reporte pasado» (calificador sin unidad) no es ancla de fecha",
+            false, hasDateReference("el reporte pasado")
+        )
+    }
+
     // --- Paridad de hora "las N" DESNUDA en hasTimeReference (c.605) ---
     // Continuación directa de c.600 (hasDateReference) y c.601 (extractDateTime):
     // extractDateTime resuelve "las N" desnuda desde c.601, PERO hasTimeReference

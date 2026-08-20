@@ -1,3 +1,8 @@
+## Ciclo c.791 (2026-08-20, probe de paridad fecha medianoche/mediodía — gap cerrado)
+
+Base `250407e` (c.790 hermano docs DEDUPE «marqué»; stash → ff-only → pop limpio). **Problema**: `ProbeParity.kt` flagged «a medianoche»/«al mediodía» con `<<< GAP` (extractDateTime=true pero hasDateReference=false → bono +0.1 omitido). **Solución**: `hasDateReference` admite las 3 formas; comentario con evidencia probe. **Tests**: +4 con reflexión (positivos ×3 + NEGATIVO «el reporte pasado»). **Suite**: OK (4895: 4891 hermano + 4) + smoke 25 + probe **0 <<< GAP**. NO VERIFICADO Android/UI/Room (sin SDK). HEAD final: tras push.
+
+---
 ## Ciclo c.790 (2026-08-20, descarte-DEDUPE de mi duplicado con c.789 hermano)
 
 Base `83bce53` (c.788). **Problema**: el render de esta sesión para «las que marqué»/«tareas que destaqué» duplicó el render hermano `910621f` (c.789). **Descarte**: stash → ff-only → stash drop. **Verificación**: suite OK (4891) + smoke 25 en `910621f`. **LECCIÓN**: residuos c.781-documentados OPEN deben comprobarse contra el BACKLOG hermano. Número en registro: c.790. HEAD final: final 5ee6932.
