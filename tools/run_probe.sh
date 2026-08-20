@@ -39,5 +39,8 @@ echo ">> Compilando probe $PROBE..."
   echo "ERROR probe:"; tail -40 "$OUT/probe.err"; exit 1
 }
 echo ">> Ejecutando..."
-PROBE_CLASS=$(basename "$PROBE" .kt | sed 's/[^A-Za-z0-9]/_/g')Kt
+# kotlinc genera la clase fachada con la inicial en mayúscula (probeX.kt ->
+# ProbeXKt); sin el \u el runner no encontraba el main de NINGÚN probe cuyo
+# archivo empezara en minúscula (todos los actuales).
+PROBE_CLASS=$(basename "$PROBE" .kt | sed 's/[^A-Za-z0-9]/_/g; s/^./\u&/')Kt
 java -cp "$OUT:$CP" "$PROBE_CLASS"

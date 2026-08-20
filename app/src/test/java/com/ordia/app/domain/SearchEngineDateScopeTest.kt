@@ -408,6 +408,63 @@ class SearchEngineDateScopeTest {
         assertEquals(setOf(1L), ids)
     }
 
+    // --- "esta mañana": la mañana (franja 6-11) de HOY ---
+    //
+    // El demostrativo "esta" desambigua "mañana": "esta mañana" es la mañana de
+    // HOY, jamás tomorrow. El parser de captura y el motor de contexto ya lo
+    // resolvían a hoy 09:00 (c.592), pero la búsqueda lo mandaba a MAÑANA por el
+    // token suelto "manana": capturar "cita esta mañana" nacía hoy 09:00 y buscar
+    // "esta mañana" mostraba lo de mañana — la mentira cruzada entre superficies.
+    // La franja 6-11 cierra el hueco horario entre MADRUGADA (0-5) y TARDE (12-17).
+
+    @Test fun estaManana_returnsOnlyThisMorningToday() {
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Café con Ana", dueAt = atHour(today, 9)),              // esta mañana
+            TaskEntity(id = 2, title = "Despertar", dueAt = atHour(today, 6)),                 // esta mañana (borde inferior)
+            TaskEntity(id = 3, title = "Cierre de mañana", dueAt = atHour(today, 11)),         // esta mañana (borde superior)
+            TaskEntity(id = 4, title = "Almuerzo", dueAt = atHour(today, 13)),                 // tarde de hoy
+            TaskEntity(id = 5, title = "Mediodía", dueAt = atHour(today, 12)),                 // ya es tarde (12-17)
+            TaskEntity(id = 6, title = "Vuelo", dueAt = atHour(today, 3)),                     // madrugada de hoy
+            TaskEntity(id = 7, title = "Mañana de mañana", dueAt = atHour(today.plusDays(1), 9)) // tomorrow
+        )
+        val ids = SearchEngine.search("esta mañana", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 8)).map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L, 3L), ids)
+    }
+
+    @Test fun mananaSola_sigueSiendoTomorrow() {
+        // Control anti-regresión: "mañana" SIN demostrativo sigue siendo TOMORROW
+        // (la lectura dominante del token suelto); sólo "esta mañana" se reancla a hoy.
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Hoy 9h", dueAt = atHour(today, 9)),
+            TaskEntity(id = 2, title = "Mañana 9h", dueAt = atHour(today.plusDays(1), 9))
+        )
+        val ids = SearchEngine.search("mañana", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 8)).map { it.id }.toSet()
+        assertEquals(setOf(2L), ids)
+    }
+
+    @Test fun estaMananaConTexto_filtraDentroDeLaFranja() {
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Cita médica", dueAt = atHour(today, 8)),
+            TaskEntity(id = 2, title = "Cita peluquería", dueAt = atHour(today, 16))
+        )
+        val ids = SearchEngine.search("esta mañana cita", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 7)).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun estaManana_encuentraPorStartAtAunqueVenzaMasTarde() {
+        // Un slot de HOY 09:30 cuyo plazo vence al mediodía: es "de esta mañana"
+        // (misma lógica startAt ∨ dueAt que el resto de partes del día).
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Trabajo enfocado", startAt = atHour(today, 9), dueAt = atHour(today, 12))
+        )
+        val ids = SearchEngine.search("esta mañana", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 8)).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
     @Test fun tardeConTexto_filtraDentroDeLaFranja() {
         val today = java.time.LocalDate.of(2026, 8, 13)
         val pod = listOf(

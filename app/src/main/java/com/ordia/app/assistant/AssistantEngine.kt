@@ -1101,6 +1101,13 @@ object AssistantEngine {
         // [pluralWeekdayDates] y [isScheduledInDates].
         val pluralDates = pluralWeekdayDates(query, today)
         val (start, end, label) = when {
+            // "esta mañana" (demostrativo): la mañana (franja 6-11) de HOY, jamás
+            // tomorrow. El "esta" desambigua el token "mañana", igual que en el
+            // parser de captura, el motor de contexto (hoy 09:00) y SearchEngine
+            // (DateScope.MORNING). Va ANTES que "pasado mañana"/"mañana": sin esta
+            // rama, "¿qué tengo esta mañana?" mostraba la agenda de MAÑANA (mentira
+            // cruzada con la captura). La franja horaria la aplica la etapa `band`.
+            "esta manana" in query -> Triple(today, today, "esta mañana")
             "pasado manana" in query -> Triple(today.plusDays(2), today.plusDays(2), "pasado mañana")
             "manana" in query -> Triple(today.plusDays(1), today.plusDays(1), "mañana")
             // Parte del día ("esta tarde"/"esta noche"/"la madrugada"): franja de
@@ -1172,7 +1179,8 @@ object AssistantEngine {
         val ranked = WhatNowEngine.ordered(active, now, zone)
         // Franja horaria (parte del día) como modificador opcional encima del
         // rango de fechas: simétrico con SearchEngine.scopeBand (MADRUGADA 0..5,
-        // TARDE 12..17, NOCHE 18..23). Si la consulta menciona una parte del día,
+        // MORNING 6..11 ["esta mañana"], TARDE 12..17, NOCHE 18..23). Si la consulta
+        // menciona una parte del día,
         // se filtra además por hora local. Así "¿qué tengo esta noche?" = tareas de
         // hoy con hora 18-23; "¿qué tengo el viernes en la noche?" = viernes 18-23.
         // Las tareas sin hora concreta (dueAt a medianoche, hora 0) sólo casan con
@@ -1294,11 +1302,13 @@ object AssistantEngine {
     }
 
     // Franja horaria (parte del día) de la agenda. Simétrico con
-    // SearchEngine.scopeBand: MADRUGADA 0..5, TARDE 12..17, NOCHE 18..23. Tokens sin
-    // acento (foldForSearch). Devuelve null si la consulta no menciona una parte del
-    // día. NOTA: no hay franja "mañana/mañana" (morning): "mañana" significa
-    // "tomorrow" (igual que en SearchEngine, que no tiene scope de mañana-mañana).
+    // SearchEngine.scopeBand: MADRUGADA 0..5, MORNING 6..11, TARDE 12..17,
+    // NOCHE 18..23. Tokens sin acento (foldForSearch). Devuelve null si la consulta
+    // no menciona una parte del día. NOTA: "mañana" SOLA nunca es franja (significa
+    // "tomorrow", igual que en SearchEngine y el parser); únicamente la forma
+    // demostrativa "esta mañana" es inequívoca como la mañana de HOY (6..11).
     private fun agendaPartOfDay(query: String): IntRange? = when {
+        "esta manana" in query -> 6..11
         "madrugada" in query -> 0..5
         "tarde" in query -> 12..17
         "noche" in query -> 18..23
@@ -1306,6 +1316,7 @@ object AssistantEngine {
     }
 
     private fun agendaPartOfDayLabel(query: String): String = when {
+        "esta manana" in query -> "esta mañana"
         "madrugada" in query -> "esta madrugada"
         "tarde" in query -> "esta tarde"
         "noche" in query -> "esta noche"

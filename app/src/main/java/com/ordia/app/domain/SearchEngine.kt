@@ -29,11 +29,14 @@ enum class SearchKind { TASK, PROJECT, NOTE, HABIT, ROUTINE, CONVERSATION, COMMI
  * "esta semana" o "atrasadas"/"vencidas" y obtener las tareas de ese rango
  * aunque su título no contenga esa palabra. Es una heurística local honesta.
  *
- * [TARDE]/[NOCHE]/[MADRUGADA] añaden búsqueda por parte del día de HOY
- * ("tarde", "esta tarde", "noche", "madrugada"): recupera lo que vence hoy
- * en esa franja sin nueva pantalla ni botón. Se excluye "mañana" (mañana) como
- * parte del día por su colisión con el scope TOMORROW, igual que hace el
- * parser en su variante compacta de parte del día.
+ * [MORNING]/[TARDE]/[NOCHE]/[MADRUGADA] añaden búsqueda por parte del día de
+ * HOY ("esta mañana", "tarde", "esta tarde", "noche", "madrugada"): recupera lo
+ * que vence hoy en esa franja sin nueva pantalla ni botón. "mañana" SOLA sigue
+ * siendo [TOMORROW] (tomorrow) por su colisión con ese scope, igual que hace el
+ * parser en su variante compacta; únicamente la forma demostrativa "esta mañana"
+ * es inequívoca como la mañana (6-11) de HOY y activa MORNING, simétrico al
+ * parser de captura y al motor de contexto, que ya anclan "esta mañana" a hoy
+ * 09:00 (evita la mentira cruzada: capturar decía hoy y buscar mostraba mañana).
  *
  * [WEEKDAY]/[WEEKEND] añaden recuperación por día de la semana ("lunes",
  * "viernes"…) y por fin de semana ("finde"/"fin de semana"): simétricas al
@@ -42,7 +45,7 @@ enum class SearchKind { TASK, PROJECT, NOTE, HABIT, ROUTINE, CONVERSATION, COMMI
  * resuelve al próximo sábado estricto (sábado+domingo), nunca cae a THIS_WEEK
  * aunque contenga la palabra "semana".
  */
-private enum class DateScope { DAY_BEFORE_YESTERDAY, YESTERDAY, TODAY, TOMORROW, DAY_AFTER_TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, THIS_MONTH, NEXT_MONTH, LAST_MONTH, OVERDUE, MISSED, UNDATED, TARDE, NOCHE, MADRUGADA, WEEKDAY, WEEKEND }
+private enum class DateScope { DAY_BEFORE_YESTERDAY, YESTERDAY, TODAY, TOMORROW, DAY_AFTER_TOMORROW, THIS_WEEK, NEXT_WEEK, LAST_WEEK, THIS_MONTH, NEXT_MONTH, LAST_MONTH, OVERDUE, MISSED, UNDATED, MORNING, TARDE, NOCHE, MADRUGADA, WEEKDAY, WEEKEND }
 
 data class SearchResult(val kind: SearchKind, val id: Long, val title: String, val subtitle: String)
 
@@ -627,6 +630,13 @@ object SearchEngine {
         // vive en "semana pasada"/"mes pasado" (LAST_WEEK/LAST_MONTH), donde "mañana"
         // no aparece, así que no colisiona.
         "pasado" in words && TOMORROW_TOKENS.any { it in words } -> DateScope.DAY_AFTER_TOMORROW
+        // "esta mañana" (demostrativo): la mañana (6-11) de HOY, jamás tomorrow.
+        // El "esta" desambigua el token "mañana", igual que en el parser de captura
+        // y el motor de contexto. Va ANTES de TOMORROW: sin esta rama, buscar
+        // "esta mañana" devolvía las de mañana aunque la captura las había creado
+        // para hoy 09:00 (mentira cruzada entre superficies). "mañana" SOLA sigue
+        // cayendo a TOMORROW (lectura dominante del token suelto).
+        "esta" in words && TOMORROW_TOKENS.any { it in words } -> DateScope.MORNING
         TOMORROW_TOKENS.any { it in words } -> DateScope.TOMORROW
         YESTERDAY_TOKENS.any { it in words } -> DateScope.YESTERDAY
         // "anteayer"/"antier" = día antes de ayer (simétrico de "pasado mañana" =
@@ -911,6 +921,7 @@ object SearchEngine {
             DateScope.OVERDUE -> false // resuelto antes (return temprano)
             DateScope.MISSED -> false // resuelto antes (return temprano)
             DateScope.UNDATED -> false
+            DateScope.MORNING -> false
             DateScope.TARDE -> false
             DateScope.NOCHE -> false
             DateScope.MADRUGADA -> false
@@ -923,6 +934,9 @@ object SearchEngine {
     // no es una parte del día. Bandas por hora local del día de vencimiento.
     private fun scopeBand(scope: DateScope): IntRange? = when (scope) {
         DateScope.MADRUGADA -> 0..5
+        // 6-11 cierra el hueco horario entre madrugada (0-5) y tarde (12-17):
+        // el día queda particionado sin solapes ni vacíos.
+        DateScope.MORNING -> 6..11
         DateScope.TARDE -> 12..17
         DateScope.NOCHE -> 18..23
         else -> null
