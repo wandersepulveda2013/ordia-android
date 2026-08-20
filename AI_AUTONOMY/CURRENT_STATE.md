@@ -1,3 +1,13 @@
+## Ciclo c.720-STALE — 2026-08-20 (UTC) — rama openhands/autonomous-ordia
+
+- **HEAD**: inicial local `e305f1c`; al preparar el push el remoto había avanzado a `e1f9f35` (resolución concurrente de la MISMA forma 10/14 "recordar a <persona> <evento>", su `2bb7a09` + docs `e1f9f35`).
+- **Detección anti-colisión**: mi trabajo local (piso `recordar\s+a\s+\w` idéntico, plantilla "Recordar a X", keyword "recordar a" en TASK, +11 tests — mismo nombre de test file) era un duplicado paralelo completo, sin delta único (el remoto además traía controles propios en la sonda).
+- **Resolución NO destructiva (doctrina)**: `git stash push -u` → `git pull --ff-only` (e305f1c..e1f9f35 limpio) → comparación stash vs remoto → `git stash drop`. El duplicado local se descartó; gana el remoto empujado; cero pérdida de trabajo ajeno válido (mi propio stash, nunca commiteado, es descartable por doctrina).
+- **Verificación independiente del remoto en este entorno**: `bash tools/run_domain_tests.sh` → **OK (4251 tests)**, 0 failures; `run_domain_checks.sh` → 25/25; `run_automation_engine_checks.sh` → 9/9; sonda POST → "recordar a papá el almuerzo mañana" → TASK 'Recordar a papá el almuerzo' dueAt=true; controles NULL (incl. "no recordar…", "quizá recordar…", "recordé … ayer", "recordar a" suelto). No reduje/asumí verde.
+- Contribución del run: registro STALE_RUN + re-verificación del árbol final. Segunda clase de verbos de gestión CERRADA (10/10 formas, 14/14 candidatos) por el remoto.
+- **Próxima prioridad**: clase segunda cerrada; nueva auditoría progresiva / nuevo descubrimiento P0/P1. Re-fetch OBLIGATORIO.
+- **Estado**: STALE_RUN; solución del remoto VERIFIED en JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+
 ## Ciclo c.720 — 2026-08-20 (UTC) — feat(context): piso TASK "recordar a <persona> <evento>" (forma 10/14 ÚLTIMA — sonda cerrada)
 
 - **HEAD**: inicial `3f5279d`-origin (c.719-STALE-3 ya integrada; ff-only limpio; final tras este log: feat + docs).

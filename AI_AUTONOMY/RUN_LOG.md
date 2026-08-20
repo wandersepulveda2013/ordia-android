@@ -9,7 +9,24 @@
 - **Estado**: VERIFIED en JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
 - **HEAD final**: tras los 2 commits (feat + docs).
 
+## Run c.720-STALE — 2026-08-20 (UTC) — rama openhands/autonomous-ordia
 
+- HEAD inicial local: e305f1c. Al preparar el push el remoto había avanzado a e1f9f35 (resolución
+  concurrente de la MISMA forma 10/14 "recordar a <persona> <evento>" — su feat 2bb7a09 + docs e1f9f35).
+- Detección anti-colisión: mi trabajo local (piso `recordar\s+a\s+\w` idéntico, plantilla "Recordar a X",
+  keyword "recordar a" en TASK, +11 tests — mismo nombre de archivo de test) era un duplicado paralelo
+  completo. Comparación en stash: SIN delta único (el remoto además traía controles propios en la sonda).
+- Resolución NO destructiva (doctrina): `git stash push -u` → `git pull --ff-only` (e305f1c..e1f9f35
+  limpio) → comparación stash vs remoto → `git stash drop`. Gana el remoto empujado; cero pérdida de
+  trabajo ajeno válido (mi propio stash nunca commiteado, descartable por doctrina).
+- Verificación independiente del remoto en este entorno (árbol final, solución del remoto):
+  `bash tools/run_domain_tests.sh` → **OK (4251 tests)**, 0 failures; `run_domain_checks.sh` → 25/25;
+  `run_automation_engine_checks.sh` → 9/9; sonda POST → "recordar a papá el almuerzo mañana" → TASK
+  'Recordar a papá el almuerzo' dueAt=true; controles NULL (no recordar/quizá/recordé…/recordar a suelto).
+  No reduje/asumí verde.
+- Conclusión: segunda clase de verbos de gestión CERRADA (10/10 formas, 14/14 candidatos) por el remoto;
+  mi única contribución es este registro STALE_RUN + la re-verificación del árbol final.
+- HEAD final: se registra tras el commit de este registro docs-only.
 ## Run c.719-STALE-3 — 2026-08-20 (UTC) — rama openhands/autonomous-ordia
 
 - HEAD inicial: `92be3e0` (ff-only limpio). Al terminar TDD+verificación (RED 4 → GREEN, suite OK) el remoto avanzó concurrentemente resolviendo la MISMA forma 9/14 "publicar <contenido>" (`6852d7d` + `a4354e4` + `e305f1c` keyword-paridad).
