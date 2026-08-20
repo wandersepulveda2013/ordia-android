@@ -465,6 +465,82 @@ class SearchEngineDateScopeTest {
         assertEquals(setOf(1L), ids)
     }
 
+    // — Día + parte del día: la franja RECORTA el día ganador (paridad con —
+    // — AssistantEngine.agendaPartOfDay; antes devolvía TODO el día). —
+    // — 2026-08-13 es jueves; el viernes es 2026-08-14. —
+
+    @Test fun elViernesPorLaTarde_soloViernesTarde() {
+        val thursday = java.time.LocalDate.of(2026, 8, 13)
+        val friday = thursday.plusDays(1)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Viernes mañana", dueAt = atHour(friday, 9)),
+            TaskEntity(id = 2, title = "Viernes tarde", dueAt = atHour(friday, 15)),
+            TaskEntity(id = 3, title = "Jueves tarde", dueAt = atHour(thursday, 15))
+        )
+        val ids = SearchEngine.search("el viernes por la tarde", pod, emptyList(), emptyList(), emptyList(), now = atHour(thursday, 8)).map { it.id }.toSet()
+        assertEquals(setOf(2L), ids)
+    }
+
+    @Test fun elViernesEnLaManana_soloViernesManana() {
+        val thursday = java.time.LocalDate.of(2026, 8, 13)
+        val friday = thursday.plusDays(1)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Viernes mañana", dueAt = atHour(friday, 8)),
+            TaskEntity(id = 2, title = "Viernes tarde", dueAt = atHour(friday, 16))
+        )
+        val ids = SearchEngine.search("el viernes en la mañana", pod, emptyList(), emptyList(), emptyList(), now = atHour(thursday, 8)).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun elViernesSolo_sigueSiendoDiaCompleto() {
+        // Control anti-regresión: sin modificador de franja, el día entra entero.
+        val thursday = java.time.LocalDate.of(2026, 8, 13)
+        val friday = thursday.plusDays(1)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Viernes mañana", dueAt = atHour(friday, 9)),
+            TaskEntity(id = 2, title = "Viernes tarde", dueAt = atHour(friday, 15)),
+            TaskEntity(id = 3, title = "Jueves tarde", dueAt = atHour(thursday, 15))
+        )
+        val ids = SearchEngine.search("el viernes", pod, emptyList(), emptyList(), emptyList(), now = atHour(thursday, 8)).map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L), ids)
+    }
+
+    @Test fun mananaPorLaTarde_soloTardeDeManana() {
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val tomorrow = today.plusDays(1)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Mañana mañana", dueAt = atHour(tomorrow, 9)),
+            TaskEntity(id = 2, title = "Mañana tarde", dueAt = atHour(tomorrow, 15)),
+            TaskEntity(id = 3, title = "Hoy tarde", dueAt = atHour(today, 15))
+        )
+        val ids = SearchEngine.search("mañana por la tarde", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 8)).map { it.id }.toSet()
+        assertEquals(setOf(2L), ids)
+    }
+
+    @Test fun hoyPorLaTarde_soloTardeDeHoy() {
+        val today = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Hoy mañana", dueAt = atHour(today, 9)),
+            TaskEntity(id = 2, title = "Hoy tarde", dueAt = atHour(today, 15))
+        )
+        val ids = SearchEngine.search("hoy por la tarde", pod, emptyList(), emptyList(), emptyList(), now = atHour(today, 8)).map { it.id }.toSet()
+        assertEquals(setOf(2L), ids)
+    }
+
+    @Test fun elFindePorLaNoche_soloNocheDelFinde() {
+        // Hoy (jueves 13) → próximo finde = sábado 15 + domingo 16.
+        val thursday = java.time.LocalDate.of(2026, 8, 13)
+        val saturday = thursday.plusDays(2)
+        val sunday = thursday.plusDays(3)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Sábado mañana", dueAt = atHour(saturday, 10)),
+            TaskEntity(id = 2, title = "Domingo noche", dueAt = atHour(sunday, 20)),
+            TaskEntity(id = 3, title = "Sábado noche", dueAt = atHour(saturday, 21))
+        )
+        val ids = SearchEngine.search("el finde por la noche", pod, emptyList(), emptyList(), emptyList(), now = atHour(thursday, 8)).map { it.id }.toSet()
+        assertEquals(setOf(2L, 3L), ids)
+    }
+
     @Test fun tardeConTexto_filtraDentroDeLaFranja() {
         val today = java.time.LocalDate.of(2026, 8, 13)
         val pod = listOf(

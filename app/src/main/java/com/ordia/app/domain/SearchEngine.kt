@@ -137,6 +137,19 @@ object SearchEngine {
         val morningOfTodayPrep = MORNING_OF_TODAY_PREP.containsMatchIn(normalized) &&
             WEEKDAY_TOKENS.none { it in words }
         val dateScope = detectDateScope(words, morningOfTodayPrep)
+        // Día + parte del día ("el viernes por la tarde", "mañana en la noche",
+        // "hoy por la mañana"): la franja RECORTA el día ganador en vez de
+        // devolverlo entero — la misma lectura que el asistente
+        // ([AssistantEngine.agendaPartOfDay] aplica la franja encima del rango
+        // del día). Sólo aplica a scopes de día completo (TODAY/TOMORROW/
+        // DAY_AFTER_TOMORROW/YESTERDAY/WEEKDAY/WEEKEND); los scopes de franja
+        // (MORNING/TARDE/NOCHE/MADRUGADA) ya la llevan implícita.
+        val dayBand: IntRange? = when (dateScope) {
+            DateScope.TODAY, DateScope.TOMORROW, DateScope.DAY_AFTER_TOMORROW,
+            DateScope.YESTERDAY, DateScope.WEEKDAY, DateScope.WEEKEND ->
+                partOfDayBand(normalized, words)
+            else -> null
+        }
         // Cuando la búsqueda expresa un rango de fecha ("hoy", "mañana", ...),
         // las palabras de fecha no se exigen en el contenido: se filtra por fecha.
         val dateWords = if (dateScope != null) dateScopeTokens(words) else emptySet()
@@ -257,7 +270,7 @@ object SearchEngine {
                     (!wantsCompleted || task.completed) &&
                     (!wantsFlagged || task.flagged) &&
                     (!wantsRecurring || task.recurrence != RecurrenceFrequency.NONE) &&
-                    (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted, weekdayTarget = weekdayTarget, weekendTarget = weekendTarget)) &&
+                    (dateScope == null || taskMatchesDateScope(task, dateScope, now, zone, anchorOnCompleted = wantsCompleted, weekdayTarget = weekdayTarget, weekendTarget = weekendTarget, dayBand = dayBand)) &&
                     (matches(task.title, task.details, *ph, *pa, *th) || semanticMatches(TASK_TERMS + priorityTerms + completedTerms + flaggedTerms + recurringTerms, task.title, task.details, *ph, *pa, *th))
             }.forEach {
                 add(Ranked(SearchResult(SearchKind.TASK, it.id, it.title, it.dueAt?.let(DateRules::formatDate) ?: it.details.take(90)), urgencyRank(it, now), it.dueAt ?: Long.MAX_VALUE, TaskRules.isMissedStart(it, now)))
@@ -542,6 +555,24 @@ object SearchEngine {
     // El lookbehind fijo "(?<!manana )" bloquea "mañana en la mañana" y
     // "pasado mañana en la mañana": ahí el primer "mañana" es tomorrow.
     private val MORNING_OF_TODAY_PREP = Regex("(?<!manana )\\b(?:en|por) la manana\\b")
+
+    // Franja explícita pedida por la consulta cuando el scope ganador es un DÍA
+    // completo (hoy/mañana/pasado mañana/ayer/weekday/finde). Es la misma tabla
+    // de franjas que [scopeBand] pero disparada por los tokens de la consulta en
+    // vez de por el scope: "tarde"->12..17, "noche"->18..23, "madrugada"->0..5 y
+    // las formas de mañana ("esta mañana", "en/por la mañana")->6..11. A
+    // diferencia de `morningOfTodayPrep` (que excluye el weekday para que el
+    // día gane), aquí la forma preposicional SÍ aplica con weekday presente: en
+    // "el viernes en la mañana" el viernes gana el día y la franja lo recorta
+    // (idéntico al asistente: weekday + agendaPartOfDay).
+    private fun partOfDayBand(normalized: String, words: List<String>): IntRange? = when {
+        "esta" in words && TOMORROW_TOKENS.any { it in words } -> 6..11
+        MORNING_OF_TODAY_PREP.containsMatchIn(normalized) -> 6..11
+        EARLY_MORNING_TOKENS.any { it in words } -> 0..5
+        LATE_AFTERNOON_TOKENS.any { it in words } -> 12..17
+        NIGHT_TOKENS.any { it in words } -> 18..23
+        else -> null
+    }
     private val YESTERDAY_TOKENS = setOf("ayer")
     // "anteayer"/"antier" = el día antes de ayer. El parser de captura resuelve
     // ambos a base.minusDays(2) ([NaturalTaskParser], con tests en
@@ -689,6 +720,11 @@ object SearchEngine {
         // semana/mes (tokens distintos). Resolución estricta-vs-inclusiva en
         // resolveWeekdayTarget, no aquí: el scope solo indica "es un weekday".
         WEEKDAY_TOKENS.any { it in words } -> DateScope.WEEKDAY
+        // Fin de semana: también va ANTES de las partes del día (igual que el
+        // weekday) para que "el finde por la noche" resuelva al finde y la
+        // franja lo recorte, en vez de caer a la NOCHE de hoy (mentira cruzada
+        // con el asistente, que aplica la franja encima del rango del finde).
+        isWeekendQuery(words) -> DateScope.WEEKEND
         // La parte del día se evalúa DESPUÉS de hoy/mañana/ayer: así "hoy tarde"
         // o "mañana tarde" resuelven al día explícito (más amplio) en vez de
         // quedarse solo con la franja de hoy. Sin palabra de día, "tarde"/"noche"/
@@ -708,7 +744,6 @@ object SearchEngine {
         // que la palabra "semana" de "fin de semana" NO dispare THIS_WEEK. "finde"
         // suelto también casa. La resolución (próximo sábado estricto) vive en
         // resolveWeekendTarget, no aquí: el scope solo indica "es un finde".
-        isWeekendQuery(words) -> DateScope.WEEKEND
         WEEK_TOKENS.any { it in words } && NEXT_WEEK_TOKENS.any { it in words } -> DateScope.NEXT_WEEK
         WEEK_TOKENS.any { it in words } && LAST_WEEK_TOKENS.any { it in words } -> DateScope.LAST_WEEK
         WEEK_TOKENS.any { it in words } -> DateScope.THIS_WEEK
@@ -761,8 +796,22 @@ object SearchEngine {
         zone: ZoneId,
         anchorOnCompleted: Boolean = false,
         weekdayTarget: LocalDate? = null,
-        weekendTarget: LocalDate? = null
+        weekendTarget: LocalDate? = null,
+        dayBand: IntRange? = null
     ): Boolean {
+        // Recorte por franja sobre un DÍA concreto ("el viernes por la tarde"):
+        // basta con que UNA marca (startAt o dueAt) caiga ese día dentro de la
+        // franja — la misma lógica OR de las partes del día ([scopeBand]) y
+        // simétrica con PlannerCalendar/AssistantEngine (una tarea agendada a
+        // las 10 que vence a las 15 sigue siendo "de la tarde" por su plazo).
+        // Sólo se invoca bajo `dayBand != null` (las ramas sin franja conservan
+        // la membresía por día intacta); devolver false sin banda es el
+        // comportamiento seguro ante un uso accidental.
+        fun onDayInBand(day: LocalDate, epoch: Long?): Boolean {
+            val band = dayBand ?: return false
+            val zoned = epoch?.let { Instant.ofEpochMilli(it).atZone(zone) } ?: return false
+            return zoned.toLocalDate() == day && zoned.hour in band
+        }
         if (scope == DateScope.OVERDUE) return TaskRules.isOverdue(task, now)
         // "olvidadas": unión de los TRES olvidos de Ordía — un plazo incumplido
         // ([TaskRules.isOverdue]), un hueco planificado que se pasó sin completarse
@@ -806,6 +855,11 @@ object SearchEngine {
             // (simétrico con PlannerCalendar.datesFor y AssistantEngine).
             val stt = task.startAt?.let { DateRules.toLocalDate(it, zone) }
             val due = task.dueAt?.let { DateRules.toLocalDate(it, zone) }
+            // Día + franja ("el viernes por la tarde"): el weekday gana el día
+            // y la franja lo recorta (paridad con AssistantEngine.agendaPartOfDay).
+            if (dayBand != null) {
+                return onDayInBand(target, task.startAt) || onDayInBand(target, task.dueAt)
+            }
             return stt == target || due == target
         }
         // Fin de semana (sábado+domingo del próximo finde): la fecha objetivo es el
@@ -828,6 +882,12 @@ object SearchEngine {
             val stt = task.startAt?.let { DateRules.toLocalDate(it, zone) }
             val due = task.dueAt?.let { DateRules.toLocalDate(it, zone) }
             fun inWeekend(d: LocalDate?) = d != null && (d == saturday || d == sunday)
+            // Finde + franja ("el finde por la noche"): la franja recorta cada
+            // día del finde (sábado o domingo) por separado.
+            if (dayBand != null) {
+                return onDayInBand(saturday, task.startAt) || onDayInBand(saturday, task.dueAt) ||
+                    onDayInBand(sunday, task.startAt) || onDayInBand(sunday, task.dueAt)
+            }
             return inWeekend(stt) || inWeekend(due)
         }
         // Los scopes pasados ("ayer", "semana pasada", "mes pasado") recuperan
@@ -877,6 +937,24 @@ object SearchEngine {
         // slot agendado por `startAt` cuyo vencimiento era posterior, mintiendo por
         // omisión en las consultas más cotidianas. `anchorMatchesScope` ignora un
         // epoch nulo (devuelve false), así el OR es seguro sin falsear miembros.
+        // Día relativo + franja ("hoy por la tarde", "mañana en la noche"): el
+        // día ganador se recorta por la franja explícita, igual que el
+        // asistente recorta hoy/mañana/pasado mañana con agendaPartOfDay. Con
+        // anclaje en completadas la franja no aplica (completedAt ancla el día;
+        // la hora de terminación no es la lectura de "qué terminé el viernes").
+        if (dayBand != null) {
+            val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+            val targetDay: LocalDate? = when (scope) {
+                DateScope.TODAY -> today
+                DateScope.TOMORROW -> today.plusDays(1)
+                DateScope.DAY_AFTER_TOMORROW -> today.plusDays(2)
+                DateScope.YESTERDAY -> today.minusDays(1)
+                else -> null
+            }
+            if (targetDay != null) {
+                return onDayInBand(targetDay, task.startAt) || onDayInBand(targetDay, task.dueAt)
+            }
+        }
         return anchorMatchesScope(scope, task.startAt, now, zone, fullCalendarWeek = false) ||
             anchorMatchesScope(scope, task.dueAt, now, zone, fullCalendarWeek = false)
     }
