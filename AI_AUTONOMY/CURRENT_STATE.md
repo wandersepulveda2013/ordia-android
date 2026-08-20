@@ -1,3 +1,14 @@
+## Ciclo c.782 — 2026-08-20 (UTC) — feat(assistant): paridad búsqueda↔asistente "recurrentes/repetitivas" por PALABRA (el 4º gap OPEN de la sonda c.779 cerrado; integración NO destructiva con hermanos c.780/c.781)
+
+- **Situación al inicio**: base inicial `c0b6686` (c.779) → implementé 3 gaps (prioridad/flagged/recurring, 15 tests) → **fetch PRE-PUSH reveló hermanos: `8f7c5eb` c.780 (prioridad, mismo gap) + `508e17f` c.781 (flagged, mismo gap) ya pusheados; COLISION 2×2**: mi duplicado descartado con `git reset --soft` + checkout del HEAD hermano `f05699c` (NO destructivo sobre trabajo de otros), conservado sólo el (ii) recurrente/repetitiva. Integración re-verificada (**4863 = 4859 + 4**, 0 fallos). **Colisión auth**: `$GITHUB_TOKEN` vacío → cambiamos a `$github_token` y la push proseguirá.
+- **Problema (P1, paridad/recuperación contra olvido)**: (ii) "tareas recurrentes"/"repetitivas" — la búsqueda las recupera (`task.recurrence != NONE` vía RECURRING_TOKENS; el usuario las marcó explícitamente), el asistente caía al menú genérico (mentira por omisión cruzada).
+- **Solución (cambio mínimo, sin nueva UI/IA fingida)**: rama `isRecurringQuery` en `AssistantEngine.answer` (después de `isFlaggedQuery`, antes de undated) + `RECURRING_WORDS` — 4 adjetivos `recurrente(s)/repetitiva(s)`, coincidencia por palabra exacta como el hermano (os residentes FLAGGED_WORDS/priority); excluye de diseño el sustantivo "repetición" (título de tarea única) y el verbo "repetir". Vacío honesto nunca menú, recuperación de compromiso vencido, `relatedTaskIds`.
+- **TDD**: +4 tests `recurring_*` (RED exacto anteriormente verificado: 3 fallos exactos → GREEN): lista sólo recurrence≠NONE, sinónimos (`tareas repetitivas`/`las recurrentes`), vacío honesto, guard sustantivo "la repetición de la clase".
+- **Pruebas**: `run_domain_tests.sh` → **OK (4863 tests)**, 0 failures; `run_domain_checks.sh` → 25/25 OK. Prueba re-ejecutada sobre la base de los hermanos.
+- **AI_AUTONOMY**: CURRENT_STATE c.782 prepend; BACKLOG (ii) marcado FIXED→VERIFIED c.782 (resto iv-vi OPEN); RUN_LOG append.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
+- **HEAD final**: tras commit/push de este ciclo sobre `f05699c`.
+- **Próxima prioridad**: gaps OPEN restantes — (iv) bare temporal "tareas de <día>" sin marcador de agenda; (vi) vocabulario missed "¿qué se me pasó?"; (v) notas fijadas → OPEN_SEARCH. Re-fetch OBLIGATORIO; numerar ciclo SOLO en fetch final.
 
 ## Ciclo c.780 — 2026-08-20 (UTC) — feat(assistant): niveles EXACTOS de prioridad en el asistente ("tareas de prioridad alta/baja", "alta/baja prioridad" — paridad búsqueda↔asistente; gap residual (iii) de la sonda c.779)
 

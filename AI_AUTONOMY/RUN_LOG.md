@@ -16579,3 +16579,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - Resolución NO destructiva (precedentes post-c.771 `61c1963`, post-c.772 `9d895b2`, post-c.773 `dda9251`, post-c.774 `c5031be`): duplicado local descartado SIN pérdida (`git checkout --` de mis 5 archivos) → `git merge --ff-only` limpio a `508e17f`. NO force, NO --hard, NO toques a `main`.
 - Verificación INDEPENDIENTE sobre `508e17f` (árbol limpio): suite **OK (4859 tests: 4853 + 6 del hermano)**, 0 failures; `run_domain_checks.sh` 25/25 OK. (El guard-substring "desmarcada" del hermano es más fino que el mío.) **NO VERIFICADO** gradle/Android/UI/Room/lint (sin SDK).
 - Lección anti-colisión (4ª cycle-ID/DUPLICADO hoy): dos runs en paralelo sobre el mismo pool OPEN volvieron a colisionar pese al fetch pre-commit; el hermano numeró c.781 primero. Escalonar los horarios de inicio de los supervisores (ya apuntado post-c.774). Este run resulta en docs-only.
+
+## 2026-08-20 — c.782 — feat(assistant): gap (ii) "recurrentes/repetitivas" (paridad búsqueda↔asistente) — integración NO destructiva de colisión con hermanos c.780/c.781
+
+- **HEAD inicial**: `c0b6686` (c.779). Trabajé sobre esa base hasta que el fetch pre-push reveló a los hermanos `8f7c5eb` (c.780) y `508e17f` (c.781). La colisión se resolvió con `git reset --soft` + checkout del HEAD hermano remoto `f05699c` (no destructivo); sólo (ii) recurrente/repetitiva conservada aquí.
+- **Cambios**: `AssistantEngine.kt` — `isRecurringQuery` + `RECURRING_WORDS` (adjetivos `recurrente(s)/repetitiva(s)`, coincidencia por palabra exacta; excluye sustantivo "repetición" y verbo "repetir"); colocados tras `isFlaggedQuery` (c.781 hermano). Import `RecurrenceFrequency`. `AssistantEngineTest.kt` +4 tests `recurring_*`.
+- **Bugs**: gap (ii) de la sonda c.779 cerrado — la tarea marcada como recurrente era recuperada por la búsqueda pero el asistente respondía menú (mentira por omisión cruzada).
+- **Features**: rama por palabra-exacta (misma doctrina que los hermanos c.780/c.781): vacío honesto, recuperación de compromiso vencido, `relatedTaskIds`. Sin nueva UI ni heurísticas opacas.
+- **Tests**: `tools/run_domain_tests.sh` → **OK (4863 = 4859 hermano + 4 nuevos TDD: `recurringRecurrentes_*`, `recurringRepetitivas_*`, `recurringEmpty_isHonestNotMenu`, `recurring_doesNotHijackNounOrVerb`)**, 0 failures; `tools/run_domain_checks.sh` → 25/25 OK. SONDAS exactas pre-GREEN verificadas. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room con DAOs reales (sin Android SDK).
+- **Commits**: este append (code+docs en commit único sobre `f05699c`).
+- **HEAD final**: tras este push.
+- **Próxima prioridad**: gaps OPEN restantes — (iv) bare temporal, (vi) vocabulario missed "se me pasó", (v) notas fijadas → OPEN_SEARCH.

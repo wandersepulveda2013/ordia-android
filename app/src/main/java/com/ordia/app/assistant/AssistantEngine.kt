@@ -7,6 +7,7 @@ import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
 import com.ordia.app.data.local.TaskStatus
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.domain.CommitmentRules
 import com.ordia.app.domain.DateRules
 import com.ordia.app.domain.DayLoad
@@ -533,6 +534,23 @@ object AssistantEngine {
                     relatedTaskIds = hits.map { it.id }
                 )
             }
+            // Tareas recurrentes ("recurrentes"/"repetitivas", por PALABRA, como
+            // RECURRING_TOKENS de SearchEngine — paridad de superficies c.781-flagged).
+            // Formas ADJETIVAS: ni el sustantivo "repetición" (aparece en títulos
+            // de tareas únicas) ni el verbo "repetir". Vacío honesto con cola de
+            // compromisos vencidos, igual que las demás ramas.
+            isRecurringQuery(query) -> {
+                val recurring = WhatNowEngine.ordered(active, now, zone)
+                    .filter { it.recurrence != RecurrenceFrequency.NONE }.take(6)
+                if (recurring.isEmpty() && overdueCommitments.isNotEmpty()) {
+                    return overdueCommitmentAnswer(overdueCommitments)
+                }
+                AssistantAnswer(
+                    if (recurring.isEmpty()) "No tienes tareas recurrentes."
+                    else "Tienes ${recurring.size} recurrentes: " + recurring.joinToString(" · ") { it.title } + overdueCommitmentTail(overdueCommitments),
+                    relatedTaskIds = recurring.map { it.id }
+                )
+            }
             // Tareas sin fecha ("sin fecha"/"sin día"/"sin plazo"/"sin vencimiento").
             // La búsqueda (SearchEngine.UNDATED) las recupera; el asistente caía al
             // menú genérico y la tarea sin vencimiento —la más olvidable de todas—
@@ -787,6 +805,16 @@ object AssistantEngine {
 
     private fun isFlaggedQuery(query: String): Boolean =
         query.split(" ").any { it in FLAGGED_WORDS }
+
+    // Intención "tareas recurrentes": adjetivos por palabra exacta, mismo
+    // mutismo que FLAGGED_WORDS; no "repetición" (título de tarea única) ni
+    // "repetir" (acción ya resuelta). Token-sync con SearchEngine.RECURRING_TOKENS.
+    private val RECURRING_WORDS = setOf(
+        "recurrente", "recurrentes", "repetitiva", "repetitivas"
+    )
+
+    private fun isRecurringQuery(query: String): Boolean =
+        query.split(" ").any { it in RECURRING_WORDS }
 
     // Intención "tareas sin fecha": identica al scope UNDATED de SearchEngine
     // ("sin" + hint: fecha/vencimiento/día/plazo), así búsqueda y asistente

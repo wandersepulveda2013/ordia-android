@@ -3,6 +3,7 @@ package com.ordia.app.assistant
 import com.ordia.app.data.local.FocusSessionEntity
 import com.ordia.app.data.local.TaskEntity
 import com.ordia.app.data.local.TaskPriority
+import com.ordia.app.data.local.RecurrenceFrequency
 import com.ordia.app.domain.DateRules
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -4661,6 +4662,43 @@ class AssistantEngineTest {
         )
         assertEquals(listOf(2L, 1L), answer.relatedTaskIds)
         assertTrue("usa la rama de prioridad: ${answer.text}", answer.text.contains("importante"))
+    }
+
+    // Recurrentes por adjetivos ("recurrente(s)"/"repetitiva(s)" por palabra,
+    // como RECURRING_TOKENS de SearchEngine — paridad flagged de c.781): el
+    // usuario las marcó explícitamente y el asistente las devolvía al menú.
+
+    @Test fun recurringRecurrentes_listsOnlyRecurring() {
+        val recurring = TaskEntity(id = 1, title = "Backup semanal", recurrence = RecurrenceFrequency.WEEKLY)
+        val daily = TaskEntity(id = 4, title = "Gimnasio cada día", recurrence = RecurrenceFrequency.DAILY)
+        val ordinary = TaskEntity(id = 2, title = "Factura única")
+        val answer = AssistantEngine.answer(
+            "¿qué tareas recurrentes tengo?",
+            listOf(recurring, ordinary, daily),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L, 4L), answer.relatedTaskIds)
+        assertTrue("lista only recurrents: ${answer.text}", !answer.text.contains("Factura única"))
+    }
+
+    @Test fun recurringRepetitivas_sameVocabulary() {
+        for (q in listOf("tareas repetitivas", "las recurrentes", "¿tienes recurrentes?")) {
+            val answer = AssistantEngine.answer(q, emptyList(), emptyList(), emptyList())
+            assertTrue("[$q] respuesta vaciable no-menu: ${answer.text}", answer.text.contains("No tienes tareas recurrentes."))
+        }
+    }
+
+    @Test fun recurringEmpty_isHonestNotMenu() {
+        val answer = AssistantEngine.answer("¿qué tareas recurrentes tengo?", emptyList(), emptyList(), emptyList())
+        assertTrue("no menu: ${answer.text}", answer.text.startsWith("No tienes tareas recurrentes."))
+    }
+
+    @Test fun recurring_doesNotHijackNounOrVerb() {
+        // "repetición" (sustantivo) y "repetir" no son pedir las recurrentes:
+        // evita que "la repetición de la clase" abra la rama.
+        val ordinary = TaskEntity(id = 1, title = "la repetición de la clase")
+        val answer = AssistantEngine.answer("preparar la repetición de la clase", listOf(ordinary), emptyList(), emptyList())
+        assertTrue("noun does not list recurring: ${answer.text}", answer.relatedTaskIds.isEmpty())
     }
 
 }
