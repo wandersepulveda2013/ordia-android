@@ -1,3 +1,14 @@
+## Run c.721 — 2026-08-20 (UTC) — feat(context): piso TASK "terminar <objeto>" — forma 1/19 TERCERA clase (sonda NUEVA) — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `e1f9f35` (ff-only limpio; push c.720).
+- **Selección (P1)**: siguiente paso registrado por c.720-era-next — sondear una **TERCERA clase de formas cotidianas** en `ContextIntentEngine.analyze`. Sonda NUEVA persistente `tools/probe/ThirdClassVerbDiscoveryProbe.kt`: 19 candidatos (verbos de gestión de cierre/completitud: terminar/completar/organizar/redactar/leer/escribir/corregir/traducir/actualizar/subir/descargar/archivar/llenar + verbos de hogar no cubiertos: tender/hacer cama/poner lavadora/cortar césped/aspirar/quitar el polvo) → **19/19 NULL** (olvido silencioso); 14 controles (negada/duda/sustantivo/pasado/suelto/chat) → NULL (aditivos). Forma elegida esta UNA (doctrina una-forma-por-ciclo): **"terminar <objeto>"** — ya keyword de TASK, pero sin piso la base post-penalización-quedaba bajo umbral → `analyze` = NULL. Causa raíz: ausencia de piso (misma clase que toda la serie c.691…c.720).
+- **Solución**: piso `terminar` en `hasStrongTaskImperative` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`, `\s+\w` exige objeto) + plantilla `(terminar) X`→"Terminar X" (patrón c.691…c.720). Keyword "terminar" ya existía en TASK (lockstep piso↔keyword de regalo — no necesita cambio). Decisión de kind: **TASK, en deliberación contra DEADLINE** — "terminar" es la acción de cerrar/completar el objeto (informe/tarea/proyecto/formulario), no un marcador de fecha tope (c.654). Anti-overreach: negada NULL, duda NULL, sustantivo "término" NULL, pasado "terminé…" NULL, suelto "terminar" NULL; envolvente "recuérdame terminar…" gobierna TASK (c.613). Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +10 tests `ContextIntentEngineTerminarFloorTest.kt` — RED exacto 4/10 (capturas), 6 verdes de entrada (controles+regresión) → GREEN **OK (4261 tests)** (4251 c.720 + 10), 0 failures; smoke 25 OK; automation 9 OK. Sonda POST-fix: "terminar el informe mañana" → TASK 'Terminar el informe' dueAt=true; 5 controles aditivos NULL. Quedan 18 OPEN (resto de segunda y tercera clasificación pendiente de deliberación).
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla en extractTitle), `test/.../ContextIntentEngineTerminarFloorTest.kt` (NUEVO +10), `tools/probe/ThirdClassVerbDiscoveryProbe.kt` (NUEVO, persistente — la sonda vive en de la TERCERA clase), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN de la TERCERA clase (deliberar kind: "organizar <objeto>" TASK/NOTE; "completar <objeto>" TASK; "poner la lavadora" HOUSEHOLD…). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+- **HEAD final**: tras el commit integrado (feat+docs en uno, staging heredado del stash-pop).
+
 ## Run c.720 — 2026-08-20 (UTC) — feat(context): piso TASK "recordar a <persona> <evento>" — forma 10/14 ÚLTIMA (sonda cerrada) — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `3f5279d` (ff-only limpio; la STALE c.719-3 ya estaba integrada).
@@ -7,7 +18,7 @@
 - **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla extractTitle), `context/ContextIntent.kt` (keyword "recordar a" en TASK), `test/.../ContextIntentEngineRecordarAFloorTest.kt` (NUEVO +11), `tools/probe/ManagementVerbDiscoveryProbe.kt` (+4 controles), AI_AUTONOMY ×3.
 - **Próxima prioridad**: nueva sonda de TERCERA clase (p.ej. pronombres-encuadre / verbos de hogar) antes que P2; re-fetch OBLIGATORIO (3 STALE duplicados seguidos).
 - **Estado**: VERIFIED en JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
-- **HEAD final**: tras los 2 commits (feat + docs).
+- **HEAD final**: tras el commit integrado (feat+docs en uno, staging heredado del stash-pop).
 
 ## Run c.720-STALE — 2026-08-20 (UTC) — rama openhands/autonomous-ordia
 

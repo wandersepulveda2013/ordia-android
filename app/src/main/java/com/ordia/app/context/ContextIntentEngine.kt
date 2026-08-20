@@ -869,6 +869,18 @@ object ContextIntentEngine {
             // propia no casa), sustantivo "recuerdo" no casa, pasado
             // "recordé…" no casa, suelto "recordar a" no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )recordar\s+a\s+\w""").containsMatchIn(lower)
+            // c.721 (forma 1/19 TERCERA clase de formas cotidianas, sonda
+            // `tools/probe/ThirdClassVerbDiscoveryProbe.kt`): "terminar
+            // <objeto>" ("terminar el informe mañana"). Ya era keyword de
+            // TASK, pero la base baja tras la penalización de ambigüedad no
+            // alcanzaba [MINIMUM_CONFIDENCE] sin piso. Kind decidido: TASK,
+            // en deliberación contra DEADLINE — "terminar" es la acción de
+            // cerrar/completar el objeto (informe/tarea/proyecto/formulario),
+            // no un marcador de fecha tope (c.654). Anti-overreach: `\s+\w`
+            // exige objeto, `(?<!no )` bloquea la negada, sustantivo
+            // "término" no casa, pasado "terminé…" no casa, suelto
+            // "terminar" no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )terminar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1576,6 +1588,12 @@ object ContextIntentEngine {
                 // temporal despojado).
                 val matchRecordar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(recordar)\s+(a\s+.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchRecordar != null) return "Recordar ${matchRecordar.groupValues[2]}"
+
+                // "terminar X" → "Terminar X" (c.721): mismo criterio
+                // que c.691…c.720 (verbo preservado, acuse/prefijo
+                // temporal despojado).
+                val matchTerminar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(terminar)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchTerminar != null) return "Terminar ${matchTerminar.groupValues[2]}"
 
                 null
             }

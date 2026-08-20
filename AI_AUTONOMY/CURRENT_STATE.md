@@ -1,3 +1,14 @@
+## Ciclo c.721 — 2026-08-20 (UTC) — feat(context): piso TASK "terminar <objeto>" (forma 1/19 TERCERA clase — sonda NUEVA)
+
+- **HEAD**: inicial `e1f9f35`-origin (ff-only limpio; final tras este log: feat + docs).
+- **Selección (P1, siguiente paso registrado por c.720)**: sonda NUEVA persistente `tools/probe/ThirdClassVerbDiscoveryProbe.kt` para la TERCERA clase de formas cotidianas. PRE: 19/19 candidatos NULL (verbos de gestión de cierre: terminar/completar/organizar/redactar/leer/escribir/corregir/traducir/actualizar/subir/descargar/archivar/llenar + hogar no cubierto: tender/hacer cama/poner lavadora/cortar césped/aspirar/quitar el polvo); 14 controles NULL (aditivos). Forma elegida UNA (doctrina): **"terminar <objeto>"**.
+- **Solución**: piso `terminar` en `hasStrongTaskImperative` (ancla inicio/acuse/`TASK_FLOOR_TEMPORAL`, `(?<!no )`, `\s+\w` exige objeto) + plantilla "(terminar) X"→"Terminar X" (patrón c.691…c.720). Keyword "terminar" ya en TASK (de regalo). **Kind decidido: TASK, en deliberación contra DEADLINE** — acción de cerrar/completar el objeto, no marcador de fecha tope (c.654). Anti-overreach: negada/duda/sustantivo "término"/pasado "terminé…"/suelto "terminar" → NULL; envolvente c.613 gobierna TASK. Determinista (regex), cero random/IA fingida/UI.
+- **TDD**: +10 tests `ContextIntentEngineTerminarFloorTest.kt`; RED exacto 4/10 (capturas) → GREEN **OK (4261 tests)** (4251 c.720 + 10), 0 failures; smoke 25 OK; automation 9 OK; sonda POST: "terminar el informe mañana" → TASK 'Terminar el informe' dueAt=true. Quedan 18 OPEN.
+- **Archivos**: `context/ContextIntentEngine.kt` (+piso +plantilla), `test/.../ContextIntentEngineTerminarFloorTest.kt` (NUEVO +10), `tools/probe/ThirdClassVerbDiscoveryProbe.kt` (NUEVO), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN tercera-clase (deliberar kind). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM (kotlinc 2.1.20, jars `/tmp/libs`, JDK 21). **NO VERIFICADO** Android/gradle/lint/UI/Room (sin SDK).
+- **Colisión concurrente resuelta NO destructivo**: el remoto avanzó 2 commits du-rante el trabajo (docs-only: STALE c.720 duplicado de forma 10/14) → stash→ff-only→pop; conflicto sólo en este archivo (ambos prepend); se conserva AMBAS entradas (mi c.721 arriba, su STALE abajo).
+
 ## Ciclo c.720-STALE — 2026-08-20 (UTC) — rama openhands/autonomous-ordia
 
 - **HEAD**: inicial local `e305f1c`; al preparar el push el remoto había avanzado a `e1f9f35` (resolución concurrente de la MISMA forma 10/14 "recordar a <persona> <evento>", su `2bb7a09` + docs `e1f9f35`).
