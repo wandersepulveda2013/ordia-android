@@ -1,3 +1,34 @@
+## Ciclo c.724 — 2026-08-20 (UTC) — feat(context): piso TASK "subir <objeto>" (forma 11/19 TERCERA clase)
+
+- **Objetivo**: onceava forma de la TERCERA clase cotidiana (verbos de gestión
+  de cierre/completitud + hogar; sondeo c.721): "subir el documento hoy" →
+  TASK. Piso en `hasStrongTaskImperative` (anclas inicio/acuse/`TASK_FLOOR_TEMPORAL`,
+  guard `(?<!no )`, `\s+\w` exige objeto) + keyword "subir" en TASK
+  (`ContextIntent.kt` — lockstep piso↔keyword, lección c.713) + plantilla
+  "(subir) X"→"Subir X". Evita el derrame "subida/facebook" (tipo c.706/c.723).
+- **Deliberación de kind**: TASK contra NOTE/TRAVEL (acción de gestión sobre
+  el objeto, no contenido ni desplazamiento — criterio c.704).
+- **Anti-overreach**: negada/quizá (c.649/canónico) NULL; sustantivo "la
+  subida…" NULL; pasado "subí el documento ayer" NULL; suelto "subir" NULL
+  (`\s+\w` exige objeto); envolvente c.613 gobierna ("recuérdame subir el
+  documento" → TASK 'Subir el documento').
+- **Test**: +10 en `ContextIntentEngineSubirFloorTest.kt` (RED exacto 4/10 →
+  GREEN). Sonda c.721 POST (forma 11/19) → TASK 'Subir el documento' dueAt=true;
+  5 controles (negada/quizá/sustantivo/pasado/suelto) NULL.
+- **Resultados**: `bash tools/run_domain_tests.sh` → **OK (4361 tests)**
+  (4351 c.723 + 10), 0 failures; `run_domain_checks.sh` → smoke 25 OK;
+  `run_automation_engine_checks.sh` → 9 OK. Sonda POST Ok.
+- **NO VERIFICADO**: gradle completo/lint/assemble/UI/Room (sin Android SDK).
+- Compatibilidad: sin migración Room; envolvente c.613 estable.
+- **Próxima prioridad c.725**: P1 CONTINUACIÓN descubrimiento TERCERA clase —
+  formas OPEN: "descargar la factura mañana", "llenar la solicitud mañana",
+  "tender la ropa hoy", "hacer la cama mañana", "poner la lavadora esta tarde",
+  "cortar el césped el sábado", "aspirar la alfombra mañana", "quitar el polvo
+  hoy" (una por ciclo, lección c.713, con sondeo y deliberación de kind forma
+  a forma). Otros P0/P1 según BACKLOG.
+
+
+
 ## Ciclo c.723 — 2026-08-20 (UTC) — feat(context): piso TASK "archivar <objeto>" (forma 10/19 TERCERA clase)
 
 - **HEAD**: inicial `6b3b60c`-origin (ff-only limpio; final tras commit).

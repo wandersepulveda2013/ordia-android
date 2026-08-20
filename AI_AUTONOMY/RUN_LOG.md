@@ -1,3 +1,13 @@
+## Run c.724 — 2026-08-20 (UTC) — feat(context): piso TASK "subir <objeto>" — forma 11/19 TERCERA clase — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `d9714ea` (push c.723, ff-only limpio). **Selección (P1)**: "subir <objeto>" (sonda). Doctrina una-forma-por-ciclo.
+- **Solución**: piso `subir` + keyword TASK + plantilla "(subir) X"→"Subir X". **Kind decidido: TASK, en deliberación contra NOTE/TRAVEL** — acción de gestión sobre el objeto; NOTE es contenido (criterio c.704). Controles NULL (negada/quizá/"subida"/"subí…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineSubirFloorTest.kt` — RED exacto 4/10 (capturas) → GREEN **OK (4361 tests)** (4351 + 10), 0 failures; smoke 25 OK; automation 9 OK. Sonda POST → TASK 'Subir el documento' dueAt=true; 5 controles NULL. Quedan 8 OPEN (descargar/llenar + hogar × 6).
+- **Archivos**: engine (+piso +plantilla), `ContextIntent.kt` (+keyword), probe (+5 controles c.724 + comentario), test NUEVO (+10), AI_AUTONOMY ×3.
+- **Colisiones**: str_replace anclado a comentario falló ×2 (keyword/sonda) → resuelto con única coincidencia/python; sin efecto.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android/gradle/lint/UI/Room.
+- **Diffs**: (hash del commit tras push).
+
 ## Run c.723 — 2026-08-20 (UTC) — feat(context): piso TASK "archivar <objeto>" — forma 10/19 TERCERA clase — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `6b3b60c` (push c.722, ff-only limpio). **Selección (P1)**: "archivar <objeto>" (sonda). Doctrina una-forma-por-ciclo.

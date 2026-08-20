@@ -68,6 +68,13 @@ fun main() {
         "el archivo del contrato fue ayer",
         "archivé el contrato ayer",
         "archivar",
+        // Controles c.724 (forma "subir"): negada/duda/sustantivo/
+        // pasado/verbo suelto deben permanecer NULL.
+        "no subir el documento hoy",
+        "quizá subir el documento hoy",
+        "la subida del documento fue ayer",
+        "subí el documento ayer",
+        "subir",
         "y al final terminé contento jeje",
         "hola buenos días"
     )
