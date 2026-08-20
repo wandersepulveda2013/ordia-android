@@ -1,3 +1,10 @@
+## Ciclo c.721f — 2026-08-20 (UTC) — feat(context): piso TASK "escribir <objeto>" (forma 6/19 TERCERA clase)
+
+- **HEAD**: inicial `acc073d`-origin (ff-only limpio; final tras commit).
+- **Solución**: piso `escribir` + keyword TASK + plantilla "(escribir) X"→"Escribir X". **Kind decidido: TASK, en deliberación contra NOTE** (criterio c.704). Controles NULL (negada/duda/"escritura"/"escribí…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineEscribirFloorTest.kt`; RED exacto 4/10 → GREEN **OK (4311 tests)** (4301 + 10), 0 failures; smoke 25 OK; automation 9 OK; sonda POST → TASK 'Escribir el informe' dueAt=true. Quedan 13 OPEN.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android.
+
 ## Ciclo c.721e — 2026-08-20 (UTC) — feat(context): piso TASK "leer <objeto>" (forma 5/19 TERCERA clase)
 
 - **HEAD**: inicial `6f20aab`-origin (ff-only limpio; final tras commit).

@@ -1,3 +1,14 @@
+## Run c.721f — 2026-08-20 (UTC) — feat(context): piso TASK "escribir <objeto>" — forma 6/19 TERCERA clase — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `acc073d` (push c.721e, ff-only limpio).
+- **Selección (P1)**: "escribir <objeto>" (sonda). Doctrina una-forma-por-ciclo.
+- **Solución**: piso `escribir` + keyword TASK + plantilla "(escribir) X"→"Escribir X". **Kind decidido: TASK, en deliberación contra NOTE** (criterio c.704). Controles NULL (negada/duda/"escritura"/"escribí…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineEscribirFloorTest.kt` — RED exacto 4/10 → GREEN **OK (4311 tests)** (4301 + 10), 0 failures; smoke 25 OK; automation 9 OK. Sonda POST → TASK 'Escribir el informe' dueAt=true. Quedan 13 OPEN.
+- **Archivos**: engine (+piso +plantilla), `ContextIntent.kt` (+keyword), test NUEVO (+10), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN tercera-clase (~13 restantes). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android.
+- **HEAD final**: tras el commit.
+
 ## Run c.721e — 2026-08-20 (UTC) — feat(context): piso TASK "leer <objeto>" — forma 5/19 TERCERA clase — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `6f20aab` (push c.721d, ff-only limpio).

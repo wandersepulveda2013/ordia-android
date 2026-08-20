@@ -917,6 +917,13 @@ object ContextIntentEngine {
             // Anti-overreach: `\s+\w` exige objeto, `(?<!no )` bloquea negada,
             // sustantivo "lectura"/pasado "leí…"/suelto no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )leer\s+\w""").containsMatchIn(lower)
+            // c.721f (forma 6/19 tercera clase): "escribir <objeto>".
+            // Lockstep piso+keyword (c.713). Kind decidido: TASK, en
+            // deliberación contra NOTE — acción de componer el objeto; NOTE
+            // es contenido, no acción (criterio c.704). Anti-overreach:
+            // `\s+\w` exige objeto, sustantivo "escritura"/pasado "escribí…"
+            // no casa.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )escribir\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -1647,6 +1654,9 @@ object ContextIntentEngine {
                 // lección c.616: match arranca en el verbo).
                 val matchLeer = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(leer)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchLeer != null) return "Leer ${matchLeer.groupValues[2]}"
+                // c.721f: misma plantilla para "escribir".
+                val matchEscribir = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(escribir)\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchEscribir != null) return "Escribir ${matchEscribir.groupValues[2]}"
 
                 null
             }
