@@ -16546,3 +16546,16 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Commits**: tras este append (prefijo feat(assistant)).
 - **HEAD final**: tras push.
 - **Próxima prioridad**: gaps residuales sonda c.779 (BACKLOG fila OPEN): prioridad alta/baja, marcadas/destacadas, recurrentes, bare temporal "tareas de <día>", notas fijadas (→OPEN_SEARCH), "¿qué se me pasó?".
+
+---
+
+## 2026-08-20 — c.780 — feat(assistant): niveles EXACTOS de prioridad (paridad búsqueda↔asistente, residual (iii))
+
+- **HEAD inicial**: `c0b6686` (c.779); fetch PRE-COMMIT sin avance remoto (local == remoto, SIN colisión); numerado c.780 tras fetch final.
+- **Cambios**: `AssistantEngine.kt` (`isPriorityQuery` → `priorityIntent(query)`: Triple(niveles, etiqueta, vacío honesto); +HIGH solo / +LOW solo por palabra con guarda "prioridad"; urgente/importante intactos por especificidad); `AssistantEngineTest.kt` (+6 TDD); sonda extendida en /tmp con las 4 consultas de prioridad.
+- **Bugs**: 1 familia — "tareas de prioridad alta/baja", "alta/baja prioridad" → menú genérico pese a que la búsqueda filtra HIGH/LOW exactas (mentira por omisión cruzada entre superficies).
+- **Features**: listado por nivel exacto (sin nueva pantalla); guarda simétrica a búsqueda ("alta médica"/"baja del auto"/"saltar prioridad" no disparan); vacío honesto NUNCA menú; ruteo a compromisos vencidos en paridad c.416.
+- **Tests**: `tools/run_domain_tests.sh` → OK (4853: 4847 base c.779 + 6 nuevos), 0 failures; `run_domain_checks.sh` → 25/25 OK; sonda POST: prioridad alta (T=[1]≡ids=[1]) / baja (T=[8]≡ids=[8]) CERRADOS. NO VERIFICADO Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Commits**: tras este append (prefijo feat(assistant)).
+- **HEAD final**: tras push.
+- **Próxima prioridad**: gaps residuales sonda c.779 (BACKLOG fila OPEN): (i) marcadas/destacadas, (ii) recurrentes, (iv) bare temporal "tareas de <día>", (v) notas fijadas (→OPEN_SEARCH), (vi) "¿qué se me pasó?" (extensión simétrica).

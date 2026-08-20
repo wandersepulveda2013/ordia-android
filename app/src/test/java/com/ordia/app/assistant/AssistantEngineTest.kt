@@ -200,6 +200,85 @@ class AssistantEngineTest {
         assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
     }
 
+    // --- c.780: niveles EXACTOS de prioridad (paridad búsqueda↔asistente,
+    // sonda diferencial c.779). "tareas de prioridad alta/baja" las filtra la
+    // búsqueda por palabra (hasPriorityWord + alta/bajas → HIGH/LOW exacto)
+    // pero el asistente caía al menú genérico. La guarda exige la palabra
+    // "prioridad" (simétrica a SearchEngine), así "alta" sola ("alta médica")
+    // ni "baja" sola ("baja del auto") disparan. ---
+    @Test fun priorityAlta_listsOnlyHighTier_exactNotUrgent() {
+        val low = TaskEntity(id = 1, title = "Menor", priority = TaskPriority.LOW)
+        val high = TaskEntity(id = 2, title = "Alta pero no urgente", priority = TaskPriority.HIGH)
+        val urgent = TaskEntity(id = 3, title = "Entrega crítica", priority = TaskPriority.URGENT)
+        val answer = AssistantEngine.answer(
+            "tareas de prioridad alta",
+            listOf(low, high, urgent),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+        assertTrue("habla de prioridad alta: ${answer.text}", answer.text.contains("prioridad alta"))
+        assertTrue("no lista low/urgent: ${answer.text}", !answer.text.contains("Menor") && !answer.text.contains("Entrega crítica"))
+    }
+
+    @Test fun priorityAlta_invertedWordOrder_altaPrioridad() {
+        val high = TaskEntity(id = 2, title = "Alta", priority = TaskPriority.HIGH)
+        val answer = AssistantEngine.answer(
+            "¿qué tengo en alta prioridad?",
+            listOf(TaskEntity(id = 1, title = "Normal"), high),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(2L), answer.relatedTaskIds)
+        assertTrue("prioridad alta: ${answer.text}", answer.text.contains("prioridad alta"))
+    }
+
+    @Test fun priorityBaja_listsOnlyLowTier() {
+        val low = TaskEntity(id = 1, title = "Paseo", priority = TaskPriority.LOW)
+        val answer = AssistantEngine.answer(
+            "tareas de prioridad baja",
+            listOf(TaskEntity(id = 2, title = "Normal"), low),
+            emptyList(), emptyList()
+        )
+        assertEquals(listOf(1L), answer.relatedTaskIds)
+        assertTrue("prioridad baja: ${answer.text}", answer.text.contains("prioridad baja"))
+        assertTrue("no lista normal: ${answer.text}", !answer.text.contains("Normal"))
+    }
+
+    @Test fun priorityAlta_wordGuard_noPriorityWord_noSeDispara() {
+        // "alta" sin la palabra "prioridad" NO abre el filtro ("alta médica",
+        // "alta en el sistema"); simétrico a la guarda de búsqueda. La
+        // consulta sigue cayendo al menú genérico, no a un listado inventado.
+        val high = TaskEntity(id = 2, title = "Alta", priority = TaskPriority.HIGH)
+        val answer = AssistantEngine.answer("alta médica", listOf(high), emptyList(), emptyList())
+        assertTrue("no lista por prioridad: ${answer.text}", !answer.text.contains("prioridad alta"))
+        assertTrue("cae al menú honesto: ${answer.text}", answer.text.contains("Puedo organizar tu día"))
+    }
+
+    @Test fun priorityBaja_emptyIsHonestNotGeneric() {
+        val answer = AssistantEngine.answer(
+            "tareas de prioridad baja",
+            listOf(TaskEntity(id = 1, title = "Normal")),
+            emptyList(), emptyList()
+        )
+        assertTrue("no cae al menú genérico: ${answer.text}", !answer.text.contains("Puedo organizar tu día"))
+        assertTrue("vacío honesto: ${answer.text}", answer.text.contains("No tienes tareas de prioridad baja"))
+    }
+
+    @Test fun priorityAlta_recoversOverdueCommitmentWhenEmpty() {
+        // Paridad con la rama c.677: sin ese nivel pero CON un compromiso
+        // vencido, "no hay de prioridad alta" sería mentira por omisión.
+        val now = 1_000_000_000_000L
+        val commitment = overdueCommitment(33, "envío el informe", now - 2 * 86_400_000L)
+        val answer = AssistantEngine.answer(
+            "tareas de prioridad alta",
+            emptyList(),
+            emptyList(),
+            listOf(commitment),
+            now
+        )
+        assertEquals(AssistantAction.OPEN_CONVERSATIONS, answer.action)
+        assertTrue("nombra el compromiso vencido: ${answer.text}", answer.text.contains("envío el informe"))
+    }
+
     // --- Sobrecarga ("estoy abrumado/agobiado": c.702): ante una señal de
     // saturación emocional la respuesta debe REDUCIR carga, no listar ni dar el
     // menú de capacidades. Una única acción (la ordenada por What Now), el

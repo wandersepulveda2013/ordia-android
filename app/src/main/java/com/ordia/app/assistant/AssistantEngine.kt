@@ -65,6 +65,7 @@ object AssistantEngine {
         // así que vive aparte en [CommitmentRules]. Se calcula aquí, fuente única,
         // para que el asistente no mienta por omisión en "¿qué olvidé?"/"vencidas".
         val overdueCommitments = CommitmentRules.overduePendingSorted(commitments, now)
+        val priorityIntent = priorityIntent(query)
         return when {
             isPlannerIntent(query) -> {
                 val pending = if (active.size == 1) "1 tarea pendiente" else "${active.size} tareas pendientes"
@@ -479,30 +480,34 @@ object AssistantEngine {
             // normalizada de SearchEngine. Va tras agenda/what-now/recap (éstas se
             // evalúan antes y describen conjuntos, no una entidad concreta).
             isEntityLookupQuery(query) -> entityLookupAnswer(query, active, now, zone)
-            // Filtro por prioridad EXPLÍCITA ("urgente"/"importante"). El usuario ya
-            // marcó esa señal en la captura con URGENT/HIGH del enum; "urgente" filtra
-            // el nivel URGENT y "importante" cubre HIGH+URGENT (los dos niveles altos
-            // del modelo LOW/NORMAL/HIGH/URGENT). Se listan en el orden de What Now
-            // para que lo primero nombrado sea lo primero sugerido. IA honesta:
-            // responde con la señal que el propio usuario puso, no con una inferencia.
-            // Va tras recap/entity-lookup para no robar consultas que combinen tiempo
-            // o entidad con "urgente"/"importante" ("¿cuándo es lo urgente?" sigue
-            // resolviéndose como entity-lookup). Con lista vacía y un compromiso
-            // vencido rutea a la recuperación (paridad con c.416 "tareas de 15
-            // minutos": "no tienes urgentes" frente a una promesa vencida es mentira
-            // por omisión); con coincidencias anexa la cola de conteo
-            // (overdueCommitmentTail).
-            isPriorityQuery(query) -> {
-                val isUrgent = "urgente" in query
-                val allowed = if (isUrgent) setOf(TaskPriority.URGENT) else setOf(TaskPriority.HIGH, TaskPriority.URGENT)
-                val label = if (isUrgent) "urgentes" else "importantes"
+            // Filtro por prioridad EXPLÍCITA ("urgente"/"importante" y los
+            // niveles exactos "prioridad alta"/"prioridad baja"). El usuario ya
+            // marcó esa señal en la captura con el enum LOW/NORMAL/HIGH/URGENT:
+            // "urgente" filtra URGENT; "importante" cubre HIGH+URGENT (los dos
+            // niveles altos); y —paridad búsqueda↔asistente de la sonda
+            // diferencial c.779— "prioridad alta" filtra EXACTAMENTE HIGH y
+            // "prioridad baja" EXACTAMENTE LOW, como hace SearchEngine con
+            // hasHighPriorityIntent/hasLowPriorityIntent. Antes las dos
+            // últimas caían al menú genérico pese a que la búsqueda las
+            // recuperaba. Se listan en el orden de What Now para que lo
+            // primero nombrado sea lo primero sugerido. IA honesta: responde
+            // con la señal que el propio usuario puso, no con una inferencia.
+            // Va tras recap/entity-lookup para no robar consultas que combinen
+            // tiempo o entidad con el marcador ("¿cuándo es lo urgente?" sigue
+            // resolviéndose como entity-lookup). Con lista vacía y un
+            // compromiso vencido rutea a la recuperación (paridad con c.416
+            // "tareas de 15 minutos": "no tienes urgentes" frente a una
+            // promesa vencida es mentira por omisión); con coincidencias anexa
+            // la cola de conteo (overdueCommitmentTail).
+            priorityIntent != null -> {
+                val (allowed, hitLabel, emptyText) = priorityIntent
                 val hits = WhatNowEngine.ordered(active, now, zone).filter { it.priority in allowed }.take(6)
                 if (hits.isEmpty() && overdueCommitments.isNotEmpty()) {
                     return overdueCommitmentAnswer(overdueCommitments)
                 }
                 AssistantAnswer(
-                    if (hits.isEmpty()) "No tienes tareas marcadas como $label."
-                    else "Tienes ${hits.size} $label: " + hits.joinToString(" · ") { it.title } + overdueCommitmentTail(overdueCommitments),
+                    if (hits.isEmpty()) emptyText
+                    else "Tienes ${hits.size} $hitLabel: " + hits.joinToString(" · ") { it.title } + overdueCommitmentTail(overdueCommitments),
                     relatedTaskIds = hits.map { it.id }
                 )
             }
@@ -716,12 +721,34 @@ object AssistantEngine {
             query.split(Regex("\\s+")).any { it in COMPLETED_ADJECTIVE_TOKENS }
 
     /**
-     * Guarda de la rama de prioridad explícita: la consulta menciona "urgente"
-     * o "importante" (plural incluido por subcadena). Tokens sin acento tras
-     * `foldForSearch`. Par de tokens deliberado y pequeño para no secuestrar
-     * otras ramas; el desempate ("urgente" preferente) ocurre en la rama.
+     * Intención de prioridad EXPLÍCITA de la consulta (ya plegada por
+     * `foldForSearch`): (niveles permitidos, etiqueta del listado, mensaje
+     * honesto de vacío). Devuelve `null` cuando no hay marcador. Cobertura en
+     * paridad exacta con SearchEngine:
+     *  - "prioridad alta"/"alta prioridad" → sólo HIGH (hasHighPriorityIntent);
+     *  - "prioridad baja"/"baja prioridad" → sólo LOW (hasLowPriorityIntent);
+     *  - "urgente" → sólo URGENT;
+     *  - "importante" → HIGH+URGENT (los dos niveles altos).
+     * Los niveles exigen la palabra "prioridad" como desambiguador —idéntico a
+     * la búsqueda— así "alta" sola ("alta médica") ni "baja" sola ("baja del
+     * auto") disparan, y la comparación es por PALABRA (no subcadena) para que
+     * "saltar prioridad" no prenda por la "alta" interna de "saltar". El
+     * desempate resuelve el nivel explícito primero (alta/baja), después
+     * "urgente" y por último "importante" (orden de especificidad).
      */
-    private fun isPriorityQuery(query: String): Boolean = "urgente" in query || "importante" in query
+    private fun priorityIntent(query: String): Triple<Set<TaskPriority>, String, String>? {
+        val words = query.split(Regex("\\s+"))
+        val hasPriorityWord = "prioridad" in words || "prioridades" in words
+        return when {
+            hasPriorityWord && ("alta" in words || "altas" in words) ->
+                Triple(setOf(TaskPriority.HIGH), "de prioridad alta", "No tienes tareas de prioridad alta.")
+            hasPriorityWord && ("baja" in words || "bajas" in words) ->
+                Triple(setOf(TaskPriority.LOW), "de prioridad baja", "No tienes tareas de prioridad baja.")
+            "urgente" in query -> Triple(setOf(TaskPriority.URGENT), "urgentes", "No tienes tareas marcadas como urgentes.")
+            "importante" in query -> Triple(setOf(TaskPriority.HIGH, TaskPriority.URGENT), "importantes", "No tienes tareas marcadas como importantes.")
+            else -> null
+        }
+    }
 
     // Intención "tareas sin fecha": identica al scope UNDATED de SearchEngine
     // ("sin" + hint: fecha/vencimiento/día/plazo), así búsqueda y asistente
