@@ -1,3 +1,16 @@
+## Ciclo c.792 — 2026-08-20 (UTC) — fix(assistant): calificador de contenido «tareas de/del/de la <X>» rutea a búsqueda (paridad búsqueda↔asistente)
+
+- **HEAD inicial**: `bae3922` (c.791 hermano de contexto integrado por ff-only en el fetch PRE de este ciclo; regiones disjuntas, cero colisión).
+- **Problema (P1 asistente / paridad entre superficies / IA honesta / MENOS ES MÁS)**: la sonda nueva `tools/probe/ContentQualifiedProbe.kt` (persistida c.792) marcaba 6 gaps residuales: «tareas de matemáticas», «tareas del proyecto», «tareas de la casa», «tareas de química», «pendientes de la casa», «pendientes con matemáticas» — la búsqueda filtra por el calificador, el asistente caía al menú genérico (mentira por omisión cruzada; residuo documentado en c.784: su guard del conector temporal «bare» SÓLO cubría alcance temporal).
+- **Causa raíz**: ninguna rama del `when` reclamaba «tareas/pendientes + de/del + calificador de contenido»; caía al `else`/menú.
+- **Solución (cambio mínimo, MENOS ES MÁS)**: helper puro `isContentQualifiedTasksQuery` (sujeto `tarea(s)/pendiente(s)` con artículo inicial opcional `las/los`; conector `de|del` + artículo `la/las/los/el` opcional; ≥1 palabra de calificador) + rama final del despacho ANTES del `else` → `AssistantAction.OPEN_SEARCH` con la consulta. Todos los vocabularios (completadas/marcadas/recurrentes/prioridad/entidad/tiempo libre/sobrecarga/posponer/tiempo invertido/agenda/compromisos/notas fijadas) reclaman antes; «tareas de hoy» la cubre `isAgendaQuery` mucho antes. Ruta honesta: la búsqueda (matcher de contenido real), NUNCA respuesta inventada. Cero UI/screen nueva.
+- **TDD**: RED verificado — 5 fallos exactos (los 4 guardias pasaban pre-fix, como debía) → implement → GREEN. Además el test guardia c.784 `tareasDeSinAlcanceTemporal_fallsBackToMenu` se actualizó a `..._routesToOpenSearch` (bloquea la nueva ruta honesta, no la degrada).
+- **Tests nuevos**: 9 — 5 rutas (de/del/de la/variante pendientes/variante interrogativa) + 4 guardias (vocabularios siguen en su rama — prioridad, también la agenda; suelto sin calificador → menú; notas fijadas siguen en su rama).
+- **Verificación**: `bash tools/run_domain_tests.sh` → **OK (4904 tests: 4895 c.791 + 9)**, 0 failures; `run_domain_checks.sh` → 25/25; sonda `tools/run_probe.sh tools/probe/ContentQualifiedProbe.kt` — todas las 6 formas ahora → `OPEN_SEARCH`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK); rama verificada en JVM.
+- **AI_AUTONOMY**: CURRENT_STATE c.792 prepend; RUN_LOG c.792 prepend; BACKLOG fila FIXED nueva pre-puesta.
+- **Próxima prioridad**: nueva ronda de descubrimiento (probes de paridad/intel; áreas OPEN). Numerar en el fetch final, como siempre.
+
 ## Ciclo c.791 — 2026-08-20 (UTC) — fix(context): paridad fecha para «medianoche»/«mediodía» en hasDateReference — el GAP flagged por `tools/parity-probe/ProbeParity.kt` deja de existir (0 <<< GAP)
 
 - **HEAD inicial**: `250407e` (docs c.790 hermano DEDUPE del residuo «marqué»; fetch PRE-COMMIT: stash → ff-only → pop, limpio).

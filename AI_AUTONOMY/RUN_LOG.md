@@ -1,3 +1,8 @@
+## Ciclo c.792 (2026-08-20, paridad búsqueda↔asistente — calificador de contenido «tareas de/del/de la <X>»)
+
+Base `bae3922` (c.791 hermano de contexto integrado ff-only en el fetch PRE; regiones disjuntas). **Problema**: sonda nueva `tools/probe/ContentQualifiedProbe.kt` — 6 gaps residuales «tareas de/del/de la <contenido>» (búsqueda filtra, asistente al menú; residuo c.784). **Solución**: helper puro `isContentQualifiedTasksQuery` (sujeto tarea(s)/pendiente(s) + artículo inicial opcional + conector de/del + artículo opcional + calificador no-vacio) → última rama del despacho antes del `else` → `OPEN_SEARCH`; el guardia c.784 se actualizó a bloquear la nueva ruta. **TDD RED→GREEN**: 5 fallos exactos + 4 guardias; suite **OK (4904: 4895 + 9)**; smoke 25/25; sonda POST: 6/6 → OPEN_SEARCH. **Estado**: VERIFIED (JVM). **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs.
+
+---
 ## Ciclo c.791 (2026-08-20, probe de paridad fecha medianoche/mediodía — gap cerrado)
 
 Base `250407e` (c.790 hermano docs DEDUPE «marqué»; stash → ff-only → pop limpio). **Problema**: `ProbeParity.kt` flagged «a medianoche»/«al mediodía» con `<<< GAP` (extractDateTime=true pero hasDateReference=false → bono +0.1 omitido). **Solución**: `hasDateReference` admite las 3 formas; comentario con evidencia probe. **Tests**: +4 con reflexión (positivos ×3 + NEGATIVO «el reporte pasado»). **Suite**: OK (4895: 4891 hermano + 4) + smoke 25 + probe **0 <<< GAP**. NO VERIFICADO Android/UI/Room (sin SDK). HEAD final: tras push.

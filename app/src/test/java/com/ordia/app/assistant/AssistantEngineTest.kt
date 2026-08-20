@@ -2071,13 +2071,12 @@ class AssistantEngineTest {
         assertEquals(listOf(2L), answer.relatedTaskIds)
     }
 
-    @Test fun tareasDeSinAlcanceTemporal_fallsBackToMenu() {
+    @Test fun tareasDeSinAlcanceTemporal_routesToOpenSearch() {
         // Guardia: "tareas de matemáticas" (sin alcance temporal) NO es agenda —
-        // la búsqueda la resuelve por contenido; el asistente sigue al menú
-        // (cierre del hueco de contenido = otro gap, no c.783).
+        // la búsqueda la resuelve por contenido. c.792: la ruta honesta deja de
+        // ser el menú y pasa a OPEN_SEARCH (paridad con «notas fijadas» c.787).
         val answer = agendaAnswerFor("tareas de matemáticas", emptyList())
-        assertTrue("menú genérico, no agenda: ${answer.text}", answer.text.contains("Puedo organizar"))
-        assertTrue("sin ids: ${answer.relatedTaskIds}", answer.relatedTaskIds.isEmpty())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
     }
 
     @Test fun proximaSemana_listsNextWeekNotThisWeek() {
@@ -4914,6 +4913,61 @@ class AssistantEngineTest {
     @Test fun pinnedNotes_guard_bareFijadaDoesNotRoute() {
         // "fijada" sin "nota(s)" no es una consulta de notas fijadas.
         val answer = AssistantEngine.answer("fijada", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    // c.792 — (i) conector de contenido «tareas de/del/de la <X>»: caía al menú
+    // genérico mientras SearchEngine sí filtraba por el calificador (residuo
+    // documentado c.784 del conector temporal «bare»). Ruta honesta = vista de
+    // búsqueda (matcher de contenido real), paridad con «notas fijadas» c.787.
+    @Test fun contentQualified_tareasDeContenido_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("tareas de matemáticas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("tareas de matemáticas", answer.actionPayload ?: answer.text)
+    }
+
+    @Test fun contentQualified_tareasDelContenido_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("tareas del proyecto", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun contentQualified_tareasDeLaContenido_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("tareas de la casa", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun contentQualified_pendientesDeContenido_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("pendientes de química", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun contentQualified_conArticulo_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("las tareas del proyecto", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun contentQualified_guard_temporalStillAgenda() {
+        // Alcance temporal sigue siendo agenda (isAgendaQuery va antes en el
+        // despacho): NUNCA se camufla como calificador de contenido.
+        val answer = AssistantEngine.answer("tareas de hoy", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun contentQualified_guard_completedStaysRecap() {
+        // «tareas completadas» es vocabulario (recap del logro), no calificador.
+        val answer = AssistantEngine.answer("tareas completadas hoy", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun contentQualified_guard_flaggedStaysFlagged() {
+        val answer = AssistantEngine.answer("tareas marcadas", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
+    @Test fun contentQualified_guard_noQualifierDoesNotRoute() {
+        // Sin calificador tras el conector no hay ruta: se comporta como antes
+        // (menú), nunca inventa una búsqueda vacía.
+        val answer = AssistantEngine.answer("tareas de", emptyList(), emptyList(), emptyList())
         assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
     }
 }

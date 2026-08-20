@@ -706,6 +706,22 @@ object AssistantEngine {
                     )
                 }
             }
+            // Recuperación por calificador de contenido (sonda de paridad
+            // búsqueda↔asistente c.792): «tareas de la casa», «tareas del
+            // proyecto», «pendientes de química» — caían al menú mientras
+            // SearchEngine sí filtraba por el calificador (residuo documentado
+            // c.784 del conector temporal «bare», cuyo guard SÓLO cubría alcance
+            // temporal). Se evalúa de ÚLTIMA: todos los vocabularios
+            // (completadas/marcadas/recurrentes/prioridad/entidad/tiempo libre/
+            // sobrecarga/posponer/tiempo invertido/agenda/compromisos/notas
+            // fijadas) reclaman antes su rama, y el alcance temporal («tareas
+            // de hoy») lo resuelve isAgendaQuery mucho antes — así aquí sólo
+            // llega un calificador real de contenido. Ruta honesta: la vista
+            // de búsqueda (matcher de contenido real), NUNCA una respuesta
+            // inventada. Paridad con «notas fijadas» c.787. Determinista; sin
+            // pantalla nueva; helper puro.
+            isContentQualifiedTasksQuery(query) ->
+                AssistantAnswer("Abriré la búsqueda con esa consulta.", AssistantAction.OPEN_SEARCH, clean)
             // Octavo olvido de la familia "lie-by-omission": la consulta no casa con
             // ninguna rama conocida y el asistente cae a su menú de capacidades. Es la
             // superficie de mayor tránsito para un usuario confundido —y justo ahí
@@ -851,6 +867,35 @@ object AssistantEngine {
     private fun isPinnedNotesQuery(query: String): Boolean {
         val words = query.split(" ")
         return words.any { it == "nota" || it == "notas" } && words.any { it in PINNED_NOTE_WORDS }
+    }
+
+    private val CONTENT_TASK_SUBJECTS = setOf("tarea", "tareas", "pendiente", "pendientes")
+    private val CONTENT_LEAD_ARTICLES = setOf("las", "los")
+    private val CONTENT_CONNECTOR_ARTICLES = setOf("la", "las", "los", "el")
+
+    /**
+     * Calificador de contenido de tareas: «tareas de la casa», «tareas del
+     * proyecto», «pendientes de química». Sujeto (tarea(s)/pendiente(s)) con
+     * artículo opcional («las/los/lo»), conector «de/del» + artículo opcional
+     * («la/las/los/el»), y al menos una palabra de calificador. Se evalúa de
+     * ÚLTIMA en el despacho; todos los vocabularios y el alcance temporal
+     * (agenda) se resuelven antes, así sólo llega un calificador real.
+     */
+    private fun isContentQualifiedTasksQuery(query: String): Boolean {
+        val words = query.split(Regex("\\s+"))
+        val subjectIdx = words.indexOfFirst { it in CONTENT_TASK_SUBJECTS }
+        if (subjectIdx < 0) return false
+        if (subjectIdx > 1 || (subjectIdx == 1 && words[0] !in CONTENT_LEAD_ARTICLES)) return false
+        val rest = words.drop(subjectIdx + 1)
+        if (rest.isEmpty() || (rest[0] != "de" && rest[0] != "del")) return false
+        val afterConnector = rest.drop(1)
+        if (afterConnector.isEmpty()) return false
+        val qualifier = if (rest[0] == "de" && afterConnector[0] in CONTENT_CONNECTOR_ARTICLES) {
+            afterConnector.drop(1)
+        } else {
+            afterConnector
+        }
+        return qualifier.isNotEmpty()
     }
 
     /**
