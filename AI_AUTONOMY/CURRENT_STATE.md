@@ -1,3 +1,31 @@
+## Ciclo c.725 — 2026-08-20 (UTC) — feat(context): piso TASK "descargar <objeto>" (forma 12/19 TERCERA clase)
+
+- **Objetivo**: duodécima forma de la TERCERA clase cotidiana (verbos de gestión
+  de cierre/completitud + hogar; sondeo c.721): "descargar la factura mañana" →
+  TASK. Piso en `hasStrongTaskImperative` (anclas inicio/acuse/`TASK_FLOOR_TEMPORAL`,
+  guard `(?<!no )`, `\s+\w` exige objeto) + keyword "descargar" en TASK
+  (`ContextIntent.kt` — lockstep piso↔keyword, lección c.713) + plantilla
+  "(descargar) X"→"Descargar X". Evita el derrame "descarga/morsa" (tipo c.706/c.723).
+- **Deliberación de kind**: TASK contra NOTE (descarga del objeto como gestión;
+  NOTE es contenido — criterio c.704).
+- **Anti-overreach**: negada/quizá NULL; sustantivo "la descarga…" NULL; pasado
+  "descargué la factura ayer" NULL; suelto "descargar" NULL; envolvente c.613
+  sigue gobernando TASK ("recuérdame descargar la factura ≠ piso; envolvente TASK").
+- **TDD**: +10 tests `ContextIntentEngineDescargarFloorTest.kt` (4 capturas RED
+  exacto → GREEN). RED declarado: 4 fallos / 10 tests (solo las 4 capturas).
+- **Pruebas**: suite `run_domain_tests.sh` **OK (4371 tests)** (4361 c.724 + 10),
+  0 failures; `run_domain_checks.sh` smoke **25/25 OK**;
+  `run_automation_engine_checks.sh` **9/9 OK**. Sonda POST: "descargar la
+  factura mañana" → TASK 'Descargar la factura' dueAt=true; +5 controles
+  neutralizados (NULL). Quedan 7 OPEN (llenar + hogar × 6) — próxima forma:
+  "llenar la solicitud mañana" (prob. TASK, deliberar contra FORM).
+- **Nota de calidad interna**: la forma "toca …" de la captura c/ acuse se
+  corrigió a "vale, …" (toca no es acuse; `ACK_PREFIX` fijo c.605) — era fallo
+  del TEST, no del motor; sin reducir assertions.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **HEAD**: inicial `7590001` (ff-only limpio sondado; final tras commit).
+
+
 ## Ciclo c.724 — 2026-08-20 (UTC) — feat(context): piso TASK "subir <objeto>" (forma 11/19 TERCERA clase)
 
 - **Objetivo**: onceava forma de la TERCERA clase cotidiana (verbos de gestión

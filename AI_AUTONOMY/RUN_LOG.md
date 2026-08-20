@@ -15848,3 +15848,29 @@ a un permiso persistente frágil y silencioso ante fallos.
 - AI_AUTONOMY: BACKLOG 9/14 (queda "recordar a <persona> <evento>"); CURRENT_STATE c.719 escrito.
 - Proxima prioridad: ultima forma OPEN ("recordar a", deliberar TASK vs REMINDER). Re-fetch OBLIGATORIO.
 - HEAD final: 6852d7d.
+
+## Run c.725 — 2026-08-20 (UTC) — rama openhands/autonomous-ordia
+
+- HEAD inicial: 7590001 (ff-only limpio).
+- Problema seleccionado (P1, sonda tercera clase, forma 12/19): "descargar la
+  factura mañana" → NULL (olvido silencioso). Kind decidido: TASK (deliberación
+  contra NOTE — descarga del objeto como gestión; NOTE es contenido, c.704).
+- Fix: piso `descargar` en `hasStrongTaskImperative` (anclas inicio/acuse/
+  TASK_FLOOR_TEMPORAL, guard `(?<!no )`, `\s+\w` exige objeto) + keyword
+  "descargar" en TASK (`ContextIntent.kt`, lockstep c.713) + plantilla
+  "(descargar) X"→"Descargar X". Anti-overreach: negada/quizá/sustantivo
+  "descarga"/pasado "descargué…"/suelto → NULL; envolvente c.613 gobierna TASK.
+- TDD: +10 tests `ContextIntentEngineDescargarFloorTest.kt`; RED exacto 4/10
+  (solo capturas) → GREEN. Nota: la forma de acuse "toca …" se corrigió a
+  "vale, …" (toca no es acuse; ACK_PREFIX c.605) — error del TEST corregido
+  pre-verde, sin reducir assertions.
+- Pruebas: `bash tools/run_domain_tests.sh` → OK (4371 tests) (4361 c.724 + 10);
+  `bash tools/run_domain_checks.sh` → smoke 25/25 OK;
+  `bash tools/run_automation_engine_checks.sh` → 9/9 OK; sonda POST (forma)
+  → TASK 'Descargar la factura' dueAt=true, +5 controles NULL; quedan 7 OPEN
+  ("llenar" + hogar × 6).
+- AI_AUTONOMY: BACKLOG 12/19 (quedan 7); CURRENT_STATE c.725 escrito.
+- Proxima prioridad: "llenar la solicitud mañana" (prob. TASK; deliberar contra
+  FORM). Re-fetch OBLIGATORIO antes de push.
+- NO VERIFICADO: Android/gradle/lint/UI/Room (sin SDK).
+- HEAD final: pendiente del commit (docs incluidos en el commit).

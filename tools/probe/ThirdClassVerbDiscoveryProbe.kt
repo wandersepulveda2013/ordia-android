@@ -75,6 +75,13 @@ fun main() {
         "la subida del documento fue ayer",
         "subí el documento ayer",
         "subir",
+        // Controles c.725 (forma "descargar"): negada/duda/sustantivo/
+        // pasado/verbo suelto deben permanecer NULL.
+        "no descargar la factura mañana",
+        "quizá descargar la factura mañana",
+        "la descarga de la factura fue ayer",
+        "descargué la factura ayer",
+        "descargar",
         "y al final terminé contento jeje",
         "hola buenos días"
     )
