@@ -92,10 +92,13 @@ class ContextIntentEnginePonerLavadoraFloorTest {
 
     @Test
     fun `objeto no lavadora no roba HOUSEHOLD`() {
-        // "poner la mesa" es hacer-objeto genérico: el piso queda acotado a
+        // "poner la música" es hacer-objeto genérico: el piso queda acotado a
         // `lavadora`, así el hogar NO lo captura (kind-drift anti-overreach).
+        // c.736: "poner la mesa" deja de servir de contraejemplo — pasó a ser
+        // piso HOUSEHOLD propio (`FourthClassChoreProbe` 1/7); el control de
+        // deriva se mantiene con un objeto NO doméstico.
         val intent = ContextIntentEngine.analyze(
-            ContextEvent(ContextCaptureSource.NOTIFICATION, "poner la mesa a las 2", 1000)
+            ContextEvent(ContextCaptureSource.NOTIFICATION, "poner la música a las 2", 1000)
         )
         if (intent != null) {
             assertNotEquals(ContextIntentKind.HOUSEHOLD, intent.kind)

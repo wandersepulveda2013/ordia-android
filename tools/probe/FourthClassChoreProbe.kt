@@ -3,7 +3,7 @@ import com.ordia.app.context.ContextEvent
 import com.ordia.app.context.ContextIntentEngine
 
 /**
- * Sonda de DESCUBRIMIENTO c.733: CUARTA clase de formas cotidianas —
+ * Sonda de DESCUBRIMIENTO c.734: CUARTA clase de formas cotidianas —
  * quehaceres domésticos de OBJETO ACOTADO sobre verbos bivalentes genéricos
  * (cuya acepción doméstica solo existe ligada al objeto).
  *
@@ -24,7 +24,8 @@ fun main() {
     val now = 1723939200000L
     val cases = listOf(
         // Candidatos: objeto acotado sobre verbos genéricos bivalentes
-        "poner la mesa hoy",                       // poner + mesa (≠ lavadora c.729)
+        // (c.736: "poner la mesa" ya cubierto — piso HOUSEHOLD_TABLE_FLOOR;
+        // queda en COBERTURA abajo como guard 1/7)
         "poner el lavavajillas esta noche",        // poner + lavavajillas (≠ lavadora c.729)
         "sacar al perro mañana",                   // sacar + perro (≠ basura c.717)
         "hacer la compra mañana",                  // hacer + compra (≠ cama c.728)
@@ -36,6 +37,10 @@ fun main() {
         // c.639 de HOUSEHOLD)
         "fregar los platos esta noche",
         "regar las plantas mañana",
+
+        // Cobertura CUARTA clase cerrada (c.736, forma 1/7 — guard de
+        // regresión; candidato promovido tras piso PROP c.736)
+        "poner la mesa hoy",
 
         // Regresiones de las clases cerradas (deben SEGUIR capturando)
         "poner la lavadora esta tarde",            // c.729

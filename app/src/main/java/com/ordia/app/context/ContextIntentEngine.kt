@@ -142,7 +142,15 @@ object ContextIntentEngine {
     // WASHER c.729 / LAWN c.731).
     private val HOUSEHOLD_DUST_FLOOR =
         Regex("""\b(?<!no )quitar\s+(?:el\s+|la\s+|los\s+|las\s+)?polvos?\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR)
+    // Piso faena doméstica "poner la mesa" (c.736, forma 1/7 de la CUARTA
+    // clase — sonda `FourthClassChoreProbe.kt` c.734): "poner" suelto es
+    // ambiguo (la música/la alarma/las pilas) y ya tiene piso acotado
+    // WASHER c.729, así "poner la mesa" (EL quehacer del comedor) se
+    // ACOTA al objeto `mesa(s)` (familia TRASH c.717 / BED c.728 /
+    // WASHER c.729 / DUST c.732). `\b` final: "mesada" no casa.
+    private val HOUSEHOLD_TABLE_FLOOR =
+        Regex("""\b(?<!no )poner\s+(?:el\s+|la\s+|los\s+|las\s+)?mesas?\b""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -1941,6 +1949,18 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchQuitar != null) {
                     return "${capitalizeFirst(matchQuitar.groupValues[1])} ${matchQuitar.groupValues[2]}"
+                }
+                // "poner (la) mesa(s) …" → "Poner la mesa …" (c.736):
+                // verbo preservado y objeto restringido como en
+                // [HOUSEHOLD_TABLE_FLOOR] (familia lockstep c.717; la
+                // bivalencia de "poner" se resuelve por objeto: lavadora
+                // c.729 arriba, mesa aquí — no colisionan).
+                val matchPonerMesa = Regex(
+                    """\b(?<!no )(poner)\s+((?:el\s+|la\s+|los\s+|las\s+)?mesas?\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchPonerMesa != null) {
+                    return "${capitalizeFirst(matchPonerMesa.groupValues[1])} ${matchPonerMesa.groupValues[2]}"
                 }
                 // Verbos alineados con [hasStrongHouseholdImperative] (c.638/c.639) para que
                 // el piso no capture un verbo cuyo título luego no se forme limpio.
