@@ -3,6 +3,18 @@
 - **Evidencia**: `bash tools/run_probe.sh tools/probe/ManagementVerbDiscoveryProbe.kt` POST en HEAD → los 14 candidatos capturan (TASK, NOTE, HOUSEHOLD, ERRAND; "Recordar a papá el almuerzo mañana" → TASK dueAt=true) y todos los controles → NULL.
 - **Cambio**: cabecera de la fila → CLOSED (14/14; higiene c.733). CERO código, cero tests (cambio documental).
 - **Estado**: VERIFIED (sonda POST). **NO VERIFICADO** Android (n/a, docs).
+## Run c.734 — 2026-08-20 (renumerado de c.733 por colisión de cycle-ID con run paralelo que publicó c.733 higiene docs) (UTC) — discovery(context): sonda CUARTA clase quehaceres objeto-acotado (7 OPEN) + integridad docs — rama openhands/autonomous-ordia
+- **HEAD inicial**: `5ee8ff1` → STALE: `git fetch` reveló cadena remota c.729…c.732 (`fc5aefd`/`1b00da0`/`b9ae43f`/`5c013ef`). Mi implementación local de c.729 "poner la lavadora" (completa y verde) era duplicada → DESCARTADA (stash drop), ff-only hasta `5c013ef`. Sin force, sin sobrescritura.
+- **Colisión 2 (paralela)**: durante el trabajo, el remoto publicó c.733 docs-higiene (`efcc69b`) que cerró la fila ManagementVerbDiscoveryProbe — la MISMA reparación que yo tenía preparada → stash+ff+pop; en la resolución se conservó SU versión y se descartó mi reparación (duplicada); mi ciclo se renumeró c.733→c.734.
+- **Cambios**: (1) NUEVA sonda persistente `tools/probe/FourthClassChoreProbe.kt` (clase 4: quehaceres domésticos de objeto acotado sobre verbos genéricos bivalentes). PRE: 7/7 candidatos NULL; guards fregar/regar→HOUSEHOLD; regresiones c.729/c.732 OK; controles 6/6 NULL. (2) BACKLOG: nuevo ítem P1 top (7 OPEN). (3) Recuperación honesta de la entrada c.732 en CURRENT_STATE/RUN_LOG (su commit afirmaba actualizar docs pero solo tocó BACKLOG).
+- **Tests**: suite JVM **OK (4441 tests)** en `5c013ef` (re-verificación). **NO VERIFICADO** Android/gradle/UI/Room.
+- **Próxima prioridad**: clase 4, forma 1/7 "poner la mesa hoy" → piso acotado `mesa(s)` (familia c.717/c.728/c.729/c.731/c.732) + keyword + plantilla + test + sonda POST. Re-fetch antes.
+- **Estado**: VERIFIED JVM (sonda PRE reproducible). **NO VERIFICADO** Android.
+## Run c.732 (registro recuperado en c.734) — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "quitar el polvo" — forma 19/19 — CIERRA sonda tercera clase c.721 — rama openhands/autonomous-ordia
+- **HEAD inicial**: `b9ae43f` (push c.731). Selección (P1): "quitar el polvo" (última OPEN hogar).
+- **Solución**: piso `quitar el polvo` ACOTADO al objeto `polvo(s)` (familia TRASH/BED/WASHER/LAWN) + keyword "polvo" + plantilla "(quitar)(el) polvo(s)"→"Quitar el polvo". Kind deliberado: HOUSEHOLD. Anti-overreach: negada/quizá/pasado "quité…"/suelto NULL; kind-drift "quitar la mancha" NULL.
+- **TDD**: +10 tests `ContextIntentEngineQuitarPolvoFloorTest.kt` (RED 4/10 → GREEN **OK 4441**, 0 failures; smokes 25/9 OK; sonda POST HOUSEHOLD dueAt=true — suite re-verificada en c.734 sobre `5c013ef`). **HEAD final**: `5c013ef`.
+- **Nota de integridad**: su mensaje de commit listaba "AI_AUTONOMY: RUN_LOG/CURRENT_STATE/BACKLOG" pero el commit solo incluía BACKLOG; entradas recuperadas aquí y en CURRENT_STATE (c.734). **NO VERIFICADO** Android.
 ## Run c.731 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "cortar el césped" — forma 18/19 — rama openhands/autonomous-ordia
 - **HEAD inicial**: `1b00da0` (push c.730). Selección (P1): "cortar el césped".
 - **Solución**: piso `cortar el césped` ACOTADO (familia TRASH/BED/WASHER) + keyword "césped" + plantilla "(cortar)(el) césped(es)"→"Cortar el césped". Kind deliberado: HOUSEHOLD.
