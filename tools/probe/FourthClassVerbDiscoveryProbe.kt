@@ -91,6 +91,16 @@ fun main() {
         // lockstep — la keyword-objeto "jardín" ya existía) — la línea
         // queda como REGRESIÓN.
         "podar el jardín el sábado",
+        // Nota mantenimiento c.754: "quitar la mesa después
+        // de comer" RESUELTA (piso `HOUSEHOLD_CLEAR_TABLE_FLOOR` acotado
+        // al objeto `mesa(s)` — "quitar" suelto es bivalente: el polvo
+        // piso DUST c.732/la música/las pilas — par complementario de
+        // "poner la mesa" c.736; keyword "mesa" ya existía lockstep por
+        // el OBJETO, el verbo "quitar" NO se añade (bivalente)) — la
+        // línea queda como REGRESIÓN. Hallazgo: "lavar los platos hoy"
+        // ya capturaba PRE por vía del verbo genérico "lavar"
+        // (HOUSEHOLD_VERBS) — cubierta-por-diseño, NO ítem OPEN.
+        "quitar la mesa después de comer",
         // Candidatos: obligaciones cívicas/salud/de dispositivo cotidianas.
         // Nota mantenimiento c.752: "votar el domingo" RESUELTA (piso TASK
         // sobre el verbo unívoco "votar" c.752 — kind TASK en deliberación
@@ -169,6 +179,16 @@ fun main() {
         "donar",
         "no cargar el celular hoy",
         "cargué el celular anoche",
+        // c.754: controles del piso `quitar la mesa` (negada / duda /
+        // pasado / verbo suelto / objeto no mesa / diminutivo). La forma
+        // capturable "quitar la mesa después de comer" se movió arriba
+        // como regresión.
+        "no quitar la mesa hoy",
+        "quizá quitar la mesa hoy",
+        "quité la mesa ayer",
+        "quitar",
+        "quitar la música hoy",
+        "quitar la mesita hoy",
         "hola cómo estás",
         "jaja qué risa"
     )
