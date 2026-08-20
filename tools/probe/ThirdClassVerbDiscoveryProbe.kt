@@ -89,6 +89,19 @@ fun main() {
         "el llenado de la solicitud fue ayer",
         "llené la solicitud ayer",
         "llenar",
+        // Controles c.731/c.732 (formas "cortar el césped" / "quitar el polvo" —
+        // CIERRAN la serie 19/19): negada/duda/pasado/verbo suelto/objeto no
+        // acotado deben permanecer NULL.
+        "no cortar el césped mañana",
+        "quizá cortar el césped mañana",
+        "corté el césped ayer",
+        "cortar",
+        "cortar el pelo mañana",
+        "no quitar el polvo mañana",
+        "quizá quitar el polvo mañana",
+        "quité el polvo ayer",
+        "quitar",
+        "quitar la mesa mañana",
         "y al final terminé contento jeje",
         "hola buenos días"
     )
