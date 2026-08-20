@@ -1,3 +1,10 @@
+## Ciclo c.729 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "poner la lavadora" (forma 16/19 TERCERA clase)
+- **Objetivo**: decimosexta forma TERCERA clase (verbos hogar): "poner la lavadora esta tarde" → HOUSEHOLD. Piso ACOTADO al objeto `lavadora` (familia TRASH c.717 / BED c.728) + keyword "lavadora" (`ContextIntent.kt`) + plantilla "(poner) (la) lavadora…"→"Poner la lavadora…".
+- **Deliberación de kind**: HOUSEHOLD (quehacer doméstico canónico; TASK solo envolvente c.613).
+- **Anti-overreach**: negada NULL; quizá NULL; pasado "puse la lavadora ayer" NULL; suelto "poner" NULL; objeto-no-lavadora "poner la mesa" NO roba HOUSEHOLD (kind-drift control); envolvente c.613 gobierna TASK.
+- **TDD**: +10 tests `ContextIntentEnginePonerLavadoraFloorTest.kt` (RED exacto 4/10 → GREEN).
+- **Pruebas**: suite **OK (4411 tests)** (4401 + 10), 0 failures; smoke 25 OK; automation 9 OK. Quedan 3 OPEN (hogar × 3).
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin Android SDK). **HEAD**: inicial `5ee8ff1`.
 ## Ciclo c.728 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "hacer la cama" (forma 15/19 TERCERA clase)
 
 - **Objetivo**: decimoquinta forma de la TERCERA clase cotidiana (verbos hogar;

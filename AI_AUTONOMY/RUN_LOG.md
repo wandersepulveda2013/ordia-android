@@ -1,3 +1,10 @@
+## Run c.729 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "poner la lavadora" — forma 16/19 TERCERA clase — rama openhands/autonomous-ordia
+- **HEAD inicial**: `5ee8ff1` (push c.728). **Selección (P1)**: "poner la lavadora". Doctrina una-forma-por-ciclo.
+- **Solución**: piso `poner la lavadora` ACOTADO (familia TRASH c.717/BED c.728) + keyword "lavadora" (lockstep) + plantilla "(poner) (la) lavadora…"→"Poner la lavadora…" (lockstep). **Kind deliberado: HOUSEHOLD**.
+- **TDD**: +10 tests `ContextIntentEnginePonerLavadoraFloorTest.kt` — RED exacto 4/10 → GREEN **OK (4411 tests)**, 0 failures; smokes OK. Quedan 3 OPEN.
+- **Archivos**: engine (+piso + plantilla), `ContextIntent.kt` (+keyword), test NUEVO (+10), AI_AUTONOMY.
+- **Próxima prioridad**: hogar OPEN #4 (ex. "…engancha/alimentos/comida gato" u otras formas hogar restantes). Re-fetch OBLIGATORIO antes.
+- **Estado**: VERIFIED JVM. **NO VERIFICADO** Android. **HEAD final**: tras commit.
 ## Run c.728 — 2026-08-20 (UTC) — feat(context): piso HOUSEHOLD "hacer la cama" — forma 15/19 TERCERA clase — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `5fce90e` (push c.727, ff-only limpio). **Selección (P1)**: "hacer la cama" (sonda). Doctrina una-forma-por-ciclo.
