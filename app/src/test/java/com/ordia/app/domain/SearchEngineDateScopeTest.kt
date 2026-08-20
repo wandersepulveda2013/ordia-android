@@ -1393,4 +1393,50 @@ class SearchEngineDateScopeTest {
         val ids = SearchEngine.search("cita en madrid", tasks, emptyList(), emptyList(), emptyList(), now = now).map { it.id }.toSet()
         assertEquals(setOf(1L), ids)
     }
+
+    // — Semana/mes + parte del día: la franja RECORTA el rango (paridad con —
+    // — AssistantEngine: "semana"/"mes" en la query + agendaPartOfDay). Antes —
+    // — el token de franja robaba la consulta al scope TARDE/NOCHE de HOY y la —
+    // — semana/mes pedida desaparecía de la respuesta. —
+
+    @Test fun estaSemanaPorLaTarde_soloTardesDelRestoDeLaSemana() {
+        // Hoy jueves 13 → "esta semana" = hoy→domingo 16 (pendientes).
+        val thursday = java.time.LocalDate.of(2026, 8, 13)
+        val friday = thursday.plusDays(1)
+        val saturday = thursday.plusDays(2)
+        val nextMonday = thursday.plusDays(4)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Hoy tarde", dueAt = atHour(thursday, 15)),
+            TaskEntity(id = 2, title = "Viernes tarde", dueAt = atHour(friday, 15)),
+            TaskEntity(id = 3, title = "Sábado mañana", dueAt = atHour(saturday, 10)),
+            TaskEntity(id = 4, title = "Lunes próximo tarde", dueAt = atHour(nextMonday, 15))
+        )
+        val ids = SearchEngine.search("esta semana por la tarde", pod, emptyList(), emptyList(), emptyList(), now = atHour(thursday, 8)).map { it.id }.toSet()
+        assertEquals(setOf(1L, 2L), ids)
+    }
+
+    @Test fun esteMesPorLaNoche_soloNochesDelMes() {
+        val thursday = java.time.LocalDate.of(2026, 8, 13)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Noche del 20", dueAt = atHour(thursday.plusDays(7), 20)),
+            TaskEntity(id = 2, title = "Mañana del 21", dueAt = atHour(thursday.plusDays(8), 8)),
+            TaskEntity(id = 3, title = "Noche de septiembre", dueAt = atHour(java.time.LocalDate.of(2026, 9, 5), 20))
+        )
+        val ids = SearchEngine.search("este mes por la noche", pod, emptyList(), emptyList(), emptyList(), now = atHour(thursday, 8)).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
+
+    @Test fun laProximaSemanaPorLaTarde_soloTardesDeLaProximaSemana() {
+        val thursday = java.time.LocalDate.of(2026, 8, 13)
+        val nextMonday = thursday.plusDays(4)
+        val nextTuesday = thursday.plusDays(5)
+        val friday = thursday.plusDays(1)
+        val pod = listOf(
+            TaskEntity(id = 1, title = "Lunes próximo tarde", dueAt = atHour(nextMonday, 15)),
+            TaskEntity(id = 2, title = "Martes próximo mañana", dueAt = atHour(nextTuesday, 9)),
+            TaskEntity(id = 3, title = "Viernes tarde", dueAt = atHour(friday, 15))
+        )
+        val ids = SearchEngine.search("la próxima semana por la tarde", pod, emptyList(), emptyList(), emptyList(), now = atHour(thursday, 8)).map { it.id }.toSet()
+        assertEquals(setOf(1L), ids)
+    }
 }

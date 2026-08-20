@@ -146,7 +146,9 @@ object SearchEngine {
         // (MORNING/TARDE/NOCHE/MADRUGADA) ya la llevan implícita.
         val dayBand: IntRange? = when (dateScope) {
             DateScope.TODAY, DateScope.TOMORROW, DateScope.DAY_AFTER_TOMORROW,
-            DateScope.YESTERDAY, DateScope.WEEKDAY, DateScope.WEEKEND ->
+            DateScope.YESTERDAY, DateScope.WEEKDAY, DateScope.WEEKEND,
+            DateScope.THIS_WEEK, DateScope.NEXT_WEEK, DateScope.LAST_WEEK,
+            DateScope.THIS_MONTH, DateScope.NEXT_MONTH, DateScope.LAST_MONTH ->
                 partOfDayBand(normalized, words)
             else -> null
         }
@@ -725,28 +727,32 @@ object SearchEngine {
         // franja lo recorte, en vez de caer a la NOCHE de hoy (mentira cruzada
         // con el asistente, que aplica la franja encima del rango del finde).
         isWeekendQuery(words) -> DateScope.WEEKEND
-        // La parte del día se evalúa DESPUÉS de hoy/mañana/ayer: así "hoy tarde"
-        // o "mañana tarde" resuelven al día explícito (más amplio) en vez de
-        // quedarse solo con la franja de hoy. Sin palabra de día, "tarde"/"noche"/
-        // "madrugada" solas sí activan la franja de hoy.
-        LATE_AFTERNOON_TOKENS.any { it in words } -> DateScope.TARDE
-        NIGHT_TOKENS.any { it in words } -> DateScope.NOCHE
-        EARLY_MORNING_TOKENS.any { it in words } -> DateScope.MADRUGADA
         // Mes: "este mes"/"próximo mes"/"mes que viene"/"mes pasado". Requiere
         // "mes" + un calificador para no activarse con "mes" sola (ambigua) ni
         // con "resumen del mes" (búsqueda de contenido). "viene" señala próximo
         // ("mes que viene"); "pasado"/"última" señalan el mes anterior. El
-        // modificador "este"/"esta" señala el mes en curso.
+        // modificador "este"/"esta" señala el mes en curso. Va ANTES de las
+        // partes del día (igual que weekday/finde) para que "este mes por la
+        // noche" resuelva al mes y la franja lo recorte (paridad asistente).
         MONTH_TOKENS.any { it in words } && NEXT_MONTH_TOKENS.any { it in words } -> DateScope.NEXT_MONTH
         MONTH_TOKENS.any { it in words } && LAST_MONTH_TOKENS.any { it in words } -> DateScope.LAST_MONTH
         MONTH_TOKENS.any { it in words } && ("este" in words || "esta" in words) -> DateScope.THIS_MONTH
-        // Fin de semana ("finde"/"fin de semana"). Va ANTES que WEEK_TOKENS para
-        // que la palabra "semana" de "fin de semana" NO dispare THIS_WEEK. "finde"
-        // suelto también casa. La resolución (próximo sábado estricto) vive en
-        // resolveWeekendTarget, no aquí: el scope solo indica "es un finde".
+        // Semana: "esta semana"/"próxima semana"/"semana pasada". El finde ya
+        // se resolvió arriba (rama previa) así "fin de semana" no cae aquí.
+        // Va ANTES de las partes del día para que "esta semana por la tarde"
+        // resuelva a la semana y la franja la recorte (paridad asistente).
         WEEK_TOKENS.any { it in words } && NEXT_WEEK_TOKENS.any { it in words } -> DateScope.NEXT_WEEK
         WEEK_TOKENS.any { it in words } && LAST_WEEK_TOKENS.any { it in words } -> DateScope.LAST_WEEK
         WEEK_TOKENS.any { it in words } -> DateScope.THIS_WEEK
+        // La parte del día se evalúa DESPUÉS de hoy/mañana/ayer/weekday/finde/
+        // semana/mes: así un alcance explícito con franja ("hoy tarde",
+        // "esta semana por la tarde", "este mes por la noche") resuelve al
+        // alcance y la franja lo recorta, en vez de quedarse solo con la
+        // franja de hoy. Sin palabra de alcance, "tarde"/"noche"/"madrugada"
+        // solas sí activan la franja de hoy.
+        LATE_AFTERNOON_TOKENS.any { it in words } -> DateScope.TARDE
+        NIGHT_TOKENS.any { it in words } -> DateScope.NOCHE
+        EARLY_MORNING_TOKENS.any { it in words } -> DateScope.MADRUGADA
         else -> null
     }
 
@@ -954,6 +960,17 @@ object SearchEngine {
             if (targetDay != null) {
                 return onDayInBand(targetDay, task.startAt) || onDayInBand(targetDay, task.dueAt)
             }
+            // Semana/mes + franja ("esta semana por la tarde", "este mes por la
+            // noche"): la marca que ancla al rango debe caer además en la franja
+            // — paridad con AssistantEngine (rango + agendaPartOfDay). El OR
+            // startAt ∨ dueAt es el de siempre; cada lado se verifica por
+            // separado para que una marca fuera del rango no aporte hora.
+            fun inScopeAndBand(epoch: Long?): Boolean {
+                val zoned = epoch?.let { Instant.ofEpochMilli(it).atZone(zone) } ?: return false
+                return zoned.hour in dayBand &&
+                    anchorMatchesScope(scope, epoch, now, zone, fullCalendarWeek = false)
+            }
+            return inScopeAndBand(task.startAt) || inScopeAndBand(task.dueAt)
         }
         return anchorMatchesScope(scope, task.startAt, now, zone, fullCalendarWeek = false) ||
             anchorMatchesScope(scope, task.dueAt, now, zone, fullCalendarWeek = false)

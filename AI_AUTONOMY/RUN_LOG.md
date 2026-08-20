@@ -6,6 +6,7 @@
 - TDD: +6 tests `SearchEngineDateScopeTest.kt` (RED 6/6 → GREEN tras fix de scope-robo y re-aplicación limpia).
 - Verificación: suite **OK (4734 tests: 4728 base c.768 + 6)**, 0 failures; smokes 25/25 + 9/9 OK. **NO VERIFICADO** gradle/Android/UI/Room (sin SDK).
 - Archivos: `SearchEngine.kt`, `SearchEngineDateScopeTest.kt` (+6), `AI_AUTONOMY/{CURRENT_STATE,BACKLOG,RUN_LOG}.md`. Creados/eliminados: 0.
+- Extensión en el mismo ciclo (segundo commit): semana/mes + franja ("esta semana por la tarde", "este mes por la noche", "la próxima semana por la tarde") — caían a la franja de HOY (branches semana/mes después de las partes del día). Fix: MONTH/WEEK movidos antes de las franjas + dayBand extendido a los 6 scopes de rango + inScopeAndBand (marca que ancla al rango debe caer en la franja). TDD +3 (RED 3/3 → GREEN). Suite OK (4737: 4734 + 3), smokes 25/25 + 9/9 OK. Residual OPEN: "… por la mañana"/"esta mañana" con semana/mes → mañana de HOY (ramas MORNING muy arribas; más riesgo que beneficio aquí).
 - Próxima prioridad: pool OPEN QUINTA clase (7 ítems; dispersión epoch-day + PRE check); paridad búsqueda↔asistente otras familias (semana/mes + franja). Re-fetch OBLIGATORIO, numerar ciclo SOLO en fetch final.
 
 ### c.767 — 2026-08-20 (UTC) — fix(search/assistant): "en/por la mañana" = mañana (6-11) de HOY en búsqueda y agenda (paridad captura/contexto) + `foldForSearch` sin puntuación + stop-words "en"/"por"/"tengo"/"hay"
