@@ -1,3 +1,14 @@
+## Run c.721g — 2026-08-20 (UTC) — feat(context): piso TASK "corregir <objeto>" — forma 7/19 TERCERA clase — rama openhands/autonomous-ordia
+
+- **HEAD inicial**: `f8bef67` (push c.721f, ff-only limpio).
+- **Selección (P1)**: "corregir <objeto>" (sonda). Doctrina una-forma-por-ciclo.
+- **Solución**: piso `corregir` + keyword TASK + plantilla "(corregir) X"→"Corregir X". **Kind decidido: TASK, en deliberación contra EDUCATION** — acción de marcar/revisar el objeto; EDUCATION es el dominio del estudio (criterio c.704). Controles NULL (negada/duda/"corrección"/"corregí…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineCorregirFloorTest.kt` — RED exacto (capturas) → GREEN **OK (4321 tests)** (4311 + 10), 0 failures; smoke 25 OK; automation 9 OK. Sonda POST → TASK 'Corregir el ensayo' dueAt=true. Quedan 12 OPEN.
+- **Archivos**: engine (+piso +plantilla), `ContextIntent.kt` (+keyword), test NUEVO (+10), AI_AUTONOMY ×3.
+- **Próxima prioridad**: siguiente forma OPEN tercera-clase (~12 restantes). Re-fetch OBLIGATORIO.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android.
+- **HEAD final**: tras el commit.
+
 ## Run c.721f — 2026-08-20 (UTC) — feat(context): piso TASK "escribir <objeto>" — forma 6/19 TERCERA clase — rama openhands/autonomous-ordia
 
 - **HEAD inicial**: `acc073d` (push c.721e, ff-only limpio).

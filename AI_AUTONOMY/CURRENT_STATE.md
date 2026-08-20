@@ -1,3 +1,10 @@
+## Ciclo c.721g — 2026-08-20 (UTC) — feat(context): piso TASK "corregir <objeto>" (forma 7/19 TERCERA clase)
+
+- **HEAD**: inicial `f8bef67`-origin (ff-only limpio; final tras commit).
+- **Solución**: piso `corregir` + keyword TASK + plantilla "(corregir) X"→"Corregir X". **Kind decidido: TASK, en deliberación contra EDUCATION** (criterio c.704). Controles NULL (negada/duda/"corrección"/"corregí…"/suelto); envolvente c.613 gobierna TASK. Determinista (regex).
+- **TDD**: +10 tests `ContextIntentEngineCorregirFloorTest.kt`; RED (capturas) → GREEN **OK (4321 tests)** (4311 + 10), 0 failures; smoke 25 OK; automation 9 OK; sonda POST → TASK 'Corregir el ensayo' dueAt=true. Quedan 12 OPEN.
+- **Estado**: VERIFIED en JVM. **NO VERIFICADO** Android.
+
 ## Ciclo c.721f — 2026-08-20 (UTC) — feat(context): piso TASK "escribir <objeto>" (forma 6/19 TERCERA clase)
 
 - **HEAD**: inicial `acc073d`-origin (ff-only limpio; final tras commit).
