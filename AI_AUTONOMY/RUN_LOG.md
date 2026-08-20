@@ -16271,3 +16271,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin Android SDK).
 - **HEAD final**: tras commit/push de este ciclo (push auth `github_token`).
 - **Próxima prioridad**: 3 OPEN NULL reales en sonda Verb (bañar al perro — RESERVADA c.740 —, vacunar al perro, pintar la casa); o ChoreProbe OPEN 2/7 (hacer la compra / hacer la colada); o pago residual "el lunes que viene pagar el arriendo"; re-fetch OBLIGATORIO, numerar ciclo SOLO en fetch final.
+
+## Run c.758 — 2026-08-20 (renumerado por col.c.757 hermano vacunar) (UTC) — feat(context): piso Hogar NUEVO "pintar la casa" (CUARTA clase — Verb OPEN; NULL → HOUSEHOLD 'Pintar la casa'; SIN colisión)
+
+- **HEAD inicial**: `8cbc011` (mi STALE_RUN doc c.756 — la fila sonda Verb OPEN quedaba con {RESERVA "bañar al perro" excluded, vacunar, pintar}). Fetch de inicio y final SIN avance remoto → número c.757 confirmado.
+- **Selección**: dispersión determinista epoch-day sobre el pool Verb OPEN depurado por chequeo PRE: pool de 2 = [vacunar al perro, pintar la casa]: `20685 mod 2 = 1` → **"pintar la casa"**.
+- **Sonda PRE**: la forma → NULL (no había keyword ni piso de "pintar"; reclasificaba a TASK por palabra suelta bivalente — "un cuadro/la veranda").
+- **Fix (una forma por ciclo)**: piso NUEVO `HOUSEHOLD_PAINT_HOUSE_FLOOR` acotado al objeto `casas?` (familia [TRASH c.717]/[BED c.728]/[GARDEN c.748]) + registro en `HOUSEHOLD_FLOORS` + plantilla de título `matchPintarCasa` + keyword lockstep el OBJETO "casa" en `ContextIntent.kt`. El VERBO "pintar" NO se añade (bivalente). `\b` final: "casita" no casa.
+- **TDD**: `ContextIntentEnginePintarLaCasaFloorTest.kt` — +7 tests (captura "pintar la casa mañana" / plural "las casas" ; descartes: negada / pasado "pinté" / duda "quizá" / objeto no casa "un cuadro" / diminutivo "casita"). RED exacto 2/7 (las 2 capturas) → GREEN 7/7.
+- **Pruebas**: `bash tools/run_domain_tests.sh` → **OK (4622 tests, 0 failures)** (4615 base + 7); `run_domain_checks.sh` → 25/25 OK; `run_automation_engine_checks.sh` → 9/9 OK. Sonda Verb POST: captura confirmada (candidata→REGRESIÓN HOUSEHOLD dueAt=true; +3 controles nuevos NULL); regresiones intactas; resto de candidatos NULL sin fugas (bañar/vacunar).
+- **AI_AUTONOMY**: CURRENT_STATE c.757 prepend; BACKLOG fila sonda Verb (OPEN hogar + pintar la casa FIXED; 2 OPEN NULL reales tras descontar RESERVA); RUN_LOG append.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin Android SDK).
+- **HEAD final**: tras commit/push de este ciclo (push auth `github_token`).
+- **Próxima prioridad**: 2 OPEN NULL reales efectivos en sonda Verb ("vacunar al perro"; "bañar al perro" RESERVADA c.740 excluded); o ChoreProbe OPEN 2/7 (hacer la compra / hacer la colada); o pago residual "el lunes que viene pagar el arriendo"; re-fetch OBLIGATORIO, numerar ciclo SOLO en fetch final.
+

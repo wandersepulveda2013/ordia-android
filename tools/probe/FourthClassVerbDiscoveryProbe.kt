@@ -99,7 +99,12 @@ fun main() {
         // línea queda como REGRESIÓN de la familia mascota.
         "vacunar al perro este mes",
         "comprar pienso mañana",
-        "pintar la casa este fin de semana",
+        // Nota mantenimiento c.758: "pintar la casa este fin de semana"
+        // RESUELTA (piso NUEVO `HOUSEHOLD_PAINT_HOUSE_FLOOR` c.757 acotado al
+        // objeto `casas?`, keyword-objeto "casa" lockstep — el VERBO
+        // "pintar" bivalente NO añadido; plantilla de título) — la línea
+        // queda como REGRESIÓN de la familia hogar.
+        "pintar la casa mañana",
         // Nota mantenimiento c.743: "colgar la ropa hoy" RESUELTA por la
         // sonda paralela Chore (piso `HOUSEHOLD_HANG_LAUNDRY_FLOOR` c.743,
         // keyword "ropa" lockstep) — la línea queda como REGRESIÓN de
@@ -186,6 +191,12 @@ fun main() {
         "podar el jardincito mañana",
         "no pintar la casa mañana",
         "pinté la casa ayer",
+        // c.758: controles del piso `pintar la casa` (duda / objeto no
+        // casa / diminutivo). La forma capturable "pintar la casa
+        // mañana" se movió arriba como regresión.
+        "quizá pintar la casa mañana",
+        "pintar un cuadro mañana",
+        "pintar la casita este fin de semana",
         "no votar el domingo",
         "voté el domingo pasado",
         "no donar sangre el sábado",

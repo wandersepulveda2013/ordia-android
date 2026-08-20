@@ -251,6 +251,18 @@ object ContextIntentEngine {
     // c.740); guard de negación heredado de la familia (?<!no ).
     private val HOUSEHOLD_GARDEN_FLOOR =
         Regex("""\b(?<!no )podar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?jard(?:ín|ines)\b""")
+    // Piso hogar "pintar la casa" (c.758 — sonda
+    // `FourthClassVerbDiscoveryProbe.kt` c.740; selección por dispersión
+    // determinista epoch-day tras descartar RESERVA "bañar al perro"
+    // c.740): "pintar" suelto es bivalente (un cuadro/la veranda), así se
+    // ACOTA al objeto `casas?` (familia de [HOUSEHOLD_TRASH_FLOOR] c.717 /
+    // [HOUSEHOLD_BED_FLOOR] c.728 / [HOUSEHOLD_GARDEN_FLOOR] c.748).
+    // Keyword-objeto "casa" añadida en lockstep (`ContextIntent.kt`;
+    // precedente de objetos c.717/c.728/c.736); el VERBO "pintar" NO se
+    // añade (bivalente). `\b` final: "casita" no casa (forma OPEN en
+    // sonda); guard de negación heredado de la familia (?<!no ).
+    private val HOUSEHOLD_PAINT_HOUSE_FLOOR =
+        Regex("""\b(?<!no )pintar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?casas?\b""")
     // Piso mascota "dar de comer al gato" (c.753 — sonda
     // `FourthClassVerbDiscoveryProbe.kt`; selección por dispersión
     // determinista epoch-day sobre el ledger OPEN tras depurar las entradas
@@ -263,7 +275,7 @@ object ContextIntentEngine {
     // `\b` final; guard de negación heredado de la familia (?<!no ).
     private val HOUSEHOLD_FEED_CAT_VARIANT_FLOOR =
         Regex("""\b(?<!no )dar\s+de\s+comer\s+(?:al\s+|a\s+(?:el|la|los|las|mi|tu|su)\s+)?gat[oa]s?\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR)
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_FEED_CAT_FLOOR, HOUSEHOLD_VET_FLOOR, HOUSEHOLD_VACCINE_FLOOR, HOUSEHOLD_GARDEN_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR, HOUSEHOLD_FEED_CAT_VARIANT_FLOOR, HOUSEHOLD_PAINT_HOUSE_FLOOR, HOUSEHOLD_CLEAR_TABLE_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -2237,6 +2249,15 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchSacarPerro != null) {
                     return "${capitalizeFirst(matchSacarPerro.groupValues[1])} ${matchSacarPerro.groupValues[2]}"
+                }
+                // Piso "pintar la casa" (c.758): titular lo acotado al
+                // objeto casa (alineado con [HOUSEHOLD_PAINT_HOUSE_FLOOR]).
+                val matchPintarCasa = Regex(
+                    """\b(pintar) ((?:el|la|los|las|mi|tu|su) casas?.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchPintarCasa != null) {
+                    return "${capitalizeFirst(matchPintarCasa.groupValues[1])} ${matchPintarCasa.groupValues[2]}"
                 }
                 // Piso "alimentar al gato" (c.744 provisional): titular lo
                 // acotado al objeto mascota gato (alineado con
