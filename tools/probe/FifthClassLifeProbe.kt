@@ -39,12 +39,18 @@ import com.ordia.app.context.ContextIntentEngine
  *   plural: "las tensiones del equipo" son fricciones interpersonales;
  *   [oó] admite la grafía sin tilde; dispersión epoch-day 20685 % 5 = 0
  *   sobre el pool residual de 5; NULL PRE verificado sobre HEAD 0990f7b).
+ * - c.773: "llevar a los niños al colegio mañana" → ERRAND acotado a la
+ *   forma completa objeto+destino `niñ[oa]s?` + `colegio|escuela|
+ *   guarder[ií]a` ("llevar" es bivalente — el coche al taller c.684, al
+ *   perro al veterinario c.747, a María al cine fuera; hermano SIMÉTRICO
+ *   de "recoger a los niños" vía ERRAND; dispersión epoch-day 20686 % 4 = 2
+ *   sobre el pool residual de 4; NULL PRE verificado sobre HEAD dda9251).
  *
  * Pool OPEN (NULL medido en PRE c.765, HEAD 9815ee2):
  * - "medirme la presión mañana" (reflexivo; objeto `presión`)
  * - "hacer copia de seguridad hoy" (hogar-tecnología; protege datos)
- * - "llevar a los niños al colegio mañana" / "llevar a la niña al médico
- *   el lunes" (familia; "recoger a los niños" ya captura vía ERRAND)
+ * - "llevar a la niña al médico el lunes" (familia/salud; destino
+ *   `médico` — deliberación APPOINTMENT vs ERRAND, ítem aparte)
  */
 @Suppress("DEPRECATION")
 fun main() {
@@ -61,7 +67,8 @@ fun main() {
         // ---- Hogar-tecnología (pool OPEN) ----
         "hacer copia de seguridad hoy",
         // ---- Familia / niños (parcial: pool OPEN) ----
-        "llevar a los niños al colegio mañana",
+        // c.773 OPEN residual: el destino `médico` sigue OPEN (otra
+        // deliberación — APPOINTMENT vs ERRAND)
         "llevar a la niña al médico el lunes",
         // ---- Regresiones (cobertura previa, no debe romperse) ----
         "sacar al perro mañana",
@@ -92,6 +99,12 @@ fun main() {
         "vale, medir la tensión hoy",
         "mañana medir la tensión",
         "medir la tension hoy",
+        // c.773: capturas del piso escolar (regresión)
+        "llevar a los niños al colegio mañana",
+        "llevar a los niños a la escuela hoy",
+        "vale, llevar a los niños al colegio mañana",
+        "mañana llevar a los niños al colegio",
+        "llevo a mis niños a la guardería mañana",
         // ---- Controles anti-overreach (deben quedar NULL) ----
         "no tomar la medicina mañana",
         "quizá tomar la medicina mañana",
@@ -135,6 +148,13 @@ fun main() {
         "medir",
         "la tensión está alta",
         "medir las tensiones del equipo mañana",
+        // c.773: controles del piso escolar (NULL)
+        "no llevar a los niños al colegio mañana",
+        "quizá llevar a los niños al colegio mañana",
+        "llevé a los niños al colegio ayer",
+        "llevar a María al cine mañana",
+        "llevar a los niños mañana",
+        "los niños van al colegio mañana",
         "hola cómo estás"
     )
     for (c in cases) {

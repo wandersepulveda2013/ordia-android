@@ -344,11 +344,32 @@ object ContextIntentEngine {
     // convive sin robar (mismo umbral). `\b` final: "bancomadre" no casa.
     private val ERRAND_STOPBY_FLOOR =
         Regex("""\b(?<!no )pasar\s+por\s+(?:el\s+|la\s+|los\s+|las\s+)?(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b""")
+    // Piso transportativo escolar (c.773, forma 2/4 del pool OPEN residual de
+    // la sonda `FifthClassLifeProbe.kt`, QUINTA clase — familia/niños;
+    // dispersión epoch-day 20686 % 4 = 2; NULL PRE verificado sobre HEAD
+    // dda9251): "llevar a los niños al colegio" es la diligencia familiar
+    // SIMÉTRICA de "recoger a los niños" (`ERRAND_VERBS` c.639) — la misma
+    // diligencia diaria en dirección contraria. "llevar" suelto es bivalente
+    // (el coche al taller —[ERRAND_CARRY_FLOOR] c.684—, al perro al
+    // veterinario —HOUSEHOLD c.747—, a María al cine —persona/ocio—), así se
+    // ACOTA a la forma completa objeto+destino: `niñ[oa]s?` +
+    // `colegio|escuela|guarder[ií]a` (destinos educativos; "al médico" es
+    // otra deliberación, ítem OPEN aparte). Interop: verbos disjuntos
+    // recoger/llevar, destinos disjuntos taller/veterinario/colegio — sin
+    // solape. Kind deliberado: ERRAND (desplazamiento de ida, hermano de
+    // "ir al banco"; NO HOUSEHOLD — no es quehacer doméstico). Lockstep
+    // keyword-OBJETO "niños" en ERRAND (lección c.713/c.751/c.765; NO el
+    // verbo "llevar" — bivalente). Negación sin cláusula dedicada: keyword
+    // 0.12 + bono temporal 0.1 = 0.22 < umbral (hermana c.765→c.772), más
+    // el guard `(?<!no )` de la familia.
+    private val ERRAND_SCHOOL_RUN_FLOOR =
+        Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?\s+a(?:l| la)\s+(colegio|escuela|guarder[ií]a)\b""")
     private val ERRAND_FLOORS = listOf(
         Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b"""),
         Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w"""),
         ERRAND_CARRY_FLOOR,
-        ERRAND_STOPBY_FLOOR
+        ERRAND_STOPBY_FLOOR,
+        ERRAND_SCHOOL_RUN_FLOOR
     )
     private val STUDY_FLOORS = listOf(
         Regex("""\b(?<!no )($STUDY_VERBS)\s+\w"""),
@@ -2564,6 +2585,19 @@ object ContextIntentEngine {
                 // EXERCISE c.655).
                 val match = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )pasar\s+((?:por\s+).+)""", RegexOption.IGNORE_CASE).find(original)
                 if (match != null) return "Pasar ${match.groupValues[1]}"
+                // "llevar a los niños al colegio/escuela/guardería" →
+                // "Llevar a los niños al colegio" (c.773, lockstep con
+                // [ERRAND_SCHOOL_RUN_FLOOR]): verbo preservado con su
+                // persona (doctrina c.653), residuo temporal de cola depurado
+                // por [sanitizeTitle]; el match arranca en el verbo, así el
+                // acuse/prefijo temporal no ensucia el título (lección c.616).
+                val matchSchoolRun = Regex(
+                    """(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(llevar|llevo)\s+((?:a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+)?niñ[oa]s?\s+a(?:l| la)\s+(?:colegio|escuela|guarder[ií]a)).*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchSchoolRun != null) {
+                    return "${capitalizeFirst(matchSchoolRun.groupValues[1])} ${matchSchoolRun.groupValues[2]}"
+                }
                 null
             }
             ContextIntentKind.DEADLINE -> {

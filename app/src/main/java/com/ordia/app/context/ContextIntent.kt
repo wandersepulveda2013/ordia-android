@@ -96,7 +96,14 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // lección c.639/c.717). El destino lo acota el piso; el keyword sólo
         // suma base y permanece por debajo del umbral sin piso, así no roba
         // el keyword genérico histórico de [VISIT].
-        "pasar por")),
+        "pasar por",
+        // c.773: keyword-OBJETO "niños" (lockstep con el piso acotado
+        // `ERRAND_SCHOOL_RUN_FLOOR` "llevar a los niños al colegio",
+        // ver ContextIntentEngine.hasStrongErrandImperative). NO el verbo
+        // "llevar": bivalente (el coche/a María/la cuenta). 0.12 sola queda
+        // bajo el umbral: "los niños van al colegio" (declarativo) sigue
+        // descartado; con bono temporal 0.22 < 0.45 (negada/duda inertes).
+        "niños")),
     CALL("Llamada", listOf("llamar a", "llamar por teléfono", "hablar con",
         "llamada", "telefonear")),
     PAYMENT("Pago", listOf("pagar", "pago", "transferencia", "depósito",
