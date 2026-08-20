@@ -20,11 +20,13 @@ import com.ordia.app.context.ContextIntentEngine
  * - c.765: "tomar la medicina (a las 8)" → TASK acotado al objeto
  *   `medicinas?|medicamentos?|pastillas?` (salud/autocuidado: el olvido de
  *   mayor coste; "tomar" es bivalente — café/autobús/vuelo fuera).
+ * - c.766: "ponerse la insulina mañana" → TASK acotado al objeto `insulina`
+ *   ("ponerse" es bivalente — chaqueta/enfermo/contento fuera; dispersión
+ *   epoch-day 20685 % 9 = 3).
  *
  * Pool OPEN (NULL medido en PRE c.765, HEAD 9815ee2):
  * - "tomarme la medicina esta noche" (reflexivo 1ª persona)
  * - "medir la tensión hoy" / "medirme la presión mañana"
- * - "ponerse la insulina mañana"
  * - "hacer copia de seguridad hoy" (hogar-tecnología; protege datos)
  * - "reiniciar el router esta noche"
  * - "pasar la ITV este mes" (vehículo)
@@ -44,7 +46,6 @@ fun main() {
         "tomarme la medicina esta noche",
         "medir la tensión hoy",
         "medirme la presión mañana",
-        "ponerse la insulina mañana",
         // ---- Hogar-tecnología (pool OPEN) ----
         "hacer copia de seguridad hoy",
         "reiniciar el router esta noche",
@@ -62,6 +63,7 @@ fun main() {
         "donar sangre el sábado",
         "votar el domingo",
         "cargar el celular hoy",
+        "ponerse la insulina mañana",
         // ---- Controles anti-overreach (deben quedar NULL) ----
         "no tomar la medicina mañana",
         "quizá tomar la medicina mañana",
@@ -69,6 +71,11 @@ fun main() {
         "tomar el café mañana",
         "tomar",
         "la medicina está en la mesa",
+        "no ponerse la insulina mañana",
+        "quizá ponerse la insulina mañana",
+        "me puse la insulina ayer",
+        "ponerse la chaqueta mañana",
+        "la insulina está en la nevera",
         "no llenar el tanque mañana",
         "llené el tanque ayer",
         "no recoger a los niños mañana",

@@ -1,3 +1,13 @@
+## Ciclo c.766 — 2026-08-20 (UTC) — feat(context): piso "ponerse la insulina mañana" (QUINTA clase, forma 2 — dispersión epoch-day; NULL → TASK 'Ponerse la insulina')
+
+- **Situación al inicio**: base `2ece054` (mi c.765 "tomar la medicina"). Fetch de inicio y pre-commit SIN avance remoto → ciclo c.766 confirmado.
+- **Selección**: dispersión determinista epoch-day `20685 % 9 = 3` sobre el pool OPEN de `tools/probe/FifthClassLifeProbe.kt` → "ponerse la insulina mañana" (autocuidado con medicación diaria; NULL PRE incluso con hora explícita).
+- **Fix mínimo**: piso TASK acotado al objeto `insulina` (verbo "ponerse" bivalente: chaqueta/enfermo/contento FUERA) + keyword-OBJETO "insulina" (lockstep c.713/c.751/c.765; NO el verbo) + plantilla de título. Kind: TASK (hermano de c.765/c.750). Negación sin cláusula dedicada (0.12+0.1=0.22<umbral, verificado por test).
+- **TDD**: `ContextIntentEnginePonerseInsulinaFloorTest.kt` +10. RED exacto 3/10 (envolvente ya verde vía c.613) → GREEN 10/10.
+- **Sonda actualizada**: candidata → regresión + 5 controles NULL. POST: captura confirmada, regresiones intactas, 16/16 controles NULL. Pool OPEN residual: 8 ítems.
+- **Verificación**: suite **OK (4708 tests: 4698 base + 10)**, 0 failures; smokes 25/25 + 9/9 OK. **NO VERIFICADO** Android/gradle/lint/assemble/UI/Room (sin SDK).
+- **Próxima prioridad**: pool OPEN QUINTA clase (8 ítems; dispersión epoch-day + PRE check). Re-fetch OBLIGATORIO, numerar ciclo SOLO en fetch final.
+
 ## Ciclo c.765 — 2026-08-20 (UTC) — feat(context): QUINTA clase de sonda de descubrimiento (`tools/probe/FifthClassLifeProbe.kt`: salud/autocuidado + familia/niños + hogar-tecnología + vehículo) + piso "tomar la medicina (a las 8)" (NULL → TASK 'Tomar la medicina')
 
 - **Situación al inicio**: base `8332053` (c.763-colisión STALE docs). Fetch intermedio: hermano publicó c.764 "esta mañana" (`9815ee2`) — integración ff-only limpia (mi trabajo aún no estaba en el repo). Fetch pre-commit SIN avance → ciclo c.765 confirmado. Aplicada la doctrina c.763/colisión: con el ledger OPEN público agotado (Chore 7/7, Verb 8/8, "que viene" RESUELTO c.763), abrir PRIMERO una sonda de descubrimiento NUEVA (pool propio privado).

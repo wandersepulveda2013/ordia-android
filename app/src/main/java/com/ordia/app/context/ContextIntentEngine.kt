@@ -1289,6 +1289,17 @@ object ContextIntentEngine {
             // falta cláusula dedicada en [imperativeIsNegated]), pasado
             // "tomé…"/suelto "tomar"/sustantivo "la medicina está…" no casa.
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )tomar\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:medicinas?|medicamentos?|pastillas?)\b""").containsMatchIn(lower)
+            // c.766: piso acotado "ponerse la insulina" (sonda
+            // FifthClassLifeProbe, QUINTA clase — salud/autocuidado; elegida
+            // por dispersión epoch-day 20685 % 9 = 3). NULL PRE incluso con
+            // hora/fecha explícita. El verbo "ponerse" es bivalente (la
+            // chaqueta/enfermo/contento) → el piso se ACOTA al objeto
+            // `insulina` (una forma por ciclo). Lockstep keyword-OBJETO
+            // "insulina" (lección c.713/c.751/c.765). Artículo/posesivo
+            // opcional, `\b` final, `(?<!no )` bloquea la negada; el pasado
+            // "me puse…"/suelto "ponerse"/sustantivo "la insulina está…" no
+            // casa. Negación sin cláusula dedicada: 0.12+0.1=0.22<umbral.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )ponerse\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?insulina\b""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -2132,6 +2143,11 @@ object ContextIntentEngine {
                 // [sanitizeTitle].
                 val matchTomarMedicina = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(tomar)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:medicinas?|medicamentos?|pastillas?)\b.*)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchTomarMedicina != null) return "Tomar ${matchTomarMedicina.groupValues[2]}"
+                // c.766: plantilla "ponerse la insulina" (ancla/guard
+                // idénticos al piso; el residuo temporal lo depura
+                // sanitizeTitle).
+                val matchPonerseInsulina = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )(ponerse)\s+((?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?insulina\b.*)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchPonerseInsulina != null) return "Ponerse ${matchPonerseInsulina.groupValues[2]}"
 
                 null
             }

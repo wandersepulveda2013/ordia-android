@@ -50,7 +50,12 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // NO se añade el verbo "tomar": bivalente (el café/el autobús/un
         // vuelo/una decisión). 0.12 sola queda bajo el umbral: el sustantivo
         // suelto ("la medicina está en la mesa") sigue descartado.
-        "medicina")),
+        "medicina",
+        // c.766: keyword-OBJETO "insulina" (lockstep con el piso acotado
+        // "ponerse la insulina"). NO el verbo "ponerse": bivalente (la
+        // chaqueta/enfermo/contento). 0.12 sola bajo el umbral: "la
+        // insulina está en la nevera" sigue descartado.
+        "insulina")),
     EVENT("Evento", listOf("evento", "cita", "reunión", "conferencia", "sesión",
         "taller", "clase", "curso", "entrevista", "webinar")),
     APPOINTMENT("Cita", listOf("cita con", "cita médica", "dentista", "doctor", "médico",
