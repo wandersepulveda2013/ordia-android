@@ -180,7 +180,17 @@ object ContextIntentEngine {
     // derrame nominal.
     private val HOUSEHOLD_VACUUM_CLEANER_FLOOR =
         Regex("""\b(?<!no )pasar\s+(?:la\s+)?aspiradoras?\b""")
-    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR)
+    // Piso faena doméstica "colgar la ropa" (c.743 provisional, forma 6/7
+    // de la CUARTA clase cotidiana — sonda `FourthClassChoreProbe.kt`
+    // c.734): "colgar" suelto es ambiguo (el cuadro/el teléfono/de la
+    // barra), así se ACOTA al objeto `ropa(s)` (familia TRASH c.717 /
+    // BED c.728 / WASHER c.729 / DISHWASHER c.738 / VACUUM_CLEANER
+    // c.742). Interop c.639: "tender la ropa" captura vía keyword-verb
+    // "tender"; aquí es el verbo "colgar" con sustantivo — no hay solape.
+    // `\b` final sin derrame nominal.
+    private val HOUSEHOLD_HANG_LAUNDRY_FLOOR =
+        Regex("""\b(?<!no )colgar\s+(?:la\s+|las\s+)?ropas?\b""")
+    private val HOUSEHOLD_FLOORS = listOf(HOUSEHOLD_FLOOR, HOUSEHOLD_TRASH_FLOOR, HOUSEHOLD_BED_FLOOR, HOUSEHOLD_WASHER_FLOOR, HOUSEHOLD_DISHWASHER_FLOOR, HOUSEHOLD_VACUUM_CLEANER_FLOOR, HOUSEHOLD_HANG_LAUNDRY_FLOOR, HOUSEHOLD_VACUUM_FLOOR, HOUSEHOLD_LAWN_FLOOR, HOUSEHOLD_DUST_FLOOR, HOUSEHOLD_TABLE_FLOOR, HOUSEHOLD_PET_FLOOR)
     private val EXERCISE_FLOORS = listOf(
         Regex("""\b(?<!no )($EXERCISE_VERBS)\s+\w"""),
         Regex("""\b(?<!no )ir\s+al\s+gimnasio"""),
@@ -1982,6 +1992,17 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchAspiradora != null) {
                     return "${capitalizeFirst(matchAspiradora.groupValues[1])} ${matchAspiradora.groupValues[2]}"
+                }
+                // "colgar (la|las) ropa(s) …" → "Colgar la ropa…"
+                // (c.743 provisional): verbo preservado y objeto
+                // restringido como en [HOUSEHOLD_HANG_LAUNDRY_FLOOR]
+                // (lockstep c.717).
+                val matchColgar = Regex(
+                    """\b(?<!no )(colgar)\s+((?:la\s+|las\s+)?ropas?\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchColgar != null) {
+                    return "${capitalizeFirst(matchColgar.groupValues[1])} ${matchColgar.groupValues[2]}"
                 }
                 // "cortar (el) césped(es) …" → "Cortar el césped …" (c.731):
                 // verbo preservado y objeto restringido como en

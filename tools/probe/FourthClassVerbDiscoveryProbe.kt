@@ -39,6 +39,10 @@ fun main() {
         // REGRESIÓN de forma compartida entre ambas sondas.
         "pasar la aspiradora mañana",
         "pintar la casa este fin de semana",
+        // Nota mantenimiento c.743: "colgar la ropa hoy" RESUELTA por la
+        // sonda paralela Chore (piso `HOUSEHOLD_HANG_LAUNDRY_FLOOR` c.743,
+        // keyword "ropa" lockstep) — la línea queda como REGRESIÓN de
+        // forma compartida entre ambas sondas.
         "colgar la ropa hoy",
         "podar el jardín el sábado",
         // Candidatos: obligaciones cívicas/salud/de dispositivo cotidianas.

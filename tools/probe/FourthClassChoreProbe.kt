@@ -24,12 +24,12 @@ fun main() {
     val now = 1723939200000L
     val cases = listOf(
         // Candidatos: objeto acotado sobre verbos genéricos bivalentes
-        // (3 OPEN: "poner la mesa" c.736, "poner el lavavajillas" c.738,
+        // (2 OPEN: "poner la mesa" c.736, "poner el lavavajillas" c.738,
         // "sacar al perro" c.740 — resuelta por la sonda paralela de
-        // mascotas `FourthClassVerbDiscoveryProbe.kt` — y "pasar la
-        // aspiradora" c.742 resueltas — abajo, sección regresiones)
+        // mascotas `FourthClassVerbDiscoveryProbe.kt` —, "pasar la
+        // aspiradora" c.742 y "colgar la ropa" c.743 resueltas — abajo,
+        // sección regresiones)
         "hacer la compra mañana",                  // hacer + compra (≠ cama c.728)
-        "colgar la ropa hoy",                      // colgar + ropa
         "hacer la colada mañana",                  // hacer + colada (~ lavadora)
 
         // Cobertura existente (guards — deben SEGUIR capturando vía keyword
@@ -44,6 +44,7 @@ fun main() {
         "poner el lavavajillas esta noche",        // c.738 (forma 2/7 clase 4)
         "sacar al perro mañana",                   // c.740 (forma 3/7 clase 4, vía mascota)
         "pasar la aspiradora mañana",              // c.742 (forma 5/7 clase 4)
+        "colgar la ropa hoy",                      // c.743 (forma 6/7 clase 4)
 
         // Controles anti-overreach (deben permanecer NULL)
         "no poner la mesa hoy",
@@ -66,6 +67,13 @@ fun main() {
         "quizá pasar la aspiradora mañana",
         "pasé la aspiradora ayer",                 // pasado
         "pasar la tarde en casa",                  // objeto no acotado (el tardeo ≠ quehacer)
+
+        // Controles c.743 (forma "colgar la ropa"): negada/duda/
+        // pasado/objeto no acotado deben permanecer NULL.
+        "no colgar la ropa mañana",
+        "quizá colgar la ropa mañana",
+        "colgué la ropa ayer",                     // pasado
+        "colgar el cuadro del salón",              // objeto no acotado (decoración ≠ quehacer)
     )
 
     for (raw in cases) {

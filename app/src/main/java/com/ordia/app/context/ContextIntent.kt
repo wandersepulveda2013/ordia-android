@@ -128,8 +128,11 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // keyword↔piso; el verbo "aspirar" ya era keyword desde c.730,
         // pero el sustantivo no; "pasar" suelto es ambiguo — la tarde/
         // la página/la mano — así se alinea el OBJETO restringido).
+        // c.743: objeto del piso `colgar la ropa` (lockstep
+        // keyword↔piso; "colgar" suelto es ambiguo — el cuadro/el
+        // teléfono/de la barra — así se alinea el OBJETO restringido).
         "basura", "cama", "lavadora", "césped", "polvo", "mesa",
-        "lavavajillas", "perro", "perra", "aspiradora")),
+        "lavavajillas", "perro", "perra", "aspiradora", "ropa")),
     UNKNOWN("Sin clasificar", emptyList());
 
     companion object {
