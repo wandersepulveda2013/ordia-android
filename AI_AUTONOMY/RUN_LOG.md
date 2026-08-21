@@ -17164,6 +17164,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Bugs**: ninguno nuevo; guards intactos — «medirme el peso mañana» (bivalente) NULL, «no medirme…» NULL, «me medí…» NULL, «quizá…» NULL, «medirme» suelto NULL, «la tensión está alta» NULL; residual «medir la presión» NULL (acotado deliberado).
 - **Features**: «medirme la tensión mañana / esta noche / esta tarde / hoy …» y sin fecha y sin tilde «tension» → TASK 0.45 «Medirme la tensión» dueAt correcto; envolvente «recuérdame…» intacta TASK 0.54.
 - **Tests**: `bash tools/run_domain_tests.sh` → **OK (5315 = 5291 + 7 hermano c.839 + 17 nuevos en `ContextIntentEngineMedirmeTensionFloorTest`)** sobre la base integrada `6905dac`, 0 failures; `bash tools/run_domain_checks.sh` → 25/25. Sondas: efímera `/tmp/probe840/` PRE (6 capturas NULL — gap) → POST (6 HIT, 7 NULLs = residual + guards); persistida c.834 POST 9/18 NULL. TDD: RED exacto 6 fallos/17 → GREEN 17/17.
-- **Commits**: (este ciclo; fix+tests+docs c.840).
-- **HEAD final**: (actualizado al final).
+- **Commits**: `7610fad` (fix + tests + docs c.840, tras DOBLE rebase NO destructivo).
+- **HEAD final**: `7610fad`.
 - **Próxima prioridad**: «cortarme/cortar el pelo» (familia doble — sonda dedicada previa) o «medir la presión» (diagonal nueva — evaluar bivalencia neumáticos); residual P3 «Reservar el hotel para» RESUELTO hermano c.839 `f577add`; residual P2 c.818; «debiera/debiese…»; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO. NO VERIFICADO Android/gradle/UI/Room.
