@@ -813,6 +813,21 @@ object AssistantEngine {
                     else "Tienes ${liveRoutines.size} rutinas: ${preview.joinToString(", ") { "«${it.name}»" }}${if (liveRoutines.size > 5) "…" else "."}"
                 )
             }
+            // c.821 (sonda efímera ForgottenTasksProbe: 8/10 GAPs al menú):
+            // «tareas olvidadas»/«las más antiguas» hermanas del recuento de
+            // pendientes. La ruta honesta sale de `createdAt` (dato real,
+            // persistido con la tarea): nombra las 3 pendientes raíz más
+            // antiguas para que la recuperación actúe. Vacío: vacío honesto
+            // (NUNCA menú; paridad familia lie-by-omission).
+            isForgottenQuery(query) -> {
+                val oldest = active.sortedWith(compareBy<TaskEntity> { it.createdAt }.thenBy { it.id })
+                val preview = oldest.take(3)
+                AssistantAnswer(
+                    if (oldest.isEmpty()) "No tienes tareas pendientes; nada olvidado."
+                    else "Las que más tiempo llevan pendientes: ${preview.joinToString(", ") { "«${it.title}»" }}${if (oldest.size > 3) "…" else "."}",
+                    relatedTaskIds = oldest.map { it.id }
+                )
+            }
             // Petición de tiempo invertido (cluster sonda assistant: "en qué
             // gasto mi tiempo", "en qué estoy gastando tiempo", "en qué se me
             // va el tiempo"). El usuario pregunta EN QUÉ invirtió su día;
@@ -1356,6 +1371,33 @@ object AssistantEngine {
             // c.801 (sonda extendida): forma de duración-restante honesta.
             "cuanto me falta" in query || "cuanto falta" in query ||
             query.trim() in PENDING_PARAPHRASE_FORMS
+
+    /**
+     * c.821 — recuperación de tareas olvidadas: «qué tareas tengo olvidadas»,
+     * «tareas abandonadas/viejas/antiguas», «lo que siempre dejo para después»,
+     * «lo más antiguo que tengo pendiente». Formas
+     * EXACTAS plegadas (ya normalizadas por `foldForSearch`) para no secuestrar
+     * interrogativas cualificadas por contenido («qué tareas tengo de química»
+     * sigue en `contentQualifiedInterrogativePayload` → OPEN_SEARCH) ni el
+     * recuento («cuántas tareas tengo» sigue en [isPendingCountQuery]).
+     * Excluidas a propósito (ya tienen ruta honesta propia): «qué tengo
+     * olvidado» (rama de olvido urgente [isMissedSlipQuery]: vencidas +
+     * compromisos) y «qué llevo posponiendo» (rama de posponer
+     * [isDeferralQuery]).
+     */
+    private val FORGOTTEN_PARAPHRASE_FORMS = listOf(
+        "que tareas tengo olvidadas", "tareas olvidadas",
+        "tareas abandonadas", "tareas viejas", "tareas antiguas",
+        "lo que siempre dejo para despues", "que siempre dejo para despues",
+        "que tareas llevan mas tiempo pendientes", "que tareas llevan mas tiempo pendiente",
+        "lo mas antiguo que tengo pendiente", "lo mas viejo que tengo pendiente",
+        "la tarea mas antigua que tengo", "la tarea mas vieja que tengo",
+        "que tengo pendiente desde hace mucho", "mis tareas mas antiguas",
+        "mis tareas mas viejas", "tareas mas antiguas", "tareas mas viejas"
+    )
+
+    private fun isForgottenQuery(query: String): Boolean =
+        FORGOTTEN_PARAPHRASE_FORMS.any { query.trim() == it }
 
     // c.816 — recuento de rutinas: «cuantas rutinas tengo/hay» (las
     // rutinas llegan como parámetro de `answer`, hermano del recuento de

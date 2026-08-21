@@ -6125,4 +6125,50 @@ class AssistantEngineTest {
         )
         assertTrue(!answer.text.contains("vencida", ignoreCase = true))
     }
+
+    // ---- c.821 (sonda efímera ForgottenTasksProbe: 8/10 GAPs): las más
+    // antiguas pendientes ("olvidadas") por createdAt real; vacío honesto.
+    // «que llevo posponiendo» y «que tengo olvidado» NO entran en esta
+    // familia: ya tenían ruta honesta (rama de posponer / rama de olvido
+    // urgente respectivamente) y por orden de despacho ganan primero. ----
+
+    @Test fun forgotten_recognizesProbePhrases() {
+        val phrases = listOf(
+            "que tareas tengo olvidadas", "tareas abandonadas", "tareas viejas",
+            "lo que siempre dejo para despues", "mis tareas mas antiguas",
+            "lo mas antiguo que tengo pendiente", "que tengo pendiente desde hace mucho"
+        )
+        for (p in phrases) {
+            val answer = AssistantEngine.answer(p, emptyList(), emptyList(), emptyList())
+            assertTrue("'$p' vacío honesto, no menú: ${answer.text}",
+                !answer.text.contains("Puedo organizar") && answer.text.contains("nada olvidado"))
+        }
+    }
+
+    @Test fun forgotten_namesOldestFirst() {
+        val tasks = listOf(
+            TaskEntity(id = 1, title = "Revisar presupuesto", createdAt = 10_000L),
+            TaskEntity(id = 2, title = "Devolver libro", createdAt = 5_000L),
+            TaskEntity(id = 3, title = "Renovar seguro", createdAt = 20_000L),
+            TaskEntity(id = 4, title = "Pagar factura", createdAt = 30_000L)
+        )
+        val answer = AssistantEngine.answer("mis tareas mas antiguas", tasks, emptyList(), emptyList())
+        assertTrue("nombra las 3 más antiguas en orden createdAt: ${answer.text}",
+            answer.text.indexOf("«Devolver libro»") < answer.text.indexOf("«Revisar presupuesto»") &&
+                answer.text.indexOf("«Revisar presupuesto»") < answer.text.indexOf("«Renovar seguro»") &&
+                answer.text.contains("…") && !answer.text.contains("«Pagar factura»"))
+    }
+
+    @Test fun forgotten_emptyIsHonestWithActionNone() {
+        val answer = AssistantEngine.answer("tareas olvidadas", emptyList(), emptyList(), emptyList())
+        assertEquals("vacío: acción NONE", AssistantAction.NONE, answer.action)
+        assertTrue("vacío honesto: ${answer.text}", answer.text.contains("nada olvidado"))
+    }
+
+    @Test fun forgotten_contentQualifiedStillGoesToSearch() {
+        // Interrogativa con contenido cualificado («qué tareas tengo de química»)
+        // NO es "tareas olvidadas": debe seguir ruteando a OPEN_SEARCH como hoy.
+        val answer = AssistantEngine.answer("que tareas tengo de quimica", emptyList(), emptyList(), emptyList())
+        assertEquals("contenido cualificado → OPEN_SEARCH", AssistantAction.OPEN_SEARCH, answer.action)
+    }
 }
