@@ -396,13 +396,38 @@ object ContextIntentEngine {
     // guard `(?<!no )` de la familia.
     private val ERRAND_MEDICAL_RUN_FLOOR =
         Regex("""\b(?<!no )(llevar|llevo)\s+a(?:l\s+| la\s+| los\s+| las\s+| mis\s+| tus\s+| sus\s+| mi\s+| tu\s+| su\s+)?niñ[oa]s?\s+a(?:l| la)\s+(m[ée]dico|doctor|dentista|hospital|consulta)\b""")
+    // Piso combustible acotado al objeto (c.829, forma «echar gasolina» de la
+    // sonda `CaptureCoverageProbe.kt` c.822; pool de dispersión por epoch-day,
+    // una forma por ciclo, doctrina anti-overreach c.822): "echar gasolina
+    // esta tarde"/"ir a echar gasolina mañana" se DESCARTABAN (NULL, olvido
+    // silencioso P1 — quedarse sin combustible en ruta es de los olvidos de
+    // mayor coste cotidiano). El verbo "echar" es bivalente (echar agua/de
+    // menos/a perder/la culpa), así el piso se acota al OBJETO combustible
+    // (`gasolina|gasoil|diésel`, criterio de los pisos acotados c.684/c.717/
+    // c.728/c.731/c.751: verbo bivalente → objeto cerrado). `\b` de posición
+    // libre (familia c.643/c.647): admite acuse ("vale, …"), prefijo temporal
+    // ("mañana …") y la forma con "ir a" ("ir a echar gasolina"); la negación
+    // inmediata se bloquea en la propia regex `(?<!no )` y de nuevo en
+    // [imperativeIsNegated] (cinturón y tirantes, precedente c.748/c.757).
+    // El envolvente ("recuérdame echar gasolina"→TASK) queda protegido por
+    // [imperativeIsWrapped] vía [ERRAND_FLOORS] (fuente única, lección
+    // c.648/c.652). Kind deliberado: ERRAND (desplazamiento a la gasolinera,
+    // hermano de "llevar el coche al taller" c.684), no TASK (no es gestión
+    // abstracta) ni SHOPPING (no es compra de supermercado; aunque sea
+    // compra, el verbo cotidiano es "echar", no "comprar"). "echarle
+    // gasolina" (enclítico) y "repostar" quedan como candidatas documentadas
+    // para futuros ciclos (una forma por ciclo). Determinista (regex), sin
+    // random, sin IA fingida.
+    private val ERRAND_FUEL_FLOOR =
+        Regex("""\b(?<!no )echar\s+(?:gasolina|gasoil|di[eé]sel)\b""")
     private val ERRAND_FLOORS = listOf(
         Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b"""),
         Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w"""),
         ERRAND_CARRY_FLOOR,
         ERRAND_STOPBY_FLOOR,
         ERRAND_SCHOOL_RUN_FLOOR,
-        ERRAND_MEDICAL_RUN_FLOOR
+        ERRAND_MEDICAL_RUN_FLOOR,
+        ERRAND_FUEL_FLOOR
     )
     private val STUDY_FLOORS = listOf(
         Regex("""\b(?<!no )($STUDY_VERBS)\s+\w"""),
@@ -1876,6 +1901,14 @@ object ContextIntentEngine {
         if (kind == ContextIntentKind.ERRAND &&
             Regex("""\bno\s+pasar\s+por\s+(?:el\s+|la\s+|los\s+|las\s+)?(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b""").containsMatchIn(lower)
         ) return true
+        // "echar gasolina" (ERRAND, piso acotado c.829) es imperativo
+        // multi-palabra: la keyword-objeto "gasolina" (lockstep c.829) + el
+        // bono temporal elevarían el score sin pasar por el piso (cuyo
+        // lookbehind sí la bloquea), así la negación se bloquea también aquí
+        // (cinturón y tirantes, precedente c.717/c.748/c.757).
+        if (kind == ContextIntentKind.ERRAND &&
+            Regex("""\bno\s+echar\s+(?:gasolina|gasoil|di[eé]sel)\b""").containsMatchIn(lower)
+        ) return true
         // "sacar la basura" (HOUSEHOLD, piso acotado c.717) es imperativo
         // multi-palabra: la negación sigue bloqueada aunque el bono temporal
         // eleve el score sin pasar por el piso (misma vía que ERRAND).
@@ -2849,6 +2882,20 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchMedicalRun != null) {
                     return "${capitalizeFirst(matchMedicalRun.groupValues[1])} ${matchMedicalRun.groupValues[2]}"
+                }
+                // "echar gasolina" → "Echar gasolina" (c.829, lockstep con
+                // [ERRAND_FUEL_FLOOR]): verbo preservado (alineación
+                // piso↔título, lección c.616); residuo temporal de cola
+                // depurado por [sanitizeTitle] ("…esta tarde"/"…mañana");
+                // el match arranca en el verbo, así el acuse ("vale, …"),
+                // el prefijo temporal ("mañana …") y el "ir a" de "ir a
+                // echar gasolina" no ensucian el título.
+                val matchFuel = Regex(
+                    """\b(?<!no )echar\s+((?:gasolina|gasoil|di[eé]sel).*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchFuel != null) {
+                    return "Echar ${matchFuel.groupValues[1]}"
                 }
                 null
             }

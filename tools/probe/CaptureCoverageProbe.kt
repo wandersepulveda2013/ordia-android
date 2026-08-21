@@ -49,6 +49,9 @@ fun main() {
         // libre (precedente c.727) tras el fix c.828; debe reportar HIT.
         "vaciar la nevera el domingo",
         // Vehículo/combustible ("gasolina" 1 hit: ERRAND_CARRY)
+        // c.829: REGRESIÓN — las dos primeras formas de "gasolina" ya tienen
+        // piso (ERRAND) tras el fix c.829; deben reportar HIT. La orden
+        // inversa sigue NULL (candidata documentada para un ciclo futuro).
         "echar gasolina esta tarde",
         "ir a echar gasolina mañana",
         "gasolina: echar antes del viaje",

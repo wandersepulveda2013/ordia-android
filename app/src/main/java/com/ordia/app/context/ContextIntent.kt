@@ -124,7 +124,15 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // "llevar": bivalente (el coche/a María/la cuenta). 0.12 sola queda
         // bajo el umbral: "los niños van al colegio" (declarativo) sigue
         // descartado; con bono temporal 0.22 < 0.45 (negada/duda inertes).
-        "niños")),
+        "niños",
+        // c.829: keyword-OBJETO "gasolina" (lockstep con el piso acotado
+        // `ERRAND_FUEL_FLOOR` "echar gasolina", lección c.713/c.773). NO el
+        // verbo "echar": bivalente (echar agua/de menos/a perder/la culpa).
+        // 0.12 sola queda bajo el umbral: "la gasolina está cara" sigue
+        // descartada; con bono temporal 0.22 < 0.45. Además alimenta
+        // [TRIGGER_WORDS], sin lo cual la notificación ni llegaría al
+        // análisis (lección c.751).
+        "gasolina")),
     CALL("Llamada", listOf("llamar a", "llamar por teléfono", "hablar con",
         "llamada", "telefonear")),
     PAYMENT("Pago", listOf("pagar", "pago", "transferencia", "depósito",
