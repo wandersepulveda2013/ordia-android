@@ -119,3 +119,11 @@ es reproducible con kotlinc + JUnit4 + stubs:
   seam de `zone` (runTrigger/runRule → guard diario → AutomationActionPlanner) en JVM pura.
 - LIMITACIÓN: tests de `backup`, `context`, `repositories`, `ime`, UI y DAOs requieren
   DAOs/RoomDatabase/Context (Android). No son ejecutables en JVM pura; marcar NO VERIFICADO.
+
+## 7. Codificación de AI_AUTONOMY (protege el historial)
+
+Los markdown de `AI_AUTONOMY/` (en especial `RUN_LOG.md`) deben editarse preservando su
+codificación original. Herramientas de reescritura basadas en echo/heredoc han corrompido
+el historial completo de `RUN_LOG.md` con mojibake (`РІТ–вҖқ` en lugar de `—`, etc.).
+Usa python (open(..., encoding="utf-8")) o edición quirúrgica; si ya la corrompiste:
+`git checkout HEAD^ -- <archivo>` y re-aplica el append. Verificado en c.817 (fix `14e0421`).
