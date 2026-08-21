@@ -17101,5 +17101,5 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: sin tests nuevos (cero código de producto); `bash tools/run_domain_tests.sh` → **OK (5261)**, 0 failures sobre la base integrada (re-verificación íntegra de la suite del hermano). Sonda 18 casos ejecutada contra fuente real.
 - **Archivos**: `tools/probe/SixthClassEncliticProbe.kt` (NUEVO), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
-- **Commits**: (ver bloque git abajo).
+- **Commits**: `d0cf40b` (sonda c.834 + docs, tras resolver colisión). HEAD final: `d0cf40b`.
 - **Próxima prioridad**: candidatas sexta clase (UNA por ciclo): «medirme la tensión», «hacerme la maleta», «cortarme/cortar el pelo»; residual P3 títulos con envoltura residual; residual P2 c.818 «Icon( null-decorativo»; residual P2 c.824 «habría que/debería …»; «debiera/debiese…» (evaluar con evidencia); temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.

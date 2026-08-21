@@ -6,7 +6,7 @@
 - **Tests**: cero tests nuevos (sin cambio de producto — la duplicada de mi c.833 se descartó con el resto); `bash tools/run_domain_tests.sh` → **OK (5261)**, 0 failures (suite del hermano re-verificada íntegra sobre la base integrada); sonda 18 casos ejecutada contra fuente real.
 - **Archivos**: `tools/probe/SixthClassEncliticProbe.kt` (NUEVO, 18 casos), `AI_AUTONOMY/{BACKLOG,CURRENT_STATE,RUN_LOG}.md`. Cero código de producto.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
-- **Commits**: (registrado en RUN_LOG).
+- **Commits**: `d0cf40b` (sonda c.834 + docs). HEAD final: `d0cf40b`.
 - **Próxima prioridad**: candidatas de la sexta clase (UNA por ciclo, evaluar kind y existencia de piso hermano antes de implementar): «medirme la tensión», «hacerme la maleta», «cortarme/cortar el pelo»; residual P3 títulos con envoltura residual («Habría que…»/«Que…»); residual P2 c.818 «Icon( null-decorativo» (62 sitios, auditoría cerrada); residual P2 c.824 «habría que/debería …»; «debiera/debiese…» (evaluar con evidencia); temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
 
 ---
