@@ -16899,3 +16899,10 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
 - **Commits**: tras este append; HEAD final: tras push.
 - **Próxima prioridad**: accesibilidad (1ª pantalla de las samples, textos en R.string) o SIN TEST restantes (`NoteBlocks`, `TaskMutationGate`).
+
+
+### c.818 (continuación) — Auditorías aclaradas
+
+- **`NoteBlockCodec` YA estaba testeado** (13 tests cubren codec y plainText); `TaskMutationGate` es trivial (Mutex singleton) — no se añadieron tests por gusto.
+- **`WhatNowEngine` auditado (limpio)**: consume `zone` correctamente en ranking y razones; `suggest`/`ordered` defaultean a `ZoneId.systemDefault()` (correcto en app); el único método sin parámetro de zona (`minutesUntilNextCommitment`) opera en millis puros. `SearchEngine` obtiene `systemDefault` internamente (única firma pública); sin inconsistencia funcional — asistente y búsqueda usan la misma zona del dispositivo.
+- **Accesibilidad `Icon(`: auditoría refinada** — el detector ingenuo contaba `null` explícito y descripción posicional como omitidas. Conteo con paréntesis balanceados: 107 sitios → 45 descritos + 62 null-decorativo + **0 omitidos**. Ítem de BACKLOG corregido a CERRADO; sólo queda revisión P3-opcional de los null. Detector heurístico conservado como antipatrón ejecutado en run.
