@@ -8,7 +8,7 @@
 - **Tests**: `bash tools/run_domain_tests.sh` → **OK (5216 = 5201 + 15)**, 0 failures; `bash tools/run_domain_checks.sh` → 25/25 OK. Sonda de cobertura POST (`tools/probe/CaptureCoverageProbe.kt`): 14 NULLs de 39 — TODOS guards/controles intencionados excepto la orden inversa documentada «gasolina: echar antes del viaje». Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `ContextIntentEngine.kt` (piso + plantilla + comentario c.830), `ContextIntent.kt` (keyword «gestionar» + comentario lockstep), `ContextIntentEngineGestionarFloorTest.kt` (NUEVO, +15 tests), `tools/probe/CaptureCoverageProbe.kt` (2 formas «gestionar» marcadas REGRESIÓN c.830), `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: `21e2331` (fix c.830 + docs). HEAD final: `21e2331`.
 - **Próxima prioridad**: la sonda de cobertura queda casi agotada (único NULL de captura: orden inversa «gasolina: echar antes del viaje», UNA forma por ciclo); candidatas documentadas: «repostar», «echarle gasolina»; residual P3 títulos con envoltura residual («Habría que…»/«Que…»); residual P2 c.818 «Icon( null-decorativo» (62 sitios, auditoría cerrada); residual P2 c.824 «habría que/debería …»; «debiera/debiese…» (evaluar con evidencia); temporales desnudas siguen BLOCKED-humano. Si la sonda se agota: nueva auditoría de descubrimiento (sonda nueva) antes de seguir con pisos. Re-fetch OBLIGATORIO antes de implementar.
 
 ---
