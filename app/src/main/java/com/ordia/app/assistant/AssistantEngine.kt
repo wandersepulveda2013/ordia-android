@@ -630,6 +630,25 @@ object AssistantEngine {
                     relatedTaskIds = undated.map { it.id }
                 )
             }
+            // Recordatorios próximos (c.808): «qué recordatorios tengo», «mis
+            // recordatorios», «qué me vas a recordar» caían al menú genérico
+            // (mentira por omisión: el dato estaba disponible). Lista honesta
+            // de avisos PRÓXIMOS (reminderAt >= now) de tareas activas,
+            // ordenada por disparo, con etiqueta relativa («hoy/mañana/el
+            // <fecha> a las <hora>», misma fuente que upcomingWhenLabel).
+            // Los avisos ya pasados de tareas activas no se enumeran: esa
+            // deuda la cubre la familia «vencidas». Vacío honesto sin menú.
+            isRemindersQuery(query) -> {
+                val upcoming = active.filter { it.reminderAt != null && it.reminderAt >= now }
+                    .sortedBy { it.reminderAt }
+                    .take(6)
+                AssistantAnswer(
+                    if (upcoming.isEmpty()) "No tienes recordatorios programados."
+                    else "Tienes ${upcoming.size} recordatorio" + (if (upcoming.size == 1) "" else "s") + ": " +
+                        upcoming.joinToString(" · ") { "«${it.title}» ${upcomingWhenLabel(it.reminderAt!!, now, zone)}" },
+                    relatedTaskIds = upcoming.map { it.id }
+                )
+            }
             isFreeTimeQuery(query) -> {
                 // Décimo olvido de la familia "lie-by-omission": el usuario ya
                 // declara que tiene un hueco libre ("tengo un rato/tiempo/hueco"
@@ -958,6 +977,14 @@ object AssistantEngine {
     // roba: la rama de compromisos se evalúa antes que ésta en `answer`.
     private fun isUndatedQuery(query: String): Boolean =
         "sin fecha" in query || "sin vencimiento" in query || "sin dia" in query || "sin plazo" in query
+
+    // Recordatorios consultables por voz (c.808): la preferencia vive en
+    // TaskEntity.reminderAt y YA llega al asistente, así que «qué recordatorios
+    // tengo» / «mis recordatorios» / «qué me vas a recordar» no necesitan
+    // wiring nuevo — solo routing. El imperativo de creación («recuérdame…»)
+    // no contiene el sustantivo, así que no hace falta guard explícito.
+    private fun isRemindersQuery(query: String): Boolean =
+        "recordatorio" in query || "que me vas a recordar" in query
 
     // Modismo del olvido "se me/se nos pas…" (1.ª singular y plural en pretérito):
     // frase exacta en la consulta normalizada (foldForSearch quita los acentos).

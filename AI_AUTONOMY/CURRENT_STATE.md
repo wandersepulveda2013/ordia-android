@@ -1,3 +1,14 @@
+## Ciclo c.808 — 2026-08-21 (UTC) — feat(assistant): recordatorios consultables por voz («qué recordatorios tengo» / «mis recordatorios» / «qué me vas a recordar»)
+
+- **HEAD inicial**: `50d7705` (c.807 propio, push limpio). Suite entrante: OK (5026).
+- **Problema (P2 recuperar información; GAP estructural documentado por la sonda c.803-b)**: el usuario no podía preguntar «qué me vas a recordar» por voz — las 3 formas caían al menú genérico (mentira por omisión).
+- **Verificación de arquitectura previa (corrige el diagnóstico c.803-b)**: NO hizo falta wiring estructural — no existe `ReminderEntity`; el recordatorio es `TaskEntity.reminderAt` y YA llega al asistente vía `tasks`. Solo faltaba routing.
+- **Solución (cambio mínimo)**: `isRemindersQuery` («recordatorio» en query ∨ «que me vas a recordar») + rama tras sin-fecha: avisos PRÓXIMOS (`reminderAt >= now`) de tareas activas, orden por disparo, tope 6, etiqueta relativa `upcomingWhenLabel` (fuente única de «hoy/mañana/el <fecha> a las <hora>»); avisos ya pasados excluidos (esa deuda la cubre «vencidas»); vacío honesto «No tienes recordatorios programados.» sin menú (paridad lie-by-omission). Guard anti-creación: el imperativo «recuérdame…» no contiene el sustantivo (sin guard explícito; test lo bloquea).
+- **TDD**: RED exacto 4 fallos (listings ×3 + vacío; guard verde desde RED) → **GREEN OK (5031 = 5026 + 5)**; smoke 25/25. Sonda `AssistantDiscoveryRoundProbe`: 3 GAPs cerrados (openGaps 4→1), corrida end-to-end: 12 frases, 11 [ok], 1 abierto tolerado. Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `AssistantEngine.kt` (helper+rama), `AssistantEngineTest.kt` (+5), `tools/probe/AssistantDiscoveryRoundProbe.kt`, `AI_AUTONOMY/*`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Próxima prioridad**: «qué tengo pendiente de ayer» (decisión de producto: ¿vencidas?) o nueva ronda de descubrimiento (parser tiempos complejos / agrupación notas-tareas-proyectos / resumen del día). Temporales desnudas siguen BLOCKED-humano.
+
 ## Ciclo c.807 — 2026-08-21 (UTC) — fix(assistant): interrogativa con contenido cualificado («qué notas/tareas/pendientes tengo de <tema>») → OPEN_SEARCH
 
 - **HEAD inicial**: `42df287` (pull ff-only limpio; hermano c.806 ya integrado). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21). Suite entrante: OK (5021).

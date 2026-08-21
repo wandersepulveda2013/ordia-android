@@ -16780,5 +16780,17 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Tests**: RED exacto 3 fallos (routing ×3; 2 guards verdes) → **GREEN OK (5026 = 5021 + 5)**; smoke 25/25. Sonda `AssistantDiscoveryRoundProbe` actualizada: 2 GAPs cerrados movidos a `phrases`, openGaps 6→4; run end-to-end 12 frases, 0 inesperados. Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `AssistantEngine.kt` (patrón+helper+rama), `AssistantEngineTest.kt` (+5), `tools/probe/AssistantDiscoveryRoundProbe.kt`, `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
-- **Commits**: tras este append (code+tests+sonda+docs único); HEAD final: tras push.
+- **Commits**: 50d7705 (code+tests+sonda+docs único); HEAD final: 50d7705 (push limpio).
 - **Próxima prioridad**: GAPs abiertos de la sonda (recordatorios ×3 — estructural, decisión de diseño; «qué tengo pendiente de ayer» — decisión de producto) o nueva ronda de descubrimiento (parser de tiempos complejos / agrupación notas-tareas).
+
+## Ciclo c.808 — 2026-08-21 (UTC) — feat(assistant): recordatorios consultables por voz («qué recordatorios tengo» / «mis recordatorios» / «qué me vas a recordar»)
+
+- **HEAD inicial**: `50d7705` (c.807 propio, push limpio). Suite entrante: OK (5026).
+- **Problema (P2 recuperar información; GAP abierto documentado por la sonda c.803-b)**: el usuario no podía preguntar «qué me vas a recordar» por voz — las 3 formas caían al menú genérico (mentira por omisión).
+- **Verificación de arquitectura previa (corrige diagnóstico c.803-b)**: NO hizo falta wiring estructural — no existe `ReminderEntity`; el recordatorio es `TaskEntity.reminderAt` y YA llega al asistente vía `tasks`. Solo faltaba routing.
+- **Solución (cambio mínimo, TDD)**: `isRemindersQuery` («recordatorio» en query ∨ «que me vas a recordar») + rama tras sin-fecha: avisos PRÓXIMOS (`reminderAt >= now`) de tareas activas, orden por disparo, tope 6, etiqueta relativa `upcomingWhenLabel` (misma fuente que «cuándo vence»); avisos ya pasados excluidos (esa deuda la cubre «vencidas»); vacío honesto «No tienes recordatorios programados.» sin menú (paridad lie-by-omission). Guard anti-creación: el imperativo «recuérdame…» no contiene el sustantivo, sin guard explícito (test lo bloquea).
+- **Tests**: RED exacto 4 fallos (listings ×3 + vacío; guard verde desde RED) → **GREEN OK (5031 = 5026 + 5)**; smoke 25/25. Sonda `AssistantDiscoveryRoundProbe`: 3 GAPs cerrados movidos a `phrases`, openGaps 4→1; corrida end-to-end 12 frases, 11 [ok], 1 abierto tolerado. Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `AssistantEngine.kt` (helper+rama), `AssistantEngineTest.kt` (+5), `tools/probe/AssistantDiscoveryRoundProbe.kt`, `AI_AUTONOMY/*`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Commits**: tras este append (code+tests+sonda+docs único); HEAD final: tras push.
+- **Próxima prioridad**: «qué tengo pendiente de ayer» (decisión de producto: ¿rutea a vencidas?) o nueva ronda de descubrimiento (parser de tiempos complejos / agrupación notas-tareas-proyectos / resumen del día). Temporales desnudas siguen BLOCKED-humano.

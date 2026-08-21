@@ -7,8 +7,9 @@ import kotlin.system.exitProcess
 // vacío: el routing correcto no depende del dato (GAP = cae al menú
 // genérico, la mentira por omisión). c.803-b cerró los 2 GAPs de panorama
 // semanal («cómo va mi semana» / «resumen de la semana» → agenda de la
-// semana, hermana de «qué viene esta semana» c.802). Quedan 4 GAPs
-// ABIERTOS documentados y se toleran: si se cierran, la sonda lo reporta;
+// semana, hermana de «qué viene esta semana» c.802). c.807 cerró los 2 de
+// contenido cualificado interrogativo y c.808 los 3 de recordatorios. Queda
+// 1 GAP ABIERTO documentado y se tolera: si se cierra, la sonda lo reporta;
 // si aparece un GAP NUEVO fuera de esa lista, falla.
 fun main() {
     val now = 1753495200000L
@@ -30,19 +31,19 @@ fun main() {
         // caía al menú. Ahora rutea a OPEN_SEARCH con payload afirmativo
         // equivalente; el alcance temporal («de hoy») queda excluido.
         "que notas tengo de trabajo",
-        "que tareas tengo del proyecto casa"
+        "que tareas tengo del proyecto casa",
+        // Familia de recordatorios (c.808): NO hizo falta wiring estructural —
+        // TaskEntity.reminderAt ya llega al asistente; solo faltaba routing.
+        // Lista avisos próximos ordenados por disparo; vacío honesto sin menú.
+        "que recordatorios tengo",
+        "mis recordatorios",
+        "que me vas a recordar"
     )
     // ABIERTOS (documentados c.803-b, tolerados mientras no se implementen):
-    // · Recordatorios ×3: el asistente aún no recibe la lista de
-    //   recordatorios (cambio estructural de wiring, no solo regex) — el
-    //   usuario no puede consultar «qué me vas a recordar» por voz.
     // · «qué tengo pendiente de ayer»: solapa parcialmente con vencidas
     //   (respuesta honesta existente); decidir si rutea a vencidas es
     //   decisión de producto abierta.
     val openGaps = listOf(
-        "que recordatorios tengo",
-        "mis recordatorios",
-        "que me vas a recordar",
         "que tengo pendiente de ayer"
     )
     var gaps = 0

@@ -5709,4 +5709,81 @@ class AssistantEngineTest {
         val answer = AssistantEngine.answer("búsqueda de", emptyList(), emptyList(), emptyList())
         assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
     }
+
+    // c.808 — recordatorios consultables por voz (GAP estructural documentado
+    // por la sonda c.803-b): «qué recordatorios tengo» / «mis recordatorios» /
+    // «qué me vas a recordar» caían al menú genérico pese a que TaskEntity.
+    // reminderAt ya llega al asistente (NO hace falta wiring nuevo). Lista
+    // honesta de avisos PRÓXIMOS (reminderAt >= now) de tareas activas,
+    // ordenada por disparo; vacío honesto sin menú (paridad lie-by-omission).
+    @Test fun reminders_queRecordatoriosTengo_listsUpcoming() {
+        val now = 1_774_012_800_000L
+        val answer = AssistantEngine.answer(
+            "que recordatorios tengo",
+            listOf(
+                TaskEntity(id = 1, title = "Llamar a mamá", reminderAt = now + 7_200_000L),
+                TaskEntity(id = 2, title = "Pagar arriendo", reminderAt = now + 93_600_000L),
+                TaskEntity(id = 3, title = "Aviso viejo", reminderAt = now - 3_600_000L),
+                TaskEntity(id = 4, title = "Sin aviso"),
+                TaskEntity(id = 5, title = "Hecha", completed = true, reminderAt = now + 3_600_000L)
+            ),
+            emptyList(), emptyList(), now = now
+        )
+        assertEquals(AssistantAction.NONE, answer.action)
+        assertTrue(answer.text.contains("Llamar a mamá"))
+        assertTrue(answer.text.contains("Pagar arriendo"))
+        // Orden por disparo: el más próximo primero.
+        assertTrue(answer.text.indexOf("Llamar a mamá") < answer.text.indexOf("Pagar arriendo"))
+        // Excluidos: aviso ya pasado, tarea sin aviso y tarea completada.
+        assertTrue(!answer.text.contains("Aviso viejo"))
+        assertTrue(!answer.text.contains("Sin aviso"))
+        assertTrue(!answer.text.contains("Hecha"))
+        assertEquals(listOf(1L, 2L), answer.relatedTaskIds)
+    }
+
+    @Test fun reminders_misRecordatorios_listsUpcoming() {
+        val now = 1_774_012_800_000L
+        val answer = AssistantEngine.answer(
+            "mis recordatorios",
+            listOf(TaskEntity(id = 1, title = "Llamar a mamá", reminderAt = now + 7_200_000L)),
+            emptyList(), emptyList(), now = now
+        )
+        assertEquals(AssistantAction.NONE, answer.action)
+        assertTrue(answer.text.contains("Llamar a mamá"))
+    }
+
+    @Test fun reminders_queMeVasARecordar_listsUpcoming() {
+        val now = 1_774_012_800_000L
+        val answer = AssistantEngine.answer(
+            "que me vas a recordar",
+            listOf(TaskEntity(id = 1, title = "Llamar a mamá", reminderAt = now + 7_200_000L)),
+            emptyList(), emptyList(), now = now
+        )
+        assertEquals(AssistantAction.NONE, answer.action)
+        assertTrue(answer.text.contains("Llamar a mamá"))
+    }
+
+    @Test fun reminders_emptyState_honestWithoutMenu() {
+        val now = 1_774_012_800_000L
+        val answer = AssistantEngine.answer(
+            "que recordatorios tengo",
+            listOf(TaskEntity(id = 1, title = "Sin aviso")),
+            emptyList(), emptyList(), now = now
+        )
+        assertEquals(AssistantAction.NONE, answer.action)
+        assertTrue(answer.text.contains("recordatorio", ignoreCase = true))
+        assertTrue(!answer.text.contains("Puedo ", ignoreCase = true))
+    }
+
+    @Test fun reminders_guard_creationNotClaimed() {
+        // Guard anti-robo: «recuérdame llamar a mamá» es CREACIÓN (imperativo),
+        // no consulta — la rama de recordatorios no debe apropiársela.
+        val now = 1_774_012_800_000L
+        val answer = AssistantEngine.answer(
+            "recuerdame llamar a mama manana",
+            listOf(TaskEntity(id = 1, title = "Llamar a mamá", reminderAt = now + 7_200_000L)),
+            emptyList(), emptyList(), now = now
+        )
+        assertTrue(!answer.text.contains("Tienes 1 recordatorio"))
+    }
 }
