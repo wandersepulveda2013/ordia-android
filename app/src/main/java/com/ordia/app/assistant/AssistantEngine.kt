@@ -280,7 +280,12 @@ object AssistantEngine {
             // ¿qué olvidé? ("que olvide"), "¿qué olvidado?", sinónimos
             // ("atrasad","vencid") — y el modismo del olvido "se me/se nos
             // pasó/pasaron". Frase, NUNCA el token "paso" suelto.
-            "que olvide" in query || "olvidado" in query || "atrasad" in query || "vencid" in query || isMissedSlipQuery(query) -> {
+            // «qué tengo pendiente(s) de ayer» (c.809, decisión de producto):
+            // lo pendiente DE AYER ya está vencido — es RECUPERACIÓN
+            // (hermana de «qué olvidé»), no recap (incluiría lo hecho) ni
+            // conteo frío. «pendiente de mañana» NO casa (agenda futura).
+            "que olvide" in query || "olvidado" in query || "atrasad" in query || "vencid" in query ||
+                "pendiente de ayer" in query || "pendientes de ayer" in query || isMissedSlipQuery(query) -> {
                 // Partición honesta: "vencid" pregunta por vencidas (dueAt pasado);
                 // "atrasad" es el sinónimo cotidiano de "overdue" en español — la
                 // palabra MÁS natural — y pregunta por lo mismo pero la rama sólo
@@ -295,7 +300,8 @@ object AssistantEngine {
                 // se pasó: mentía por omisión en la superficie de recuperación. Cierra
                 // la simetría con What Now (c.203) y el guardián (c.201), reusando
                 // WhatNowEngine.ordered para elegir el olvido más urgente.
-                val forgottenIntent = "que olvide" in query || "olvidado" in query || "atrasad" in query || isMissedSlipQuery(query)
+                val forgottenIntent = "que olvide" in query || "olvidado" in query || "atrasad" in query ||
+                    "pendiente de ayer" in query || "pendientes de ayer" in query || isMissedSlipQuery(query)
                 if (overdue.isNotEmpty()) {
                     if (forgottenIntent) {
                         // "¿Qué olvidé?" pide recuperar QUÉ se pasó, no un conteo frío.

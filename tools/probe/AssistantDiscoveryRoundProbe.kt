@@ -8,9 +8,10 @@ import kotlin.system.exitProcess
 // genérico, la mentira por omisión). c.803-b cerró los 2 GAPs de panorama
 // semanal («cómo va mi semana» / «resumen de la semana» → agenda de la
 // semana, hermana de «qué viene esta semana» c.802). c.807 cerró los 2 de
-// contenido cualificado interrogativo y c.808 los 3 de recordatorios. Queda
-// 1 GAP ABIERTO documentado y se tolera: si se cierra, la sonda lo reporta;
-// si aparece un GAP NUEVO fuera de esa lista, falla.
+// contenido cualificado interrogativo, c.808 los 3 de recordatorios y c.809
+// «qué tengo pendiente de ayer» (decisión de producto: recuperación ≡
+// vencidas). Ronda CERRADA (0 GAPs abiertos): si aparece un GAP NUEVO, la
+// sonda falla (exit 1).
 fun main() {
     val now = 1753495200000L
     val zone = ZoneId.of("America/Bogota")
@@ -37,15 +38,17 @@ fun main() {
         // Lista avisos próximos ordenados por disparo; vacío honesto sin menú.
         "que recordatorios tengo",
         "mis recordatorios",
-        "que me vas a recordar"
-    )
-    // ABIERTOS (documentados c.803-b, tolerados mientras no se implementen):
-    // · «qué tengo pendiente de ayer»: solapa parcialmente con vencidas
-    //   (respuesta honesta existente); decidir si rutea a vencidas es
-    //   decisión de producto abierta.
-    val openGaps = listOf(
+        "que me vas a recordar",
+        // c.809 — «qué tengo pendiente de ayer» (era el último openGap):
+        // DECISIÓN DE PRODUCTO tomada (DECISIONS.md): pendiente-de-ayer ≡
+        // RECUPERACIÓN (hermana de «qué olvidé», rama vencidas con
+        // forgottenIntent), no recap ni conteo frío.
         "que tengo pendiente de ayer"
     )
+    // ABIERTOS: ninguno — la ronda c.803-b quedó cerrada (c.804 ×3, c.807 ×2,
+    // c.808 ×3, c.809 ×1). La sonda sigue fallando (exit 1) ante cualquier
+    // GAP NUEVO: próxima ronda de descubrimiento añade frases aquí.
+    val openGaps = listOf<String>()
     var gaps = 0
     var unexpected = 0
     for (p in phrases) {

@@ -5786,4 +5786,71 @@ class AssistantEngineTest {
         )
         assertTrue(!answer.text.contains("Tienes 1 recordatorio"))
     }
+
+    // c.809 — «qué tengo pendiente de ayer» (último openGap de la sonda
+    // c.803-b). DECISIÓN DE PRODUCTO (DECISIONS.md): pendiente-de-ayer ≡
+    // RECUPERACIÓN (hermana de «qué olvidé»): lo que quedó de ayer sin hacer
+    // YA está vencido; no es un recap (incluiría lo hecho) ni un conteo frío.
+    // Rutea a la rama de vencidas con forgottenIntent (nombra la más urgente,
+    // ofrece reprogramar). Guard: «pendiente de mañana» NO se roba (agenda).
+    @Test fun pendingYesterday_routesToOverdueRecovery_notMenu() {
+        val now = 1_774_012_800_000L
+        val answer = AssistantEngine.answer(
+            "que tengo pendiente de ayer",
+            listOf(TaskEntity(id = 1, title = "Enviar informe", dueAt = now - 86_400_000L)),
+            emptyList(), emptyList(), now = now
+        )
+        assertTrue(!answer.text.startsWith("Puedo organizar tu día"))
+        assertTrue(answer.text.contains("vencida", ignoreCase = true))
+        assertEquals(AssistantAction.RUN_REPLAN, answer.action)
+        assertTrue(answer.relatedTaskIds.contains(1L))
+    }
+
+    @Test fun pendingYesterday_plural_routesToOverdueRecovery() {
+        val now = 1_774_012_800_000L
+        val answer = AssistantEngine.answer(
+            "que tengo pendientes de ayer",
+            listOf(TaskEntity(id = 1, title = "Enviar informe", dueAt = now - 86_400_000L)),
+            emptyList(), emptyList(), now = now
+        )
+        assertTrue(!answer.text.startsWith("Puedo organizar tu día"))
+        assertTrue(answer.text.contains("vencida", ignoreCase = true))
+    }
+
+    @Test fun pendingYesterday_recovery_namesMostUrgent() {
+        // Recuperación (no conteo frío): nombra la vencida más urgente, igual
+        // que «qué olvidé». La más antigua («Llamar al banco», -2d) primero.
+        val now = 1_774_012_800_000L
+        val answer = AssistantEngine.answer(
+            "que tengo pendiente de ayer",
+            listOf(
+                TaskEntity(id = 1, title = "Enviar informe", dueAt = now - 86_400_000L),
+                TaskEntity(id = 2, title = "Llamar al banco", dueAt = now - 2 * 86_400_000L)
+            ),
+            emptyList(), emptyList(), now = now
+        )
+        assertTrue(answer.text.contains("Llamar al banco"))
+    }
+
+    @Test fun pendingYesterday_empty_honestWithoutMenu() {
+        val now = 1_774_012_800_000L
+        val answer = AssistantEngine.answer(
+            "que tengo pendiente de ayer",
+            emptyList(), emptyList(), emptyList(), now = now
+        )
+        assertTrue(!answer.text.startsWith("Puedo organizar tu día"))
+        assertTrue(answer.text.contains("No tienes tareas vencidas"))
+    }
+
+    @Test fun pendingYesterday_guard_mananaNotClaimed() {
+        // Guard anti-robo: «qué tengo pendiente de mañana» es AGENDA futura
+        // (ya ruteada), no recuperación — la rama de vencidas no debe
+        // apropiársela ni mencionar vencidas.
+        val now = 1_774_012_800_000L
+        val answer = AssistantEngine.answer(
+            "que tengo pendiente de manana",
+            emptyList(), emptyList(), emptyList(), now = now
+        )
+        assertTrue(!answer.text.contains("vencida", ignoreCase = true))
+    }
 }

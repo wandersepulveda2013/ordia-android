@@ -16794,3 +16794,14 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
 - **Commits**: tras este append (code+tests+sonda+docs único); HEAD final: tras push.
 - **Próxima prioridad**: «qué tengo pendiente de ayer» (decisión de producto: ¿rutea a vencidas?) o nueva ronda de descubrimiento (parser de tiempos complejos / agrupación notas-tareas-proyectos / resumen del día). Temporales desnudas siguen BLOCKED-humano.
+
+## Ciclo c.809 — 2026-08-21 (UTC) — feat(assistant): «qué tengo pendiente de ayer» → recuperación (último openGap c.803-b cerrado)
+- **HEAD inicial**: `408eff0` (c.808 propio). Suite entrante: OK (5031). Env JVM heredado.
+- **Problema**: «qué tengo pendiente de ayer» caía al menú genérico (mentira por omisión); último GAP abierto de la sonda c.803-b (`AssistantDiscoveryRoundProbe`), etiquetado «decisión de producto (recap vs vencidas)».
+- **Decisión (DECISIONS.md c.809)**: pendiente-de-ayer ≡ RECUPERACIÓN (hermana de «qué olvidé», `forgottenIntent`); no recap ni conteo frío. Reversible si el humano prefiere recap.
+- **Solución (2 líneas + comentarios)**: `AssistantEngine.kt` — rama vencidas += «pendiente de ayer»/«pendientes de ayer» (condición + `forgottenIntent`) → nombra la vencida más urgente, ofrece RUN_REPLAN; vacío honesto sin menú. Cero UI, cero wiring.
+- **Tests**: RED exacto 4 fallos (guard «pendiente de mañana» verde) → **GREEN OK (5036 = 5031 + 5)**; smoke 25/25; sonda end-to-end: **0 GAPs de 12 — ronda c.803-b CERRADA** (c.804 ×3, c.807 ×2, c.808 ×3, c.809 ×1). Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `AssistantEngine.kt`, `AssistantEngineTest.kt` (+5), `tools/probe/AssistantDiscoveryRoundProbe.kt` (openGaps vacío), `AI_AUTONOMY/*`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Commits**: tras este append; HEAD final: tras push.
+- **Próxima prioridad**: nueva ronda de descubrimiento (sonda c.803-b agotada): parser tiempos complejos / agrupación notas-tareas-proyectos / resumen del día / auditoría de otra superficie. Temporales desnudas siguen BLOCKED-humano.

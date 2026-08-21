@@ -1,3 +1,16 @@
+## Ciclo c.809 — 2026-08-21 (UTC) — feat(assistant): «qué tengo pendiente de ayer» → recuperación (último openGap c.803-b CERRADO; sonda 0 GAPs de 12)
+
+- **HEAD inicial**: `408eff0` (c.808 propio, push limpio). Suite entrante: OK (5031). Estado: **5036 tests JVM GREEN**, smoke 25/25.
+- **Problema (P2 recuperar información/mentira por omisión; último GAP abierto de la sonda c.803-b)**: «qué tengo pendiente de ayer» caía al menú genérico pese a que la rama de vencidas/recuperación ya existía completa.
+- **Decisión de producto (documentada en DECISIONS.md c.809, tomada por el agente)**: pendiente-de-ayer ≡ **RECUPERACIÓN** (hermana de «qué olvidé»): lo que quedó de ayer sin hacer YA está vencido; NO recap (incluiría lo hecho) ni conteo frío (no nombra la deuda). Reversible si el humano prefiere recap.
+- **Solución (cambio mínimo: 2 líneas + comentarios)**: `AssistantEngine.kt` — condición de la rama vencidas y `forgottenIntent` += «pendiente de ayer»/«pendientes de ayer» → nombra la vencida más urgente (`WhatNowEngine.ordered`), ofrece RUN_REPLAN; vacío honesto «No tienes tareas vencidas…» sin menú. Cero UI, cero wiring.
+- **Guards**: «qué tengo pendiente de mañana» NO se roba (agenda futura; test).
+- **TDD**: RED exacto 4 fallos (guard verde desde RED) → **GREEN OK (5036 = 5031 + 5)**; smoke 25/25. Sonda `AssistantDiscoveryRoundProbe`: openGaps 1→0 — **ronda c.803-b CERRADA (0 GAPs de 12)**, end-to-end 0 inesperados. Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `AssistantEngine.kt`, `AssistantEngineTest.kt` (+5), `tools/probe/AssistantDiscoveryRoundProbe.kt`, `AI_AUTONOMY/*`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Próxima prioridad**: nueva ronda de descubrimiento (la sonda c.803-b quedó agotada): parser tiempos complejos, agrupación notas-tareas-proyectos, resumen del día, o auditoría de otra superficie. Temporales desnudas («ayer», «semana pasada») siguen BLOCKED-humano.
+
+
 ## Ciclo c.808 — 2026-08-21 (UTC) — feat(assistant): recordatorios consultables por voz («qué recordatorios tengo» / «mis recordatorios» / «qué me vas a recordar»)
 
 - **HEAD inicial**: `50d7705` (c.807 propio, push limpio). Suite entrante: OK (5026).
