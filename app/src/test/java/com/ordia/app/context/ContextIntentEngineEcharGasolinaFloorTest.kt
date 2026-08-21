@@ -29,6 +29,23 @@ import org.junit.Test
  * "gasolina: echar antes del viaje" era candidata documentada y se
  * implementó en c.832 (ver [ContextIntentEngineGasolinaInversaFloorTest]).
  * Determinista (regex), sin random, sin IA fingida.
+ *
+ * c.833 (P1 olvido silencioso — candidata documentada desde c.829; sonda
+ * PRE-fix `/tmp/probe833/EcharlePreProbe.kt`: 7/7 capturas NULL): la
+ * familia enclítica «echarle/echarles <combustible> [al coche]» — la forma
+ * MÁS cotidiana de la orden — no casaba el piso `echar\s+` (el pronombre
+ * dativo "le/les" va pegado al infinitivo). Fix: `(?:les?)?` opcional en
+ * lockstep en los tres puntos de siempre (piso `ERRAND_FUEL_FLOOR` —
+ * alternativa DIRECTA; el orden inverso c.832 no se toca — + cláusula de
+ * negación de [imperativeIsNegated] + plantilla de título, que preserva el
+ * pronombre: "echarle gasolina al coche" → "Echarle gasolina al coche",
+ * doctrina c.653). Anti-overreach heredado intacto: "no echarle gasolina"
+ * (lookbehind + cláusula), "quizá…", narrativa pasada ("le eché/le
+ * echamos"), bivalentes ("echarle agua al radiador"/"echarle la culpa") y
+ * el envolvente ("recuérdame echarle…" → TASK vía fuente única
+ * `ERRAND_FLOORS`) siguen exactamente igual. [COLISIÓN cycle-ID:
+ * provisional c.832 tomado por el hermano (orden inversa); renumerado
+ * c.832→c.833, convención c.655/c.826/c.829.]
  */
 class ContextIntentEngineEcharGasolinaFloorTest {
 
@@ -161,5 +178,109 @@ class ContextIntentEngineEcharGasolinaFloorTest {
     fun echarAguaAlRadiador_bivalentVerbObjectNotFuelStaysNull() {
         // "echar" bivalente: objeto no combustible no casa el piso acotado.
         assertNull(analyze("echar agua al radiador mañana"))
+    }
+
+    // --- c.833: familia enclítica «echarle/echarles <combustible>» ---
+
+    @Test
+    fun echarleGasolinaAlCoche_capturesErrand() {
+        val intent = analyze("echarle gasolina al coche")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Echarle gasolina al coche", intent.title)
+    }
+
+    @Test
+    fun echarleGasolinaAlCocheEstaTarde_capturesErrandWithDueAt() {
+        val intent = analyze("echarle gasolina al coche esta tarde")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Echarle gasolina al coche", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun echarleGasoilAlCocheManana_capturesErrand() {
+        val intent = analyze("echarle gasoil al coche mañana")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Echarle gasoil al coche", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun echarleDieselALaFurgonetaEstaNoche_capturesErrand() {
+        val intent = analyze("echarle diésel a la furgoneta esta noche")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Echarle diésel a la furgoneta", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun echarlesGasolinaALosCochesElSabado_capturesErrandPluralEnclitic() {
+        val intent = analyze("echarles gasolina a los coches el sábado")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Echarles gasolina a los coches", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    @Test
+    fun echarleGasolinaTrasAcuse_capturesErrand() {
+        val intent = analyze("vale, echarle gasolina al coche")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Echarle gasolina al coche", intent.title)
+    }
+
+    @Test
+    fun echarleGasolinaTrasPrefijoTemporal_capturesErrand() {
+        val intent = analyze("hoy echarle gasolina al coche")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.ERRAND, intent!!.kind)
+        assertEquals("Echarle gasolina al coche", intent.title)
+        assertNotNull(intent.dueAt)
+    }
+
+    // --- Controles anti-overreach c.833 (deben permanecer NULL; todos
+    // verificados NULL en la sonda POST-fix) ---
+
+    @Test
+    fun noEcharleGasolina_negatedStaysNull() {
+        assertNull(analyze("no echarle gasolina al coche"))
+    }
+
+    @Test
+    fun quizasEcharleGasolina_hedgedStaysNull() {
+        assertNull(analyze("quizá echarle gasolina al coche"))
+    }
+
+    @Test
+    fun leEcheGasolinaAyer_pastNarrativeStaysNull() {
+        assertNull(analyze("le eché gasolina al coche ayer"))
+    }
+
+    @Test
+    fun leEchamosGasolinaAyer_pastNarrativePluralStaysNull() {
+        assertNull(analyze("le echamos gasolina al coche ayer"))
+    }
+
+    @Test
+    fun echarleAguaAlRadiador_bivalentObjectNotFuelStaysNull() {
+        assertNull(analyze("echarle agua al radiador"))
+    }
+
+    @Test
+    fun echarleLaCulpa_bivalentIdiomStaysNull() {
+        assertNull(analyze("echarle la culpa a alguien"))
+    }
+
+    @Test
+    fun recuerdameEcharleGasolina_wrapperGovernsAsTask() {
+        val intent = analyze("recuérdame echarle gasolina al coche")
+        assertNotNull(intent)
+        assertEquals(ContextIntentKind.TASK, intent!!.kind)
+        assertEquals("Echarle gasolina al coche", intent.title)
     }
 }

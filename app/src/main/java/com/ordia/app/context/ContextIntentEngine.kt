@@ -420,10 +420,8 @@ object ContextIntentEngine {
     // c.648/c.652). Kind deliberado: ERRAND (desplazamiento a la gasolinera,
     // hermano de "llevar el coche al taller" c.684), no TASK (no es gestión
     // abstracta) ni SHOPPING (no es compra de supermercado; aunque sea
-    // compra, el verbo cotidiano es "echar", no "comprar"). "echarle
-    // gasolina" (enclítico) queda como candidata documentada para futuros
-    // ciclos (una forma por ciclo). Determinista (regex), sin random, sin
-    // IA fingida.
+    // compra, el verbo cotidiano es "echar", no "comprar"). Determinista
+    // (regex), sin random, sin IA fingida.
     //
     // Orden inverso (c.832, forma documentada de la sonda
     // `CaptureCoverageProbe.kt` c.822 — último NULL de captura): "gasolina:
@@ -434,14 +432,28 @@ object ContextIntentEngine {
     // una forma por ciclo). La negación se bloquea en la propia regex
     // (`(?<!no )` antes de "echar") y de nuevo en [imperativeIsNegated]
     // (cinturón y tirantes, precedente c.748/c.757). El pasado "eché" y el
-    // futuro "echaré" no casan (verbo exacto). Título en [extractTitle]
-    // (rama inversa): reordena a la forma canónica verbo-primero
-    // "Echar gasolina antes del viaje" (doctrina c.653 de ortografía del
-    // objeto; [sanitizeTitle] depura el residuo temporal y conserva el
-    // contenido "…antes del viaje").
+    // futuro "echaré" no casan (verbo exacto; flag `(?U)`: el `\b` ASCII
+    // consideraba «echar|é» frontera y capturaba el futuro «echaré»,
+    // lección hermana c.826). Título en [extractTitle] (rama inversa):
+    // reordena a la forma canónica verbo-primero "Echar gasolina antes del
+    // viaje" (doctrina c.653 de ortografía del objeto; [sanitizeTitle]
+    // depura el residuo temporal y conserva el contenido "…antes del
+    // viaje").
+    //
+    // Familia enclítica (c.833 — candidata documentada desde c.829; sonda
+    // PRE-fix `/tmp/probe833/EcharlePreProbe.kt`: 7/7 capturas NULL,
+    // olvido silencioso P1): el pronombre dativo enclítico "le/les" va
+    // pegado al infinitivo ("echarle gasolina al coche" es la forma MÁS
+    // cotidiana de la orden de repostar). El `(?:les?)?` opcional en la
+    // alternativa DIRECTA cubre ambos pronombres sin tocar la forma simple
+    // c.829 ni el orden inverso c.832 ni los bivalentes ("echarle agua al
+    // radiador"/"echarle la culpa" no casan: el objeto sigue acotado a
+    // combustible). La negación inmediata ("no echarle gasolina") queda
+    // bloqueada por el `(?<!no )` heredado (el lookbehind mira los 3 chars
+    // antes de "echar") y de nuevo en [imperativeIsNegated].
     private val ERRAND_FUEL_FLOOR =
         Regex(
-            """(?U)\b(?:(?<!no )echar\s+(?:gasolina|gasoil|di[eé]sel)|(?:gasolina|gasoil|di[eé]sel)\s*:\s*(?<!no )echar)\b"""
+            """(?U)\b(?:(?<!no )echar(?:les?)?\s+(?:gasolina|gasoil|di[eé]sel)|(?:gasolina|gasoil|di[eé]sel)\s*:\s*(?<!no )echar)\b"""
         )
     private val ERRAND_FLOORS = listOf(
         Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b"""),
@@ -1944,8 +1956,11 @@ object ContextIntentEngine {
         // bono temporal elevarían el score sin pasar por el piso (cuyo
         // lookbehind sí la bloquea), así la negación se bloquea también aquí
         // (cinturón y tirantes, precedente c.717/c.748/c.757).
+        // c.833: la familia enclítica ("no echarle gasolina") comparte la
+        // cláusula vía el `(?:les?)?` opcional (lockstep con
+        // [ERRAND_FUEL_FLOOR]).
         if (kind == ContextIntentKind.ERRAND &&
-            Regex("""\bno\s+echar\s+(?:gasolina|gasoil|di[eé]sel)|\b(?:gasolina|gasoil|di[eé]sel)\s*:\s*no\s+echar\b""").containsMatchIn(lower)
+            Regex("""\bno\s+echar(?:les?)?\s+(?:gasolina|gasoil|di[eé]sel)\b|\b(?:gasolina|gasoil|di[eé]sel)\s*:\s*no\s+echar\b""").containsMatchIn(lower)
         ) return true
         // "sacar la basura" (HOUSEHOLD, piso acotado c.717) es imperativo
         // multi-palabra: la negación sigue bloqueada aunque el bono temporal
@@ -2934,12 +2949,16 @@ object ContextIntentEngine {
                 // el match arranca en el verbo, así el acuse ("vale, …"),
                 // el prefijo temporal ("mañana …") y el "ir a" de "ir a
                 // echar gasolina" no ensucian el título.
+                // c.833: el pronombre enclítico opcional "le/les" se
+                // preserva en el título ("echarle gasolina al coche" →
+                // "Echarle gasolina al coche"): es parte del verbo tal como
+                // lo dijo el usuario (doctrina c.653).
                 val matchFuel = Regex(
-                    """\b(?<!no )echar\s+((?:gasolina|gasoil|di[eé]sel).*)""",
+                    """\b(?<!no )echar(les?)?\s+((?:gasolina|gasoil|di[eé]sel).*)""",
                     RegexOption.IGNORE_CASE
                 ).find(original)
                 if (matchFuel != null) {
-                    return "Echar ${matchFuel.groupValues[1]}"
+                    return "Echar${matchFuel.groupValues[1]} ${matchFuel.groupValues[2]}"
                 }
                 // Orden inverso (c.832, lockstep con la alternativa
                 // «objeto: echar» de [ERRAND_FUEL_FLOOR]): "gasolina: echar

@@ -62,6 +62,12 @@ fun main() {
         // reportar HIT.
         "repostar el coche mañana",
         "repostar gasolina esta tarde",
+        // c.833: REGRESIÓN — la familia enclítica «echarle/echarles
+        // <combustible>» ya tiene piso tras el fix c.833 (`(?:les?)?` en
+        // lockstep piso/negación/título; alternativa directa); deben
+        // reportar HIT.
+        "echarle gasolina al coche esta tarde",
+        "echarles gasolina a los coches el sábado",
         // Agenda médica escrita distinto ("sacar cita", "pedir hora")
         "sacar cita con el dentista mañana",
         "pedir hora en el médico el lunes",
