@@ -455,6 +455,35 @@ object ContextIntentEngine {
         Regex(
             """(?U)\b(?:(?<!no )echar(?:les?)?\s+(?:gasolina|gasoil|di[eé]sel)|(?:gasolina|gasoil|di[eé]sel)\s*:\s*(?<!no )echar)\b"""
         )
+    // Piso peluquería acotado al objeto (c.842, candidata 3/4 —última
+    // abierta— de la sonda persistida `SixthClassEncliticProbe.kt` c.834;
+    // sonda PRE `/tmp/probe842/CortarPeloPreProbe.kt`: 7/7 capturas NULL,
+    // olvido silencioso P1 — la cita de peluquería/barbería es de los
+    // compromisos cotidianos más frecuentes). FAMILIA DOBLE: ni la forma
+    // desnuda «cortar el pelo» ni la enclítica «cortarme el pelo» tenían
+    // piso (la envolvente «recuérdame cortarme el pelo» ya enrutaba TASK
+    // vía candado — asimetría de ruta hermana de c.765…c.840). «cortar»
+    // es bivalente (césped c.731/pan/comunicación), así el piso se ACOTA
+    // al objeto `pelo` (criterio c.684/c.717/c.731: verbo bivalente →
+    // objeto cerrado). El enclítico `(?:me|te|se|nos)?` sigue el
+    // precedente amplio de equipaje c.836 (todas las formas reflexivas
+    // son compromisos reales: «cortarse el pelo» es tan cotidiana como
+    // «cortarme el pelo»). `\b` de posición libre (familia c.643/c.647):
+    // admite acuse («vale, …») y prefijo temporal («hoy …»); la negación
+    // inmediata se bloquea en la propia regex `(?<!no )` y de nuevo en
+    // [imperativeIsNegated] (cinturón y tirantes, precedente c.829). El
+    // envolvente queda protegido por [imperativeIsWrapped] vía
+    // [ERRAND_FLOORS] (fuente única, lección c.648/c.652). Kind
+    // deliberado: ERRAND (desplazamiento a la peluquería, hermano de
+    // «echar gasolina» c.829), no APPOINTMENT (bonus-kind sin pisos; no
+    // exige cita concertada). Lockstep keyword-OBJETO «pelo» en
+    // [ContextIntentKind.ERRAND] (lección c.751) + plantilla de título en
+    // [extractTitle] (lección c.616, pronombre conservado, doctrina
+    // c.653). Acotado deliberado (una forma por ciclo): plural «los
+    // pelos», dativo «cortarle el pelo al niño» y objeto «cabello»
+    // quedan FUERA — candidatas documentadas.
+    private val ERRAND_HAIRCUT_FLOOR =
+        Regex("""\b(?<!no )cortar(?:me|te|se|nos)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b""")
     private val ERRAND_FLOORS = listOf(
         Regex("""\b(?<!no )ir\s+a(?:l| la| los| las)?\s+(banco|correos|oficina|sucursal|ayuntamiento|notar[ií]a|juzgado|registro)\b"""),
         Regex("""\b(?<!no )($ERRAND_VERBS)\s+\w"""),
@@ -462,7 +491,8 @@ object ContextIntentEngine {
         ERRAND_STOPBY_FLOOR,
         ERRAND_SCHOOL_RUN_FLOOR,
         ERRAND_MEDICAL_RUN_FLOOR,
-        ERRAND_FUEL_FLOOR
+        ERRAND_FUEL_FLOOR,
+        ERRAND_HAIRCUT_FLOOR
     )
     private val STUDY_FLOORS = listOf(
         Regex("""\b(?<!no )($STUDY_VERBS)\s+\w"""),
@@ -2000,6 +2030,14 @@ object ContextIntentEngine {
         if (kind == ContextIntentKind.ERRAND &&
             Regex("""\bno\s+echar(?:les?)?\s+(?:gasolina|gasoil|di[eé]sel)\b|\b(?:gasolina|gasoil|di[eé]sel)\s*:\s*no\s+echar\b""").containsMatchIn(lower)
         ) return true
+        // "cortar/cortarme el pelo" (ERRAND, piso acotado c.842) es
+        // imperativo multi-palabra: la keyword-objeto "pelo" (lockstep
+        // c.842) + el bono temporal elevarían el score sin pasar por el
+        // piso (cuyo lookbehind sí la bloquea), así la negación se bloquea
+        // también aquí (cinturón y tirantes, precedente c.829).
+        if (kind == ContextIntentKind.ERRAND &&
+            Regex("""\bno\s+cortar(?:me|te|se|nos)?\s+(?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b""").containsMatchIn(lower)
+        ) return true
         // "sacar la basura" (HOUSEHOLD, piso acotado c.717) es imperativo
         // multi-palabra: la negación sigue bloqueada aunque el bono temporal
         // eleve el score sin pasar por el piso (misma vía que ERRAND).
@@ -3047,6 +3085,22 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchRepostar != null) {
                     return "Repostar ${matchRepostar.groupValues[1]}"
+                }
+                // "cortar/cortarme el pelo" → "Cortar el pelo"/"Cortarme
+                // el pelo" (c.842, lockstep con [ERRAND_HAIRCUT_FLOOR]):
+                // verbo preservado con su pronombre enclítico (alineación
+                // piso↔título, lección c.616; doctrina c.653 — el pronombre
+                // es parte del verbo tal como lo dijo el usuario); el match
+                // arranca en el verbo, así el acuse ("vale, …") y el
+                // prefijo temporal ("hoy …") no ensucian el título;
+                // [sanitizeTitle] depura el residuo temporal de cola
+                // ("…el sábado"/"…esta tarde").
+                val matchHaircut = Regex(
+                    """\b(?<!no )(cortar(?:me|te|se|nos)?)\s+((?:(?:el|la|los|las|mi|tu|su)\s+)?pelo\b.*)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchHaircut != null) {
+                    return "${capitalizeFirst(matchHaircut.groupValues[1])} ${matchHaircut.groupValues[2]}"
                 }
                 null
             }

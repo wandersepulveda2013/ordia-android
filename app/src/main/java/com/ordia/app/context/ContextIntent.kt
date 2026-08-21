@@ -140,6 +140,13 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // [TRIGGER_WORDS], sin lo cual la notificación ni llegaría al
         // análisis (lección c.751).
         "gasolina",
+        // c.842: keyword-OBJETO "pelo" (lockstep con el piso acotado
+        // `ERRAND_HAIRCUT_FLOOR` "cortar/cortarme el pelo", lección
+        // c.751/c.829). NO el verbo "cortar": bivalente (césped/pan/
+        // comunicación). 0.12 sola queda bajo el umbral: "el pelo está
+        // largo" (declarativo) sigue descartado; con bono temporal
+        // 0.22 < 0.45.
+        "pelo",
         // c.831: keyword-VERBO "repostar" (lockstep keyword↔piso
         // `ERRAND_VERBS` posición libre, lección c.639/c.751). Monosémico
         // (proveer de combustible), así keyword verbo — a diferencia del
