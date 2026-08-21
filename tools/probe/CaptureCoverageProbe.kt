@@ -33,8 +33,13 @@ fun main() {
         // (TASK) tras el fix c.823; deben reportar HIT.
         "mandar el paquete el jueves",
         "mandar el fax mañana",
+        // c.824: REGRESIÓN — las dos formas de "encargar" ya tienen piso
+        // (TASK) tras el fix c.824; deben reportar HIT.
         "encargar el pastel mañana",
         "encargar las flores el viernes",
+        // Gestiones ("gestionar" nunca sondeado; candidatos futuros NULL)
+        "gestionar el alta en el registro mañana",
+        "gestionar la reclamación el lunes",
         "pedir el pastel mañana", // control: 'pedir' es keyword de TASK
         // Compra doméstica suelta ("nevera")
         "llenar la nevera mañana",

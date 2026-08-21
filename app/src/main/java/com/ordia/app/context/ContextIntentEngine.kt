@@ -1499,6 +1499,19 @@ object ContextIntentEngine {
             // semántico de "pedir" c.712/"enviar" c.692; no es
             // desplazamiento a destino físico (no ERRAND).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )mandar\s+\w""").containsMatchIn(lower)
+            // c.824: "encargar <objeto>" ("encargar el pastel mañana"),
+            // forma 2/N de la clase de encargos/comisiones (sonda propia
+            // con pool de dispersión por epoch-day sobre los NULLs de
+            // `tools/probe/CaptureCoverageProbe.kt` c.822; metodología
+            // idéntica). Mismo ancla/guard que c.691…c.823: verbo al inicio
+            // o tras acuse o tras prefijo temporal; `\s+\w` exige objeto;
+            // `(?<!no )` bloquea la negada; el sustantivo "encargo", el
+            // participio "encargado", la 1ª persona "te encargo" y el
+            // pasado "encargó" no casan. Kind decidido: TASK — "encargar"
+            // gobierna el OBJETO (pastel/flores) como acción de gestión,
+            // hermano semántico de "pedir" c.712/"mandar" c.823; no es
+            // desplazamiento a destino físico (no ERRAND).
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )encargar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -2259,6 +2272,12 @@ object ContextIntentEngine {
                 // temporal despojado).
                 val matchMandar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )mandar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchMandar != null) return "Mandar ${matchMandar.groupValues[1]}"
+
+                // "encargar X" → "Encargar X" (c.824): mismo criterio
+                // que c.691…c.823 (verbo preservado, acuse/prefijo
+                // temporal despojado).
+                val matchEncargar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )encargar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchEncargar != null) return "Encargar ${matchEncargar.groupValues[1]}"
 
                 // "pedir X" → "Pedir X" (c.712): mismo criterio
                 // que c.691…c.711 (verbo preservado, acuse/prefijo
