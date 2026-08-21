@@ -1,3 +1,13 @@
+## Ciclo c.798 — 2026-08-21 (UTC) — fix(assistant): variantes de What-Now «¿qué debo hacer?»/«¿qué tarea tengo primero?» rutean con guarda de alcance — sonda persistida 13→11 GAP
+
+- **HEAD inicial**: `a8a6102` (c.797). Fetch PRE-COMMIT sin avance (no STALE_RUN, no colisión). Env JVM (kotlinc 2.1.20, `/tmp/libs`, OpenJDK 21).
+- **Problema (P2 routing honesto / what-now, residuo de la sonda persistida c.797 `tools/probe/AssistantHonestRouteProbe.kt`)**: dos formas del clúster «¿qué hago ahora?» caían al menú genérico «Puedo organizar tu día…» — mentira por omisión: (i) el verbo *debo* («¿qué debo hacer (ahora)?») — la forma cotidiana más natural de pedir la siguiente acción; (ii) forma orden «¿qué tarea tengo primero?». Ambas son semánticamente idénticas a «¿qué sigue?» y demandan la sugerencia What Now.
+- **Solución (cambio mínimo)**: vocabulario what-now += `("que debo hacer" in query && !hasAgendaDateScope(query)) || ("tengo primero" in query && !hasAgendaDateScope(query))` — guarda hermana del `!isAgendaQuery` (c.554): al no llevar marcador de agenda, las variantes con alcance («mañana»/«semana»/«mes»/día-semana) NO deben rute-y mentir con la sugerida de HOY. Determinista, cero random, cero IA fingida, cero botón nuevo.
+- **TDD (RED→GREEN)**: RED — +4 tests, EXACTAMENTE 2 fallaron (2 rutas; las 2 guardas de scope ya verdes pre-fix); GREEN `OK (4943 tests: 4939 base + 4)`, 0 failures; smoke 25/25 OK. Sonda POST: 13→11 GAP (2 cerrados, 0 regresión).
+- **Archivos**: `AssistantEngine.kt` (vocabulario what-now + guardas); `AssistantEngineTest.kt` (+4 tests: 2 rutas, 2 guardas); `AI_AUTONOMY/*`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK). La rama sí en JVM.
+- **Próxima prioridad**: de los 11 GAP restantes: (i) «cuanta carga tengo hoy»/«tengo muchas tareas» → `dayLoadAnswer` vocab; (ii) «que tiempo tengo»/«tiempos libres hoy»/«que horario tengo libre» → free-time/dayLoad (debatir: ambigua); (iii) «que tarea es mas larga» (most-deferrable); (iv) «cuales son mis tareas» (paridad OPEN_SEARCH payload «tareas»); (v) «que mes pasado hice» (recap mes); (vi) «cuantas pendientes tengo» sin «hoy» — guard conservador (human decision). «cuanto tiempo me falta» (hermano de «cuanto tiempo me queda»).
+
 ## Ciclo c.797 — 2026-08-21 (UTC) — fix(assistant/search): olvido imperfecto «se me/se nos olvid…» + interrogativos de listado de entidades (proyectos/rutinas/hábitos) — 18→13 GAP en sonda nueva `tools/probe/AssistantHonestRouteProbe.kt`
 
 - **HEAD inicial**: `9ae4a1f` (c.796). Fetch sin avance (no colisión). Env JVM (kotlinc 2.1.20, `/tmp/libs`, OpenJDK 21).
@@ -7,6 +17,7 @@
 - **Archivos**: `AssistantEngine.kt` (MISSED_SLIP_HEADS + ENTITY_LISTING_FORMS); `SearchEngine.kt` (MISSED_SLIP_HEADS); `AssistantEngineTest.kt` (+6); `tools/probe/AssistantHonestRouteProbe.kt` (persistente); `AI_AUTONOMY/*`. 
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK). La rama sí en JVM.
 - **Próxima prioridad**: de los 13 GAP restantes los de mayor señal P2 son (i) «que tarea es mas larga» (most deferrable longitud expuesta sólo como OVERLOADED), (ii) «que debo hacer ahora» (what-now form variant), (iii) «cuantas pendientes tengo» sin «hoy» — guard conservador (decisión humana). Auditoría nueva con probes (vencidas importantes, horario libre).
+
 
 
 ## Ciclo c.796 — 2026-08-21 (UTC) — fix(assistant): forma sustantiva «búsqueda de <X>» → OPEN_SEARCH con operando despojado (residuo (f) sonda c.793)

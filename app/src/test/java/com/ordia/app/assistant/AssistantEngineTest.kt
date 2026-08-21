@@ -1586,6 +1586,40 @@ class AssistantEngineTest {
             assertTrue("'$q' no debe activar What Now: ${answer.text}", answer.relatedTaskIds.isEmpty())
         }
     }
+    // --- c.798: what-now variantes «qué debo hacer»/«qué tarea tengo primero» ---
+    // Sonda persistente tools/probe/AssistantHonestRouteProbe.kt: dos frases
+    // cotidianas más del cluster "¿qué hago ahora?" caían al menú genérico. El
+    // verbo "debo" (la forma más natural de pedir la siguiente acción) y la
+    // forma orden "qué tarea tengo primero" demandan la misma sugerencia.
+
+    @Test fun whatNow_recognizesQueDeboHacerAhora() {
+        val answer = AssistantEngine.answer("¿Qué debo hacer ahora?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿qué debo hacer ahora? debe sugerir la urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun whatNow_recognizesQueTareaTengoPrimero() {
+        val answer = AssistantEngine.answer("¿Qué tarea tengo primero?", whatNowUrgent, emptyList(), emptyList())
+        assertEquals("¿qué tarea tengo primero? debe sugerir la urgente: ${answer.text}", listOf(1L), answer.relatedTaskIds)
+    }
+
+    @Test fun whatNow_queDeboHacerConScopeNoEsWhatNow() {
+        // Guarda de alcance: «¿qué debo hacer mañana/esta semana/el viernes?»
+        // llevan un alcance temporal futuro — si What Now las secuestra con la
+        // sugerida de HOY miente por omisión. Guarda hermana del guarda de
+        // «qué tengo que hacer mañana» (c.554, va a agenda).
+        for (q in listOf("¿qué debo hacer mañana?", "¿qué debo hacer esta semana?", "¿qué debo hacer el viernes?", "¿qué debo hacer este mes?")) {
+            val answer = AssistantEngine.answer(q, whatNowUrgent, emptyList(), emptyList())
+            assertTrue("'$q' no debe ser What Now (alcance futuro): ${answer.text}", answer.relatedTaskIds.isEmpty())
+        }
+    }
+
+    @Test fun whatNow_tengoPrimeroConScopeNoEsWhatNow() {
+        for (q in listOf("¿qué tarea tengo primero mañana?", "¿qué tarea tengo primero esta semana?")) {
+            val answer = AssistantEngine.answer(q, whatNowUrgent, emptyList(), emptyList())
+            assertTrue("'$q' no debe ser What Now (alcance futuro): ${answer.text}", answer.relatedTaskIds.isEmpty())
+        }
+    }
+
 
     @Test fun whatNow_recognizesQueSigueSinTareas() {
         // Sin tareas, la nueva forma sigue dando el mensaje útil (no el genérico).

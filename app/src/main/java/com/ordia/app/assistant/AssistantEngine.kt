@@ -116,6 +116,14 @@ object AssistantEngine {
                 // whatNow_cualNoSeActivaConVerboSuelto).
                 "cual hago" in query || "cual es la siguiente" in query ||
                 "que sigo" in query || "que viene despues" in query ||
+                // c.798: más formas cotidianas del cluster «¿qué hago ahora?» —
+                // el verbo «debo» (la intención de siguiente acción) y la forma
+                // orden «qué tarea tengo primero». Guarda `!hasAgendaDateScope`:
+                // «qué debo hacer mañana/esta semana/el viernes» miente si se
+                // responde con la sugerida de HOY (guarda hermana de «qué tengo
+                // que hacer mañana» → agenda, c.554).
+                ("que debo hacer" in query && !hasAgendaDateScope(query)) ||
+                ("tengo primero" in query && !hasAgendaDateScope(query)) ||
                 // "¿qué tengo que hacer?"/"¿qué me falta por hacer?" son las formas
                 // más cotidianas de preguntar por la siguiente tarea — semánticamente
                 // idénticas a "¿qué hago ahora?"/"¿qué me toca?" — pero, al no
