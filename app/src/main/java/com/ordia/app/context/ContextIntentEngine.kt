@@ -3750,12 +3750,24 @@ object ContextIntentEngine {
         // (c.690b: `noches?` cubre el singular "por la noche", caso común.)
         val bandTail = Regex("""\s*por\s+las?\s+(?:ma[nñ]anas?|tardes?|noches?)\s*[.,;:!?]?\s*$""", RegexOption.IGNORE_CASE)
 
+        // c.839: «para» huérfana tras despojar la fecha de cola
+        // («reservar el hotel para el sábado» → despojo de «el sábado»
+        // dejaba 'Reservar el hotel para', residual P3 hermano c.837).
+        // Sólo se despoja cuando ESTA iteración eliminó un anclaje
+        // temporal (la «para» era su introductor): un título que termina
+        // en contenido («… para el abuelo») nunca se toca.
+        val orphanPara = Regex("""\s+para\s*$""", RegexOption.IGNORE_CASE)
+
         var current = title
         var prev = ""
         var guard = 0
         while (current != prev && guard < 6) {
             prev = current
+            val beforeTail = current
             current = tail.replace(current, "").trim()
+            if (current != beforeTail) {
+                current = orphanPara.replace(current, "").trim()
+            }
             current = bandTail.replace(current, "").trim()
             // Días relativos desnudos: sólo si NO los precede un genitivo.
             // "pasado" también bloquea (c.690): el compuesto "pasado mañana"
