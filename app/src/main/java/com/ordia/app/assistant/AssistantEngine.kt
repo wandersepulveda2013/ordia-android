@@ -1271,8 +1271,13 @@ object AssistantEngine {
         val bareForm = "tengo tiempo" in query || "tiempo tengo" in query ||
             "tengo hueco" in query || "tengo un hueco" in query ||
             "tengo un rato" in query || "tiempos libres" in query ||
-            // c.802: «me queda poco tiempo» hermano cotidiano del hueco.
+            // c.802 (hermano): «me queda poco tiempo» hermano cotidiano del hueco.
             "me queda poco tiempo" in query || "queda poco tiempo" in query ||
+            // c.803 (sonda AssistantOverdueImportanceProbe): plural invertido
+            // de «tengo hueco» («¿qué huecos tengo hoy?»), hermano de
+            // «tiempo tengo»/«horario tengo libre». Caía al menú pese a la
+            // rama existente.
+            "huecos tengo" in query ||
             "horario libre" in query || "horario tengo libre" in query
         return bareForm || freeTimeWindowMinutes(query) != null
     }
@@ -2136,11 +2141,23 @@ object AssistantEngine {
     private fun isDaySummaryQuery(query: String): Boolean {
         if ("resumen del dia" in query || "resumen de hoy" in query) return true
         if ("como va el dia" in query || "como va mi dia" in query) return true
+        // c.803 (sonda AssistantOverdueImportanceProbe): versión de verbo
+        // cotidiano («resume mi día») y sinónimo laboral («mi jornada») de
+        // las formas de arriba — caían al menú pese a que el panorama ya
+        // existe. «jornada» no compite con el veredicto de carga: COMO_VOY
+        // exige «cómo voy» (1.ª persona), así que la guarda es estructural.
+        // «resume mi día» no compite con la rama de conversaciones, que
+        // exige «conversación»/«mensaje».
+        if ("resume mi dia" in query || "como va mi jornada" in query) return true
         // Recuento de hoy: exige "hoy" para no robar la agenda de otros días.
         if ("hoy" in query) {
             if ("cuantas tareas" in query || "cuantas tengo" in query ||
                 "cuantos pendientes" in query || "cuantos pendiente" in query
             ) return true
+            // c.803: «¿cuánto falta por hacer hoy?» pide el mismo recuento
+            // de pendientes. Guarda «hoy» hermana de las de arriba:
+            // «…mañana» sigue fuera (no roba la agenda de otro día).
+            if ("cuanto falta por hacer" in query) return true
         }
         return false
     }

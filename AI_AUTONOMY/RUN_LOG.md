@@ -1,3 +1,8 @@
+## Ciclo c.803 (2026-08-21, renumerado de c.801 por colisión con hermano remoto c.801/c.802 — sonda NUEVA `AssistantOverdueImportanceProbe.kt`; 5→1 GAP tolerado-documentado)
+
+Base `979461e` (c.800 remoto). No STALE_RUN destructivo: conflicto detectado en fetch de pre-commit; stash → ff-only → pop; conflictos (código `isFreeTimeQuery` — unión por UNION de ambos disparadores; docs AI_AUTONOMY — ambos bloques conservados) resueltos a mano; sin force, sin reset --hard, sin `main`. **Problema**: sonda nueva persistente (18 frases de 3 familias sugeridas por c.800) marca 5 GAPs al menú genérico pese a que el panorama YA existe → mentiras por omisión. **Solución**: `isDaySummaryQuery` += «resume mi dia»/«como va mi jornada»/«cuanto falta por hacer» con guarda «hoy»; `isFreeTimeQuery` += «huecos tengo». **TDD**: RED +6 EXACTAMENTE 4 fallaron → GREEN (cifras re-verificadas tras fusión con hermano `5cc709b` en este run), 0 failures; smokes 25/25 y 9/9. Sonda POST: 5→1 GAP («qué me queda por hacer hoy» AMBIGUO-documentado, decisión humana). **Archivos**: `AssistantEngine.kt`, `AssistantEngineTest.kt` (+6), `tools/probe/AssistantOverdueImportanceProbe.kt` (nueva), `AI_AUTONOMY/*`. **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room (sin SDK). **Próxima prioridad**: el GAP ambiguo documentado; nuevas rondas (rutinas adaptables, relaciones notas/tareas, onboarding).
+
+
 ---
 ## Ciclo c.801 (2026-08-21, DEDUPE total — descarte de duplicado con el hermano remoto `979461e`/`3d454ae`/`3d25017` + verificación independiente del HEAD aterrizado)
 

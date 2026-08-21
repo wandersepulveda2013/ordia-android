@@ -4928,6 +4928,83 @@ class AssistantEngineTest {
             answer.text.contains("compromiso") && answer.text.contains("vencido"))
     }
 
+    // --- c.801: sonda AssistantOverdueImportanceProbe — mismas formas que la
+    // familia «resumen del día» pero en su versión cotidiana de verbo y
+    // sinónimos («resume mi día», «¿cómo va mi jornada?», «¿cuánto falta por
+    // hacer hoy?») caían al menú genérico pese a que el panorama YA existe.
+    @Test fun daySummary_resumeMiDia_ruteaAlPanorama() {
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "resume mi día",
+            listOf(TaskEntity(id = 1, title = "Pend", dueAt = dayAt(dayToday, 15), durationMinutes = 30)),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertFalse("no cae al menú genérico: ${answer.text}", answer.text.contains("Puedo organizar"))
+        assertTrue("menciona las pendientes: ${answer.text}", answer.text.contains("pendiente"))
+    }
+
+    @Test fun daySummary_comoVaMiJornada_ruteaAlPanorama() {
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿cómo va mi jornada?",
+            listOf(TaskEntity(id = 1, title = "Pend", dueAt = dayAt(dayToday, 15), durationMinutes = 30)),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertFalse("no cae al menú genérico: ${answer.text}", answer.text.contains("Puedo organizar"))
+        assertTrue("menciona las pendientes: ${answer.text}", answer.text.contains("pendiente"))
+    }
+
+    @Test fun daySummary_cuantoFaltaPorHacerHoy_daRecuento() {
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿cuánto falta por hacer hoy?",
+            listOf(
+                TaskEntity(id = 1, title = "A", dueAt = dayAt(dayToday, 11), durationMinutes = 30),
+                TaskEntity(id = 2, title = "B", dueAt = dayAt(dayToday, 15), durationMinutes = 30)
+            ),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertFalse("no cae al menú genérico: ${answer.text}", answer.text.contains("Puedo organizar"))
+        assertTrue("cuenta 2 pendientes: ${answer.text}", answer.text.contains("2 pendientes"))
+    }
+
+    @Test fun daySummary_cuantoFaltaPorHacerManana_noRutea() {
+        // Guarda anti-colisión hermana de las de recuento: el panorama es de
+        // HOY; «mañana» queda fuera (como «cuántas tengo mañana», que no roba
+        // la agenda de otro día).
+        val now = dayAt(dayToday, 9)
+        val answer = AssistantEngine.answer(
+            "¿cuánto falta por hacer mañana?",
+            listOf(TaskEntity(id = 1, title = "Pend", dueAt = dayAt(dayToday, 15), durationMinutes = 30)),
+            emptyList(), emptyList(),
+            now, dayZone
+        )
+        assertFalse("no responde el panorama de hoy (empieza con «Hoy»): ${answer.text}",
+            answer.text.startsWith("Hoy:") || answer.text.startsWith("Hoy no"))
+    }
+
+    @Test fun daySummary_resumeMiDia_noRobaResumeConversacion() {
+        // Guarda: «resume la conversación» sigue en su rama (conversaciones),
+        // no la roba la nueva forma «resume mi día».
+        val answer = AssistantEngine.answer(
+            "resume la conversación",
+            emptyList(), emptyList(), emptyList()
+        )
+        assertTrue("sigue en la rama de conversaciones: ${answer.text}",
+            answer.text.contains("conversaciones"))
+    }
+
+    @Test fun freeTime_recognizesQueHuecosTengoHoy() {
+        // Plural invertido de «tengo hueco», hermano de «tiempo tengo»/
+        // «tiempos libres» (c.798). La sonda c.801 lo marcaba GAP.
+        val answer = AssistantEngine.answer("¿qué huecos tengo hoy?", emptyList(), emptyList(), emptyList())
+        assertTrue("'qué huecos tengo hoy' rutea a hueco libre, no al menú: ${answer.text}",
+            answer.text.contains("Nada te cabe") || answer.text.contains("puedes completar"))
+    }
+
     // --- c.604: el asistente RECIBE `zone` pero lo silenciaba en el ranking.
     // WhatNowEngine.ordered/suggest tienen `zone = ZoneId.systemDefault()`;
     // AssistantEngine.answer(...) los llamaba SIN pasar `zone`, así que toda la
