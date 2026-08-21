@@ -1,3 +1,14 @@
+## Ciclo c.813 — 2026-08-21 (UTC) — feat(assistant): forma cotidiana «quiero ver todas mis tareas» (deseo+verbo) rutea al listado de familia — cierra el GAP «quiero ver …» residual de la sonda c.812
+
+- **HEAD inicial del segmento**: `bd4863c` (c.812 propio, pull --ff-only limpio). Suite entrante: OK (5045). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21).
+- **Descubrimiento (sonda efímera `/tmp/probes/DiscoveryRound20260821.kt`, 7 frases residuales)**: confirma los GAPs documentados — se elige 1 familia: prefijo «quiero ver …» (deseo+verbo de listado) que apunta a la misma familia ya ruteada pero caía al menú («quiero ver todas mis tareas/rutinas»). 2 de las 7 residuales ya rutaban por sí mismas («tareas que tengo», «como va mi semana» — última por rama compat).
+- **Solución (cambio mínimo, TDD)**: `AssistantEngine.kt` — `ENTITY_LISTING_NOISE` += `{"quiero", "ver", "todos", "todas"}` (muletillas de listado, hermanas de c.801 «ensename/muestrame/dime...»). Solo afecta al camino token-only: el guard de contenido (`ENTITY_LISTING_QUALIFIERS` + remanente) sigue intacto («quiero ver tareas del doctor» NO rutea). Cero pantalla nueva, cero wiring, cero IA fingida.
+- **TDD**: RED exacto — +3 tests nuevos (2 ruta + guard), EXACTAMENTE 2 fallaron como se predijo (guard verde desde RED) → **GREEN OK (5048 = 5045 + 3)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9; sonda persistida sin regresión. Sin tests reducidos/eliminados/falseados.
+- **Archivos**: `app/src/main/java/com/ordia/app/assistant/AssistantEngine.kt`, `app/src/test/java/com/ordia/app/assistant/AssistantEngineTest.kt` (+3), `AI_AUTONOMY/*`.
+- **Residuos documentados (cada uno ≈1 píldora)**: «cosas que tengo pendientes» (paraphrase what-now/listado pendientes), «cuantas rutinas tengo» («cuantas tareas tengo» ya es recuento), «de que va mi semana» («como va mi semana» ya rutea — compat asincrónica), «tengo que hacer algo en la mañana» (franja temporal — requiere alcance de tiempo). Ninguno necesita pantalla nueva.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Próxima prioridad**: los residuales anteriores (uno por run), especialmente «cosas que tengo pendientes» (what-now/listado) y «cuantas rutinas tengo» (recuento); o agendas históricas (backup-restore deep-dive, accesibilidad contentDescription, auditoría de otros consumidores de `WhatNowEngine` por `zone`).
+
 ## Ciclo c.812 — 2026-08-21 (UTC) — feat(assistant): sonda EPHEMERAL nueva de consultas cotidianas elige y cierra 2 familias — vocabulario «sin agenda/sin programación» → sin-fecha, y «se repite(n)» → recurrentes (GAPs de ruta al menú genérico)
 
 - **HEAD inicial del segmento**: `46958b3` (c.811 propio, push limpio). Suite entrante: OK (5043). Env JVM heredado (kotlinc 2.1.20, `/tmp/libs`, JDK 21).

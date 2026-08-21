@@ -1198,7 +1198,13 @@ object AssistantEngine {
     // c.801 (sonda extendida): prefijos imperativos de listado («ensename/muestrame/
     // dime mis tareas») son muletillas honestas del listado: la intención es la
     // misma que la forma interrogativa («cuáles son mis tareas», c.797).
-    private val ENTITY_LISTING_NOISE = setOf("que", "tengo", "hay", "mis", "ensename", "muestrame", "dime")
+    // c.813: deseo+verbo «quiero ver …» y cuantificador universal «todos/todas»
+    // también son muletilla de listado: «quiero ver todas mis tareas» pide la
+    // misma familia que «tareas» y caía al menú (GAP de la sonda c.812).
+    private val ENTITY_LISTING_NOISE = setOf(
+        "que", "tengo", "hay", "mis", "ensename", "muestrame", "dime",
+        "quiero", "ver", "todos", "todas"
+    )
     private val ENTITY_LISTING_TOKENS: Map<String, String> = mapOf(
         "habito" to "habitos", "habitos" to "habitos",
         "rutina" to "rutinas", "rutinas" to "rutinas",

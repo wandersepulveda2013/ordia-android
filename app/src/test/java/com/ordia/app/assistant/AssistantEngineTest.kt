@@ -5676,6 +5676,29 @@ class AssistantEngineTest {
         assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
     }
 
+    // c.813: deseo+verbo «quiero ver …» — la forma cotidiana de pedir el
+    // listado («quiero ver todas mis tareas») caía al menú pese a que la
+    // familia ya está ruteada. La intención es la misma que «ver tareas».
+    @Test fun entityListing_quieroVerTodasMisTareas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("quiero ver todas mis tareas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("tareas", answer.actionPayload)
+    }
+
+    @Test fun entityListing_quieroVerMisRutinas_routesToOpenSearch() {
+        val answer = AssistantEngine.answer("quiero ver mis rutinas", emptyList(), emptyList(), emptyList())
+        assertEquals(AssistantAction.OPEN_SEARCH, answer.action)
+        assertEquals("rutinas", answer.actionPayload)
+    }
+
+    @Test fun entityListing_quieroVer_guard_contenidoNoRutea() {
+        // «quiero ver tareas del doctor»: contenido real tras la familia → no
+        // hay familia única que listar → menú (paridad con el guard de
+        // contenido cualificado).
+        val answer = AssistantEngine.answer("quiero ver tareas del doctor", emptyList(), emptyList(), emptyList())
+        assertNotEquals(AssistantAction.OPEN_SEARCH, answer.action)
+    }
+
     // c.794 — calificador de contenido sobre la superficie de notas («notas
     // de/del/de la <X>»), hermano de c.792 (tareas): el guard c.793
     // `notesListing_guard_contentQueryDoesNotRoute` se actualiza a bloquear la
