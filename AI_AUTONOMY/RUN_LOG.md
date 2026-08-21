@@ -17134,5 +17134,5 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Hallazgo adicional**: residual P3 «reservar el hotel para el sábado» → TASK 0.45 con título «Reservar el hotel para» (el «para» huérfano no se despoja). Nueva fila P3 en BACKLOG (ABIERTA).
 - **Tests**: `bash tools/run_domain_tests.sh` → **OK (5291)**, 0 failures; sonda c.834 POST: 10 NULLs de 18. Cero código de producto tocado.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
-- **Commits**: ver abajo. HEAD final: ver git.
+- **Commits**: `15bf841` (test c.837 + docs) + docs HEAD final. HEAD final: `15bf841`.
 - **Próxima prioridad**: «medirme la tensión» (hermana salud — evaluar kind) o «cortarme/cortar el pelo» (sin piso hermano) — UNA por ciclo; residual P3 «Reservar el hotel para»; residual P2 c.818; «debiera/debiese…»; temporales desnudas BLOCKED-humano. Re-fetch OBLIGATORIO.
