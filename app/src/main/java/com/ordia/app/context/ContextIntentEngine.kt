@@ -1436,6 +1436,19 @@ object ContextIntentEngine {
             // temporal 0.1 = 0.22 < umbral (hermana c.765/c.766/c.768/
             // c.771/c.772).
             || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )hacer\s+(?:el\s+|la\s+|los\s+|las\s+|mi\s+|tu\s+|su\s+)?(?:copias?\s+de\s+seguridad|backups?)\b""").containsMatchIn(lower)
+            // c.822: "tramitar <objeto>" ("tramitar el pasaporte mañana"),
+            // forma 1/N de la CUARTA clase de verbos cotidianos (trámites/
+            // gestión pública; sonda `tools/probe/CaptureCoverageProbe.kt`
+            // c.822 — sondeo de cobertura de captura sobre formas no medidas
+            // antes). Mismo ancla/guard que c.691…c.711: verbo al inicio o
+            // tras acuse o tras prefijo temporal; `\s+\w` exige objeto;
+            // `(?<!no )` bloquea la negada; el sustantivo "tramitación"/
+            // "trámite" y el pasado "tramitó" no casan. Kind decidido en
+            // este ciclo: TASK — "tramitar" gobierna el OBJETO (pasaporte/
+            // visa/certificado/licencia), no el desplazamiento; muchas
+            // tramitaciones son gestión remota/digital y ERRAND está
+            // anclado a destinos físicos.
+            || Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )tramitar\s+\w""").containsMatchIn(lower)
 
     /**
      * Imperativos de aviso inequívocos (c.619). Sinónimos puros de recordatorio que
@@ -2166,6 +2179,12 @@ object ContextIntentEngine {
                 // temporal despojado).
                 val matchAvisar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )avisar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
                 if (matchAvisar != null) return "Avisar ${matchAvisar.groupValues[1]}"
+
+                // "tramitar X" → "Tramitar X" (c.822): mismo criterio
+                // que c.691…c.711 (verbo preservado, acuse/prefijo
+                // temporal despojado).
+                val matchTramitar = Regex("""(?:^|\b(?:$ACK_PREFIX)\s*[,;.!:]?\s+|\b(?:$TASK_FLOOR_TEMPORAL)\s+)(?<!no )tramitar\s+(.+)""", RegexOption.IGNORE_CASE).find(original)
+                if (matchTramitar != null) return "Tramitar ${matchTramitar.groupValues[1]}"
 
                 // "pedir X" → "Pedir X" (c.712): mismo criterio
                 // que c.691…c.711 (verbo preservado, acuse/prefijo
