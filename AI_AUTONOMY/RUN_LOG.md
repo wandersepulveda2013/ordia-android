@@ -16884,3 +16884,18 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
 - **Commits**: tras este append; HEAD final: tras push.
 - **Próxima prioridad**: nueva ronda de descubrimiento (agendas históricas: backup-restore deep-dive, accesibilidad contentDescription, auditoría de consumidores de `WhatNowEngine` por `zone`). Temporales desnudas siguen BLOCKED-humano.
+
+
+## Ciclo c.818 — 2026-08-21 (UTC) — fix(parser): «el 5to viernes del mes» numérico ancla MONTHLY ord=5 + test(domain): cobertura JVM de `FocusRecap` (audit: backup limpio, accesibilidad GAP)
+
+- **HEAD inicial**: `d081aff` (c.817 remoto; pull --ff-only limpio, sin colisión — el clon ya venía sincronizado). Suite entrante: OK (5057). Env JVM recreado por el run (kotlinc 2.1.20 `/tmp/kotlinc-home`, jars `/tmp/libs`, JDK 21).
+- **Problema (P3 → P1-menor evitar-olvidos, residuo ABIERTO c.470)**: «el 5to viernes del mes» caía al próximo viernes suelto con rec=NONE y residuo «el 5to (del mes)» (sonda JVM fuente real). El motor ya soportaba ord=5 (c.575); el normalizador numérico seguía 1-4 con comentario obsoleto.
+- **Solución (cambio mínimo, TDD)**: `normalizeOrdinalBeforeWeekday` += `5 -> "quinto"`. Guards: «ver el 5to capítulo» intacto; ≥6 intacto como contenido.
+- **TDD**: RED exacto (+3 tests, EXACTAMENTE 2 fallos; guard verde desde RED) → **GREEN OK (5059)**; smokes 25/25 + 9/9.
+- **Segunda unidad**: `FocusRecapTest.kt` NUEVO (+8 tests) fija reglas del recap determinista (completadas-hoy-por-zona, tope 180, huérfanas sólo en total, top-3 desc, `humanMinutes`). → **GREEN OK (5067)**.
+- **Auditorías**: backup-restore deep-dive **limpio** (serialización↔parse campo a campo, sample AttachmentEntity); SearchEngine maduro; accesibilidad P2 ABIERTO en BACKLOG (105/107 `Icon(` sin contentDescription; estrategia por pantalla + R.string).
+- **Bugs**: ninguno nuevo. **Features**: parser ordinal numérico quinto.
+- **Archivos**: `NaturalTaskParser.kt`, `NaturalTaskParserTest.kt` (+3), `FocusRecapTest.kt` (NUEVO), `AI_AUTONOMY/*`.
+- **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room DAOs (sin SDK).
+- **Commits**: tras este append; HEAD final: tras push.
+- **Próxima prioridad**: accesibilidad (1ª pantalla de las samples, textos en R.string) o SIN TEST restantes (`NoteBlocks`, `TaskMutationGate`).
