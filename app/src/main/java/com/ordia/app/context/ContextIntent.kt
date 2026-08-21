@@ -139,7 +139,15 @@ enum class ContextIntentKind(val displayName: String, val keywords: List<String>
         // descartada; con bono temporal 0.22 < 0.45. Además alimenta
         // [TRIGGER_WORDS], sin lo cual la notificación ni llegaría al
         // análisis (lección c.751).
-        "gasolina")),
+        "gasolina",
+        // c.831: keyword-VERBO "repostar" (lockstep keyword↔piso
+        // `ERRAND_VERBS` posición libre, lección c.639/c.751). Monosémico
+        // (proveer de combustible), así keyword verbo — a diferencia del
+        // bivalente "echar" de c.829, que fue keyword-OBJETO. 0.12 sola
+        // queda bajo el umbral: el futuro conjugado "repostaré el coche
+        // mañana" (keyword 0.12 + bono temporal 0.1 = 0.22 < 0.45) sigue
+        // descartado.
+        "repostar")),
     CALL("Llamada", listOf("llamar a", "llamar por teléfono", "hablar con",
         "llamada", "telefonear")),
     PAYMENT("Pago", listOf("pagar", "pago", "transferencia", "depósito",

@@ -57,6 +57,11 @@ fun main() {
         "echar gasolina esta tarde",
         "ir a echar gasolina mañana",
         "gasolina: echar antes del viaje",
+        // c.831: REGRESIÓN — las dos formas de "repostar" ya tienen piso
+        // (`ERRAND_VERBS` posición libre) tras el fix c.831; deben
+        // reportar HIT.
+        "repostar el coche mañana",
+        "repostar gasolina esta tarde",
         // Agenda médica escrita distinto ("sacar cita", "pedir hora")
         "sacar cita con el dentista mañana",
         "pedir hora en el médico el lunes",

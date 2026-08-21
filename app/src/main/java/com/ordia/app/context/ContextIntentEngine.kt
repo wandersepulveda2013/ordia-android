@@ -105,7 +105,13 @@ object ContextIntentEngine {
         // keyword en ContextIntent.kt + bonus 0.15f + extractTitle.
         "limpiar|lavar|cocinar|ordenar|arreglar|planchar|reparar|fregar|barrer|trapear|regar|sacudir|desempolvar|tender|vaciar"
     private val EXERCISE_VERBS = "correr|entrenar|nataci[oó]n|pesas"
-    private val ERRAND_VERBS = "recoger|devolver|retirar"
+    // c.831: "repostar" (P1 olvido silencioso; monosémico — proveer de
+    // combustible —, así posición libre como c.727 "tender"/c.828 "vaciar",
+    // sin acotamiento al objeto; a diferencia del bivalente "echar" c.829).
+    // Fluye al piso, a la negación y al guard de envolvente (fuente única,
+    // lección c.648). Lockstep keyword c.831 en ContextIntent.ERRAND +
+    // plantilla de título (lección c.616).
+    private val ERRAND_VERBS = "recoger|devolver|retirar|repostar"
     private val STUDY_VERBS = "estudiar|repasar"
 
     // Regex de los pisos de posición libre (c.643 HOUSEHOLD, c.647 MEETING/
@@ -2917,6 +2923,21 @@ object ContextIntentEngine {
                 ).find(original)
                 if (matchFuel != null) {
                     return "Echar ${matchFuel.groupValues[1]}"
+                }
+                // "repostar el coche mañana" → "Repostar el coche" (c.831,
+                // lockstep con `ERRAND_VERBS` posición libre): verbo
+                // preservado (alineación piso↔título, lección c.616); el
+                // match arranca en el verbo, así el acuse ("vale, …") y el
+                // prefijo temporal ("hoy …") no ensucian el título;
+                // [sanitizeTitle] depura el residuo temporal de cola
+                // ("…mañana"/"…esta tarde") y conserva el contenido
+                // ("…antes del viaje").
+                val matchRepostar = Regex(
+                    """\b(?<!no )repostar\s+(.+)""",
+                    RegexOption.IGNORE_CASE
+                ).find(original)
+                if (matchRepostar != null) {
+                    return "Repostar ${matchRepostar.groupValues[1]}"
                 }
                 null
             }
