@@ -17123,6 +17123,6 @@ a un permiso persistente frágil y silencioso ante fallos.
 - **Bugs**: ninguno nuevo; guards intactos (negada «no hacerme la maleta», hedge «quizá hacerme…», pasado «me hice la maleta ayer», bivalente «hacerme un favor mañana» → todos NULL, +4 guards en test).
 - **Features**: «hacerme la maleta esta noche» → TASK 0.45 «Hacerme la maleta» dueAt; «prepararte la maleta mañana», «hacerse las maletas el viernes», «prepararnos la maleta» ✓.
 - **Tests**: `bash tools/run_domain_tests.sh` → **OK (5285 = 5277 + 8 nuevos en `ContextIntentEngineMaletaFloorTest`)**, 0 failures; `bash tools/run_domain_checks.sh` → 25/25; sonda c.834 POST → 10/18 NULL (3 candidatas restantes + 7 controles correctos), «hacerme la maleta esta noche» HIT TASK 0.45 título limpio.
-- **Commits**: (pendiente de hash tras commit).
-- **HEAD final**: (pendiente).
+- **Commits**: `6c5a7cd` (fix+tests+docs c.836).
+- **HEAD final**: `6c5a7cd`.
 - **Próxima prioridad**: candidatas restantes de la sonda c.834 (UNA por ciclo): «medirme la tensión» (hermana salud c.765…c.775) o «cortarme/cortar el pelo» (peluquería, nunca sondeada; la forma desnuda «cortar el pelo» también es NULL → familia doble). NO VERIFICADO Android/gradle/UI/Room.
