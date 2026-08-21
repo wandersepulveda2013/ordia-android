@@ -30,6 +30,10 @@ import org.junit.Test
  *   dentista") ⇒ compromiso vigente ⇒ se CAPTURA igual que antes.
  * - "tendré que" (futuro) no casa el patrón; "llamar al banco porque tenía
  *   que ir al médico" (la acción precede al marcador) sigue capturando CALL.
+ * - c.826 (hermano): el pasado de «deber» («debía/debí/debió/debíamos/
+ *   debieron …», con «que» opcional por dequeísmo) tenía el mismo overreach;
+ *   se añadió como segunda rama del patrón. «debido a…», «deberá/deberás»
+ *   y «debes» no casan (frontera \b y alternancias explícitas).
  */
 class ContextIntentEnginePastObligationGuardTest {
 
@@ -148,5 +152,64 @@ class ContextIntentEnginePastObligationGuardTest {
         val r = analyze("llamar al banco porque tenía que ir al médico")
         assertNotNull("la acción PRECEDE al marcador pasado: CALL sobrevive", r)
         assertEquals(ContextIntentKind.CALL, r!!.kind)
+    }
+
+    // --- Pasado de «deber» (c.826, hermano: sonda ConditionalNecessityProbe) ---
+
+    @Test
+    fun pastDeberCallIsNotCaptured() {
+        assertNull("'debía llamar al banco' describe el pasado, no compromiso", analyze("debía llamar al banco"))
+        assertNull("'debí llamar al banco' describe el pasado, no compromiso", analyze("debí llamar al banco"))
+        assertNull("'debiste llamar al médico' describe el pasado, no compromiso", analyze("debiste llamar al médico"))
+    }
+
+    @Test
+    fun pastDeberPluralFormsAreNotCaptured() {
+        assertNull("'debíamos ir al médico' describe el pasado, no compromiso", analyze("debíamos ir al médico"))
+        assertNull("'debieron recoger el paquete' describe el pasado, no compromiso", analyze("debieron recoger el paquete"))
+        assertNull("'debías estudiar más' describe el pasado, no compromiso", analyze("debías estudiar más"))
+        assertNull("'debió pagar la factura' describe el pasado", analyze("debió pagar la factura"))
+    }
+
+    @Test
+    fun pastDeberDequeismoIsNotCaptured() {
+        assertNull("'debía que llamar al banco' (dequeísmo) describe el pasado", analyze("debía que llamar al banco"))
+    }
+
+    @Test
+    fun negatedPastDeberIsNotCaptured() {
+        assertNull(
+            "'no debía llamar al banco' niega una obligación pasada: nada capturable",
+            analyze("no debía llamar al banco")
+        )
+    }
+
+    @Test
+    fun wrappedReminderOverPastDeberContentIsCaptured() {
+        val r = analyze("recuérdame que debía llamar al banco")
+        assertNotNull("la envoltura presente 'recuérdame' gobierna: TASK sobrevive", r)
+        assertEquals(ContextIntentKind.TASK, r!!.kind)
+    }
+
+    @Test
+    fun futureDeberStillCaptured() {
+        val r = analyze("deberá llamar al banco")
+        assertNotNull("'deberá llamar al banco' es compromiso futuro", r)
+        assertEquals(ContextIntentKind.CALL, r!!.kind)
+        val r2 = analyze("deberás llamar al banco")
+        assertNotNull("'deberás llamar al banco' es compromiso futuro", r2)
+        assertEquals(ContextIntentKind.CALL, r2!!.kind)
+    }
+
+    @Test
+    fun debidoAdverbDoesNotSuppressLegitCapture() {
+        val r = analyze("debido a la lluvia tengo cita con el médico mañana")
+        assertNotNull("'debido a' no es marcador de obligación pasada: APPOINTMENT sobrevive", r)
+        assertEquals(ContextIntentKind.APPOINTMENT, r!!.kind)
+    }
+
+    @Test
+    fun pastDebtStaysNull() {
+        assertNull("'me debía dinero' es una deuda pasada ajena, no compromiso", analyze("me debía dinero"))
     }
 }

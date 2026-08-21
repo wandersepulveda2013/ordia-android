@@ -603,8 +603,20 @@ object ContextIntentEngine {
     // banco" → TASK; "avísame si había que pagar la luz" → REMINDER) porque
     // TASK/REMINDER no están en [WRAPPABLE_PATTERNS]. "tendré que" (futuro,
     // compromiso) no casa. `tuv\w*` cubre tuve/tuvo/tuvimos/tuvieron/tuviste.
+    // c.826 (hermano, sonda ConditionalNecessityProbe): el pasado de «deber»
+    // ("debía/debí/debiste/debió/debíamos/debieron llamar al banco" → CALL
+    // 0.57; "debíamos ir al médico" → APPOINTMENT 0.67) tenía exactamente el
+    // mismo overreach — obligación PASADA persistida como compromiso FUTURO,
+    // incluida la forma negada ("no debía llamar…" → CALL 0.57, rendija
+    // c.648↔c.681 hermana). El auxiliar «deber» no exige «que» (a diferencia
+    // de tener/haber-que), así la rama admite «que» opcional (dequeísmo
+    // coloquial "debía que llamar"). El cierre es `(?!\p{L})`, NO `\b`:
+    // \b de regex es ASCII-only y NO cierra frontera tras vocal acentuada
+    // («debí llamar…» no casaba — misma lección que HEDGE_PATTERN c.649).
+    // Así «debido» ("debido a la lluvia tengo cita mañana" sigue capturando)
+    // y «deberá/deberás/debes» (futuro/presente: compromiso vigente) no casan.
     private val PAST_OBLIGATION_PATTERN = Regex(
-        """\b(?:tuv\w*|ten[íi]a(?:mos|n|s)?|hab[íi]a)\s+(?:(?:que|q)\b|(?:una?\s+)?(?:reuni[oó]n|cita)\b)"""
+        """\b(?:(?:tuv\w*|ten[íi]a(?:mos|n|s)?|hab[íi]a)\s+(?:(?:que|q)\b|(?:una?\s+)?(?:reuni[oó]n|cita)\b)|deb(?:[íi]a(?:mos|s|n)?|isteis|ieron|iste|imos|[ií][oó]|[íi])(?!\p{L})(?:\s+que\b)?)"""
     )
 
     // Penalización por duda/condicional (c.649 anti-overreach). Marcadores como
