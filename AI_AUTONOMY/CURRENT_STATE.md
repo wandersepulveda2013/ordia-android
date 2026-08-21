@@ -7,7 +7,7 @@
 - **TDD**: RED exacto — 12 tests nuevos, EXACTAMENTE 5 fallaron (las 5 capturas: nevera+fecha, armario+fecha, acuse «vale, …», objeto genérico «las cajas», prefijo temporal «hoy …»; 7 guards/regresiones verdes desde RED) → GREEN OK (12/12). `bash tools/run_domain_tests.sh` → **OK (5175 = 5163 + 12)**; `run_domain_checks.sh` 25/25; `run_automation_engine_checks.sh` 9/9. Sonda PRE fuente real (`/tmp/probe828/VaciarRedProbe.kt`, 13 casos): familia entera NULL → POST: 5 capturas HIT HOUSEHOLD 0.45 due=true, controles (negación/pasado/sustantivo/suelto) NULL, regresiones «tender la ropa» 0.49 / «limpiar la cocina» 0.45 HIT, «aspirar a un cargo mejor» NULL. Sin tests reducidos/eliminados/falseados.
 - **Archivos**: `ContextIntentEngine.kt` (piso libre + bonus + extractTitle + comentario c.828), `ContextIntent.kt` (keyword «vaciar» + comentario lockstep), `ContextIntentEngineVaciarFloorTest.kt` (NUEVO, +12 tests), `tools/probe/CaptureCoverageProbe.kt` (forma «vaciar la nevera» marcada REGRESIÓN c.828), `AI_AUTONOMY/*`.
 - **NO VERIFICADO**: Android/gradle/lint/assemble/UI/Room con DAOs reales (sin SDK).
-- **Commits**: tras este append; HEAD final: tras push.
+- **Commits**: tras este append; HEAD final: `776cd69` (c.828).
 - **Próxima prioridad**: siguiente NULL de la sonda (UNA forma por ciclo): «echar gasolina esta tarde», «gestionar el alta/reclamación»; residual P2 c.818 «Icon( null-decorativo» (62 sitios, auditoría cerrada); residual P3 títulos con envoltura residual («Habría que…»/«Que…»); temporales desnudas siguen BLOCKED-humano. Re-fetch OBLIGATORIO antes de implementar.
 
 ---

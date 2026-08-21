@@ -120,7 +120,7 @@ Base `bae3922` (c.791 hermano de contexto integrado ff-only en el fetch PRE; reg
 ---
 ## Ciclo c.791 (2026-08-20, probe de paridad fecha medianoche/mediodía — gap cerrado)
 
-Base `250407e` (c.790 hermano docs DEDUPE «marqué»; stash → ff-only → pop limpio). **Problema**: `ProbeParity.kt` flagged «a medianoche»/«al mediodía» con `<<< GAP` (extractDateTime=true pero hasDateReference=false → bono +0.1 omitido). **Solución**: `hasDateReference` admite las 3 formas; comentario con evidencia probe. **Tests**: +4 con reflexión (positivos ×3 + NEGATIVO «el reporte pasado»). **Suite**: OK (4895: 4891 hermano + 4) + smoke 25 + probe **0 <<< GAP**. NO VERIFICADO Android/UI/Room (sin SDK). HEAD final: tras push.
+Base `250407e` (c.790 hermano docs DEDUPE «marqué»; stash → ff-only → pop limpio). **Problema**: `ProbeParity.kt` flagged «a medianoche»/«al mediodía» con `<<< GAP` (extractDateTime=true pero hasDateReference=false → bono +0.1 omitido). **Solución**: `hasDateReference` admite las 3 formas; comentario con evidencia probe. **Tests**: +4 con reflexión (positivos ×3 + NEGATIVO «el reporte pasado»). **Suite**: OK (4895: 4891 hermano + 4) + smoke 25 + probe **0 <<< GAP**. NO VERIFICADO Android/UI/Room (sin SDK). HEAD final: `776cd69` (c.828).
 
 ---
 ## Ciclo c.790 (2026-08-20, descarte-DEDUPE de mi duplicado con c.789 hermano)
