@@ -11127,6 +11127,54 @@ class NaturalTaskParserTest {
         assertEquals(RecurrenceFrequency.NONE, result.recurrence)
     }
 
+    // --- "N veces al año" (período anual de la familia N-veces) ---
+    // Contraparte anual de "N veces por semana/al mes/al día": "revisión médica dos
+    // veces al año", "matrícula una vez al año". Antes caía a NONE + dueAt=null → la
+    // rutina nacía sin cadencia ni fecha (recordatorio jamás disparaba, invisible en
+    // What Now: P1 evitar olvidos) y la frase entera quedaba como residuo en el título.
+    // n=1 → YEARLY (frecuencia natural del período, simétrico a una vez por semana→
+    // WEEKLY); n≥2 → MONTHLY intervalo ⌊12/n⌋ (2→6 = semestral, 3→4 = cuatrimestral,
+    // 4→3 = trimestral, 6→2 = bimestral, 12→1 = mensual), truncado hacia MÁS frecuente
+    // igual que el resto de la familia (sin enum ni migración nuevos).
+    @Test fun dosVecesAlAnoParsesMonthlyInterval6() {
+        val result = NaturalTaskParser.parse("Revisión médica dos veces al año", now, zone)
+        assertEquals("Revisión médica", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(6, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun unaVezAlAnoParsesYearly() {
+        val result = NaturalTaskParser.parse("Matrícula una vez al año", now, zone)
+        assertEquals("Matrícula", result.title)
+        assertEquals(RecurrenceFrequency.YEARLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun tresVecesAlAnoParsesMonthlyInterval4() {
+        val result = NaturalTaskParser.parse("Limpieza profunda tres veces al año", now, zone)
+        assertEquals("Limpieza profunda", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(4, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun doceVecesAlAnoParsesMonthly() {
+        val result = NaturalTaskParser.parse("Informe 12 veces al año", now, zone)
+        assertEquals("Informe", result.title)
+        assertEquals(RecurrenceFrequency.MONTHLY, result.recurrence)
+        assertEquals(1, result.recurrenceInterval)
+        assertNotNull(result.dueAt)
+    }
+
+    @Test fun cuantasVecesAlAnoNoEsCadencia() {
+        // Guard: pregunta sobre el pasado, no cadencia. "cuántas" no es número escrito
+        // → no captura; la rutina NO aparece (título intacto, sin recurrencia).
+        val result = NaturalTaskParser.parse("cuántas veces al año voy al médico", now, zone)
+        assertEquals(RecurrenceFrequency.NONE, result.recurrence)
+    }
+
     // --- "semana por medio" / "mes por medio" = cada 2 semanas / cada 2 meses ---
     // Giros idiomáticos LATAM sin cantidad numérica, simétricos de "día por medio"
     // (DAILY/2). Antes caían a NONE + dueAt=null → rutina olvidada (P1 evitar olvidos).
