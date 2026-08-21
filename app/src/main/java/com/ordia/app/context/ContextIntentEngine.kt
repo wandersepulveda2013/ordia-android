@@ -581,6 +581,32 @@ object ContextIntentEngine {
         ContextIntentKind.SHOPPING to SHOPPING_BOUNDED_FLOORS
     )
 
+    // Guard anti-overreach de obligación/posesión PASADA (c.824). Defecto de
+    // CLASE DISTINTA de c.648-c.653 descubierto por sonda JVM fuente real:
+    // los envolventes en imperfecto/pretérito ("tenía que", "tuve que",
+    // "había que", "tenía/tuve cita|reunión") NO están registrados en
+    // [WRAPPER_PATTERN] (sólo presente), así la acción subordinada activaba
+    // los pisos/bonos fuertes y se persistía como compromiso FUTURO firme lo
+    // que el usuario describió como obligación YA PASADA (¿cumplida? ambiguo):
+    // "tenía que ir al médico" → APPOINTMENT 0.67, "tenía cita con el
+    // dentista" → APPOINTMENT 0.69, "había que llamar al fontanero" → CALL
+    // 0.57, "tenía reunión con el equipo" → MEETING 0.45; y peor: la forma
+    // NEGADA pasada también capturaba ("no tenía que ir al médico" →
+    // APPOINTMENT 0.67 — rendija entre c.648, que exige "no" inmediato al
+    // verbo del kind, y c.681, que sólo cubre presente). Una afirmación
+    // sobre el pasado no expresa compromiso futuro firme (el mismo principio
+    // de la familia c.648-c.653), así el guard DESCARTA el kind cuyo match
+    // está gobernado (precedido) por el marcador pasado. A diferencia de
+    // [obligationWrapperIsNegated] (c.681, descarta TODA la frase), éste es
+    // por-kind y posicional (como [imperativeIsWrapped]): preserva la
+    // envoltura presente legítima ("recuérdame que tenía que llamar al
+    // banco" → TASK; "avísame si había que pagar la luz" → REMINDER) porque
+    // TASK/REMINDER no están en [WRAPPABLE_PATTERNS]. "tendré que" (futuro,
+    // compromiso) no casa. `tuv\w*` cubre tuve/tuvo/tuvimos/tuvieron/tuviste.
+    private val PAST_OBLIGATION_PATTERN = Regex(
+        """\b(?:tuv\w*|ten[íi]a(?:mos|n|s)?|hab[íi]a)\s+(?:(?:que|q)\b|(?:una?\s+)?(?:reuni[oó]n|cita)\b)"""
+    )
+
     // Penalización por duda/condicional (c.649 anti-overreach). Marcadores como
     // "quizá"/"a lo mejor"/"tal vez" expresan que el usuario NO se ha comprometido:
     // capturarlos como tarea firme en la captura pasiva es overreach (igual que la
@@ -755,6 +781,17 @@ object ContextIntentEngine {
         // (todos los kinds), no un kind concreto. "no tengo gluten" no se toca:
         // "gluten" no es envolvente de obligación.
         if (obligationWrapperIsNegated(lower)) return 0f
+
+        // Guard de obligación/posesión PASADA que gobierna la acción (c.824
+        // anti-overreach). Ver [PAST_OBLIGATION_PATTERN] para el alcance:
+        // "tenía que ir al médico"/"tenía cita con el dentista"/"había que
+        // llamar al fontanero" describían el pasado pero activaban los pisos
+        // y bonos fuertes y se persistían como compromiso FUTURO (y la forma
+        // negada pasada escapaba a c.648+c.681). Se descarta el kind gobernado
+        // por el marcador pasado (misma mecánica posicional que
+        // [imperativeIsWrapped]): la envoltura presente legítima
+        // ("recuérdame que tenía que…" → TASK) no se toca.
+        if (pastObligationGoverns(lower, kind)) return 0f
 
         var score = 0f
         val words = lower.split(Regex("\\s+"))
@@ -1709,6 +1746,24 @@ object ContextIntentEngine {
         val matchStart = patterns.mapNotNull { it.find(lower)?.range?.first }.minOrNull() ?: return false
         val wrapperEnd = WRAPPER_PATTERN.find(lower)?.range?.last ?: return false
         return wrapperEnd < matchStart
+    }
+
+    /**
+     * Detecta si la acción del [kind] está GOBERNADA por un marcador de
+     * obligación/posesión PASADA (c.824 anti-overreach, ver
+     * [PAST_OBLIGATION_PATTERN]). Misma mecánica posicional que
+     * [imperativeIsWrapped]: si el marcador pasado PRECEDE al match del kind,
+     * la acción es contenido de una afirmación sobre el pasado, no un
+     * compromiso futuro ⇒ se descarta ese kind. Kinds fuera de
+     * [WRAPPABLE_PATTERNS] (TASK/REMINDER) no se tocan: la envoltura presente
+     * legítima ("recuérdame que tenía que llamar al banco" → TASK) sigue
+     * capturando.
+     */
+    private fun pastObligationGoverns(lower: String, kind: ContextIntentKind): Boolean {
+        val patterns = WRAPPABLE_PATTERNS[kind] ?: return false
+        val matchStart = patterns.mapNotNull { it.find(lower)?.range?.first }.minOrNull() ?: return false
+        val markerStart = PAST_OBLIGATION_PATTERN.find(lower)?.range?.first ?: return false
+        return markerStart < matchStart
     }
 
     /**
